@@ -1,13 +1,15 @@
-import type { Route } from "./+types/home";
-import { Welcome } from "../welcome/welcome";
+import { CupidOperationsDashboard } from "../components/cupid-operations-dashboard";
 
-export function meta({}: Route.MetaArgs) {
+export function meta() {
   return [
-    { title: "New React Router App" },
-    { name: "description", content: "Welcome to React Router!" },
+    { title: "IDC | Cupid Operations" },
+    {
+      name: "description",
+      content: "A local-first relationship operations dashboard for Cupid.",
+    },
   ];
 }
 
 export default function Home() {
-  return <Welcome />;
+  return <CupidOperationsDashboard />;
 }

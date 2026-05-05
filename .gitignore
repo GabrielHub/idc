@@ -1,6 +1,11 @@
 .DS_Store
 .env
+/.claude/
+/.playwright-mcp/
 /node_modules/
+/playwright/artifacts/
+/playwright/logs/
+/playwright/screenshots/
 
 # React Router
 /.react-router/

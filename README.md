@@ -1,5 +1,11 @@
 # Welcome to React Router!
 
+Project docs:
+
+- [Game plan](docs/gameplan.md)
+- [Agent implementation plan](docs/agent-implementation-plan.md)
+- [Visual design](docs/world/visual-design.md)
+
 A modern, production-ready template for building full-stack React applications using React Router.
 
 [![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)

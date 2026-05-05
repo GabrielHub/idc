@@ -1,15 +1,229 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=DM+Sans:ital,opsz,wght@0,9..40,200..1000;1,9..40,200..1000&family=JetBrains+Mono:wght@300..600&display=swap");
+
 @import "tailwindcss";
 
+/* ========================================================================
+   AURA — locked-in design language
+   ========================================================================
+   Everything below this comment is the project-wide theme. Use the
+   Tailwind utilities derived from these tokens (font-sans, font-display,
+   font-mono, bg-aura-bg, text-aura-rose, rounded-card, etc.) in every
+   component going forward. Avoid hard-coded color hexes outside of
+   one-off SVG / gradient stops.
+   ======================================================================== */
+
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
-    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* Type families */
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale — everything is at least 12px so screen text stays
+     comfortably legible. The "micro" / "label" sizes are uppercase +
+     tracked, which earns the smaller end of the scale. */
+  --text-micro: 0.75rem; /* 12px — uppercase eyebrow / status labels */
+  --text-micro--line-height: 1rem;
+  --text-label: 0.8125rem; /* 13px — small UI labels, mono captions */
+  --text-label--line-height: 1.125rem;
+  --text-body: 0.9375rem; /* 15px — primary body copy */
+  --text-body--line-height: 1.5rem;
+  --text-lead: 1.0625rem; /* 17px — emphasized body, intros */
+  --text-lead--line-height: 1.625rem;
+
+  /* Aura palette — core brand colors */
+  --color-aura-bg: #fdfaf6;
+  --color-aura-ink: #0f172a; /* primary text */
+  --color-aura-muted: #475569; /* secondary text */
+  --color-aura-faint: #94a3b8; /* tertiary / hint text */
+  --color-aura-rose: #f43f5e;
+  --color-aura-fuchsia: #d946ef;
+  --color-aura-violet: #a78bfa;
+  --color-aura-amber: #f59e0b;
+  --color-aura-emerald: #10b981;
+  --color-aura-card: rgba(255, 255, 255, 0.55);
+  --color-aura-hairline: rgba(15, 23, 42, 0.08);
+
+  /* Pastel mesh blob colors */
+  --color-aura-mesh-rose: #fecdd3;
+  --color-aura-mesh-violet: #ddd6fe;
+  --color-aura-mesh-amber: #fef3c7;
+  --color-aura-mesh-sky: #bae6fd;
+
+  /* Radii — the card is the design's signature shape */
+  --radius-pill: 9999px;
+  --radius-card: 28px;
+  --radius-chip: 14px;
+  --radius-tile: 12px;
+
+  /* Shadows */
+  --shadow-card:
+    0 30px 80px -30px rgba(167, 139, 250, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+  --shadow-cta: 0 18px 40px -12px rgba(236, 72, 153, 0.6);
+  --shadow-cta-hover: 0 22px 50px -12px rgba(236, 72, 153, 0.75);
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  background: var(--color-aura-bg);
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--color-aura-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ========================================================================
+   AURA motion
+   ======================================================================== */
+
+/* Pastel mesh blobs — drifting */
+@keyframes aura-blob-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
   }
+  50% {
+    transform: translate(70px, -50px) scale(1.18);
+  }
+}
+@keyframes aura-blob-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate(-70px, 60px) scale(0.92);
+  }
+}
+@keyframes aura-blob-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(50px, 50px) scale(1.12);
+  }
+}
+@keyframes aura-blob-d {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(0.94);
+  }
+  50% {
+    transform: translate(-60px, -40px) scale(1.08);
+  }
+}
+.aura-blob-1 {
+  animation: aura-blob-a 18s ease-in-out infinite;
+}
+.aura-blob-2 {
+  animation: aura-blob-b 22s ease-in-out infinite;
+}
+.aura-blob-3 {
+  animation: aura-blob-c 26s ease-in-out infinite;
+}
+.aura-blob-4 {
+  animation: aura-blob-d 20s ease-in-out infinite;
+}
+
+/* Soft pulsing aura rings (behind the hero) */
+@keyframes aura-ring {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}
+.aura-ring {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: aura-ring 5s ease-out infinite;
+}
+
+/* Sparkle twinkle */
+@keyframes aura-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}
+.aura-twinkle {
+  animation: aura-twinkle 2.6s ease-in-out infinite;
+}
+
+/* Sticker wobble — gentle vertical drift, no rotation here so the
+   parent rotate-[Xdeg] survives. */
+@keyframes aura-wobble {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+.aura-wobble {
+  animation: aura-wobble 5s ease-in-out infinite;
+}
+
+/* Wavy underline draw-on */
+@keyframes aura-wave-draw {
+  from {
+    stroke-dashoffset: 240;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.aura-wave {
+  stroke-dasharray: 240;
+  stroke-dashoffset: 240;
+  animation: aura-wave-draw 1.4s 700ms ease-out forwards;
+}
+
+/* CTA gradient drift — keeps the button feeling alive */
+@keyframes aura-cta-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.aura-cta {
+  background-size: 220% 220%;
+  animation: aura-cta-shift 9s ease infinite;
+}
+
+/* Universal entry */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in-up {
+  animation: fade-in-up 600ms ease-out backwards;
 }

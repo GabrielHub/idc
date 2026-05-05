@@ -5,6 +5,7 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
+    "portrait:cutout": "python scripts/portraits/remove_background.py",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
@@ -14,7 +15,8 @@
     "isbot": "^5.1.36",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "react-router": "7.14.0"
+    "react-router": "7.14.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@react-router/dev": "7.14.0",
@@ -25,5 +27,6 @@
     "tailwindcss": "^4.2.2",
     "typescript": "^5.9.3",
     "vite": "^8.0.3"
-  }
+  },
+  "packageManager": "pnpm@10.33.3"
 }
