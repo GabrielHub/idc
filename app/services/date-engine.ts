@@ -585,7 +585,7 @@ function deterministicCharacterText({
   repeatCount: number;
   interventionText: string | undefined;
 }): string {
-  const sample = speaker.voice.sampleMessages[0];
+  const sample = speaker.voice.sampleMessages.opener[0] ?? "";
   const beatHint = scenario.director.beats.find((beat) => beat.atTurn <= turnIndex);
   const repeatLine =
     repeatCount > 0

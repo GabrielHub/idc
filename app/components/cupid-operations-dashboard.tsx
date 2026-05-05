@@ -43,6 +43,7 @@ import {
   type StreamingDraftMessage,
   pad2,
 } from "./dashboard-views";
+import { useSfx } from "./sfx-provider";
 
 type ViewKey = "roster" | "brief" | "date";
 
@@ -69,6 +70,7 @@ type CupidOperationsDashboardProps = {
 
 export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboardProps) {
   const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
+  const { play } = useSfx();
   const [save, setSave] = useState<GameSave | null>(null);
   const [view, setView] = useState<ViewKey>("roster");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -79,6 +81,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [isActionPending, setIsActionPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
+  const lastErrorMessageRef = useRef<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -148,6 +151,20 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (errorMessage === null) {
+      lastErrorMessageRef.current = null;
+      return;
+    }
+
+    if (lastErrorMessageRef.current === errorMessage) {
+      return;
+    }
+
+    lastErrorMessageRef.current = errorMessage;
+    play("alert");
+  }, [errorMessage, play]);
 
   const activeShift = save === null ? null : getActiveShift(save);
   const featuredMembers = useMemo(
@@ -394,6 +411,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
 
   function applyGameStreamEvent(event: GameStreamEvent) {
     if (event.type === "characterStart") {
+      play("message");
       setStreamingDrafts((current) => {
         const existingDraft = current.find((draft) => draft.sequenceIndex === event.sequenceIndex);
 
@@ -689,6 +707,7 @@ function BrandPill({
       <span aria-hidden className="h-3 w-px bg-aura-hairline" />
       <button
         type="button"
+        data-sfx="click"
         disabled={aiDisabled}
         onClick={onRetryLocalAi}
         title={localAiStatus.message}
@@ -802,6 +821,7 @@ function SettingsMenu({
   onPunchOut: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -842,10 +862,15 @@ function SettingsMenu({
     onPunchOut();
   }
 
+  function handleToggleSfx() {
+    setSfxEnabled(!sfxEnabled);
+  }
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
         type="button"
+        data-sfx="menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         aria-label="Settings"
@@ -868,7 +893,18 @@ function SettingsMenu({
           >
             <button
               type="button"
+              role="menuitemcheckbox"
+              aria-checked={sfxEnabled}
+              data-sfx="toggle"
+              onClick={handleToggleSfx}
+              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+            >
+              SFX {sfxEnabled ? "on" : "off"}
+            </button>
+            <button
+              type="button"
               role="menuitem"
+              data-sfx="menu"
               onClick={handlePunchOut}
               disabled={isActionPending}
               className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
@@ -878,6 +914,7 @@ function SettingsMenu({
             <button
               type="button"
               role="menuitem"
+              data-sfx="danger"
               onClick={handleReset}
               disabled={isActionPending}
               className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-aura-rose/10 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
@@ -953,6 +990,7 @@ function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () =>
       <p className="text-label leading-relaxed">{message}</p>
       <button
         type="button"
+        data-sfx="dismiss"
         onClick={onDismiss}
         className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80 hover:text-aura-rose"
       >

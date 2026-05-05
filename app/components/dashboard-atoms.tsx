@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { Member, PortraitAsset } from "../domain/game";
+import type { SfxCue } from "./sfx-provider";
 
 /* ------------------------------------------------------------------ */
 /* Eyebrow + headline                                                 */
@@ -270,12 +271,14 @@ type ButtonProps = {
   type?: "button" | "submit";
   ariaPressed?: boolean;
   full?: boolean;
+  sfx?: SfxCue | "none";
 };
 
-export function PrimaryButton({ children, onClick, disabled, full }: ButtonProps) {
+export function PrimaryButton({ children, onClick, disabled, full, sfx = "primary" }: ButtonProps) {
   return (
     <button
       type="button"
+      data-sfx={sfx}
       onClick={onClick}
       disabled={disabled}
       className={`aura-cta cursor-pointer rounded-pill bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-7 py-3.5 text-body font-semibold tracking-wide text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0 ${full ? "w-full" : ""}`}
@@ -285,13 +288,20 @@ export function PrimaryButton({ children, onClick, disabled, full }: ButtonProps
   );
 }
 
-export function GhostButton({ children, onClick, disabled, ariaPressed }: ButtonProps) {
+export function GhostButton({
+  children,
+  onClick,
+  disabled,
+  ariaPressed,
+  sfx = "click",
+}: ButtonProps) {
   const pressedClass = ariaPressed
     ? "aura-glass-ink border-transparent"
     : "aura-glass text-aura-muted hover:text-aura-ink";
   return (
     <button
       type="button"
+      data-sfx={sfx}
       onClick={onClick}
       disabled={disabled}
       aria-pressed={ariaPressed}
@@ -302,10 +312,11 @@ export function GhostButton({ children, onClick, disabled, ariaPressed }: Button
   );
 }
 
-export function QuietButton({ children, onClick, disabled }: ButtonProps) {
+export function QuietButton({ children, onClick, disabled, sfx = "click" }: ButtonProps) {
   return (
     <button
       type="button"
+      data-sfx={sfx}
       onClick={onClick}
       disabled={disabled}
       className="cursor-pointer rounded-pill px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
@@ -320,10 +331,11 @@ export function QuietButton({ children, onClick, disabled }: ButtonProps) {
  * It carries no surface of its own, only hover + active text shading, so the
  * parent pill provides the floating glass.
  */
-export function ChromeButton({ children, onClick, disabled }: ButtonProps) {
+export function ChromeButton({ children, onClick, disabled, sfx = "click" }: ButtonProps) {
   return (
     <button
       type="button"
+      data-sfx={sfx}
       onClick={onClick}
       disabled={disabled}
       className="cursor-pointer whitespace-nowrap rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"

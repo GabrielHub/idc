@@ -536,7 +536,7 @@ function PartnerTile({
         >
           <div className="flex items-start gap-3">
             <Portrait member={member} variant="row" />
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 space-y-1">
               <h4
                 className={`line-clamp-1 pr-9 font-display text-display-sm font-semibold leading-tight tracking-tight transition-colors duration-300 ${
                   isSelected ? "text-white" : "text-aura-ink"
@@ -544,22 +544,28 @@ function PartnerTile({
               >
                 {member.firstName}
               </h4>
+              <p
+                className={`line-clamp-2 aura-accent pr-9 text-label leading-snug transition-colors duration-300 ${
+                  isSelected ? "text-white/80" : "text-aura-ink/75"
+                }`}
+              >
+                &ldquo;{profileTeaser}&rdquo;
+              </p>
             </div>
           </div>
-          <p
-            className={`line-clamp-2 aura-accent text-label leading-snug transition-colors duration-300 ${
-              isSelected ? "text-white/80" : "text-aura-ink/75"
-            }`}
-          >
-            &ldquo;{profileTeaser}&rdquo;
-          </p>
-          <div className="mt-auto grid grid-cols-2 gap-3 pt-1">
-            <TileMeter label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
-            <TileMeter
+          <div className="mt-auto grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5 pt-1">
+            <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
+            <CaseStat
               label="Openness"
               value={member.state.openness}
               inverted={isSelected}
               tone="violet"
+            />
+            <CaseStat
+              label="Burnout"
+              value={member.state.burnout}
+              inverted={isSelected}
+              tone="amber"
             />
           </div>
         </button>
@@ -579,52 +585,6 @@ function PartnerTile({
         </button>
       </article>
     </motion.li>
-  );
-}
-
-function TileMeter({
-  label,
-  value,
-  inverted,
-  tone,
-}: {
-  label: string;
-  value: number;
-  inverted: boolean;
-  tone: "rose" | "violet";
-}) {
-  const fill =
-    tone === "violet" ? "from-aura-violet to-aura-fuchsia" : "from-aura-rose to-aura-fuchsia";
-  const widthClass = scoreWidthClass(value);
-  return (
-    <div className="space-y-1">
-      <div className="flex items-baseline justify-between">
-        <span
-          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
-            inverted ? "text-white/55" : "text-aura-faint"
-          }`}
-        >
-          {label}
-        </span>
-        <span
-          className={`font-mono text-micro font-semibold tabular-nums transition-colors duration-300 ${
-            inverted ? "text-white" : "text-aura-ink"
-          }`}
-        >
-          {value}
-        </span>
-      </div>
-      <div
-        className={`h-[3px] overflow-hidden rounded-pill transition-colors duration-300 ${
-          inverted ? "bg-white/15" : "bg-aura-hairline"
-        }`}
-      >
-        <div
-          aria-hidden
-          className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r ${fill} ${widthClass}`}
-        />
-      </div>
-    </div>
   );
 }
 
@@ -863,7 +823,7 @@ function FilterSortMenu({
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.16, ease: EASE_OUT_QUART }}
             role="menu"
-            className="aura-glass-strong absolute right-0 z-30 mt-2 min-w-[12rem] overflow-hidden rounded-card p-1 shadow-card"
+            className="aura-glass-strong absolute right-0 z-30 mt-2 min-w-[14rem] overflow-hidden rounded-card p-1 shadow-card"
           >
             {SORT_MENU.map((option) => (
               <li key={option.id} role="none">
@@ -875,7 +835,7 @@ function FilterSortMenu({
                     onSortModeChange(option.id);
                     setOpen(false);
                   }}
-                  className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-tile px-3 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                  className={`flex w-full cursor-pointer items-center justify-between gap-3 whitespace-nowrap rounded-tile px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
                     sortMode === option.id
                       ? "bg-aura-ink text-white"
                       : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
@@ -1045,9 +1005,10 @@ function MemberDossier({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <Meter label="Mood" value={member.state.mood} size="md" />
               <Meter label="Openness" value={member.state.openness} tone="violet" size="md" />
+              <Meter label="Burnout" value={member.state.burnout} tone="amber" size="md" />
             </div>
 
             {request === undefined ? null : (

@@ -14,18 +14,23 @@ export const eleanorAsh: Member = {
   relationshipNeeds: [
     "A counterparty who treats her literal answers as offers, not threats",
     "Someone who understands a Vow given is a Vow kept and asks accordingly",
+    "A partner who can sit with directness without flinching",
   ],
   preferences: [
     "courts of clear lighting",
     "tables of unbroken iron",
     "proposals delivered without hedging",
     "wines named for their valley",
+    "partners who say what they mean",
+    "Bargains delivered in writing",
   ],
   dealbreakers: [
     "agents of Lower Hawthorn",
     "iron rings worn unannounced",
     "anyone who asks how the engagement ends",
     "lying for her benefit",
+    "performative bits at the Bargain",
+    "anyone who asks her true name",
   ],
   secrets: [
     "She keeps a private ledger of small kindnesses she cannot repay and is afraid the ledger is the only record of her she will leave.",
@@ -51,6 +56,7 @@ export const eleanorAsh: Member = {
       "mundane_domesticity",
       "urgent_crisis_plea",
       "corrupted_romance",
+      "character_roleplay",
     ],
     tics: [
       "opens disclosures with I will not lie to you",
@@ -59,12 +65,31 @@ export const eleanorAsh: Member = {
       "rotates seven use names by day of week, refuses her true name",
       "capitalizes Bargain, Court, Hawthorn, Vow, Favor",
     ],
-    sampleMessages: [
-      "I will not lie to you. The photograph in your second slot is from 2019. I value the disclosure. Submit a fresh image by Thursday or I withdraw the Bargain. Your listed allergy is also a lie. We can negotiate the lie.",
-      "Three offers. Coffee, where I will say little. Dinner, where I will say more. The grove behind the public library at dusk, where I will say everything. Pick carefully.",
-      "My name this week is Eleanor Ash. It is the seventh of my acceptable names. By Friday I will be Maris Glen. Plan accordingly. The Favor of remembering my name today is one I will note.",
-      "Yes, I think your dog is more handsome than you. Yes, the dog likely has better prospects. I would still like to meet you both.",
-    ],
+    sampleMessages: {
+      opener: [
+        "I will not lie to you. The photograph in your second slot is from 2019. I value the disclosure. Submit a fresh image by Thursday or I withdraw the Bargain. Your listed allergy is also a lie. We can negotiate the lie.",
+        "Three offers. Coffee, where I will say little. Dinner, where I will say more. The grove behind the public library at dusk, where I will say everything. Pick carefully.",
+        "My name this week is Eleanor Ash. It is the seventh of my acceptable names. By Friday I will be Maris Glen. Plan accordingly. The Favor of remembering my name today is one I will note.",
+        "Yes, I think your dog is more handsome than you. Yes, the dog likely has better prospects. I would still like to meet you both.",
+      ],
+      warming: [
+        "I will not lie to you. Your dossier is as represented. I am pleased. I do not say that often.",
+        "You held to the Bargain. I have logged the Favor. The Favor is returnable on demand.",
+        "Yes, your wine choice is correct. The valley is correct. The vintage is correct. You may interpret this as flirtation.",
+        "You did not ask my true name. You asked instead which name I am using this week. This is the right question.",
+      ],
+      cooling: [
+        "I will not lie to you. Your last sentence was not entirely true. I will permit it once. Not twice.",
+        "You are negotiating in a register that does not flatter you. Try the direct one.",
+        "The iron ring on your hand is unannounced. Remove it or name it. I will wait.",
+        "I will not ask how this ends. You will not ask how my engagement ends. The reciprocity holds.",
+      ],
+      crashingOut: [
+        "You have asked me for my true name. I will leave the table before I refuse you a second time.",
+        "Lower Hawthorn has reached you. I can hear it in the way you addressed me. The Bargain is rescinded.",
+        "Your bit is a lie. I cannot sit with sustained lies. I will go.",
+      ],
+    },
   },
   state: {
     mood: 66,

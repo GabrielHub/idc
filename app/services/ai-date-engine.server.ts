@@ -10,6 +10,7 @@ import {
   type GameSave,
   type JudgeSnapshot,
   type Member,
+  type MemberRequest,
   type MemoryCandidate,
   type MemoryRecord,
   type PairState,
@@ -138,6 +139,7 @@ export async function advanceDateExchangeWithLocalAi(
   repository: GameRepository,
   input: LocalAiDateEngineInput,
 ): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
   return advanceDateExchangeWithLocalAiInternal(save, repository, input);
 }
 
@@ -147,6 +149,7 @@ export async function advanceDateExchangeWithLocalAiStream(
   input: LocalAiDateEngineInput,
   emit: (event: LocalAiDateStreamEvent) => Promise<void> | void,
 ): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
   return advanceDateExchangeWithLocalAiInternal(save, repository, input, emit);
 }
 
@@ -184,6 +187,14 @@ async function advanceDateExchangeWithLocalAiInternal(
   const scenario = requireScenario(session.scenarioId);
   const pairState = requirePairState(save, session.pairId);
   const members = session.participants.map((memberId) => requireMember(save, memberId));
+  const focusRequest = findMemberRequestById(session.focusRequestId);
+  const matchFit = evaluateMatchFit({
+    members,
+    scenario,
+    pairState,
+    activeRequests: focusRequest === undefined ? [] : [focusRequest],
+  });
+  const frictionRuleHits = matchFit.internalRuleHits.filter((hit) => hit.startsWith("pair:"));
   const transcript = [...session.transcript];
   const firstNewSequenceIndex = transcript.length;
   let currentTurn = session.currentTurn;
@@ -216,6 +227,8 @@ async function advanceDateExchangeWithLocalAiInternal(
       partner,
       scenario,
       pairState,
+      focusRequest,
+      frictionRuleHits,
       createdAt: timestamp,
       emit,
     });
@@ -249,12 +262,6 @@ async function advanceDateExchangeWithLocalAiInternal(
     exchangeMessages,
     exchangeIndex,
     members,
-  });
-  const matchFit = evaluateMatchFit({
-    members,
-    scenario,
-    pairState,
-    activeRequests: focusRequestForSession(session),
   });
   const judgeSnapshot = applyMatchFitToJudgeSnapshot({
     session,
@@ -324,6 +331,7 @@ export async function completeDateSessionWithLocalAi(
   repository: GameRepository,
   input: LocalAiDateEngineInput,
 ): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
   return completeDateSessionWithLocalAiInternal(save, repository, input);
 }
 
@@ -333,6 +341,7 @@ export async function completeDateSessionWithLocalAiStream(
   input: LocalAiDateEngineInput,
   emit: (event: LocalAiDateStreamEvent) => Promise<void> | void,
 ): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
   return completeDateSessionWithLocalAiInternal(save, repository, input, emit);
 }
 
@@ -370,6 +379,11 @@ async function completeDateSessionWithLocalAiInternal(
   };
 }
 
+async function persistAcceptedInputSave(save: GameSave, repository: GameRepository): Promise<void> {
+  // The accepted caller state is recoverable even if local AI fails before the next commit.
+  await repository.saveGame(save);
+}
+
 async function createLocalAiCharacterMessage({
   repository,
   runtime,
@@ -379,6 +393,8 @@ async function createLocalAiCharacterMessage({
   partner,
   scenario,
   pairState,
+  focusRequest,
+  frictionRuleHits,
   createdAt,
   emit,
 }: {
@@ -390,6 +406,8 @@ async function createLocalAiCharacterMessage({
   partner: Member;
   scenario: DateScenario;
   pairState: PairState;
+  focusRequest: MemberRequest | undefined;
+  frictionRuleHits: readonly string[];
   createdAt: string;
   emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void;
 }): Promise<{
@@ -407,6 +425,8 @@ async function createLocalAiCharacterMessage({
       partner,
       scenario,
       pairState,
+      focusRequest,
+      frictionRuleHits,
     });
     const sequenceIndex = session.transcript.length;
     const turnIndex = session.currentTurn + 1;
@@ -464,6 +484,8 @@ async function buildCharacterPacketForTurn({
   partner,
   scenario,
   pairState,
+  focusRequest,
+  frictionRuleHits,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -473,6 +495,8 @@ async function buildCharacterPacketForTurn({
   partner: Member;
   scenario: DateScenario;
   pairState: PairState;
+  focusRequest: MemberRequest | undefined;
+  frictionRuleHits: readonly string[];
 }): Promise<CharacterPromptPacket> {
   const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
   const queryEmbedding = await createRuntimeQueryEmbedding({
@@ -503,6 +527,8 @@ async function buildCharacterPacketForTurn({
       ...memoryPack,
       recentTranscript: session.transcript.slice(-CHARACTER_RECENT_TRANSCRIPT_LIMIT),
     },
+    focusRequest,
+    frictionRuleHits,
   });
 }
 
@@ -752,12 +778,6 @@ function buildMemoryQuery(
     .join(" ");
 
   return `${speaker.name} ${partner.name} ${scenario.title} ${recentText}`;
-}
-
-function focusRequestForSession(session: DateSession) {
-  const request = findMemberRequestById(session.focusRequestId);
-
-  return request === undefined ? [] : [request];
 }
 
 async function createRuntimeQueryEmbedding({

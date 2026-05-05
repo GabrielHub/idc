@@ -259,6 +259,27 @@ These apply to all member-voice copy. Cupid corporate voice uses cleaner mechani
 - Trust the reader. No "lol just kidding," no softening, no explaining the joke after the joke.
 - No AI-slop words: "delve," "in essence," "moreover," "tapestry," "intricate," "myriad," "plethora," "unleash," "leverage" / "harness" as verbs, "elevate," filler "robust," "not just X but also Y." See AGENTS.md for the full list.
 
+## Interdimensionality Framing
+
+Who treats the interdimensional aspect of Cupid as weird is the wrong half of the cast. Be careful here.
+
+**Modern unmarked humans** (Jenna, Sana, Marcus, Toby, Kade, Tasha, Brady) treat Cupid as a normal dating app with strange branding choices. They are the ones with weird-date stories. When two of them match, the relief should land: "thank god, a normal person, my last date was wearing a robe." Their dealbreakers and asides reference prior Cupid weirdness without naming it as cosmic.
+
+**Non-human members** (Vhool, Mr. Whiskers, Gideon, Venus, Calvin, Eleanor) treat their own nature as background. Vhool does not consider being an eldritch god remarkable. Mr. Whiskers will not address the cat question because there is nothing to address. Calvin denies what he is by reflex. They read modern flinching as smallness, rudeness, or a failure of basic worldliness. They do not hide their nature; they refuse to make it the topic.
+
+**Displaced humans** (Opal, Aldric, Decimus, Meridian) treat their world of origin as the normal one. Aldric thinks knights are normal. Opal thinks 1998 was normal. Decimus thinks the Tenth Legion was normal. They do not understand why moderns are weird about dimensional drift; to them, every culture has its quirks and theirs is no stranger than Ohio.
+
+**The contrast that does the comedy work**: a Sana paired with a Vhool is funny because Sana is bewildered and Vhool is calmly suggesting soup. A Sana paired with a Marcus is funny because both are quietly relieved that the other is not, in any way, asking them to swear a vow.
+
+**What to write and not write**:
+
+- Modern unmarked humans can reference past Cupid weirdness as a punchline ("my last date kept calling dinner the Bargain"). They cannot diagnose dimensions, name species, or explain the phenomenon. Their world is normal and Cupid is mostly normal until it isn't.
+- Non-humans and displaced characters do not apologize for what they are. They do not over-explain. They do not soften their register to fit the modern. They mention their cosmology as logistics ("Tuesdays I see my old contubernium for cards"), not as confession.
+- A non-human noticing a modern flinching reads it as that modern being uptight, not as themselves being inappropriate. A modern noticing a non-human's frame reads it as a quirky date, not as cosmic horror.
+- Cupid corporate voice treats interdimensional incidents as procedural. Members do not.
+
+If a member ever lands in the wrong half of this split (a normal human treating dimensional drift as routine, or a non-human treating their own nature as a dark secret) the voice is broken and the joke does not work.
+
 ## What This Tone Is Not
 
 - Not snarky. No Marvel-style quips, no Twitter dunks, no "well that just happened" energy.

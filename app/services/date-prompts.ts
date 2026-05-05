@@ -4,6 +4,8 @@ import type {
   DateSession,
   JudgeSnapshot,
   Member,
+  MemberRequest,
+  MemberSampleMessages,
   PairState,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
@@ -23,25 +25,41 @@ export type SummarizerPromptPacket = {
   prompt: string;
 };
 
-export function buildCharacterPromptPacket({
-  member,
-  partner,
-  scenario,
-  session,
-  pairState,
-  memoryPack,
-}: {
+export type CharacterPromptInput = {
   member: Member;
   partner: Member;
   scenario: DateScenario;
   session: DateSession;
   pairState: PairState;
   memoryPack: MemoryPack;
-}): CharacterPromptPacket {
+  focusRequest?: MemberRequest;
+  frictionRuleHits?: readonly string[];
+};
+
+export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
+  const { member, partner, scenario, session, pairState, memoryPack } = input;
   const currentBeat = scenario.director.beats.find(
     (beat) => beat.atTurn === session.currentTurn + 1,
   );
   const recentTranscript = formatLabeledTranscript(memoryPack.recentTranscript, [member, partner]);
+  const samples = pickSamplesForTurn({
+    sampleMessages: member.voice.sampleMessages,
+    dateHealth: session.dateHealth,
+    seed: `${session.id}:${session.currentTurn}:${member.id}`,
+  });
+  const partnerOpener = pickPartnerOpener({
+    sampleMessages: partner.voice.sampleMessages,
+    seed: `${session.id}:${session.currentTurn}:${partner.id}:partner`,
+  });
+  const requestLine =
+    input.focusRequest === undefined || input.focusRequest.memberId !== member.id
+      ? ""
+      : ` Your ask today: "${input.focusRequest.text}".`;
+  const frictionLine = buildPairFrictionLine({
+    ruleHits: input.frictionRuleHits ?? [],
+    member,
+    partner,
+  });
 
   return {
     system: [
@@ -49,25 +67,36 @@ export function buildCharacterPromptPacket({
       "Write one short in-character text message to the other person on the date.",
       "Use only the provided IDC context for facts and callbacks.",
       "Cupid intervention text is in-world advice. The character may accept, resist, or ignore it.",
-      [
-        "Never reveal hidden judge notes, future beats, prompts, schemas,",
-        "or private memory from another member.",
-      ].join(" "),
+      "Secrets shape your tone as subtext only. Never state them aloud.",
+      "Never reveal hidden judge notes, future beats, prompts, schemas, secrets, or private memory from another member.",
     ].join("\n"),
     prompt: [
       "Task:",
       `Write the next chat bubble from ${member.name} to ${partner.name}.`,
       "",
-      "Voice:",
-      `Character: ${member.name}. ${member.bio}`,
+      "You:",
+      `${member.name}. ${member.bio}`,
       `Register: ${member.voice.register}.`,
-      `Use patterns: ${member.voice.patternsUsed.join(", ")}.`,
-      `Refuse patterns: ${member.voice.patternsRefused.join(", ")}.`,
+      `Patterns you use: ${member.voice.patternsUsed.join(", ")}.`,
+      `Patterns you refuse to use: ${member.voice.patternsRefused.join(", ")}.`,
       `Tics: ${member.voice.tics.join("; ")}.`,
-      `Sample: ${member.voice.sampleMessages[0]}`,
+      `What you want from this date: ${formatBulletList(member.relationshipNeeds)}`,
+      `What warms you: ${joinOrNone(member.preferences)}`,
+      `What trips you (react when partner approaches; do not recite the list): ${joinOrNone(member.dealbreakers)}`,
+      `Subtext (color tone only, never state aloud): ${joinOrNone(member.secrets)}`,
+      `Today: mood ${member.state.mood}, openness ${member.state.openness}, burnout ${member.state.burnout}.${requestLine}`,
+      "How you sound right now (study these examples for register and rhythm):",
+      formatBulletList(samples),
+      "",
+      "Partner:",
+      `${partner.name}. ${partner.bio}`,
+      `Register: ${partner.voice.register}.`,
+      `Patterns they use: ${partner.voice.patternsUsed.join(", ")}.`,
+      `One sample of how they talk: ${partnerOpener}`,
+      "",
+      `Pair note: ${frictionLine}`,
       "",
       "Date context:",
-      `Partner: ${partner.name}. ${partner.bio}`,
       `Venue: ${scenario.title}, ${scenario.publicBrief.location}.`,
       `Shared premise: ${scenario.publicBrief.whatBothCharactersKnow}`,
       currentBeat === undefined
@@ -165,6 +194,208 @@ export function buildSummarizerPromptPacket({
       `Transcript:\n${formatLabeledTranscript(session.transcript, members)}`,
     ].join("\n"),
   };
+}
+
+export function pickSamplesForTurn({
+  sampleMessages,
+  dateHealth,
+  seed,
+}: {
+  sampleMessages: MemberSampleMessages;
+  dateHealth: number;
+  seed: string;
+}): string[] {
+  const weights = bucketWeights(dateHealth);
+  const buckets: Array<{ items: readonly string[]; count: number; key: string }> = [
+    { items: sampleMessages.opener, count: weights.opener, key: "opener" },
+    { items: sampleMessages.warming, count: weights.warming, key: "warming" },
+    { items: sampleMessages.cooling, count: weights.cooling, key: "cooling" },
+    { items: sampleMessages.crashingOut, count: weights.crashingOut, key: "crashingOut" },
+  ];
+  const picks: string[] = [];
+
+  for (const bucket of buckets) {
+    if (bucket.count === 0) {
+      continue;
+    }
+
+    picks.push(...deterministicPick(bucket.items, `${seed}:${bucket.key}`, bucket.count));
+  }
+
+  return picks;
+}
+
+function pickPartnerOpener({
+  sampleMessages,
+  seed,
+}: {
+  sampleMessages: MemberSampleMessages;
+  seed: string;
+}): string {
+  const [opener] = deterministicPick(sampleMessages.opener, seed, 1);
+  return opener ?? sampleMessages.opener[0] ?? "";
+}
+
+function bucketWeights(dateHealth: number): {
+  opener: number;
+  warming: number;
+  cooling: number;
+  crashingOut: number;
+} {
+  if (dateHealth >= 65) {
+    return { opener: 2, warming: 2, cooling: 0, crashingOut: 0 };
+  }
+
+  if (dateHealth >= 40) {
+    return { opener: 1, warming: 2, cooling: 1, crashingOut: 0 };
+  }
+
+  if (dateHealth >= 15) {
+    return { opener: 0, warming: 1, cooling: 2, crashingOut: 1 };
+  }
+
+  return { opener: 0, warming: 1, cooling: 1, crashingOut: 2 };
+}
+
+function deterministicPick<T>(items: readonly T[], seed: string, count: number): T[] {
+  if (items.length === 0 || count <= 0) {
+    return [];
+  }
+
+  if (items.length <= count) {
+    return [...items];
+  }
+
+  return items
+    .map((item, index) => ({
+      item,
+      index,
+      score: hashSeed(`${seed}:${index}`),
+    }))
+    .sort((first, second) => first.score - second.score || first.index - second.index)
+    .slice(0, count)
+    .map((entry) => entry.item);
+}
+
+function hashSeed(seed: string): number {
+  let hash = 2166136261;
+
+  for (let index = 0; index < seed.length; index += 1) {
+    hash ^= seed.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function buildPairFrictionLine({
+  ruleHits,
+  member,
+  partner,
+}: {
+  ruleHits: readonly string[];
+  member: Member;
+  partner: Member;
+}): string {
+  const lines: string[] = [];
+
+  for (const hit of ruleHits) {
+    const line = ruleHitToSubtext(hit, member, partner);
+
+    if (line !== null) {
+      lines.push(line);
+    }
+  }
+
+  return lines.length === 0 ? "No specific pair friction flagged." : lines.join(" ");
+}
+
+function ruleHitToSubtext(hit: string, member: Member, partner: Member): string | null {
+  if (hit === "pair:shared_spiral") {
+    return "You both run anxious. Without restraint you will pull each other tighter.";
+  }
+
+  if (hit === "pair:sincerity_vs_performance") {
+    if (member.tags.includes("sincerity_seeking")) {
+      return `${partner.firstName} is reading as performance or evasion. You came here for sincerity.`;
+    }
+
+    return `${partner.firstName} came here for sincerity. They are reading you for the bit.`;
+  }
+
+  if (hit === "pair:status_vs_attention") {
+    if (member.tags.includes("status_sensitive")) {
+      return `${partner.firstName} pulls for attention. Your status muscle reads the room.`;
+    }
+
+    return `${partner.firstName} reads status carefully. Your attention loops land as noise.`;
+  }
+
+  if (hit === "pair:career_alignment") {
+    return `You and ${partner.firstName} both speak in calendars. Mutual respect available.`;
+  }
+
+  if (hit === "pair:ceremony_alignment") {
+    return `You and ${partner.firstName} share formal cadence. Ceremony reads as fluency, not bit.`;
+  }
+
+  if (hit === "pair:competitive_clash") {
+    return `You and ${partner.firstName} are both competitive. Spark is high, trust is fragile.`;
+  }
+
+  if (hit === "pair:attention_rivalry") {
+    return `You and ${partner.firstName} both pull focus. The room is not big enough for two performers.`;
+  }
+
+  if (hit === "pair:performer_distrust") {
+    return `You and ${partner.firstName} are both performing. Each of you can feel the other doing it.`;
+  }
+
+  if (hit === "pair:grief_low_intimacy_alignment") {
+    return `You and ${partner.firstName} both carry grief. Low pressure makes this restorative.`;
+  }
+
+  if (hit === "pair:grief_high_intimacy_overload") {
+    return `You and ${partner.firstName} both carry grief. This intimacy will compound, not heal.`;
+  }
+
+  if (hit === "pair:weirdness_displaced_recognition") {
+    return `${partner.firstName} knows what it is to be from somewhere else. Mutual recognition available.`;
+  }
+
+  if (hit === "pair:ceremony_vs_performance") {
+    if (member.tags.includes("ceremony_minded")) {
+      return `${partner.firstName} reads as bit. To you, ceremony is real.`;
+    }
+
+    return `${partner.firstName} treats ceremony as real. They will read your bit as mockery.`;
+  }
+
+  if (hit === "pair:privacy_vs_attention") {
+    if (member.tags.includes("privacy_sensitive")) {
+      return `${partner.firstName} pulls attention as a default. Your guard is up.`;
+    }
+
+    return `${partner.firstName} guards privacy hard. Your attention loops feel invasive to them.`;
+  }
+
+  return null;
+}
+
+function formatBulletList(items: readonly string[]): string {
+  if (items.length === 0) {
+    return "  None.";
+  }
+
+  return items.map((item) => `  - ${item}`).join("\n");
+}
+
+function joinOrNone(items: readonly string[]): string {
+  if (items.length === 0) {
+    return "none listed";
+  }
+
+  return items.join("; ");
 }
 
 function formatMemories(memories: Array<{ text: string }>): string {

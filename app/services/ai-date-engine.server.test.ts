@@ -184,8 +184,6 @@ describe("local AI date engine orchestration", () => {
         };
       },
     };
-    await repository.saveGame(started.save);
-
     await expect(
       completeDateSessionWithLocalAi(started.save, repository, {
         dateSessionId: started.session.id,

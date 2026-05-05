@@ -6,6 +6,7 @@ import {
   type JudgeSnapshot,
   type Member,
   type MemberRequest,
+  type MemberRequestTag,
   type MemberTag,
   type PairState,
   type PairStats,
@@ -55,6 +56,37 @@ export type ApplyMatchFitToJudgeInput = {
 const HARD_STOP_SCORE = 5;
 const HIGH_PRESSURE_THRESHOLD = 6;
 const MEDIUM_PRESSURE_THRESHOLD = 3;
+const PROPHECY_BLOCKED_REQUEST_TAGS = [
+  "prophecy_averse",
+  "normal_date",
+  "choice",
+] satisfies readonly MemberRequestTag[];
+const HIGH_PRESSURE_BLOCKED_REQUEST_TAGS = [
+  "privacy",
+  "quiet_date",
+  "discretion",
+  "name_discretion",
+] satisfies readonly MemberRequestTag[];
+const LOW_PRESSURE_BLOCKED_REQUEST_TAGS = [
+  "low_pressure",
+  "career_fatigue",
+] satisfies readonly MemberRequestTag[];
+const SINCERITY_REQUEST_TAGS = [
+  "sincerity",
+  "grounded",
+  "widower",
+] satisfies readonly MemberRequestTag[];
+const LOW_PRESSURE_COVERED_REQUEST_TAGS = [
+  "normal_date",
+  "low_pressure",
+  "career_fatigue",
+] satisfies readonly MemberRequestTag[];
+const CAREER_COVERED_REQUEST_TAGS = [
+  "career",
+  "respect",
+  "decisiveness",
+] satisfies readonly MemberRequestTag[];
+const STRUCTURE_REQUEST_TAG = "structure" satisfies MemberRequestTag;
 
 export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
   const [firstMember, secondMember] = requireTwoMembers(input.members);
@@ -70,7 +102,7 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
     pressure += memberPressure(member, input.scenario);
   }
 
-  score += pairTraitScore(firstMember, secondMember, input.pairState, ruleHits);
+  score += pairTraitScore(firstMember, secondMember, input.pairState, input.scenario, ruleHits);
 
   const hardStop = findHardStop(members, input.scenario);
   const requestSignals = evaluateRequestSignals({
@@ -225,6 +257,7 @@ function pairTraitScore(
   firstMember: Member,
   secondMember: Member,
   pairState: PairState,
+  scenario: DateScenario,
   ruleHits: string[],
 ): number {
   let score = 0;
@@ -270,6 +303,62 @@ function pairTraitScore(
     pairState.stats.weirdnessTolerance >= 55
   ) {
     score += 1;
+  }
+
+  if (bothHaveTag(firstMember, secondMember, "ceremony_minded")) {
+    score += 2;
+    ruleHits.push("pair:ceremony_alignment");
+  }
+
+  if (bothHaveTag(firstMember, secondMember, "competitive")) {
+    score -= 1;
+    ruleHits.push("pair:competitive_clash");
+  }
+
+  if (bothHaveTag(firstMember, secondMember, "attention_seeking")) {
+    score -= 2;
+    ruleHits.push("pair:attention_rivalry");
+  }
+
+  if (bothHaveTag(firstMember, secondMember, "performative")) {
+    score -= 1;
+    ruleHits.push("pair:performer_distrust");
+  }
+
+  if (bothHaveTag(firstMember, secondMember, "grief_sensitive")) {
+    if (scenario.card.intimacy === "high") {
+      score -= 2;
+      ruleHits.push("pair:grief_high_intimacy_overload");
+    } else {
+      score += 2;
+      ruleHits.push("pair:grief_low_intimacy_alignment");
+    }
+  }
+
+  if (
+    oneHasTag(firstMember, secondMember, "weirdness_native") &&
+    oneHasTag(firstMember, secondMember, "reality_displaced")
+  ) {
+    score += 1;
+    ruleHits.push("pair:weirdness_displaced_recognition");
+  }
+
+  if (oneHasTag(firstMember, secondMember, "ceremony_minded")) {
+    const otherMember = hasTag(firstMember, "ceremony_minded") ? secondMember : firstMember;
+
+    if (hasTag(otherMember, "performative")) {
+      score -= 2;
+      ruleHits.push("pair:ceremony_vs_performance");
+    }
+  }
+
+  if (oneHasTag(firstMember, secondMember, "privacy_sensitive")) {
+    const otherMember = hasTag(firstMember, "privacy_sensitive") ? secondMember : firstMember;
+
+    if (hasTag(otherMember, "attention_seeking")) {
+      score -= 2;
+      ruleHits.push("pair:privacy_vs_attention");
+    }
   }
 
   return score;
@@ -425,52 +514,45 @@ function evaluateRequestFit(
     return "blocked";
   }
 
-  const requestTags = new Set(request.tags);
+  const requestTags = new Set<MemberRequestTag>(request.tags);
 
   if (
-    (requestTags.has("prophecy_averse") ||
-      requestTags.has("normal_date") ||
-      requestTags.has("choice")) &&
+    requestHasAnyTag(requestTags, PROPHECY_BLOCKED_REQUEST_TAGS) &&
     scenario.card.tags.includes("prophecy")
   ) {
     return "blocked";
   }
 
   if (
-    (requestTags.has("privacy") ||
-      requestTags.has("quiet_date") ||
-      requestTags.has("discretion") ||
-      requestTags.has("name_discretion")) &&
+    requestHasAnyTag(requestTags, HIGH_PRESSURE_BLOCKED_REQUEST_TAGS) &&
     (scenario.card.tags.includes("high_pressure") || scenario.card.risk === "high")
   ) {
     return "blocked";
   }
 
   if (
-    (requestTags.has("low_pressure") || requestTags.has("career_fatigue")) &&
+    requestHasAnyTag(requestTags, LOW_PRESSURE_BLOCKED_REQUEST_TAGS) &&
     scenario.card.tags.includes("high_pressure")
   ) {
     return "blocked";
   }
 
   if (
-    (requestTags.has("sincerity") || requestTags.has("grounded") || requestTags.has("widower")) &&
+    requestHasAnyTag(requestTags, SINCERITY_REQUEST_TAGS) &&
     (hasTag(partner, "performative") || hasTag(partner, "avoidant"))
   ) {
     return "blocked";
   }
 
   if (
-    (requestTags.has("normal_date") ||
-      requestTags.has("low_pressure") ||
-      requestTags.has("career_fatigue")) &&
+    requestHasAnyTag(requestTags, LOW_PRESSURE_COVERED_REQUEST_TAGS) &&
     scenario.card.tags.includes("low_pressure")
   ) {
     return "covered";
   }
 
   if (
-    (requestTags.has("career") || requestTags.has("respect") || requestTags.has("decisiveness")) &&
+    requestHasAnyTag(requestTags, CAREER_COVERED_REQUEST_TAGS) &&
     (hasTag(partner, "career_focused") ||
       hasTag(partner, "status_sensitive") ||
       scenario.card.tags.includes("career"))
@@ -479,18 +561,25 @@ function evaluateRequestFit(
   }
 
   if (
-    (requestTags.has("sincerity") || requestTags.has("grounded") || requestTags.has("widower")) &&
+    requestHasAnyTag(requestTags, SINCERITY_REQUEST_TAGS) &&
     !hasTag(partner, "performative") &&
     !hasTag(partner, "avoidant")
   ) {
     return "covered";
   }
 
-  if (requestTags.has("structure") && scenario.card.chaos !== "high") {
+  if (requestTags.has(STRUCTURE_REQUEST_TAG) && scenario.card.chaos !== "high") {
     return "covered";
   }
 
   return "uncertain";
+}
+
+function requestHasAnyTag(
+  requestTags: ReadonlySet<MemberRequestTag>,
+  tags: readonly MemberRequestTag[],
+): boolean {
+  return tags.some((tag) => requestTags.has(tag));
 }
 
 function requestSignalScore(signal: MatchAskSignal): number {

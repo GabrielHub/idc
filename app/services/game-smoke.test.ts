@@ -8,6 +8,7 @@ import {
   type GameSave,
   MEMBER_IDENTITY_TAGS,
   memoryRecordSchema,
+  memberRequestTagSchema,
   memberSchema,
   memberTagSchema,
   type Member,
@@ -54,7 +55,7 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
     expect(starterMembers).toHaveLength(17);
-    expect(starterScenarios).toHaveLength(14);
+    expect(starterScenarios).toHaveLength(20);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
@@ -67,6 +68,13 @@ describe("IDC playable smoke path", () => {
       expect(member.tags).toHaveLength(Math.min(Math.max(member.tags.length, 3), 5));
       expect(member.tags.every((tag) => memberTagSchema.safeParse(tag).success)).toBe(true);
       expect(member.tags.filter((tag) => MEMBER_IDENTITY_TAGS.includes(tag)).length).toBe(1);
+    }
+  });
+
+  it("keeps member request tags controlled", () => {
+    for (const request of memberRequests) {
+      expect(request.tags.length).toBeGreaterThan(0);
+      expect(request.tags.every((tag) => memberRequestTagSchema.safeParse(tag).success)).toBe(true);
     }
   });
 
@@ -223,6 +231,47 @@ describe("IDC playable smoke path", () => {
     expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(17);
   });
 
+  it("hydrates new starter scenarios into existing scenario decks", async () => {
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage);
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const oldStarterScenarioIds = starterScenarios.slice(0, 14).map((scenario) => scenario.id);
+    const staleDeckSave = gameSaveSchema.parse({
+      ...save,
+      shifts: save.shifts.map((shift) =>
+        shiftStateSchema.parse({
+          ...shift,
+          scenarioDeck: {
+            ...shift.scenarioDeck,
+            scenarioIds: oldStarterScenarioIds,
+            maxSize: 14,
+            offeredScenarioIds: shift.scenarioDeck.offeredScenarioIds.filter((scenarioId) =>
+              oldStarterScenarioIds.includes(scenarioId),
+            ),
+          },
+        }),
+      ),
+    });
+    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(staleDeckSave));
+
+    const loaded = await repository.loadGame();
+    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+    if (loaded === null) {
+      throw new Error("Expected hydrated save.");
+    }
+
+    const loadedShift = loaded.shifts.find((shift) => shift.id === loaded.activeShiftId);
+    const persistedShift = parsePersistedSave(persistedRaw)?.shifts.find(
+      (shift) => shift.id === loaded.activeShiftId,
+    );
+    const expectedScenarioIds = starterScenarios.map((scenario) => scenario.id);
+
+    expect(loadedShift?.scenarioDeck.scenarioIds).toEqual(expectedScenarioIds);
+    expect(loadedShift?.scenarioDeck.maxSize).toBe(starterScenarios.length);
+    expect(persistedShift?.scenarioDeck.scenarioIds).toEqual(expectedScenarioIds);
+    expect(persistedShift?.scenarioDeck.maxSize).toBe(starterScenarios.length);
+  });
+
   it("migrates pre-gameplay-tag v2 saves without resetting campaign state", async () => {
     const storage = new MemoryStorageDriver();
     const repository = new LocalGameRepository(storage);
@@ -312,6 +361,54 @@ describe("IDC playable smoke path", () => {
     );
     expect(loadedSana?.portraits.neutral.portrait.model).toBe(
       fixtureSana?.portraits.neutral.portrait.model,
+    );
+  });
+
+  it("hydrates fixture-owned data on load instead of ordinary save writes", async () => {
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage, "hot-path-save");
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const staleSave = gameSaveSchema.parse({
+      ...save,
+      members: save.members.map((member) =>
+        member.id === "sana-karim"
+          ? memberSchema.parse({
+              ...member,
+              portraits: {
+                ...member.portraits,
+                neutral: {
+                  portrait: {
+                    ...member.portraits.neutral.portrait,
+                    model: "stale-model",
+                  },
+                  avatar: {
+                    ...member.portraits.neutral.avatar,
+                    model: "stale-model",
+                  },
+                },
+              },
+            })
+          : member,
+      ),
+    });
+
+    await repository.saveGame(staleSave);
+    const persistedBeforeLoad = parsePersistedSave(storage.getItem("hot-path-save"));
+    const savedSana = persistedBeforeLoad?.members.find((member) => member.id === "sana-karim");
+
+    expect(savedSana?.portraits.neutral.avatar.model).toBe("stale-model");
+
+    const loaded = await repository.loadGame();
+    const loadedSana = loaded?.members.find((member) => member.id === "sana-karim");
+    const persistedAfterLoad = parsePersistedSave(storage.getItem("hot-path-save"));
+    const persistedSana = persistedAfterLoad?.members.find((member) => member.id === "sana-karim");
+    const fixtureSana = starterMembers.find((member) => member.id === "sana-karim");
+
+    expect(loadedSana?.portraits.neutral.avatar.model).toBe(
+      fixtureSana?.portraits.neutral.avatar.model,
+    );
+    expect(persistedSana?.portraits.neutral.avatar.model).toBe(
+      fixtureSana?.portraits.neutral.avatar.model,
     );
   });
 

@@ -53,12 +53,19 @@ export const voicePatternSchema = z.enum([
   "cursed_question",
 ]);
 
+export const memberSampleMessagesSchema = z.object({
+  opener: z.array(z.string().min(1)).min(3).max(6),
+  warming: z.array(z.string().min(1)).min(3).max(6),
+  cooling: z.array(z.string().min(1)).min(3).max(6),
+  crashingOut: z.array(z.string().min(1)).min(2).max(4),
+});
+
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),
   patternsUsed: z.array(voicePatternSchema).min(1).max(4),
   patternsRefused: z.array(voicePatternSchema).min(2),
   tics: z.array(z.string().min(1)).min(3).max(5),
-  sampleMessages: z.array(z.string().min(1)).min(1),
+  sampleMessages: memberSampleMessagesSchema,
 });
 
 export const memberStateSchema = z.object({
@@ -216,12 +223,45 @@ export const companyGoalSchema = z.object({
   tags: z.array(z.string().min(1)),
 });
 
+export const memberRequestTagSchema = z.enum([
+  "normal_date",
+  "prophecy_averse",
+  "privacy",
+  "quiet_date",
+  "cosmic",
+  "sincerity",
+  "career",
+  "respect",
+  "choice",
+  "memory",
+  "care",
+  "career_fatigue",
+  "low_pressure",
+  "online_creator",
+  "performative",
+  "career_intense",
+  "decisiveness",
+  "deity",
+  "advice_giver",
+  "cryptid",
+  "discretion",
+  "saboteur",
+  "anxious_rambler",
+  "structure",
+  "midlife",
+  "grounded",
+  "tech_illiterate",
+  "fae",
+  "name_discretion",
+  "widower",
+]);
+
 export const memberRequestSchema = z.object({
   id: z.string().min(1),
   memberId: memberIdSchema,
   text: z.string().min(1),
   moodPenaltyIfIgnored: z.number().int().min(0).max(25),
-  tags: z.array(z.string().min(1)),
+  tags: z.array(memberRequestTagSchema).min(1),
 });
 
 export const pairStatsSchema = z.object({
@@ -436,6 +476,7 @@ export type PortraitAsset = z.infer<typeof portraitAssetSchema>;
 export type MemberPortraitSet = z.infer<typeof memberPortraitSetSchema>;
 export type MemberPortraits = z.infer<typeof memberPortraitsSchema>;
 export type VoicePattern = z.infer<typeof voicePatternSchema>;
+export type MemberSampleMessages = z.infer<typeof memberSampleMessagesSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;
 export type MemberState = z.infer<typeof memberStateSchema>;
 export type MemberTag = z.infer<typeof memberTagSchema>;
@@ -446,6 +487,7 @@ export type ScenarioBeat = z.infer<typeof scenarioBeatSchema>;
 export type DateScenario = z.infer<typeof dateScenarioSchema>;
 export type GoalMetric = z.infer<typeof goalMetricSchema>;
 export type CompanyGoal = z.infer<typeof companyGoalSchema>;
+export type MemberRequestTag = z.infer<typeof memberRequestTagSchema>;
 export type MemberRequest = z.infer<typeof memberRequestSchema>;
 export type PairStats = z.infer<typeof pairStatsSchema>;
 export type PairState = z.infer<typeof pairStateSchema>;

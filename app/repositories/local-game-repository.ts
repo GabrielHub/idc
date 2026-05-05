@@ -139,10 +139,7 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async saveGame(save: GameSave): Promise<void> {
-    this.writeGameToKey(
-      this.saveKey,
-      hydrateFixtureOwnedMemberData({ ...save, updatedAt: new Date().toISOString() }),
-    );
+    this.writeGameToKey(this.saveKey, { ...save, updatedAt: new Date().toISOString() });
     this.deleteLegacySaves();
   }
 
@@ -349,7 +346,7 @@ export class LocalGameRepository implements GameRepository {
   }
 
   private writeGameToKey(saveKey: string, save: GameSave): void {
-    const parsed = gameSaveSchema.parse(hydrateFixtureOwnedMemberData(save));
+    const parsed = gameSaveSchema.parse(save);
     this.storage.setItem(saveKey, JSON.stringify(parsed));
   }
 

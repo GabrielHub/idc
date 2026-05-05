@@ -638,6 +638,7 @@ function ActionStack({
           >
             <button
               type="button"
+              data-sfx="danger"
               disabled={isBusy}
               onClick={onAskWipe}
               className="group cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
@@ -667,6 +668,7 @@ function PrimaryPunchButton({
   return (
     <button
       type="button"
+      data-sfx="stamp"
       disabled={disabled}
       onClick={onClick}
       className="aura-cta group relative w-full cursor-pointer overflow-hidden rounded-[20px] bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-6 py-5 text-left text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
@@ -746,6 +748,7 @@ function WipeConfirm({
       <span className="flex items-center gap-1">
         <button
           type="button"
+          data-sfx="dismiss"
           disabled={disabled}
           onClick={onCancel}
           className="cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
@@ -754,6 +757,7 @@ function WipeConfirm({
         </button>
         <button
           type="button"
+          data-sfx="danger"
           disabled={disabled}
           onClick={onConfirm}
           className="cursor-pointer rounded-pill bg-aura-rose px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-white shadow-quiet transition hover:bg-aura-fuchsia disabled:cursor-not-allowed disabled:opacity-50"
@@ -777,6 +781,7 @@ function ErrorPill({ message, onDismiss }: { message: string; onDismiss: () => v
       <p className="text-label leading-relaxed">{message}</p>
       <button
         type="button"
+        data-sfx="dismiss"
         onClick={onDismiss}
         className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose/80 hover:text-aura-rose"
       >

@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
 import { CupidOperationsDashboard } from "../components/cupid-operations-dashboard";
+import { SfxProvider } from "../components/sfx-provider";
 import { SplashScreen } from "../components/splash-screen";
 
 type ShellPhase = "splash" | "operations";
@@ -35,27 +36,29 @@ export default function Home() {
   }
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {phase === "splash" ? (
-        <motion.div
-          key="splash"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
-        >
-          <SplashScreen onPunchIn={() => setShellPhase("operations")} />
-        </motion.div>
-      ) : (
-        <motion.div
-          key="operations"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-        >
-          <CupidOperationsDashboard onPunchOut={() => setShellPhase("splash")} />
-        </motion.div>
-      )}
-    </AnimatePresence>
+    <SfxProvider>
+      <AnimatePresence mode="wait" initial={false}>
+        {phase === "splash" ? (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <SplashScreen onPunchIn={() => setShellPhase("operations")} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="operations"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+          >
+            <CupidOperationsDashboard onPunchOut={() => setShellPhase("splash")} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </SfxProvider>
   );
 }
 

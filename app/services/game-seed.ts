@@ -3,11 +3,13 @@ import {
   gameSaveSchema,
   memberSchema,
   SAVE_SCHEMA_VERSION,
+  scenarioDeckStateSchema,
   shiftStateSchema,
   type GameSave,
   type Member,
   type PairState,
   type PairStats,
+  type ScenarioDeckState,
   type ShiftState,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
@@ -19,7 +21,7 @@ import {
 } from "./shift-planning";
 import { clampScore } from "./utils";
 
-const STARTER_DECK_MAX_SIZE = 14;
+const STARTER_DECK_MAX_SIZE = 20;
 
 export function createSeedGameSave(now = new Date()): GameSave {
   const timestamp = now.toISOString();
@@ -98,6 +100,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
     shiftStateSchema.parse({
       ...shift,
       featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
+      scenarioDeck: hydrateScenarioDeckState(shift.scenarioDeck),
     }),
   );
 
@@ -119,6 +122,34 @@ export function getActiveShift(save: GameSave): ShiftState {
 const STARTER_MEMBERS_BY_ID = new Map(
   starterMembers.map((member) => [member.id, memberSchema.parse(member)]),
 );
+
+const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
+
+function hydrateScenarioDeckState(scenarioDeck: ScenarioDeckState): ScenarioDeckState {
+  const scenarioIds = appendMissingStarterScenarioIds(scenarioDeck.scenarioIds);
+
+  return scenarioDeckStateSchema.parse({
+    ...scenarioDeck,
+    scenarioIds,
+    maxSize: Math.max(scenarioDeck.maxSize, STARTER_DECK_MAX_SIZE, scenarioIds.length),
+  });
+}
+
+function appendMissingStarterScenarioIds(scenarioIds: string[]): string[] {
+  const hydratedScenarioIds = [...scenarioIds];
+  const existingScenarioIds = new Set(hydratedScenarioIds);
+
+  for (const scenarioId of STARTER_SCENARIO_IDS) {
+    if (existingScenarioIds.has(scenarioId)) {
+      continue;
+    }
+
+    hydratedScenarioIds.push(scenarioId);
+    existingScenarioIds.add(scenarioId);
+  }
+
+  return hydratedScenarioIds;
+}
 
 export function findMemberInSave(save: GameSave, memberId: string): Member | undefined {
   return save.members.find((member) => member.id === memberId);

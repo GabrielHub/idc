@@ -51,7 +51,6 @@ export async function action({ request }: { request: Request }) {
     const payload: unknown = await request.json();
     const actionInput = gameActionSchema.parse(payload);
 
-    await repository.saveGame(actionInput.save);
     const result =
       actionInput.type === "advanceExchange"
         ? await advanceDateExchangeWithLocalAi(actionInput.save, repository, {
@@ -84,7 +83,6 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
         const payload: unknown = await request.json();
         const actionInput = gameActionSchema.parse(payload);
 
-        await repository.saveGame(actionInput.save);
         const result =
           actionInput.type === "advanceExchange"
             ? await advanceDateExchangeWithLocalAiStream(

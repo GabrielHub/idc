@@ -14,18 +14,22 @@ export const tobyWenz: Member = {
   relationshipNeeds: [
     "Someone willing to sit through three minutes of him to get to the real him",
     "A topic to spiral on so the spiraling has somewhere to land",
+    "A partner who will not film any part of the date",
   ],
   preferences: [
     "restaurants that close after 10 p.m.",
     "long car rides where he can talk and you can drive",
     "people who ask follow up questions",
     "any topic with at least three branches",
+    "partners who let him land the spiral instead of cutting it off",
   ],
   dealbreakers: [
     "long silences he is expected to fill",
     "being told to relax",
     "dance floors",
     "first dates that are also a group hang",
+    "filming the date",
+    "being asked to be quiet for the bit",
   ],
   secrets: [
     "He keeps a notebook in the break room of things he meant to say but did not get to.",
@@ -46,7 +50,13 @@ export const tobyWenz: Member = {
       "self_deprecating_confession",
       "emotional_overshare",
     ],
-    patternsRefused: ["deadpan_one_liner", "structured_bit", "character_roleplay"],
+    patternsRefused: [
+      "deadpan_one_liner",
+      "structured_bit",
+      "character_roleplay",
+      "corrupted_romance",
+      "ominous_threat_as_flirtation",
+    ],
     tics: [
       "anaphoric and... and... and... that keeps adding clauses",
       "no wait inserted mid sentence to correct himself",
@@ -54,12 +64,31 @@ export const tobyWenz: Member = {
       "pivots topics inside a clause without warning",
       "lowercase i, comma splices, no period at the end of a message",
     ],
-    sampleMessages: [
-      "hi sorry i just realized i should say hi first my mom always says lead with hi anyway your photo is good and you have a dog and i had a dog growing up named pretzel who got out one time during a thunderstorm and we found her at the sheetz, no wait we found her at the speedway but i always say sheetz because the story sounds better there, do you also like oat milk because my roommate uses regular milk and i cannot say anything because the lease is in his name. i'll stop",
-      "ok question what are you doing saturday i am free because of my schedule which is bad, i do overnight stocking which means i sleep when normal people are at work and work when normal people sleep, anyway i am free and i will pick the place if you want me to pick the place but i also do not want to pick the place because i will pick poorly, ok i'll stop",
-      "i just want to be clear my profile is not finished i keep adding things, i added the pretzel story and then i took it out and then i put it back in and then i took it out again, it is in there now though, anyway sorry",
-      "i have been awake for nineteen hours and i think you are very pretty, i am saying that with full lucidity which i will lose around 4 a.m., we have until then",
-    ],
+    sampleMessages: {
+      opener: [
+        "hi sorry i just realized i should say hi first my mom always says lead with hi anyway your photo is good and you have a dog and i had a dog growing up named pretzel who got out one time during a thunderstorm and we found her at the sheetz, no wait we found her at the speedway but i always say sheetz because the story sounds better there, do you also like oat milk because my roommate uses regular milk and i cannot say anything because the lease is in his name. i'll stop",
+        "ok question what are you doing saturday i am free because of my schedule which is bad, i do overnight stocking which means i sleep when normal people are at work and work when normal people sleep, anyway i am free and i will pick the place if you want me to pick the place but i also do not want to pick the place because i will pick poorly, ok i'll stop",
+        "i just want to be clear my profile is not finished i keep adding things, i added the pretzel story and then i took it out and then i put it back in and then i took it out again, it is in there now though, anyway sorry",
+        "i have been awake for nineteen hours and i think you are very pretty, i am saying that with full lucidity which i will lose around 4 a.m., we have until then",
+      ],
+      warming: [
+        "you let me finish the pretzel story without making a face, my mom would not have let me finish, anyway sorry but also thank you",
+        "ok this is going better than i expected and i had a low expectation set, no offense to you i had a low expectation set for me, anyway you are funny i did not see that coming",
+        "when you said your week was fine and you meant it i felt that, i feel like a lot of people say their week was fine and they mean their week was a war, you meant fine, that's nice",
+        "i was going to apologize for talking a lot but you have been letting me and that is a thing, that is a thing i am noticing, ok i'll stop",
+      ],
+      cooling: [
+        "ok i can tell i am being a lot, i am going to try to take a smaller sip and chew, ok, ok, hi, how is your night",
+        "wait did i upset you, i can tell from your face, i am sorry, i was about to be sorry for something else but i can be sorry for this first",
+        "is it the volume, i can do less volume, my roommate also says it is the volume, ok lower",
+        "i should not have brought up the lease thing, that was a tangent and the tangent went somewhere weird, i am pulling us back",
+      ],
+      crashingOut: [
+        "ok i think i'm crashing, i can feel it, i'm sorry, i thought i had until 4 but it might be sooner, anyway the date was good i think",
+        "are you filming me, i didn't sign anything, please don't, i was going to be funnier than this and now i won't be",
+        "ok ok i need to stop talking for two minutes please, i am asking you to talk for two minutes, anything, the weather, your dog, please",
+      ],
+    },
   },
   state: {
     mood: 49,
