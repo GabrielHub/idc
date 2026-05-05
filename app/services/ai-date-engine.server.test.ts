@@ -1,22 +1,47 @@
 import { describe, expect, it } from "vitest";
 
-import { judgeSnapshotSchema, memoryCandidateSchema } from "../domain/game";
+import { judgeSnapshotSchema, memoryCandidateSchema, memoryRecordSchema } from "../domain/game";
 import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
-import { completeDateSessionWithLocalAi, type LocalAiDateRuntime } from "./ai-date-engine.server";
+import {
+  advanceDateExchangeWithLocalAiStream,
+  completeDateSessionWithLocalAi,
+  type LocalAiDateRuntime,
+  type LocalAiDateStreamEvent,
+} from "./ai-date-engine.server";
 import { startDateSession } from "./date-engine";
-import { createSeedGameSave } from "./game-seed";
+import { createSeedGameSave, makePairId } from "./game-seed";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 describe("local AI date engine orchestration", () => {
-  it("runs character, judge, summarizer, embedding, and scoped memory tool callbacks", async () => {
+  it("runs character, judge, summarizer, embedding, and deterministic memory retrieval", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-engine-test");
     let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const pairId = makePairId("jenna-pike", "vhool");
     save = {
       ...save,
       config: {
         ...save.config,
         defaultDateMessageLimit: 2,
       },
+      memories: [
+        ...save.memories,
+        memoryRecordSchema.parse({
+          id: "memory-ai-test-soup",
+          scope: "pair",
+          visibility: "member_private",
+          subjectIds: ["jenna-pike", "vhool"],
+          visibleToMemberIds: ["jenna-pike", "vhool"],
+          pairId,
+          scenarioId: "temporal-coffee-shop",
+          text: "Jenna remembers that Vhool treated soup as a sincere planning document.",
+          tags: ["soup", "date_memory"],
+          importance: 4,
+          createdAt: "2026-05-05T12:00:00.000Z",
+          embedding: createDeterministicEmbedding("Jenna Vhool Temporal Coffee Shop soup"),
+          embeddingModel: "deterministic-local",
+          embeddingDimensions: 64,
+        }),
+      ],
     };
     const started = startDateSession(save, {
       firstMemberId: "jenna-pike",
@@ -25,22 +50,21 @@ describe("local AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
     const runtime: LocalAiDateRuntime = {
-      generateCharacterTurn: async ({ packet, memoryTool }) => {
-        const memories = await memoryTool({
-          query: "baseline date context",
-          scope: ["self", "pair", "scenario"],
-          limit: 2,
-        });
+      generateCharacterTurn: async ({ packet }) => {
+        const sawPromptContract =
+          packet.prompt.includes("Output contract:") &&
+          packet.prompt.includes("Recent transcript:");
+        const sawMemory = packet.prompt.includes("sincere planning document");
 
         return {
           text: packet.prompt.includes("Jenna")
-            ? `ai Jenna asks a grounded question after ${memories.length} memories.`
-            : `ai Vhool answers without recruiting anyone after ${memories.length} memories.`,
+            ? `ai Jenna asks a grounded question after contract ${sawPromptContract} and memory ${sawMemory}.`
+            : `ai Vhool answers without recruiting anyone after contract ${sawPromptContract} and memory ${sawMemory}.`,
           providerMode: "ollama",
           model: "fake-performer",
-          stepCount: 2,
-          toolCallCount: 1,
-          toolResultCount: 1,
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
         };
       },
       judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
@@ -101,7 +125,7 @@ describe("local AI date engine orchestration", () => {
     expect(result.session.transcript.some((message) => message.text.startsWith("ai Jenna"))).toBe(
       true,
     );
-    expect(result.aiTelemetry.characterToolCallCount).toBe(2);
+    expect(result.aiTelemetry.characterToolCallCount).toBe(0);
     const aiMemory = result.save.memories.find(
       (memory) => memory.id === `memory-${started.session.id}-ai-1`,
     );
@@ -173,5 +197,103 @@ describe("local AI date engine orchestration", () => {
     expect(loadedSession?.currentTurn).toBe(0);
     expect(loadedSession?.transcript).toHaveLength(started.session.transcript.length);
     expect(loadedSave?.memories).toHaveLength(started.save.memories.length);
+  });
+
+  it("streams performer deltas before committing the validated exchange", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-stream-test");
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const started = startDateSession(save, {
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        throw new Error("non-streaming performer should not run");
+      },
+      streamCharacterTurn: async ({ packet, onTextDelta }) => {
+        const text = packet.prompt.includes("from Jenna Pike")
+          ? "Jenna watches the coffee unspill and asks if that is normal."
+          : "Vhool says normal is a department opinion, not a fact.";
+
+        for (const chunk of text.split(" ")) {
+          await onTextDelta(`${chunk} `);
+        }
+
+        return {
+          text,
+          providerMode: "ollama",
+          model: "fake-stream-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 3,
+          statDeltas: {
+            chemistry: 2,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["Coffee behaved like a labor dispute."],
+          playerSummary: "The streamed exchange landed cleanly.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    const events: LocalAiDateStreamEvent[] = [];
+    await repository.saveGame(started.save);
+
+    const result = await advanceDateExchangeWithLocalAiStream(
+      started.save,
+      repository,
+      {
+        dateSessionId: started.session.id,
+        runtime,
+        config: started.save.config,
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      },
+      (event) => {
+        events.push(event);
+      },
+    );
+
+    expect(
+      result.session.transcript.filter((message) => message.kind === "character"),
+    ).toHaveLength(2);
+    expect(events.map((event) => event.type)).toContain("characterDelta");
+    expect(events.at(-1)?.type).toBe("judgeStart");
+    expect(
+      events.some(
+        (event) => event.type === "characterDone" && event.text.includes("department opinion"),
+      ),
+    ).toBe(true);
+    const loadedSave = await repository.loadGame();
+    const loadedSession = loadedSave?.dateSessions.find(
+      (session) => session.id === started.session.id,
+    );
+
+    expect(
+      loadedSession?.transcript.filter((message) => message.kind === "character"),
+    ).toHaveLength(2);
+    expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 });

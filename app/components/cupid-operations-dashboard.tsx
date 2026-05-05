@@ -18,14 +18,16 @@ import {
   applyFollowUpAction,
   completeShift,
   startDateSession,
+  startNextShift,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
 import {
-  gameActionResponseSchema,
   gameApiErrorSchema,
+  gameStreamEventSchema,
   localAiStatusResponseSchema,
   type GameAction,
   type GameActionResponse,
+  type GameStreamEvent,
   type LocalAiStatusResponse,
 } from "../services/game-api-contracts";
 import { ChromeButton, GhostButton, LiveDot } from "./dashboard-atoms";
@@ -35,6 +37,7 @@ import {
   DateView,
   RosterView,
   ShiftReportPanel,
+  type StreamingDraftMessage,
   pad2,
 } from "./dashboard-views";
 
@@ -42,6 +45,7 @@ type ViewKey = "roster" | "brief" | "date";
 
 const GAME_API_TIMEOUT_MS = 120_000;
 const LOCAL_AI_STATUS_URL = "/api/game?intent=local-ai-status";
+const GAME_API_STREAM_URL = "/api/game?intent=stream";
 
 type LocalAiClientStatus = {
   status: "checking" | LocalAiStatusResponse["status"];
@@ -67,6 +71,7 @@ export function CupidOperationsDashboard() {
   const [localAiStatus, setLocalAiStatus] = useState<LocalAiClientStatus>(CHECKING_LOCAL_AI_STATUS);
   const [isActionPending, setIsActionPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -251,14 +256,22 @@ export function CupidOperationsDashboard() {
     }
 
     tryAction(async () => {
-      const result = await runGameApiAction({
-        type: "advanceExchange",
-        save,
-        dateSessionId: activeSession.id,
-      });
-      await persist(result.save);
-      setActiveDateSessionId(result.session.id);
-      setRuntimeWarnings(result);
+      setStreamingDrafts([]);
+      try {
+        const result = await runGameApiStreamAction(
+          {
+            type: "advanceExchange",
+            save,
+            dateSessionId: activeSession.id,
+          },
+          applyGameStreamEvent,
+        );
+        await persist(result.save);
+        setActiveDateSessionId(result.session.id);
+        setRuntimeWarnings(result);
+      } finally {
+        setStreamingDrafts([]);
+      }
     });
   }
 
@@ -268,14 +281,22 @@ export function CupidOperationsDashboard() {
     }
 
     tryAction(async () => {
-      const result = await runGameApiAction({
-        type: "completeDate",
-        save,
-        dateSessionId: activeSession.id,
-      });
-      await persist(result.save);
-      setActiveDateSessionId(result.session.id);
-      setRuntimeWarnings(result);
+      setStreamingDrafts([]);
+      try {
+        const result = await runGameApiStreamAction(
+          {
+            type: "completeDate",
+            save,
+            dateSessionId: activeSession.id,
+          },
+          applyGameStreamEvent,
+        );
+        await persist(result.save);
+        setActiveDateSessionId(result.session.id);
+        setRuntimeWarnings(result);
+      } finally {
+        setStreamingDrafts([]);
+      }
     });
   }
 
@@ -327,8 +348,80 @@ export function CupidOperationsDashboard() {
       setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
       setActiveDateSessionId(null);
       setInterventionText("");
+      setStreamingDrafts([]);
       setView("roster");
     });
+  }
+
+  async function handleOpenNextShift() {
+    if (save === null) {
+      return;
+    }
+
+    tryAction(async () => {
+      const result = startNextShift(save);
+      await persist(result.save);
+      setSelectedMemberIds(defaultMemberSelection(result.save));
+      setSelectedScenarioId(result.shift.drawnScenarioIds[0] ?? "");
+      setActiveDateSessionId(null);
+      setInterventionText("");
+      setStreamingDrafts([]);
+      setView("roster");
+    });
+  }
+
+  function applyGameStreamEvent(event: GameStreamEvent) {
+    if (event.type === "characterStart") {
+      setStreamingDrafts((current) => {
+        const existingDraft = current.find((draft) => draft.sequenceIndex === event.sequenceIndex);
+
+        if (existingDraft !== undefined) {
+          return current;
+        }
+
+        return [
+          ...current,
+          {
+            id: `stream-${event.sequenceIndex}`,
+            speakerId: event.speakerId,
+            speakerName: event.speakerName,
+            sequenceIndex: event.sequenceIndex,
+            turnIndex: event.turnIndex,
+            text: "",
+            status: "streaming",
+          },
+        ];
+      });
+      return;
+    }
+
+    if (event.type === "characterDelta") {
+      setStreamingDrafts((current) =>
+        current.map((draft) =>
+          draft.sequenceIndex === event.sequenceIndex
+            ? {
+                ...draft,
+                text: `${draft.text}${event.textDelta}`,
+              }
+            : draft,
+        ),
+      );
+      return;
+    }
+
+    if (event.type === "characterDone") {
+      setStreamingDrafts((current) =>
+        current.map((draft) =>
+          draft.sequenceIndex === event.sequenceIndex
+            ? {
+                ...draft,
+                text: event.text,
+                status: "done",
+              }
+            : draft,
+        ),
+      );
+    }
   }
 
   function setRuntimeWarnings(result: GameActionResponse) {
@@ -443,6 +536,7 @@ export function CupidOperationsDashboard() {
               canAdvance={canAdvanceDate}
               canIntervene={canIntervene}
               isActionPending={isActionPending}
+              streamingDrafts={streamingDrafts}
               onInterventionTextChange={setInterventionText}
               onAdvance={handleAdvanceExchange}
               onComplete={handleCompleteDate}
@@ -462,7 +556,7 @@ export function CupidOperationsDashboard() {
               shift={activeShift}
               members={save.members}
               isActionPending={isActionPending}
-              onResetSave={handleReset}
+              onOpenNextShift={handleOpenNextShift}
             />
           ) : null}
         </AnimatePresence>
@@ -825,14 +919,17 @@ function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () =>
 /* API helpers                                                        */
 /* ================================================================== */
 
-async function runGameApiAction(input: GameAction): Promise<GameActionResponse> {
+async function runGameApiStreamAction(
+  input: GameAction,
+  onEvent: (event: GameStreamEvent) => void,
+): Promise<GameActionResponse> {
   const abortController = new AbortController();
   const timeoutId = window.setTimeout(() => abortController.abort(), GAME_API_TIMEOUT_MS);
 
   let response: Response;
 
   try {
-    response = await fetch("/api/game", {
+    response = await fetch(GAME_API_STREAM_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -848,26 +945,104 @@ async function runGameApiAction(input: GameAction): Promise<GameActionResponse> 
     }
 
     throw error;
+  }
+
+  try {
+    if (!response.ok) {
+      const payload = await readJsonResponse(response);
+      const parsedError = gameApiErrorSchema.safeParse(payload);
+
+      throw new Error(
+        parsedError.success ? parsedError.data.error : "Cupid API rejected the streamed action.",
+      );
+    }
+
+    if (response.body === null) {
+      throw new Error("Cupid API returned an empty stream.");
+    }
+
+    return await readGameStreamResponse(response.body, onEvent);
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error(
+        "Local AI did not return in time. Confirm Ollama is running, then retry the exchange.",
+      );
+    }
+
+    throw error;
   } finally {
     window.clearTimeout(timeoutId);
   }
+}
 
-  const payload = await readJsonResponse(response);
+async function readGameStreamResponse(
+  body: ReadableStream<Uint8Array>,
+  onEvent: (event: GameStreamEvent) => void,
+): Promise<GameActionResponse> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let completeResponse: GameActionResponse | null = null;
 
-  if (!response.ok) {
-    const parsedError = gameApiErrorSchema.safeParse(payload);
-    throw new Error(
-      parsedError.success ? parsedError.data.error : "Cupid API rejected the action.",
-    );
+  function processLine(line: string) {
+    const trimmedLine = line.trim();
+
+    if (trimmedLine.length === 0) {
+      return;
+    }
+
+    let payload: unknown;
+
+    try {
+      payload = JSON.parse(trimmedLine);
+    } catch {
+      throw new Error("Cupid API sent an unreadable stream event.");
+    }
+
+    const parsedEvent = gameStreamEventSchema.safeParse(payload);
+
+    if (!parsedEvent.success) {
+      throw new Error("Cupid API sent an unreadable stream event.");
+    }
+
+    const event = parsedEvent.data;
+
+    if (event.type === "error") {
+      throw new Error(event.message);
+    }
+
+    if (event.type === "complete") {
+      completeResponse = event.response;
+      return;
+    }
+
+    onEvent(event);
   }
 
-  const parsedResponse = gameActionResponseSchema.safeParse(payload);
+  while (true) {
+    const { done, value } = await reader.read();
 
-  if (!parsedResponse.success) {
-    throw new Error("Cupid API returned an unreadable update.");
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      processLine(line);
+    }
   }
 
-  return parsedResponse.data;
+  buffer += decoder.decode();
+  processLine(buffer);
+
+  if (completeResponse === null) {
+    throw new Error("Cupid API ended the stream before filing the date update.");
+  }
+
+  return completeResponse;
 }
 
 async function requestLocalAiStatus(): Promise<LocalAiClientStatus> {

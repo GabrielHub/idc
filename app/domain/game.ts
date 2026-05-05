@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const SAVE_SCHEMA_VERSION = 2;
+
 export const memberIdSchema = z.string().min(1);
 export const scenarioIdSchema = z.string().min(1);
 export const goalIdSchema = z.string().min(1);
@@ -373,7 +375,7 @@ export const gameConfigSchema = z.object({
 });
 
 export const gameSaveSchema = z.object({
-  version: z.literal(2),
+  version: z.literal(SAVE_SCHEMA_VERSION),
   config: gameConfigSchema,
   members: z.array(memberSchema),
   pairStates: z.array(pairStateSchema),

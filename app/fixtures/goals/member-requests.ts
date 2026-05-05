@@ -92,4 +92,25 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 5,
     tags: ["anxious_rambler", "structure"],
   },
+  {
+    id: "request-marcus-grown-adult",
+    memberId: "marcus-pellish",
+    text: "Marcus wants a date that lets him be a fully formed adult instead of a project. He will not bring up the divorce. He would prefer the same.",
+    moodPenaltyIfIgnored: 5,
+    tags: ["midlife", "grounded"],
+  },
+  {
+    id: "request-aldric-honest-bargain",
+    memberId: "aldric-vale-marsh",
+    text: "Sir Aldric wants a date that treats his Bargain as a Bargain, not a costume. He has been laughed at twice this week and he keeps a count.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["sincerity", "tech_illiterate"],
+  },
+  {
+    id: "request-eleanor-no-true-name",
+    memberId: "eleanor-ash",
+    text: "Eleanor wants a date who will accept her seventh use name without asking after the first six. The Favor of not asking is one she will remember.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["fae", "name_discretion"],
+  },
 ];

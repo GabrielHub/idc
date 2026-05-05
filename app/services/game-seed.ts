@@ -2,6 +2,7 @@ import {
   gameConfigSchema,
   gameSaveSchema,
   memberSchema,
+  SAVE_SCHEMA_VERSION,
   type GameSave,
   type Member,
   type PairState,
@@ -11,7 +12,6 @@ import {
 import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import { clampScore } from "./utils";
 
-const SAVE_VERSION = 2;
 const STARTER_DECK_MAX_SIZE = 14;
 
 export function createSeedGameSave(now = new Date()): GameSave {
@@ -38,7 +38,7 @@ export function createSeedGameSave(now = new Date()): GameSave {
   };
 
   return gameSaveSchema.parse({
-    version: SAVE_VERSION,
+    version: SAVE_SCHEMA_VERSION,
     config: gameConfigSchema.parse({}),
     members,
     pairStates,
@@ -52,22 +52,28 @@ export function createSeedGameSave(now = new Date()): GameSave {
 }
 
 export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
-  const members = save.members.map((savedMember) => {
-    const fixtureMember = STARTER_MEMBERS_BY_ID.get(savedMember.id);
+  const savedMembersById = new Map(save.members.map((member) => [member.id, member] as const));
+  const fixtureMembers = starterMembers.map((fixtureMember) => {
+    const parsedFixtureMember = memberSchema.parse(fixtureMember);
+    const savedMember = savedMembersById.get(parsedFixtureMember.id);
 
-    if (fixtureMember === undefined) {
-      return savedMember;
+    if (savedMember === undefined) {
+      return parsedFixtureMember;
     }
 
     return memberSchema.parse({
-      ...fixtureMember,
+      ...parsedFixtureMember,
       state: savedMember.state,
     });
   });
+  const customMembers = save.members.filter((member) => !STARTER_MEMBERS_BY_ID.has(member.id));
+  const members = [...fixtureMembers, ...customMembers];
+  const pairStates = hydratePairStates(save.pairStates, members);
 
   return gameSaveSchema.parse({
     ...save,
     members,
+    pairStates,
   });
 }
 
@@ -124,6 +130,36 @@ function createSeedPairStates(members: Member[]): PairState[] {
   return pairStates;
 }
 
+function hydratePairStates(savedPairStates: PairState[], members: Member[]): PairState[] {
+  const savedPairStatesById = new Map(
+    savedPairStates.map((pairState) => [pairState.id, pairState] as const),
+  );
+  const seededPairStates = createSeedPairStates(members);
+  const seededPairStateIds = new Set(seededPairStates.map((pairState) => pairState.id));
+  const hydratedPairStates = seededPairStates.map((seedPairState) => {
+    const savedPairState = savedPairStatesById.get(seedPairState.id);
+
+    if (savedPairState === undefined) {
+      return seedPairState;
+    }
+
+    return {
+      ...seedPairState,
+      ...savedPairState,
+      participantIds: seedPairState.participantIds,
+      scenarioUseCounts: {
+        ...seedPairState.scenarioUseCounts,
+        ...savedPairState.scenarioUseCounts,
+      },
+    };
+  });
+  const orphanPairStates = savedPairStates.filter(
+    (pairState) => !seededPairStateIds.has(pairState.id),
+  );
+
+  return [...hydratedPairStates, ...orphanPairStates];
+}
+
 function createInitialPairStats(first: Member, second: Member): PairStats {
   const chemistry = clampScore(Math.round((first.state.openness + second.state.openness) / 2));
   const conflict = clampScore(Math.round((first.state.burnout + second.state.burnout) / 2));
@@ -155,7 +191,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened shift one with thirteen starter members and a three scenario hand.",
+      text: "Cupid has opened shift one with sixteen starter members and a three scenario hand.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

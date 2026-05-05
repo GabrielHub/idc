@@ -327,6 +327,33 @@ body {
   animation: aura-bar-fill 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
+/* Typing-indicator dot bounce, used in the date chat stream. */
+@keyframes aura-typing-dot {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.45;
+  }
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
+  }
+}
+.aura-typing-dot {
+  animation: aura-typing-dot 1.2s ease-in-out infinite;
+}
+
+/* Marquee loop for the splash footer. */
+@keyframes splash-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* Dot grid, faint, sits behind editorial moments. */
 .aura-dot-grid {
   background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);

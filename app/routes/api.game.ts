@@ -3,17 +3,25 @@ import { LocalGameRepository } from "../repositories/local-game-repository";
 import { NodeJsonStorageDriver } from "../repositories/node-json-storage.server";
 import {
   advanceDateExchangeWithLocalAi,
+  advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAi,
+  completeDateSessionWithLocalAiStream,
+  type LocalAiDateStreamEvent,
+  type LocalAiDateEngineResult,
 } from "../services/ai-date-engine.server";
 import { checkLocalAiReadiness } from "../services/ai/ollama-provider.server";
 import {
+  type GameActionResponse,
+  type GameStreamEvent,
   gameActionResponseSchema,
   gameActionSchema,
+  gameStreamEventSchema,
   localAiStatusResponseSchema,
 } from "../services/game-api-contracts";
 import { errorToMessage } from "../services/utils";
 
 const LOCAL_AI_STATUS_INTENT = "local-ai-status";
+const GAME_STREAM_INTENT = "stream";
 
 export async function loader({ request }: { request: Request }) {
   const repository = createServerRepository();
@@ -29,6 +37,11 @@ export async function loader({ request }: { request: Request }) {
 
 export async function action({ request }: { request: Request }) {
   const repository = createServerRepository();
+  const url = new URL(request.url);
+
+  if (url.searchParams.get("intent") === GAME_STREAM_INTENT) {
+    return streamGameAction(request, repository);
+  }
 
   try {
     const payload: unknown = await request.json();
@@ -46,18 +59,81 @@ export async function action({ request }: { request: Request }) {
             config: actionInput.save.config,
           });
 
-    return json(
-      gameActionResponseSchema.parse({
-        save: result.save,
-        session: result.session,
-        runtimeMode: result.runtimeMode,
-        warningMessages: result.warningMessages,
-        aiTelemetry: result.aiTelemetry,
-      }),
-    );
+    return json(toGameActionResponse(result));
   } catch (error) {
     return json({ error: errorToMessage(error) }, { status: 400 });
   }
+}
+
+function streamGameAction(request: Request, repository: LocalGameRepository): Response {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const write = (event: GameStreamEvent) => {
+        controller.enqueue(
+          encoder.encode(`${JSON.stringify(gameStreamEventSchema.parse(event))}\n`),
+        );
+      };
+      const emit = (event: LocalAiDateStreamEvent) => write(event);
+
+      try {
+        const payload: unknown = await request.json();
+        const actionInput = gameActionSchema.parse(payload);
+
+        await repository.saveGame(actionInput.save);
+        const result =
+          actionInput.type === "advanceExchange"
+            ? await advanceDateExchangeWithLocalAiStream(
+                actionInput.save,
+                repository,
+                {
+                  dateSessionId: actionInput.dateSessionId,
+                  config: actionInput.save.config,
+                },
+                emit,
+              )
+            : await completeDateSessionWithLocalAiStream(
+                actionInput.save,
+                repository,
+                {
+                  dateSessionId: actionInput.dateSessionId,
+                  config: actionInput.save.config,
+                },
+                emit,
+              );
+
+        write({
+          type: "complete",
+          response: toGameActionResponse(result),
+        });
+      } catch (error) {
+        write({
+          type: "error",
+          message: errorToMessage(error),
+        });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Cache-Control": "no-cache",
+      "Content-Type": "application/x-ndjson; charset=utf-8",
+      "X-Accel-Buffering": "no",
+    },
+  });
+}
+
+function toGameActionResponse(result: LocalAiDateEngineResult): GameActionResponse {
+  return gameActionResponseSchema.parse({
+    save: result.save,
+    session: result.session,
+    runtimeMode: result.runtimeMode,
+    warningMessages: result.warningMessages,
+    aiTelemetry: result.aiTelemetry,
+  });
 }
 
 async function localAiStatusResponse(config: GameConfig): Promise<Response> {

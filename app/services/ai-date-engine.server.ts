@@ -16,15 +16,15 @@ import {
 } from "../domain/game";
 import type { GameRepository } from "../repositories/game-repository";
 import {
-  type CharacterMemoryToolExecution,
   type GeneratedTextResult,
   type LocalAiRuntimeConfig,
   embedMemoryText,
   generateCharacterTurn,
   judgeDateExchange,
+  streamCharacterTurn as streamCharacterTurnWithLocalAi,
   summarizeDateMemories,
 } from "./ai/ollama-provider.server";
-import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
+import { retrieveRelevantMemories } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPairState,
@@ -51,7 +51,11 @@ export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
     packet: CharacterPromptPacket;
     config: Partial<LocalAiRuntimeConfig>;
-    memoryTool: CharacterMemoryToolExecution;
+  }): Promise<GeneratedTextResult>;
+  streamCharacterTurn?(input: {
+    packet: CharacterPromptPacket;
+    config: Partial<LocalAiRuntimeConfig>;
+    onTextDelta: (delta: string) => Promise<void> | void;
   }): Promise<GeneratedTextResult>;
   judgeDateExchange(input: {
     packet: JudgePromptPacket;
@@ -68,6 +72,33 @@ export type LocalAiDateRuntime = {
     config: Partial<LocalAiRuntimeConfig>;
   }): Promise<{ embedding: number[]; model: string; dimensions: number }>;
 };
+
+export type LocalAiDateStreamEvent =
+  | {
+      type: "characterStart";
+      speakerId: string;
+      speakerName: string;
+      sequenceIndex: number;
+      turnIndex: number;
+    }
+  | {
+      type: "characterDelta";
+      speakerId: string;
+      sequenceIndex: number;
+      turnIndex: number;
+      textDelta: string;
+    }
+  | {
+      type: "characterDone";
+      speakerId: string;
+      sequenceIndex: number;
+      turnIndex: number;
+      text: string;
+    }
+  | {
+      type: "judgeStart";
+      exchangeIndex: number;
+    };
 
 export type LocalAiDateEngineResult = DateEngineResult & {
   runtimeMode: "local_ai";
@@ -86,12 +117,14 @@ type LocalAiDateEngineInput = {
   runtime?: LocalAiDateRuntime;
 };
 
-const DEFAULT_MEMORY_LIMIT = 4;
-const CHARACTER_MESSAGE_MAX_LENGTH = 720;
+const DEFAULT_MEMORY_LIMIT = 2;
+const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 4;
+const CHARACTER_MESSAGE_MAX_LENGTH = 360;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
-  generateCharacterTurn: ({ packet, config, memoryTool }) =>
-    generateCharacterTurn(packet, config, memoryTool),
+  generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
+  streamCharacterTurn: ({ packet, config, onTextDelta }) =>
+    streamCharacterTurnWithLocalAi(packet, config, onTextDelta),
   judgeDateExchange: ({ packet, dateSessionId, exchangeIndex, config }) =>
     judgeDateExchange({ packet, dateSessionId, exchangeIndex, config }),
   summarizeDateMemories: ({ packet, config }) => summarizeDateMemories(packet, config),
@@ -102,6 +135,24 @@ export async function advanceDateExchangeWithLocalAi(
   save: GameSave,
   repository: GameRepository,
   input: LocalAiDateEngineInput,
+): Promise<LocalAiDateEngineResult> {
+  return advanceDateExchangeWithLocalAiInternal(save, repository, input);
+}
+
+export async function advanceDateExchangeWithLocalAiStream(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit: (event: LocalAiDateStreamEvent) => Promise<void> | void,
+): Promise<LocalAiDateEngineResult> {
+  return advanceDateExchangeWithLocalAiInternal(save, repository, input, emit);
+}
+
+async function advanceDateExchangeWithLocalAiInternal(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void,
 ): Promise<LocalAiDateEngineResult> {
   const runtime = input.runtime ?? defaultLocalAiDateRuntime;
   const config = input.config ?? save.config;
@@ -164,6 +215,7 @@ export async function advanceDateExchangeWithLocalAi(
       scenario,
       pairState,
       createdAt: timestamp,
+      emit,
     });
 
     telemetry.characterGenerationCount += 1;
@@ -183,6 +235,9 @@ export async function advanceDateExchangeWithLocalAi(
     .slice(firstNewSequenceIndex)
     .filter((message) => message.kind === "character");
   const exchangeIndex = session.judgeSnapshots.length;
+  if (emit !== undefined) {
+    await emit({ type: "judgeStart", exchangeIndex });
+  }
   const judgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
     config,
@@ -191,6 +246,7 @@ export async function advanceDateExchangeWithLocalAi(
     scenario,
     exchangeMessages,
     exchangeIndex,
+    members,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -253,6 +309,24 @@ export async function completeDateSessionWithLocalAi(
   repository: GameRepository,
   input: LocalAiDateEngineInput,
 ): Promise<LocalAiDateEngineResult> {
+  return completeDateSessionWithLocalAiInternal(save, repository, input);
+}
+
+export async function completeDateSessionWithLocalAiStream(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit: (event: LocalAiDateStreamEvent) => Promise<void> | void,
+): Promise<LocalAiDateEngineResult> {
+  return completeDateSessionWithLocalAiInternal(save, repository, input, emit);
+}
+
+async function completeDateSessionWithLocalAiInternal(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void,
+): Promise<LocalAiDateEngineResult> {
   let nextSave = save;
   let nextSession = requireDateSession(save, input.dateSessionId);
   const warningMessages: string[] = [];
@@ -263,10 +337,7 @@ export async function completeDateSessionWithLocalAi(
   };
 
   while (nextSession.status === "active") {
-    const result = await advanceDateExchangeWithLocalAi(nextSave, repository, {
-      ...input,
-      now: input.now,
-    });
+    const result = await advanceDateExchangeWithLocalAiInternal(nextSave, repository, input, emit);
     nextSave = result.save;
     nextSession = result.session;
     warningMessages.push(...result.warningMessages);
@@ -294,6 +365,7 @@ async function createLocalAiCharacterMessage({
   scenario,
   pairState,
   createdAt,
+  emit,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -304,74 +376,59 @@ async function createLocalAiCharacterMessage({
   scenario: DateScenario;
   pairState: PairState;
   createdAt: string;
+  emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void;
 }): Promise<{
   message: DateMessage;
   toolCallCount: number;
   toolResultCount: number;
 }> {
   try {
-    const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
-    const queryEmbedding = await createRuntimeQueryEmbedding({
+    const packet = await buildCharacterPacketForTurn({
+      repository,
       runtime,
       config,
-      query: memoryQuery,
-    });
-    const memoryPack = await retrieveRelevantMemories(repository, {
-      characterId: speaker.id,
-      partnerId: partner.id,
-      pairId: session.pairId,
-      scenarioId: session.scenarioId,
-      dateSessionId: session.id,
       session,
-      query: memoryQuery,
-      queryEmbedding,
-      limit: DEFAULT_MEMORY_LIMIT,
-    });
-    const currentMemoryPack = {
-      ...memoryPack,
-      recentTranscript: session.transcript.slice(-8),
-    };
-    const packet = buildCharacterPromptPacket({
-      member: speaker,
+      speaker,
       partner,
       scenario,
-      session,
       pairState,
-      memoryPack: currentMemoryPack,
     });
-    const memoryTool: CharacterMemoryToolExecution = async (toolInput) => {
-      const toolQueryEmbedding = await createRuntimeQueryEmbedding({
-        runtime,
-        config,
-        query: toolInput.query,
-      });
+    const sequenceIndex = session.transcript.length;
+    const turnIndex = session.currentTurn + 1;
 
-      return searchCupidMemory(repository, {
-        characterId: speaker.id,
-        pairId: session.pairId,
-        scenarioId: session.scenarioId,
-        query: toolInput.query,
-        queryEmbedding: toolQueryEmbedding,
-        scope: toolInput.scope,
-        limit: toolInput.limit,
-      });
-    };
-    const generation = await runtime.generateCharacterTurn({
-      packet,
-      config,
-      memoryTool,
-    });
-    const text = sanitizeCharacterText(generation.text);
+    const generation =
+      emit === undefined
+        ? await runtime.generateCharacterTurn({ packet, config })
+        : await streamCharacterMessage({
+            runtime,
+            packet,
+            config,
+            speaker,
+            sequenceIndex,
+            turnIndex,
+            emit,
+          });
+    const text = sanitizeCharacterText(generation.text, speaker.name);
     const message = dateMessageSchema.parse({
-      id: `${session.id}-msg-${session.transcript.length}`,
+      id: `${session.id}-msg-${sequenceIndex}`,
       dateSessionId: session.id,
       kind: "character",
       speakerId: speaker.id,
-      turnIndex: session.currentTurn + 1,
-      sequenceIndex: session.transcript.length,
+      turnIndex,
+      sequenceIndex,
       text,
       createdAt,
     });
+
+    if (emit !== undefined) {
+      await emit({
+        type: "characterDone",
+        speakerId: speaker.id,
+        sequenceIndex,
+        turnIndex,
+        text,
+      });
+    }
 
     return {
       message,
@@ -383,6 +440,105 @@ async function createLocalAiCharacterMessage({
   }
 }
 
+async function buildCharacterPacketForTurn({
+  repository,
+  runtime,
+  config,
+  session,
+  speaker,
+  partner,
+  scenario,
+  pairState,
+}: {
+  repository: GameRepository;
+  runtime: LocalAiDateRuntime;
+  config: Partial<LocalAiRuntimeConfig>;
+  session: DateSession;
+  speaker: Member;
+  partner: Member;
+  scenario: DateScenario;
+  pairState: PairState;
+}): Promise<CharacterPromptPacket> {
+  const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
+  const queryEmbedding = await createRuntimeQueryEmbedding({
+    runtime,
+    config,
+    query: memoryQuery,
+  });
+  const memoryPack = await retrieveRelevantMemories(repository, {
+    characterId: speaker.id,
+    partnerId: partner.id,
+    pairId: session.pairId,
+    scenarioId: session.scenarioId,
+    dateSessionId: session.id,
+    session,
+    query: memoryQuery,
+    queryEmbedding,
+    limit: DEFAULT_MEMORY_LIMIT,
+    recentTranscriptLimit: CHARACTER_RECENT_TRANSCRIPT_LIMIT,
+  });
+
+  return buildCharacterPromptPacket({
+    member: speaker,
+    partner,
+    scenario,
+    session,
+    pairState,
+    memoryPack: {
+      ...memoryPack,
+      recentTranscript: session.transcript.slice(-CHARACTER_RECENT_TRANSCRIPT_LIMIT),
+    },
+  });
+}
+
+async function streamCharacterMessage({
+  runtime,
+  packet,
+  config,
+  speaker,
+  sequenceIndex,
+  turnIndex,
+  emit,
+}: {
+  runtime: LocalAiDateRuntime;
+  packet: CharacterPromptPacket;
+  config: Partial<LocalAiRuntimeConfig>;
+  speaker: Member;
+  sequenceIndex: number;
+  turnIndex: number;
+  emit: (event: LocalAiDateStreamEvent) => Promise<void> | void;
+}): Promise<GeneratedTextResult> {
+  if (runtime.streamCharacterTurn === undefined) {
+    throw new Error("Runtime does not support streaming character turns.");
+  }
+
+  await emit({
+    type: "characterStart",
+    speakerId: speaker.id,
+    speakerName: speaker.name,
+    sequenceIndex,
+    turnIndex,
+  });
+
+  return runtime.streamCharacterTurn({
+    packet,
+    config,
+    onTextDelta: async (delta) => {
+      if (delta.length === 0) {
+        return;
+      }
+
+      await emit({
+        type: "characterDelta",
+        speakerId: speaker.id,
+        sequenceIndex,
+        turnIndex,
+        textDelta: delta,
+      });
+    },
+  });
+}
+
 async function createLocalAiJudgeSnapshot({
   runtime,
   config,
@@ -391,6 +547,7 @@ async function createLocalAiJudgeSnapshot({
   scenario,
   exchangeMessages,
   exchangeIndex,
+  members,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
@@ -399,6 +556,7 @@ async function createLocalAiJudgeSnapshot({
   scenario: DateScenario;
   exchangeMessages: DateMessage[];
   exchangeIndex: number;
+  members: Member[];
 }): Promise<JudgeSnapshot> {
   try {
     const packet = buildJudgePromptPacket({
@@ -406,6 +564,7 @@ async function createLocalAiJudgeSnapshot({
       session,
       pairState,
       exchangeMessages,
+      members,
     });
 
     const judgeSnapshot = await runtime.judgeDateExchange({
@@ -442,6 +601,7 @@ async function createLocalAiFinalSession({
     runtime,
     config,
     session,
+    members,
     createdAt: completedAt,
   });
   const completedSession = finalizeDateSession({
@@ -460,16 +620,19 @@ async function createLocalAiMemoryRecords({
   runtime,
   config,
   session,
+  members,
   createdAt,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
   session: DateSession;
+  members: Member[];
   createdAt: string;
 }): Promise<MemoryRecord[]> {
   try {
     const packet = buildSummarizerPromptPacket({
       session,
+      members,
       finalJudgeSnapshot: session.judgeSnapshots.at(-1),
     });
     const candidates = await runtime.summarizeDateMemories({
@@ -597,10 +760,12 @@ async function createRuntimeQueryEmbedding({
   }
 }
 
-function sanitizeCharacterText(text: string): string {
+function sanitizeCharacterText(text: string, speakerName: string): string {
+  const speakerLabelPattern = new RegExp(`^${escapeRegex(speakerName)}\\s*:\\s*`, "i");
   const trimmedText = text
     .trim()
     .replace(/^["']|["']$/g, "")
+    .replace(speakerLabelPattern, "")
     .trim();
 
   if (trimmedText.length === 0) {
@@ -612,4 +777,8 @@ function sanitizeCharacterText(text: string): string {
   }
 
   return `${trimmedText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
+}
+
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

@@ -34,7 +34,15 @@ export function Hairline({ className = "" }: { className?: string }) {
 /* Portrait                                                           */
 /* ------------------------------------------------------------------ */
 
-type PortraitVariant = "thumb" | "row" | "card" | "stage" | "hero" | "transcript";
+type PortraitVariant =
+  | "thumb"
+  | "row"
+  | "card"
+  | "stage"
+  | "hero"
+  | "transcript"
+  | "standee-bottom"
+  | "standee-top";
 
 const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
   thumb:
@@ -46,6 +54,8 @@ const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
   hero: "h-72 w-56 rounded-[32px] border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100 shadow-quiet",
   transcript:
     "size-9 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
+  "standee-bottom": "size-full",
+  "standee-top": "size-full",
 };
 
 const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
@@ -55,6 +65,8 @@ const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
   stage: "size-full object-cover object-top",
   hero: "size-full object-contain object-bottom p-2",
   transcript: "size-full object-cover object-top",
+  "standee-bottom": "size-full object-contain object-bottom",
+  "standee-top": "size-full object-contain object-top",
 };
 
 const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
@@ -64,6 +76,8 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
   stage: "font-display text-4xl font-bold text-aura-rose",
   hero: "font-display text-5xl font-bold text-aura-rose",
   transcript: "font-display text-xs font-bold text-aura-rose",
+  "standee-bottom": "font-display text-display-xl font-bold text-aura-rose/30",
+  "standee-top": "font-display text-display-xl font-bold text-aura-rose/30",
 };
 
 export function Portrait({

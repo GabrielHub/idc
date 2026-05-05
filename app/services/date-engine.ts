@@ -22,6 +22,7 @@ import {
   type RelationshipStat,
   type ShiftGoalResult,
   type ShiftReport,
+  type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import { findMemberInSave, getActiveShift, makePairId, sortMemberIds } from "./game-seed";
@@ -431,6 +432,66 @@ export function completeShift(
   });
 
   return { save: nextSave, report };
+}
+
+export function startNextShift(
+  save: GameSave,
+  now = new Date(),
+): { save: GameSave; shift: ShiftState } {
+  const activeShift = getActiveShift(save);
+
+  if (activeShift.status !== "completed") {
+    throw new Error("File the active shift before opening the next shift.");
+  }
+
+  const timestamp = now.toISOString();
+  const nextShiftNumber = Math.max(...save.shifts.map((shift) => shift.shiftNumber)) + 1;
+  const scenarioIds =
+    activeShift.scenarioDeck.scenarioIds.length === 0
+      ? starterScenarios.map((scenario) => scenario.id)
+      : activeShift.scenarioDeck.scenarioIds;
+  const scenarioStartIndex =
+    ((nextShiftNumber - 1) * save.config.shiftDateSlots) % scenarioIds.length;
+  const drawnScenarioIds = takeWrapped(scenarioIds, scenarioStartIndex, save.config.shiftDateSlots);
+  const offeredScenarioIds = takeWrapped(
+    scenarioIds,
+    scenarioStartIndex + save.config.shiftDateSlots,
+    save.config.shiftDateSlots,
+  );
+  const companyGoalIds = takeWrapped(
+    companyGoals.map((goal) => goal.id),
+    (nextShiftNumber - 1) * 2,
+    2,
+  );
+  const memberRequestIds = takeWrapped(
+    memberRequests.map((request) => request.id),
+    (nextShiftNumber - 1) * save.config.shiftDateSlots,
+    save.config.shiftDateSlots,
+  );
+  const nextShift = shiftStateSchema.parse({
+    id: `shift-${nextShiftNumber}`,
+    shiftNumber: nextShiftNumber,
+    status: "active",
+    dateSlotsTotal: save.config.shiftDateSlots,
+    dateSlotsUsed: 0,
+    drawnScenarioIds,
+    companyGoalIds,
+    memberRequestIds,
+    scenarioDeck: {
+      scenarioIds,
+      maxSize: activeShift.scenarioDeck.maxSize,
+      offeredScenarioIds,
+    },
+    startedAt: timestamp,
+  });
+  const nextSave = gameSaveSchema.parse({
+    ...save,
+    shifts: [...save.shifts, nextShift],
+    activeShiftId: nextShift.id,
+    updatedAt: timestamp,
+  });
+
+  return { save: nextSave, shift: nextShift };
 }
 
 export function createCharacterMessage({
@@ -957,6 +1018,23 @@ function isOrdinaryHuman(member: Member): boolean {
 
 function createMoodBaseline(): Map<string, number> {
   return new Map(starterMembers.map((member) => [member.id, member.state.mood]));
+}
+
+function takeWrapped<TValue>(values: TValue[], startIndex: number, count: number): TValue[] {
+  if (values.length === 0) {
+    return [];
+  }
+
+  return Array.from({ length: Math.min(count, values.length) }, (_, index) => {
+    const wrappedIndex = (startIndex + index) % values.length;
+    const value = values[wrappedIndex];
+
+    if (value === undefined) {
+      throw new Error("Wrapped list lookup failed.");
+    }
+
+    return value;
+  });
 }
 
 function clampDelta(value: number): number {

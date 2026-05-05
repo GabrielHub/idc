@@ -7,6 +7,7 @@ import {
   type DateScenario,
   type DateSession,
   type FollowUpAction,
+  type JudgeSnapshot,
   type Member,
   type MemberRequest,
   type PairState,
@@ -504,13 +505,7 @@ export function BriefView({
 
   return (
     <ViewFrame wide>
-      <BriefHeader
-        shiftNumber={shift.shiftNumber}
-        first={first}
-        second={second}
-        scenarioCount={scenarios.length}
-        onBack={onBack}
-      />
+      <BriefHeader shiftNumber={shift.shiftNumber} scenarioCount={scenarios.length} />
 
       <Hairline className="mt-8" />
 
@@ -569,34 +564,21 @@ export function BriefView({
 
 function BriefHeader({
   shiftNumber,
-  first,
-  second,
   scenarioCount,
-  onBack,
 }: {
   shiftNumber: number;
-  first: Member;
-  second: Member;
   scenarioCount: number;
-  onBack: () => void;
 }) {
   return (
-    <header className="flex flex-wrap items-end justify-between gap-6">
-      <div className="max-w-2xl space-y-3">
-        <Eyebrow>{`// brief.${pad2(shiftNumber)}`}</Eyebrow>
-        <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
-          Tonight&rsquo;s brief
-        </h1>
-        <p className="aura-accent text-lead text-aura-muted">
-          On the call sheet: {first.name} <span className="text-aura-rose/85">✦</span> {second.name}
-          .
-        </p>
-        <p className="max-w-xl text-body text-aura-muted">
-          {scenarioCount} reservations on the desk. Pick the room. Cupid will not begin without
-          paperwork.
-        </p>
-      </div>
-      <GhostButton onClick={onBack}>← Roster</GhostButton>
+    <header className="max-w-2xl space-y-3">
+      <Eyebrow>{`// brief.${pad2(shiftNumber)}`}</Eyebrow>
+      <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
+        Tonight&rsquo;s brief
+      </h1>
+      <p className="max-w-xl text-body text-aura-muted">
+        {scenarioCount} reservations on the desk. Pick the room. Cupid will not begin without
+        paperwork.
+      </p>
     </header>
   );
 }
@@ -1181,12 +1163,23 @@ export type DateProps = {
   canAdvance: boolean;
   canIntervene: boolean;
   isActionPending: boolean;
+  streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
   onAdvance: () => void;
   onComplete: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
   onBack: () => void;
+};
+
+export type StreamingDraftMessage = {
+  id: string;
+  speakerId: string;
+  speakerName: string;
+  sequenceIndex: number;
+  turnIndex: number;
+  text: string;
+  status: "streaming" | "done";
 };
 
 export function DateView({
@@ -1197,6 +1190,7 @@ export function DateView({
   canAdvance,
   canIntervene,
   isActionPending,
+  streamingDrafts,
   onInterventionTextChange,
   onAdvance,
   onComplete,
@@ -1204,31 +1198,52 @@ export function DateView({
   onFollowUp,
   onBack,
 }: DateProps) {
-  const transcript = buildTranscriptItems(session, members, scenario);
+  const transcript = buildTranscriptItems(session, members, scenario, streamingDrafts);
   const participants = session.participants
     .map((id) => members.find((m) => m.id === id))
     .filter((m): m is Member => Boolean(m));
+  const [leftMember, rightMember] = participants;
+  const reactionSignals =
+    leftMember === undefined || rightMember === undefined
+      ? []
+      : buildReactionSignals(session, leftMember.id, rightMember.id);
 
   return (
-    <ViewFrame wide>
-      <DateHeader
-        scenario={scenario}
-        session={session}
-        participants={participants}
-        onBack={onBack}
-      />
-
-      <div className="mt-10">
-        <TranscriptStream items={transcript} session={session} />
-      </div>
-
-      {session.finalReport === undefined ? null : (
-        <FinalReportPanel
-          report={session.finalReport}
-          isActionPending={isActionPending}
-          onFollowUp={onFollowUp}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
+      className="relative w-full"
+    >
+      {leftMember !== undefined && rightMember !== undefined ? (
+        <DateStandeeFrame
+          leftMember={leftMember}
+          rightMember={rightMember}
+          reactions={reactionSignals}
         />
-      )}
+      ) : null}
+
+      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-40 lg:px-10">
+        <DateHeader
+          scenario={scenario}
+          session={session}
+          participants={participants}
+          onBack={onBack}
+        />
+
+        <Hairline className="mt-7" />
+
+        <ChatStream items={transcript} session={session} leftMemberId={leftMember?.id} />
+
+        {session.finalReport === undefined ? null : (
+          <FinalReportPanel
+            report={session.finalReport}
+            isActionPending={isActionPending}
+            onFollowUp={onFollowUp}
+          />
+        )}
+      </div>
 
       {session.status === "active" ? (
         <DateFooter
@@ -1243,7 +1258,7 @@ export function DateView({
           onIntervene={onIntervene}
         />
       ) : null}
-    </ViewFrame>
+    </motion.div>
   );
 }
 
@@ -1285,7 +1300,7 @@ function DateHeader({
           <h1 className="font-display text-display-lg font-semibold tracking-tight text-aura-ink">
             {scenario?.title ?? "Date in session"}
           </h1>
-          <p className="max-w-2xl text-lead text-aura-muted">
+          <p className="text-lead text-aura-muted">
             {participants.map((m) => m.name).join(" and ")}
             {scenario === undefined ? "" : ` at ${scenario.publicBrief.location}.`}
           </p>
@@ -1299,7 +1314,7 @@ function DateHeader({
         </div>
       </div>
 
-      <div className="mt-8 grid gap-6 sm:grid-cols-[1fr_auto_auto]">
+      <div className="mt-7 grid gap-5 sm:grid-cols-[1fr_auto_auto]">
         <div>
           <div className="flex items-baseline justify-between">
             <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted">
@@ -1312,8 +1327,7 @@ function DateHeader({
           <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-aura-hairline">
             <div
               aria-hidden
-              className="aura-bar-fill h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet"
-              style={{ "--bar-target": String(session.dateHealth / 100) } as React.CSSProperties}
+              className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet ${scoreWidthClass(session.dateHealth)}`}
             />
           </div>
         </div>
@@ -1331,102 +1345,428 @@ type TranscriptItem = {
   text: string;
   tone: "member" | "scenario" | "cupid" | "system" | "judge";
   member?: Member;
+  isDraft?: boolean;
+  isStreaming?: boolean;
 };
 
-function TranscriptStream({ items, session }: { items: TranscriptItem[]; session: DateSession }) {
-  const scrollRef = useRef<HTMLDivElement | null>(null);
-  useEffect(() => {
-    const node = scrollRef.current;
-    if (node === null) {
-      return;
-    }
-    node.scrollTo({ top: node.scrollHeight, behavior: "smooth" });
-  }, [items.length]);
-
+function DateStandeeFrame({
+  leftMember,
+  rightMember,
+  reactions,
+}: {
+  leftMember: Member;
+  rightMember: Member;
+  reactions: ReactionSignal[];
+}) {
   return (
-    <div ref={scrollRef} className="max-h-[64vh] overflow-y-auto pr-2">
-      <ol className="space-y-7">
-        {items.map((item, index) => (
-          <TranscriptLine key={item.id} item={item} index={index} />
-        ))}
-      </ol>
-      {items.length === 0 ? (
-        <p className="text-label text-aura-muted">
-          Cupid does not record silence. Advance the exchange to begin.
-        </p>
-      ) : null}
-      {session.status === "active" && items.length > 0 ? (
-        <p className="mt-6 inline-flex items-center gap-2 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-          <LiveDot />
-          Cupid is listening
-        </p>
-      ) : null}
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden xl:block">
+      <div className="relative mx-auto h-full w-full max-w-2xl">
+        <DaterStandee
+          member={leftMember}
+          placement="bottom-left"
+          reactions={reactions.filter((reaction) => reaction.side === "left")}
+        />
+        <DaterStandee
+          member={rightMember}
+          placement="top-right"
+          reactions={reactions.filter((reaction) => reaction.side === "right")}
+        />
+      </div>
     </div>
   );
 }
 
-function TranscriptLine({ item, index }: { item: TranscriptItem; index: number }) {
-  const animation = {
+function DaterStandee({
+  member,
+  placement,
+  reactions,
+}: {
+  member: Member;
+  placement: "bottom-left" | "top-right";
+  reactions: ReactionSignal[];
+}) {
+  const isBottom = placement === "bottom-left";
+  const positionClass = isBottom
+    ? "absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
+    : "absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72";
+  const glowClass = isBottom
+    ? "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_82%,rgba(244,63,94,0.2),rgba(217,70,239,0.06)_55%,transparent_75%)]"
+    : "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_22%,rgba(167,139,250,0.22),rgba(217,70,239,0.06)_55%,transparent_75%)]";
+  const shadowClass = isBottom
+    ? "drop-shadow-[0_30px_42px_rgba(244,63,94,0.22)]"
+    : "drop-shadow-[0_30px_42px_rgba(167,139,250,0.22)]";
+  const variant: "standee-bottom" | "standee-top" = isBottom ? "standee-bottom" : "standee-top";
+
+  return (
+    <div className={positionClass}>
+      <span aria-hidden className={glowClass} />
+      <div className={`relative size-full ${shadowClass}`}>
+        <Portrait member={member} variant={variant} asset="portrait" />
+        <ReactionStream reactions={reactions} placement={placement} />
+      </div>
+    </div>
+  );
+}
+
+type ReactionKind = "spark" | "love" | "laugh" | "anger" | "cry" | "warning";
+
+type ReactionSignal = {
+  id: string;
+  side: "left" | "right";
+  kind: ReactionKind;
+  intensity: number;
+};
+
+const REACTION_ICON: Record<ReactionKind, string> = {
+  spark: "✨",
+  love: "💗",
+  laugh: "😂",
+  anger: "😡",
+  cry: "😢",
+  warning: "⚠️",
+};
+
+const REACTION_TONE: Record<ReactionKind, string> = {
+  spark:
+    "border-violet-200/70 bg-violet-50/85 text-violet-500 shadow-[0_10px_24px_-12px_rgba(124,58,237,0.6)]",
+  love: "border-rose-200/70 bg-rose-50/85 text-aura-rose shadow-[0_10px_24px_-12px_rgba(244,63,94,0.65)]",
+  laugh:
+    "border-amber-200/80 bg-amber-50/85 text-amber-600 shadow-[0_10px_24px_-12px_rgba(245,158,11,0.6)]",
+  anger:
+    "border-rose-300/75 bg-rose-100/85 text-rose-700 shadow-[0_10px_24px_-12px_rgba(190,18,60,0.55)]",
+  cry: "border-sky-200/80 bg-sky-50/85 text-sky-600 shadow-[0_10px_24px_-12px_rgba(14,165,233,0.55)]",
+  warning:
+    "border-amber-200/80 bg-white/90 text-amber-700 shadow-[0_10px_24px_-12px_rgba(245,158,11,0.6)]",
+};
+
+const REACTION_SIZE: Record<number, string> = {
+  1: "size-7 text-label",
+  2: "size-8 text-body",
+  3: "size-9 text-lead",
+};
+
+const REACTION_OFFSETS = [
+  "-translate-x-2",
+  "translate-x-7",
+  "-translate-x-8",
+  "translate-x-3",
+] as const;
+
+function ReactionStream({
+  reactions,
+  placement,
+}: {
+  reactions: ReactionSignal[];
+  placement: "bottom-left" | "top-right";
+}) {
+  if (reactions.length === 0) {
+    return null;
+  }
+
+  const anchorClass =
+    placement === "bottom-left"
+      ? "left-1/2 bottom-[28%] items-start"
+      : "right-1/2 top-[20%] items-end";
+
+  return (
+    <div className={`absolute z-20 flex flex-col gap-3 ${anchorClass}`}>
+      {reactions.slice(0, 4).map((reaction, index) => (
+        <FloatingReaction
+          key={reaction.id}
+          reaction={reaction}
+          index={index}
+          placement={placement}
+        />
+      ))}
+    </div>
+  );
+}
+
+function FloatingReaction({
+  reaction,
+  index,
+  placement,
+}: {
+  reaction: ReactionSignal;
+  index: number;
+  placement: "bottom-left" | "top-right";
+}) {
+  const drift = placement === "bottom-left" ? 18 + index * 5 : -18 - index * 5;
+  const offsetClass = REACTION_OFFSETS[index % REACTION_OFFSETS.length];
+
+  return (
+    <motion.span
+      className={`grid rounded-full border font-display font-semibold backdrop-blur-md ${REACTION_SIZE[reaction.intensity]} ${REACTION_TONE[reaction.kind]} ${offsetClass}`}
+      initial={{ opacity: 0, y: 18, x: 0, scale: 0.82 }}
+      animate={{
+        opacity: [0, 1, 1, 0],
+        y: [18, -12, -44, -74],
+        x: [0, drift, drift * 0.6, 0],
+        scale: [0.82, 1, 0.96, 0.72],
+      }}
+      transition={{
+        duration: 3.2,
+        delay: index * 0.32,
+        repeat: Infinity,
+        repeatDelay: 1.6 + index * 0.18,
+        ease: EASE_OUT_QUART,
+      }}
+    >
+      <span className="m-auto leading-none">{REACTION_ICON[reaction.kind]}</span>
+    </motion.span>
+  );
+}
+
+type ChatStreamAnimation = {
+  initial: { opacity: number; y: number };
+  animate: { opacity: number; y: number };
+  transition: { duration: number; ease: typeof EASE_OUT_QUART; delay: number };
+};
+
+function ChatStream({
+  items,
+  session,
+  leftMemberId,
+}: {
+  items: TranscriptItem[];
+  session: DateSession;
+  leftMemberId: string | undefined;
+}) {
+  const endAnchorRef = useRef<HTMLDivElement | null>(null);
+  const latestText = items.at(-1)?.text ?? "";
+
+  useEffect(() => {
+    endAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [items.length, latestText]);
+
+  if (items.length === 0) {
+    return (
+      <div className="mt-12 flex flex-col items-center gap-3 text-center">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint">
+          // awaiting first exchange
+        </p>
+        <p className="max-w-sm text-label text-aura-muted">
+          Cupid does not record silence. Advance the exchange to begin the transcript.
+        </p>
+        {session.status === "active" ? (
+          <div className="mt-3">
+            <CupidTypingIndicator />
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8">
+      <ol className="space-y-4">
+        {items.map((item, index) => {
+          const previous = items[index - 1];
+          return (
+            <ChatStreamItem
+              key={item.id}
+              item={item}
+              previous={previous}
+              index={index}
+              leftMemberId={leftMemberId}
+            />
+          );
+        })}
+      </ol>
+
+      {session.status === "active" ? (
+        <div className="mt-5 flex justify-start">
+          <CupidTypingIndicator />
+        </div>
+      ) : null}
+
+      <div ref={endAnchorRef} aria-hidden className="h-2" />
+    </div>
+  );
+}
+
+function ChatStreamItem({
+  item,
+  previous,
+  index,
+  leftMemberId,
+}: {
+  item: TranscriptItem;
+  previous: TranscriptItem | undefined;
+  index: number;
+  leftMemberId: string | undefined;
+}) {
+  const animation: ChatStreamAnimation = {
     initial: { opacity: 0, y: 10 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.4, ease: EASE_OUT_QUART, delay: Math.min(index * 0.04, 0.5) },
   };
 
   if (item.tone === "member" && item.member !== undefined) {
-    const member = item.member;
+    const isLeft = item.member.id === leftMemberId;
+    const previousIsSameSpeaker =
+      previous?.tone === "member" && previous.member?.id === item.member.id;
     return (
-      <motion.li {...animation} className="flex items-start gap-4">
-        <Portrait member={member} variant="transcript" />
-        <div className="min-w-0 flex-1">
-          <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-            {member.name}
-          </p>
-          <p className="mt-1 max-w-2xl text-body text-aura-ink">{item.text}</p>
-        </div>
-      </motion.li>
+      <ChatBubble
+        item={item}
+        member={item.member}
+        side={isLeft ? "left" : "right"}
+        showName={!previousIsSameSpeaker}
+        tight={previousIsSameSpeaker}
+        animation={animation}
+      />
     );
   }
 
   if (item.tone === "scenario") {
-    return (
-      <motion.li {...animation}>
-        <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-violet">
-          {item.label}
-        </p>
-        <p className="mt-1 max-w-2xl aura-accent text-lead text-aura-muted">{item.text}</p>
-      </motion.li>
-    );
+    return <NarratorBeat item={item} animation={animation} />;
   }
 
   if (item.tone === "cupid") {
-    return (
-      <motion.li {...animation} className="border-l-2 border-aura-rose pl-4">
-        <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose">
-          Cupid intervention
-        </p>
-        <p className="mt-1 max-w-2xl text-body text-aura-ink">{item.text}</p>
-      </motion.li>
-    );
+    return <CupidPin item={item} animation={animation} />;
   }
 
   if (item.tone === "judge") {
-    return (
-      <motion.li {...animation} className="rounded-tile bg-emerald-50/70 px-4 py-3">
-        <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-emerald-600">
-          Judge note
-        </p>
-        <p className="mt-1 max-w-2xl text-label text-emerald-900/80">{item.text}</p>
-      </motion.li>
-    );
+    return <JudgeNote item={item} animation={animation} />;
   }
 
+  return <SystemNote item={item} animation={animation} />;
+}
+
+function ChatBubble({
+  item,
+  member,
+  side,
+  showName,
+  tight,
+  animation,
+}: {
+  item: TranscriptItem;
+  member: Member;
+  side: "left" | "right";
+  showName: boolean;
+  tight: boolean;
+  animation: ChatStreamAnimation;
+}) {
+  const isLeft = side === "left";
+  const justify = isLeft ? "justify-start" : "justify-end";
+  const tightClass = tight ? "!mt-1" : "";
+  const itemsAlign = isLeft ? "items-start" : "items-end";
+  const nameAlign = isLeft ? "text-left text-aura-faint" : "text-right text-aura-rose/75";
+  const bubbleClass = isLeft
+    ? "rounded-[22px] rounded-bl-md bg-white/85 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md"
+    : "rounded-[22px] rounded-br-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
+  const textColor = isLeft ? "text-aura-ink" : "text-white";
+  const caretColor = isLeft ? "bg-aura-rose/70" : "bg-white/85";
+  const draftClass = item.isDraft === true ? "opacity-95" : "";
+
   return (
-    <motion.li {...animation}>
-      <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-        {item.label}
-      </p>
-      <p className="mt-1 max-w-2xl text-label text-aura-muted">{item.text}</p>
+    <motion.li {...animation} className={`flex ${justify} ${tightClass}`}>
+      <div className={`flex max-w-[78%] flex-col gap-1 ${itemsAlign}`}>
+        {showName ? (
+          <span
+            className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameAlign}`}
+          >
+            {member.name}
+          </span>
+        ) : null}
+        <div className={`${bubbleClass} ${draftClass}`}>
+          <p className={`text-body leading-relaxed ${textColor}`}>
+            {item.text}
+            {item.isStreaming === true ? (
+              <span
+                aria-hidden
+                className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
+              />
+            ) : null}
+          </p>
+        </div>
+      </div>
     </motion.li>
+  );
+}
+
+function NarratorBeat({
+  item,
+  animation,
+}: {
+  item: TranscriptItem;
+  animation: ChatStreamAnimation;
+}) {
+  return (
+    <motion.li {...animation} className="!my-7">
+      <div className="flex flex-col items-center gap-2 px-2 text-center">
+        <div className="flex w-full items-center gap-3">
+          <span className="h-px flex-1 bg-gradient-to-r from-transparent via-aura-violet/40 to-transparent" />
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-violet">
+            {item.label}
+          </span>
+          <span className="h-px flex-1 bg-gradient-to-r from-aura-violet/40 via-transparent to-transparent" />
+        </div>
+        <p className="aura-accent max-w-md text-lead leading-snug text-aura-muted">
+          &ldquo;{item.text}&rdquo;
+        </p>
+      </div>
+    </motion.li>
+  );
+}
+
+function CupidPin({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
+  return (
+    <motion.li {...animation} className="!my-6 flex justify-center">
+      <div className="aura-glass-rose relative max-w-md rounded-card px-5 pt-5 pb-3.5 text-center">
+        <span
+          aria-hidden
+          className="absolute -top-1.5 left-1/2 grid size-3.5 -translate-x-1/2 place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-rose shadow-[0_3px_8px_rgba(244,63,94,0.45)] ring-2 ring-white/85"
+        >
+          <span className="size-1 rounded-full bg-white/90" />
+        </span>
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+          // cupid nudge
+        </p>
+        <p className="mt-1.5 text-label leading-snug text-aura-ink/85">{item.text}</p>
+      </div>
+    </motion.li>
+  );
+}
+
+function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
+  return (
+    <motion.li {...animation} className="flex justify-center">
+      <div className="max-w-md rounded-tile bg-emerald-50/80 px-3.5 py-2 ring-1 ring-emerald-500/20">
+        <p className="text-center font-mono text-micro font-semibold uppercase tracking-[0.24em] text-emerald-700">
+          {item.label}
+        </p>
+        <p className="mt-0.5 text-center text-label leading-snug text-emerald-900/80">
+          {item.text}
+        </p>
+      </div>
+    </motion.li>
+  );
+}
+
+function SystemNote({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
+  return (
+    <motion.li {...animation} className="flex justify-center">
+      <p className="max-w-md text-center font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+        {item.text}
+      </p>
+    </motion.li>
+  );
+}
+
+function CupidTypingIndicator() {
+  return (
+    <div className="inline-flex items-center gap-2.5 rounded-[22px] rounded-bl-md bg-white/70 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md">
+      <span aria-hidden className="flex items-center gap-1">
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/55 [animation-delay:0ms]" />
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/65 [animation-delay:180ms]" />
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/75 [animation-delay:360ms]" />
+      </span>
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        Cupid is listening
+      </span>
+    </div>
   );
 }
 
@@ -1531,7 +1871,7 @@ function DateFooter({
                   Resolve date
                 </GhostButton>
                 <PrimaryButton onClick={onAdvance} disabled={!canAdvance}>
-                  {isActionPending ? "Listening." : "Advance"}
+                  {isActionPending ? "Streaming." : "Advance"}
                 </PrimaryButton>
               </>
             ) : null}
@@ -1623,12 +1963,12 @@ export function ShiftReportPanel({
   shift,
   members,
   isActionPending,
-  onResetSave,
+  onOpenNextShift,
 }: {
   shift: ShiftState;
   members: Member[];
   isActionPending: boolean;
-  onResetSave: () => void;
+  onOpenNextShift: () => void;
 }) {
   if (shift.status !== "completed" || shift.report === undefined) {
     return null;
@@ -1676,7 +2016,7 @@ export function ShiftReportPanel({
           <p className="text-label text-aura-muted">
             {members.length} members on file. Cupid keeps the receipts.
           </p>
-          <PrimaryButton disabled={isActionPending} onClick={onResetSave}>
+          <PrimaryButton disabled={isActionPending} onClick={onOpenNextShift}>
             Open next shift
           </PrimaryButton>
         </div>
@@ -1711,10 +2051,41 @@ export function pad2(value: number) {
   return value.toString().padStart(2, "0");
 }
 
+const SCORE_WIDTH_CLASSES = [
+  "w-0",
+  "w-[5%]",
+  "w-[10%]",
+  "w-[15%]",
+  "w-[20%]",
+  "w-[25%]",
+  "w-[30%]",
+  "w-[35%]",
+  "w-[40%]",
+  "w-[45%]",
+  "w-[50%]",
+  "w-[55%]",
+  "w-[60%]",
+  "w-[65%]",
+  "w-[70%]",
+  "w-[75%]",
+  "w-[80%]",
+  "w-[85%]",
+  "w-[90%]",
+  "w-[95%]",
+  "w-full",
+] as const;
+
+function scoreWidthClass(score: number): (typeof SCORE_WIDTH_CLASSES)[number] {
+  const boundedScore = Math.min(100, Math.max(0, score));
+  const index = Math.round(boundedScore / 5);
+  return SCORE_WIDTH_CLASSES[index] ?? "w-full";
+}
+
 function buildTranscriptItems(
   session: DateSession,
   members: Member[],
   scenario: DateScenario | undefined,
+  streamingDrafts: StreamingDraftMessage[],
 ): TranscriptItem[] {
   const messageItems: TranscriptItem[] = session.transcript.map((message) => {
     if (message.kind === "character") {
@@ -1759,5 +2130,142 @@ function buildTranscriptItems(
     tone: "judge",
     text: snapshot.playerSummary,
   }));
-  return [...messageItems, ...judgeItems].sort((first, second) => first.order - second.order);
+  const committedSequenceIndexes = new Set(
+    session.transcript.map((message) => message.sequenceIndex),
+  );
+  const draftItems: TranscriptItem[] = streamingDrafts
+    .filter((draft) => !committedSequenceIndexes.has(draft.sequenceIndex))
+    .map((draft) => {
+      const member = members.find((candidate) => candidate.id === draft.speakerId);
+
+      return {
+        id: draft.id,
+        order: draft.sequenceIndex * 10,
+        label: member?.name ?? draft.speakerName,
+        tone: "member",
+        text: draft.text,
+        member,
+        isDraft: true,
+        isStreaming: draft.status === "streaming",
+      };
+    });
+
+  return [...messageItems, ...draftItems, ...judgeItems].sort(
+    (first, second) => first.order - second.order,
+  );
+}
+
+function buildReactionSignals(
+  session: DateSession,
+  leftMemberId: string,
+  rightMemberId: string,
+): ReactionSignal[] {
+  const latestJudge = session.judgeSnapshots.at(-1);
+
+  if (latestJudge === undefined) {
+    return [];
+  }
+
+  const signals: ReactionSignal[] = [];
+  const participants = [
+    { memberId: leftMemberId, side: "left" as const },
+    { memberId: rightMemberId, side: "right" as const },
+  ];
+  const dateDelta = latestJudge.dateHealthDelta;
+  const sparkDelta = latestJudge.statDeltas.spark ?? 0;
+  const chemistryDelta = latestJudge.statDeltas.chemistry ?? 0;
+  const trustDelta = latestJudge.statDeltas.trust ?? 0;
+  const stabilityDelta = latestJudge.statDeltas.stability ?? 0;
+  const relationshipDelta = latestJudge.statDeltas.relationshipHealth ?? 0;
+  const strainDelta = latestJudge.statDeltas.strain ?? 0;
+  const conflictDelta = latestJudge.statDeltas.conflict ?? 0;
+  const textSignal = [latestJudge.playerSummary, ...latestJudge.notableMoments]
+    .join(" ")
+    .toLowerCase();
+  const sharedPositive = Math.max(dateDelta, sparkDelta, chemistryDelta, relationshipDelta);
+  const sharedCare = Math.max(trustDelta, stabilityDelta);
+  const sharedTrouble = Math.max(-dateDelta, strainDelta, conflictDelta);
+
+  for (const participant of participants) {
+    const moodDelta = latestJudge.memberMoodDeltas[participant.memberId] ?? 0;
+
+    if (sharedPositive > 0 || moodDelta > 0) {
+      pushReaction(
+        signals,
+        latestJudge,
+        participant.side,
+        "spark",
+        Math.max(sharedPositive, moodDelta),
+      );
+    }
+
+    if (sparkDelta >= 3 || chemistryDelta >= 3 || moodDelta >= 3) {
+      pushReaction(
+        signals,
+        latestJudge,
+        participant.side,
+        "love",
+        Math.max(sparkDelta, chemistryDelta, moodDelta),
+      );
+    }
+
+    if (sharedCare >= 3) {
+      pushReaction(signals, latestJudge, participant.side, "love", sharedCare);
+    }
+
+    if (
+      textSignal.includes("laugh") ||
+      textSignal.includes("joke") ||
+      textSignal.includes("funny")
+    ) {
+      pushReaction(signals, latestJudge, participant.side, "laugh", 3);
+    }
+
+    if (sharedTrouble >= 4 || latestJudge.shouldEndEarly) {
+      pushReaction(signals, latestJudge, participant.side, "anger", sharedTrouble);
+    } else if (sharedTrouble > 0) {
+      pushReaction(signals, latestJudge, participant.side, "warning", sharedTrouble);
+    }
+
+    if (moodDelta <= -3) {
+      pushReaction(signals, latestJudge, participant.side, "cry", Math.abs(moodDelta));
+    }
+  }
+
+  return signals;
+}
+
+function pushReaction(
+  signals: ReactionSignal[],
+  judgeSnapshot: JudgeSnapshot,
+  side: ReactionSignal["side"],
+  kind: ReactionKind,
+  value: number,
+) {
+  const sideCount = signals.filter((signal) => signal.side === side).length;
+
+  if (sideCount >= 4 || signals.some((signal) => signal.side === side && signal.kind === kind)) {
+    return;
+  }
+
+  signals.push({
+    id: `${judgeSnapshot.id}-${side}-${kind}`,
+    side,
+    kind,
+    intensity: reactionIntensity(value),
+  });
+}
+
+function reactionIntensity(value: number): number {
+  const magnitude = Math.abs(value);
+
+  if (magnitude >= 6) {
+    return 3;
+  }
+
+  if (magnitude >= 3) {
+    return 2;
+  }
+
+  return 1;
 }

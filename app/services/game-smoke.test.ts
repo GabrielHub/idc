@@ -6,10 +6,16 @@ import {
   gameSaveSchema,
   memoryRecordSchema,
   memberSchema,
+  SAVE_SCHEMA_VERSION,
   type PortraitAsset,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
-import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
+import {
+  CURRENT_SAVE_KEY,
+  LEGACY_SAVE_KEYS,
+  LocalGameRepository,
+  MemoryStorageDriver,
+} from "../repositories/local-game-repository";
 import { searchCupidMemory } from "./cupid-memory";
 import {
   addCupidIntervention,
@@ -18,13 +24,16 @@ import {
   completeDateSession,
   completeShift,
   startDateSession,
+  startNextShift,
 } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 const APPROVED_PORTRAIT_MEMBER_IDS = [
+  "aldric-vale-marsh",
   "calvin-hewes",
   "gideon-glass",
+  "marcus-pellish",
   "meridian-vale",
   "mr-whiskers",
   "vhool",
@@ -32,7 +41,7 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(13);
+    expect(starterMembers).toHaveLength(16);
     expect(starterScenarios).toHaveLength(14);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
@@ -98,10 +107,75 @@ describe("IDC playable smoke path", () => {
     const save = await repository.resetGame(new Date("2026-05-05T12:00:00.000Z"));
     const loaded = await repository.loadGame();
 
+    expect(save.version).toBe(SAVE_SCHEMA_VERSION);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(13);
-    expect(await repository.listPairStates()).toHaveLength(78);
+    expect(await repository.listMembers()).toHaveLength(16);
+    expect(await repository.listPairStates()).toHaveLength(120);
     expect(await repository.getActiveShift()).not.toBeNull();
+  });
+
+  it("migrates valid default saves from legacy storage keys", async () => {
+    const legacySaveKey = LEGACY_SAVE_KEYS.at(-1);
+
+    if (legacySaveKey === undefined) {
+      throw new Error("Expected a legacy save key for schema migration coverage.");
+    }
+
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage);
+    const save = createThirteenMemberSave(new Date("2026-05-05T12:00:00.000Z"));
+    storage.setItem(legacySaveKey, JSON.stringify(save));
+
+    const loaded = await repository.loadGame();
+
+    expect(loaded?.version).toBe(SAVE_SCHEMA_VERSION);
+    expect(loaded?.activeShiftId).toBe(save.activeShiftId);
+    expect(loaded?.members).toHaveLength(16);
+    expect(loaded?.pairStates).toHaveLength(120);
+    expect(loaded?.members.some((member) => member.id === "marcus-pellish")).toBe(true);
+    expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
+    expect(storage.getItem(legacySaveKey)).toBeNull();
+  });
+
+  it("hydrates new starter members and pair states into current schema saves", async () => {
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage);
+    const save = createThirteenMemberSave(new Date("2026-05-05T12:00:00.000Z"));
+    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(save));
+
+    const loaded = await repository.loadGame();
+    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+
+    expect(loaded?.members).toHaveLength(16);
+    expect(loaded?.pairStates).toHaveLength(120);
+    expect(loaded?.members.some((member) => member.id === "aldric-vale-marsh")).toBe(true);
+    expect(persistedRaw).not.toBeNull();
+    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(16);
+  });
+
+  it("removes legacy storage keys when resetting or wiping default saves", async () => {
+    const legacySaveKey = LEGACY_SAVE_KEYS.at(-1);
+
+    if (legacySaveKey === undefined) {
+      throw new Error("Expected a legacy save key for delete coverage.");
+    }
+
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage);
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    storage.setItem(legacySaveKey, JSON.stringify(save));
+
+    const resetSave = await repository.resetGame(new Date("2026-05-05T12:01:00.000Z"));
+
+    expect(resetSave.version).toBe(SAVE_SCHEMA_VERSION);
+    expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
+    expect(storage.getItem(legacySaveKey)).toBeNull();
+
+    storage.setItem(legacySaveKey, JSON.stringify(save));
+    await repository.deleteSave();
+
+    expect(storage.getItem(CURRENT_SAVE_KEY)).toBeNull();
+    expect(storage.getItem(legacySaveKey)).toBeNull();
   });
 
   it("hydrates fixture-owned member portrait metadata from old saves", async () => {
@@ -280,8 +354,40 @@ describe("IDC playable smoke path", () => {
     expect(completedShift.save.shifts[0].status).toBe("completed");
   });
 
+  it("opens the next shift without wiping completed campaign state", () => {
+    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const started = startDateSession(save, {
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+    });
+    save = completeDateSession(started.save, started.session.id).save;
+    save = applyFollowUpAction(save, {
+      dateSessionId: started.session.id,
+      action: "repair",
+    }).save;
+
+    const closedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+    const nextShift = startNextShift(closedShift.save, new Date("2026-05-05T13:01:00.000Z"));
+    const completedDate = nextShift.save.dateSessions.find(
+      (session) => session.id === started.session.id,
+    );
+
+    expect(nextShift.shift.id).toBe("shift-2");
+    expect(nextShift.shift.status).toBe("active");
+    expect(nextShift.shift.dateSlotsUsed).toBe(0);
+    expect(nextShift.shift.drawnScenarioIds).toHaveLength(3);
+    expect(nextShift.save.activeShiftId).toBe(nextShift.shift.id);
+    expect(nextShift.save.shifts).toHaveLength(2);
+    expect(nextShift.save.shifts[0].status).toBe("completed");
+    expect(nextShift.save.shifts[0].report).toBeDefined();
+    expect(completedDate?.finalReport?.appliedFollowUp).toBe("repair");
+  });
+
   it("enforces active date, scenario hand, shift ending, and follow-up invariants", () => {
     let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    expect(() => startNextShift(save)).toThrow("File the active shift");
+
     const started = startDateSession(save, {
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -339,6 +445,28 @@ describe("IDC playable smoke path", () => {
     ).toBe(true);
   });
 });
+
+function createThirteenMemberSave(now: Date) {
+  const save = createSeedGameSave(now);
+  const legacyMemberIds = new Set(save.members.slice(0, 13).map((member) => member.id));
+
+  return gameSaveSchema.parse({
+    ...save,
+    members: save.members.filter((member) => legacyMemberIds.has(member.id)),
+    pairStates: save.pairStates.filter((pairState) =>
+      pairState.participantIds.every((memberId) => legacyMemberIds.has(memberId)),
+    ),
+  });
+}
+
+function parsePersistedSave(raw: string | null) {
+  if (raw === null) {
+    return null;
+  }
+
+  const parsed: unknown = JSON.parse(raw);
+  return gameSaveSchema.parse(parsed);
+}
 
 function toWorkspaceFilePath(assetPath: string) {
   const normalizedPath = assetPath.replaceAll("\\", "/");

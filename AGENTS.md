@@ -47,13 +47,12 @@
 
 ## Documentation
 
-- `docs/gameplan.md` owns product decisions, content requirements, and current design intent.
+- Code, tests, fixtures, and assets are the source of truth for implemented product behavior.
 - `docs/agent-implementation-plan.md` owns implementation order, blockers, task status, and acceptance criteria.
 - `docs/world/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
 - `docs/world/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
 - `docs/world/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
 - Future world docs should own remaining concerns: lore, naming, and content feel.
-- Code, tests, fixtures, and assets are the source of truth for implemented behavior once written.
 - Update task status in the implementation plan when starting or finishing planned work.
 
 ## Copy Style
@@ -67,7 +66,8 @@
 
 ## AI And Assets
 
-- Runtime local AI is required for full v1 date simulation, but UI and system smoke paths should have deterministic fixture fallbacks where practical.
+- Runtime local AI is required for player-facing date simulation. The playable game should not provide a non-AI date mode.
+- Deterministic fixture paths exist for service tests and smoke coverage, not as a player-facing substitute for Ollama.
 - Runtime local AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
 - Generate v1 member portraits against a white background.
@@ -84,7 +84,7 @@
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
 - Minimum font size is `text-xs` or 12px. Never use smaller arbitrary text.
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
-- Preserve the dashboard feel described in `docs/gameplan.md`.
+- Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/world/visual-design.md`.
 - Preserve the Aura design language described in `app/app.css` and `docs/world/visual-design.md`.
 - Do not create a marketing landing page for the playable game shell.
 

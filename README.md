@@ -15,7 +15,7 @@ A local-first relationship operations dashboard for Cupid. The app pairs members
 
 - Node 20+ and `pnpm` 10 (declared in `package.json`)
 - The `vp` CLI installed globally (`npm i -g vite-plus`)
-- Ollama running locally is required to book and run dates. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking date flows. The roster and brief can still load when local AI is unavailable.
+- Ollama running locally is required to book and run dates. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking date flows. This is intentional: the playable game has no non-AI date mode. The roster and brief can still load when local AI is unavailable.
 - Python 3 with `bria-rmbg` available if you run the portrait cutout script.
 
 ## Quick start
@@ -69,7 +69,8 @@ The system splits gameplay authority from generative content. Read `AGENTS.md` f
 - **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
 - **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
 - **Local AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
-- **Date play is gated by local AI.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If the local models are unavailable, roster and brief stay visible but date booking is blocked with a visible error state.
+- **Date play is gated by local AI.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If the local models are unavailable, roster and brief stay visible but date booking is blocked with a visible error state. Deterministic date paths exist for service tests and smoke coverage, not as a player-facing fallback.
+- **Implemented behavior lives in code.** Domain schemas, fixtures, game services, repositories, UI components, tests, and checked assets are the source of truth for current gameplay. Docs explain intent and workflows, but no separate planning document owns product behavior.
 - **Memory retrieval is context selection, not truth.** Vector search in `app/services/cupid-memory.ts` and `app/services/vector-memory.ts` produces candidates; visibility rules are enforced before a candidate reaches a prompt or tool result.
 
 ## Testing

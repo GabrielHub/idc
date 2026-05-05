@@ -310,7 +310,7 @@ Corporate voice. Short. Actionable. Treats the supernatural as procedural.
 
 ### Follow-Up Action Labels
 
-Locked in the gameplan: `Encourage`, `Cool Down`, `Repair`, `Mark Bad Fit`. Corporate voice. Do not get cute with these strings.
+Locked in code: `Encourage`, `Cool Down`, `Repair`, `Mark Bad Fit`. Corporate voice. Do not get cute with these strings.
 
 ### Scenario Card
 
@@ -353,7 +353,7 @@ When prompting the Character Performer, supply:
 - The member's `voice` block (register, patterns used, patterns refused, tics).
 - One or two sample opening messages from the member fixture.
 - A short reminder of the two-register rule and the comedy stops.
-- The current scenario beat and recent transcript window from deterministic retrieval (per the gameplan memory architecture).
+- The current scenario beat and recent transcript window from deterministic retrieval.
 
 Do not paste the full voice doc into prompts at runtime. The prompt should contain a compressed version of these rules, sized for the model. Keep the doc as the human-facing source of truth and derive prompt fragments from it.
 

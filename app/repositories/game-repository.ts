@@ -40,6 +40,7 @@ export interface GameRepository {
   loadGame(): Promise<GameSave | null>;
   saveGame(save: GameSave): Promise<void>;
   resetGame(now?: Date): Promise<GameSave>;
+  deleteSave(): Promise<void>;
   listMembers(): Promise<Member[]>;
   saveMember(member: Member): Promise<void>;
   getActiveShift(): Promise<ShiftState | null>;

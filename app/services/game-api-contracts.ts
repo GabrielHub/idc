@@ -5,6 +5,7 @@ import {
   dateSessionIdSchema,
   dateSessionSchema,
   gameSaveSchema,
+  memberIdSchema,
 } from "../domain/game";
 
 export const gameActionSchema = z.discriminatedUnion("type", [
@@ -36,6 +37,42 @@ export const gameActionResponseSchema = z.object({
   aiTelemetry: aiTelemetrySchema,
 });
 
+export const gameStreamEventSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("characterStart"),
+    speakerId: memberIdSchema,
+    speakerName: z.string().min(1),
+    sequenceIndex: z.number().int().min(0),
+    turnIndex: z.number().int().min(1),
+  }),
+  z.object({
+    type: z.literal("characterDelta"),
+    speakerId: memberIdSchema,
+    sequenceIndex: z.number().int().min(0),
+    turnIndex: z.number().int().min(1),
+    textDelta: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("characterDone"),
+    speakerId: memberIdSchema,
+    sequenceIndex: z.number().int().min(0),
+    turnIndex: z.number().int().min(1),
+    text: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("judgeStart"),
+    exchangeIndex: z.number().int().min(0),
+  }),
+  z.object({
+    type: z.literal("complete"),
+    response: gameActionResponseSchema,
+  }),
+  z.object({
+    type: z.literal("error"),
+    message: z.string().min(1),
+  }),
+]);
+
 export const gameApiErrorSchema = z.object({
   error: z.string().min(1),
 });
@@ -50,4 +87,5 @@ export const localAiStatusResponseSchema = z.object({
 
 export type GameAction = z.infer<typeof gameActionSchema>;
 export type GameActionResponse = z.infer<typeof gameActionResponseSchema>;
+export type GameStreamEvent = z.infer<typeof gameStreamEventSchema>;
 export type LocalAiStatusResponse = z.infer<typeof localAiStatusResponseSchema>;
