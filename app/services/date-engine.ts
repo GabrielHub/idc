@@ -11,7 +11,6 @@ import {
   type DateMessage,
   type DateScenario,
   type DateSession,
-  type DateRuntimeMode,
   type FollowUpAction,
   type GameSave,
   type GoalMetric,
@@ -33,7 +32,6 @@ export type StartDateInput = {
   firstMemberId: string;
   secondMemberId: string;
   scenarioId: string;
-  runtimeMode?: DateRuntimeMode;
   now?: Date;
 };
 
@@ -136,7 +134,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     currentTurn: 0,
     dateHealth: startingDateHealth(pairState),
     status: "active",
-    runtimeMode: input.runtimeMode ?? "deterministic",
+    runtimeMode: "local_ai",
     participants,
     transcript: [openingMessage],
     privateStateByCharacter,

@@ -114,22 +114,28 @@ Do not stack multiple changes per iteration. Drift is harder to debug when sever
 Source images are production-time assets and belong outside the shipped client tree:
 
 ```text
-assets-source/portraits/
+assets-source/portraits/<member-id>/
+  portrait.png
+  avatar.png
 ```
 
 Transparent cutouts are runtime assets and belong in:
 
 ```text
-public/assets/portraits/cutout/
+public/assets/portraits/<member-id>/
+  portrait.png
+  avatar.png
 ```
+
+Each member owns one folder in both locations. Use `portrait.png` for the full-body image and `avatar.png` for the upper-half image. Do not put member files back under `public/assets/portraits/cutout/`; that flat folder no longer matches the fixture contract.
 
 Do not place source images under `public/assets/portraits/source`. Vite copies `public` into the client build, so files there ship even when the UI never references them.
 
 Use:
 
 ```sh
-vp run portrait:cutout --input assets-source/portraits/member-id.png --output public/assets/portraits/cutout/member-id.png
-vp run portrait:cutout --input assets-source/portraits/member-id-avatar.png --output public/assets/portraits/cutout/member-id-avatar.png
+vp run portrait:cutout --input assets-source/portraits/member-id --output public/assets/portraits/member-id --overwrite
+vp run portrait:cutout --input assets-source/portraits --output public/assets/portraits --recursive --overwrite
 ```
 
 Default background removal model:

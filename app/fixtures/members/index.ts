@@ -1,4 +1,6 @@
 import { memberSchema } from "../../domain/game";
+import { bradyStrait } from "./brady-strait";
+import { calvinHewes } from "./calvin-hewes";
 import { gideonGlass } from "./gideon-glass";
 import { jennaPike } from "./jenna-pike";
 import { kadeSumner } from "./kade-sumner";
@@ -7,11 +9,13 @@ import { mrWhiskers } from "./mr-whiskers";
 import { opalSunday } from "./opal-sunday";
 import { sanaKarim } from "./sana-karim";
 import { tashaRell } from "./tasha-rell";
+import { tobyWenz } from "./toby-wenz";
+import { venus } from "./venus";
 import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(9)
+  .length(13)
   .parse([
     jennaPike,
     meridianVale,
@@ -22,9 +26,15 @@ export const starterMembers = memberSchema
     sanaKarim,
     kadeSumner,
     tashaRell,
+    venus,
+    calvinHewes,
+    bradyStrait,
+    tobyWenz,
   ]);
 
 export {
+  bradyStrait,
+  calvinHewes,
   gideonGlass,
   jennaPike,
   kadeSumner,
@@ -33,5 +43,7 @@ export {
   opalSunday,
   sanaKarim,
   tashaRell,
+  tobyWenz,
+  venus,
   vhool,
 };

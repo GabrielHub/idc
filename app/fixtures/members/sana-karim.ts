@@ -69,18 +69,18 @@ export const sanaKarim: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/sana-karim.png",
-        cutoutPath: "/assets/portraits/cutout/sana-karim.png",
+        sourcePath: "assets-source/portraits/sana-karim/portrait.png",
+        cutoutPath: "/assets/portraits/sana-karim/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, exhausted twenty-eight year old fourth grade teacher with glossy dark hair pulled back in a low bun escaping at the temples, soft cardigan over a basic tee, chinos, comfortable flats, school district lanyard around her neck, polite tired expression with faint dark circles, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, exhausted twenty-eight year old South Asian fourth grade teacher with long glossy black center-parted hair, rectangular black glasses, warm medium-brown skin, soft taupe cardigan over a dark tee, high-waisted chinos, comfortable flats, school district lanyard with blank badge, holding a small stack of blank worksheets, both hands visible and outside pockets, polite tired expression with faint dark circles, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/sana-karim-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/sana-karim-avatar.png",
+        sourcePath: "assets-source/portraits/sana-karim/avatar.png",
+        cutoutPath: "/assets/portraits/sana-karim/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, exhausted twenty-eight year old fourth grade teacher with glossy dark hair pulled back in a low bun escaping at the temples, soft cardigan over a basic tee, school district lanyard around her neck, polite tired expression with faint dark circles, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, exhausted twenty-eight year old South Asian fourth grade teacher with long glossy black center-parted hair, rectangular black glasses, warm medium-brown skin, soft taupe cardigan over a dark tee, school district lanyard with blank badge, holding blank worksheets near the lower frame edge, one hand lightly touching her glasses, polite tired expression with faint dark circles, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
     },
   },

@@ -1,20 +1,22 @@
 import { z } from "zod";
 
-import { dateRuntimeModeSchema, dateSessionSchema, gameSaveSchema } from "../domain/game";
-import type { DateEngineResult } from "./date-engine";
+import {
+  dateRuntimeModeSchema,
+  dateSessionIdSchema,
+  dateSessionSchema,
+  gameSaveSchema,
+} from "../domain/game";
 
 export const gameActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("advanceExchange"),
-    runtimeMode: dateRuntimeModeSchema,
     save: gameSaveSchema,
-    dateSessionId: z.string().min(1),
+    dateSessionId: dateSessionIdSchema,
   }),
   z.object({
     type: z.literal("completeDate"),
-    runtimeMode: dateRuntimeModeSchema,
     save: gameSaveSchema,
-    dateSessionId: z.string().min(1),
+    dateSessionId: dateSessionIdSchema,
   }),
 ]);
 
@@ -23,7 +25,6 @@ export const aiTelemetrySchema = z
     characterGenerationCount: z.number().int().min(0),
     characterToolCallCount: z.number().int().min(0),
     characterToolResultCount: z.number().int().min(0),
-    deterministicFallbackCount: z.number().int().min(0),
   })
   .nullable();
 
@@ -39,15 +40,14 @@ export const gameApiErrorSchema = z.object({
   error: z.string().min(1),
 });
 
+export const localAiStatusResponseSchema = z.object({
+  status: z.enum(["ready", "unavailable"]),
+  ready: z.boolean(),
+  message: z.string().min(1),
+  details: z.array(z.string().min(1)),
+  checkedAt: z.string().min(1),
+});
+
 export type GameAction = z.infer<typeof gameActionSchema>;
 export type GameActionResponse = z.infer<typeof gameActionResponseSchema>;
-
-export function toDeterministicResponse(result: DateEngineResult): GameActionResponse {
-  return gameActionResponseSchema.parse({
-    save: result.save,
-    session: result.session,
-    runtimeMode: "deterministic",
-    warningMessages: [],
-    aiTelemetry: null,
-  });
-}
+export type LocalAiStatusResponse = z.infer<typeof localAiStatusResponseSchema>;

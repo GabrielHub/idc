@@ -60,18 +60,18 @@ export const meridianVale: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/meridian-vale.png",
-        cutoutPath: "/assets/portraits/cutout/meridian-vale.png",
+        sourcePath: "assets-source/portraits/meridian-vale/portrait.png",
+        cutoutPath: "/assets/portraits/meridian-vale/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, neat tailored black suit, white shirt, discreet earpiece coiled at the collar, dark sunglasses tucked into breast pocket, hands clasped at the front, alert guarded expression, elegant security agent silhouette, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, slim charcoal security trousers, black lace-up tactical boots, discreet earpiece coiled at the collar, dark sunglasses held in one hand, small black enamel redaction-bar lapel pin, alert guarded expression with a trace of embarrassed warmth, elegant security agent silhouette, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/meridian-vale-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/meridian-vale-avatar.png",
+        sourcePath: "assets-source/portraits/meridian-vale/avatar.png",
+        cutoutPath: "/assets/portraits/meridian-vale/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, neat tailored black suit, white shirt, discreet earpiece coiled at the collar, alert guarded expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, discreet earpiece coiled at the collar, wearing dark sunglasses and pushing them down the bridge of her nose with one index finger so her watchful eyes are visible, small black enamel redaction-bar lapel pin, alert guarded expression with a trace of embarrassed warmth, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
     },
   },

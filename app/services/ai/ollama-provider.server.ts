@@ -42,6 +42,13 @@ export type GeneratedTextResult = {
   toolResultCount: number;
 };
 
+export type LocalAiReadiness = {
+  languageModels: string[];
+  providerModes: LocalAiProviderMode[];
+  embeddingModel: string;
+  embeddingDimensions: number;
+};
+
 export type CharacterMemoryToolInput = {
   query: string;
   scope: Array<"self" | "pair" | "scenario">;
@@ -132,14 +139,12 @@ export async function summarizeDateMemories(
 ): Promise<MemoryCandidate[]> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.summarizerModel;
-  const output = await generateObjectWithFallback(z.array(memoryCandidateSchema), {
+  return generateObjectWithFallback(z.array(memoryCandidateSchema), {
     system: packet.system,
     prompt: packet.prompt,
     modelId,
     config: runtimeConfig,
   });
-
-  return z.array(memoryCandidateSchema).parse(output);
 }
 
 export async function embedMemoryText(
@@ -173,6 +178,44 @@ export async function embedMemoryText(
     "Embedding generation failed. Confirm Ollama is running and the embedding model is pulled.",
     errors,
   );
+}
+
+export async function checkLocalAiReadiness(
+  config?: Partial<LocalAiRuntimeConfig>,
+): Promise<LocalAiReadiness> {
+  const runtimeConfig = normalizeRuntimeConfig(config);
+  const languageModelIds = Array.from(
+    new Set([
+      runtimeConfig.performerModel,
+      runtimeConfig.judgeModel,
+      runtimeConfig.summarizerModel,
+    ]),
+  );
+  const languageResults: GeneratedTextResult[] = [];
+
+  for (const modelId of languageModelIds) {
+    const result = await generateTextWithFallback({
+      system: "You are an IDC local AI readiness check.",
+      prompt: "Reply with exactly: READY",
+      modelId,
+      config: runtimeConfig,
+    });
+
+    if (result.text.length === 0) {
+      throw new LocalAiError("Readiness check failed. Local AI returned an empty reply.", modelId);
+    }
+
+    languageResults.push(result);
+  }
+
+  const embeddingResult = await embedMemoryText("IDC local AI readiness check.", runtimeConfig);
+
+  return {
+    languageModels: languageResults.map((result) => result.model),
+    providerModes: Array.from(new Set(languageResults.map((result) => result.providerMode))),
+    embeddingModel: embeddingResult.model,
+    embeddingDimensions: embeddingResult.dimensions,
+  };
 }
 
 function normalizeRuntimeConfig(config?: Partial<LocalAiRuntimeConfig>): LocalAiRuntimeConfig {

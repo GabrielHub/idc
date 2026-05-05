@@ -2,7 +2,12 @@ import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { memoryRecordSchema, type PortraitAsset } from "../domain/game";
+import {
+  gameSaveSchema,
+  memoryRecordSchema,
+  memberSchema,
+  type PortraitAsset,
+} from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
 import { searchCupidMemory } from "./cupid-memory";
@@ -17,12 +22,18 @@ import {
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { createDeterministicEmbedding } from "./vector-memory";
 
-const APPROVED_PORTRAIT_MEMBER_IDS = ["vhool", "mr-whiskers"];
+const APPROVED_PORTRAIT_MEMBER_IDS = [
+  "calvin-hewes",
+  "gideon-glass",
+  "meridian-vale",
+  "mr-whiskers",
+  "vhool",
+];
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(9);
-    expect(starterScenarios).toHaveLength(6);
+    expect(starterMembers).toHaveLength(13);
+    expect(starterScenarios).toHaveLength(14);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
@@ -40,6 +51,23 @@ describe("IDC playable smoke path", () => {
           !sourcePath.replaceAll("\\", "/").startsWith("public/assets/portraits/source"),
       ),
     ).toBe(true);
+  });
+
+  it("keeps portrait assets grouped by member id", () => {
+    for (const member of starterMembers) {
+      expect(member.portraits.neutral.portrait.sourcePath).toBe(
+        `assets-source/portraits/${member.id}/portrait.png`,
+      );
+      expect(member.portraits.neutral.avatar.sourcePath).toBe(
+        `assets-source/portraits/${member.id}/avatar.png`,
+      );
+      expect(member.portraits.neutral.portrait.cutoutPath).toBe(
+        `/assets/portraits/${member.id}/portrait.png`,
+      );
+      expect(member.portraits.neutral.avatar.cutoutPath).toBe(
+        `/assets/portraits/${member.id}/avatar.png`,
+      );
+    }
   });
 
   it("keeps approved portrait sets backed by checked files", () => {
@@ -71,9 +99,55 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(9);
-    expect(await repository.listPairStates()).toHaveLength(36);
+    expect(await repository.listMembers()).toHaveLength(13);
+    expect(await repository.listPairStates()).toHaveLength(78);
     expect(await repository.getActiveShift()).not.toBeNull();
+  });
+
+  it("hydrates fixture-owned member portrait metadata from old saves", async () => {
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage, "stale-portrait-save");
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const staleSave = gameSaveSchema.parse({
+      ...save,
+      members: save.members.map((member) =>
+        member.id === "sana-karim"
+          ? memberSchema.parse({
+              ...member,
+              state: {
+                ...member.state,
+                mood: 12,
+              },
+              portraits: {
+                ...member.portraits,
+                neutral: {
+                  portrait: {
+                    ...member.portraits.neutral.portrait,
+                    model: "pending",
+                  },
+                  avatar: {
+                    ...member.portraits.neutral.avatar,
+                    model: "pending",
+                  },
+                },
+              },
+            })
+          : member,
+      ),
+    });
+    storage.setItem("stale-portrait-save", JSON.stringify(staleSave));
+
+    const loaded = await repository.loadGame();
+    const loadedSana = loaded?.members.find((member) => member.id === "sana-karim");
+    const fixtureSana = starterMembers.find((member) => member.id === "sana-karim");
+
+    expect(loadedSana?.state.mood).toBe(12);
+    expect(loadedSana?.portraits.neutral.avatar.model).toBe(
+      fixtureSana?.portraits.neutral.avatar.model,
+    );
+    expect(loadedSana?.portraits.neutral.portrait.model).toBe(
+      fixtureSana?.portraits.neutral.portrait.model,
+    );
   });
 
   it("searches stored embeddings with metadata and visibility filters", async () => {

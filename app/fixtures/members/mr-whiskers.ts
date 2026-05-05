@@ -55,15 +55,15 @@ export const mrWhiskers: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/mr-whiskers.png",
-        cutoutPath: "/assets/portraits/cutout/mr-whiskers.png",
+        sourcePath: "assets-source/portraits/mr-whiskers/portrait.png",
+        cutoutPath: "/assets/portraits/mr-whiskers/portrait.png",
         prompt:
           "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream double breasted trench coat, white dress shirt and burgundy tie just visible, belted waist, brown trousers, brown leather shoes, controlled irritated expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/mr-whiskers-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/mr-whiskers-avatar.png",
+        sourcePath: "assets-source/portraits/mr-whiskers/avatar.png",
+        cutoutPath: "/assets/portraits/mr-whiskers/avatar.png",
         prompt:
           "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream trench coat, white dress shirt and burgundy tie just visible, controlled irritated expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",

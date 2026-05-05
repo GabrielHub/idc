@@ -64,4 +64,32 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 6,
     tags: ["career_intense", "decisiveness"],
   },
+  {
+    id: "request-venus-listen",
+    memberId: "venus",
+    text: "Venus wants a date who takes her advice on love at face value and does not bring up Vulcan, Mars, or the apple.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["deity", "advice_giver"],
+  },
+  {
+    id: "request-calvin-no-cameras",
+    memberId: "calvin-hewes",
+    text: "Calvin wants a date with low ceilings, no overhead camera infrastructure, and no questions about the region. Going forward.",
+    moodPenaltyIfIgnored: 5,
+    tags: ["cryptid", "discretion"],
+  },
+  {
+    id: "request-brady-drop-bit",
+    memberId: "brady-strait",
+    text: "Brady wants a date that holds long enough that the bit cracks. He will not ask for this directly. He has notes.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["saboteur", "sincerity"],
+  },
+  {
+    id: "request-toby-redirect",
+    memberId: "toby-wenz",
+    text: "Toby wants a date with a topic to spiral on so the spiraling has somewhere to land. He will not stop on his own.",
+    moodPenaltyIfIgnored: 5,
+    tags: ["anxious_rambler", "structure"],
+  },
 ];

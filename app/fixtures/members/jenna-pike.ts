@@ -60,18 +60,18 @@ export const jennaPike: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/jenna-pike.png",
-        cutoutPath: "/assets/portraits/cutout/jenna-pike.png",
+        sourcePath: "assets-source/portraits/jenna-pike/portrait.png",
+        cutoutPath: "/assets/portraits/jenna-pike/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy dark ponytail, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, comfortable sneakers, neutral baseline expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, shoulder-length dark brown bob with wispy face-framing bangs, warm brown eyes, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, dark work pants, comfortable black sneakers, order pad in apron pocket, both hands behind her back, neutral baseline expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/jenna-pike-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/jenna-pike-avatar.png",
+        sourcePath: "assets-source/portraits/jenna-pike/avatar.png",
+        cutoutPath: "/assets/portraits/jenna-pike/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy dark ponytail, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, neutral baseline expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, shoulder-length dark brown bob with wispy face-framing bangs, warm brown eyes, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, order pad in apron pocket, neutral baseline expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
     },
   },

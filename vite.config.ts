@@ -39,7 +39,7 @@ function forbidPublicPortraitSources(): Plugin {
       throw new Error(
         [
           "Portrait source files cannot be placed under public/assets/portraits/source.",
-          "Move them to assets-source/portraits so they are not shipped to the client.",
+          "Move them to assets-source/portraits/<member-id> so they are not shipped to the client.",
           "Found:",
           listedFiles,
         ].join("\n"),

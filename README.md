@@ -15,7 +15,7 @@ A local-first relationship operations dashboard for Cupid. The app pairs members
 
 - Node 20+ and `pnpm` 10 (declared in `package.json`)
 - The `vp` CLI installed globally (`npm i -g vite-plus`)
-- Ollama running locally if you want to exercise the AI date runtime. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking AI flows.
+- Ollama running locally is required to book and run dates. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking date flows. The roster and brief can still load when local AI is unavailable.
 - Python 3 with `bria-rmbg` available if you run the portrait cutout script.
 
 ## Quick start
@@ -29,14 +29,14 @@ The dev server listens on `http://localhost:5173/`. The dashboard at `/` is the 
 
 ## Common commands
 
-| Command | Purpose |
-| --- | --- |
-| `vp install` | Install dependencies. Run after pulling. |
-| `vp dev` | Start the dev server with HMR. |
-| `vp check` | Format, lint, and type check. |
-| `vp test` | Run Vitest. |
-| `vp build` | Production build to `build/`. |
-| `vp preview` | Serve the production build locally. |
+| Command                  | Purpose                                       |
+| ------------------------ | --------------------------------------------- |
+| `vp install`             | Install dependencies. Run after pulling.      |
+| `vp dev`                 | Start the dev server with HMR.                |
+| `vp check`               | Format, lint, and type check.                 |
+| `vp test`                | Run Vitest.                                   |
+| `vp build`               | Production build to `build/`.                 |
+| `vp preview`             | Serve the production build locally.           |
 | `vp run portrait:cutout` | Run the portrait background-removal pipeline. |
 
 Fall back to `pnpm` scripts (`pnpm build`, `pnpm start`, `pnpm typecheck`) only where there is no `vp` equivalent.
@@ -55,11 +55,11 @@ app/
 docs/
   world/            Voice, visual design, image style
 scripts/portraits/  Python asset pipeline (background removal)
-public/assets/      Shipped portrait cutouts and avatars
-assets-source/      Source images, never shipped to the client
+public/assets/      Shipped portrait folders
+assets-source/      Source portrait folders, never shipped to the client
 ```
 
-A Vite plugin in `vite.config.ts` fails the build if portrait sources land under `public/assets/portraits/source/`. Source images belong in `assets-source/portraits/`.
+A Vite plugin in `vite.config.ts` fails the build if portrait sources land under `public/assets/portraits/source/`. Source images belong in `assets-source/portraits/<member-id>/`.
 
 ## Architecture
 
@@ -69,6 +69,7 @@ The system splits gameplay authority from generative content. Read `AGENTS.md` f
 - **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
 - **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
 - **Local AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
+- **Date play is gated by local AI.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If the local models are unavailable, roster and brief stay visible but date booking is blocked with a visible error state.
 - **Memory retrieval is context selection, not truth.** Vector search in `app/services/cupid-memory.ts` and `app/services/vector-memory.ts` produces candidates; visibility rules are enforced before a candidate reaches a prompt or tool result.
 
 ## Testing
@@ -84,11 +85,11 @@ Run `vp check` after every code change. Run `vp test` and `vp build` for changes
 
 ## Asset pipeline
 
-Member portraits live under `public/assets/portraits/cutout/` as `<member-id>.png` (full body) and `<member-id>-avatar.png` (upper half). The pipeline is:
+Member portraits live in per-member folders. Runtime cutouts use `public/assets/portraits/<member-id>/portrait.png` for the full body and `public/assets/portraits/<member-id>/avatar.png` for the upper half. Source images mirror that shape under `assets-source/portraits/<member-id>/`.
 
 1. Generate a portrait against a plain white background. See `docs/world/image-style.md` for prompt construction and acceptance criteria.
-2. Place the source under `assets-source/portraits/`. The Vite plugin will fail the build if a source file leaks into `public/`.
-3. After human approval, run `vp run portrait:cutout` (which calls `scripts/portraits/remove_background.py` with `bria-rmbg`) to produce the cutout.
+2. Place the source under `assets-source/portraits/<member-id>/portrait.png` or `assets-source/portraits/<member-id>/avatar.png`. The Vite plugin will fail the build if a source file leaks into `public/`.
+3. After human approval, run `vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite` to produce the cutouts.
 
 ## Production build
 

@@ -1,47 +1,54 @@
-@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=DM+Sans:ital,opsz,wght@0,9..40,200..1000;1,9..40,200..1000&family=JetBrains+Mono:wght@300..600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=DM+Sans:ital,opsz,wght@0,9..40,200..1000;1,9..40,200..1000&family=Fraunces:ital,opsz,SOFT,WONK,wght@0,9..144,0..100,0..1,100..900;1,9..144,0..100,0..1,100..900&family=JetBrains+Mono:wght@300..600&display=swap");
 
 @import "tailwindcss";
 
 /* ========================================================================
    AURA, locked-in design language
-   ========================================================================
-   Everything below this comment is the project-wide theme. Use the
-   Tailwind utilities derived from these tokens (font-sans, font-display,
-   font-mono, bg-aura-bg, text-aura-rose, rounded-card, etc.) in every
-   component going forward. Avoid hard-coded color hexes outside of
-   one-off SVG / gradient stops.
    ======================================================================== */
 
 @theme {
-  /* Type families */
+  /* Type families. Bricolage carries display, DM Sans body, Fraunces is the
+     editorial accent for hero italic moments, JetBrains Mono is workplace
+     chrome. Keep accent uses sparse so it stays distinctive. */
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", ui-serif, Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Type scale, everything is at least 12px so screen text stays
-     comfortably legible. The "micro" / "label" sizes are uppercase +
-     tracked, which earns the smaller end of the scale. */
-  --text-micro: 0.75rem; /* 12px, uppercase eyebrow / status labels */
+  /* Type scale. Micro and label live small only because they are uppercase
+     and tracked. Display tiers earn the big numbers. */
+  --text-micro: 0.75rem;
   --text-micro--line-height: 1rem;
-  --text-label: 0.8125rem; /* 13px, small UI labels, mono captions */
+  --text-label: 0.8125rem;
   --text-label--line-height: 1.125rem;
-  --text-body: 0.9375rem; /* 15px, primary body copy */
+  --text-body: 0.9375rem;
   --text-body--line-height: 1.5rem;
-  --text-lead: 1.0625rem; /* 17px, emphasized body, intros */
+  --text-lead: 1.0625rem;
   --text-lead--line-height: 1.625rem;
+  --text-display-sm: 1.5rem;
+  --text-display-sm--line-height: 1.85rem;
+  --text-display-md: 2.25rem;
+  --text-display-md--line-height: 2.45rem;
+  --text-display-lg: 3.25rem;
+  --text-display-lg--line-height: 3.4rem;
+  --text-display-xl: 4.5rem;
+  --text-display-xl--line-height: 4.4rem;
 
-  /* Aura palette, core brand colors */
+  /* Aura palette */
   --color-aura-bg: #fdfaf6;
-  --color-aura-ink: #0f172a; /* primary text */
-  --color-aura-muted: #475569; /* secondary text */
-  --color-aura-faint: #94a3b8; /* tertiary / hint text */
+  --color-aura-paper: #fffdf9;
+  --color-aura-ink: #0f172a;
+  --color-aura-muted: #475569;
+  --color-aura-faint: #94a3b8;
   --color-aura-rose: #f43f5e;
   --color-aura-fuchsia: #d946ef;
   --color-aura-violet: #a78bfa;
   --color-aura-amber: #f59e0b;
   --color-aura-emerald: #10b981;
   --color-aura-card: rgba(255, 255, 255, 0.55);
+  --color-aura-veil: rgba(255, 253, 249, 0.7);
   --color-aura-hairline: rgba(15, 23, 42, 0.08);
+  --color-aura-hairline-strong: rgba(15, 23, 42, 0.16);
 
   /* Pastel mesh blob colors */
   --color-aura-mesh-rose: #fecdd3;
@@ -49,7 +56,7 @@
   --color-aura-mesh-amber: #fef3c7;
   --color-aura-mesh-sky: #bae6fd;
 
-  /* Radii, the card is the design's signature shape */
+  /* Radii */
   --radius-pill: 9999px;
   --radius-card: 28px;
   --radius-chip: 14px;
@@ -60,6 +67,11 @@
     0 30px 80px -30px rgba(167, 139, 250, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
   --shadow-cta: 0 18px 40px -12px rgba(236, 72, 153, 0.6);
   --shadow-cta-hover: 0 22px 50px -12px rgba(236, 72, 153, 0.75);
+  --shadow-quiet: 0 1px 0 0 rgba(15, 23, 42, 0.04), 0 12px 30px -18px rgba(244, 63, 94, 0.18);
+}
+
+html {
+  scrollbar-gutter: stable;
 }
 
 html,
@@ -78,11 +90,106 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Hairline divider, used everywhere in place of card borders. */
+.aura-rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-aura-hairline-strong),
+    transparent
+  );
+}
+
+/* Editorial italic accent, used for hero pull-out lines. */
+.aura-accent {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+/* ========================================================================
+   AURA, floating glass surfaces. Used by HUD pills, docks, and modal cards
+   so the dashboard reads as floating chrome over the canvas instead of as
+   a flat website page.
+   ======================================================================== */
+
+/* Standard frosted surface, used for chrome pills and tiles. */
+.aura-glass {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.72) 0%,
+    rgba(255, 253, 249, 0.46) 100%
+  );
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
+    0 1px 2px 0 rgba(15, 23, 42, 0.04),
+    0 14px 38px -10px rgba(167, 139, 250, 0.32);
+}
+
+/* Heavier glass for primary docks (selection bar, date dock). The denser
+   fill keeps content legible when the dock floats over busy content. */
+.aura-glass-strong {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.88) 0%,
+    rgba(255, 253, 249, 0.62) 100%
+  );
+  backdrop-filter: blur(36px) saturate(180%);
+  -webkit-backdrop-filter: blur(36px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.78);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    0 4px 14px -4px rgba(15, 23, 42, 0.08),
+    0 28px 70px -18px rgba(244, 63, 94, 0.28);
+}
+
+/* Inverted glass for active segments and pressed tab states. */
+.aura-glass-ink {
+  background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.92) 100%);
+  color: white;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
+    0 6px 20px -6px rgba(15, 23, 42, 0.45);
+}
+
+/* Tinted glass for status notices. */
+.aura-glass-rose {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 241, 242, 0.92) 0%,
+    rgba(254, 226, 226, 0.7) 100%
+  );
+  backdrop-filter: blur(32px) saturate(170%);
+  -webkit-backdrop-filter: blur(32px) saturate(170%);
+  border: 1px solid rgba(244, 63, 94, 0.28);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 18px 44px -14px rgba(244, 63, 94, 0.32);
+}
+
+/* Subtle hover lift used on glass tiles. */
+.aura-glass-lift {
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.aura-glass-lift:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
+    0 4px 14px -4px rgba(15, 23, 42, 0.1),
+    0 32px 80px -18px rgba(244, 63, 94, 0.34);
+}
+
 /* ========================================================================
    AURA motion
    ======================================================================== */
 
-/* Pastel mesh blobs, drifting */
 @keyframes aura-blob-a {
   0%,
   100% {
@@ -132,73 +239,6 @@ body {
   animation: aura-blob-d 20s ease-in-out infinite;
 }
 
-/* Soft pulsing aura rings (behind the hero) */
-@keyframes aura-ring {
-  0% {
-    transform: scale(0.92);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.55;
-  }
-  100% {
-    transform: scale(1.2);
-    opacity: 0;
-  }
-}
-.aura-ring {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: aura-ring 5s ease-out infinite;
-}
-
-/* Sparkle twinkle */
-@keyframes aura-twinkle {
-  0%,
-  100% {
-    opacity: 0.25;
-    transform: scale(0.85);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.1);
-  }
-}
-.aura-twinkle {
-  animation: aura-twinkle 2.6s ease-in-out infinite;
-}
-
-/* Sticker wobble, gentle vertical drift, no rotation here so the
-   parent rotate-[Xdeg] survives. */
-@keyframes aura-wobble {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-7px);
-  }
-}
-.aura-wobble {
-  animation: aura-wobble 5s ease-in-out infinite;
-}
-
-/* Wavy underline draw-on */
-@keyframes aura-wave-draw {
-  from {
-    stroke-dashoffset: 240;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-.aura-wave {
-  stroke-dasharray: 240;
-  stroke-dashoffset: 240;
-  animation: aura-wave-draw 1.4s 700ms ease-out forwards;
-}
-
-/* CTA gradient drift, keeps the button feeling alive */
 @keyframes aura-cta-shift {
   0%,
   100% {
@@ -213,17 +253,82 @@ body {
   animation: aura-cta-shift 9s ease infinite;
 }
 
-/* Universal entry */
-@keyframes fade-in-up {
+/* Dock slide-in, used by the floating bottom CTA dock. */
+@keyframes aura-dock-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(40px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
-.fade-in-up {
-  animation: fade-in-up 600ms ease-out backwards;
+.aura-dock-rise {
+  animation: aura-dock-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+/* Slow ambient drift for secondary dashboard background mesh layers. */
+@keyframes aura-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(28px, -22px, 0);
+  }
+}
+.aura-drift {
+  animation: aura-drift 32s ease-in-out infinite;
+}
+
+/* Pulse for live status dot. */
+@keyframes aura-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.35);
+  }
+}
+.aura-pulse {
+  animation: aura-pulse 1.8s ease-in-out infinite;
+}
+
+/* Caret blink for the intervention input. */
+@keyframes aura-caret {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.aura-caret {
+  animation: aura-caret 1.2s steps(1) infinite;
+}
+
+/* Bar fill, used by date health and stats. */
+@keyframes aura-bar-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(var(--bar-target, 1));
+  }
+}
+.aura-bar-fill {
+  transform-origin: left center;
+  animation: aura-bar-fill 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Dot grid, faint, sits behind editorial moments. */
+.aura-dot-grid {
+  background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
 }

@@ -28,11 +28,8 @@ import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPairState,
-  createCharacterMessage,
-  createDateMemoryRecords,
   createNonCharacterMessage,
   finalizeDateSession,
-  judgeExchangeDeterministically,
   markPairDateComplete,
   requireDateSession,
   requireMember,
@@ -49,7 +46,6 @@ import {
   type SummarizerPromptPacket,
 } from "./date-prompts";
 import { clampScore, errorToMessage, replaceById } from "./utils";
-import { createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
@@ -80,7 +76,6 @@ export type LocalAiDateEngineResult = DateEngineResult & {
     characterGenerationCount: number;
     characterToolCallCount: number;
     characterToolResultCount: number;
-    deterministicFallbackCount: number;
   };
 };
 
@@ -117,7 +112,6 @@ export async function advanceDateExchangeWithLocalAi(
     characterGenerationCount: 0,
     characterToolCallCount: 0,
     characterToolResultCount: 0,
-    deterministicFallbackCount: 0,
   };
   const session = dateSessionSchema.parse({
     ...requireDateSession(save, input.dateSessionId),
@@ -159,23 +153,22 @@ export async function advanceDateExchangeWithLocalAi(
 
     const speaker = members[currentTurn % members.length];
     const partner = members[(currentTurn + 1) % members.length];
+    const characterSession = { ...workingSession, transcript, currentTurn };
     const characterResult = await createLocalAiCharacterMessage({
       repository,
       runtime,
       config,
-      session: { ...workingSession, transcript, currentTurn },
+      session: characterSession,
       speaker,
       partner,
       scenario,
       pairState,
       createdAt: timestamp,
-      warningMessages,
     });
 
     telemetry.characterGenerationCount += 1;
     telemetry.characterToolCallCount += characterResult.toolCallCount;
     telemetry.characterToolResultCount += characterResult.toolResultCount;
-    telemetry.deterministicFallbackCount += characterResult.usedDeterministicFallback ? 1 : 0;
 
     transcript.push(characterResult.message);
     currentTurn += 1;
@@ -189,16 +182,15 @@ export async function advanceDateExchangeWithLocalAi(
   const exchangeMessages = transcript
     .slice(firstNewSequenceIndex)
     .filter((message) => message.kind === "character");
+  const exchangeIndex = session.judgeSnapshots.length;
   const judgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
     config,
     session,
     pairState,
-    members,
     scenario,
     exchangeMessages,
-    exchangeIndex: session.judgeSnapshots.length,
-    warningMessages,
+    exchangeIndex,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -226,7 +218,6 @@ export async function advanceDateExchangeWithLocalAi(
           members,
           scenario,
           completedAt: timestamp,
-          warningMessages,
         })
       : {
           session: baseUpdatedSession,
@@ -269,7 +260,6 @@ export async function completeDateSessionWithLocalAi(
     characterGenerationCount: 0,
     characterToolCallCount: 0,
     characterToolResultCount: 0,
-    deterministicFallbackCount: 0,
   };
 
   while (nextSession.status === "active") {
@@ -283,7 +273,6 @@ export async function completeDateSessionWithLocalAi(
     telemetry.characterGenerationCount += result.aiTelemetry.characterGenerationCount;
     telemetry.characterToolCallCount += result.aiTelemetry.characterToolCallCount;
     telemetry.characterToolResultCount += result.aiTelemetry.characterToolResultCount;
-    telemetry.deterministicFallbackCount += result.aiTelemetry.deterministicFallbackCount;
   }
 
   return {
@@ -305,7 +294,6 @@ async function createLocalAiCharacterMessage({
   scenario,
   pairState,
   createdAt,
-  warningMessages,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -316,12 +304,10 @@ async function createLocalAiCharacterMessage({
   scenario: DateScenario;
   pairState: PairState;
   createdAt: string;
-  warningMessages: string[];
 }): Promise<{
   message: DateMessage;
   toolCallCount: number;
   toolResultCount: number;
-  usedDeterministicFallback: boolean;
 }> {
   try {
     const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
@@ -329,7 +315,6 @@ async function createLocalAiCharacterMessage({
       runtime,
       config,
       query: memoryQuery,
-      warningMessages,
     });
     const memoryPack = await retrieveRelevantMemories(repository, {
       characterId: speaker.id,
@@ -359,7 +344,6 @@ async function createLocalAiCharacterMessage({
         runtime,
         config,
         query: toolInput.query,
-        warningMessages,
       });
 
       return searchCupidMemory(repository, {
@@ -393,26 +377,9 @@ async function createLocalAiCharacterMessage({
       message,
       toolCallCount: generation.toolCallCount,
       toolResultCount: generation.toolResultCount,
-      usedDeterministicFallback: false,
     };
   } catch (error) {
-    warningMessages.push(
-      `Local AI performer fallback for ${speaker.name}: ${errorToMessage(error)}`,
-    );
-
-    return {
-      message: createCharacterMessage({
-        session,
-        speaker,
-        partner,
-        scenario,
-        pairState,
-        createdAt,
-      }),
-      toolCallCount: 0,
-      toolResultCount: 0,
-      usedDeterministicFallback: true,
-    };
+    throw new Error(`Local AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
   }
 }
 
@@ -421,21 +388,17 @@ async function createLocalAiJudgeSnapshot({
   config,
   session,
   pairState,
-  members,
   scenario,
   exchangeMessages,
   exchangeIndex,
-  warningMessages,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
   session: DateSession;
   pairState: PairState;
-  members: Member[];
   scenario: DateScenario;
   exchangeMessages: DateMessage[];
   exchangeIndex: number;
-  warningMessages: string[];
 }): Promise<JudgeSnapshot> {
   try {
     const packet = buildJudgePromptPacket({
@@ -454,18 +417,7 @@ async function createLocalAiJudgeSnapshot({
 
     return sanitizeJudgeSnapshot(judgeSnapshot, session);
   } catch (error) {
-    warningMessages.push(`Local AI judge fallback: ${errorToMessage(error)}`);
-    return sanitizeJudgeSnapshot(
-      judgeExchangeDeterministically({
-        session,
-        pairState,
-        members,
-        scenario,
-        exchangeMessages,
-        exchangeIndex,
-      }),
-      session,
-    );
+    throw new Error(`Local AI judge failed: ${errorToMessage(error)}`);
   }
 }
 
@@ -477,7 +429,6 @@ async function createLocalAiFinalSession({
   members,
   scenario,
   completedAt,
-  warningMessages,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
@@ -486,16 +437,12 @@ async function createLocalAiFinalSession({
   members: Member[];
   scenario: DateScenario;
   completedAt: string;
-  warningMessages: string[];
 }): Promise<{ session: DateSession; memories: MemoryRecord[] }> {
   const memories = await createLocalAiMemoryRecords({
     runtime,
     config,
     session,
-    members,
-    scenario,
     createdAt: completedAt,
-    warningMessages,
   });
   const completedSession = finalizeDateSession({
     session,
@@ -513,18 +460,12 @@ async function createLocalAiMemoryRecords({
   runtime,
   config,
   session,
-  members,
-  scenario,
   createdAt,
-  warningMessages,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
   session: DateSession;
-  members: Member[];
-  scenario: DateScenario;
   createdAt: string;
-  warningMessages: string[];
 }): Promise<MemoryRecord[]> {
   try {
     const packet = buildSummarizerPromptPacket({
@@ -561,8 +502,7 @@ async function createLocalAiMemoryRecords({
       }),
     );
   } catch (error) {
-    warningMessages.push(`Local AI memory fallback: ${errorToMessage(error)}`);
-    return createDateMemoryRecords(session, members, scenario, createdAt);
+    throw new Error(`Local AI memory filing failed: ${errorToMessage(error)}`);
   }
 }
 
@@ -640,12 +580,10 @@ async function createRuntimeQueryEmbedding({
   runtime,
   config,
   query,
-  warningMessages,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<LocalAiRuntimeConfig>;
   query: string;
-  warningMessages: string[];
 }): Promise<number[]> {
   try {
     const result = await runtime.embedMemoryText({
@@ -655,8 +593,7 @@ async function createRuntimeQueryEmbedding({
 
     return result.embedding;
   } catch (error) {
-    warningMessages.push(`Local AI query embedding fallback: ${errorToMessage(error)}`);
-    return createDeterministicEmbedding(query);
+    throw new Error(`Local AI memory search failed: ${errorToMessage(error)}`);
   }
 }
 

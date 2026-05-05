@@ -69,18 +69,18 @@ export const tashaRell: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/tasha-rell.png",
-        cutoutPath: "/assets/portraits/cutout/tasha-rell.png",
+        sourcePath: "assets-source/portraits/tasha-rell/portrait.png",
+        cutoutPath: "/assets/portraits/tasha-rell/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with glossy chestnut bob, sharply tailored navy blazer over a silk shell, slim trousers, designer loafers, smartwatch on the left wrist, confident upbeat expression with a slight forward lean, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original full body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, smartwatch on the left wrist, confident upbeat expression, slight forward lean, both hands visible outside pockets, one hand relaxed at her side, one hand holding a slim trading notebook, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/tasha-rell-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/tasha-rell-avatar.png",
+        sourcePath: "assets-source/portraits/tasha-rell/avatar.png",
+        cutoutPath: "/assets/portraits/tasha-rell/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with glossy chestnut bob, sharply tailored navy blazer over a silk shell, confident upbeat expression with a slight forward lean, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art matching the full body Tasha Rell portrait, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, gold jewelry, smartwatch on the left wrist, confident upbeat expression, slight three-quarter turn, one hand lightly touching the blazer lapel, upper half dating profile picture pose with shoulders visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
     },
   },

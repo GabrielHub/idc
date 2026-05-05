@@ -64,15 +64,15 @@ export const vhool: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/vhool.png",
-        cutoutPath: "/assets/portraits/cutout/vhool.png",
+        sourcePath: "assets-source/portraits/vhool/portrait.png",
+        cutoutPath: "/assets/portraits/vhool/portrait.png",
         prompt:
           "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with very long flowing obsidian hair falling over one eye, faint halo of impossible violet eye-flames, layered ceremonial dark robes with magenta accents and trailing ribbons, gentle lonely expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/vhool-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/vhool-avatar.png",
+        sourcePath: "assets-source/portraits/vhool/avatar.png",
+        cutoutPath: "/assets/portraits/vhool/avatar.png",
         prompt:
           "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with very long flowing obsidian hair falling over one eye, faint halo of impossible violet eye-flames, ceremonial dark robes with magenta accents, gentle lonely expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",

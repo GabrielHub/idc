@@ -65,18 +65,18 @@ export const opalSunday: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "assets-source/portraits/opal-sunday.png",
-        cutoutPath: "/assets/portraits/cutout/opal-sunday.png",
+        sourcePath: "assets-source/portraits/opal-sunday/portrait.png",
+        cutoutPath: "/assets/portraits/opal-sunday/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time displaced wedding planner with a glossy copper bob, pearl cardigan over a 1998 ivory blouse, knee length skirt, kitten heels, oversized clipboard binder under one arm, anxious pleasant expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with long glossy chestnut brown hair, warm tan skin, expressive almond eyes, pearl jewelry, ivory lace-trim camisole, cropped ivory cardigan with lace trim, high-waisted light-wash bootcut jeans, cream kitten heels, oversized ivory wedding binder with color-coded tabs, subtle rose-gold clock-face glow at the binder clasp and wrist, bright controlled anxious expression, polished dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "assets-source/portraits/opal-sunday-avatar.png",
-        cutoutPath: "/assets/portraits/cutout/opal-sunday-avatar.png",
+        sourcePath: "assets-source/portraits/opal-sunday/avatar.png",
+        cutoutPath: "/assets/portraits/opal-sunday/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time displaced wedding planner with a glossy copper bob, pearl cardigan over a 1998 ivory blouse, anxious pleasant expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same time-displaced wedding planner as the full-body portrait, long glossy chestnut brown hair, warm tan skin, expressive almond eyes, pearl earrings and necklace, ivory lace-trim top, cropped ivory cardigan with lace trim, oversized ivory wedding binder with color-coded tabs, subtle rose-gold clock-face glow at the binder clasp and wrist, bright controlled anxious expression, upper-half realistic dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
       },
     },
   },

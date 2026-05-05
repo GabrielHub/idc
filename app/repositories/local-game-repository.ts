@@ -16,7 +16,11 @@ import {
   type ScenarioDeckState,
   type ShiftState,
 } from "../domain/game";
-import { createSeedGameSave, getActiveShift } from "../services/game-seed";
+import {
+  createSeedGameSave,
+  getActiveShift,
+  hydrateFixtureOwnedMemberData,
+} from "../services/game-seed";
 import { replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
@@ -61,11 +65,13 @@ export class LocalGameRepository implements GameRepository {
     }
 
     const parsed: unknown = JSON.parse(raw);
-    return gameSaveSchema.parse(parsed);
+    return hydrateFixtureOwnedMemberData(gameSaveSchema.parse(parsed));
   }
 
   async saveGame(save: GameSave): Promise<void> {
-    const parsed = gameSaveSchema.parse({ ...save, updatedAt: new Date().toISOString() });
+    const parsed = gameSaveSchema.parse(
+      hydrateFixtureOwnedMemberData({ ...save, updatedAt: new Date().toISOString() }),
+    );
     this.storage.setItem(this.saveKey, JSON.stringify(parsed));
   }
 
@@ -245,7 +251,7 @@ export class LocalGameRepository implements GameRepository {
 
   private async updateSave(mutator: (save: GameSave) => GameSave): Promise<void> {
     const save = await this.requireGame();
-    await this.saveGame(gameSaveSchema.parse(mutator(save)));
+    await this.saveGame(mutator(save));
   }
 }
 

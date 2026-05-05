@@ -117,8 +117,8 @@ describe("local AI date engine orchestration", () => {
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
   });
 
-  it("falls back without corrupting state when local AI callbacks fail", async () => {
-    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-fallback-test");
+  it("blocks the date update when required local AI callbacks fail", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-block-test");
     let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     save = {
       ...save,
@@ -143,30 +143,35 @@ describe("local AI date engine orchestration", () => {
       summarizeDateMemories: async () => {
         throw new Error("summarizer unavailable");
       },
-      embedMemoryText: async () => {
-        throw new Error("embedding unavailable");
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
       },
     };
     await repository.saveGame(started.save);
 
-    const result = await completeDateSessionWithLocalAi(started.save, repository, {
-      dateSessionId: started.session.id,
-      runtime,
-      config: started.save.config,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
+    await expect(
+      completeDateSessionWithLocalAi(started.save, repository, {
+        dateSessionId: started.session.id,
+        runtime,
+        config: started.save.config,
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      }),
+    ).rejects.toThrow("Local AI performer failed for Jenna Pike: performer unavailable");
 
-    expect(result.session.status).toBe("completed");
-    expect(result.aiTelemetry.deterministicFallbackCount).toBe(2);
-    expect(result.warningMessages.some((message) => message.includes("performer fallback"))).toBe(
-      true,
+    const loadedSave = await repository.loadGame();
+    const loadedSession = loadedSave?.dateSessions.find(
+      (session) => session.id === started.session.id,
     );
-    expect(result.warningMessages.some((message) => message.includes("judge fallback"))).toBe(true);
-    expect(result.warningMessages.some((message) => message.includes("memory fallback"))).toBe(
-      true,
-    );
-    expect(
-      result.save.memories.some((memory) => memory.embeddingModel === "deterministic-local"),
-    ).toBe(true);
+
+    expect(loadedSession?.status).toBe("active");
+    expect(loadedSession?.currentTurn).toBe(0);
+    expect(loadedSession?.transcript).toHaveLength(started.session.transcript.length);
+    expect(loadedSave?.memories).toHaveLength(started.save.memories.length);
   });
 });

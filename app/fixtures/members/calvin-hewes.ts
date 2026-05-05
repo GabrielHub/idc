@@ -1,0 +1,88 @@
+import type { Member } from "../../domain/game";
+
+export const calvinHewes: Member = {
+  id: "calvin-hewes",
+  name: "Calvin Hewes",
+  origin: "Point Pleasant, West Virginia, allegedly",
+  species: "Cryptid (denied)",
+  dimension: "Prime, regional",
+  realityStatus: "Filed as human, footnoted by Reddit",
+  bio: "Calvin Hewes manages employee dispute resolution at a regional health insurance company in West Virginia. He has retained counsel regarding a 2019 trail cam incident he is not at liberty to discuss. He selected this cover name forty seven years ago and stands by it.",
+  datingProfile:
+    "Mid forties. Mediation professional. Looking for a partner who values discretion, civilized lighting, and a venue without overhead camera infrastructure. I am six foot two on paper. I have always been six foot two. Available weekends following completed mediation calendars. Going forward.",
+  traits: ["cagey", "professional", "embarrassed", "methodical", "quietly lonely"],
+  relationshipNeeds: [
+    "Someone who treats his discretion as a feature, not a puzzle",
+    "A date with predictable lighting and a parking lot covered by foliage",
+  ],
+  redFlags: [
+    "asks about a 1967 bridge in West Virginia",
+    "uses the word wingspan in any context",
+    "has the cryptid subreddit in their search history",
+  ],
+  preferences: [
+    "low ceilings",
+    "calm restaurant lighting",
+    "direct eye contact, briefly",
+    "venues that close before 11",
+  ],
+  dealbreakers: [
+    "flash photography",
+    "trail cams as a hobby",
+    "asking about the bridge",
+    "anyone who has posted to a cryptid forum in the last year",
+  ],
+  secrets: [
+    "He keeps a folder of every Reddit post about him going back to 2014 and reads them on slow Thursdays.",
+    "He has been Calvin Hewes longer than he was anything else and is afraid of losing the name.",
+  ],
+  tags: ["non_human", "cryptid", "career", "denial"],
+  voice: {
+    register: "corporate cagey",
+    patternsUsed: [
+      "negotiation_sales_pitch",
+      "ominous_threat_as_flirtation",
+      "structured_bit",
+      "deadpan_one_liner",
+    ],
+    patternsRefused: ["stream_of_consciousness", "rambling_spiral", "mundane_domesticity"],
+    tics: [
+      "refers to himself as the associate or this writer",
+      "uses going forward and to that point as sentence connectors",
+      "denies questions before they are asked",
+      "capitalizes mid-sentence terms like Bridge Incident and Trail Cam",
+      "never names West Virginia, calls it the region",
+    ],
+    sampleMessages: [
+      "Calvin Hewes here. To that point I would like to confirm dinner Friday. The associate prefers low ceilings, civilized lighting, and a venue without overhead camera infrastructure. I am six foot two. I have always been six foot two.",
+      "Per prior alignment, the associate will arrive on time. The associate is not arriving by car. The associate is making good time. We can discuss the route at dinner. We will not.",
+      "I will not be discussing the Bridge Incident. The Trail Cam Footage is not me. I have retained counsel. This is not a threat. This is a clarification.",
+      "I would like to clarify, in the spirit of partnership, that I do not have wings. This was not asked. I am addressing the unspoken. Going forward.",
+    ],
+  },
+  state: {
+    mood: 58,
+    openness: 41,
+    burnout: 47,
+    currentRequestId: "request-calvin-no-cameras",
+    recentDateResult: "No Cupid dates yet.",
+  },
+  portraits: {
+    neutral: {
+      portrait: {
+        sourcePath: "assets-source/portraits/calvin-hewes/portrait.png",
+        cutoutPath: "/assets/portraits/calvin-hewes/portrait.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive red glowing eyes, polished cel shading, actual mothman cryptid from Point Pleasant, black moth-like humanoid head with no human face and no visible mouth, short dark moth-fur at the collar, large black moth wings folded partly open behind him, long slender limbs, taloned elegant hands, very nice fashion-forward charcoal-black designer suit with a narrow waist, subtle satin lapels, crisp white shirt, deep oxblood silk tie, coordinated oxblood pocket square, polished black pointed dress shoes, guarded polite professional expression, one hand lightly smoothing a cuff, dating profile picture pose, full body visible from head to feet, plain white background, no text, no logo, no frame, no scenery, no lanyard, no ID badge",
+        model: "image_gen built-in",
+      },
+      avatar: {
+        sourcePath: "assets-source/portraits/calvin-hewes/avatar.png",
+        cutoutPath: "/assets/portraits/calvin-hewes/avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Calvin Hewes portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive red glowing eyes, polished cel shading, same black moth-like head with no human face and no visible mouth, same short dark moth-fur at the collar, same large black moth wings folded behind the shoulders, same very nice fashion-forward charcoal-black designer suit with satin lapels, crisp white shirt, deep oxblood silk tie, coordinated oxblood pocket square, one taloned hand adjusting the tie knot, guarded polite professional expression, upper-half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery, no lanyard, no ID badge",
+        model: "image_gen built-in",
+      },
+    },
+  },
+};

@@ -11,8 +11,8 @@ import {
 import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import { clampScore } from "./utils";
 
-const SAVE_VERSION = 1;
-const STARTER_DECK_MAX_SIZE = 8;
+const SAVE_VERSION = 2;
+const STARTER_DECK_MAX_SIZE = 14;
 
 export function createSeedGameSave(now = new Date()): GameSave {
   const timestamp = now.toISOString();
@@ -51,12 +51,36 @@ export function createSeedGameSave(now = new Date()): GameSave {
   });
 }
 
+export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
+  const members = save.members.map((savedMember) => {
+    const fixtureMember = STARTER_MEMBERS_BY_ID.get(savedMember.id);
+
+    if (fixtureMember === undefined) {
+      return savedMember;
+    }
+
+    return memberSchema.parse({
+      ...fixtureMember,
+      state: savedMember.state,
+    });
+  });
+
+  return gameSaveSchema.parse({
+    ...save,
+    members,
+  });
+}
+
 export function getActiveShift(save: GameSave): ShiftState {
   return (
     save.shifts.find((shift) => shift.id === save.activeShiftId) ??
     save.shifts[save.shifts.length - 1]
   );
 }
+
+const STARTER_MEMBERS_BY_ID = new Map(
+  starterMembers.map((member) => [member.id, memberSchema.parse(member)]),
+);
 
 export function findMemberInSave(save: GameSave, memberId: string): Member | undefined {
   return save.members.find((member) => member.id === memberId);
@@ -131,7 +155,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened shift one with six starter members and a three scenario hand.",
+      text: "Cupid has opened shift one with thirteen starter members and a three scenario hand.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,
