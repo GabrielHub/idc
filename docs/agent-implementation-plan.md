@@ -45,7 +45,7 @@ Actions:
 
 - Add shared domain types for members, portraits, scenarios, goals, shifts, pairs, dates, messages, judge results, and memory records.
 - Add Zod schemas where runtime validation is needed.
-- Include future portrait variations in the shape, but require only `neutral`.
+- Include a neutral portrait set with both `portrait` and `avatar`, and leave room for future expression variations.
 - Represent date length as configurable, defaulting to 30 total character messages.
 
 Done when:
@@ -64,18 +64,18 @@ Actions:
 - Add 6 scenario fixtures under `app/fixtures/scenarios`.
 - Add starter company goals and member requests under `app/fixtures/goals`.
 - Add a fixture index/export file for each fixture group.
-- Reference neutral portrait source/cutout paths from member fixtures.
-- Include a concise portrait prompt seed for each member based on `docs/world/visual-design.md`.
+- Reference neutral portrait and avatar source/cutout paths from member fixtures.
+- Include concise portrait and avatar prompt seeds for each member based on `docs/world/visual-design.md`.
 
 Done when:
 
 - Fixture exports validate against domain schemas.
 - There are exactly 6 starter members and 6 starter scenarios.
-- Every member has a `portraits.neutral` reference.
+- Every member has `portraits.neutral.portrait` and `portraits.neutral.avatar` references.
 
 ## P2. Local Storage And Memory
 
-### [ ] P2.1 Add Repository Interfaces
+### [x] P2.1 Add Repository Interfaces
 
 Dependencies: P1.1
 
@@ -90,7 +90,12 @@ Done when:
 - Repository interfaces compile.
 - Interfaces cover all v1 save data listed in `docs/gameplan.md`.
 
-### [ ] P2.2 Implement Local Persistent Storage
+Implementation notes:
+
+- `app/repositories/game-repository.ts` defines aggregate save, member, pair, shift, scenario deck, transcript, date session, and memory operations.
+- Memory search requires an explicit viewer context so member-private and judge-only visibility is enforced before returning records.
+
+### [x] P2.2 Implement Local Persistent Storage
 
 Dependencies: P2.1
 
@@ -107,7 +112,13 @@ Done when:
 - Members, pair states, shifts, date sessions, transcripts, and memory records persist across app reloads.
 - Storage code is not coupled to UI components.
 
-### [ ] P2.3 Implement Vector Memory Search
+Implementation notes:
+
+- Browser play uses a `localStorage` repository adapter.
+- React Router server routes can use `NodeJsonStorageDriver` for replaceable local JSON persistence under `.idc-data`.
+- `MemoryStorageDriver` remains test-only.
+
+### [x] P2.3 Implement Vector Memory Search
 
 Dependencies: P2.1
 
@@ -124,9 +135,14 @@ Done when:
 - Metadata filters work with vector search.
 - Search returns stable IDs and scores.
 
+Implementation notes:
+
+- Vector search is hidden behind the memory repository and only searches records with stored embeddings.
+- Smoke tests cover subject, pair, scenario, visibility, scope, tag, and viewer enforcement.
+
 ## P3. AI SDK And Ollama
 
-### [ ] P3.1 Add AI Provider Adapter
+### [x] P3.1 Add AI Provider Adapter
 
 Dependencies: P1.1
 
@@ -144,7 +160,12 @@ Done when:
 - Model config can be changed without editing prompt code.
 - Provider-specific code is isolated.
 
-### [ ] P3.2 Add Embedding Generation
+Implementation notes:
+
+- `app/services/ai/ollama-provider.server.ts` uses `ai-sdk-ollama` first and OpenAI-compatible Ollama as fallback.
+- Local smoke passed with `IDC_RUN_OLLAMA_SMOKE=1 vp test app/services/ai/ollama-provider.server.test.ts`.
+
+### [x] P3.2 Add Embedding Generation
 
 Dependencies: P3.1
 
@@ -160,9 +181,14 @@ Done when:
 - A local embedding smoke test returns a vector.
 - Embedded memory records can be stored through the memory repository.
 
+Implementation notes:
+
+- `embedMemoryText()` stores model name and dimensions with returned embeddings.
+- `embeddinggemma` was pulled locally and the explicit Ollama smoke test returned an embedding vector.
+
 ## P4. Retrieval And Tool Calling
 
-### [ ] P4.1 Build Deterministic Memory Pack Retrieval
+### [x] P4.1 Build Deterministic Memory Pack Retrieval
 
 Dependencies: P2.3, P3.2
 
@@ -180,7 +206,12 @@ Done when:
 - Private memories are excluded unless visible to that character.
 - Long transcript history is summarized or windowed.
 
-### [ ] P4.2 Add Scoped Memory Search Tool
+Implementation notes:
+
+- `retrieveRelevantMemories()` returns bounded self, pair, scenario, judge, and recent transcript packs.
+- Character retrieval excludes judge-only records and member-private records not visible to the requesting member.
+
+### [x] P4.2 Add Scoped Memory Search Tool
 
 Dependencies: P4.1, P3.1
 
@@ -197,9 +228,14 @@ Done when:
 - Tool calls cannot retrieve another member's private memory.
 - Tool results appear in AI SDK generation steps for debugging.
 
+Implementation notes:
+
+- `searchCupidMemory()` implements `self`, `pair`, and `scenario` scope filtering with count and text limits.
+- The tool service enforces visibility in application code before returning text to a character performer.
+
 ## P5. Date Simulation
 
-### [ ] P5.1 Build Prompt Context Assembler
+### [x] P5.1 Build Prompt Context Assembler
 
 Dependencies: P4.1
 
@@ -215,7 +251,12 @@ Done when:
 - Prompt packets can be inspected in a dev/debug path.
 - Character prompts never include future scenario beats or judge-only data.
 
-### [ ] P5.2 Implement Date Engine
+Implementation notes:
+
+- `app/services/date-prompts.ts` builds character, judge, director, and summarizer packets.
+- Character packets include only the current beat and bounded retrieved context.
+
+### [x] P5.2 Implement Date Engine
 
 Dependencies: P5.1, P4.2
 
@@ -233,7 +274,12 @@ Done when:
 - A date can end early.
 - The transcript records character messages, scenario beats, and Cupid intervention messages.
 
-### [ ] P5.3 Implement Judge Loop
+Implementation notes:
+
+- `app/services/date-engine.ts` supports strict alternation, scenario beat insertion, one intervention, completion, and early ending.
+- Deterministic performer fallback keeps smoke paths playable without blocking on local model latency.
+
+### [x] P5.3 Implement Judge Loop
 
 Dependencies: P5.2, P3.1
 
@@ -250,7 +296,12 @@ Done when:
 - Invalid judge output is handled without corrupting state.
 - Final report is persisted.
 
-### [ ] P5.4 Implement Memory Summarizer
+Implementation notes:
+
+- Deterministic judge snapshots are validated with Zod before state updates.
+- The local AI adapter also exposes structured judge generation for Ollama-backed paths.
+
+### [x] P5.4 Implement Memory Summarizer
 
 Dependencies: P5.3, P3.2
 
@@ -266,9 +317,14 @@ Done when:
 - Completing a date creates retrievable memory records.
 - Those memories affect a later date through deterministic retrieval.
 
+Implementation notes:
+
+- Completed dates create pair, member-private, and scenario repeat memories with explicit embeddings.
+- Repeated scenario history affects later date transcripts and judge penalties.
+
 ## P6. Shift Game Loop
 
-### [ ] P6.1 Implement Scenario Deck And Shift State
+### [x] P6.1 Implement Scenario Deck And Shift State
 
 Dependencies: P2.2, P1.2
 
@@ -286,7 +342,12 @@ Done when:
 - Used date slots persist.
 - Repeated scenario usage is queryable.
 
-### [ ] P6.2 Implement Goals, Requests, And Follow-Up Actions
+Implementation notes:
+
+- Seeded saves draw 3 scenarios, track 3 date slots, and store repeated scenario counts per pair.
+- Shift state and scenario deck state persist through the repository.
+
+### [x] P6.2 Implement Goals, Requests, And Follow-Up Actions
 
 Dependencies: P6.1, P5.3
 
@@ -302,6 +363,11 @@ Done when:
 - A full shift can be scored.
 - Follow-up actions change pair/member state.
 - Pinned goals/requests persist through reload.
+
+Implementation notes:
+
+- Shift scoring covers completed dates, early endings, cross-reality dates, and member mood delta.
+- Follow-up actions adjust pair stats and persist on the final date report.
 
 ## P7. UI Integration
 
@@ -321,7 +387,7 @@ Done when:
 - Two members can be selected.
 - Today's scenarios are visible.
 
-### [ ] P7.2 Wire Dashboard To Game State
+### [x] P7.2 Wire Dashboard To Game State
 
 Dependencies: P6.2, P7.1
 
@@ -337,9 +403,14 @@ Done when:
 - One complete shift is playable from the UI.
 - Reloading does not lose persisted shift state.
 
+Implementation notes:
+
+- The dashboard now loads or seeds a local save, starts dates, advances or resolves the transcript, records one intervention, shows judge updates, applies follow-ups, and shows a shift report.
+- Playwright validated the start date, send nudge, resolve date, Repair follow-up, and end shift path.
+
 ## P8. Portrait Pipeline
 
-### [ ] P8.1 Generate And Process Neutral Portraits
+### [~] P8.1 Generate And Process Neutral Portrait Sets
 
 Dependencies: P1.2
 
@@ -347,21 +418,26 @@ Can run in parallel after member fixtures exist.
 
 Actions:
 
-- Generate one neutral portrait per member against a white background.
+- Generate one neutral full-body portrait and one neutral avatar per member against a white background.
 - Follow the portrait style in `docs/world/visual-design.md`.
-- Store source portraits in `public/assets/portraits/source`.
-- Run `pnpm portrait:cutout`.
+- Store source images in `public/assets/portraits/source`.
+- Run `vp run portrait:cutout`.
 - Store transparent cutouts in `public/assets/portraits/cutout`.
 
 Done when:
 
-- Each starter member has a source portrait and transparent cutout.
-- Member fixtures reference the cutout path used by UI.
+- Each starter member has source portrait, source avatar, portrait cutout, and avatar cutout.
+- Member fixtures reference the portrait and avatar cutout paths used by UI.
 - Portraits pass the acceptance checks in `docs/world/visual-design.md`.
+
+Progress:
+
+- Vhool and Mr. Whiskers source and cutout files are present locally, pending human approval before check-in.
+- Portrait docs and prompt seeds now name webtoon/manhwa/manhua as the asset style direction.
 
 ## P9. Verification
 
-### [ ] P9.1 Add Developer Smoke Tests
+### [x] P9.1 Add Developer Smoke Tests
 
 Dependencies: P5.4, P6.2
 
@@ -374,3 +450,8 @@ Done when:
 
 - A local agent can verify the core loop with one command or documented sequence.
 - Failures identify the broken subsystem.
+
+Implementation notes:
+
+- `vp test` runs offline smoke tests for fixtures, repository seeding, memory search, full date simulation, follow-up actions, shift scoring, and repeated scenario history.
+- `IDC_RUN_OLLAMA_SMOKE=1 vp test app/services/ai/ollama-provider.server.test.ts` verifies local text and embedding calls against Ollama.

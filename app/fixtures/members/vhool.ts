@@ -48,11 +48,20 @@ export const vhool: Member = {
   },
   portraits: {
     neutral: {
-      sourcePath: "public/assets/portraits/source/vhool.png",
-      cutoutPath: "/assets/portraits/cutout/vhool.png",
-      prompt:
-        "Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with obsidian hair, faint halo of impossible violet eyes, ceremonial black and rose robes, gentle lonely expression, waist-up portrait, plain white background, no text, no logo, no frame, no scenery",
-      model: "pending",
+      portrait: {
+        sourcePath: "public/assets/portraits/source/vhool.png",
+        cutoutPath: "/assets/portraits/cutout/vhool.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with obsidian hair, faint halo of impossible violet eyes, ceremonial black and rose robes, gentle lonely expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+      avatar: {
+        sourcePath: "public/assets/portraits/source/vhool-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/vhool-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with obsidian hair, faint halo of impossible violet eyes, ceremonial black and rose robes, gentle lonely expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
     },
   },
 };

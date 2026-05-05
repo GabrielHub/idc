@@ -43,11 +43,20 @@ export const mrWhiskers: Member = {
   },
   portraits: {
     neutral: {
-      sourcePath: "public/assets/portraits/source/mr-whiskers.png",
-      cutoutPath: "/assets/portraits/cutout/mr-whiskers.png",
-      prompt:
-        "Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, dignified talking cat executive in tailored cream suit, watch chain, controlled irritated expression, waist-up portrait, plain white background, no text, no logo, no frame, no scenery",
-      model: "pending",
+      portrait: {
+        sourcePath: "public/assets/portraits/source/mr-whiskers.png",
+        cutoutPath: "/assets/portraits/cutout/mr-whiskers.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, dignified normal-sized talking cat executive operating a laughably bad mannequin person inside an oversized tailored cream trench coat, cat peeking from the open collar, stiff sleeves, polished shoes, controlled irritated expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+      avatar: {
+        sourcePath: "public/assets/portraits/source/mr-whiskers-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/mr-whiskers-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, dignified normal-sized talking cat executive peeking from the open collar of an oversized tailored cream trench coat, cat licking one paw, stiff fake person shoulders, controlled irritated expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
     },
   },
 };

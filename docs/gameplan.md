@@ -19,8 +19,8 @@ This is a working product and technical plan. It should evolve as we prototype t
 - Everyone is open to dating everyone in v1. There are no "seeking man/woman/etc." filters or matching goals.
 - The player has **one freeform intervention per date**.
 - Date scenarios come from a reusable **scenario deck**.
-- Each member has one neutral/baseline portrait for v1.
-- Portraits use the webtoon/manhua direction in `docs/world/visual-design.md`.
+- Each member has two neutral baseline images for v1: a full-body portrait and an upper-half avatar.
+- Portraits use the webtoon/manhwa/manhua direction in `docs/world/visual-design.md`.
 - Generated portraits should start on a white background, then be converted to transparent PNG cutouts locally.
 - The game uses local LLMs only, with Ollama as the first target.
 - The app owns canonical state and memory. The LLM performs and judges; it does not own the source of truth.
@@ -141,14 +141,16 @@ The scenario should act like a director, applying pressure over time instead of 
 
 ### 5. Portrait-Driven Member Identity
 
-Each member should have one generated neutral/baseline portrait in v1.
+Each member should have two generated neutral baseline images in v1.
 
 Portrait rules:
 
-- One portrait per member for the first playable build.
-- Use a webtoon/manhua inspired portrait style.
-- Generate against a plain white background.
-- Store source portraits separately from transparent cutouts.
+- One full-body portrait and one upper-half avatar per member for the first playable build.
+- Use a webtoon/manhwa/manhua inspired portrait style.
+- Full-body portraits should show the complete character, posed like they are making a dating profile picture, with enough padding for later crops.
+- Avatars should show the upper half for profile picture use, with the same character design and expression.
+- Generate both images against a plain white background.
+- Store source images separately from transparent cutouts.
 - Remove backgrounds locally using rembg and the `bria-rmbg` model.
 - Use transparent cutouts in the UI so AI agents can design cards, profiles, and date surfaces around them.
 - Keep enough abstraction for later portrait variations such as neutral, flirty, confused, angry, embarrassed, or furious.
@@ -157,11 +159,16 @@ Portrait rules:
 Future-facing portrait shape:
 
 ```ts
+type MemberPortraitSet = {
+  portrait: PortraitAsset;
+  avatar: PortraitAsset;
+};
+
 type MemberPortraits = {
-  neutral: PortraitAsset;
-  flirty?: PortraitAsset;
-  confused?: PortraitAsset;
-  angry?: PortraitAsset;
+  neutral: MemberPortraitSet;
+  flirty?: MemberPortraitSet;
+  confused?: MemberPortraitSet;
+  angry?: MemberPortraitSet;
 };
 
 type PortraitAsset = {
@@ -624,7 +631,7 @@ Fixture guidance:
 - Keep fixtures small and easy to move.
 - Validate fixture shapes with Zod or TypeScript types.
 - Move to JSON or YAML only after the data model stabilizes.
-- Keep generated source portraits and processed cutouts out of fixture code; reference them by path.
+- Keep generated source images and processed cutouts out of fixture code; reference them by path.
 
 ## Portrait Asset Pipeline
 
@@ -640,16 +647,22 @@ Install portrait tooling:
 python -m pip install -r requirements/portraits.txt
 ```
 
-Process a single portrait:
+Process a full-body portrait:
 
 ```sh
-pnpm portrait:cutout -- --input public/assets/portraits/source/member-id.png --output public/assets/portraits/cutout/member-id.png
+vp run portrait:cutout --input public/assets/portraits/source/member-id.png --output public/assets/portraits/cutout/member-id.png
+```
+
+Process an avatar:
+
+```sh
+vp run portrait:cutout --input public/assets/portraits/source/member-id-avatar.png --output public/assets/portraits/cutout/member-id-avatar.png
 ```
 
 Process a folder:
 
 ```sh
-pnpm portrait:cutout -- --input public/assets/portraits/source --output public/assets/portraits/cutout --recursive --overwrite
+vp run portrait:cutout --input public/assets/portraits/source --output public/assets/portraits/cutout --recursive --overwrite
 ```
 
 Default model:
@@ -723,7 +736,7 @@ Tasks:
 - Replace starter screen with Cupid Operations Dashboard
 - Add 6 sample member fixtures
 - Add 6 sample scenario fixtures
-- Add neutral portrait references for each member
+- Add neutral portrait and avatar references for each member
 - Show pinned company goals and member requests
 - Render member board
 - Allow selecting two members
@@ -794,9 +807,9 @@ Goal: make member identity visually reusable without committing to expression va
 
 Tasks:
 
-- Generate one neutral portrait per member on a white background
-- Follow the webtoon/manhua style rules in `docs/world/visual-design.md`
-- Store source portraits in `public/assets/portraits/source`
+- Generate one neutral full-body portrait and one neutral avatar per member on a white background
+- Follow the webtoon/manhwa/manhua style rules in `docs/world/visual-design.md`
+- Store source images in `public/assets/portraits/source`
 - Remove backgrounds with the local rembg script
 - Store transparent PNG cutouts in `public/assets/portraits/cutout`
 - Reference portraits through member fixtures
@@ -825,7 +838,7 @@ Locked recommendation:
 - 3 drawn scenarios per shift
 - 3 date slots per shift
 - 1 complete playable shift
-- 1 neutral portrait per member
+- 1 neutral full-body portrait and 1 neutral avatar per member
 
 ### Date Length And Pacing
 

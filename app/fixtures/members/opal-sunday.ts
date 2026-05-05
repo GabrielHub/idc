@@ -50,11 +50,20 @@ export const opalSunday: Member = {
   },
   portraits: {
     neutral: {
-      sourcePath: "public/assets/portraits/source/opal-sunday.png",
-      cutoutPath: "/assets/portraits/cutout/opal-sunday.png",
-      prompt:
-        "Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with copper bob haircut, pearl cardigan, clipboard, anxious pleasant expression, waist-up portrait, plain white background, no text, no logo, no frame, no scenery",
-      model: "pending",
+      portrait: {
+        sourcePath: "public/assets/portraits/source/opal-sunday.png",
+        cutoutPath: "/assets/portraits/cutout/opal-sunday.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with copper bob haircut, pearl cardigan, clipboard, anxious pleasant expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
+      avatar: {
+        sourcePath: "public/assets/portraits/source/opal-sunday-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/opal-sunday-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with copper bob haircut, pearl cardigan, clipboard, anxious pleasant expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
     },
   },
 };

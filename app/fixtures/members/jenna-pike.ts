@@ -43,11 +43,20 @@ export const jennaPike: Member = {
   },
   portraits: {
     neutral: {
-      sourcePath: "public/assets/portraits/source/jenna-pike.png",
-      cutoutPath: "/assets/portraits/cutout/jenna-pike.png",
-      prompt:
-        "Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy dark ponytail, tired kind waitress in a burgundy apron, neutral baseline expression, waist-up portrait, plain white background, no text, no logo, no frame, no scenery",
-      model: "pending",
+      portrait: {
+        sourcePath: "public/assets/portraits/source/jenna-pike.png",
+        cutoutPath: "/assets/portraits/cutout/jenna-pike.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy dark ponytail, tired kind waitress in a burgundy apron, neutral baseline expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
+      avatar: {
+        sourcePath: "public/assets/portraits/source/jenna-pike-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/jenna-pike-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy dark ponytail, tired kind waitress in a burgundy apron, neutral baseline expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
     },
   },
 };

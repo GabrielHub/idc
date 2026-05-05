@@ -50,11 +50,20 @@ export const meridianVale: Member = {
   },
   portraits: {
     neutral: {
-      sourcePath: "public/assets/portraits/source/meridian-vale.png",
-      cutoutPath: "/assets/portraits/cutout/meridian-vale.png",
-      prompt:
-        "Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, neat black suit, discreet earpiece, guarded expression, elegant security agent silhouette, waist-up portrait, plain white background, no text, no logo, no frame, no scenery",
-      model: "pending",
+      portrait: {
+        sourcePath: "public/assets/portraits/source/meridian-vale.png",
+        cutoutPath: "/assets/portraits/cutout/meridian-vale.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, neat black suit, discreet earpiece, guarded expression, elegant security agent silhouette, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
+      avatar: {
+        sourcePath: "public/assets/portraits/source/meridian-vale-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/meridian-vale-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, neat black suit, discreet earpiece, guarded expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
     },
   },
 };

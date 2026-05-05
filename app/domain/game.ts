@@ -17,13 +17,18 @@ export const portraitAssetSchema = z.object({
   model: z.string().min(1).optional(),
 });
 
+export const memberPortraitSetSchema = z.object({
+  portrait: portraitAssetSchema,
+  avatar: portraitAssetSchema,
+});
+
 export const memberPortraitsSchema = z.object({
-  neutral: portraitAssetSchema,
-  flirty: portraitAssetSchema.optional(),
-  confused: portraitAssetSchema.optional(),
-  angry: portraitAssetSchema.optional(),
-  embarrassed: portraitAssetSchema.optional(),
-  furious: portraitAssetSchema.optional(),
+  neutral: memberPortraitSetSchema,
+  flirty: memberPortraitSetSchema.optional(),
+  confused: memberPortraitSetSchema.optional(),
+  angry: memberPortraitSetSchema.optional(),
+  embarrassed: memberPortraitSetSchema.optional(),
+  furious: memberPortraitSetSchema.optional(),
 });
 
 export const voicePatternSchema = z.enum([
@@ -189,15 +194,33 @@ export const pairStateSchema = z.object({
 
 export const dateMessageKindSchema = z.enum(["character", "scenario", "cupid", "system"]);
 
-export const dateMessageSchema = z.object({
+const dateMessageBaseSchema = z.object({
   id: z.string().min(1),
   dateSessionId: dateSessionIdSchema,
-  kind: dateMessageKindSchema,
-  speakerId: memberIdSchema.optional(),
   turnIndex: z.number().int().min(0),
+  sequenceIndex: z.number().int().min(0),
   text: z.string().min(1),
   createdAt: z.string().min(1),
 });
+
+export const dateMessageSchema = z.discriminatedUnion("kind", [
+  dateMessageBaseSchema.extend({
+    kind: z.literal("character"),
+    speakerId: memberIdSchema,
+  }),
+  dateMessageBaseSchema.extend({
+    kind: z.literal("scenario"),
+    speakerId: z.never().optional(),
+  }),
+  dateMessageBaseSchema.extend({
+    kind: z.literal("cupid"),
+    speakerId: z.never().optional(),
+  }),
+  dateMessageBaseSchema.extend({
+    kind: z.literal("system"),
+    speakerId: z.never().optional(),
+  }),
+]);
 
 export const characterDateStateSchema = z.object({
   mood: scoreSchema,
@@ -219,6 +242,7 @@ export const memoryRecordSchema = z.object({
   scope: memoryScopeSchema,
   visibility: memoryVisibilitySchema,
   subjectIds: z.array(memberIdSchema),
+  visibleToMemberIds: z.array(memberIdSchema).optional(),
   pairId: pairIdSchema.optional(),
   scenarioId: scenarioIdSchema.optional(),
   dateSessionId: dateSessionIdSchema.optional(),
@@ -255,6 +279,20 @@ export const judgeSnapshotSchema = z.object({
 
 export const dateSessionStatusSchema = z.enum(["active", "completed", "ended_early"]);
 
+export const followUpActionSchema = z.enum(["encourage", "cool_down", "repair", "mark_bad_fit"]);
+
+export const dateFinalReportSchema = z.object({
+  id: z.string().min(1),
+  dateSessionId: dateSessionIdSchema,
+  completedAt: z.string().min(1),
+  outcome: z.enum(["second_date", "mixed", "cool_down", "bad_fit", "early_end"]),
+  summary: z.string().min(1),
+  statSummary: z.string().min(1),
+  recommendedFollowUp: followUpActionSchema,
+  appliedFollowUp: followUpActionSchema.optional(),
+  memoryRecordIds: z.array(memoryIdSchema),
+});
+
 export const dateSessionSchema = z.object({
   id: dateSessionIdSchema,
   pairId: pairIdSchema,
@@ -268,14 +306,37 @@ export const dateSessionSchema = z.object({
   privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
   judgeSnapshots: z.array(judgeSnapshotSchema),
   intervention: cupidInterventionSchema.optional(),
+  finalReport: dateFinalReportSchema.optional(),
 });
-
-export const followUpActionSchema = z.enum(["encourage", "cool_down", "repair", "mark_bad_fit"]);
 
 export const scenarioDeckStateSchema = z.object({
   scenarioIds: z.array(scenarioIdSchema).min(1),
   maxSize: z.number().int().min(1),
   offeredScenarioIds: z.array(scenarioIdSchema),
+});
+
+export const goalScoreStatusSchema = z.enum(["met", "missed"]);
+
+export const shiftGoalResultSchema = z.object({
+  goalId: goalIdSchema,
+  status: goalScoreStatusSchema,
+  progress: z.number().int(),
+  target: z.number().int(),
+  summary: z.string().min(1),
+});
+
+export const shiftReportSchema = z.object({
+  id: z.string().min(1),
+  shiftId: z.string().min(1),
+  completedAt: z.string().min(1),
+  completedDates: z.number().int().min(0),
+  earlyEndedDates: z.number().int().min(0),
+  ordinaryNonHumanDates: z.number().int().min(0),
+  memberMoodDelta: z.number().int(),
+  goalResults: z.array(shiftGoalResultSchema),
+  ignoredRequestIds: z.array(z.string().min(1)),
+  offeredScenarioIds: z.array(scenarioIdSchema),
+  summary: z.string().min(1),
 });
 
 export const shiftStateSchema = z.object({
@@ -290,6 +351,7 @@ export const shiftStateSchema = z.object({
   scenarioDeck: scenarioDeckStateSchema,
   startedAt: z.string().min(1),
   completedAt: z.string().min(1).optional(),
+  report: shiftReportSchema.optional(),
 });
 
 export const gameConfigSchema = z.object({
@@ -301,7 +363,21 @@ export const gameConfigSchema = z.object({
   shiftDateSlots: z.number().int().min(1).default(3),
 });
 
+export const gameSaveSchema = z.object({
+  version: z.literal(1),
+  config: gameConfigSchema,
+  members: z.array(memberSchema),
+  pairStates: z.array(pairStateSchema),
+  dateSessions: z.array(dateSessionSchema),
+  shifts: z.array(shiftStateSchema),
+  activeShiftId: z.string().min(1),
+  memories: z.array(memoryRecordSchema),
+  createdAt: z.string().min(1),
+  updatedAt: z.string().min(1),
+});
+
 export type PortraitAsset = z.infer<typeof portraitAssetSchema>;
+export type MemberPortraitSet = z.infer<typeof memberPortraitSetSchema>;
 export type MemberPortraits = z.infer<typeof memberPortraitsSchema>;
 export type VoicePattern = z.infer<typeof voicePatternSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;
@@ -325,8 +401,13 @@ export type MemoryRecord = z.infer<typeof memoryRecordSchema>;
 export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;
 export type JudgeSnapshot = z.infer<typeof judgeSnapshotSchema>;
 export type DateSessionStatus = z.infer<typeof dateSessionStatusSchema>;
+export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
 export type ScenarioDeckState = z.infer<typeof scenarioDeckStateSchema>;
+export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
+export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
+export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftState = z.infer<typeof shiftStateSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;
+export type GameSave = z.infer<typeof gameSaveSchema>;

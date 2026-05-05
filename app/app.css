@@ -3,7 +3,7 @@
 @import "tailwindcss";
 
 /* ========================================================================
-   AURA — locked-in design language
+   AURA, locked-in design language
    ========================================================================
    Everything below this comment is the project-wide theme. Use the
    Tailwind utilities derived from these tokens (font-sans, font-display,
@@ -18,19 +18,19 @@
   --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 
-  /* Type scale — everything is at least 12px so screen text stays
+  /* Type scale, everything is at least 12px so screen text stays
      comfortably legible. The "micro" / "label" sizes are uppercase +
      tracked, which earns the smaller end of the scale. */
-  --text-micro: 0.75rem; /* 12px — uppercase eyebrow / status labels */
+  --text-micro: 0.75rem; /* 12px, uppercase eyebrow / status labels */
   --text-micro--line-height: 1rem;
-  --text-label: 0.8125rem; /* 13px — small UI labels, mono captions */
+  --text-label: 0.8125rem; /* 13px, small UI labels, mono captions */
   --text-label--line-height: 1.125rem;
-  --text-body: 0.9375rem; /* 15px — primary body copy */
+  --text-body: 0.9375rem; /* 15px, primary body copy */
   --text-body--line-height: 1.5rem;
-  --text-lead: 1.0625rem; /* 17px — emphasized body, intros */
+  --text-lead: 1.0625rem; /* 17px, emphasized body, intros */
   --text-lead--line-height: 1.625rem;
 
-  /* Aura palette — core brand colors */
+  /* Aura palette, core brand colors */
   --color-aura-bg: #fdfaf6;
   --color-aura-ink: #0f172a; /* primary text */
   --color-aura-muted: #475569; /* secondary text */
@@ -49,7 +49,7 @@
   --color-aura-mesh-amber: #fef3c7;
   --color-aura-mesh-sky: #bae6fd;
 
-  /* Radii — the card is the design's signature shape */
+  /* Radii, the card is the design's signature shape */
   --radius-pill: 9999px;
   --radius-card: 28px;
   --radius-chip: 14px;
@@ -82,7 +82,7 @@ body {
    AURA motion
    ======================================================================== */
 
-/* Pastel mesh blobs — drifting */
+/* Pastel mesh blobs, drifting */
 @keyframes aura-blob-a {
   0%,
   100% {
@@ -168,7 +168,7 @@ body {
   animation: aura-twinkle 2.6s ease-in-out infinite;
 }
 
-/* Sticker wobble — gentle vertical drift, no rotation here so the
+/* Sticker wobble, gentle vertical drift, no rotation here so the
    parent rotate-[Xdeg] survives. */
 @keyframes aura-wobble {
   0%,
@@ -198,7 +198,7 @@ body {
   animation: aura-wave-draw 1.4s 700ms ease-out forwards;
 }
 
-/* CTA gradient drift — keeps the button feeling alive */
+/* CTA gradient drift, keeps the button feeling alive */
 @keyframes aura-cta-shift {
   0%,
   100% {

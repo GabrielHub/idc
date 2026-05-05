@@ -66,7 +66,7 @@ export function Welcome() {
             </span>
           </a>
 
-          {/* Next up — pending hearts preview */}
+          {/* Next up, pending hearts preview */}
           <div className="mt-4 pt-3 border-t border-aura-hairline">
             <div className="flex items-center justify-between mb-2">
               <div className="text-micro uppercase tracking-[0.28em] text-aura-muted font-semibold">
@@ -155,6 +155,13 @@ function Mini({
   );
 }
 
+const AURA_RINGS = [
+  { r: 140, delayClass: "[animation-delay:0s]" },
+  { r: 200, delayClass: "[animation-delay:0.9s]" },
+  { r: 260, delayClass: "[animation-delay:1.8s]" },
+  { r: 320, delayClass: "[animation-delay:2.7s]" },
+];
+
 function AuraRings() {
   return (
     <svg
@@ -171,17 +178,16 @@ function AuraRings() {
           <stop offset="100%" stopColor="#a78bfa" stopOpacity="0.4" />
         </linearGradient>
       </defs>
-      {[140, 200, 260, 320].map((r, i) => (
+      {AURA_RINGS.map((ring) => (
         <circle
-          key={r}
+          key={ring.r}
           cx="320"
           cy="320"
-          r={r}
+          r={ring.r}
           fill="none"
           stroke="url(#ring-grad)"
           strokeWidth="0.8"
-          className="aura-ring"
-          style={{ animationDelay: `${i * 0.9}s` }}
+          className={`aura-ring ${ring.delayClass}`}
         />
       ))}
     </svg>
@@ -220,33 +226,51 @@ function Mesh() {
   );
 }
 
+const SPARKLES = [
+  {
+    size: 14,
+    className: "absolute aura-twinkle top-[8%] left-[8%] rotate-[12deg] [animation-delay:0s]",
+  },
+  {
+    size: 18,
+    className: "absolute aura-twinkle top-[16%] left-[84%] rotate-[-8deg] [animation-delay:0.6s]",
+  },
+  {
+    size: 10,
+    className: "absolute aura-twinkle top-[30%] left-[94%] rotate-[22deg] [animation-delay:0.9s]",
+  },
+  {
+    size: 12,
+    className: "absolute aura-twinkle top-[52%] left-[5%] rotate-[18deg] [animation-delay:1.1s]",
+  },
+  {
+    size: 16,
+    className: "absolute aura-twinkle top-[70%] left-[92%] rotate-[4deg] [animation-delay:0.3s]",
+  },
+  {
+    size: 14,
+    className: "absolute aura-twinkle top-[82%] left-[10%] rotate-[-14deg] [animation-delay:1.4s]",
+  },
+  {
+    size: 8,
+    className: "absolute aura-twinkle top-[44%] left-[88%] rotate-[30deg] [animation-delay:1.8s]",
+  },
+  {
+    size: 10,
+    className: "absolute aura-twinkle top-[62%] left-[12%] rotate-[-18deg] [animation-delay:2s]",
+  },
+];
+
 function Sparkles() {
-  // Deterministic positions/timings so SSR + CSR match.
-  const stars = [
-    { top: "8%", left: "8%", size: 14, delay: "0s", rot: 12 },
-    { top: "16%", left: "84%", size: 18, delay: "0.6s", rot: -8 },
-    { top: "30%", left: "94%", size: 10, delay: "0.9s", rot: 22 },
-    { top: "52%", left: "5%", size: 12, delay: "1.1s", rot: 18 },
-    { top: "70%", left: "92%", size: 16, delay: "0.3s", rot: 4 },
-    { top: "82%", left: "10%", size: 14, delay: "1.4s", rot: -14 },
-    { top: "44%", left: "88%", size: 8, delay: "1.8s", rot: 30 },
-    { top: "62%", left: "12%", size: 10, delay: "2.0s", rot: -18 },
-  ];
   return (
     <div aria-hidden className="absolute inset-0 pointer-events-none">
-      {stars.map((s, i) => (
+      {SPARKLES.map((star, i) => (
         <svg
           key={i}
-          width={s.size}
-          height={s.size}
+          width={star.size}
+          height={star.size}
           viewBox="0 0 24 24"
-          className="absolute aura-twinkle"
-          style={{
-            top: s.top,
-            left: s.left,
-            transform: `rotate(${s.rot}deg)`,
-            animationDelay: s.delay,
-          }}
+          className={star.className}
         >
           <path
             d="M12 1 L13.5 9 L22 12 L13.5 15 L12 23 L10.5 15 L2 12 L10.5 9 Z"

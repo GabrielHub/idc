@@ -18,11 +18,11 @@ The product should feel like a polished supernatural dating operations dashboard
 
 ## Portrait Style
 
-Member portraits use a webtoon and manhua inspired style.
+Member portraits use a webtoon, manhwa, and manhua inspired style.
 
 The reference direction is:
 
-- Clean anime-webtoon line work
+- Clean anime-webtoon, manhwa, and manhua line work
 - Large expressive eyes
 - Polished cel-shaded faces
 - Glossy hair with strong highlight shapes
@@ -36,14 +36,16 @@ Portraits should look like premium character cards adapted into clean UI cutouts
 
 ## Portrait Generation Rules
 
-For v1, each member gets one neutral baseline portrait.
+For v1, each member gets two neutral baseline images: a full-body portrait and an upper-half avatar.
 
 Required:
 
 - Original character design
-- Webtoon or manhua inspired rendering
+- Webtoon, manhwa, or manhua inspired rendering
 - Neutral or lightly pleasant expression
-- Bust, waist-up, or three-quarter portrait
+- Full-body portrait with the complete character visible from head to feet
+- Full-body pose should feel like a dating profile picture, relaxed, intentional, and character revealing
+- Upper-half avatar for profile picture use, matching the full-body character design
 - Full character silhouette visible enough for cutout use
 - Plain white background
 - Strong separation between character and background
@@ -59,15 +61,23 @@ Avoid:
 - Sketchy unfinished line work
 - Busy illustrated backgrounds
 - Cropped faces without usable shoulders or silhouette
-- Overly tiny full-body figures that fail at card size
+- Overly tiny full-body portraits that fail when cropped
 - Flat corporate avatar style
 
 ## Prompt Pattern
 
-Use this pattern when generating member portraits:
+Use these patterns when generating member portraits.
+
+Full-body portrait:
 
 ```text
-Original character portrait for Interdimensional Dating Coach, webtoon and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy hair highlights, elegant supernatural dating-app character design, neutral baseline expression, waist-up portrait, readable silhouette, plain white background, no text, no logo, no frame, no scenery
+Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy hair highlights, elegant supernatural dating-app character design, neutral baseline expression, dating profile picture pose, full body visible, readable silhouette, plain white background, no text, no logo, no frame, no scenery
+```
+
+Avatar:
+
+```text
+Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, glossy hair highlights, elegant supernatural dating-app character design, neutral baseline expression, upper half dating profile picture pose, readable silhouette, plain white background, no text, no logo, no frame, no scenery
 ```
 
 Then add member-specific details from the fixture:
@@ -83,7 +93,7 @@ Keep prompts focused. Do not include long lore dumps.
 
 ## Cutout Pipeline
 
-Source portraits belong in:
+Source images belong in:
 
 ```text
 public/assets/portraits/source/
@@ -98,7 +108,8 @@ public/assets/portraits/cutout/
 Use:
 
 ```sh
-vp run portrait:cutout -- --input public/assets/portraits/source/member-id.png --output public/assets/portraits/cutout/member-id.png
+vp run portrait:cutout --input public/assets/portraits/source/member-id.png --output public/assets/portraits/cutout/member-id.png
+vp run portrait:cutout --input public/assets/portraits/source/member-id-avatar.png --output public/assets/portraits/cutout/member-id-avatar.png
 ```
 
 Default background removal model:
@@ -107,11 +118,11 @@ Default background removal model:
 bria-rmbg
 ```
 
-Only run background removal after a source portrait has been approved for check-in.
+Only run background removal after source images have been approved for check-in.
 
 ## UI Usage
 
-Use transparent cutouts in member cards, profile panels, match panels, and date surfaces. Keep portraits large enough to establish character identity.
+Use avatar cutouts in member cards and compact profile surfaces. Use full-body portrait cutouts in profile panels, selected match panels, and date surfaces where the character can occupy a taller frame. Keep both images large enough to establish character identity.
 
 Portraits should sit inside the Aura UI language. Do not give every portrait its own illustrated card background in v1. Let the dashboard provide the frame and let the cutout provide character.
 
@@ -119,10 +130,11 @@ Portraits should sit inside the Aura UI language. Do not give every portrait its
 
 A portrait is acceptable when:
 
-- It reads as webtoon or manhua inspired.
+- Both images read as webtoon, manhwa, or manhua inspired.
 - It is an original character.
-- It has a white source background.
-- It has a clean transparent cutout.
-- It works at small member-card size.
-- It matches the member fixture.
-- It does not fight the Aura interface palette.
+- Both source images have white backgrounds.
+- Both images have clean transparent cutouts.
+- The full-body portrait shows the complete character and can be cropped later.
+- The avatar works at small member-card size.
+- Both images match the member fixture.
+- Neither image fights the Aura interface palette.

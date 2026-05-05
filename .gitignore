@@ -1,6 +1,7 @@
 .DS_Store
 .env
 /.claude/
+/.playwright-cli/
 /.playwright-mcp/
 /node_modules/
 /playwright/artifacts/
@@ -10,3 +11,5 @@
 # React Router
 /.react-router/
 /build/
+/.idc-data/
+/output/
