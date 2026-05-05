@@ -1,6 +1,6 @@
 # Voice And Tone
 
-This document owns IDC voice, prose mechanics, and comedic engine. `app/app.css` and `docs/world/visual-design.md` own the visual language. Together they define the world feel.
+This document owns IDC voice, prose mechanics, and comedic engine. `app/app.css` and `docs/world/visual-design.md` own the frontend visual language; `docs/world/image-style.md` owns image asset style. Together they define the world feel.
 
 ## The Core Bit
 

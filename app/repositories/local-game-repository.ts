@@ -17,6 +17,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { createSeedGameSave, getActiveShift } from "../services/game-seed";
+import { replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
 
@@ -246,16 +247,6 @@ export class LocalGameRepository implements GameRepository {
     const save = await this.requireGame();
     await this.saveGame(gameSaveSchema.parse(mutator(save)));
   }
-}
-
-function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
-  const existingIndex = items.findIndex((candidate) => candidate.id === item.id);
-
-  if (existingIndex === -1) {
-    return [...items, item];
-  }
-
-  return items.map((candidate, index) => (index === existingIndex ? item : candidate));
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {

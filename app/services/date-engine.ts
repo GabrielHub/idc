@@ -14,6 +14,7 @@ import {
   type DateRuntimeMode,
   type FollowUpAction,
   type GameSave,
+  type GoalMetric,
   type JudgeSnapshot,
   type Member,
   type MemoryRecord,
@@ -25,6 +26,7 @@ import {
 } from "../domain/game";
 import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import { findMemberInSave, getActiveShift, makePairId, sortMemberIds } from "./game-seed";
+import { clampScore, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type StartDateInput = {
@@ -759,19 +761,21 @@ export function markPairDateComplete(pairState: PairState, session: DateSession)
   };
 }
 
+type PrimaryStatDeltas = Partial<
+  Record<Exclude<RelationshipStat, "relationshipHealth" | "strain">, number>
+>;
+
 function applyFollowUpToStats(stats: PairStats, action: FollowUpAction): PairStats {
   if (action === "encourage") {
     return adjustStats(stats, {
       chemistry: 6,
       trust: 3,
       spark: 6,
-      strain: 2,
-      relationshipHealth: 4,
     });
   }
 
   if (action === "cool_down") {
-    return adjustStats(stats, { chemistry: -3, stability: 3, conflict: -4, spark: -3, strain: -6 });
+    return adjustStats(stats, { chemistry: -3, stability: 3, conflict: -4, spark: -3 });
   }
 
   if (action === "repair") {
@@ -779,8 +783,6 @@ function applyFollowUpToStats(stats: PairStats, action: FollowUpAction): PairSta
       trust: 7,
       stability: 4,
       conflict: -6,
-      strain: -5,
-      relationshipHealth: 6,
     });
   }
 
@@ -790,17 +792,16 @@ function applyFollowUpToStats(stats: PairStats, action: FollowUpAction): PairSta
     stability: 2,
     conflict: 3,
     spark: -8,
-    strain: 5,
   });
 }
 
-function adjustStats(
-  stats: PairStats,
-  deltas: Partial<Record<RelationshipStat, number>>,
-): PairStats {
+function adjustStats(stats: PairStats, deltas: PrimaryStatDeltas): PairStats {
   const nextStats = { ...stats };
 
   for (const stat of RELATIONSHIP_STATS) {
+    if (stat === "relationshipHealth" || stat === "strain") {
+      continue;
+    }
     nextStats[stat] = clampScore(nextStats[stat] + (deltas[stat] ?? 0));
   }
 
@@ -815,22 +816,14 @@ function adjustStats(
   return pairStatsSchema.parse(nextStats);
 }
 
-function scoreGoal(
-  goalId: string,
-  metrics: {
-    completedDates: number;
-    earlyEndedDates: number;
-    ordinaryNonHumanDates: number;
-    memberMoodDelta: number;
-  },
-): ShiftGoalResult {
+function scoreGoal(goalId: string, metrics: Record<GoalMetric, number>): ShiftGoalResult {
   const goal = companyGoals.find((candidate) => candidate.id === goalId);
 
   if (goal === undefined) {
     throw new Error(`Goal not found: ${goalId}`);
   }
 
-  const progress = metrics[goal.metric as keyof typeof metrics];
+  const progress = metrics[goal.metric];
   const met = goal.metric === "earlyEndedDates" ? progress <= goal.target : progress >= goal.target;
 
   return {
@@ -914,7 +907,7 @@ function replaceDateSession(save: GameSave, session: DateSession, timestamp: str
   });
 }
 
-function requireMember(save: GameSave, memberId: string): Member {
+export function requireMember(save: GameSave, memberId: string): Member {
   const member = findMemberInSave(save, memberId);
 
   if (member === undefined) {
@@ -924,7 +917,7 @@ function requireMember(save: GameSave, memberId: string): Member {
   return member;
 }
 
-function requireScenario(scenarioId: string): DateScenario {
+export function requireScenario(scenarioId: string): DateScenario {
   const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
 
   if (scenario === undefined) {
@@ -934,7 +927,7 @@ function requireScenario(scenarioId: string): DateScenario {
   return scenario;
 }
 
-function requirePairState(save: GameSave, pairId: string): PairState {
+export function requirePairState(save: GameSave, pairId: string): PairState {
   const pairState = save.pairStates.find((candidate) => candidate.id === pairId);
 
   if (pairState === undefined) {
@@ -944,7 +937,7 @@ function requirePairState(save: GameSave, pairId: string): PairState {
   return pairState;
 }
 
-function requireDateSession(save: GameSave, dateSessionId: string): DateSession {
+export function requireDateSession(save: GameSave, dateSessionId: string): DateSession {
   const session = save.dateSessions.find((candidate) => candidate.id === dateSessionId);
 
   if (session === undefined) {
@@ -968,20 +961,6 @@ function createMoodBaseline(): Map<string, number> {
   return new Map(starterMembers.map((member) => [member.id, member.state.mood]));
 }
 
-export function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
-  const existingIndex = items.findIndex((candidate) => candidate.id === item.id);
-
-  if (existingIndex === -1) {
-    return [...items, item];
-  }
-
-  return items.map((candidate, index) => (index === existingIndex ? item : candidate));
-}
-
 function clampDelta(value: number): number {
   return Math.min(100, Math.max(-100, value));
-}
-
-export function clampScore(value: number): number {
-  return Math.min(100, Math.max(0, value));
 }

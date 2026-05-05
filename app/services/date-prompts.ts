@@ -4,7 +4,6 @@ import type {
   DateSession,
   JudgeSnapshot,
   Member,
-  MemoryCandidate,
   PairState,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
@@ -20,11 +19,6 @@ export type JudgePromptPacket = {
 };
 
 export type SummarizerPromptPacket = {
-  system: string;
-  prompt: string;
-};
-
-export type DirectorPromptPacket = {
   system: string;
   prompt: string;
 };
@@ -127,30 +121,6 @@ export function buildSummarizerPromptPacket({
       `Transcript:\n${formatTranscript(session.transcript)}`,
     ].join("\n"),
   };
-}
-
-export function buildDirectorPromptPacket({
-  scenario,
-  session,
-}: {
-  scenario: DateScenario;
-  session: DateSession;
-}): DirectorPromptPacket {
-  const currentBeats = scenario.director.beats.filter((beat) => beat.atTurn <= session.currentTurn);
-
-  return {
-    system: "You are the IDC Date Director. Keep scenario pressure bounded and readable.",
-    prompt: [
-      `Tone: ${scenario.director.tone}.`,
-      `Rules: ${scenario.director.rules.join("; ")}.`,
-      `Visible beats so far: ${currentBeats.map((beat) => beat.title).join(", ") || "none"}.`,
-      `Repeat behavior: ${scenario.director.repeatBehavior}`,
-    ].join("\n"),
-  };
-}
-
-export function memoryCandidateFromSummary(candidate: MemoryCandidate): MemoryCandidate {
-  return candidate;
 }
 
 function formatMemories(memories: Array<{ text: string }>): string {

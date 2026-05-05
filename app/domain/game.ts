@@ -156,11 +156,18 @@ export const dateScenarioSchema = z.object({
   }),
 });
 
+export const goalMetricSchema = z.enum([
+  "completedDates",
+  "earlyEndedDates",
+  "ordinaryNonHumanDates",
+  "memberMoodDelta",
+]);
+
 export const companyGoalSchema = z.object({
   id: goalIdSchema,
   title: z.string().min(1),
   description: z.string().min(1),
-  metric: z.string().min(1),
+  metric: goalMetricSchema,
   target: z.number().int().min(0),
   tags: z.array(z.string().min(1)),
 });
@@ -389,6 +396,7 @@ export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;
 export type ScenarioBeat = z.infer<typeof scenarioBeatSchema>;
 export type DateScenario = z.infer<typeof dateScenarioSchema>;
+export type GoalMetric = z.infer<typeof goalMetricSchema>;
 export type CompanyGoal = z.infer<typeof companyGoalSchema>;
 export type MemberRequest = z.infer<typeof memberRequestSchema>;
 export type PairStats = z.infer<typeof pairStatsSchema>;

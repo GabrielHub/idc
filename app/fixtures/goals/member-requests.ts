@@ -43,4 +43,25 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 6,
     tags: ["memory", "care"],
   },
+  {
+    id: "request-sana-decompress",
+    memberId: "sana-karim",
+    text: "Sana wants ten quiet minutes after she sits down before any small talk begins. Year three has earned her ten minutes.",
+    moodPenaltyIfIgnored: 5,
+    tags: ["career_fatigue", "low_pressure"],
+  },
+  {
+    id: "request-kade-not-content",
+    memberId: "kade-sumner",
+    text: "Kade wants a date that survives both being content and not being content. He is not sure which one he wants more.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["online_creator", "performative"],
+  },
+  {
+    id: "request-tasha-counterparty",
+    memberId: "tasha-rell",
+    text: "Tasha wants a counterparty who picks the steakhouse, confirms by EOD, and does not flinch at a 4 a.m. terminal alert.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["career_intense", "decisiveness"],
+  },
 ];

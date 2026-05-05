@@ -1,0 +1,87 @@
+import type { Member } from "../../domain/game";
+
+export const tashaRell: Member = {
+  id: "tasha-rell",
+  name: "Tasha Rell",
+  origin: "Hoboken, New Jersey",
+  species: "Human",
+  dimension: "Prime",
+  realityStatus: "Ordinary, bullish",
+  bio: "Tasha trades for a small prop firm and refers to her own dating life as a portfolio. She has been on a heater since Q3 2025 and is treating Cupid as a high upside asymmetric position with limited downside.",
+  datingProfile:
+    "29, hoboken, day trader. high conviction long on dinner Friday, 7 p.m., short notice flexible. Looking for a counterparty who reads my texts, picks a steakhouse, and is not afraid of a person with a 4 a.m. terminal alert. I drive a Lexus. It is leased. I will not lie about that.",
+  traits: ["confident", "relentless", "warm", "competitive"],
+  relationshipNeeds: [
+    "Someone who matches her energy without trying to short her",
+    "A date with a clear time, place, and exit ramp",
+  ],
+  redFlags: [
+    "tells her crypto is over",
+    "asks how much she made last week",
+    "says hustle culture is bad in a tone that means she is bad",
+  ],
+  preferences: [
+    "steakhouses",
+    "people with calendars",
+    "decisive partners",
+    "Wednesdays after market close",
+  ],
+  dealbreakers: [
+    "treating finance as a moral failing",
+    "any version of you should chill",
+    "first dates that try to be brunch",
+  ],
+  secrets: [
+    "She has not told her mother that the Lexus is leased and her mother believes it is owned outright.",
+    "She is privately terrified of a flat year and treats every quiet Tuesday like the start of one.",
+  ],
+  tags: ["ordinary_human", "career_intense", "finance"],
+  voice: {
+    register: "negotiation pitch upbeat",
+    patternsUsed: [
+      "negotiation_sales_pitch",
+      "structured_bit",
+      "deadpan_one_liner",
+      "self_deprecating_confession",
+    ],
+    patternsRefused: ["poetic_literary", "stream_of_consciousness"],
+    tics: [
+      "frames plans as positions, longs, shorts, hedges, and sizes",
+      "capitalizes Capital, Position, and Conviction when referring to feelings",
+      "uses pencil in for any commitment under a week out",
+      "drops specific tickers and prop firm jargon without explaining them",
+      "ends pitches with a one line summary of the trade",
+    ],
+    sampleMessages: [
+      "Taking a high conviction long position on Friday dinner. 7 p.m. Steakhouse. Penciling you in. Confirm by EOD or I rotate.",
+      "I will be honest about the Lexus. It is leased. I am bullish on the lease. Closed.",
+      "You are sized correctly for a first date. I have a small Position in you. Open to adding.",
+      "Q3 was insane. Q4 was a gift. Q1 humbled me. Q2 owes me dinner. That is where you come in.",
+    ],
+  },
+  state: {
+    mood: 76,
+    openness: 60,
+    burnout: 49,
+    currentRequestId: "request-tasha-counterparty",
+    recentDateResult: "No Cupid dates yet.",
+  },
+  portraits: {
+    neutral: {
+      portrait: {
+        sourcePath: "assets-source/portraits/tasha-rell.png",
+        cutoutPath: "/assets/portraits/cutout/tasha-rell.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with glossy chestnut bob, sharply tailored navy blazer over a silk shell, slim trousers, designer loafers, smartwatch on the left wrist, confident upbeat expression with a slight forward lean, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
+      avatar: {
+        sourcePath: "assets-source/portraits/tasha-rell-avatar.png",
+        cutoutPath: "/assets/portraits/cutout/tasha-rell-avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with glossy chestnut bob, sharply tailored navy blazer over a silk shell, confident upbeat expression with a slight forward lean, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+        model: "pending",
+      },
+    },
+  },
+};

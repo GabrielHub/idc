@@ -1,4 +1,4 @@
-import type { DateMessage, MemoryRecord } from "../domain/game";
+import type { DateMessage, DateSession, MemoryRecord } from "../domain/game";
 import type { GameRepository, MemorySearchFilters } from "../repositories/game-repository";
 import { createDeterministicEmbedding } from "./vector-memory";
 
@@ -8,6 +8,7 @@ export type MemoryRetrievalInput = {
   pairId: string;
   scenarioId: string;
   dateSessionId?: string;
+  session?: DateSession;
   query: string;
   queryEmbedding?: number[];
   limit?: number;
@@ -18,7 +19,6 @@ export type MemoryPack = {
   self: MemoryRecord[];
   pair: MemoryRecord[];
   scenario: MemoryRecord[];
-  judge: MemoryRecord[];
   recentTranscript: DateMessage[];
 };
 
@@ -46,64 +46,59 @@ export async function retrieveRelevantMemories(
 ): Promise<MemoryPack> {
   const limit = input.limit ?? 4;
   const queryEmbedding = input.queryEmbedding ?? createDeterministicEmbedding(input.query);
-  const dateSession =
-    input.dateSessionId === undefined ? null : await repository.getDateSession(input.dateSessionId);
-  const recentTranscript = dateSession?.transcript.slice(-(input.recentTranscriptLimit ?? 8)) ?? [];
-
-  const self = await searchVisibleMemories(
-    repository,
-    queryEmbedding,
-    input.characterId,
-    {
-      subjectIds: [input.characterId],
-      scopes: ["member"],
-      visibilities: ["public", "member_private"],
-      viewer: { role: "character", memberId: input.characterId },
-    },
-    limit,
-  );
-  const pair = await searchVisibleMemories(
-    repository,
-    queryEmbedding,
-    input.characterId,
-    {
-      pairId: input.pairId,
-      scopes: ["pair", "date"],
-      visibilities: ["public", "member_private"],
-      viewer: { role: "character", memberId: input.characterId },
-    },
-    limit,
-  );
-  const scenario = await searchVisibleMemories(
-    repository,
-    queryEmbedding,
-    input.characterId,
-    {
-      scenarioId: input.scenarioId,
-      pairId: input.pairId,
-      scopes: ["scenario"],
-      visibilities: ["public", "member_private"],
-      viewer: { role: "character", memberId: input.characterId },
-    },
-    limit,
-  );
-  const judge = (
-    await repository.searchMemoriesByVector(
+  const viewer = { role: "character" as const, memberId: input.characterId };
+  const sessionPromise: Promise<DateSession | null> =
+    input.session !== undefined
+      ? Promise.resolve(input.session)
+      : input.dateSessionId === undefined
+        ? Promise.resolve(null)
+        : repository.getDateSession(input.dateSessionId);
+  const [self, pair, scenario, dateSession] = await Promise.all([
+    searchVisibleMemories(
+      repository,
       queryEmbedding,
+      input.characterId,
       {
-        pairId: input.pairId,
-        visibilities: ["public", "member_private", "judge_only"],
-        viewer: { role: "judge" },
+        subjectIds: [input.characterId],
+        scopes: ["member"],
+        visibilities: ["public", "member_private"],
+        viewer,
       },
       limit,
-    )
-  ).map((result) => result.memory);
+    ),
+    searchVisibleMemories(
+      repository,
+      queryEmbedding,
+      input.characterId,
+      {
+        pairId: input.pairId,
+        scopes: ["pair", "date"],
+        visibilities: ["public", "member_private"],
+        viewer,
+      },
+      limit,
+    ),
+    searchVisibleMemories(
+      repository,
+      queryEmbedding,
+      input.characterId,
+      {
+        scenarioId: input.scenarioId,
+        pairId: input.pairId,
+        scopes: ["scenario"],
+        visibilities: ["public", "member_private"],
+        viewer,
+      },
+      limit,
+    ),
+    sessionPromise,
+  ]);
+  const recentTranscript = dateSession?.transcript.slice(-(input.recentTranscriptLimit ?? 8)) ?? [];
 
   return {
     self,
     pair,
     scenario,
-    judge,
     recentTranscript,
   };
 }

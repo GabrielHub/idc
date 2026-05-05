@@ -14,7 +14,6 @@ import {
   type MemoryRecord,
   type PairState,
 } from "../domain/game";
-import { starterScenarios } from "../fixtures";
 import type { GameRepository } from "../repositories/game-repository";
 import {
   type CharacterMemoryToolExecution,
@@ -29,14 +28,16 @@ import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPairState,
-  clampScore,
   createCharacterMessage,
   createDateMemoryRecords,
   createNonCharacterMessage,
   finalizeDateSession,
   judgeExchangeDeterministically,
   markPairDateComplete,
-  replaceById,
+  requireDateSession,
+  requireMember,
+  requirePairState,
+  requireScenario,
   type DateEngineResult,
 } from "./date-engine";
 import {
@@ -47,6 +48,7 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
+import { clampScore, errorToMessage, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
@@ -139,8 +141,6 @@ export async function advanceDateExchangeWithLocalAi(
   const firstNewSequenceIndex = transcript.length;
   let currentTurn = session.currentTurn;
   let workingSession = session;
-
-  await repository.saveGame(save);
 
   for (let index = 0; index < 2 && currentTurn < session.turnLimit; index += 1) {
     const nextTurn = currentTurn + 1;
@@ -337,6 +337,7 @@ async function createLocalAiCharacterMessage({
       pairId: session.pairId,
       scenarioId: session.scenarioId,
       dateSessionId: session.id,
+      session,
       query: memoryQuery,
       queryEmbedding,
       limit: DEFAULT_MEMORY_LIMIT,
@@ -602,10 +603,7 @@ function normalizeVisibleMemberIds(
   }
 
   const allowedSet = new Set(allowedMemberIds);
-  const fallbackSet = new Set(fallbackSubjectIds);
-  const filteredIds = visibleToMemberIds.filter(
-    (memberId) => allowedSet.has(memberId) && fallbackSet.has(memberId),
-  );
+  const filteredIds = visibleToMemberIds.filter((memberId) => allowedSet.has(memberId));
 
   return filteredIds.length === 0 ? fallbackSubjectIds : filteredIds;
 }
@@ -622,46 +620,6 @@ function sanitizeJudgeSnapshot(judgeSnapshot: JudgeSnapshot, session: DateSessio
     ...judgeSnapshot,
     memberMoodDeltas,
   };
-}
-
-function requireMember(save: GameSave, memberId: string): Member {
-  const member = save.members.find((candidate) => candidate.id === memberId);
-
-  if (member === undefined) {
-    throw new Error(`Member not found: ${memberId}`);
-  }
-
-  return member;
-}
-
-function requireScenario(scenarioId: string): DateScenario {
-  const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
-
-  if (scenario === undefined) {
-    throw new Error(`Scenario not found: ${scenarioId}`);
-  }
-
-  return scenario;
-}
-
-function requirePairState(save: GameSave, pairId: string): PairState {
-  const pairState = save.pairStates.find((candidate) => candidate.id === pairId);
-
-  if (pairState === undefined) {
-    throw new Error(`Pair state not found: ${pairId}`);
-  }
-
-  return pairState;
-}
-
-function requireDateSession(save: GameSave, dateSessionId: string): DateSession {
-  const session = save.dateSessions.find((candidate) => candidate.id === dateSessionId);
-
-  if (session === undefined) {
-    throw new Error(`Date session not found: ${dateSessionId}`);
-  }
-
-  return session;
 }
 
 function buildMemoryQuery(
@@ -717,12 +675,4 @@ function sanitizeCharacterText(text: string): string {
   }
 
   return `${trimmedText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
-}
-
-function errorToMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return String(error);
 }

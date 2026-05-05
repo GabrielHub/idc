@@ -2,10 +2,9 @@
 
 ## Agent Autonomy
 
-- Read relevant code, `docs/gameplan.md`, `docs/agent-implementation-plan.md`, and active fixture files before changing code.
+- Read relevant code, and `docs` before changing code. You must draw your knowledge from code instead of guessing
 - Challenge requests that conflict with the active plan, product docs, architecture, or current implementation evidence.
 - Be critical. Push back when a request creates scope drift, weak architecture, or brittle gameplay behavior.
-- Do not add features, broad refactors, cleanup, or helper layers beyond the active plan scope.
 - Avoid sprawl. Prefer existing patterns, shared domain types, and reusable game services over duplicate functions or components.
 - Always use the `frontend-skill` when creating or heavily refactoring UI components or screens.
 
@@ -50,7 +49,8 @@
 
 - `docs/gameplan.md` owns product decisions, content requirements, and current design intent.
 - `docs/agent-implementation-plan.md` owns implementation order, blockers, task status, and acceptance criteria.
-- `docs/world/visual-design.md` owns visual style, portrait style, and asset acceptance checks.
+- `docs/world/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
+- `docs/world/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
 - `docs/world/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
 - Future world docs should own remaining concerns: lore, naming, and content feel.
 - Code, tests, fixtures, and assets are the source of truth for implemented behavior once written.
@@ -71,7 +71,7 @@
 - Runtime local AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
 - Generate v1 member portraits against a white background.
-- Follow the webtoon/manhua portrait direction in `docs/world/visual-design.md`.
+- Follow the webtoon/manhua portrait direction in `docs/world/image-style.md`.
 - Use `scripts/portraits/remove_background.py` with `bria-rmbg` for approved portrait cutouts.
 - Tool-assisted background removal is a final post-approval asset step for cutout images. Do not use it for full backdrops or unique portrait cards.
 

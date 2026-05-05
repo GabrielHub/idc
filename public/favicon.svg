@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cupid">
+  <defs>
+    <linearGradient id="aura-bg" x1="4" y1="2" x2="60" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#f43f5e"/>
+      <stop offset="0.55" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <radialGradient id="aura-glow" cx="22" cy="20" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="64" height="64" rx="14" fill="url(#aura-bg)"/>
+  <rect width="64" height="64" rx="14" fill="url(#aura-glow)"/>
+
+  <g transform="rotate(-22 32 32)">
+    <rect x="3" y="30.4" width="58" height="3.2" rx="1.6" fill="#ffffff"/>
+
+    <polygon points="3,32 11,27 11,37" fill="#ffffff"/>
+    <polygon points="9,32 16,28.5 16,35.5" fill="#ffffff"/>
+
+    <polygon points="61,32 51,26 51,38" fill="#ffffff"/>
+  </g>
+
+  <path d="M32 51.2 C32 51.2 10.5 38.5 10.5 24.4 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.4 C53.5 38.5 32 51.2 32 51.2 Z" fill="#ffffff"/>
+</svg>

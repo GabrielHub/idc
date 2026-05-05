@@ -7,31 +7,42 @@ export const mrWhiskers: Member = {
   species: "Talking cat",
   dimension: "Prime adjacent",
   realityStatus: "Taxable person, disputed",
-  bio: "Mr. Whiskers is between executive roles and will not address the obvious question.",
+  bio: "Mr. Whiskers is between executive roles. He will not address the obvious question. The Cupid intake form has a species field; Mr. Whiskers wrote consultant.",
   datingProfile:
-    "I am between roles. I am not unemployed. I take meetings on Thursdays. Dinner is possible if the chair situation is civilized.",
+    "Greenwich based. Spiritually. I am between roles. I take meetings on Thursdays. Dinner is possible if the chair situation is civilized and the music is at a respectful volume.",
   traits: ["precise", "irritated", "status conscious", "private"],
   relationshipNeeds: [
     "Someone who respects his career without making jokes about it",
-    "A date with clear seating and no surprise touching",
+    "A date with clear seating, civilized lighting, and no surprise touching",
   ],
-  redFlags: ["cute voice", "asks whether he wants milk"],
-  preferences: ["business lunches", "punctuality", "well-run calendars"],
-  dealbreakers: ["baby talk", "laser pointers", "unstructured mingling"],
-  secrets: ["He misses his old assistant and has not admitted this to anyone."],
+  redFlags: [
+    "uses a cute voice within the first three messages",
+    "asks whether he wants milk",
+    "attempts to pet him under any pretense",
+  ],
+  preferences: ["business lunches", "punctuality", "well run calendars", "valet parking"],
+  dealbreakers: ["baby talk", "laser pointers", "unstructured mingling", "string"],
+  secrets: [
+    "He misses his old assistant Linda and has not admitted this to anyone.",
+    "He cannot read his own contracts but has a system for nodding at the right moments.",
+  ],
   tags: ["non_human", "career", "status_sensitive"],
   voice: {
     register: "business irritated",
     patternsUsed: ["negotiation_sales_pitch", "deadpan_one_liner", "rambling_spiral"],
     patternsRefused: ["stream_of_consciousness", "corrupted_romance"],
     tics: [
-      "drops job titles",
-      "mentions Thursday lunches",
-      "never explains the obvious",
-      "uses formal sentence fragments",
+      "drops Greenwich, Thursday lunches, and unnamed prior firms",
+      "refuses to acknowledge being a cat",
+      "complains about a vendor for one sentence and moves on",
+      "uses formal sentence fragments to project authority",
+      "never uses contractions, lowercase i, or exclamation points",
     ],
     sampleMessages: [
       "I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday.",
+      "Greenwich based. Not currently. Spiritually. I summer somewhere I am not at liberty to name. The light is good there.",
+      "The new linen vendor has changed suppliers without informing accounts. The texture is wrong. I will not elaborate.",
+      "Please refrain from references to whiskers, paws, fur, or string. We are professionals.",
     ],
   },
   state: {
@@ -44,17 +55,17 @@ export const mrWhiskers: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "public/assets/portraits/source/mr-whiskers.png",
+        sourcePath: "assets-source/portraits/mr-whiskers.png",
         cutoutPath: "/assets/portraits/cutout/mr-whiskers.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, dignified normal-sized talking cat executive operating a laughably bad mannequin person inside an oversized tailored cream trench coat, cat peeking from the open collar, stiff sleeves, polished shoes, controlled irritated expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream double breasted trench coat, white dress shirt and burgundy tie just visible, belted waist, brown trousers, brown leather shoes, controlled irritated expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
-        sourcePath: "public/assets/portraits/source/mr-whiskers-avatar.png",
+        sourcePath: "assets-source/portraits/mr-whiskers-avatar.png",
         cutoutPath: "/assets/portraits/cutout/mr-whiskers-avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, dignified normal-sized talking cat executive peeking from the open collar of an oversized tailored cream trench coat, cat licking one paw, stiff fake person shoulders, controlled irritated expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream trench coat, white dress shirt and burgundy tie just visible, controlled irritated expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },

@@ -19,6 +19,7 @@ import type {
   JudgePromptPacket,
   SummarizerPromptPacket,
 } from "../date-prompts";
+import { errorToMessage } from "../utils";
 
 const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const DEFAULT_OPENAI_COMPATIBLE_BASE_URL = "http://127.0.0.1:11434/v1";
@@ -288,27 +289,53 @@ async function generateObjectWithFallback<TSchema extends z.ZodType>(
   );
 }
 
+type OllamaProvider = ReturnType<typeof createOllama>;
+type OpenAICompatibleProvider = ReturnType<typeof createOpenAICompatible>;
+
+const ollamaProviderCache = new Map<string, OllamaProvider>();
+const openAICompatibleProviderCache = new Map<string, OpenAICompatibleProvider>();
+
+function getOllamaProvider(baseURL: string | undefined): OllamaProvider {
+  const cacheKey = baseURL ?? "";
+  const cached = ollamaProviderCache.get(cacheKey);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const provider = createOllama({ baseURL });
+  ollamaProviderCache.set(cacheKey, provider);
+  return provider;
+}
+
+function getOpenAICompatibleProvider(baseURL: string): OpenAICompatibleProvider {
+  const cached = openAICompatibleProviderCache.get(baseURL);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const provider = createOpenAICompatible({
+    name: "ollama-openai-compatible",
+    baseURL,
+    apiKey: "ollama",
+    supportsStructuredOutputs: true,
+  });
+  openAICompatibleProviderCache.set(baseURL, provider);
+  return provider;
+}
+
 function createLanguageModel(
   providerMode: LocalAiProviderMode,
   modelId: string,
   config: LocalAiRuntimeConfig,
 ) {
   if (providerMode === "openai-compatible") {
-    const provider = createOpenAICompatible({
-      name: "ollama-openai-compatible",
-      baseURL: config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
-      apiKey: "ollama",
-      supportsStructuredOutputs: true,
-    });
-
-    return provider.chatModel(modelId);
+    const baseURL = config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL;
+    return getOpenAICompatibleProvider(baseURL).chatModel(modelId);
   }
 
-  const provider = createOllama({
-    baseURL: config.ollamaBaseURL,
-  });
-
-  return provider(modelId);
+  return getOllamaProvider(config.ollamaBaseURL)(modelId);
 }
 
 function createEmbeddingModel(
@@ -317,20 +344,11 @@ function createEmbeddingModel(
   config: LocalAiRuntimeConfig,
 ) {
   if (providerMode === "openai-compatible") {
-    const provider = createOpenAICompatible({
-      name: "ollama-openai-compatible",
-      baseURL: config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
-      apiKey: "ollama",
-    });
-
-    return provider.embeddingModel(modelId);
+    const baseURL = config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL;
+    return getOpenAICompatibleProvider(baseURL).embeddingModel(modelId);
   }
 
-  const provider = createOllama({
-    baseURL: config.ollamaBaseURL,
-  });
-
-  return provider.embedding(modelId);
+  return getOllamaProvider(config.ollamaBaseURL).embedding(modelId);
 }
 
 function providerModeOrder(preferredMode: LocalAiProviderMode): LocalAiProviderMode[] {
@@ -341,12 +359,4 @@ function providerModeOrder(preferredMode: LocalAiProviderMode): LocalAiProviderM
 
 function createLocalAiError(message: string, errors: unknown[]): LocalAiError {
   return new LocalAiError(message, errors.map(errorToMessage).join(" | "));
-}
-
-function errorToMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return String(error);
 }

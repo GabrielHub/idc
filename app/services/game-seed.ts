@@ -9,6 +9,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
+import { clampScore } from "./utils";
 
 const SAVE_VERSION = 1;
 const STARTER_DECK_MAX_SIZE = 8;
@@ -136,8 +137,4 @@ function createStarterMemories(timestamp: string) {
       createdAt: timestamp,
     },
   ];
-}
-
-function clampScore(value: number) {
-  return Math.min(100, Math.max(0, value));
 }

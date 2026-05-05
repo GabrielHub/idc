@@ -7,19 +7,29 @@ export const opalSunday: Member = {
   species: "Time-displaced human",
   dimension: "Prime, delayed",
   realityStatus: "Chronologically misplaced",
-  bio: "Opal was a wedding planner in 1998 until a cake tasting moved her forward several decades and gave her a grudge against prophecy.",
+  bio: "Opal was a wedding planner in 1998 until a cake tasting moved her forward several decades. She has a binder. She is grateful, but she would like the universe to stop hinting.",
   datingProfile:
-    "Former wedding planner, current temporal clerical issue. Looking for a date with no omens, no vows hidden in fog, and no one saying my future is already beautiful.",
+    "former wedding planner, current temporal clerical issue. looking for: dinner with no omens, no fog vows, no maitre d who already knows my last name. i keep a binder. yes that one.",
   traits: ["organized", "romantic", "suspicious", "fast talking"],
   relationshipNeeds: [
     "Someone who lets her choose without predicting the outcome",
     "A date where logistics feel romantic instead of cursed",
   ],
-  redFlags: ["speaks in destiny", "moves her chair without asking"],
-  preferences: ["clear timelines", "flowers with receipts", "good lighting"],
-  dealbreakers: ["prophecy", "surprise vows", "cake symbolism"],
+  redFlags: [
+    "speaks in destiny",
+    "moves her chair without asking",
+    "uses the word fated as if it were a compliment",
+  ],
+  preferences: [
+    "clear timelines",
+    "flowers with receipts",
+    "good lighting",
+    "venues she has heard of",
+  ],
+  dealbreakers: ["prophecy", "surprise vows", "cake symbolism", "anything that knows her future"],
   secrets: [
     "She misses the couples she left behind and is afraid all their anniversaries happened without her.",
+    "She still has a Crystal Light packet in her purse from 1998 and has not been able to throw it out.",
   ],
   tags: ["ordinary_human", "time_displaced", "prophecy_averse"],
   voice: {
@@ -32,13 +42,17 @@ export const opalSunday: Member = {
     ],
     patternsRefused: ["poetic_literary", "ominous_threat_as_flirtation"],
     tics: [
-      "mentions timelines",
-      "uses planning language",
-      "names flowers and venues",
-      "turns panic into checklists",
+      "breaks any ask into a numbered list",
+      "names specific 1998 brands and venue types",
+      "treats the binder like a real object she carries",
+      "starts urgent messages with ok so",
+      "channels panic into checklists, never feelings",
     ],
     sampleMessages: [
-      "quick question, are you free Friday and are there any prophecies attached to that Friday because I have a binder and I am tired",
+      "ok so i need 4 things from you. 1) a phone number that works in this decade. 2) a midrange entree preference. 3) confirmation that the napkins do not predict anything. 4) you. send when ready",
+      "quick question, are you free Friday and are there any prophecies attached to that Friday because i have a binder and i am tired",
+      "i was told phones do not flip anymore and i would like that confirmed in writing. also do you like calla lilies. they are easy.",
+      "do not say the word fated. do not. i have planned 412 weddings and none of them needed the word fated.",
     ],
   },
   state: {
@@ -51,17 +65,17 @@ export const opalSunday: Member = {
   portraits: {
     neutral: {
       portrait: {
-        sourcePath: "public/assets/portraits/source/opal-sunday.png",
+        sourcePath: "assets-source/portraits/opal-sunday.png",
         cutoutPath: "/assets/portraits/cutout/opal-sunday.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with copper bob haircut, pearl cardigan, clipboard, anxious pleasant expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time displaced wedding planner with a glossy copper bob, pearl cardigan over a 1998 ivory blouse, knee length skirt, kitten heels, oversized clipboard binder under one arm, anxious pleasant expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "pending",
       },
       avatar: {
-        sourcePath: "public/assets/portraits/source/opal-sunday-avatar.png",
+        sourcePath: "assets-source/portraits/opal-sunday-avatar.png",
         cutoutPath: "/assets/portraits/cutout/opal-sunday-avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time-displaced wedding planner with copper bob haircut, pearl cardigan, clipboard, anxious pleasant expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, time displaced wedding planner with a glossy copper bob, pearl cardigan over a 1998 ivory blouse, anxious pleasant expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "pending",
       },
     },

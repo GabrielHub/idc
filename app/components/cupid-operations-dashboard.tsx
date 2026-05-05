@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
 
 import {
-  dateSessionSchema,
-  gameSaveSchema,
   type CompanyGoal,
   type DateFinalReport,
   type DateMessage,
@@ -18,6 +15,7 @@ import {
   type PairState,
   type PortraitAsset,
   type ShiftReport,
+  type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import {
@@ -31,30 +29,29 @@ import {
   completeDateSession,
   completeShift,
   startDateSession,
-  type DateEngineResult,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
+import {
+  gameActionResponseSchema,
+  gameApiErrorSchema,
+  toDeterministicResponse,
+  type GameAction,
+  type GameActionResponse,
+} from "../services/game-api-contracts";
 
 type PairPreview = {
   pairState: PairState | null;
   note: string;
 };
 
-type TranscriptDisplayItem =
-  | {
-      id: string;
-      order: number;
-      label: string;
-      text: string;
-      tone: "member" | "scenario" | "cupid" | "system";
-    }
-  | {
-      id: string;
-      order: number;
-      label: string;
-      text: string;
-      tone: "judge";
-    };
+type TranscriptDisplayItem = {
+  id: string;
+  order: number;
+  label: string;
+  text: string;
+  tone: "member" | "scenario" | "cupid" | "system" | "judge";
+  member?: Member;
+};
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   encourage: "Encourage",
@@ -64,48 +61,14 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
 };
 
 type RuntimeMode = DateRuntimeMode;
+type ShiftStatus = ShiftState["status"];
 
 const GAME_API_TIMEOUT_MS = 120_000;
-
-type GameApiActionInput =
-  | {
-      type: "advanceExchange";
-      runtimeMode: RuntimeMode;
-      save: GameSave;
-      dateSessionId: string;
-    }
-  | {
-      type: "completeDate";
-      runtimeMode: RuntimeMode;
-      save: GameSave;
-      dateSessionId: string;
-    };
-
-const gameApiResponseSchema = z.object({
-  save: gameSaveSchema,
-  session: dateSessionSchema,
-  runtimeMode: z.enum(["deterministic", "local_ai"]),
-  warningMessages: z.array(z.string()),
-  aiTelemetry: z
-    .object({
-      characterGenerationCount: z.number().int().min(0),
-      characterToolCallCount: z.number().int().min(0),
-      characterToolResultCount: z.number().int().min(0),
-      deterministicFallbackCount: z.number().int().min(0),
-    })
-    .nullable(),
-});
-
-const gameApiErrorSchema = z.object({
-  error: z.string().min(1),
-});
-
-type GameApiResponse = z.infer<typeof gameApiResponseSchema>;
 
 export function CupidOperationsDashboard() {
   const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
   const [save, setSave] = useState<GameSave | null>(null);
-  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>(["jenna-pike", "vhool"]);
+  const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
   const [selectedScenarioId, setSelectedScenarioId] = useState("");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
@@ -143,6 +106,7 @@ export function CupidOperationsDashboard() {
         nextSave.dateSessions.at(-1) ??
         null;
       setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
+      setSelectedMemberIds(defaultMemberSelection(nextSave));
       setRuntimeMode(restoredSession?.runtimeMode ?? "deterministic");
       setActiveDateSessionId(restoredSession?.id ?? null);
     }
@@ -264,7 +228,7 @@ export function CupidOperationsDashboard() {
               save,
               dateSessionId: activeSession.id,
             })
-          : toGameApiResponse(
+          : toDeterministicResponse(
               advanceDateExchange(save, {
                 dateSessionId: activeSession.id,
               }),
@@ -291,7 +255,7 @@ export function CupidOperationsDashboard() {
               save,
               dateSessionId: activeSession.id,
             })
-          : toGameApiResponse(completeDateSession(save, activeSession.id));
+          : toDeterministicResponse(completeDateSession(save, activeSession.id));
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
       setRuntimeMode(result.session.runtimeMode);
@@ -343,14 +307,14 @@ export function CupidOperationsDashboard() {
     tryAction(async () => {
       const nextSave = await repository.resetGame();
       setSave(nextSave);
-      setSelectedMemberIds(["jenna-pike", "vhool"]);
+      setSelectedMemberIds(defaultMemberSelection(nextSave));
       setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
       setActiveDateSessionId(null);
       setInterventionText("");
     });
   }
 
-  function setRuntimeWarnings(result: GameApiResponse) {
+  function setRuntimeWarnings(result: GameActionResponse) {
     if (result.warningMessages.length === 0) {
       return;
     }
@@ -489,7 +453,7 @@ export function CupidOperationsDashboard() {
   );
 }
 
-async function runGameApiAction(input: GameApiActionInput): Promise<GameApiResponse> {
+async function runGameApiAction(input: GameAction): Promise<GameActionResponse> {
   const abortController = new AbortController();
   const timeoutId = window.setTimeout(() => abortController.abort(), GAME_API_TIMEOUT_MS);
 
@@ -523,7 +487,7 @@ async function runGameApiAction(input: GameApiActionInput): Promise<GameApiRespo
     );
   }
 
-  const parsedResponse = gameApiResponseSchema.safeParse(payload);
+  const parsedResponse = gameActionResponseSchema.safeParse(payload);
 
   if (!parsedResponse.success) {
     throw new Error("Cupid API returned an invalid date update.");
@@ -540,16 +504,6 @@ async function readJsonResponse(response: Response): Promise<unknown> {
   }
 }
 
-function toGameApiResponse(result: DateEngineResult): GameApiResponse {
-  return gameApiResponseSchema.parse({
-    save: result.save,
-    session: result.session,
-    runtimeMode: "deterministic",
-    warningMessages: [],
-    aiTelemetry: null,
-  });
-}
-
 function DashboardHeader({
   save,
   activeShiftStatus,
@@ -560,7 +514,7 @@ function DashboardHeader({
   onReset,
 }: {
   save: GameSave;
-  activeShiftStatus: string;
+  activeShiftStatus: ShiftStatus;
   dateSlotsUsed: number;
   dateSlotsTotal: number;
   runtimeMode: RuntimeMode;
@@ -580,7 +534,7 @@ function DashboardHeader({
         </div>
         <div className="hidden items-center gap-3 lg:flex">
           <StatusChip label="Local model" value={save.config.performerModel} tone="rose" />
-          <StatusChip label="Runtime" value={runtimeLabel(runtimeMode)} tone="violet" />
+          <StatusChip label="Runtime" value={RUNTIME_MODE_LABELS[runtimeMode]} tone="violet" />
           <StatusChip label="Shift" value={activeShiftStatus} tone="violet" />
           <StatusChip
             label="Date slots"
@@ -674,7 +628,7 @@ function ShiftStatus({
   isActionPending,
   report,
 }: {
-  activeShiftStatus: string;
+  activeShiftStatus: ShiftStatus;
   dateSlotsUsed: number;
   dateSlotsTotal: number;
   scenarioCount: number;
@@ -878,23 +832,33 @@ function MatchPortrait({ member }: { member: Member }) {
   );
 }
 
-type PortraitFrameVariant = "avatar" | "portrait";
+type PortraitFrameVariant = "avatar" | "portrait" | "transcript";
 
 const PORTRAIT_FRAME_CLASS: Record<PortraitFrameVariant, string> = {
   avatar:
     "grid size-24 shrink-0 place-items-center overflow-hidden rounded-card border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
   portrait:
-    "grid h-24 w-16 shrink-0 place-items-center overflow-hidden rounded-tile border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
+    "grid h-28 w-20 shrink-0 place-items-center overflow-hidden rounded-tile border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
+  transcript:
+    "grid size-12 shrink-0 place-items-center overflow-hidden rounded-tile border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
 };
 
 const PORTRAIT_IMAGE_CLASS: Record<PortraitFrameVariant, string> = {
   avatar: "size-full object-contain object-center p-1",
   portrait: "size-full object-contain object-bottom p-1",
+  transcript: "size-full object-contain object-center p-0.5",
 };
 
 const PORTRAIT_INITIALS_CLASS: Record<PortraitFrameVariant, string> = {
   avatar: "font-display text-3xl font-bold tracking-normal text-aura-rose",
   portrait: "font-display text-xl font-bold tracking-normal text-aura-rose",
+  transcript: "font-display text-base font-bold tracking-normal text-aura-rose",
+};
+
+const PORTRAIT_ALT_LABEL: Record<PortraitFrameVariant, string> = {
+  avatar: "avatar",
+  portrait: "portrait",
+  transcript: "avatar",
 };
 
 function PortraitFrame({
@@ -914,7 +878,7 @@ function PortraitFrame({
         <p className={PORTRAIT_INITIALS_CLASS[variant]}>{initialsFor(member.name)}</p>
       ) : (
         <img
-          alt={`${member.name} ${variant}`}
+          alt={`${member.name} ${PORTRAIT_ALT_LABEL[variant]}`}
           className={PORTRAIT_IMAGE_CLASS[variant]}
           onError={() => setImageFailed(true)}
           src={imagePath}
@@ -1238,12 +1202,25 @@ const MESSAGE_BUBBLE_TONE: Record<TranscriptDisplayItem["tone"], string> = {
 };
 
 function MessageBubble({ item }: { item: TranscriptDisplayItem }) {
+  const portraitMember = item.tone === "member" ? item.member : undefined;
+
   return (
-    <article className={`rounded-tile border p-3 ${MESSAGE_BUBBLE_TONE[item.tone]}`}>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted">
-        {item.label}
-      </p>
-      <p className="mt-2 text-body leading-relaxed">{item.text}</p>
+    <article
+      className={`rounded-tile border p-3 ${portraitMember !== undefined ? "flex gap-3" : ""} ${MESSAGE_BUBBLE_TONE[item.tone]}`}
+    >
+      {portraitMember !== undefined ? (
+        <PortraitFrame
+          imagePath={readyPortraitPath(portraitMember.portraits.neutral.avatar)}
+          member={portraitMember}
+          variant="transcript"
+        />
+      ) : null}
+      <div className="min-w-0 flex-1">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted">
+          {item.label}
+        </p>
+        <p className="mt-2 text-body leading-relaxed">{item.text}</p>
+      </div>
     </article>
   );
 }
@@ -1371,7 +1348,9 @@ function buildTranscriptItems(
   const messageItems = session.transcript.map((message) =>
     buildMessageItem(message, members, scenario),
   );
-  const judgeItems = session.judgeSnapshots.map((snapshot) => buildJudgeItem(snapshot));
+  const judgeItems = session.judgeSnapshots.map((snapshot) =>
+    buildJudgeItem(snapshot, session.transcript),
+  );
 
   return [...messageItems, ...judgeItems].sort((first, second) => first.order - second.order);
 }
@@ -1390,6 +1369,7 @@ function buildMessageItem(
       label: member?.name ?? "Member",
       tone: "member",
       text: message.text,
+      member,
     };
   }
 
@@ -1407,14 +1387,31 @@ function buildMessageItem(
   };
 }
 
-function buildJudgeItem(snapshot: JudgeSnapshot): TranscriptDisplayItem {
+function buildJudgeItem(snapshot: JudgeSnapshot, transcript: DateMessage[]): TranscriptDisplayItem {
+  const exchangeStartTurn = snapshot.exchangeIndex * 2 + 1;
+  const exchangeEndTurn = exchangeStartTurn + 1;
+  const lastSequenceIndex = transcript.reduce((max, message) => {
+    if (
+      message.kind === "character" &&
+      message.turnIndex >= exchangeStartTurn &&
+      message.turnIndex <= exchangeEndTurn
+    ) {
+      return Math.max(max, message.sequenceIndex);
+    }
+    return max;
+  }, 0);
+
   return {
     id: `turn-judge-${snapshot.exchangeIndex}`,
-    order: 100_000 + snapshot.exchangeIndex,
+    order: lastSequenceIndex * 10 + 5,
     label: "Judge update",
     tone: "judge",
     text: snapshot.playerSummary,
   };
+}
+
+function defaultMemberSelection(save: GameSave): string[] {
+  return save.members.slice(0, 2).map((member) => member.id);
 }
 
 function isMember(member: Member | undefined): member is Member {
@@ -1437,32 +1434,16 @@ function isString(value: string | undefined): value is string {
   return value !== undefined;
 }
 
-function runtimeLabel(mode: RuntimeMode) {
-  return RUNTIME_MODE_LABELS[mode];
-}
+const SCORE_WIDTH_CLASSES: Array<readonly [number, string]> = [
+  [81, "w-full"],
+  [61, "w-4/5"],
+  [41, "w-3/5"],
+  [21, "w-2/5"],
+  [1, "w-1/5"],
+];
 
 function scoreWidthClass(value: number) {
-  if (value <= 0) {
-    return "w-0";
-  }
-
-  if (value >= 81) {
-    return "w-full";
-  }
-
-  if (value >= 61) {
-    return "w-4/5";
-  }
-
-  if (value >= 41) {
-    return "w-3/5";
-  }
-
-  if (value >= 21) {
-    return "w-2/5";
-  }
-
-  return "w-1/5";
+  return SCORE_WIDTH_CLASSES.find(([threshold]) => value >= threshold)?.[1] ?? "w-0";
 }
 
 function initialsFor(name: string) {

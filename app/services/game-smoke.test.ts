@@ -1,6 +1,8 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { memoryRecordSchema } from "../domain/game";
+import { memoryRecordSchema, type PortraitAsset } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
 import { searchCupidMemory } from "./cupid-memory";
@@ -15,13 +17,52 @@ import {
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { createDeterministicEmbedding } from "./vector-memory";
 
+const APPROVED_PORTRAIT_MEMBER_IDS = ["vhool", "mr-whiskers"];
+
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(6);
+    expect(starterMembers).toHaveLength(9);
     expect(starterScenarios).toHaveLength(6);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
+  });
+
+  it("keeps portrait source paths outside public runtime assets", () => {
+    const sourcePaths = starterMembers.flatMap((member) => [
+      member.portraits.neutral.portrait.sourcePath,
+      member.portraits.neutral.avatar.sourcePath,
+    ]);
+
+    expect(
+      sourcePaths.every(
+        (sourcePath) =>
+          !sourcePath.replaceAll("\\", "/").startsWith("public/assets/portraits/source"),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps approved portrait sets backed by checked files", () => {
+    const approvedMembers = starterMembers.filter((member) =>
+      APPROVED_PORTRAIT_MEMBER_IDS.includes(member.id),
+    );
+
+    expect(approvedMembers.map((member) => member.id).sort()).toEqual(
+      [...APPROVED_PORTRAIT_MEMBER_IDS].sort(),
+    );
+
+    for (const member of approvedMembers) {
+      const assets = [
+        member.portraits.neutral.portrait,
+        member.portraits.neutral.avatar,
+      ] satisfies PortraitAsset[];
+
+      for (const asset of assets) {
+        expect(asset.model).not.toBe("pending");
+        expect(existsSync(toWorkspaceFilePath(asset.sourcePath))).toBe(true);
+        expect(existsSync(toWorkspaceFilePath(asset.cutoutPath))).toBe(true);
+      }
+    }
   });
 
   it("seeds and persists canonical game state through the repository", async () => {
@@ -30,8 +71,8 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(6);
-    expect(await repository.listPairStates()).toHaveLength(15);
+    expect(await repository.listMembers()).toHaveLength(9);
+    expect(await repository.listPairStates()).toHaveLength(36);
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
@@ -224,3 +265,12 @@ describe("IDC playable smoke path", () => {
     ).toBe(true);
   });
 });
+
+function toWorkspaceFilePath(assetPath: string) {
+  const normalizedPath = assetPath.replaceAll("\\", "/");
+  const workspaceRelativePath = normalizedPath.startsWith("/assets/")
+    ? `public${normalizedPath}`
+    : normalizedPath.replace(/^\/+/, "");
+
+  return join(process.cwd(), ...workspaceRelativePath.split("/"));
+}

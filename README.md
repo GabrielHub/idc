@@ -1,93 +1,115 @@
-# Welcome to React Router!
+# IDC
 
-Project docs:
+A local-first relationship operations dashboard for Cupid. The app pairs members with scenarios, runs date sessions through a deterministic game engine, and uses a local LLM to perform characters, judge exchanges, and summarize memories within schema-validated bounds.
 
-- [Game plan](docs/gameplan.md)
-- [Agent implementation plan](docs/agent-implementation-plan.md)
-- [Visual design](docs/world/visual-design.md)
+## Stack
 
-A modern, production-ready template for building full-stack React applications using React Router.
+- React Router 7 (SSR) on Node
+- React 19, TypeScript, Tailwind v4
+- Zod for domain schemas and runtime validation
+- Vitest for unit and smoke tests
+- Vite Plus (`vp`) toolchain on top of Vite, Rolldown, Vitest, Oxlint, Oxfmt
+- Local AI through `ai-sdk-ollama` and `@ai-sdk/openai-compatible`, defaulting to Ollama at `http://127.0.0.1:11434`
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/remix-run/react-router-templates/tree/main/default)
+## Prerequisites
 
-## Features
+- Node 20+ and `pnpm` 10 (declared in `package.json`)
+- The `vp` CLI installed globally (`npm i -g vite-plus`)
+- Ollama running locally if you want to exercise the AI date runtime. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking AI flows.
+- Python 3 with `bria-rmbg` available if you run the portrait cutout script.
 
-- 🚀 Server-side rendering
-- ⚡️ Hot Module Replacement (HMR)
-- 📦 Asset bundling and optimization
-- 🔄 Data loading and mutations
-- 🔒 TypeScript by default
-- 🎉 TailwindCSS for styling
-- 📖 [React Router docs](https://reactrouter.com/)
-
-## Getting Started
-
-### Installation
-
-Install the dependencies:
+## Quick start
 
 ```bash
-npm install
+vp install
+vp dev
 ```
 
-### Development
+The dev server listens on `http://localhost:5173/`. The dashboard at `/` is the only user-facing route; `/api/game` is the server action endpoint used by the dashboard for AI-backed date turns.
 
-Start the development server with HMR:
+## Common commands
+
+| Command | Purpose |
+| --- | --- |
+| `vp install` | Install dependencies. Run after pulling. |
+| `vp dev` | Start the dev server with HMR. |
+| `vp check` | Format, lint, and type check. |
+| `vp test` | Run Vitest. |
+| `vp build` | Production build to `build/`. |
+| `vp preview` | Serve the production build locally. |
+| `vp run portrait:cutout` | Run the portrait background-removal pipeline. |
+
+Fall back to `pnpm` scripts (`pnpm build`, `pnpm start`, `pnpm typecheck`) only where there is no `vp` equivalent.
+
+## Project layout
+
+```
+app/
+  domain/           Zod schemas and TypeScript types for game state
+  fixtures/         Static gameplay data (members, scenarios, goals)
+  services/         Game engine, AI date engine, prompts, memory, vector search
+    ai/             Ollama and OpenAI-compatible provider wrappers
+  repositories/     Persistence (browser localStorage, Node JSON storage)
+  routes/           React Router routes (home dashboard, game API)
+  components/       UI components, including the main dashboard
+docs/
+  world/            Voice, visual design, image style
+scripts/portraits/  Python asset pipeline (background removal)
+public/assets/      Shipped portrait cutouts and avatars
+assets-source/      Source images, never shipped to the client
+```
+
+A Vite plugin in `vite.config.ts` fails the build if portrait sources land under `public/assets/portraits/source/`. Source images belong in `assets-source/portraits/`.
+
+## Architecture
+
+The system splits gameplay authority from generative content. Read `AGENTS.md` for the full set of rules; the short version:
+
+- **App-owned state is canonical.** The deterministic game engine in `app/services/date-engine.ts` decides triggers, subjects, allowed context, choices, and effects.
+- **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
+- **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
+- **Local AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
+- **Memory retrieval is context selection, not truth.** Vector search in `app/services/cupid-memory.ts` and `app/services/vector-memory.ts` produces candidates; visibility rules are enforced before a candidate reaches a prompt or tool result.
+
+## Testing
+
+Vitest is the primary regression surface for engine and AI flows:
+
+- `app/services/game-smoke.test.ts` exercises a full deterministic shift: starter fixtures, date sessions, follow-up actions, and shift completion.
+- `app/services/ai-date-engine.server.test.ts` and `app/services/ai/ollama-provider.server.test.ts` cover AI date orchestration and provider plumbing.
+
+Playwright is the fast UI regression surface. The dev server must already be running at `http://localhost:5173/` before invoking Playwright; agents should not start it autonomously. Artifacts go under `playwright/screenshots/`, `playwright/logs/`, and `playwright/artifacts/`.
+
+Run `vp check` after every code change. Run `vp test` and `vp build` for changes that touch runtime behavior, saves, systems, fixtures, integration, or user-facing workflows.
+
+## Asset pipeline
+
+Member portraits live under `public/assets/portraits/cutout/` as `<member-id>.png` (full body) and `<member-id>-avatar.png` (upper half). The pipeline is:
+
+1. Generate a portrait against a plain white background. See `docs/world/image-style.md` for prompt construction and acceptance criteria.
+2. Place the source under `assets-source/portraits/`. The Vite plugin will fail the build if a source file leaks into `public/`.
+3. After human approval, run `vp run portrait:cutout` (which calls `scripts/portraits/remove_background.py` with `bria-rmbg`) to produce the cutout.
+
+## Production build
 
 ```bash
-npm run dev
+vp build
+pnpm start
 ```
 
-Your application will be available at `http://localhost:5173`.
-
-## Building for Production
-
-Create a production build:
-
-```bash
-npm run build
-```
-
-## Deployment
-
-### Docker Deployment
-
-To build and run using Docker:
-
-```bash
-docker build -t my-app .
-
-# Run the container
-docker run -p 3000:3000 my-app
-```
-
-The containerized application can be deployed to any platform that supports Docker, including:
-
-- AWS ECS
-- Google Cloud Run
-- Azure Container Apps
-- Digital Ocean App Platform
-- Fly.io
-- Railway
-
-### DIY Deployment
-
-If you're familiar with deploying Node applications, the built-in app server is production-ready.
-
-Make sure to deploy the output of `npm run build`
+`pnpm start` runs `react-router-serve` against `build/server/index.js`. The build emits:
 
 ```
-├── package.json
-├── package-lock.json (or pnpm-lock.yaml, or bun.lockb)
-├── build/
-│   ├── client/    # Static assets
-│   └── server/    # Server-side code
+build/
+  client/   Static assets
+  server/   Server-side bundle
 ```
 
-## Styling
+Any Node-capable host works. Containerization is out of scope for this repo.
 
-This template comes with [Tailwind CSS](https://tailwindcss.com/) already configured for a simple default starting experience. You can use whatever CSS framework you prefer.
+## Documentation
 
----
-
-Built with ❤️ using React Router.
+- [Visual design](docs/world/visual-design.md): Aura interface direction, Tailwind tokens.
+- [Image style](docs/world/image-style.md): portrait style, prompt construction, cutout pipeline.
+- [Voice](docs/world/voice.md): voice registers, prose mechanics, member fingerprints.
+- [Agent instructions](AGENTS.md): architecture rules, toolchain conventions, copy style, UI rules.
