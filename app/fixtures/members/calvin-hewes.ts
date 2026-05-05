@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const calvinHewes: Member = {
   id: "calvin-hewes",
   name: "Calvin Hewes",
+  firstName: "Calvin",
   origin: "Point Pleasant, West Virginia, allegedly",
   species: "Cryptid (denied)",
   dimension: "Prime, regional",
@@ -10,15 +11,9 @@ export const calvinHewes: Member = {
   bio: "Calvin Hewes manages employee dispute resolution at a regional health insurance company in West Virginia. He has retained counsel regarding a 2019 trail cam incident he is not at liberty to discuss. He selected this cover name forty seven years ago and stands by it.",
   datingProfile:
     "Mid forties. Mediation professional. Looking for a partner who values discretion, civilized lighting, and a venue without overhead camera infrastructure. I am six foot two on paper. I have always been six foot two. Available weekends following completed mediation calendars. Going forward.",
-  traits: ["cagey", "professional", "embarrassed", "methodical", "quietly lonely"],
   relationshipNeeds: [
     "Someone who treats his discretion as a feature, not a puzzle",
     "A date with predictable lighting and a parking lot covered by foliage",
-  ],
-  redFlags: [
-    "asks about a 1967 bridge in West Virginia",
-    "uses the word wingspan in any context",
-    "has the cryptid subreddit in their search history",
   ],
   preferences: [
     "low ceilings",
@@ -36,7 +31,7 @@ export const calvinHewes: Member = {
     "He keeps a folder of every Reddit post about him going back to 2014 and reads them on slow Thursdays.",
     "He has been Calvin Hewes longer than he was anything else and is afraid of losing the name.",
   ],
-  tags: ["non_human", "cryptid", "career", "denial"],
+  tags: ["non_human", "privacy_sensitive", "career_focused", "needs_clear_plan", "avoidant"],
   voice: {
     register: "corporate cagey",
     patternsUsed: [

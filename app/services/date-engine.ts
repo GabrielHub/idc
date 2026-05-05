@@ -5,6 +5,7 @@ import {
   judgeSnapshotSchema,
   memoryRecordSchema,
   pairStatsSchema,
+  RELATIONSHIP_STATS,
   shiftReportSchema,
   shiftStateSchema,
   type DateFinalReport,
@@ -24,12 +25,19 @@ import {
   type ShiftReport,
   type ShiftState,
 } from "../domain/game";
-import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
+import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { findMemberInSave, getActiveShift, makePairId, sortMemberIds } from "./game-seed";
-import { clampScore, replaceById } from "./utils";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import {
+  selectFeaturedMemberIds,
+  selectFeaturedMemberRequestIds,
+  selectShiftCompanyGoalIds,
+} from "./shift-planning";
+import { clampDelta, clampScore, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type StartDateInput = {
+  focusMemberId: string;
   firstMemberId: string;
   secondMemberId: string;
   scenarioId: string;
@@ -60,17 +68,6 @@ export type DateEngineResult = {
 const CHARACTER_TURN_LIMIT = 30;
 const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 
-const RELATIONSHIP_STATS = [
-  "chemistry",
-  "trust",
-  "stability",
-  "conflict",
-  "weirdnessTolerance",
-  "spark",
-  "strain",
-  "relationshipHealth",
-] satisfies RelationshipStat[];
-
 export function startDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
   if (input.firstMemberId === input.secondMemberId) {
     throw new Error("Cupid requires two different members for a match.");
@@ -98,9 +95,27 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
 
   const firstMember = requireMember(save, input.firstMemberId);
   const secondMember = requireMember(save, input.secondMemberId);
+  const focusMember = requireMember(save, input.focusMemberId);
+
+  if (focusMember.id !== firstMember.id && focusMember.id !== secondMember.id) {
+    throw new Error("The focused member must be one of the date participants.");
+  }
+
+  if (!activeShift.featuredMemberIds.includes(focusMember.id)) {
+    throw new Error("The focused member is not one of today's cases.");
+  }
+
   const scenario = requireScenario(input.scenarioId);
   const pairId = makePairId(firstMember.id, secondMember.id);
   const pairState = requirePairState(save, pairId);
+  const focusRequest = findFocusRequest(activeShift, focusMember.id);
+  const activeRequests = focusRequest === undefined ? [] : [focusRequest];
+  const matchFit = evaluateMatchFit({
+    members: [firstMember, secondMember],
+    scenario,
+    pairState,
+    activeRequests,
+  });
   const participants = sortMemberIds(firstMember.id, secondMember.id);
   const sessionNumber = activeShift.dateSlotsUsed + 1;
   const sessionId = `date-${activeShift.shiftNumber}-${sessionNumber}-${pairId}-${scenario.id}`;
@@ -131,9 +146,11 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     id: sessionId,
     pairId,
     scenarioId: scenario.id,
+    focusMemberId: focusMember.id,
+    focusRequestId: focusRequest?.id,
     turnLimit: save.config.defaultDateMessageLimit || CHARACTER_TURN_LIMIT,
     currentTurn: 0,
-    dateHealth: startingDateHealth(pairState),
+    dateHealth: clampScore(startingDateHealth(pairState) + matchFit.startingDateHealthDelta),
     status: "active",
     runtimeMode: "local_ai",
     participants,
@@ -205,6 +222,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const scenario = requireScenario(session.scenarioId);
   const pairState = requirePairState(save, session.pairId);
   const members = session.participants.map((memberId) => requireMember(save, memberId));
+  const focusRequest = findMemberRequestById(session.focusRequestId);
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
 
@@ -241,13 +259,26 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const exchangeMessages = transcript
     .slice(session.transcript.length)
     .filter((message) => message.kind === "character");
-  const judgeSnapshot = judgeExchangeDeterministically({
+  const deterministicJudgeSnapshot = judgeExchangeDeterministically({
     session,
     pairState,
     members,
     scenario,
     exchangeMessages,
     exchangeIndex: session.judgeSnapshots.length,
+  });
+  const matchFit = evaluateMatchFit({
+    members,
+    scenario,
+    pairState,
+    activeRequests: focusRequest === undefined ? [] : [focusRequest],
+  });
+  const judgeSnapshot = applyMatchFitToJudgeSnapshot({
+    session,
+    pairState,
+    members,
+    judgeSnapshot: deterministicJudgeSnapshot,
+    fit: matchFit,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -372,37 +403,23 @@ export function completeShift(
       participants.some(isOrdinaryHuman) && participants.some((member) => !isOrdinaryHuman(member))
     );
   });
-  const moodBaseline = createMoodBaseline();
-  const memberMoodDelta = save.members.reduce((total, member) => {
-    const baselineMood = moodBaseline.get(member.id) ?? member.state.mood;
-    return total + (member.state.mood - baselineMood);
-  }, 0);
-  const ignoredRequestIds = activeShift.memberRequestIds.filter(
-    (requestId) => !requestWasAddressed(requestId, completedDates),
+  const positiveOutcomeDates = completedDates.filter(
+    (session) => session.finalReport?.outcome === "second_date",
   );
-  const penalizedMembers = save.members.map((member) => {
-    const ignoredRequest = memberRequests.find(
-      (request) => request.memberId === member.id && ignoredRequestIds.includes(request.id),
-    );
-
-    if (ignoredRequest === undefined) {
-      return member;
-    }
-
-    return {
-      ...member,
-      state: {
-        ...member.state,
-        mood: clampScore(member.state.mood - ignoredRequest.moodPenaltyIfIgnored),
-      },
-    };
-  });
+  const memberMoodDeltas = collectShiftMemberMoodDeltas(completedDates);
+  const memberMoodDelta = Array.from(memberMoodDeltas.values()).reduce(
+    (total, delta) => total + delta,
+    0,
+  );
+  const improvedMembers = Array.from(memberMoodDeltas.values()).filter((delta) => delta > 0).length;
   const goalResults = activeShift.companyGoalIds.map((goalId) =>
     scoreGoal(goalId, {
       completedDates: completedDates.length,
       earlyEndedDates: earlyEndedDates.length,
       ordinaryNonHumanDates: ordinaryNonHumanDates.length,
       memberMoodDelta,
+      positiveOutcomeDates: positiveOutcomeDates.length,
+      improvedMembers,
     }),
   );
   const report = shiftReportSchema.parse({
@@ -414,7 +431,7 @@ export function completeShift(
     ordinaryNonHumanDates: ordinaryNonHumanDates.length,
     memberMoodDelta,
     goalResults,
-    ignoredRequestIds,
+    ignoredRequestIds: [],
     offeredScenarioIds: activeShift.scenarioDeck.offeredScenarioIds,
     summary: buildShiftSummary(completedDates.length, earlyEndedDates.length, memberMoodDelta),
   });
@@ -426,7 +443,6 @@ export function completeShift(
   });
   const nextSave = gameSaveSchema.parse({
     ...save,
-    members: penalizedMembers,
     shifts: replaceById(save.shifts, updatedShift),
     updatedAt: timestamp,
   });
@@ -458,22 +474,27 @@ export function startNextShift(
     scenarioStartIndex + save.config.shiftDateSlots,
     save.config.shiftDateSlots,
   );
-  const companyGoalIds = takeWrapped(
-    companyGoals.map((goal) => goal.id),
-    (nextShiftNumber - 1) * 2,
-    2,
-  );
-  const memberRequestIds = takeWrapped(
-    memberRequests.map((request) => request.id),
-    (nextShiftNumber - 1) * save.config.shiftDateSlots,
-    save.config.shiftDateSlots,
-  );
+  const featuredMemberIds = selectFeaturedMemberIds({
+    members: save.members,
+    shiftNumber: nextShiftNumber,
+  });
+  const companyGoalIds = selectShiftCompanyGoalIds({
+    members: save.members,
+    shiftNumber: nextShiftNumber,
+    dateSlotsTotal: save.config.shiftDateSlots,
+  });
+  const memberRequestIds = selectFeaturedMemberRequestIds({
+    members: save.members,
+    featuredMemberIds,
+    shiftNumber: nextShiftNumber,
+  });
   const nextShift = shiftStateSchema.parse({
     id: `shift-${nextShiftNumber}`,
     shiftNumber: nextShiftNumber,
     status: "active",
     dateSlotsTotal: save.config.shiftDateSlots,
     dateSlotsUsed: 0,
+    featuredMemberIds,
     drawnScenarioIds,
     companyGoalIds,
     memberRequestIds,
@@ -583,11 +604,11 @@ function deterministicCharacterText({
     return `${speaker.name} looks at ${partner.name}. ${beatHint.characterVisibleText} I can work with this if we stay specific.${interventionLine}`;
   }
 
-  if (speaker.tags.includes("cosmic")) {
+  if (speaker.tags.includes("weirdness_native")) {
     return `I am attempting a small honest question for ${partner.name}. It has fewer teeth than my usual questions.${repeatLine}${interventionLine}`;
   }
 
-  if (speaker.tags.includes("career")) {
+  if (speaker.tags.includes("career_focused")) {
     return `Status update for ${partner.name}: the date remains active, the environment is unusual, and I am still listening.${repeatLine}${interventionLine}`;
   }
 
@@ -595,7 +616,7 @@ function deterministicCharacterText({
     return `I would like to choose the next sentence myself, preferably before the room files paperwork about destiny.${repeatLine}${interventionLine}`;
   }
 
-  if (speaker.tags.includes("ghost")) {
+  if (speaker.tags.includes("memory_sensitive") || speaker.tags.includes("grief_sensitive")) {
     return `For the record, ${partner.name}, being remembered would be enough for this part of the evening.${repeatLine}${interventionLine}`;
   }
 
@@ -699,7 +720,7 @@ export function finalizeDateSession({
     dateSessionId: session.id,
     completedAt,
     outcome,
-    summary: `${members[0].name} and ${members[1].name} completed ${scenario.title}. ${session.status === "ended_early" ? "Date ended early. Standard cleanup is on schedule." : "Date completed. Cupid has enough data to be annoying."}`,
+    summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${session.status === "ended_early" ? "Date ended early. Standard cleanup is on schedule." : "Date completed. Cupid has enough data to be annoying."}`,
     statSummary: `Spark ${pairState.stats.spark}. Strain ${pairState.stats.strain}. Health ${pairState.stats.relationshipHealth}.`,
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
@@ -879,7 +900,13 @@ function scoreGoal(goalId: string, metrics: Record<GoalMetric, number>): ShiftGo
   const goal = companyGoals.find((candidate) => candidate.id === goalId);
 
   if (goal === undefined) {
-    throw new Error(`Goal not found: ${goalId}`);
+    return {
+      goalId,
+      status: "missed",
+      progress: 0,
+      target: 0,
+      summary: "Retired goal skipped.",
+    };
   }
 
   const progress = metrics[goal.metric];
@@ -894,14 +921,24 @@ function scoreGoal(goalId: string, metrics: Record<GoalMetric, number>): ShiftGo
   };
 }
 
-function requestWasAddressed(requestId: string, sessions: DateSession[]): boolean {
-  const request = memberRequests.find((candidate) => candidate.id === requestId);
+function collectShiftMemberMoodDeltas(sessions: DateSession[]): Map<string, number> {
+  const deltas = new Map<string, number>();
 
-  if (request === undefined) {
-    return false;
+  for (const session of sessions) {
+    for (const snapshot of session.judgeSnapshots) {
+      for (const [memberId, delta] of Object.entries(snapshot.memberMoodDeltas)) {
+        deltas.set(memberId, (deltas.get(memberId) ?? 0) + delta);
+      }
+    }
   }
 
-  return sessions.some((session) => session.participants.includes(request.memberId));
+  return deltas;
+}
+
+function findFocusRequest(shift: ShiftState, focusMemberId: string) {
+  return memberRequests.find(
+    (request) => request.memberId === focusMemberId && shift.memberRequestIds.includes(request.id),
+  );
 }
 
 function hasActiveDateInShift(save: GameSave, shiftNumber: number): boolean {
@@ -1006,6 +1043,14 @@ export function requireDateSession(save: GameSave, dateSessionId: string): DateS
   return session;
 }
 
+export function findMemberRequestById(requestId: string | undefined) {
+  if (requestId === undefined) {
+    return undefined;
+  }
+
+  return memberRequests.find((request) => request.id === requestId);
+}
+
 function startingDateHealth(pairState: PairState): number {
   return clampScore(
     Math.round((pairState.stats.relationshipHealth + pairState.stats.stability) / 2),
@@ -1014,10 +1059,6 @@ function startingDateHealth(pairState: PairState): number {
 
 function isOrdinaryHuman(member: Member): boolean {
   return member.tags.includes("ordinary_human");
-}
-
-function createMoodBaseline(): Map<string, number> {
-  return new Map(starterMembers.map((member) => [member.id, member.state.mood]));
 }
 
 function takeWrapped<TValue>(values: TValue[], startIndex: number, count: number): TValue[] {
@@ -1035,8 +1076,4 @@ function takeWrapped<TValue>(values: TValue[], startIndex: number, count: number
 
     return value;
   });
-}
-
-function clampDelta(value: number): number {
-  return Math.min(100, Math.max(-100, value));
 }

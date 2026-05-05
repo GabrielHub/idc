@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const gideonGlass: Member = {
   id: "gideon-glass",
   name: "Gideon Glass",
+  firstName: "Gideon",
   origin: "Room 414, the Hotel Palatine",
   species: "Ghost",
   dimension: "Prime adjacent afterlife annex",
@@ -10,15 +11,9 @@ export const gideonGlass: Member = {
   bio: "Gideon haunts Room 414 of the Hotel Palatine and uses Cupid because the lobby piano keeps pairing him with guests who are already checking out.",
   datingProfile:
     "I am dead. I am not asking for sympathy. I am asking if you might remember my name afterward. I can offer piano music after midnight, the air in Room 414, and a robe that passes through chairs.",
-  traits: ["gentle", "formal", "melancholy", "dry"],
   relationshipNeeds: [
     "Someone who treats his history with care",
     "A date with enough structure that he does not drift into apologies",
-  ],
-  redFlags: [
-    "forgets names",
-    "treats being haunted as tourism",
-    "asks how he died before the second course",
   ],
   preferences: [
     "old hotels",
@@ -31,7 +26,13 @@ export const gideonGlass: Member = {
     "He worries that being remembered is too much to ask from a first date.",
     "He has been quietly practicing one piano piece for sixty three years and does not know what to do with it.",
   ],
-  tags: ["non_human", "ghost", "memory_sensitive"],
+  tags: [
+    "non_human",
+    "memory_sensitive",
+    "grief_sensitive",
+    "sincerity_seeking",
+    "needs_clear_plan",
+  ],
   voice: {
     register: "formal tender",
     patternsUsed: ["poetic_literary", "deadpan_one_liner", "self_deprecating_confession"],

@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const mrWhiskers: Member = {
   id: "mr-whiskers",
   name: "Mr. Whiskers",
+  firstName: "Whiskers",
   origin: "Greenwich, apparently",
   species: "Talking cat",
   dimension: "Prime adjacent",
@@ -10,15 +11,9 @@ export const mrWhiskers: Member = {
   bio: "Mr. Whiskers is between executive roles. He will not address the obvious question. The Cupid intake form has a species field; Mr. Whiskers wrote consultant.",
   datingProfile:
     "Greenwich based. Spiritually. I am between roles. I take meetings on Thursdays. Dinner is possible if the chair situation is civilized and the music is at a respectful volume.",
-  traits: ["precise", "irritated", "status conscious", "private"],
   relationshipNeeds: [
     "Someone who respects his career without making jokes about it",
     "A date with clear seating, civilized lighting, and no surprise touching",
-  ],
-  redFlags: [
-    "uses a cute voice within the first three messages",
-    "asks whether he wants milk",
-    "attempts to pet him under any pretense",
   ],
   preferences: ["business lunches", "punctuality", "well run calendars", "valet parking"],
   dealbreakers: ["baby talk", "laser pointers", "unstructured mingling", "string"],
@@ -26,7 +21,13 @@ export const mrWhiskers: Member = {
     "He misses his old assistant Linda and has not admitted this to anyone.",
     "He cannot read his own contracts but has a system for nodding at the right moments.",
   ],
-  tags: ["non_human", "career", "status_sensitive"],
+  tags: [
+    "non_human",
+    "status_sensitive",
+    "career_focused",
+    "privacy_sensitive",
+    "needs_clear_plan",
+  ],
   voice: {
     register: "business irritated",
     patternsUsed: ["negotiation_sales_pitch", "deadpan_one_liner", "rambling_spiral"],

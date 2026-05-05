@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const meridianVale: Member = {
   id: "meridian-vale",
   name: "Meridian Vale",
+  firstName: "Meridian",
   origin: "Classified",
   species: "Human",
   dimension: "Federal continuity branch",
@@ -10,15 +11,9 @@ export const meridianVale: Member = {
   bio: "Meridian Vale protects heads of state, redacts most of her own profile, and refers to her own heart as the package. Cupid has agreed not to ask which administration.",
   datingProfile:
     "Cleared for companionship, coffee, and one film with no explosions. I cannot discuss my schedule, my employer, or why I keep clocking the exits. I will say. I am taller than I appear in photos. By a margin of ██.",
-  traits: ["clipped", "loyal", "hypervigilant", "embarrassed"],
   relationshipNeeds: [
     "Someone who respects privacy without turning it into a puzzle",
     "A setting with exits, lighting, and no surprise witnesses",
-  ],
-  redFlags: [
-    "asks for classified stories",
-    "mistakes silence for mystery",
-    "stands behind her without warning",
   ],
   preferences: ["direct questions", "early arrivals", "calm restaurants", "tables with sightlines"],
   dealbreakers: ["ambushes", "public emotional debriefs", "follow up questions about ██"],
@@ -26,7 +21,7 @@ export const meridianVale: Member = {
     "She has built her whole life around guarding others and is ashamed of wanting to be chosen.",
     "She was almost engaged once. The file is sealed. She still has the receipt.",
   ],
-  tags: ["ordinary_human", "career_guarded", "privacy_sensitive"],
+  tags: ["ordinary_human", "privacy_sensitive", "career_focused", "needs_clear_plan", "avoidant"],
   voice: {
     register: "clipped professional",
     patternsUsed: [

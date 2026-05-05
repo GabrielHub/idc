@@ -10,13 +10,21 @@ export const starterCompanyGoals: CompanyGoal[] = [
     tags: ["shift", "throughput"],
   },
   {
-    id: "goal-ordinary-nonhuman-match",
-    title: "Match one ordinary human with one obviously non-human member",
-    description:
-      "Cross-reality rapport remains a quarterly priority for reasons Legal has summarized.",
-    metric: "ordinaryNonHumanDates",
+    id: "goal-one-good-date",
+    title: "File 1 good date outcome",
+    description: "Cupid would like one report that does not use the phrase containment bucket.",
+    metric: "positiveOutcomeDates",
     target: 1,
-    tags: ["matching", "cross_reality"],
+    tags: ["outcome", "shift"],
+  },
+  {
+    id: "goal-two-happier-members",
+    title: "Make 2 members happier",
+    description:
+      "Member Mood is not technically payroll. Payroll has asked us to stop saying that.",
+    metric: "improvedMembers",
+    target: 2,
+    tags: ["mood", "shift"],
   },
   {
     id: "goal-prevent-early-end",

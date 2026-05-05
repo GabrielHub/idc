@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const jennaPike: Member = {
   id: "jenna-pike",
   name: "Jenna Pike",
+  firstName: "Jenna",
   origin: "East Rainfield, Ohio",
   species: "Human",
   dimension: "Prime adjacent",
@@ -10,16 +11,10 @@ export const jennaPike: Member = {
   bio: "Jenna closes weeknights at a chain Italian restaurant in East Rainfield. She believes Cupid is a normal dating app with strange branding choices and is mostly correct about the app part.",
   datingProfile:
     "just got off a double, my feet are filing a complaint. looking for someone kind, local, and able to pick a restaurant without making it a seminar. bonus points if you drive. i drive a 2007 Civic that smells like vanilla and breadsticks.",
-  traits: ["warm", "tired", "practical", "surprisingly brave"],
   relationshipNeeds: [
     "A date that feels normal by human standards",
     "Someone who asks about her day and listens to the answer",
     "A pickup spot that is not a portal, an altar, or a pier at 4 a.m.",
-  ],
-  redFlags: [
-    "treats service workers like furniture",
-    "uses prophecy before appetizers",
-    "orders water and means it",
   ],
   preferences: ["normal schedules", "clear plans", "dogs in profile photos", "cars with insurance"],
   dealbreakers: [
@@ -31,7 +26,13 @@ export const jennaPike: Member = {
     "She suspects Cupid is genuinely strange but figures the whole internet is now.",
     "She has a private list of restaurants she will not eat at because they remind her of work.",
   ],
-  tags: ["ordinary_human", "service_industry", "normal_date_request"],
+  tags: [
+    "ordinary_human",
+    "prophecy_averse",
+    "needs_low_pressure",
+    "needs_clear_plan",
+    "sincerity_seeking",
+  ],
   voice: {
     register: "warm tired",
     patternsUsed: ["mundane_domesticity", "self_deprecating_confession", "stream_of_consciousness"],

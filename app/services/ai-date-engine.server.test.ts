@@ -10,12 +10,15 @@ import {
 } from "./ai-date-engine.server";
 import { startDateSession } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 describe("local AI date engine orchestration", () => {
   it("runs character, judge, summarizer, embedding, and deterministic memory retrieval", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-engine-test");
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
     const pairId = makePairId("jenna-pike", "vhool");
     save = {
       ...save,
@@ -44,6 +47,7 @@ describe("local AI date engine orchestration", () => {
       ],
     };
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -143,7 +147,9 @@ describe("local AI date engine orchestration", () => {
 
   it("blocks the date update when required local AI callbacks fail", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-block-test");
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
     save = {
       ...save,
       config: {
@@ -152,6 +158,7 @@ describe("local AI date engine orchestration", () => {
       },
     };
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -201,8 +208,11 @@ describe("local AI date engine orchestration", () => {
 
   it("streams performer deltas before committing the validated exchange", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-stream-test");
-    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",

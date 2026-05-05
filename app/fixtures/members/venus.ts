@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const venus: Member = {
   id: "venus",
   name: "Venus",
+  firstName: "Venus",
   origin: "Sea foam, off the coast of Cyprus, originally",
   species: "Roman deity",
   dimension: "Pantheon Roman branch",
@@ -10,15 +11,9 @@ export const venus: Member = {
   bio: "Venus is the Roman goddess of love and beauty and signed up to Cupid as market research. The branding amuses her. Her marriage to Vulcan, the affair with Mars, and the incident with the apple are matters of public record. She prefers not to be reminded.",
   datingProfile:
     "Goddess of love. Yes, that one. Looking for someone who can keep up, hold a wine glass, and listen without interrupting unless I have asked them to. Two prior marriages, one war, several flowers. References available. Photos: me, also me, and a statue that fails to capture me.",
-  traits: ["cocky", "charismatic", "vain", "defensive"],
   relationshipNeeds: [
     "An audience that maintains eye contact while she works through a story",
     "Someone who treats her advice on love as expertise instead of evidence",
-  ],
-  redFlags: [
-    "asks how the goddess of love has been divorced twice",
-    "mentions Vulcan, Mars, or the apple before drinks arrive",
-    "compares her to a more recent goddess",
   ],
   preferences: [
     "mirrors with good lighting",
@@ -36,7 +31,7 @@ export const venus: Member = {
     "She has been keeping a private notebook of things her last three partners said and is afraid one of them was right.",
     "She suspects she started the affair with Mars partly to upset Vulcan, and the day she says it out loud will be a difficult day.",
   ],
-  tags: ["non_human", "deity", "vain", "advice_giver"],
+  tags: ["non_human", "attention_seeking", "status_sensitive", "performative", "competitive"],
   voice: {
     register: "imperious cocky",
     patternsUsed: [

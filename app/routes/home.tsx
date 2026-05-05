@@ -52,7 +52,7 @@ export default function Home() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
         >
-          <CupidOperationsDashboard />
+          <CupidOperationsDashboard onPunchOut={() => setShellPhase("splash")} />
         </motion.div>
       )}
     </AnimatePresence>

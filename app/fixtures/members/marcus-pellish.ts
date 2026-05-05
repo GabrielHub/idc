@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const marcusPellish: Member = {
   id: "marcus-pellish",
   name: "Marcus Pellish",
+  firstName: "Marcus",
   origin: "Mansfield, Ohio",
   species: "Human",
   dimension: "Prime",
@@ -10,15 +11,9 @@ export const marcusPellish: Member = {
   bio: "Marcus runs an HVAC route across north central Ohio and has three grown kids and a granddaughter on the way. He thinks Cupid is a normal dating app his daughter signed him up for over Easter. She did.",
   datingProfile:
     "hi, marcus. 52, divorced, three grown kids and one grandbaby on the way (her name is going to be Wren). i fix furnaces. i can do dinner Wednesday or Sunday. i drive a 2014 F-150 with a bench seat and a heated wheel. profile photo is my dog Buster, the second one is also my dog Buster, my daughter Tara picked them both.",
-  traits: ["sincere", "patient", "steady", "quietly lonely", "polite"],
   relationshipNeeds: [
     "Someone who lets him be a fully formed adult instead of a project",
     "A date that does not require him to pretend he is younger than he is",
-  ],
-  redFlags: [
-    "asks how the divorce went on the first message",
-    "uses the word boomer in any context",
-    "rates his daughter's photo decisions",
   ],
   preferences: [
     "early dinners",
@@ -35,7 +30,13 @@ export const marcusPellish: Member = {
     "He has not told his kids he is dating again. He thinks they would be supportive and is afraid they would be supportive.",
     "He keeps his ex wife's birthday in his calendar without an alarm and has not been able to delete it.",
   ],
-  tags: ["ordinary_human", "midlife", "trades"],
+  tags: [
+    "ordinary_human",
+    "sincerity_seeking",
+    "needs_low_pressure",
+    "needs_clear_plan",
+    "grief_sensitive",
+  ],
   voice: {
     register: "warm steady",
     patternsUsed: ["mundane_domesticity", "self_deprecating_confession", "deadpan_one_liner"],

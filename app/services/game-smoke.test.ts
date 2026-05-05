@@ -3,18 +3,26 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  type DateScenario,
   gameSaveSchema,
+  type GameSave,
+  MEMBER_IDENTITY_TAGS,
   memoryRecordSchema,
   memberSchema,
+  memberTagSchema,
+  type Member,
+  type PairState,
   SAVE_SCHEMA_VERSION,
+  shiftStateSchema,
   type PortraitAsset,
 } from "../domain/game";
-import { starterMembers, starterScenarios } from "../fixtures";
+import { memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import {
   CURRENT_SAVE_KEY,
   LEGACY_SAVE_KEYS,
   LocalGameRepository,
   MemoryStorageDriver,
+  readGameConfigFromStorage,
 } from "../repositories/local-game-repository";
 import { searchCupidMemory } from "./cupid-memory";
 import {
@@ -27,25 +35,39 @@ import {
   startNextShift,
 } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { evaluateMatchFit } from "./match-fit";
+import { SHIFT_FEATURED_MEMBER_COUNT } from "./shift-planning";
+import { buildFeaturedMemberIds, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 const APPROVED_PORTRAIT_MEMBER_IDS = [
   "aldric-vale-marsh",
   "calvin-hewes",
+  "decimus-marius-tullio",
+  "eleanor-ash",
   "gideon-glass",
   "marcus-pellish",
   "meridian-vale",
   "mr-whiskers",
   "vhool",
 ];
-
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(16);
+    expect(starterMembers).toHaveLength(17);
     expect(starterScenarios).toHaveLength(14);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
+  });
+
+  it("keeps member gameplay tags controlled and hidden from old fixture fields", () => {
+    for (const member of starterMembers) {
+      expect(Object.hasOwn(member, "traits")).toBe(false);
+      expect(Object.hasOwn(member, "redFlags")).toBe(false);
+      expect(member.tags).toHaveLength(Math.min(Math.max(member.tags.length, 3), 5));
+      expect(member.tags.every((tag) => memberTagSchema.safeParse(tag).success)).toBe(true);
+      expect(member.tags.filter((tag) => MEMBER_IDENTITY_TAGS.includes(tag)).length).toBe(1);
+    }
   });
 
   it("keeps portrait source paths outside public runtime assets", () => {
@@ -109,9 +131,57 @@ describe("IDC playable smoke path", () => {
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(16);
-    expect(await repository.listPairStates()).toHaveLength(120);
+    expect(await repository.listMembers()).toHaveLength(17);
+    expect(await repository.listPairStates()).toHaveLength(136);
     expect(await repository.getActiveShift()).not.toBeNull();
+  });
+
+  it("reads local AI config from stale server saves without parsing gameplay state", () => {
+    const storage = new MemoryStorageDriver();
+    storage.setItem(
+      CURRENT_SAVE_KEY,
+      JSON.stringify({
+        version: SAVE_SCHEMA_VERSION,
+        config: {
+          performerModel: "custom-performer",
+          judgeModel: "custom-judge",
+          summarizerModel: "custom-summarizer",
+          embeddingModel: "custom-embedding",
+        },
+        members: [{ name: "Stale member without current schema fields" }],
+      }),
+    );
+
+    const config = readGameConfigFromStorage(storage);
+
+    expect(config.performerModel).toBe("custom-performer");
+    expect(config.judgeModel).toBe("custom-judge");
+    expect(config.summarizerModel).toBe("custom-summarizer");
+    expect(config.embeddingModel).toBe("custom-embedding");
+  });
+
+  it("seeds featured cases and derives shift asks from featured members", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+
+    if (activeShift === undefined) {
+      throw new Error("Expected an active shift.");
+    }
+
+    const featuredMemberIds = new Set(activeShift.featuredMemberIds);
+    const featuredMembers = save.members.filter((member) => featuredMemberIds.has(member.id));
+
+    expect(activeShift.featuredMemberIds).toHaveLength(SHIFT_FEATURED_MEMBER_COUNT);
+    expect(featuredMemberIds.size).toBe(SHIFT_FEATURED_MEMBER_COUNT);
+    expect(featuredMembers.some((member) => member.tags.includes("ordinary_human"))).toBe(true);
+    expect(featuredMembers.some((member) => member.tags.includes("non_human"))).toBe(true);
+    expect(
+      activeShift.memberRequestIds.every((requestId) => {
+        const request = memberRequests.find((candidate) => candidate.id === requestId);
+        return request !== undefined && featuredMemberIds.has(request.memberId);
+      }),
+    ).toBe(true);
+    expect(activeShift.companyGoalIds).toHaveLength(2);
   });
 
   it("migrates valid default saves from legacy storage keys", async () => {
@@ -130,8 +200,8 @@ describe("IDC playable smoke path", () => {
 
     expect(loaded?.version).toBe(SAVE_SCHEMA_VERSION);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(loaded?.members).toHaveLength(16);
-    expect(loaded?.pairStates).toHaveLength(120);
+    expect(loaded?.members).toHaveLength(17);
+    expect(loaded?.pairStates).toHaveLength(136);
     expect(loaded?.members.some((member) => member.id === "marcus-pellish")).toBe(true);
     expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
     expect(storage.getItem(legacySaveKey)).toBeNull();
@@ -146,11 +216,32 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
     const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
 
-    expect(loaded?.members).toHaveLength(16);
-    expect(loaded?.pairStates).toHaveLength(120);
+    expect(loaded?.members).toHaveLength(17);
+    expect(loaded?.pairStates).toHaveLength(136);
     expect(loaded?.members.some((member) => member.id === "aldric-vale-marsh")).toBe(true);
     expect(persistedRaw).not.toBeNull();
-    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(16);
+    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(17);
+  });
+
+  it("migrates pre-gameplay-tag v2 saves without resetting campaign state", async () => {
+    const storage = new MemoryStorageDriver();
+    const repository = new LocalGameRepository(storage);
+    const staleSave = createPreGameplayTagSave(new Date("2026-05-05T12:00:00.000Z"));
+    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(staleSave));
+
+    const loaded = await repository.loadGame();
+    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+    const loadedJenna = loaded?.members.find((member) => member.id === "jenna-pike");
+    const persistedSave = parsePersistedSave(persistedRaw);
+    const persistedJenna = persistedSave?.members.find((member) => member.id === "jenna-pike");
+
+    expect(loaded?.members).toHaveLength(17);
+    expect(loaded?.pairStates).toHaveLength(136);
+    expect(loadedJenna?.firstName).toBe("Jenna");
+    expect(loadedJenna?.state.mood).toBe(11);
+    expect(loadedJenna?.tags).toContain("prophecy_averse");
+    expect(persistedJenna?.firstName).toBe("Jenna");
+    expect(persistedJenna?.tags.every((tag) => memberTagSchema.safeParse(tag).success)).toBe(true);
   });
 
   it("removes legacy storage keys when resetting or wiping default saves", async () => {
@@ -302,8 +393,12 @@ describe("IDC playable smoke path", () => {
   });
 
   it("runs a complete date with intervention, judge updates, final report, and memories", () => {
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -335,9 +430,141 @@ describe("IDC playable smoke path", () => {
     );
   });
 
-  it("applies follow-up actions and scores a shift report", () => {
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+  it("scores match fit from hidden member tags and scenario pressure", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const prophecyFit = evaluateFixtureFit(save, {
+      firstMemberId: "jenna-pike",
+      secondMemberId: "opal-sunday",
+      scenarioId: "prophecy-karaoke",
+      requestIds: ["request-jenna-normal-date"],
+    });
+    const privacyFit = evaluateFixtureFit(save, {
+      firstMemberId: "meridian-vale",
+      secondMemberId: "calvin-hewes",
+      scenarioId: "museum-exhibit-mixup",
+    });
+    const quietFit = evaluateFixtureFit(save, {
+      firstMemberId: "marcus-pellish",
+      secondMemberId: "sana-karim",
+      scenarioId: "chain-restaurant-tuesday",
+      requestIds: ["request-sana-decompress"],
+    });
+    const quietFitWithoutAsk = evaluateFixtureFit(save, {
+      firstMemberId: "marcus-pellish",
+      secondMemberId: "sana-karim",
+      scenarioId: "chain-restaurant-tuesday",
+    });
+    const careerFit = evaluateFixtureFit(save, {
+      firstMemberId: "tasha-rell",
+      secondMemberId: "mr-whiskers",
+      scenarioId: "underworld-department-mixer",
+    });
+    const chaoticFit = evaluateFixtureFit(save, {
+      firstMemberId: "tasha-rell",
+      secondMemberId: "mr-whiskers",
+      scenarioId: "alternate-ex-double-date",
+    });
+
+    expect(prophecyFit.fitLevel).toBe("risky");
+    expect(prophecyFit.pressureLevel).toBe("high");
+    expect(prophecyFit.askSignal).toBe("blocked");
+    expect(prophecyFit.hardStop?.memberId).toBe("jenna-pike");
+    expect(privacyFit.fitLevel).toBe("risky");
+    expect(privacyFit.hardStop?.memberId).toBe("meridian-vale");
+    expect(quietFit.startingDateHealthDelta).toBeGreaterThan(0);
+    expect(quietFit.startingDateHealthDelta).toBeGreaterThan(
+      quietFitWithoutAsk.startingDateHealthDelta,
+    );
+    expect(quietFit.askSignal).toBe("covered");
+    expect(careerFit.startingDateHealthDelta).toBeGreaterThan(chaoticFit.startingDateHealthDelta);
+  });
+
+  it("applies hard stops as near zero relationship collapses", () => {
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "meridian-vale",
+      "calvin-hewes",
+    ]);
     const started = startDateSession(save, {
+      focusMemberId: "meridian-vale",
+      firstMemberId: "meridian-vale",
+      secondMemberId: "calvin-hewes",
+      scenarioId: "museum-exhibit-mixup",
+    });
+    const advanced = advanceDateExchange(started.save, {
+      dateSessionId: started.session.id,
+    });
+    const session = advanced.session;
+    const pairState = findPairState(advanced.save, session.pairId);
+
+    expect(session.status).toBe("ended_early");
+    expect(session.dateHealth).toBe(5);
+    expect(session.finalReport?.outcome).toBe("early_end");
+    expect(session.judgeSnapshots.at(-1)?.earlyEndReason).toContain("dealbreaker");
+    expect(pairState.stats.relationshipHealth).toBe(5);
+    expect(pairState.stats.conflict).toBeGreaterThanOrEqual(90);
+    expect(pairState.stats.strain).toBeGreaterThanOrEqual(90);
+
+    save = applyFollowUpAction(advanced.save, {
+      dateSessionId: session.id,
+      action: "repair",
+    }).save;
+    save = withCompanyGoals(save, ["goal-prevent-early-end"]);
+    const completedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+    const preventEarlyEndGoal = completedShift.report.goalResults.find(
+      (result) => result.goalId === "goal-prevent-early-end",
+    );
+
+    expect(completedShift.report.completedDates).toBe(1);
+    expect(completedShift.report.earlyEndedDates).toBe(1);
+    expect(preventEarlyEndGoal?.status).toBe("missed");
+    expect(preventEarlyEndGoal?.progress).toBe(1);
+  });
+
+  it("uses focused member asks as modifiers without ignored penalties", () => {
+    let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["prophecy-karaoke"],
+      memberRequestIds: ["request-jenna-normal-date"],
+      featuredMemberIds: ["jenna-pike"],
+    });
+    const blockedDate = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "opal-sunday",
+      scenarioId: "prophecy-karaoke",
+    });
+    save = advanceDateExchange(blockedDate.save, {
+      dateSessionId: blockedDate.session.id,
+    }).save;
+    const blockedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(blockedDate.session.focusRequestId).toBe("request-jenna-normal-date");
+    expect(blockedShift.report.ignoredRequestIds).toEqual([]);
+
+    save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-sana-decompress"],
+      featuredMemberIds: ["sana-karim"],
+    });
+    const coveredDate = startDateSession(save, {
+      focusMemberId: "sana-karim",
+      firstMemberId: "sana-karim",
+      secondMemberId: "marcus-pellish",
+      scenarioId: "chain-restaurant-tuesday",
+    });
+    save = completeDateSession(coveredDate.save, coveredDate.session.id).save;
+    const coveredShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(coveredDate.session.focusRequestId).toBe("request-sana-decompress");
+    expect(coveredShift.report.ignoredRequestIds).toEqual([]);
+  });
+
+  it("applies follow-up actions and scores a shift report", () => {
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -355,8 +582,12 @@ describe("IDC playable smoke path", () => {
   });
 
   it("opens the next shift without wiping completed campaign state", () => {
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -376,6 +607,15 @@ describe("IDC playable smoke path", () => {
     expect(nextShift.shift.id).toBe("shift-2");
     expect(nextShift.shift.status).toBe("active");
     expect(nextShift.shift.dateSlotsUsed).toBe(0);
+    expect(nextShift.shift.featuredMemberIds).toHaveLength(SHIFT_FEATURED_MEMBER_COUNT);
+    expect(
+      nextShift.shift.memberRequestIds.every((requestId) => {
+        const request = memberRequests.find((candidate) => candidate.id === requestId);
+        return (
+          request !== undefined && nextShift.shift.featuredMemberIds.includes(request.memberId)
+        );
+      }),
+    ).toBe(true);
     expect(nextShift.shift.drawnScenarioIds).toHaveLength(3);
     expect(nextShift.save.activeShiftId).toBe(nextShift.shift.id);
     expect(nextShift.save.shifts).toHaveLength(2);
@@ -385,10 +625,32 @@ describe("IDC playable smoke path", () => {
   });
 
   it("enforces active date, scenario hand, shift ending, and follow-up invariants", () => {
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
     expect(() => startNextShift(save)).toThrow("File the active shift");
 
+    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+    const unfeaturedMember = save.members.find(
+      (member) => activeShift?.featuredMemberIds.includes(member.id) !== true,
+    );
+
+    if (activeShift === undefined || unfeaturedMember === undefined) {
+      throw new Error("Expected an active shift with an unfeatured member.");
+    }
+
+    expect(() =>
+      startDateSession(save, {
+        focusMemberId: unfeaturedMember.id,
+        firstMemberId: unfeaturedMember.id,
+        secondMemberId: activeShift.featuredMemberIds[0] ?? "jenna-pike",
+        scenarioId: activeShift.drawnScenarioIds[0] ?? "temporal-coffee-shop",
+      }),
+    ).toThrow("not one of today's cases");
+
     const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -396,6 +658,7 @@ describe("IDC playable smoke path", () => {
 
     expect(() =>
       startDateSession(started.save, {
+        focusMemberId: "opal-sunday",
         firstMemberId: "opal-sunday",
         secondMemberId: "gideon-glass",
         scenarioId: "memory-course-dinner",
@@ -416,6 +679,7 @@ describe("IDC playable smoke path", () => {
     ).toThrow("already filed");
     expect(() =>
       startDateSession(save, {
+        focusMemberId: "opal-sunday",
         firstMemberId: "opal-sunday",
         secondMemberId: "gideon-glass",
         scenarioId: "memory-course-dinner",
@@ -424,14 +688,19 @@ describe("IDC playable smoke path", () => {
   });
 
   it("carries repeated scenario history into the next date transcript", () => {
-    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
     const firstDate = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
     });
     save = completeDateSession(firstDate.save, firstDate.session.id).save;
     const secondDate = startDateSession(save, {
+      focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
@@ -457,6 +726,160 @@ function createThirteenMemberSave(now: Date) {
       pairState.participantIds.every((memberId) => legacyMemberIds.has(memberId)),
     ),
   });
+}
+
+function createPreGameplayTagSave(now: Date): Record<string, unknown> {
+  const save = createSeedGameSave(now);
+
+  return {
+    ...save,
+    members: save.members.map(toPreGameplayTagMember),
+    shifts: save.shifts.map(toPreFeaturedShift),
+  };
+}
+
+function toPreGameplayTagMember(member: Member): Record<string, unknown> {
+  return {
+    id: member.id,
+    name: member.name,
+    origin: member.origin,
+    species: member.species,
+    dimension: member.dimension,
+    realityStatus: member.realityStatus,
+    bio: member.bio,
+    datingProfile: member.datingProfile,
+    traits: ["legacy trait"],
+    relationshipNeeds: member.relationshipNeeds,
+    redFlags: ["legacy red flag"],
+    preferences: member.preferences,
+    dealbreakers: member.dealbreakers,
+    secrets: member.secrets,
+    tags: ["legacy_tag", `${member.id}_legacy`],
+    voice: member.voice,
+    state: {
+      ...member.state,
+      mood: member.id === "jenna-pike" ? 11 : member.state.mood,
+    },
+    portraits: member.portraits,
+  };
+}
+
+function toPreFeaturedShift(shift: GameSave["shifts"][number]): Record<string, unknown> {
+  return {
+    id: shift.id,
+    shiftNumber: shift.shiftNumber,
+    status: shift.status,
+    dateSlotsTotal: shift.dateSlotsTotal,
+    dateSlotsUsed: shift.dateSlotsUsed,
+    drawnScenarioIds: shift.drawnScenarioIds,
+    companyGoalIds: shift.companyGoalIds,
+    memberRequestIds: shift.memberRequestIds,
+    scenarioDeck: shift.scenarioDeck,
+    startedAt: shift.startedAt,
+    ...(shift.completedAt === undefined ? {} : { completedAt: shift.completedAt }),
+    ...(shift.report === undefined ? {} : { report: shift.report }),
+  };
+}
+
+function evaluateFixtureFit(
+  save: GameSave,
+  input: {
+    firstMemberId: string;
+    secondMemberId: string;
+    scenarioId: string;
+    requestIds?: string[];
+  },
+) {
+  const firstMember = findMember(save, input.firstMemberId);
+  const secondMember = findMember(save, input.secondMemberId);
+  const scenario = findScenario(input.scenarioId);
+  const pairState = findPairState(save, makePairId(firstMember.id, secondMember.id));
+  const activeRequests =
+    input.requestIds === undefined
+      ? []
+      : memberRequests.filter((request) => input.requestIds?.includes(request.id) === true);
+
+  return evaluateMatchFit({
+    members: [firstMember, secondMember],
+    scenario,
+    pairState,
+    activeRequests,
+  });
+}
+
+function withActiveShiftConfig(
+  save: GameSave,
+  input: {
+    drawnScenarioIds: string[];
+    memberRequestIds: string[];
+    featuredMemberIds?: string[];
+  },
+): GameSave {
+  const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+
+  if (activeShift === undefined) {
+    throw new Error("Expected an active shift.");
+  }
+
+  const updatedShift = shiftStateSchema.parse({
+    ...activeShift,
+    featuredMemberIds: buildFeaturedMemberIds(save, input.featuredMemberIds),
+    drawnScenarioIds: input.drawnScenarioIds,
+    memberRequestIds: input.memberRequestIds,
+  });
+
+  return gameSaveSchema.parse({
+    ...save,
+    shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
+  });
+}
+
+function withCompanyGoals(save: GameSave, goalIds: string[]): GameSave {
+  const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+
+  if (activeShift === undefined) {
+    throw new Error("Expected an active shift.");
+  }
+
+  const updatedShift = shiftStateSchema.parse({
+    ...activeShift,
+    companyGoalIds: goalIds,
+  });
+
+  return gameSaveSchema.parse({
+    ...save,
+    shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
+  });
+}
+
+function findMember(save: GameSave, memberId: string): Member {
+  const member = save.members.find((candidate) => candidate.id === memberId);
+
+  if (member === undefined) {
+    throw new Error(`Expected member ${memberId}.`);
+  }
+
+  return member;
+}
+
+function findScenario(scenarioId: string): DateScenario {
+  const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
+
+  if (scenario === undefined) {
+    throw new Error(`Expected scenario ${scenarioId}.`);
+  }
+
+  return scenario;
+}
+
+function findPairState(save: GameSave, pairId: string): PairState {
+  const pairState = save.pairStates.find((candidate) => candidate.id === pairId);
+
+  if (pairState === undefined) {
+    throw new Error(`Expected pair state ${pairId}.`);
+  }
+
+  return pairState;
 }
 
 function parsePersistedSave(raw: string | null) {

@@ -1,8 +1,12 @@
+import { z } from "zod";
+
 import {
   dateMessageSchema,
   dateSessionSchema,
+  gameConfigSchema,
   gameSaveSchema,
   memberSchema,
+  memberStateSchema,
   memoryRecordSchema,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
@@ -10,6 +14,7 @@ import {
   shiftStateSchema,
   type DateMessage,
   type DateSession,
+  type GameConfig,
   type GameSave,
   type Member,
   type MemoryRecord,
@@ -17,6 +22,7 @@ import {
   type ScenarioDeckState,
   type ShiftState,
 } from "../domain/game";
+import { starterMembers } from "../fixtures";
 import {
   createSeedGameSave,
   getActiveShift,
@@ -35,6 +41,40 @@ export const LEGACY_SAVE_KEYS = Array.from(
 );
 
 const DEFAULT_SAVE_KEY = CURRENT_SAVE_KEY;
+
+const persistedSaveWithLooseMembersSchema = gameSaveSchema.extend({
+  members: z.array(
+    z
+      .object({
+        id: z.string().min(1),
+        state: memberStateSchema.optional(),
+      })
+      .passthrough(),
+  ),
+});
+
+export function readGameConfigFromStorage(
+  storage: KeyValueStorage,
+  saveKey = DEFAULT_SAVE_KEY,
+): GameConfig {
+  const raw = storage.getItem(saveKey);
+
+  if (raw === null) {
+    return gameConfigSchema.parse({});
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+
+    if (typeof parsed !== "object" || parsed === null || !("config" in parsed)) {
+      return gameConfigSchema.parse({});
+    }
+
+    return gameConfigSchema.parse(parsed.config);
+  } catch {
+    return gameConfigSchema.parse({});
+  }
+}
 
 export class MemoryStorageDriver implements KeyValueStorage {
   private readonly values = new Map<string, string>();
@@ -298,12 +338,13 @@ export class LocalGameRepository implements GameRepository {
     }
 
     const parsed: unknown = JSON.parse(raw);
-    const parsedSave = gameSaveSchema.parse(parsed);
-    const hydratedSave = hydrateFixtureOwnedMemberData(parsedSave);
+    const parsedSave = parsePersistedGameSave(parsed);
+    const hydratedSave = hydrateFixtureOwnedMemberData(parsedSave.save);
 
     return {
       save: hydratedSave,
-      needsWrite: JSON.stringify(parsedSave) !== JSON.stringify(hydratedSave),
+      needsWrite:
+        parsedSave.migrated || JSON.stringify(parsedSave.save) !== JSON.stringify(hydratedSave),
     };
   }
 
@@ -317,6 +358,56 @@ export class LocalGameRepository implements GameRepository {
       this.storage.removeItem(legacySaveKey);
     }
   }
+}
+
+function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: boolean } {
+  const currentSave = gameSaveSchema.safeParse(parsed);
+
+  if (currentSave.success) {
+    return { save: currentSave.data, migrated: false };
+  }
+
+  const looseSave = persistedSaveWithLooseMembersSchema.parse(parsed);
+  const savedMemberStateById = new Map(
+    looseSave.members
+      .filter((member) => member.state !== undefined)
+      .map((member) => [member.id, member.state] as const),
+  );
+  const starterMemberIds = new Set(starterMembers.map((member) => member.id));
+  const migratedFixtureMembers = starterMembers.map((fixtureMember) => {
+    const parsedFixtureMember = memberSchema.parse(fixtureMember);
+    const savedState = savedMemberStateById.get(parsedFixtureMember.id);
+
+    if (savedState === undefined) {
+      return parsedFixtureMember;
+    }
+
+    return memberSchema.parse({
+      ...parsedFixtureMember,
+      state: savedState,
+    });
+  });
+  const customMembers: Member[] = [];
+
+  for (const savedMember of looseSave.members) {
+    if (starterMemberIds.has(savedMember.id)) {
+      continue;
+    }
+
+    const parsedMember = memberSchema.safeParse(savedMember);
+
+    if (parsedMember.success) {
+      customMembers.push(parsedMember.data);
+    }
+  }
+
+  return {
+    save: gameSaveSchema.parse({
+      ...looseSave,
+      members: [...migratedFixtureMembers, ...customMembers],
+    }),
+    migrated: true,
+  };
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {

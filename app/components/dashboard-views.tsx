@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   type CompanyGoal,
@@ -14,6 +14,7 @@ import {
   type ShiftReport,
   type ShiftState,
 } from "../domain/game";
+import type { MatchFitPublicSignal } from "../services/match-fit";
 import {
   Eyebrow,
   GhostButton,
@@ -24,6 +25,7 @@ import {
   MutedLabel,
   Portrait,
   PrimaryButton,
+  scoreWidthClass,
 } from "./dashboard-atoms";
 
 const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
@@ -41,71 +43,227 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
 
 export type RosterProps = {
   members: Member[];
-  requests: MemberRequest[];
+  featuredMembers: Member[];
+  featuredRequests: MemberRequest[];
   selectedMemberIds: string[];
   disabled: boolean;
-  onToggleMember: (memberId: string) => void;
+  onSelectFocusMember: (memberId: string) => void;
+  onSelectPartnerMember: (memberId: string) => void;
   onContinue: () => void;
 };
 
+type KindFilter = "all" | "human" | "non_human" | "picked";
+type MoodFilter = "in_a_mood" | "cool_customer" | "open_book" | "guarded";
+type SortMode = "default" | "name" | "mood-desc" | "openness-desc";
+
+const KIND_FILTERS: { id: KindFilter; label: string }[] = [
+  { id: "all", label: "all" },
+  { id: "human", label: "humans" },
+  { id: "non_human", label: "non-humans" },
+  { id: "picked", label: "picked" },
+];
+
+const MOOD_FILTER_DEFS: Record<
+  MoodFilter,
+  { label: string; group: "mood" | "openness"; match: (member: Member) => boolean }
+> = {
+  in_a_mood: { label: "in a mood", group: "mood", match: (m) => m.state.mood < 50 },
+  cool_customer: { label: "cool customer", group: "mood", match: (m) => m.state.mood >= 65 },
+  open_book: { label: "open book", group: "openness", match: (m) => m.state.openness >= 65 },
+  guarded: { label: "guarded", group: "openness", match: (m) => m.state.openness < 50 },
+};
+
+const SORT_MENU: { id: SortMode; label: string }[] = [
+  { id: "default", label: "default" },
+  { id: "name", label: "by name" },
+  { id: "mood-desc", label: "mood, high to low" },
+  { id: "openness-desc", label: "openness, high to low" },
+];
+
+function firstSentenceOf(text: string): string {
+  const match = text.match(/^[^.!?]+[.!?]/);
+  return (match ? match[0] : text).trim();
+}
+
 export function RosterView({
   members,
-  requests,
+  featuredMembers,
+  featuredRequests,
   selectedMemberIds,
   disabled,
-  onToggleMember,
+  onSelectFocusMember,
+  onSelectPartnerMember,
   onContinue,
 }: RosterProps) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
+  const [moodFilters, setMoodFilters] = useState<MoodFilter[]>([]);
+  const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const selectedMembers = selectedMemberIds
     .map((id) => members.find((m) => m.id === id))
     .filter((m): m is Member => Boolean(m));
+  const focusMember = selectedMembers[0];
+  const partnerMember = selectedMembers[1];
+  const partnerMembers = useMemo(
+    () => members.filter((member) => member.id !== focusMember?.id),
+    [members, focusMember?.id],
+  );
 
-  const expandedMember =
-    expandedId === null ? null : (members.find((m) => m.id === expandedId) ?? null);
-  const expandedRequest =
-    expandedMember === null
+  const filteredPartners = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    let pool = partnerMembers.filter((member) => {
+      if (kindFilter === "human" && !member.tags.includes("ordinary_human")) return false;
+      if (kindFilter === "non_human" && !member.tags.includes("non_human")) return false;
+      if (kindFilter === "picked" && member.id !== partnerMember?.id) return false;
+
+      for (const moodFilter of moodFilters) {
+        if (!MOOD_FILTER_DEFS[moodFilter].match(member)) return false;
+      }
+
+      if (query.length > 0) {
+        const haystack = [
+          member.firstName,
+          member.name,
+          member.species,
+          member.origin,
+          member.realityStatus,
+          member.bio,
+          member.datingProfile,
+          ...member.relationshipNeeds,
+          ...member.preferences,
+          ...member.dealbreakers,
+        ]
+          .join(" ")
+          .toLowerCase();
+        if (!haystack.includes(query)) return false;
+      }
+      return true;
+    });
+
+    if (sortMode === "name") {
+      pool = [...pool].sort((a, b) => a.firstName.localeCompare(b.firstName));
+    } else if (sortMode === "mood-desc") {
+      pool = [...pool].sort((a, b) => b.state.mood - a.state.mood);
+    } else if (sortMode === "openness-desc") {
+      pool = [...pool].sort((a, b) => b.state.openness - a.state.openness);
+    }
+
+    return pool;
+  }, [partnerMembers, searchQuery, kindFilter, moodFilters, sortMode, partnerMember?.id]);
+
+  const openMember =
+    openMemberId === null ? null : (members.find((m) => m.id === openMemberId) ?? null);
+  const openMemberRequest =
+    openMember === null
       ? undefined
-      : requests.find((entry) => entry.id === expandedMember.state.currentRequestId);
+      : (featuredRequests.find((entry) => entry.id === openMember.state.currentRequestId) ??
+        featuredRequests.find((entry) => entry.memberId === openMember.id));
+  const openMemberIsFeatured =
+    openMember !== null && featuredMembers.some((featured) => featured.id === openMember.id);
+  const openMemberIsSelected = openMember !== null && selectedMemberIds.includes(openMember.id);
 
-  function handleClose() {
-    setExpandedId(null);
+  function clearFilters() {
+    setSearchQuery("");
+    setKindFilter("all");
+    setMoodFilters([]);
   }
 
-  function handlePick(memberId: string) {
-    onToggleMember(memberId);
-    setExpandedId(null);
+  function handleDossierPick() {
+    if (openMember === null) return;
+    if (openMemberIsFeatured) {
+      onSelectFocusMember(openMember.id);
+    } else {
+      onSelectPartnerMember(openMember.id);
+    }
+    setOpenMemberId(null);
   }
+
+  const hasActiveFilters = searchQuery.length > 0 || kindFilter !== "all" || moodFilters.length > 0;
 
   return (
     <ViewFrame wide>
-      <ViewHeader
-        eyebrow={`// pool.${pad2(members.length)}`}
-        title="Today's pool"
-        accent={`${members.length} on file`}
-        subhead={
-          <>Pick two. Cupid books the table, picks the silverware, and writes the post-mortem.</>
-        }
+      <SectionHeader
+        eyebrow={`// cases.${pad2(featuredMembers.length)}`}
+        title="Today's cases"
+        meta={`${pad2(featuredMembers.length)} featured`}
+        tooltip="One featured member becomes the focus. Their ask guides the match."
       />
 
-      <Hairline className="mt-10" />
-
-      <ul className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 lg:gap-4">
-        {members.map((member, index) => {
-          const isSelected = selectedMemberIds.includes(member.id);
+      <ul className="mt-6 grid gap-4 sm:grid-cols-2">
+        {featuredMembers.map((member, index) => {
+          const request = featuredRequests.find((entry) => entry.memberId === member.id);
           return (
-            <RosterCard
+            <FeaturedCaseCard
               key={member.id}
               member={member}
+              request={request}
               index={index}
-              isSelected={isSelected}
+              isSelected={selectedMemberIds[0] === member.id}
               disabled={disabled}
-              onClick={() => setExpandedId(member.id)}
+              onPick={() => onSelectFocusMember(member.id)}
+              onOpenDossier={() => setOpenMemberId(member.id)}
             />
           );
         })}
       </ul>
+
+      <section className="mt-14">
+        <SectionHeader
+          eyebrow={`// roster.${pad2(members.length)}`}
+          title="Partner roster"
+          meta={`${pad2(partnerMembers.length)} on file`}
+          tooltip={
+            focusMember === undefined
+              ? "Browse the room. Picks need a focus first."
+              : `Pair anyone with ${focusMember.firstName}.`
+          }
+        />
+
+        <DossierFilterRail
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          kindFilter={kindFilter}
+          onKindFilterChange={setKindFilter}
+          moodFilters={moodFilters}
+          onMoodFiltersChange={setMoodFilters}
+          sortMode={sortMode}
+          onSortModeChange={setSortMode}
+          totalCount={partnerMembers.length}
+          shownCount={filteredPartners.length}
+          partnerPicked={partnerMember !== undefined}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+        />
+
+        <RosterSentinel
+          totalCount={partnerMembers.length}
+          shownCount={filteredPartners.length}
+          hasActiveFilters={hasActiveFilters}
+          focusPicked={focusMember !== undefined}
+        />
+
+        {filteredPartners.length === 0 ? (
+          <RosterEmptyTile onClear={clearFilters} />
+        ) : (
+          <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <AnimatePresence initial={false}>
+              {filteredPartners.map((member, index) => (
+                <PartnerTile
+                  key={member.id}
+                  member={member}
+                  index={index}
+                  isSelected={selectedMemberIds[1] === member.id}
+                  disabled={disabled || focusMember === undefined}
+                  onPick={() => onSelectPartnerMember(member.id)}
+                  onOpenDossier={() => setOpenMemberId(member.id)}
+                />
+              ))}
+            </AnimatePresence>
+          </ul>
+        )}
+      </section>
 
       <SelectionBar
         selectedMembers={selectedMembers}
@@ -114,15 +272,15 @@ export function RosterView({
       />
 
       <AnimatePresence>
-        {expandedMember === null ? null : (
+        {openMember === null ? null : (
           <MemberDossier
-            key={`dossier-${expandedMember.id}`}
-            member={expandedMember}
-            request={expandedRequest}
-            isSelected={selectedMemberIds.includes(expandedMember.id)}
-            disabled={disabled}
-            onClose={handleClose}
-            onPick={() => handlePick(expandedMember.id)}
+            key={`roster-dossier-${openMember.id}`}
+            member={openMember}
+            request={openMemberRequest}
+            isSelected={openMemberIsSelected}
+            disabled={disabled || (!openMemberIsFeatured && focusMember === undefined)}
+            onClose={() => setOpenMemberId(null)}
+            onPick={openMemberIsSelected ? undefined : handleDossierPick}
           />
         )}
       </AnimatePresence>
@@ -130,66 +288,700 @@ export function RosterView({
   );
 }
 
-function RosterCard({
+function FeaturedCaseCard({
+  member,
+  request,
+  index,
+  isSelected,
+  disabled,
+  onPick,
+  onOpenDossier,
+}: {
+  member: Member;
+  request: MemberRequest | undefined;
+  index: number;
+  isSelected: boolean;
+  disabled: boolean;
+  onPick: () => void;
+  onOpenDossier: () => void;
+}) {
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: 0.05 * index, ease: EASE_OUT_QUART }}
+      className="list-none"
+    >
+      <article className="group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift">
+        <div
+          aria-hidden
+          className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+            isSelected ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <div className="relative z-10 flex h-full w-full flex-col">
+          <button
+            type="button"
+            onClick={onPick}
+            disabled={disabled}
+            aria-pressed={isSelected}
+            aria-label={`Pick ${member.firstName} as today's focus case`}
+            className="block w-full flex-1 cursor-pointer text-left disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <div className="flex gap-5 p-5 lg:gap-6 lg:p-6">
+              <div className="shrink-0">
+                <Portrait member={member} variant="card" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex h-6 items-center justify-between gap-3">
+                  <span
+                    className={`font-mono text-micro font-semibold uppercase tabular-nums tracking-[0.28em] transition-colors duration-300 ${
+                      isSelected ? "text-white/55" : "text-aura-faint"
+                    }`}
+                  >
+                    {`case.${pad2(index + 1)}`}
+                  </span>
+                  <AnimatePresence>
+                    {isSelected ? (
+                      <motion.span
+                        key="focus-stamp"
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
+                        className="origin-right"
+                      >
+                        <FocusStamp />
+                      </motion.span>
+                    ) : null}
+                  </AnimatePresence>
+                </div>
+                <h3
+                  className={`mt-2 line-clamp-1 font-display text-display-md font-semibold leading-[1.05] tracking-tight transition-colors duration-300 ${
+                    isSelected ? "text-white" : "text-aura-ink"
+                  }`}
+                >
+                  {member.firstName}
+                </h3>
+                {request === undefined ? null : (
+                  <p
+                    className={`mt-3 line-clamp-2 aura-accent text-lead leading-snug transition-colors duration-300 ${
+                      isSelected ? "text-white/85" : "text-aura-ink/80"
+                    }`}
+                  >
+                    &ldquo;{request.text}&rdquo;
+                  </p>
+                )}
+                <CaseStatStrip member={member} inverted={isSelected} />
+              </div>
+            </div>
+          </button>
+
+          <div
+            className={`flex items-center justify-between gap-3 border-t px-5 py-2.5 transition-colors duration-300 lg:px-6 ${
+              isSelected ? "border-white/15 bg-white/5" : "border-aura-hairline bg-white/35"
+            }`}
+          >
+            <span
+              className={`truncate font-mono text-micro uppercase tracking-[0.24em] transition-colors duration-300 ${
+                isSelected ? "text-white/55" : "text-aura-faint"
+              }`}
+            >
+              {isSelected ? "on the desk" : "tap card to focus"}
+            </span>
+            <button
+              type="button"
+              onClick={onOpenDossier}
+              className={`shrink-0 cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
+                isSelected
+                  ? "text-white/85 hover:bg-white/10"
+                  : "text-aura-rose hover:bg-aura-rose/10"
+              }`}
+            >
+              Open file ↗
+            </button>
+          </div>
+        </div>
+      </article>
+    </motion.li>
+  );
+}
+
+function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean }) {
+  return (
+    <div className="mt-5 grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
+      <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
+      <CaseStat label="Openness" value={member.state.openness} inverted={inverted} tone="violet" />
+      <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
+    </div>
+  );
+}
+
+function CaseStat({
+  label,
+  value,
+  inverted,
+  tone,
+}: {
+  label: string;
+  value: number;
+  inverted: boolean;
+  tone: "rose" | "violet" | "amber";
+}) {
+  const fill =
+    tone === "violet"
+      ? "from-aura-violet to-aura-fuchsia"
+      : tone === "amber"
+        ? "from-aura-amber to-aura-rose"
+        : "from-aura-rose to-aura-fuchsia";
+  const widthClass = scoreWidthClass(value);
+  return (
+    <>
+      <span
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
+          inverted ? "text-white/55" : "text-aura-faint"
+        }`}
+      >
+        {label}
+      </span>
+      <span
+        className={`text-right font-mono text-micro font-semibold tabular-nums transition-colors duration-300 ${
+          inverted ? "text-white" : "text-aura-ink"
+        }`}
+      >
+        {value}
+      </span>
+      <span
+        aria-hidden
+        className={`relative block h-1 w-full overflow-hidden rounded-pill transition-colors duration-300 ${
+          inverted ? "bg-white/15" : "bg-aura-hairline"
+        }`}
+      >
+        <span
+          className={`aura-bar-fill block h-full rounded-pill bg-gradient-to-r ${fill} ${widthClass}`}
+        />
+      </span>
+    </>
+  );
+}
+
+function FocusStamp() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-ink shadow-quiet">
+      <span aria-hidden className="size-1.5 rounded-full bg-aura-rose" />
+      focus
+    </span>
+  );
+}
+
+function DossierGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
+      <path
+        d="M6 4H12V10"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function PartnerTile({
   member,
   index,
   isSelected,
   disabled,
-  onClick,
+  onPick,
+  onOpenDossier,
 }: {
   member: Member;
   index: number;
   isSelected: boolean;
   disabled: boolean;
-  onClick: () => void;
+  onPick: () => void;
+  onOpenDossier: () => void;
 }) {
+  const profileTeaser = firstSentenceOf(member.datingProfile);
   return (
     <motion.li
       layout
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: 0.03 * index, ease: EASE_OUT_QUART }}
+      exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}
+      transition={{
+        duration: 0.32,
+        delay: 0.02 * Math.min(index, 14),
+        ease: EASE_OUT_QUART,
+      }}
       className="list-none"
     >
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-pressed={isSelected}
-        className={`group relative flex w-full cursor-pointer flex-col items-center gap-3 rounded-card p-4 text-center transition aura-glass-lift disabled:cursor-not-allowed disabled:opacity-50 lg:p-5 ${
-          isSelected ? "aura-glass-strong ring-1 ring-aura-rose/45" : "aura-glass"
-        }`}
-      >
-        <CardSelectionBadge selected={isSelected} />
-        <Portrait member={member} variant="card" />
-        <h3 className="line-clamp-1 w-full font-display text-lead font-semibold tracking-tight text-aura-ink">
-          {member.name}
-        </h3>
-        <div className="w-full space-y-2 pt-1">
-          <Meter label="Mood" value={member.state.mood} />
-          <Meter label="Openness" value={member.state.openness} tone="violet" />
-        </div>
-      </button>
+      <article className="group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift">
+        <div
+          aria-hidden
+          className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+            isSelected ? "opacity-100" : "opacity-0"
+          }`}
+        />
+        <button
+          type="button"
+          onClick={onPick}
+          disabled={disabled}
+          aria-pressed={isSelected}
+          aria-label={`Pick ${member.firstName} as the partner`}
+          className="relative z-10 flex flex-1 cursor-pointer flex-col gap-3 px-4 py-4 text-left disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <div className="flex items-start gap-3">
+            <Portrait member={member} variant="row" />
+            <div className="min-w-0 flex-1">
+              <h4
+                className={`line-clamp-1 pr-9 font-display text-display-sm font-semibold leading-tight tracking-tight transition-colors duration-300 ${
+                  isSelected ? "text-white" : "text-aura-ink"
+                }`}
+              >
+                {member.firstName}
+              </h4>
+            </div>
+          </div>
+          <p
+            className={`line-clamp-2 aura-accent text-label leading-snug transition-colors duration-300 ${
+              isSelected ? "text-white/80" : "text-aura-ink/75"
+            }`}
+          >
+            &ldquo;{profileTeaser}&rdquo;
+          </p>
+          <div className="mt-auto grid grid-cols-2 gap-3 pt-1">
+            <TileMeter label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
+            <TileMeter
+              label="Openness"
+              value={member.state.openness}
+              inverted={isSelected}
+              tone="violet"
+            />
+          </div>
+        </button>
+
+        <button
+          type="button"
+          onClick={onOpenDossier}
+          aria-label={`Open ${member.firstName} dossier`}
+          title="Open dossier"
+          className={`absolute right-3 top-3 z-20 grid size-7 cursor-pointer place-items-center rounded-full transition-colors duration-300 ${
+            isSelected
+              ? "bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"
+              : "bg-white/55 text-aura-muted hover:bg-white hover:text-aura-rose"
+          }`}
+        >
+          <DossierGlyph />
+        </button>
+      </article>
     </motion.li>
   );
 }
 
-function CardSelectionBadge({ selected }: { selected: boolean }) {
-  if (!selected) {
-    return null;
-  }
+function TileMeter({
+  label,
+  value,
+  inverted,
+  tone,
+}: {
+  label: string;
+  value: number;
+  inverted: boolean;
+  tone: "rose" | "violet";
+}) {
+  const fill =
+    tone === "violet" ? "from-aura-violet to-aura-fuchsia" : "from-aura-rose to-aura-fuchsia";
+  const widthClass = scoreWidthClass(value);
   return (
-    <span className="absolute right-3 top-3 z-10 grid size-6 place-items-center rounded-full bg-aura-ink text-white shadow-quiet">
-      <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
-        <path
-          d="M3 8.4L6.6 12L13 5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between">
+        <span
+          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
+            inverted ? "text-white/55" : "text-aura-faint"
+          }`}
+        >
+          {label}
+        </span>
+        <span
+          className={`font-mono text-micro font-semibold tabular-nums transition-colors duration-300 ${
+            inverted ? "text-white" : "text-aura-ink"
+          }`}
+        >
+          {value}
+        </span>
+      </div>
+      <div
+        className={`h-[3px] overflow-hidden rounded-pill transition-colors duration-300 ${
+          inverted ? "bg-white/15" : "bg-aura-hairline"
+        }`}
+      >
+        <div
+          aria-hidden
+          className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r ${fill} ${widthClass}`}
         />
-      </svg>
-    </span>
+      </div>
+    </div>
+  );
+}
+
+function DossierFilterRail({
+  searchQuery,
+  onSearchChange,
+  kindFilter,
+  onKindFilterChange,
+  moodFilters,
+  onMoodFiltersChange,
+  sortMode,
+  onSortModeChange,
+  totalCount,
+  shownCount,
+  partnerPicked,
+  hasActiveFilters,
+  onClearFilters,
+}: {
+  searchQuery: string;
+  onSearchChange: (value: string) => void;
+  kindFilter: KindFilter;
+  onKindFilterChange: (value: KindFilter) => void;
+  moodFilters: MoodFilter[];
+  onMoodFiltersChange: (value: MoodFilter[]) => void;
+  sortMode: SortMode;
+  onSortModeChange: (value: SortMode) => void;
+  totalCount: number;
+  shownCount: number;
+  partnerPicked: boolean;
+  hasActiveFilters: boolean;
+  onClearFilters: () => void;
+}) {
+  function toggleMood(mood: MoodFilter) {
+    if (moodFilters.includes(mood)) {
+      onMoodFiltersChange(moodFilters.filter((m) => m !== mood));
+      return;
+    }
+    const sameGroup = (Object.keys(MOOD_FILTER_DEFS) as MoodFilter[]).filter(
+      (other) => MOOD_FILTER_DEFS[other].group === MOOD_FILTER_DEFS[mood].group,
+    );
+    onMoodFiltersChange([...moodFilters.filter((existing) => !sameGroup.includes(existing)), mood]);
+  }
+
+  return (
+    <div className="sticky top-24 z-20 mt-8 lg:top-28">
+      <div className="aura-glass-strong rounded-card px-4 py-3.5 lg:px-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+            // room
+          </span>
+          <FilterSearchInput value={searchQuery} onChange={onSearchChange} />
+          <div className="ml-auto flex items-center gap-3">
+            <FilterSortMenu sortMode={sortMode} onSortModeChange={onSortModeChange} />
+            <span className="font-mono text-micro font-semibold uppercase tabular-nums tracking-[0.24em] text-aura-faint">
+              <span className="text-aura-ink">{pad2(shownCount)}</span>
+              <span className="text-aura-faint">{` / ${pad2(totalCount)}`}</span>
+            </span>
+          </div>
+        </div>
+        <div className="mt-3 aura-rule" />
+        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
+          <div role="group" aria-label="Filter by kind" className="flex items-center gap-1">
+            {KIND_FILTERS.map((option) => (
+              <FilterChip
+                key={option.id}
+                active={kindFilter === option.id}
+                onClick={() => onKindFilterChange(option.id)}
+                disabled={option.id === "picked" && !partnerPicked}
+              >
+                {option.label}
+              </FilterChip>
+            ))}
+          </div>
+          <span aria-hidden className="h-4 w-px bg-aura-hairline-strong/40" />
+          <div
+            role="group"
+            aria-label="Filter by mood and openness"
+            className="flex flex-wrap items-center gap-1"
+          >
+            {(Object.keys(MOOD_FILTER_DEFS) as MoodFilter[]).map((id) => (
+              <FilterChip key={id} active={moodFilters.includes(id)} onClick={() => toggleMood(id)}>
+                {MOOD_FILTER_DEFS[id].label}
+              </FilterChip>
+            ))}
+          </div>
+          {hasActiveFilters ? (
+            <button
+              type="button"
+              onClick={onClearFilters}
+              className="ml-auto cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose"
+            >
+              clear ✕
+            </button>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilterChip({
+  active,
+  disabled,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={active}
+      className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] transition disabled:cursor-not-allowed disabled:opacity-40 ${
+        active
+          ? "bg-aura-ink text-white shadow-quiet"
+          : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+function FilterSearchInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleShortcut(event: KeyboardEvent) {
+      const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
+      if (!isShortcut) return;
+      event.preventDefault();
+      inputRef.current?.focus();
+    }
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
+  return (
+    <label className="flex min-w-[14rem] flex-1 max-w-md items-center gap-2 rounded-pill border border-aura-hairline bg-white/65 px-3.5 py-1.5 transition focus-within:border-aura-rose/40 focus-within:bg-white/85">
+      <SearchGlyph />
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="search file room"
+        className="w-full border-0 bg-transparent font-mono text-label text-aura-ink placeholder:font-semibold placeholder:uppercase placeholder:tracking-[0.22em] placeholder:text-aura-faint focus:outline-none"
+      />
+      {value.length > 0 ? (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Clear search"
+          className="cursor-pointer rounded-full px-1 font-mono text-micro text-aura-faint transition hover:text-aura-rose"
+        >
+          ✕
+        </button>
+      ) : (
+        <kbd className="hidden rounded border border-aura-hairline bg-white/70 px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint sm:inline-block">
+          ⌘K
+        </kbd>
+      )}
+    </label>
+  );
+}
+
+function SearchGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-aura-faint" fill="none" aria-hidden>
+      <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
+      <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function FilterSortMenu({
+  sortMode,
+  onSortModeChange,
+}: {
+  sortMode: SortMode;
+  onSortModeChange: (mode: SortMode) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const activeOption = SORT_MENU.find((option) => option.id === sortMode) ?? SORT_MENU[0];
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+    window.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-haspopup="menu"
+        className="flex cursor-pointer items-center gap-2 rounded-pill border border-aura-hairline bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-ink"
+      >
+        <span className="text-aura-faint">sort</span>
+        <span className="text-aura-ink">{activeOption.label}</span>
+        <span aria-hidden className={`transition ${open ? "rotate-180" : ""}`}>
+          ▾
+        </span>
+      </button>
+      <AnimatePresence>
+        {open ? (
+          <motion.ul
+            initial={{ opacity: 0, y: -4, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: EASE_OUT_QUART }}
+            role="menu"
+            className="aura-glass-strong absolute right-0 z-30 mt-2 min-w-[12rem] overflow-hidden rounded-card p-1 shadow-card"
+          >
+            {SORT_MENU.map((option) => (
+              <li key={option.id} role="none">
+                <button
+                  type="button"
+                  role="menuitemradio"
+                  aria-checked={sortMode === option.id}
+                  onClick={() => {
+                    onSortModeChange(option.id);
+                    setOpen(false);
+                  }}
+                  className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-tile px-3 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                    sortMode === option.id
+                      ? "bg-aura-ink text-white"
+                      : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  {sortMode === option.id ? <span aria-hidden>✓</span> : null}
+                </button>
+              </li>
+            ))}
+          </motion.ul>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function RosterSentinel({
+  totalCount,
+  shownCount,
+  hasActiveFilters,
+  focusPicked,
+}: {
+  totalCount: number;
+  shownCount: number;
+  hasActiveFilters: boolean;
+  focusPicked: boolean;
+}) {
+  const line = (() => {
+    if (totalCount === 0) {
+      return "Empty room. Cupid is professionally relieved.";
+    }
+    if (!focusPicked) {
+      return "Browse the room. Picks unlock once a focus is on the desk.";
+    }
+    if (shownCount === 0) {
+      return "Empty room. Cupid blames you, lightly.";
+    }
+    if (!hasActiveFilters) {
+      return `${shownCount} files in the room. Cupid pretends not to keep score.`;
+    }
+    if (shownCount === 1) {
+      return "One file matches. Convenient or alarming.";
+    }
+    return `${shownCount} of ${totalCount} files match. Cupid quietly approves.`;
+  })();
+
+  return <p className="mt-4 aura-accent text-lead text-aura-muted">&ldquo;{line}&rdquo;</p>;
+}
+
+function RosterEmptyTile({ onClear }: { onClear: () => void }) {
+  return (
+    <div className="aura-glass mt-6 rounded-card px-6 py-12 text-center">
+      <Eyebrow>// no match</Eyebrow>
+      <p className="mt-3 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+        Filed under nothing.
+      </p>
+      <p className="mt-2 text-body text-aura-muted">
+        Loosen the filters or clear the room and try again.
+      </p>
+      <div className="mt-5">
+        <GhostButton onClick={onClear}>Reset filters</GhostButton>
+      </div>
+    </div>
+  );
+}
+
+function SectionHeader({
+  eyebrow,
+  title,
+  meta,
+  tooltip,
+}: {
+  eyebrow: string;
+  title: string;
+  meta: string;
+  tooltip: React.ReactNode;
+}) {
+  return (
+    <header className="border-b border-aura-hairline pb-5">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div className="group relative">
+          <h2
+            tabIndex={0}
+            className="cursor-help font-display text-display-lg font-semibold leading-[0.92] tracking-tight text-aura-ink outline-none focus-visible:text-aura-rose"
+          >
+            {title}
+          </h2>
+          <div
+            role="tooltip"
+            className="pointer-events-none absolute left-0 top-full z-30 mt-2 w-max max-w-md translate-y-1 rounded-card border border-aura-hairline bg-white/95 px-4 py-2.5 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+          >
+            <p className="aura-accent text-lead leading-snug text-aura-muted">
+              &ldquo;{tooltip}&rdquo;
+            </p>
+          </div>
+        </div>
+        <p className="flex items-baseline gap-2 font-mono text-micro font-semibold uppercase tracking-[0.28em]">
+          <span className="text-aura-rose">{eyebrow}</span>
+          <span aria-hidden className="text-aura-faint/60">
+            ·
+          </span>
+          <span className="text-aura-faint">{meta}</span>
+        </p>
+      </div>
+    </header>
   );
 }
 
@@ -236,7 +1028,7 @@ function MemberDossier({
         className="aura-glass-strong relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-card"
         role="dialog"
         aria-modal="true"
-        aria-label={`${member.name} dossier`}
+        aria-label={`${member.firstName} dossier`}
       >
         <DossierCloseButton onClose={onClose} />
 
@@ -247,7 +1039,7 @@ function MemberDossier({
               <div className="min-w-0 space-y-2">
                 <Eyebrow>// dossier</Eyebrow>
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
-                  {member.name}
+                  {member.firstName}
                 </h2>
                 <p className="text-lead text-aura-muted">{member.datingProfile}</p>
               </div>
@@ -276,19 +1068,6 @@ function MemberDossier({
                   </li>
                 ))}
               </ul>
-            </DossierBlock>
-
-            <DossierBlock eyebrow="// known traits">
-              <div className="flex flex-wrap gap-1.5">
-                {member.traits.map((trait) => (
-                  <span
-                    key={trait}
-                    className="rounded-pill bg-white/70 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-muted"
-                  >
-                    {trait}
-                  </span>
-                ))}
-              </div>
             </DossierBlock>
 
             {member.preferences.length === 0 ? null : (
@@ -388,12 +1167,12 @@ function SelectionBar({
               </div>
               <div className="leading-tight">
                 <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-                  {selectedMembers.length} of 2 staffed
+                  {selectedMembers.length === 2 ? "focus and partner" : "focus selected"}
                 </p>
                 <p className="text-body font-semibold text-aura-ink">
                   {selectedMembers.length === 2
-                    ? `${selectedMembers[0].name} and ${selectedMembers[1].name}`
-                    : `${selectedMembers[0].name}, awaiting partner`}
+                    ? `${selectedMembers[0].firstName} and ${selectedMembers[1].firstName}`
+                    : `${selectedMembers[0].firstName}, awaiting partner`}
                 </p>
               </div>
             </div>
@@ -419,6 +1198,7 @@ export type BriefProps = {
   selectedScenario: DateScenario | undefined;
   pairState: PairState | null;
   pairNote: string | null;
+  fitSignal: MatchFitPublicSignal | null;
   goals: CompanyGoal[];
   requests: MemberRequest[];
   members: Member[];
@@ -468,6 +1248,7 @@ export function BriefView({
   selectedScenario,
   pairState,
   pairNote,
+  fitSignal,
   goals,
   requests,
   members,
@@ -528,17 +1309,12 @@ export function BriefView({
 
         <aside className="space-y-6">
           <PinnedGoalsCard goals={goals} shiftReport={shiftReport} />
-          <OpenAsksCard
-            requests={requests}
-            members={members}
-            shiftReport={shiftReport}
-            onMemberClick={setOpenMemberId}
-          />
         </aside>
       </div>
 
       <BriefDock
         selectedScenario={selectedScenario}
+        fitSignal={fitSignal}
         canStart={canStart}
         localAiStatus={localAiStatus}
         isActionPending={isActionPending}
@@ -585,6 +1361,7 @@ function BriefHeader({
 
 function BriefDock({
   selectedScenario,
+  fitSignal,
   canStart,
   localAiStatus,
   isActionPending,
@@ -592,6 +1369,7 @@ function BriefDock({
   onRetryLocalAi,
 }: {
   selectedScenario: DateScenario | undefined;
+  fitSignal: MatchFitPublicSignal | null;
   canStart: boolean;
   localAiStatus: LocalAiBriefStatus;
   isActionPending: boolean;
@@ -625,7 +1403,7 @@ function BriefDock({
       transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
       className="pointer-events-none fixed inset-x-0 bottom-6 z-30 px-6 lg:bottom-8"
     >
-      <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-6 rounded-pill px-3 py-2.5 pl-5">
+      <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-4xl flex-col gap-3 rounded-card px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
           <LiveDot tone={dotTone} />
           <div className="min-w-0 leading-tight">
@@ -635,6 +1413,7 @@ function BriefDock({
             <p className="truncate text-body font-semibold text-aura-ink">{statusText}</p>
           </div>
         </div>
+        <FitSignalStrip signal={fitSignal} />
         <div className="flex shrink-0 items-center gap-2">
           {localAiStatus.status === "unavailable" ? (
             <GhostButton disabled={isActionPending} onClick={onRetryLocalAi}>
@@ -648,6 +1427,82 @@ function BriefDock({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+const FIT_SIGNAL_LABELS: Record<MatchFitPublicSignal["fitLevel"], string> = {
+  strong: "strong",
+  neutral: "neutral",
+  risky: "risky",
+};
+
+const PRESSURE_SIGNAL_LABELS: Record<MatchFitPublicSignal["pressureLevel"], string> = {
+  low: "low",
+  medium: "medium",
+  high: "high",
+};
+
+const ASK_SIGNAL_LABELS: Record<MatchFitPublicSignal["askSignal"], string> = {
+  covered: "covered",
+  uncertain: "unclear",
+  blocked: "blocked",
+  none: "none",
+};
+
+function FitSignalStrip({ signal }: { signal: MatchFitPublicSignal | null }) {
+  if (signal === null) {
+    return null;
+  }
+
+  return (
+    <ul className="flex flex-wrap items-center gap-2">
+      <FitSignalPill
+        label="fit"
+        value={FIT_SIGNAL_LABELS[signal.fitLevel]}
+        tone={signal.fitLevel}
+      />
+      <FitSignalPill
+        label="pressure"
+        value={PRESSURE_SIGNAL_LABELS[signal.pressureLevel]}
+        tone={signal.pressureLevel}
+      />
+      <FitSignalPill
+        label="ask"
+        value={ASK_SIGNAL_LABELS[signal.askSignal]}
+        tone={signal.askSignal}
+      />
+    </ul>
+  );
+}
+
+function FitSignalPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone:
+    | MatchFitPublicSignal["fitLevel"]
+    | MatchFitPublicSignal["pressureLevel"]
+    | MatchFitPublicSignal["askSignal"];
+}) {
+  const toneClass =
+    tone === "strong" || tone === "low" || tone === "covered"
+      ? "text-emerald-700"
+      : tone === "risky" || tone === "high" || tone === "blocked"
+        ? "text-aura-rose"
+        : "text-aura-muted";
+
+  return (
+    <li className="rounded-pill bg-white/65 px-2.5 py-1 ring-1 ring-aura-hairline">
+      <span className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-aura-faint">
+        {label}{" "}
+      </span>
+      <span className={`font-mono text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
+        {value}
+      </span>
+    </li>
   );
 }
 
@@ -737,7 +1592,7 @@ function ClickablePairMember({
     <button
       type="button"
       onClick={onClick}
-      aria-label={`Open ${member.name} dossier`}
+      aria-label={`Open ${member.firstName} dossier`}
       className={`group relative flex cursor-pointer flex-col items-center gap-4 rounded-card p-2 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/40 ${itemsAlign}`}
     >
       <span className="relative inline-block">
@@ -750,7 +1605,7 @@ function ClickablePairMember({
         </span>
         <span
           aria-hidden
-          className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-aura-ink/85 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-white/85 opacity-0 shadow-quiet transition-opacity duration-200 group-hover:opacity-100"
+          className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-aura-ink/85 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] text-white/85 opacity-0 shadow-quiet transition-opacity duration-200 group-hover:opacity-100"
         >
           open dossier
         </span>
@@ -758,7 +1613,7 @@ function ClickablePairMember({
       <span
         className={`text-center font-display text-display-md font-semibold tracking-tight text-aura-ink ${textAlign}`}
       >
-        {member.name}
+        {member.firstName}
       </span>
     </button>
   );
@@ -1001,60 +1856,11 @@ function PinnedGoalsCard({
           return (
             <li key={goal.id} className="flex items-start gap-3">
               <span
-                className={`inline-flex h-5 shrink-0 items-center rounded-pill px-2 font-mono text-[10px] font-semibold uppercase tracking-[0.22em] ${tone}`}
+                className={`inline-flex h-5 shrink-0 items-center rounded-pill px-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone}`}
               >
                 {status}
               </span>
               <span className="text-label leading-snug text-aura-ink/85">{goal.title}</span>
-            </li>
-          );
-        })}
-      </ul>
-    </PinnedCard>
-  );
-}
-
-function OpenAsksCard({
-  requests,
-  members,
-  shiftReport,
-  onMemberClick,
-}: {
-  requests: MemberRequest[];
-  members: Member[];
-  shiftReport: ShiftReport | undefined;
-  onMemberClick: (memberId: string) => void;
-}) {
-  return (
-    <PinnedCard eyebrow="// asks" title="Open asks" count={requests.length}>
-      <ul className="space-y-4">
-        {requests.map((request) => {
-          const member = members.find((m) => m.id === request.memberId);
-          const wasIgnored = shiftReport?.ignoredRequestIds.includes(request.id);
-          return (
-            <li key={request.id} className="space-y-2">
-              {member === undefined ? null : (
-                <button
-                  type="button"
-                  onClick={() => onMemberClick(member.id)}
-                  aria-label={`Open ${member.name} dossier`}
-                  className="group inline-flex cursor-pointer items-center gap-2.5 rounded-pill text-left transition"
-                >
-                  <Portrait member={member} variant="transcript" />
-                  <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition group-hover:text-aura-ink">
-                    {member.name}
-                  </span>
-                </button>
-              )}
-              <p className="aura-accent text-label leading-snug text-aura-ink/80">
-                &ldquo;{request.text}&rdquo;
-              </p>
-              {wasIgnored ? (
-                <span className="inline-flex items-center gap-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-                  <span className="size-1 rounded-full bg-aura-rose" />
-                  filed: ignored
-                </span>
-              ) : null}
             </li>
           );
         })}
@@ -1667,7 +2473,7 @@ function ChatBubble({
           <span
             className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameAlign}`}
           >
-            {member.name}
+            {member.firstName}
           </span>
         ) : null}
         <div className={`${bubbleClass} ${draftClass}`}>
@@ -1900,36 +2706,6 @@ export function ViewFrame({ children, wide }: { children: React.ReactNode; wide?
   );
 }
 
-function ViewHeader({
-  eyebrow,
-  title,
-  accent,
-  subhead,
-  rightSlot,
-}: {
-  eyebrow: string;
-  title: string;
-  accent?: string;
-  subhead: React.ReactNode;
-  rightSlot?: React.ReactNode;
-}) {
-  return (
-    <header className="flex flex-wrap items-start justify-between gap-8">
-      <div className="max-w-3xl space-y-4">
-        <Eyebrow>{eyebrow}</Eyebrow>
-        <h1 className="font-display text-display-xl font-semibold leading-[0.95] tracking-tight text-aura-ink">
-          {title}
-        </h1>
-        {accent === undefined ? null : (
-          <p className="aura-accent text-display-sm text-aura-rose/85">{accent}</p>
-        )}
-        <p className="max-w-2xl text-lead text-aura-muted">{subhead}</p>
-      </div>
-      {rightSlot === undefined ? null : <div className="pt-4">{rightSlot}</div>}
-    </header>
-  );
-}
-
 function EmptyState({
   eyebrow,
   title,
@@ -2051,36 +2827,6 @@ export function pad2(value: number) {
   return value.toString().padStart(2, "0");
 }
 
-const SCORE_WIDTH_CLASSES = [
-  "w-0",
-  "w-[5%]",
-  "w-[10%]",
-  "w-[15%]",
-  "w-[20%]",
-  "w-[25%]",
-  "w-[30%]",
-  "w-[35%]",
-  "w-[40%]",
-  "w-[45%]",
-  "w-[50%]",
-  "w-[55%]",
-  "w-[60%]",
-  "w-[65%]",
-  "w-[70%]",
-  "w-[75%]",
-  "w-[80%]",
-  "w-[85%]",
-  "w-[90%]",
-  "w-[95%]",
-  "w-full",
-] as const;
-
-function scoreWidthClass(score: number): (typeof SCORE_WIDTH_CLASSES)[number] {
-  const boundedScore = Math.min(100, Math.max(0, score));
-  const index = Math.round(boundedScore / 5);
-  return SCORE_WIDTH_CLASSES[index] ?? "w-full";
-}
-
 function buildTranscriptItems(
   session: DateSession,
   members: Member[],
@@ -2093,7 +2839,7 @@ function buildTranscriptItems(
       return {
         id: `turn-${message.sequenceIndex}`,
         order: message.sequenceIndex * 10,
-        label: member?.name ?? "Member",
+        label: member?.firstName ?? "Member",
         tone: "member",
         text: message.text,
         member,
@@ -2141,7 +2887,7 @@ function buildTranscriptItems(
       return {
         id: draft.id,
         order: draft.sequenceIndex * 10,
-        label: member?.name ?? draft.speakerName,
+        label: member?.firstName ?? draft.speakerName,
         tone: "member",
         text: draft.text,
         member,

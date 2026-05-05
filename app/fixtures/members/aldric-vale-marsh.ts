@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const aldricValeMarsh: Member = {
   id: "aldric-vale-marsh",
   name: "Sir Aldric of Vale Marsh",
+  firstName: "Aldric",
   origin: "The Briar Hold, Vale Marsh, year of our Lord one thousand one hundred and ninety",
   species: "Human",
   dimension: "Continuous chivalric branch, Lower Briar",
@@ -10,15 +11,9 @@ export const aldricValeMarsh: Member = {
   bio: "Sir Aldric fell through a thin spot in reality during a vigil to St. Wenceslas of the Lower Reach. He has been told twice that he cannot pay in groats. He believes Cupid is a saint blessed mechanism for the finding of a Lady. He intends to return home with one.",
   datingProfile:
     "Sir Aldric of Vale Marsh, sworn of the Briar Hold, errant by sealed writ, holdings modest but secured. I seek a Lady of true heart, fair of countenance, willing to make the journey. I ride a sorrel mare named Constance. I have killed a man in righteous battle. I marked Yes on the questionnaire. I will withdraw the Yes if it offends. I have not eaten of the Cheesecake Factory but I have heard tell.",
-  traits: ["earnest", "devout", "courteous", "out of his depth", "stubborn"],
   relationshipNeeds: [
     "Someone who treats his sincerity as Honor instead of bit",
     "A Lady who will name the place plainly so he can mark a map",
-  ],
-  redFlags: [
-    "explains the phone to him slowly",
-    "calls his oaths cute",
-    "tries to teach him a meme",
   ],
   preferences: [
     "feasts with named courses",
@@ -35,7 +30,13 @@ export const aldricValeMarsh: Member = {
     "He has been here ninety four days and has not yet found a chapel he trusts.",
     "He suspects he will not be permitted to return home and has not allowed the suspicion to finish forming.",
   ],
-  tags: ["ordinary_human", "dimensional_displacement", "tech_illiterate", "sincere"],
+  tags: [
+    "ordinary_human",
+    "reality_displaced",
+    "sincerity_seeking",
+    "ceremony_minded",
+    "needs_clear_plan",
+  ],
   voice: {
     register: "knightly ardent",
     patternsUsed: [

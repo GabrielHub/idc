@@ -67,6 +67,7 @@ The system splits gameplay authority from generative content. Read `AGENTS.md` f
 
 - **App-owned state is canonical.** The deterministic game engine in `app/services/date-engine.ts` decides triggers, subjects, allowed context, choices, and effects.
 - **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
+- **Hidden member tags are gameplay inputs.** `member.tags` use a controlled taxonomy for deterministic match fit, hard stops, and request scoring. The UI shows profile evidence and dealbreakers, not internal tag names.
 - **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
 - **Local AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
 - **Date play is gated by local AI.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If the local models are unavailable, roster and brief stay visible but date booking is blocked with a visible error state. Deterministic date paths exist for service tests and smoke coverage, not as a player-facing fallback.
@@ -114,4 +115,5 @@ Any Node-capable host works. Containerization is out of scope for this repo.
 - [Visual design](docs/world/visual-design.md): Aura interface direction, Tailwind tokens.
 - [Image style](docs/world/image-style.md): portrait style, prompt construction, cutout pipeline.
 - [Voice](docs/world/voice.md): voice registers, prose mechanics, member fingerprints.
+- [Gameplay traits](docs/world/gameplay-traits.md): hidden match tags, visible dealbreakers, hard stops.
 - [Agent instructions](AGENTS.md): architecture rules, toolchain conventions, copy style, UI rules.

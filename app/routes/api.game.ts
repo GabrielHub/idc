@@ -1,5 +1,8 @@
 import type { GameConfig } from "../domain/game";
-import { LocalGameRepository } from "../repositories/local-game-repository";
+import {
+  LocalGameRepository,
+  readGameConfigFromStorage,
+} from "../repositories/local-game-repository";
 import { NodeJsonStorageDriver } from "../repositories/node-json-storage.server";
 import {
   advanceDateExchangeWithLocalAi,
@@ -24,13 +27,14 @@ const LOCAL_AI_STATUS_INTENT = "local-ai-status";
 const GAME_STREAM_INTENT = "stream";
 
 export async function loader({ request }: { request: Request }) {
-  const repository = createServerRepository();
-  const save = (await repository.loadGame()) ?? (await repository.resetGame());
   const url = new URL(request.url);
 
   if (url.searchParams.get("intent") === LOCAL_AI_STATUS_INTENT) {
-    return localAiStatusResponse(save.config);
+    return localAiStatusResponse(readServerGameConfig());
   }
+
+  const repository = createServerRepository();
+  const save = (await repository.loadGame()) ?? (await repository.resetGame());
 
   return json({ save });
 }
@@ -172,6 +176,10 @@ async function localAiStatusResponse(config: GameConfig): Promise<Response> {
 
 function createServerRepository(): LocalGameRepository {
   return new LocalGameRepository(new NodeJsonStorageDriver());
+}
+
+function readServerGameConfig(): GameConfig {
+  return readGameConfigFromStorage(new NodeJsonStorageDriver());
 }
 
 function json(value: unknown, init?: ResponseInit): Response {

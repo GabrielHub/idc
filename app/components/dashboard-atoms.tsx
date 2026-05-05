@@ -119,7 +119,7 @@ export function Portrait({
   return (
     <div className={`grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}>
       {imagePath === undefined || failed ? (
-        <span className={PORTRAIT_INITIALS[variant]}>{initialsFor(member.name)}</span>
+        <span className={PORTRAIT_INITIALS[variant]}>{initialsFor(member.firstName)}</span>
       ) : (
         <img
           alt=""
@@ -178,7 +178,7 @@ export function Meter({
           ? "from-aura-amber to-aura-rose"
           : "from-aura-rose to-aura-fuchsia";
   const trackHeight = size === "md" ? "h-1.5" : "h-1";
-  const target = Math.max(0, Math.min(100, value)) / 100;
+  const widthClass = scoreWidthClass(value);
 
   return (
     <div className="space-y-1.5">
@@ -193,12 +193,41 @@ export function Meter({
       <div className={`overflow-hidden rounded-pill bg-aura-hairline ${trackHeight}`}>
         <div
           aria-hidden
-          className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r ${fillTone}`}
-          style={{ "--bar-target": String(target) } as React.CSSProperties}
+          className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r ${fillTone} ${widthClass}`}
         />
       </div>
     </div>
   );
+}
+
+const SCORE_WIDTH_CLASSES = [
+  "w-0",
+  "w-[5%]",
+  "w-[10%]",
+  "w-[15%]",
+  "w-[20%]",
+  "w-[25%]",
+  "w-[30%]",
+  "w-[35%]",
+  "w-[40%]",
+  "w-[45%]",
+  "w-[50%]",
+  "w-[55%]",
+  "w-[60%]",
+  "w-[65%]",
+  "w-[70%]",
+  "w-[75%]",
+  "w-[80%]",
+  "w-[85%]",
+  "w-[90%]",
+  "w-[95%]",
+  "w-full",
+] as const;
+
+export function scoreWidthClass(score: number): (typeof SCORE_WIDTH_CLASSES)[number] {
+  const boundedScore = Math.min(100, Math.max(0, score));
+  const index = Math.round(boundedScore / 5);
+  return SCORE_WIDTH_CLASSES[index] ?? "w-full";
 }
 
 /* ------------------------------------------------------------------ */

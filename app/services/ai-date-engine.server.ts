@@ -30,6 +30,7 @@ import {
   applyJudgeToPairState,
   createNonCharacterMessage,
   finalizeDateSession,
+  findMemberRequestById,
   markPairDateComplete,
   requireDateSession,
   requireMember,
@@ -45,6 +46,7 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import { clampScore, errorToMessage, replaceById } from "./utils";
 
 export type LocalAiDateRuntime = {
@@ -238,7 +240,7 @@ async function advanceDateExchangeWithLocalAiInternal(
   if (emit !== undefined) {
     await emit({ type: "judgeStart", exchangeIndex });
   }
-  const judgeSnapshot = await createLocalAiJudgeSnapshot({
+  const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
     config,
     session,
@@ -247,6 +249,19 @@ async function advanceDateExchangeWithLocalAiInternal(
     exchangeMessages,
     exchangeIndex,
     members,
+  });
+  const matchFit = evaluateMatchFit({
+    members,
+    scenario,
+    pairState,
+    activeRequests: focusRequestForSession(session),
+  });
+  const judgeSnapshot = applyMatchFitToJudgeSnapshot({
+    session,
+    pairState,
+    members,
+    judgeSnapshot: localAiJudgeSnapshot,
+    fit: matchFit,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -737,6 +752,12 @@ function buildMemoryQuery(
     .join(" ");
 
   return `${speaker.name} ${partner.name} ${scenario.title} ${recentText}`;
+}
+
+function focusRequestForSession(session: DateSession) {
+  const request = findMemberRequestById(session.focusRequestId);
+
+  return request === undefined ? [] : [request];
 }
 
 async function createRuntimeQueryEmbedding({

@@ -1,6 +1,6 @@
 # Visual Design
 
-This document owns IDC frontend design and theme. `app/app.css` owns the current theme tokens and fonts. UI agents should use those tokens unless an active plan says otherwise. `docs/world/image-style.md` owns image asset style, portrait generation, and the cutout pipeline.
+This document owns IDC frontend design and theme. `app/app.css` owns the current theme tokens and fonts. UI agents should use those tokens unless existing product docs or code establish a narrower rule. `docs/world/image-style.md` owns image asset style, portrait generation, and the cutout pipeline.
 
 ## Interface Direction
 
@@ -28,5 +28,5 @@ Portrait cutouts sit inside Aura surfaces; the dashboard provides the frame and 
 
 - No marketing landing page for the playable game shell.
 - No portrait-specific illustrated card backgrounds in v1; let Aura supply the frame.
-- No new global CSS classes unless an active plan requires shared base styling.
+- No new global CSS classes unless the change needs shared base styling across multiple components.
 - No inline `style=` attributes for UI work. Use Tailwind utilities through `className`.

@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const tobyWenz: Member = {
   id: "toby-wenz",
   name: "Toby Wenz",
+  firstName: "Toby",
   origin: "Findlay, Ohio",
   species: "Human",
   dimension: "Prime",
@@ -10,15 +11,9 @@ export const tobyWenz: Member = {
   bio: "Toby works overnight stocking at a regional grocery chain in Findlay and sleeps days. He has not had a full conversation with someone outside the dairy aisle in eight weeks. He thinks Cupid is a normal dating app. He has not finished his profile because he keeps adding things.",
   datingProfile:
     "hi i'm toby, 22, i do overnight at a grocery store, my schedule is bad but i get a lot of time to think which is mostly a problem, i had a dog growing up named pretzel and one time she got out during a thunderstorm and we found her at a gas station which is a true story, anyway i would like to meet someone, i'm pretty nice i think, my mom says so but she has incentives, i'll stop",
-  traits: ["anxious", "sincere", "sleep deprived", "inadvertently funny", "warm"],
   relationshipNeeds: [
     "Someone willing to sit through three minutes of him to get to the real him",
     "A topic to spiral on so the spiraling has somewhere to land",
-  ],
-  redFlags: [
-    "falls asleep mid message and the timestamps make it obvious",
-    "apologizes preemptively for things he has not said yet",
-    "shares a heavy family detail in message two and then keeps going",
   ],
   preferences: [
     "restaurants that close after 10 p.m.",
@@ -36,7 +31,13 @@ export const tobyWenz: Member = {
     "He keeps a notebook in the break room of things he meant to say but did not get to.",
     "He stopped going to college a year ago and has not told his mother yet.",
   ],
-  tags: ["ordinary_human", "isolated", "anxious_rambler", "night_shift"],
+  tags: [
+    "ordinary_human",
+    "anxious_spiral",
+    "sincerity_seeking",
+    "needs_clear_plan",
+    "needs_low_pressure",
+  ],
   voice: {
     register: "anxious breathless",
     patternsUsed: [

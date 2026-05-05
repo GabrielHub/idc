@@ -69,26 +69,64 @@ export const memberStateSchema = z.object({
   recentDateResult: z.string().min(1).optional(),
 });
 
-export const memberSchema = z.object({
-  id: memberIdSchema,
-  name: z.string().min(1),
-  origin: z.string().min(1),
-  species: z.string().min(1),
-  dimension: z.string().min(1),
-  realityStatus: z.string().min(1),
-  bio: z.string().min(1),
-  datingProfile: z.string().min(1),
-  traits: z.array(z.string().min(1)).min(1),
-  relationshipNeeds: z.array(z.string().min(1)).min(1),
-  redFlags: z.array(z.string().min(1)),
-  preferences: z.array(z.string().min(1)),
-  dealbreakers: z.array(z.string().min(1)),
-  secrets: z.array(z.string().min(1)),
-  tags: z.array(z.string().min(1)),
-  voice: memberVoiceSchema,
-  state: memberStateSchema,
-  portraits: memberPortraitsSchema,
-});
+export const memberTagSchema = z.enum([
+  "ordinary_human",
+  "non_human",
+  "prophecy_averse",
+  "privacy_sensitive",
+  "grief_sensitive",
+  "memory_sensitive",
+  "status_sensitive",
+  "needs_low_pressure",
+  "needs_clear_plan",
+  "sincerity_seeking",
+  "performative",
+  "attention_seeking",
+  "avoidant",
+  "competitive",
+  "ceremony_minded",
+  "career_focused",
+  "weirdness_native",
+  "reality_displaced",
+  "anxious_spiral",
+]);
+
+export const MEMBER_IDENTITY_TAGS: readonly z.infer<typeof memberTagSchema>[] = [
+  "ordinary_human",
+  "non_human",
+];
+
+export const memberSchema = z
+  .object({
+    id: memberIdSchema,
+    name: z.string().min(1),
+    firstName: z.string().min(1),
+    origin: z.string().min(1),
+    species: z.string().min(1),
+    dimension: z.string().min(1),
+    realityStatus: z.string().min(1),
+    bio: z.string().min(1),
+    datingProfile: z.string().min(1),
+    relationshipNeeds: z.array(z.string().min(1)).min(1),
+    preferences: z.array(z.string().min(1)),
+    dealbreakers: z.array(z.string().min(1)),
+    secrets: z.array(z.string().min(1)),
+    tags: z.array(memberTagSchema).min(3).max(5),
+    voice: memberVoiceSchema,
+    state: memberStateSchema,
+    portraits: memberPortraitsSchema,
+  })
+  .superRefine((member, context) => {
+    const identityTagCount = member.tags.filter((tag) => MEMBER_IDENTITY_TAGS.includes(tag)).length;
+
+    if (identityTagCount !== 1) {
+      context.addIssue({
+        code: "custom",
+        message: "Members require exactly one identity gameplay tag.",
+        path: ["tags"],
+      });
+    }
+  });
 
 export const scenarioTagSchema = z.enum([
   "temporal",
@@ -117,6 +155,8 @@ export const relationshipStatSchema = z.enum([
   "strain",
   "relationshipHealth",
 ]);
+
+export const RELATIONSHIP_STATS = relationshipStatSchema.options;
 
 export const scenarioBeatSchema = z.object({
   atTurn: z.number().int().min(1),
@@ -163,6 +203,8 @@ export const goalMetricSchema = z.enum([
   "earlyEndedDates",
   "ordinaryNonHumanDates",
   "memberMoodDelta",
+  "positiveOutcomeDates",
+  "improvedMembers",
 ]);
 
 export const companyGoalSchema = z.object({
@@ -307,6 +349,8 @@ export const dateSessionSchema = z.object({
   id: dateSessionIdSchema,
   pairId: pairIdSchema,
   scenarioId: scenarioIdSchema,
+  focusMemberId: memberIdSchema.optional(),
+  focusRequestId: z.string().min(1).optional(),
   turnLimit: z.number().int().min(2).default(30),
   currentTurn: z.number().int().min(0),
   dateHealth: scoreSchema,
@@ -356,6 +400,7 @@ export const shiftStateSchema = z.object({
   status: z.enum(["active", "completed"]),
   dateSlotsTotal: z.number().int().min(1).default(3),
   dateSlotsUsed: z.number().int().min(0),
+  featuredMemberIds: z.array(memberIdSchema).default([]),
   drawnScenarioIds: z.array(scenarioIdSchema),
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
@@ -393,6 +438,7 @@ export type MemberPortraits = z.infer<typeof memberPortraitsSchema>;
 export type VoicePattern = z.infer<typeof voicePatternSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;
 export type MemberState = z.infer<typeof memberStateSchema>;
+export type MemberTag = z.infer<typeof memberTagSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;

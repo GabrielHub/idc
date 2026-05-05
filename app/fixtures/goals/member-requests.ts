@@ -113,4 +113,11 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 6,
     tags: ["fae", "name_discretion"],
   },
+  {
+    id: "request-decimus-no-recovery-script",
+    memberId: "decimus-marius-tullio",
+    text: "Decimus wants a date that does not require him to perform recovery. He will not bring up Lavinia. He would prefer the same.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["midlife", "widower"],
+  },
 ];

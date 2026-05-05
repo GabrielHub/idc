@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const eleanorAsh: Member = {
   id: "eleanor-ash",
   name: "Eleanor Ash",
+  firstName: "Eleanor",
   origin: "The Court of Lower Hawthorn",
   species: "Fae",
   dimension: "Hawthorn march, lower fold",
@@ -10,15 +11,9 @@ export const eleanorAsh: Member = {
   bio: "Eleanor Ash fled an arranged betrothal at Lower Hawthorn and walks Prime under a glamour. The geas that binds her cannot be broken, so she cannot lie outright. She uses Cupid because the Bargain mechanics are familiar. She rotates seven use names by week and will not speak her true name aloud to strangers.",
   datingProfile:
     "I will not lie to you, so let us begin in good faith. I am taller than mortal record permits. I am two centuries into an arranged engagement and I am not interested in honoring it. I keep my Vows. I keep the Favors I am owed. I dress for my own benefit. I am open to the Bargain of dinner.",
-  traits: ["exacting", "wry", "bound", "self-possessed", "watchful"],
   relationshipNeeds: [
     "A counterparty who treats her literal answers as offers, not threats",
     "Someone who understands a Vow given is a Vow kept and asks accordingly",
-  ],
-  redFlags: [
-    "asks for her true name in the first three messages",
-    "treats a Vow as a flirtation rather than a contract",
-    "calls the geas a vibe",
   ],
   preferences: [
     "courts of clear lighting",
@@ -36,7 +31,13 @@ export const eleanorAsh: Member = {
     "She keeps a private ledger of small kindnesses she cannot repay and is afraid the ledger is the only record of her she will leave.",
     "She has rehearsed saying her true name in an empty room and could not finish.",
   ],
-  tags: ["non_human", "fae", "geas_bound", "courtly"],
+  tags: [
+    "non_human",
+    "privacy_sensitive",
+    "ceremony_minded",
+    "needs_clear_plan",
+    "status_sensitive",
+  ],
   voice: {
     register: "courtly exacting",
     patternsUsed: [
@@ -78,15 +79,15 @@ export const eleanorAsh: Member = {
         sourcePath: "assets-source/portraits/eleanor-ash/portrait.png",
         cutoutPath: "/assets/portraits/eleanor-ash/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, charcoal high necked tailored coatdress with hidden silver thread embroidered at the cuffs in a hawthorn motif, slim charcoal trousers, soft black gloves of fine leather, polished black ankle boots, small leather ledger book held lightly in one gloved hand, the other hand relaxed at her side, courtly composed expression with a faint amused tilt at the mouth, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
-        model: "pending",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with a tasteful sheer lace top, opaque fitted bodice, botanical lace embroidery, pale gold floral accents, flowing translucent organza panels, slim ivory trousers, sage green leather gloves, polished nature-toned ankle boots, long slender smoking pipe held gracefully in one gloved hand, faint curling smoke, courtly composed expression with a faint amused tilt at the mouth, noble seductive dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
+        model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/eleanor-ash/avatar.png",
         cutoutPath: "/assets/portraits/eleanor-ash/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Eleanor Ash portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, same fae noblewoman in glamour with subtly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, sharp clear eyes the color of pale wintergreen, charcoal high necked tailored coatdress with hidden silver thread hawthorn motif, soft black leather gloves, one gloved hand lightly touching the high collar at her throat, courtly composed expression with a faint amused tilt at the mouth, upper half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery, no iron",
-        model: "pending",
+          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Eleanor Ash portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, same fae noblewoman in glamour with subtly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with a tasteful sheer lace top, opaque fitted bodice, botanical lace embroidery, pale gold floral accents, flowing translucent organza layers, sage green leather gloves, fake candid fashion profile pose with a three-quarter turn, one shoulder forward, head turned back toward the viewer, one gloved hand lifting a strand of silver ash hair, the other hand lightly adjusting the lace collar, elegant seductive expression with controlled cool confidence, upper half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery, no iron, no pipe, no book, no ledger",
+        model: "image_gen built-in",
       },
     },
   },

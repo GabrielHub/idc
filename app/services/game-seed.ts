@@ -3,32 +3,57 @@ import {
   gameSaveSchema,
   memberSchema,
   SAVE_SCHEMA_VERSION,
+  shiftStateSchema,
   type GameSave,
   type Member,
   type PairState,
   type PairStats,
   type ShiftState,
 } from "../domain/game";
-import { companyGoals, memberRequests, starterMembers, starterScenarios } from "../fixtures";
+import { starterMembers, starterScenarios } from "../fixtures";
+import {
+  hydrateFeaturedMemberIds,
+  selectFeaturedMemberIds,
+  selectFeaturedMemberRequestIds,
+  selectShiftCompanyGoalIds,
+} from "./shift-planning";
 import { clampScore } from "./utils";
 
 const STARTER_DECK_MAX_SIZE = 14;
 
 export function createSeedGameSave(now = new Date()): GameSave {
   const timestamp = now.toISOString();
+  const config = gameConfigSchema.parse({});
   const members = starterMembers.map((member) => memberSchema.parse(member));
   const pairStates = createSeedPairStates(members);
-  const drawnScenarioIds = starterScenarios.slice(0, 3).map((scenario) => scenario.id);
-  const offeredScenarioIds = starterScenarios.slice(3, 6).map((scenario) => scenario.id);
+  const featuredMemberIds = selectFeaturedMemberIds({
+    members,
+    shiftNumber: 1,
+  });
+  const drawnScenarioIds = starterScenarios
+    .slice(0, config.shiftDateSlots)
+    .map((scenario) => scenario.id);
+  const offeredScenarioIds = starterScenarios
+    .slice(config.shiftDateSlots, config.shiftDateSlots * 2)
+    .map((scenario) => scenario.id);
   const activeShift: ShiftState = {
     id: "shift-1",
     shiftNumber: 1,
     status: "active",
-    dateSlotsTotal: 3,
+    dateSlotsTotal: config.shiftDateSlots,
     dateSlotsUsed: 0,
+    featuredMemberIds,
     drawnScenarioIds,
-    companyGoalIds: companyGoals.slice(0, 2).map((goal) => goal.id),
-    memberRequestIds: memberRequests.slice(0, 3).map((request) => request.id),
+    companyGoalIds: selectShiftCompanyGoalIds({
+      members,
+      shiftNumber: 1,
+      dateSlotsTotal: config.shiftDateSlots,
+    }),
+    memberRequestIds: selectFeaturedMemberRequestIds({
+      members,
+      featuredMemberIds,
+      shiftNumber: 1,
+    }),
     scenarioDeck: {
       scenarioIds: starterScenarios.map((scenario) => scenario.id),
       maxSize: STARTER_DECK_MAX_SIZE,
@@ -39,7 +64,7 @@ export function createSeedGameSave(now = new Date()): GameSave {
 
   return gameSaveSchema.parse({
     version: SAVE_SCHEMA_VERSION,
-    config: gameConfigSchema.parse({}),
+    config,
     members,
     pairStates,
     dateSessions: [],
@@ -69,11 +94,18 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
   const customMembers = save.members.filter((member) => !STARTER_MEMBERS_BY_ID.has(member.id));
   const members = [...fixtureMembers, ...customMembers];
   const pairStates = hydratePairStates(save.pairStates, members);
+  const shifts = save.shifts.map((shift) =>
+    shiftStateSchema.parse({
+      ...shift,
+      featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
+    }),
+  );
 
   return gameSaveSchema.parse({
     ...save,
     members,
     pairStates,
+    shifts,
   });
 }
 
@@ -191,7 +223,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened shift one with sixteen starter members and a three scenario hand.",
+      text: "Cupid has opened shift one with seventeen starter members and a three scenario hand.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

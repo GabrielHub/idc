@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const sanaKarim: Member = {
   id: "sana-karim",
   name: "Sana Karim",
+  firstName: "Sana",
   origin: "Toledo, Ohio",
   species: "Human",
   dimension: "Prime",
@@ -10,15 +11,9 @@ export const sanaKarim: Member = {
   bio: "Sana teaches fourth grade at a public school where the laminator has been broken since October 2025. She is 28 and has the back of someone who is not 28. She believes Cupid is a normal dating app. The branding is just a lot.",
   datingProfile:
     "28, fourth grade public school teacher, year three. The laminator is broken. I am not. Looking for someone with a couch, a quiet hobby, and the social skill of not asking how my day was until I sit down. Photos: me, also me, and a class pet I am not allowed to keep at home.",
-  traits: ["dry", "tired", "patient", "kind"],
   relationshipNeeds: [
     "Someone who lets her arrive on time and decompress for ten minutes before they speak",
     "A date she does not have to project manage",
-  ],
-  redFlags: [
-    "asks if she has the summer off as a real question",
-    "speaks to her like a fourth grader",
-    "wants energy from her she does not have",
   ],
   preferences: [
     "couches",
@@ -35,7 +30,7 @@ export const sanaKarim: Member = {
     "She used to want this job and is afraid she does not anymore.",
     "She has a private list of three students she would adopt if it were legal and one student she would pay to transfer.",
   ],
-  tags: ["ordinary_human", "burnt_out", "career_fatigue"],
+  tags: ["ordinary_human", "needs_low_pressure", "sincerity_seeking", "needs_clear_plan"],
   voice: {
     register: "tired flat dry",
     patternsUsed: [

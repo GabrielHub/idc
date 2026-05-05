@@ -242,6 +242,8 @@ When authoring a new member fixture, define their `voice` block with these five 
 
 A member without a voice block is not ready to ship. The LLM character performer reads this block at prompt time. Vague voice blocks produce house-style mush.
 
+Voice fields do not score gameplay. Use `docs/world/gameplay-traits.md` for hidden match tags, visible dealbreakers, and hard stop authoring. A future member needs both: voice for how they talk, gameplay tags for how Cupid scores the match.
+
 ## Prose Mechanics
 
 These apply to all member-voice copy. Cupid corporate voice uses cleaner mechanics.

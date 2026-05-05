@@ -2,9 +2,11 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  type DateScenario,
   type FollowUpAction,
   type GameSave,
   type Member,
+  type MemberRequest,
   type PairState,
   type ShiftState,
 } from "../domain/game";
@@ -21,6 +23,7 @@ import {
   startNextShift,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
+import { evaluateMatchFit, type MatchFitPublicSignal } from "../services/match-fit";
 import {
   gameApiErrorSchema,
   gameStreamEventSchema,
@@ -60,7 +63,11 @@ const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   details: [],
 };
 
-export function CupidOperationsDashboard() {
+type CupidOperationsDashboardProps = {
+  onPunchOut: () => void;
+};
+
+export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboardProps) {
   const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
   const [save, setSave] = useState<GameSave | null>(null);
   const [view, setView] = useState<ViewKey>("roster");
@@ -143,6 +150,15 @@ export function CupidOperationsDashboard() {
   }, []);
 
   const activeShift = save === null ? null : getActiveShift(save);
+  const featuredMembers = useMemo(
+    () =>
+      save === null || activeShift === null
+        ? []
+        : activeShift.featuredMemberIds
+            .map((memberId) => save.members.find((member) => member.id === memberId))
+            .filter(isDefined),
+    [activeShift, save],
+  );
   const drawnScenarios = useMemo(
     () =>
       activeShift === null
@@ -191,8 +207,8 @@ export function CupidOperationsDashboard() {
     [save, activeDateSessionId],
   );
   const pairPreview = useMemo(
-    () => buildPairPreview(save, selectedMembers),
-    [save, selectedMembers],
+    () => buildPairPreview(save, selectedMembers, selectedScenario, pinnedRequests),
+    [save, selectedMembers, selectedScenario, pinnedRequests],
   );
 
   async function persist(nextSave: GameSave) {
@@ -200,17 +216,22 @@ export function CupidOperationsDashboard() {
     setSave(nextSave);
   }
 
-  function toggleMember(memberId: string) {
+  function selectFocusMember(memberId: string) {
     setSelectedMemberIds((current) => {
-      if (current.includes(memberId)) {
-        return current.filter((id) => id !== memberId);
+      const partnerMemberId = current[1] === memberId ? undefined : current[1];
+      return [memberId, partnerMemberId].filter(isDefined);
+    });
+  }
+
+  function selectPartnerMember(memberId: string) {
+    setSelectedMemberIds((current) => {
+      const focusMemberId = current[0];
+
+      if (focusMemberId === undefined || focusMemberId === memberId) {
+        return current;
       }
 
-      if (current.length >= 2) {
-        return [current[1], memberId].filter(isDefined);
-      }
-
-      return [...current, memberId];
+      return [focusMemberId, memberId];
     });
   }
 
@@ -239,6 +260,7 @@ export function CupidOperationsDashboard() {
       }
 
       const result = startDateSession(save, {
+        focusMemberId: selectedMembers[0].id,
         firstMemberId: selectedMembers[0].id,
         secondMemberId: selectedMembers[1].id,
         scenarioId: selectedScenario.id,
@@ -474,8 +496,8 @@ export function CupidOperationsDashboard() {
       <AmbientMesh />
 
       <DashboardChrome
-        save={save}
         activeShift={activeShift}
+        featuredMemberCount={featuredMembers.length}
         localAiStatus={localAiStatus}
         view={view}
         dateAvailable={dateAvailable}
@@ -484,6 +506,7 @@ export function CupidOperationsDashboard() {
         onRetryLocalAi={refreshLocalAiStatus}
         onEndShift={handleEndShift}
         onReset={handleReset}
+        onPunchOut={onPunchOut}
       />
 
       <main className="relative z-10 pt-24 lg:pt-28">
@@ -496,10 +519,12 @@ export function CupidOperationsDashboard() {
             <RosterView
               key="roster"
               members={save.members}
-              requests={memberRequests}
+              featuredMembers={featuredMembers}
+              featuredRequests={pinnedRequests}
               selectedMemberIds={selectedMemberIds}
               disabled={isActionPending}
-              onToggleMember={toggleMember}
+              onSelectFocusMember={selectFocusMember}
+              onSelectPartnerMember={selectPartnerMember}
               onContinue={() => setView("brief")}
             />
           ) : view === "brief" ? (
@@ -511,6 +536,7 @@ export function CupidOperationsDashboard() {
               selectedScenario={selectedScenario}
               pairState={pairPreview?.pairState ?? null}
               pairNote={pairPreview?.note ?? null}
+              fitSignal={pairPreview?.fitSignal ?? null}
               goals={pinnedGoals}
               requests={pinnedRequests}
               members={save.members}
@@ -570,8 +596,8 @@ export function CupidOperationsDashboard() {
 /* ================================================================== */
 
 function DashboardChrome({
-  save,
   activeShift,
+  featuredMemberCount,
   localAiStatus,
   view,
   dateAvailable,
@@ -580,9 +606,10 @@ function DashboardChrome({
   onRetryLocalAi,
   onEndShift,
   onReset,
+  onPunchOut,
 }: {
-  save: GameSave;
   activeShift: ShiftState;
+  featuredMemberCount: number;
   localAiStatus: LocalAiClientStatus;
   view: ViewKey;
   dateAvailable: boolean;
@@ -591,6 +618,7 @@ function DashboardChrome({
   onRetryLocalAi: () => void;
   onEndShift: () => void;
   onReset: () => void;
+  onPunchOut: () => void;
 }) {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-30">
@@ -604,7 +632,7 @@ function DashboardChrome({
 
         <ViewTabs
           view={view}
-          memberCount={save.members.length}
+          memberCount={featuredMemberCount}
           dateAvailable={dateAvailable}
           onSelect={onSelectView}
         />
@@ -614,6 +642,7 @@ function DashboardChrome({
           isActionPending={isActionPending}
           onEndShift={onEndShift}
           onReset={onReset}
+          onPunchOut={onPunchOut}
         />
       </div>
     </header>
@@ -684,7 +713,7 @@ function ViewTabs({
   onSelect: (view: ViewKey) => void;
 }) {
   const tabs: Array<{ key: ViewKey; label: string; tag: string; live?: boolean }> = [
-    { key: "roster", label: "Roster", tag: `${memberCount} on file` },
+    { key: "roster", label: "Roster", tag: `${memberCount} cases` },
     { key: "brief", label: "Brief", tag: "staff the date" },
     {
       key: "date",
@@ -743,11 +772,13 @@ function ChromeActions({
   isActionPending,
   onEndShift,
   onReset,
+  onPunchOut,
 }: {
   shiftActive: boolean;
   isActionPending: boolean;
   onEndShift: () => void;
   onReset: () => void;
+  onPunchOut: () => void;
 }) {
   return (
     <div className="aura-glass pointer-events-auto inline-flex items-center gap-0.5 rounded-pill p-1">
@@ -756,7 +787,7 @@ function ChromeActions({
           End shift
         </ChromeButton>
       ) : null}
-      <SettingsMenu isActionPending={isActionPending} onReset={onReset} />
+      <SettingsMenu isActionPending={isActionPending} onReset={onReset} onPunchOut={onPunchOut} />
     </div>
   );
 }
@@ -764,9 +795,11 @@ function ChromeActions({
 function SettingsMenu({
   isActionPending,
   onReset,
+  onPunchOut,
 }: {
   isActionPending: boolean;
   onReset: () => void;
+  onPunchOut: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -804,6 +837,11 @@ function SettingsMenu({
     onReset();
   }
 
+  function handlePunchOut() {
+    setIsOpen(false);
+    onPunchOut();
+  }
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
@@ -828,6 +866,15 @@ function SettingsMenu({
             transition={{ duration: 0.15 }}
             className="aura-glass-strong absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-card p-1.5"
           >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handlePunchOut}
+              disabled={isActionPending}
+              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Punch out
+            </button>
             <button
               type="button"
               role="menuitem"
@@ -1112,9 +1159,15 @@ async function readJsonResponse(response: Response): Promise<unknown> {
 type PairPreview = {
   pairState: PairState | null;
   note: string;
+  fitSignal: MatchFitPublicSignal | null;
 };
 
-function buildPairPreview(save: GameSave | null, members: Member[]): PairPreview | null {
+function buildPairPreview(
+  save: GameSave | null,
+  members: Member[],
+  selectedScenario: DateScenario | undefined,
+  activeRequests: MemberRequest[],
+): PairPreview | null {
   if (save === null || members.length !== 2) {
     return null;
   }
@@ -1125,11 +1178,41 @@ function buildPairPreview(save: GameSave | null, members: Member[]): PairPreview
   const note = hasRealityGap
     ? "Cross-reality pair. Cupid expects paperwork and useful data."
     : "Same-species pair. Cupid still expects paperwork.";
+  const focusRequests = activeRequests.filter((request) => request.memberId === members[0].id);
+  const fitSignal: MatchFitPublicSignal | null =
+    pairState === null || selectedScenario === undefined
+      ? null
+      : toPublicFitSignal(
+          evaluateMatchFit({
+            members,
+            scenario: selectedScenario,
+            pairState,
+            activeRequests: focusRequests,
+          }),
+        );
 
-  return { pairState, note };
+  return { pairState, note, fitSignal };
+}
+
+function toPublicFitSignal(fit: {
+  fitLevel: MatchFitPublicSignal["fitLevel"];
+  pressureLevel: MatchFitPublicSignal["pressureLevel"];
+  askSignal: MatchFitPublicSignal["askSignal"];
+}): MatchFitPublicSignal {
+  return { fitLevel: fit.fitLevel, pressureLevel: fit.pressureLevel, askSignal: fit.askSignal };
 }
 
 function defaultMemberSelection(save: GameSave): string[] {
+  const activeShift = getActiveShift(save);
+  const focusMemberId = activeShift.featuredMemberIds.find((memberId) =>
+    save.members.some((member) => member.id === memberId),
+  );
+
+  if (focusMemberId !== undefined) {
+    const partnerMember = save.members.find((member) => member.id !== focusMemberId);
+    return [focusMemberId, partnerMember?.id].filter(isDefined);
+  }
+
   return save.members.slice(0, 2).map((member) => member.id);
 }
 

@@ -2,6 +2,10 @@ export function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
 }
 
+export function clampDelta(value: number): number {
+  return Math.min(100, Math.max(-100, value));
+}
+
 export function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const existingIndex = items.findIndex((candidate) => candidate.id === item.id);
 

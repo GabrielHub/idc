@@ -1,0 +1,93 @@
+import type { Member } from "../../domain/game";
+
+export const decimusMariusTullio: Member = {
+  id: "decimus-marius-tullio",
+  name: "Decimus Marius Tullio",
+  firstName: "Decimus",
+  origin: "Mediolanum, Provincia Italia",
+  species: "Human",
+  dimension: "Continuous Latin branch, Imperial line",
+  realityStatus: "Retired, recently widowed",
+  bio: "Decimus retired from the Tenth Legion after thirty one years. Eight months later he lost Lavinia Cornelia, his wife of twenty four years. His daughter Aurelia signed him up for Cupid over Saturnalia and told him a man his age should not be eating alone six nights a week. He believes Cupid is a routine dating service from back home. She did sign him up.",
+  datingProfile:
+    "Decimus Marius Tullio. Centurion, retired. 54. Widower. One daughter, Aurelia, who set this up. I will not pretend I am younger than I am. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. Wednesdays and Sundays are open. I am told the food in the city is acceptable. Aurelia chose the photographs. She has told me one of them is wrong. I have not asked which.",
+  relationshipNeeds: [
+    "Someone who does not need him to perform recovery from grief",
+    "A counterpart who can name a place and a time and not negotiate it three times",
+  ],
+  preferences: [
+    "fixed reservation times, eighteen hundred or earlier",
+    "places where the staff are not theatrical",
+    "menus that print prices and not market rates",
+    "counterparts who name a Sunday and hold to it",
+  ],
+  dealbreakers: [
+    "anyone unkind to Aurelia",
+    "speaking ill of Lavinia, in any tense",
+    "ghosting after a confirmed time",
+  ],
+  secrets: [
+    "He has not told the rest of his old contubernium that Lavinia is gone. He sees them every Tuesday for cards and lets them ask after her.",
+    "He left her name in the duty contact field of his work tablet. He cannot replace her with a coworker, and he cannot leave the field blank, so he leaves her there.",
+  ],
+  tags: [
+    "ordinary_human",
+    "reality_displaced",
+    "grief_sensitive",
+    "needs_clear_plan",
+    "ceremony_minded",
+  ],
+  voice: {
+    register: "stoic clipped",
+    patternsUsed: [
+      "negotiation_sales_pitch",
+      "deadpan_one_liner",
+      "emotional_overshare",
+      "mundane_domesticity",
+    ],
+    patternsRefused: [
+      "stream_of_consciousness",
+      "corrupted_romance",
+      "character_roleplay",
+      "urgent_crisis_plea",
+    ],
+    tics: [
+      "capitalizes Duty, Standard, Watch, and Schedule when invoking them as concepts",
+      "never uses contractions",
+      "states times in twenty four hour and confirms once",
+      "drops Latin terms (rota, contubernium, vitis, Saturnalia) without translating",
+      "names Aurelia and Lavinia without explaining who they are",
+    ],
+    sampleMessages: [
+      "Decimus Marius Tullio. Centurion, retired. Aurelia signed me up. I will not waste your time. I am free Sunday at eighteen hundred or any Wednesday after twenty hundred. Pick the one that suits you. I will pick the place. Confirm once and I will not ask twice.",
+      "Aurelia tells me my Schedule is a problem. She is correct. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. The week has Wednesdays and Sundays in it for a reason. I am attempting to use them.",
+      "Lavinia Cornelia Tullio was my wife. Her name remains on my calendar, in three places I have not removed. I am stating this so you do not stumble onto it. She is a fact, not a topic. I prefer the matter plain.",
+      "Aurelia chose three of my photographs and tells me one of them is wrong. I have not asked which. Her Standard for these things exceeds mine. I trust the judgment.",
+    ],
+  },
+  state: {
+    mood: 58,
+    openness: 48,
+    burnout: 24,
+    currentRequestId: "request-decimus-no-recovery-script",
+    recentDateResult: "No Cupid dates yet.",
+  },
+  portraits: {
+    neutral: {
+      portrait: {
+        sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait.png",
+        cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait.png",
+        prompt:
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build with the bearing of a career officer at rest, futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, standing at relaxed attention with one hand near the belt clasp and one hand holding his helmet at his side, calm steady closed mouth expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+      avatar: {
+        sourcePath: "assets-source/portraits/decimus-marius-tullio/avatar.png",
+        cutoutPath: "/assets/portraits/decimus-marius-tullio/avatar.png",
+        prompt:
+          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, graphite black and burnished bronze futuristic Roman centurion helmet with restrained crest and cheek guards, matching segmented armor with deep wine red underlayer and laurel details, warm restrained smile, upper half candid work moment pose with one armored hand near the helmet strap, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+  },
+};

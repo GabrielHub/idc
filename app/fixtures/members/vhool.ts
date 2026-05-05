@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const vhool: Member = {
   id: "vhool",
   name: "Vhool",
+  firstName: "Vhool",
   origin: "The Lower Choir Beneath Old Stone",
   species: "Eldritch god",
   dimension: "Subbasement infinity",
@@ -10,15 +11,9 @@ export const vhool: Member = {
   bio: "Vhool joined Cupid while searching for kindred and has been told several times that a dating pool is not a recruitment funnel. They keep filling out the form anyway.",
   datingProfile:
     "Seeking one, possibly two, kindred to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. The tremor last Thursday was unrelated and has been Filed.",
-  traits: ["ancient", "sincere", "lonely", "ceremonial"],
   relationshipNeeds: [
     "Someone who hears cosmic language as loneliness, not threat",
     "Gentle correction when recruitment vocabulary enters the date",
-  ],
-  redFlags: [
-    "accidental geological tremors during compliments",
-    "treats dinner as covenant review",
-    "uses the word kindred before the entree",
   ],
   preferences: [
     "long silences",
@@ -31,7 +26,7 @@ export const vhool: Member = {
     "Vhool is afraid no one would choose them without awe involved.",
     "Vhool has been practicing the word maybe alone in their apartment.",
   ],
-  tags: ["non_human", "cosmic", "cult_adjacent", "soup"],
+  tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded"],
   voice: {
     register: "ancient sincere",
     patternsUsed: [

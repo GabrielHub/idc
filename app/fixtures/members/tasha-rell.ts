@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const tashaRell: Member = {
   id: "tasha-rell",
   name: "Tasha Rell",
+  firstName: "Tasha",
   origin: "Hoboken, New Jersey",
   species: "Human",
   dimension: "Prime",
@@ -10,15 +11,9 @@ export const tashaRell: Member = {
   bio: "Tasha trades for a small prop firm and refers to her own dating life as a portfolio. She has been on a heater since Q3 2025 and is treating Cupid as a high upside asymmetric position with limited downside.",
   datingProfile:
     "29, hoboken, day trader. high conviction long on dinner Friday, 7 p.m., short notice flexible. Looking for a counterparty who reads my texts, picks a steakhouse, and is not afraid of a person with a 4 a.m. terminal alert. I drive a Lexus. It is leased. I will not lie about that.",
-  traits: ["confident", "relentless", "warm", "competitive"],
   relationshipNeeds: [
     "Someone who matches her energy without trying to short her",
     "A date with a clear time, place, and exit ramp",
-  ],
-  redFlags: [
-    "tells her crypto is over",
-    "asks how much she made last week",
-    "says hustle culture is bad in a tone that means she is bad",
   ],
   preferences: [
     "steakhouses",
@@ -35,7 +30,7 @@ export const tashaRell: Member = {
     "She has not told her mother that the Lexus is leased and her mother believes it is owned outright.",
     "She is privately terrified of a flat year and treats every quiet Tuesday like the start of one.",
   ],
-  tags: ["ordinary_human", "career_intense", "finance"],
+  tags: ["ordinary_human", "career_focused", "status_sensitive", "competitive", "needs_clear_plan"],
   voice: {
     register: "negotiation pitch upbeat",
     patternsUsed: [

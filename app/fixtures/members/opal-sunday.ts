@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const opalSunday: Member = {
   id: "opal-sunday",
   name: "Opal Sunday",
+  firstName: "Opal",
   origin: "1998, aisle seven of a bridal superstore",
   species: "Time-displaced human",
   dimension: "Prime, delayed",
@@ -10,15 +11,9 @@ export const opalSunday: Member = {
   bio: "Opal was a wedding planner in 1998 until a cake tasting moved her forward several decades. She has a binder. She is grateful, but she would like the universe to stop hinting.",
   datingProfile:
     "former wedding planner, current temporal clerical issue. looking for: dinner with no omens, no fog vows, no maitre d who already knows my last name. i keep a binder. yes that one.",
-  traits: ["organized", "romantic", "suspicious", "fast talking"],
   relationshipNeeds: [
     "Someone who lets her choose without predicting the outcome",
     "A date where logistics feel romantic instead of cursed",
-  ],
-  redFlags: [
-    "speaks in destiny",
-    "moves her chair without asking",
-    "uses the word fated as if it were a compliment",
   ],
   preferences: [
     "clear timelines",
@@ -31,7 +26,13 @@ export const opalSunday: Member = {
     "She misses the couples she left behind and is afraid all their anniversaries happened without her.",
     "She still has a Crystal Light packet in her purse from 1998 and has not been able to throw it out.",
   ],
-  tags: ["ordinary_human", "time_displaced", "prophecy_averse"],
+  tags: [
+    "ordinary_human",
+    "reality_displaced",
+    "prophecy_averse",
+    "needs_clear_plan",
+    "anxious_spiral",
+  ],
   voice: {
     register: "bright controlled",
     patternsUsed: [

@@ -2,6 +2,7 @@ import { memberSchema } from "../../domain/game";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
+import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { eleanorAsh } from "./eleanor-ash";
 import { gideonGlass } from "./gideon-glass";
 import { jennaPike } from "./jenna-pike";
@@ -18,7 +19,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(16)
+  .length(17)
   .parse([
     jennaPike,
     meridianVale,
@@ -36,12 +37,14 @@ export const starterMembers = memberSchema
     marcusPellish,
     aldricValeMarsh,
     eleanorAsh,
+    decimusMariusTullio,
   ]);
 
 export {
   aldricValeMarsh,
   bradyStrait,
   calvinHewes,
+  decimusMariusTullio,
   eleanorAsh,
   gideonGlass,
   jennaPike,

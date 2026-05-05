@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const kadeSumner: Member = {
   id: "kade-sumner",
   name: "Kade Sumner",
+  firstName: "Kade",
   origin: "Allen, Texas",
   species: "Human",
   dimension: "Prime adjacent",
@@ -10,15 +11,9 @@ export const kadeSumner: Member = {
   bio: "Kade is 23, has 187k followers, and converted his parents' garage into a content studio with a ring light older than most of his comments section. He thinks Cupid is a niche dating app run by a marketing agency and has tagged the URL twice already.",
   datingProfile:
     "23, allen tx, content (lifestyle/micro vlog). looking for a soft launch energy partner, someone who doesn't get weird about a phone on the table. i film, i post, i live. babe drop a hi in the comments if you find this profile, no pressure.",
-  traits: ["performative", "sincere", "anxious", "online"],
   relationshipNeeds: [
     "Someone who lets him film a little without making it the whole bit",
     "A date that survives being content and survives not being content",
-  ],
-  redFlags: [
-    "asks how much he makes",
-    "calls his job not a real job",
-    "tries to get in his videos uninvited",
   ],
   preferences: [
     "good lighting",
@@ -35,7 +30,7 @@ export const kadeSumner: Member = {
     "He has not posted authentically in eight months and is afraid the algorithm noticed before he did.",
     "His mom still does his laundry on Sundays and he counts that against himself privately every week.",
   ],
-  tags: ["ordinary_human", "online_creator", "very_2026"],
+  tags: ["ordinary_human", "performative", "attention_seeking", "anxious_spiral"],
   voice: {
     register: "stream of consciousness chat speak",
     patternsUsed: [

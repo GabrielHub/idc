@@ -3,6 +3,7 @@ import type { Member } from "../../domain/game";
 export const bradyStrait: Member = {
   id: "brady-strait",
   name: "Brady Strait",
+  firstName: "Brady",
   origin: "Akron, Ohio (sister's basement)",
   species: "Human",
   dimension: "Prime",
@@ -10,15 +11,9 @@ export const bradyStrait: Member = {
   bio: "Brady runs a Substack with 47 readers about why dating apps don't work. He is fifteen months and forty seven Cupid dates into the research phase. He lives in his sister's basement for tax reasons he can explain at length.",
   datingProfile:
     "31, akron oh, journalist (independent). working on a long form essay about the modern dating apparatus. looking for a participant willing to sign nothing and feel everything. i am paying for parking. i cannot promise i will be myself, but i can promise to commit. photos are stylized. dm for press kit.",
-  traits: ["ironic", "anxious", "clever", "avoidant", "theatrical"],
   relationshipNeeds: [
     "Someone willing to sit with the bit until it cracks",
     "A date with enough structure that he is not improvising his identity",
-  ],
-  redFlags: [
-    "opens dinner in a fake accent",
-    "glances at notes on his phone between answers",
-    "drops the Substack URL inside four messages",
   ],
   preferences: [
     "structured restaurants with prix fixe menus",
@@ -36,7 +31,7 @@ export const bradyStrait: Member = {
     "The Substack used to have 312 readers and the loss is the only number he checks every morning.",
     "He had one real date in 2023 and has been in character ever since.",
   ],
-  tags: ["ordinary_human", "saboteur", "performative", "online_writer"],
+  tags: ["ordinary_human", "performative", "avoidant", "anxious_spiral", "needs_clear_plan"],
   voice: {
     register: "ironic theatrical",
     patternsUsed: [

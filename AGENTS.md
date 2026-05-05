@@ -3,7 +3,7 @@
 ## Agent Autonomy
 
 - Read relevant code, and `docs` before changing code. You must draw your knowledge from code instead of guessing
-- Challenge requests that conflict with the active plan, product docs, architecture, or current implementation evidence.
+- Challenge requests that conflict with product docs, architecture, or current implementation evidence.
 - Be critical. Push back when a request creates scope drift, weak architecture, or brittle gameplay behavior.
 - Avoid sprawl. Prefer existing patterns, shared domain types, and reusable game services over duplicate functions or components.
 - Always use the `frontend-skill` when creating or heavily refactoring UI components or screens.
@@ -48,12 +48,10 @@
 ## Documentation
 
 - Code, tests, fixtures, and assets are the source of truth for implemented product behavior.
-- `docs/agent-implementation-plan.md` owns implementation order, blockers, task status, and acceptance criteria.
 - `docs/world/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
 - `docs/world/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
 - `docs/world/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
 - Future world docs should own remaining concerns: lore, naming, and content feel.
-- Update task status in the implementation plan when starting or finishing planned work.
 
 ## Copy Style
 
@@ -79,7 +77,7 @@
 
 - Use Tailwind v4 utilities through `className`.
 - Do not use inline CSS styles for UI work.
-- Avoid new global CSS classes unless the active plan explicitly requires shared base styling.
+- Avoid new global CSS classes unless the change needs shared base styling across multiple components.
 - Enabled clickable UI elements must include `cursor-pointer`.
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
 - Minimum font size is `text-xs` or 12px. Never use smaller arbitrary text.
