@@ -11,6 +11,7 @@ import {
   type DateMessage,
   type DateScenario,
   type DateSession,
+  type DateRuntimeMode,
   type FollowUpAction,
   type GameSave,
   type JudgeSnapshot,
@@ -26,30 +27,31 @@ import { companyGoals, memberRequests, starterMembers, starterScenarios } from "
 import { findMemberInSave, getActiveShift, makePairId, sortMemberIds } from "./game-seed";
 import { createDeterministicEmbedding } from "./vector-memory";
 
-type StartDateInput = {
+export type StartDateInput = {
   firstMemberId: string;
   secondMemberId: string;
   scenarioId: string;
+  runtimeMode?: DateRuntimeMode;
   now?: Date;
 };
 
-type AdvanceDateInput = {
+export type AdvanceDateInput = {
   dateSessionId: string;
   now?: Date;
 };
 
-type InterventionInput = {
+export type InterventionInput = {
   dateSessionId: string;
   text: string;
   now?: Date;
 };
 
-type FollowUpInput = {
+export type FollowUpInput = {
   dateSessionId: string;
   action: FollowUpAction;
 };
 
-type DateEngineResult = {
+export type DateEngineResult = {
   save: GameSave;
   session: DateSession;
 };
@@ -132,6 +134,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     currentTurn: 0,
     dateHealth: startingDateHealth(pairState),
     status: "active",
+    runtimeMode: input.runtimeMode ?? "deterministic",
     participants,
     transcript: [openingMessage],
     privateStateByCharacter,
@@ -430,7 +433,7 @@ export function completeShift(
   return { save: nextSave, report };
 }
 
-function createCharacterMessage({
+export function createCharacterMessage({
   session,
   speaker,
   partner,
@@ -468,7 +471,7 @@ function createCharacterMessage({
   };
 }
 
-function createNonCharacterMessage(
+export function createNonCharacterMessage(
   session: DateSession,
   kind: "scenario" | "cupid" | "system",
   text: string,
@@ -538,7 +541,7 @@ function deterministicCharacterText({
   return `anyway ${partner.name}, I am trying to be normal about ${scenario.title}, which may be the first documented problem.${repeatLine}${interventionLine}`;
 }
 
-function judgeExchangeDeterministically({
+export function judgeExchangeDeterministically({
   session,
   pairState,
   members,
@@ -606,18 +609,20 @@ function judgeExchangeDeterministically({
   });
 }
 
-function finalizeDateSession({
+export function finalizeDateSession({
   session,
   pairState,
   members,
   scenario,
   completedAt,
+  memoryRecordIds,
 }: {
   session: DateSession;
   pairState: PairState;
   members: Member[];
   scenario: DateScenario;
   completedAt: string;
+  memoryRecordIds?: string[];
 }): DateSession {
   const outcome =
     session.status === "ended_early"
@@ -636,7 +641,7 @@ function finalizeDateSession({
     summary: `${members[0].name} and ${members[1].name} completed ${scenario.title}. ${session.status === "ended_early" ? "Date ended early. Standard cleanup is on schedule." : "Date completed. Cupid has enough data to be annoying."}`,
     statSummary: `Spark ${pairState.stats.spark}. Strain ${pairState.stats.strain}. Health ${pairState.stats.relationshipHealth}.`,
     recommendedFollowUp,
-    memoryRecordIds: [
+    memoryRecordIds: memoryRecordIds ?? [
       `memory-${session.id}-pair`,
       `memory-${session.id}-${members[0].id}`,
       `memory-${session.id}-${members[1].id}`,
@@ -650,7 +655,7 @@ function finalizeDateSession({
   });
 }
 
-function createDateMemoryRecords(
+export function createDateMemoryRecords(
   session: DateSession,
   members: Member[],
   scenario: DateScenario,
@@ -711,7 +716,10 @@ function createDateMemoryRecords(
   });
 }
 
-function applyJudgeToPairState(pairState: PairState, judgeSnapshot: JudgeSnapshot): PairState {
+export function applyJudgeToPairState(
+  pairState: PairState,
+  judgeSnapshot: JudgeSnapshot,
+): PairState {
   const nextStats = { ...pairState.stats };
 
   for (const stat of RELATIONSHIP_STATS) {
@@ -724,7 +732,7 @@ function applyJudgeToPairState(pairState: PairState, judgeSnapshot: JudgeSnapsho
   };
 }
 
-function applyJudgeToMembers(members: Member[], judgeSnapshot: JudgeSnapshot): Member[] {
+export function applyJudgeToMembers(members: Member[], judgeSnapshot: JudgeSnapshot): Member[] {
   return members.map((member) => ({
     ...member,
     state: {
@@ -738,7 +746,7 @@ function applyJudgeToMembers(members: Member[], judgeSnapshot: JudgeSnapshot): M
   }));
 }
 
-function markPairDateComplete(pairState: PairState, session: DateSession): PairState {
+export function markPairDateComplete(pairState: PairState, session: DateSession): PairState {
   return {
     ...pairState,
     completedDateIds: pairState.completedDateIds.includes(session.id)
@@ -960,7 +968,7 @@ function createMoodBaseline(): Map<string, number> {
   return new Map(starterMembers.map((member) => [member.id, member.state.mood]));
 }
 
-function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
+export function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {
   const existingIndex = items.findIndex((candidate) => candidate.id === item.id);
 
   if (existingIndex === -1) {
@@ -974,6 +982,6 @@ function clampDelta(value: number): number {
   return Math.min(100, Math.max(-100, value));
 }
 
-function clampScore(value: number): number {
+export function clampScore(value: number): number {
   return Math.min(100, Math.max(0, value));
 }

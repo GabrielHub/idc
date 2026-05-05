@@ -232,6 +232,7 @@ Implementation notes:
 
 - `searchCupidMemory()` implements `self`, `pair`, and `scenario` scope filtering with count and text limits.
 - The tool service enforces visibility in application code before returning text to a character performer.
+- Ollama character generation now receives the scoped memory tool through the AI SDK, with tool counts exposed in runtime telemetry.
 
 ## P5. Date Simulation
 
@@ -278,6 +279,7 @@ Implementation notes:
 
 - `app/services/date-engine.ts` supports strict alternation, scenario beat insertion, one intervention, completion, and early ending.
 - Deterministic performer fallback keeps smoke paths playable without blocking on local model latency.
+- `app/services/ai-date-engine.server.ts` runs the same date exchange through local AI performers when a date session is marked `local_ai`, while falling back per subsystem without handing state authority to the model.
 
 ### [x] P5.3 Implement Judge Loop
 
@@ -300,6 +302,7 @@ Implementation notes:
 
 - Deterministic judge snapshots are validated with Zod before state updates.
 - The local AI adapter also exposes structured judge generation for Ollama-backed paths.
+- Local AI judge deltas are filtered to active date participants before member state changes are applied.
 
 ### [x] P5.4 Implement Memory Summarizer
 
@@ -321,6 +324,7 @@ Implementation notes:
 
 - Completed dates create pair, member-private, and scenario repeat memories with explicit embeddings.
 - Repeated scenario history affects later date transcripts and judge penalties.
+- Local AI memory summaries are forced into the completed date's pair and scenario context before embedding and storage.
 
 ## P6. Shift Game Loop
 
@@ -407,6 +411,7 @@ Implementation notes:
 
 - The dashboard now loads or seeds a local save, starts dates, advances or resolves the transcript, records one intervention, shows judge updates, applies follow-ups, and shows a shift report.
 - Playwright validated the start date, send nudge, resolve date, Repair follow-up, and end shift path.
+- The dashboard can mark a new date as `Scripted` or `Local AI`; local AI advancement runs through `/api/game` and then persists the returned canonical save in the browser.
 
 ## P8. Portrait Pipeline
 
@@ -420,7 +425,7 @@ Actions:
 
 - Generate one neutral full-body portrait and one neutral avatar per member against a white background.
 - Follow the portrait style in `docs/world/visual-design.md`.
-- Store source images in `public/assets/portraits/source`.
+- Store source images in `assets-source/portraits`.
 - Run `vp run portrait:cutout`.
 - Store transparent cutouts in `public/assets/portraits/cutout`.
 
@@ -434,6 +439,7 @@ Progress:
 
 - Vhool and Mr. Whiskers source and cutout files are present locally, pending human approval before check-in.
 - Portrait docs and prompt seeds now name webtoon/manhwa/manhua as the asset style direction.
+- Portrait source files now live under `assets-source/portraits`; a Vite guard blocks files under `public/assets/portraits/source`.
 
 ## P9. Verification
 
@@ -455,3 +461,4 @@ Implementation notes:
 
 - `vp test` runs offline smoke tests for fixtures, repository seeding, memory search, full date simulation, follow-up actions, shift scoring, and repeated scenario history.
 - `IDC_RUN_OLLAMA_SMOKE=1 vp test app/services/ai/ollama-provider.server.test.ts` verifies local text and embedding calls against Ollama.
+- `app/services/ai-date-engine.server.test.ts` verifies local AI orchestration, scoped memory tool callbacks, participant-only judge effects, context-correct memory summaries, and deterministic fallback behavior.

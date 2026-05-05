@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { embed, generateObject, generateText } from "ai";
+import { embed, generateObject, generateText, stepCountIs, tool } from "ai";
 import { createOllama } from "ai-sdk-ollama";
 import { z } from "zod";
 
@@ -36,7 +36,28 @@ export type GeneratedTextResult = {
   text: string;
   providerMode: LocalAiProviderMode;
   model: string;
+  stepCount: number;
+  toolCallCount: number;
+  toolResultCount: number;
 };
+
+export type CharacterMemoryToolInput = {
+  query: string;
+  scope: Array<"self" | "pair" | "scenario">;
+  limit: number;
+};
+
+export type CharacterMemoryToolResult = {
+  id: string;
+  text: string;
+  score: number;
+  scope: string;
+  tags: string[];
+};
+
+export type CharacterMemoryToolExecution = (
+  input: CharacterMemoryToolInput,
+) => Promise<CharacterMemoryToolResult[]>;
 
 export class LocalAiError extends Error {
   constructor(
@@ -62,6 +83,7 @@ const judgeAiOutputSchema = z.object({
 export async function generateCharacterTurn(
   packet: CharacterPromptPacket,
   config?: Partial<LocalAiRuntimeConfig>,
+  memoryTool?: CharacterMemoryToolExecution,
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.performerModel;
@@ -71,6 +93,7 @@ export async function generateCharacterTurn(
     prompt: packet.prompt,
     modelId,
     config: runtimeConfig,
+    memoryTool,
   });
 }
 
@@ -124,31 +147,15 @@ export async function embedMemoryText(
 ): Promise<{ embedding: number[]; model: string; dimensions: number }> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.embeddingModel;
+  const providerModes = providerModeOrder(runtimeConfig.providerMode ?? "ollama");
+  const errors: unknown[] = [];
 
-  try {
-    const provider = createOllama({
-      baseURL: runtimeConfig.ollamaBaseURL,
-    });
-    const result = await embed({
-      model: provider.embedding(modelId),
-      value: text,
-    });
-
-    return {
-      embedding: result.embedding,
-      model: modelId,
-      dimensions: result.embedding.length,
-    };
-  } catch (firstError) {
+  for (const providerMode of providerModes) {
     try {
-      const provider = createOpenAICompatible({
-        name: "ollama-openai-compatible",
-        baseURL: runtimeConfig.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
-        apiKey: "ollama",
-      });
       const result = await embed({
-        model: provider.embeddingModel(modelId),
+        model: createEmbeddingModel(providerMode, modelId, runtimeConfig),
         value: text,
+        abortSignal: AbortSignal.timeout(runtimeConfig.requestTimeoutMs ?? 30_000),
       });
 
       return {
@@ -156,13 +163,15 @@ export async function embedMemoryText(
         model: modelId,
         dimensions: result.embedding.length,
       };
-    } catch (secondError) {
-      throw createLocalAiError(
-        "Embedding generation failed. Confirm Ollama is running and the embedding model is pulled.",
-        [firstError, secondError],
-      );
+    } catch (error) {
+      errors.push(error);
     }
   }
+
+  throw createLocalAiError(
+    "Embedding generation failed. Confirm Ollama is running and the embedding model is pulled.",
+    errors,
+  );
 }
 
 function normalizeRuntimeConfig(config?: Partial<LocalAiRuntimeConfig>): LocalAiRuntimeConfig {
@@ -182,11 +191,13 @@ async function generateTextWithFallback({
   prompt,
   modelId,
   config,
+  memoryTool,
 }: {
   system: string;
   prompt: string;
   modelId: string;
   config: LocalAiRuntimeConfig;
+  memoryTool?: CharacterMemoryToolExecution;
 }): Promise<GeneratedTextResult> {
   const providerModes = providerModeOrder(config.providerMode ?? "ollama");
   const errors: unknown[] = [];
@@ -197,6 +208,8 @@ async function generateTextWithFallback({
         model: createLanguageModel(providerMode, modelId, config),
         system,
         prompt,
+        tools: createCharacterTools(memoryTool),
+        stopWhen: memoryTool === undefined ? stepCountIs(1) : stepCountIs(2),
         timeout: config.requestTimeoutMs,
       });
 
@@ -204,6 +217,9 @@ async function generateTextWithFallback({
         text: result.text.trim(),
         providerMode,
         model: modelId,
+        stepCount: result.steps.length,
+        toolCallCount: result.steps.reduce((total, step) => total + step.toolCalls.length, 0),
+        toolResultCount: result.steps.reduce((total, step) => total + step.toolResults.length, 0),
       };
     } catch (error) {
       errors.push(error);
@@ -214,6 +230,28 @@ async function generateTextWithFallback({
     "Text generation failed. Confirm Ollama is running and the requested model is pulled.",
     errors,
   );
+}
+
+function createCharacterTools(memoryTool: CharacterMemoryToolExecution | undefined) {
+  if (memoryTool === undefined) {
+    return undefined;
+  }
+
+  return {
+    searchCupidMemory: tool({
+      description:
+        "Search only this character's allowed IDC memories for self, pair, or current scenario context.",
+      inputSchema: z.object({
+        query: z.string().min(1).max(240),
+        scope: z
+          .array(z.enum(["self", "pair", "scenario"]))
+          .min(1)
+          .max(3),
+        limit: z.number().int().min(1).max(5),
+      }),
+      execute: memoryTool,
+    }),
+  };
 }
 
 async function generateObjectWithFallback<TSchema extends z.ZodType>(
@@ -271,6 +309,28 @@ function createLanguageModel(
   });
 
   return provider(modelId);
+}
+
+function createEmbeddingModel(
+  providerMode: LocalAiProviderMode,
+  modelId: string,
+  config: LocalAiRuntimeConfig,
+) {
+  if (providerMode === "openai-compatible") {
+    const provider = createOpenAICompatible({
+      name: "ollama-openai-compatible",
+      baseURL: config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
+      apiKey: "ollama",
+    });
+
+    return provider.embeddingModel(modelId);
+  }
+
+  const provider = createOllama({
+    baseURL: config.ollamaBaseURL,
+  });
+
+  return provider.embedding(modelId);
 }
 
 function providerModeOrder(preferredMode: LocalAiProviderMode): LocalAiProviderMode[] {

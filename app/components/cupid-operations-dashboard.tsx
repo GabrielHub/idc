@@ -1,18 +1,23 @@
 import { useEffect, useMemo, useState } from "react";
+import { z } from "zod";
 
-import type {
-  CompanyGoal,
-  DateFinalReport,
-  DateMessage,
-  DateScenario,
-  DateSession,
-  FollowUpAction,
-  GameSave,
-  JudgeSnapshot,
-  Member,
-  MemberRequest,
-  PairState,
-  ShiftReport,
+import {
+  dateSessionSchema,
+  gameSaveSchema,
+  type CompanyGoal,
+  type DateFinalReport,
+  type DateMessage,
+  type DateRuntimeMode,
+  type DateScenario,
+  type DateSession,
+  type FollowUpAction,
+  type GameSave,
+  type JudgeSnapshot,
+  type Member,
+  type MemberRequest,
+  type PairState,
+  type PortraitAsset,
+  type ShiftReport,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import {
@@ -26,6 +31,7 @@ import {
   completeDateSession,
   completeShift,
   startDateSession,
+  type DateEngineResult,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
 
@@ -57,6 +63,45 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   mark_bad_fit: "Mark Bad Fit",
 };
 
+type RuntimeMode = DateRuntimeMode;
+
+const GAME_API_TIMEOUT_MS = 120_000;
+
+type GameApiActionInput =
+  | {
+      type: "advanceExchange";
+      runtimeMode: RuntimeMode;
+      save: GameSave;
+      dateSessionId: string;
+    }
+  | {
+      type: "completeDate";
+      runtimeMode: RuntimeMode;
+      save: GameSave;
+      dateSessionId: string;
+    };
+
+const gameApiResponseSchema = z.object({
+  save: gameSaveSchema,
+  session: dateSessionSchema,
+  runtimeMode: z.enum(["deterministic", "local_ai"]),
+  warningMessages: z.array(z.string()),
+  aiTelemetry: z
+    .object({
+      characterGenerationCount: z.number().int().min(0),
+      characterToolCallCount: z.number().int().min(0),
+      characterToolResultCount: z.number().int().min(0),
+      deterministicFallbackCount: z.number().int().min(0),
+    })
+    .nullable(),
+});
+
+const gameApiErrorSchema = z.object({
+  error: z.string().min(1),
+});
+
+type GameApiResponse = z.infer<typeof gameApiResponseSchema>;
+
 export function CupidOperationsDashboard() {
   const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
   const [save, setSave] = useState<GameSave | null>(null);
@@ -64,13 +109,23 @@ export function CupidOperationsDashboard() {
   const [selectedScenarioId, setSelectedScenarioId] = useState("");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
+  const [runtimeMode, setRuntimeMode] = useState<RuntimeMode>("deterministic");
+  const [isActionPending, setIsActionPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
     async function loadSave() {
-      const existingSave = await repository.loadGame();
+      let recoveredOutdatedSave = false;
+      let existingSave: GameSave | null = null;
+
+      try {
+        existingSave = await repository.loadGame();
+      } catch {
+        recoveredOutdatedSave = true;
+      }
+
       const nextSave = existingSave ?? (await repository.resetGame());
 
       if (!isMounted) {
@@ -78,12 +133,18 @@ export function CupidOperationsDashboard() {
       }
 
       setSave(nextSave);
-      setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
-      setActiveDateSessionId(
-        nextSave.dateSessions.find((session) => session.status === "active")?.id ??
-          nextSave.dateSessions.at(-1)?.id ??
-          null,
+      setErrorMessage(
+        recoveredOutdatedSave
+          ? "Cupid reset an outdated local save. The old file did not match the current shift schema."
+          : null,
       );
+      const restoredSession =
+        nextSave.dateSessions.find((session) => session.status === "active") ??
+        nextSave.dateSessions.at(-1) ??
+        null;
+      setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
+      setRuntimeMode(restoredSession?.runtimeMode ?? "deterministic");
+      setActiveDateSessionId(restoredSession?.id ?? null);
     }
 
     void loadSave();
@@ -151,8 +212,8 @@ export function CupidOperationsDashboard() {
   );
 
   async function persist(nextSave: GameSave) {
-    setSave(nextSave);
     await repository.saveGame(nextSave);
+    setSave(nextSave);
   }
 
   function toggleMember(memberId: string) {
@@ -179,9 +240,11 @@ export function CupidOperationsDashboard() {
         firstMemberId: selectedMembers[0].id,
         secondMemberId: selectedMembers[1].id,
         scenarioId: selectedScenario.id,
+        runtimeMode,
       });
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
+      setRuntimeMode(result.session.runtimeMode);
       setInterventionText("");
     });
   }
@@ -192,11 +255,24 @@ export function CupidOperationsDashboard() {
     }
 
     tryAction(async () => {
-      const result = advanceDateExchange(save, {
-        dateSessionId: activeSession.id,
-      });
+      const activeRuntimeMode = activeSession.runtimeMode;
+      const result =
+        activeRuntimeMode === "local_ai"
+          ? await runGameApiAction({
+              type: "advanceExchange",
+              runtimeMode: activeRuntimeMode,
+              save,
+              dateSessionId: activeSession.id,
+            })
+          : toGameApiResponse(
+              advanceDateExchange(save, {
+                dateSessionId: activeSession.id,
+              }),
+            );
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
+      setRuntimeMode(result.session.runtimeMode);
+      setRuntimeWarnings(result);
     });
   }
 
@@ -206,9 +282,20 @@ export function CupidOperationsDashboard() {
     }
 
     tryAction(async () => {
-      const result = completeDateSession(save, activeSession.id);
+      const activeRuntimeMode = activeSession.runtimeMode;
+      const result =
+        activeRuntimeMode === "local_ai"
+          ? await runGameApiAction({
+              type: "completeDate",
+              runtimeMode: activeRuntimeMode,
+              save,
+              dateSessionId: activeSession.id,
+            })
+          : toGameApiResponse(completeDateSession(save, activeSession.id));
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
+      setRuntimeMode(result.session.runtimeMode);
+      setRuntimeWarnings(result);
     });
   }
 
@@ -263,14 +350,29 @@ export function CupidOperationsDashboard() {
     });
   }
 
+  function setRuntimeWarnings(result: GameApiResponse) {
+    if (result.warningMessages.length === 0) {
+      return;
+    }
+
+    setErrorMessage(result.warningMessages.slice(0, 3).join(" "));
+  }
+
   async function tryAction(action: () => Promise<void>) {
+    if (isActionPending) {
+      return;
+    }
+
     try {
+      setIsActionPending(true);
       setErrorMessage(null);
       await action();
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Cupid could not process that action.",
       );
+    } finally {
+      setIsActionPending(false);
     }
   }
 
@@ -292,11 +394,14 @@ export function CupidOperationsDashboard() {
   const dateSlotsRemaining = Math.max(0, activeShift.dateSlotsTotal - activeShift.dateSlotsUsed);
   const canStartDate =
     activeShift.status === "active" &&
+    !isActionPending &&
     dateSlotsRemaining > 0 &&
     (activeSession === null || activeSession.status !== "active") &&
     selectedMembers.length === 2 &&
     selectedScenario !== undefined;
-  const canAdvanceDate = activeSession !== null && activeSession.status === "active";
+  const canAdvanceDate =
+    activeSession !== null && activeSession.status === "active" && !isActionPending;
+  const runtimeModeDisabled = isActionPending || activeSession?.status === "active";
   const canIntervene =
     canAdvanceDate &&
     activeSession?.intervention === undefined &&
@@ -309,6 +414,8 @@ export function CupidOperationsDashboard() {
         activeShiftStatus={activeShift.status}
         dateSlotsUsed={activeShift.dateSlotsUsed}
         dateSlotsTotal={activeShift.dateSlotsTotal}
+        runtimeMode={runtimeMode}
+        isActionPending={isActionPending}
         onReset={handleReset}
       />
       <main className="mx-auto grid w-full max-w-[1680px] grid-cols-1 gap-5 px-5 py-5 xl:grid-cols-[285px_minmax(0,1fr)_420px] 2xl:grid-cols-[310px_minmax(0,1fr)_460px] 2xl:px-7">
@@ -319,6 +426,7 @@ export function CupidOperationsDashboard() {
             dateSlotsTotal={activeShift.dateSlotsTotal}
             scenarioCount={drawnScenarios.length}
             onEndShift={handleEndShift}
+            isActionPending={isActionPending}
             report={activeShift.report}
           />
           <PinnedGoals goals={pinnedGoals} report={activeShift.report} />
@@ -334,11 +442,13 @@ export function CupidOperationsDashboard() {
           <MemberBoard
             members={save.members}
             selectedMemberIds={selectedMemberIds}
+            disabled={isActionPending}
             onToggleMember={toggleMember}
           />
           <ScenarioHand
             scenarios={drawnScenarios}
             selectedScenarioId={selectedScenarioId}
+            disabled={isActionPending}
             onSelectScenario={setSelectedScenarioId}
           />
           <ActiveDateControls
@@ -346,7 +456,11 @@ export function CupidOperationsDashboard() {
             interventionText={interventionText}
             canAdvanceDate={canAdvanceDate}
             canIntervene={canIntervene}
+            isActionPending={isActionPending}
+            runtimeMode={runtimeMode}
+            runtimeModeDisabled={runtimeModeDisabled}
             onInterventionTextChange={setInterventionText}
+            onRuntimeModeChange={setRuntimeMode}
             onAdvanceExchange={handleAdvanceExchange}
             onCompleteDate={handleCompleteDate}
             onSendIntervention={handleIntervention}
@@ -361,6 +475,7 @@ export function CupidOperationsDashboard() {
             pairPreview={pairPreview}
             activeSession={activeSession}
             canStartDate={canStartDate}
+            isActionPending={isActionPending}
             onStartDate={handleStartDate}
           />
           <TranscriptPanel
@@ -374,17 +489,82 @@ export function CupidOperationsDashboard() {
   );
 }
 
+async function runGameApiAction(input: GameApiActionInput): Promise<GameApiResponse> {
+  const abortController = new AbortController();
+  const timeoutId = window.setTimeout(() => abortController.abort(), GAME_API_TIMEOUT_MS);
+
+  let response: Response;
+
+  try {
+    response = await fetch("/api/game", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(input),
+      signal: abortController.signal,
+    });
+  } catch (error) {
+    if (abortController.signal.aborted) {
+      throw new Error("Local AI timed out. Confirm Ollama is running, then retry the exchange.");
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+
+  const payload = await readJsonResponse(response);
+
+  if (!response.ok) {
+    const parsedError = gameApiErrorSchema.safeParse(payload);
+    throw new Error(
+      parsedError.success ? parsedError.data.error : "Cupid API rejected the date action.",
+    );
+  }
+
+  const parsedResponse = gameApiResponseSchema.safeParse(payload);
+
+  if (!parsedResponse.success) {
+    throw new Error("Cupid API returned an invalid date update.");
+  }
+
+  return parsedResponse.data;
+}
+
+async function readJsonResponse(response: Response): Promise<unknown> {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+function toGameApiResponse(result: DateEngineResult): GameApiResponse {
+  return gameApiResponseSchema.parse({
+    save: result.save,
+    session: result.session,
+    runtimeMode: "deterministic",
+    warningMessages: [],
+    aiTelemetry: null,
+  });
+}
+
 function DashboardHeader({
   save,
   activeShiftStatus,
   dateSlotsUsed,
   dateSlotsTotal,
+  runtimeMode,
+  isActionPending,
   onReset,
 }: {
   save: GameSave;
   activeShiftStatus: string;
   dateSlotsUsed: number;
   dateSlotsTotal: number;
+  runtimeMode: RuntimeMode;
+  isActionPending: boolean;
   onReset: () => void;
 }) {
   return (
@@ -400,6 +580,7 @@ function DashboardHeader({
         </div>
         <div className="hidden items-center gap-3 lg:flex">
           <StatusChip label="Local model" value={save.config.performerModel} tone="rose" />
+          <StatusChip label="Runtime" value={runtimeLabel(runtimeMode)} tone="violet" />
           <StatusChip label="Shift" value={activeShiftStatus} tone="violet" />
           <StatusChip
             label="Date slots"
@@ -409,7 +590,8 @@ function DashboardHeader({
           <button
             type="button"
             onClick={onReset}
-            className="cursor-pointer rounded-pill border border-aura-hairline bg-white/70 px-3 py-2 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-aura-muted transition hover:bg-white"
+            disabled={isActionPending}
+            className="cursor-pointer rounded-pill border border-aura-hairline bg-white/70 px-3 py-2 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-aura-muted transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
           >
             Reset save
           </button>
@@ -444,12 +626,52 @@ function StatusChip({
   );
 }
 
+const RUNTIME_MODE_LABELS: Record<RuntimeMode, string> = {
+  deterministic: "Scripted",
+  local_ai: "Local AI",
+};
+
+function RuntimeModeControl({
+  runtimeMode,
+  disabled,
+  onRuntimeModeChange,
+}: {
+  runtimeMode: RuntimeMode;
+  disabled: boolean;
+  onRuntimeModeChange: (mode: RuntimeMode) => void;
+}) {
+  const modes: RuntimeMode[] = ["deterministic", "local_ai"];
+
+  return (
+    <div className="inline-flex rounded-pill border border-aura-hairline bg-white/70 p-1">
+      {modes.map((mode) => {
+        const isSelected = mode === runtimeMode;
+
+        return (
+          <button
+            key={mode}
+            type="button"
+            disabled={disabled}
+            onClick={() => onRuntimeModeChange(mode)}
+            className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-45 ${
+              isSelected ? "bg-aura-ink text-white" : "text-aura-muted hover:bg-white"
+            }`}
+          >
+            {RUNTIME_MODE_LABELS[mode]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function ShiftStatus({
   activeShiftStatus,
   dateSlotsUsed,
   dateSlotsTotal,
   scenarioCount,
   onEndShift,
+  isActionPending,
   report,
 }: {
   activeShiftStatus: string;
@@ -457,6 +679,7 @@ function ShiftStatus({
   dateSlotsTotal: number;
   scenarioCount: number;
   onEndShift: () => void;
+  isActionPending: boolean;
   report: ShiftReport | undefined;
 }) {
   return (
@@ -471,7 +694,7 @@ function ShiftStatus({
       <button
         type="button"
         onClick={onEndShift}
-        disabled={activeShiftStatus !== "active"}
+        disabled={activeShiftStatus !== "active" || isActionPending}
         className="mt-5 w-full cursor-pointer rounded-pill border border-aura-rose/20 bg-rose-50 px-4 py-2.5 text-body font-bold text-aura-rose transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
       >
         End shift
@@ -560,10 +783,12 @@ function PinnedRequests({
 function MemberBoard({
   members,
   selectedMemberIds,
+  disabled,
   onToggleMember,
 }: {
   members: Member[];
   selectedMemberIds: string[];
+  disabled: boolean;
   onToggleMember: (memberId: string) => void;
 }) {
   return (
@@ -584,8 +809,9 @@ function MemberBoard({
               key={member.id}
               type="button"
               aria-pressed={isSelected}
+              disabled={disabled}
               onClick={() => onToggleMember(member.id)}
-              className={`group cursor-pointer rounded-card border p-4 text-left shadow-card backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/75 ${
+              className={`group cursor-pointer rounded-card border p-4 text-left shadow-card backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/75 disabled:cursor-not-allowed disabled:opacity-55 ${
                 isSelected
                   ? "border-aura-rose/45 bg-white/80 ring-2 ring-aura-rose/20"
                   : "border-white/70 bg-aura-card"
@@ -634,26 +860,83 @@ function MemberBoard({
 
 function Portrait({ member }: { member: Member }) {
   return (
-    <div className="grid size-24 shrink-0 place-items-center rounded-card border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card">
-      <div className="text-center">
-        <p className="font-display text-3xl font-bold tracking-normal text-aura-rose">
-          {initialsFor(member.name)}
-        </p>
-        <p className="mt-1 font-mono text-micro font-semibold uppercase tracking-[0.14em] text-aura-muted">
-          portrait
-        </p>
-      </div>
+    <PortraitFrame
+      imagePath={readyPortraitPath(member.portraits.neutral.avatar)}
+      member={member}
+      variant="avatar"
+    />
+  );
+}
+
+function MatchPortrait({ member }: { member: Member }) {
+  return (
+    <PortraitFrame
+      imagePath={readyPortraitPath(member.portraits.neutral.portrait)}
+      member={member}
+      variant="portrait"
+    />
+  );
+}
+
+type PortraitFrameVariant = "avatar" | "portrait";
+
+const PORTRAIT_FRAME_CLASS: Record<PortraitFrameVariant, string> = {
+  avatar:
+    "grid size-24 shrink-0 place-items-center overflow-hidden rounded-card border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
+  portrait:
+    "grid h-24 w-16 shrink-0 place-items-center overflow-hidden rounded-tile border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-100 to-violet-100 shadow-card",
+};
+
+const PORTRAIT_IMAGE_CLASS: Record<PortraitFrameVariant, string> = {
+  avatar: "size-full object-contain object-center p-1",
+  portrait: "size-full object-contain object-bottom p-1",
+};
+
+const PORTRAIT_INITIALS_CLASS: Record<PortraitFrameVariant, string> = {
+  avatar: "font-display text-3xl font-bold tracking-normal text-aura-rose",
+  portrait: "font-display text-xl font-bold tracking-normal text-aura-rose",
+};
+
+function PortraitFrame({
+  imagePath,
+  member,
+  variant,
+}: {
+  imagePath: string | undefined;
+  member: Member;
+  variant: PortraitFrameVariant;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  return (
+    <div className={PORTRAIT_FRAME_CLASS[variant]}>
+      {imagePath === undefined || imageFailed ? (
+        <p className={PORTRAIT_INITIALS_CLASS[variant]}>{initialsFor(member.name)}</p>
+      ) : (
+        <img
+          alt={`${member.name} ${variant}`}
+          className={PORTRAIT_IMAGE_CLASS[variant]}
+          onError={() => setImageFailed(true)}
+          src={imagePath}
+        />
+      )}
     </div>
   );
+}
+
+function readyPortraitPath(asset: PortraitAsset) {
+  return asset.model === "pending" ? undefined : asset.cutoutPath;
 }
 
 function ScenarioHand({
   scenarios,
   selectedScenarioId,
+  disabled,
   onSelectScenario,
 }: {
   scenarios: DateScenario[];
   selectedScenarioId: string;
+  disabled: boolean;
   onSelectScenario: (scenarioId: string) => void;
 }) {
   return (
@@ -673,8 +956,9 @@ function ScenarioHand({
               key={scenario.id}
               type="button"
               aria-pressed={isSelected}
+              disabled={disabled}
               onClick={() => onSelectScenario(scenario.id)}
-              className={`cursor-pointer rounded-card border p-4 text-left shadow-card backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/80 ${
+              className={`cursor-pointer rounded-card border p-4 text-left shadow-card backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/80 disabled:cursor-not-allowed disabled:opacity-55 ${
                 isSelected
                   ? "border-aura-fuchsia/45 bg-white/85 ring-2 ring-aura-fuchsia/20"
                   : "border-white/70 bg-aura-card"
@@ -711,6 +995,7 @@ function SelectedMatchPanel({
   pairPreview,
   activeSession,
   canStartDate,
+  isActionPending,
   onStartDate,
 }: {
   selectedMembers: Member[];
@@ -718,6 +1003,7 @@ function SelectedMatchPanel({
   pairPreview: PairPreview | null;
   activeSession: DateSession | null;
   canStartDate: boolean;
+  isActionPending: boolean;
   onStartDate: () => void;
 }) {
   return (
@@ -733,9 +1019,12 @@ function SelectedMatchPanel({
             <div className="space-y-3">
               {selectedMembers.map((member) => (
                 <div key={member.id} className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-aura-ink">{member.name}</p>
-                    <p className="text-label text-aura-muted">{member.realityStatus}</p>
+                  <div className="flex min-w-0 items-center gap-3">
+                    <MatchPortrait member={member} />
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-aura-ink">{member.name}</p>
+                      <p className="text-label text-aura-muted">{member.realityStatus}</p>
+                    </div>
                   </div>
                   <span className="rounded-pill bg-white/80 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-aura-rose">
                     mood {member.state.mood}
@@ -778,7 +1067,11 @@ function SelectedMatchPanel({
           onClick={onStartDate}
           className="w-full cursor-pointer rounded-pill bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-5 py-3.5 text-body font-bold text-white shadow-cta transition hover:-translate-y-0.5 hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-45"
         >
-          {activeSession?.status === "active" ? "Date in progress" : "Start date"}
+          {isActionPending
+            ? "Processing"
+            : activeSession?.status === "active"
+              ? "Date in progress"
+              : "Start date"}
         </button>
       </div>
     </section>
@@ -790,7 +1083,11 @@ function ActiveDateControls({
   interventionText,
   canAdvanceDate,
   canIntervene,
+  isActionPending,
+  runtimeMode,
+  runtimeModeDisabled,
   onInterventionTextChange,
+  onRuntimeModeChange,
   onAdvanceExchange,
   onCompleteDate,
   onSendIntervention,
@@ -800,7 +1097,11 @@ function ActiveDateControls({
   interventionText: string;
   canAdvanceDate: boolean;
   canIntervene: boolean;
+  isActionPending: boolean;
+  runtimeMode: RuntimeMode;
+  runtimeModeDisabled: boolean;
   onInterventionTextChange: (text: string) => void;
+  onRuntimeModeChange: (mode: RuntimeMode) => void;
   onAdvanceExchange: () => void;
   onCompleteDate: () => void;
   onSendIntervention: () => void;
@@ -813,6 +1114,13 @@ function ActiveDateControls({
         <p className="mt-4 text-body text-aura-muted">
           Start a match to open the transcript and intervention console.
         </p>
+        <div className="mt-4">
+          <RuntimeModeControl
+            runtimeMode={runtimeMode}
+            disabled={runtimeModeDisabled}
+            onRuntimeModeChange={onRuntimeModeChange}
+          />
+        </div>
       </section>
     );
   }
@@ -821,9 +1129,16 @@ function ActiveDateControls({
     <section className="rounded-card border border-white/70 bg-aura-card p-5 shadow-card backdrop-blur-xl">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <SectionLabel eyebrow="// date" title="Active date" />
-        <span className="rounded-pill bg-white/80 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-aura-rose">
-          {session.status}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <RuntimeModeControl
+            runtimeMode={runtimeMode}
+            disabled={runtimeModeDisabled}
+            onRuntimeModeChange={onRuntimeModeChange}
+          />
+          <span className="rounded-pill bg-white/80 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-aura-rose">
+            {session.status}
+          </span>
+        </div>
       </div>
       <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr_1fr]">
         <Meter label="Date Health" value={session.dateHealth} />
@@ -849,7 +1164,7 @@ function ActiveDateControls({
           onClick={onSendIntervention}
           className="cursor-pointer rounded-pill border border-aura-rose/20 bg-rose-50 px-4 py-3 text-body font-bold text-aura-rose transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Send nudge
+          {isActionPending ? "Processing" : "Send nudge"}
         </button>
         <button
           type="button"
@@ -857,7 +1172,7 @@ function ActiveDateControls({
           onClick={onAdvanceExchange}
           className="cursor-pointer rounded-pill bg-aura-ink px-4 py-3 text-body font-bold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Advance exchange
+          {isActionPending ? "Processing" : "Advance exchange"}
         </button>
       </div>
       <div className="mt-3 flex flex-wrap gap-3">
@@ -867,7 +1182,7 @@ function ActiveDateControls({
           onClick={onCompleteDate}
           className="cursor-pointer rounded-pill border border-aura-hairline bg-white/70 px-4 py-2.5 text-label font-bold text-aura-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
         >
-          Resolve date
+          {isActionPending ? "Processing" : "Resolve date"}
         </button>
         {session.finalReport === undefined || session.finalReport.appliedFollowUp !== undefined
           ? null
@@ -875,8 +1190,9 @@ function ActiveDateControls({
               <button
                 key={action}
                 type="button"
+                disabled={isActionPending}
                 onClick={() => onFollowUp(action)}
-                className="cursor-pointer rounded-pill border border-aura-hairline bg-white/70 px-4 py-2.5 text-label font-bold text-aura-ink transition hover:bg-white"
+                className="cursor-pointer rounded-pill border border-aura-hairline bg-white/70 px-4 py-2.5 text-label font-bold text-aura-ink transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-45"
               >
                 {FOLLOW_UP_LABELS[action]}
               </button>
@@ -1119,6 +1435,10 @@ function isScenario(scenario: DateScenario | undefined): scenario is DateScenari
 
 function isString(value: string | undefined): value is string {
   return value !== undefined;
+}
+
+function runtimeLabel(mode: RuntimeMode) {
+  return RUNTIME_MODE_LABELS[mode];
 }
 
 function scoreWidthClass(value: number) {

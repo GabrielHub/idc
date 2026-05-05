@@ -9,6 +9,7 @@ export type MemoryRetrievalInput = {
   scenarioId: string;
   dateSessionId?: string;
   query: string;
+  queryEmbedding?: number[];
   limit?: number;
   recentTranscriptLimit?: number;
 };
@@ -26,6 +27,7 @@ export type SearchCupidMemoryInput = {
   pairId: string;
   scenarioId: string;
   query: string;
+  queryEmbedding?: number[];
   scope: Array<"self" | "pair" | "scenario">;
   limit: number;
 };
@@ -43,7 +45,7 @@ export async function retrieveRelevantMemories(
   input: MemoryRetrievalInput,
 ): Promise<MemoryPack> {
   const limit = input.limit ?? 4;
-  const queryEmbedding = createDeterministicEmbedding(input.query);
+  const queryEmbedding = input.queryEmbedding ?? createDeterministicEmbedding(input.query);
   const dateSession =
     input.dateSessionId === undefined ? null : await repository.getDateSession(input.dateSessionId);
   const recentTranscript = dateSession?.transcript.slice(-(input.recentTranscriptLimit ?? 8)) ?? [];
@@ -111,7 +113,7 @@ export async function searchCupidMemory(
   input: SearchCupidMemoryInput,
 ): Promise<SearchCupidMemoryResult[]> {
   const boundedLimit = Math.min(Math.max(input.limit, 1), 5);
-  const queryEmbedding = createDeterministicEmbedding(input.query);
+  const queryEmbedding = input.queryEmbedding ?? createDeterministicEmbedding(input.query);
   const results = (
     await Promise.all(
       buildToolFilters(input).map((filters) =>

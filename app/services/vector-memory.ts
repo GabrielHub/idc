@@ -22,9 +22,7 @@ export function createDeterministicEmbedding(
 }
 
 export function cosineSimilarity(first: number[], second: number[]): number {
-  const length = Math.min(first.length, second.length);
-
-  if (length === 0) {
+  if (first.length === 0 || first.length !== second.length) {
     return 0;
   }
 
@@ -32,7 +30,7 @@ export function cosineSimilarity(first: number[], second: number[]): number {
   let firstMagnitude = 0;
   let secondMagnitude = 0;
 
-  for (let index = 0; index < length; index += 1) {
+  for (let index = 0; index < first.length; index += 1) {
     dot += first[index] * second[index];
     firstMagnitude += first[index] * first[index];
     secondMagnitude += second[index] * second[index];

@@ -278,6 +278,7 @@ export const judgeSnapshotSchema = z.object({
 });
 
 export const dateSessionStatusSchema = z.enum(["active", "completed", "ended_early"]);
+export const dateRuntimeModeSchema = z.enum(["deterministic", "local_ai"]);
 
 export const followUpActionSchema = z.enum(["encourage", "cool_down", "repair", "mark_bad_fit"]);
 
@@ -301,6 +302,7 @@ export const dateSessionSchema = z.object({
   currentTurn: z.number().int().min(0),
   dateHealth: scoreSchema,
   status: dateSessionStatusSchema,
+  runtimeMode: dateRuntimeModeSchema.default("deterministic"),
   participants: z.tuple([memberIdSchema, memberIdSchema]),
   transcript: z.array(dateMessageSchema),
   privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
@@ -401,6 +403,7 @@ export type MemoryRecord = z.infer<typeof memoryRecordSchema>;
 export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;
 export type JudgeSnapshot = z.infer<typeof judgeSnapshotSchema>;
 export type DateSessionStatus = z.infer<typeof dateSessionStatusSchema>;
+export type DateRuntimeMode = z.infer<typeof dateRuntimeModeSchema>;
 export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
