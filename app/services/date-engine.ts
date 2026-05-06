@@ -22,6 +22,7 @@ import {
   type MemoryRecord,
   type PairState,
   type PairStats,
+  type MemberRequest,
   type RelationshipStat,
   type ShiftGoalResult,
   type ShiftReport,

@@ -65,21 +65,22 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 
 ### Warm clusters in the current roster
 
-- **Sincerity tribe**: Jenna, Sana, Marcus, Toby. Marcus + Sana, Marcus + Jenna, Toby + Sana all warm. Mundane domesticity, low pressure, no performance.
-- **Ceremony tribe**: Vhool, Aldric, Eleanor, Decimus. Aldric + Vhool (sacred bargain), Aldric + Decimus (soldiers), Eleanor + Decimus (cold formal pair). Shared formal cadence reads as fluency.
-- **Reality-displaced peers**: Opal, Aldric, Decimus, Meridian. Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one.
+- **Sincerity tribe**: Jenna, Sana, Marcus, Toby, Mei. Marcus + Sana, Marcus + Jenna, Toby + Sana all warm. Mundane domesticity, low pressure, no performance. Mei sits at the high-energy end of the cluster: hyperfocused on her craft, no bit, lets others finish a sentence because she expects the same.
+- **Ceremony tribe**: Vhool, Aldric, Eleanor, Decimus, Wenshu. Aldric + Vhool (sacred bargain), Aldric + Decimus (soldiers), Eleanor + Decimus (cold formal pair), Wenshu + Vhool (Dao-talk meets Pact-talk, same dialect of seriousness). Shared formal cadence reads as fluency.
+- **Reality-displaced peers**: Opal, Aldric, Decimus, Meridian, Sera, Wenshu. Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one. Sera is the only one displaced from a future. Wenshu is the only one who believes his displacement is a sanctioned trial; the others know better.
 - **Grief siblings (low intimacy only)**: Gideon, Marcus, Decimus. Marcus + Decimus is healthy. High intimacy compounds.
-- **Career grind**: Tasha, Mr. Whiskers, Meridian, Marcus. Calendars, decisive plans, no negotiation.
+- **Career grind**: Tasha, Mr. Whiskers, Meridian, Marcus, Sera. Calendars, decisive plans, no negotiation. Sera + Tasha share confirmation discipline; Sera + Eleanor share Term-and-Bargain protocol fluency.
 
 ### Friction zones in the current roster
 
-- **Performer vs sincerity-seeker**: Brady or Kade vs Sana, Marcus, Toby, Aldric. Sincerity-seekers read bits as evasion. Performers read sincerity as a trap.
+- **Performer vs sincerity-seeker**: Brady or Kade vs Sana, Marcus, Toby, Aldric, Mei, Wenshu. Sincerity-seekers read bits as evasion. Performers read sincerity as a trap. Mei vs Kade is sharp because Kade wants to film her sets and she will not be content. Mei vs Brady cracks the bit faster than most because her enthusiasm has nowhere for irony to land. Wenshu reads as performative on the surface but is sincerity-seeking underneath; Brady clocks him as a fellow operator and they sit in mutual bit recognition until one cracks.
 - **Privacy vs attention**: Calvin or Meridian vs Kade. Calvin vs Brady (recorder). Phones on the table are a hard no for the privacy-tagged.
 - **Competitive collisions**: Venus vs Tasha, Venus vs Mr. Whiskers, Mr. Whiskers vs Tasha. Spark high, trust low.
-- **Prophecy-averse meets ceremony**: Opal vs Vhool ("Pact"), Opal vs Aldric ("Saints"). Opal has built a binder against this exact energy.
+- **Prophecy-averse meets ceremony**: Opal vs Vhool ("Pact"), Opal vs Aldric ("Saints"), Opal vs Wenshu ("Fated Counterpart"). Opal has built a binder against this exact energy. Wenshu uses "fated" in his dating profile, which is literally on her list.
 - **Anxious-spiral compound**: Toby + Kade, Toby + Opal, Toby + Brady. Two anxious people pull each other tighter.
 - **Formal lockup**: Mr. Whiskers vs Eleanor (neither will drop the formality), Meridian vs Mr. Whiskers (both clipped, both armored).
 - **Bit collision**: Brady vs Kade. Different vintages, same dishonesty. Each can feel the other doing it.
+- **Protocol vs sincerity**: Sera vs Sana, Sera vs Marcus, Sera vs Jenna, Sera vs Toby. Sera offers Standard Terms and week-three cohabitation review; sincerity-seekers read it as evasion. She reads their pace as missing data.
 
 ### Volatile but interesting
 
@@ -87,6 +88,15 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 - Venus vs Opal: goddess of love meets the professional wedding planner. Electric.
 - Brady vs Marcus: forced sincerity collision. Real chance of breaking Brady.
 - Calvin vs Vhool: Calvin's "I am normal" act meets Vhool's loud non-normal. Destabilizing for Calvin.
+- Sera vs Aldric: 1190 oaths meet 2087 SLAs. Both treat commitment as a binding instrument; the vocabularies cannot decide whether to translate or feud.
+- Sera vs Calvin: she clocks him as another non-Prime inside two minutes. Reads as warmth to her, alarm to him.
+- Sera vs Eleanor: a contractual fae and a contractual auditor compare ledgers. Either fluent partnership or a lawyered duel.
+- Mei vs Gideon: a Brooklyn DJ who reveres house music history meets a 1962 hotel ghost. She wants to ask him about the Palatine lobby piano. He has been practicing one piece for sixty three years. Genuine spark possible if she can listen at his speed.
+- Mei vs Aldric: rapid sincere meets knightly sincere. Different vocabularies, same conviction. He will not understand a word about gear. She will not laugh at the Briar Hold. The match is whether either gets a foothold.
+- Mei vs Mira: craft career meets corporate career. Mira will pitch monetization. Mei will hear "you should turn your hyperfixation into a brand" and lose interest by the second course.
+- Aldric vs Wenshu: Saints vs Sect. Two ceremonialists raised on different scriptures with identical conviction. Either fluent doctrinal feud or surprised warm recognition. Both default to M'Lady on occasion, Aldric by tradition and Wenshu by absorbed internet text.
+- Eleanor vs Wenshu: she literally cannot lie. His surface is lyrical lies he believes. He cannot tell which lies he is living inside. She will unmake at least one of them by accident.
+- Vhool vs Wenshu: both treat their metaphysics as routine. Pact and Dao recognize each other and the awe drains out of the table. The most likely warm landing for Wenshu in the roster.
 
 Update this map when adding a member. If a new member does not slot into any cluster or friction zone, that is a sign the design is too generic.
 

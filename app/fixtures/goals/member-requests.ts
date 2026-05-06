@@ -120,4 +120,32 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 6,
     tags: ["midlife", "widower"],
   },
+  {
+    id: "request-mira-high-caliber",
+    memberId: "mira-park",
+    text: "Mira wants a high caliber match who matches her on intentionality and treats Cupid like the elite network she thinks it is. She would also like material for a thread.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["performative", "career_intense"],
+  },
+  {
+    id: "request-sera-clean-term",
+    memberId: "sera-vohn",
+    text: "Sera wants a counterparty who confirms a Term once and does not amend it past the second course. Renewal is at the partner's discretion.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["career_intense", "decisiveness"],
+  },
+  {
+    id: "request-mei-listen",
+    memberId: "mei-sato",
+    text: "Mei wants a date who lets her get to the end of a track rec without checking out. The hyperfixation is the love language.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["sincerity", "respect"],
+  },
+  {
+    id: "request-bai-honest-trial",
+    memberId: "bai-wenshu",
+    text: "Bai Wenshu wants a partner who lets the Trial run long enough that the Inner Disciple beneath the flourish can speak once. He will not name this aloud and he keeps a private count.",
+    moodPenaltyIfIgnored: 6,
+    tags: ["sincerity", "structure"],
+  },
 ];

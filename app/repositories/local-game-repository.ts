@@ -33,10 +33,10 @@ import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
 
 const SAVE_KEY_PREFIX = "idc.cupid.save.v";
-const LEGACY_ALL_GEMMA_26B_CONFIG = {
+const EXPERIMENTAL_SPLIT_GEMMA_CONFIG = {
   performerModel: "gemma4:26b",
-  judgeModel: "gemma4:26b",
-  summarizerModel: "gemma4:26b",
+  judgeModel: "gemma4:e4b",
+  summarizerModel: "gemma4:e4b",
 } as const;
 
 export const CURRENT_SAVE_KEY = `${SAVE_KEY_PREFIX}${SAVE_SCHEMA_VERSION}`;
@@ -416,12 +416,12 @@ function migrateDefaultLocalAiConfig(
   save: GameSave,
   alreadyMigrated: boolean,
 ): { save: GameSave; migrated: boolean } {
-  const usesLegacyDefaults =
-    save.config.performerModel === LEGACY_ALL_GEMMA_26B_CONFIG.performerModel &&
-    save.config.judgeModel === LEGACY_ALL_GEMMA_26B_CONFIG.judgeModel &&
-    save.config.summarizerModel === LEGACY_ALL_GEMMA_26B_CONFIG.summarizerModel;
+  const usesExperimentalSplitDefaults =
+    save.config.performerModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.performerModel &&
+    save.config.judgeModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.judgeModel &&
+    save.config.summarizerModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.summarizerModel;
 
-  if (!usesLegacyDefaults) {
+  if (!usesExperimentalSplitDefaults) {
     return { save, migrated: alreadyMigrated };
   }
 
@@ -430,8 +430,8 @@ function migrateDefaultLocalAiConfig(
       ...save,
       config: {
         ...save.config,
-        judgeModel: "gemma4:e4b",
-        summarizerModel: "gemma4:e4b",
+        judgeModel: "gemma4:26b",
+        summarizerModel: "gemma4:26b",
       },
     }),
     migrated: true,

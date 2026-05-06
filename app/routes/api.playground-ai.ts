@@ -6,13 +6,20 @@ import {
   memoryRecordSchema,
   pairStateSchema,
   type DateMessage,
+  type DateScenario,
   type Member,
   type MemoryRecord,
+  type PairState,
 } from "../domain/game";
 import { memberRequests, starterMembers, starterScenarios } from "../fixtures";
-import { buildCharacterPromptPacket } from "../services/date-prompts";
+import { sanitizeCharacterText } from "../services/ai-date-engine.server";
+import {
+  generateCharacterTurn,
+  type LocalAiProviderMode,
+} from "../services/ai/ollama-provider.server";
+import { buildCharacterPromptPacket, type CharacterPromptPacket } from "../services/date-prompts";
 import { createSeedGameSave, makePairId } from "../services/game-seed";
-import { generateCharacterTurn } from "../services/ai/ollama-provider.server";
+import { evaluateMatchFit, pairRuleHits } from "../services/match-fit";
 import { errorToMessage } from "../services/utils";
 
 const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
@@ -33,6 +40,7 @@ const playgroundAiRequestSchema = z.object({
   transcriptText: z.string(),
   memoryText: z.string(),
   includeCurrentAsk: z.boolean(),
+  turnCount: z.number().int().min(1).max(6).default(1),
 });
 
 const ollamaTagsSchema = z.object({
@@ -54,7 +62,7 @@ export async function loader() {
     models,
     defaults: {
       model: "gemma4:26b",
-      temperature: 0.85,
+      temperature: 1,
       topP: 0.95,
       topK: 64,
       numCtx: 16384,
@@ -99,22 +107,152 @@ export async function action({ request }: { request: Request }) {
         completedDateIds: [],
         scenarioUseCounts: {},
       });
+    const tunedPairState = pairStateSchema.parse({
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        spark: input.spark,
+        strain: input.strain,
+      },
+    });
     const transcript = buildTranscriptMessages({
       text: input.transcriptText,
       member,
       partner,
       dateSessionId: "playground-ai-session",
     });
-    const currentTurn = transcript.filter((message) => message.kind === "character").length;
+    const pairMemories = buildMemoryRecords(input.memoryText, pairId, scenario.id, participantIds);
+    const activeRequests = [member, partner]
+      .map((candidate) =>
+        candidate.state.currentRequestId === undefined
+          ? undefined
+          : memberRequests.find((request) => request.id === candidate.state.currentRequestId),
+      )
+      .filter((request) => request !== undefined);
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState: tunedPairState,
+      activeRequests,
+    });
+    const startedAt = performance.now();
+    const run = await runPlaygroundConversation({
+      member,
+      partner,
+      scenario,
+      pairState: tunedPairState,
+      pairMemories,
+      participantIds,
+      initialTranscript: transcript,
+      turnCount: input.turnCount,
+      includeCurrentAsk: input.includeCurrentAsk,
+      dateHealth: input.dateHealth,
+      frictionRuleHits: pairRuleHits(matchFit),
+      generationConfig: {
+        performerModel: input.model,
+        contextWindowTokens: input.numCtx,
+        requestTimeoutMs: 90_000,
+      },
+      generationOptions: {
+        temperature: input.temperature,
+        topP: input.topP,
+        topK: input.topK,
+        numCtx: input.numCtx,
+        maxOutputTokens: input.maxOutputTokens,
+      },
+    });
+    const elapsedMs = Math.round(performance.now() - startedAt);
+    const promptCharacters = run.promptCharacters;
+
+    return json({
+      text: formatGeneratedTurns(run.turns),
+      turns: run.turns,
+      model: run.model,
+      providerMode: run.providerMode,
+      elapsedMs,
+      promptCharacters,
+      approximatePromptTokens: Math.ceil(promptCharacters / 4),
+      matchFit,
+      system: run.lastPacket.system,
+      prompt: run.lastPacket.prompt,
+    });
+  } catch (error) {
+    return json({ error: errorToMessage(error) }, { status: 400 });
+  }
+}
+
+type PlaygroundGeneratedTurn = {
+  speakerId: string;
+  speakerName: string;
+  text: string;
+};
+
+async function runPlaygroundConversation({
+  member,
+  partner,
+  scenario,
+  pairState,
+  pairMemories,
+  participantIds,
+  initialTranscript,
+  turnCount,
+  includeCurrentAsk,
+  dateHealth,
+  frictionRuleHits,
+  generationConfig,
+  generationOptions,
+}: {
+  member: Member;
+  partner: Member;
+  scenario: DateScenario;
+  pairState: PairState;
+  pairMemories: MemoryRecord[];
+  participantIds: [string, string];
+  initialTranscript: DateMessage[];
+  turnCount: number;
+  includeCurrentAsk: boolean;
+  dateHealth: number;
+  frictionRuleHits: readonly string[];
+  generationConfig: Parameters<typeof generateCharacterTurn>[1];
+  generationOptions: Parameters<typeof generateCharacterTurn>[2];
+}): Promise<{
+  turns: PlaygroundGeneratedTurn[];
+  lastPacket: CharacterPromptPacket;
+  promptCharacters: number;
+  model: string;
+  providerMode: LocalAiProviderMode;
+}> {
+  const transcript = [...initialTranscript];
+  const members: [Member, Member] = [member, partner];
+  let currentTurn = 0;
+  let nextSpeakerIndex = 0;
+  for (const message of transcript) {
+    if (message.kind === "character") {
+      currentTurn += 1;
+      nextSpeakerIndex = message.speakerId === member.id ? 1 : 0;
+    }
+  }
+  const turns: PlaygroundGeneratedTurn[] = [];
+  let lastPacket!: CharacterPromptPacket;
+  let promptCharacters = 0;
+  let model = generationConfig?.performerModel ?? "";
+  let providerMode: LocalAiProviderMode = "ollama";
+
+  for (let index = 0; index < turnCount; index += 1) {
+    const speaker = members[nextSpeakerIndex];
+    const listener = members[1 - nextSpeakerIndex];
     const session = dateSessionSchema.parse({
       id: "playground-ai-session",
-      pairId,
+      pairId: pairState.id,
       scenarioId: scenario.id,
-      focusMemberId: member.id,
-      focusRequestId: input.includeCurrentAsk ? member.state.currentRequestId : undefined,
+      focusMemberId: speaker.id,
+      focusRequestId:
+        includeCurrentAsk && speaker.state.currentRequestId !== undefined
+          ? speaker.state.currentRequestId
+          : undefined,
       turnLimit: 30,
       currentTurn,
-      dateHealth: input.dateHealth,
+      dateHealth,
       status: "active",
       runtimeMode: "local_ai",
       participants: participantIds,
@@ -122,74 +260,74 @@ export async function action({ request }: { request: Request }) {
       privateStateByCharacter: {
         [member.id]: {
           mood: member.state.mood,
-          comfort: input.dateHealth,
+          comfort: dateHealth,
           intent: "test prompt in the AI playground",
         },
         [partner.id]: {
           mood: partner.state.mood,
-          comfort: input.dateHealth,
+          comfort: dateHealth,
           intent: "test prompt in the AI playground",
         },
       },
       judgeSnapshots: [],
     });
     const focusRequest =
-      input.includeCurrentAsk && member.state.currentRequestId !== undefined
-        ? memberRequests.find((candidate) => candidate.id === member.state.currentRequestId)
+      includeCurrentAsk && speaker.state.currentRequestId !== undefined
+        ? memberRequests.find((candidate) => candidate.id === speaker.state.currentRequestId)
         : undefined;
     const packet = buildCharacterPromptPacket({
-      member,
-      partner,
+      member: speaker,
+      partner: listener,
       scenario,
       session,
-      pairState: {
-        ...pairState,
-        stats: {
-          ...pairState.stats,
-          spark: input.spark,
-          strain: input.strain,
-        },
-      },
+      pairState,
       memoryPack: {
         self: [],
-        pair: buildMemoryRecords(input.memoryText, pairId, scenario.id, participantIds),
+        pair: pairMemories,
         scenario: [],
         recentTranscript: transcript.slice(-8),
       },
       focusRequest,
-      frictionRuleHits: [],
+      frictionRuleHits,
     });
-    const startedAt = performance.now();
-    const result = await generateCharacterTurn(
-      packet,
-      {
-        performerModel: input.model,
-        contextWindowTokens: input.numCtx,
-        requestTimeoutMs: 90_000,
-      },
-      {
-        temperature: input.temperature,
-        topP: input.topP,
-        topK: input.topK,
-        numCtx: input.numCtx,
-        maxOutputTokens: input.maxOutputTokens,
-      },
+    promptCharacters += packet.system.length + packet.prompt.length;
+    const result = await generateCharacterTurn(packet, generationConfig, generationOptions);
+    const text = sanitizeCharacterText(result.text, speaker.name);
+    currentTurn += 1;
+    transcript.push(
+      dateMessageSchema.parse({
+        id: `playground-ai-session-generated-${index + 1}`,
+        dateSessionId: "playground-ai-session",
+        turnIndex: currentTurn,
+        sequenceIndex: transcript.length,
+        kind: "character",
+        speakerId: speaker.id,
+        text,
+        createdAt: "2026-05-05T12:00:00.000Z",
+      }),
     );
-    const elapsedMs = Math.round(performance.now() - startedAt);
-
-    return json({
-      text: result.text,
-      model: result.model,
-      providerMode: result.providerMode,
-      elapsedMs,
-      promptCharacters: packet.system.length + packet.prompt.length,
-      approximatePromptTokens: Math.ceil((packet.system.length + packet.prompt.length) / 4),
-      system: packet.system,
-      prompt: packet.prompt,
+    lastPacket = packet;
+    model = result.model;
+    providerMode = result.providerMode;
+    turns.push({
+      speakerId: speaker.id,
+      speakerName: speaker.name,
+      text,
     });
-  } catch (error) {
-    return json({ error: errorToMessage(error) }, { status: 400 });
+    nextSpeakerIndex = 1 - nextSpeakerIndex;
   }
+
+  return {
+    turns,
+    lastPacket,
+    promptCharacters,
+    model,
+    providerMode,
+  };
+}
+
+function formatGeneratedTurns(turns: PlaygroundGeneratedTurn[]): string {
+  return turns.map((turn) => `${turn.speakerName}: ${turn.text}`).join("\n");
 }
 
 const OLLAMA_TAGS_TIMEOUT_MS = 5_000;

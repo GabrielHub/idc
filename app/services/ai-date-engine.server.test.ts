@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { judgeSnapshotSchema, memoryCandidateSchema, memoryRecordSchema } from "../domain/game";
 import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
 import {
+  advanceDateExchangeWithLocalAi,
   advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAi,
   type LocalAiDateRuntime,
@@ -206,9 +207,16 @@ describe("local AI date engine orchestration", () => {
 
   it("streams performer deltas before committing the validated exchange", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-stream-test");
-    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
     const started = startDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
@@ -256,7 +264,19 @@ describe("local AI date engine orchestration", () => {
           playerSummary: "The streamed exchange landed cleanly.",
           memoryCandidates: [],
         }),
-      summarizeDateMemories: async () => [],
+      summarizeDateMemories: async () => [
+        memoryCandidateSchema.parse({
+          scope: "pair",
+          visibility: "public",
+          subjectIds: ["jenna-pike", "vhool"],
+          pairId: started.session.pairId,
+          scenarioId: started.session.scenarioId,
+          dateSessionId: started.session.id,
+          text: "Jenna and Vhool completed a streamed local AI exchange.",
+          tags: ["date_summary"],
+          importance: 3,
+        }),
+      ],
       embedMemoryText: async ({ text }) => {
         const embedding = createDeterministicEmbedding(text);
 
@@ -315,5 +335,101 @@ describe("local AI date engine orchestration", () => {
       loadedSession?.transcript.filter((message) => message.kind === "character"),
     ).toHaveLength(2);
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
+  });
+
+  it("lets one local AI exchange land before judging pending transcript", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-judge-cadence-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 6,
+      },
+    };
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let characterCount = 0;
+    let judgePrompt = "";
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        characterCount += 1;
+
+        return {
+          text: `turn ${characterCount} response`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
+        judgePrompt = packet.prompt;
+
+        return judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 2,
+          statDeltas: {
+            trust: 1,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["Four turns gave the judge enough context."],
+          playerSummary: "Judge waited for a real sample before filing.",
+          memoryCandidates: [],
+        });
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const firstAdvance = await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(firstAdvance.session.currentTurn).toBe(2);
+    expect(firstAdvance.session.dateHealth).toBe(started.session.dateHealth);
+    expect(firstAdvance.session.judgeSnapshots).toHaveLength(0);
+    expect(judgePrompt).toBe("");
+
+    const secondAdvance = await advanceDateExchangeWithLocalAi(firstAdvance.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: firstAdvance.save.config,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+
+    expect(secondAdvance.session.currentTurn).toBe(4);
+    expect(secondAdvance.session.judgeSnapshots).toHaveLength(1);
+    expect(secondAdvance.session.judgeSnapshots[0]?.exchangeIndex).toBe(1);
+    expect(judgePrompt).toContain("turn 1 response");
+    expect(judgePrompt).toContain("turn 4 response");
   });
 });

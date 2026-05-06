@@ -263,11 +263,11 @@ These apply to all member-voice copy. Cupid corporate voice uses cleaner mechani
 
 Who treats the interdimensional aspect of Cupid as weird is the wrong half of the cast. Be careful here.
 
-**Modern unmarked humans** (Jenna, Sana, Marcus, Toby, Kade, Tasha, Brady) treat Cupid as a normal dating app with strange branding choices. They are the ones with weird-date stories. When two of them match, the relief should land: "thank god, a normal person, my last date was wearing a robe." Their dealbreakers and asides reference prior Cupid weirdness without naming it as cosmic.
+**Modern unmarked humans** (Jenna, Sana, Marcus, Toby, Kade, Tasha, Brady, Mira, Mei) treat Cupid as a normal dating app with strange branding choices. They are the ones with weird-date stories. Mira reads the interdimensional branding as startup metaphor. Mei reads it as niche scene weirdness. When two modern unmarked humans match, the relief should land: "thank god, a normal person, my last date was wearing a robe." Their dealbreakers and asides reference prior Cupid weirdness without naming it as cosmic.
 
 **Non-human members** (Vhool, Mr. Whiskers, Gideon, Venus, Calvin, Eleanor) treat their own nature as background. Vhool does not consider being an eldritch god remarkable. Mr. Whiskers will not address the cat question because there is nothing to address. Calvin denies what he is by reflex. They read modern flinching as smallness, rudeness, or a failure of basic worldliness. They do not hide their nature; they refuse to make it the topic.
 
-**Displaced humans** (Opal, Aldric, Decimus, Meridian) treat their world of origin as the normal one. Aldric thinks knights are normal. Opal thinks 1998 was normal. Decimus thinks the Tenth Legion was normal. They do not understand why moderns are weird about dimensional drift; to them, every culture has its quirks and theirs is no stranger than Ohio.
+**Displaced humans** (Opal, Aldric, Decimus, Meridian, Sera, Wenshu) treat their world of origin as the normal one. Aldric thinks knights are normal. Opal thinks 1998 was normal. Decimus thinks the Tenth Legion was normal. Sera thinks 2087 contract culture is the professional baseline. Wenshu thinks sect trials and Romance Dao cultivation are normal procedure. They do not understand why moderns are weird about dimensional drift; to them, every culture has its quirks and theirs is no stranger than Ohio.
 
 **The contrast that does the comedy work**: a Sana paired with a Vhool is funny because Sana is bewildered and Vhool is calmly suggesting soup. A Sana paired with a Marcus is funny because both are quietly relieved that the other is not, in any way, asking them to swear a vow.
 
@@ -373,12 +373,22 @@ If a member's premise touches a serious topic (a ghost member's death, a time-di
 
 When prompting the Character Performer, supply:
 
-- The member's `voice` block (register, patterns used, patterns refused, tics).
-- One or two sample opening messages from the member fixture.
+- A compact character card: bio, current need, what relaxes them, what makes them guarded, and private pressure as subtext.
+- The member's conversational register and a few habits from the `voice` block, framed as optional pressure tells rather than required words.
+- One to four sample lines from the member fixture, selected for the current moment. Treat samples as rhythm references, not copy targets.
+- A live scene frame before sample lines: location, opening situation, what both members know, room feel, and what the speaker can see of the partner.
+- The latest incoming line and the speaker's own last line. The performer should answer the incoming line and avoid repeating or lightly rewording its own last line.
+- Permission for soft improv: small objects, drinks, snacks, nearby details, same-day anecdotes, and personal habits that make the scene feel lived in.
 - A short reminder of the two-register rule and the comedy stops.
 - The current scenario beat and recent transcript window from deterministic retrieval.
 
-Do not paste the full voice doc into prompts at runtime. The prompt should contain a compressed version of these rules, sized for the model. Keep the doc as the human-facing source of truth and derive prompt fragments from it.
+Do not paste the full voice doc into prompts at runtime. Do not expose pattern taxonomy as a compliance checklist. The prompt should describe who the member is, what they want, what they are protecting, and the exact latest line they need to answer. Keep the doc as the human-facing source of truth and derive prompt fragments from it.
+
+Sample lines are rhythm references, not automatic facts about the current date. A performer may introduce a grounded soft detail from a sample, preference, or plain imagination when it gives the partner something to react to. Once the transcript accepts that detail, it is soft canon for the date.
+
+Soft canon cannot rewrite the venue, participant identity, private secrets, Cupid's systems, deterministic score effects, future events, or serious harm. If a member says there are cocktails in a notary office, the partner can question it, make it a joke, or roll with it. If they roll with it, the conversation now has cocktails. If a member habit is written as bracketed notes, fake dispatch labels, or other page-copy formatting, translate it into something the character could say aloud to the person across from them.
+
+When prompting the Memory Summarizer, ask it to preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them. Do not store every line. Store compact memories that help a later conversation continue.
 
 When prompting the Judge:
 

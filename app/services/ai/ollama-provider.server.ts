@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { embed, generateObject, generateText, streamText } from "ai";
+import { embed, generateObject, generateText, streamText, type ModelMessage } from "ai";
 import {
   createOllama,
   type OllamaChatSettings,
@@ -31,6 +31,9 @@ const JUDGE_MAX_OUTPUT_TOKENS = 360;
 const SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const READINESS_MAX_OUTPUT_TOKENS = 32;
 const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
+const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 4096;
+const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 8192;
+const OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS = 2048;
 const OLLAMA_KEEP_ALIVE = "10m";
 const OLLAMA_BASE_CHAT_SETTINGS: OllamaChatSettings = {
@@ -51,6 +54,12 @@ export type LocalAiGenerationOptions = {
   topP?: number;
   topK?: number;
   numCtx?: number;
+};
+
+const DEFAULT_CHARACTER_GENERATION_OPTIONS: LocalAiGenerationOptions = {
+  temperature: 1,
+  topP: 0.95,
+  topK: 64,
 };
 
 export type LocalAiProviderMode = "ollama" | "openai-compatible";
@@ -111,14 +120,16 @@ export async function generateCharacterTurn(
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.performerModel;
+  const generationOptions = normalizeCharacterGenerationOptions(options);
 
   return generateTextWithFallback({
     system: packet.system,
     prompt: packet.prompt,
+    messages: packet.messages,
     modelId,
     config: runtimeConfig,
-    maxOutputTokens: options?.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
-    generationOptions: options,
+    maxOutputTokens: generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    generationOptions,
   });
 }
 
@@ -130,14 +141,16 @@ export async function streamCharacterTurn(
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.performerModel;
+  const generationOptions = normalizeCharacterGenerationOptions(options);
 
   return streamTextWithFallback({
     system: packet.system,
     prompt: packet.prompt,
+    messages: packet.messages,
     modelId,
     config: runtimeConfig,
-    maxOutputTokens: options?.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
-    generationOptions: options,
+    maxOutputTokens: generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    generationOptions,
     onTextDelta,
   });
 }
@@ -159,7 +172,7 @@ export async function judgeDateExchange({
     system: packet.system,
     prompt: packet.prompt,
     modelId,
-    config: runtimeConfig,
+    config: withSecondaryContextWindow(runtimeConfig, modelId, OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS),
     maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
   });
 
@@ -181,7 +194,11 @@ export async function summarizeDateMemories(
     system: packet.system,
     prompt: packet.prompt,
     modelId,
-    config: runtimeConfig,
+    config: withSecondaryContextWindow(
+      runtimeConfig,
+      modelId,
+      OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS,
+    ),
     maxOutputTokens: SUMMARIZER_MAX_OUTPUT_TOKENS,
   });
 }
@@ -239,6 +256,9 @@ export async function checkLocalAiReadiness(
       modelId,
       config: runtimeConfig,
       maxOutputTokens: READINESS_MAX_OUTPUT_TOKENS,
+      generationOptions: {
+        numCtx: OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS,
+      },
     });
 
     if (result.text.length === 0) {
@@ -273,9 +293,31 @@ function normalizeRuntimeConfig(config?: Partial<LocalAiRuntimeConfig>): LocalAi
   };
 }
 
+function withSecondaryContextWindow(
+  config: LocalAiRuntimeConfig,
+  modelId: string,
+  contextWindowTokens: number,
+): LocalAiRuntimeConfig {
+  return {
+    ...config,
+    contextWindowTokens:
+      modelId === config.performerModel ? config.contextWindowTokens : contextWindowTokens,
+  };
+}
+
+function normalizeCharacterGenerationOptions(
+  options?: LocalAiGenerationOptions,
+): LocalAiGenerationOptions {
+  return {
+    ...DEFAULT_CHARACTER_GENERATION_OPTIONS,
+    ...options,
+  };
+}
+
 async function generateTextWithFallback({
   system,
   prompt,
+  messages,
   modelId,
   config,
   maxOutputTokens,
@@ -283,6 +325,7 @@ async function generateTextWithFallback({
 }: {
   system: string;
   prompt: string;
+  messages?: ModelMessage[];
   modelId: string;
   config: LocalAiRuntimeConfig;
   maxOutputTokens: number;
@@ -293,16 +336,26 @@ async function generateTextWithFallback({
 
   for (const providerMode of providerModes) {
     try {
-      const result = await generateText({
-        model: createLanguageModel(providerMode, modelId, config, generationOptions),
+      const model = createLanguageModel(providerMode, modelId, config, generationOptions);
+      const callSettings = {
+        model,
         system,
-        prompt,
         maxOutputTokens,
         temperature: generationOptions?.temperature,
         topP: generationOptions?.topP,
         topK: generationOptions?.topK,
         timeout: config.requestTimeoutMs,
-      });
+      };
+      const result =
+        messages === undefined
+          ? await generateText({
+              ...callSettings,
+              prompt,
+            })
+          : await generateText({
+              ...callSettings,
+              messages,
+            });
 
       return {
         text: result.text.trim(),
@@ -326,6 +379,7 @@ async function generateTextWithFallback({
 async function streamTextWithFallback({
   system,
   prompt,
+  messages,
   modelId,
   config,
   maxOutputTokens,
@@ -334,6 +388,7 @@ async function streamTextWithFallback({
 }: {
   system: string;
   prompt: string;
+  messages?: ModelMessage[];
   modelId: string;
   config: LocalAiRuntimeConfig;
   maxOutputTokens: number;
@@ -346,16 +401,26 @@ async function streamTextWithFallback({
 
   for (const providerMode of providerModes) {
     try {
-      const result = streamText({
-        model: createLanguageModel(providerMode, modelId, config, generationOptions),
+      const model = createLanguageModel(providerMode, modelId, config, generationOptions);
+      const callSettings = {
+        model,
         system,
-        prompt,
         maxOutputTokens,
         temperature: generationOptions?.temperature,
         topP: generationOptions?.topP,
         topK: generationOptions?.topK,
         timeout: config.requestTimeoutMs,
-      });
+      };
+      const result =
+        messages === undefined
+          ? streamText({
+              ...callSettings,
+              prompt,
+            })
+          : streamText({
+              ...callSettings,
+              messages,
+            });
       let text = "";
 
       for await (const delta of result.textStream) {

@@ -21,7 +21,7 @@ import {
 } from "./shift-planning";
 import { clampScore } from "./utils";
 
-const STARTER_DECK_MAX_SIZE = 20;
+const STARTER_DECK_MAX_SIZE = starterScenarios.length;
 
 export function createSeedGameSave(now = new Date()): GameSave {
   const timestamp = now.toISOString();

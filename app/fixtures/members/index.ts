@@ -1,5 +1,6 @@
 import { memberSchema } from "../../domain/game";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
+import { baiWenshu } from "./bai-wenshu";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
 import { decimusMariusTullio } from "./decimus-marius-tullio";
@@ -8,10 +9,13 @@ import { gideonGlass } from "./gideon-glass";
 import { jennaPike } from "./jenna-pike";
 import { kadeSumner } from "./kade-sumner";
 import { marcusPellish } from "./marcus-pellish";
+import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
+import { miraPark } from "./mira-park";
 import { mrWhiskers } from "./mr-whiskers";
 import { opalSunday } from "./opal-sunday";
 import { sanaKarim } from "./sana-karim";
+import { seraVohn } from "./sera-vohn";
 import { tashaRell } from "./tasha-rell";
 import { tobyWenz } from "./toby-wenz";
 import { venus } from "./venus";
@@ -19,7 +23,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(17)
+  .length(21)
   .parse([
     jennaPike,
     meridianVale,
@@ -38,10 +42,15 @@ export const starterMembers = memberSchema
     aldricValeMarsh,
     eleanorAsh,
     decimusMariusTullio,
+    miraPark,
+    seraVohn,
+    meiSato,
+    baiWenshu,
   ]);
 
 export {
   aldricValeMarsh,
+  baiWenshu,
   bradyStrait,
   calvinHewes,
   decimusMariusTullio,
@@ -50,10 +59,13 @@ export {
   jennaPike,
   kadeSumner,
   marcusPellish,
+  meiSato,
   meridianVale,
+  miraPark,
   mrWhiskers,
   opalSunday,
   sanaKarim,
+  seraVohn,
   tashaRell,
   tobyWenz,
   venus,

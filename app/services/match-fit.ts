@@ -136,6 +136,10 @@ export function isMemberRequestBlocked(fit: MatchFitResult, requestId: string): 
   return fit.blockedRequestIds.includes(requestId);
 }
 
+export function pairRuleHits(fit: MatchFitResult): string[] {
+  return fit.internalRuleHits.filter((hit) => hit.startsWith("pair:"));
+}
+
 export function buildPublicRiskNotes({
   members,
   scenario,

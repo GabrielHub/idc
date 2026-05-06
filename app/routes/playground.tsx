@@ -59,6 +59,7 @@ type AiPlaygroundDefaults = {
 
 type AiPlaygroundResult = {
   text: string;
+  turns: AiGeneratedTurn[];
   model: string;
   providerMode: string;
   elapsedMs: number;
@@ -66,6 +67,12 @@ type AiPlaygroundResult = {
   approximatePromptTokens: number;
   system: string;
   prompt: string;
+};
+
+type AiGeneratedTurn = {
+  speakerId: string;
+  speakerName: string;
+  text: string;
 };
 
 type AiPlaygroundSettings = {
@@ -84,6 +91,7 @@ type AiPlaygroundSettings = {
   transcriptText: string;
   memoryText: string;
   includeCurrentAsk: boolean;
+  turnCount: number;
 };
 
 const AI_PLAYGROUND_API_URL = "/api/playground-ai";
@@ -92,7 +100,7 @@ const DEFAULT_AI_SETTINGS: AiPlaygroundSettings = {
   partnerId: "vhool",
   scenarioId: "temporal-coffee-shop",
   model: "gemma4:26b",
-  temperature: 0.85,
+  temperature: 1,
   topP: 0.95,
   topK: 64,
   numCtx: 16384,
@@ -106,6 +114,7 @@ const DEFAULT_AI_SETTINGS: AiPlaygroundSettings = {
   ].join("\n"),
   memoryText: "Jenna remembers that Vhool treated soup as a sincere planning document.",
   includeCurrentAsk: true,
+  turnCount: 4,
 };
 
 export function meta() {
@@ -419,7 +428,7 @@ function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt lab"
-        description="Run one character turn with the same prompt builder as the date engine. Tune model, context, and sampling without burning a full playthrough."
+        description="Run an alternating character conversation through the same prompt builder as the date engine. Tune model, context, and sampling without burning a full playthrough."
       />
 
       <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
@@ -428,7 +437,7 @@ function AiPromptLabTest() {
             <div>
               <MutedLabel>run sheet</MutedLabel>
               <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-                Character turn
+                Conversation run
               </h3>
             </div>
             <button
@@ -437,7 +446,7 @@ function AiPromptLabTest() {
               disabled={isRunning}
               className="cursor-pointer rounded-pill bg-aura-ink px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isRunning ? "Running" : "Run turn"}
+              {isRunning ? "Running" : "Run chat"}
             </button>
           </div>
 
@@ -492,6 +501,14 @@ function AiPromptLabTest() {
                 max={512}
                 step={8}
                 onChange={(value) => setSetting("maxOutputTokens", value)}
+              />
+              <NumberControl
+                label="turns"
+                value={settings.turnCount}
+                min={1}
+                max={6}
+                step={1}
+                onChange={(value) => setSetting("turnCount", value)}
               />
             </div>
 
@@ -740,10 +757,28 @@ function AiOutputPanel({ result }: { result: AiPlaygroundResult | null }) {
   return (
     <div className="space-y-4">
       <div className="aura-glass rounded-card p-5">
-        <MutedLabel>model reply</MutedLabel>
-        <p className="mt-3 min-h-24 whitespace-pre-wrap rounded-tile bg-white/60 px-4 py-3 text-body leading-relaxed text-aura-ink">
-          {result?.text ?? "Run a turn to file the first test message."}
-        </p>
+        <MutedLabel>generated conversation</MutedLabel>
+        {result === null || result.turns.length === 0 ? (
+          <p className="mt-3 min-h-24 whitespace-pre-wrap rounded-tile bg-white/60 px-4 py-3 text-body leading-relaxed text-aura-ink">
+            Run a chat to file the first test transcript.
+          </p>
+        ) : (
+          <ol className="mt-3 space-y-2">
+            {result.turns.map((turn, index) => (
+              <li
+                key={`${turn.speakerId}-${index}`}
+                className="rounded-tile border border-aura-hairline bg-white/60 px-4 py-3"
+              >
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+                  {turn.speakerName}
+                </span>
+                <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed text-aura-ink">
+                  {turn.text}
+                </p>
+              </li>
+            ))}
+          </ol>
+        )}
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -1232,6 +1267,14 @@ function isAiResultPayload(value: unknown): value is AiPlaygroundResult {
   return (
     isRecord(value) &&
     typeof value.text === "string" &&
+    Array.isArray(value.turns) &&
+    value.turns.every(
+      (turn) =>
+        isRecord(turn) &&
+        typeof turn.speakerId === "string" &&
+        typeof turn.speakerName === "string" &&
+        typeof turn.text === "string",
+    ) &&
     typeof value.model === "string" &&
     typeof value.providerMode === "string" &&
     typeof value.elapsedMs === "number" &&

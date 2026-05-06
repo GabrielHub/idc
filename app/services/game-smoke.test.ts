@@ -59,8 +59,8 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
 ];
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(17);
-    expect(starterScenarios).toHaveLength(20);
+    expect(starterMembers).toHaveLength(21);
+    expect(starterScenarios).toHaveLength(25);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
@@ -144,11 +144,12 @@ describe("IDC playable smoke path", () => {
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
     expect(save.config.performerModel).toBe("gemma4:26b");
-    expect(save.config.judgeModel).toBe("gemma4:e4b");
-    expect(save.config.summarizerModel).toBe("gemma4:e4b");
+    expect(save.config.judgeModel).toBe("gemma4:26b");
+    expect(save.config.summarizerModel).toBe("gemma4:26b");
+    expect(save.shifts[0]?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(17);
-    expect(await repository.listPairStates()).toHaveLength(136);
+    expect(await repository.listMembers()).toHaveLength(21);
+    expect(await repository.listPairStates()).toHaveLength(210);
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
@@ -176,7 +177,7 @@ describe("IDC playable smoke path", () => {
     expect(config.embeddingModel).toBe("custom-embedding");
   });
 
-  it("migrates old all-gemma local AI defaults to faster secondary models", async () => {
+  it("migrates the experimental split local AI defaults back to one language model", async () => {
     const storage = new MemoryStorageDriver();
     const oldDefaultSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     storage.setItem(
@@ -186,8 +187,8 @@ describe("IDC playable smoke path", () => {
         config: {
           ...oldDefaultSave.config,
           performerModel: "gemma4:26b",
-          judgeModel: "gemma4:26b",
-          summarizerModel: "gemma4:26b",
+          judgeModel: "gemma4:e4b",
+          summarizerModel: "gemma4:e4b",
         },
       }),
     );
@@ -195,8 +196,8 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(loaded?.config.performerModel).toBe("gemma4:26b");
-    expect(loaded?.config.judgeModel).toBe("gemma4:e4b");
-    expect(loaded?.config.summarizerModel).toBe("gemma4:e4b");
+    expect(loaded?.config.judgeModel).toBe("gemma4:26b");
+    expect(loaded?.config.summarizerModel).toBe("gemma4:26b");
   });
 
   it("seeds featured cases and derives shift asks from featured members", () => {
@@ -239,8 +240,8 @@ describe("IDC playable smoke path", () => {
 
     expect(loaded?.version).toBe(SAVE_SCHEMA_VERSION);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(loaded?.members).toHaveLength(17);
-    expect(loaded?.pairStates).toHaveLength(136);
+    expect(loaded?.members).toHaveLength(21);
+    expect(loaded?.pairStates).toHaveLength(210);
     expect(loaded?.members.some((member) => member.id === "marcus-pellish")).toBe(true);
     expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
     expect(storage.getItem(legacySaveKey)).toBeNull();
@@ -255,11 +256,11 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
     const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
 
-    expect(loaded?.members).toHaveLength(17);
-    expect(loaded?.pairStates).toHaveLength(136);
+    expect(loaded?.members).toHaveLength(21);
+    expect(loaded?.pairStates).toHaveLength(210);
     expect(loaded?.members.some((member) => member.id === "aldric-vale-marsh")).toBe(true);
     expect(persistedRaw).not.toBeNull();
-    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(17);
+    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(21);
   });
 
   it("hydrates new starter scenarios into existing scenario decks", async () => {
@@ -315,8 +316,8 @@ describe("IDC playable smoke path", () => {
     const persistedSave = parsePersistedSave(persistedRaw);
     const persistedJenna = persistedSave?.members.find((member) => member.id === "jenna-pike");
 
-    expect(loaded?.members).toHaveLength(17);
-    expect(loaded?.pairStates).toHaveLength(136);
+    expect(loaded?.members).toHaveLength(21);
+    expect(loaded?.pairStates).toHaveLength(210);
     expect(loadedJenna?.firstName).toBe("Jenna");
     expect(loadedJenna?.state.mood).toBe(11);
     expect(loadedJenna?.tags).toContain("prophecy_averse");

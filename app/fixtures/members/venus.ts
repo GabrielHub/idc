@@ -53,7 +53,7 @@ export const venus: Member = {
       "mundane_domesticity",
     ],
     tics: [
-      "opens with as the goddess of love and continues uninterrupted",
+      "may open a date by naming herself the goddess of love once, then switches to direct verdicts",
       "refers to her past relationships as case studies, never mistakes",
       "counts compliments aloud, that is one, that is two",
       "softens corrections with darling, pet, sweet",

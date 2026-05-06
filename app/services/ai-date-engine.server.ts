@@ -48,7 +48,7 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
-import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, pairRuleHits } from "./match-fit";
 import { clampScore, errorToMessage, replaceById } from "./utils";
 
 export type LocalAiDateRuntime = {
@@ -123,7 +123,8 @@ type LocalAiDateEngineInput = {
 
 const DEFAULT_MEMORY_LIMIT = 2;
 const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 8;
-const CHARACTER_MESSAGE_MAX_LENGTH = 360;
+const CHARACTER_MESSAGE_MAX_LENGTH = 260;
+const JUDGE_CHARACTER_TURN_INTERVAL = 4;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
@@ -195,9 +196,8 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     activeRequests: focusRequest === undefined ? [] : [focusRequest],
   });
-  const frictionRuleHits = matchFit.internalRuleHits.filter((hit) => hit.startsWith("pair:"));
+  const frictionRuleHits = pairRuleHits(matchFit);
   const transcript = [...session.transcript];
-  const firstNewSequenceIndex = transcript.length;
   let currentTurn = session.currentTurn;
   let workingSession = session;
 
@@ -247,10 +247,42 @@ async function advanceDateExchangeWithLocalAiInternal(
     });
   }
 
-  const exchangeMessages = transcript
-    .slice(firstNewSequenceIndex)
-    .filter((message) => message.kind === "character");
-  const exchangeIndex = session.judgeSnapshots.length;
+  const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);
+  const exchangeMessages = transcript.filter(
+    (message) =>
+      message.kind === "character" &&
+      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
+  );
+  const shouldJudgeExchange = shouldJudgePendingExchange({
+    currentTurn,
+    turnLimit: session.turnLimit,
+    exchangeMessages,
+  });
+
+  if (!shouldJudgeExchange) {
+    const updatedSession = dateSessionSchema.parse({
+      ...session,
+      currentTurn,
+      transcript,
+    });
+    const nextSave = gameSaveSchema.parse({
+      ...save,
+      dateSessions: replaceById(save.dateSessions, updatedSession),
+      updatedAt: timestamp,
+    });
+
+    await repository.saveGame(nextSave);
+
+    return {
+      save: nextSave,
+      session: updatedSession,
+      runtimeMode: "local_ai",
+      warningMessages,
+      aiTelemetry: telemetry,
+    };
+  }
+
+  const exchangeIndex = exchangeIndexForTurn(currentTurn);
   if (emit !== undefined) {
     await emit({ type: "judgeStart", exchangeIndex });
   }
@@ -796,6 +828,33 @@ function buildMemoryQuery(
   return `${speaker.name} ${partner.name} ${scenario.title} ${recentText}`;
 }
 
+function shouldJudgePendingExchange({
+  currentTurn,
+  turnLimit,
+  exchangeMessages,
+}: {
+  currentTurn: number;
+  turnLimit: number;
+  exchangeMessages: DateMessage[];
+}): boolean {
+  if (exchangeMessages.length === 0) {
+    return false;
+  }
+
+  return currentTurn >= turnLimit || currentTurn % JUDGE_CHARACTER_TURN_INTERVAL === 0;
+}
+
+function latestJudgedExchangeIndex(session: DateSession): number {
+  return session.judgeSnapshots.reduce(
+    (latest, snapshot) => Math.max(latest, snapshot.exchangeIndex),
+    -1,
+  );
+}
+
+function exchangeIndexForTurn(turnIndex: number): number {
+  return Math.max(0, Math.floor((turnIndex - 1) / 2));
+}
+
 async function createRuntimeQueryEmbedding({
   runtime,
   config,
@@ -817,9 +876,10 @@ async function createRuntimeQueryEmbedding({
   }
 }
 
-function sanitizeCharacterText(text: string, speakerName: string): string {
+export function sanitizeCharacterText(text: string, speakerName: string): string {
   const speakerLabelPattern = new RegExp(`^${escapeRegex(speakerName)}\\s*:\\s*`, "i");
   const trimmedText = normalizeForbiddenPunctuation(text)
+    .replace(/\s+/g, " ")
     .trim()
     .replace(/^["']|["']$/g, "")
     .replace(speakerLabelPattern, "")
