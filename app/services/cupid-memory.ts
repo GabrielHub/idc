@@ -11,6 +11,8 @@ export type MemoryRetrievalInput = {
   session?: DateSession;
   query: string;
   queryEmbedding?: number[];
+  queryEmbeddingModel?: string;
+  queryEmbeddingDimensions?: number;
   limit?: number;
   recentTranscriptLimit?: number;
 };
@@ -28,6 +30,8 @@ export type SearchCupidMemoryInput = {
   scenarioId: string;
   query: string;
   queryEmbedding?: number[];
+  queryEmbeddingModel?: string;
+  queryEmbeddingDimensions?: number;
   scope: Array<"self" | "pair" | "scenario">;
   limit: number;
 };
@@ -46,6 +50,7 @@ export async function retrieveRelevantMemories(
 ): Promise<MemoryPack> {
   const limit = input.limit ?? 4;
   const queryEmbedding = input.queryEmbedding ?? createDeterministicEmbedding(input.query);
+  const embeddingFilters = embeddingCompatibilityFilters(input);
   const viewer = { role: "character" as const, memberId: input.characterId };
   const sessionPromise: Promise<DateSession | null> =
     input.session !== undefined
@@ -59,6 +64,7 @@ export async function retrieveRelevantMemories(
       queryEmbedding,
       input.characterId,
       {
+        ...embeddingFilters,
         subjectIds: [input.characterId],
         scopes: ["member"],
         visibilities: ["public", "member_private"],
@@ -71,6 +77,7 @@ export async function retrieveRelevantMemories(
       queryEmbedding,
       input.characterId,
       {
+        ...embeddingFilters,
         pairId: input.pairId,
         scopes: ["pair", "date"],
         visibilities: ["public", "member_private"],
@@ -83,6 +90,7 @@ export async function retrieveRelevantMemories(
       queryEmbedding,
       input.characterId,
       {
+        ...embeddingFilters,
         scenarioId: input.scenarioId,
         pairId: input.pairId,
         scopes: ["scenario"],
@@ -158,7 +166,11 @@ async function searchVisibleMemories(
 
 function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] {
   const scopes = input.scope;
-  const baseFilters: Pick<MemorySearchFilters, "visibilities" | "viewer"> = {
+  const baseFilters: Pick<
+    MemorySearchFilters,
+    "embeddingDimensions" | "embeddingModel" | "visibilities" | "viewer"
+  > = {
+    ...embeddingCompatibilityFilters(input),
     visibilities: ["public", "member_private"],
     viewer: { role: "character", memberId: input.characterId },
   };
@@ -190,6 +202,16 @@ function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] 
   }
 
   return filters;
+}
+
+function embeddingCompatibilityFilters(input: {
+  queryEmbeddingModel?: string;
+  queryEmbeddingDimensions?: number;
+}): Pick<MemorySearchFilters, "embeddingDimensions" | "embeddingModel"> {
+  return {
+    embeddingModel: input.queryEmbeddingModel,
+    embeddingDimensions: input.queryEmbeddingDimensions,
+  };
 }
 
 function canCharacterSeeMemory(memory: MemoryRecord, characterId: string): boolean {

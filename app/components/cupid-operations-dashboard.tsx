@@ -5,6 +5,7 @@ import {
   type DateSessionStatus,
   type DateScenario,
   type FollowUpAction,
+  type GameConfig,
   type GameSave,
   type Member,
   type MemberRequest,
@@ -43,6 +44,7 @@ import {
   type GameStreamEvent,
   type LocalAiStatusResponse,
 } from "../services/game-api-contracts";
+import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { ChromeButton, GhostButton, LiveDot, PrimaryButton } from "./dashboard-atoms";
 import {
   BriefView,
@@ -77,17 +79,16 @@ function asPendingDateAction(action: DashboardPendingAction | null): PendingDate
 const GAME_API_TIMEOUT_MS = 120_000;
 const LOCAL_AI_STATUS_URL = "/api/game?intent=local-ai-status";
 const GAME_API_STREAM_URL = "/api/game?intent=stream";
+const GATEWAY_API_KEY_STORAGE_KEY = "idc.cupid.aiGatewayKey";
 
-type LocalAiClientStatus = {
-  status: "checking" | LocalAiStatusResponse["status"];
-  message: string;
-  details: string[];
-  checkedAt?: string;
+type LocalAiClientStatus = AiSetupStatus;
+type RuntimeSecrets = {
+  gatewayApiKey: string;
 };
 
 const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   status: "checking",
-  message: "Checking local AI. Cupid is holding the clipboard very still.",
+  message: "Checking AI provider. Cupid is holding the clipboard very still.",
   details: [],
 };
 
@@ -111,6 +112,8 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [localAiStatus, setLocalAiStatus] = useState<LocalAiClientStatus>(CHECKING_LOCAL_AI_STATUS);
+  const [gatewayApiKey, setGatewayApiKey] = useState(readStoredGatewayApiKey);
+  const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<DashboardPendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
@@ -161,12 +164,19 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     };
   }, [repository]);
 
+  const config = save?.config ?? null;
+
   useEffect(() => {
+    if (config === null) {
+      return;
+    }
+
+    const currentConfig = config;
     let isMounted = true;
 
     async function loadLocalAiStatus() {
       setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-      const status = await requestLocalAiStatus();
+      const status = await requestLocalAiStatus(currentConfig, gatewayApiKey);
 
       if (!isMounted) {
         return;
@@ -174,7 +184,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
 
       setLocalAiStatus(status);
 
-      if (status.status === "unavailable") {
+      if (status.status === "unavailable" && currentConfig.aiSetupComplete) {
         setErrorMessage(status.message);
       }
     }
@@ -184,7 +194,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [gatewayApiKey, config]);
 
   useEffect(() => {
     if (errorMessage === null) {
@@ -237,15 +247,17 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             .filter(isDefined),
     [activeShift],
   );
+  const dateSessions = save?.dateSessions ?? null;
+  const members = save?.members ?? null;
   const pinnedGoalProgress = useMemo(() => {
-    if (save === null || activeShift === null) {
+    if (activeShift === null || dateSessions === null || members === null) {
       return [];
     }
 
     const metrics = buildShiftGoalMetrics({
       shift: activeShift,
-      dateSessions: save.dateSessions,
-      members: save.members,
+      dateSessions,
+      members,
     });
 
     return buildGoalProgressSnapshots({
@@ -254,7 +266,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       metrics,
       shiftReport: activeShift.report,
     });
-  }, [activeShift, pinnedGoals, save]);
+  }, [activeShift, pinnedGoals, dateSessions, members]);
   const selectedMembers = useMemo(
     () =>
       save === null
@@ -318,9 +330,21 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
-  async function refreshLocalAiStatus(): Promise<LocalAiClientStatus> {
+  async function refreshLocalAiStatus(
+    config = save?.config,
+    key = gatewayApiKey,
+  ): Promise<LocalAiClientStatus> {
+    if (config === undefined) {
+      return {
+        status: "unavailable",
+        message: "AI provider check needs a save file first.",
+        details: [],
+        checkedAt: new Date().toISOString(),
+      };
+    }
+
     setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-    const status = await requestLocalAiStatus();
+    const status = await requestLocalAiStatus(config, key);
     setLocalAiStatus(status);
 
     if (status.status === "unavailable") {
@@ -330,12 +354,37 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     return status;
   }
 
+  async function handleSaveAiConfig(nextConfig: GameConfig, nextGatewayApiKey: string) {
+    if (save === null) {
+      return;
+    }
+
+    storeGatewayApiKey(nextGatewayApiKey);
+    setGatewayApiKey(nextGatewayApiKey);
+    await persist({
+      ...save,
+      config: nextConfig,
+    });
+  }
+
+  async function handleCheckAiConfig(
+    nextConfig: GameConfig,
+    nextGatewayApiKey: string,
+  ): Promise<LocalAiClientStatus> {
+    return refreshLocalAiStatus(nextConfig, nextGatewayApiKey);
+  }
+
   async function handleStartDate() {
     if (save === null || selectedMembers.length !== 2 || selectedScenario === undefined) {
       return;
     }
 
     tryAction("startDate", async () => {
+      if (!save.config.aiSetupComplete) {
+        setIsAiSetupOpen(true);
+        throw new Error("AI setup is required before Cupid books a date.");
+      }
+
       const status = await refreshLocalAiStatus();
 
       if (status.status !== "ready") {
@@ -368,6 +417,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             type: "advanceExchange",
             save,
             dateSessionId: activeSession.id,
+            runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
           },
           applyGameStreamEvent,
         );
@@ -393,6 +443,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             type: "completeDate",
             save,
             dateSessionId: activeSession.id,
+            runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
           },
           applyGameStreamEvent,
         );
@@ -570,6 +621,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     selectedMembers.length === 2 &&
     selectedMembersRetained &&
     selectedScenario !== undefined &&
+    save.config.aiSetupComplete &&
     localAiStatus.status === "ready";
   const canAdvanceDate =
     !campaignLost &&
@@ -596,6 +648,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         isActionPending={isActionPending}
         onSelectView={setView}
         onRetryLocalAi={refreshLocalAiStatus}
+        onOpenAiSetup={() => setIsAiSetupOpen(true)}
         onEndShift={handleEndShift}
         onReset={handleReset}
         onPunchOut={onPunchOut}
@@ -605,6 +658,19 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         {errorMessage === null ? null : (
           <ErrorNotice message={errorMessage} onDismiss={() => setErrorMessage(null)} />
         )}
+
+        {!save.config.aiSetupComplete || isAiSetupOpen ? (
+          <AiSetupPanel
+            config={save.config}
+            gatewayApiKey={gatewayApiKey}
+            status={localAiStatus}
+            required={!save.config.aiSetupComplete}
+            isActionPending={isActionPending}
+            onSave={handleSaveAiConfig}
+            onCheck={handleCheckAiConfig}
+            onClose={() => setIsAiSetupOpen(false)}
+          />
+        ) : null}
 
         <AnimatePresence mode="wait">
           {view === "roster" ? (
@@ -710,6 +776,7 @@ function DashboardChrome({
   isActionPending,
   onSelectView,
   onRetryLocalAi,
+  onOpenAiSetup,
   onEndShift,
   onReset,
   onPunchOut,
@@ -722,6 +789,7 @@ function DashboardChrome({
   isActionPending: boolean;
   onSelectView: (view: ViewKey) => void;
   onRetryLocalAi: () => void;
+  onOpenAiSetup: () => void;
   onEndShift: () => void;
   onReset: () => void;
   onPunchOut: () => void;
@@ -747,6 +815,7 @@ function DashboardChrome({
           shiftActive={activeShift.status === "active"}
           isActionPending={isActionPending}
           onEndShift={onEndShift}
+          onOpenAiSetup={onOpenAiSetup}
           onReset={onReset}
           onPunchOut={onPunchOut}
         />
@@ -774,10 +843,10 @@ function BrandPill({
         : "rose";
   const aiLabel =
     localAiStatus.status === "ready"
-      ? "Local AI online. Click to recheck."
+      ? "AI provider online. Click to recheck."
       : localAiStatus.status === "checking"
-        ? "Local AI checking. Hold tight."
-        : "Local AI offline. Click to recheck.";
+        ? "AI provider checking. Hold tight."
+        : "AI provider offline. Click to recheck.";
   const aiDisabled = isActionPending || localAiStatus.status === "checking";
 
   return (
@@ -879,12 +948,14 @@ function ChromeActions({
   shiftActive,
   isActionPending,
   onEndShift,
+  onOpenAiSetup,
   onReset,
   onPunchOut,
 }: {
   shiftActive: boolean;
   isActionPending: boolean;
   onEndShift: () => void;
+  onOpenAiSetup: () => void;
   onReset: () => void;
   onPunchOut: () => void;
 }) {
@@ -895,17 +966,24 @@ function ChromeActions({
           End shift
         </ChromeButton>
       ) : null}
-      <SettingsMenu isActionPending={isActionPending} onReset={onReset} onPunchOut={onPunchOut} />
+      <SettingsMenu
+        isActionPending={isActionPending}
+        onOpenAiSetup={onOpenAiSetup}
+        onReset={onReset}
+        onPunchOut={onPunchOut}
+      />
     </div>
   );
 }
 
 function SettingsMenu({
   isActionPending,
+  onOpenAiSetup,
   onReset,
   onPunchOut,
 }: {
   isActionPending: boolean;
+  onOpenAiSetup: () => void;
   onReset: () => void;
   onPunchOut: () => void;
 }) {
@@ -949,6 +1027,11 @@ function SettingsMenu({
   function handlePunchOut() {
     setIsOpen(false);
     onPunchOut();
+  }
+
+  function handleOpenAiSetup() {
+    setIsOpen(false);
+    onOpenAiSetup();
   }
 
   function handleToggleSfx() {
@@ -1019,6 +1102,16 @@ function SettingsMenu({
               />
             </div>
             <div className="mx-2 h-px bg-aura-hairline" />
+            <button
+              type="button"
+              role="menuitem"
+              data-sfx="menu"
+              onClick={handleOpenAiSetup}
+              disabled={isActionPending}
+              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              AI setup
+            </button>
             <button
               type="button"
               role="menuitemcheckbox"
@@ -1220,7 +1313,7 @@ async function runGameApiStreamAction(
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
-        "Local AI did not return in time. Confirm Ollama is running, then retry the exchange.",
+        "AI provider did not return in time. Confirm the selected provider is running, then retry the exchange.",
       );
     }
 
@@ -1245,7 +1338,7 @@ async function runGameApiStreamAction(
   } catch (error) {
     if (abortController.signal.aborted) {
       throw new Error(
-        "Local AI did not return in time. Confirm Ollama is running, then retry the exchange.",
+        "AI provider did not return in time. Confirm the selected provider is running, then retry the exchange.",
       );
     }
 
@@ -1325,18 +1418,30 @@ async function readGameStreamResponse(
   return completeResponse;
 }
 
-async function requestLocalAiStatus(): Promise<LocalAiClientStatus> {
+async function requestLocalAiStatus(
+  config: GameConfig,
+  gatewayApiKey: string,
+): Promise<LocalAiClientStatus> {
   let response: Response;
 
   try {
-    response = await fetch(LOCAL_AI_STATUS_URL);
+    response = await fetch(LOCAL_AI_STATUS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        config,
+        runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
+      }),
+    });
   } catch (error) {
     return {
       status: "unavailable",
       message:
         error instanceof Error
-          ? `Local AI status check failed. ${error.message}`
-          : "Local AI status check failed.",
+          ? `AI provider status check failed. ${error.message}`
+          : "AI provider status check failed.",
       details: [],
       checkedAt: new Date().toISOString(),
     };
@@ -1354,7 +1459,7 @@ async function requestLocalAiStatus(): Promise<LocalAiClientStatus> {
 
     return {
       status: "unavailable",
-      message: parsedError.success ? parsedError.data.error : "Local AI status check failed.",
+      message: parsedError.success ? parsedError.data.error : "AI provider status check failed.",
       details: [],
       checkedAt: new Date().toISOString(),
     };
@@ -1362,7 +1467,7 @@ async function requestLocalAiStatus(): Promise<LocalAiClientStatus> {
 
   return {
     status: "unavailable",
-    message: "Local AI status response was unreadable.",
+    message: "AI provider status response was unreadable.",
     details: [],
     checkedAt: new Date().toISOString(),
   };
@@ -1375,6 +1480,35 @@ function toLocalAiClientStatus(response: LocalAiStatusResponse): LocalAiClientSt
     details: response.details,
     checkedAt: response.checkedAt,
   };
+}
+
+function runtimeSecretsFromGatewayKey(gatewayApiKey: string): RuntimeSecrets | undefined {
+  const trimmedKey = gatewayApiKey.trim();
+
+  return trimmedKey.length === 0 ? undefined : { gatewayApiKey: trimmedKey };
+}
+
+function readStoredGatewayApiKey(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+
+  return window.localStorage.getItem(GATEWAY_API_KEY_STORAGE_KEY) ?? "";
+}
+
+function storeGatewayApiKey(value: string): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const trimmedKey = value.trim();
+
+  if (trimmedKey.length === 0) {
+    window.localStorage.removeItem(GATEWAY_API_KEY_STORAGE_KEY);
+    return;
+  }
+
+  window.localStorage.setItem(GATEWAY_API_KEY_STORAGE_KEY, trimmedKey);
 }
 
 async function readJsonResponse(response: Response): Promise<unknown> {

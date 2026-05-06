@@ -2,6 +2,13 @@ import { z } from "zod";
 
 export const SAVE_SCHEMA_VERSION = 2;
 
+export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
+export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:26b";
+export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
+export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
+export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
+
 export const memberIdSchema = z.string().min(1);
 export const scenarioIdSchema = z.string().min(1);
 export const goalIdSchema = z.string().min(1);
@@ -451,14 +458,65 @@ export const shiftStateSchema = z.object({
   report: shiftReportSchema.optional(),
 });
 
-export const gameConfigSchema = z.object({
-  performerModel: z.string().min(1).default("gemma4:26b"),
-  judgeModel: z.string().min(1).default("gemma4:26b"),
-  summarizerModel: z.string().min(1).default("gemma4:26b"),
-  embeddingModel: z.string().min(1).default("embeddinggemma"),
-  defaultDateMessageLimit: z.number().int().min(2).default(30),
-  shiftDateSlots: z.number().int().min(1).default(3),
-});
+export const aiProviderSchema = z.enum(["ollama", "gateway"]);
+export const aiReasoningLevelSchema = z.enum(["off", "low", "medium", "high"]);
+
+function toGameConfigInput(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const hasProvider = typeof record.aiProvider === "string";
+  const legacyPerformerModel =
+    typeof record.performerModel === "string" ? record.performerModel : undefined;
+  const legacyEmbeddingModel =
+    typeof record.embeddingModel === "string" ? record.embeddingModel : undefined;
+  const aiProvider = hasProvider
+    ? record.aiProvider
+    : legacyPerformerModel === undefined
+      ? "gateway"
+      : "ollama";
+  const defaultEmbeddingModel =
+    aiProvider === "ollama" ? DEFAULT_OLLAMA_EMBEDDING_MODEL : DEFAULT_GATEWAY_EMBEDDING_MODEL;
+  const defaultChatModel =
+    aiProvider === "ollama" ? DEFAULT_OLLAMA_CHAT_MODEL : DEFAULT_GATEWAY_CHAT_MODEL;
+
+  return {
+    ...record,
+    aiProvider,
+    chatModel:
+      typeof record.chatModel === "string"
+        ? record.chatModel
+        : (legacyPerformerModel ?? defaultChatModel),
+    embeddingModel: legacyEmbeddingModel ?? defaultEmbeddingModel,
+    reasoningLevel:
+      typeof record.reasoningLevel === "string"
+        ? record.reasoningLevel
+        : aiProvider === "ollama" || legacyPerformerModel !== undefined
+          ? "off"
+          : "medium",
+    ollamaBaseURL:
+      typeof record.ollamaBaseURL === "string" ? record.ollamaBaseURL : DEFAULT_OLLAMA_BASE_URL,
+    gatewayBaseURL:
+      typeof record.gatewayBaseURL === "string" ? record.gatewayBaseURL : DEFAULT_GATEWAY_BASE_URL,
+  };
+}
+
+export const gameConfigSchema = z.preprocess(
+  toGameConfigInput,
+  z.object({
+    aiProvider: aiProviderSchema.default("gateway"),
+    chatModel: z.string().min(1).default(DEFAULT_GATEWAY_CHAT_MODEL),
+    embeddingModel: z.string().min(1).default(DEFAULT_GATEWAY_EMBEDDING_MODEL),
+    reasoningLevel: aiReasoningLevelSchema.default("medium"),
+    ollamaBaseURL: z.string().min(1).default(DEFAULT_OLLAMA_BASE_URL),
+    gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
+    aiSetupComplete: z.boolean().default(false),
+    defaultDateMessageLimit: z.number().int().min(2).default(30),
+    shiftDateSlots: z.number().int().min(1).default(3),
+  }),
+);
 
 export const gameSaveSchema = z.object({
   version: z.literal(SAVE_SCHEMA_VERSION),
@@ -511,5 +569,7 @@ export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
 export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
 export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftState = z.infer<typeof shiftStateSchema>;
+export type AiProvider = z.infer<typeof aiProviderSchema>;
+export type AiReasoningLevel = z.infer<typeof aiReasoningLevelSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;
 export type GameSave = z.infer<typeof gameSaveSchema>;

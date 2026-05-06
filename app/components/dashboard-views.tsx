@@ -1451,8 +1451,8 @@ function BriefDock({
   const localAiBlocksStart = localAiStatus.status !== "ready";
   const statusLabel = localAiBlocksStart
     ? localAiStatus.status === "checking"
-      ? "local ai check"
-      : "local ai blocked"
+      ? "ai check"
+      : "ai blocked"
     : selectedScenario === undefined
       ? "no reservation"
       : "reservation locked";

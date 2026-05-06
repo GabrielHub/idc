@@ -28,6 +28,8 @@ export type MemorySearchFilters = {
   scopes?: MemoryScope[];
   visibilities?: MemoryVisibility[];
   tags?: string[];
+  embeddingModel?: string;
+  embeddingDimensions?: number;
   viewer: MemoryViewer;
 };
 

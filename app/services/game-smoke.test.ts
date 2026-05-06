@@ -143,9 +143,11 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
-    expect(save.config.performerModel).toBe("gemma4:26b");
-    expect(save.config.judgeModel).toBe("gemma4:26b");
-    expect(save.config.summarizerModel).toBe("gemma4:26b");
+    expect(save.config.aiProvider).toBe("gateway");
+    expect(save.config.chatModel).toBe("deepseek/deepseek-v4-flash");
+    expect(save.config.embeddingModel).toBe("google/gemini-embedding-2");
+    expect(save.config.reasoningLevel).toBe("medium");
+    expect(save.config.aiSetupComplete).toBe(false);
     expect(save.shifts[0]?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
     expect(await repository.listMembers()).toHaveLength(21);
@@ -153,7 +155,7 @@ describe("IDC playable smoke path", () => {
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
-  it("reads local AI config from stale server saves without parsing gameplay state", () => {
+  it("reads legacy AI config from stale server saves without parsing gameplay state", () => {
     const storage = new MemoryStorageDriver();
     storage.setItem(
       CURRENT_SAVE_KEY,
@@ -171,13 +173,12 @@ describe("IDC playable smoke path", () => {
 
     const config = readGameConfigFromStorage(storage);
 
-    expect(config.performerModel).toBe("custom-performer");
-    expect(config.judgeModel).toBe("custom-judge");
-    expect(config.summarizerModel).toBe("custom-summarizer");
+    expect(config.aiProvider).toBe("ollama");
+    expect(config.chatModel).toBe("custom-performer");
     expect(config.embeddingModel).toBe("custom-embedding");
   });
 
-  it("migrates the experimental split local AI defaults back to one language model", async () => {
+  it("migrates the experimental split AI defaults into one chat model", async () => {
     const storage = new MemoryStorageDriver();
     const oldDefaultSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     storage.setItem(
@@ -185,7 +186,6 @@ describe("IDC playable smoke path", () => {
       JSON.stringify({
         ...oldDefaultSave,
         config: {
-          ...oldDefaultSave.config,
           performerModel: "gemma4:26b",
           judgeModel: "gemma4:e4b",
           summarizerModel: "gemma4:e4b",
@@ -195,9 +195,22 @@ describe("IDC playable smoke path", () => {
     const repository = new LocalGameRepository(storage);
     const loaded = await repository.loadGame();
 
-    expect(loaded?.config.performerModel).toBe("gemma4:26b");
-    expect(loaded?.config.judgeModel).toBe("gemma4:26b");
-    expect(loaded?.config.summarizerModel).toBe("gemma4:26b");
+    expect(loaded?.config.aiProvider).toBe("ollama");
+    expect(loaded?.config.chatModel).toBe("gemma4:26b");
+    expect(loaded?.config.embeddingModel).toBe("embeddinggemma");
+  });
+
+  it("keeps Gateway keys out of parsed saves", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const parsed = gameSaveSchema.parse({
+      ...save,
+      config: {
+        ...save.config,
+        gatewayApiKey: "not-for-the-save-file",
+      },
+    });
+
+    expect("gatewayApiKey" in parsed.config).toBe(false);
   });
 
   it("seeds featured cases and derives shift asks from featured members", () => {
@@ -482,9 +495,33 @@ describe("IDC playable smoke path", () => {
       scope: ["self", "pair", "scenario"],
       limit: 3,
     });
+    const compatibleResults = await searchCupidMemory(repository, {
+      characterId: "jenna-pike",
+      pairId,
+      scenarioId: "temporal-coffee-shop",
+      query: "soup planning",
+      queryEmbedding: createDeterministicEmbedding("soup sincere planning document"),
+      queryEmbeddingModel: "deterministic-local",
+      queryEmbeddingDimensions: 64,
+      scope: ["self", "pair", "scenario"],
+      limit: 3,
+    });
+    const mismatchedResults = await searchCupidMemory(repository, {
+      characterId: "jenna-pike",
+      pairId,
+      scenarioId: "temporal-coffee-shop",
+      query: "soup planning",
+      queryEmbedding: createDeterministicEmbedding("soup sincere planning document"),
+      queryEmbeddingModel: "other-model",
+      queryEmbeddingDimensions: 64,
+      scope: ["self", "pair", "scenario"],
+      limit: 3,
+    });
 
     expect(visibleResults.map((result) => result.id)).toContain(memory.id);
     expect(hiddenResults.map((result) => result.id)).not.toContain(memory.id);
+    expect(compatibleResults.map((result) => result.id)).toContain(memory.id);
+    expect(mismatchedResults.map((result) => result.id)).not.toContain(memory.id);
   });
 
   it("does not leak pair-specific scenario memories to another pair", async () => {

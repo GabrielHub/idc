@@ -17,14 +17,14 @@
 
 ## Architecture
 
-- App-owned canonical state is authoritative for gameplay. Runtime local AI never owns gameplay authority.
+- App-owned canonical state is authoritative for gameplay. Runtime AI providers never own gameplay authority.
 - Domain types and schemas own contracts.
 - Fixtures own static gameplay definitions.
 - Game services own gameplay consequences.
 - Repositories and save code own persistence, serialization, and migration. They do not repair gameplay.
 - UI owns presentation and typed user intents only.
 - React Router owns shell navigation, route boundaries, and local server routes.
-- Runtime local AI may perform characters, judge exchanges, summarize memories, and phrase content only after deterministic game systems choose the trigger, subject, allowed context, choices, and effects.
+- Runtime AI providers may perform characters, judge exchanges, summarize memories, and phrase content only after deterministic game systems choose the trigger, subject, allowed context, choices, and effects.
 - LLM outputs must be validated before they affect state.
 - Vector retrieval and scoped memory tool calls are context selection tools, not sources of truth.
 - Memory visibility rules must be enforced in application code before prompt assembly or tool result return.
@@ -64,9 +64,9 @@
 
 ## AI And Assets
 
-- Runtime local AI is required for player-facing date simulation. The playable game should not provide a non-AI date mode.
-- Deterministic fixture paths exist for service tests and smoke coverage, not as a player-facing substitute for Ollama.
-- Runtime local AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
+- Runtime AI through Ollama or Vercel AI Gateway is required for player-facing date simulation. The playable game should not provide a non-AI date mode.
+- Deterministic fixture paths exist for service tests and smoke coverage, not as a player-facing substitute for the required AI provider.
+- Runtime AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
 - Generate v1 member portraits against a white background.
 - Follow the webtoon/manhua portrait direction in `docs/world/image-style.md`.

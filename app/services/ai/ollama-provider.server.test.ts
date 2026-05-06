@@ -6,14 +6,15 @@ describe("local Ollama AI adapter", () => {
   runOllamaSmoke(
     "generates a short local character response",
     async () => {
-      const { generateCharacterTurn } = await import("./ollama-provider.server");
+      const { generateCharacterTurn } = await import("./model-service.server");
       const result = await generateCharacterTurn(
         {
           system: "You are a terse local smoke test for Interdimensional Dating Coach.",
           prompt: "Reply with exactly: IDC local model ready",
         },
         {
-          performerModel: process.env.IDC_PERFORMER_MODEL ?? "gemma4:26b",
+          aiProvider: "ollama",
+          chatModel: process.env.IDC_PERFORMER_MODEL ?? "gemma4:26b",
           requestTimeoutMs: 90_000,
         },
       );
@@ -27,7 +28,7 @@ describe("local Ollama AI adapter", () => {
   runOllamaSmoke(
     "embeds memory text with the configured local model",
     async () => {
-      const { embedMemoryText } = await import("./ollama-provider.server");
+      const { embedMemoryText } = await import("./model-service.server");
       const result = await embedMemoryText("Cupid remembers a soup-related date.");
 
       expect(result.embedding.length).toBeGreaterThan(0);

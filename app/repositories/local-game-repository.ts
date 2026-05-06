@@ -33,12 +33,6 @@ import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
 
 const SAVE_KEY_PREFIX = "idc.cupid.save.v";
-const EXPERIMENTAL_SPLIT_GEMMA_CONFIG = {
-  performerModel: "gemma4:26b",
-  judgeModel: "gemma4:e4b",
-  summarizerModel: "gemma4:e4b",
-} as const;
-
 export const CURRENT_SAVE_KEY = `${SAVE_KEY_PREFIX}${SAVE_SCHEMA_VERSION}`;
 export const LEGACY_SAVE_KEYS = Array.from(
   { length: Math.max(0, SAVE_SCHEMA_VERSION - 1) },
@@ -416,26 +410,7 @@ function migrateDefaultLocalAiConfig(
   save: GameSave,
   alreadyMigrated: boolean,
 ): { save: GameSave; migrated: boolean } {
-  const usesExperimentalSplitDefaults =
-    save.config.performerModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.performerModel &&
-    save.config.judgeModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.judgeModel &&
-    save.config.summarizerModel === EXPERIMENTAL_SPLIT_GEMMA_CONFIG.summarizerModel;
-
-  if (!usesExperimentalSplitDefaults) {
-    return { save, migrated: alreadyMigrated };
-  }
-
-  return {
-    save: gameSaveSchema.parse({
-      ...save,
-      config: {
-        ...save.config,
-        judgeModel: "gemma4:26b",
-        summarizerModel: "gemma4:26b",
-      },
-    }),
-    migrated: true,
-  };
+  return { save, migrated: alreadyMigrated };
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {
@@ -447,6 +422,8 @@ function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters
     matchesSingleFilter(memory.dateSessionId, filters.dateSessionId) &&
     matchesListFilter(memory.scope, filters.scopes) &&
     matchesListFilter(memory.visibility, filters.visibilities) &&
+    matchesSingleFilter(memory.embeddingModel, filters.embeddingModel) &&
+    matchesNumberFilter(memory.embeddingDimensions, filters.embeddingDimensions) &&
     matchesTags(memory.tags, filters.tags)
   );
 }
@@ -476,6 +453,10 @@ function matchesSubjectFilter(memory: MemoryRecord, subjectIds: string[] | undef
 }
 
 function matchesSingleFilter(value: string | undefined, filter: string | undefined): boolean {
+  return filter === undefined || value === filter;
+}
+
+function matchesNumberFilter(value: number | undefined, filter: number | undefined): boolean {
   return filter === undefined || value === filter;
 }
 

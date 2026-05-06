@@ -4,20 +4,29 @@ import {
   dateRuntimeModeSchema,
   dateSessionIdSchema,
   dateSessionSchema,
+  gameConfigSchema,
   gameSaveSchema,
   memberIdSchema,
 } from "../domain/game";
+
+export const aiRuntimeSecretsSchema = z
+  .object({
+    gatewayApiKey: z.string().optional(),
+  })
+  .optional();
 
 export const gameActionSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("advanceExchange"),
     save: gameSaveSchema,
     dateSessionId: dateSessionIdSchema,
+    runtimeSecrets: aiRuntimeSecretsSchema,
   }),
   z.object({
     type: z.literal("completeDate"),
     save: gameSaveSchema,
     dateSessionId: dateSessionIdSchema,
+    runtimeSecrets: aiRuntimeSecretsSchema,
   }),
 ]);
 
@@ -85,7 +94,28 @@ export const localAiStatusResponseSchema = z.object({
   checkedAt: z.string().min(1),
 });
 
+export const aiStatusRequestSchema = z.object({
+  config: gameConfigSchema,
+  runtimeSecrets: aiRuntimeSecretsSchema,
+});
+
+export const aiModelSummarySchema = z.object({
+  name: z.string().min(1),
+  size: z.number().optional(),
+  modifiedAt: z.string().optional(),
+  running: z.boolean().optional(),
+});
+
+export const aiModelDiscoveryResponseSchema = z.object({
+  models: z.array(aiModelSummarySchema),
+  chatModels: z.array(aiModelSummarySchema),
+  embeddingModels: z.array(aiModelSummarySchema),
+  runningModels: z.array(aiModelSummarySchema),
+});
+
 export type GameAction = z.infer<typeof gameActionSchema>;
 export type GameActionResponse = z.infer<typeof gameActionResponseSchema>;
 export type GameStreamEvent = z.infer<typeof gameStreamEventSchema>;
 export type LocalAiStatusResponse = z.infer<typeof localAiStatusResponseSchema>;
+export type AiStatusRequest = z.infer<typeof aiStatusRequestSchema>;
+export type AiModelDiscoveryResponse = z.infer<typeof aiModelDiscoveryResponseSchema>;

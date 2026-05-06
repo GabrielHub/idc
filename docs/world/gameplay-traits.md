@@ -10,7 +10,7 @@ Use member fields this way:
 - `preferences`: visible soft clues for good rooms, partners, and pacing.
 - `dealbreakers`: visible icks the member watches for. These are public evidence for hard stops.
 - `tags`: hidden deterministic gameplay inputs.
-- `voice`: performance instructions for local AI only.
+- `voice`: performance instructions for runtime AI only.
 
 Do not add new member fixture fields unless gameplay or UI reads them. Do not reintroduce `traits` or `redFlags`. `traits` were vague public labels. `redFlags` mixed member behavior with things members reject.
 

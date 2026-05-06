@@ -1,6 +1,6 @@
 # IDC
 
-A local-first relationship operations dashboard for Cupid. The app pairs members with scenarios, runs date sessions through a deterministic game engine, and uses a local LLM to perform characters, judge exchanges, and summarize memories within schema-validated bounds.
+A local-first relationship operations dashboard for Cupid. The app pairs members with scenarios, runs date sessions through a deterministic game engine, and uses a required AI provider to perform characters, judge exchanges, and summarize memories within schema-validated bounds.
 
 ## Stack
 
@@ -9,13 +9,13 @@ A local-first relationship operations dashboard for Cupid. The app pairs members
 - Zod for domain schemas and runtime validation
 - Vitest for unit and smoke tests
 - Vite Plus (`vp`) toolchain on top of Vite, Rolldown, Vitest, Oxlint, Oxfmt
-- Local AI through `ai-sdk-ollama` and `@ai-sdk/openai-compatible`, defaulting to Ollama at `http://127.0.0.1:11434`
+- Runtime AI through Ollama or Vercel AI Gateway via `ai-sdk-ollama` and `@ai-sdk/openai-compatible`
 
 ## Prerequisites
 
 - Node 20+ and `pnpm` 10 (declared in `package.json`)
 - The `vp` CLI installed globally (`npm i -g vite-plus`)
-- Ollama running locally is required to book and run dates. Pull the models referenced by `app/services/ai/ollama-provider.server.ts` before invoking date flows. This is intentional: the playable game has no non-AI date mode. The roster and brief can still load when local AI is unavailable.
+- A working AI provider is required to book and run dates. Configure Ollama locally or set `AI_GATEWAY_API_KEY` for Vercel AI Gateway. This is intentional: the playable game has no non-AI date mode. The roster and brief can still load when the selected provider is unavailable.
 - Python 3 with `bria-rmbg` available if you run the portrait cutout script.
 
 ## Quick start
@@ -48,7 +48,7 @@ app/
   domain/           Zod schemas and TypeScript types for game state
   fixtures/         Static gameplay data (members, scenarios, goals)
   services/         Game engine, AI date engine, prompts, memory, vector search
-    ai/             Ollama and OpenAI-compatible provider wrappers
+    ai/             Model catalog and provider service for Ollama and Gateway
   repositories/     Persistence (browser localStorage, Node JSON storage)
   routes/           React Router routes (home dashboard, game API)
   components/       UI components, including the main dashboard
@@ -69,8 +69,8 @@ The system splits gameplay authority from generative content. Read `AGENTS.md` f
 - **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
 - **Hidden member tags are gameplay inputs.** `member.tags` use a controlled taxonomy for deterministic match fit, hard stops, and request scoring. The UI shows profile evidence and dealbreakers, not internal tag names.
 - **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
-- **Local AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
-- **Date play is gated by local AI.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If the local models are unavailable, roster and brief stay visible but date booking is blocked with a visible error state. Deterministic date paths exist for service tests and smoke coverage, not as a player-facing fallback.
+- **Runtime AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
+- **Date play is gated by the selected AI provider.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If Ollama or Gateway is unavailable, roster and brief stay visible but date booking is blocked with a visible error state. Deterministic date paths exist for service tests and smoke coverage, not as a player-facing fallback.
 - **Implemented behavior lives in code.** Domain schemas, fixtures, game services, repositories, UI components, tests, and checked assets are the source of truth for current gameplay. Docs explain intent and workflows, but no separate planning document owns product behavior.
 - **Memory retrieval is context selection, not truth.** Vector search in `app/services/cupid-memory.ts` and `app/services/vector-memory.ts` produces candidates; visibility rules are enforced before a candidate reaches a prompt or tool result.
 
@@ -79,7 +79,7 @@ The system splits gameplay authority from generative content. Read `AGENTS.md` f
 Vitest is the primary regression surface for engine and AI flows:
 
 - `app/services/game-smoke.test.ts` exercises a full deterministic shift: starter fixtures, date sessions, follow-up actions, and shift completion.
-- `app/services/ai-date-engine.server.test.ts` and `app/services/ai/ollama-provider.server.test.ts` cover AI date orchestration and provider plumbing.
+- `app/services/ai-date-engine.server.test.ts`, `app/services/ai/model-service.server.test.ts`, and `app/services/ai/model-catalog.test.ts` cover AI date orchestration and provider plumbing.
 
 Playwright is the fast UI regression surface. The dev server must already be running at `http://localhost:5173/` before invoking Playwright; agents should not start it autonomously. Artifacts go under `playwright/screenshots/`, `playwright/logs/`, and `playwright/artifacts/`.
 

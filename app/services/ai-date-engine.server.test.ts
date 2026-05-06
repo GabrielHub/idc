@@ -14,7 +14,7 @@ import { createSeedGameSave, makePairId } from "./game-seed";
 import { withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
-describe("local AI date engine orchestration", () => {
+describe("AI date engine orchestration", () => {
   it("runs character, judge, summarizer, embedding, and deterministic memory retrieval", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-engine-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -90,7 +90,7 @@ describe("local AI date engine orchestration", () => {
           },
           shouldEndEarly: false,
           notableMoments: ["Jenna asked a practical question."],
-          playerSummary: "Local AI judge filed a useful report.",
+          playerSummary: "AI judge filed a useful report.",
           memoryCandidates: [],
         }),
       summarizeDateMemories: async () => [
@@ -101,7 +101,7 @@ describe("local AI date engine orchestration", () => {
           visibleToMemberIds: ["opal-sunday"],
           pairId: "opal-sunday__vhool",
           scenarioId: "prophecy-karaoke",
-          text: "Jenna and Vhool completed a local AI orchestrated coffee date.",
+          text: "Jenna and Vhool completed an AI orchestrated coffee date.",
           tags: ["date_summary"],
           importance: 4,
         }),
@@ -146,7 +146,7 @@ describe("local AI date engine orchestration", () => {
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
   });
 
-  it("blocks the date update when required local AI callbacks fail", async () => {
+  it("blocks the date update when required AI callbacks fail", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-block-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -192,7 +192,7 @@ describe("local AI date engine orchestration", () => {
         config: started.save.config,
         now: new Date("2026-05-05T12:02:00.000Z"),
       }),
-    ).rejects.toThrow("Local AI performer failed for Jenna Pike: performer unavailable");
+    ).rejects.toThrow("AI performer failed for Jenna Pike: performer unavailable");
 
     const loadedSave = await repository.loadGame();
     const loadedSession = loadedSave?.dateSessions.find(
@@ -272,7 +272,7 @@ describe("local AI date engine orchestration", () => {
           pairId: started.session.pairId,
           scenarioId: started.session.scenarioId,
           dateSessionId: started.session.id,
-          text: "Jenna and Vhool completed a streamed local AI exchange.",
+          text: "Jenna and Vhool completed a streamed AI exchange.",
           tags: ["date_summary"],
           importance: 3,
         }),
@@ -337,7 +337,7 @@ describe("local AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
-  it("lets one local AI exchange land before judging pending transcript", async () => {
+  it("lets one AI exchange land before judging pending transcript", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-judge-cadence-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",

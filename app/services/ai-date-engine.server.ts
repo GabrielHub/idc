@@ -17,14 +17,14 @@ import {
 } from "../domain/game";
 import type { GameRepository } from "../repositories/game-repository";
 import {
+  type AiRuntimeConfig,
   type GeneratedTextResult,
-  type LocalAiRuntimeConfig,
   embedMemoryText,
   generateCharacterTurn,
   judgeDateExchange,
   streamCharacterTurn as streamCharacterTurnWithLocalAi,
   summarizeDateMemories,
-} from "./ai/ollama-provider.server";
+} from "./ai/model-service.server";
 import { retrieveRelevantMemories } from "./cupid-memory";
 import {
   applyJudgeToMembers,
@@ -54,26 +54,26 @@ import { clampScore, errorToMessage, replaceById } from "./utils";
 export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
     packet: CharacterPromptPacket;
-    config: Partial<LocalAiRuntimeConfig>;
+    config: Partial<AiRuntimeConfig>;
   }): Promise<GeneratedTextResult>;
   streamCharacterTurn?(input: {
     packet: CharacterPromptPacket;
-    config: Partial<LocalAiRuntimeConfig>;
+    config: Partial<AiRuntimeConfig>;
     onTextDelta: (delta: string) => Promise<void> | void;
   }): Promise<GeneratedTextResult>;
   judgeDateExchange(input: {
     packet: JudgePromptPacket;
     dateSessionId: string;
     exchangeIndex: number;
-    config: Partial<LocalAiRuntimeConfig>;
+    config: Partial<AiRuntimeConfig>;
   }): Promise<JudgeSnapshot>;
   summarizeDateMemories(input: {
     packet: SummarizerPromptPacket;
-    config: Partial<LocalAiRuntimeConfig>;
+    config: Partial<AiRuntimeConfig>;
   }): Promise<MemoryCandidate[]>;
   embedMemoryText(input: {
     text: string;
-    config: Partial<LocalAiRuntimeConfig>;
+    config: Partial<AiRuntimeConfig>;
   }): Promise<{ embedding: number[]; model: string; dimensions: number }>;
 };
 
@@ -117,7 +117,7 @@ export type LocalAiDateEngineResult = DateEngineResult & {
 type LocalAiDateEngineInput = {
   dateSessionId: string;
   now?: Date;
-  config?: Partial<LocalAiRuntimeConfig>;
+  config?: Partial<AiRuntimeConfig>;
   runtime?: LocalAiDateRuntime;
 };
 
@@ -417,7 +417,7 @@ async function completeDateSessionWithLocalAiInternal(
 }
 
 async function persistAcceptedInputSave(save: GameSave, repository: GameRepository): Promise<void> {
-  // The accepted caller state is recoverable even if local AI fails before the next commit.
+  // The accepted caller state is recoverable even if the AI provider fails before the next commit.
   await repository.saveGame(save);
 }
 
@@ -437,7 +437,7 @@ async function createLocalAiCharacterMessage({
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   session: DateSession;
   speaker: Member;
   partner: Member;
@@ -508,7 +508,7 @@ async function createLocalAiCharacterMessage({
       toolResultCount: generation.toolResultCount,
     };
   } catch (error) {
-    throw new Error(`Local AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
+    throw new Error(`AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
   }
 }
 
@@ -526,7 +526,7 @@ async function buildCharacterPacketForTurn({
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   session: DateSession;
   speaker: Member;
   partner: Member;
@@ -549,7 +549,9 @@ async function buildCharacterPacketForTurn({
     dateSessionId: session.id,
     session,
     query: memoryQuery,
-    queryEmbedding,
+    queryEmbedding: queryEmbedding.embedding,
+    queryEmbeddingModel: queryEmbedding.model,
+    queryEmbeddingDimensions: queryEmbedding.dimensions,
     limit: DEFAULT_MEMORY_LIMIT,
     recentTranscriptLimit: CHARACTER_RECENT_TRANSCRIPT_LIMIT,
   });
@@ -580,7 +582,7 @@ async function streamCharacterMessage({
 }: {
   runtime: LocalAiDateRuntime;
   packet: CharacterPromptPacket;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   speaker: Member;
   sequenceIndex: number;
   turnIndex: number;
@@ -630,7 +632,7 @@ async function createLocalAiJudgeSnapshot({
   members,
 }: {
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   session: DateSession;
   pairState: PairState;
   scenario: DateScenario;
@@ -656,7 +658,7 @@ async function createLocalAiJudgeSnapshot({
 
     return sanitizeJudgeSnapshot(judgeSnapshot, session);
   } catch (error) {
-    throw new Error(`Local AI judge failed: ${errorToMessage(error)}`);
+    throw new Error(`AI judge failed: ${errorToMessage(error)}`);
   }
 }
 
@@ -670,7 +672,7 @@ async function createLocalAiFinalSession({
   completedAt,
 }: {
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   session: DateSession;
   pairState: PairState;
   members: Member[];
@@ -704,7 +706,7 @@ async function createLocalAiMemoryRecords({
   createdAt,
 }: {
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   session: DateSession;
   members: Member[];
   createdAt: string;
@@ -745,7 +747,7 @@ async function createLocalAiMemoryRecords({
       }),
     );
   } catch (error) {
-    throw new Error(`Local AI memory filing failed: ${errorToMessage(error)}`);
+    throw new Error(`AI memory filing failed: ${errorToMessage(error)}`);
   }
 }
 
@@ -861,18 +863,16 @@ async function createRuntimeQueryEmbedding({
   query,
 }: {
   runtime: LocalAiDateRuntime;
-  config: Partial<LocalAiRuntimeConfig>;
+  config: Partial<AiRuntimeConfig>;
   query: string;
-}): Promise<number[]> {
+}): Promise<{ embedding: number[]; model: string; dimensions: number }> {
   try {
-    const result = await runtime.embedMemoryText({
+    return await runtime.embedMemoryText({
       text: query,
       config,
     });
-
-    return result.embedding;
   } catch (error) {
-    throw new Error(`Local AI memory search failed: ${errorToMessage(error)}`);
+    throw new Error(`AI memory search failed: ${errorToMessage(error)}`);
   }
 }
 

@@ -12,18 +12,25 @@ import {
   type LocalAiDateStreamEvent,
   type LocalAiDateEngineResult,
 } from "../services/ai-date-engine.server";
-import { checkLocalAiReadiness } from "../services/ai/ollama-provider.server";
+import {
+  checkAiReadiness,
+  listOllamaModelInventory,
+  type AiRuntimeConfig,
+} from "../services/ai/model-service.server";
 import {
   type GameActionResponse,
   type GameStreamEvent,
+  aiModelDiscoveryResponseSchema,
+  aiStatusRequestSchema,
   gameActionResponseSchema,
   gameActionSchema,
   gameStreamEventSchema,
   localAiStatusResponseSchema,
 } from "../services/game-api-contracts";
-import { errorToMessage } from "../services/utils";
+import { errorToMessage, jsonResponse as json } from "../services/utils";
 
 const LOCAL_AI_STATUS_INTENT = "local-ai-status";
+const AI_MODELS_INTENT = "ai-models";
 const GAME_STREAM_INTENT = "stream";
 
 export async function loader({ request }: { request: Request }) {
@@ -49,17 +56,36 @@ export async function action({ request }: { request: Request }) {
 
   try {
     const payload: unknown = await request.json();
+
+    if (url.searchParams.get("intent") === LOCAL_AI_STATUS_INTENT) {
+      const input = aiStatusRequestSchema.parse(payload);
+      return localAiStatusResponse({
+        ...input.config,
+        ...input.runtimeSecrets,
+      });
+    }
+
+    if (url.searchParams.get("intent") === AI_MODELS_INTENT) {
+      const input = aiStatusRequestSchema.parse(payload);
+      const inventory = await listOllamaModelInventory({
+        ollamaBaseURL: input.config.ollamaBaseURL,
+      });
+
+      return json(aiModelDiscoveryResponseSchema.parse(inventory));
+    }
+
     const actionInput = gameActionSchema.parse(payload);
+    const runtimeConfig = runtimeConfigFromGameAction(actionInput);
 
     const result =
       actionInput.type === "advanceExchange"
         ? await advanceDateExchangeWithLocalAi(actionInput.save, repository, {
             dateSessionId: actionInput.dateSessionId,
-            config: actionInput.save.config,
+            config: runtimeConfig,
           })
         : await completeDateSessionWithLocalAi(actionInput.save, repository, {
             dateSessionId: actionInput.dateSessionId,
-            config: actionInput.save.config,
+            config: runtimeConfig,
           });
 
     return json(toGameActionResponse(result));
@@ -82,6 +108,7 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
       try {
         const payload: unknown = await request.json();
         const actionInput = gameActionSchema.parse(payload);
+        const runtimeConfig = runtimeConfigFromGameAction(actionInput);
 
         const result =
           actionInput.type === "advanceExchange"
@@ -90,7 +117,7 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
                 repository,
                 {
                   dateSessionId: actionInput.dateSessionId,
-                  config: actionInput.save.config,
+                  config: runtimeConfig,
                 },
                 emit,
               )
@@ -99,7 +126,7 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
                 repository,
                 {
                   dateSessionId: actionInput.dateSessionId,
-                  config: actionInput.save.config,
+                  config: runtimeConfig,
                 },
                 emit,
               );
@@ -138,11 +165,11 @@ function toGameActionResponse(result: LocalAiDateEngineResult): GameActionRespon
   });
 }
 
-async function localAiStatusResponse(config: GameConfig): Promise<Response> {
+async function localAiStatusResponse(config: Partial<AiRuntimeConfig>): Promise<Response> {
   const checkedAt = new Date().toISOString();
 
   try {
-    const readiness = await checkLocalAiReadiness(config);
+    const readiness = await checkAiReadiness(config);
     const details = [
       `language ${readiness.languageModels.join(", ")}`,
       `embedding ${readiness.embeddingModel} (${readiness.embeddingDimensions})`,
@@ -153,7 +180,7 @@ async function localAiStatusResponse(config: GameConfig): Promise<Response> {
       localAiStatusResponseSchema.parse({
         status: "ready",
         ready: true,
-        message: "Local AI connected. Cupid may book dates.",
+        message: "AI provider connected. Cupid may book dates.",
         details,
         checkedAt,
       }),
@@ -163,7 +190,7 @@ async function localAiStatusResponse(config: GameConfig): Promise<Response> {
       localAiStatusResponseSchema.parse({
         status: "unavailable",
         ready: false,
-        message: `Local AI unavailable. ${errorToMessage(error)}`,
+        message: `AI provider unavailable. ${errorToMessage(error)}`,
         details: [],
         checkedAt,
       }),
@@ -180,12 +207,12 @@ function readServerGameConfig(): GameConfig {
   return readGameConfigFromStorage(new NodeJsonStorageDriver());
 }
 
-function json(value: unknown, init?: ResponseInit): Response {
-  const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
-
-  return new Response(JSON.stringify(value), {
-    ...init,
-    headers,
-  });
+function runtimeConfigFromGameAction(actionInput: {
+  save: { config: GameConfig };
+  runtimeSecrets?: { gatewayApiKey?: string };
+}): Partial<AiRuntimeConfig> {
+  return {
+    ...actionInput.save.config,
+    ...actionInput.runtimeSecrets,
+  };
 }

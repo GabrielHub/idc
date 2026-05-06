@@ -23,3 +23,17 @@ export function errorToMessage(error: unknown): string {
 
   return String(error);
 }
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+export function jsonResponse(value: unknown, init?: ResponseInit): Response {
+  const headers = new Headers(init?.headers);
+  headers.set("Content-Type", "application/json");
+
+  return new Response(JSON.stringify(value), {
+    ...init,
+    headers,
+  });
+}

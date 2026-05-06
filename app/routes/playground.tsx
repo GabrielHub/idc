@@ -14,9 +14,15 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "../components/date-reactions";
-import type { Member } from "../domain/game";
+import type { AiProvider, AiReasoningLevel, Member } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { jennaPike, vhool } from "../fixtures/members";
+import {
+  GATEWAY_CHAT_MODELS,
+  modelDefaultsForProvider,
+  type OllamaModelSummary,
+} from "../services/ai/model-catalog";
+import { errorToMessage, isRecord } from "../services/utils";
 
 const REACTION_TINT: Record<ReactionKind, string> = {
   spark: "text-violet-500",
@@ -42,31 +48,55 @@ const PLAYGROUND_TESTS = [
 
 type PlaygroundTestId = (typeof PLAYGROUND_TESTS)[number]["id"];
 
-type AiModelSummary = {
-  name: string;
-  size?: number;
-  modifiedAt?: string;
+type AiPlaygroundMode = "dateConversation" | "memberChat";
+
+type AiPromptPreviewPayload = {
+  system: string;
+  prompt: string;
+  model: string;
+  providerMode: AiProvider;
+  sampling: {
+    temperature: number;
+    topP: number;
+    topK: number;
+  };
+  limits: {
+    numCtx: number;
+    maxOutputTokens: number;
+  };
+  reasoningLevel: string;
 };
 
-type AiPlaygroundDefaults = {
+type AiBasePlaygroundSettings = {
+  mode: AiPlaygroundMode;
+  provider: AiProvider;
   model: string;
+  gatewayApiKey?: string;
+  ollamaBaseURL?: string;
+  gatewayBaseURL?: string;
+  reasoningLevel: AiReasoningLevel;
   temperature: number;
   topP: number;
   topK: number;
   numCtx: number;
   maxOutputTokens: number;
+  systemOverride: string;
+  promptOverride: string;
 };
 
 type AiPlaygroundResult = {
+  mode: AiPlaygroundMode;
   text: string;
   turns: AiGeneratedTurn[];
+  chatMessages?: MemberChatMessage[];
   model: string;
-  providerMode: string;
+  providerMode: AiProvider;
   elapsedMs: number;
   promptCharacters: number;
   approximatePromptTokens: number;
   system: string;
   prompt: string;
+  preview?: AiPromptPreviewPayload;
 };
 
 type AiGeneratedTurn = {
@@ -75,16 +105,16 @@ type AiGeneratedTurn = {
   text: string;
 };
 
-type AiPlaygroundSettings = {
+type MemberChatMessage = {
+  role: "tester" | "member";
+  text: string;
+};
+
+type AiDatePlaygroundSettings = AiBasePlaygroundSettings & {
+  mode: "dateConversation";
   memberId: string;
   partnerId: string;
   scenarioId: string;
-  model: string;
-  temperature: number;
-  topP: number;
-  topK: number;
-  numCtx: number;
-  maxOutputTokens: number;
   dateHealth: number;
   spark: number;
   strain: number;
@@ -94,12 +124,22 @@ type AiPlaygroundSettings = {
   turnCount: number;
 };
 
+type AiMemberChatSettings = AiBasePlaygroundSettings & {
+  mode: "memberChat";
+  memberId: string;
+  testerMessage: string;
+  chatMessages: MemberChatMessage[];
+};
+
 const AI_PLAYGROUND_API_URL = "/api/playground-ai";
-const DEFAULT_AI_SETTINGS: AiPlaygroundSettings = {
+const DEFAULT_AI_SETTINGS: AiDatePlaygroundSettings = {
+  mode: "dateConversation",
+  provider: "ollama",
   memberId: "jenna-pike",
   partnerId: "vhool",
   scenarioId: "temporal-coffee-shop",
   model: "gemma4:26b",
+  reasoningLevel: "off",
   temperature: 1,
   topP: 0.95,
   topK: 64,
@@ -115,6 +155,24 @@ const DEFAULT_AI_SETTINGS: AiPlaygroundSettings = {
   memoryText: "Jenna remembers that Vhool treated soup as a sincere planning document.",
   includeCurrentAsk: true,
   turnCount: 4,
+  systemOverride: "",
+  promptOverride: "",
+};
+const DEFAULT_MEMBER_CHAT_SETTINGS: AiMemberChatSettings = {
+  mode: "memberChat",
+  provider: "gateway",
+  memberId: "jenna-pike",
+  model: modelDefaultsForProvider("gateway").chatModel,
+  reasoningLevel: modelDefaultsForProvider("gateway").reasoningLevel,
+  temperature: 0.8,
+  topP: 0.95,
+  topK: 64,
+  numCtx: 8192,
+  maxOutputTokens: 180,
+  testerMessage: "What would make a date feel normal enough to trust?",
+  chatMessages: [],
+  systemOverride: "",
+  promptOverride: "",
 };
 
 export function meta() {
@@ -323,17 +381,35 @@ function TestList({
 /* ================================================================== */
 
 function AiPromptLabTest() {
-  const [settings, setSettings] = useState<AiPlaygroundSettings>(DEFAULT_AI_SETTINGS);
-  const [models, setModels] = useState<AiModelSummary[]>([]);
+  const [mode, setMode] = useState<AiPlaygroundMode>("dateConversation");
+  const [dateSettings, setDateSettings] = useState<AiDatePlaygroundSettings>(DEFAULT_AI_SETTINGS);
+  const [memberChatSettings, setMemberChatSettings] = useState<AiMemberChatSettings>(
+    DEFAULT_MEMBER_CHAT_SETTINGS,
+  );
+  const [models, setModels] = useState<OllamaModelSummary[]>([]);
   const [result, setResult] = useState<AiPlaygroundResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const selectedMember = starterMembers.find((member) => member.id === settings.memberId);
-  const selectedPartner = starterMembers.find((member) => member.id === settings.partnerId);
-  const selectedScenario = starterScenarios.find((scenario) => scenario.id === settings.scenarioId);
+  const activeSettings = mode === "dateConversation" ? dateSettings : memberChatSettings;
+  const selectedMember = starterMembers.find((member) => member.id === activeSettings.memberId);
+  const selectedPartner =
+    mode === "dateConversation"
+      ? starterMembers.find((member) => member.id === dateSettings.partnerId)
+      : undefined;
+  const selectedScenario =
+    mode === "dateConversation"
+      ? starterScenarios.find((scenario) => scenario.id === dateSettings.scenarioId)
+      : undefined;
   const partnerOptions = useMemo(
-    () => starterMembers.filter((member) => member.id !== settings.memberId),
-    [settings.memberId],
+    () => starterMembers.filter((member) => member.id !== dateSettings.memberId),
+    [dateSettings.memberId],
+  );
+  const modelOptions = useMemo<OllamaModelSummary[]>(
+    () =>
+      activeSettings.provider === "gateway"
+        ? GATEWAY_CHAT_MODELS.map((model) => ({ name: model.id, modifiedAt: model.label }))
+        : models,
+    [activeSettings.provider, models],
   );
 
   useEffect(() => {
@@ -349,6 +425,9 @@ function AiPromptLabTest() {
         }
 
         setModels(payload.models);
+        setDateSettings(payload.defaults);
+        setMemberChatSettings(payload.memberChatDefaults);
+        setResult(previewToResult(payload.previews.dateConversation, "dateConversation"));
       } catch {
         if (isMounted) {
           setModels([]);
@@ -364,25 +443,93 @@ function AiPromptLabTest() {
   }, []);
 
   useEffect(() => {
-    if (settings.memberId !== settings.partnerId) {
+    if (dateSettings.memberId !== dateSettings.partnerId) {
       return;
     }
 
-    const fallbackPartner = starterMembers.find((member) => member.id !== settings.memberId);
+    const fallbackPartner = starterMembers.find((member) => member.id !== dateSettings.memberId);
 
     if (fallbackPartner !== undefined) {
-      setSetting("partnerId", fallbackPartner.id);
+      setDateSetting("partnerId", fallbackPartner.id);
     }
-  }, [settings.memberId, settings.partnerId]);
+  }, [dateSettings.memberId, dateSettings.partnerId]);
 
-  function setSetting<TKey extends keyof AiPlaygroundSettings>(
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void refreshPreview();
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeSettings, mode]);
+
+  function setDateSetting<TKey extends keyof AiDatePlaygroundSettings>(
     key: TKey,
-    value: AiPlaygroundSettings[TKey],
+    value: AiDatePlaygroundSettings[TKey],
   ) {
-    setSettings((current) => ({
+    setDateSettings((current) => ({
       ...current,
       [key]: value,
     }));
+  }
+
+  function setMemberChatSetting<TKey extends keyof AiMemberChatSettings>(
+    key: TKey,
+    value: AiMemberChatSettings[TKey],
+  ) {
+    setMemberChatSettings((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function setBaseSetting<TKey extends keyof AiBasePlaygroundSettings>(
+    key: TKey,
+    value: AiBasePlaygroundSettings[TKey],
+  ) {
+    if (mode === "dateConversation") {
+      setDateSettings((current) => ({
+        ...current,
+        [key]: value,
+      }));
+      return;
+    }
+
+    setMemberChatSettings((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
+  function selectProvider(provider: AiProvider) {
+    const defaults = modelDefaultsForProvider(provider);
+    const nextBase = {
+      provider,
+      model: defaults.chatModel,
+      reasoningLevel: defaults.reasoningLevel,
+    };
+
+    if (mode === "dateConversation") {
+      setDateSettings((current) => ({
+        ...current,
+        ...nextBase,
+      }));
+      return;
+    }
+
+    setMemberChatSettings((current) => ({
+      ...current,
+      ...nextBase,
+    }));
+  }
+
+  async function refreshPreview() {
+    try {
+      const preview = await postPlayground({ ...activeSettings, action: "preview" });
+      setResult(preview);
+      setError(null);
+    } catch (caught) {
+      setError(errorToMessage(caught));
+    }
   }
 
   async function runPrompt() {
@@ -390,24 +537,16 @@ function AiPromptLabTest() {
     setError(null);
 
     try {
-      const response = await fetch(AI_PLAYGROUND_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(settings),
-      });
-      const payload: unknown = await response.json();
-
-      if (!response.ok) {
-        throw new Error(readErrorMessage(payload));
-      }
-
-      if (!isAiResultPayload(payload)) {
-        throw new Error("AI playground returned an unreadable result.");
-      }
-
+      const payload = await postPlayground({ ...activeSettings, action: "generate" });
       setResult(payload);
+
+      if (payload.mode === "memberChat" && payload.chatMessages !== undefined) {
+        setMemberChatSettings((current) => ({
+          ...current,
+          chatMessages: payload.chatMessages ?? current.chatMessages,
+          testerMessage: "",
+        }));
+      }
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -428,16 +567,16 @@ function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt lab"
-        description="Run an alternating character conversation through the same prompt builder as the date engine. Tune model, context, and sampling without burning a full playthrough."
+        description="Run date prompt tests or interview one member directly. Prompt previews update before the first generation so the route is easier to audit."
       />
 
-      <div className="grid gap-6 xl:grid-cols-[360px_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <section className="aura-glass h-fit rounded-card p-5">
           <div className="flex items-start justify-between gap-3">
             <div>
               <MutedLabel>run sheet</MutedLabel>
               <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-                Conversation run
+                {mode === "dateConversation" ? "Date conversation" : "Member chat"}
               </h3>
             </div>
             <button
@@ -446,164 +585,201 @@ function AiPromptLabTest() {
               disabled={isRunning}
               className="cursor-pointer rounded-pill bg-aura-ink px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose disabled:cursor-not-allowed disabled:opacity-45"
             >
-              {isRunning ? "Running" : "Run chat"}
+              {isRunning ? "Running" : "Run"}
             </button>
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            <ModeButton label="Date test" value="dateConversation" mode={mode} onSelect={setMode} />
+            <ModeButton label="Member chat" value="memberChat" mode={mode} onSelect={setMode} />
           </div>
 
           <div className="mt-5 space-y-5">
             <SelectControl
+              label="provider"
+              value={activeSettings.provider}
+              options={[
+                { value: "ollama", label: "Ollama" },
+                { value: "gateway", label: "Vercel AI Gateway" },
+              ]}
+              onChange={(value) => selectProvider(value as AiProvider)}
+            />
+            <ModelControl
+              value={activeSettings.model}
+              models={modelOptions}
+              onChange={(value) => setBaseSetting("model", value)}
+            />
+            {activeSettings.provider === "gateway" ? (
+              <>
+                <SelectControl
+                  label="reasoning"
+                  value={activeSettings.reasoningLevel}
+                  options={[
+                    { value: "off", label: "Off" },
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                  ]}
+                  onChange={(value) =>
+                    setBaseSetting(
+                      "reasoningLevel",
+                      value as AiBasePlaygroundSettings["reasoningLevel"],
+                    )
+                  }
+                />
+                <TextInputControl
+                  label="Gateway key"
+                  type="password"
+                  value={activeSettings.gatewayApiKey ?? ""}
+                  onChange={(value) => setBaseSetting("gatewayApiKey", value)}
+                />
+              </>
+            ) : null}
+
+            <SelectControl
               label="member"
-              value={settings.memberId}
+              value={activeSettings.memberId}
               options={starterMembers.map((member) => ({
                 value: member.id,
                 label: member.name,
               }))}
-              onChange={(value) => setSetting("memberId", value)}
-            />
-            <SelectControl
-              label="partner"
-              value={settings.partnerId}
-              options={partnerOptions.map((member) => ({
-                value: member.id,
-                label: member.name,
-              }))}
-              onChange={(value) => setSetting("partnerId", value)}
-            />
-            <SelectControl
-              label="scenario"
-              value={settings.scenarioId}
-              options={starterScenarios.map((scenario) => ({
-                value: scenario.id,
-                label: scenario.title,
-              }))}
-              onChange={(value) => setSetting("scenarioId", value)}
+              onChange={(value) =>
+                mode === "dateConversation"
+                  ? setDateSetting("memberId", value)
+                  : setMemberChatSetting("memberId", value)
+              }
             />
 
-            <ModelControl
-              value={settings.model}
-              models={models}
-              onChange={(value) => setSetting("model", value)}
-            />
+            {mode === "dateConversation" ? (
+              <>
+                <SelectControl
+                  label="partner"
+                  value={dateSettings.partnerId}
+                  options={partnerOptions.map((member) => ({
+                    value: member.id,
+                    label: member.name,
+                  }))}
+                  onChange={(value) => setDateSetting("partnerId", value)}
+                />
+                <SelectControl
+                  label="scenario"
+                  value={dateSettings.scenarioId}
+                  options={starterScenarios.map((scenario) => ({
+                    value: scenario.id,
+                    label: scenario.title,
+                  }))}
+                  onChange={(value) => setDateSetting("scenarioId", value)}
+                />
+              </>
+            ) : null}
 
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
               <NumberControl
                 label="context"
-                value={settings.numCtx}
+                value={activeSettings.numCtx}
                 min={2048}
                 max={262144}
                 step={1024}
-                onChange={(value) => setSetting("numCtx", value)}
+                onChange={(value) => setBaseSetting("numCtx", value)}
               />
               <NumberControl
                 label="output tokens"
-                value={settings.maxOutputTokens}
+                value={activeSettings.maxOutputTokens}
                 min={24}
                 max={512}
                 step={8}
-                onChange={(value) => setSetting("maxOutputTokens", value)}
+                onChange={(value) => setBaseSetting("maxOutputTokens", value)}
               />
-              <NumberControl
-                label="turns"
-                value={settings.turnCount}
-                min={1}
-                max={6}
-                step={1}
-                onChange={(value) => setSetting("turnCount", value)}
-              />
+              {mode === "dateConversation" ? (
+                <NumberControl
+                  label="turns"
+                  value={dateSettings.turnCount}
+                  min={1}
+                  max={6}
+                  step={1}
+                  onChange={(value) => setDateSetting("turnCount", value)}
+                />
+              ) : null}
             </div>
 
             <RangeControl
               label="temperature"
-              value={settings.temperature}
+              value={activeSettings.temperature}
               min={0}
               max={2}
               step={0.05}
-              onChange={(value) => setSetting("temperature", value)}
+              onChange={(value) => setBaseSetting("temperature", value)}
             />
             <RangeControl
               label="top p"
-              value={settings.topP}
+              value={activeSettings.topP}
               min={0}
               max={1}
               step={0.01}
-              onChange={(value) => setSetting("topP", value)}
+              onChange={(value) => setBaseSetting("topP", value)}
             />
             <NumberControl
               label="top k"
-              value={settings.topK}
+              value={activeSettings.topK}
               min={1}
               max={200}
               step={1}
-              onChange={(value) => setSetting("topK", value)}
+              onChange={(value) => setBaseSetting("topK", value)}
             />
 
-            <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-              <RangeControl
-                label="comfort"
-                value={settings.dateHealth}
-                min={0}
-                max={100}
-                step={1}
-                onChange={(value) => setSetting("dateHealth", Math.round(value))}
-              />
-              <RangeControl
-                label="spark"
-                value={settings.spark}
-                min={0}
-                max={100}
-                step={1}
-                onChange={(value) => setSetting("spark", Math.round(value))}
-              />
-              <RangeControl
-                label="strain"
-                value={settings.strain}
-                min={0}
-                max={100}
-                step={1}
-                onChange={(value) => setSetting("strain", Math.round(value))}
-              />
-            </div>
-
-            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
-              <span>
-                <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-                  current ask
-                </span>
-                <span className="mt-1 block text-label text-aura-muted">
-                  Include the selected member request when one is active.
-                </span>
-              </span>
-              <input
-                type="checkbox"
-                checked={settings.includeCurrentAsk}
-                onChange={(event) => setSetting("includeCurrentAsk", event.currentTarget.checked)}
-                className="size-4 cursor-pointer accent-aura-rose"
-              />
-            </label>
+            {mode === "dateConversation" ? (
+              <DatePlaygroundControls settings={dateSettings} onChange={setDateSetting} />
+            ) : null}
           </div>
         </section>
 
         <section className="min-w-0 space-y-6">
           <AiRunSummary
             memberName={selectedMember?.name ?? "Member"}
-            partnerName={selectedPartner?.name ?? "Partner"}
-            scenarioTitle={selectedScenario?.title ?? "Scenario"}
+            partnerName={selectedPartner?.name ?? "Cupid QA"}
+            scenarioTitle={
+              mode === "dateConversation" ? (selectedScenario?.title ?? "Scenario") : "Private QA"
+            }
             result={result}
             error={error}
           />
 
+          {mode === "dateConversation" ? (
+            <div className="grid gap-4 lg:grid-cols-2">
+              <TextAreaControl
+                label="back and forth"
+                value={dateSettings.transcriptText}
+                rows={9}
+                onChange={(value) => setDateSetting("transcriptText", value)}
+              />
+              <TextAreaControl
+                label="allowed memories"
+                value={dateSettings.memoryText}
+                rows={9}
+                onChange={(value) => setDateSetting("memoryText", value)}
+              />
+            </div>
+          ) : (
+            <MemberChatPanel
+              settings={memberChatSettings}
+              result={result}
+              onMessage={(value) => setMemberChatSetting("testerMessage", value)}
+              onClear={() => setMemberChatSetting("chatMessages", [])}
+            />
+          )}
+
           <div className="grid gap-4 lg:grid-cols-2">
             <TextAreaControl
-              label="back and forth"
-              value={settings.transcriptText}
-              rows={9}
-              onChange={(value) => setSetting("transcriptText", value)}
+              label="system override"
+              value={activeSettings.systemOverride}
+              rows={6}
+              onChange={(value) => setBaseSetting("systemOverride", value)}
             />
             <TextAreaControl
-              label="allowed memories"
-              value={settings.memoryText}
-              rows={9}
-              onChange={(value) => setSetting("memoryText", value)}
+              label="context override"
+              value={activeSettings.promptOverride}
+              rows={6}
+              onChange={(value) => setBaseSetting("promptOverride", value)}
             />
           </div>
 
@@ -611,6 +787,162 @@ function AiPromptLabTest() {
         </section>
       </div>
     </motion.section>
+  );
+}
+
+function ModeButton({
+  label,
+  value,
+  mode,
+  onSelect,
+}: {
+  label: string;
+  value: AiPlaygroundMode;
+  mode: AiPlaygroundMode;
+  onSelect: (mode: AiPlaygroundMode) => void;
+}) {
+  const isActive = value === mode;
+
+  return (
+    <button
+      type="button"
+      aria-pressed={isActive}
+      onClick={() => onSelect(value)}
+      className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+        isActive
+          ? "bg-aura-ink text-white"
+          : "bg-white/55 text-aura-muted hover:bg-white hover:text-aura-ink"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function DatePlaygroundControls({
+  settings,
+  onChange,
+}: {
+  settings: AiDatePlaygroundSettings;
+  onChange: <TKey extends keyof AiDatePlaygroundSettings>(
+    key: TKey,
+    value: AiDatePlaygroundSettings[TKey],
+  ) => void;
+}) {
+  return (
+    <>
+      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
+        <RangeControl
+          label="comfort"
+          value={settings.dateHealth}
+          min={0}
+          max={100}
+          step={1}
+          onChange={(value) => onChange("dateHealth", Math.round(value))}
+        />
+        <RangeControl
+          label="spark"
+          value={settings.spark}
+          min={0}
+          max={100}
+          step={1}
+          onChange={(value) => onChange("spark", Math.round(value))}
+        />
+        <RangeControl
+          label="strain"
+          value={settings.strain}
+          min={0}
+          max={100}
+          step={1}
+          onChange={(value) => onChange("strain", Math.round(value))}
+        />
+      </div>
+
+      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
+        <span>
+          <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+            current ask
+          </span>
+          <span className="mt-1 block text-label text-aura-muted">
+            Include the selected member request when one is active.
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={settings.includeCurrentAsk}
+          onChange={(event) => onChange("includeCurrentAsk", event.currentTarget.checked)}
+          className="size-4 cursor-pointer accent-aura-rose"
+        />
+      </label>
+    </>
+  );
+}
+
+function MemberChatPanel({
+  settings,
+  result,
+  onMessage,
+  onClear,
+}: {
+  settings: AiMemberChatSettings;
+  result: AiPlaygroundResult | null;
+  onMessage: (value: string) => void;
+  onClear: () => void;
+}) {
+  const member = starterMembers.find((candidate) => candidate.id === settings.memberId);
+  const chatMessages =
+    result?.mode === "memberChat" && result.chatMessages !== undefined
+      ? result.chatMessages
+      : settings.chatMessages;
+
+  return (
+    <div className="aura-glass rounded-card p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <MutedLabel>member thread</MutedLabel>
+          <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            {member?.name ?? "Member"}
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={chatMessages.length === 0}
+          className="cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Clear
+        </button>
+      </div>
+
+      <ol className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
+        {chatMessages.length === 0 ? (
+          <li className="rounded-tile bg-white/55 px-3 py-2 text-label text-aura-muted">
+            No interview transcript filed yet.
+          </li>
+        ) : (
+          chatMessages.map((message, index) => (
+            <li
+              key={`${message.role}-${index}`}
+              className={`rounded-tile px-3 py-2 ${
+                message.role === "tester" ? "bg-white/65 text-aura-ink" : "bg-aura-ink text-white"
+              }`}
+            >
+              <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] opacity-70">
+                {message.role === "tester" ? "Cupid QA" : (member?.firstName ?? "Member")}
+              </span>
+              <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed">{message.text}</p>
+            </li>
+          ))
+        )}
+      </ol>
+
+      <TextAreaControl
+        label="tester message"
+        value={settings.testerMessage}
+        rows={4}
+        onChange={onMessage}
+      />
+    </div>
   );
 }
 
@@ -781,10 +1113,27 @@ function AiOutputPanel({ result }: { result: AiPlaygroundResult | null }) {
         )}
       </div>
 
+      <PromptMetaPanel preview={result?.preview} />
+
       <div className="grid gap-4 xl:grid-cols-2">
         <PromptPreview title="system" value={result?.system ?? ""} />
         <PromptPreview title="prompt" value={result?.prompt ?? ""} />
       </div>
+    </div>
+  );
+}
+
+function PromptMetaPanel({ preview }: { preview: AiPromptPreviewPayload | undefined }) {
+  if (preview === undefined) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-3 rounded-card border border-aura-hairline bg-white/55 p-4 md:grid-cols-4">
+      <MetricPill label="model" value={preview.model} />
+      <MetricPill label="temp" value={preview.sampling.temperature.toString()} />
+      <MetricPill label="top p" value={preview.sampling.topP.toString()} />
+      <MetricPill label="limit" value={preview.limits.maxOutputTokens.toString()} />
     </div>
   );
 }
@@ -842,7 +1191,7 @@ function ModelControl({
   onChange,
 }: {
   value: string;
-  models: AiModelSummary[];
+  models: OllamaModelSummary[];
   onChange: (value: string) => void;
 }) {
   return (
@@ -876,6 +1225,32 @@ function ModelControl({
         ))}
       </div>
     </div>
+  );
+}
+
+function TextInputControl({
+  label,
+  value,
+  type = "text",
+  onChange,
+}: {
+  label: string;
+  value: string;
+  type?: "password" | "text";
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        {label}
+      </span>
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.currentTarget.value)}
+        className="mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 font-mono text-label text-aura-ink outline-none transition focus:border-aura-rose"
+      />
+    </label>
   );
 }
 
@@ -1252,15 +1627,74 @@ function SideButton({
   );
 }
 
+async function postPlayground(
+  settings:
+    | (AiDatePlaygroundSettings & { action: "generate" | "preview" })
+    | (AiMemberChatSettings & { action: "generate" | "preview" }),
+): Promise<AiPlaygroundResult> {
+  const response = await fetch(AI_PLAYGROUND_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(settings),
+  });
+  const payload: unknown = await response.json();
+
+  if (!response.ok) {
+    throw new Error(readErrorMessage(payload));
+  }
+
+  if (!isAiResultPayload(payload)) {
+    throw new Error("AI playground returned an unreadable result.");
+  }
+
+  return payload;
+}
+
+function previewToResult(
+  preview: AiPromptPreviewPayload,
+  mode: AiPlaygroundMode,
+): AiPlaygroundResult {
+  return {
+    mode,
+    text: "",
+    turns: [],
+    model: preview.model,
+    providerMode: preview.providerMode,
+    elapsedMs: 0,
+    promptCharacters: preview.system.length + preview.prompt.length,
+    approximatePromptTokens: Math.ceil((preview.system.length + preview.prompt.length) / 4),
+    system: preview.system,
+    prompt: preview.prompt,
+    preview,
+  };
+}
+
 function isAiLoaderPayload(value: unknown): value is {
-  models: AiModelSummary[];
-  defaults: AiPlaygroundDefaults;
+  models: OllamaModelSummary[];
+  defaults: AiDatePlaygroundSettings;
+  memberChatDefaults: AiMemberChatSettings;
+  previews: {
+    dateConversation: AiPromptPreviewPayload;
+    memberChat: AiPromptPreviewPayload;
+  };
 } {
-  if (!isRecord(value) || !Array.isArray(value.models) || !isRecord(value.defaults)) {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.models) ||
+    !isRecord(value.defaults) ||
+    !isRecord(value.memberChatDefaults) ||
+    !isRecord(value.previews)
+  ) {
     return false;
   }
 
-  return value.models.every((model) => isRecord(model) && typeof model.name === "string");
+  return (
+    value.models.every((model) => isRecord(model) && typeof model.name === "string") &&
+    isPromptPreviewPayload(value.previews.dateConversation) &&
+    isPromptPreviewPayload(value.previews.memberChat)
+  );
 }
 
 function isAiResultPayload(value: unknown): value is AiPlaygroundResult {
@@ -1276,12 +1710,39 @@ function isAiResultPayload(value: unknown): value is AiPlaygroundResult {
         typeof turn.text === "string",
     ) &&
     typeof value.model === "string" &&
-    typeof value.providerMode === "string" &&
+    (value.providerMode === "ollama" || value.providerMode === "gateway") &&
     typeof value.elapsedMs === "number" &&
     typeof value.promptCharacters === "number" &&
     typeof value.approximatePromptTokens === "number" &&
     typeof value.system === "string" &&
-    typeof value.prompt === "string"
+    typeof value.prompt === "string" &&
+    (value.preview === undefined || isPromptPreviewPayload(value.preview)) &&
+    (value.chatMessages === undefined ||
+      (Array.isArray(value.chatMessages) &&
+        value.chatMessages.every(
+          (message) =>
+            isRecord(message) &&
+            (message.role === "tester" || message.role === "member") &&
+            typeof message.text === "string",
+        )))
+  );
+}
+
+function isPromptPreviewPayload(value: unknown): value is AiPromptPreviewPayload {
+  return (
+    isRecord(value) &&
+    typeof value.system === "string" &&
+    typeof value.prompt === "string" &&
+    typeof value.model === "string" &&
+    (value.providerMode === "ollama" || value.providerMode === "gateway") &&
+    isRecord(value.sampling) &&
+    typeof value.sampling.temperature === "number" &&
+    typeof value.sampling.topP === "number" &&
+    typeof value.sampling.topK === "number" &&
+    isRecord(value.limits) &&
+    typeof value.limits.numCtx === "number" &&
+    typeof value.limits.maxOutputTokens === "number" &&
+    typeof value.reasoningLevel === "string"
   );
 }
 
@@ -1291,8 +1752,4 @@ function readErrorMessage(value: unknown): string {
   }
 
   return "AI playground rejected that prompt.";
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
