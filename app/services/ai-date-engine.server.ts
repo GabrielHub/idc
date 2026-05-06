@@ -60,6 +60,7 @@ export type LocalAiDateRuntime = {
     packet: CharacterPromptPacket;
     config: Partial<AiRuntimeConfig>;
     onTextDelta: (delta: string) => Promise<void> | void;
+    onReasoningDelta?: (delta: string) => Promise<void> | void;
   }): Promise<GeneratedTextResult>;
   judgeDateExchange(input: {
     packet: JudgePromptPacket;
@@ -87,6 +88,13 @@ export type LocalAiDateStreamEvent =
     }
   | {
       type: "characterDelta";
+      speakerId: string;
+      sequenceIndex: number;
+      turnIndex: number;
+      textDelta: string;
+    }
+  | {
+      type: "characterReasoningDelta";
       speakerId: string;
       sequenceIndex: number;
       turnIndex: number;
@@ -128,8 +136,8 @@ const JUDGE_CHARACTER_TURN_INTERVAL = 4;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
-  streamCharacterTurn: ({ packet, config, onTextDelta }) =>
-    streamCharacterTurnWithLocalAi(packet, config, onTextDelta),
+  streamCharacterTurn: ({ packet, config, onTextDelta, onReasoningDelta }) =>
+    streamCharacterTurnWithLocalAi(packet, config, onTextDelta, onReasoningDelta),
   judgeDateExchange: ({ packet, dateSessionId, exchangeIndex, config }) =>
     judgeDateExchange({ packet, dateSessionId, exchangeIndex, config }),
   summarizeDateMemories: ({ packet, config }) => summarizeDateMemories(packet, config),
@@ -240,11 +248,7 @@ async function advanceDateExchangeWithLocalAiInternal(
 
     transcript.push(characterResult.message);
     currentTurn += 1;
-    workingSession = dateSessionSchema.parse({
-      ...workingSession,
-      transcript,
-      currentTurn,
-    });
+    workingSession = { ...workingSession, transcript, currentTurn };
   }
 
   const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);
@@ -618,6 +622,21 @@ async function streamCharacterMessage({
         textDelta,
       });
     },
+    onReasoningDelta: async (delta) => {
+      const textDelta = stripForbiddenPunctuation(delta);
+
+      if (textDelta.length === 0) {
+        return;
+      }
+
+      await emit({
+        type: "characterReasoningDelta",
+        speakerId: speaker.id,
+        sequenceIndex,
+        turnIndex,
+        textDelta,
+      });
+    },
   });
 }
 
@@ -876,13 +895,23 @@ async function createRuntimeQueryEmbedding({
   }
 }
 
+const speakerLabelPatternCache = new Map<string, RegExp>();
+
+function speakerLabelPattern(speakerName: string): RegExp {
+  let cached = speakerLabelPatternCache.get(speakerName);
+  if (cached === undefined) {
+    cached = new RegExp(`^${escapeRegex(speakerName)}\\s*:\\s*`, "i");
+    speakerLabelPatternCache.set(speakerName, cached);
+  }
+  return cached;
+}
+
 export function sanitizeCharacterText(text: string, speakerName: string): string {
-  const speakerLabelPattern = new RegExp(`^${escapeRegex(speakerName)}\\s*:\\s*`, "i");
   const trimmedText = normalizeForbiddenPunctuation(text)
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^["']|["']$/g, "")
-    .replace(speakerLabelPattern, "")
+    .replace(speakerLabelPattern(speakerName), "")
     .trim();
 
   if (trimmedText.length === 0) {

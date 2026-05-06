@@ -1,9 +1,15 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 
-import type { Member, PortraitAsset } from "../domain/game";
+import type { Member, PortraitMood } from "../domain/game";
+import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
 export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
+
+export function pad2(value: number) {
+  return value.toString().padStart(2, "0");
+}
 
 /* ------------------------------------------------------------------ */
 /* Eyebrow + headline                                                 */
@@ -87,13 +93,14 @@ export function Portrait({
   member,
   variant,
   asset = "avatar",
+  mood = "neutral",
 }: {
   member: Member;
   variant: PortraitVariant;
   asset?: "avatar" | "portrait";
+  mood?: PortraitMood;
 }) {
-  const portraitAsset =
-    asset === "portrait" ? member.portraits.neutral.portrait : member.portraits.neutral.avatar;
+  const portraitAsset = selectPortraitAsset(member, asset, mood);
   const imagePath = readyPortraitPath(portraitAsset);
   const [failed, setFailed] = useState(false);
   const [retryToken, setRetryToken] = useState(0);
@@ -118,25 +125,41 @@ export function Portrait({
 
   const retryImagePath =
     imagePath === undefined ? undefined : portraitPathWithRetryToken(imagePath, retryToken);
+  const showFallback = imagePath === undefined || failed;
+  const activeImageSrc = retryImagePath ?? imagePath;
 
   return (
-    <div className={`grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}>
-      {imagePath === undefined || failed ? (
-        <span className={PORTRAIT_INITIALS[variant]}>{initialsFor(member.firstName)}</span>
-      ) : (
-        <img
-          alt=""
-          className={PORTRAIT_IMAGE[variant]}
-          onError={() => setFailed(true)}
-          src={retryImagePath ?? imagePath}
-        />
-      )}
+    <div
+      className={`relative grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}
+    >
+      <AnimatePresence initial={false} mode="sync">
+        {showFallback ? (
+          <motion.span
+            key="portrait-initials"
+            className={`absolute inset-0 grid place-items-center ${PORTRAIT_INITIALS[variant]}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+          >
+            {initialsFor(member.firstName)}
+          </motion.span>
+        ) : (
+          <motion.img
+            key={activeImageSrc}
+            alt=""
+            className={`absolute inset-0 ${PORTRAIT_IMAGE[variant]}`}
+            onError={() => setFailed(true)}
+            src={activeImageSrc}
+            initial={{ opacity: 0, scale: 0.985 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.005 }}
+            transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
-}
-
-function readyPortraitPath(asset: PortraitAsset) {
-  return asset.model === "pending" ? undefined : asset.cutoutPath;
 }
 
 function portraitPathWithRetryToken(imagePath: string, retryToken: number) {
@@ -359,5 +382,124 @@ export function LiveDot({ tone = "rose" }: { tone?: "rose" | "emerald" | "amber"
       <span className={`absolute inset-0 rounded-full ${color} opacity-70 aura-pulse`} />
       <span className={`relative size-1.5 rounded-full ${color}`} />
     </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Tooltip                                                            */
+/* ------------------------------------------------------------------ */
+
+type TooltipPlacement = "bottom-start" | "bottom-end" | "bottom-center" | "top-center";
+
+const TOOLTIP_PLACEMENT: Record<TooltipPlacement, string> = {
+  "bottom-start": "left-0 top-full mt-2",
+  "bottom-end": "right-0 top-full mt-2",
+  "bottom-center": "left-1/2 top-full mt-2 -translate-x-1/2",
+  "top-center": "left-1/2 bottom-full mb-2 -translate-x-1/2",
+};
+
+export function Tooltip({
+  message,
+  placement = "bottom-start",
+  children,
+  className = "",
+}: {
+  message: React.ReactNode;
+  placement?: TooltipPlacement;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <span className={`group relative inline-flex ${className}`}>
+      {children}
+      <span
+        role="tooltip"
+        className={`pointer-events-none absolute z-30 w-max max-w-xs translate-y-1 rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 ${TOOLTIP_PLACEMENT[placement]}`}
+      >
+        <span className="aura-accent block text-label leading-snug text-aura-muted">{message}</span>
+      </span>
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Cupid brand mark                                                   */
+/*   Mirrors public/favicon.svg: rose to fuchsia to violet gradient,  */
+/*   white heart pierced by an arrow at -22 degrees.                  */
+/* ------------------------------------------------------------------ */
+
+export function CupidMark({
+  variant = "glyph",
+  className = "",
+}: {
+  variant?: "glyph" | "tile";
+  className?: string;
+}) {
+  const gradientId = `cupid-mark-${variant}`;
+  const glowId = `cupid-mark-glow-${variant}`;
+
+  if (variant === "tile") {
+    return (
+      <svg viewBox="0 0 64 64" className={className} role="img" aria-label="Cupid">
+        <defs>
+          <linearGradient
+            id={gradientId}
+            x1="4"
+            y1="2"
+            x2="60"
+            y2="62"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" stopColor="#f43f5e" />
+            <stop offset="0.55" stopColor="#d946ef" />
+            <stop offset="1" stopColor="#a78bfa" />
+          </linearGradient>
+          <radialGradient id={glowId} cx="22" cy="20" r="36" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
+            <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
+        </defs>
+        <rect width="64" height="64" rx="14" fill={`url(#${gradientId})`} />
+        <rect width="64" height="64" rx="14" fill={`url(#${glowId})`} />
+        <g transform="rotate(-22 32 32)">
+          <rect x="3" y="30.4" width="58" height="3.2" rx="1.6" fill="#ffffff" />
+          <polygon points="3,32 11,27 11,37" fill="#ffffff" />
+          <polygon points="9,32 16,28.5 16,35.5" fill="#ffffff" />
+          <polygon points="61,32 51,26 51,38" fill="#ffffff" />
+        </g>
+        <path
+          d="M32 51.2 C32 51.2 10.5 38.5 10.5 24.4 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.4 C53.5 38.5 32 51.2 32 51.2 Z"
+          fill="#ffffff"
+        />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 64 64" className={className} role="img" aria-label="Cupid">
+      <defs>
+        <linearGradient
+          id={gradientId}
+          x1="4"
+          y1="2"
+          x2="60"
+          y2="62"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop offset="0" stopColor="#f43f5e" />
+          <stop offset="0.55" stopColor="#d946ef" />
+          <stop offset="1" stopColor="#a78bfa" />
+        </linearGradient>
+      </defs>
+      <g transform="rotate(-22 32 32)">
+        <rect x="6" y="30.4" width="52" height="2.6" rx="1.3" fill={`url(#${gradientId})`} />
+        <polygon points="6,32 13,28 13,36" fill={`url(#${gradientId})`} />
+        <polygon points="58,32 50,27 50,37" fill={`url(#${gradientId})`} />
+      </g>
+      <path
+        d="M32 51.2 C32 51.2 10.5 38.5 10.5 24.4 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.4 C53.5 38.5 32 51.2 32 51.2 Z"
+        fill={`url(#${gradientId})`}
+      />
+    </svg>
   );
 }

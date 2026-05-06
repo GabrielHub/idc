@@ -110,5 +110,32 @@ export const meiSato: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mei-sato/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/mei-sato/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Mei Sato portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive bright eyes, polished cel shading, same twenty four year old Japanese-American Brooklyn DJ with light fair skin, vivid electric blue asymmetrical shoulder length hair with warm chocolate brown roots, wispy face-framing bangs, slim side braids or wrapped strand tails, hazel green eyes, light freckles, same bright modern street fashion with saturated cyan and hot coral accents, cropped layered top, short cropped vest, baggy black cargo pants, chunky high-top sneakers, matte black over-ear headphones around her neck, black-and-cyan crossbody sling bag, koi fish line tattoos, silver hoop earrings and rings, leaning forward with curious amused eye contact, slight playful head tilt, confident half smile, one fingertip lightly at the lower lip, supported forward step with naturally bent knees, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mei-sato/portrait-confused.png",
+        cutoutPath: "/assets/portraits/mei-sato/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Mei Sato portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive bright eyes, polished cel shading, same twenty four year old Japanese-American Brooklyn DJ with light fair skin, vivid electric blue asymmetrical shoulder length hair with warm chocolate brown roots, wispy face-framing bangs, slim side braids or wrapped strand tails, hazel green eyes, light freckles, same bright modern street fashion with saturated cyan and hot coral accents, cropped layered top, short cropped vest, baggy black cargo pants, chunky high-top sneakers, same matte black over-ear headphones held in both hands as if adjusting them to hear more clearly, black-and-cyan crossbody sling bag, koi fish line tattoos, silver hoop earrings and rings, curious puzzled expression, softly pinched brows, slightly open mouth, subtle forward lean, grounded weight shift, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mei-sato/portrait-angry.png",
+        cutoutPath: "/assets/portraits/mei-sato/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Mei Sato portrait, interpreted as boundary discomfort rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive bright eyes, polished cel shading, same twenty four year old Japanese-American Brooklyn DJ with light fair skin, vivid electric blue asymmetrical shoulder length hair with warm chocolate brown roots, wispy face-framing bangs, slim side braids or wrapped strand tails, hazel green eyes, light freckles, same bright modern street fashion with saturated cyan and hot coral accents, cropped layered top, short cropped vest, baggy black cargo pants, chunky high-top sneakers, same matte black over-ear headphones around her neck, black-and-cyan crossbody sling bag, koi fish line tattoos, silver hoop earrings and rings, leaning back with an awkward yikes grimace, brows lifted and pinched, compact stop hand raised near chest height, one hand guarded on the sling strap, retreating step with grounded weight shift, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

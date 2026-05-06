@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
 import { EASE_OUT_QUART, Eyebrow, GhostButton, MutedLabel } from "../components/dashboard-atoms";
+import { DATE_PORTRAIT_MOODS, hasReadyPortraitMood } from "../components/date-presentation-signals";
 import {
   DaterStandee,
   pushReactionSignal,
@@ -14,7 +15,7 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "../components/date-reactions";
-import type { AiProvider, AiReasoningLevel, Member } from "../domain/game";
+import type { AiProvider, AiReasoningLevel, Member, PortraitMood } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { jennaPike, vhool } from "../fixtures/members";
 import {
@@ -36,13 +37,13 @@ const REACTION_TINT: Record<ReactionKind, string> = {
 const PLAYGROUND_TESTS = [
   {
     id: "ai-lab",
-    title: "AI prompt lab",
-    summary: "Character turn prompting, model choice, and sampling controls.",
+    title: "AI prompt bench",
+    summary: "Character turn prompting, model choice, sampling.",
   },
   {
     id: "date-reactions",
     title: "Date reactions",
-    summary: "Floating bubbles emitted from a standee when a judge pass returns feedback.",
+    summary: "Mood, speaking bubble, and reactions on the date standee.",
   },
 ] as const;
 
@@ -336,7 +337,7 @@ function TestList({
       transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.1 }}
       className="aura-glass h-fit rounded-card p-5"
     >
-      <MutedLabel>tests on file</MutedLabel>
+      <MutedLabel>bench tests</MutedLabel>
       <ul className="mt-3 space-y-1.5">
         {PLAYGROUND_TESTS.map((test) => {
           const isActive = test.id === activeTestId;
@@ -366,7 +367,7 @@ function TestList({
         })}
       </ul>
       <p className="mt-5 border-t border-aura-hairline pt-4 text-label leading-relaxed text-aura-muted">
-        New tests land here as components grow. Add an entry to{" "}
+        File a new bench test by adding an entry to{" "}
         <span className="font-mono text-micro tracking-[0.22em] text-aura-ink">
           PLAYGROUND_TESTS
         </span>{" "}
@@ -455,11 +456,15 @@ function AiPromptLabTest() {
   }, [dateSettings.memberId, dateSettings.partnerId]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const timeoutId = window.setTimeout(() => {
-      void refreshPreview();
+      void refreshPreview(controller.signal);
     }, 250);
 
-    return () => window.clearTimeout(timeoutId);
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [activeSettings, mode]);
 
   function setDateSetting<TKey extends keyof AiDatePlaygroundSettings>(
@@ -522,12 +527,18 @@ function AiPromptLabTest() {
     }));
   }
 
-  async function refreshPreview() {
+  async function refreshPreview(signal?: AbortSignal) {
     try {
-      const preview = await postPlayground({ ...activeSettings, action: "preview" });
+      const preview = await postPlayground({ ...activeSettings, action: "preview" }, signal);
+      if (signal?.aborted === true) {
+        return;
+      }
       setResult(preview);
       setError(null);
     } catch (caught) {
+      if (signal?.aborted === true) {
+        return;
+      }
       setError(errorToMessage(caught));
     }
   }
@@ -566,172 +577,25 @@ function AiPromptLabTest() {
       className="space-y-6"
     >
       <TestHeader
-        title="AI prompt lab"
-        description="Run date prompt tests or interview one member directly. Prompt previews update before the first generation so the route is easier to audit."
+        title="AI prompt bench"
+        description="Run a date prompt or interview a single member. Prompt previews refresh as you type so the route is easier to audit."
       />
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        <section className="aura-glass h-fit rounded-card p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <MutedLabel>run sheet</MutedLabel>
-              <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-                {mode === "dateConversation" ? "Date conversation" : "Member chat"}
-              </h3>
-            </div>
-            <button
-              type="button"
-              onClick={runPrompt}
-              disabled={isRunning}
-              className="cursor-pointer rounded-pill bg-aura-ink px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {isRunning ? "Running" : "Run"}
-            </button>
-          </div>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <ModeButton label="Date test" value="dateConversation" mode={mode} onSelect={setMode} />
-            <ModeButton label="Member chat" value="memberChat" mode={mode} onSelect={setMode} />
-          </div>
-
-          <div className="mt-5 space-y-5">
-            <SelectControl
-              label="provider"
-              value={activeSettings.provider}
-              options={[
-                { value: "ollama", label: "Ollama" },
-                { value: "gateway", label: "Vercel AI Gateway" },
-              ]}
-              onChange={(value) => selectProvider(value as AiProvider)}
-            />
-            <ModelControl
-              value={activeSettings.model}
-              models={modelOptions}
-              onChange={(value) => setBaseSetting("model", value)}
-            />
-            {activeSettings.provider === "gateway" ? (
-              <>
-                <SelectControl
-                  label="reasoning"
-                  value={activeSettings.reasoningLevel}
-                  options={[
-                    { value: "off", label: "Off" },
-                    { value: "low", label: "Low" },
-                    { value: "medium", label: "Medium" },
-                    { value: "high", label: "High" },
-                  ]}
-                  onChange={(value) =>
-                    setBaseSetting(
-                      "reasoningLevel",
-                      value as AiBasePlaygroundSettings["reasoningLevel"],
-                    )
-                  }
-                />
-                <TextInputControl
-                  label="Gateway key"
-                  type="password"
-                  value={activeSettings.gatewayApiKey ?? ""}
-                  onChange={(value) => setBaseSetting("gatewayApiKey", value)}
-                />
-              </>
-            ) : null}
-
-            <SelectControl
-              label="member"
-              value={activeSettings.memberId}
-              options={starterMembers.map((member) => ({
-                value: member.id,
-                label: member.name,
-              }))}
-              onChange={(value) =>
-                mode === "dateConversation"
-                  ? setDateSetting("memberId", value)
-                  : setMemberChatSetting("memberId", value)
-              }
-            />
-
-            {mode === "dateConversation" ? (
-              <>
-                <SelectControl
-                  label="partner"
-                  value={dateSettings.partnerId}
-                  options={partnerOptions.map((member) => ({
-                    value: member.id,
-                    label: member.name,
-                  }))}
-                  onChange={(value) => setDateSetting("partnerId", value)}
-                />
-                <SelectControl
-                  label="scenario"
-                  value={dateSettings.scenarioId}
-                  options={starterScenarios.map((scenario) => ({
-                    value: scenario.id,
-                    label: scenario.title,
-                  }))}
-                  onChange={(value) => setDateSetting("scenarioId", value)}
-                />
-              </>
-            ) : null}
-
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-1">
-              <NumberControl
-                label="context"
-                value={activeSettings.numCtx}
-                min={2048}
-                max={262144}
-                step={1024}
-                onChange={(value) => setBaseSetting("numCtx", value)}
-              />
-              <NumberControl
-                label="output tokens"
-                value={activeSettings.maxOutputTokens}
-                min={24}
-                max={512}
-                step={8}
-                onChange={(value) => setBaseSetting("maxOutputTokens", value)}
-              />
-              {mode === "dateConversation" ? (
-                <NumberControl
-                  label="turns"
-                  value={dateSettings.turnCount}
-                  min={1}
-                  max={6}
-                  step={1}
-                  onChange={(value) => setDateSetting("turnCount", value)}
-                />
-              ) : null}
-            </div>
-
-            <RangeControl
-              label="temperature"
-              value={activeSettings.temperature}
-              min={0}
-              max={2}
-              step={0.05}
-              onChange={(value) => setBaseSetting("temperature", value)}
-            />
-            <RangeControl
-              label="top p"
-              value={activeSettings.topP}
-              min={0}
-              max={1}
-              step={0.01}
-              onChange={(value) => setBaseSetting("topP", value)}
-            />
-            <NumberControl
-              label="top k"
-              value={activeSettings.topK}
-              min={1}
-              max={200}
-              step={1}
-              onChange={(value) => setBaseSetting("topK", value)}
-            />
-
-            {mode === "dateConversation" ? (
-              <DatePlaygroundControls settings={dateSettings} onChange={setDateSetting} />
-            ) : null}
-          </div>
-        </section>
+        <RunSheet
+          mode={mode}
+          onMode={setMode}
+          isRunning={isRunning}
+          onRun={runPrompt}
+          activeSettings={activeSettings}
+          dateSettings={dateSettings}
+          modelOptions={modelOptions}
+          partnerOptions={partnerOptions}
+          onSelectProvider={selectProvider}
+          onBase={setBaseSetting}
+          onDate={setDateSetting}
+          onMemberChat={setMemberChatSetting}
+        />
 
         <section className="min-w-0 space-y-6">
           <AiRunSummary
@@ -747,13 +611,13 @@ function AiPromptLabTest() {
           {mode === "dateConversation" ? (
             <div className="grid gap-4 lg:grid-cols-2">
               <TextAreaControl
-                label="back and forth"
+                label="transcript so far"
                 value={dateSettings.transcriptText}
                 rows={9}
                 onChange={(value) => setDateSetting("transcriptText", value)}
               />
               <TextAreaControl
-                label="allowed memories"
+                label="permitted memory"
                 value={dateSettings.memoryText}
                 rows={9}
                 onChange={(value) => setDateSetting("memoryText", value)}
@@ -776,7 +640,7 @@ function AiPromptLabTest() {
               onChange={(value) => setBaseSetting("systemOverride", value)}
             />
             <TextAreaControl
-              label="context override"
+              label="prompt override"
               value={activeSettings.promptOverride}
               rows={6}
               onChange={(value) => setBaseSetting("promptOverride", value)}
@@ -787,6 +651,253 @@ function AiPromptLabTest() {
         </section>
       </div>
     </motion.section>
+  );
+}
+
+/* ================================================================== */
+/* Run sheet                                                          */
+/* ================================================================== */
+
+function RunSheet({
+  mode,
+  onMode,
+  isRunning,
+  onRun,
+  activeSettings,
+  dateSettings,
+  modelOptions,
+  partnerOptions,
+  onSelectProvider,
+  onBase,
+  onDate,
+  onMemberChat,
+}: {
+  mode: AiPlaygroundMode;
+  onMode: (mode: AiPlaygroundMode) => void;
+  isRunning: boolean;
+  onRun: () => void;
+  activeSettings: AiDatePlaygroundSettings | AiMemberChatSettings;
+  dateSettings: AiDatePlaygroundSettings;
+  modelOptions: OllamaModelSummary[];
+  partnerOptions: Member[];
+  onSelectProvider: (provider: AiProvider) => void;
+  onBase: <TKey extends keyof AiBasePlaygroundSettings>(
+    key: TKey,
+    value: AiBasePlaygroundSettings[TKey],
+  ) => void;
+  onDate: <TKey extends keyof AiDatePlaygroundSettings>(
+    key: TKey,
+    value: AiDatePlaygroundSettings[TKey],
+  ) => void;
+  onMemberChat: <TKey extends keyof AiMemberChatSettings>(
+    key: TKey,
+    value: AiMemberChatSettings[TKey],
+  ) => void;
+}) {
+  return (
+    <section className="aura-glass h-fit rounded-card p-5">
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <MutedLabel>run sheet</MutedLabel>
+          <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            {mode === "dateConversation" ? "Date sim" : "Member interview"}
+          </h3>
+        </div>
+        <button
+          type="button"
+          onClick={onRun}
+          disabled={isRunning}
+          className="cursor-pointer rounded-pill bg-aura-ink px-5 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose disabled:cursor-not-allowed disabled:opacity-45"
+        >
+          {isRunning ? "Running" : "Run"}
+        </button>
+      </header>
+
+      <div className="mt-5 space-y-5">
+        <RunSheetSection label="test mode">
+          <div className="flex flex-wrap gap-2">
+            <ModeButton label="Date sim" value="dateConversation" mode={mode} onSelect={onMode} />
+            <ModeButton label="Member interview" value="memberChat" mode={mode} onSelect={onMode} />
+          </div>
+        </RunSheetSection>
+
+        <RunSheetSection label="provider">
+          <SelectControl
+            label="provider"
+            value={activeSettings.provider}
+            options={[
+              { value: "ollama", label: "Ollama" },
+              { value: "gateway", label: "Vercel AI Gateway" },
+            ]}
+            onChange={(value) => onSelectProvider(value as AiProvider)}
+          />
+          <ModelControl
+            value={activeSettings.model}
+            models={modelOptions}
+            onChange={(value) => onBase("model", value)}
+          />
+          {activeSettings.provider === "gateway" ? (
+            <>
+              <SelectControl
+                label="reasoning"
+                value={activeSettings.reasoningLevel}
+                options={[
+                  { value: "off", label: "Off" },
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+                onChange={(value) =>
+                  onBase("reasoningLevel", value as AiBasePlaygroundSettings["reasoningLevel"])
+                }
+              />
+              <TextInputControl
+                label="gateway key"
+                type="password"
+                value={activeSettings.gatewayApiKey ?? ""}
+                onChange={(value) => onBase("gatewayApiKey", value)}
+              />
+            </>
+          ) : null}
+        </RunSheetSection>
+
+        <RunSheetSection label="subjects">
+          <SelectControl
+            label="member"
+            value={activeSettings.memberId}
+            options={starterMembers.map((member) => ({
+              value: member.id,
+              label: member.name,
+            }))}
+            onChange={(value) =>
+              mode === "dateConversation"
+                ? onDate("memberId", value)
+                : onMemberChat("memberId", value)
+            }
+          />
+          {mode === "dateConversation" ? (
+            <>
+              <SelectControl
+                label="partner"
+                value={dateSettings.partnerId}
+                options={partnerOptions.map((member) => ({
+                  value: member.id,
+                  label: member.name,
+                }))}
+                onChange={(value) => onDate("partnerId", value)}
+              />
+              <SelectControl
+                label="scenario"
+                value={dateSettings.scenarioId}
+                options={starterScenarios.map((scenario) => ({
+                  value: scenario.id,
+                  label: scenario.title,
+                }))}
+                onChange={(value) => onDate("scenarioId", value)}
+              />
+            </>
+          ) : null}
+        </RunSheetSection>
+
+        <RunSheetSection label="limits">
+          <NumberControl
+            label="context"
+            value={activeSettings.numCtx}
+            min={2048}
+            max={262144}
+            step={1024}
+            onChange={(value) => onBase("numCtx", value)}
+          />
+          <NumberControl
+            label="output tokens"
+            value={activeSettings.maxOutputTokens}
+            min={24}
+            max={512}
+            step={8}
+            onChange={(value) => onBase("maxOutputTokens", value)}
+          />
+          {mode === "dateConversation" ? (
+            <NumberControl
+              label="turns"
+              value={dateSettings.turnCount}
+              min={1}
+              max={6}
+              step={1}
+              onChange={(value) => onDate("turnCount", value)}
+            />
+          ) : null}
+        </RunSheetSection>
+
+        <RunSheetSection label="sampling">
+          <RangeControl
+            label="temperature"
+            value={activeSettings.temperature}
+            min={0}
+            max={2}
+            step={0.05}
+            onChange={(value) => onBase("temperature", value)}
+          />
+          <RangeControl
+            label="top p"
+            value={activeSettings.topP}
+            min={0}
+            max={1}
+            step={0.01}
+            onChange={(value) => onBase("topP", value)}
+          />
+          <NumberControl
+            label="top k"
+            value={activeSettings.topK}
+            min={1}
+            max={200}
+            step={1}
+            onChange={(value) => onBase("topK", value)}
+          />
+        </RunSheetSection>
+
+        {mode === "dateConversation" ? (
+          <RunSheetSection label="scene state">
+            <RangeControl
+              label="comfort"
+              value={dateSettings.dateHealth}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(value) => onDate("dateHealth", Math.round(value))}
+            />
+            <RangeControl
+              label="spark"
+              value={dateSettings.spark}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(value) => onDate("spark", Math.round(value))}
+            />
+            <RangeControl
+              label="strain"
+              value={dateSettings.strain}
+              min={0}
+              max={100}
+              step={1}
+              onChange={(value) => onDate("strain", Math.round(value))}
+            />
+            <CurrentAskToggle
+              checked={dateSettings.includeCurrentAsk}
+              onChange={(value) => onDate("includeCurrentAsk", value)}
+            />
+          </RunSheetSection>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function RunSheetSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3 border-t border-aura-hairline pt-5 first:border-t-0 first:pt-0">
+      <MutedLabel>{label}</MutedLabel>
+      <div className="space-y-3">{children}</div>
+    </section>
   );
 }
 
@@ -819,64 +930,36 @@ function ModeButton({
   );
 }
 
-function DatePlaygroundControls({
-  settings,
+function CurrentAskToggle({
+  checked,
   onChange,
 }: {
-  settings: AiDatePlaygroundSettings;
-  onChange: <TKey extends keyof AiDatePlaygroundSettings>(
-    key: TKey,
-    value: AiDatePlaygroundSettings[TKey],
-  ) => void;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
 }) {
   return (
-    <>
-      <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-1">
-        <RangeControl
-          label="comfort"
-          value={settings.dateHealth}
-          min={0}
-          max={100}
-          step={1}
-          onChange={(value) => onChange("dateHealth", Math.round(value))}
-        />
-        <RangeControl
-          label="spark"
-          value={settings.spark}
-          min={0}
-          max={100}
-          step={1}
-          onChange={(value) => onChange("spark", Math.round(value))}
-        />
-        <RangeControl
-          label="strain"
-          value={settings.strain}
-          min={0}
-          max={100}
-          step={1}
-          onChange={(value) => onChange("strain", Math.round(value))}
-        />
-      </div>
-
-      <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
-        <span>
-          <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-            current ask
-          </span>
-          <span className="mt-1 block text-label text-aura-muted">
-            Include the selected member request when one is active.
-          </span>
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
+      <span>
+        <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+          include current ask
         </span>
-        <input
-          type="checkbox"
-          checked={settings.includeCurrentAsk}
-          onChange={(event) => onChange("includeCurrentAsk", event.currentTarget.checked)}
-          className="size-4 cursor-pointer accent-aura-rose"
-        />
-      </label>
-    </>
+        <span className="mt-1 block text-label leading-relaxed text-aura-muted">
+          Pulls in the member's pinned request when one is active.
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+        className="size-4 cursor-pointer accent-aura-rose"
+      />
+    </label>
   );
 }
+
+/* ================================================================== */
+/* Member chat panel                                                  */
+/* ================================================================== */
 
 function MemberChatPanel({
   settings,
@@ -899,7 +982,7 @@ function MemberChatPanel({
     <div className="aura-glass rounded-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <MutedLabel>member thread</MutedLabel>
+          <MutedLabel>interview thread</MutedLabel>
           <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
             {member?.name ?? "Member"}
           </h3>
@@ -916,8 +999,8 @@ function MemberChatPanel({
 
       <ol className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
         {chatMessages.length === 0 ? (
-          <li className="rounded-tile bg-white/55 px-3 py-2 text-label text-aura-muted">
-            No interview transcript filed yet.
+          <li className="rounded-tile border border-dashed border-aura-hairline-strong bg-white/45 px-3 py-4 text-center font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+            // no interview filed yet
           </li>
         ) : (
           chatMessages.map((message, index) => (
@@ -937,7 +1020,7 @@ function MemberChatPanel({
       </ol>
 
       <TextAreaControl
-        label="tester message"
+        label="interviewer message"
         value={settings.testerMessage}
         rows={4}
         onChange={onMessage}
@@ -950,25 +1033,75 @@ function MemberChatPanel({
 /* Test: Date reactions                                               */
 /* ================================================================== */
 
+type SideId = "left" | "right";
+
+type SideState = {
+  memberId: string;
+  mood: PortraitMood;
+  speaking: boolean;
+  reasoningText: string;
+  reactions: ReactionSignal[];
+};
+
+const SIDE_THEME: Record<
+  SideId,
+  {
+    label: string;
+    accentText: string;
+    accentPill: string;
+    railGradient: string;
+  }
+> = {
+  left: {
+    label: "bottom-left",
+    accentText: "text-aura-rose",
+    accentPill: "bg-rose-100/65 text-aura-rose",
+    railGradient: "from-rose-200/40 via-rose-100/8 to-transparent",
+  },
+  right: {
+    label: "top-right",
+    accentText: "text-violet-600",
+    accentPill: "bg-violet-100/70 text-violet-600",
+    railGradient: "from-violet-200/40 via-violet-100/8 to-transparent",
+  },
+};
+
+const SAMPLE_REASONING_LINES = [
+  "running the line back, what would land softer here",
+  "wait does this read as flirting or a planning document",
+  "if i pivot now i lose the thread, hold one more beat",
+] as const;
+
+function defaultSideState(memberId: string): SideState {
+  return {
+    memberId,
+    mood: "neutral",
+    speaking: false,
+    reasoningText: "",
+    reactions: [],
+  };
+}
+
 function DateReactionsTest() {
-  const [leftMember] = useState<Member>(jennaPike);
-  const [rightMember] = useState<Member>(vhool);
-  const [leftReactions, setLeftReactions] = useState<ReactionSignal[]>([]);
-  const [rightReactions, setRightReactions] = useState<ReactionSignal[]>([]);
+  const [leftSide, setLeftSide] = useState<SideState>(() => defaultSideState(jennaPike.id));
+  const [rightSide, setRightSide] = useState<SideState>(() => defaultSideState(vhool.id));
   const [intensity, setIntensity] = useState<ReactionIntensity>(2);
 
-  function fire(side: "left" | "right", kind: ReactionKind) {
+  const leftMember = starterMembers.find((member) => member.id === leftSide.memberId) ?? jennaPike;
+  const rightMember = starterMembers.find((member) => member.id === rightSide.memberId) ?? vhool;
+
+  function fire(side: SideId, kind: ReactionKind) {
     const signal: ReactionSignal = {
       id: `playground-${side}-${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       side,
       kind,
       intensity,
     };
-    if (side === "left") {
-      setLeftReactions((current) => pushReactionSignal(current, signal));
-    } else {
-      setRightReactions((current) => pushReactionSignal(current, signal));
-    }
+    const setter = side === "left" ? setLeftSide : setRightSide;
+    setter((current) => ({
+      ...current,
+      reactions: pushReactionSignal(current.reactions, signal),
+    }));
   }
 
   function fireBoth(kind: ReactionKind) {
@@ -976,13 +1109,18 @@ function DateReactionsTest() {
     fire("right", kind);
   }
 
-  function fireCombo(side: "left" | "right") {
+  function fireCombo(side: SideId) {
     REACTION_KINDS.forEach((kind) => fire(side, kind));
   }
 
-  function clear() {
-    setLeftReactions([]);
-    setRightReactions([]);
+  function clearSide(side: SideId) {
+    const setter = side === "left" ? setLeftSide : setRightSide;
+    setter((current) => ({ ...current, reactions: [] }));
+  }
+
+  function clearAll() {
+    clearSide("left");
+    clearSide("right");
   }
 
   return (
@@ -994,25 +1132,46 @@ function DateReactionsTest() {
     >
       <TestHeader
         title="Date reactions"
-        description="Glass bubbles emit from each standee when the judge returns feedback. Fire a kind and intensity to preview the swarm. Same component the date scene uses."
+        description="Drive each standee independently. Mood swaps the portrait variant, speaking floats the thought bubble, and reactions emit the same glass swarm the date scene fires on judge feedback."
       />
 
       <BubbleStage
         leftMember={leftMember}
         rightMember={rightMember}
-        leftReactions={leftReactions}
-        rightReactions={rightReactions}
+        leftSide={leftSide}
+        rightSide={rightSide}
       />
 
-      <ControlPanel
+      <div className="grid gap-4 lg:grid-cols-2">
+        <SideController
+          side="left"
+          state={leftSide}
+          member={leftMember}
+          intensity={intensity}
+          onChange={setLeftSide}
+          onFire={(kind) => fire("left", kind)}
+          onFireCombo={() => fireCombo("left")}
+          onClearReactions={() => clearSide("left")}
+        />
+        <SideController
+          side="right"
+          state={rightSide}
+          member={rightMember}
+          intensity={intensity}
+          onChange={setRightSide}
+          onFire={(kind) => fire("right", kind)}
+          onFireCombo={() => fireCombo("right")}
+          onClearReactions={() => clearSide("right")}
+        />
+      </div>
+
+      <GlobalDeck
         intensity={intensity}
         onIntensity={setIntensity}
-        leftCount={leftReactions.length}
-        rightCount={rightReactions.length}
-        onFire={fire}
         onFireBoth={fireBoth}
-        onFireCombo={fireCombo}
-        onClear={clear}
+        onClearAll={clearAll}
+        leftCount={leftSide.reactions.length}
+        rightCount={rightSide.reactions.length}
       />
     </motion.section>
   );
@@ -1089,11 +1248,27 @@ function AiOutputPanel({ result }: { result: AiPlaygroundResult | null }) {
   return (
     <div className="space-y-4">
       <div className="aura-glass rounded-card p-5">
-        <MutedLabel>generated conversation</MutedLabel>
+        <div className="flex items-baseline justify-between gap-3">
+          <MutedLabel>generated transcript</MutedLabel>
+          {result === null || result.turns.length === 0 ? (
+            <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+              idle
+            </span>
+          ) : (
+            <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-rose">
+              {result.turns.length} turn{result.turns.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </div>
         {result === null || result.turns.length === 0 ? (
-          <p className="mt-3 min-h-24 whitespace-pre-wrap rounded-tile bg-white/60 px-4 py-3 text-body leading-relaxed text-aura-ink">
-            Run a chat to file the first test transcript.
-          </p>
+          <div className="mt-3 flex min-h-32 flex-col items-center justify-center gap-2 rounded-tile border border-dashed border-aura-hairline-strong bg-white/45 px-4 py-8 text-center">
+            <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+              // no transcript on file
+            </p>
+            <p className="max-w-md text-label leading-relaxed text-aura-muted">
+              Run the bench to file the first transcript. Prompts update as you change settings.
+            </p>
+          </div>
         ) : (
           <ol className="mt-3 space-y-2">
             {result.turns.map((turn, index) => (
@@ -1308,7 +1483,7 @@ function RangeControl({
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
           {label}
         </span>
-        <span className="font-mono text-micro text-aura-muted">{value}</span>
+        <span className="font-mono text-micro tabular-nums text-aura-ink">{value}</span>
       </span>
       <input
         type="range"
@@ -1352,13 +1527,13 @@ function TextAreaControl({
 function BubbleStage({
   leftMember,
   rightMember,
-  leftReactions,
-  rightReactions,
+  leftSide,
+  rightSide,
 }: {
   leftMember: Member;
   rightMember: Member;
-  leftReactions: ReactionSignal[];
-  rightReactions: ReactionSignal[];
+  leftSide: SideState;
+  rightSide: SideState;
 }) {
   return (
     <div className="aura-glass-strong relative overflow-hidden rounded-card">
@@ -1370,20 +1545,31 @@ function BubbleStage({
         <DaterStandee
           member={leftMember}
           placement="bottom-left"
-          reactions={leftReactions}
+          mood={leftSide.mood}
+          speaking={leftSide.speaking}
+          reasoningText={leftSide.reasoningText}
+          reactions={leftSide.reactions}
           className="absolute bottom-0 left-6 h-full w-44 lg:left-16 lg:w-56"
         />
         <DaterStandee
           member={rightMember}
           placement="top-right"
-          reactions={rightReactions}
+          mood={rightSide.mood}
+          speaking={rightSide.speaking}
+          reasoningText={rightSide.reasoningText}
+          reactions={rightSide.reactions}
           className="absolute top-12 right-6 h-[88%] w-44 lg:right-16 lg:w-56"
         />
 
         <StageScrim />
       </div>
 
-      <StageFooter leftCount={leftReactions.length} rightCount={rightReactions.length} />
+      <StageFooter
+        leftMember={leftMember}
+        rightMember={rightMember}
+        leftSide={leftSide}
+        rightSide={rightSide}
+      />
     </div>
   );
 }
@@ -1411,73 +1597,374 @@ function StageScrim() {
   );
 }
 
-function StageFooter({ leftCount, rightCount }: { leftCount: number; rightCount: number }) {
+function StageFooter({
+  leftMember,
+  rightMember,
+  leftSide,
+  rightSide,
+}: {
+  leftMember: Member;
+  rightMember: Member;
+  leftSide: SideState;
+  rightSide: SideState;
+}) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-aura-hairline px-5 py-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-      <span>// stage</span>
-      <span className="flex items-center gap-4 text-aura-muted">
-        <span>
-          left: <span className="text-aura-ink tabular-nums">{leftCount}</span> active
-        </span>
-        <span aria-hidden>·</span>
-        <span>
-          right: <span className="text-aura-ink tabular-nums">{rightCount}</span> active
-        </span>
+    <div className="grid gap-2 border-t border-aura-hairline px-5 py-3 sm:grid-cols-3">
+      <StageMarker member={leftMember} state={leftSide} side="left" align="left" />
+      <span className="hidden items-center justify-center font-mono text-micro uppercase tracking-[0.28em] text-aura-faint sm:flex">
+        // stage
+      </span>
+      <StageMarker member={rightMember} state={rightSide} side="right" align="right" />
+    </div>
+  );
+}
+
+function StageMarker({
+  member,
+  state,
+  side,
+  align,
+}: {
+  member: Member;
+  state: SideState;
+  side: SideId;
+  align: "left" | "right";
+}) {
+  const theme = SIDE_THEME[side];
+  return (
+    <div
+      className={`flex flex-col gap-1 ${align === "right" ? "items-end text-right" : "items-start text-left"}`}
+    >
+      <span
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.28em] ${theme.accentText}`}
+      >
+        // {theme.label}
+      </span>
+      <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-muted">
+        <span className="text-aura-ink">{member.firstName}</span>
+        <span className="text-aura-faint"> · {state.mood}</span>
+        {state.speaking ? <span className="text-aura-rose"> · speaking</span> : null}
+      </span>
+      <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+        reactions <span className="text-aura-ink tabular-nums">{state.reactions.length}</span>
       </span>
     </div>
   );
 }
 
 /* ================================================================== */
-/* Control panel                                                      */
+/* Side controller, mirrors one standee end-to-end                    */
 /* ================================================================== */
 
-function ControlPanel({
+function SideController({
+  side,
+  state,
+  member,
+  intensity,
+  onChange,
+  onFire,
+  onFireCombo,
+  onClearReactions,
+}: {
+  side: SideId;
+  state: SideState;
+  member: Member;
+  intensity: ReactionIntensity;
+  onChange: React.Dispatch<React.SetStateAction<SideState>>;
+  onFire: (kind: ReactionKind) => void;
+  onFireCombo: () => void;
+  onClearReactions: () => void;
+}) {
+  const theme = SIDE_THEME[side];
+  const wiredCount = DATE_PORTRAIT_MOODS.filter((mood) =>
+    hasReadyPortraitMood(member, mood),
+  ).length;
+  const atCap = state.reactions.length >= REACTION_STREAM_LIMIT;
+
+  function patch<TKey extends keyof SideState>(key: TKey, value: SideState[TKey]) {
+    onChange((current) => ({ ...current, [key]: value }));
+  }
+
+  return (
+    <section className="aura-glass relative overflow-hidden rounded-card">
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-x-0 top-0 -z-10 h-32 bg-gradient-to-b ${theme.railGradient}`}
+      />
+      <header className="flex items-start justify-between gap-3 px-5 pt-5">
+        <div className="space-y-1">
+          <span
+            className={`font-mono text-micro font-semibold uppercase tracking-[0.32em] ${theme.accentText}`}
+          >
+            // {theme.label}
+          </span>
+          <h3 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            {member.name}
+          </h3>
+        </div>
+        <span
+          className={`shrink-0 rounded-pill ${theme.accentPill} px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em]`}
+        >
+          {wiredCount} / {DATE_PORTRAIT_MOODS.length} wired
+        </span>
+      </header>
+
+      <div className="space-y-5 px-5 pt-5 pb-5">
+        <SideSection label="member">
+          <SelectControl
+            label="character"
+            value={state.memberId}
+            options={starterMembers.map((candidate) => ({
+              value: candidate.id,
+              label: candidate.name,
+            }))}
+            onChange={(value) => patch("memberId", value)}
+          />
+        </SideSection>
+
+        <SideSection label="portrait variant">
+          <MoodPicker
+            member={member}
+            value={state.mood}
+            onChange={(value) => patch("mood", value)}
+          />
+        </SideSection>
+
+        <SideSection label="thought bubble">
+          <SpeakingToggle checked={state.speaking} onChange={(value) => patch("speaking", value)} />
+          <TextAreaControl
+            label="reasoning text"
+            value={state.reasoningText}
+            rows={3}
+            onChange={(value) => patch("reasoningText", value)}
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {SAMPLE_REASONING_LINES.map((line, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => patch("reasoningText", line)}
+                className="cursor-pointer rounded-pill border border-aura-hairline bg-white/55 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-hairline-strong hover:text-aura-ink"
+              >
+                Sample {index + 1}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => patch("reasoningText", "")}
+              disabled={state.reasoningText === ""}
+              className="cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Clear
+            </button>
+          </div>
+        </SideSection>
+
+        <SideSection
+          label={`reactions · intensity ${intensity} · ${state.reactions.length} active`}
+        >
+          <ReactionDeck onFire={onFire} disabled={atCap} />
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <GhostButton onClick={onFireCombo} disabled={atCap}>
+              Fire combo
+            </GhostButton>
+            <button
+              type="button"
+              onClick={onClearReactions}
+              disabled={state.reactions.length === 0}
+              className="cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Clear side
+            </button>
+          </div>
+          {atCap ? (
+            <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-amber">
+              // four-reaction cap reached. clear to add more.
+            </p>
+          ) : null}
+        </SideSection>
+      </div>
+    </section>
+  );
+}
+
+function SideSection({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <section className="space-y-3 border-t border-aura-hairline pt-5 first:border-t-0 first:pt-0">
+      <MutedLabel>{label}</MutedLabel>
+      <div className="space-y-3">{children}</div>
+    </section>
+  );
+}
+
+function MoodPicker({
+  member,
+  value,
+  onChange,
+}: {
+  member: Member;
+  value: PortraitMood;
+  onChange: (mood: PortraitMood) => void;
+}) {
+  return (
+    <ul className="grid grid-cols-2 gap-2">
+      {DATE_PORTRAIT_MOODS.map((mood) => {
+        const isActive = mood === value;
+        const wired = hasReadyPortraitMood(member, mood);
+        return (
+          <li key={mood}>
+            <button
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => onChange(mood)}
+              className={`flex w-full cursor-pointer items-center justify-between gap-2 rounded-tile border px-3 py-2 transition ${
+                isActive
+                  ? "border-transparent bg-aura-ink text-white shadow-[0_8px_18px_-10px_rgba(15,23,42,0.45)]"
+                  : "border-aura-hairline bg-white/55 text-aura-muted hover:border-aura-hairline-strong hover:text-aura-ink"
+              }`}
+            >
+              <span className="font-display text-body font-semibold tracking-tight">{mood}</span>
+              <span
+                className={`font-mono text-micro uppercase tracking-[0.22em] ${
+                  isActive
+                    ? wired
+                      ? "text-white/80"
+                      : "text-white/55"
+                    : wired
+                      ? "text-emerald-600"
+                      : "text-aura-faint"
+                }`}
+              >
+                {wired ? "wired" : "fallback"}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function SpeakingToggle({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
+      <span>
+        <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+          speaking
+        </span>
+        <span className="mt-1 block text-label leading-relaxed text-aura-muted">
+          Floats the thought bubble. Pulses while reasoning text streams.
+        </span>
+      </span>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.currentTarget.checked)}
+        className="size-4 cursor-pointer accent-aura-rose"
+      />
+    </label>
+  );
+}
+
+function ReactionDeck({
+  onFire,
+  disabled,
+}: {
+  onFire: (kind: ReactionKind) => void;
+  disabled: boolean;
+}) {
+  return (
+    <ul className="grid grid-cols-3 gap-2">
+      {REACTION_KINDS.map((kind) => (
+        <li key={kind}>
+          <button
+            type="button"
+            onClick={() => onFire(kind)}
+            disabled={disabled}
+            className="aura-glass-lift flex w-full cursor-pointer flex-col items-center gap-1 rounded-tile border border-aura-hairline bg-white/55 px-3 py-3 transition hover:border-aura-hairline-strong disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <span className={`text-2xl leading-none ${REACTION_TINT[kind]}`}>
+              {REACTION_ICON[kind]}
+            </span>
+            <span className="block font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+              {REACTION_LABEL[kind]}
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ================================================================== */
+/* Global deck, intensity + shared fire actions                       */
+/* ================================================================== */
+
+function GlobalDeck({
   intensity,
   onIntensity,
+  onFireBoth,
+  onClearAll,
   leftCount,
   rightCount,
-  onFire,
-  onFireBoth,
-  onFireCombo,
-  onClear,
 }: {
   intensity: ReactionIntensity;
   onIntensity: (next: ReactionIntensity) => void;
+  onFireBoth: (kind: ReactionKind) => void;
+  onClearAll: () => void;
   leftCount: number;
   rightCount: number;
-  onFire: (side: "left" | "right", kind: ReactionKind) => void;
-  onFireBoth: (kind: ReactionKind) => void;
-  onFireCombo: (side: "left" | "right") => void;
-  onClear: () => void;
 }) {
-  const sideAtCap = leftCount >= REACTION_STREAM_LIMIT && rightCount >= REACTION_STREAM_LIMIT;
+  const bothAtCap = leftCount >= REACTION_STREAM_LIMIT && rightCount >= REACTION_STREAM_LIMIT;
 
   return (
     <div className="aura-glass rounded-card p-6">
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
         <IntensityControl intensity={intensity} onChange={onIntensity} />
-        <ReactionGrid intensity={intensity} onFire={onFire} onFireBoth={onFireBoth} />
+        <div className="space-y-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <MutedLabel>fire on both sides</MutedLabel>
+            <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+              intensity {intensity}
+            </span>
+          </div>
+          <ul className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+            {REACTION_KINDS.map((kind) => (
+              <li key={kind}>
+                <button
+                  type="button"
+                  onClick={() => onFireBoth(kind)}
+                  disabled={bothAtCap}
+                  className="aura-glass-lift flex w-full cursor-pointer flex-col items-center gap-1 rounded-tile border border-aura-hairline bg-white/55 px-2 py-3 transition hover:border-aura-hairline-strong disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <span className={`text-2xl leading-none ${REACTION_TINT[kind]}`}>
+                    {REACTION_ICON[kind]}
+                  </span>
+                  <span className="block font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+                    {REACTION_LABEL[kind]}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <GhostButton
-            onClick={() => onFireCombo("left")}
-            disabled={leftCount >= REACTION_STREAM_LIMIT}
-          >
-            Fire combo, left
-          </GhostButton>
-          <GhostButton
-            onClick={() => onFireCombo("right")}
-            disabled={rightCount >= REACTION_STREAM_LIMIT}
-          >
-            Fire combo, right
-          </GhostButton>
-        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+          left <span className="text-aura-ink tabular-nums">{leftCount}</span>{" "}
+          <span aria-hidden>·</span> right{" "}
+          <span className="text-aura-ink tabular-nums">{rightCount}</span>
+        </span>
         <button
           type="button"
-          onClick={onClear}
+          onClick={onClearAll}
           disabled={leftCount === 0 && rightCount === 0}
           className="cursor-pointer rounded-pill px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
         >
@@ -1485,7 +1972,7 @@ function ControlPanel({
         </button>
       </div>
 
-      {sideAtCap ? (
+      {bothAtCap ? (
         <p className="mt-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-amber">
           // both sides at the four-reaction cap. clear to add more.
         </p>
@@ -1546,91 +2033,11 @@ function IntensityControl({
   );
 }
 
-function ReactionGrid({
-  intensity,
-  onFire,
-  onFireBoth,
-}: {
-  intensity: ReactionIntensity;
-  onFire: (side: "left" | "right", kind: ReactionKind) => void;
-  onFireBoth: (kind: ReactionKind) => void;
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
-        <MutedLabel>reactions</MutedLabel>
-        <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-          intensity {intensity}
-        </span>
-      </div>
-      <ul className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3">
-        {REACTION_KINDS.map((kind) => (
-          <li key={kind}>
-            <ReactionRow kind={kind} onFire={onFire} onFireBoth={onFireBoth} />
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ReactionRow({
-  kind,
-  onFire,
-  onFireBoth,
-}: {
-  kind: ReactionKind;
-  onFire: (side: "left" | "right", kind: ReactionKind) => void;
-  onFireBoth: (kind: ReactionKind) => void;
-}) {
-  return (
-    <div className="aura-glass-lift flex items-center justify-between gap-2 rounded-tile px-3 py-2">
-      <span className="flex items-center gap-2.5 min-w-0">
-        <span className={`text-2xl leading-none ${REACTION_TINT[kind]}`}>
-          {REACTION_ICON[kind]}
-        </span>
-        <span className="min-w-0 space-y-0.5">
-          <span className="block font-display text-body font-semibold tracking-tight text-aura-ink">
-            {REACTION_LABEL[kind]}
-          </span>
-          <span className="block font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-            {kind}
-          </span>
-        </span>
-      </span>
-      <span className="flex items-center gap-1">
-        <SideButton label="L" onClick={() => onFire("left", kind)} />
-        <SideButton label="R" onClick={() => onFire("right", kind)} />
-        <SideButton label="L+R" wide onClick={() => onFireBoth(kind)} />
-      </span>
-    </div>
-  );
-}
-
-function SideButton({
-  label,
-  wide = false,
-  onClick,
-}: {
-  label: string;
-  wide?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`cursor-pointer rounded-pill bg-white/65 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted transition hover:bg-aura-ink hover:text-white ${wide ? "px-2.5 py-1" : "px-2 py-1"}`}
-    >
-      {label}
-    </button>
-  );
-}
-
 async function postPlayground(
   settings:
     | (AiDatePlaygroundSettings & { action: "generate" | "preview" })
     | (AiMemberChatSettings & { action: "generate" | "preview" }),
+  signal?: AbortSignal,
 ): Promise<AiPlaygroundResult> {
   const response = await fetch(AI_PLAYGROUND_API_URL, {
     method: "POST",
@@ -1638,6 +2045,7 @@ async function postPlayground(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(settings),
+    signal,
   });
   const payload: unknown = await response.json();
 

@@ -11,6 +11,7 @@ import {
   type Member,
   type MemberRequest,
   type PairState,
+  type PortraitMood,
   type ShiftState,
 } from "../domain/game";
 import {
@@ -29,6 +30,7 @@ import {
   Meter,
   MonoStat,
   MutedLabel,
+  pad2,
   Portrait,
   PrimaryButton,
   scoreWidthClass,
@@ -39,6 +41,12 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "./date-reactions";
+import {
+  isMemberSpeaking,
+  memberStreamingReasoningText,
+  readyPortraitMoodPaths,
+  selectPortraitMood,
+} from "./date-presentation-signals";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   encourage: "Encourage",
@@ -2094,6 +2102,7 @@ export type StreamingDraftMessage = {
   sequenceIndex: number;
   turnIndex: number;
   text: string;
+  reasoningText: string;
   status: "streaming" | "done";
 };
 
@@ -2127,6 +2136,39 @@ export function DateView({
     leftMember === undefined || rightMember === undefined
       ? []
       : buildReactionSignals(session, leftMember.id, rightMember.id);
+  const latestJudge = session.judgeSnapshots.at(-1);
+  const leftMood =
+    leftMember === undefined ? "neutral" : selectPortraitMood(leftMember.id, latestJudge);
+  const rightMood =
+    rightMember === undefined ? "neutral" : selectPortraitMood(rightMember.id, latestJudge);
+  const leftSpeaking = leftMember !== undefined && isMemberSpeaking(leftMember.id, streamingDrafts);
+  const rightSpeaking =
+    rightMember !== undefined && isMemberSpeaking(rightMember.id, streamingDrafts);
+  const leftReasoningText =
+    leftMember === undefined ? "" : memberStreamingReasoningText(leftMember.id, streamingDrafts);
+  const rightReasoningText =
+    rightMember === undefined ? "" : memberStreamingReasoningText(rightMember.id, streamingDrafts);
+  const preloadPortraitPaths = useMemo(() => {
+    if (leftMember === undefined || rightMember === undefined) {
+      return [];
+    }
+
+    return [...readyPortraitMoodPaths(leftMember), ...readyPortraitMoodPaths(rightMember)];
+  }, [leftMember, rightMember]);
+
+  useEffect(() => {
+    const images = preloadPortraitPaths.map((imagePath) => {
+      const image = new Image();
+      image.src = imagePath;
+      return image;
+    });
+
+    return () => {
+      for (const image of images) {
+        image.src = "";
+      }
+    };
+  }, [preloadPortraitPaths]);
 
   return (
     <motion.div
@@ -2140,6 +2182,12 @@ export function DateView({
         <DateStandeeFrame
           leftMember={leftMember}
           rightMember={rightMember}
+          leftMood={leftMood}
+          rightMood={rightMood}
+          leftSpeaking={leftSpeaking}
+          rightSpeaking={rightSpeaking}
+          leftReasoningText={leftReasoningText}
+          rightReasoningText={rightReasoningText}
           reactions={reactionSignals}
         />
       ) : null}
@@ -2281,10 +2329,22 @@ type TranscriptItem = {
 function DateStandeeFrame({
   leftMember,
   rightMember,
+  leftMood,
+  rightMood,
+  leftSpeaking,
+  rightSpeaking,
+  leftReasoningText,
+  rightReasoningText,
   reactions,
 }: {
   leftMember: Member;
   rightMember: Member;
+  leftMood: PortraitMood;
+  rightMood: PortraitMood;
+  leftSpeaking: boolean;
+  rightSpeaking: boolean;
+  leftReasoningText: string;
+  rightReasoningText: string;
   reactions: ReactionSignal[];
 }) {
   return (
@@ -2293,12 +2353,18 @@ function DateStandeeFrame({
         <DaterStandee
           member={leftMember}
           placement="bottom-left"
+          mood={leftMood}
+          speaking={leftSpeaking}
+          reasoningText={leftReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "left")}
           className="absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
         />
         <DaterStandee
           member={rightMember}
           placement="top-right"
+          mood={rightMood}
+          speaking={rightSpeaking}
+          reasoningText={rightReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "right")}
           className="absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72"
         />
@@ -2887,10 +2953,6 @@ export function DashboardLoading() {
 /* ================================================================== */
 /* Helpers                                                            */
 /* ================================================================== */
-
-export function pad2(value: number) {
-  return value.toString().padStart(2, "0");
-}
 
 function buildTranscriptItems(
   session: DateSession,

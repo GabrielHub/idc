@@ -354,6 +354,74 @@ body {
   }
 }
 
+/* Card-reader scanline that sweeps the splash magnetic stripe. */
+@keyframes splash-stripe-scan {
+  0% {
+    transform: translateX(-110%);
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.85;
+  }
+  60% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translateX(140%);
+    opacity: 0;
+  }
+}
+.splash-stripe-scan {
+  animation: splash-stripe-scan 4.6s cubic-bezier(0.4, 0.1, 0.3, 1) infinite;
+  animation-delay: 1.2s;
+}
+
+/* One-shot ink stamp impact, used when Cupid clocks in. */
+@keyframes splash-stamp-impact {
+  0% {
+    transform: scale(2.4) rotate(-14deg);
+    opacity: 0;
+  }
+  35% {
+    transform: scale(1) rotate(-12deg);
+    opacity: 1;
+  }
+  70% {
+    transform: scale(1.04) rotate(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.04) rotate(-12deg);
+    opacity: 0;
+  }
+}
+.splash-stamp-impact {
+  animation: splash-stamp-impact 720ms cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+
+/* Tiny camera shake for the stamp moment. */
+@keyframes splash-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-2px, 1px);
+  }
+  40% {
+    transform: translate(2px, -1px);
+  }
+  60% {
+    transform: translate(-1px, 2px);
+  }
+  80% {
+    transform: translate(1px, -2px);
+  }
+}
+.splash-shake {
+  animation: splash-shake 320ms ease-in-out 1;
+}
+
 /* Dot grid, faint, sits behind editorial moments. */
 .aura-dot-grid {
   background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);

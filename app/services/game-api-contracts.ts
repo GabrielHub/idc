@@ -62,6 +62,13 @@ export const gameStreamEventSchema = z.discriminatedUnion("type", [
     textDelta: z.string().min(1),
   }),
   z.object({
+    type: z.literal("characterReasoningDelta"),
+    speakerId: memberIdSchema,
+    sequenceIndex: z.number().int().min(0),
+    turnIndex: z.number().int().min(1),
+    textDelta: z.string().min(1),
+  }),
+  z.object({
     type: z.literal("characterDone"),
     speakerId: memberIdSchema,
     sequenceIndex: z.number().int().min(0),

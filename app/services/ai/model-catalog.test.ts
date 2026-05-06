@@ -11,26 +11,26 @@ import {
 } from "./model-catalog";
 
 describe("AI model catalog", () => {
-  it("sets cloud defaults and strips browser Gateway keys from save config", () => {
+  it("defaults to Ollama and strips browser Gateway keys from save config", () => {
     const config = gameConfigSchema.parse({
       gatewayApiKey: "browser-key",
     });
 
-    expect(config.aiProvider).toBe("gateway");
-    expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
-    expect(config.embeddingModel).toBe("google/gemini-embedding-2");
-    expect(config.reasoningLevel).toBe("medium");
-    expect("gatewayApiKey" in config).toBe(false);
-  });
-
-  it("sets Ollama defaults when Ollama is selected without explicit models", () => {
-    const config = gameConfigSchema.parse({
-      aiProvider: "ollama",
-    });
-
+    expect(config.aiProvider).toBe("ollama");
     expect(config.chatModel).toBe("gemma4:26b");
     expect(config.embeddingModel).toBe("embeddinggemma");
     expect(config.reasoningLevel).toBe("off");
+    expect("gatewayApiKey" in config).toBe(false);
+  });
+
+  it("sets Gateway defaults when Gateway is selected without explicit models", () => {
+    const config = gameConfigSchema.parse({
+      aiProvider: "gateway",
+    });
+
+    expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
+    expect(config.embeddingModel).toBe("google/gemini-embedding-2");
+    expect(config.reasoningLevel).toBe("medium");
   });
 
   it("keeps Gateway choices narrow and disables reasoning for Kimi and Claude Haiku", () => {

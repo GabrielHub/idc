@@ -38,14 +38,19 @@ import {
 import {
   gameApiErrorSchema,
   gameStreamEventSchema,
-  localAiStatusResponseSchema,
   type GameAction,
   type GameActionResponse,
   type GameStreamEvent,
-  type LocalAiStatusResponse,
 } from "../services/game-api-contracts";
+import {
+  readJsonResponse,
+  readStoredGatewayApiKey,
+  requestLocalAiStatus,
+  runtimeSecretsFromGatewayKey,
+  storeGatewayApiKey,
+} from "../services/ai/client";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
-import { ChromeButton, GhostButton, LiveDot, PrimaryButton } from "./dashboard-atoms";
+import { ChromeButton, GhostButton, LiveDot, PrimaryButton, pad2 } from "./dashboard-atoms";
 import {
   BriefView,
   DashboardLoading,
@@ -54,7 +59,6 @@ import {
   ShiftReportPanel,
   type PendingDateAction,
   type StreamingDraftMessage,
-  pad2,
 } from "./dashboard-views";
 import { useSfx } from "./sfx-provider";
 
@@ -77,14 +81,9 @@ function asPendingDateAction(action: DashboardPendingAction | null): PendingDate
 }
 
 const GAME_API_TIMEOUT_MS = 120_000;
-const LOCAL_AI_STATUS_URL = "/api/game?intent=local-ai-status";
 const GAME_API_STREAM_URL = "/api/game?intent=stream";
-const GATEWAY_API_KEY_STORAGE_KEY = "idc.cupid.aiGatewayKey";
 
 type LocalAiClientStatus = AiSetupStatus;
-type RuntimeSecrets = {
-  gatewayApiKey: string;
-};
 
 const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   status: "checking",
@@ -545,6 +544,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             sequenceIndex: event.sequenceIndex,
             turnIndex: event.turnIndex,
             text: "",
+            reasoningText: "",
             status: "streaming",
           },
         ];
@@ -559,6 +559,20 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             ? {
                 ...draft,
                 text: `${draft.text}${event.textDelta}`,
+              }
+            : draft,
+        ),
+      );
+      return;
+    }
+
+    if (event.type === "characterReasoningDelta") {
+      setStreamingDrafts((current) =>
+        current.map((draft) =>
+          draft.sequenceIndex === event.sequenceIndex
+            ? {
+                ...draft,
+                reasoningText: `${draft.reasoningText}${event.textDelta}`,
               }
             : draft,
         ),
@@ -1416,107 +1430,6 @@ async function readGameStreamResponse(
   }
 
   return completeResponse;
-}
-
-async function requestLocalAiStatus(
-  config: GameConfig,
-  gatewayApiKey: string,
-): Promise<LocalAiClientStatus> {
-  let response: Response;
-
-  try {
-    response = await fetch(LOCAL_AI_STATUS_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        config,
-        runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
-      }),
-    });
-  } catch (error) {
-    return {
-      status: "unavailable",
-      message:
-        error instanceof Error
-          ? `AI provider status check failed. ${error.message}`
-          : "AI provider status check failed.",
-      details: [],
-      checkedAt: new Date().toISOString(),
-    };
-  }
-
-  const payload = await readJsonResponse(response);
-  const parsedStatus = localAiStatusResponseSchema.safeParse(payload);
-
-  if (parsedStatus.success) {
-    return toLocalAiClientStatus(parsedStatus.data);
-  }
-
-  if (!response.ok) {
-    const parsedError = gameApiErrorSchema.safeParse(payload);
-
-    return {
-      status: "unavailable",
-      message: parsedError.success ? parsedError.data.error : "AI provider status check failed.",
-      details: [],
-      checkedAt: new Date().toISOString(),
-    };
-  }
-
-  return {
-    status: "unavailable",
-    message: "AI provider status response was unreadable.",
-    details: [],
-    checkedAt: new Date().toISOString(),
-  };
-}
-
-function toLocalAiClientStatus(response: LocalAiStatusResponse): LocalAiClientStatus {
-  return {
-    status: response.status,
-    message: response.message,
-    details: response.details,
-    checkedAt: response.checkedAt,
-  };
-}
-
-function runtimeSecretsFromGatewayKey(gatewayApiKey: string): RuntimeSecrets | undefined {
-  const trimmedKey = gatewayApiKey.trim();
-
-  return trimmedKey.length === 0 ? undefined : { gatewayApiKey: trimmedKey };
-}
-
-function readStoredGatewayApiKey(): string {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return window.localStorage.getItem(GATEWAY_API_KEY_STORAGE_KEY) ?? "";
-}
-
-function storeGatewayApiKey(value: string): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  const trimmedKey = value.trim();
-
-  if (trimmedKey.length === 0) {
-    window.localStorage.removeItem(GATEWAY_API_KEY_STORAGE_KEY);
-    return;
-  }
-
-  window.localStorage.setItem(GATEWAY_API_KEY_STORAGE_KEY, trimmedKey);
-}
-
-async function readJsonResponse(response: Response): Promise<unknown> {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
 }
 
 /* ================================================================== */

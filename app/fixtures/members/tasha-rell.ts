@@ -109,5 +109,23 @@ export const tashaRell: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/tasha-rell/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/tasha-rell/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer sliding off both shoulders, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, perched on the front edge of a partial painterly office desk with brushstroke sides fading into the white background, both arms reaching back with hands braced on the desk, torso leaning forward with controlled confidence, dramatic flirty expression with half-lidded eye contact and a pronounced lower lip bite, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/tasha-rell/portrait-confused.png",
+        cutoutPath: "/assets/portraits/tasha-rell/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, controlled market-confusion expression with pinched brows, narrowed sideways eyes, and parted skeptical mouth, leaning slightly back with weight shifted onto one hip, one hand hovering over the smartwatch as if checking whether reality just moved against her, other hand raised near chest height with two fingers lifted in a small pause gesture, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

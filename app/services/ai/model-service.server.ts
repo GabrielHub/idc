@@ -80,6 +80,7 @@ export type AiRuntimeConfig = GameConfig & {
 
 export type GeneratedTextResult = {
   text: string;
+  reasoningText?: string;
   providerMode: AiProvider;
   model: string;
   stepCount: number;
@@ -167,6 +168,7 @@ export async function streamCharacterTurn(
   packet: CharacterPromptPacket,
   config: Partial<AiRuntimeConfig> | undefined,
   onTextDelta: (delta: string) => Promise<void> | void,
+  onReasoningDelta?: (delta: string) => Promise<void> | void,
   options?: AiGenerationOptions,
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
@@ -181,6 +183,7 @@ export async function streamCharacterTurn(
     maxOutputTokens: generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
     generationOptions,
     onTextDelta,
+    onReasoningDelta,
   });
 }
 
@@ -401,6 +404,7 @@ async function generateTextWithModelService({
 
     return {
       text: result.text.trim(),
+      reasoningText: result.reasoningText,
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: result.steps.length,
@@ -421,6 +425,7 @@ async function streamTextWithModelService({
   maxOutputTokens,
   generationOptions,
   onTextDelta,
+  onReasoningDelta,
 }: {
   system: string;
   prompt: string;
@@ -430,8 +435,10 @@ async function streamTextWithModelService({
   maxOutputTokens: number;
   generationOptions?: AiGenerationOptions;
   onTextDelta: (delta: string) => Promise<void> | void;
+  onReasoningDelta?: (delta: string) => Promise<void> | void;
 }): Promise<GeneratedTextResult> {
   let emittedText = "";
+  let emittedReasoning = "";
 
   try {
     const model = createLanguageModel(modelId, config, generationOptions);
@@ -456,15 +463,23 @@ async function streamTextWithModelService({
             messages,
           });
 
-    for await (const delta of result.textStream) {
-      emittedText += delta;
-      await onTextDelta(delta);
+    for await (const part of result.fullStream) {
+      if (part.type === "text-delta") {
+        emittedText += part.text;
+        await onTextDelta(part.text);
+      } else if (part.type === "reasoning-delta") {
+        emittedReasoning += part.text;
+        await onReasoningDelta?.(part.text);
+      } else if (part.type === "error") {
+        throw new Error(errorToMessage(part.error));
+      }
     }
 
     const steps = await result.steps;
 
     return {
       text: emittedText.trim(),
+      reasoningText: emittedReasoning.trim(),
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: steps.length,

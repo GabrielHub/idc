@@ -29,6 +29,18 @@ For v1, each member gets two neutral baseline images:
 
 The avatar and full-body must be visibly different poses while preserving the same character design (hair, face, eyes, color palette, outfit). The avatar is generated as a follow-up to the full-body so the full-body acts as the character anchor.
 
+Optional date-surface variants are full-body portraits only. Avatars stay neutral.
+
+Supported v1 variant file names:
+
+```text
+portrait-flirty.png
+portrait-confused.png
+portrait-angry.png
+```
+
+Members may ship with any subset of these variants. The UI falls back to `portrait.png` when a requested variant is missing or still marked `pending`.
+
 ## Prompt Construction
 
 Image-generation prompts in this project follow the OpenAI image prompting guidance: write in a consistent order (scene then subject then key details then constraints), use labeled segments instead of one long paragraph, and state exclusions explicitly. State what must remain invariant when iterating, so the model does not redesign the character between images.
@@ -96,6 +108,28 @@ Make small, single-change follow-ups. Reference the previous image and state wha
 
 Do not stack multiple changes per iteration. Drift is harder to debug when several variables move at once.
 
+### Full-Body Expression Variants
+
+Generate expression variants from the approved neutral full-body portrait. Attach the neutral full-body image as the character reference and preserve the same face, hair, body proportions, outfit, palette, supernatural hook, rendering style, and plain white background.
+
+Use these variant meanings:
+
+- `flirty`: warmer romantic interest. The pose can soften, lean in, or carry a confident smile, but should stay in character.
+- `confused`: uncertainty, awkward concern, checked-out hesitation, or trying to understand the moment. Avoid slapstick confusion.
+- `angry`: internal gameplay name for a negative boundary state. The image prompt should not simply ask for anger. Describe the member-specific read: distressed, concerned, guarded, irritated, cold, disinterested, or visibly angry.
+
+Variant prompt template:
+
+```text
+Setting: plain white opaque background. No scenery, no floor, no shadow plane, no props beyond what the character already carries.
+Subject: the same character as the attached approved full-body portrait.
+Style: webtoon, manhwa, and manhua inspired character art. Match the established rendering style.
+Composition: full body visible from head to feet, centered, eye-level framing, readable silhouette. Preserve the approved outfit, character proportions, and supernatural visual hook.
+Expression: <variant-specific expression and body language>.
+Character preservation: same facial features, hair shape and color, eye color, skin tone, color palette, outfit, accessories, and supernatural hook as the approved full-body portrait. Do not redesign the character.
+Constraints: no text, no logos, no watermarks, no frames, no UI, no scenery, no cropped feet. Avoid photorealism, western comic rendering, chibi proportions, oil-paint texture, sketchy unfinished line work, and busy illustrated backgrounds.
+```
+
 ## Avoid
 
 - Photorealism
@@ -117,6 +151,9 @@ Source images are production-time assets and belong outside the shipped client t
 assets-source/portraits/<member-id>/
   portrait.png
   avatar.png
+  portrait-flirty.png
+  portrait-confused.png
+  portrait-angry.png
 ```
 
 Transparent cutouts are runtime assets and belong in:
@@ -125,9 +162,12 @@ Transparent cutouts are runtime assets and belong in:
 public/assets/portraits/<member-id>/
   portrait.png
   avatar.png
+  portrait-flirty.png
+  portrait-confused.png
+  portrait-angry.png
 ```
 
-Each member owns one folder in both locations. Use `portrait.png` for the full-body image and `avatar.png` for the upper-half image. Do not put member files back under `public/assets/portraits/cutout/`; that flat folder no longer matches the fixture contract.
+Each member owns one folder in both locations. Use `portrait.png` for the neutral full-body image and `avatar.png` for the upper-half image. Use `portrait-<variant>.png` for optional full-body expression variants. Do not put member files back under `public/assets/portraits/cutout/`; that flat folder no longer matches the fixture contract.
 
 Do not place source images under `public/assets/portraits/source`. Vite copies `public` into the client build, so files there ship even when the UI never references them.
 
@@ -163,5 +203,6 @@ A portrait is acceptable when:
 - The full-body portrait shows the complete character from head to feet and can be cropped later.
 - The avatar works at small member-card size.
 - The avatar preserves the full-body's facial features, hair, color palette, and outfit while showing a visibly different pose.
+- Expression variants preserve the approved neutral full-body character design and differ only in expression, posture, and controlled body language.
 - Both images match the member fixture details.
 - Neither image fights the Aura interface palette.

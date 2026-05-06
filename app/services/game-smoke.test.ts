@@ -57,6 +57,13 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
   "mr-whiskers",
   "vhool",
 ];
+const OPTIONAL_PORTRAIT_VARIANTS = [
+  "flirty",
+  "confused",
+  "angry",
+  "embarrassed",
+  "furious",
+] as const;
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
     expect(starterMembers).toHaveLength(21);
@@ -84,10 +91,9 @@ describe("IDC playable smoke path", () => {
   });
 
   it("keeps portrait source paths outside public runtime assets", () => {
-    const sourcePaths = starterMembers.flatMap((member) => [
-      member.portraits.neutral.portrait.sourcePath,
-      member.portraits.neutral.avatar.sourcePath,
-    ]);
+    const sourcePaths = starterMembers.flatMap((member) =>
+      memberPortraitAssets(member).map((asset) => asset.sourcePath),
+    );
 
     expect(
       sourcePaths.every(
@@ -111,6 +117,21 @@ describe("IDC playable smoke path", () => {
       expect(member.portraits.neutral.avatar.cutoutPath).toBe(
         `/assets/portraits/${member.id}/avatar.png`,
       );
+
+      for (const variant of OPTIONAL_PORTRAIT_VARIANTS) {
+        const variantPortrait = member.portraits[variant]?.portrait;
+
+        if (variantPortrait === undefined) {
+          continue;
+        }
+
+        expect(variantPortrait.sourcePath).toBe(
+          `assets-source/portraits/${member.id}/portrait-${variant}.png`,
+        );
+        expect(variantPortrait.cutoutPath).toBe(
+          `/assets/portraits/${member.id}/portrait-${variant}.png`,
+        );
+      }
     }
   });
 
@@ -124,13 +145,9 @@ describe("IDC playable smoke path", () => {
     );
 
     for (const member of approvedMembers) {
-      const assets = [
-        member.portraits.neutral.portrait,
-        member.portraits.neutral.avatar,
-      ] satisfies PortraitAsset[];
+      const assets = memberPortraitAssets(member).filter((asset) => asset.model !== "pending");
 
       for (const asset of assets) {
-        expect(asset.model).not.toBe("pending");
         expect(existsSync(toWorkspaceFilePath(asset.sourcePath))).toBe(true);
         expect(existsSync(toWorkspaceFilePath(asset.cutoutPath))).toBe(true);
       }
@@ -143,10 +160,10 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
-    expect(save.config.aiProvider).toBe("gateway");
-    expect(save.config.chatModel).toBe("deepseek/deepseek-v4-flash");
-    expect(save.config.embeddingModel).toBe("google/gemini-embedding-2");
-    expect(save.config.reasoningLevel).toBe("medium");
+    expect(save.config.aiProvider).toBe("ollama");
+    expect(save.config.chatModel).toBe("gemma4:26b");
+    expect(save.config.embeddingModel).toBe("embeddinggemma");
+    expect(save.config.reasoningLevel).toBe("off");
     expect(save.config.aiSetupComplete).toBe(false);
     expect(save.shifts[0]?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
@@ -1106,6 +1123,15 @@ function evaluateFixtureFit(
     pairState,
     activeRequests,
   });
+}
+
+function memberPortraitAssets(member: Member): PortraitAsset[] {
+  const variantAssets = OPTIONAL_PORTRAIT_VARIANTS.flatMap((variant) => {
+    const asset = member.portraits[variant]?.portrait;
+    return asset === undefined ? [] : [asset];
+  });
+
+  return [member.portraits.neutral.portrait, member.portraits.neutral.avatar, ...variantAssets];
 }
 
 function withActiveShiftConfig(

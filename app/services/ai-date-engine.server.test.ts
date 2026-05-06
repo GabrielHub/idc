@@ -228,10 +228,17 @@ describe("AI date engine orchestration", () => {
       generateCharacterTurn: async () => {
         throw new Error("non-streaming performer should not run");
       },
-      streamCharacterTurn: async ({ packet, onTextDelta }) => {
+      streamCharacterTurn: async ({ packet, onTextDelta, onReasoningDelta }) => {
         const text = packet.prompt.includes("as Jenna Pike")
           ? "Jenna watches the coffee unspill and asks if that is normal."
           : "Vhool says\u2014normal is a department opinion, not a fact.";
+        const reasoningText = packet.prompt.includes("as Jenna Pike")
+          ? "Jenna thinks\u2014this coffee is doing paperwork."
+          : "";
+
+        for (const chunk of reasoningText.split(" ").filter((part) => part.length > 0)) {
+          await onReasoningDelta?.(`${chunk} `);
+        }
 
         for (const chunk of text.split(" ")) {
           await onTextDelta(`${chunk} `);
@@ -308,6 +315,7 @@ describe("AI date engine orchestration", () => {
       result.session.transcript.filter((message) => message.kind === "character"),
     ).toHaveLength(2);
     expect(events.map((event) => event.type)).toContain("characterDelta");
+    expect(events.map((event) => event.type)).toContain("characterReasoningDelta");
     expect(events.at(-1)?.type).toBe("judgeStart");
     expect(
       events
@@ -315,6 +323,12 @@ describe("AI date engine orchestration", () => {
         .map((event) => event.textDelta)
         .join(""),
     ).not.toMatch(/[\u2014\u2013]/);
+    expect(
+      events
+        .filter((event) => event.type === "characterReasoningDelta")
+        .map((event) => event.textDelta)
+        .join(""),
+    ).toContain("Jenna thinks, this coffee");
     expect(
       events.some(
         (event) => event.type === "characterDone" && event.text.includes("department opinion"),

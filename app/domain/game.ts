@@ -31,13 +31,19 @@ export const memberPortraitSetSchema = z.object({
   avatar: portraitAssetSchema,
 });
 
+export const portraitMoodSchema = z.enum(["neutral", "flirty", "confused", "angry"]);
+
+export const memberPortraitVariantSchema = z.object({
+  portrait: portraitAssetSchema,
+});
+
 export const memberPortraitsSchema = z.object({
   neutral: memberPortraitSetSchema,
-  flirty: memberPortraitSetSchema.optional(),
-  confused: memberPortraitSetSchema.optional(),
-  angry: memberPortraitSetSchema.optional(),
-  embarrassed: memberPortraitSetSchema.optional(),
-  furious: memberPortraitSetSchema.optional(),
+  flirty: memberPortraitVariantSchema.optional(),
+  confused: memberPortraitVariantSchema.optional(),
+  angry: memberPortraitVariantSchema.optional(),
+  embarrassed: memberPortraitVariantSchema.optional(),
+  furious: memberPortraitVariantSchema.optional(),
 });
 
 export const voicePatternSchema = z.enum([
@@ -472,11 +478,7 @@ function toGameConfigInput(value: unknown): unknown {
     typeof record.performerModel === "string" ? record.performerModel : undefined;
   const legacyEmbeddingModel =
     typeof record.embeddingModel === "string" ? record.embeddingModel : undefined;
-  const aiProvider = hasProvider
-    ? record.aiProvider
-    : legacyPerformerModel === undefined
-      ? "gateway"
-      : "ollama";
+  const aiProvider = hasProvider ? record.aiProvider : "ollama";
   const defaultEmbeddingModel =
     aiProvider === "ollama" ? DEFAULT_OLLAMA_EMBEDDING_MODEL : DEFAULT_GATEWAY_EMBEDDING_MODEL;
   const defaultChatModel =
@@ -493,7 +495,7 @@ function toGameConfigInput(value: unknown): unknown {
     reasoningLevel:
       typeof record.reasoningLevel === "string"
         ? record.reasoningLevel
-        : aiProvider === "ollama" || legacyPerformerModel !== undefined
+        : aiProvider === "ollama"
           ? "off"
           : "medium",
     ollamaBaseURL:
@@ -506,10 +508,10 @@ function toGameConfigInput(value: unknown): unknown {
 export const gameConfigSchema = z.preprocess(
   toGameConfigInput,
   z.object({
-    aiProvider: aiProviderSchema.default("gateway"),
-    chatModel: z.string().min(1).default(DEFAULT_GATEWAY_CHAT_MODEL),
-    embeddingModel: z.string().min(1).default(DEFAULT_GATEWAY_EMBEDDING_MODEL),
-    reasoningLevel: aiReasoningLevelSchema.default("medium"),
+    aiProvider: aiProviderSchema.default("ollama"),
+    chatModel: z.string().min(1).default(DEFAULT_OLLAMA_CHAT_MODEL),
+    embeddingModel: z.string().min(1).default(DEFAULT_OLLAMA_EMBEDDING_MODEL),
+    reasoningLevel: aiReasoningLevelSchema.default("off"),
     ollamaBaseURL: z.string().min(1).default(DEFAULT_OLLAMA_BASE_URL),
     gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
     aiSetupComplete: z.boolean().default(false),
@@ -533,7 +535,9 @@ export const gameSaveSchema = z.object({
 
 export type PortraitAsset = z.infer<typeof portraitAssetSchema>;
 export type MemberPortraitSet = z.infer<typeof memberPortraitSetSchema>;
+export type MemberPortraitVariant = z.infer<typeof memberPortraitVariantSchema>;
 export type MemberPortraits = z.infer<typeof memberPortraitsSchema>;
+export type PortraitMood = z.infer<typeof portraitMoodSchema>;
 export type VoicePattern = z.infer<typeof voicePatternSchema>;
 export type MemberSampleMessages = z.infer<typeof memberSampleMessagesSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;

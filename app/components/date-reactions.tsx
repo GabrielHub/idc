@@ -1,6 +1,6 @@
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 
-import type { Member } from "../domain/game";
+import type { Member, PortraitMood } from "../domain/game";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
 
 /* ------------------------------------------------------------------ */
@@ -104,15 +104,21 @@ export function DaterStandee({
   member,
   placement,
   reactions,
+  mood = "neutral",
+  speaking = false,
+  reasoningText = "",
   className = "",
 }: {
   member: Member;
   placement: ReactionPlacement;
   reactions: ReactionSignal[];
+  mood?: PortraitMood;
+  speaking?: boolean;
+  reasoningText?: string;
   className?: string;
 }) {
   const isBottom = placement === "bottom-left";
-  const glowClass = isBottom
+  const baseGlow = isBottom
     ? "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_82%,rgba(244,63,94,0.2),rgba(217,70,239,0.06)_55%,transparent_75%)]"
     : "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_22%,rgba(167,139,250,0.22),rgba(217,70,239,0.06)_55%,transparent_75%)]";
   const shadowClass = isBottom
@@ -122,13 +128,279 @@ export function DaterStandee({
 
   return (
     <div className={className}>
-      <span aria-hidden className={glowClass} />
+      <span aria-hidden className={baseGlow} />
+      <MoodAmbientGlow mood={mood} placement={placement} />
       <div className={`relative size-full ${shadowClass}`}>
-        <Portrait member={member} variant={variant} asset="portrait" />
+        <Portrait member={member} variant={variant} asset="portrait" mood={mood} />
+        <SpeakingBubble
+          placement={placement}
+          speaking={speaking}
+          reasoningText={reasoningText}
+          mood={mood}
+        />
         <ReactionStream reactions={reactions} placement={placement} />
       </div>
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Mood ambient glow, sits behind the standee                         */
+/* ------------------------------------------------------------------ */
+
+const MOOD_AMBIENT_GLOW_BOTTOM: Record<PortraitMood, string> = {
+  neutral: "",
+  flirty:
+    "bg-[radial-gradient(ellipse_at_50%_72%,rgba(244,63,94,0.32),rgba(244,63,94,0.06)_50%,transparent_70%)]",
+  confused:
+    "bg-[radial-gradient(ellipse_at_50%_72%,rgba(99,102,241,0.26),rgba(99,102,241,0.05)_50%,transparent_70%)]",
+  angry:
+    "bg-[radial-gradient(ellipse_at_50%_72%,rgba(220,38,38,0.34),rgba(220,38,38,0.06)_45%,transparent_65%)]",
+};
+
+const MOOD_AMBIENT_GLOW_TOP: Record<PortraitMood, string> = {
+  neutral: "",
+  flirty:
+    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(244,63,94,0.32),rgba(244,63,94,0.06)_50%,transparent_70%)]",
+  confused:
+    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(99,102,241,0.26),rgba(99,102,241,0.05)_50%,transparent_70%)]",
+  angry:
+    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(220,38,38,0.34),rgba(220,38,38,0.06)_45%,transparent_65%)]",
+};
+
+function MoodAmbientGlow({
+  mood,
+  placement,
+}: {
+  mood: PortraitMood;
+  placement: ReactionPlacement;
+}) {
+  const glowMap = placement === "bottom-left" ? MOOD_AMBIENT_GLOW_BOTTOM : MOOD_AMBIENT_GLOW_TOP;
+  const glowClass = glowMap[mood];
+
+  return (
+    <AnimatePresence mode="sync">
+      {glowClass !== "" ? (
+        <motion.span
+          key={mood}
+          aria-hidden
+          className={`pointer-events-none absolute inset-0 -z-10 ${glowClass}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7, ease: EASE_OUT_QUART }}
+        />
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Thought bubble, surfaces a member's streaming inner reasoning      */
+/* ------------------------------------------------------------------ */
+
+const MOOD_BUBBLE_TINT: Record<
+  PortraitMood,
+  {
+    surface: string;
+    ring: string;
+    rule: string;
+    pulseDot: string;
+    label: string;
+  }
+> = {
+  neutral: {
+    surface: "from-white/0 via-white/0 to-transparent",
+    ring: "ring-white/55",
+    rule: "via-aura-hairline-strong/60",
+    pulseDot: "bg-aura-rose",
+    label: "text-aura-faint",
+  },
+  flirty: {
+    surface: "from-rose-200/45 via-rose-100/12 to-transparent",
+    ring: "ring-rose-200/60",
+    rule: "via-rose-300/55",
+    pulseDot: "bg-aura-rose",
+    label: "text-rose-500/75",
+  },
+  confused: {
+    surface: "from-indigo-200/40 via-indigo-100/12 to-transparent",
+    ring: "ring-indigo-200/60",
+    rule: "via-indigo-300/50",
+    pulseDot: "bg-aura-violet",
+    label: "text-indigo-500/75",
+  },
+  angry: {
+    surface: "from-rose-400/40 via-rose-300/14 to-transparent",
+    ring: "ring-rose-300/60",
+    rule: "via-rose-400/55",
+    pulseDot: "bg-rose-500",
+    label: "text-rose-600/75",
+  },
+};
+
+function SpeakingBubble({
+  placement,
+  speaking,
+  reasoningText,
+  mood,
+}: {
+  placement: ReactionPlacement;
+  speaking: boolean;
+  reasoningText: string;
+  mood: PortraitMood;
+}) {
+  const isBottom = placement === "bottom-left";
+  const normalizedReasoningText = compactReasoningText(reasoningText);
+  const hasReasoningText = normalizedReasoningText.length > 0;
+  const tint = MOOD_BUBBLE_TINT[mood];
+  const anchorClass = isBottom
+    ? "absolute right-1 top-[10%] origin-bottom-right"
+    : "absolute left-1 top-[14%] origin-bottom-left";
+  const tailSideClass = isBottom ? "right-6" : "left-6";
+
+  return (
+    <AnimatePresence>
+      {speaking ? (
+        <motion.div
+          aria-hidden
+          className={`${anchorClass} pointer-events-none z-30`}
+          initial={{ opacity: 0, scale: 0.9, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.94, y: 6 }}
+          transition={{ duration: 0.3, ease: EASE_OUT_QUART }}
+        >
+          <motion.div
+            layout
+            transition={{ duration: 0.34, ease: EASE_OUT_QUART }}
+            className={`relative max-w-56 min-w-[9.5rem] overflow-hidden rounded-[26px] bg-white/82 shadow-quiet ring-1 ring-inset backdrop-blur-md ${tint.ring}`}
+          >
+            <span
+              aria-hidden
+              className={`pointer-events-none absolute inset-x-0 top-0 h-16 bg-gradient-to-b ${tint.surface}`}
+            />
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/85 to-transparent"
+            />
+
+            <div className="relative flex items-center gap-1.5 px-4 pt-2.5 pb-1.5">
+              <motion.span
+                className={`size-1.5 rounded-full ${tint.pulseDot}`}
+                animate={{ opacity: [0.5, 1, 0.5], scale: [0.85, 1.06, 0.85] }}
+                transition={{ duration: 1.4, ease: "easeInOut", repeat: Infinity }}
+              />
+              <span
+                className={`font-mono text-micro font-semibold uppercase tracking-[0.3em] ${tint.label}`}
+              >
+                // thinking
+              </span>
+            </div>
+
+            <span
+              aria-hidden
+              className={`mx-4 block h-px bg-gradient-to-r from-transparent ${tint.rule} to-transparent`}
+            />
+
+            <div className="relative px-4 pt-2 pb-3">
+              <AnimatePresence initial={false}>
+                {hasReasoningText ? (
+                  <motion.p
+                    key="reasoning"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -2 }}
+                    transition={{ duration: 0.24, ease: EASE_OUT_QUART }}
+                    className="max-h-24 overflow-hidden text-xs leading-snug text-aura-ink/80"
+                  >
+                    {normalizedReasoningText}
+                  </motion.p>
+                ) : (
+                  <motion.div
+                    key="typing"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="flex h-5 items-center gap-1.5"
+                  >
+                    <TypingDots />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+
+          <ThoughtTail sideClass={tailSideClass} />
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+}
+
+const TAIL_DOTS = [
+  { sizeClass: "size-2", baseOpacity: 0.92, delay: 0 },
+  { sizeClass: "size-1.5", baseOpacity: 0.85, delay: 0.2 },
+  { sizeClass: "size-1", baseOpacity: 0.78, delay: 0.4 },
+] as const;
+
+function ThoughtTail({ sideClass }: { sideClass: string }) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute -bottom-2.5 ${sideClass} flex flex-col items-center gap-[3px]`}
+    >
+      {TAIL_DOTS.map((dot, index) => (
+        <motion.span
+          key={index}
+          className={`${dot.sizeClass} rounded-full bg-white/82 shadow-quiet ring-1 ring-inset ring-white/60 backdrop-blur-md`}
+          animate={{
+            scale: [1, 1.08, 1],
+            opacity: [dot.baseOpacity * 0.78, dot.baseOpacity, dot.baseOpacity * 0.78],
+          }}
+          transition={{
+            duration: 2.4,
+            ease: "easeInOut",
+            repeat: Infinity,
+            delay: dot.delay,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+const TYPING_DOT_COLORS = ["bg-aura-rose", "bg-aura-fuchsia", "bg-aura-violet"] as const;
+
+function TypingDots() {
+  return (
+    <>
+      {TYPING_DOT_COLORS.map((color, dotIndex) => (
+        <motion.span
+          key={dotIndex}
+          className={`size-1.5 rounded-full ${color}`}
+          animate={{ opacity: [0.3, 1, 0.3], scale: [0.7, 1.06, 0.7] }}
+          transition={{
+            duration: 1.05,
+            ease: "easeInOut",
+            repeat: Infinity,
+            delay: dotIndex * 0.16,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
+function compactReasoningText(reasoningText: string): string {
+  const compactedText = reasoningText.replace(/\s+/g, " ").trim();
+  const maxLength = 220;
+
+  if (compactedText.length <= maxLength) {
+    return compactedText;
+  }
+
+  return `...${compactedText.slice(compactedText.length - maxLength)}`;
 }
 
 export function ReactionStream({
