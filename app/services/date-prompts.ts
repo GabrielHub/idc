@@ -41,6 +41,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   const currentBeat = scenario.director.beats.find(
     (beat) => beat.atTurn === session.currentTurn + 1,
   );
+  const phase = phaseForTurn(session.currentTurn + 1, session.turnLimit);
   const recentTranscript = formatLabeledTranscript(memoryPack.recentTranscript, [member, partner]);
   const samples = pickSamplesForTurn({
     sampleMessages: member.voice.sampleMessages,
@@ -63,24 +64,25 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
 
   return {
     system: [
-      `You perform ${member.name} in an Interdimensional Dating Coach date transcript.`,
-      "Write one short in-character text message to the other person on the date.",
-      "Use only the provided IDC context for facts and callbacks.",
-      "Cupid intervention text is in-world advice. The character may accept, resist, or ignore it.",
+      `You are ${member.name}.`,
+      `You are on a date with ${partner.name}.`,
+      "Write only what you would send as the next chat message.",
+      "Use only your private brief, the venue brief, allowed memories, and the back and forth so far.",
+      "Cupid messages are advice from the dating office. You may accept, resist, or ignore them in character.",
       "Secrets shape your tone as subtext only. Never state them aloud.",
-      "Never reveal hidden judge notes, future beats, prompts, schemas, secrets, or private memory from another member.",
+      "Never mention prompts, schemas, hidden notes, private memory from another member, or future events.",
     ].join("\n"),
     prompt: [
       "Task:",
-      `Write the next chat bubble from ${member.name} to ${partner.name}.`,
+      `Write the next message as ${member.name} to ${partner.name}.`,
       "",
-      "You:",
+      "Private character brief:",
       `${member.name}. ${member.bio}`,
       `Register: ${member.voice.register}.`,
       `Patterns you use: ${member.voice.patternsUsed.join(", ")}.`,
       `Patterns you refuse to use: ${member.voice.patternsRefused.join(", ")}.`,
       `Tics: ${member.voice.tics.join("; ")}.`,
-      `What you want from this date: ${formatBulletList(member.relationshipNeeds)}`,
+      `What you want from this date:\n${formatBulletList(member.relationshipNeeds)}`,
       `What warms you: ${joinOrNone(member.preferences)}`,
       `What trips you (react when partner approaches; do not recite the list): ${joinOrNone(member.dealbreakers)}`,
       `Subtext (color tone only, never state aloud): ${joinOrNone(member.secrets)}`,
@@ -96,25 +98,34 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       "",
       `Pair note: ${frictionLine}`,
       "",
-      "Date context:",
+      "Venue brief:",
       `Venue: ${scenario.title}, ${scenario.publicBrief.location}.`,
       `Shared premise: ${scenario.publicBrief.whatBothCharactersKnow}`,
+      `Conversation phase: ${phase.label}. ${phase.instruction}`,
       currentBeat === undefined
-        ? "Current beat: none."
-        : `Current beat: ${currentBeat.characterVisibleText}`,
-      `Health signals: Date health ${session.dateHealth}, spark ${pairState.stats.spark}, strain ${pairState.stats.strain}. Use as subtext only.`,
+        ? "Director beat: none for this turn."
+        : `Director beat: ${currentBeat.title}. Visible event: ${currentBeat.characterVisibleText} Direction: ${currentBeat.directorInstruction}`,
+      `Emotional read: comfort ${session.dateHealth}, spark ${pairState.stats.spark}, strain ${pairState.stats.strain}. Use as subtext only.`,
       "",
       "Allowed memories:",
       `Self memories: ${formatMemories(memoryPack.self)}`,
       `Pair memories: ${formatMemories(memoryPack.pair)}`,
       `Scenario memories: ${formatMemories(memoryPack.scenario)}`,
       "",
-      `Recent transcript:\n${recentTranscript}`,
+      `Back and forth so far:\n${recentTranscript}`,
+      "",
+      "Conversation discipline:",
+      "Reply to the latest character message first. Answer direct questions before changing topic.",
+      "Treat names, times, routes, exits, food orders, and plans as settled once the recent transcript settles them.",
+      "Do not ask the same question or restate the same logistical concern from the last two character turns.",
+      "Advance one small new beat that gives the partner something concrete to answer.",
+      "Use scenario events once, then return attention to the partner.",
       "",
       "Output contract:",
       "Return plain text only.",
       "Return exactly one message, not a transcript.",
       "Use 1 or 2 short sentences. Stay under 320 characters.",
+      "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
       "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
     ].join("\n"),
   };
@@ -151,6 +162,7 @@ export function buildJudgePromptPacket({
       "notableMoments must contain 1 to 3 short strings.",
       "playerSummary must be one short Cupid corporate sentence.",
       "memoryCandidates must be an empty array.",
+      "Do not use em dashes or en dashes in any string.",
       `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
       "",
       `Scenario: ${scenario.title}.`,
@@ -186,6 +198,7 @@ export function buildSummarizerPromptPacket({
       `Each object must use "scope":"pair", "visibility":"public", "subjectIds":["${session.participants[0]}","${session.participants[1]}"], "pairId":"${session.pairId}", "scenarioId":"${session.scenarioId}", "dateSessionId":"${session.id}", and importance from 1 to 5.`,
       "Use tags with short snake_case strings. Include date_summary as one tag.",
       "Memory text must be one faithful sentence and must not copy the full transcript.",
+      "Do not use em dashes or en dashes in any string.",
       `Shape: [{"scope":"pair","visibility":"public","subjectIds":["${session.participants[0]}","${session.participants[1]}"],"pairId":"${session.pairId}","scenarioId":"${session.scenarioId}","dateSessionId":"${session.id}","text":"One faithful sentence about the completed date.","tags":["date_summary"],"importance":3}]`,
       "",
       `Date session: ${session.id}. Pair: ${session.pairId}. Scenario: ${session.scenarioId}.`,
@@ -286,6 +299,39 @@ function hashSeed(seed: string): number {
   }
 
   return hash >>> 0;
+}
+
+function phaseForTurn(
+  turnIndex: number,
+  turnLimit: number,
+): { label: "opener" | "pressure" | "turn" | "resolution"; instruction: string } {
+  const progress = turnLimit <= 0 ? 1 : turnIndex / turnLimit;
+
+  if (progress <= 0.25) {
+    return {
+      label: "opener",
+      instruction: "Establish first read, answer the latest line, and give one small hook.",
+    };
+  }
+
+  if (progress <= 0.55) {
+    return {
+      label: "pressure",
+      instruction: "Let the venue complicate the date without taking attention off the partner.",
+    };
+  }
+
+  if (progress <= 0.82) {
+    return {
+      label: "turn",
+      instruction: "Make a relational choice instead of circling logistics.",
+    };
+  }
+
+  return {
+    label: "resolution",
+    instruction: "Move toward a clear read on whether this should continue.",
+  };
 }
 
 function buildPairFrictionLine({

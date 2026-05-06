@@ -90,6 +90,7 @@ export const marcusPellish: Member = {
     mood: 60,
     openness: 65,
     burnout: 32,
+    retention: 100,
     currentRequestId: "request-marcus-grown-adult",
     recentDateResult: "No Cupid dates yet.",
   },

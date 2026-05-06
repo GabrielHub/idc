@@ -64,6 +64,8 @@ describe("date prompt assembly", () => {
     });
 
     expect(ownerPacket.prompt).toContain(`Your ask today: "${request.text}".`);
+    expect(ownerPacket.prompt).toContain("Conversation phase: opener.");
+    expect(ownerPacket.prompt).toContain("Director beat:");
     expect(partnerPacket.prompt).not.toContain(request.text);
   });
 

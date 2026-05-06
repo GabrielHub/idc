@@ -89,6 +89,7 @@ export const venus: Member = {
     mood: 78,
     openness: 44,
     burnout: 26,
+    retention: 100,
     currentRequestId: "request-venus-listen",
     recentDateResult: "No Cupid dates yet.",
   },

@@ -91,6 +91,7 @@ export const mrWhiskers: Member = {
     mood: 64,
     openness: 49,
     burnout: 35,
+    retention: 100,
     currentRequestId: "request-whiskers-career",
     recentDateResult: "No Cupid dates yet.",
   },

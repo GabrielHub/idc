@@ -93,6 +93,7 @@ export const aldricValeMarsh: Member = {
     mood: 62,
     openness: 73,
     burnout: 28,
+    retention: 100,
     currentRequestId: "request-aldric-honest-bargain",
     recentDateResult: "No Cupid dates yet.",
   },

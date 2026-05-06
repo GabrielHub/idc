@@ -88,6 +88,7 @@ export const tashaRell: Member = {
     mood: 76,
     openness: 60,
     burnout: 49,
+    retention: 100,
     currentRequestId: "request-tasha-counterparty",
     recentDateResult: "No Cupid dates yet.",
   },

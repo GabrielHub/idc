@@ -1,0 +1,275 @@
+import { motion } from "motion/react";
+
+import type { Member } from "../domain/game";
+import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
+
+/* ------------------------------------------------------------------ */
+/* Reaction types                                                     */
+/* ------------------------------------------------------------------ */
+
+export type ReactionKind = "spark" | "love" | "laugh" | "anger" | "cry" | "warning";
+
+export type ReactionIntensity = 1 | 2 | 3;
+
+export type ReactionPlacement = "bottom-left" | "top-right";
+
+export type ReactionSignal = {
+  id: string;
+  side: "left" | "right";
+  kind: ReactionKind;
+  intensity: ReactionIntensity;
+};
+
+export const REACTION_KINDS: readonly ReactionKind[] = [
+  "spark",
+  "love",
+  "laugh",
+  "anger",
+  "cry",
+  "warning",
+] as const;
+
+export const REACTION_ICON: Record<ReactionKind, string> = {
+  spark: "✨",
+  love: "💗",
+  laugh: "😂",
+  anger: "😡",
+  cry: "😢",
+  warning: "⚠️",
+};
+
+export const REACTION_LABEL: Record<ReactionKind, string> = {
+  spark: "Spark",
+  love: "Love",
+  laugh: "Laugh",
+  anger: "Anger",
+  cry: "Cry",
+  warning: "Warning",
+};
+
+export const REACTION_STREAM_LIMIT = 4;
+
+export function pushReactionSignal(
+  current: readonly ReactionSignal[],
+  next: ReactionSignal,
+): ReactionSignal[] {
+  const filtered = current.filter((signal) => signal.kind !== next.kind);
+  return [...filtered, next].slice(-REACTION_STREAM_LIMIT);
+}
+
+/* ------------------------------------------------------------------ */
+/* Bubble visual buckets                                              */
+/* ------------------------------------------------------------------ */
+
+const REACTION_BUBBLE_FILL: Record<ReactionKind, string> = {
+  spark:
+    "border border-violet-200/70 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(221,214,254,0.62)_42%,rgba(167,139,250,0.42)_82%)] shadow-[0_18px_30px_-14px_rgba(124,58,237,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+  love: "border border-rose-200/70 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,205,211,0.62)_42%,rgba(244,63,94,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(244,63,94,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+  laugh:
+    "border border-amber-200/80 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,243,199,0.7)_42%,rgba(245,158,11,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(245,158,11,0.5),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+  anger:
+    "border border-rose-300/75 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.92),rgba(254,205,211,0.55)_40%,rgba(190,18,60,0.5)_82%)] shadow-[0_20px_32px_-14px_rgba(190,18,60,0.6),inset_0_1px_0_0_rgba(255,255,255,0.8)]",
+  cry: "border border-sky-200/80 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(186,230,253,0.62)_42%,rgba(14,165,233,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(14,165,233,0.5),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+  warning:
+    "border border-amber-300/75 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,243,199,0.7)_42%,rgba(217,119,6,0.42)_82%)] shadow-[0_18px_30px_-14px_rgba(245,158,11,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+};
+
+const BUBBLE_SIZE_CLASS = [
+  "size-7",
+  "size-8",
+  "size-9",
+  "size-10",
+  "size-11",
+  "size-12",
+  "size-14",
+] as const;
+
+const BUBBLE_EMOJI_CLASS = [
+  "text-base",
+  "text-lg",
+  "text-xl",
+  "text-2xl",
+  "text-2xl",
+  "text-3xl",
+  "text-3xl",
+] as const;
+
+const SWARM_COUNT: Record<ReactionIntensity, number> = {
+  1: 3,
+  2: 5,
+  3: 7,
+};
+
+export function DaterStandee({
+  member,
+  placement,
+  reactions,
+  className = "",
+}: {
+  member: Member;
+  placement: ReactionPlacement;
+  reactions: ReactionSignal[];
+  className?: string;
+}) {
+  const isBottom = placement === "bottom-left";
+  const glowClass = isBottom
+    ? "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_82%,rgba(244,63,94,0.2),rgba(217,70,239,0.06)_55%,transparent_75%)]"
+    : "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_22%,rgba(167,139,250,0.22),rgba(217,70,239,0.06)_55%,transparent_75%)]";
+  const shadowClass = isBottom
+    ? "drop-shadow-[0_30px_42px_rgba(244,63,94,0.22)]"
+    : "drop-shadow-[0_30px_42px_rgba(167,139,250,0.22)]";
+  const variant = isBottom ? "standee-bottom" : "standee-top";
+
+  return (
+    <div className={className}>
+      <span aria-hidden className={glowClass} />
+      <div className={`relative size-full ${shadowClass}`}>
+        <Portrait member={member} variant={variant} asset="portrait" />
+        <ReactionStream reactions={reactions} placement={placement} />
+      </div>
+    </div>
+  );
+}
+
+export function ReactionStream({
+  reactions,
+  placement,
+}: {
+  reactions: ReactionSignal[];
+  placement: ReactionPlacement;
+}) {
+  if (reactions.length === 0) {
+    return null;
+  }
+
+  const anchorClass =
+    placement === "bottom-left" ? "absolute left-1/2 bottom-[28%]" : "absolute right-1/2 top-[20%]";
+
+  return (
+    <div aria-hidden className={`${anchorClass} pointer-events-none z-20`}>
+      {reactions.slice(0, REACTION_STREAM_LIMIT).map((reaction, swarmIndex) => (
+        <ReactionSwarm
+          key={reaction.id}
+          reaction={reaction}
+          swarmIndex={swarmIndex}
+          placement={placement}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ReactionSwarm({
+  reaction,
+  swarmIndex,
+  placement,
+}: {
+  reaction: ReactionSignal;
+  swarmIndex: number;
+  placement: ReactionPlacement;
+}) {
+  const count = SWARM_COUNT[reaction.intensity];
+  const swarmDelay = swarmIndex * 0.32;
+  const swarmAnchorOffset = (swarmIndex - 1.5) * 18;
+
+  return (
+    <>
+      {Array.from({ length: count }, (_, bubbleIndex) => (
+        <ReactionBubble
+          key={`${reaction.id}-${bubbleIndex}`}
+          reaction={reaction}
+          bubbleIndex={bubbleIndex}
+          swarmDelay={swarmDelay}
+          swarmAnchorOffset={swarmAnchorOffset}
+          placement={placement}
+        />
+      ))}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* ReactionBubble, a single rising bubble                             */
+/* ------------------------------------------------------------------ */
+
+function ReactionBubble({
+  reaction,
+  bubbleIndex,
+  swarmDelay,
+  swarmAnchorOffset,
+  placement,
+}: {
+  reaction: ReactionSignal;
+  bubbleIndex: number;
+  swarmDelay: number;
+  swarmAnchorOffset: number;
+  placement: ReactionPlacement;
+}) {
+  // Deterministic per-bubble seed keeps SSR and client renders in sync.
+  const seed = bubbleIndex * 31 + reaction.kind.charCodeAt(0);
+
+  const baseIdx = reaction.intensity === 3 ? 3 : reaction.intensity === 2 ? 1 : 0;
+  const slot = bubbleIndex % 3;
+  const sizeIdx = Math.min(baseIdx + slot, BUBBLE_SIZE_CLASS.length - 1);
+  const sizeClass = BUBBLE_SIZE_CLASS[sizeIdx];
+  const emojiClass = BUBBLE_EMOJI_CLASS[sizeIdx];
+
+  const wobbleAmp = 12 + (seed % 9);
+  const sideMul = placement === "bottom-left" ? 1 : -1;
+  const startX = swarmAnchorOffset + (((seed * 5) % 9) - 4) * 3;
+  const riseDistance = reaction.kind === "cry" ? 110 + (seed % 30) : 160 + (seed % 50);
+  const riseDuration = 3.0 + ((seed * 7) % 6) * 0.12;
+  const startSpread = bubbleIndex * 0.18 + ((seed * 3) % 4) * 0.06;
+  const restDuration = 4.4 + ((seed * 11) % 5) * 0.4;
+
+  // cry bubbles linger lower with a heavier droop than other kinds.
+  const yArc =
+    reaction.kind === "cry"
+      ? [0, -riseDistance * 0.18, -riseDistance * 0.42, -riseDistance * 0.7, -riseDistance]
+      : [0, -riseDistance * 0.22, -riseDistance * 0.55, -riseDistance * 0.82, -riseDistance];
+
+  const xArc = [
+    startX,
+    startX + wobbleAmp * sideMul * 0.7,
+    startX - wobbleAmp * sideMul * 0.4,
+    startX + wobbleAmp * sideMul * 0.5,
+    startX - wobbleAmp * sideMul * 0.2,
+  ];
+
+  // spark and laugh use a snappier overshoot than the gentler love/anger/cry/warning arc.
+  const isSnappy = reaction.kind === "spark" || reaction.kind === "laugh";
+  const scaleArc = isSnappy ? [0.2, 1.05, 1, 0.95, 0.7] : [0.32, 1, 1.06, 1.0, 0.78];
+
+  const opacityArc = [0, 1, 1, 0.88, 0];
+
+  return (
+    <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2">
+      <motion.span
+        className={`grid place-items-center rounded-full backdrop-blur-md ${sizeClass} ${REACTION_BUBBLE_FILL[reaction.kind]}`}
+        initial={{ opacity: 0, scale: 0.2, x: startX, y: 0 }}
+        animate={{
+          opacity: opacityArc,
+          scale: scaleArc,
+          x: xArc,
+          y: yArc,
+        }}
+        transition={{
+          duration: riseDuration,
+          delay: swarmDelay + startSpread,
+          repeat: Infinity,
+          repeatDelay: restDuration,
+          ease: EASE_OUT_QUART,
+          times: [0, 0.18, 0.5, 0.78, 1],
+        }}
+      >
+        <span
+          aria-hidden
+          className="pointer-events-none absolute left-[20%] top-[16%] h-[26%] w-[26%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.95),transparent_70%)] blur-[1px]"
+        />
+        <span className={`relative select-none leading-none ${emojiClass}`}>
+          {REACTION_ICON[reaction.kind]}
+        </span>
+      </motion.span>
+    </div>
+  );
+}

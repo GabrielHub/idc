@@ -95,6 +95,7 @@ export const eleanorAsh: Member = {
     mood: 66,
     openness: 51,
     burnout: 33,
+    retention: 100,
     currentRequestId: "request-eleanor-no-true-name",
     recentDateResult: "No Cupid dates yet.",
   },

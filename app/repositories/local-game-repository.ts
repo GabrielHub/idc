@@ -33,6 +33,11 @@ import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
 
 const SAVE_KEY_PREFIX = "idc.cupid.save.v";
+const LEGACY_ALL_GEMMA_26B_CONFIG = {
+  performerModel: "gemma4:26b",
+  judgeModel: "gemma4:26b",
+  summarizerModel: "gemma4:26b",
+} as const;
 
 export const CURRENT_SAVE_KEY = `${SAVE_KEY_PREFIX}${SAVE_SCHEMA_VERSION}`;
 export const LEGACY_SAVE_KEYS = Array.from(
@@ -361,7 +366,7 @@ function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: bo
   const currentSave = gameSaveSchema.safeParse(parsed);
 
   if (currentSave.success) {
-    return { save: currentSave.data, migrated: false };
+    return migrateDefaultLocalAiConfig(currentSave.data, false);
   }
 
   const looseSave = persistedSaveWithLooseMembersSchema.parse(parsed);
@@ -398,10 +403,36 @@ function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: bo
     }
   }
 
-  return {
-    save: gameSaveSchema.parse({
+  return migrateDefaultLocalAiConfig(
+    gameSaveSchema.parse({
       ...looseSave,
       members: [...migratedFixtureMembers, ...customMembers],
+    }),
+    true,
+  );
+}
+
+function migrateDefaultLocalAiConfig(
+  save: GameSave,
+  alreadyMigrated: boolean,
+): { save: GameSave; migrated: boolean } {
+  const usesLegacyDefaults =
+    save.config.performerModel === LEGACY_ALL_GEMMA_26B_CONFIG.performerModel &&
+    save.config.judgeModel === LEGACY_ALL_GEMMA_26B_CONFIG.judgeModel &&
+    save.config.summarizerModel === LEGACY_ALL_GEMMA_26B_CONFIG.summarizerModel;
+
+  if (!usesLegacyDefaults) {
+    return { save, migrated: alreadyMigrated };
+  }
+
+  return {
+    save: gameSaveSchema.parse({
+      ...save,
+      config: {
+        ...save.config,
+        judgeModel: "gemma4:e4b",
+        summarizerModel: "gemma4:e4b",
+      },
     }),
     migrated: true,
   };

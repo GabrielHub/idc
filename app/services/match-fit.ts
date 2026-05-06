@@ -56,6 +56,11 @@ export type ApplyMatchFitToJudgeInput = {
 const HARD_STOP_SCORE = 5;
 const HIGH_PRESSURE_THRESHOLD = 6;
 const MEDIUM_PRESSURE_THRESHOLD = 3;
+const WALKOUT_DATE_HEALTH_THRESHOLD = 15;
+const WALKOUT_SOFT_HEALTH_THRESHOLD = 25;
+const WALKOUT_STRAIN_THRESHOLD = 70;
+const WALKOUT_CONFLICT_THRESHOLD = 70;
+const SHARP_DROP_THRESHOLD = -8;
 const PROPHECY_BLOCKED_REQUEST_TAGS = [
   "prophecy_averse",
   "normal_date",
@@ -131,6 +136,50 @@ export function isMemberRequestBlocked(fit: MatchFitResult, requestId: string): 
   return fit.blockedRequestIds.includes(requestId);
 }
 
+export function buildPublicRiskNotes({
+  members,
+  scenario,
+  fitSignal,
+  focusRequests,
+}: {
+  members: readonly Member[];
+  scenario: DateScenario;
+  fitSignal: MatchFitPublicSignal;
+  focusRequests: readonly MemberRequest[];
+}): string[] {
+  const notes: string[] = [];
+  const scenarioTags = scenario.card.tags;
+
+  for (const member of members) {
+    if (scenarioTags.includes("prophecy") && hasTag(member, "prophecy_averse")) {
+      notes.push(`${member.firstName} has visible prophecy pressure risk. Expect a short leash.`);
+    }
+
+    if (scenarioTags.includes("public") && hasTag(member, "privacy_sensitive")) {
+      notes.push(`${member.firstName} has visible public exposure risk. Watch the room.`);
+    }
+
+    if (
+      scenarioTags.includes("memory") &&
+      (hasTag(member, "memory_sensitive") || hasTag(member, "grief_sensitive"))
+    ) {
+      notes.push(`${member.firstName} has visible memory pressure risk. Push gently.`);
+    }
+  }
+
+  if (fitSignal.askSignal === "blocked" && focusRequests.length > 0) {
+    notes.push(
+      "Focused ask is blocked by the booking. This can still proceed, but the exit ramp is close.",
+    );
+  }
+
+  if (fitSignal.pressureLevel === "high" && notes.length === 0) {
+    notes.push("High pressure booking. Keep the nudge ready and let members leave early.");
+  }
+
+  return Array.from(new Set(notes)).slice(0, 3);
+}
+
 export function applyMatchFitToJudgeSnapshot({
   session,
   pairState,
@@ -161,11 +210,24 @@ export function applyMatchFitToJudgeSnapshot({
     });
   }
 
-  if (fit.exchangeDateHealthDrift === 0) {
-    return judgeSnapshot;
-  }
+  const driftedSnapshot =
+    fit.exchangeDateHealthDrift === 0
+      ? judgeSnapshot
+      : applyFitDriftToJudgeSnapshot(judgeSnapshot, members, fit.exchangeDateHealthDrift);
 
-  const drift = fit.exchangeDateHealthDrift;
+  return applyWalkoutEscalation({
+    session,
+    pairState,
+    judgeSnapshot: driftedSnapshot,
+    fit,
+  });
+}
+
+function applyFitDriftToJudgeSnapshot(
+  judgeSnapshot: JudgeSnapshot,
+  members: readonly Member[],
+  drift: number,
+): JudgeSnapshot {
   const driftMagnitude = Math.abs(drift);
   const statDeltas =
     drift > 0
@@ -193,6 +255,66 @@ export function applyMatchFitToJudgeSnapshot({
     statDeltas: mergeStatDeltas(judgeSnapshot.statDeltas, statDeltas),
     memberMoodDeltas,
   });
+}
+
+function applyWalkoutEscalation({
+  session,
+  pairState,
+  judgeSnapshot,
+  fit,
+}: {
+  session: DateSession;
+  pairState: PairState;
+  judgeSnapshot: JudgeSnapshot;
+  fit: MatchFitResult;
+}): JudgeSnapshot {
+  if (judgeSnapshot.shouldEndEarly) {
+    return judgeSnapshot;
+  }
+
+  if (!shouldEscalateWalkout({ session, pairState, judgeSnapshot, fit })) {
+    return judgeSnapshot;
+  }
+
+  const reason = "Member boundary crossed walkout threshold.";
+
+  return judgeSnapshotSchema.parse({
+    ...judgeSnapshot,
+    shouldEndEarly: true,
+    earlyEndReason: reason,
+    notableMoments: [reason, ...judgeSnapshot.notableMoments].slice(0, 3),
+    playerSummary: "Boundary crossed. Date ended before the room could make it worse.",
+  });
+}
+
+function shouldEscalateWalkout({
+  session,
+  pairState,
+  judgeSnapshot,
+  fit,
+}: {
+  session: DateSession;
+  pairState: PairState;
+  judgeSnapshot: JudgeSnapshot;
+  fit: MatchFitResult;
+}): boolean {
+  const projectedDateHealth = session.dateHealth + judgeSnapshot.dateHealthDelta;
+  const projectedStrain = pairState.stats.strain + (judgeSnapshot.statDeltas.strain ?? 0);
+  const projectedConflict = pairState.stats.conflict + (judgeSnapshot.statDeltas.conflict ?? 0);
+  const pressureTriggered =
+    fit.fitLevel === "risky" || fit.pressureLevel === "high" || fit.askSignal === "blocked";
+  const highTension =
+    projectedStrain >= WALKOUT_STRAIN_THRESHOLD || projectedConflict >= WALKOUT_CONFLICT_THRESHOLD;
+
+  if (projectedDateHealth <= WALKOUT_DATE_HEALTH_THRESHOLD && (pressureTriggered || highTension)) {
+    return true;
+  }
+
+  return (
+    projectedDateHealth <= WALKOUT_SOFT_HEALTH_THRESHOLD &&
+    judgeSnapshot.dateHealthDelta <= SHARP_DROP_THRESHOLD &&
+    highTension
+  );
 }
 
 function memberScenarioScore(member: Member, scenario: DateScenario, ruleHits: string[]): number {

@@ -29,6 +29,7 @@ import { retrieveRelevantMemories } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPairState,
+  applyDateFinalReportToMembers,
   createNonCharacterMessage,
   finalizeDateSession,
   findMemberRequestById,
@@ -121,7 +122,7 @@ type LocalAiDateEngineInput = {
 };
 
 const DEFAULT_MEMORY_LIMIT = 2;
-const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 4;
+const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 8;
 const CHARACTER_MESSAGE_MAX_LENGTH = 360;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
@@ -306,9 +307,13 @@ async function advanceDateExchangeWithLocalAiInternal(
     completedSession.finalReport === undefined
       ? updatedPairState
       : markPairDateComplete(updatedPairState, completedSession);
+  const finalMembers =
+    completedSession.finalReport === undefined
+      ? updatedMembers
+      : applyDateFinalReportToMembers(updatedMembers, completedSession);
   const nextSave = gameSaveSchema.parse({
     ...save,
-    members: updatedMembers,
+    members: finalMembers,
     pairStates: replaceById(save.pairStates, finalPairState),
     dateSessions: replaceById(save.dateSessions, completedSession),
     memories: [...save.memories, ...completion.memories],
@@ -565,7 +570,9 @@ async function streamCharacterMessage({
     packet,
     config,
     onTextDelta: async (delta) => {
-      if (delta.length === 0) {
+      const textDelta = stripForbiddenPunctuation(delta);
+
+      if (textDelta.length === 0) {
         return;
       }
 
@@ -574,7 +581,7 @@ async function streamCharacterMessage({
         speakerId: speaker.id,
         sequenceIndex,
         turnIndex,
-        textDelta: delta,
+        textDelta,
       });
     },
   });
@@ -732,6 +739,7 @@ function normalizeMemoryCandidate(
     pairId: session.pairId,
     scenarioId: session.scenarioId,
     dateSessionId: session.id,
+    text: normalizeForbiddenPunctuation(parsedCandidate.text),
     tags: Array.from(new Set([...parsedCandidate.tags, "ai_summary"])).slice(0, 8),
     importance: Math.min(5, Math.max(1, parsedCandidate.importance)),
   });
@@ -763,6 +771,14 @@ function sanitizeJudgeSnapshot(judgeSnapshot: JudgeSnapshot, session: DateSessio
   return {
     ...judgeSnapshot,
     memberMoodDeltas,
+    earlyEndReason:
+      judgeSnapshot.earlyEndReason === undefined
+        ? undefined
+        : normalizeForbiddenPunctuation(judgeSnapshot.earlyEndReason),
+    notableMoments: judgeSnapshot.notableMoments.map((moment) =>
+      normalizeForbiddenPunctuation(moment),
+    ),
+    playerSummary: normalizeForbiddenPunctuation(judgeSnapshot.playerSummary),
   };
 }
 
@@ -803,7 +819,7 @@ async function createRuntimeQueryEmbedding({
 
 function sanitizeCharacterText(text: string, speakerName: string): string {
   const speakerLabelPattern = new RegExp(`^${escapeRegex(speakerName)}\\s*:\\s*`, "i");
-  const trimmedText = text
+  const trimmedText = normalizeForbiddenPunctuation(text)
     .trim()
     .replace(/^["']|["']$/g, "")
     .replace(speakerLabelPattern, "")
@@ -818,6 +834,24 @@ function sanitizeCharacterText(text: string, speakerName: string): string {
   }
 
   return `${trimmedText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
+}
+
+const FORBIDDEN_DASH_PATTERN = /[\u2014\u2013]/;
+
+function stripForbiddenPunctuation(text: string): string {
+  if (!FORBIDDEN_DASH_PATTERN.test(text)) {
+    return text;
+  }
+
+  return text
+    .replace(/[\u2014\u2013]/g, ", ")
+    .replace(/\s+,/g, ",")
+    .replace(/,\s+/g, ", ")
+    .replace(/\s{2,}/g, " ");
+}
+
+function normalizeForbiddenPunctuation(text: string): string {
+  return stripForbiddenPunctuation(text).trim();
 }
 
 function escapeRegex(value: string): string {

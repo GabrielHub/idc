@@ -87,6 +87,7 @@ export const meridianVale: Member = {
     mood: 61,
     openness: 55,
     burnout: 44,
+    retention: 100,
     currentRequestId: "request-meridian-no-followups",
     recentDateResult: "No Cupid dates yet.",
   },

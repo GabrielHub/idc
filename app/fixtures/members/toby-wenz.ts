@@ -94,6 +94,7 @@ export const tobyWenz: Member = {
     mood: 49,
     openness: 81,
     burnout: 43,
+    retention: 100,
     currentRequestId: "request-toby-redirect",
     recentDateResult: "No Cupid dates yet.",
   },

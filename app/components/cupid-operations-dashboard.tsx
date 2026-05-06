@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  type DateSessionStatus,
   type DateScenario,
   type FollowUpAction,
   type GameSave,
@@ -18,12 +19,21 @@ import {
 import {
   addCupidIntervention,
   applyFollowUpAction,
+  buildGoalProgressSnapshots,
+  buildShiftGoalMetrics,
+  CLIENT_LOSS_LIMIT,
   completeShift,
+  getQuitMembers,
+  isMemberRetained,
   startDateSession,
   startNextShift,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
-import { evaluateMatchFit, type MatchFitPublicSignal } from "../services/match-fit";
+import {
+  buildPublicRiskNotes,
+  evaluateMatchFit,
+  type MatchFitPublicSignal,
+} from "../services/match-fit";
 import {
   gameApiErrorSchema,
   gameStreamEventSchema,
@@ -33,19 +43,36 @@ import {
   type GameStreamEvent,
   type LocalAiStatusResponse,
 } from "../services/game-api-contracts";
-import { ChromeButton, GhostButton, LiveDot } from "./dashboard-atoms";
+import { ChromeButton, GhostButton, LiveDot, PrimaryButton } from "./dashboard-atoms";
 import {
   BriefView,
   DashboardLoading,
   DateView,
   RosterView,
   ShiftReportPanel,
+  type PendingDateAction,
   type StreamingDraftMessage,
   pad2,
 } from "./dashboard-views";
 import { useSfx } from "./sfx-provider";
 
 type ViewKey = "roster" | "brief" | "date";
+type DashboardPendingAction =
+  | PendingDateAction
+  | "startDate"
+  | "intervention"
+  | "followUp"
+  | "endShift"
+  | "reset"
+  | "nextShift";
+
+function asPendingDateAction(action: DashboardPendingAction | null): PendingDateAction | null {
+  if (action === "advanceExchange" || action === "completeDate") {
+    return action;
+  }
+
+  return null;
+}
 
 const GAME_API_TIMEOUT_MS = 120_000;
 const LOCAL_AI_STATUS_URL = "/api/game?intent=local-ai-status";
@@ -64,6 +91,12 @@ const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   details: [],
 };
 
+const DATE_TAG_LABELS: Record<DateSessionStatus, string> = {
+  active: "live",
+  completed: "filed",
+  ended_early: "early end",
+};
+
 type CupidOperationsDashboardProps = {
   onPunchOut: () => void;
 };
@@ -78,10 +111,11 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [localAiStatus, setLocalAiStatus] = useState<LocalAiClientStatus>(CHECKING_LOCAL_AI_STATUS);
-  const [isActionPending, setIsActionPending] = useState(false);
+  const [pendingAction, setPendingAction] = useState<DashboardPendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const lastErrorMessageRef = useRef<string | null>(null);
+  const isActionPending = pendingAction !== null;
 
   useEffect(() => {
     let isMounted = true;
@@ -203,6 +237,24 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             .filter(isDefined),
     [activeShift],
   );
+  const pinnedGoalProgress = useMemo(() => {
+    if (save === null || activeShift === null) {
+      return [];
+    }
+
+    const metrics = buildShiftGoalMetrics({
+      shift: activeShift,
+      dateSessions: save.dateSessions,
+      members: save.members,
+    });
+
+    return buildGoalProgressSnapshots({
+      goals: pinnedGoals,
+      shiftStatus: activeShift.status,
+      metrics,
+      shiftReport: activeShift.report,
+    });
+  }, [activeShift, pinnedGoals, save]);
   const selectedMembers = useMemo(
     () =>
       save === null
@@ -227,6 +279,12 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     () => buildPairPreview(save, selectedMembers, selectedScenario, pinnedRequests),
     [save, selectedMembers, selectedScenario, pinnedRequests],
   );
+  const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
+  const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
+
+  useEffect(() => {
+    window.scrollTo({ left: 0, top: 0 });
+  }, [activeDateSessionId, view]);
 
   async function persist(nextSave: GameSave) {
     await repository.saveGame(nextSave);
@@ -234,6 +292,10 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   }
 
   function selectFocusMember(memberId: string) {
+    if (save?.members.some((member) => member.id === memberId && !isMemberRetained(member))) {
+      return;
+    }
+
     setSelectedMemberIds((current) => {
       const partnerMemberId = current[1] === memberId ? undefined : current[1];
       return [memberId, partnerMemberId].filter(isDefined);
@@ -241,6 +303,10 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   }
 
   function selectPartnerMember(memberId: string) {
+    if (save?.members.some((member) => member.id === memberId && !isMemberRetained(member))) {
+      return;
+    }
+
     setSelectedMemberIds((current) => {
       const focusMemberId = current[0];
 
@@ -269,7 +335,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("startDate", async () => {
       const status = await refreshLocalAiStatus();
 
       if (status.status !== "ready") {
@@ -294,7 +360,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("advanceExchange", async () => {
       setStreamingDrafts([]);
       try {
         const result = await runGameApiStreamAction(
@@ -319,7 +385,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("completeDate", async () => {
       setStreamingDrafts([]);
       try {
         const result = await runGameApiStreamAction(
@@ -344,7 +410,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("intervention", async () => {
       const result = addCupidIntervention(save, {
         dateSessionId: activeSession.id,
         text: interventionText,
@@ -359,7 +425,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("followUp", async () => {
       const result = applyFollowUpAction(save, {
         dateSessionId: activeSession.id,
         action,
@@ -373,14 +439,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("endShift", async () => {
       const result = completeShift(save);
       await persist(result.save);
     });
   }
 
   async function handleReset() {
-    tryAction(async () => {
+    tryAction("reset", async () => {
       const nextSave = await repository.resetGame();
       setSave(nextSave);
       setSelectedMemberIds(defaultMemberSelection(nextSave));
@@ -397,7 +463,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction(async () => {
+    tryAction("nextShift", async () => {
       const result = startNextShift(save);
       await persist(result.save);
       setSelectedMemberIds(defaultMemberSelection(result.save));
@@ -472,19 +538,19 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     setErrorMessage(result.warningMessages.slice(0, 3).join(" "));
   }
 
-  async function tryAction(action: () => Promise<void>) {
-    if (isActionPending) {
+  async function tryAction(pending: DashboardPendingAction, action: () => Promise<void>) {
+    if (pendingAction !== null) {
       return;
     }
 
     try {
-      setIsActionPending(true);
+      setPendingAction(pending);
       setErrorMessage(null);
       await action();
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Cupid could not file that action.");
     } finally {
-      setIsActionPending(false);
+      setPendingAction(null);
     }
   }
 
@@ -493,21 +559,29 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   }
 
   const dateSlotsRemaining = Math.max(0, activeShift.dateSlotsTotal - activeShift.dateSlotsUsed);
+  const selectedMembersRetained =
+    selectedMembers.length === 2 && selectedMembers.every(isMemberRetained);
   const canStartDate =
+    !campaignLost &&
     activeShift.status === "active" &&
     !isActionPending &&
     dateSlotsRemaining > 0 &&
     (activeSession === null || activeSession.status !== "active") &&
     selectedMembers.length === 2 &&
+    selectedMembersRetained &&
     selectedScenario !== undefined &&
     localAiStatus.status === "ready";
   const canAdvanceDate =
-    activeSession !== null && activeSession.status === "active" && !isActionPending;
+    !campaignLost &&
+    activeSession !== null &&
+    activeSession.status === "active" &&
+    !isActionPending;
   const canIntervene =
     canAdvanceDate &&
     activeSession?.intervention === undefined &&
     interventionText.trim().length > 0;
-  const dateAvailable = activeSession !== null;
+  const dateStatus = activeSession?.status ?? null;
+  const pendingDateAction = asPendingDateAction(pendingAction);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-aura-bg text-aura-ink">
@@ -518,7 +592,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         featuredMemberCount={featuredMembers.length}
         localAiStatus={localAiStatus}
         view={view}
-        dateAvailable={dateAvailable}
+        dateStatus={dateStatus}
         isActionPending={isActionPending}
         onSelectView={setView}
         onRetryLocalAi={refreshLocalAiStatus}
@@ -555,10 +629,11 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               pairState={pairPreview?.pairState ?? null}
               pairNote={pairPreview?.note ?? null}
               fitSignal={pairPreview?.fitSignal ?? null}
+              riskNotes={pairPreview?.riskNotes ?? []}
               goals={pinnedGoals}
+              goalProgress={pinnedGoalProgress}
               requests={pinnedRequests}
               members={save.members}
-              shiftReport={activeShift.report}
               canStart={canStartDate}
               localAiStatus={localAiStatus}
               isActionPending={isActionPending}
@@ -580,6 +655,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               canAdvance={canAdvanceDate}
               canIntervene={canIntervene}
               isActionPending={isActionPending}
+              pendingDateAction={pendingDateAction}
               streamingDrafts={streamingDrafts}
               onInterventionTextChange={setInterventionText}
               onAdvance={handleAdvanceExchange}
@@ -604,6 +680,18 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             />
           ) : null}
         </AnimatePresence>
+
+        <AnimatePresence>
+          {campaignLost ? (
+            <TerminationPanel
+              key="termination-panel"
+              lostMembers={quitMembers}
+              isActionPending={isActionPending}
+              onReset={handleReset}
+              onPunchOut={onPunchOut}
+            />
+          ) : null}
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -618,7 +706,7 @@ function DashboardChrome({
   featuredMemberCount,
   localAiStatus,
   view,
-  dateAvailable,
+  dateStatus,
   isActionPending,
   onSelectView,
   onRetryLocalAi,
@@ -630,7 +718,7 @@ function DashboardChrome({
   featuredMemberCount: number;
   localAiStatus: LocalAiClientStatus;
   view: ViewKey;
-  dateAvailable: boolean;
+  dateStatus: DateSessionStatus | null;
   isActionPending: boolean;
   onSelectView: (view: ViewKey) => void;
   onRetryLocalAi: () => void;
@@ -651,7 +739,7 @@ function DashboardChrome({
         <ViewTabs
           view={view}
           memberCount={featuredMemberCount}
-          dateAvailable={dateAvailable}
+          dateStatus={dateStatus}
           onSelect={onSelectView}
         />
 
@@ -723,22 +811,23 @@ function BrandPill({
 function ViewTabs({
   view,
   memberCount,
-  dateAvailable,
+  dateStatus,
   onSelect,
 }: {
   view: ViewKey;
   memberCount: number;
-  dateAvailable: boolean;
+  dateStatus: DateSessionStatus | null;
   onSelect: (view: ViewKey) => void;
 }) {
+  const dateTag = dateStatus === null ? "no booking" : DATE_TAG_LABELS[dateStatus];
   const tabs: Array<{ key: ViewKey; label: string; tag: string; live?: boolean }> = [
     { key: "roster", label: "Roster", tag: `${memberCount} cases` },
     { key: "brief", label: "Brief", tag: "staff the date" },
     {
       key: "date",
       label: "Date",
-      tag: dateAvailable ? "live" : "no booking",
-      live: dateAvailable,
+      tag: dateTag,
+      live: dateStatus === "active",
     },
   ];
 
@@ -821,7 +910,7 @@ function SettingsMenu({
   onPunchOut: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled } = useSfx();
+  const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled, volume, setVolume, play } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -866,6 +955,23 @@ function SettingsMenu({
     setSfxEnabled(!sfxEnabled);
   }
 
+  function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const next = Number(event.target.value) / 100;
+    setVolume(next);
+
+    if (next > 0 && !sfxEnabled) {
+      setSfxEnabled(true);
+    }
+  }
+
+  function handleVolumeRelease() {
+    if (sfxEnabled && volume > 0) {
+      play("click");
+    }
+  }
+
+  const volumePercent = Math.round(volume * 100);
+
   return (
     <div ref={wrapperRef} className="relative">
       <button
@@ -889,8 +995,30 @@ function SettingsMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="aura-glass-strong absolute right-0 top-full mt-2 w-48 overflow-hidden rounded-card p-1.5"
+            className="aura-glass-strong absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-card p-1.5"
           >
+            <div className="px-3 pb-2 pt-2.5">
+              <div className="flex items-center justify-between font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
+                <span>Volume</span>
+                <span className="tabular-nums text-aura-ink">{volumePercent}</span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={volumePercent}
+                onChange={handleVolumeChange}
+                onPointerUp={handleVolumeRelease}
+                onKeyUp={handleVolumeRelease}
+                aria-label="Volume"
+                data-sfx="none"
+                className={`mt-2 block h-1 w-full cursor-pointer appearance-none rounded-pill bg-aura-hairline-strong accent-aura-rose transition-opacity ${
+                  sfxEnabled ? "opacity-100" : "opacity-50"
+                }`}
+              />
+            </div>
+            <div className="mx-2 h-px bg-aura-hairline" />
             <button
               type="button"
               role="menuitemcheckbox"
@@ -899,7 +1027,7 @@ function SettingsMenu({
               onClick={handleToggleSfx}
               className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
             >
-              SFX {sfxEnabled ? "on" : "off"}
+              {sfxEnabled ? "Mute" : "Unmute"}
             </button>
             <button
               type="button"
@@ -997,6 +1125,73 @@ function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () =>
         Dismiss
       </button>
     </div>
+  );
+}
+
+function TerminationPanel({
+  lostMembers,
+  isActionPending,
+  onReset,
+  onPunchOut,
+}: {
+  lostMembers: Member[];
+  isActionPending: boolean;
+  onReset: () => void;
+  onPunchOut: () => void;
+}) {
+  return (
+    <motion.aside
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 grid place-items-center bg-aura-bg/70 px-6 backdrop-blur-xl"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.42, ease: [0.2, 0.8, 0.2, 1] }}
+        className="aura-glass-strong relative w-full max-w-2xl overflow-hidden rounded-card p-10"
+      >
+        <div className="pointer-events-none absolute -right-8 -top-12 font-display text-[13rem] font-semibold leading-none text-aura-rose/10">
+          X
+        </div>
+        <div className="relative">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+            // employment.review
+          </p>
+          <h2 className="mt-3 font-display text-display-lg font-semibold tracking-tight text-aura-ink">
+            Cupid terminated your shift.
+          </h2>
+          <p className="mt-3 max-w-xl text-lead leading-snug text-aura-muted">
+            {lostMembers.length} client files hit zero HP. The firing threshold is{" "}
+            {CLIENT_LOSS_LIMIT}. HR has completed the romance math.
+          </p>
+          <ul className="mt-7 grid gap-2 sm:grid-cols-2">
+            {lostMembers.map((member) => (
+              <li
+                key={member.id}
+                className="flex items-center justify-between gap-3 rounded-pill bg-white/65 px-4 py-2 ring-1 ring-aura-hairline"
+              >
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
+                  {member.firstName}
+                </span>
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                  quit app
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-9 flex flex-wrap items-center gap-3">
+            <PrimaryButton disabled={isActionPending} onClick={onReset}>
+              Reset save
+            </PrimaryButton>
+            <GhostButton disabled={isActionPending} onClick={onPunchOut}>
+              Punch out
+            </GhostButton>
+          </div>
+        </div>
+      </motion.div>
+    </motion.aside>
   );
 }
 
@@ -1198,6 +1393,7 @@ type PairPreview = {
   pairState: PairState | null;
   note: string;
   fitSignal: MatchFitPublicSignal | null;
+  riskNotes: string[];
 };
 
 function buildPairPreview(
@@ -1228,8 +1424,17 @@ function buildPairPreview(
             activeRequests: focusRequests,
           }),
         );
+  const riskNotes =
+    selectedScenario === undefined || fitSignal === null
+      ? []
+      : buildPublicRiskNotes({
+          members,
+          scenario: selectedScenario,
+          fitSignal,
+          focusRequests,
+        });
 
-  return { pairState, note, fitSignal };
+  return { pairState, note, fitSignal, riskNotes };
 }
 
 function toPublicFitSignal(fit: {
@@ -1243,15 +1448,20 @@ function toPublicFitSignal(fit: {
 function defaultMemberSelection(save: GameSave): string[] {
   const activeShift = getActiveShift(save);
   const focusMemberId = activeShift.featuredMemberIds.find((memberId) =>
-    save.members.some((member) => member.id === memberId),
+    save.members.some((member) => member.id === memberId && isMemberRetained(member)),
   );
 
   if (focusMemberId !== undefined) {
-    const partnerMember = save.members.find((member) => member.id !== focusMemberId);
+    const partnerMember = save.members.find(
+      (member) => member.id !== focusMemberId && isMemberRetained(member),
+    );
     return [focusMemberId, partnerMember?.id].filter(isDefined);
   }
 
-  return save.members.slice(0, 2).map((member) => member.id);
+  return save.members
+    .filter(isMemberRetained)
+    .slice(0, 2)
+    .map((member) => member.id);
 }
 
 function isDefined<TValue>(value: TValue | undefined): value is TValue {

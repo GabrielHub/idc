@@ -95,6 +95,7 @@ export const decimusMariusTullio: Member = {
     mood: 58,
     openness: 48,
     burnout: 24,
+    retention: 100,
     currentRequestId: "request-decimus-no-recovery-script",
     recentDateResult: "No Cupid dates yet.",
   },

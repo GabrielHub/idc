@@ -30,8 +30,13 @@ import {
   addCupidIntervention,
   advanceDateExchange,
   applyFollowUpAction,
+  buildShiftGoalMetrics,
+  CLIENT_LOSS_LIMIT,
   completeDateSession,
   completeShift,
+  finalizeDateSession,
+  isCampaignLost,
+  isMemberRetained,
   startDateSession,
   startNextShift,
 } from "./date-engine";
@@ -138,6 +143,9 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
+    expect(save.config.performerModel).toBe("gemma4:26b");
+    expect(save.config.judgeModel).toBe("gemma4:e4b");
+    expect(save.config.summarizerModel).toBe("gemma4:e4b");
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
     expect(await repository.listMembers()).toHaveLength(17);
     expect(await repository.listPairStates()).toHaveLength(136);
@@ -166,6 +174,29 @@ describe("IDC playable smoke path", () => {
     expect(config.judgeModel).toBe("custom-judge");
     expect(config.summarizerModel).toBe("custom-summarizer");
     expect(config.embeddingModel).toBe("custom-embedding");
+  });
+
+  it("migrates old all-gemma local AI defaults to faster secondary models", async () => {
+    const storage = new MemoryStorageDriver();
+    const oldDefaultSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    storage.setItem(
+      CURRENT_SAVE_KEY,
+      JSON.stringify({
+        ...oldDefaultSave,
+        config: {
+          ...oldDefaultSave.config,
+          performerModel: "gemma4:26b",
+          judgeModel: "gemma4:26b",
+          summarizerModel: "gemma4:26b",
+        },
+      }),
+    );
+    const repository = new LocalGameRepository(storage);
+    const loaded = await repository.loadGame();
+
+    expect(loaded?.config.performerModel).toBe("gemma4:26b");
+    expect(loaded?.config.judgeModel).toBe("gemma4:e4b");
+    expect(loaded?.config.summarizerModel).toBe("gemma4:e4b");
   });
 
   it("seeds featured cases and derives shift asks from featured members", () => {
@@ -617,6 +648,126 @@ describe("IDC playable smoke path", () => {
     expect(preventEarlyEndGoal?.progress).toBe(1);
   });
 
+  it("files completed collapsed compatibility as a bad fit", () => {
+    const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-sana-decompress"],
+      featuredMemberIds: ["sana-karim"],
+    });
+    const started = startDateSession(save, {
+      focusMemberId: "sana-karim",
+      firstMemberId: "sana-karim",
+      secondMemberId: "brady-strait",
+      scenarioId: "chain-restaurant-tuesday",
+    });
+    const pairState = findPairState(started.save, started.session.pairId);
+    const badFitPairState: PairState = {
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        chemistry: 18,
+        trust: 20,
+        stability: 22,
+        conflict: 82,
+        spark: 12,
+        strain: 88,
+        relationshipHealth: 22,
+      },
+    };
+    const scenario = findScenario("chain-restaurant-tuesday");
+    const members = started.session.participants.map((memberId) =>
+      findMember(started.save, memberId),
+    );
+    const finalSession = finalizeDateSession({
+      session: {
+        ...started.session,
+        status: "completed",
+        currentTurn: started.session.turnLimit,
+      },
+      pairState: badFitPairState,
+      members,
+      scenario,
+      completedAt: "2026-05-05T12:30:00.000Z",
+    });
+
+    expect(finalSession.finalReport?.outcome).toBe("bad_fit");
+    expect(finalSession.finalReport?.recommendedFollowUp).toBe("mark_bad_fit");
+  });
+
+  it("penalizes ignored member requests against client HP at shift close", () => {
+    let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-sana-decompress", "request-jenna-normal-date"],
+      featuredMemberIds: ["sana-karim", "jenna-pike"],
+    });
+    save = withMemberRetention(save, "jenna-pike", 5);
+    const started = startDateSession(save, {
+      focusMemberId: "sana-karim",
+      firstMemberId: "sana-karim",
+      secondMemberId: "marcus-pellish",
+      scenarioId: "chain-restaurant-tuesday",
+    });
+    save = completeDateSession(started.save, started.session.id).save;
+
+    const completedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+    const jenna = findMember(completedShift.save, "jenna-pike");
+
+    expect(completedShift.report.ignoredRequestIds).toContain("request-jenna-normal-date");
+    expect(jenna.state.retention).toBe(0);
+    expect(isMemberRetained(jenna)).toBe(false);
+  });
+
+  it("ends high tension low health dates before the turn limit", () => {
+    let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["alternate-ex-double-date"],
+      memberRequestIds: ["request-tasha-counterparty"],
+      featuredMemberIds: ["tasha-rell"],
+    });
+    const started = startDateSession(save, {
+      focusMemberId: "tasha-rell",
+      firstMemberId: "tasha-rell",
+      secondMemberId: "mr-whiskers",
+      scenarioId: "alternate-ex-double-date",
+    });
+    const pairState = findPairState(started.save, started.session.pairId);
+    const stressedPairState: PairState = {
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        conflict: 82,
+        strain: 84,
+        relationshipHealth: 28,
+      },
+    };
+    save = gameSaveSchema.parse({
+      ...started.save,
+      pairStates: started.save.pairStates.map((candidate) =>
+        candidate.id === stressedPairState.id ? stressedPairState : candidate,
+      ),
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === started.session.id ? { ...session, dateHealth: 16 } : session,
+      ),
+    });
+
+    const advanced = advanceDateExchange(save, {
+      dateSessionId: started.session.id,
+    });
+
+    expect(advanced.session.status).toBe("ended_early");
+    expect(advanced.session.currentTurn).toBeLessThan(advanced.session.turnLimit);
+    expect(advanced.session.judgeSnapshots.at(-1)?.earlyEndReason).toContain("walkout");
+  });
+
+  it("detects campaign loss when enough clients quit", () => {
+    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+
+    for (const memberId of save.members.slice(0, CLIENT_LOSS_LIMIT).map((member) => member.id)) {
+      save = withMemberRetention(save, memberId, 0);
+    }
+
+    expect(isCampaignLost(save)).toBe(true);
+  });
+
   it("uses focused member asks as modifiers without ignored penalties", () => {
     let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
       drawnScenarioIds: ["prophecy-karaoke"],
@@ -671,6 +822,21 @@ describe("IDC playable smoke path", () => {
       dateSessionId: started.session.id,
       action: "repair",
     }).save;
+    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+
+    if (activeShift === undefined) {
+      throw new Error("Expected an active shift for live goal metrics.");
+    }
+
+    const liveMetrics = buildShiftGoalMetrics({
+      shift: activeShift,
+      dateSessions: save.dateSessions,
+      members: save.members,
+    });
+
+    expect(liveMetrics.completedDates).toBe(1);
+    expect(liveMetrics.earlyEndedDates).toBe(0);
+
     const completedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
 
     expect(completedShift.report.completedDates).toBe(1);
@@ -946,6 +1112,23 @@ function withCompanyGoals(save: GameSave, goalIds: string[]): GameSave {
   return gameSaveSchema.parse({
     ...save,
     shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
+  });
+}
+
+function withMemberRetention(save: GameSave, memberId: string, retention: number): GameSave {
+  return gameSaveSchema.parse({
+    ...save,
+    members: save.members.map((member) =>
+      member.id === memberId
+        ? {
+            ...member,
+            state: {
+              ...member.state,
+              retention,
+            },
+          }
+        : member,
+    ),
   });
 }
 

@@ -90,6 +90,7 @@ export const jennaPike: Member = {
     mood: 68,
     openness: 72,
     burnout: 38,
+    retention: 100,
     currentRequestId: "request-jenna-normal-date",
     recentDateResult: "No Cupid dates yet.",
   },

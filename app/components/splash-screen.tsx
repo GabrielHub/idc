@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { SAVE_SCHEMA_VERSION, type GameSave, type ShiftState } from "../domain/game";
 import {
@@ -7,10 +8,8 @@ import {
   LocalGameRepository,
 } from "../repositories/local-game-repository";
 import { getActiveShift } from "../services/game-seed";
-import { LiveDot } from "./dashboard-atoms";
+import { EASE_OUT_QUART, LiveDot } from "./dashboard-atoms";
 import { pad2 } from "./dashboard-views";
-
-const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
 
 const MARQUEE_LINES = [
   "// reality bridge stable",
@@ -197,9 +196,48 @@ function TopBar() {
           </span>
         </motion.div>
 
-        <ClockPill />
+        <div className="flex items-center gap-2">
+          <PlaygroundPill />
+          <ClockPill />
+        </div>
       </div>
     </header>
+  );
+}
+
+function PlaygroundPill() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.04 }}
+      className="pointer-events-auto"
+    >
+      <Link
+        to="/playground"
+        className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-4 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose"
+      >
+        <PlaygroundIcon />
+        <span>playground</span>
+        <span
+          aria-hidden
+          className="hidden translate-x-0 text-aura-faint transition group-hover:translate-x-0.5 group-hover:text-aura-rose lg:inline"
+        >
+          ↗
+        </span>
+      </Link>
+    </motion.div>
+  );
+}
+
+function PlaygroundIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
+      <circle cx="4.2" cy="4.2" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="11.8" cy="4.2" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="4.2" cy="11.8" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="11.8" cy="11.8" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
   );
 }
 

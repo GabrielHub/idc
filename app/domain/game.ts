@@ -72,6 +72,7 @@ export const memberStateSchema = z.object({
   mood: scoreSchema,
   openness: scoreSchema,
   burnout: scoreSchema,
+  retention: scoreSchema.default(100),
   currentRequestId: z.string().min(1).optional(),
   recentDateResult: z.string().min(1).optional(),
 });
@@ -452,8 +453,8 @@ export const shiftStateSchema = z.object({
 
 export const gameConfigSchema = z.object({
   performerModel: z.string().min(1).default("gemma4:26b"),
-  judgeModel: z.string().min(1).default("gemma4:26b"),
-  summarizerModel: z.string().min(1).default("gemma4:26b"),
+  judgeModel: z.string().min(1).default("gemma4:e4b"),
+  summarizerModel: z.string().min(1).default("gemma4:e4b"),
   embeddingModel: z.string().min(1).default("embeddinggemma"),
   defaultDateMessageLimit: z.number().int().min(2).default(30),
   shiftDateSlots: z.number().int().min(1).default(3),

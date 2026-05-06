@@ -87,6 +87,7 @@ export const kadeSumner: Member = {
     mood: 71,
     openness: 80,
     burnout: 52,
+    retention: 100,
     currentRequestId: "request-kade-not-content",
     recentDateResult: "No Cupid dates yet.",
   },

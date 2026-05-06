@@ -86,6 +86,7 @@ export const vhool: Member = {
     mood: 57,
     openness: 76,
     burnout: 20,
+    retention: 100,
     currentRequestId: "request-vhool-seen",
     recentDateResult: "No Cupid dates yet.",
   },

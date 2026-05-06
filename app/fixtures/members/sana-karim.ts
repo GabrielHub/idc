@@ -89,6 +89,7 @@ export const sanaKarim: Member = {
     mood: 53,
     openness: 64,
     burnout: 71,
+    retention: 100,
     currentRequestId: "request-sana-decompress",
     recentDateResult: "No Cupid dates yet.",
   },

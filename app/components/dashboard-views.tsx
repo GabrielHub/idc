@@ -11,11 +11,17 @@ import {
   type Member,
   type MemberRequest,
   type PairState,
-  type ShiftReport,
   type ShiftState,
 } from "../domain/game";
+import {
+  fallbackGoalProgress,
+  isMemberRetained,
+  type GoalProgressSnapshot,
+} from "../services/date-engine";
+import type { GameAction } from "../services/game-api-contracts";
 import type { MatchFitPublicSignal } from "../services/match-fit";
 import {
+  EASE_OUT_QUART,
   Eyebrow,
   GhostButton,
   Hairline,
@@ -27,14 +33,25 @@ import {
   PrimaryButton,
   scoreWidthClass,
 } from "./dashboard-atoms";
-
-const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
+import {
+  DaterStandee,
+  type ReactionIntensity,
+  type ReactionKind,
+  type ReactionSignal,
+} from "./date-reactions";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   encourage: "Encourage",
   cool_down: "Cool Down",
   repair: "Repair",
   mark_bad_fit: "Mark Bad Fit",
+};
+
+export type PendingDateAction = GameAction["type"];
+
+const ADVANCE_BUTTON_LABELS: Record<PendingDateAction, string> = {
+  advanceExchange: "Streaming...",
+  completeDate: "Resolving...",
 };
 
 /* ================================================================== */
@@ -163,6 +180,8 @@ export function RosterView({
   const openMemberIsFeatured =
     openMember !== null && featuredMembers.some((featured) => featured.id === openMember.id);
   const openMemberIsSelected = openMember !== null && selectedMemberIds.includes(openMember.id);
+  const selectedMembersCanDate =
+    selectedMembers.length === 2 && selectedMembers.every(isMemberRetained);
 
   function clearFilters() {
     setSearchQuery("");
@@ -172,6 +191,7 @@ export function RosterView({
 
   function handleDossierPick() {
     if (openMember === null) return;
+    if (!isMemberRetained(openMember)) return;
     if (openMemberIsFeatured) {
       onSelectFocusMember(openMember.id);
     } else {
@@ -201,7 +221,7 @@ export function RosterView({
               request={request}
               index={index}
               isSelected={selectedMemberIds[0] === member.id}
-              disabled={disabled}
+              disabled={disabled || !isMemberRetained(member)}
               onPick={() => onSelectFocusMember(member.id)}
               onOpenDossier={() => setOpenMemberId(member.id)}
             />
@@ -255,7 +275,7 @@ export function RosterView({
                   member={member}
                   index={index}
                   isSelected={selectedMemberIds[1] === member.id}
-                  disabled={disabled || focusMember === undefined}
+                  disabled={disabled || focusMember === undefined || !isMemberRetained(member)}
                   onPick={() => onSelectPartnerMember(member.id)}
                   onOpenDossier={() => setOpenMemberId(member.id)}
                 />
@@ -267,7 +287,7 @@ export function RosterView({
 
       <SelectionBar
         selectedMembers={selectedMembers}
-        disabled={disabled || selectedMembers.length !== 2}
+        disabled={disabled || !selectedMembersCanDate}
         onContinue={onContinue}
       />
 
@@ -278,7 +298,11 @@ export function RosterView({
             member={openMember}
             request={openMemberRequest}
             isSelected={openMemberIsSelected}
-            disabled={disabled || (!openMemberIsFeatured && focusMember === undefined)}
+            disabled={
+              disabled ||
+              !isMemberRetained(openMember) ||
+              (!openMemberIsFeatured && focusMember === undefined)
+            }
             onClose={() => setOpenMemberId(null)}
             onPick={openMemberIsSelected ? undefined : handleDossierPick}
           />
@@ -305,6 +329,8 @@ function FeaturedCaseCard({
   onPick: () => void;
   onOpenDossier: () => void;
 }) {
+  const hasQuit = !isMemberRetained(member);
+
   return (
     <motion.li
       layout
@@ -313,7 +339,11 @@ function FeaturedCaseCard({
       transition={{ duration: 0.45, delay: 0.05 * index, ease: EASE_OUT_QUART }}
       className="list-none"
     >
-      <article className="group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift">
+      <article
+        className={`group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift ${
+          hasQuit ? "opacity-75 grayscale" : ""
+        }`}
+      >
         <div
           aria-hidden
           className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
@@ -343,7 +373,18 @@ function FeaturedCaseCard({
                     {`case.${pad2(index + 1)}`}
                   </span>
                   <AnimatePresence>
-                    {isSelected ? (
+                    {hasQuit ? (
+                      <motion.span
+                        key="quit-stamp"
+                        initial={{ opacity: 0, scale: 0.85 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.85 }}
+                        transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
+                        className="origin-right"
+                      >
+                        <QuitStamp />
+                      </motion.span>
+                    ) : isSelected ? (
                       <motion.span
                         key="focus-stamp"
                         initial={{ opacity: 0, scale: 0.85 }}
@@ -388,7 +429,7 @@ function FeaturedCaseCard({
                 isSelected ? "text-white/55" : "text-aura-faint"
               }`}
             >
-              {isSelected ? "on the desk" : "tap card to focus"}
+              {hasQuit ? "quit app" : isSelected ? "on the desk" : "tap card to focus"}
             </span>
             <button
               type="button"
@@ -403,6 +444,7 @@ function FeaturedCaseCard({
             </button>
           </div>
         </div>
+        {hasQuit ? <QuitMemberMark /> : null}
       </article>
     </motion.li>
   );
@@ -411,12 +453,22 @@ function FeaturedCaseCard({
 function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean }) {
   return (
     <div className="mt-5 grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
+      <CaseStat label="HP" value={member.state.retention} inverted={inverted} tone="emerald" />
       <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
       <CaseStat label="Openness" value={member.state.openness} inverted={inverted} tone="violet" />
       <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
     </div>
   );
 }
+
+type CaseStatTone = "rose" | "violet" | "amber" | "emerald";
+
+const CASE_STAT_FILL: Record<CaseStatTone, string> = {
+  rose: "from-aura-rose to-aura-fuchsia",
+  violet: "from-aura-violet to-aura-fuchsia",
+  amber: "from-aura-amber to-aura-rose",
+  emerald: "from-aura-emerald to-aura-violet",
+};
 
 function CaseStat({
   label,
@@ -427,14 +479,9 @@ function CaseStat({
   label: string;
   value: number;
   inverted: boolean;
-  tone: "rose" | "violet" | "amber";
+  tone: CaseStatTone;
 }) {
-  const fill =
-    tone === "violet"
-      ? "from-aura-violet to-aura-fuchsia"
-      : tone === "amber"
-        ? "from-aura-amber to-aura-rose"
-        : "from-aura-rose to-aura-fuchsia";
+  const fill = CASE_STAT_FILL[tone];
   const widthClass = scoreWidthClass(value);
   return (
     <>
@@ -475,6 +522,27 @@ function FocusStamp() {
   );
 }
 
+function QuitStamp() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill bg-aura-ink px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white shadow-quiet">
+      quit
+    </span>
+  );
+}
+
+function QuitMemberMark() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-white/20">
+      <span
+        aria-hidden
+        className="font-display text-[7rem] font-semibold leading-none text-aura-rose/70"
+      >
+        X
+      </span>
+    </div>
+  );
+}
+
 function DossierGlyph() {
   return (
     <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
@@ -506,6 +574,7 @@ function PartnerTile({
   onOpenDossier: () => void;
 }) {
   const profileTeaser = firstSentenceOf(member.datingProfile);
+  const hasQuit = !isMemberRetained(member);
   return (
     <motion.li
       layout
@@ -519,7 +588,11 @@ function PartnerTile({
       }}
       className="list-none"
     >
-      <article className="group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift">
+      <article
+        className={`group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift ${
+          hasQuit ? "opacity-75 grayscale" : ""
+        }`}
+      >
         <div
           aria-hidden
           className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
@@ -554,6 +627,12 @@ function PartnerTile({
             </div>
           </div>
           <div className="mt-auto grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5 pt-1">
+            <CaseStat
+              label="HP"
+              value={member.state.retention}
+              inverted={isSelected}
+              tone="emerald"
+            />
             <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
             <CaseStat
               label="Openness"
@@ -583,6 +662,7 @@ function PartnerTile({
         >
           <DossierGlyph />
         </button>
+        {hasQuit ? <QuitMemberMark /> : null}
       </article>
     </motion.li>
   );
@@ -960,6 +1040,8 @@ function MemberDossier({
   onClose: () => void;
   onPick?: () => void;
 }) {
+  const hasQuit = !isMemberRetained(member);
+
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -995,9 +1077,12 @@ function MemberDossier({
         <div className="overflow-y-auto px-6 pb-6 pt-8 lg:px-10 lg:pb-8 lg:pt-10">
           <div className="space-y-7">
             <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-              <Portrait member={member} variant="stage" />
+              <span className="relative inline-block">
+                <Portrait member={member} variant="stage" />
+                {hasQuit ? <QuitMemberMark /> : null}
+              </span>
               <div className="min-w-0 space-y-2">
-                <Eyebrow>// dossier</Eyebrow>
+                <Eyebrow>{hasQuit ? "// dossier.closed" : "// dossier"}</Eyebrow>
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
                   {member.firstName}
                 </h2>
@@ -1005,7 +1090,8 @@ function MemberDossier({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-4">
+              <Meter label="HP" value={member.state.retention} tone="emerald" size="md" />
               <Meter label="Mood" value={member.state.mood} size="md" />
               <Meter label="Openness" value={member.state.openness} tone="violet" size="md" />
               <Meter label="Burnout" value={member.state.burnout} tone="amber" size="md" />
@@ -1047,7 +1133,11 @@ function MemberDossier({
 
         <div className="flex shrink-0 items-center justify-between gap-4 border-t border-aura-hairline px-6 py-4 lg:px-10 lg:py-5">
           <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-            {isSelected ? "On the call sheet" : "Awaiting your call"}
+            {hasQuit
+              ? "Client file closed"
+              : isSelected
+                ? "On the call sheet"
+                : "Awaiting your call"}
           </p>
           {onPick === undefined ? null : isSelected ? (
             <GhostButton onClick={onPick} disabled={disabled} ariaPressed>
@@ -1103,6 +1193,13 @@ function SelectionBar({
   disabled: boolean;
   onContinue: () => void;
 }) {
+  const hasClosedMember = selectedMembers.some((member) => !isMemberRetained(member));
+  const statusLabel = hasClosedMember
+    ? "closed file selected"
+    : selectedMembers.length === 2
+      ? "focus and partner"
+      : "focus selected";
+
   return (
     <AnimatePresence>
       {selectedMembers.length > 0 ? (
@@ -1128,7 +1225,7 @@ function SelectionBar({
               </div>
               <div className="leading-tight">
                 <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-                  {selectedMembers.length === 2 ? "focus and partner" : "focus selected"}
+                  {statusLabel}
                 </p>
                 <p className="text-body font-semibold text-aura-ink">
                   {selectedMembers.length === 2
@@ -1160,10 +1257,11 @@ export type BriefProps = {
   pairState: PairState | null;
   pairNote: string | null;
   fitSignal: MatchFitPublicSignal | null;
+  riskNotes: string[];
   goals: CompanyGoal[];
+  goalProgress: GoalProgressSnapshot[];
   requests: MemberRequest[];
   members: Member[];
-  shiftReport: ShiftReport | undefined;
   canStart: boolean;
   localAiStatus: LocalAiBriefStatus;
   isActionPending: boolean;
@@ -1210,10 +1308,11 @@ export function BriefView({
   pairState,
   pairNote,
   fitSignal,
+  riskNotes,
   goals,
+  goalProgress,
   requests,
   members,
-  shiftReport,
   canStart,
   localAiStatus,
   isActionPending,
@@ -1247,7 +1346,12 @@ export function BriefView({
 
   return (
     <ViewFrame wide>
-      <BriefHeader shiftNumber={shift.shiftNumber} scenarioCount={scenarios.length} />
+      <BriefHeader
+        shiftNumber={shift.shiftNumber}
+        scenarioCount={scenarios.length}
+        dateSlotsUsed={shift.dateSlotsUsed}
+        dateSlotsTotal={shift.dateSlotsTotal}
+      />
 
       <Hairline className="mt-8" />
 
@@ -1269,13 +1373,14 @@ export function BriefView({
         />
 
         <aside className="space-y-6">
-          <PinnedGoalsCard goals={goals} shiftReport={shiftReport} />
+          <PinnedGoalsCard goals={goals} progress={goalProgress} />
         </aside>
       </div>
 
       <BriefDock
         selectedScenario={selectedScenario}
         fitSignal={fitSignal}
+        riskNotes={riskNotes}
         canStart={canStart}
         localAiStatus={localAiStatus}
         isActionPending={isActionPending}
@@ -1302,9 +1407,13 @@ export function BriefView({
 function BriefHeader({
   shiftNumber,
   scenarioCount,
+  dateSlotsUsed,
+  dateSlotsTotal,
 }: {
   shiftNumber: number;
   scenarioCount: number;
+  dateSlotsUsed: number;
+  dateSlotsTotal: number;
 }) {
   return (
     <header className="max-w-2xl space-y-3">
@@ -1313,8 +1422,8 @@ function BriefHeader({
         Tonight&rsquo;s brief
       </h1>
       <p className="max-w-xl text-body text-aura-muted">
-        {scenarioCount} reservations on the desk. Pick the room. Cupid will not begin without
-        paperwork.
+        {dateSlotsUsed} / {dateSlotsTotal} reservations assigned. {scenarioCount} rooms on the desk.
+        Cupid will not begin without paperwork.
       </p>
     </header>
   );
@@ -1323,6 +1432,7 @@ function BriefHeader({
 function BriefDock({
   selectedScenario,
   fitSignal,
+  riskNotes,
   canStart,
   localAiStatus,
   isActionPending,
@@ -1331,6 +1441,7 @@ function BriefDock({
 }: {
   selectedScenario: DateScenario | undefined;
   fitSignal: MatchFitPublicSignal | null;
+  riskNotes: string[];
   canStart: boolean;
   localAiStatus: LocalAiBriefStatus;
   isActionPending: boolean;
@@ -1351,11 +1462,14 @@ function BriefDock({
       ? "Pick a venue. Cupid will not begin without one."
       : selectedScenario.title;
   const buttonLabel = isActionPending
-    ? "Booking the table…"
+    ? "Booking the table..."
     : localAiStatus.status === "checking"
       ? "Checking AI"
       : "Begin date";
   const dotTone = localAiStatus.status === "ready" ? "rose" : "amber";
+  const fallbackRiskNote = briefRiskNote(fitSignal);
+  const dockRiskNotes =
+    riskNotes.length > 0 ? riskNotes : fallbackRiskNote === null ? [] : [fallbackRiskNote];
 
   return (
     <motion.div
@@ -1372,6 +1486,11 @@ function BriefDock({
               {statusLabel}
             </p>
             <p className="truncate text-body font-semibold text-aura-ink">{statusText}</p>
+            {dockRiskNotes.slice(0, 2).map((note) => (
+              <p key={note} className="mt-1 max-w-md text-label leading-snug text-aura-muted">
+                {note}
+              </p>
+            ))}
           </div>
         </div>
         <FitSignalStrip signal={fitSignal} />
@@ -1389,6 +1508,26 @@ function BriefDock({
       </div>
     </motion.div>
   );
+}
+
+function briefRiskNote(signal: MatchFitPublicSignal | null): string | null {
+  if (signal === null) {
+    return null;
+  }
+
+  if (signal.askSignal === "blocked") {
+    return "Ask blocked. Expect strain or an early report.";
+  }
+
+  if (signal.fitLevel === "risky") {
+    return "Risky fit. Watch the first exchange closely.";
+  }
+
+  if (signal.pressureLevel === "high") {
+    return "High pressure room. Good pairs can still file bruises.";
+  }
+
+  return null;
 }
 
 const FIT_SIGNAL_LABELS: Record<MatchFitPublicSignal["fitLevel"], string> = {
@@ -1549,6 +1688,7 @@ function ClickablePairMember({
 }) {
   const itemsAlign = align === "end" ? "sm:items-end" : "sm:items-start";
   const textAlign = align === "end" ? "sm:text-right" : "sm:text-left";
+  const hasQuit = !isMemberRetained(member);
   return (
     <button
       type="button"
@@ -1564,6 +1704,7 @@ function ClickablePairMember({
         <span className="relative inline-block transition-transform duration-300 group-hover:-translate-y-0.5">
           <Portrait member={member} variant="stage" />
         </span>
+        {hasQuit ? <QuitMemberMark /> : null}
         <span
           aria-hidden
           className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-aura-ink/85 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] text-white/85 opacity-0 shadow-quiet transition-opacity duration-200 group-hover:opacity-100"
@@ -1797,17 +1938,18 @@ function RiskStamp({
 
 function PinnedGoalsCard({
   goals,
-  shiftReport,
+  progress,
 }: {
   goals: CompanyGoal[];
-  shiftReport: ShiftReport | undefined;
+  progress: GoalProgressSnapshot[];
 }) {
   return (
     <PinnedCard eyebrow="// goals" title="Pinned goals" count={goals.length}>
       <ul className="space-y-2.5">
         {goals.map((goal) => {
-          const result = shiftReport?.goalResults.find((entry) => entry.goalId === goal.id);
-          const status = result?.status ?? "open";
+          const snapshot =
+            progress.find((entry) => entry.goalId === goal.id) ?? fallbackGoalProgress(goal);
+          const status = snapshot.status;
           const tone =
             status === "missed"
               ? "bg-aura-rose/10 text-aura-rose"
@@ -1821,7 +1963,12 @@ function PinnedGoalsCard({
               >
                 {status}
               </span>
-              <span className="text-label leading-snug text-aura-ink/85">{goal.title}</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-label leading-snug text-aura-ink/85">{goal.title}</p>
+                <p className="mt-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint">
+                  {snapshot.label}
+                </p>
+              </div>
             </li>
           );
         })}
@@ -1930,6 +2077,7 @@ export type DateProps = {
   canAdvance: boolean;
   canIntervene: boolean;
   isActionPending: boolean;
+  pendingDateAction: PendingDateAction | null;
   streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
   onAdvance: () => void;
@@ -1957,6 +2105,7 @@ export function DateView({
   canAdvance,
   canIntervene,
   isActionPending,
+  pendingDateAction,
   streamingDrafts,
   onInterventionTextChange,
   onAdvance,
@@ -1966,6 +2115,10 @@ export function DateView({
   onBack,
 }: DateProps) {
   const transcript = buildTranscriptItems(session, members, scenario, streamingDrafts);
+  const displayedCurrentTurn = Math.max(
+    session.currentTurn,
+    ...streamingDrafts.map((draft) => draft.turnIndex),
+  );
   const participants = session.participants
     .map((id) => members.find((m) => m.id === id))
     .filter((m): m is Member => Boolean(m));
@@ -1996,12 +2149,18 @@ export function DateView({
           scenario={scenario}
           session={session}
           participants={participants}
+          displayedCurrentTurn={displayedCurrentTurn}
           onBack={onBack}
         />
 
         <Hairline className="mt-7" />
 
-        <ChatStream items={transcript} session={session} leftMemberId={leftMember?.id} />
+        <ChatStream
+          items={transcript}
+          session={session}
+          leftMemberId={leftMember?.id}
+          pendingDateAction={pendingDateAction}
+        />
 
         {session.finalReport === undefined ? null : (
           <FinalReportPanel
@@ -2018,7 +2177,8 @@ export function DateView({
           interventionText={interventionText}
           canAdvance={canAdvance}
           canIntervene={canIntervene}
-          isActionPending={isActionPending}
+          pendingDateAction={pendingDateAction}
+          nudgeSuggestions={buildNudgeSuggestions(session)}
           onInterventionTextChange={onInterventionTextChange}
           onAdvance={onAdvance}
           onComplete={onComplete}
@@ -2039,11 +2199,13 @@ function DateHeader({
   scenario,
   session,
   participants,
+  displayedCurrentTurn,
   onBack,
 }: {
   scenario: DateScenario | undefined;
   session: DateSession;
   participants: Member[];
+  displayedCurrentTurn: number;
   onBack: () => void;
 }) {
   const statusLabel =
@@ -2098,7 +2260,7 @@ function DateHeader({
             />
           </div>
         </div>
-        <MonoStat label="Turns" value={`${session.currentTurn} / ${session.turnLimit}`} />
+        <MonoStat label="Turns" value={`${displayedCurrentTurn} / ${session.turnLimit}`} />
         <MonoStat label="Judge" value={`${session.judgeSnapshots.length} passes`} tone="violet" />
       </div>
     </header>
@@ -2132,155 +2294,16 @@ function DateStandeeFrame({
           member={leftMember}
           placement="bottom-left"
           reactions={reactions.filter((reaction) => reaction.side === "left")}
+          className="absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
         />
         <DaterStandee
           member={rightMember}
           placement="top-right"
           reactions={reactions.filter((reaction) => reaction.side === "right")}
+          className="absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72"
         />
       </div>
     </div>
-  );
-}
-
-function DaterStandee({
-  member,
-  placement,
-  reactions,
-}: {
-  member: Member;
-  placement: "bottom-left" | "top-right";
-  reactions: ReactionSignal[];
-}) {
-  const isBottom = placement === "bottom-left";
-  const positionClass = isBottom
-    ? "absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
-    : "absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72";
-  const glowClass = isBottom
-    ? "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_82%,rgba(244,63,94,0.2),rgba(217,70,239,0.06)_55%,transparent_75%)]"
-    : "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_22%,rgba(167,139,250,0.22),rgba(217,70,239,0.06)_55%,transparent_75%)]";
-  const shadowClass = isBottom
-    ? "drop-shadow-[0_30px_42px_rgba(244,63,94,0.22)]"
-    : "drop-shadow-[0_30px_42px_rgba(167,139,250,0.22)]";
-  const variant: "standee-bottom" | "standee-top" = isBottom ? "standee-bottom" : "standee-top";
-
-  return (
-    <div className={positionClass}>
-      <span aria-hidden className={glowClass} />
-      <div className={`relative size-full ${shadowClass}`}>
-        <Portrait member={member} variant={variant} asset="portrait" />
-        <ReactionStream reactions={reactions} placement={placement} />
-      </div>
-    </div>
-  );
-}
-
-type ReactionKind = "spark" | "love" | "laugh" | "anger" | "cry" | "warning";
-
-type ReactionSignal = {
-  id: string;
-  side: "left" | "right";
-  kind: ReactionKind;
-  intensity: number;
-};
-
-const REACTION_ICON: Record<ReactionKind, string> = {
-  spark: "✨",
-  love: "💗",
-  laugh: "😂",
-  anger: "😡",
-  cry: "😢",
-  warning: "⚠️",
-};
-
-const REACTION_TONE: Record<ReactionKind, string> = {
-  spark:
-    "border-violet-200/70 bg-violet-50/85 text-violet-500 shadow-[0_10px_24px_-12px_rgba(124,58,237,0.6)]",
-  love: "border-rose-200/70 bg-rose-50/85 text-aura-rose shadow-[0_10px_24px_-12px_rgba(244,63,94,0.65)]",
-  laugh:
-    "border-amber-200/80 bg-amber-50/85 text-amber-600 shadow-[0_10px_24px_-12px_rgba(245,158,11,0.6)]",
-  anger:
-    "border-rose-300/75 bg-rose-100/85 text-rose-700 shadow-[0_10px_24px_-12px_rgba(190,18,60,0.55)]",
-  cry: "border-sky-200/80 bg-sky-50/85 text-sky-600 shadow-[0_10px_24px_-12px_rgba(14,165,233,0.55)]",
-  warning:
-    "border-amber-200/80 bg-white/90 text-amber-700 shadow-[0_10px_24px_-12px_rgba(245,158,11,0.6)]",
-};
-
-const REACTION_SIZE: Record<number, string> = {
-  1: "size-7 text-label",
-  2: "size-8 text-body",
-  3: "size-9 text-lead",
-};
-
-const REACTION_OFFSETS = [
-  "-translate-x-2",
-  "translate-x-7",
-  "-translate-x-8",
-  "translate-x-3",
-] as const;
-
-function ReactionStream({
-  reactions,
-  placement,
-}: {
-  reactions: ReactionSignal[];
-  placement: "bottom-left" | "top-right";
-}) {
-  if (reactions.length === 0) {
-    return null;
-  }
-
-  const anchorClass =
-    placement === "bottom-left"
-      ? "left-1/2 bottom-[28%] items-start"
-      : "right-1/2 top-[20%] items-end";
-
-  return (
-    <div className={`absolute z-20 flex flex-col gap-3 ${anchorClass}`}>
-      {reactions.slice(0, 4).map((reaction, index) => (
-        <FloatingReaction
-          key={reaction.id}
-          reaction={reaction}
-          index={index}
-          placement={placement}
-        />
-      ))}
-    </div>
-  );
-}
-
-function FloatingReaction({
-  reaction,
-  index,
-  placement,
-}: {
-  reaction: ReactionSignal;
-  index: number;
-  placement: "bottom-left" | "top-right";
-}) {
-  const drift = placement === "bottom-left" ? 18 + index * 5 : -18 - index * 5;
-  const offsetClass = REACTION_OFFSETS[index % REACTION_OFFSETS.length];
-
-  return (
-    <motion.span
-      className={`grid rounded-full border font-display font-semibold backdrop-blur-md ${REACTION_SIZE[reaction.intensity]} ${REACTION_TONE[reaction.kind]} ${offsetClass}`}
-      initial={{ opacity: 0, y: 18, x: 0, scale: 0.82 }}
-      animate={{
-        opacity: [0, 1, 1, 0],
-        y: [18, -12, -44, -74],
-        x: [0, drift, drift * 0.6, 0],
-        scale: [0.82, 1, 0.96, 0.72],
-      }}
-      transition={{
-        duration: 3.2,
-        delay: index * 0.32,
-        repeat: Infinity,
-        repeatDelay: 1.6 + index * 0.18,
-        ease: EASE_OUT_QUART,
-      }}
-    >
-      <span className="m-auto leading-none">{REACTION_ICON[reaction.kind]}</span>
-    </motion.span>
   );
 }
 
@@ -2294,10 +2317,12 @@ function ChatStream({
   items,
   session,
   leftMemberId,
+  pendingDateAction,
 }: {
   items: TranscriptItem[];
   session: DateSession;
   leftMemberId: string | undefined;
+  pendingDateAction: PendingDateAction | null;
 }) {
   const endAnchorRef = useRef<HTMLDivElement | null>(null);
   const latestText = items.at(-1)?.text ?? "";
@@ -2305,6 +2330,9 @@ function ChatStream({
   useEffect(() => {
     endAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [items.length, latestText]);
+
+  const statusCue =
+    session.status === "active" ? <DateStatusCue pendingDateAction={pendingDateAction} /> : null;
 
   if (items.length === 0) {
     return (
@@ -2315,11 +2343,7 @@ function ChatStream({
         <p className="max-w-sm text-label text-aura-muted">
           Cupid does not record silence. Advance the exchange to begin the transcript.
         </p>
-        {session.status === "active" ? (
-          <div className="mt-3">
-            <CupidTypingIndicator />
-          </div>
-        ) : null}
+        {statusCue === null ? null : <div className="mt-3">{statusCue}</div>}
       </div>
     );
   }
@@ -2341,11 +2365,7 @@ function ChatStream({
         })}
       </ol>
 
-      {session.status === "active" ? (
-        <div className="mt-5 flex justify-start">
-          <CupidTypingIndicator />
-        </div>
-      ) : null}
+      {statusCue === null ? null : <div className="mt-5 flex justify-start">{statusCue}</div>}
 
       <div ref={endAnchorRef} aria-hidden className="h-2" />
     </div>
@@ -2522,16 +2542,38 @@ function SystemNote({ item, animation }: { item: TranscriptItem; animation: Chat
   );
 }
 
-function CupidTypingIndicator() {
+function DateStatusCue({ pendingDateAction }: { pendingDateAction: PendingDateAction | null }) {
+  if (pendingDateAction === null) {
+    return (
+      <CupidStatusPill
+        label="Next exchange ready"
+        leading={<span aria-hidden className="size-1.5 rounded-full bg-aura-emerald" />}
+      />
+    );
+  }
+
+  const label = pendingDateAction === "completeDate" ? "Resolving date" : "Cupid is listening";
+
+  return (
+    <CupidStatusPill
+      label={label}
+      leading={
+        <span aria-hidden className="flex items-center gap-1">
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/55 [animation-delay:0ms]" />
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/65 [animation-delay:180ms]" />
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/75 [animation-delay:360ms]" />
+        </span>
+      }
+    />
+  );
+}
+
+function CupidStatusPill({ label, leading }: { label: string; leading: React.ReactNode }) {
   return (
     <div className="inline-flex items-center gap-2.5 rounded-[22px] rounded-bl-md bg-white/70 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md">
-      <span aria-hidden className="flex items-center gap-1">
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/55 [animation-delay:0ms]" />
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/65 [animation-delay:180ms]" />
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/75 [animation-delay:360ms]" />
-      </span>
+      {leading}
       <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-        Cupid is listening
+        {label}
       </span>
     </div>
   );
@@ -2583,7 +2625,8 @@ function DateFooter({
   interventionText,
   canAdvance,
   canIntervene,
-  isActionPending,
+  pendingDateAction,
+  nudgeSuggestions,
   onInterventionTextChange,
   onAdvance,
   onComplete,
@@ -2593,13 +2636,17 @@ function DateFooter({
   interventionText: string;
   canAdvance: boolean;
   canIntervene: boolean;
-  isActionPending: boolean;
+  pendingDateAction: PendingDateAction | null;
+  nudgeSuggestions: string[];
   onInterventionTextChange: (text: string) => void;
   onAdvance: () => void;
   onComplete: () => void;
   onIntervene: () => void;
 }) {
   const interventionDisabled = !canAdvance || session.intervention !== undefined;
+  const resolveLabel = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
+  const advanceLabel =
+    pendingDateAction === null ? "Advance" : ADVANCE_BUTTON_LABELS[pendingDateAction];
 
   return (
     <motion.footer
@@ -2609,6 +2656,13 @@ function DateFooter({
       className="pointer-events-none fixed inset-x-0 bottom-6 z-30 px-6 lg:bottom-8"
     >
       <div className="aura-glass-strong pointer-events-auto mx-auto w-full max-w-4xl rounded-card px-5 py-4">
+        {session.intervention === undefined ? (
+          <NudgeSuggestionRail
+            suggestions={nudgeSuggestions}
+            disabled={interventionDisabled}
+            onPick={onInterventionTextChange}
+          />
+        ) : null}
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
           <div className="flex flex-1 items-center gap-3">
             <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose">
@@ -2635,10 +2689,10 @@ function DateFooter({
             {session.status === "active" ? (
               <>
                 <GhostButton onClick={onComplete} disabled={!canAdvance}>
-                  Resolve date
+                  {resolveLabel}
                 </GhostButton>
                 <PrimaryButton onClick={onAdvance} disabled={!canAdvance}>
-                  {isActionPending ? "Streaming." : "Advance"}
+                  {advanceLabel}
                 </PrimaryButton>
               </>
             ) : null}
@@ -2647,6 +2701,56 @@ function DateFooter({
       </div>
     </motion.footer>
   );
+}
+
+function NudgeSuggestionRail({
+  suggestions,
+  disabled,
+  onPick,
+}: {
+  suggestions: string[];
+  disabled: boolean;
+  onPick: (text: string) => void;
+}) {
+  if (suggestions.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-aura-hairline pb-3">
+      <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+        quick nudges
+      </span>
+      {suggestions.map((suggestion) => (
+        <button
+          key={suggestion}
+          type="button"
+          data-sfx="click"
+          disabled={disabled}
+          onClick={() => onPick(suggestion)}
+          className="cursor-pointer rounded-pill bg-white/65 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {suggestionLabel(suggestion)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function suggestionLabel(suggestion: string): string {
+  if (suggestion.includes("boundary")) {
+    return "Name boundary";
+  }
+
+  if (suggestion.includes("logistics")) {
+    return "Move past logistics";
+  }
+
+  if (suggestion.includes("follow-up")) {
+    return "Ask follow-up";
+  }
+
+  return "Ground it";
 }
 
 /* ================================================================== */
@@ -2942,6 +3046,42 @@ function buildReactionSignals(
   return signals;
 }
 
+function buildNudgeSuggestions(session: DateSession): string[] {
+  const latestJudge = session.judgeSnapshots.at(-1);
+  const baseSuggestions = [
+    "Ask one specific follow-up before changing topic.",
+    "Move past logistics and name one honest feeling.",
+    "Ground the room in a practical choice both people can answer.",
+  ];
+
+  if (latestJudge === undefined) {
+    return baseSuggestions;
+  }
+
+  const strainDelta = latestJudge.statDeltas.strain ?? 0;
+  const conflictDelta = latestJudge.statDeltas.conflict ?? 0;
+  const sparkDelta = latestJudge.statDeltas.spark ?? 0;
+  const trustDelta = latestJudge.statDeltas.trust ?? 0;
+
+  if (latestJudge.shouldEndEarly || strainDelta >= 4 || conflictDelta >= 4) {
+    return [
+      "Name the boundary and offer a clean exit.",
+      "Ask one specific follow-up before changing topic.",
+      "Ground the room in a practical choice both people can answer.",
+    ];
+  }
+
+  if (sparkDelta <= 0 && trustDelta <= 0) {
+    return [
+      "Ask one specific follow-up before changing topic.",
+      "Move past logistics and name one honest feeling.",
+      "Let the partner choose the next small plan.",
+    ];
+  }
+
+  return baseSuggestions;
+}
+
 function pushReaction(
   signals: ReactionSignal[],
   judgeSnapshot: JudgeSnapshot,
@@ -2963,7 +3103,7 @@ function pushReaction(
   });
 }
 
-function reactionIntensity(value: number): number {
+function reactionIntensity(value: number): ReactionIntensity {
   const magnitude = Math.abs(value);
 
   if (magnitude >= 6) {

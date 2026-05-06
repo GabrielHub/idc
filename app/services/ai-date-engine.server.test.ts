@@ -57,7 +57,7 @@ describe("local AI date engine orchestration", () => {
       generateCharacterTurn: async ({ packet }) => {
         const sawPromptContract =
           packet.prompt.includes("Output contract:") &&
-          packet.prompt.includes("Recent transcript:");
+          packet.prompt.includes("Back and forth so far:");
         const sawMemory = packet.prompt.includes("sincere planning document");
 
         return {
@@ -221,9 +221,9 @@ describe("local AI date engine orchestration", () => {
         throw new Error("non-streaming performer should not run");
       },
       streamCharacterTurn: async ({ packet, onTextDelta }) => {
-        const text = packet.prompt.includes("from Jenna Pike")
+        const text = packet.prompt.includes("as Jenna Pike")
           ? "Jenna watches the coffee unspill and asks if that is normal."
-          : "Vhool says normal is a department opinion, not a fact.";
+          : "Vhool says\u2014normal is a department opinion, not a fact.";
 
         for (const chunk of text.split(" ")) {
           await onTextDelta(`${chunk} `);
@@ -290,10 +290,22 @@ describe("local AI date engine orchestration", () => {
     expect(events.map((event) => event.type)).toContain("characterDelta");
     expect(events.at(-1)?.type).toBe("judgeStart");
     expect(
+      events
+        .filter((event) => event.type === "characterDelta")
+        .map((event) => event.textDelta)
+        .join(""),
+    ).not.toMatch(/[\u2014\u2013]/);
+    expect(
       events.some(
         (event) => event.type === "characterDone" && event.text.includes("department opinion"),
       ),
     ).toBe(true);
+    expect(
+      result.session.transcript
+        .filter((message) => message.kind === "character")
+        .map((message) => message.text)
+        .join(" "),
+    ).toContain("Vhool says, normal");
     const loadedSave = await repository.loadGame();
     const loadedSession = loadedSave?.dateSessions.find(
       (session) => session.id === started.session.id,

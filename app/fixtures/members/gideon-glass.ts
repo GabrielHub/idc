@@ -88,6 +88,7 @@ export const gideonGlass: Member = {
     mood: 54,
     openness: 70,
     burnout: 31,
+    retention: 100,
     currentRequestId: "request-gideon-name",
     recentDateResult: "No Cupid dates yet.",
   },

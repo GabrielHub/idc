@@ -96,6 +96,7 @@ export const opalSunday: Member = {
     mood: 59,
     openness: 67,
     burnout: 47,
+    retention: 100,
     currentRequestId: "request-opal-no-prophecy",
     recentDateResult: "No Cupid dates yet.",
   },

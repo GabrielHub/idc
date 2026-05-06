@@ -24,21 +24,31 @@ export type SfxCue =
 type SfxContextValue = {
   isEnabled: boolean;
   setEnabled: (isEnabled: boolean) => void;
+  volume: number;
+  setVolume: (volume: number) => void;
   play: (cue: SfxCue) => void;
 };
 
 const SFX_STORAGE_KEY = "idc.cupid.sfx.enabled";
+const VOLUME_STORAGE_KEY = "idc.cupid.sfx.volume";
+const DEFAULT_VOLUME = 0.6;
 const MIN_GAIN = 0.0001;
+const VOLUME_RAMP_TIME_CONSTANT = 0.02;
 const SOFT_ATTACK_SECONDS = 0.012;
 const SWING_SHORT_SECONDS = 0.052;
 const SWING_LONG_SECONDS = 0.086;
 
 let sharedAudioContext: AudioContext | null = null;
+let currentMasterVolume = DEFAULT_VOLUME;
+let currentMasterMuted = false;
 const noiseBufferCache = new WeakMap<AudioContext, Map<number, AudioBuffer>>();
+const masterGainCache = new WeakMap<AudioContext, GainNode>();
 
 const FALLBACK_SFX_CONTEXT: SfxContextValue = {
   isEnabled: true,
   setEnabled: () => undefined,
+  volume: DEFAULT_VOLUME,
+  setVolume: () => undefined,
   play: () => undefined,
 };
 
@@ -46,6 +56,7 @@ const SfxContext = createContext<SfxContextValue>(FALLBACK_SFX_CONTEXT);
 
 export function SfxProvider({ children }: { children: ReactNode }) {
   const [isEnabled, setIsEnabledState] = useState(true);
+  const [volume, setVolumeState] = useState(DEFAULT_VOLUME);
   const isEnabledRef = useRef(isEnabled);
 
   useEffect(() => {
@@ -53,8 +64,16 @@ export function SfxProvider({ children }: { children: ReactNode }) {
   }, [isEnabled]);
 
   useEffect(() => {
-    setIsEnabledState(readStoredSfxPreference());
+    const storedEnabled = readStoredSfxPreference();
+    const storedVolume = readStoredSfxVolume();
+    setIsEnabledState(storedEnabled);
+    setVolumeState(storedVolume);
+    applyMasterGain(storedVolume, !storedEnabled);
   }, []);
+
+  useEffect(() => {
+    applyMasterGain(volume, !isEnabled);
+  }, [isEnabled, volume]);
 
   const play = useCallback((cue: SfxCue) => {
     if (!isEnabledRef.current) {
@@ -72,6 +91,12 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     if (nextEnabled) {
       playSfxCue("success");
     }
+  }, []);
+
+  const setVolume = useCallback((nextVolume: number) => {
+    const clamped = clampVolume(nextVolume);
+    setVolumeState(clamped);
+    writeStoredSfxVolume(clamped);
   }, []);
 
   useEffect(() => {
@@ -95,9 +120,11 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     () => ({
       isEnabled,
       setEnabled,
+      volume,
+      setVolume,
       play,
     }),
-    [isEnabled, play, setEnabled],
+    [isEnabled, play, setEnabled, setVolume, volume],
   );
 
   return <SfxContext.Provider value={value}>{children}</SfxContext.Provider>;
@@ -129,6 +156,55 @@ function writeStoredSfxPreference(isEnabled: boolean): void {
   } catch {
     return;
   }
+}
+
+function readStoredSfxVolume(): number {
+  if (typeof window === "undefined") {
+    return DEFAULT_VOLUME;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(VOLUME_STORAGE_KEY);
+
+    if (raw === null) {
+      return DEFAULT_VOLUME;
+    }
+
+    const parsed = Number.parseFloat(raw);
+
+    if (!Number.isFinite(parsed)) {
+      return DEFAULT_VOLUME;
+    }
+
+    return clampVolume(parsed);
+  } catch {
+    return DEFAULT_VOLUME;
+  }
+}
+
+function writeStoredSfxVolume(volume: number): void {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(VOLUME_STORAGE_KEY, clampVolume(volume).toFixed(3));
+  } catch {
+    return;
+  }
+}
+
+function clampVolume(volume: number): number {
+  if (!Number.isFinite(volume)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.min(1, volume));
+}
+
+function perceptualGain(volume: number): number {
+  const clamped = clampVolume(volume);
+  return clamped * clamped;
 }
 
 function cueFromPointerTarget(target: EventTarget | null): SfxCue | null {
@@ -220,6 +296,39 @@ function getAudioContext(): AudioContext | null {
 
   sharedAudioContext ??= new window.AudioContext({ latencyHint: "interactive" });
   return sharedAudioContext;
+}
+
+function getMasterGain(audioContext: AudioContext): GainNode {
+  let masterGain = masterGainCache.get(audioContext);
+
+  if (masterGain === undefined) {
+    masterGain = audioContext.createGain();
+    const initial = currentMasterMuted
+      ? MIN_GAIN
+      : Math.max(perceptualGain(currentMasterVolume), MIN_GAIN);
+    masterGain.gain.setValueAtTime(initial, audioContext.currentTime);
+    masterGain.connect(audioContext.destination);
+    masterGainCache.set(audioContext, masterGain);
+  }
+
+  return masterGain;
+}
+
+function applyMasterGain(volume: number, isMuted: boolean): void {
+  currentMasterVolume = clampVolume(volume);
+  currentMasterMuted = isMuted;
+
+  if (sharedAudioContext === null || sharedAudioContext.state === "closed") {
+    return;
+  }
+
+  const masterGain = getMasterGain(sharedAudioContext);
+  const target = isMuted ? MIN_GAIN : Math.max(perceptualGain(currentMasterVolume), MIN_GAIN);
+  masterGain.gain.setTargetAtTime(
+    target,
+    sharedAudioContext.currentTime,
+    VOLUME_RAMP_TIME_CONSTANT,
+  );
 }
 
 async function playSfxCueInContext(audioContext: AudioContext, cue: SfxCue): Promise<void> {
@@ -335,7 +444,7 @@ function playTone(audioContext: AudioContext, options: ToneOptions): void {
 
   oscillator.connect(filter);
   filter.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(getMasterGain(audioContext));
   oscillator.start(options.start);
   oscillator.stop(end + 0.02);
   oscillator.addEventListener("ended", () => {
@@ -464,7 +573,7 @@ function playNoise(audioContext: AudioContext, options: NoiseOptions): void {
   source.buffer = buffer;
   source.connect(filter);
   filter.connect(gain);
-  gain.connect(audioContext.destination);
+  gain.connect(getMasterGain(audioContext));
   source.start(options.start);
   source.stop(end + 0.01);
   source.addEventListener("ended", () => {

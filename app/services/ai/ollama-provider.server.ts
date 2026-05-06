@@ -1,6 +1,10 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { embed, generateObject, generateText, streamText } from "ai";
-import { createOllama, type OllamaChatSettings, type OllamaEmbeddingSettings } from "ai-sdk-ollama";
+import {
+  createOllama,
+  type OllamaChatSettings,
+  type Options as OllamaOptions,
+} from "ai-sdk-ollama";
 import { z } from "zod";
 
 import {
@@ -23,31 +27,31 @@ import { errorToMessage } from "../utils";
 const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 const DEFAULT_OPENAI_COMPATIBLE_BASE_URL = "http://127.0.0.1:11434/v1";
 const CHARACTER_MAX_OUTPUT_TOKENS = 160;
-const JUDGE_MAX_OUTPUT_TOKENS = 900;
-const SUMMARIZER_MAX_OUTPUT_TOKENS = 900;
+const JUDGE_MAX_OUTPUT_TOKENS = 360;
+const SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const READINESS_MAX_OUTPUT_TOKENS = 32;
-const OLLAMA_CONTEXT_WINDOW_TOKENS = 8192;
+const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS = 2048;
 const OLLAMA_KEEP_ALIVE = "10m";
-const OLLAMA_CHAT_SETTINGS: OllamaChatSettings = {
+const OLLAMA_BASE_CHAT_SETTINGS: OllamaChatSettings = {
   think: false,
   keep_alive: OLLAMA_KEEP_ALIVE,
-  options: {
-    num_ctx: OLLAMA_CONTEXT_WINDOW_TOKENS,
-  },
 };
 const OLLAMA_JSON_CHAT_SETTINGS: OllamaChatSettings = {
-  ...OLLAMA_CHAT_SETTINGS,
+  ...OLLAMA_BASE_CHAT_SETTINGS,
   format: "json",
-};
-const OLLAMA_EMBEDDING_SETTINGS: OllamaEmbeddingSettings = {
-  options: {
-    num_ctx: OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS,
-  },
 };
 const LOCAL_AI_DATE_HEALTH_DELTA_SCHEMA = z.number().int().min(-12).max(12);
 const LOCAL_AI_STAT_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const LOCAL_AI_MEMBER_MOOD_DELTA_SCHEMA = z.number().int().min(-8).max(8);
+
+export type LocalAiGenerationOptions = {
+  maxOutputTokens?: number;
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+  numCtx?: number;
+};
 
 export type LocalAiProviderMode = "ollama" | "openai-compatible";
 
@@ -56,6 +60,8 @@ export type LocalAiRuntimeConfig = GameConfig & {
   ollamaBaseURL?: string;
   openAICompatibleBaseURL?: string;
   requestTimeoutMs?: number;
+  contextWindowTokens?: number;
+  embeddingContextWindowTokens?: number;
 };
 
 export type GeneratedTextResult = {
@@ -101,6 +107,7 @@ const judgeAiOutputSchema = z.object({
 export async function generateCharacterTurn(
   packet: CharacterPromptPacket,
   config?: Partial<LocalAiRuntimeConfig>,
+  options?: LocalAiGenerationOptions,
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.performerModel;
@@ -110,7 +117,8 @@ export async function generateCharacterTurn(
     prompt: packet.prompt,
     modelId,
     config: runtimeConfig,
-    maxOutputTokens: CHARACTER_MAX_OUTPUT_TOKENS,
+    maxOutputTokens: options?.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    generationOptions: options,
   });
 }
 
@@ -118,6 +126,7 @@ export async function streamCharacterTurn(
   packet: CharacterPromptPacket,
   config: Partial<LocalAiRuntimeConfig> | undefined,
   onTextDelta: (delta: string) => Promise<void> | void,
+  options?: LocalAiGenerationOptions,
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const modelId = runtimeConfig.performerModel;
@@ -127,7 +136,8 @@ export async function streamCharacterTurn(
     prompt: packet.prompt,
     modelId,
     config: runtimeConfig,
-    maxOutputTokens: CHARACTER_MAX_OUTPUT_TOKENS,
+    maxOutputTokens: options?.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    generationOptions: options,
     onTextDelta,
   });
 }
@@ -257,6 +267,9 @@ function normalizeRuntimeConfig(config?: Partial<LocalAiRuntimeConfig>): LocalAi
     ollamaBaseURL: config?.ollamaBaseURL ?? DEFAULT_OLLAMA_BASE_URL,
     openAICompatibleBaseURL: config?.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL,
     requestTimeoutMs: config?.requestTimeoutMs ?? 30_000,
+    contextWindowTokens: config?.contextWindowTokens ?? OLLAMA_CONTEXT_WINDOW_TOKENS,
+    embeddingContextWindowTokens:
+      config?.embeddingContextWindowTokens ?? OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS,
   };
 }
 
@@ -266,12 +279,14 @@ async function generateTextWithFallback({
   modelId,
   config,
   maxOutputTokens,
+  generationOptions,
 }: {
   system: string;
   prompt: string;
   modelId: string;
   config: LocalAiRuntimeConfig;
   maxOutputTokens: number;
+  generationOptions?: LocalAiGenerationOptions;
 }): Promise<GeneratedTextResult> {
   const providerModes = providerModeOrder(config.providerMode ?? "ollama");
   const errors: unknown[] = [];
@@ -279,10 +294,13 @@ async function generateTextWithFallback({
   for (const providerMode of providerModes) {
     try {
       const result = await generateText({
-        model: createLanguageModel(providerMode, modelId, config),
+        model: createLanguageModel(providerMode, modelId, config, generationOptions),
         system,
         prompt,
         maxOutputTokens,
+        temperature: generationOptions?.temperature,
+        topP: generationOptions?.topP,
+        topK: generationOptions?.topK,
         timeout: config.requestTimeoutMs,
       });
 
@@ -311,6 +329,7 @@ async function streamTextWithFallback({
   modelId,
   config,
   maxOutputTokens,
+  generationOptions,
   onTextDelta,
 }: {
   system: string;
@@ -318,6 +337,7 @@ async function streamTextWithFallback({
   modelId: string;
   config: LocalAiRuntimeConfig;
   maxOutputTokens: number;
+  generationOptions?: LocalAiGenerationOptions;
   onTextDelta: (delta: string) => Promise<void> | void;
 }): Promise<GeneratedTextResult> {
   const providerModes = providerModeOrder(config.providerMode ?? "ollama");
@@ -327,10 +347,13 @@ async function streamTextWithFallback({
   for (const providerMode of providerModes) {
     try {
       const result = streamText({
-        model: createLanguageModel(providerMode, modelId, config),
+        model: createLanguageModel(providerMode, modelId, config, generationOptions),
         system,
         prompt,
         maxOutputTokens,
+        temperature: generationOptions?.temperature,
+        topP: generationOptions?.topP,
+        topK: generationOptions?.topK,
         timeout: config.requestTimeoutMs,
       });
       let text = "";
@@ -477,17 +500,24 @@ function createLanguageModel(
   providerMode: LocalAiProviderMode,
   modelId: string,
   config: LocalAiRuntimeConfig,
+  options?: LocalAiGenerationOptions,
 ) {
   if (providerMode === "openai-compatible") {
     const baseURL = config.openAICompatibleBaseURL ?? DEFAULT_OPENAI_COMPATIBLE_BASE_URL;
     return getOpenAICompatibleProvider(baseURL).chatModel(modelId);
   }
 
-  return getOllamaProvider(config.ollamaBaseURL)(modelId, OLLAMA_CHAT_SETTINGS);
+  return getOllamaProvider(config.ollamaBaseURL)(
+    modelId,
+    createOllamaChatSettings(config, options),
+  );
 }
 
 function createJsonLanguageModel(modelId: string, config: LocalAiRuntimeConfig) {
-  return getOllamaProvider(config.ollamaBaseURL)(modelId, OLLAMA_JSON_CHAT_SETTINGS);
+  return getOllamaProvider(config.ollamaBaseURL)(
+    modelId,
+    createOllamaChatSettings(config, undefined, OLLAMA_JSON_CHAT_SETTINGS),
+  );
 }
 
 function createEmbeddingModel(
@@ -500,7 +530,26 @@ function createEmbeddingModel(
     return getOpenAICompatibleProvider(baseURL).embeddingModel(modelId);
   }
 
-  return getOllamaProvider(config.ollamaBaseURL).embedding(modelId, OLLAMA_EMBEDDING_SETTINGS);
+  return getOllamaProvider(config.ollamaBaseURL).embedding(modelId, {
+    options: {
+      num_ctx: config.embeddingContextWindowTokens,
+    },
+  });
+}
+
+function createOllamaChatSettings(
+  config: LocalAiRuntimeConfig,
+  options?: LocalAiGenerationOptions,
+  baseSettings: OllamaChatSettings = OLLAMA_BASE_CHAT_SETTINGS,
+): OllamaChatSettings {
+  const ollamaOptions: Partial<OllamaOptions> = {
+    num_ctx: options?.numCtx ?? config.contextWindowTokens,
+  };
+
+  return {
+    ...baseSettings,
+    options: ollamaOptions,
+  };
 }
 
 function providerModeOrder(preferredMode: LocalAiProviderMode): LocalAiProviderMode[] {

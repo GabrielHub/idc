@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import type { Member, PortraitAsset } from "../domain/game";
 import type { SfxCue } from "./sfx-provider";
 
+export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
+
 /* ------------------------------------------------------------------ */
 /* Eyebrow + headline                                                 */
 /* ------------------------------------------------------------------ */

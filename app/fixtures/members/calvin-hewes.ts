@@ -90,6 +90,7 @@ export const calvinHewes: Member = {
     mood: 58,
     openness: 41,
     burnout: 47,
+    retention: 100,
     currentRequestId: "request-calvin-no-cameras",
     recentDateResult: "No Cupid dates yet.",
   },

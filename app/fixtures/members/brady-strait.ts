@@ -89,6 +89,7 @@ export const bradyStrait: Member = {
     mood: 64,
     openness: 38,
     burnout: 56,
+    retention: 100,
     currentRequestId: "request-brady-drop-bit",
     recentDateResult: "No Cupid dates yet.",
   },

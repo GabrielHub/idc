@@ -19,13 +19,14 @@ export function selectFeaturedMemberIds({
   shiftNumber: number;
   count?: number;
 }): string[] {
-  const desiredCount = Math.min(count, members.length);
+  const activeMembers = members.filter(isMemberRetained);
+  const desiredCount = Math.min(count, activeMembers.length);
 
   if (desiredCount === 0) {
     return [];
   }
 
-  const shuffledMembers = seededSortMembers(members, `shift:${shiftNumber}:featured`);
+  const shuffledMembers = seededSortMembers(activeMembers, `shift:${shiftNumber}:featured`);
   const featuredMembers = shuffledMembers.slice(0, desiredCount);
 
   for (const tag of MEMBER_IDENTITY_TAGS) {
@@ -91,8 +92,9 @@ export function selectShiftCompanyGoalIds({
   shiftNumber: number;
   dateSlotsTotal: number;
 }): string[] {
+  const activeMembers = members.filter(isMemberRetained);
   const possibleGoals = companyGoals.filter((goal) =>
-    isCompanyGoalPossible(goal.metric, goal.target, members, dateSlotsTotal),
+    isCompanyGoalPossible(goal.metric, goal.target, activeMembers, dateSlotsTotal),
   );
 
   return seededSortById(possibleGoals, `shift:${shiftNumber}:goals`)
@@ -200,6 +202,10 @@ function resolveMembers(members: readonly Member[], memberIds: readonly string[]
   return memberIds
     .map((memberId) => members.find((member) => member.id === memberId))
     .filter((member): member is Member => member !== undefined);
+}
+
+function isMemberRetained(member: Member): boolean {
+  return member.state.retention > 0;
 }
 
 function seededSortMembers(members: readonly Member[], seed: string): Member[] {
