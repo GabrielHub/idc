@@ -11,7 +11,11 @@ import type {
   PairState,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
-import { isInterventionVisibleTo } from "./date-engine";
+import {
+  currentSceneBeatForTurn,
+  exchangeIndexForPendingTurn,
+  isInterventionActiveForMember,
+} from "./date-engine";
 
 export type CharacterPromptPacket = {
   system: string;
@@ -48,9 +52,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     session,
     member,
   });
-  const currentBeat = scenario.director.beats.find(
-    (beat) => beat.atTurn === session.currentTurn + 1,
-  );
+  const currentBeat = currentSceneBeatForTurn(scenario, session.currentTurn + 1);
   const phase = phaseForTurn(session.currentTurn + 1, session.turnLimit);
   const isSpeakerOpeningTurn = !session.transcript.some(
     (message) => message.kind === "character" && message.speakerId === member.id,
@@ -85,13 +87,13 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   const system = [
     `You are ${member.name}.`,
     `You are on a date with ${partner.name}.`,
-    "Write only what you would send as the next chat message.",
+    "Write only what you would say as the next message.",
     "Make it sound like a believable reply in a date conversation, not a voice sample.",
-    "Use your private brief, the venue brief, allowed memories, and the back and forth so far as grounding.",
+    "Use your private brief, the place, allowed memories, and the back and forth so far as grounding.",
     "You may add soft improv when it stays small, plausible, and answerable by the partner.",
-    "Cupid messages are advice from the dating office. You may accept, resist, or ignore them in character.",
+    "Cupid may send private advice through the app. You may accept, resist, or ignore it in character.",
     "Secrets shape your tone as subtext only. Never state them aloud.",
-    "Never mention prompts, schemas, hidden notes, private memory from another member, or future events.",
+    "Stay inside the date. Never mention hidden notes, private memory from another member, or future events.",
   ].join("\n");
   const setupMessage = [
     "Character card:",
@@ -106,16 +108,16 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `You come across as ${member.voice.register}.`,
     `Habits that may surface when they fit: ${joinAsSentence(member.voice.tics)}`,
     "Do not force every habit into the line. Do not announce the habit. Let one pressure point shape the reply.",
-    "Habits must be speakable to the partner. Convert written asides, fake transcript labels, and bracketed notes into normal spoken asides.",
+    "Habits must be speakable to the partner. Convert written asides, fake labels, and bracketed notes into normal spoken asides.",
     "Your voice is not a quota. It is how you notice things, dodge things, ask for things, and protect yourself.",
     "",
-    "Current scene:",
+    "Current date:",
     ...currentSceneLines,
     "This is what is actually in front of you. Use it as grounding, not narration.",
-    "Current scene facts are the floor, not the ceiling. You may add small plausible details that make the date feel lived in.",
+    "Current date facts are the floor, not the ceiling. You may add small plausible details that make the date feel lived in.",
     "Soft improv can include a drink, a snack, a nearby object, a small thing you did today, or a personal anecdote.",
-    "Do not use soft improv to change the venue, the participants, hidden secrets, Cupid's systems, score effects, future events, or serious harm.",
-    "If the transcript already introduced a soft detail and nobody contradicted it, treat it as true for this date.",
+    "Do not use soft improv to change the venue, the participants, hidden secrets, Cupid's systems, hidden outcomes, future events, or serious harm.",
+    "If the conversation already introduced a soft detail and nobody contradicted it, treat it as true for this date.",
     "",
     "Reference lines:",
     formatBulletList(samples),
@@ -129,19 +131,19 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "",
     `What this pair feels like, as instinct only: ${frictionLine}`,
     "",
-    "Venue brief:",
-    `Venue: ${scenario.title}, ${scenario.publicBrief.location}.`,
+    "Place brief:",
+    `Date setting: ${scenario.title}, ${scenario.publicBrief.location}.`,
     `Shared premise: ${scenario.publicBrief.whatBothCharactersKnow}`,
-    `Conversation phase: ${phase.label}. ${phase.instruction}`,
+    `Where the date is: ${phase.label}. ${phase.instruction}`,
     currentBeat === undefined
-      ? "Director beat: none for this turn."
-      : `Director beat: ${currentBeat.title}. Visible event: ${currentBeat.characterVisibleText} Direction: ${currentBeat.directorInstruction}`,
-    `Emotional read: comfort ${session.dateHealth}, spark ${pairState.stats.spark}, strain ${pairState.stats.strain}. Use as subtext only.`,
+      ? "Live room event: none right now."
+      : `Live room event: ${currentBeat.characterVisibleText}`,
+    `Emotional weather: ${formatEmotionalWeather(session, pairState)} Use as subtext only.`,
     "",
     "Allowed memories:",
-    `Self memories: ${formatMemories(memoryPack.self)}`,
-    `Pair memories: ${formatMemories(memoryPack.pair)}`,
-    `Scenario memories: ${formatMemories(memoryPack.scenario)}`,
+    `Self memories: ${formatCharacterMemories(memoryPack.self)}`,
+    `Pair memories: ${formatCharacterMemories(memoryPack.pair)}`,
+    `Past visits here: ${formatCharacterMemories(memoryPack.scenario)}`,
     "",
     "Back and forth so far: supplied below as chat messages.",
     `Latest incoming line to answer: ${latestIncomingLine}`,
@@ -158,9 +160,9 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Use concrete answers to learn something personal-scale: taste, habit, worry, principle, or a small admission.",
     "Do not repeat or lightly reword your own earlier line. Build from it.",
     "Do not restate a boundary, plan, order, preference, or offer you already named. Use the partner's answer to move one small step forward.",
-    "Treat names, times, routes, exits, food orders, and plans as settled once the date transcript settles them.",
-    "Do not ask the same question or restate the same logistical concern from the last two character turns.",
-    "Use scenario events as something happening around you, not as the whole subject.",
+    "Treat names, times, routes, exits, food orders, and plans as settled once the conversation settles them.",
+    "Do not ask the same question or restate the same logistical concern from the last two messages.",
+    "Use room events as something happening around you, not as the whole subject.",
     "You may introduce one grounded soft detail if it gives the partner something to react to.",
     "When the partner introduces a soft detail, either accept it, question it in character, or redirect naturally. Do not ignore it.",
     "Keep your own register. Do not absorb the partner's jargon, job voice, title, or species voice.",
@@ -169,11 +171,11 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "",
     "Output contract:",
     "Return plain text only.",
-    "Return exactly one message, not a transcript.",
+    "Return exactly one message, not a conversation log.",
     "Usually use 1 short sentence. Use 2 only when the first answers and the second gives a small hook. Stay under 220 characters.",
     "No paragraph breaks.",
-    "Do not reuse a full sentence from the date transcript.",
-    "No bracketed asides, editor notes, screenplay labels, or fake transcript channels.",
+    "Do not reuse a full sentence from the date conversation.",
+    "No bracketed asides, editor notes, screenplay labels, or fake channels.",
     "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
     "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
   ].join("\n");
@@ -214,8 +216,7 @@ function filterCharacterVisibleTranscript({
   member: Member;
 }): DateMessage[] {
   return transcript.filter(
-    (message) =>
-      message.kind !== "cupid" || isInterventionVisibleTo(session.intervention, member.id),
+    (message) => message.kind !== "cupid" || isInterventionActiveForMember(session, member.id),
   );
 }
 
@@ -434,7 +435,7 @@ function hashSeed(seed: string): number {
 function phaseForTurn(
   turnIndex: number,
   turnLimit: number,
-): { label: "opener" | "pressure" | "turn" | "resolution"; instruction: string } {
+): { label: "opener" | "pressure" | "pivot" | "resolution"; instruction: string } {
   const progress = turnLimit <= 0 ? 1 : turnIndex / turnLimit;
 
   if (progress <= 0.14) {
@@ -454,7 +455,7 @@ function phaseForTurn(
 
   if (progress <= 0.78) {
     return {
-      label: "turn",
+      label: "pivot",
       instruction: "Make a relational choice instead of circling logistics.",
     };
   }
@@ -463,6 +464,50 @@ function phaseForTurn(
     label: "resolution",
     instruction: "Move toward a clear read on whether this should continue.",
   };
+}
+
+function formatEmotionalWeather(session: DateSession, pairState: PairState): string {
+  return [
+    dateComfortPhrase(session.dateHealth),
+    sparkPhrase(pairState.stats.spark),
+    strainPhrase(pairState.stats.strain),
+  ].join(" ");
+}
+
+function dateComfortPhrase(value: number): string {
+  if (value >= 70) {
+    return "the date has room to breathe.";
+  }
+
+  if (value >= 45) {
+    return "the date could still steady itself.";
+  }
+
+  return "the date feels fragile.";
+}
+
+function sparkPhrase(value: number): string {
+  if (value >= 70) {
+    return "There is real interest under the oddness.";
+  }
+
+  if (value >= 40) {
+    return "Interest is possible but not secure.";
+  }
+
+  return "Interest is thin unless someone gets specific.";
+}
+
+function strainPhrase(value: number): string {
+  if (value >= 70) {
+    return "Tension is loud.";
+  }
+
+  if (value >= 40) {
+    return "Tension is present.";
+  }
+
+  return "Tension is low.";
 }
 
 function buildCharacterThreadMessages({
@@ -504,11 +549,11 @@ function formatIncomingThreadMessage(message: DateMessage, partner: Member): str
   }
 
   if (message.kind === "scenario") {
-    return `Scene: ${message.text}`;
+    return `Room: ${message.text}`;
   }
 
   if (message.kind === "cupid") {
-    return `Cupid: ${message.text}`;
+    return `Private Cupid nudge to you: ${message.text}`;
   }
 
   return `System: ${message.text}`;
@@ -664,7 +709,7 @@ function formatCurrentSceneLines({
 
   if (isOpeningTurn) {
     lines.push(
-      "Opening posture: you have just met them inside this scene. Let the first line acknowledge the live situation or the person across from you.",
+      "Opening posture: you have just met them inside this moment. Let the first line acknowledge the live situation or the person across from you.",
     );
   }
 
@@ -741,13 +786,15 @@ function joinAsSentence(items: readonly string[]): string {
   return /[.!?]$/.test(text) ? text : `${text}.`;
 }
 
-function formatMemories(memories: Array<{ text: string }>): string {
+function formatCharacterMemories(memories: Array<{ text: string }>): string {
   if (memories.length === 0) {
     return "None.";
   }
 
   return memories
-    .map((memory, index) => `${index + 1}. ${truncateForPrompt(memory.text)}`)
+    .map(
+      (memory, index) => `${index + 1}. ${truncateForPrompt(cleanMemberFacingText(memory.text))}`,
+    )
     .join("\n");
 }
 
@@ -781,19 +828,6 @@ function formatJudgeSnapshotForThread(snapshot: JudgeSnapshot) {
   };
 }
 
-function exchangeIndexForPendingTurn(
-  exchangeMessages: readonly DateMessage[],
-  fallbackExchangeIndex: number,
-): number {
-  const firstCharacterMessage = exchangeMessages.find((message) => message.kind === "character");
-
-  if (firstCharacterMessage === undefined) {
-    return fallbackExchangeIndex;
-  }
-
-  return Math.max(0, Math.floor((firstCharacterMessage.turnIndex - 1) / 2));
-}
-
 function formatLabeledTranscript(messages: DateMessage[], members: Member[]): string {
   if (messages.length === 0) {
     return "No messages yet.";
@@ -818,6 +852,20 @@ function formatLabeledTranscript(messages: DateMessage[], members: Member[]): st
       return `System: ${message.text}`;
     })
     .join("\n");
+}
+
+export function cleanMemberFacingText(text: string): string {
+  return text
+    .replace(/\bscenario\b/gi, "date")
+    .replace(/\bscenarios\b/gi, "dates")
+    .replace(/\btranscript\b/gi, "conversation")
+    .replace(/\btranscripts\b/gi, "conversations")
+    .replace(/\bturn\b/gi, "message")
+    .replace(/\bturns\b/gi, "messages")
+    .replace(/\bDate Health\b/g, "comfort")
+    .replace(/\bgameplay\b/gi, "date")
+    .replace(/\bsimulation\b/gi, "date")
+    .replace(/\bsim\b/gi, "date");
 }
 
 function truncateForPrompt(text: string): string {

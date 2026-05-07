@@ -464,7 +464,7 @@ describe("AI date engine orchestration", () => {
         characterCount += 1;
 
         return {
-          text: `turn ${characterCount} response`,
+          text: `line ${characterCount} response`,
           providerMode: "ollama",
           model: "fake-performer",
           stepCount: 1,
@@ -526,9 +526,9 @@ describe("AI date engine orchestration", () => {
       started.session.dateHealth + firstJudgeSnapshot.dateHealthDelta,
     );
     expect(firstJudgeSnapshot.exchangeIndex).toBe(0);
-    expect(judgePrompts[0]).toContain("turn 1 response");
-    expect(judgePrompts[0]).toContain("turn 2 response");
-    expect(judgePrompts[0]).not.toContain("turn 3 response");
+    expect(judgePrompts[0]).toContain("line 1 response");
+    expect(judgePrompts[0]).toContain("line 2 response");
+    expect(judgePrompts[0]).not.toContain("line 3 response");
 
     const secondAdvance = await advanceDateExchangeWithLocalAi(firstAdvance.save, repository, {
       dateSessionId: started.session.id,
@@ -541,8 +541,101 @@ describe("AI date engine orchestration", () => {
     expect(secondAdvance.session.judgeSnapshots).toHaveLength(2);
     expect(secondAdvance.session.judgeSnapshots[1]?.exchangeIndex).toBe(1);
     expect(judgePrompts[1]).toContain("Prior judge filing for exchange 0");
-    expect(judgePrompts[1]).toContain("turn 3 response");
-    expect(judgePrompts[1]).toContain("turn 4 response");
+    expect(judgePrompts[1]).toContain("line 3 response");
+    expect(judgePrompts[1]).toContain("line 4 response");
+  });
+
+  it("can advance one AI member message before judging the exchange", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-single-line-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 4,
+      },
+    };
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let characterCount = 0;
+    const judgePrompts: string[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        characterCount += 1;
+
+        return {
+          text: `single line ${characterCount}`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
+        judgePrompts.push(packet.prompt);
+
+        return judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {
+            trust: 1,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["Two lines gave the judge enough context."],
+          playerSummary: "The exchange landed in sequence.",
+          memoryCandidates: [],
+        });
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const firstLine = await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const secondLine = await advanceDateExchangeWithLocalAi(firstLine.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: firstLine.save.config,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+
+    expect(firstLine.session.currentTurn).toBe(1);
+    expect(firstLine.session.judgeSnapshots).toHaveLength(0);
+    expect(secondLine.session.currentTurn).toBe(2);
+    expect(secondLine.session.judgeSnapshots).toHaveLength(1);
+    expect(judgePrompts[0]).toContain("single line 1");
+    expect(judgePrompts[0]).toContain("single line 2");
   });
 
   it("feeds performers the full active date transcript after judged exchanges", async () => {
@@ -578,7 +671,7 @@ describe("AI date engine orchestration", () => {
             ? "Venus opener locked: the table is an altar with invoices."
             : index === 1
               ? "Vhool opener locked: I hear the cups practicing a hymn."
-              : `turn ${index + 1} established the second refill as mutual property.`,
+              : `line ${index + 1} established the second refill as mutual property.`,
         createdAt: "2026-05-05T12:02:00.000Z",
       }),
     );

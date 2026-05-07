@@ -1,3 +1,6 @@
 # CPU background removal for character portraits.
 # GPU users can install rembg[gpu,cli] manually if their CUDA/onnxruntime stack supports it.
 rembg[cpu,cli]>=2.0.75,<3
+# Pillow handles avatar resizing for srcset variants. rembg already pulls Pillow,
+# but listing it explicitly keeps `resize_avatars.py` runnable on its own.
+Pillow>=10.0,<12

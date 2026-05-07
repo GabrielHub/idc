@@ -162,12 +162,15 @@ Transparent cutouts are runtime assets and belong in:
 public/assets/portraits/<member-id>/
   portrait.png
   avatar.png
+  avatar-128.png
+  avatar-256.png
+  avatar-512.png
   portrait-flirty.png
   portrait-confused.png
   portrait-angry.png
 ```
 
-Each member owns one folder in both locations. Use `portrait.png` for the neutral full-body image and `avatar.png` for the upper-half image. Use `portrait-<variant>.png` for optional full-body expression variants. Do not put member files back under `public/assets/portraits/cutout/`; that flat folder no longer matches the fixture contract.
+Each member owns one folder in both locations. Use `portrait.png` for the neutral full-body image and `avatar.png` for the upper-half image. Use `portrait-<variant>.png` for optional full-body expression variants. The `avatar-<width>.png` files are downscaled siblings used by the runtime `srcset` so the browser fetches a member-card-sized PNG (typically 30 KB) instead of the multi-megabyte source. Do not put member files back under `public/assets/portraits/cutout/`; that flat folder no longer matches the fixture contract.
 
 Do not place source images under `public/assets/portraits/source`. Vite copies `public` into the client build, so files there ship even when the UI never references them.
 
@@ -185,6 +188,14 @@ bria-rmbg
 ```
 
 Only run background removal after source images have been approved for check-in.
+
+After regenerating an avatar cutout, regenerate the width variants used by the runtime `srcset`:
+
+```sh
+vp run portrait:resize-avatars
+```
+
+The script walks `public/assets/portraits/<member-id>/avatar.png`, writes `avatar-128.png`, `avatar-256.png`, and `avatar-512.png` next to each, and skips files whose variants are newer than the source. Pass `--overwrite` after editing the resize logic itself.
 
 ## UI Usage
 

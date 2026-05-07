@@ -129,5 +129,14 @@ export const jennaPike: Member = {
         model: "image_gen built-in",
       },
     },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/jenna-pike/portrait-angry.png",
+        cutoutPath: "/assets/portraits/jenna-pike/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Jenna Pike portrait, interpreted as defeated boundary exhaustion rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same shoulder-length dark brown bob with wispy face-framing bangs, warm brown eyes, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, dark work pants, comfortable black sneakers, order pad and pens in apron pocket, seated on a simple plain black backless stool, shoulders slumped, head angled down, eyes closed, mouth slightly open in a small sigh, one hand pinching the bridge of her nose in tired restraint, other hand hanging loose on her lap, drained closed off posture like this has happened before and she is too tired to argue, full body visible, plain white background, no text, no logo, no frame, no scenery, no tears, no shouting, no clenched fists, no raised stop palm gesture, no direct eye contact, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

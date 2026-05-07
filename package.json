@@ -6,6 +6,7 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "portrait:cutout": "python scripts/portraits/remove_background.py",
+    "portrait:resize-avatars": "python scripts/portraits/resize_avatars.py",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc"
   },
@@ -30,7 +31,7 @@
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.2.4",
     "typescript": "^5.9.3",
-    "vite": "^8.0.10",
+    "vite": "^8.0.11",
     "vitest": "^4.1.5"
   },
   "packageManager": "pnpm@10.33.3"

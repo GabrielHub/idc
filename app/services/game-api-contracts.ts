@@ -20,6 +20,7 @@ export const gameActionSchema = z.discriminatedUnion("type", [
     type: z.literal("advanceExchange"),
     save: gameSaveSchema,
     dateSessionId: dateSessionIdSchema,
+    turnCount: z.union([z.literal(1), z.literal(2)]).optional(),
     runtimeSecrets: aiRuntimeSecretsSchema,
   }),
   z.object({

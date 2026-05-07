@@ -70,9 +70,9 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain(`Your ask today: "${request.text}".`);
     expect(ownerPacket.prompt).toContain("Character card:");
     expect(ownerPacket.prompt).toContain("Personality in conversation:");
-    expect(ownerPacket.prompt).toContain("Current scene:");
+    expect(ownerPacket.prompt).toContain("Current date:");
     expect(ownerPacket.prompt).toContain("What you can see of Vhool:");
-    expect(ownerPacket.prompt).toContain("Current scene facts are the floor, not the ceiling.");
+    expect(ownerPacket.prompt).toContain("Current date facts are the floor, not the ceiling.");
     expect(ownerPacket.prompt).toContain(
       "Soft improv can include a drink, a snack, a nearby object",
     );
@@ -80,8 +80,8 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain(
       "If this is your first message in the date, start from the live moment",
     );
-    expect(ownerPacket.prompt).toContain("Conversation phase: opener.");
-    expect(ownerPacket.prompt).toContain("Director beat:");
+    expect(ownerPacket.prompt).toContain("Where the date is: opener.");
+    expect(ownerPacket.prompt).toContain("Live room event:");
     expect(ownerPacket.prompt).toContain(
       "Latest incoming line to answer: The date with Vhool is starting.",
     );
@@ -90,6 +90,9 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).not.toContain("Do not invent objects from preferences");
     expect(ownerPacket.prompt).not.toContain("Patterns you use:");
     expect(ownerPacket.prompt).not.toContain("Patterns they use:");
+    expect(`${ownerPacket.system}\n${ownerPacket.prompt}`).not.toMatch(
+      /\b(scenario|director|Date Health|gameplay|transcript|turn)\b/i,
+    );
     expect(partnerPacket.prompt).not.toContain(request.text);
   });
 
@@ -168,7 +171,7 @@ describe("date prompt assembly", () => {
       "Your last line, do not repeat: I am choosing the table. The mirror knows why.",
     );
     expect(packet.prompt).toContain("Do not copy opener scaffolds after your first message.");
-    expect(packet.prompt).toContain("Do not reuse a full sentence from the date transcript.");
+    expect(packet.prompt).toContain("Do not reuse a full sentence from the date conversation.");
     expect(packet.prompt).not.toContain(
       "As the goddess of love I am uniquely qualified to assess your profile.",
     );
@@ -264,11 +267,9 @@ describe("date prompt assembly", () => {
       "Latest incoming line to answer: Vhool: Would a polite inventory accept soup?",
     );
     expect(packet.prompt).not.toContain(
-      "Latest incoming line to answer: Scene: The espresso machine makes a legal argument.",
+      "Latest incoming line to answer: Room: The espresso machine makes a legal argument.",
     );
-    expect(packet.prompt).not.toContain(
-      "Latest incoming line to answer: Cupid: Ask about the soup without joining anything.",
-    );
+    expect(packet.prompt).not.toContain("Latest incoming line to answer: Private Cupid nudge");
   });
 
   it("shows targeted Cupid nudges only to the targeted performer", () => {
@@ -334,6 +335,50 @@ describe("date prompt assembly", () => {
     expect(vhoolPacket.prompt).toContain("Cupid suggests");
     expect(vhoolPacket.prompt).toContain("Ask about the receipt without recruiting anyone.");
     expect(jennaPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
+
+    const answeredSession = {
+      ...nudged.session,
+      currentTurn: 2,
+      transcript: [
+        ...nudged.session.transcript,
+        {
+          id: `${nudged.session.id}-msg-2`,
+          dateSessionId: nudged.session.id,
+          kind: "character" as const,
+          speakerId: "jenna-pike",
+          turnIndex: 1,
+          sequenceIndex: 2,
+          text: "The receipt is making eye contact with me.",
+          createdAt: "2026-05-05T12:03:00.000Z",
+        },
+        {
+          id: `${nudged.session.id}-msg-3`,
+          dateSessionId: nudged.session.id,
+          kind: "character" as const,
+          speakerId: "vhool",
+          turnIndex: 2,
+          sequenceIndex: 3,
+          text: "I can ask the receipt a small civil question.",
+          createdAt: "2026-05-05T12:04:00.000Z",
+        },
+      ],
+    };
+    const expiredPacket = buildCharacterPromptPacket({
+      member: vhool,
+      partner: jenna,
+      scenario,
+      session: answeredSession,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: answeredSession.transcript,
+      },
+    });
+
+    expect(expiredPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
+    expect(expiredPacket.prompt).not.toContain("Private Cupid nudge");
   });
 
   it("selects samples without looping on known collision seeds", () => {

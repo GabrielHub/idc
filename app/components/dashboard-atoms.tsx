@@ -1,8 +1,11 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { Member, PortraitMood } from "../domain/game";
-import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
+import {
+  readyPortraitMoodPaths,
+  readyPortraitPath,
+  selectPortraitAsset,
+} from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
 export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
@@ -89,6 +92,24 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
   "standee-top": "font-display text-display-xl font-bold text-aura-rose/30",
 };
 
+const STANDEE_PORTRAIT_VARIANTS = new Set<PortraitVariant>(["standee-bottom", "standee-top"]);
+const PORTRAIT_FADE_MS = 420;
+const PORTRAIT_FADE_TRANSITION = `opacity ${PORTRAIT_FADE_MS}ms cubic-bezier(0.2,0.8,0.2,1)`;
+
+// Must match scripts/portraits/resize_avatars.py (DEFAULT_VARIANT_WIDTHS).
+const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
+
+const AVATAR_SIZES_FOR_VARIANT: Record<PortraitVariant, string | undefined> = {
+  thumb: "48px",
+  row: "64px",
+  card: "96px",
+  stage: "176px",
+  hero: "224px",
+  transcript: "36px",
+  "standee-bottom": undefined,
+  "standee-top": undefined,
+};
+
 export function Portrait({
   member,
   variant,
@@ -100,75 +121,110 @@ export function Portrait({
   asset?: "avatar" | "portrait";
   mood?: PortraitMood;
 }) {
-  const portraitAsset = selectPortraitAsset(member, asset, mood);
-  const imagePath = readyPortraitPath(portraitAsset);
-  const [failed, setFailed] = useState(false);
-  const [retryToken, setRetryToken] = useState(0);
+  const layerPaths = useMemo(() => buildPortraitLayerPaths(member, asset), [member.id, asset]);
+  const activePath = readyPortraitPath(selectPortraitAsset(member, asset, mood));
+
+  const [loadedPaths, setLoadedPaths] = useState<ReadonlySet<string>>(() => new Set());
+  const [failedPaths, setFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
-    setFailed(false);
-    setRetryToken(0);
-  }, [imagePath]);
+    setLoadedPaths(new Set());
+    setFailedPaths(new Set());
+  }, [member.id, asset]);
 
-  useEffect(() => {
-    if (imagePath === undefined || !failed) {
-      return;
-    }
-
-    const retryId = window.setTimeout(() => {
-      setRetryToken((current) => current + 1);
-      setFailed(false);
-    }, 2000);
-
-    return () => window.clearTimeout(retryId);
-  }, [failed, imagePath, retryToken]);
-
-  const retryImagePath =
-    imagePath === undefined ? undefined : portraitPathWithRetryToken(imagePath, retryToken);
-  const showFallback = imagePath === undefined || failed;
-  const activeImageSrc = retryImagePath ?? imagePath;
+  const isStandee = STANDEE_PORTRAIT_VARIANTS.has(variant);
+  const activeReady =
+    activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath);
+  const avatarSrcSet = asset === "avatar" ? buildAvatarSrcSet(activePath) : undefined;
+  const avatarSizes = asset === "avatar" ? AVATAR_SIZES_FOR_VARIANT[variant] : undefined;
 
   return (
     <div
       className={`relative grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}
     >
-      <AnimatePresence initial={false} mode="sync">
-        {showFallback ? (
-          <motion.span
-            key="portrait-initials"
-            className={`absolute inset-0 grid place-items-center ${PORTRAIT_INITIALS[variant]}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-          >
-            {initialsFor(member.firstName)}
-          </motion.span>
-        ) : (
-          <motion.img
-            key={activeImageSrc}
+      {layerPaths.map((path) => {
+        const isActive = path === activePath;
+        const loaded = loadedPaths.has(path);
+        const failed = failedPaths.has(path);
+        const visible = isActive && loaded && !failed;
+
+        return (
+          <img
+            key={path}
             alt=""
+            src={path}
+            srcSet={isActive ? avatarSrcSet : undefined}
+            sizes={isActive ? avatarSizes : undefined}
             className={`absolute inset-0 ${PORTRAIT_IMAGE[variant]}`}
-            onError={() => setFailed(true)}
-            src={activeImageSrc}
-            initial={{ opacity: 0, scale: 0.985 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.005 }}
-            transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
+            style={{
+              opacity: visible ? 1 : 0,
+              transition: PORTRAIT_FADE_TRANSITION,
+              willChange: "opacity",
+            }}
+            decoding="async"
+            fetchPriority={isStandee ? "high" : "auto"}
+            loading={isStandee ? "eager" : "lazy"}
+            onLoad={() => addPath(setLoadedPaths, path)}
+            onError={() => addPath(setFailedPaths, path)}
           />
-        )}
-      </AnimatePresence>
+        );
+      })}
+      <span
+        aria-hidden={activeReady}
+        className={`absolute inset-0 grid place-items-center ${PORTRAIT_INITIALS[variant]}`}
+        style={{
+          opacity: activeReady ? 0 : 1,
+          transition: PORTRAIT_FADE_TRANSITION,
+        }}
+      >
+        {initialsFor(member.firstName)}
+      </span>
     </div>
   );
 }
 
-function portraitPathWithRetryToken(imagePath: string, retryToken: number) {
-  if (retryToken === 0) {
-    return imagePath;
+function buildAvatarSrcSet(activePath: string | undefined): string | undefined {
+  if (activePath === undefined) {
+    return undefined;
   }
 
-  const separator = imagePath.includes("?") ? "&" : "?";
-  return `${imagePath}${separator}portraitRetry=${retryToken}`;
+  const lastDot = activePath.lastIndexOf(".");
+
+  if (lastDot === -1) {
+    return undefined;
+  }
+
+  const base = activePath.slice(0, lastDot);
+  const extension = activePath.slice(lastDot);
+  const widthEntries = AVATAR_SRCSET_WIDTHS.map(
+    (width) => `${base}-${width}${extension} ${width}w`,
+  );
+
+  return [...widthEntries, `${activePath} 1024w`].join(", ");
+}
+
+function buildPortraitLayerPaths(member: Member, asset: "avatar" | "portrait"): string[] {
+  if (asset === "avatar") {
+    const avatarPath = readyPortraitPath(selectPortraitAsset(member, "avatar"));
+    return avatarPath === undefined ? [] : [avatarPath];
+  }
+
+  return readyPortraitMoodPaths(member);
+}
+
+function addPath(
+  setter: (updater: (current: ReadonlySet<string>) => ReadonlySet<string>) => void,
+  path: string,
+): void {
+  setter((current) => {
+    if (current.has(path)) {
+      return current;
+    }
+
+    const next = new Set(current);
+    next.add(path);
+    return next;
+  });
 }
 
 function initialsFor(name: string) {

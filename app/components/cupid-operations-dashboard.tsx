@@ -415,7 +415,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
-  async function handleAdvanceExchange() {
+  async function handleAdvanceExchange(turnCount: 1 | 2) {
     if (save === null || activeSession === null) {
       return;
     }
@@ -428,6 +428,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             type: "advanceExchange",
             save,
             dateSessionId: activeSession.id,
+            turnCount,
             runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
           },
           applyGameStreamEvent,

@@ -124,5 +124,14 @@ export const seraVohn: Member = {
         model: "image_gen built-in",
       },
     },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/sera-vohn/portrait-confused.png",
+        cutoutPath: "/assets/portraits/sera-vohn/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Sera Vohn portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, sharp skeptical three-quarter pose with one hand planted firmly on her hip and the other hand holding the same slim audit stylus near shoulder height as if paused mid note, direct camera eye contact, skeptical disbelief expression with one eyebrow raised, slightly pinched brows, narrowed evaluative eyes, and a dry doubtful mouth as if silently asking whether she is expected to believe that claim, full body visible, plain white background, no text, no logo, no frame, no scenery, no tablet focus",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

@@ -31,19 +31,25 @@ import {
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
   createNonCharacterMessage,
+  exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
+  isAtExchangeBoundary,
+  latestJudgedExchangeIndex,
   markPairDateComplete,
   requireDateSession,
   requireMember,
   requirePairState,
   requireScenario,
+  sceneBeatsForUpcomingExchange,
+  shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
 import {
   buildCharacterPromptPacket,
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
+  cleanMemberFacingText,
   type CharacterPromptPacket,
   type JudgePromptPacket,
   type SummarizerPromptPacket,
@@ -152,6 +158,7 @@ function mergeCharacterTelemetry(into: CharacterAiTelemetry, from: CharacterAiTe
 
 type LocalAiDateEngineInput = {
   dateSessionId: string;
+  turnCount?: 1 | 2;
   now?: Date;
   config?: Partial<AiRuntimeConfig>;
   runtime?: LocalAiDateRuntime;
@@ -230,12 +237,10 @@ async function advanceDateExchangeWithLocalAiInternal(
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
   let workingSession = session;
+  const turnCount = input.turnCount ?? 2;
 
-  for (let index = 0; index < 2 && currentTurn < session.turnLimit; index += 1) {
-    const nextTurn = currentTurn + 1;
-    const beat = scenario.director.beats.find((candidate) => candidate.atTurn === nextTurn);
-
-    if (beat !== undefined) {
+  if (isAtExchangeBoundary(currentTurn)) {
+    for (const beat of sceneBeatsForUpcomingExchange(scenario, currentTurn)) {
       transcript.push(
         createNonCharacterMessage(
           { ...workingSession, transcript, currentTurn },
@@ -245,7 +250,10 @@ async function advanceDateExchangeWithLocalAiInternal(
         ),
       );
     }
+    workingSession = { ...workingSession, transcript, currentTurn };
+  }
 
+  for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
     const partner = members[(currentTurn + 1) % members.length];
     const characterSession = { ...workingSession, transcript, currentTurn };
@@ -880,33 +888,6 @@ function buildMemoryQuery(
   return `${speaker.name} ${partner.name} ${scenario.title} ${recentText}`;
 }
 
-function shouldJudgePendingExchange({
-  currentTurn,
-  turnLimit,
-  exchangeMessages,
-}: {
-  currentTurn: number;
-  turnLimit: number;
-  exchangeMessages: DateMessage[];
-}): boolean {
-  if (exchangeMessages.length === 0) {
-    return false;
-  }
-
-  return exchangeMessages.length >= 2 || currentTurn >= turnLimit;
-}
-
-function latestJudgedExchangeIndex(session: DateSession): number {
-  return session.judgeSnapshots.reduce(
-    (latest, snapshot) => Math.max(latest, snapshot.exchangeIndex),
-    -1,
-  );
-}
-
-function exchangeIndexForTurn(turnIndex: number): number {
-  return Math.max(0, Math.floor((turnIndex - 1) / 2));
-}
-
 async function createRuntimeQueryEmbedding({
   runtime,
   config,
@@ -944,16 +925,17 @@ export function sanitizeCharacterText(text: string, speakerName: string): string
     .replace(/^["']|["']$/g, "")
     .replace(speakerLabelPattern(speakerName), "")
     .trim();
+  const memberFacingText = cleanMemberFacingText(trimmedText).trim();
 
-  if (trimmedText.length === 0) {
+  if (memberFacingText.length === 0) {
     throw new Error("Performer returned an empty message.");
   }
 
-  if (trimmedText.length <= CHARACTER_MESSAGE_MAX_LENGTH) {
-    return trimmedText;
+  if (memberFacingText.length <= CHARACTER_MESSAGE_MAX_LENGTH) {
+    return memberFacingText;
   }
 
-  return `${trimmedText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
+  return `${memberFacingText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
 }
 
 const FORBIDDEN_DASH_PATTERN = /[\u2014\u2013]/;

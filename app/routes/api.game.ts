@@ -82,6 +82,7 @@ export async function action({ request }: { request: Request }) {
       actionInput.type === "advanceExchange"
         ? advanceDateExchangeWithLocalAi(actionInput.save, repository, {
             dateSessionId: actionInput.dateSessionId,
+            turnCount: actionInput.turnCount,
             config: runtimeConfig,
           })
         : completeDateSessionWithLocalAi(actionInput.save, repository, {
@@ -119,6 +120,7 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
                 repository,
                 {
                   dateSessionId: actionInput.dateSessionId,
+                  turnCount: actionInput.turnCount,
                   config: runtimeConfig,
                 },
                 emit,

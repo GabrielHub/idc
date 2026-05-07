@@ -13,6 +13,7 @@ import {
   type DateMessage,
   type DateScenario,
   type DateSession,
+  type ScenarioBeat,
   type FollowUpAction,
   type GameSave,
   type GoalMetric,
@@ -49,6 +50,7 @@ export type StartDateInput = {
 
 export type AdvanceDateInput = {
   dateSessionId: string;
+  turnCount?: 1 | 2;
   now?: Date;
 };
 
@@ -70,6 +72,7 @@ export type DateEngineResult = {
 };
 
 const CHARACTER_TURN_LIMIT = 30;
+const CHARACTER_TURNS_PER_EXCHANGE = 2;
 const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 export const CLIENT_LOSS_LIMIT = 3;
 
@@ -213,6 +216,54 @@ export function isInterventionVisibleTo(
   return intervention?.targetMemberId === undefined || intervention.targetMemberId === memberId;
 }
 
+export function isInterventionActiveForMember(session: DateSession, memberId: string): boolean {
+  if (!isInterventionVisibleTo(session.intervention, memberId)) {
+    return false;
+  }
+
+  const intervention = session.intervention;
+
+  if (intervention === undefined) {
+    return false;
+  }
+
+  return !session.transcript.some(
+    (message) =>
+      message.kind === "character" &&
+      message.speakerId === memberId &&
+      message.turnIndex > intervention.usedAtTurn,
+  );
+}
+
+export function currentSceneBeatForTurn(
+  scenario: DateScenario,
+  turnIndex: number,
+): ScenarioBeat | undefined {
+  const exchangeStartTurn =
+    Math.floor((turnIndex - 1) / CHARACTER_TURNS_PER_EXCHANGE) * CHARACTER_TURNS_PER_EXCHANGE + 1;
+  const exchangeEndTurn = exchangeStartTurn + CHARACTER_TURNS_PER_EXCHANGE - 1;
+
+  return scenario.director.beats.find(
+    (beat) => beat.atTurn >= exchangeStartTurn && beat.atTurn <= exchangeEndTurn,
+  );
+}
+
+export function sceneBeatsForUpcomingExchange(
+  scenario: DateScenario,
+  currentTurn: number,
+): ScenarioBeat[] {
+  const exchangeStartTurn = currentTurn + 1;
+  const exchangeEndTurn = currentTurn + CHARACTER_TURNS_PER_EXCHANGE;
+
+  return scenario.director.beats.filter(
+    (beat) => beat.atTurn >= exchangeStartTurn && beat.atTurn <= exchangeEndTurn,
+  );
+}
+
+export function isAtExchangeBoundary(currentTurn: number): boolean {
+  return currentTurn % CHARACTER_TURNS_PER_EXCHANGE === 0;
+}
+
 export function addCupidIntervention(save: GameSave, input: InterventionInput): DateEngineResult {
   const now = input.now ?? new Date();
   const timestamp = now.toISOString();
@@ -271,12 +322,10 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const focusRequest = findMemberRequestById(session.focusRequestId);
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
+  const turnCount = input.turnCount ?? CHARACTER_TURNS_PER_EXCHANGE;
 
-  for (let index = 0; index < 2 && currentTurn < session.turnLimit; index += 1) {
-    const nextTurn = currentTurn + 1;
-    const beat = scenario.director.beats.find((candidate) => candidate.atTurn === nextTurn);
-
-    if (beat !== undefined) {
+  if (isAtExchangeBoundary(currentTurn)) {
+    for (const beat of sceneBeatsForUpcomingExchange(scenario, currentTurn)) {
       transcript.push(
         createNonCharacterMessage(
           { ...session, transcript, currentTurn },
@@ -286,7 +335,9 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
         ),
       );
     }
+  }
 
+  for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
     const partner = members[(currentTurn + 1) % members.length];
     transcript.push(
@@ -302,16 +353,44 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     currentTurn += 1;
   }
 
-  const exchangeMessages = transcript
-    .slice(session.transcript.length)
-    .filter((message) => message.kind === "character");
+  const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);
+  const exchangeMessages = transcript.filter(
+    (message) =>
+      message.kind === "character" &&
+      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
+  );
+  const shouldJudgeExchange = shouldJudgePendingExchange({
+    currentTurn,
+    turnLimit: session.turnLimit,
+    exchangeMessages,
+  });
+
+  if (!shouldJudgeExchange) {
+    const updatedSession = dateSessionSchema.parse({
+      ...session,
+      currentTurn,
+      transcript,
+    });
+    const nextSave = gameSaveSchema.parse({
+      ...save,
+      dateSessions: replaceById(save.dateSessions, updatedSession),
+      updatedAt: timestamp,
+    });
+
+    return { save: nextSave, session: updatedSession };
+  }
+
+  const exchangeIndex = exchangeIndexForPendingTurn(
+    exchangeMessages,
+    session.judgeSnapshots.length,
+  );
   const deterministicJudgeSnapshot = judgeExchangeDeterministically({
     session,
     pairState,
     members,
     scenario,
     exchangeMessages,
-    exchangeIndex: session.judgeSnapshots.length,
+    exchangeIndex,
   });
   const matchFit = evaluateMatchFit({
     members,
@@ -723,7 +802,7 @@ export function createCharacterMessage({
     scenario,
     turnIndex,
     repeatCount,
-    interventionText: isInterventionVisibleTo(session.intervention, speaker.id)
+    interventionText: isInterventionActiveForMember(session, speaker.id)
       ? session.intervention?.text
       : undefined,
   });
@@ -827,7 +906,15 @@ export function judgeExchangeDeterministically({
 }): JudgeSnapshot {
   const scenarioRiskPenalty =
     scenario.card.risk === "high" ? -7 : scenario.card.risk === "medium" ? -3 : 2;
-  const interventionBonus = session.intervention === undefined ? 0 : 3;
+  const interventionBonus = exchangeMessages.some(
+    (message) =>
+      session.intervention !== undefined &&
+      message.kind === "character" &&
+      message.speakerId === session.intervention.targetMemberId &&
+      message.turnIndex > session.intervention.usedAtTurn,
+  )
+    ? 3
+    : 0;
   const repeatPenalty = (pairState.scenarioUseCounts[scenario.id] ?? 0) > 0 ? -5 : 0;
   const listeningBonus = exchangeMessages.some((message) =>
     members.some((member) => message.text.includes(member.name)),
@@ -1294,6 +1381,46 @@ function buildJudgeSummary(
   }
 
   return "Date Health stable. Continue monitoring.";
+}
+
+export function shouldJudgePendingExchange({
+  currentTurn,
+  turnLimit,
+  exchangeMessages,
+}: {
+  currentTurn: number;
+  turnLimit: number;
+  exchangeMessages: DateMessage[];
+}): boolean {
+  if (exchangeMessages.length === 0) {
+    return false;
+  }
+
+  return exchangeMessages.length >= CHARACTER_TURNS_PER_EXCHANGE || currentTurn >= turnLimit;
+}
+
+export function latestJudgedExchangeIndex(session: DateSession): number {
+  return session.judgeSnapshots.reduce(
+    (latest, snapshot) => Math.max(latest, snapshot.exchangeIndex),
+    -1,
+  );
+}
+
+export function exchangeIndexForTurn(turnIndex: number): number {
+  return Math.max(0, Math.floor((turnIndex - 1) / CHARACTER_TURNS_PER_EXCHANGE));
+}
+
+export function exchangeIndexForPendingTurn(
+  exchangeMessages: readonly DateMessage[],
+  fallbackExchangeIndex: number,
+): number {
+  const firstCharacterMessage = exchangeMessages.find((message) => message.kind === "character");
+
+  if (firstCharacterMessage === undefined) {
+    return fallbackExchangeIndex;
+  }
+
+  return exchangeIndexForTurn(firstCharacterMessage.turnIndex);
 }
 
 function buildShiftSummary(

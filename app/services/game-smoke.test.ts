@@ -638,6 +638,68 @@ describe("IDC playable smoke path", () => {
     expect(firstCharacterMessage?.speakerId).toBe("vhool");
   });
 
+  it("inserts room beats before the exchange they affect", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const first = advanceDateExchange(started.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const second = advanceDateExchange(first.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+    const previousLength = second.session.transcript.length;
+    const third = advanceDateExchange(second.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:04:00.000Z"),
+    });
+    const newMessages = third.session.transcript.slice(previousLength);
+
+    expect(newMessages[0]?.kind).toBe("scenario");
+    expect(newMessages[0]?.text).toContain("receipt says");
+    expect(newMessages[1]?.kind).toBe("character");
+    expect(newMessages[1]?.turnIndex).toBe(5);
+    expect(newMessages[2]?.kind).toBe("character");
+    expect(newMessages[2]?.turnIndex).toBe(6);
+  });
+
+  it("can advance one member message before judging the exchange", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const firstLine = advanceDateExchange(started.save, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const secondLine = advanceDateExchange(firstLine.save, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+
+    expect(firstLine.session.currentTurn).toBe(1);
+    expect(firstLine.session.judgeSnapshots).toHaveLength(0);
+    expect(secondLine.session.currentTurn).toBe(2);
+    expect(secondLine.session.judgeSnapshots).toHaveLength(1);
+  });
+
   it("scores match fit from hidden member tags and scenario pressure", () => {
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const prophecyFit = evaluateFixtureFit(save, {

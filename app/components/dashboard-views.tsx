@@ -44,7 +44,6 @@ import {
 import {
   isMemberSpeaking,
   memberStreamingReasoningText,
-  readyPortraitMoodPaths,
   selectPortraitMood,
 } from "./date-presentation-signals";
 
@@ -2081,7 +2080,7 @@ export type DateProps = {
   streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
-  onAdvance: () => void;
+  onAdvance: (turnCount: 1 | 2) => void;
   onComplete: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
@@ -2143,27 +2142,6 @@ export function DateView({
     leftMember === undefined ? "" : memberStreamingReasoningText(leftMember.id, streamingDrafts);
   const rightReasoningText =
     rightMember === undefined ? "" : memberStreamingReasoningText(rightMember.id, streamingDrafts);
-  const preloadPortraitPaths = useMemo(() => {
-    if (leftMember === undefined || rightMember === undefined) {
-      return [];
-    }
-
-    return [...readyPortraitMoodPaths(leftMember), ...readyPortraitMoodPaths(rightMember)];
-  }, [leftMember, rightMember]);
-
-  useEffect(() => {
-    const images = preloadPortraitPaths.map((imagePath) => {
-      const image = new Image();
-      image.src = imagePath;
-      return image;
-    });
-
-    return () => {
-      for (const image of images) {
-        image.src = "";
-      }
-    };
-  }, [preloadPortraitPaths]);
 
   return (
     <motion.div
@@ -2778,15 +2756,17 @@ function DateFooter({
   nudgeSuggestions: string[];
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
-  onAdvance: () => void;
+  onAdvance: (turnCount: 1 | 2) => void;
   onComplete: () => void;
   onIntervene: () => void;
 }) {
   const interventionDisabled = !canAdvance || session.intervention !== undefined;
   const nudgeTarget = participants.find((member) => member.id === interventionTargetMemberId);
   const resolveLabel = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
-  const advanceLabel =
-    pendingDateAction === null ? "Advance" : ADVANCE_BUTTON_LABELS[pendingDateAction];
+  const nextLineLabel =
+    pendingDateAction === null ? "Next line" : ADVANCE_BUTTON_LABELS[pendingDateAction];
+  const exchangeLabel =
+    pendingDateAction === null ? "Exchange" : ADVANCE_BUTTON_LABELS[pendingDateAction];
 
   return (
     <motion.footer
@@ -2842,8 +2822,11 @@ function DateFooter({
                 <GhostButton onClick={onComplete} disabled={!canAdvance}>
                   {resolveLabel}
                 </GhostButton>
-                <PrimaryButton onClick={onAdvance} disabled={!canAdvance}>
-                  {advanceLabel}
+                <GhostButton onClick={() => onAdvance(1)} disabled={!canAdvance}>
+                  {nextLineLabel}
+                </GhostButton>
+                <PrimaryButton onClick={() => onAdvance(2)} disabled={!canAdvance}>
+                  {exchangeLabel}
                 </PrimaryButton>
               </>
             ) : null}
@@ -3166,7 +3149,7 @@ function buildNonCharacterLabel(
     const target =
       targetId === undefined ? undefined : members.find((member) => member.id === targetId);
 
-    return { label: "cupid nudge", targetName: target?.firstName };
+    return { label: "private nudge", targetName: target?.firstName };
   }
 
   return { label: "System" };
