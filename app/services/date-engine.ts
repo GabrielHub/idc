@@ -29,7 +29,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
-import { findMemberInSave, getActiveShift, makePairId, sortMemberIds } from "./game-seed";
+import { findMemberInSave, getActiveShift, makePairId } from "./game-seed";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import {
   selectFeaturedMemberIds,
@@ -54,6 +54,7 @@ export type AdvanceDateInput = {
 
 export type InterventionInput = {
   dateSessionId: string;
+  targetMemberId: string;
   text: string;
   now?: Date;
 };
@@ -149,7 +150,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     pairState,
     activeRequests,
   });
-  const participants = sortMemberIds(firstMember.id, secondMember.id);
+  const participants: [string, string] = [firstMember.id, secondMember.id];
   const sessionNumber = activeShift.dateSlotsUsed + 1;
   const sessionId = `${shiftSessionPrefix(activeShift.shiftNumber)}${sessionNumber}-${pairId}-${scenario.id}`;
   const openingMessage: DateMessage = {
@@ -205,6 +206,13 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   return { save: nextSave, session };
 }
 
+export function isInterventionVisibleTo(
+  intervention: DateSession["intervention"],
+  memberId: string,
+): boolean {
+  return intervention?.targetMemberId === undefined || intervention.targetMemberId === memberId;
+}
+
 export function addCupidIntervention(save: GameSave, input: InterventionInput): DateEngineResult {
   const now = input.now ?? new Date();
   const timestamp = now.toISOString();
@@ -216,6 +224,10 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
 
   if (session.status !== "active") {
     throw new Error("Cupid interventions are only available during active dates.");
+  }
+
+  if (!session.participants.includes(input.targetMemberId)) {
+    throw new Error("Cupid can only nudge one of the active date members.");
   }
 
   const trimmedText = input.text.trim();
@@ -236,6 +248,7 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
     intervention: {
       text: trimmedText,
       usedAtTurn: session.currentTurn,
+      targetMemberId: input.targetMemberId,
     },
   });
   const nextSave = replaceDateSession(save, updatedSession, timestamp);
@@ -710,7 +723,9 @@ export function createCharacterMessage({
     scenario,
     turnIndex,
     repeatCount,
-    interventionText: session.intervention?.text,
+    interventionText: isInterventionVisibleTo(session.intervention, speaker.id)
+      ? session.intervention?.text
+      : undefined,
   });
 
   return {

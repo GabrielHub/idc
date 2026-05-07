@@ -336,6 +336,7 @@ export const characterDateStateSchema = z.object({
 export const cupidInterventionSchema = z.object({
   text: z.string().min(1).max(240),
   usedAtTurn: z.number().int().min(0),
+  targetMemberId: memberIdSchema.optional(),
 });
 
 export const memoryScopeSchema = z.enum(["member", "pair", "date", "scenario", "company"]);

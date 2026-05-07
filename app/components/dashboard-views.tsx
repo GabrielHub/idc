@@ -2073,12 +2073,14 @@ export type DateProps = {
   scenario: DateScenario | undefined;
   members: Member[];
   interventionText: string;
+  interventionTargetMemberId: string;
   canAdvance: boolean;
   canIntervene: boolean;
   isActionPending: boolean;
   pendingDateAction: PendingDateAction | null;
   streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
+  onInterventionTargetChange: (memberId: string) => void;
   onAdvance: () => void;
   onComplete: () => void;
   onIntervene: () => void;
@@ -2102,12 +2104,14 @@ export function DateView({
   scenario,
   members,
   interventionText,
+  interventionTargetMemberId,
   canAdvance,
   canIntervene,
   isActionPending,
   pendingDateAction,
   streamingDrafts,
   onInterventionTextChange,
+  onInterventionTargetChange,
   onAdvance,
   onComplete,
   onIntervene,
@@ -2213,11 +2217,14 @@ export function DateView({
         <DateFooter
           session={session}
           interventionText={interventionText}
+          interventionTargetMemberId={interventionTargetMemberId}
+          participants={participants}
           canAdvance={canAdvance}
           canIntervene={canIntervene}
           pendingDateAction={pendingDateAction}
           nudgeSuggestions={buildNudgeSuggestions(session)}
           onInterventionTextChange={onInterventionTextChange}
+          onInterventionTargetChange={onInterventionTargetChange}
           onAdvance={onAdvance}
           onComplete={onComplete}
           onIntervene={onIntervene}
@@ -2260,7 +2267,10 @@ function DateHeader({
         : "rose";
 
   return (
-    <header className="sticky top-20 z-20 -mx-6 border-b border-aura-hairline bg-aura-bg/72 px-6 pt-3 pb-4 backdrop-blur-xl lg:-mx-10 lg:top-24 lg:px-10">
+    <header
+      data-date-header
+      className="sticky top-20 z-20 -mx-6 border-b border-aura-hairline bg-aura-bg/72 px-6 pt-3 pb-4 backdrop-blur-xl lg:-mx-10 lg:top-24 lg:px-10"
+    >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2">
           <Eyebrow>// date.{pad2(session.currentTurn)}</Eyebrow>
@@ -2312,6 +2322,7 @@ type TranscriptItem = {
   text: string;
   tone: "member" | "scenario" | "cupid" | "system" | "judge";
   member?: Member;
+  targetName?: string;
   isDraft?: boolean;
   isStreaming?: boolean;
 };
@@ -2384,18 +2395,27 @@ function ChatStream({
   leftMemberId: string | undefined;
   pendingDateAction: PendingDateAction | null;
 }) {
-  const endAnchorRef = useRef<HTMLDivElement | null>(null);
+  const listRef = useRef<HTMLOListElement | null>(null);
+  const tailRef = useRef<HTMLDivElement | null>(null);
   const previousItemCountRef = useRef(items.length);
   const latestText = items.at(-1)?.text ?? "";
 
   useEffect(() => {
     const itemCountIncreased = items.length > previousItemCountRef.current;
     previousItemCountRef.current = items.length;
+    const behavior: ScrollBehavior = itemCountIncreased ? "smooth" : "auto";
+    const scroll = () =>
+      scrollLatestTranscriptItemIntoClearance(listRef.current, tailRef.current, behavior);
+    const animationFrame = window.requestAnimationFrame(scroll);
+    const retryTimeout = itemCountIncreased === true ? window.setTimeout(scroll, 180) : undefined;
 
-    endAnchorRef.current?.scrollIntoView({
-      behavior: itemCountIncreased ? "smooth" : "auto",
-      block: "end",
-    });
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+
+      if (retryTimeout !== undefined) {
+        window.clearTimeout(retryTimeout);
+      }
+    };
   }, [items.length, latestText]);
 
   const statusCue =
@@ -2417,7 +2437,7 @@ function ChatStream({
 
   return (
     <div className="mt-8">
-      <ol className="space-y-4">
+      <ol ref={listRef} className="space-y-4">
         {items.map((item, index) => {
           const previous = items[index - 1];
           return (
@@ -2432,11 +2452,52 @@ function ChatStream({
         })}
       </ol>
 
-      {statusCue === null ? null : <div className="mt-5 flex justify-start">{statusCue}</div>}
-
-      <div ref={endAnchorRef} aria-hidden className="h-2 scroll-mb-44 lg:scroll-mb-52" />
+      {statusCue === null ? null : (
+        <div ref={tailRef} className="mt-5 flex justify-start">
+          {statusCue}
+        </div>
+      )}
     </div>
   );
+}
+
+function scrollLatestTranscriptItemIntoClearance(
+  listElement: HTMLOListElement | null,
+  tailElement: HTMLDivElement | null,
+  behavior: ScrollBehavior,
+): void {
+  const latestItem = listElement?.lastElementChild;
+
+  if (!(latestItem instanceof HTMLElement)) {
+    return;
+  }
+
+  const header = document.querySelector<HTMLElement>("[data-date-header]");
+  const footer = document.querySelector<HTMLElement>("[data-date-footer]");
+  const headerBottom = header?.getBoundingClientRect().bottom ?? 0;
+  const footerTop = footer?.getBoundingClientRect().top ?? window.innerHeight;
+  const topLimit = headerBottom + 16;
+  const bottomLimit = footerTop - 20;
+
+  if (bottomLimit <= topLimit) {
+    latestItem.scrollIntoView({ behavior, block: "nearest" });
+    return;
+  }
+
+  const itemRect = latestItem.getBoundingClientRect();
+  const tailRect = tailElement?.getBoundingClientRect() ?? itemRect;
+  const neededDownScroll = Math.max(0, tailRect.bottom - bottomLimit);
+  const allowedDownScroll = Math.max(0, itemRect.top - topLimit);
+  const downScroll = Math.min(neededDownScroll, allowedDownScroll);
+
+  if (downScroll > 0) {
+    window.scrollBy({ top: downScroll, behavior });
+    return;
+  }
+
+  if (itemRect.top < topLimit) {
+    window.scrollBy({ top: itemRect.top - topLimit, behavior });
+  }
 }
 
 function ChatStreamItem({
@@ -2575,9 +2636,14 @@ function CupidPin({ item, animation }: { item: TranscriptItem; animation: ChatSt
         >
           <span className="size-1 rounded-full bg-white/90" />
         </span>
-        <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-          // cupid nudge
-        </p>
+        <div className="flex items-center justify-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+          <span>// {item.label}</span>
+          {item.targetName === undefined ? null : (
+            <span className="rounded-full bg-aura-rose/15 px-2 py-0.5 tracking-[0.24em] text-aura-rose">
+              → {item.targetName}
+            </span>
+          )}
+        </div>
         <p className="mt-1.5 text-label leading-snug text-aura-ink/85">{item.text}</p>
       </div>
     </motion.li>
@@ -2690,33 +2756,41 @@ function FinalReportPanel({
 function DateFooter({
   session,
   interventionText,
+  interventionTargetMemberId,
+  participants,
   canAdvance,
   canIntervene,
   pendingDateAction,
   nudgeSuggestions,
   onInterventionTextChange,
+  onInterventionTargetChange,
   onAdvance,
   onComplete,
   onIntervene,
 }: {
   session: DateSession;
   interventionText: string;
+  interventionTargetMemberId: string;
+  participants: Member[];
   canAdvance: boolean;
   canIntervene: boolean;
   pendingDateAction: PendingDateAction | null;
   nudgeSuggestions: string[];
   onInterventionTextChange: (text: string) => void;
+  onInterventionTargetChange: (memberId: string) => void;
   onAdvance: () => void;
   onComplete: () => void;
   onIntervene: () => void;
 }) {
   const interventionDisabled = !canAdvance || session.intervention !== undefined;
+  const nudgeTarget = participants.find((member) => member.id === interventionTargetMemberId);
   const resolveLabel = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
   const advanceLabel =
     pendingDateAction === null ? "Advance" : ADVANCE_BUTTON_LABELS[pendingDateAction];
 
   return (
     <motion.footer
+      data-date-footer
       initial={{ y: 80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
@@ -2730,11 +2804,21 @@ function DateFooter({
             onPick={onInterventionTextChange}
           />
         ) : null}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-4">
-          <div className="flex flex-1 items-center gap-3">
-            <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose">
-              Cupid suggests
-            </span>
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
+                Cupid suggests
+              </span>
+              {participants.length >= 2 ? (
+                <NudgeRecipientToggle
+                  participants={participants}
+                  value={interventionTargetMemberId}
+                  disabled={interventionDisabled}
+                  onChange={onInterventionTargetChange}
+                />
+              ) : null}
+            </div>
             <input
               type="text"
               value={interventionText}
@@ -2743,10 +2827,10 @@ function DateFooter({
               onChange={(event) => onInterventionTextChange(event.target.value)}
               placeholder={
                 session.intervention === undefined
-                  ? "draft a nudge"
+                  ? `draft a nudge for ${nudgeTarget?.firstName ?? "one member"}`
                   : "one intervention per date. Filed."
               }
-              className="min-w-0 flex-1 bg-transparent font-sans text-body text-aura-ink outline-none placeholder:text-aura-faint disabled:cursor-not-allowed disabled:opacity-60"
+              className="block w-full min-w-0 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2.5 font-sans text-body text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -2767,6 +2851,48 @@ function DateFooter({
         </div>
       </div>
     </motion.footer>
+  );
+}
+
+function NudgeRecipientToggle({
+  participants,
+  value,
+  disabled,
+  onChange,
+}: {
+  participants: Member[];
+  value: string;
+  disabled: boolean;
+  onChange: (memberId: string) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Cupid nudge recipient"
+      className="inline-flex items-center gap-1 rounded-full border border-aura-hairline bg-white/55 p-0.5"
+    >
+      {participants.map((member) => {
+        const selected = member.id === value;
+
+        return (
+          <button
+            key={member.id}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            disabled={disabled}
+            onClick={() => onChange(member.id)}
+            className={`cursor-pointer rounded-full px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
+              selected
+                ? "bg-aura-rose text-white shadow-quiet"
+                : "text-aura-faint hover:text-aura-ink"
+            }`}
+          >
+            {member.firstName}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
@@ -2973,15 +3099,11 @@ function buildTranscriptItems(
         member,
       };
     }
+
     return {
       id: `turn-${message.sequenceIndex}`,
       order: message.sequenceIndex * 10,
-      label:
-        message.kind === "scenario"
-          ? (scenario?.title ?? "Scenario")
-          : message.kind === "cupid"
-            ? "Cupid intervention"
-            : "System",
+      ...buildNonCharacterLabel(message.kind, session, members, scenario),
       tone: message.kind,
       text: message.text,
     };
@@ -3027,6 +3149,27 @@ function buildTranscriptItems(
   return [...messageItems, ...draftItems, ...judgeItems].sort(
     (first, second) => first.order - second.order,
   );
+}
+
+function buildNonCharacterLabel(
+  kind: "scenario" | "cupid" | "system",
+  session: DateSession,
+  members: Member[],
+  scenario: DateScenario | undefined,
+): { label: string; targetName?: string } {
+  if (kind === "scenario") {
+    return { label: scenario?.title ?? "Scenario" };
+  }
+
+  if (kind === "cupid") {
+    const targetId = session.intervention?.targetMemberId;
+    const target =
+      targetId === undefined ? undefined : members.find((member) => member.id === targetId);
+
+    return { label: "cupid nudge", targetName: target?.firstName };
+  }
+
+  return { label: "System" };
 }
 
 function buildReactionSignals(

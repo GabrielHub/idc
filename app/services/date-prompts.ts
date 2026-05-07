@@ -11,6 +11,7 @@ import type {
   PairState,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
+import { isInterventionVisibleTo } from "./date-engine";
 
 export type CharacterPromptPacket = {
   system: string;
@@ -42,6 +43,11 @@ export type CharacterPromptInput = {
 
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
   const { member, partner, scenario, session, pairState, memoryPack } = input;
+  const visibleTranscript = filterCharacterVisibleTranscript({
+    transcript: memoryPack.recentTranscript,
+    session,
+    member,
+  });
   const currentBeat = scenario.director.beats.find(
     (beat) => beat.atTurn === session.currentTurn + 1,
   );
@@ -68,8 +74,8 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     member,
     partner,
   });
-  const latestIncomingLine = formatLatestIncomingLine(memoryPack.recentTranscript, member, partner);
-  const latestSelfLine = formatLatestSelfLine(memoryPack.recentTranscript, member);
+  const latestIncomingLine = formatLatestIncomingLine(visibleTranscript, member, partner);
+  const latestSelfLine = formatLatestSelfLine(visibleTranscript, member);
   const currentSceneLines = formatCurrentSceneLines({
     scenario,
     partner,
@@ -152,7 +158,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Use concrete answers to learn something personal-scale: taste, habit, worry, principle, or a small admission.",
     "Do not repeat or lightly reword your own earlier line. Build from it.",
     "Do not restate a boundary, plan, order, preference, or offer you already named. Use the partner's answer to move one small step forward.",
-    "Treat names, times, routes, exits, food orders, and plans as settled once the recent transcript settles them.",
+    "Treat names, times, routes, exits, food orders, and plans as settled once the date transcript settles them.",
     "Do not ask the same question or restate the same logistical concern from the last two character turns.",
     "Use scenario events as something happening around you, not as the whole subject.",
     "You may introduce one grounded soft detail if it gives the partner something to react to.",
@@ -166,7 +172,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Return exactly one message, not a transcript.",
     "Usually use 1 short sentence. Use 2 only when the first answers and the second gives a small hook. Stay under 220 characters.",
     "No paragraph breaks.",
-    "Do not reuse a full sentence from the recent transcript.",
+    "Do not reuse a full sentence from the date transcript.",
     "No bracketed asides, editor notes, screenplay labels, or fake transcript channels.",
     "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
     "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
@@ -177,7 +183,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       content: setupMessage,
     },
     ...buildCharacterThreadMessages({
-      transcript: memoryPack.recentTranscript,
+      transcript: visibleTranscript,
       member,
       partner,
     }),
@@ -196,6 +202,21 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     prompt: formatPromptPreview(messages),
     messages,
   };
+}
+
+function filterCharacterVisibleTranscript({
+  transcript,
+  session,
+  member,
+}: {
+  transcript: DateMessage[];
+  session: DateSession;
+  member: Member;
+}): DateMessage[] {
+  return transcript.filter(
+    (message) =>
+      message.kind !== "cupid" || isInterventionVisibleTo(session.intervention, member.id),
+  );
 }
 
 export function buildJudgePromptPacket({

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { judgeSnapshotSchema, memoryCandidateSchema, memoryRecordSchema } from "../domain/game";
+import {
+  dateMessageSchema,
+  judgeSnapshotSchema,
+  memoryCandidateSchema,
+  memoryRecordSchema,
+} from "../domain/game";
 import { LocalGameRepository, MemoryStorageDriver } from "../repositories/local-game-repository";
 import {
   advanceDateExchangeWithLocalAi,
@@ -351,6 +356,88 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
+  it("generates each local AI character turn from the previous generated turn", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-sequential-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 4,
+      },
+    };
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const performerPrompts: string[] = [];
+    const firstGeneratedText = "Jenna names the first receipt and asks if Vhool trusts clocks.";
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => {
+        performerPrompts.push(packet.prompt);
+
+        return {
+          text:
+            performerPrompts.length === 1
+              ? firstGeneratedText
+              : "Vhool answers the clock question after hearing Jenna.",
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 2,
+          statDeltas: {
+            trust: 1,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["Vhool answered Jenna's actual generated line."],
+          playerSummary: "The exchange stayed sequential.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(performerPrompts).toHaveLength(2);
+    expect(performerPrompts[0]).not.toContain(firstGeneratedText);
+    expect(performerPrompts[1]).toContain(firstGeneratedText);
+  });
+
   it("judges every completed AI exchange with the pending transcript", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-judge-cadence-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -456,5 +543,138 @@ describe("AI date engine orchestration", () => {
     expect(judgePrompts[1]).toContain("Prior judge filing for exchange 0");
     expect(judgePrompts[1]).toContain("turn 3 response");
     expect(judgePrompts[1]).toContain("turn 4 response");
+  });
+
+  it("feeds performers the full active date transcript after judged exchanges", async () => {
+    const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-full-context-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "venus",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 14,
+      },
+    };
+    const started = startDateSession(save, {
+      focusMemberId: "venus",
+      firstMemberId: "venus",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const historySpeakers = ["venus", "vhool"] as const;
+    const historyTranscript = Array.from({ length: 10 }, (_, index) =>
+      dateMessageSchema.parse({
+        id: `${started.session.id}-history-${index + 1}`,
+        dateSessionId: started.session.id,
+        kind: "character" as const,
+        speakerId: historySpeakers[index % historySpeakers.length],
+        turnIndex: index + 1,
+        sequenceIndex: index + 1,
+        text:
+          index === 0
+            ? "Venus opener locked: the table is an altar with invoices."
+            : index === 1
+              ? "Vhool opener locked: I hear the cups practicing a hymn."
+              : `turn ${index + 1} established the second refill as mutual property.`,
+        createdAt: "2026-05-05T12:02:00.000Z",
+      }),
+    );
+    const judgedHistory = Array.from({ length: 5 }, (_, index) =>
+      judgeSnapshotSchema.parse({
+        id: `judge-${started.session.id}-${index}`,
+        dateSessionId: started.session.id,
+        exchangeIndex: index,
+        dateHealthDelta: 1,
+        statDeltas: {
+          trust: 1,
+        },
+        memberMoodDeltas: {
+          venus: 1,
+          vhool: 1,
+        },
+        shouldEndEarly: false,
+        notableMoments: [`exchange ${index + 1} stayed conversational.`],
+        playerSummary: `Judge filed exchange ${index + 1}.`,
+        memoryCandidates: [],
+      }),
+    );
+    const sessionWithHistory = {
+      ...started.session,
+      currentTurn: 10,
+      turnLimit: 14,
+      transcript: [...started.session.transcript, ...historyTranscript],
+      judgeSnapshots: judgedHistory,
+    };
+    const saveWithHistory = {
+      ...started.save,
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === sessionWithHistory.id ? sessionWithHistory : session,
+      ),
+    };
+    const performerPrompts: string[] = [];
+    let generationCount = 0;
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => {
+        performerPrompts.push(packet.prompt);
+        generationCount += 1;
+
+        return {
+          text: `full context response ${generationCount}`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {
+            trust: 1,
+          },
+          memberMoodDeltas: {
+            venus: 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["The pair kept the old refills in context."],
+          playerSummary: "Cupid observed a continuous exchange.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(saveWithHistory);
+
+    const result = await advanceDateExchangeWithLocalAi(saveWithHistory, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: saveWithHistory.config,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+
+    expect(result.session.currentTurn).toBe(12);
+    expect(performerPrompts).toHaveLength(2);
+    for (const prompt of performerPrompts) {
+      expect(prompt).toContain("Venus opener locked: the table is an altar with invoices.");
+      expect(prompt).toContain("Vhool opener locked: I hear the cups practicing a hymn.");
+    }
   });
 });

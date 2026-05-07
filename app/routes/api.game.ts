@@ -32,6 +32,7 @@ import { errorToMessage, jsonResponse as json } from "../services/utils";
 const LOCAL_AI_STATUS_INTENT = "local-ai-status";
 const AI_MODELS_INTENT = "ai-models";
 const GAME_STREAM_INTENT = "stream";
+const activeDateActionSessionIds = new Set<string>();
 
 export async function loader({ request }: { request: Request }) {
   const url = new URL(request.url);
@@ -77,16 +78,17 @@ export async function action({ request }: { request: Request }) {
     const actionInput = gameActionSchema.parse(payload);
     const runtimeConfig = runtimeConfigFromGameAction(actionInput);
 
-    const result =
+    const result = await runExclusiveDateAction(actionInput.dateSessionId, () =>
       actionInput.type === "advanceExchange"
-        ? await advanceDateExchangeWithLocalAi(actionInput.save, repository, {
+        ? advanceDateExchangeWithLocalAi(actionInput.save, repository, {
             dateSessionId: actionInput.dateSessionId,
             config: runtimeConfig,
           })
-        : await completeDateSessionWithLocalAi(actionInput.save, repository, {
+        : completeDateSessionWithLocalAi(actionInput.save, repository, {
             dateSessionId: actionInput.dateSessionId,
             config: runtimeConfig,
-          });
+          }),
+    );
 
     return json(toGameActionResponse(result));
   } catch (error) {
@@ -110,9 +112,9 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
         const actionInput = gameActionSchema.parse(payload);
         const runtimeConfig = runtimeConfigFromGameAction(actionInput);
 
-        const result =
+        const result = await runExclusiveDateAction(actionInput.dateSessionId, () =>
           actionInput.type === "advanceExchange"
-            ? await advanceDateExchangeWithLocalAiStream(
+            ? advanceDateExchangeWithLocalAiStream(
                 actionInput.save,
                 repository,
                 {
@@ -121,7 +123,7 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
                 },
                 emit,
               )
-            : await completeDateSessionWithLocalAiStream(
+            : completeDateSessionWithLocalAiStream(
                 actionInput.save,
                 repository,
                 {
@@ -129,7 +131,8 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
                   config: runtimeConfig,
                 },
                 emit,
-              );
+              ),
+        );
 
         write({
           type: "complete",
@@ -153,6 +156,23 @@ function streamGameAction(request: Request, repository: LocalGameRepository): Re
       "X-Accel-Buffering": "no",
     },
   });
+}
+
+async function runExclusiveDateAction<TResult>(
+  dateSessionId: string,
+  action: () => Promise<TResult>,
+): Promise<TResult> {
+  if (activeDateActionSessionIds.has(dateSessionId)) {
+    throw new Error("A date action is already in flight. Wait for Cupid to file it.");
+  }
+
+  activeDateActionSessionIds.add(dateSessionId);
+
+  try {
+    return await action();
+  } finally {
+    activeDateActionSessionIds.delete(dateSessionId);
+  }
 }
 
 function toGameActionResponse(result: LocalAiDateEngineResult): GameActionResponse {

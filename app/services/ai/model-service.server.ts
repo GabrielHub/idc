@@ -25,7 +25,7 @@ import type {
   JudgePromptPacket,
   SummarizerPromptPacket,
 } from "../date-prompts";
-import { errorToMessage } from "../utils";
+import { errorToMessage, isRecord } from "../utils";
 import {
   gatewayReasoningLevelForModel,
   isRecommendedOllamaChatModel,
@@ -39,7 +39,7 @@ const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const OLLAMA_READINESS_MAX_OUTPUT_TOKENS = 32;
 const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 4096;
-const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 8192;
+const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS = 2048;
 const OLLAMA_DISCOVERY_TIMEOUT_MS = 5_000;
@@ -96,6 +96,16 @@ export type GeneratedTextResult = {
   stepCount: number;
   toolCallCount: number;
   toolResultCount: number;
+  promptCharacters?: number;
+  estimatedPromptTokens?: number;
+  usage?: AiUsageTelemetry;
+  warningMessages?: string[];
+};
+
+export type AiUsageTelemetry = {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
 };
 
 export type AiReadiness = {
@@ -443,6 +453,13 @@ async function generateTextWithModelService({
 }): Promise<GeneratedTextResult> {
   try {
     const model = createLanguageModel(modelId, config, generationOptions);
+    const promptStats = promptStatsForRequest({
+      system,
+      prompt,
+      messages,
+      provider: config.aiProvider,
+      contextWindowTokens: config.contextWindowTokens ?? OLLAMA_CONTEXT_WINDOW_TOKENS,
+    });
     const callSettings = {
       model,
       system,
@@ -472,6 +489,7 @@ async function generateTextWithModelService({
       stepCount: result.steps.length,
       toolCallCount: 0,
       toolResultCount: 0,
+      ...buildPromptTelemetry(promptStats, result.totalUsage, result.warnings),
     };
   } catch (error) {
     throw createAiError(textFailureMessage(config.aiProvider), [error], config.aiProvider);
@@ -504,6 +522,13 @@ async function streamTextWithModelService({
 
   try {
     const model = createLanguageModel(modelId, config, generationOptions);
+    const promptStats = promptStatsForRequest({
+      system,
+      prompt,
+      messages,
+      provider: config.aiProvider,
+      contextWindowTokens: config.contextWindowTokens ?? OLLAMA_CONTEXT_WINDOW_TOKENS,
+    });
     const callSettings = {
       model,
       system,
@@ -545,7 +570,11 @@ async function streamTextWithModelService({
       }
     }
 
-    const steps = await result.steps;
+    const [steps, usage, warnings] = await Promise.all([
+      result.steps,
+      result.totalUsage,
+      result.warnings,
+    ]);
 
     return {
       text: emittedText.trim(),
@@ -555,6 +584,7 @@ async function streamTextWithModelService({
       stepCount: steps.length,
       toolCallCount: 0,
       toolResultCount: 0,
+      ...buildPromptTelemetry(promptStats, usage, warnings),
     };
   } catch (error) {
     if (emittedText.length > 0) {
@@ -712,6 +742,96 @@ type GatewayProvider = ReturnType<typeof createOpenAICompatible>;
 const PROVIDER_CACHE_LIMIT = 8;
 const ollamaProviderCache = new Map<string, OllamaProvider>();
 const gatewayProviderCache = new Map<string, GatewayProvider>();
+
+function promptStatsForRequest({
+  system,
+  prompt,
+  messages,
+  provider,
+  contextWindowTokens,
+}: {
+  system: string;
+  prompt: string;
+  messages?: ModelMessage[];
+  provider: AiProvider;
+  contextWindowTokens: number;
+}): { characters: number; estimatedTokens: number; warningMessages: string[] } {
+  const promptText =
+    messages === undefined
+      ? `${system}\n${prompt}`
+      : `${system}\n${messages.map((message) => messageContentText(message.content)).join("\n")}`;
+  const characters = promptText.length;
+  const estimatedTokens = Math.ceil(characters / 4);
+  const warningMessages =
+    provider === "ollama" && estimatedTokens >= Math.floor(contextWindowTokens * 0.8)
+      ? [
+          `Prompt is near the local context budget (${estimatedTokens}/${contextWindowTokens} estimated tokens). Cupid may need to summarize older turns soon.`,
+        ]
+      : [];
+
+  return {
+    characters,
+    estimatedTokens,
+    warningMessages,
+  };
+}
+
+function messageContentText(content: ModelMessage["content"]): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  return JSON.stringify(content);
+}
+
+function usageTelemetryFrom(usage: {
+  inputTokens?: number;
+  outputTokens?: number;
+  totalTokens?: number;
+}): AiUsageTelemetry {
+  return {
+    inputTokens: usage.inputTokens,
+    outputTokens: usage.outputTokens,
+    totalTokens: usage.totalTokens,
+  };
+}
+
+function warningMessagesFrom(warnings: readonly unknown[] | undefined): string[] {
+  if (warnings === undefined) {
+    return [];
+  }
+
+  return warnings.map(warningMessageFrom);
+}
+
+function buildPromptTelemetry(
+  promptStats: { characters: number; estimatedTokens: number; warningMessages: string[] },
+  usage: { inputTokens?: number; outputTokens?: number; totalTokens?: number },
+  warnings: readonly unknown[] | undefined,
+): {
+  promptCharacters: number;
+  estimatedPromptTokens: number;
+  usage: AiUsageTelemetry;
+  warningMessages: string[];
+} {
+  return {
+    promptCharacters: promptStats.characters,
+    estimatedPromptTokens: promptStats.estimatedTokens,
+    usage: usageTelemetryFrom(usage),
+    warningMessages: [...promptStats.warningMessages, ...warningMessagesFrom(warnings)],
+  };
+}
+
+function warningMessageFrom(warning: unknown): string {
+  if (isRecord(warning)) {
+    const type = typeof warning.type === "string" ? warning.type : "provider warning";
+    const message = typeof warning.message === "string" ? warning.message : undefined;
+
+    return message === undefined ? type : `${type}: ${message}`;
+  }
+
+  return errorToMessage(warning);
+}
 
 function getOllamaProvider(baseURL: string | undefined): OllamaProvider {
   return getOrCreateProvider(ollamaProviderCache, baseURL ?? "", () => createOllama({ baseURL }));

@@ -590,6 +590,7 @@ describe("IDC playable smoke path", () => {
     save = started.save;
     save = addCupidIntervention(save, {
       dateSessionId: started.session.id,
+      targetMemberId: "jenna-pike",
       text: "Ask one grounded question before the room becomes symbolic.",
       now: new Date("2026-05-05T12:02:00.000Z"),
     }).save;
@@ -611,6 +612,30 @@ describe("IDC playable smoke path", () => {
     expect(completed.save.memories.some((memory) => memory.dateSessionId === session.id)).toBe(
       true,
     );
+  });
+
+  it("keeps date participant order aligned to the selected pair order", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "vhool",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "vhool",
+      firstMemberId: "vhool",
+      secondMemberId: "jenna-pike",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const advanced = advanceDateExchange(started.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const firstCharacterMessage = advanced.session.transcript.find(
+      (message) => message.kind === "character",
+    );
+
+    expect(started.session.pairId).toBe(makePairId("vhool", "jenna-pike"));
+    expect(started.session.participants).toEqual(["vhool", "jenna-pike"]);
+    expect(firstCharacterMessage?.speakerId).toBe("vhool");
   });
 
   it("scores match fit from hidden member tags and scenario pressure", () => {

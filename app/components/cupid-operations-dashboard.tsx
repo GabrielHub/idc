@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  type DateSession,
   type DateSessionStatus,
   type DateScenario,
   type FollowUpAction,
@@ -110,6 +111,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [selectedScenarioId, setSelectedScenarioId] = useState("");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
+  const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
   const [localAiStatus, setLocalAiStatus] = useState<LocalAiClientStatus>(CHECKING_LOCAL_AI_STATUS);
   const [gatewayApiKey, setGatewayApiKey] = useState(readStoredGatewayApiKey);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
@@ -408,6 +410,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
       setInterventionText("");
+      setInterventionTargetMemberId("");
       setView("date");
     });
   }
@@ -472,6 +475,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     tryAction("intervention", async () => {
       const result = addCupidIntervention(save, {
         dateSessionId: activeSession.id,
+        targetMemberId: effectiveInterventionTargetMemberId,
         text: interventionText,
       });
       await persist(result.save);
@@ -512,6 +516,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
       setActiveDateSessionId(null);
       setInterventionText("");
+      setInterventionTargetMemberId("");
       setStreamingDrafts([]);
       setView("roster");
     });
@@ -529,6 +534,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       setSelectedScenarioId(result.shift.drawnScenarioIds[0] ?? "");
       setActiveDateSessionId(null);
       setInterventionText("");
+      setInterventionTargetMemberId("");
       setStreamingDrafts([]);
       setView("roster");
     });
@@ -651,9 +657,15 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     activeSession !== null &&
     activeSession.status === "active" &&
     !isActionPending;
+  const effectiveInterventionTargetMemberId = resolveInterventionTarget(
+    activeSession,
+    interventionTargetMemberId,
+  );
   const canIntervene =
     canAdvanceDate &&
-    activeSession?.intervention === undefined &&
+    activeSession !== null &&
+    activeSession.intervention === undefined &&
+    effectiveInterventionTargetMemberId !== "" &&
     interventionText.trim().length > 0;
   const dateStatus = activeSession?.status ?? null;
   const pendingDateAction = asPendingDateAction(pendingAction);
@@ -741,12 +753,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               }
               members={save.members}
               interventionText={interventionText}
+              interventionTargetMemberId={effectiveInterventionTargetMemberId}
               canAdvance={canAdvanceDate}
               canIntervene={canIntervene}
               isActionPending={isActionPending}
               pendingDateAction={pendingDateAction}
               streamingDrafts={streamingDrafts}
               onInterventionTextChange={setInterventionText}
+              onInterventionTargetChange={setInterventionTargetMemberId}
               onAdvance={handleAdvanceExchange}
               onComplete={handleCompleteDate}
               onIntervene={handleIntervention}
@@ -783,6 +797,22 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         </AnimatePresence>
       </main>
     </div>
+  );
+}
+
+function resolveInterventionTarget(session: DateSession | null, override: string): string {
+  if (session === null) {
+    return "";
+  }
+
+  if (session.participants.includes(override)) {
+    return override;
+  }
+
+  return (
+    session.participants[session.currentTurn % session.participants.length] ??
+    session.participants[0] ??
+    ""
   );
 }
 

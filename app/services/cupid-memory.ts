@@ -14,7 +14,6 @@ export type MemoryRetrievalInput = {
   queryEmbeddingModel?: string;
   queryEmbeddingDimensions?: number;
   limit?: number;
-  recentTranscriptLimit?: number;
 };
 
 export type MemoryPack = {
@@ -101,13 +100,12 @@ export async function retrieveRelevantMemories(
     ),
     sessionPromise,
   ]);
-  const recentTranscript = dateSession?.transcript.slice(-(input.recentTranscriptLimit ?? 8)) ?? [];
 
   return {
     self,
     pair,
     scenario,
-    recentTranscript,
+    recentTranscript: dateSession?.transcript ?? [],
   };
 }
 

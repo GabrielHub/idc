@@ -261,8 +261,9 @@ function SpeakingBubble({
   const tint = MOOD_BUBBLE_TINT[mood];
   const anchorClass = isBottom
     ? "absolute left-1 top-[34%] origin-top-left"
-    : "absolute right-1 top-[4%] origin-top-right";
+    : "absolute right-1 top-[70%] origin-top-right";
   const tailSideClass = isBottom ? "right-6" : "left-6";
+  const tailEdge = isBottom ? "bottom" : "top";
   const visible = speaking || listening;
 
   return (
@@ -337,7 +338,7 @@ function SpeakingBubble({
             </div>
           </motion.div>
 
-          <ThoughtTail sideClass={tailSideClass} />
+          <ThoughtTail edge={tailEdge} sideClass={tailSideClass} />
         </motion.div>
       ) : null}
     </AnimatePresence>
@@ -350,11 +351,14 @@ const TAIL_DOTS = [
   { sizeClass: "size-1", baseOpacity: 0.78, delay: 0.4 },
 ] as const;
 
-function ThoughtTail({ sideClass }: { sideClass: string }) {
+function ThoughtTail({ edge, sideClass }: { edge: "top" | "bottom"; sideClass: string }) {
+  const edgeClass =
+    edge === "top" ? "absolute -top-2.5 flex-col-reverse" : "absolute -bottom-2.5 flex-col";
+
   return (
     <div
       aria-hidden
-      className={`pointer-events-none absolute -bottom-2.5 ${sideClass} flex flex-col items-center gap-[3px]`}
+      className={`pointer-events-none ${edgeClass} ${sideClass} flex items-center gap-[3px]`}
     >
       {TAIL_DOTS.map((dot, index) => (
         <motion.span

@@ -112,15 +112,43 @@ export type LocalAiDateStreamEvent =
       exchangeIndex: number;
     };
 
+export type CharacterAiTelemetry = {
+  characterGenerationCount: number;
+  characterToolCallCount: number;
+  characterToolResultCount: number;
+  characterPromptCharacters: number;
+  characterEstimatedPromptTokens: number;
+  characterInputTokens: number;
+  characterOutputTokens: number;
+  characterTotalTokens: number;
+  providerWarningCount: number;
+};
+
 export type LocalAiDateEngineResult = DateEngineResult & {
   runtimeMode: "local_ai";
   warningMessages: string[];
-  aiTelemetry: {
-    characterGenerationCount: number;
-    characterToolCallCount: number;
-    characterToolResultCount: number;
-  };
+  aiTelemetry: CharacterAiTelemetry;
 };
+
+function createEmptyCharacterTelemetry(): CharacterAiTelemetry {
+  return {
+    characterGenerationCount: 0,
+    characterToolCallCount: 0,
+    characterToolResultCount: 0,
+    characterPromptCharacters: 0,
+    characterEstimatedPromptTokens: 0,
+    characterInputTokens: 0,
+    characterOutputTokens: 0,
+    characterTotalTokens: 0,
+    providerWarningCount: 0,
+  };
+}
+
+function mergeCharacterTelemetry(into: CharacterAiTelemetry, from: CharacterAiTelemetry): void {
+  for (const key of Object.keys(into) as Array<keyof CharacterAiTelemetry>) {
+    into[key] += from[key];
+  }
+}
 
 type LocalAiDateEngineInput = {
   dateSessionId: string;
@@ -130,7 +158,6 @@ type LocalAiDateEngineInput = {
 };
 
 const DEFAULT_MEMORY_LIMIT = 2;
-const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 8;
 const CHARACTER_MESSAGE_MAX_LENGTH = 260;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
@@ -173,11 +200,7 @@ async function advanceDateExchangeWithLocalAiInternal(
   const now = input.now ?? new Date();
   const timestamp = now.toISOString();
   const warningMessages: string[] = [];
-  const telemetry = {
-    characterGenerationCount: 0,
-    characterToolCallCount: 0,
-    characterToolResultCount: 0,
-  };
+  const telemetry = createEmptyCharacterTelemetry();
   const session = dateSessionSchema.parse({
     ...requireDateSession(save, input.dateSessionId),
     runtimeMode: "local_ai",
@@ -244,6 +267,13 @@ async function advanceDateExchangeWithLocalAiInternal(
     telemetry.characterGenerationCount += 1;
     telemetry.characterToolCallCount += characterResult.toolCallCount;
     telemetry.characterToolResultCount += characterResult.toolResultCount;
+    telemetry.characterPromptCharacters += characterResult.promptCharacters;
+    telemetry.characterEstimatedPromptTokens += characterResult.estimatedPromptTokens;
+    telemetry.characterInputTokens += characterResult.inputTokens;
+    telemetry.characterOutputTokens += characterResult.outputTokens;
+    telemetry.characterTotalTokens += characterResult.totalTokens;
+    telemetry.providerWarningCount += characterResult.warningMessages.length;
+    warningMessages.push(...characterResult.warningMessages);
 
     transcript.push(characterResult.message);
     currentTurn += 1;
@@ -394,20 +424,14 @@ async function completeDateSessionWithLocalAiInternal(
   let nextSave = save;
   let nextSession = requireDateSession(save, input.dateSessionId);
   const warningMessages: string[] = [];
-  const telemetry = {
-    characterGenerationCount: 0,
-    characterToolCallCount: 0,
-    characterToolResultCount: 0,
-  };
+  const telemetry = createEmptyCharacterTelemetry();
 
   while (nextSession.status === "active") {
     const result = await advanceDateExchangeWithLocalAiInternal(nextSave, repository, input, emit);
     nextSave = result.save;
     nextSession = result.session;
     warningMessages.push(...result.warningMessages);
-    telemetry.characterGenerationCount += result.aiTelemetry.characterGenerationCount;
-    telemetry.characterToolCallCount += result.aiTelemetry.characterToolCallCount;
-    telemetry.characterToolResultCount += result.aiTelemetry.characterToolResultCount;
+    mergeCharacterTelemetry(telemetry, result.aiTelemetry);
   }
 
   return {
@@ -454,6 +478,12 @@ async function createLocalAiCharacterMessage({
   message: DateMessage;
   toolCallCount: number;
   toolResultCount: number;
+  promptCharacters: number;
+  estimatedPromptTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  warningMessages: string[];
 }> {
   try {
     const packet = await buildCharacterPacketForTurn({
@@ -509,6 +539,12 @@ async function createLocalAiCharacterMessage({
       message,
       toolCallCount: generation.toolCallCount,
       toolResultCount: generation.toolResultCount,
+      promptCharacters: generation.promptCharacters ?? 0,
+      estimatedPromptTokens: generation.estimatedPromptTokens ?? 0,
+      inputTokens: generation.usage?.inputTokens ?? 0,
+      outputTokens: generation.usage?.outputTokens ?? 0,
+      totalTokens: generation.usage?.totalTokens ?? 0,
+      warningMessages: generation.warningMessages ?? [],
     };
   } catch (error) {
     throw new Error(`AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
@@ -556,7 +592,6 @@ async function buildCharacterPacketForTurn({
     queryEmbeddingModel: queryEmbedding.model,
     queryEmbeddingDimensions: queryEmbedding.dimensions,
     limit: DEFAULT_MEMORY_LIMIT,
-    recentTranscriptLimit: CHARACTER_RECENT_TRANSCRIPT_LIMIT,
   });
 
   return buildCharacterPromptPacket({
@@ -565,10 +600,7 @@ async function buildCharacterPacketForTurn({
     scenario,
     session,
     pairState,
-    memoryPack: {
-      ...memoryPack,
-      recentTranscript: session.transcript.slice(-CHARACTER_RECENT_TRANSCRIPT_LIMIT),
-    },
+    memoryPack,
     focusRequest,
     frictionRuleHits,
   });

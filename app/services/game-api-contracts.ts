@@ -35,6 +35,12 @@ export const aiTelemetrySchema = z
     characterGenerationCount: z.number().int().min(0),
     characterToolCallCount: z.number().int().min(0),
     characterToolResultCount: z.number().int().min(0),
+    characterPromptCharacters: z.number().int().min(0),
+    characterEstimatedPromptTokens: z.number().int().min(0),
+    characterInputTokens: z.number().int().min(0),
+    characterOutputTokens: z.number().int().min(0),
+    characterTotalTokens: z.number().int().min(0),
+    providerWarningCount: z.number().int().min(0),
   })
   .nullable();
 

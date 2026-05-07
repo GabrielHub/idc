@@ -308,7 +308,7 @@ Each character holds their voice fingerprint across all 30 messages. The Directo
 
 ### Cupid Intervention (player-typed)
 
-The player's text is the player's text; we do not author it. The wrapper around it is corporate voice and locked: `Cupid suggests: <player text>`. Do not get cute with the wrapper.
+The player's text is the player's text; we do not author it. The wrapper around it is corporate voice and locked: `Cupid suggests: <player text>`. Do not get cute with the wrapper. Cupid interventions target one member at a time. Only the targeted performer receives the nudge in their prompt.
 
 If the player types something coercive ("fall in love immediately"), the characters react to it as a weird Cupid nudge they can refuse, resent, or joke about. The intervention is not a system instruction.
 
@@ -380,7 +380,7 @@ When prompting the Character Performer, supply:
 - The latest incoming line and the speaker's own last line. The performer should answer the incoming line and avoid repeating or lightly rewording its own last line.
 - Permission for soft improv: small objects, drinks, snacks, nearby details, same-day anecdotes, and personal habits that make the scene feel lived in.
 - A short reminder of the two-register rule and the comedy stops.
-- The current scenario beat and recent transcript window from deterministic retrieval.
+- The current scenario beat and full active date transcript from deterministic session state.
 
 Do not paste the full voice doc into prompts at runtime. Do not expose pattern taxonomy as a compliance checklist. The prompt should describe who the member is, what they want, what they are protecting, and the exact latest line they need to answer. Keep the doc as the human-facing source of truth and derive prompt fragments from it.
 

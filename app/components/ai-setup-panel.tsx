@@ -29,6 +29,7 @@ import {
   LiveDot,
   MutedLabel,
   PrimaryButton,
+  SelectInput,
 } from "./dashboard-atoms";
 
 const AI_MODELS_URL = "/api/game?intent=ai-models";
@@ -732,54 +733,6 @@ function TextInput({
         onChange={(event) => onChange(event.currentTarget.value)}
         className="mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 font-mono text-label text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose"
       />
-    </label>
-  );
-}
-
-function SelectInput({
-  label,
-  value,
-  options,
-  disabled = false,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  disabled?: boolean;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-        {label}
-      </span>
-      <div className="relative mt-2">
-        <select
-          value={value}
-          disabled={disabled}
-          aria-label={label}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          className="block w-full cursor-pointer appearance-none truncate rounded-tile border border-aura-hairline bg-white/70 px-3 py-2.5 pr-9 text-body font-semibold text-aura-ink outline-none transition hover:border-aura-hairline-strong focus:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-aura-faint">
-          <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M3.5 5.5L7 9L10.5 5.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
-      </div>
     </label>
   );
 }
