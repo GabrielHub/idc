@@ -1020,7 +1020,7 @@ function applyFollowUpToMembers(
 ): Member[] {
   return applyStateDeltasToMembers(members, session.participants, {
     ...FOLLOW_UP_DELTAS[action],
-    recentDateResult: "Follow-up filed. Client HP stabilized.",
+    recentDateResult: "Follow-up filed. Client file stabilized.",
   });
 }
 
@@ -1041,7 +1041,7 @@ function applyIgnoredRequestPenalties(
       mood: -ignoredPenalty,
       burnout: Math.ceil(ignoredPenalty / 2),
       retention: -ignoredPenalty,
-      recentDateResult: "Request ignored. Client HP reduced.",
+      recentDateResult: "Request ignored. Client confidence fell.",
     });
   });
 }
@@ -1078,7 +1078,7 @@ function applyMemberStateDeltas(member: Member, deltas: MemberStateDeltas): Memb
 
   const retention = clampScore(member.state.retention + deltas.retention);
   const recentDateResult =
-    retention === 0 ? "Client HP reached zero. Member quit the app." : deltas.recentDateResult;
+    retention === 0 ? "Client file closed. Member quit the app." : deltas.recentDateResult;
 
   return {
     ...member,
@@ -1094,22 +1094,22 @@ function applyMemberStateDeltas(member: Member, deltas: MemberStateDeltas): Memb
 
 function finalOutcomeMemberResult(outcome: DateFinalReport["outcome"]): string {
   if (outcome === "second_date") {
-    return "Date landed well. Client HP improved.";
+    return "Date landed well. Client file stabilized.";
   }
 
   if (outcome === "bad_fit") {
-    return "Bad fit filed. Client HP reduced.";
+    return "Bad fit filed. Client confidence fell.";
   }
 
   if (outcome === "early_end") {
-    return "Date ended early. Client HP reduced.";
+    return "Date ended early. Client confidence fell.";
   }
 
   if (outcome === "cool_down") {
-    return "Cool down recommended. Client HP reduced.";
+    return "Cool down recommended. Client confidence fell.";
   }
 
-  return "Mixed date filed. Client HP under review.";
+  return "Mixed date filed. Client file under review.";
 }
 
 type PrimaryStatDeltas = Partial<

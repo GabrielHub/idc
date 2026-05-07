@@ -117,5 +117,32 @@ export const miraPark: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mira-park/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/mira-park/portrait-flirty.png",
+        prompt:
+          "Original full body flirty seated portrait variant for Interdimensional Dating Coach matching the approved Mira Park portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old AI startup CEO with light fair skin, short pixie bob crop of platinum silver hair swept across the forehead, sharp brown eyes with precise eyeliner, mauve lipstick, same slim body proportions, navy velvet tailored blazer draped from the shoulders, opaque white silk square neck camisole with clear satin folds and subtle clothed bust contour, high waisted wide leg navy trousers, silver pointed toe pump heels, multi strand short pearl necklace with small jade pendant, ornate engraved silver wrist cuff on the left wrist, slim silver wristwatch on the right wrist, manicured nails, seated and leaning back in a faded elegant executive chair, one leg crossed, one hand touching the camisole strap or blazer lapel, other index fingertip resting against the lower lip, flustered flirt expression with half lidded direct eye contact, warm flushed cheeks, controlled heated smile, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mira-park/portrait-confused.png",
+        cutoutPath: "/assets/portraits/mira-park/portrait-confused.png",
+        prompt:
+          "Original full body confused seated portrait variant for Interdimensional Dating Coach matching the approved Mira Park portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old AI startup CEO with light fair skin, short pixie bob crop of platinum silver hair swept across the forehead, sharp brown eyes with precise eyeliner, mauve lipstick, same slim body proportions, navy velvet tailored blazer draped from the shoulders, opaque white silk square neck camisole, high waisted wide leg navy trousers, silver pointed toe pump heels, multi strand short pearl necklace with small jade pendant, ornate engraved silver wrist cuff on the left wrist, slim silver wristwatch on the right wrist, manicured nails, seated in a faded elegant executive chair, one leg crossed, phone held low near her lap as if hidden from the conversation, one thumb poised to tap, face flat toward the viewer with eyes glancing down toward the phone, nervous professional smile, pinched brows, contained confusion, quietly consulting Sage for answers while pretending to stay engaged, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/mira-park/portrait-angry.png",
+        cutoutPath: "/assets/portraits/mira-park/portrait-angry.png",
+        prompt:
+          "Original full body angry portrait variant for Interdimensional Dating Coach matching the approved Mira Park portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old AI startup CEO with light fair skin, short pixie bob crop of platinum silver hair swept across the forehead, sharp brown eyes with precise eyeliner, mauve lipstick, same slim body proportions, navy velvet tailored blazer draped from the shoulders, white silk square neck camisole, high waisted wide leg navy trousers, silver pointed toe pump heels, multi strand short pearl necklace with small jade pendant, ornate engraved silver wrist cuff on the left wrist, slim silver wristwatch on the right wrist, manicured nails, standing while holding a sleek dark phone, one index finger tapping the screen, eyes narrowed at the phone with a cold irritated expression, guarded professional posture, visibly done with the conversation, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

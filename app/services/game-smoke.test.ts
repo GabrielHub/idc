@@ -749,7 +749,7 @@ describe("IDC playable smoke path", () => {
     expect(finalSession.finalReport?.recommendedFollowUp).toBe("mark_bad_fit");
   });
 
-  it("penalizes ignored member requests against client HP at shift close", () => {
+  it("penalizes ignored member requests against client retention at shift close", () => {
     let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
       drawnScenarioIds: ["chain-restaurant-tuesday"],
       memberRequestIds: ["request-sana-decompress", "request-jenna-normal-date"],

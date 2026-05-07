@@ -158,7 +158,7 @@ describe("date presentation signals", () => {
     const member: Member = {
       ...baseMember,
       portraits: {
-        ...baseMember.portraits,
+        neutral: baseMember.portraits.neutral,
         flirty: {
           portrait: flirtyPortrait,
         },

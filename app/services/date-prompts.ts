@@ -21,6 +21,7 @@ export type CharacterPromptPacket = {
 export type JudgePromptPacket = {
   system: string;
   prompt: string;
+  messages?: ModelMessage[];
 };
 
 export type SummarizerPromptPacket = {
@@ -210,35 +211,53 @@ export function buildJudgePromptPacket({
   exchangeMessages: DateMessage[];
   members: Member[];
 }): JudgePromptPacket {
+  const system = [
+    "You are the IDC Judge.",
+    "Score the exchange with structured output only.",
+    "Validate game state consequences. Do not perform characters.",
+    "Player-facing summaries use Cupid corporate voice.",
+  ].join("\n");
+  const messages: ModelMessage[] = [
+    {
+      role: "user",
+      content: [
+        "Structured output contract:",
+        "Return JSON only. No Markdown, comments, or prose outside JSON.",
+        "dateHealthDelta must be an integer from -12 to 12.",
+        "statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
+        `memberMoodDeltas must use only these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
+        "shouldEndEarly is true only when the exchange requires the date to stop now.",
+        "Omit earlyEndReason unless shouldEndEarly is true.",
+        "notableMoments must contain 1 to 3 short strings.",
+        "playerSummary must be one short Cupid corporate sentence.",
+        "memoryCandidates must be an empty array.",
+        "Do not use em dashes or en dashes in any string.",
+        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
+        "",
+        `Scenario: ${scenario.title}.`,
+        `Participants: ${formatParticipants(members)}.`,
+        `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,
+        `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
+        `Current Date Health: ${session.dateHealth}.`,
+        `Current pair stats: ${JSON.stringify(pairState.stats)}.`,
+        "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
+      ].join("\n"),
+    },
+    ...buildJudgeThreadMessages(session.judgeSnapshots),
+    {
+      role: "user",
+      content: [
+        `Current exchange index: ${exchangeIndexForPendingTurn(exchangeMessages, session.judgeSnapshots.length)}.`,
+        "Judge only this pending exchange while respecting prior filings and current deterministic state.",
+        `Exchange:\n${formatLabeledTranscript(exchangeMessages, members)}`,
+      ].join("\n"),
+    },
+  ];
+
   return {
-    system: [
-      "You are the IDC Judge.",
-      "Score the exchange with structured output only.",
-      "Validate game state consequences. Do not perform characters.",
-      "Player-facing summaries use Cupid corporate voice.",
-    ].join("\n"),
-    prompt: [
-      "Structured output contract:",
-      "Return JSON only. No Markdown, comments, or prose outside JSON.",
-      "dateHealthDelta must be an integer from -12 to 12.",
-      "statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
-      `memberMoodDeltas must use only these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
-      "shouldEndEarly is true only when the exchange requires the date to stop now.",
-      "Omit earlyEndReason unless shouldEndEarly is true.",
-      "notableMoments must contain 1 to 3 short strings.",
-      "playerSummary must be one short Cupid corporate sentence.",
-      "memoryCandidates must be an empty array.",
-      "Do not use em dashes or en dashes in any string.",
-      `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
-      "",
-      `Scenario: ${scenario.title}.`,
-      `Participants: ${formatParticipants(members)}.`,
-      `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,
-      `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
-      `Date Health: ${session.dateHealth}.`,
-      `Pair stats: ${JSON.stringify(pairState.stats)}.`,
-      `Exchange:\n${formatLabeledTranscript(exchangeMessages, members)}`,
-    ].join("\n"),
+    system,
+    prompt: formatPromptPreview(messages),
+    messages,
   };
 }
 
@@ -713,6 +732,45 @@ function formatMemories(memories: Array<{ text: string }>): string {
 
 function formatParticipants(members: Member[]): string {
   return members.map((member) => `${member.id} (${member.name})`).join(", ");
+}
+
+function buildJudgeThreadMessages(judgeSnapshots: readonly JudgeSnapshot[]): ModelMessage[] {
+  return judgeSnapshots.slice(-6).flatMap((snapshot) => [
+    {
+      role: "user" as const,
+      content: `Prior judge filing for exchange ${snapshot.exchangeIndex}:`,
+    },
+    {
+      role: "assistant" as const,
+      content: JSON.stringify(formatJudgeSnapshotForThread(snapshot)),
+    },
+  ]);
+}
+
+function formatJudgeSnapshotForThread(snapshot: JudgeSnapshot) {
+  return {
+    dateHealthDelta: snapshot.dateHealthDelta,
+    statDeltas: snapshot.statDeltas,
+    memberMoodDeltas: snapshot.memberMoodDeltas,
+    shouldEndEarly: snapshot.shouldEndEarly,
+    earlyEndReason: snapshot.earlyEndReason,
+    notableMoments: snapshot.notableMoments,
+    playerSummary: snapshot.playerSummary,
+    memoryCandidates: [],
+  };
+}
+
+function exchangeIndexForPendingTurn(
+  exchangeMessages: readonly DateMessage[],
+  fallbackExchangeIndex: number,
+): number {
+  const firstCharacterMessage = exchangeMessages.find((message) => message.kind === "character");
+
+  if (firstCharacterMessage === undefined) {
+    return fallbackExchangeIndex;
+  }
+
+  return Math.max(0, Math.floor((firstCharacterMessage.turnIndex - 1) / 2));
 }
 
 function formatLabeledTranscript(messages: DateMessage[], members: Member[]): string {

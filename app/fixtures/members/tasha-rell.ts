@@ -127,5 +127,14 @@ export const tashaRell: Member = {
         model: "image_gen built-in",
       },
     },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/tasha-rell/portrait-angry.png",
+        cutoutPath: "/assets/portraits/tasha-rell/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, interpreted as guarded boundary irritation while calling for the check, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer held more closed by a crossed arm, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, seated on a minimal restaurant chair, body angled slightly away, head turned aside toward an implied server, cold done expression with lowered brows, narrowed side glance, and tight flat mouth, one raised hand pinched as if signing for the check with an invisible pen and no visible writing, other arm crossed across her body in a guarded posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

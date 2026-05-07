@@ -111,5 +111,23 @@ export const jennaPike: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/jenna-pike/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/jenna-pike/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Jenna Pike portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same shoulder-length dark brown bob with wispy face-framing bangs, warm brown eyes, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo with one extra top button open, dark work pants, comfortable black sneakers, order pad and pens in apron pocket, leaning forward with low pressure sincere interest, weight on one hip, one foot crossed slightly in front of the other, one hand lightly holding the apron tie at her waist, other hand nervously tucking a loose strand of hair behind her ear, warm half-lidded eye contact, faint blush, small amused embarrassed smile, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/jenna-pike/portrait-confused.png",
+        cutoutPath: "/assets/portraits/jenna-pike/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Jenna Pike portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same shoulder-length dark brown bob with wispy face-framing bangs, warm brown eyes, tired kind chain restaurant waitress in a burgundy half apron over a black uniform polo, dark work pants, comfortable black sneakers, order pad and pens in apron pocket, seated on a simple plain black backless stool, leaning back slightly with shoulders tucked in, one foot planted and the other angled inward, one hand lightly holding the apron tie at her waist, other hand lifted near chest height in a small wait what gesture with palm partly open, polite overwhelmed confusion, pinched brows, slightly sideways skeptical eyes, mouth parted like she is trying to ask a practical follow-up, full body visible, plain white background, no text, no logo, no frame, no scenery, no question marks, no sweat drops, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

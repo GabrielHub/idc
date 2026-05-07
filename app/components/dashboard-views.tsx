@@ -461,7 +461,6 @@ function FeaturedCaseCard({
 function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean }) {
   return (
     <div className="mt-5 grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
-      <CaseStat label="HP" value={member.state.retention} inverted={inverted} tone="emerald" />
       <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
       <CaseStat label="Openness" value={member.state.openness} inverted={inverted} tone="violet" />
       <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
@@ -469,13 +468,12 @@ function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean
   );
 }
 
-type CaseStatTone = "rose" | "violet" | "amber" | "emerald";
+type CaseStatTone = "rose" | "violet" | "amber";
 
 const CASE_STAT_FILL: Record<CaseStatTone, string> = {
   rose: "from-aura-rose to-aura-fuchsia",
   violet: "from-aura-violet to-aura-fuchsia",
   amber: "from-aura-amber to-aura-rose",
-  emerald: "from-aura-emerald to-aura-violet",
 };
 
 function CaseStat({
@@ -635,12 +633,6 @@ function PartnerTile({
             </div>
           </div>
           <div className="mt-auto grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5 pt-1">
-            <CaseStat
-              label="HP"
-              value={member.state.retention}
-              inverted={isSelected}
-              tone="emerald"
-            />
             <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
             <CaseStat
               label="Openness"
@@ -1098,8 +1090,7 @@ function MemberDossier({
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-4">
-              <Meter label="HP" value={member.state.retention} tone="emerald" size="md" />
+            <div className="grid gap-4 sm:grid-cols-3">
               <Meter label="Mood" value={member.state.mood} size="md" />
               <Meter label="Openness" value={member.state.openness} tone="violet" size="md" />
               <Meter label="Burnout" value={member.state.burnout} tone="amber" size="md" />
@@ -2188,11 +2179,12 @@ export function DateView({
           rightSpeaking={rightSpeaking}
           leftReasoningText={leftReasoningText}
           rightReasoningText={rightReasoningText}
+          listening={pendingDateAction === "advanceExchange"}
           reactions={reactionSignals}
         />
       ) : null}
 
-      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-40 lg:px-10">
+      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-56 lg:px-10">
         <DateHeader
           scenario={scenario}
           session={session}
@@ -2200,8 +2192,6 @@ export function DateView({
           displayedCurrentTurn={displayedCurrentTurn}
           onBack={onBack}
         />
-
-        <Hairline className="mt-7" />
 
         <ChatStream
           items={transcript}
@@ -2270,19 +2260,19 @@ function DateHeader({
         : "rose";
 
   return (
-    <header>
-      <div className="flex flex-wrap items-start justify-between gap-6">
-        <div className="space-y-3">
+    <header className="sticky top-20 z-20 -mx-6 border-b border-aura-hairline bg-aura-bg/72 px-6 pt-3 pb-4 backdrop-blur-xl lg:-mx-10 lg:top-24 lg:px-10">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="space-y-2">
           <Eyebrow>// date.{pad2(session.currentTurn)}</Eyebrow>
-          <h1 className="font-display text-display-lg font-semibold tracking-tight text-aura-ink">
+          <h1 className="font-display text-display-md font-semibold tracking-tight text-aura-ink lg:text-display-lg">
             {scenario?.title ?? "Date in session"}
           </h1>
-          <p className="text-lead text-aura-muted">
+          <p className="text-label text-aura-muted lg:text-lead">
             {participants.map((m) => m.name).join(" and ")}
             {scenario === undefined ? "" : ` at ${scenario.publicBrief.location}.`}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-3">
+        <div className="flex flex-col items-end gap-2.5">
           <GhostButton onClick={onBack}>← Brief</GhostButton>
           <span className="inline-flex items-center gap-2 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
             <LiveDot tone={statusTone} />
@@ -2291,7 +2281,7 @@ function DateHeader({
         </div>
       </div>
 
-      <div className="mt-7 grid gap-5 sm:grid-cols-[1fr_auto_auto]">
+      <div className="mt-4 grid gap-5 sm:grid-cols-[1fr_auto_auto]">
         <div>
           <div className="flex items-baseline justify-between">
             <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted">
@@ -2335,6 +2325,7 @@ function DateStandeeFrame({
   rightSpeaking,
   leftReasoningText,
   rightReasoningText,
+  listening,
   reactions,
 }: {
   leftMember: Member;
@@ -2345,6 +2336,7 @@ function DateStandeeFrame({
   rightSpeaking: boolean;
   leftReasoningText: string;
   rightReasoningText: string;
+  listening: boolean;
   reactions: ReactionSignal[];
 }) {
   return (
@@ -2355,6 +2347,7 @@ function DateStandeeFrame({
           placement="bottom-left"
           mood={leftMood}
           speaking={leftSpeaking}
+          listening={listening && !rightSpeaking}
           reasoningText={leftReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "left")}
           className="absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
@@ -2364,6 +2357,7 @@ function DateStandeeFrame({
           placement="top-right"
           mood={rightMood}
           speaking={rightSpeaking}
+          listening={listening && !leftSpeaking}
           reasoningText={rightReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "right")}
           className="absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72"
@@ -2391,10 +2385,17 @@ function ChatStream({
   pendingDateAction: PendingDateAction | null;
 }) {
   const endAnchorRef = useRef<HTMLDivElement | null>(null);
+  const previousItemCountRef = useRef(items.length);
   const latestText = items.at(-1)?.text ?? "";
 
   useEffect(() => {
-    endAnchorRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const itemCountIncreased = items.length > previousItemCountRef.current;
+    previousItemCountRef.current = items.length;
+
+    endAnchorRef.current?.scrollIntoView({
+      behavior: itemCountIncreased ? "smooth" : "auto",
+      block: "end",
+    });
   }, [items.length, latestText]);
 
   const statusCue =
@@ -2433,7 +2434,7 @@ function ChatStream({
 
       {statusCue === null ? null : <div className="mt-5 flex justify-start">{statusCue}</div>}
 
-      <div ref={endAnchorRef} aria-hidden className="h-2" />
+      <div ref={endAnchorRef} aria-hidden className="h-2 scroll-mb-44 lg:scroll-mb-52" />
     </div>
   );
 }

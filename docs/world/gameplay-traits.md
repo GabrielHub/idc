@@ -14,6 +14,10 @@ Use member fields this way:
 
 Do not add new member fixture fields unless gameplay or UI reads them. Do not reintroduce `traits` or `redFlags`. `traits` were vague public labels. `redFlags` mixed member behavior with things members reject.
 
+## Hidden Member Retention
+
+Member `retention` is an internal quit-risk score used by deterministic services. It must not be exposed in player-facing UI as HP, health, or an exact meter. Player surfaces may show closed-file state or qualitative risk copy when needed, while services keep the numeric value for consequences.
+
 ## Hidden Tags
 
 Every member needs 3 to 5 hidden tags and exactly one identity tag:

@@ -92,7 +92,6 @@ type RiffleCardData = {
   registerLabel: string;
   speciesLabel: string;
   voiceQuote: string;
-  hp: string;
   mood: string;
   openness: string;
   burnout: string;
@@ -106,7 +105,6 @@ const RIFFLE_CARDS: RiffleCardData[] = [
     registerLabel: "human, modern",
     speciesLabel: "ordinary human",
     voiceQuote: "anyway, your dog is very cute, what's his name",
-    hp: "92",
     mood: "71",
     openness: "64",
     burnout: "22",
@@ -118,7 +116,6 @@ const RIFFLE_CARDS: RiffleCardData[] = [
     registerLabel: "ancient, sincere",
     speciesLabel: "non-human",
     voiceQuote: "I have great soup. I am sorry for any tremor you felt last Thursday.",
-    hp: "64",
     mood: "81",
     openness: "74",
     burnout: "12",
@@ -130,7 +127,6 @@ const RIFFLE_CARDS: RiffleCardData[] = [
     registerLabel: "business, clipped",
     speciesLabel: "non-human",
     voiceQuote: "I am between roles. I take meetings on Thursdays.",
-    hp: "88",
     mood: "54",
     openness: "41",
     burnout: "38",
@@ -1081,8 +1077,7 @@ function RiffleCardSlot({ data }: { data: RiffleCardData }) {
           </p>
         </div>
 
-        <dl className="relative z-10 mt-5 grid grid-cols-4 gap-x-4 gap-y-1">
-          <RiffleStat label="hp" value={data.hp} tone="emerald" />
+        <dl className="relative z-10 mt-5 grid grid-cols-3 gap-x-4 gap-y-1">
           <RiffleStat label="mood" value={data.mood} tone="rose" />
           <RiffleStat label="open" value={data.openness} tone="violet" />
           <RiffleStat label="burn" value={data.burnout} tone="amber" />
@@ -1097,6 +1092,14 @@ function RiffleCardSlot({ data }: { data: RiffleCardData }) {
   );
 }
 
+type RiffleStatTone = "rose" | "violet" | "amber";
+
+const RIFFLE_STAT_COLOR: Record<RiffleStatTone, string> = {
+  rose: "text-aura-rose",
+  violet: "text-aura-violet",
+  amber: "text-aura-amber",
+};
+
 function RiffleStat({
   label,
   value,
@@ -1104,21 +1107,13 @@ function RiffleStat({
 }: {
   label: string;
   value: string;
-  tone: "rose" | "emerald" | "violet" | "amber";
+  tone: RiffleStatTone;
 }) {
-  const valueColor =
-    tone === "emerald"
-      ? "text-aura-emerald"
-      : tone === "violet"
-        ? "text-aura-violet"
-        : tone === "amber"
-          ? "text-aura-amber"
-          : "text-aura-rose";
   return (
     <div className="space-y-1">
       <dt className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">{label}</dt>
       <dd
-        className={`font-display text-lead font-semibold tabular-nums tracking-tight ${valueColor}`}
+        className={`font-display text-lead font-semibold tabular-nums tracking-tight ${RIFFLE_STAT_COLOR[tone]}`}
       >
         {value}
       </dd>

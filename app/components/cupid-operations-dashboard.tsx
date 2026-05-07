@@ -103,7 +103,7 @@ type CupidOperationsDashboardProps = {
 
 export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboardProps) {
   const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
-  const { play } = useSfx();
+  const { play, setDateAmbientActive } = useSfx();
   const [save, setSave] = useState<GameSave | null>(null);
   const [view, setView] = useState<ViewKey>("roster");
   const [selectedMemberIds, setSelectedMemberIds] = useState<string[]>([]);
@@ -292,10 +292,19 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   );
   const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
   const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
+  const dateAmbientActive = view === "date" && activeSession?.status === "active";
 
   useEffect(() => {
     window.scrollTo({ left: 0, top: 0 });
   }, [activeDateSessionId, view]);
+
+  useEffect(() => {
+    setDateAmbientActive(dateAmbientActive);
+  }, [dateAmbientActive, setDateAmbientActive]);
+
+  useEffect(() => {
+    return () => setDateAmbientActive(false);
+  }, [setDateAmbientActive]);
 
   async function persist(nextSave: GameSave) {
     await repository.saveGame(nextSave);
@@ -650,7 +659,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const pendingDateAction = asPendingDateAction(pendingAction);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-aura-bg text-aura-ink">
+    <div className="relative min-h-screen overflow-x-clip bg-aura-bg text-aura-ink">
       <AmbientMesh />
 
       <DashboardChrome
@@ -940,7 +949,7 @@ function ViewTabs({
                 {tab.label}
               </span>
               <span
-                className={`hidden items-baseline font-mono text-micro uppercase tracking-[0.22em] xl:inline-flex ${isActive ? "text-white/70" : "text-aura-faint"}`}
+                className={`hidden items-center font-mono text-micro uppercase tracking-[0.22em] xl:inline-flex ${isActive ? "text-white/70" : "text-aura-faint"}`}
               >
                 {tab.live ? <LiveDot tone="rose" /> : null}
                 {tab.live ? <span className="ml-1">{tab.tag}</span> : tab.tag}
@@ -980,6 +989,7 @@ function ChromeActions({
           End shift
         </ChromeButton>
       ) : null}
+      <MutedIndicator />
       <SettingsMenu
         isActionPending={isActionPending}
         onOpenAiSetup={onOpenAiSetup}
@@ -987,6 +997,46 @@ function ChromeActions({
         onPunchOut={onPunchOut}
       />
     </div>
+  );
+}
+
+function MutedIndicator() {
+  const { isEnabled, setEnabled } = useSfx();
+
+  if (isEnabled) {
+    return null;
+  }
+
+  return (
+    <button
+      type="button"
+      data-sfx="toggle"
+      aria-label="Audio is muted. Click to unmute."
+      title="Audio muted. Click to unmute."
+      onClick={() => setEnabled(true)}
+      className="flex cursor-pointer items-center justify-center rounded-pill px-2.5 py-1.5 text-aura-rose transition hover:bg-aura-rose/10 hover:text-aura-rose"
+    >
+      <MutedIcon />
+    </button>
+  );
+}
+
+function MutedIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="size-4"
+    >
+      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+      <line x1="22" y1="9" x2="16" y2="15" />
+      <line x1="16" y1="9" x2="22" y2="15" />
+    </svg>
   );
 }
 
@@ -1270,8 +1320,8 @@ function TerminationPanel({
             Cupid terminated your shift.
           </h2>
           <p className="mt-3 max-w-xl text-lead leading-snug text-aura-muted">
-            {lostMembers.length} client files hit zero HP. The firing threshold is{" "}
-            {CLIENT_LOSS_LIMIT}. HR has completed the romance math.
+            {lostMembers.length} client files closed after members quit the app. The firing
+            threshold is {CLIENT_LOSS_LIMIT}. HR has completed the romance math.
           </p>
           <ul className="mt-7 grid gap-2 sm:grid-cols-2">
             {lostMembers.map((member) => (

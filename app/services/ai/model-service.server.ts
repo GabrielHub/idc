@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { embed, generateObject, generateText, streamText, type ModelMessage } from "ai";
+import { embed, generateText, Output, streamText, type ModelMessage } from "ai";
 import {
   createOllama,
   type OllamaChatSettings,
@@ -33,16 +33,18 @@ import {
   type OllamaModelSummary,
 } from "./model-catalog";
 
-const CHARACTER_MAX_OUTPUT_TOKENS = 160;
-const JUDGE_MAX_OUTPUT_TOKENS = 360;
-const SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
-const READINESS_MAX_OUTPUT_TOKENS = 32;
+const OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS = 160;
+const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 360;
+const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
+const OLLAMA_READINESS_MAX_OUTPUT_TOKENS = 32;
 const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 8192;
 const OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS = 2048;
 const OLLAMA_DISCOVERY_TIMEOUT_MS = 5_000;
+const OLLAMA_REQUEST_TIMEOUT_MS = 30_000;
+const GATEWAY_REQUEST_TIMEOUT_MS = 120_000;
 const OLLAMA_KEEP_ALIVE = "10m";
 const GATEWAY_PROVIDER_NAME = "vercel-ai-gateway";
 const OLLAMA_BASE_CHAT_SETTINGS: OllamaChatSettings = {
@@ -56,6 +58,14 @@ const OLLAMA_JSON_CHAT_SETTINGS: OllamaChatSettings = {
 const AI_DATE_HEALTH_DELTA_SCHEMA = z.number().int().min(-12).max(12);
 const AI_STAT_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const AI_MEMBER_MOOD_DELTA_SCHEMA = z.number().int().min(-8).max(8);
+const STREAM_TEXT_DELTA_PART_SCHEMA = z.object({
+  type: z.enum(["text", "text-delta"]),
+  text: z.string(),
+});
+const STREAM_REASONING_DELTA_PART_SCHEMA = z.object({
+  type: z.enum(["reasoning", "reasoning-delta"]),
+  text: z.string(),
+});
 
 export type AiGenerationOptions = {
   maxOutputTokens?: number;
@@ -153,14 +163,21 @@ export async function generateCharacterTurn(
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
 
-  return generateTextWithModelService({
+  return streamTextWithModelService({
     system: packet.system,
     prompt: packet.prompt,
     messages: packet.messages,
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
-    maxOutputTokens: generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    ...withOptionalMaxOutputTokens(
+      generationOptions.maxOutputTokens ??
+        defaultMaxOutputTokensForProvider(
+          runtimeConfig.aiProvider,
+          OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS,
+        ),
+    ),
     generationOptions,
+    onTextDelta: () => undefined,
   });
 }
 
@@ -180,7 +197,13 @@ export async function streamCharacterTurn(
     messages: packet.messages,
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
-    maxOutputTokens: generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
+    ...withOptionalMaxOutputTokens(
+      generationOptions.maxOutputTokens ??
+        defaultMaxOutputTokensForProvider(
+          runtimeConfig.aiProvider,
+          OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS,
+        ),
+    ),
     generationOptions,
     onTextDelta,
     onReasoningDelta,
@@ -202,9 +225,12 @@ export async function judgeDateExchange({
   const output = await generateObjectWithModelService(judgeAiOutputSchema, {
     system: packet.system,
     prompt: packet.prompt,
+    messages: packet.messages,
     modelId: runtimeConfig.chatModel,
     config: withSecondaryContextWindow(runtimeConfig, OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS),
-    maxOutputTokens: JUDGE_MAX_OUTPUT_TOKENS,
+    ...withOptionalMaxOutputTokens(
+      defaultMaxOutputTokensForProvider(runtimeConfig.aiProvider, OLLAMA_JUDGE_MAX_OUTPUT_TOKENS),
+    ),
   });
 
   return judgeSnapshotSchema.parse({
@@ -220,12 +246,17 @@ export async function summarizeDateMemories(
   config?: Partial<AiRuntimeConfig>,
 ): Promise<MemoryCandidate[]> {
   const runtimeConfig = normalizeRuntimeConfig(config);
-  return generateObjectWithModelService(z.array(memoryCandidateSchema), {
+  return generateArrayWithModelService(memoryCandidateSchema, {
     system: packet.system,
     prompt: packet.prompt,
     modelId: runtimeConfig.chatModel,
     config: withSecondaryContextWindow(runtimeConfig, OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS),
-    maxOutputTokens: SUMMARIZER_MAX_OUTPUT_TOKENS,
+    ...withOptionalMaxOutputTokens(
+      defaultMaxOutputTokensForProvider(
+        runtimeConfig.aiProvider,
+        OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS,
+      ),
+    ),
   });
 }
 
@@ -265,7 +296,12 @@ export async function checkAiReadiness(config?: Partial<AiRuntimeConfig>): Promi
       prompt: "Reply with exactly: READY",
       modelId: runtimeConfig.chatModel,
       config: withSecondaryContextWindow(runtimeConfig, OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS),
-      maxOutputTokens: READINESS_MAX_OUTPUT_TOKENS,
+      ...withOptionalMaxOutputTokens(
+        defaultMaxOutputTokensForProvider(
+          runtimeConfig.aiProvider,
+          OLLAMA_READINESS_MAX_OUTPUT_TOKENS,
+        ),
+      ),
       generationOptions: {
         numCtx: OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS,
       },
@@ -332,17 +368,43 @@ export function parseOllamaModelInventory(
 
 function normalizeRuntimeConfig(config?: Partial<AiRuntimeConfig>): AiRuntimeConfig {
   const gameConfig = gameConfigSchema.parse(config ?? {});
-  const browserGatewayApiKey = normalizeOptionalSecret(config?.gatewayApiKey);
-  const environmentGatewayApiKey = normalizeOptionalSecret(process.env.AI_GATEWAY_API_KEY);
 
   return {
     ...gameConfig,
-    gatewayApiKey: environmentGatewayApiKey ?? browserGatewayApiKey,
-    requestTimeoutMs: config?.requestTimeoutMs ?? 30_000,
+    gatewayApiKey: resolveGatewayApiKey(config?.gatewayApiKey, process.env.AI_GATEWAY_API_KEY),
+    requestTimeoutMs:
+      config?.requestTimeoutMs ?? defaultRequestTimeoutMsForProvider(gameConfig.aiProvider),
     contextWindowTokens: config?.contextWindowTokens ?? OLLAMA_CONTEXT_WINDOW_TOKENS,
     embeddingContextWindowTokens:
       config?.embeddingContextWindowTokens ?? OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS,
   };
+}
+
+export function defaultMaxOutputTokensForProvider(
+  provider: AiProvider,
+  ollamaMaxOutputTokens: number,
+): number | undefined {
+  return provider === "gateway" ? undefined : ollamaMaxOutputTokens;
+}
+
+function withOptionalMaxOutputTokens(maxOutputTokens: number | undefined): {
+  maxOutputTokens?: number;
+} {
+  return maxOutputTokens === undefined ? {} : { maxOutputTokens };
+}
+
+export function defaultRequestTimeoutMsForProvider(provider: AiProvider): number {
+  return provider === "gateway" ? GATEWAY_REQUEST_TIMEOUT_MS : OLLAMA_REQUEST_TIMEOUT_MS;
+}
+
+export function resolveGatewayApiKey(
+  runtimeGatewayApiKey: string | undefined,
+  environmentGatewayApiKey: string | undefined,
+): string | undefined {
+  return (
+    normalizeOptionalSecret(runtimeGatewayApiKey) ??
+    normalizeOptionalSecret(environmentGatewayApiKey)
+  );
 }
 
 function withSecondaryContextWindow(
@@ -376,7 +438,7 @@ async function generateTextWithModelService({
   messages?: ModelMessage[];
   modelId: string;
   config: AiRuntimeConfig;
-  maxOutputTokens: number;
+  maxOutputTokens?: number;
   generationOptions?: AiGenerationOptions;
 }): Promise<GeneratedTextResult> {
   try {
@@ -384,7 +446,7 @@ async function generateTextWithModelService({
     const callSettings = {
       model,
       system,
-      maxOutputTokens,
+      ...withOptionalMaxOutputTokens(maxOutputTokens),
       temperature: generationOptions?.temperature,
       topP: generationOptions?.topP,
       topK: config.aiProvider === "ollama" ? generationOptions?.topK : undefined,
@@ -432,7 +494,7 @@ async function streamTextWithModelService({
   messages?: ModelMessage[];
   modelId: string;
   config: AiRuntimeConfig;
-  maxOutputTokens: number;
+  maxOutputTokens?: number;
   generationOptions?: AiGenerationOptions;
   onTextDelta: (delta: string) => Promise<void> | void;
   onReasoningDelta?: (delta: string) => Promise<void> | void;
@@ -445,7 +507,7 @@ async function streamTextWithModelService({
     const callSettings = {
       model,
       system,
-      maxOutputTokens,
+      ...withOptionalMaxOutputTokens(maxOutputTokens),
       temperature: generationOptions?.temperature,
       topP: generationOptions?.topP,
       topK: config.aiProvider === "ollama" ? generationOptions?.topK : undefined,
@@ -464,13 +526,21 @@ async function streamTextWithModelService({
           });
 
     for await (const part of result.fullStream) {
-      if (part.type === "text-delta") {
-        emittedText += part.text;
-        await onTextDelta(part.text);
-      } else if (part.type === "reasoning-delta") {
-        emittedReasoning += part.text;
-        await onReasoningDelta?.(part.text);
-      } else if (part.type === "error") {
+      const textDelta = streamTextDeltaFromPart(part);
+      if (textDelta !== null) {
+        emittedText += textDelta;
+        await onTextDelta(textDelta);
+        continue;
+      }
+
+      const reasoningDelta = streamReasoningDeltaFromPart(part);
+      if (reasoningDelta !== null) {
+        emittedReasoning += reasoningDelta;
+        await onReasoningDelta?.(reasoningDelta);
+        continue;
+      }
+
+      if (part.type === "error") {
         throw new Error(errorToMessage(part.error));
       }
     }
@@ -495,14 +565,27 @@ async function streamTextWithModelService({
   }
 }
 
+function streamTextDeltaFromPart(part: unknown): string | null {
+  const parsedPart = STREAM_TEXT_DELTA_PART_SCHEMA.safeParse(part);
+
+  return parsedPart.success ? parsedPart.data.text : null;
+}
+
+function streamReasoningDeltaFromPart(part: unknown): string | null {
+  const parsedPart = STREAM_REASONING_DELTA_PART_SCHEMA.safeParse(part);
+
+  return parsedPart.success ? parsedPart.data.text : null;
+}
+
 async function generateObjectWithModelService<TSchema extends z.ZodType>(
   schema: TSchema,
   input: {
     system: string;
     prompt: string;
+    messages?: ModelMessage[];
     modelId: string;
     config: AiRuntimeConfig;
-    maxOutputTokens: number;
+    maxOutputTokens?: number;
   },
 ): Promise<z.infer<TSchema>> {
   if (input.config.aiProvider === "ollama") {
@@ -514,17 +597,73 @@ async function generateObjectWithModelService<TSchema extends z.ZodType>(
   }
 
   try {
-    const result = await generateObject({
+    const callSettings = {
       model: createLanguageModel(input.modelId, input.config),
-      schema,
+      output: Output.object({ schema }),
       system: input.system,
-      prompt: input.prompt,
-      maxOutputTokens: input.maxOutputTokens,
+      ...withOptionalMaxOutputTokens(input.maxOutputTokens),
       timeout: input.config.requestTimeoutMs,
       providerOptions: providerOptionsForRuntime(input.config, input.modelId),
-    });
+    };
+    const result =
+      input.messages === undefined
+        ? await generateText({
+            ...callSettings,
+            prompt: input.prompt,
+          })
+        : await generateText({
+            ...callSettings,
+            messages: input.messages,
+          });
 
-    return schema.parse(result.object);
+    return schema.parse(result.output);
+  } catch (error) {
+    throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "gateway");
+  }
+}
+
+async function generateArrayWithModelService<TElementSchema extends z.ZodType>(
+  elementSchema: TElementSchema,
+  input: {
+    system: string;
+    prompt: string;
+    messages?: ModelMessage[];
+    modelId: string;
+    config: AiRuntimeConfig;
+    maxOutputTokens?: number;
+  },
+): Promise<Array<z.infer<TElementSchema>>> {
+  const arraySchema = z.array(elementSchema);
+
+  if (input.config.aiProvider === "ollama") {
+    try {
+      return await generateJsonTextWithSchema(arraySchema, input);
+    } catch (error) {
+      throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "ollama");
+    }
+  }
+
+  try {
+    const callSettings = {
+      model: createLanguageModel(input.modelId, input.config),
+      output: Output.array({ element: elementSchema }),
+      system: input.system,
+      ...withOptionalMaxOutputTokens(input.maxOutputTokens),
+      timeout: input.config.requestTimeoutMs,
+      providerOptions: providerOptionsForRuntime(input.config, input.modelId),
+    };
+    const result =
+      input.messages === undefined
+        ? await generateText({
+            ...callSettings,
+            prompt: input.prompt,
+          })
+        : await generateText({
+            ...callSettings,
+            messages: input.messages,
+          });
+
+    return arraySchema.parse(result.output);
   } catch (error) {
     throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "gateway");
   }
@@ -535,23 +674,33 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
   input: {
     system: string;
     prompt: string;
+    messages?: ModelMessage[];
     modelId: string;
     config: AiRuntimeConfig;
-    maxOutputTokens: number;
+    maxOutputTokens?: number;
   },
 ): Promise<z.infer<TSchema>> {
-  const result = await generateText({
+  const callSettings = {
     model: createJsonLanguageModel(input.modelId, input.config),
     system: [
       input.system,
       "",
       "Return valid JSON only. Do not include Markdown, comments, or prose outside JSON.",
     ].join("\n"),
-    prompt: input.prompt,
-    maxOutputTokens: input.maxOutputTokens,
+    ...withOptionalMaxOutputTokens(input.maxOutputTokens),
     temperature: 0.2,
     timeout: input.config.requestTimeoutMs,
-  });
+  };
+  const result =
+    input.messages === undefined
+      ? await generateText({
+          ...callSettings,
+          prompt: input.prompt,
+        })
+      : await generateText({
+          ...callSettings,
+          messages: input.messages,
+        });
   const parsedJson = parseJsonText(result.text);
 
   return schema.parse(parsedJson);

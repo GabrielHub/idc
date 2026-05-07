@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { parseOllamaModelInventory } from "./model-service.server";
+import {
+  defaultMaxOutputTokensForProvider,
+  defaultRequestTimeoutMsForProvider,
+  parseOllamaModelInventory,
+  resolveGatewayApiKey,
+} from "./model-service.server";
 
 describe("AI model service", () => {
   it("parses Ollama tags and running model status for recommended families", () => {
@@ -31,5 +36,21 @@ describe("AI model service", () => {
 
     expect(inventory.models.map((model) => model.name)).toEqual(["llama3.3:70b", "qwen3.5:9b"]);
     expect(inventory.chatModels.map((model) => model.name)).toEqual(["qwen3.5:9b"]);
+  });
+
+  it("prefers per-request Gateway keys over the server environment fallback", () => {
+    expect(resolveGatewayApiKey(" browser-key ", " environment-key ")).toBe("browser-key");
+    expect(resolveGatewayApiKey(" ", " environment-key ")).toBe("environment-key");
+    expect(resolveGatewayApiKey(undefined, " ")).toBeUndefined();
+  });
+
+  it("leaves Gateway output unbounded unless a caller sets an explicit cap", () => {
+    expect(defaultMaxOutputTokensForProvider("ollama", 32)).toBe(32);
+    expect(defaultMaxOutputTokensForProvider("gateway", 32)).toBeUndefined();
+  });
+
+  it("gives Gateway requests a longer default timeout", () => {
+    expect(defaultRequestTimeoutMsForProvider("ollama")).toBe(30_000);
+    expect(defaultRequestTimeoutMsForProvider("gateway")).toBe(120_000);
   });
 });

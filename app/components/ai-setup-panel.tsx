@@ -565,11 +565,11 @@ function GatewaySetupTab({
           value={config.chatModel}
           options={GATEWAY_CHAT_MODELS.map((model) => ({ value: model.id, label: model.label }))}
           onChange={(value) => {
-            const supportsReasoning = gatewayReasoningSupported(value);
+            const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
             onConfig({
               chatModel: value,
               embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
-              reasoningLevel: supportsReasoning ? "medium" : "off",
+              reasoningLevel: selectedModel?.recommendedReasoningLevel ?? "off",
             });
           }}
         />

@@ -96,14 +96,41 @@ export const vhool: Member = {
         sourcePath: "assets-source/portraits/vhool/portrait.png",
         cutoutPath: "/assets/portraits/vhool/portrait.png",
         prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with very long flowing obsidian hair falling over one eye, faint halo of impossible violet eye-flames, layered ceremonial dark robes with magenta accents and trailing ribbons, gentle lonely expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
+          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive violet eyes, polished cel shading, elegant ancient eldritch god with very long flowing obsidian hair falling over one eye, living black shadow rising close behind the shoulders, eye-shaped violet and magenta jewels embedded in the robe ornaments, chains, belt, sleeves, trim, and boots, layered ceremonial dark robes with magenta accents and trailing ribbons, quiet menacing lonely expression, dating profile picture pose, full body visible, plain white background, no halo, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/vhool/avatar.png",
         cutoutPath: "/assets/portraits/vhool/avatar.png",
         prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, elegant ancient entity with very long flowing obsidian hair falling over one eye, faint halo of impossible violet eye-flames, ceremonial dark robes with magenta accents, gentle lonely expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
+          "Original avatar portrait for Interdimensional Dating Coach matching the updated full-body Vhool portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive violet eyes, polished cel shading, elegant ancient eldritch god with very long flowing obsidian hair falling over one eye, living black shadow rising close behind the hair and shoulders, eye-shaped violet and magenta jewels embedded in the earrings, chest jewelry, chains, collar ornaments, and robe trim, ceremonial dark robes with magenta accents, quiet menacing lonely expression, upper half dating profile picture pose, plain white background, no halo, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/vhool/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/vhool/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Vhool portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive violet eyes, polished cel shading, same elegant ancient eldritch god with very long flowing obsidian hair falling over one eye, existing forehead mark and eye styling, pale skin, slim elegant body, layered ceremonial dark robes with magenta accents and trailing ribbons, chains, tassels, belt, sleeve trim, robe ornaments, ornate boots, violet and magenta eye-shaped jewels, both arms opened outward as if inviting the other member into a hug, chest open, palms and sleeve openings visible, big sincere smile that feels almost menacing, direct delighted violet eye contact, living black shadow creeping out from robe gaps, sleeve openings, collar openings, belt layers, hem splits, and spaces between overlapping fabric panels with more visible violet eye shapes, full body visible, plain white background, no shadow wings, no separate shadow creature, no changed clothing, no changed face, no changed body, no changed makeup design, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/vhool/portrait-confused.png",
+        cutoutPath: "/assets/portraits/vhool/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Vhool portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive violet eyes, polished cel shading, same elegant ancient eldritch god with very long flowing obsidian hair falling over one eye, existing forehead mark and eye styling, pale skin, slim elegant body, layered ceremonial dark robes with magenta accents and trailing ribbons, chains, tassels, belt, sleeve trim, robe ornaments, ornate boots, violet and magenta eye-shaped jewels, shoulders slightly drawn in, one hand slightly open near the chest jewelry with palm up, other sleeve hand hovering outward in a gentle pause gesture, polite vulnerable bafflement, faintly pinched brows, direct attentive uncertain violet eyes, mouth slightly parted, smaller restrained living black shadow tucked close to the body and creeping subtly from robe gaps, sleeve openings, collar openings, belt layers, hem splits, and spaces between overlapping fabric panels, only one or two small violet eyes visible in the shadow, full body visible, plain white background, less menacing, no shadow wings, no separate shadow creature, no changed clothing, no changed face, no changed body, no changed makeup design, no question marks, no sweat drops, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/vhool/portrait-angry.png",
+        cutoutPath: "/assets/portraits/vhool/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Vhool portrait, interpreted as boundary-state true identity leakage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive violet eyes, polished cel shading, same elegant ancient eldritch god with very long flowing obsidian hair falling over one eye, existing forehead mark and eye styling, pale skin, slim elegant body, black and magenta ceremonial robe design language, chains, tassels, belt, sleeve trim, robe ornaments, ornate boots, violet and magenta eye-shaped jewels, formal still pose with one hand drawn inward near the chest jewelry and the other hanging low with tense precise fingers, shoulders squared, cold wounded anger and controlled disgust, face partly crossed by deep shadow, brighter intense violet eyes, mouth barely open with restrained tension, recognizable layered robes peeling open and curling back at chest layers, sleeves, collar folds, belt layers, side panels, and hem splits to reveal living black shadow underneath, small sharp teeth and dark mouth shapes visible through clothing gaps, a few glowing violet eyes behind the head and around the hairline, full body visible, plain white background, no blood, no gore, no exposed organs, no giant wing shroud, no shadow wings, no separate shadow creature, no complete outfit redesign, no changed face, no changed body, no changed makeup design, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },

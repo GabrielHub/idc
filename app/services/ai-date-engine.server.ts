@@ -132,7 +132,6 @@ type LocalAiDateEngineInput = {
 const DEFAULT_MEMORY_LIMIT = 2;
 const CHARACTER_RECENT_TRANSCRIPT_LIMIT = 8;
 const CHARACTER_MESSAGE_MAX_LENGTH = 260;
-const JUDGE_CHARACTER_TURN_INTERVAL = 4;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
@@ -862,7 +861,7 @@ function shouldJudgePendingExchange({
     return false;
   }
 
-  return currentTurn >= turnLimit || currentTurn % JUDGE_CHARACTER_TURN_INTERVAL === 0;
+  return exchangeMessages.length >= 2 || currentTurn >= turnLimit;
 }
 
 function latestJudgedExchangeIndex(session: DateSession): number {

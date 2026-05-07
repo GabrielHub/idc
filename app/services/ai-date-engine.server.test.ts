@@ -351,7 +351,7 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
-  it("lets one AI exchange land before judging pending transcript", async () => {
+  it("judges every completed AI exchange with the pending transcript", async () => {
     const repository = new LocalGameRepository(new MemoryStorageDriver(), "ai-judge-cadence-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -371,7 +371,7 @@ describe("AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
     let characterCount = 0;
-    let judgePrompt = "";
+    const judgePrompts: string[] = [];
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async () => {
         characterCount += 1;
@@ -386,7 +386,7 @@ describe("AI date engine orchestration", () => {
         };
       },
       judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
-        judgePrompt = packet.prompt;
+        judgePrompts.push(packet.prompt);
 
         return judgeSnapshotSchema.parse({
           id: `judge-${dateSessionId}-${exchangeIndex}`,
@@ -428,10 +428,20 @@ describe("AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:02:00.000Z"),
     });
 
+    expect(firstAdvance.session.judgeSnapshots).toHaveLength(1);
+    const firstJudgeSnapshot = firstAdvance.session.judgeSnapshots[0];
     expect(firstAdvance.session.currentTurn).toBe(2);
-    expect(firstAdvance.session.dateHealth).toBe(started.session.dateHealth);
-    expect(firstAdvance.session.judgeSnapshots).toHaveLength(0);
-    expect(judgePrompt).toBe("");
+    expect(firstJudgeSnapshot).toBeDefined();
+    if (firstJudgeSnapshot === undefined) {
+      throw new Error("Expected first judge snapshot after completed AI exchange.");
+    }
+    expect(firstAdvance.session.dateHealth).toBe(
+      started.session.dateHealth + firstJudgeSnapshot.dateHealthDelta,
+    );
+    expect(firstJudgeSnapshot.exchangeIndex).toBe(0);
+    expect(judgePrompts[0]).toContain("turn 1 response");
+    expect(judgePrompts[0]).toContain("turn 2 response");
+    expect(judgePrompts[0]).not.toContain("turn 3 response");
 
     const secondAdvance = await advanceDateExchangeWithLocalAi(firstAdvance.save, repository, {
       dateSessionId: started.session.id,
@@ -441,9 +451,10 @@ describe("AI date engine orchestration", () => {
     });
 
     expect(secondAdvance.session.currentTurn).toBe(4);
-    expect(secondAdvance.session.judgeSnapshots).toHaveLength(1);
-    expect(secondAdvance.session.judgeSnapshots[0]?.exchangeIndex).toBe(1);
-    expect(judgePrompt).toContain("turn 1 response");
-    expect(judgePrompt).toContain("turn 4 response");
+    expect(secondAdvance.session.judgeSnapshots).toHaveLength(2);
+    expect(secondAdvance.session.judgeSnapshots[1]?.exchangeIndex).toBe(1);
+    expect(judgePrompts[1]).toContain("Prior judge filing for exchange 0");
+    expect(judgePrompts[1]).toContain("turn 3 response");
+    expect(judgePrompts[1]).toContain("turn 4 response");
   });
 });

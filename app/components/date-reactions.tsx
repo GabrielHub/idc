@@ -106,6 +106,7 @@ export function DaterStandee({
   reactions,
   mood = "neutral",
   speaking = false,
+  listening = false,
   reasoningText = "",
   className = "",
 }: {
@@ -114,6 +115,7 @@ export function DaterStandee({
   reactions: ReactionSignal[];
   mood?: PortraitMood;
   speaking?: boolean;
+  listening?: boolean;
   reasoningText?: string;
   className?: string;
 }) {
@@ -135,6 +137,7 @@ export function DaterStandee({
         <SpeakingBubble
           placement={placement}
           speaking={speaking}
+          listening={listening}
           reasoningText={reasoningText}
           mood={mood}
         />
@@ -242,26 +245,29 @@ const MOOD_BUBBLE_TINT: Record<
 function SpeakingBubble({
   placement,
   speaking,
+  listening,
   reasoningText,
   mood,
 }: {
   placement: ReactionPlacement;
   speaking: boolean;
+  listening: boolean;
   reasoningText: string;
   mood: PortraitMood;
 }) {
   const isBottom = placement === "bottom-left";
   const normalizedReasoningText = compactReasoningText(reasoningText);
-  const hasReasoningText = normalizedReasoningText.length > 0;
+  const hasReasoningText = speaking && normalizedReasoningText.length > 0;
   const tint = MOOD_BUBBLE_TINT[mood];
   const anchorClass = isBottom
-    ? "absolute right-1 top-[10%] origin-bottom-right"
-    : "absolute left-1 top-[14%] origin-bottom-left";
+    ? "absolute left-1 top-[34%] origin-top-left"
+    : "absolute right-1 top-[4%] origin-top-right";
   const tailSideClass = isBottom ? "right-6" : "left-6";
+  const visible = speaking || listening;
 
   return (
     <AnimatePresence>
-      {speaking ? (
+      {visible ? (
         <motion.div
           aria-hidden
           className={`${anchorClass} pointer-events-none z-30`}
