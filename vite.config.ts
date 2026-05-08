@@ -13,6 +13,11 @@ const FORBIDDEN_DESKTOP_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "AI Gateway environment key", pattern: /AI_GATEWAY_API_KEY/ },
 ];
 
+const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), "package.json"), "utf8")) as {
+  version: string;
+};
+const APP_VERSION = packageJson.version;
+
 export default defineConfig({
   plugins: [
     forbidPublicPortraitSources(),
@@ -21,6 +26,9 @@ export default defineConfig({
     scrubDesktopBundleText(),
     inspectDesktopBundle(),
   ],
+  define: {
+    __APP_VERSION__: JSON.stringify(APP_VERSION),
+  },
   resolve: {
     tsconfigPaths: true,
   },

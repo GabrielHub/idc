@@ -721,56 +721,10 @@ function formatCurrentSceneLines({
 }
 
 function formatVisiblePartnerRead(partner: Member): string {
-  const prompt =
-    partner.portraits.neutral.portrait.prompt ?? partner.portraits.neutral.avatar.prompt ?? "";
-  const visibleDetails = extractVisiblePortraitDetails(prompt);
   const publicProfile = truncateForPrompt(partner.datingProfile);
   const visibleIdentity = `${partner.species}. ${partner.realityStatus}.`;
 
-  if (visibleDetails.length === 0) {
-    return `${visibleIdentity} Profile signal: ${publicProfile}`;
-  }
-
-  return `${visibleDetails}. Profile signal: ${publicProfile}`;
-}
-
-const PORTRAIT_PROMPT_NOISE = [
-  "original",
-  "interdimensional dating coach",
-  "webtoon",
-  "manhwa",
-  "manhua",
-  "anime",
-  "cel shading",
-  "profile picture",
-  "full body visible",
-  "plain white background",
-  "no text",
-  "no logo",
-  "no frame",
-  "no scenery",
-  "source image",
-  "character portrait",
-];
-
-function extractVisiblePortraitDetails(prompt: string): string {
-  if (prompt.length === 0) {
-    return "";
-  }
-
-  const details = prompt
-    .split(",")
-    .map((segment) => segment.trim().replace(/^same\s+/i, ""))
-    .filter((segment) => segment.length > 0)
-    .filter((segment) => {
-      const normalized = segment.toLowerCase();
-
-      return !PORTRAIT_PROMPT_NOISE.some((noise) => normalized.includes(noise));
-    })
-    .slice(0, 10)
-    .join(", ");
-
-  return truncateForPrompt(details);
+  return `${visibleIdentity} Profile signal: ${publicProfile}`;
 }
 
 function formatBulletList(items: readonly string[]): string {

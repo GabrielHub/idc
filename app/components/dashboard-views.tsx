@@ -2084,6 +2084,7 @@ export type DateProps = {
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
   onComplete: () => void;
+  onCancel: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
   onBack: () => void;
@@ -2115,6 +2116,7 @@ export function DateView({
   onInterventionTargetChange,
   onAdvance,
   onComplete,
+  onCancel,
   onIntervene,
   onFollowUp,
   onBack,
@@ -2207,6 +2209,7 @@ export function DateView({
           onInterventionTargetChange={onInterventionTargetChange}
           onAdvance={onAdvance}
           onComplete={onComplete}
+          onCancel={onCancel}
           onIntervene={onIntervene}
         />
       ) : null}
@@ -2746,6 +2749,7 @@ function DateFooter({
   onInterventionTargetChange,
   onAdvance,
   onComplete,
+  onCancel,
   onIntervene,
 }: {
   session: DateSession;
@@ -2760,6 +2764,7 @@ function DateFooter({
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
   onComplete: () => void;
+  onCancel: () => void;
   onIntervene: () => void;
 }) {
   const interventionSlotAvailable = canAddCupidIntervention(session);
@@ -2770,6 +2775,7 @@ function DateFooter({
     pendingDateAction === null ? "Next line" : ADVANCE_BUTTON_LABELS[pendingDateAction];
   const exchangeLabel =
     pendingDateAction === null ? "Exchange" : ADVANCE_BUTTON_LABELS[pendingDateAction];
+  const isStreaming = pendingDateAction !== null;
 
   return (
     <motion.footer
@@ -2831,6 +2837,16 @@ function DateFooter({
                 <PrimaryButton onClick={() => onAdvance(2)} disabled={!canAdvance}>
                   {exchangeLabel}
                 </PrimaryButton>
+                {isStreaming ? (
+                  <button
+                    type="button"
+                    data-sfx="dismiss"
+                    onClick={onCancel}
+                    className="cursor-pointer rounded-pill border border-aura-rose/40 bg-aura-rose/10 px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose transition hover:bg-aura-rose hover:text-white"
+                  >
+                    Stop
+                  </button>
+                ) : null}
               </>
             ) : null}
           </div>

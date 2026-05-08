@@ -81,6 +81,7 @@ export function AiSetupPanel({
   const [ollamaError, setOllamaError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveHint, setSaveHint] = useState<string | null>(null);
   const isProviderUrlLocked = areAiProviderBaseUrlsLockedForRuntime();
@@ -177,6 +178,10 @@ export function AiSetupPanel({
   }
 
   async function saveAndCheck() {
+    if (isSaving || isVerifying) {
+      return;
+    }
+
     setIsSaving(true);
     setSaveError(null);
     setSaveHint(null);
@@ -211,7 +216,20 @@ export function AiSetupPanel({
     }
   }
 
-  const busy = isActionPending || isSaving;
+  async function verifyOnly() {
+    if (isVerifying || isSaving) {
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      await onCheck(draftConfig, draftGatewayKey);
+    } finally {
+      setIsVerifying(false);
+    }
+  }
+
+  const busy = isActionPending || isSaving || isVerifying;
   const formSerial = required ? "form 04-a // required intake" : "form 04-a // ai provisioning";
 
   if (typeof document === "undefined") {
@@ -302,14 +320,11 @@ export function AiSetupPanel({
           <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
             <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
             <div className="flex flex-wrap gap-2">
-              <GhostButton
-                disabled={busy}
-                onClick={() => void onCheck(draftConfig, draftGatewayKey)}
-              >
-                Verify
+              <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
+                {isVerifying ? "Verifying" : "Verify"}
               </GhostButton>
               <PrimaryButton disabled={busy} onClick={saveAndCheck}>
-                {busy ? "Verifying" : "Save and verify"}
+                {isSaving ? "Verifying" : "Save and verify"}
               </PrimaryButton>
             </div>
           </footer>

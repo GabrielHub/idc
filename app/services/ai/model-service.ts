@@ -144,6 +144,21 @@ export class LocalAiError extends AiModelError {
   }
 }
 
+export class DateStreamAbortedError extends Error {
+  constructor() {
+    super("Date stream aborted by player.");
+    this.name = "DateStreamAbortedError";
+  }
+}
+
+function isAbortError(error: unknown): boolean {
+  if (error instanceof DateStreamAbortedError) {
+    return true;
+  }
+
+  return error instanceof Error && error.name === "AbortError";
+}
+
 const judgeAiOutputSchema = z.object({
   dateHealthDelta: AI_DATE_HEALTH_DELTA_SCHEMA,
   statDeltas: z.partialRecord(relationshipStatSchema, AI_STAT_DELTA_SCHEMA),
@@ -202,6 +217,7 @@ export async function streamCharacterTurn(
   onTextDelta: (delta: string) => Promise<void> | void,
   onReasoningDelta?: (delta: string) => Promise<void> | void,
   options?: AiGenerationOptions,
+  abortSignal?: AbortSignal,
 ): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
@@ -220,6 +236,7 @@ export async function streamCharacterTurn(
         ),
     ),
     generationOptions,
+    abortSignal,
     onTextDelta,
     onReasoningDelta,
   });
@@ -499,6 +516,7 @@ async function streamTextWithModelService({
   config,
   maxOutputTokens,
   generationOptions,
+  abortSignal,
   onTextDelta,
   onReasoningDelta,
 }: {
@@ -509,6 +527,7 @@ async function streamTextWithModelService({
   config: AiRuntimeConfig;
   maxOutputTokens?: number;
   generationOptions?: AiGenerationOptions;
+  abortSignal?: AbortSignal;
   onTextDelta: (delta: string) => Promise<void> | void;
   onReasoningDelta?: (delta: string) => Promise<void> | void;
 }): Promise<GeneratedTextResult> {
@@ -532,6 +551,7 @@ async function streamTextWithModelService({
       topP: generationOptions?.topP,
       topK: config.aiProvider === "ollama" ? generationOptions?.topK : undefined,
       timeout: config.requestTimeoutMs,
+      abortSignal,
       providerOptions: providerOptionsForRuntime(config, modelId),
     };
     const result =
@@ -582,6 +602,10 @@ async function streamTextWithModelService({
       ...buildPromptTelemetry(promptStats, usage, warnings),
     };
   } catch (error) {
+    if (isAbortError(error)) {
+      throw new DateStreamAbortedError();
+    }
+
     if (emittedText.length > 0) {
       throw error;
     }

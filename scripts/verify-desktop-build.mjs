@@ -16,6 +16,10 @@ const FORBIDDEN_PATTERNS = [
 ];
 
 const failures = [];
+const releaseIdentity = loadReleaseIdentity();
+
+verifyReleaseIdentity(failures, releaseIdentity);
+verifyCopyrightAttestation(failures, releaseIdentity);
 
 for (const filePath of REQUIRED_FILES) {
   const absolutePath = resolve(BUILD_CLIENT_DIR, filePath);
@@ -69,4 +73,86 @@ function findFiles(directoryPath) {
 
 function shouldScan(filePath) {
   return [...SCANNED_EXTENSIONS].some((extension) => filePath.endsWith(extension));
+}
+
+function loadReleaseIdentity() {
+  const packageJsonPath = resolve(ROOT_DIR, "package.json");
+  const tauriConfPath = resolve(ROOT_DIR, "src-tauri/tauri.conf.json");
+  const cargoTomlPath = resolve(ROOT_DIR, "src-tauri/Cargo.toml");
+
+  if (!existsSync(packageJsonPath) || !existsSync(tauriConfPath) || !existsSync(cargoTomlPath)) {
+    return null;
+  }
+
+  const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+  const tauriConf = JSON.parse(readFileSync(tauriConfPath, "utf8"));
+  const cargoToml = readFileSync(cargoTomlPath, "utf8");
+  const cargoVersionMatch = /\n\s*version\s*=\s*"([^"]+)"/u.exec(`\n${cargoToml}`);
+
+  return {
+    packageJson,
+    tauriConf,
+    cargoVersion: cargoVersionMatch === null ? null : cargoVersionMatch[1],
+  };
+}
+
+function verifyReleaseIdentity(failureBucket, identity) {
+  if (identity === null) {
+    return;
+  }
+
+  const { packageJson, tauriConf, cargoVersion } = identity;
+  const packageVersion = packageJson.version;
+  const tauriVersion = tauriConf.version;
+
+  if (
+    typeof packageVersion !== "string" ||
+    typeof tauriVersion !== "string" ||
+    typeof cargoVersion !== "string"
+  ) {
+    failureBucket.push(
+      "release identity: version missing in package.json, tauri.conf.json, or Cargo.toml",
+    );
+    return;
+  }
+
+  if (packageVersion !== tauriVersion || packageVersion !== cargoVersion) {
+    failureBucket.push(
+      `release identity: version drift package=${packageVersion} tauri=${tauriVersion} cargo=${cargoVersion}`,
+    );
+  }
+
+  const tauriTitle = tauriConf.app?.windows?.[0]?.title;
+  if (typeof tauriTitle !== "string" || !tauriTitle.includes(packageVersion)) {
+    failureBucket.push(
+      `release identity: tauri.conf.json window title does not include version ${packageVersion}`,
+    );
+  }
+}
+
+function verifyCopyrightAttestation(failureBucket, identity) {
+  if (process.env.IDC_RELEASE_PREFLIGHT !== "1" || identity === null) {
+    return;
+  }
+
+  const copyright = identity.tauriConf.bundle?.copyright;
+  const currentYear = new Date().getUTCFullYear();
+  const expectedYearFragment = String(currentYear);
+
+  if (typeof copyright !== "string" || copyright.length === 0) {
+    failureBucket.push("release preflight: bundle.copyright is missing in tauri.conf.json");
+    return;
+  }
+
+  if (!copyright.includes(expectedYearFragment)) {
+    failureBucket.push(
+      `release preflight: bundle.copyright "${copyright}" does not include current year ${expectedYearFragment}`,
+    );
+  }
+
+  if (process.env.IDC_COPYRIGHT_CONFIRMED !== copyright) {
+    failureBucket.push(
+      `release preflight: bundle.copyright "${copyright}" was not confirmed for signing. Set IDC_COPYRIGHT_CONFIRMED to the exact copyright string before running with IDC_RELEASE_PREFLIGHT=1.`,
+    );
+  }
 }

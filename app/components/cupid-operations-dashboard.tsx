@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  gameSaveSchema,
+  SAVE_SCHEMA_VERSION,
   type DateSession,
   type DateSessionStatus,
   type DateScenario,
@@ -13,11 +15,12 @@ import {
   type PairState,
   type ShiftState,
 } from "../domain/game";
+import { APP_VERSION } from "../platform/release-identity";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
 import { isTauriRuntime, lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
-import { openTauriLogFolder } from "../platform/tauri-log-folder";
+import { openTauriLogFolder, openTauriSaveFolder } from "../platform/tauri-log-folder";
 import {
   addCupidIntervention,
   applyFollowUpAction,
@@ -32,6 +35,7 @@ import {
   startNextShift,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
+import { errorToMessage } from "../services/utils";
 import {
   buildPublicRiskNotes,
   evaluateMatchFit,
@@ -45,6 +49,7 @@ import {
 import {
   advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAiStream,
+  DateStreamAbortedError,
   type LocalAiDateEngineResult,
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
@@ -82,6 +87,8 @@ function asPendingDateAction(action: DashboardPendingAction | null): PendingDate
 
 type LocalAiClientStatus = AiSetupStatus;
 
+type RetriableDateAction = { kind: "advanceExchange"; turnCount: 1 | 2 } | { kind: "completeDate" };
+
 const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   status: "checking",
   message: "Checking AI provider. Cupid is holding the clipboard very still.",
@@ -115,7 +122,10 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [pendingAction, setPendingAction] = useState<DashboardPendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
+  const [pendingDateRetry, setPendingDateRetry] = useState<RetriableDateAction | null>(null);
   const lastErrorMessageRef = useRef<string | null>(null);
+  const localAiStatusRequestRef = useRef<Promise<LocalAiClientStatus> | null>(null);
+  const dateAbortControllerRef = useRef<AbortController | null>(null);
   const isActionPending = pendingAction !== null;
 
   useEffect(() => {
@@ -327,6 +337,10 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
   const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
   const dateAmbientActive = view === "date" && activeSession?.status === "active";
+  const diagnosticsSnapshot = useMemo(
+    () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
+    [save?.config, localAiStatus],
+  );
 
   useEffect(() => {
     window.scrollTo({ left: 0, top: 0 });
@@ -385,15 +399,29 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       };
     }
 
-    setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-    const status = await requestLocalAiStatus(config, key);
-    setLocalAiStatus(status);
-
-    if (status.status === "unavailable") {
-      setErrorMessage(status.message);
+    if (localAiStatusRequestRef.current !== null) {
+      return localAiStatusRequestRef.current;
     }
 
-    return status;
+    setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
+
+    const request = (async () => {
+      try {
+        const status = await requestLocalAiStatus(config, key);
+        setLocalAiStatus(status);
+
+        if (status.status === "unavailable") {
+          setErrorMessage(status.message);
+        }
+
+        return status;
+      } finally {
+        localAiStatusRequestRef.current = null;
+      }
+    })();
+
+    localAiStatusRequestRef.current = request;
+    return request;
   }
 
   async function handleSaveAiConfig(nextConfig: GameConfig, nextGatewayApiKey: string) {
@@ -453,27 +481,37 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction("advanceExchange", async () => {
-      setStreamingDrafts([]);
-      try {
-        const result = await runDateAction(
-          {
-            type: "advanceExchange",
-            save,
-            dateSessionId: activeSession.id,
-            turnCount,
-          },
-          repository,
-          gatewayApiKey,
-          applyGameStreamEvent,
-        );
-        await persist(result.save);
-        setActiveDateSessionId(result.session.id);
-        setRuntimeWarnings(result);
-      } finally {
+    const sessionId = activeSession.id;
+
+    tryAction(
+      "advanceExchange",
+      async () => {
         setStreamingDrafts([]);
-      }
-    });
+        const controller = new AbortController();
+        dateAbortControllerRef.current = controller;
+        try {
+          const result = await runDateAction(
+            {
+              type: "advanceExchange",
+              save,
+              dateSessionId: sessionId,
+              turnCount,
+            },
+            repository,
+            gatewayApiKey,
+            applyGameStreamEvent,
+            controller.signal,
+          );
+          await persist(result.save);
+          setActiveDateSessionId(result.session.id);
+          setRuntimeWarnings(result);
+        } finally {
+          dateAbortControllerRef.current = null;
+          setStreamingDrafts([]);
+        }
+      },
+      { kind: "advanceExchange", turnCount },
+    );
   }
 
   async function handleCompleteDate() {
@@ -481,26 +519,67 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    tryAction("completeDate", async () => {
-      setStreamingDrafts([]);
-      try {
-        const result = await runDateAction(
-          {
-            type: "completeDate",
-            save,
-            dateSessionId: activeSession.id,
-          },
-          repository,
-          gatewayApiKey,
-          applyGameStreamEvent,
-        );
-        await persist(result.save);
-        setActiveDateSessionId(result.session.id);
-        setRuntimeWarnings(result);
-      } finally {
+    const sessionId = activeSession.id;
+
+    tryAction(
+      "completeDate",
+      async () => {
         setStreamingDrafts([]);
-      }
-    });
+        const controller = new AbortController();
+        dateAbortControllerRef.current = controller;
+        try {
+          const result = await runDateAction(
+            {
+              type: "completeDate",
+              save,
+              dateSessionId: sessionId,
+            },
+            repository,
+            gatewayApiKey,
+            applyGameStreamEvent,
+            controller.signal,
+          );
+          await persist(result.save);
+          setActiveDateSessionId(result.session.id);
+          setRuntimeWarnings(result);
+        } finally {
+          dateAbortControllerRef.current = null;
+          setStreamingDrafts([]);
+        }
+      },
+      { kind: "completeDate" },
+    );
+  }
+
+  function handleCancelDate() {
+    const controller = dateAbortControllerRef.current;
+
+    if (controller === null) {
+      return;
+    }
+
+    controller.abort();
+  }
+
+  function handleRetryDateAction() {
+    if (pendingDateRetry === null) {
+      return;
+    }
+
+    setPendingDateRetry(null);
+    setErrorMessage(null);
+
+    if (pendingDateRetry.kind === "advanceExchange") {
+      void handleAdvanceExchange(pendingDateRetry.turnCount);
+      return;
+    }
+
+    void handleCompleteDate();
+  }
+
+  function handleDismissDateError() {
+    setPendingDateRetry(null);
+    setErrorMessage(null);
   }
 
   async function handleIntervention() {
@@ -557,6 +636,76 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       setStreamingDrafts([]);
       setView("roster");
     });
+  }
+
+  function handleExportSave() {
+    if (save === null) {
+      return;
+    }
+
+    const blob = new Blob([JSON.stringify(save, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cupid-save-v${SAVE_SCHEMA_VERSION}-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportSave(file: File) {
+    tryAction("reset", async () => {
+      const text = await file.text();
+      let parsed: unknown;
+
+      try {
+        parsed = JSON.parse(text);
+      } catch (error) {
+        throw new Error(`Cupid could not read that JSON file. ${errorToMessage(error)}`.trim());
+      }
+
+      const validated = gameSaveSchema.safeParse(parsed);
+
+      if (!validated.success) {
+        const firstIssue = validated.error.issues[0];
+        const detail =
+          firstIssue === undefined
+            ? "schema mismatch"
+            : `${firstIssue.path.join(".") || "save"}: ${firstIssue.message}`;
+        throw new Error(
+          `Imported save did not match save schema v${SAVE_SCHEMA_VERSION} (${detail}).`,
+        );
+      }
+
+      await tryBackupSave(repository);
+      await repository.saveGame(validated.data);
+      const nextSave = (await repository.loadGame()) ?? validated.data;
+
+      setSave(nextSave);
+      setSelectedMemberIds(defaultMemberSelection(nextSave));
+      setSelectedScenarioId(getActiveShift(nextSave).drawnScenarioIds[0] ?? "");
+      const restoredSession =
+        nextSave.dateSessions.find((session) => session.status === "active") ??
+        nextSave.dateSessions.at(-1) ??
+        null;
+      setActiveDateSessionId(restoredSession?.id ?? null);
+      setInterventionText("");
+      setInterventionTargetMemberId("");
+      setStreamingDrafts([]);
+      setView(restoredSession !== null && restoredSession.status === "active" ? "date" : "roster");
+    });
+  }
+
+  async function handleCopyDiagnostics(): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(diagnosticsSnapshot, null, 2));
+      return true;
+    } catch (error) {
+      setErrorMessage(`Cupid could not copy diagnostics: ${errorToMessage(error)}`);
+      return false;
+    }
   }
 
   async function handleOpenNextShift() {
@@ -655,7 +804,11 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     setErrorMessage(result.warningMessages.slice(0, 3).join(" "));
   }
 
-  async function tryAction(pending: DashboardPendingAction, action: () => Promise<void>) {
+  async function tryAction(
+    pending: DashboardPendingAction,
+    action: () => Promise<void>,
+    retryOnFailure?: RetriableDateAction,
+  ) {
     if (pendingAction !== null) {
       return;
     }
@@ -663,9 +816,18 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     try {
       setPendingAction(pending);
       setErrorMessage(null);
+      setPendingDateRetry(null);
       await action();
     } catch (error) {
+      if (error instanceof DateStreamAbortedError) {
+        return;
+      }
+
       setErrorMessage(error instanceof Error ? error.message : "Cupid could not file that action.");
+
+      if (retryOnFailure !== undefined) {
+        setPendingDateRetry(retryOnFailure);
+      }
     } finally {
       setPendingAction(null);
     }
@@ -715,6 +877,8 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         activeShift={activeShift}
         featuredMemberCount={featuredMembers.length}
         localAiStatus={localAiStatus}
+        diagnostics={diagnosticsSnapshot}
+        canExportSave={save !== null}
         view={view}
         dateStatus={dateStatus}
         isActionPending={isActionPending}
@@ -723,12 +887,23 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         onOpenAiSetup={() => setIsAiSetupOpen(true)}
         onEndShift={handleEndShift}
         onReset={handleReset}
+        onExportSave={handleExportSave}
+        onImportSave={handleImportSave}
+        onCopyDiagnostics={handleCopyDiagnostics}
         onPunchOut={onPunchOut}
       />
 
       <main className="relative z-10 pt-24 lg:pt-28">
         {errorMessage === null ? null : (
-          <ErrorNotice message={errorMessage} onDismiss={() => setErrorMessage(null)} />
+          <ErrorNotice
+            message={errorMessage}
+            retryLabel={pendingDateRetry === null ? null : retryLabelFor(pendingDateRetry)}
+            isActionPending={isActionPending}
+            onRetry={pendingDateRetry === null ? null : handleRetryDateAction}
+            onDismiss={
+              pendingDateRetry === null ? () => setErrorMessage(null) : handleDismissDateError
+            }
+          />
         )}
 
         {!save.config.aiSetupComplete || isAiSetupOpen ? (
@@ -800,6 +975,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               onInterventionTargetChange={setInterventionTargetMemberId}
               onAdvance={handleAdvanceExchange}
               onComplete={handleCompleteDate}
+              onCancel={handleCancelDate}
               onIntervene={handleIntervention}
               onFollowUp={handleFollowUp}
               onBack={() => setView("brief")}
@@ -861,6 +1037,8 @@ function DashboardChrome({
   activeShift,
   featuredMemberCount,
   localAiStatus,
+  diagnostics,
+  canExportSave,
   view,
   dateStatus,
   isActionPending,
@@ -869,11 +1047,16 @@ function DashboardChrome({
   onOpenAiSetup,
   onEndShift,
   onReset,
+  onExportSave,
+  onImportSave,
+  onCopyDiagnostics,
   onPunchOut,
 }: {
   activeShift: ShiftState;
   featuredMemberCount: number;
   localAiStatus: LocalAiClientStatus;
+  diagnostics: DiagnosticsSnapshot;
+  canExportSave: boolean;
   view: ViewKey;
   dateStatus: DateSessionStatus | null;
   isActionPending: boolean;
@@ -882,6 +1065,9 @@ function DashboardChrome({
   onOpenAiSetup: () => void;
   onEndShift: () => void;
   onReset: () => void;
+  onExportSave: () => void;
+  onImportSave: (file: File) => void;
+  onCopyDiagnostics: () => Promise<boolean>;
   onPunchOut: () => void;
 }) {
   return (
@@ -904,9 +1090,14 @@ function DashboardChrome({
         <ChromeActions
           shiftActive={activeShift.status === "active"}
           isActionPending={isActionPending}
+          diagnostics={diagnostics}
+          canExportSave={canExportSave}
           onEndShift={onEndShift}
           onOpenAiSetup={onOpenAiSetup}
           onReset={onReset}
+          onExportSave={onExportSave}
+          onImportSave={onImportSave}
+          onCopyDiagnostics={onCopyDiagnostics}
           onPunchOut={onPunchOut}
         />
       </div>
@@ -1037,16 +1228,26 @@ function ViewTabs({
 function ChromeActions({
   shiftActive,
   isActionPending,
+  diagnostics,
+  canExportSave,
   onEndShift,
   onOpenAiSetup,
   onReset,
+  onExportSave,
+  onImportSave,
+  onCopyDiagnostics,
   onPunchOut,
 }: {
   shiftActive: boolean;
   isActionPending: boolean;
+  diagnostics: DiagnosticsSnapshot;
+  canExportSave: boolean;
   onEndShift: () => void;
   onOpenAiSetup: () => void;
   onReset: () => void;
+  onExportSave: () => void;
+  onImportSave: (file: File) => void;
+  onCopyDiagnostics: () => Promise<boolean>;
   onPunchOut: () => void;
 }) {
   return (
@@ -1059,8 +1260,13 @@ function ChromeActions({
       <MutedIndicator />
       <SettingsMenu
         isActionPending={isActionPending}
+        diagnostics={diagnostics}
+        canExportSave={canExportSave}
         onOpenAiSetup={onOpenAiSetup}
         onReset={onReset}
+        onExportSave={onExportSave}
+        onImportSave={onImportSave}
+        onCopyDiagnostics={onCopyDiagnostics}
         onPunchOut={onPunchOut}
       />
     </div>
@@ -1109,19 +1315,32 @@ function MutedIcon() {
 
 function SettingsMenu({
   isActionPending,
+  diagnostics,
+  canExportSave,
   onOpenAiSetup,
   onReset,
+  onExportSave,
+  onImportSave,
+  onCopyDiagnostics,
   onPunchOut,
 }: {
   isActionPending: boolean;
+  diagnostics: DiagnosticsSnapshot;
+  canExportSave: boolean;
   onOpenAiSetup: () => void;
   onReset: () => void;
+  onExportSave: () => void;
+  onImportSave: (file: File) => void;
+  onCopyDiagnostics: () => Promise<boolean>;
   onPunchOut: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
+  const [isShowingDiagnostics, setIsShowingDiagnostics] = useState(false);
+  const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
   const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled, volume, setVolume, play } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -1182,6 +1401,38 @@ function SettingsMenu({
     onOpenAiSetup();
   }
 
+  function handleExportSaveClick() {
+    setIsOpen(false);
+    onExportSave();
+  }
+
+  function handleImportSaveClick() {
+    importInputRef.current?.click();
+  }
+
+  function handleImportFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (file === undefined) {
+      return;
+    }
+
+    setIsOpen(false);
+    onImportSave(file);
+  }
+
+  async function handleCopyDiagnosticsClick() {
+    const copied = await onCopyDiagnostics();
+
+    if (!copied) {
+      return;
+    }
+
+    setDiagnosticsCopied(true);
+    window.setTimeout(() => setDiagnosticsCopied(false), 1500);
+  }
+
   function handleToggleSfx() {
     setSfxEnabled(!sfxEnabled);
   }
@@ -1226,7 +1477,7 @@ function SettingsMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="aura-glass-strong absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-card p-1.5"
+            className="aura-glass-strong absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-card p-1.5"
           >
             <div className="px-3 pb-2 pt-2.5">
               <div className="flex items-center justify-between font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
@@ -1279,18 +1530,68 @@ function SettingsMenu({
                   {sfxEnabled ? "Mute" : "Unmute"}
                 </button>
                 {isTauriRuntime() ? (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    data-sfx="menu"
-                    onClick={() => {
-                      void openTauriLogFolder();
-                    }}
-                    className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
-                  >
-                    Show log folder
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-sfx="menu"
+                      onClick={() => {
+                        void openTauriSaveFolder();
+                      }}
+                      className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+                    >
+                      Show save folder
+                    </button>
+                    <button
+                      type="button"
+                      role="menuitem"
+                      data-sfx="menu"
+                      onClick={() => {
+                        void openTauriLogFolder();
+                      }}
+                      className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+                    >
+                      Show log folder
+                    </button>
+                  </>
                 ) : null}
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-sfx="menu"
+                  onClick={handleExportSaveClick}
+                  disabled={isActionPending || !canExportSave}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Export save (JSON)
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-sfx="menu"
+                  onClick={handleImportSaveClick}
+                  disabled={isActionPending}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Import save (JSON)
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handleImportFileChange}
+                  className="hidden"
+                  aria-hidden
+                />
+                <div className="mx-2 my-1 h-px bg-aura-hairline" />
+                <DiagnosticsBlock
+                  diagnostics={diagnostics}
+                  isExpanded={isShowingDiagnostics}
+                  isCopied={diagnosticsCopied}
+                  onToggle={() => setIsShowingDiagnostics((open) => !open)}
+                  onCopy={handleCopyDiagnosticsClick}
+                />
+                <div className="mx-2 my-1 h-px bg-aura-hairline" />
                 <button
                   type="button"
                   role="menuitem"
@@ -1335,6 +1636,79 @@ function SettingsIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H7a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
+  );
+}
+
+function DiagnosticsBlock({
+  diagnostics,
+  isExpanded,
+  isCopied,
+  onToggle,
+  onCopy,
+}: {
+  diagnostics: DiagnosticsSnapshot;
+  isExpanded: boolean;
+  isCopied: boolean;
+  onToggle: () => void;
+  onCopy: () => void;
+}) {
+  const checkedAt = diagnostics.lastAiCheck.checkedAt;
+  const checkedAtLabel = checkedAt === null ? "never" : new Date(checkedAt).toLocaleString();
+
+  return (
+    <div className="px-1 py-1.5">
+      <button
+        type="button"
+        role="menuitem"
+        data-sfx="menu"
+        onClick={onToggle}
+        aria-expanded={isExpanded}
+        className="flex w-full cursor-pointer items-center justify-between gap-2 rounded-chip px-2 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+      >
+        <span>Diagnostics</span>
+        <span className="text-aura-faint">{isExpanded ? "−" : "+"}</span>
+      </button>
+      {isExpanded ? (
+        <div className="mt-1 rounded-chip border border-aura-hairline bg-white/55 p-2.5">
+          <dl className="space-y-1 font-mono text-micro uppercase tracking-[0.16em] text-aura-muted">
+            <DiagnosticsRow label="build" value={diagnostics.appVersion} />
+            <DiagnosticsRow label="save" value={`v${diagnostics.saveSchema}`} />
+            <DiagnosticsRow label="runtime" value={diagnostics.runtime} />
+            <DiagnosticsRow label="provider" value={diagnostics.provider} />
+            <DiagnosticsRow label="chat" value={diagnostics.chatModel} />
+            <DiagnosticsRow label="embed" value={diagnostics.embeddingModel} />
+            <DiagnosticsRow label="reasoning" value={diagnostics.reasoningLevel} />
+            <DiagnosticsRow label="ai status" value={diagnostics.lastAiCheck.status} />
+            <DiagnosticsRow label="checked" value={checkedAtLabel} />
+          </dl>
+          <p
+            className="mt-2 truncate font-mono text-micro lowercase tracking-[0.04em] text-aura-faint"
+            title={diagnostics.os}
+          >
+            os :: <span className="text-aura-ink">{diagnostics.os}</span>
+          </p>
+          <button
+            type="button"
+            data-sfx="menu"
+            onClick={onCopy}
+            className="mt-2 block w-full cursor-pointer rounded-chip bg-aura-ink px-3 py-1.5 text-center font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-aura-rose"
+          >
+            {isCopied ? "Copied" : "Copy diagnostic blob"}
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function DiagnosticsRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[5.5rem_1fr] items-baseline gap-2">
+      <dt className="text-aura-faint">{label}</dt>
+      <dd className="min-w-0 truncate text-aura-ink" title={value}>
+        {value}
+      </dd>
+    </div>
   );
 }
 
@@ -1419,20 +1793,53 @@ function DateEmpty({ onBack }: { onBack: () => void }) {
   );
 }
 
-function ErrorNotice({ message, onDismiss }: { message: string; onDismiss: () => void }) {
+function ErrorNotice({
+  message,
+  retryLabel,
+  isActionPending,
+  onRetry,
+  onDismiss,
+}: {
+  message: string;
+  retryLabel: string | null;
+  isActionPending: boolean;
+  onRetry: (() => void) | null;
+  onDismiss: () => void;
+}) {
   return (
     <div className="aura-glass-rose relative z-10 mx-auto mt-2 flex w-full max-w-4xl items-start justify-between gap-4 rounded-card px-5 py-4 text-aura-rose lg:max-w-5xl">
       <p className="text-label leading-relaxed">{message}</p>
-      <button
-        type="button"
-        data-sfx="dismiss"
-        onClick={onDismiss}
-        className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80 hover:text-aura-rose"
-      >
-        Dismiss
-      </button>
+      <div className="flex shrink-0 items-center gap-3">
+        {onRetry === null || retryLabel === null ? null : (
+          <button
+            type="button"
+            data-sfx="primary"
+            disabled={isActionPending}
+            onClick={onRetry}
+            className="cursor-pointer rounded-pill bg-aura-rose px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {retryLabel}
+          </button>
+        )}
+        <button
+          type="button"
+          data-sfx="dismiss"
+          onClick={onDismiss}
+          className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80 hover:text-aura-rose"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   );
+}
+
+function retryLabelFor(retry: RetriableDateAction): string {
+  if (retry.kind === "completeDate") {
+    return "Retry resolve";
+  }
+
+  return retry.turnCount === 1 ? "Retry one line" : "Retry exchange";
 }
 
 function TerminationPanel({
@@ -1524,6 +1931,7 @@ async function runDateAction(
   repository: ReturnType<typeof createGameRepository>,
   gatewayApiKey: string,
   onEvent: (event: LocalAiDateStreamEvent) => void,
+  abortSignal: AbortSignal,
 ): Promise<LocalAiDateEngineResult> {
   const config: Partial<AiRuntimeConfig> = { ...input.save.config, gatewayApiKey };
 
@@ -1535,6 +1943,7 @@ async function runDateAction(
         dateSessionId: input.dateSessionId,
         turnCount: input.turnCount,
         config,
+        abortSignal,
       },
       onEvent,
     );
@@ -1546,6 +1955,7 @@ async function runDateAction(
     {
       dateSessionId: input.dateSessionId,
       config,
+      abortSignal,
     },
     onEvent,
   );
@@ -1609,6 +2019,45 @@ function toPublicFitSignal(fit: {
   askSignal: MatchFitPublicSignal["askSignal"];
 }): MatchFitPublicSignal {
   return { fitLevel: fit.fitLevel, pressureLevel: fit.pressureLevel, askSignal: fit.askSignal };
+}
+
+type DiagnosticsSnapshot = {
+  appVersion: string;
+  saveSchema: number;
+  runtime: "tauri" | "browser";
+  os: string;
+  provider: string;
+  chatModel: string;
+  embeddingModel: string;
+  reasoningLevel: string;
+  lastAiCheck: {
+    status: AiSetupStatus["status"];
+    message: string;
+    checkedAt: string | null;
+  };
+};
+
+function buildDiagnosticsSnapshot(input: {
+  config: GameConfig | null;
+  localAiStatus: AiSetupStatus;
+}): DiagnosticsSnapshot {
+  const userAgent = typeof navigator === "undefined" ? "unknown" : navigator.userAgent;
+
+  return {
+    appVersion: APP_VERSION,
+    saveSchema: SAVE_SCHEMA_VERSION,
+    runtime: isTauriRuntime() ? "tauri" : "browser",
+    os: userAgent,
+    provider: input.config?.aiProvider ?? "unconfigured",
+    chatModel: input.config?.chatModel ?? "unconfigured",
+    embeddingModel: input.config?.embeddingModel ?? "unconfigured",
+    reasoningLevel: input.config?.reasoningLevel ?? "off",
+    lastAiCheck: {
+      status: input.localAiStatus.status,
+      message: input.localAiStatus.message,
+      checkedAt: input.localAiStatus.checkedAt ?? null,
+    },
+  };
 }
 
 function defaultMemberSelection(save: GameSave): string[] {

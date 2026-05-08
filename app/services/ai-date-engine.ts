@@ -19,12 +19,15 @@ import type { GameRepository } from "../repositories/game-repository";
 import {
   type AiRuntimeConfig,
   type GeneratedTextResult,
+  DateStreamAbortedError,
   embedMemoryText,
   generateCharacterTurn,
   judgeDateExchange,
   streamCharacterTurn as streamCharacterTurnWithLocalAi,
   summarizeDateMemories,
 } from "./ai/model-service";
+
+export { DateStreamAbortedError } from "./ai/model-service";
 import { retrieveRelevantMemories } from "./cupid-memory";
 import {
   applyJudgeToMembers,
@@ -65,6 +68,7 @@ export type LocalAiDateRuntime = {
   streamCharacterTurn?(input: {
     packet: CharacterPromptPacket;
     config: Partial<AiRuntimeConfig>;
+    abortSignal?: AbortSignal;
     onTextDelta: (delta: string) => Promise<void> | void;
     onReasoningDelta?: (delta: string) => Promise<void> | void;
   }): Promise<GeneratedTextResult>;
@@ -162,6 +166,7 @@ type LocalAiDateEngineInput = {
   now?: Date;
   config?: Partial<AiRuntimeConfig>;
   runtime?: LocalAiDateRuntime;
+  abortSignal?: AbortSignal;
 };
 
 const DEFAULT_MEMORY_LIMIT = 2;
@@ -169,8 +174,15 @@ const CHARACTER_MESSAGE_MAX_LENGTH = 260;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
-  streamCharacterTurn: ({ packet, config, onTextDelta, onReasoningDelta }) =>
-    streamCharacterTurnWithLocalAi(packet, config, onTextDelta, onReasoningDelta),
+  streamCharacterTurn: ({ packet, config, abortSignal, onTextDelta, onReasoningDelta }) =>
+    streamCharacterTurnWithLocalAi(
+      packet,
+      config,
+      onTextDelta,
+      onReasoningDelta,
+      undefined,
+      abortSignal,
+    ),
   judgeDateExchange: ({ packet, dateSessionId, exchangeIndex, config }) =>
     judgeDateExchange({ packet, dateSessionId, exchangeIndex, config }),
   summarizeDateMemories: ({ packet, config }) => summarizeDateMemories(packet, config),
@@ -270,6 +282,7 @@ async function advanceDateExchangeWithLocalAiInternal(
       frictionRuleHits,
       createdAt: timestamp,
       emit,
+      abortSignal: input.abortSignal,
     });
 
     telemetry.characterGenerationCount += 1;
@@ -469,6 +482,7 @@ async function createLocalAiCharacterMessage({
   frictionRuleHits,
   createdAt,
   emit,
+  abortSignal,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -482,6 +496,7 @@ async function createLocalAiCharacterMessage({
   frictionRuleHits: readonly string[];
   createdAt: string;
   emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void;
+  abortSignal?: AbortSignal;
 }): Promise<{
   message: DateMessage;
   toolCallCount: number;
@@ -520,6 +535,7 @@ async function createLocalAiCharacterMessage({
             sequenceIndex,
             turnIndex,
             emit,
+            abortSignal,
           });
     const text = sanitizeCharacterText(generation.text, speaker.name);
     const message = dateMessageSchema.parse({
@@ -555,6 +571,10 @@ async function createLocalAiCharacterMessage({
       warningMessages: generation.warningMessages ?? [],
     };
   } catch (error) {
+    if (error instanceof DateStreamAbortedError) {
+      throw error;
+    }
+
     throw new Error(`AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
   }
 }
@@ -622,6 +642,7 @@ async function streamCharacterMessage({
   sequenceIndex,
   turnIndex,
   emit,
+  abortSignal,
 }: {
   runtime: LocalAiDateRuntime;
   packet: CharacterPromptPacket;
@@ -630,6 +651,7 @@ async function streamCharacterMessage({
   sequenceIndex: number;
   turnIndex: number;
   emit: (event: LocalAiDateStreamEvent) => Promise<void> | void;
+  abortSignal?: AbortSignal;
 }): Promise<GeneratedTextResult> {
   if (runtime.streamCharacterTurn === undefined) {
     throw new Error("Runtime does not support streaming character turns.");
@@ -646,6 +668,7 @@ async function streamCharacterMessage({
   return runtime.streamCharacterTurn({
     packet,
     config,
+    abortSignal,
     onTextDelta: async (delta) => {
       const textDelta = stripForbiddenPunctuation(delta);
 

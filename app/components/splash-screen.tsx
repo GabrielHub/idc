@@ -10,6 +10,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { miraPark, mrWhiskers, vhool } from "../fixtures/members";
+import { APP_VERSION } from "../platform/release-identity";
 import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
@@ -1714,7 +1715,7 @@ function FooterMarquee() {
           className="aura-glass pointer-events-auto inline-flex items-center gap-2 rounded-pill px-4 py-1.5 font-mono text-micro uppercase tracking-[0.28em] text-aura-faint"
         >
           <span className="size-1 rounded-full bg-aura-faint aura-caret" />
-          save.v{SAVE_SCHEMA_VERSION} // build.20260504
+          save.v{SAVE_SCHEMA_VERSION} // build.{APP_VERSION}
         </motion.span>
 
         <Marquee />

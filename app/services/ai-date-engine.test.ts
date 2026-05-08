@@ -357,6 +357,175 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
+  it("rejects the streamed exchange and preserves the prior commit when the second speaker fails", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-second-fail");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let streamCallCount = 0;
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        throw new Error("non-streaming performer should not run");
+      },
+      streamCharacterTurn: async ({ packet, onTextDelta }) => {
+        streamCallCount += 1;
+
+        if (streamCallCount === 1) {
+          const text = "Jenna leads with a calm receipt question.";
+
+          for (const chunk of text.split(" ")) {
+            await onTextDelta(`${chunk} `);
+          }
+
+          return {
+            text,
+            providerMode: "ollama",
+            model: "fake-stream-performer",
+            stepCount: 1,
+            toolCallCount: 0,
+            toolResultCount: 0,
+          };
+        }
+
+        if (!packet.prompt.includes("as Vhool")) {
+          throw new Error("expected the second performer call to be Vhool");
+        }
+
+        await onTextDelta("Vhool starts ");
+        throw new Error("provider dropped the connection mid stream");
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run when a performer fails mid stream");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run when a performer fails mid stream");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    const events: LocalAiDateStreamEvent[] = [];
+    await repository.saveGame(started.save);
+
+    await expect(
+      advanceDateExchangeWithLocalAiStream(
+        started.save,
+        repository,
+        {
+          dateSessionId: started.session.id,
+          runtime,
+          config: started.save.config,
+          now: new Date("2026-05-05T12:02:00.000Z"),
+        },
+        (event) => {
+          events.push(event);
+        },
+      ),
+    ).rejects.toThrow("AI performer failed for Vhool: provider dropped the connection mid stream");
+
+    expect(streamCallCount).toBe(2);
+    expect(events.filter((event) => event.type === "characterStart")).toHaveLength(2);
+    expect(events.some((event) => event.type === "judgeStart")).toBe(false);
+
+    const loadedSave = await repository.loadGame();
+    const loadedSession = loadedSave?.dateSessions.find(
+      (session) => session.id === started.session.id,
+    );
+
+    expect(loadedSession?.status).toBe("active");
+    expect(loadedSession?.currentTurn).toBe(0);
+    expect(
+      loadedSession?.transcript.filter((message) => message.kind === "character"),
+    ).toHaveLength(0);
+    expect(loadedSession?.judgeSnapshots).toHaveLength(0);
+
+    streamCallCount = 0;
+    const retryRuntime: LocalAiDateRuntime = {
+      ...runtime,
+      streamCharacterTurn: async ({ packet, onTextDelta }) => {
+        const text = packet.prompt.includes("as Jenna Pike")
+          ? "Jenna asks the calm receipt question on retry."
+          : "Vhool answers the receipt on retry.";
+
+        for (const chunk of text.split(" ")) {
+          await onTextDelta(`${chunk} `);
+        }
+
+        return {
+          text,
+          providerMode: "ollama",
+          model: "fake-stream-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {},
+          memberMoodDeltas: {},
+          shouldEndEarly: false,
+          notableMoments: ["Retry produced two clean lines."],
+          playerSummary: "Retry succeeded.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => [
+        memoryCandidateSchema.parse({
+          scope: "pair",
+          visibility: "public",
+          subjectIds: ["jenna-pike", "vhool"],
+          pairId: started.session.pairId,
+          scenarioId: started.session.scenarioId,
+          dateSessionId: started.session.id,
+          text: "Retry exchange completed.",
+          tags: ["date_summary"],
+          importance: 2,
+        }),
+      ],
+    };
+
+    const retryResult = await advanceDateExchangeWithLocalAiStream(
+      started.save,
+      repository,
+      {
+        dateSessionId: started.session.id,
+        runtime: retryRuntime,
+        config: started.save.config,
+        now: new Date("2026-05-05T12:03:00.000Z"),
+      },
+      () => {},
+    );
+
+    expect(
+      retryResult.session.transcript.filter((message) => message.kind === "character"),
+    ).toHaveLength(2);
+    expect(retryResult.session.judgeSnapshots).toHaveLength(1);
+  });
+
   it("generates each local AI character turn from the previous generated turn", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-sequential-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
