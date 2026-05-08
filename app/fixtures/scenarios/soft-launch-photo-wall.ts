@@ -5,63 +5,64 @@ export const softLaunchPhotoWall: DateScenario = {
   title: "Soft Launch Photo Wall",
   card: {
     summary:
-      "A brand pop-up mistakes the date for promotional talent. Consent becomes the whole appetizer.",
+      "A brand pop-up has set the pair up at a small bistro table across from a photo wall. Consent becomes the whole appetizer.",
     tags: ["career", "public", "high_pressure"],
     risk: "high",
     intimacy: "low",
     chaos: "high",
     idealFor: [
-      "members who enjoy attention",
-      "performers who can still ask permission",
-      "pairs testing public boundaries",
+      "members whose work runs on captions and a posted cadence",
+      "members who can pose under three ring lights and still toast themselves first",
+      "members who can revise a caption draft into a confirmed second meeting",
     ],
     badFor: [
-      "privacy-sensitive members",
-      "members who hate cameras",
-      "pairs that confuse exposure with honesty",
+      "members whose recording-device aversion runs through every venue choice",
+      "members whose privacy will trip the moment the tablet starts pulsing",
+      "members who will not be photographed under a use name and a wrong glamour",
+      "members who have spent decades quietly not being filmed",
     ],
   },
   publicBrief: {
-    location: "A soft-launch pop-up with a floral photo wall and three ring lights",
+    location: "A two-chair bistro table across from a floral photo wall at a soft-launch pop-up",
     premise:
-      "Cupid booked a preview event. The staff assumes the pair is there to be photographed with the product.",
+      "Cupid booked a preview event. The pop-up assumes the pair is there to be photographed with the product. Staff move on their own cues, not the pair's.",
     whatBothCharactersKnow:
-      "There are cameras, gift bags, and release forms. Participation is optional in theory and socially sticky in practice.",
+      "Cameras, gift bags, and release forms are out. The clipboard appears at their table whether they ask for it or not.",
     openingSituation:
-      "A brand assistant greets them by the wrong couple name and asks whether they prefer portrait or reel format.",
+      "Both members sit at the bistro table. A pink clipboard with a release form is already on the table. Three ring lights stand cold beside the wall.",
   },
   director: {
     tone: "bright, performative, crowded, with too much branded enthusiasm",
     rules: [
-      "Make consent visible before any photo or recording pressure lands.",
-      "Keep the brand staff as pressure, not villains.",
+      "Make consent visible. Pressure comes from the room, not from a staffer's voice.",
+      "Keep brand staff as silent ambient pressure. They place items, they do not address the pair.",
       "Let attention-seeking members enjoy the room only if they protect the partner's boundary.",
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "Release form",
-        event: "A staffer hands over a release form with both names already misspelled.",
+        event: "The release form on the clipboard waits between them.",
         characterVisibleText:
-          "The release form has two misspelled names, one pink clipboard, and no clear exit line.",
+          "The release form on the clipboard has both names misspelled. A pink pen rests on top. The signature line is highlighted.",
         directorInstruction:
           "Force a consent check. The next speaker should ask, decline, or correct without steamrolling.",
       },
       {
-        atTurn: 16,
-        title: "Photo wall call",
-        event: "The photographer calls the pair to the floral wall while a line forms behind them.",
+        atTurn: 20,
+        title: "Ring lights up",
+        event: "The ring lights warm up. A line begins to form behind the wall.",
         characterVisibleText:
-          "The photographer waves. The wall says authentic connection in vinyl lettering.",
+          "Three ring lights glow on. The wall reads authentic connection in vinyl lettering. A line of three couples forms behind the wall.",
         directorInstruction:
           "Use public attention to test whether the pair acts together or splits.",
       },
       {
-        atTurn: 26,
-        title: "Caption approval",
-        event: "The brand assistant asks them to approve a caption before posting.",
+        atTurn: 28,
+        title: "Caption draft",
+        event: "A tablet displays a draft caption.",
         characterVisibleText:
-          "The caption draft reads: love wins the soft launch. It is worse than the lighting.",
+          "A tablet on the table displays a caption draft: love wins the soft launch. The post button pulses. A staffer's hand sets a gift bag at the corner of the table and withdraws.",
         directorInstruction: "Let the pair revise, refuse, or reclaim the public story.",
       },
     ],

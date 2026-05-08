@@ -97,6 +97,13 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     reasoningSupported: false,
   },
   {
+    id: "qwen3.5:4b",
+    label: "Qwen 3.5 4B",
+    provider: "ollama",
+    recommendedReasoningLevel: "off",
+    reasoningSupported: false,
+  },
+  {
     id: "qwen3.5:9b",
     label: "Qwen 3.5 9B",
     provider: "ollama",

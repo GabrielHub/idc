@@ -118,5 +118,23 @@ export const gideonGlass: Member = {
         model: "image_gen built-in",
       },
     },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/gideon-glass/portrait-confused.png",
+        cutoutPath: "/assets/portraits/gideon-glass/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, shoulders slightly drawn inward, one sleeve covered hand hovering near the robe front, other hand holding a small blank silver Hotel Palatine room keycard as if he forgot why he offered it, tender bewildered expression, brows lifted, mouth softly parted, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture, no changed robe, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/gideon-glass/portrait-angry.png",
+        cutoutPath: "/assets/portraits/gideon-glass/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, interpreted as wounded boundary and the room going cold, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, shoulders closed, one sleeve covered hand raised in a quiet stop gesture, other hand holding the robe closed near his chest, translucent edges sharper and colder, hurt controlled expression with dimmed eyes and tense mouth, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture, no blood, no gore, no changed robe, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

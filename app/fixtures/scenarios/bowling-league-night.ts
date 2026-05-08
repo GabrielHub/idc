@@ -11,53 +11,59 @@ export const bowlingLeagueNight: DateScenario = {
     intimacy: "low",
     chaos: "medium",
     idealFor: [
-      "members who like a structured bit",
-      "competitive members who can lose",
-      "pairs who need an activity, not a conversation",
+      "members whose competitive streak likes a scoreboard with stakes",
+      "members who can lose a frame and stay friendly",
+      "members whose warm steady voice handles a gutter ball without sulking",
     ],
-    badFor: ["members who cannot grip a 9 pound ball", "members who dislike strangers nearby"],
+    badFor: [
+      "members who literally cannot grip a 9 pound ball",
+      "members who will turn the scoring into a Bargain on the bench",
+      "members who count the tenth frame as a Trial",
+    ],
   },
   publicBrief: {
     location: "Lane 7, Strikepoint Lanes, Tuesday league overflow",
     premise:
-      "Cupid booked one lane during a Tuesday league. Bumper bowling is in progress for a child two lanes over.",
+      "Cupid booked one lane during a Tuesday league. The pair shares the lane and the ball return for the evening.",
     whatBothCharactersKnow:
-      "The league is not their league. The league captains are aware and indifferent.",
+      "The league is not their league. The league captains are aware and indifferent. Bumper bowling is in progress two lanes over.",
     openingSituation:
-      "Both members tie their rented shoes. The ball return delivers the first ball.",
+      "Both members tie their rented shoes at the lane 7 ball return. Two house balls sit on the rack. The scoreboard above is on but unscored.",
   },
   director: {
     tone: "cheerful, slightly rowdy, lit by overhead fixtures and a glowing lane line",
     rules: [
-      "Treat bowling as a real activity. Track score lightly.",
+      "Anchor the date to lane 7. The pair does not travel to the bar, the arcade, or the snack counter.",
       "Use the league as ambient background. Do not invite a captain to comment on the date.",
       "Allow gutter balls to be funny. Keep them human.",
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "First frame",
-        event: "Both members take their first turn.",
-        characterVisibleText: "Two balls are thrown. The pin sweep clears whatever happens.",
-        directorInstruction:
-          "Use opening throws to establish how each member treats failure in front of the other.",
-      },
-      {
-        atTurn: 18,
-        title: "Score check",
-        event: "The scoreboard updates and the gap is visible.",
+        atTurn: 10,
+        title: "Ball return",
+        event: "The ball return delivers a ball with a thud they can feel through the bench.",
         characterVisibleText:
-          "The screen shows the running score. One column is meaningfully ahead.",
+          "The ball return rumbles and a house ball rolls up. The thud carries through the bench. The lane line glow flickers once.",
         directorInstruction:
-          "Use the scoreboard to surface competitiveness, generosity, or deflection.",
+          "Use the small noise to surface how each member treats their turn in front of the other.",
       },
       {
-        atTurn: 26,
-        title: "Tenth frame",
-        event: "The last frame approaches with a real chance to change the result.",
-        characterVisibleText: "Frame ten is loaded. The pinsetter waits.",
+        atTurn: 20,
+        title: "Strike next door",
+        event: "Lane 6 lights up with a strike celebration.",
+        characterVisibleText:
+          "Lane 6 erupts. A strike animation runs across the scoreboard above lane 7 by mistake. Their column reads two columns of zeros.",
         directorInstruction:
-          "Push the pair to choose between winning the frame and choosing the date.",
+          "Use the borrowed noise to surface competitiveness, generosity, or deflection.",
+      },
+      {
+        atTurn: 28,
+        title: "Pinsetter pause",
+        event: "The pinsetter on lane 7 stops mid-cycle.",
+        characterVisibleText:
+          "The pinsetter freezes mid-rack with three pins still hanging. The bench light blinks. A small wait icon appears on the scoreboard.",
+        directorInstruction:
+          "Push the pair to share the wait or peel apart toward separate distractions.",
       },
     ],
     earlyEndTriggers: [

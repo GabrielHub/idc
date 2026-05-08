@@ -5,61 +5,62 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
   title: "Midnight Notary, Two Clean Promises",
   card: {
     summary:
-      "A municipal notary validates one boundary and one promise. Romance arrives with a stamp pad.",
+      "A municipal notary counter validates one boundary and one promise. Romance arrives with a stamp pad.",
     tags: ["career", "cosmic", "low_pressure"],
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
     idealFor: [
-      "ceremony-minded members",
-      "members who prefer clear terms",
-      "pairs that can make a promise without making a prophecy",
+      "members who live by Vow and read a stamp as a real Bargain",
+      "members whose oath voice fits a counter at 11:43 p.m.",
+      "members who count the boundary form as a Trial they can pass",
+      "members whose stoic clipped voice handles ceremony without performing it",
     ],
     badFor: [
-      "members who hate ritual language",
-      "members avoiding direct terms",
-      "pairs that turn every promise into a trap",
+      "members whose irony shield collapses on a sincere promise field",
+      "members who cannot caption a stamp without diluting it",
+      "members who will renegotiate the boundary line until midnight",
     ],
   },
   publicBrief: {
     location: "Counter 3 at the Municipal Office of Affectionate Records",
     premise:
-      "Cupid booked a late appointment with a notary who certifies romantic boundaries after normal business hours.",
+      "Cupid booked a late counter at an office that certifies romantic boundaries after normal business hours. The chair behind the counter is empty tonight.",
     whatBothCharactersKnow:
-      "Each member may state one boundary and one clean promise. The notary will stamp only what both parties understand.",
+      "Each member may state one boundary and one clean promise. Forms appear on the counter when the room decides they are ready. The office closes at midnight, emotionally and legally.",
     openingSituation:
-      "The notary slides two forms across the counter and says the office closes at midnight, emotionally and legally.",
+      "Both members stand at counter 3. A countdown clock on the wall reads 11:43. The stamp pad is closed. No forms have appeared yet.",
   },
   director: {
     tone: "bureaucratic ceremony, brass desk lamp, one stamp pad doing too much work",
     rules: [
       "Keep promises voluntary and specific.",
       "Do not let the scene imply fate, vows, or permanent binding.",
-      "Use procedure to make boundaries easier to say out loud.",
+      "The office is automated tonight. Forms slide into view, but no clerk speaks.",
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "Boundary field",
-        event: "The first form asks each member for one boundary in plain language.",
+        atTurn: 10,
+        title: "Boundary form",
+        event: "The first form lights up on the counter.",
         characterVisibleText:
-          "The form says: boundary, plain language, no metaphors accepted after 11:43 p.m.",
+          "The boundary form glows under the counter lamp. The header reads: plain language, no metaphors accepted after 11:43 p.m.",
         directorInstruction: "Invite one specific boundary. Reward clarity over grandeur.",
       },
       {
-        atTurn: 16,
-        title: "Promise field",
-        event: "The second form asks for one promise that can survive tomorrow morning.",
+        atTurn: 20,
+        title: "Promise form",
+        event: "The second form slides forward on the counter.",
         characterVisibleText:
-          "The notary taps the promise field. The stamp pad opens by itself, then thinks better of it.",
+          "A second form moves across the counter on its own. The stamp pad opens once and closes. The promise field has two blank lines.",
         directorInstruction: "Push for a modest promise that respects the boundary already named.",
       },
       {
-        atTurn: 26,
+        atTurn: 28,
         title: "Clean stamp",
-        event: "The notary stamps only the line both members can repeat accurately.",
+        event: "The stamp lands once on the line both members can repeat.",
         characterVisibleText:
-          "The stamp lands once. The ink reads: witnessed, understood, not legally romantic advice.",
+          "The stamp lands once. The ink reads: witnessed, understood, not legally romantic advice. The countdown clock reads 11:58.",
         directorInstruction:
           "Let the pair decide whether the ceremony felt safe, silly, or useful.",
       },
@@ -69,7 +70,7 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
       "A member mocks a stated boundary after it is witnessed.",
     ],
     repeatBehavior:
-      "If repeated, prior witnessed boundaries remain public to the pair. The notary refuses duplicate paperwork.",
+      "If repeated, prior witnessed boundaries remain public to the pair. The counter refuses duplicate paperwork.",
   },
   judgeRubric: {
     successSignals: [

@@ -5,57 +5,61 @@ export const cousinsWeddingPlusOne: DateScenario = {
   title: "Cousin's Wedding Plus-One",
   card: {
     summary:
-      "Public, two to four hours. You do not know the bride. The pair must perform we are normal through one toast.",
+      "Public, two to four hours. You do not know the bride. The pair must perform we are normal at one round table.",
     tags: ["public", "career", "high_pressure"],
     risk: "high",
     intimacy: "medium",
     chaos: "medium",
     idealFor: [
-      "pairs ready to test stability",
-      "members who can read a room",
-      "pairs that need a public dress rehearsal",
+      "members who can hold a stranger's reception like a counterparty meeting",
+      "members who will be kind to a relative they do not know without performing",
+      "members whose calendar discipline holds through a public toast",
     ],
-    badFor: ["career intense members on a deadline", "prophecy averse members near loud DJs"],
+    badFor: [
+      "members carrying a former-life vocation that the venue keeps echoing",
+      "members who refuse venues with overhead camera infrastructure",
+      "members whose privacy will not hold under a hundred witnesses",
+    ],
   },
   publicBrief: {
-    location: "A reception hall in a hotel attached to a small airport",
+    location: "Table 14 in a reception hall, hotel attached to a small airport",
     premise:
-      "One member's cousin is getting married. The other is the plus-one for the reception only. The ceremony is over.",
+      "One member's cousin is getting married. The other is the plus-one. Dinner has been cleared. The DJ is a minute into setup.",
     whatBothCharactersKnow:
-      "Names of three relatives have been pre-shared. The bride's uncle will attempt small talk. The cake is sheet style.",
+      "Names of three relatives have been pre-shared. The bride's uncle is at the next table. The cake is sheet style and has not been cut.",
     openingSituation:
-      "Both members enter the hall at the start of cocktail hour. A name card is found at table 14.",
+      "Both members are seated at table 14. Plates have been cleared. The water glasses are still cold.",
   },
   director: {
     tone: "florals, light DJ feedback, slightly too warm",
     rules: [
       "Treat the wedding as real and ongoing. Do not invent a bride emergency.",
-      "Use small relatives and small interactions, not a full dramatic arc.",
+      "Use ambient ritual, not invented dialogue from relatives.",
       "Honor a member who wants to leave after the toast.",
     ],
     beats: [
       {
-        atTurn: 8,
-        title: "Uncle approach",
-        event: "The bride's uncle finds them and asks how they met.",
+        atTurn: 10,
+        title: "Glasses filled",
+        event: "A server fills both their flutes without asking and moves on.",
         characterVisibleText:
-          "An uncle in a sport coat asks the question directly. He is holding a half full glass and is not drunk.",
-        directorInstruction:
-          "Use the question to test how the pair narrates themselves to a stranger.",
+          "Two flutes come up to the rim. The server moves to the next table without comment. An uncle in a sport coat passes behind their chairs to refill his own water.",
+        directorInstruction: "Use the small attention to test how the pair narrates themselves.",
       },
       {
-        atTurn: 18,
-        title: "Toast",
-        event: "The maid of honor delivers a toast that is mostly sweet.",
-        characterVisibleText: "Glasses are raised. The maid of honor cries once, on cue.",
+        atTurn: 20,
+        title: "Toast lands",
+        event: "The maid of honor's toast carries across the hall.",
+        characterVisibleText:
+          "Glasses go up around the room. Silverware stops on a hundred plates. The toast lands somewhere far from their table.",
         directorInstruction: "Allow the pair a moment to be quiet together inside a public ritual.",
       },
       {
         atTurn: 28,
         title: "First slow song",
-        event: "The DJ cues a slow song. The dance floor fills slowly.",
+        event: "The DJ cues a slow song. The dance floor lights tilt warm.",
         characterVisibleText:
-          "The first slow song begins. Two couples move toward the floor. A few stay seated.",
+          "The first slow song begins. Two couples step out. The dance floor lights tilt warm. Their table is still mostly seated.",
         directorInstruction:
           "Let the pair choose to dance, sit, or leave. Each choice is information.",
       },
@@ -65,12 +69,12 @@ export const cousinsWeddingPlusOne: DateScenario = {
       "A member treats a relative cruelly.",
     ],
     repeatBehavior:
-      "If repeated, the relatives recognize the plus-one. Cupid does not arrange a repeat unless both members agree.",
+      "If repeated, the seating chart still places them at table 14. Cupid does not arrange a repeat unless both members agree.",
   },
   judgeRubric: {
     successSignals: [
-      "A member protects the other from a clumsy relative without humiliating either party.",
-      "The pair narrates themselves consistently to a stranger.",
+      "A member protects the other from the public ritual without making it a rescue.",
+      "The pair narrates themselves consistently to the room.",
     ],
     failureSignals: [
       "A member upstages the wedding.",

@@ -12,27 +12,46 @@ Private alpha. Unsigned builds. The install path is friction now and that is exp
 
 You need one. Cupid will not book a date until the AI desk reads ready.
 
-### Option A: Ollama
+### Option A: Ollama (local, private)
+
+The local route. Prompts, character data, and date transcripts stay on your machine.
 
 1. Install Ollama from https://ollama.com.
 2. Pull the chat model.
    ```
-   ollama pull gemma4:26b
+   ollama pull gemma4:e4b
    ```
-   You can swap to a smaller model if your GPU is light. The catalog inside AI setup lists what Cupid recommends.
+   This is the default and runs on most 8 to 12 GB GPUs. The catalog inside AI setup lists alternatives for compact and large cards.
 3. Pull the embedding model.
    ```
    ollama pull embeddinggemma
    ```
 4. Make sure Ollama is running. The default port is 11434. Cupid does not need `OLLAMA_ORIGINS` because the desktop build talks to Ollama through a Tauri HTTP scope, not the browser CORS path.
 
-### Option B: Vercel AI Gateway
+### Option B: Vercel AI Gateway (cloud)
+
+The cloud route. Date prompts, character context, and transcripts are sent to the Vercel AI Gateway and forwarded to the model provider you choose. Use this only if you accept that data leaves your machine.
 
 1. Get a Gateway key from your Vercel project settings.
 2. Open AI setup inside the app, switch the desk to Cloud, and paste the key into the api key field.
-3. Cupid stores the key in app local data on this device, outside save files. Wiping a save leaves the key in place. Saving a blank key removes it.
+3. The key is stored as a plaintext file in app local data on this device, outside save files. It is not encrypted and not in the OS keychain. Treat the device as the trust boundary. Wiping a save leaves the key in place at runtime, but uninstalling or updating the app wipes the key along with the rest of app data. Saving a blank key removes it.
 
 ## Install
+
+### Verify the download
+
+Each release lists a SHA256 checksum next to every artifact. Verify before running, since the build is unsigned.
+
+- Windows PowerShell:
+  ```
+  Get-FileHash .\IDC.Cupid.Setup.exe -Algorithm SHA256
+  ```
+- macOS terminal:
+  ```
+  shasum -a 256 IDC.Cupid.dmg
+  ```
+
+Compare the printed value to the one in the release notes. If they differ, do not run the file. Ask the team for a fresh link.
 
 ### Windows
 
@@ -64,12 +83,30 @@ Gateway key storage lives under the same app local data root in `secrets/gateway
 
 ## Uninstall
 
-- Windows: Settings, Apps, IDC: Cupid, Uninstall. The app data directory is preserved unless you delete it manually.
+- Windows: Settings, Apps, IDC: Cupid, Uninstall. The uninstaller wipes the entire app data directory: saves, logs, Gateway key, and WebView2 cache. Back up `%LOCALAPPDATA%\dev.idc.cupid\saves\` first if you want to keep a save.
 - macOS: drag IDC: Cupid.app to Trash. The Application Support directory is preserved unless you delete it manually.
+
+## Updating
+
+Run the new installer. It silently uninstalls the previous version before installing, which means **your saves and Gateway key are wiped on every update**. Alpha builds are not save-compatible across versions, so this matches reality, but copy `%LOCALAPPDATA%\dev.idc.cupid\saves\` aside first if you want to keep something.
+
+## Data flow
+
+- Ollama route: prompts, character data, and date transcripts stay on the machine. Only your Ollama process sees them.
+- Gateway route: prompts, character context, date transcripts, and any retrieved memories are sent to `https://ai-gateway.vercel.sh` and forwarded to the model provider Cupid is configured to use. The Gateway key is the trust boundary.
+- Save files are local files. Cupid does not phone home and there is no telemetry.
+
+## Logs
+
+The desktop shell writes a rolling log file under your app local data directory. If something goes wrong, open Settings, choose Show log folder, and attach the file when reporting the issue.
+
+- Windows: `%LOCALAPPDATA%\dev.idc.cupid\logs\`
+- macOS: `~/Library/Logs/dev.idc.cupid/`
 
 ## Known caveats
 
 - Unsigned builds. You will see SmartScreen and Gatekeeper warnings until the team ships signed releases.
 - Custom Ollama or Gateway hostnames are not supported. The desktop HTTP scope is fixed to localhost Ollama and the default Vercel AI Gateway. Custom hosts need a build with an updated scope.
+- Gateway keys are plaintext on disk under app local data. Anyone with file access on this device can read them. There is no OS keychain integration in the alpha.
 - The playground route is not present in desktop builds. It only exists in the browser dev shell.
 - No auto-update. New releases need a fresh download.

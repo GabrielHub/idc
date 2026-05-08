@@ -1,5 +1,4 @@
 import { dateScenarioSchema } from "../../domain/game";
-import { alternateExDoubleDate } from "./alternate-ex-double-date";
 import { bowlingLeagueNight } from "./bowling-league-night";
 import { chainRestaurantTuesday } from "./chain-restaurant-tuesday";
 import { couchNightTakeout } from "./couch-night-takeout";
@@ -19,6 +18,7 @@ import { midnightNotaryTwoCleanPromises } from "./midnight-notary-two-clean-prom
 import { museumExhibitMixup } from "./museum-exhibit-mixup";
 import { openHouseSunday } from "./open-house-sunday";
 import { parkLoopWithADog } from "./park-loop-with-a-dog";
+import { phantomDoorbellSuite } from "./phantom-doorbell-suite";
 import { potteryStudioDropIn } from "./pottery-studio-drop-in";
 import { prophecyKaraoke } from "./prophecy-karaoke";
 import { softLaunchPhotoWall } from "./soft-launch-photo-wall";
@@ -31,7 +31,7 @@ export const starterScenarios = dateScenarioSchema
   .parse([
     temporalCoffeeShop,
     museumExhibitMixup,
-    alternateExDoubleDate,
+    phantomDoorbellSuite,
     memoryCourseDinner,
     prophecyKaraoke,
     underworldDepartmentMixer,
@@ -57,7 +57,6 @@ export const starterScenarios = dateScenarioSchema
   ]);
 
 export {
-  alternateExDoubleDate,
   bowlingLeagueNight,
   chainRestaurantTuesday,
   couchNightTakeout,
@@ -77,6 +76,7 @@ export {
   museumExhibitMixup,
   openHouseSunday,
   parkLoopWithADog,
+  phantomDoorbellSuite,
   potteryStudioDropIn,
   prophecyKaraoke,
   softLaunchPhotoWall,

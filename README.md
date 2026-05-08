@@ -94,7 +94,7 @@ AI setup is in app, not in a server route.
 
 The setup panel lets the player choose:
 
-- Ollama on this PC. Default URL is `http://127.0.0.1:11434`, default chat model is `gemma4:26b`, and default embedding model is `embeddinggemma`.
+- Ollama on this PC. Default URL is `http://127.0.0.1:11434`, default chat model is `gemma4:e4b`, and default embedding model is `embeddinggemma`. The catalog ships heavier and lighter alternatives for different VRAM tiers.
 - Vercel AI Gateway. Default Gateway URL is `https://ai-gateway.vercel.sh/v1`, default chat model is `deepseek/deepseek-v4-flash`, and default embedding model is `google/gemini-embedding-2`.
 
 The current readiness path is:

@@ -1,6 +1,8 @@
 {
-  "name": "",
+  "name": "idc-cupid",
+  "version": "0.1.0",
   "private": true,
+  "description": "IDC: Cupid desktop alpha shell.",
   "type": "module",
   "scripts": {
     "build": "react-router build",
@@ -15,7 +17,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@ai-sdk/openai-compatible": "^2.0.46",
+    "@ai-sdk/openai-compatible": "^2.0.47",
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
     "@fontsource-variable/dm-sans": "^5.2.8",
     "@fontsource-variable/fraunces": "^5.2.9",
@@ -25,7 +27,7 @@
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-fs": "~2.5.1",
     "@tauri-apps/plugin-http": "~2.5.9",
-    "ai": "^6.0.175",
+    "ai": "^6.0.176",
     "ai-sdk-ollama": "^3.8.3",
     "isbot": "^5.1.40",
     "motion": "^12.38.0",
@@ -38,7 +40,7 @@
     "@react-router/dev": "7.14.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tauri-apps/cli": "^2.11.1",
-    "@types/node": "^22.19.17",
+    "@types/node": "^22.19.18",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.2.4",

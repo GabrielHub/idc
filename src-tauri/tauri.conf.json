@@ -29,7 +29,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "app", "dmg"],
     "category": "Game",
     "shortDescription": "IDC: Cupid is a workplace comedy dating sim under supernatural pressure.",
     "longDescription": "IDC: Cupid is a private alpha desktop build of a relationship operations game. Cupid books dates between hopefuls drawn from across realities. Bring your own Ollama or Vercel AI Gateway key.",
@@ -44,7 +44,8 @@
     "windows": {
       "nsis": {
         "installMode": "currentUser",
-        "displayLanguageSelector": false
+        "displayLanguageSelector": false,
+        "installerHooks": "./installer-hooks.nsh"
       }
     },
     "macOS": {

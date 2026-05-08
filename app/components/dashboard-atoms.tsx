@@ -151,6 +151,16 @@ export function Portrait({
         return (
           <img
             key={path}
+            ref={(node) => {
+              if (node?.complete !== true) {
+                return;
+              }
+              if (node.naturalWidth > 0) {
+                addPath(setLoadedPaths, path);
+              } else {
+                addPath(setFailedPaths, path);
+              }
+            }}
             alt=""
             src={path}
             srcSet={isActive ? avatarSrcSet : undefined}

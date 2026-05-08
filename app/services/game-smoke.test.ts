@@ -31,6 +31,7 @@ import {
   advanceDateExchange,
   applyFollowUpAction,
   buildShiftGoalMetrics,
+  canAddCupidIntervention,
   CLIENT_LOSS_LIMIT,
   completeDateSession,
   completeShift,
@@ -161,7 +162,7 @@ describe("IDC playable smoke path", () => {
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
     expect(save.config.aiProvider).toBe("ollama");
-    expect(save.config.chatModel).toBe("gemma4:26b");
+    expect(save.config.chatModel).toBe("gemma4:e4b");
     expect(save.config.embeddingModel).toBe("embeddinggemma");
     expect(save.config.reasoningLevel).toBe("off");
     expect(save.config.aiSetupComplete).toBe(false);
@@ -170,6 +171,37 @@ describe("IDC playable smoke path", () => {
     expect(await repository.listMembers()).toHaveLength(21);
     expect(await repository.listPairStates()).toHaveLength(210);
     expect(await repository.getActiveShift()).not.toBeNull();
+  });
+
+  it("shuffles scenario decks when seed creation asks for random order", () => {
+    const orderedScenarioIds = starterScenarios.map((scenario) => scenario.id);
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"), {
+      randomizeScenarioDeck: true,
+      random: () => 0,
+    });
+    const activeShift = save.shifts[0];
+
+    if (activeShift === undefined) {
+      throw new Error("Expected an active shift.");
+    }
+
+    const drawnAndOfferedScenarioIds = [
+      ...activeShift.drawnScenarioIds,
+      ...activeShift.scenarioDeck.offeredScenarioIds,
+    ];
+
+    expect(activeShift.scenarioDeck.scenarioIds).toHaveLength(starterScenarios.length);
+    expect(new Set(activeShift.scenarioDeck.scenarioIds).size).toBe(starterScenarios.length);
+    expect([...activeShift.scenarioDeck.scenarioIds].sort()).toEqual(
+      [...orderedScenarioIds].sort(),
+    );
+    expect(activeShift.drawnScenarioIds).not.toEqual(
+      orderedScenarioIds.slice(0, save.config.shiftDateSlots),
+    );
+    expect(drawnAndOfferedScenarioIds).toEqual(
+      activeShift.scenarioDeck.scenarioIds.slice(0, save.config.shiftDateSlots * 2),
+    );
+    expect(new Set(drawnAndOfferedScenarioIds).size).toBe(drawnAndOfferedScenarioIds.length);
   });
 
   it("reads legacy AI config from stale server saves without parsing gameplay state", async () => {
@@ -277,6 +309,28 @@ describe("IDC playable smoke path", () => {
     expect(await storage.read(legacySaveKey)).toBeNull();
   });
 
+  it("backs up legacy save keys before reset recovery clears them", async () => {
+    const legacySaveKey = LEGACY_SAVE_KEYS.at(-1);
+
+    if (legacySaveKey === undefined) {
+      throw new Error("Expected a legacy save key for backup coverage.");
+    }
+
+    const storage = new MemorySaveStore();
+    const repository = new LocalGameRepository(storage);
+    const rawLegacySave = '{"version":2,"broken":true}';
+    const now = new Date("2026-05-05T12:01:02.003Z");
+    const stamp = now.toISOString().replace(/[:.]/g, "-");
+    await storage.write(legacySaveKey, rawLegacySave);
+
+    const backupKey = await repository.backupSave(now);
+    await repository.deleteSave();
+
+    expect(backupKey).toBe(`${legacySaveKey}.bak.${stamp}`);
+    expect(await storage.read(legacySaveKey)).toBeNull();
+    expect(await storage.read(`${legacySaveKey}.bak.${stamp}`)).toBe(rawLegacySave);
+  });
+
   it("hydrates new starter members and pair states into current schema saves", async () => {
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
@@ -332,6 +386,85 @@ describe("IDC playable smoke path", () => {
     expect(loadedShift?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(persistedShift?.scenarioDeck.scenarioIds).toEqual(expectedScenarioIds);
     expect(persistedShift?.scenarioDeck.maxSize).toBe(starterScenarios.length);
+  });
+
+  it("migrates retired scenario ids in existing saves", async () => {
+    const storage = new MemorySaveStore();
+    const repository = new LocalGameRepository(storage);
+    const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["phantom-doorbell-suite"],
+      memberRequestIds: ["request-tasha-counterparty"],
+      featuredMemberIds: ["tasha-rell"],
+    });
+    const started = startDateSession(save, {
+      focusMemberId: "tasha-rell",
+      firstMemberId: "tasha-rell",
+      secondMemberId: "mr-whiskers",
+      scenarioId: "phantom-doorbell-suite",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const pairId = makePairId("mr-whiskers", "tasha-rell");
+    const staleSave = gameSaveSchema.parse({
+      ...started.save,
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === started.session.id
+          ? {
+              ...session,
+              scenarioId: "alternate-ex-double-date",
+            }
+          : session,
+      ),
+      shifts: started.save.shifts.map((shift) =>
+        shift.id === started.save.activeShiftId
+          ? shiftStateSchema.parse({
+              ...shift,
+              drawnScenarioIds: ["alternate-ex-double-date"],
+              scenarioDeck: {
+                ...shift.scenarioDeck,
+                scenarioIds: shift.scenarioDeck.scenarioIds.map((scenarioId) =>
+                  scenarioId === "phantom-doorbell-suite" ? "alternate-ex-double-date" : scenarioId,
+                ),
+                offeredScenarioIds: ["alternate-ex-double-date"],
+              },
+            })
+          : shift,
+      ),
+      pairStates: started.save.pairStates.map((pairState) =>
+        pairState.id === pairId
+          ? {
+              ...pairState,
+              scenarioUseCounts: {
+                ...pairState.scenarioUseCounts,
+                "alternate-ex-double-date": 2,
+                "phantom-doorbell-suite": 1,
+              },
+            }
+          : pairState,
+      ),
+    });
+    await storage.write(CURRENT_SAVE_KEY, JSON.stringify(staleSave));
+
+    const loaded = await repository.loadGame();
+    const persistedSave = parsePersistedSave(await storage.read(CURRENT_SAVE_KEY));
+
+    if (loaded === null || persistedSave === null) {
+      throw new Error("Expected migrated save.");
+    }
+
+    const loadedShift = loaded.shifts.find((shift) => shift.id === loaded.activeShiftId);
+    const loadedSession = loaded.dateSessions.find((session) => session.id === started.session.id);
+    const loadedPairState = loaded.pairStates.find((pairState) => pairState.id === pairId);
+    const advanced = advanceDateExchange(loaded, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(loadedShift?.drawnScenarioIds).toEqual(["phantom-doorbell-suite"]);
+    expect(loadedShift?.scenarioDeck.scenarioIds).not.toContain("alternate-ex-double-date");
+    expect(loadedSession?.scenarioId).toBe("phantom-doorbell-suite");
+    expect(loadedPairState?.scenarioUseCounts["phantom-doorbell-suite"]).toBe(3);
+    expect(persistedSave.dateSessions[0]?.scenarioId).toBe("phantom-doorbell-suite");
+    expect(advanced.session.transcript.some((message) => message.kind === "character")).toBe(true);
   });
 
   it("migrates pre-gameplay-tag v2 saves without resetting campaign state", async () => {
@@ -614,6 +747,121 @@ describe("IDC playable smoke path", () => {
     );
   });
 
+  it("allows one Cupid nudge per judged exchange beat", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+
+    expect(canAddCupidIntervention(started.session)).toBe(true);
+
+    const firstNudge = addCupidIntervention(started.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: "jenna-pike",
+      text: "Open with one question HR could survive.",
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(firstNudge.session.intervention?.usedAtJudgeCount).toBe(0);
+    expect(
+      firstNudge.session.transcript.filter((message) => message.kind === "cupid"),
+    ).toHaveLength(1);
+    expect(() =>
+      addCupidIntervention(firstNudge.save, {
+        dateSessionId: started.session.id,
+        targetMemberId: "vhool",
+        text: "This beat already has paperwork.",
+        now: new Date("2026-05-05T12:03:00.000Z"),
+      }),
+    ).toThrow("judge beat");
+
+    const firstLine = advanceDateExchange(firstNudge.save, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      now: new Date("2026-05-05T12:04:00.000Z"),
+    });
+
+    expect(canAddCupidIntervention(firstLine.session)).toBe(false);
+    expect(() =>
+      addCupidIntervention(firstLine.save, {
+        dateSessionId: started.session.id,
+        targetMemberId: "vhool",
+        text: "Wait for the judge note.",
+        now: new Date("2026-05-05T12:05:00.000Z"),
+      }),
+    ).toThrow("judged exchanges");
+
+    const judgedExchange = advanceDateExchange(firstLine.save, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      now: new Date("2026-05-05T12:06:00.000Z"),
+    });
+
+    expect(judgedExchange.session.judgeSnapshots).toHaveLength(1);
+    expect(canAddCupidIntervention(judgedExchange.session)).toBe(true);
+
+    const secondNudge = addCupidIntervention(judgedExchange.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: "vhool",
+      text: "Ask the receipt to stop supervising.",
+      now: new Date("2026-05-05T12:07:00.000Z"),
+    });
+
+    expect(secondNudge.session.intervention?.usedAtJudgeCount).toBe(1);
+    expect(
+      secondNudge.session.transcript.filter((message) => message.kind === "cupid"),
+    ).toHaveLength(2);
+  });
+
+  it("derives Cupid nudge judge counts in old saves", async () => {
+    const storage = new MemorySaveStore();
+    const repository = new LocalGameRepository(storage);
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const judgedExchange = advanceDateExchange(started.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const nudge = addCupidIntervention(judgedExchange.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: "vhool",
+      text: "Ask the receipt to stop supervising.",
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+    await storage.write(
+      CURRENT_SAVE_KEY,
+      JSON.stringify(dropFirstInterventionJudgeCount(nudge.save)),
+    );
+
+    const loaded = await repository.loadGame();
+    const loadedSession = loaded?.dateSessions.find((session) => session.id === started.session.id);
+    const persistedSession = parsePersistedSave(
+      await storage.read(CURRENT_SAVE_KEY),
+    )?.dateSessions.find((session) => session.id === started.session.id);
+
+    if (loadedSession === undefined) {
+      throw new Error("Expected migrated session.");
+    }
+
+    expect(loadedSession.intervention?.usedAtJudgeCount).toBe(1);
+    expect(canAddCupidIntervention(loadedSession)).toBe(false);
+    expect(persistedSession?.intervention?.usedAtJudgeCount).toBe(1);
+  });
+
   it("keeps date participant order aligned to the selected pair order", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "vhool",
@@ -657,19 +905,27 @@ describe("IDC playable smoke path", () => {
       dateSessionId: started.session.id,
       now: new Date("2026-05-05T12:03:00.000Z"),
     });
-    const previousLength = second.session.transcript.length;
     const third = advanceDateExchange(second.save, {
       dateSessionId: started.session.id,
       now: new Date("2026-05-05T12:04:00.000Z"),
     });
-    const newMessages = third.session.transcript.slice(previousLength);
+    const fourth = advanceDateExchange(third.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:05:00.000Z"),
+    });
+    const previousLength = fourth.session.transcript.length;
+    const fifth = advanceDateExchange(fourth.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:06:00.000Z"),
+    });
+    const newMessages = fifth.session.transcript.slice(previousLength);
 
     expect(newMessages[0]?.kind).toBe("scenario");
-    expect(newMessages[0]?.text).toContain("receipt says");
+    expect(newMessages[0]?.text).toContain("receipt on the table reads");
     expect(newMessages[1]?.kind).toBe("character");
-    expect(newMessages[1]?.turnIndex).toBe(5);
+    expect(newMessages[1]?.turnIndex).toBe(9);
     expect(newMessages[2]?.kind).toBe("character");
-    expect(newMessages[2]?.turnIndex).toBe(6);
+    expect(newMessages[2]?.turnIndex).toBe(10);
   });
 
   it("can advance one member message before judging the exchange", () => {
@@ -732,7 +988,7 @@ describe("IDC playable smoke path", () => {
     const chaoticFit = evaluateFixtureFit(save, {
       firstMemberId: "tasha-rell",
       secondMemberId: "mr-whiskers",
-      scenarioId: "alternate-ex-double-date",
+      scenarioId: "phantom-doorbell-suite",
     });
 
     expect(prophecyFit.fitLevel).toBe("risky");
@@ -861,7 +1117,7 @@ describe("IDC playable smoke path", () => {
 
   it("ends high tension low health dates before the turn limit", () => {
     let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
-      drawnScenarioIds: ["alternate-ex-double-date"],
+      drawnScenarioIds: ["phantom-doorbell-suite"],
       memberRequestIds: ["request-tasha-counterparty"],
       featuredMemberIds: ["tasha-rell"],
     });
@@ -869,7 +1125,7 @@ describe("IDC playable smoke path", () => {
       focusMemberId: "tasha-rell",
       firstMemberId: "tasha-rell",
       secondMemberId: "mr-whiskers",
-      scenarioId: "alternate-ex-double-date",
+      scenarioId: "phantom-doorbell-suite",
     });
     const pairState = findPairState(started.save, started.session.pairId);
     const stressedPairState: PairState = {
@@ -1311,6 +1567,43 @@ function findPairState(save: GameSave, pairId: string): PairState {
   }
 
   return pairState;
+}
+
+function dropFirstInterventionJudgeCount(save: GameSave): unknown {
+  const rawSave: unknown = JSON.parse(JSON.stringify(save));
+
+  if (typeof rawSave !== "object" || rawSave === null) {
+    throw new Error("Expected raw save object.");
+  }
+
+  const rawSaveRecord = rawSave as Record<string, unknown>;
+  const dateSessions = rawSaveRecord.dateSessions;
+
+  if (!Array.isArray(dateSessions)) {
+    throw new Error("Expected raw date sessions.");
+  }
+
+  const session = dateSessions.find((candidate) => {
+    if (typeof candidate !== "object" || candidate === null) {
+      return false;
+    }
+
+    return (candidate as Record<string, unknown>).intervention !== undefined;
+  });
+
+  if (typeof session !== "object" || session === null) {
+    throw new Error("Expected raw session with intervention.");
+  }
+
+  const sessionRecord = session as Record<string, unknown>;
+  const intervention = sessionRecord.intervention;
+
+  if (typeof intervention !== "object" || intervention === null) {
+    throw new Error("Expected raw intervention.");
+  }
+
+  delete (intervention as Record<string, unknown>).usedAtJudgeCount;
+  return rawSave;
 }
 
 function parsePersistedSave(raw: string | null) {

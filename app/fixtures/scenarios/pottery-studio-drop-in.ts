@@ -2,65 +2,67 @@ import type { DateScenario } from "../../domain/game";
 
 export const potteryStudioDropIn: DateScenario = {
   id: "pottery-studio-drop-in",
-  title: "Pottery Studio, Drop-In",
+  title: "Pottery Studio, Shared Workbench",
   card: {
     summary:
-      "A three hour drop in at a community ceramic studio. One wheel, one slab table, one timer. Aprons are loaners.",
+      "A community ceramic studio. One shared slab table, one timer, two aprons. The piece will not be ready tonight.",
     tags: ["domestic", "public", "low_pressure"],
     risk: "low",
     intimacy: "medium",
     chaos: "low",
     idealFor: [
-      "members who relax with their hands occupied",
-      "pairs ready to be quiet at the same task",
-      "members willing to make something that does not have to be good",
+      "members who relax when their hands have a slab and their voice can rest",
+      "members whose warm steady voice handles a thumb dent without comment",
+      "members whose stoic clipped voice can hold a long working silence",
+      "members whose spiral has somewhere to go on a wet bench",
     ],
     badFor: [
-      "members who need a measurable outcome",
-      "members who refuse to be photographed mid-mess",
+      "members who need a measurable outcome that compounds tonight",
+      "members who will film the mess and post it before pickup day",
+      "members who refuse to be seen mid-mud without a flattering light",
     ],
   },
   publicBrief: {
-    location: "The drop-in studio at Mudline Ceramics, Tuesday evening session",
+    location: "A shared slab workbench at Mudline Ceramics, Tuesday evening drop-in",
     premise:
-      "Cupid booked the slot. The studio supplies clay, tools, and a spot in the kiln. The piece will not be ready tonight.",
+      "Cupid booked the slot. The studio supplies clay, tools, and a spot in the kiln. The piece will not be ready tonight; pickup is in ten days.",
     whatBothCharactersKnow:
-      "The session is three hours. They will not take a finished piece home. Pickup is in ten days.",
+      "The bench is theirs for the session. They will not take a finished piece home. The wheel is across the room and is not their station tonight.",
     openingSituation:
-      "Both members put on aprons. A loaner timer sits between them set to forty five minutes for the wheel.",
+      "Both members put on aprons. A shared slab of clay sits between them on the bench. A loaner timer is set on the lip of the bench. The kiln hums behind a curtain.",
   },
   director: {
     tone: "wet clay, a slow-running tap, a kiln humming behind a curtain",
     rules: [
+      "Anchor the date to the shared workbench. The pair does not relocate to the wheel or the photo wall.",
       "Treat the clay as real clay. It collapses if it is overworked.",
-      "Allow long working silences. The wheel can carry them.",
-      "Let either member be bad at this. The studio expects it.",
+      "Allow long working silences. The bench can carry them.",
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "First slab",
-        event: "Each member rolls a slab. Neither slab is even.",
+        event: "Both members roll the shared slab. The slab is uneven.",
         characterVisibleText:
-          "Two pale slabs sit on the table. One has a thumb dent. One is too thick on one side.",
+          "The slab is rolled out between them. It is too thick on one side and there is a thumb dent near the middle. A fine line of water sits on the surface.",
         directorInstruction:
           "Use the imperfection to surface patience or perfectionism without forcing a confession.",
       },
       {
-        atTurn: 16,
-        title: "Wheel timer",
-        event: "The wheel timer rings. One member is mid-pull.",
+        atTurn: 20,
+        title: "Timer rings",
+        event: "The loaner timer on the bench buzzes.",
         characterVisibleText:
-          "The timer is buzzing. The wheel has not stopped. The piece on the wheel is still soft and uneven.",
+          "The timer on the lip of the bench buzzes once and continues. Their hands are wet. The clay is still soft.",
         directorInstruction:
-          "Let the pair negotiate the wheel without making it a referendum on time.",
+          "Let the pair negotiate the timer without making it a referendum on time.",
       },
       {
-        atTurn: 26,
-        title: "Bisque shelf",
-        event: "They place their pieces on the bisque shelf with a slip of tape and their names.",
+        atTurn: 28,
+        title: "Tape and name",
+        event: "A small piece of tape and a marker land between them.",
         characterVisibleText:
-          "The shelf has thirty pieces. Their two pieces sit at the back with a small piece of blue tape and one name on each.",
+          "A small piece of blue tape and a felt marker sit on the bench. The bisque shelf at the back has thirty pieces and two empty slots.",
         directorInstruction:
           "Push for a small honest sentence about what they made and what they will pick up.",
       },

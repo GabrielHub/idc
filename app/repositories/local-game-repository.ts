@@ -123,7 +123,7 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async resetGame(now = new Date()): Promise<GameSave> {
-    const save = createSeedGameSave(now);
+    const save = createSeedGameSave(now, { randomizeScenarioDeck: true });
     await this.saveGame(save);
     return save;
   }
@@ -131,6 +131,24 @@ export class LocalGameRepository implements GameRepository {
   async deleteSave(): Promise<void> {
     await this.store.delete(this.saveKey);
     await this.deleteLegacySaves();
+  }
+
+  async backupSave(now: Date = new Date()): Promise<string | null> {
+    const source = await this.findSaveToBackup();
+
+    if (source === null) {
+      return null;
+    }
+
+    const stamp = now.toISOString().replace(/[:.]/g, "-");
+    const backupKey = `${source.key}.bak.${stamp}`;
+
+    try {
+      await this.store.write(backupKey, source.raw);
+      return backupKey;
+    } catch {
+      return null;
+    }
   }
 
   async listMembers(): Promise<Member[]> {
@@ -306,6 +324,18 @@ export class LocalGameRepository implements GameRepository {
     await this.saveGame(mutator(save));
   }
 
+  private async findSaveToBackup(): Promise<{ key: string; raw: string } | null> {
+    for (const key of [this.saveKey, ...this.legacySaveKeys]) {
+      const raw = await this.store.read(key);
+
+      if (raw !== null) {
+        return { key, raw };
+      }
+    }
+
+    return null;
+  }
+
   private async loadGameFromKey(
     saveKey: string,
   ): Promise<{ save: GameSave; needsWrite: boolean } | null> {
@@ -343,7 +373,10 @@ function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: bo
   const currentSave = gameSaveSchema.safeParse(parsed);
 
   if (currentSave.success) {
-    return migrateDefaultLocalAiConfig(currentSave.data, false);
+    return migrateDefaultLocalAiConfig(
+      currentSave.data,
+      hasLegacyCupidInterventionJudgeCounts(parsed),
+    );
   }
 
   const looseSave = persistedSaveWithLooseMembersSchema.parse(parsed);
@@ -387,6 +420,34 @@ function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: bo
     }),
     true,
   );
+}
+
+function hasLegacyCupidInterventionJudgeCounts(parsed: unknown): boolean {
+  if (typeof parsed !== "object" || parsed === null) {
+    return false;
+  }
+
+  const record = parsed as Record<string, unknown>;
+  const dateSessions = record.dateSessions;
+
+  if (!Array.isArray(dateSessions)) {
+    return false;
+  }
+
+  return dateSessions.some((session) => {
+    if (typeof session !== "object" || session === null) {
+      return false;
+    }
+
+    const sessionRecord = session as Record<string, unknown>;
+    const intervention = sessionRecord.intervention;
+
+    if (typeof intervention !== "object" || intervention === null) {
+      return false;
+    }
+
+    return !Object.hasOwn(intervention, "usedAtJudgeCount");
+  });
 }
 
 function migrateDefaultLocalAiConfig(

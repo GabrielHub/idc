@@ -4,7 +4,7 @@ export const SAVE_SCHEMA_VERSION = 2;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
-export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:26b";
+export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:e4b";
 export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
@@ -320,6 +320,7 @@ export const dateMessageSchema = z.discriminatedUnion("kind", [
   dateMessageBaseSchema.extend({
     kind: z.literal("cupid"),
     speakerId: z.never().optional(),
+    targetMemberId: memberIdSchema.optional(),
   }),
   dateMessageBaseSchema.extend({
     kind: z.literal("system"),
@@ -336,6 +337,7 @@ export const characterDateStateSchema = z.object({
 export const cupidInterventionSchema = z.object({
   text: z.string().min(1).max(240),
   usedAtTurn: z.number().int().min(0),
+  usedAtJudgeCount: z.number().int().min(0).default(0),
   targetMemberId: memberIdSchema.optional(),
 });
 
@@ -400,24 +402,84 @@ export const dateFinalReportSchema = z.object({
   memoryRecordIds: z.array(memoryIdSchema),
 });
 
-export const dateSessionSchema = z.object({
-  id: dateSessionIdSchema,
-  pairId: pairIdSchema,
-  scenarioId: scenarioIdSchema,
-  focusMemberId: memberIdSchema.optional(),
-  focusRequestId: z.string().min(1).optional(),
-  turnLimit: z.number().int().min(2).default(30),
-  currentTurn: z.number().int().min(0),
-  dateHealth: scoreSchema,
-  status: dateSessionStatusSchema,
-  runtimeMode: dateRuntimeModeSchema.default("local_ai"),
-  participants: z.tuple([memberIdSchema, memberIdSchema]),
-  transcript: z.array(dateMessageSchema),
-  privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
-  judgeSnapshots: z.array(judgeSnapshotSchema),
-  intervention: cupidInterventionSchema.optional(),
-  finalReport: dateFinalReportSchema.optional(),
-});
+const CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION = 2;
+
+function toDateSessionInput(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) {
+    return value;
+  }
+
+  const record = value as Record<string, unknown>;
+  const intervention = record.intervention;
+
+  if (typeof intervention !== "object" || intervention === null) {
+    return value;
+  }
+
+  const interventionRecord = intervention as Record<string, unknown>;
+
+  if (Object.hasOwn(interventionRecord, "usedAtJudgeCount")) {
+    return value;
+  }
+
+  return {
+    ...record,
+    intervention: {
+      ...interventionRecord,
+      usedAtJudgeCount: deriveInterventionJudgeCount(
+        interventionRecord.usedAtTurn,
+        record.judgeSnapshots,
+      ),
+    },
+  };
+}
+
+function deriveInterventionJudgeCount(usedAtTurn: unknown, judgeSnapshots: unknown): number {
+  if (typeof usedAtTurn !== "number" || !Number.isFinite(usedAtTurn)) {
+    return 0;
+  }
+
+  if (!Array.isArray(judgeSnapshots)) {
+    return Math.max(0, Math.floor(usedAtTurn / CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION));
+  }
+
+  return judgeSnapshots.filter((snapshot) => {
+    if (typeof snapshot !== "object" || snapshot === null) {
+      return false;
+    }
+
+    const snapshotRecord = snapshot as Record<string, unknown>;
+    const exchangeIndex = snapshotRecord.exchangeIndex;
+
+    return (
+      typeof exchangeIndex === "number" &&
+      Number.isFinite(exchangeIndex) &&
+      (exchangeIndex + 1) * CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION <= usedAtTurn
+    );
+  }).length;
+}
+
+export const dateSessionSchema = z.preprocess(
+  toDateSessionInput,
+  z.object({
+    id: dateSessionIdSchema,
+    pairId: pairIdSchema,
+    scenarioId: scenarioIdSchema,
+    focusMemberId: memberIdSchema.optional(),
+    focusRequestId: z.string().min(1).optional(),
+    turnLimit: z.number().int().min(2).default(30),
+    currentTurn: z.number().int().min(0),
+    dateHealth: scoreSchema,
+    status: dateSessionStatusSchema,
+    runtimeMode: dateRuntimeModeSchema.default("local_ai"),
+    participants: z.tuple([memberIdSchema, memberIdSchema]),
+    transcript: z.array(dateMessageSchema),
+    privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
+    judgeSnapshots: z.array(judgeSnapshotSchema),
+    intervention: cupidInterventionSchema.optional(),
+    finalReport: dateFinalReportSchema.optional(),
+  }),
+);
 
 export const scenarioDeckStateSchema = z.object({
   scenarioIds: z.array(scenarioIdSchema).min(1),

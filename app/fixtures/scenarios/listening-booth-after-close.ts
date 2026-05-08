@@ -11,59 +11,59 @@ export const listeningBoothAfterClose: DateScenario = {
     intimacy: "medium",
     chaos: "low",
     idealFor: [
-      "members who need quiet",
-      "grief-sensitive members",
-      "pairs that can sit with a song instead of explaining it",
+      "members who have spent decades on one piece and know the silence",
+      "members whose grief is a fact they can sit beside without performing",
+      "members whose quiet hand fits a needle that catches on a soft chord",
+      "members who treat a track as something to finish before saying anything",
     ],
     badFor: [
-      "members who need a crowd",
-      "members who fill every silence",
-      "members who make hauntings a stunt",
+      "members whose silence anxiety will fill the booth before the first chord",
+      "members who will film the haunting and ruin the room",
+      "members with no crowd inside one lamp and one record",
     ],
   },
   publicBrief: {
     location: "Booth 2 at Needle & Thread Records, after close",
     premise:
-      "The shop owner leaves the pair in a private listening booth with one lamp and a stack of unlabeled records.",
+      "The shop owner left the pair in a private listening booth with one lamp and a stack of unlabeled records. The booth runs by itself; the owner is in the back office.",
     whatBothCharactersKnow:
       "The records may match the mood of the room. They do not expose secrets and they do not take requests well.",
     openingSituation:
-      "The door clicks shut. A record lowers itself onto the turntable before either member touches it.",
+      "The booth door clicks shut. Both members sit on either side of the small turntable. A record lowers itself onto the platter before either member touches it.",
   },
   director: {
     tone: "warm vinyl hiss, dust in lamplight, private without becoming solemn",
     rules: [
+      "Anchor the date to booth 2. The pair does not leave for the front of the store.",
       "Use music as emotional weather, not revelation.",
       "Do not force grief disclosure or private memory.",
       "Let silence count as participation when the pair earns it.",
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "First track",
-        event:
-          "The first record starts with a song neither member knows but both recognize emotionally.",
+        event: "The first record starts.",
         characterVisibleText:
-          "The speakers crackle. The song has no lyrics, but it has a very specific opinion about restraint.",
+          "The speakers crackle and the song starts. There are no lyrics. The track has a very specific opinion about restraint.",
         directorInstruction:
           "Invite a small reaction. The speaker can name the feeling without naming a wound.",
       },
       {
-        atTurn: 16,
+        atTurn: 20,
         title: "Skipped groove",
-        event: "The record skips until one member answers the last question with less armor.",
+        event: "The needle catches and repeats one chord.",
         characterVisibleText:
-          "The needle catches on the same soft chord. The booth waits with unacceptable patience.",
+          "The needle catches on the same soft chord and repeats it. The booth waits with unacceptable patience. The lamp does not flicker.",
         directorInstruction:
           "Push for one cleaner answer, then move on before the room becomes therapy.",
       },
       {
-        atTurn: 26,
+        atTurn: 28,
         title: "House lights",
-        event:
-          "The house lights lift and the final record sleeve asks whether the booth can keep their names.",
+        event: "The house lights ease up a notch and the final sleeve appears on the side table.",
         characterVisibleText:
-          "The last sleeve has two blank lines where names could go. The pen is optional.",
+          "The booth lights lift one notch. A blank record sleeve slides onto the side table. It has two empty lines where names could go. A pen rests beside it.",
         directorInstruction: "Let the pair choose privacy, ritual, or a grounded goodbye.",
       },
     ],

@@ -30,7 +30,12 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
-import { findMemberInSave, getActiveShift, makePairId } from "./game-seed";
+import {
+  findMemberInSave,
+  getActiveShift,
+  makePairId,
+  normalizeStarterScenarioId,
+} from "./game-seed";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import {
   selectFeaturedMemberIds,
@@ -216,6 +221,17 @@ export function isInterventionVisibleTo(
   return intervention?.targetMemberId === undefined || intervention.targetMemberId === memberId;
 }
 
+export function canAddCupidIntervention(session: DateSession): boolean {
+  if (session.status !== "active" || !isAtExchangeBoundary(session.currentTurn)) {
+    return false;
+  }
+
+  return (
+    session.intervention === undefined ||
+    session.intervention.usedAtJudgeCount < session.judgeSnapshots.length
+  );
+}
+
 export function isInterventionActiveForMember(session: DateSession, memberId: string): boolean {
   if (!isInterventionVisibleTo(session.intervention, memberId)) {
     return false;
@@ -232,6 +248,35 @@ export function isInterventionActiveForMember(session: DateSession, memberId: st
       message.kind === "character" &&
       message.speakerId === memberId &&
       message.turnIndex > intervention.usedAtTurn,
+  );
+}
+
+export function isInterventionMessageActiveForMember(
+  session: DateSession,
+  message: DateMessage,
+  memberId: string,
+): boolean {
+  return (
+    isInterventionActiveForMember(session, memberId) &&
+    isCurrentInterventionMessage(session, message, memberId)
+  );
+}
+
+export function isCurrentInterventionMessage(
+  session: DateSession,
+  message: DateMessage,
+  memberId: string,
+): boolean {
+  const intervention = session.intervention;
+
+  if (message.kind !== "cupid" || intervention === undefined) {
+    return false;
+  }
+
+  return (
+    message.turnIndex === intervention.usedAtTurn &&
+    message.text === formatCupidInterventionText(intervention.text) &&
+    (message.targetMemberId === undefined || message.targetMemberId === memberId)
   );
 }
 
@@ -269,12 +314,16 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
   const timestamp = now.toISOString();
   const session = requireDateSession(save, input.dateSessionId);
 
-  if (session.intervention !== undefined) {
-    throw new Error("Cupid already used the intervention for this date.");
-  }
-
   if (session.status !== "active") {
     throw new Error("Cupid interventions are only available during active dates.");
+  }
+
+  if (!canAddCupidIntervention(session)) {
+    throw new Error(
+      isAtExchangeBoundary(session.currentTurn)
+        ? "Cupid already filed a nudge for this judge beat."
+        : "Cupid nudges are filed between judged exchanges.",
+    );
   }
 
   if (!session.participants.includes(input.targetMemberId)) {
@@ -287,24 +336,33 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
     throw new Error("Cupid interventions must be between 1 and 240 characters.");
   }
 
-  const interventionMessage = createNonCharacterMessage(
-    session,
-    "cupid",
-    `Cupid suggests: ${trimmedText}`,
-    timestamp,
-  );
+  const interventionMessage: DateMessage = {
+    id: `${session.id}-msg-${session.transcript.length}`,
+    dateSessionId: session.id,
+    kind: "cupid",
+    turnIndex: session.currentTurn,
+    sequenceIndex: session.transcript.length,
+    text: formatCupidInterventionText(trimmedText),
+    createdAt: timestamp,
+    targetMemberId: input.targetMemberId,
+  };
   const updatedSession = dateSessionSchema.parse({
     ...session,
     transcript: [...session.transcript, interventionMessage],
     intervention: {
       text: trimmedText,
       usedAtTurn: session.currentTurn,
+      usedAtJudgeCount: session.judgeSnapshots.length,
       targetMemberId: input.targetMemberId,
     },
   });
   const nextSave = replaceDateSession(save, updatedSession, timestamp);
 
   return { save: nextSave, session: updatedSession };
+}
+
+export function formatCupidInterventionText(text: string): string {
+  return `Cupid suggests: ${text}`;
 }
 
 export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): DateEngineResult {
@@ -1493,7 +1551,8 @@ export function requireMember(save: GameSave, memberId: string): Member {
 }
 
 export function requireScenario(scenarioId: string): DateScenario {
-  const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
+  const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
+  const scenario = starterScenarios.find((candidate) => candidate.id === normalizedScenarioId);
 
   if (scenario === undefined) {
     throw new Error(`Scenario not found: ${scenarioId}`);

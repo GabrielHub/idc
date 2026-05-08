@@ -10,11 +10,16 @@ export const couchNightTakeout: DateScenario = {
     intimacy: "medium",
     chaos: "low",
     idealFor: [
-      "burnt out members",
-      "members who want to be wanted at home",
-      "pairs ready for low ceremony",
+      "members who want a couch and ten quiet minutes more than dinner",
+      "members whose late shifts make a TV and a takeout container feel like care",
+      "members whose warm steady voice fits one lamp and a remote",
+      "members who can sit through a track without filling the silence",
     ],
-    badFor: ["members who need a venue to perform inside", "members who reject domestic stakes"],
+    badFor: [
+      "members who need an audience to feel chosen",
+      "members who cannot extract leverage from a sleep timer",
+      "members who only know how to deliver oaths standing up",
+    ],
   },
   publicBrief: {
     location: "A quiet living room with a couch and one functional remote",
@@ -22,35 +27,38 @@ export const couchNightTakeout: DateScenario = {
     whatBothCharactersKnow:
       "The plan is dinner on the couch and one show or one movie. No surprises are scheduled.",
     openingSituation:
-      "Both members arrive. The takeout is on the coffee table. The remote is between them.",
+      "Both members sit at opposite ends of a couch. The takeout is on the coffee table. The remote is between them.",
   },
   director: {
     tone: "intimate without ceremony, lit by a TV and one lamp",
     rules: [
+      "Anchor the date to the couch. The pair does not migrate to the kitchen, the balcony, or another room.",
       "Resist forcing a confession. Let silence count as connection.",
       "Use the remote, the food, and the couch as the only props.",
-      "Do not stage a domestic disaster. The point is that nothing is happening.",
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "Remote handoff",
-        event: "One member is asked to pick what they watch.",
-        characterVisibleText: "The remote sits closer to one member. The home screen waits.",
+        atTurn: 10,
+        title: "Home screen",
+        event: "The TV times out and the home screen returns.",
+        characterVisibleText:
+          "The TV home screen returns to the top. The remote sits closer to one member. A small sleep timer starts a countdown in the corner.",
         directorInstruction: "Use the choice to expose decisiveness, deferral, or care.",
       },
       {
-        atTurn: 16,
-        title: "Container swap",
-        event: "An offer is made to share a bite from the other container.",
-        characterVisibleText: "One container is held out across the cushion. A fork hovers.",
+        atTurn: 20,
+        title: "Container offered",
+        event: "One container is held out across the cushion.",
+        characterVisibleText:
+          "One container is held out across the cushion. A fork hovers above it. The other container is still mostly closed.",
         directorInstruction: "Let the pair settle into shared eating or refuse it cleanly.",
       },
       {
-        atTurn: 26,
-        title: "Quiet check",
-        event: "A long pause arrives that neither member feels obligated to break.",
-        characterVisibleText: "The show keeps playing. Neither member has spoken in a while.",
+        atTurn: 28,
+        title: "Lamp click",
+        event: "The lamp on the side table clicks down a level.",
+        characterVisibleText:
+          "The lamp on the side table dims to its lowest setting. The TV keeps playing. Neither member has spoken in a beat.",
         directorInstruction: "Reward members who can sit in silence. Notice members who cannot.",
       },
     ],

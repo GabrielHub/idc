@@ -5,20 +5,21 @@ export const executiveLunchOneAgendaItem: DateScenario = {
   title: "Executive Lunch, One Agenda Item",
   card: {
     summary:
-      "A quiet business lunch where competence counts as flirting and the server respects calendars.",
+      "A quiet business lunch where competence counts as flirting and the room respects calendars.",
     tags: ["career", "food", "low_pressure"],
     risk: "low",
     intimacy: "low",
     chaos: "low",
     idealFor: [
-      "members who relax around clear agendas",
-      "career-focused members",
-      "pairs that treat punctuality as care",
+      "members whose business lunch register fits a printed agenda card",
+      "members whose negotiation pitch voice belongs at a meeting that is not a meeting",
+      "members who treat a tentative second hold as romantic",
+      "members whose Term language reads a receipt as a Renewal draft",
     ],
     badFor: [
-      "members who need spectacle",
-      "members who resent calendar language",
-      "pairs that need a softer room",
+      "members who will read the agenda card as a Pact and try to sign it in soup",
+      "members who cannot perform for a calendar and will film the pen instead",
+      "members whose anxious spiral has no breathing room inside sixty minutes",
     ],
   },
   publicBrief: {
@@ -26,9 +27,9 @@ export const executiveLunchOneAgendaItem: DateScenario = {
     premise:
       "Cupid booked a sixty minute lunch with one printed agenda item: determine whether this is worth a second meeting.",
     whatBothCharactersKnow:
-      "The reservation starts on time, the menu is concise, and the server has already noticed who arrived first.",
+      "The reservation starts on time, the menu is concise, and a blank agenda card is already on the table.",
     openingSituation:
-      "Both members sit down as the server places one menu and one blank agenda card between them.",
+      "Both members sit down. One menu and one blank agenda card sit between them. A pen rests on the card.",
   },
   director: {
     tone: "polished, punctual, low volume, with quiet silverware and controlled lighting",
@@ -39,28 +40,27 @@ export const executiveLunchOneAgendaItem: DateScenario = {
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "Agenda card",
-        event: "The blank agenda card asks for one topic neither member wants to waste.",
+        event: "The blank agenda card waits between them.",
         characterVisibleText:
-          "The card reads: one agenda item, please. The pen is too expensive for this restaurant.",
+          "The card on the table reads: one agenda item, please. The pen is too expensive for this restaurant.",
         directorInstruction: "Let the next speaker name a real topic or admit they need a minute.",
       },
       {
-        atTurn: 16,
-        title: "Server check",
-        event: "The server asks whether the table needs more time or a decision.",
+        atTurn: 20,
+        title: "Water refill",
+        event: "The server stops to refill water and steps back without speaking.",
         characterVisibleText:
-          "The server pauses with professional neutrality. More time is available, but not infinite.",
-        directorInstruction:
-          "Use the interruption to test decisiveness without rewarding dominance.",
+          "Water fills both glasses to the rim. The server lingers a second longer than expected, then steps back two paces.",
+        directorInstruction: "Use the pause to test decisiveness without rewarding dominance.",
       },
       {
-        atTurn: 26,
+        atTurn: 28,
         title: "Calendar hold",
         event: "The check arrives with a tentative second hold penciled on the receipt.",
         characterVisibleText:
-          "The receipt includes a small line: tentative hold, next Wednesday, 12:30.",
+          "The receipt slides onto the table. A small line at the bottom reads: tentative hold, next Wednesday, 12:30.",
         directorInstruction:
           "Push the pair to accept, decline, or revise the hold with adult clarity.",
       },

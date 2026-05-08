@@ -11,51 +11,56 @@ export const dinerElevenPm: DateScenario = {
     intimacy: "medium",
     chaos: "low",
     idealFor: [
-      "service industry members off shift",
-      "members who want a conversation without daylight",
-      "pairs that talk better after dark",
+      "members who close service jobs and recognize the carafe",
+      "members whose overnight schedules put them in their right window",
+      "members who are awake post-set and can sit through a long fries pass",
+      "members whose warm steady voice handles a face-down check well",
     ],
-    badFor: ["members who need to be impressed", "members with a 5 a.m. obligation"],
+    badFor: [
+      "members who cannot extract leverage at a vinyl booth past eleven",
+      "members who will film the booth and turn the carafe into b-roll",
+      "members who cannot deliver a toast over a ketchup ramekin",
+    ],
   },
   publicBrief: {
     location: "Booth 4 at Connie's, open since 1979",
     premise:
       "Cupid booked a late booth at a 24 hour diner. The waitress has worked here longer than either member has been online.",
     whatBothCharactersKnow:
-      "Pancakes are at the breakfast section of the menu and are available now. The waitress refills coffee without asking. Tipping is expected.",
+      "Pancakes are at the breakfast section of the menu and are available now. Coffee is refilled without asking. Tipping is expected.",
     openingSituation:
-      "Both members slide into a booth with cracks in the vinyl. Two laminated menus and a small jukebox tab arrive.",
+      "Both members slide into a booth with cracks in the vinyl. Two laminated menus and a small jukebox tab sit on the table.",
   },
   director: {
     tone: "warm, slightly worn, lit by hanging pendant fixtures",
     rules: [
       "Honor late night honesty without forcing confession.",
-      "The waitress is a real person, not a comic device.",
+      "The waitress is hands and a coffee carafe, not a comic device.",
       "Allow long silences. The booth can hold them.",
     ],
     beats: [
       {
-        atTurn: 8,
+        atTurn: 10,
         title: "Coffee refill",
-        event:
-          "The waitress arrives with the carafe before either member realizes they wanted more.",
+        event: "The waitress passes with the carafe and tops both cups.",
         characterVisibleText:
-          "Two cups are topped without comment. A small jug of half and half is centered.",
+          "Two cups are topped without comment. A small jug of half and half is centered. The carafe moves on to booth six.",
         directorInstruction: "Use the small mercy to lower the pair's guard.",
       },
       {
-        atTurn: 18,
+        atTurn: 20,
         title: "Shared plate",
-        event: "A plate of fries arrives between them.",
+        event: "A plate of fries lands between them.",
         characterVisibleText:
-          "The fries are shared by default. There is one ramekin of ranch, one of ketchup.",
+          "The fries arrive between them. There is one ramekin of ranch, one of ketchup. A second small plate is set on the side.",
         directorInstruction: "Allow eating to be the conversation for one beat.",
       },
       {
         atTurn: 28,
         title: "Last booth check",
-        event: "The waitress passes a final time and leaves a check without rushing them.",
-        characterVisibleText: "The check sits face down. The waitress is already two booths away.",
+        event: "A check is left face down at the edge of the table.",
+        characterVisibleText:
+          "The check sits face down at the edge of the booth. The waitress is already two booths away. The jukebox has gone quiet.",
         directorInstruction: "Push for one honest sentence before the booth ends.",
       },
     ],
@@ -64,7 +69,7 @@ export const dinerElevenPm: DateScenario = {
       "A member uses the late hour as cover for a confession that asks more than the booth can hold.",
     ],
     repeatBehavior:
-      "If repeated, the waitress remembers the order. She may say the word again with mild affection.",
+      "If repeated, the carafe arrives at booth four without a check first. The booth is held without paperwork.",
   },
   judgeRubric: {
     successSignals: [

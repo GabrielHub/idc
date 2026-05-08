@@ -2,75 +2,75 @@ import type { DateScenario } from "../../domain/game";
 
 export const countyFairFriday: DateScenario = {
   id: "county-fair-friday",
-  title: "County Fair, Friday Wristband",
+  title: "County Fair, Picnic Bench",
   card: {
     summary:
-      "A regional county fair on Friday night. One wristband each. Lights on the ferris wheel, lights on the food trucks, a 4-H pen behind the main stage.",
+      "A regional county fair on Friday night. One picnic bench between the funnel cake stand and the 4-H pen.",
     tags: ["public", "food", "low_pressure"],
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
     idealFor: [
-      "members who like a route, a snack, and a goal",
-      "pairs that need an activity and a way to step out of it",
-      "members who find a kind of courage in a noisy room",
+      "members whose warm steady voice handles funnel cake without an edge",
+      "members whose tired patience fits a picnic bench and a placard",
+      "members who can listen across carousel music without pulling away",
     ],
     badFor: [
-      "members who treat overhead lighting as exposure",
-      "members who refuse to be seen on a midway",
+      "members who treat overhead lighting and unstructured mingling as injuries",
+      "members who refuse to be seen on a lit midway with witnesses",
+      "members who cannot run a sightline through a fair crowd",
     ],
   },
   publicBrief: {
-    location: "The east entrance of the Logan County Fair, Friday at 8 p.m.",
+    location:
+      "A picnic bench at the Logan County Fair, between the funnel cake stand and the 4-H pen",
     premise:
-      "Cupid bought two wristbands. The fair runs until eleven. The 4-H pen, the ferris wheel, and the funnel cake stand are all in walking distance.",
+      "Cupid bought two wristbands and dropped the pair at a picnic bench just off the midway. The fair runs until eleven.",
     whatBothCharactersKnow:
-      "The wristbands cover all rides. Food is paper-ticket only. The 4-H pen has goats, one llama, and a sign with names written in marker.",
+      "The wristbands cover all rides. The bench has clear sightlines to the 4-H pen on one side and the funnel cake line on the other. The ferris wheel is two rows behind them.",
     openingSituation:
-      "Both members get their wristbands snapped on at the gate. The wristbands are bright orange and not subtle.",
+      "Both members sit at a picnic bench with two paper trays of fair food between them. Their wristbands are bright orange and not subtle.",
   },
   director: {
     tone: "fryer oil, a generator hum, distant carousel music, a child losing a balloon two rows over",
     rules: [
       "Treat the fair as a real fair. Do not let the games rig themselves.",
       "Use the crowd as ambient pressure. Do not invent a heckler.",
-      "Allow either member to step off the midway for a quieter row of booths.",
+      "Anchor the date to the picnic bench. The pair watches the fair, they do not march through it.",
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "Funnel cake or corn",
-        event: "They reach the food row. Two stands have lines.",
+        atTurn: 10,
+        title: "Funnel cake delivery",
+        event: "A paper plate of funnel cake lands at their corner of the bench.",
         characterVisibleText:
-          "The funnel cake stand is on the left. A sweet corn stand is on the right. Both lines are five deep.",
-        directorInstruction:
-          "Use the food choice to surface generosity, decisiveness, or deferral.",
+          "A paper plate of funnel cake slides onto their corner of the bench. Powdered sugar drifts onto the wood. One plastic fork is wedged in the side.",
+        directorInstruction: "Use the food to surface generosity, decisiveness, or deferral.",
       },
       {
-        atTurn: 16,
-        title: "4-H pen",
-        event: "They drift past the 4-H pen. A small placard names every animal.",
+        atTurn: 20,
+        title: "4-H placard",
+        event: "A volunteer flips a fresh placard on the goat pen rail in their sightline.",
         characterVisibleText:
-          "The placard at the goat pen lists eight names in marker. One goat has won a ribbon. The llama is named Greg.",
+          "The placard at the goat pen now lists eight names in marker. One goat has a ribbon. The llama is named Greg. Greg is staring at their bench.",
         directorInstruction:
-          "Let the placard slow the pair. A member who reads names is not the same as a member who walks past.",
+          "Let the placard slow the pair. A member who reads names is not the same as a member who looks past.",
       },
       {
-        atTurn: 26,
-        title: "Ferris wheel line",
-        event: "They reach the ferris wheel. The line is two cars deep.",
+        atTurn: 28,
+        title: "Ferris wheel lights",
+        event: "The ferris wheel behind them swings into a synced light cycle.",
         characterVisibleText:
-          "The ferris wheel operator waves the next pair forward. Each car is a two seater with a metal bar.",
-        directorInstruction:
-          "Push the pair to ride, sit out, or leave together. Each choice is information.",
+          "The ferris wheel lights cycle blue, white, blue across their bench. The carousel music shifts a half step. The line at the funnel cake stand thins out.",
+        directorInstruction: "Push the pair toward a clear next step before the lights cycle off.",
       },
     ],
     earlyEndTriggers: [
       "A member treats the 4-H volunteers as comic relief.",
-      "A member uses the noise to deliver a confession the booth cannot answer back to.",
+      "A member uses the noise to deliver a confession the bench cannot answer back to.",
     ],
     repeatBehavior:
-      "If repeated, the same llama is in the pen. The volunteer at the gate may recognize the wristbands and joke without naming names.",
+      "If repeated, the same llama is in the pen. The bench is held without effort. The volunteer at the gate may recognize the wristbands.",
   },
   judgeRubric: {
     successSignals: [

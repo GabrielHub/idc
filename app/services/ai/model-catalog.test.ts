@@ -19,7 +19,7 @@ describe("AI model catalog", () => {
     });
 
     expect(config.aiProvider).toBe("ollama");
-    expect(config.chatModel).toBe("gemma4:26b");
+    expect(config.chatModel).toBe("gemma4:e4b");
     expect(config.embeddingModel).toBe("embeddinggemma");
     expect(config.reasoningLevel).toBe("off");
     expect("gatewayApiKey" in config).toBe(false);

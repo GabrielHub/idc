@@ -110,5 +110,32 @@ export const bradyStrait: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/brady-strait/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/brady-strait/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, leaning forward as if he accidentally became sincere, one hand open near his chest, other hand holding the recorder low as if he forgot it was on, visibly charmed expression with anxious eyes and a controlled smile, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/brady-strait/portrait-confused.png",
+        cutoutPath: "/assets/portraits/brady-strait/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, glasses slipped lower, brows pinched, mouth caught between a bit and a real question, one hand holding the notebook open, other hand pointing awkwardly toward himself, uncertain self-conscious posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/brady-strait/portrait-angry.png",
+        cutoutPath: "/assets/portraits/brady-strait/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, interpreted as defensive boundary discomfort rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, notebook tucked hard under one arm, recorder lowered, one hand raised in a compact stop gesture, jaw tense, anxious defensive eyes, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

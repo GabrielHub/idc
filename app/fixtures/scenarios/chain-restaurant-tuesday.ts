@@ -11,13 +11,15 @@ export const chainRestaurantTuesday: DateScenario = {
     intimacy: "low",
     chaos: "low",
     idealFor: [
-      "members who want a normal date",
-      "service industry members off shift",
-      "pairs that need a low-stakes first try",
+      "members who close service jobs and find a booth restful by default",
+      "members whose tired dry voice fits a breadstick basket",
+      "members who treat a normal Wednesday dinner as a kindness",
+      "members whose anxious spiral has somewhere to land in a forty-page menu",
     ],
     badFor: [
-      "members who treat dinner as covenant review",
-      "members who need ceremony to feel chosen",
+      "members who try to convert breadsticks into ritual offerings",
+      "members who propose Vows over the marinara",
+      "members who will name the booth a Trial and count it against their seven",
     ],
   },
   publicBrief: {
@@ -38,16 +40,16 @@ export const chainRestaurantTuesday: DateScenario = {
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "Order taken",
-        event: "The server arrives with confident patience and asks for orders.",
+        atTurn: 10,
+        title: "Server pen at the booth",
+        event: "The server stops at the booth's edge with pen and pad ready.",
         characterVisibleText:
-          "The server asks if anyone needs a minute. There is a pen behind the ear and zero supernatural awareness.",
+          "The server stops at the booth's edge, pen above pad, and waits without speaking. The first basket of breadsticks is half gone.",
         directorInstruction:
           "Reveal how each member handles a low-stakes choice with another person waiting.",
       },
       {
-        atTurn: 16,
+        atTurn: 20,
         title: "Bread refill",
         event: "A second breadstick basket arrives. Neither member asked.",
         characterVisibleText:
@@ -56,7 +58,7 @@ export const chainRestaurantTuesday: DateScenario = {
           "Use the abundance to surface generosity, scarcity scripts, or table manners.",
       },
       {
-        atTurn: 26,
+        atTurn: 28,
         title: "Check drop",
         event: "The check arrives in a leatherette folder with two mints.",
         characterVisibleText:
@@ -70,7 +72,7 @@ export const chainRestaurantTuesday: DateScenario = {
       "A member treats the server poorly.",
     ],
     repeatBehavior:
-      "If repeated, the server may recognize them and offer the usual table. Cupid considers this a positive comp.",
+      "If repeated, the server may set down the booth's usual basket without checking. Cupid considers this a positive comp.",
   },
   judgeRubric: {
     successSignals: [

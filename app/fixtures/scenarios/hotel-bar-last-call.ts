@@ -11,11 +11,16 @@ export const hotelBarLastCall: DateScenario = {
     intimacy: "high",
     chaos: "low",
     idealFor: [
-      "members who arrive on time and stay until close",
-      "pairs that talk better with one drink and dim sconces",
+      "members whose stoic clipped voice fits a closed piano and a brass rail",
+      "members who already live in old rooms and recognize the room's quiet",
+      "members whose warm steady voice can carry a long pause without filling it",
       "members with a long memory and a quiet hand",
     ],
-    badFor: ["members who need a stage", "members who treat soft lighting as scarcity"],
+    badFor: [
+      "members who will film the lamp clicking on and ruin the room",
+      "members with no audience and no patience for sharing the brass rail",
+      "members whose silence anxiety will drown the bell taps",
+    ],
   },
   publicBrief: {
     location: "The lobby bar at the Marlowe, eight stools and a closed piano",
@@ -24,40 +29,40 @@ export const hotelBarLastCall: DateScenario = {
     whatBothCharactersKnow:
       "Last call is forty minutes out. The kitchen has olives, almonds, and a small cheese plate. The pianist is not coming back tonight.",
     openingSituation:
-      "Both members sit at the bar. The bartender places a coaster in front of each and waits.",
+      "Both members sit at the bar. Two coasters are already in front of them. The bartender is wiping a glass at the far end.",
   },
   director: {
     tone: "low warm sconces, polished brass rail, the smell of old upholstery and lemon peel",
     rules: [
       "Treat the hotel as gently lived in, not theatrical. The piano is closed and stays closed.",
       "Allow long silences. The bar can hold them.",
-      "If a member notices something old, let it be small and unembellished.",
+      "Use room cues, not the bartender's voice. The bartender is a pair of hands.",
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "First drink",
         event: "Two drinks land without ceremony.",
         characterVisibleText:
-          "The bartender places two glasses on the coasters and turns to wipe a different glass.",
+          "The bartender places two glasses on the coasters and turns to wipe a different glass. Two slim straws lean against the rim.",
         directorInstruction:
           "Use the small mercy of being served quickly to drop the pair's guard.",
       },
       {
-        atTurn: 16,
+        atTurn: 20,
         title: "Lobby quiet",
         event: "The lobby empties. A single lamp clicks on near the piano.",
         characterVisibleText:
-          "A floor lamp by the piano has come on. The bench is closed. No one is near it.",
+          "A floor lamp by the piano clicks on. The bench is closed. No one is near it. The lobby clock reads ten of the hour.",
         directorInstruction:
           "Let the pair name the quiet without explaining it. A short admission costs less here.",
       },
       {
-        atTurn: 26,
+        atTurn: 28,
         title: "Last call",
-        event: "The bartender announces last call without raising his volume.",
+        event: "The brass rail bell taps twice down the bar.",
         characterVisibleText:
-          "The bartender taps the rail twice. Last call is announced at speaking volume.",
+          "The brass rail bell taps twice down the bar. The kitchen pass-through goes dark. The cheese plate is taken away in one quiet pass.",
         directorInstruction:
           "Push for a clear next step or a clean goodbye before the lights come up.",
       },
@@ -67,7 +72,7 @@ export const hotelBarLastCall: DateScenario = {
       "A member treats the lamp clicking on as evidence and asks for proof.",
     ],
     repeatBehavior:
-      "If repeated, the bartender remembers the order. The lamp may or may not click on. Either way it is not a bit.",
+      "If repeated, the bartender sets the same drinks without checking. The lamp may or may not click on. Either way it is not a bit.",
   },
   judgeRubric: {
     successSignals: [

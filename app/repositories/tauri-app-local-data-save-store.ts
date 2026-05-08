@@ -3,7 +3,7 @@ import { BaseDirectory, mkdir, readTextFile, remove, writeTextFile } from "@taur
 import type { RawSaveStore } from "./raw-save-store";
 
 const SAVE_DIR = "saves";
-const MISSING_FILE_PATTERN = /No such file|os error 2|not found/i;
+const MISSING_FILE_PATTERN = /No such file|os error [23]|not found/i;
 
 function sanitizeKey(key: string): string {
   return key.replace(/[^a-z0-9._-]/gi, "_");

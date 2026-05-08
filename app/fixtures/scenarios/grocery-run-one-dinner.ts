@@ -5,57 +5,64 @@ export const groceryRunOneDinner: DateScenario = {
   title: "Grocery Run For One Dinner",
   card: {
     summary:
-      "Shared cart, one recipe, twenty minutes. The negotiation is pasta shape and whether wine is necessary.",
+      "Shared cart, one recipe, one aisle. The negotiation is pasta shape and whether wine is necessary.",
     tags: ["domestic", "food", "low_pressure"],
     risk: "low",
     intimacy: "medium",
     chaos: "low",
     idealFor: [
-      "members who want low-key partnership",
-      "pairs ready to cook later",
-      "members who relax around a task",
+      "members who treat a printed recipe as a love language",
+      "members with a vehicle and a bench seat made for the trip home",
+      "members whose overnight aisle knowledge keeps them calm in fluorescents",
+      "members who can pick a pasta shape without a referendum",
     ],
-    badFor: ["members who refuse domestic stakes", "members who hate small choices in public"],
+    badFor: [
+      "members who cannot perform at a coupon sticker",
+      "members who refuse to be seen pushing a cart",
+      "members whose calendars have no aisle 7 budget",
+    ],
   },
   publicBrief: {
-    location: "A normal grocery store on a normal Saturday",
+    location: "Aisle 7, the dry goods aisle of a normal grocery store on a normal Saturday",
     premise:
-      "Cupid set a 20 minute task: one dinner, one cart, one printed recipe folded in a pocket.",
+      "Cupid set a 20 minute task: one dinner, one cart, one printed recipe folded against the cart handle.",
     whatBothCharactersKnow:
-      "The recipe is decided. The substitutions are not. There is no ceremony attached to the meal.",
-    openingSituation: "Both members meet at the cart corral. The recipe is unfolded.",
+      "The recipe is decided. The substitutions are not. The aisle has the pasta, the canned tomatoes, and the optional ingredient on the same row.",
+    openingSituation:
+      "Both members stand at the cart in aisle 7. The recipe is unfolded against the handle. Six pasta boxes are at eye level on the shelf in front of them.",
   },
   director: {
     tone: "ordinary errand, bright overhead lighting, cart wheels rattling",
     rules: [
-      "Keep the task small and finishable inside the scene.",
-      "Use store decisions as low-stakes proxies for shared life.",
+      "Anchor the date to aisle 7. The pair does not march through the store.",
+      "Use shelf decisions as low-stakes proxies for shared life.",
       "Do not make the recipe magical. The recipe is a recipe.",
     ],
     beats: [
       {
-        atTurn: 6,
-        title: "Pasta aisle",
-        event: "The aisle has six shapes that all qualify under the recipe.",
+        atTurn: 10,
+        title: "Pasta shelf",
+        event: "Six boxes on the shelf all qualify under the recipe.",
         characterVisibleText:
-          "Six boxes look approximately correct. The recipe says the word short.",
+          "Six boxes are at eye level. All of them are short shapes. One has a coupon sticker. The recipe just says short.",
         directorInstruction: "Use the choice to expose how the pair compromises or stalls.",
       },
       {
-        atTurn: 16,
+        atTurn: 20,
         title: "Optional ingredient",
-        event: "The recipe lists an optional item. One member wants it, one does not.",
+        event: "An optional item is on the same row at eye level.",
         characterVisibleText:
-          "The line on the recipe reads optional in parentheses. The store has it on sale.",
+          "The optional ingredient sits two feet from the pasta. The shelf tag is pink for sale. The recipe line for it has a parenthetical.",
         directorInstruction: "Negotiate inclusion without turning it into a referendum.",
       },
       {
-        atTurn: 26,
-        title: "Checkout choice",
-        event: "Self-checkout or staffed lane. There is no wrong answer.",
+        atTurn: 28,
+        title: "Intercom",
+        event: "An intercom announcement passes overhead.",
         characterVisibleText:
-          "Two lanes are open. The self-checkout has a shorter line and one impatient sensor.",
-        directorInstruction: "Use the lane choice to wrap the date with one small shared decision.",
+          "An intercom voice announces a price check on a different aisle. Cart wheels rattle past the end of the row. Their cart still has only the recipe inside.",
+        directorInstruction:
+          "Use the cue to push for a small shared decision before they leave the aisle.",
       },
     ],
     earlyEndTriggers: [
@@ -67,12 +74,12 @@ export const groceryRunOneDinner: DateScenario = {
   },
   judgeRubric: {
     successSignals: [
-      "The pair finishes the cart inside the time and laughs about something on the receipt.",
+      "The pair settles the aisle inside the time and laughs about something on the shelf.",
       "A member defers gracefully on a small choice without resentment.",
     ],
     failureSignals: [
       "A member turns a small choice into a values argument.",
-      "The pair leaves with no plan for what the food becomes.",
+      "The pair leaves the aisle with no plan for what the food becomes.",
     ],
     statFocus: ["trust", "chemistry", "stability"],
   },

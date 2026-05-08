@@ -116,5 +116,32 @@ export const decimusMariusTullio: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, posture softened from attention, helmet held respectfully at his side, one armored hand resting near the chest plate, warm restrained attraction with a small closed mouth smile, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed armor, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-confused.png",
+        cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, helmet tucked under one arm, brows drawn in disciplined uncertainty, head slightly tilted, one armored hand lifted in a precise pause gesture as if correcting the Schedule, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed armor, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-angry.png",
+        cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, interpreted as controlled grief boundary rather than spectacle, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, shoulders squared, helmet held rigid at his side, one armored hand raised in a clear warning to stop, cold steady eyes, jaw set, full body visible, plain white background, no text, no logo, no frame, no scenery, no blood, no gore, no new accessories, no changed armor, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

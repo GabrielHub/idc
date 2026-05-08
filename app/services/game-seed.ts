@@ -5,8 +5,10 @@ import {
   SAVE_SCHEMA_VERSION,
   scenarioDeckStateSchema,
   shiftStateSchema,
+  type DateSession,
   type GameSave,
   type Member,
+  type MemoryRecord,
   type PairState,
   type PairStats,
   type ScenarioDeckState,
@@ -22,22 +24,34 @@ import {
 import { clampScore } from "./utils";
 
 const STARTER_DECK_MAX_SIZE = starterScenarios.length;
+const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
+const SCENARIO_ID_REPLACEMENTS: Record<string, string> = {
+  "alternate-ex-double-date": "phantom-doorbell-suite",
+};
 
-export function createSeedGameSave(now = new Date()): GameSave {
+export type CreateSeedGameSaveOptions = {
+  randomizeScenarioDeck?: boolean;
+  random?: () => number;
+};
+
+export function createSeedGameSave(
+  now = new Date(),
+  options: CreateSeedGameSaveOptions = {},
+): GameSave {
   const timestamp = now.toISOString();
   const config = gameConfigSchema.parse({});
   const members = starterMembers.map((member) => memberSchema.parse(member));
   const pairStates = createSeedPairStates(members);
+  const scenarioIds =
+    options.randomizeScenarioDeck === true
+      ? shuffleScenarioIds(STARTER_SCENARIO_IDS, options.random ?? Math.random)
+      : [...STARTER_SCENARIO_IDS];
   const featuredMemberIds = selectFeaturedMemberIds({
     members,
     shiftNumber: 1,
   });
-  const drawnScenarioIds = starterScenarios
-    .slice(0, config.shiftDateSlots)
-    .map((scenario) => scenario.id);
-  const offeredScenarioIds = starterScenarios
-    .slice(config.shiftDateSlots, config.shiftDateSlots * 2)
-    .map((scenario) => scenario.id);
+  const drawnScenarioIds = scenarioIds.slice(0, config.shiftDateSlots);
+  const offeredScenarioIds = scenarioIds.slice(config.shiftDateSlots, config.shiftDateSlots * 2);
   const activeShift: ShiftState = {
     id: "shift-1",
     shiftNumber: 1,
@@ -57,7 +71,7 @@ export function createSeedGameSave(now = new Date()): GameSave {
       shiftNumber: 1,
     }),
     scenarioDeck: {
-      scenarioIds: starterScenarios.map((scenario) => scenario.id),
+      scenarioIds,
       maxSize: STARTER_DECK_MAX_SIZE,
       offeredScenarioIds,
     },
@@ -96,19 +110,24 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
   const customMembers = save.members.filter((member) => !STARTER_MEMBERS_BY_ID.has(member.id));
   const members = [...fixtureMembers, ...customMembers];
   const pairStates = hydratePairStates(save.pairStates, members);
+  const dateSessions = save.dateSessions.map(hydrateDateSessionScenarioId);
   const shifts = save.shifts.map((shift) =>
     shiftStateSchema.parse({
       ...shift,
       featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
+      drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
       scenarioDeck: hydrateScenarioDeckState(shift.scenarioDeck),
     }),
   );
+  const memories = save.memories.map(hydrateMemoryScenarioId);
 
   return gameSaveSchema.parse({
     ...save,
     members,
     pairStates,
+    dateSessions,
     shifts,
+    memories,
   });
 }
 
@@ -123,15 +142,16 @@ const STARTER_MEMBERS_BY_ID = new Map(
   starterMembers.map((member) => [member.id, memberSchema.parse(member)]),
 );
 
-const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
-
 function hydrateScenarioDeckState(scenarioDeck: ScenarioDeckState): ScenarioDeckState {
-  const scenarioIds = appendMissingStarterScenarioIds(scenarioDeck.scenarioIds);
+  const scenarioIds = appendMissingStarterScenarioIds(
+    normalizeScenarioIds(scenarioDeck.scenarioIds),
+  );
 
   return scenarioDeckStateSchema.parse({
     ...scenarioDeck,
     scenarioIds,
     maxSize: Math.max(scenarioDeck.maxSize, STARTER_DECK_MAX_SIZE, scenarioIds.length),
+    offeredScenarioIds: normalizeScenarioIds(scenarioDeck.offeredScenarioIds),
   });
 }
 
@@ -149,6 +169,75 @@ function appendMissingStarterScenarioIds(scenarioIds: string[]): string[] {
   }
 
   return hydratedScenarioIds;
+}
+
+export function normalizeStarterScenarioId(scenarioId: string): string {
+  return SCENARIO_ID_REPLACEMENTS[scenarioId] ?? scenarioId;
+}
+
+function normalizeScenarioIds(scenarioIds: readonly string[]): string[] {
+  const normalizedScenarioIds: string[] = [];
+  const seenScenarioIds = new Set<string>();
+
+  for (const scenarioId of scenarioIds) {
+    const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
+
+    if (seenScenarioIds.has(normalizedScenarioId)) {
+      continue;
+    }
+
+    normalizedScenarioIds.push(normalizedScenarioId);
+    seenScenarioIds.add(normalizedScenarioId);
+  }
+
+  return normalizedScenarioIds;
+}
+
+function hydrateDateSessionScenarioId(session: DateSession): DateSession {
+  const scenarioId = normalizeStarterScenarioId(session.scenarioId);
+
+  return scenarioId === session.scenarioId ? session : { ...session, scenarioId };
+}
+
+function hydrateMemoryScenarioId(memory: MemoryRecord): MemoryRecord {
+  if (memory.scenarioId === undefined) {
+    return memory;
+  }
+
+  const scenarioId = normalizeStarterScenarioId(memory.scenarioId);
+
+  return scenarioId === memory.scenarioId ? memory : { ...memory, scenarioId };
+}
+
+function shuffleScenarioIds(scenarioIds: readonly string[], random: () => number): string[] {
+  const shuffledScenarioIds = [...scenarioIds];
+
+  for (let currentIndex = shuffledScenarioIds.length - 1; currentIndex > 0; currentIndex -= 1) {
+    const swapIndex = randomIndex(random, currentIndex + 1);
+    const currentScenarioId = shuffledScenarioIds[currentIndex];
+    const swapScenarioId = shuffledScenarioIds[swapIndex];
+
+    if (currentScenarioId === undefined || swapScenarioId === undefined) {
+      throw new Error("Scenario shuffle lookup failed.");
+    }
+
+    shuffledScenarioIds[currentIndex] = swapScenarioId;
+    shuffledScenarioIds[swapIndex] = currentScenarioId;
+  }
+
+  return shuffledScenarioIds;
+}
+
+function randomIndex(random: () => number, exclusiveMax: number): number {
+  const randomValue = random();
+
+  if (!Number.isFinite(randomValue)) {
+    throw new Error("Scenario shuffle random source returned a non-finite value.");
+  }
+
+  const scaledIndex = Math.floor(randomValue * exclusiveMax);
+
+  return Math.min(Math.max(scaledIndex, 0), exclusiveMax - 1);
 }
 
 export function findMemberInSave(save: GameSave, memberId: string): Member | undefined {
@@ -212,15 +301,32 @@ function hydratePairStates(savedPairStates: PairState[], members: Member[]): Pai
       participantIds: seedPairState.participantIds,
       scenarioUseCounts: {
         ...seedPairState.scenarioUseCounts,
-        ...savedPairState.scenarioUseCounts,
+        ...hydrateScenarioUseCounts(savedPairState.scenarioUseCounts),
       },
     };
   });
-  const orphanPairStates = savedPairStates.filter(
-    (pairState) => !seededPairStateIds.has(pairState.id),
-  );
+  const orphanPairStates = savedPairStates
+    .filter((pairState) => !seededPairStateIds.has(pairState.id))
+    .map((pairState) => ({
+      ...pairState,
+      scenarioUseCounts: hydrateScenarioUseCounts(pairState.scenarioUseCounts),
+    }));
 
   return [...hydratedPairStates, ...orphanPairStates];
+}
+
+function hydrateScenarioUseCounts(
+  scenarioUseCounts: Record<string, number>,
+): Record<string, number> {
+  const hydratedScenarioUseCounts: Record<string, number> = {};
+
+  for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
+    const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
+    hydratedScenarioUseCounts[normalizedScenarioId] =
+      (hydratedScenarioUseCounts[normalizedScenarioId] ?? 0) + count;
+  }
+
+  return hydratedScenarioUseCounts;
 }
 
 function createInitialPairStats(first: Member, second: Member): PairStats {

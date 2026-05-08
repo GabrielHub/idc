@@ -11,6 +11,7 @@ import {
 } from "../domain/game";
 import { miraPark, mrWhiskers, vhool } from "../fixtures/members";
 import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
+import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
 import {
   readStoredGatewayApiKey,
@@ -234,10 +235,15 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
         if (cancelled) {
           return;
         }
+        const backupKey = await tryBackupSave(repository);
         await repository.deleteSave();
         setSave(null);
         setHasLoaded(true);
-        setPendingError("Previous save failed schema review. Cupid filed a fresh form.");
+        setPendingError(
+          backupKey === null
+            ? "Previous save failed schema review. Cupid filed a fresh form."
+            : "Previous save failed schema review. Cupid filed a fresh form. The old file is preserved next to it as a .bak.* file in your saves folder.",
+        );
       }
     }
 
@@ -331,6 +337,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     }
     setPhase("wiping");
     try {
+      await tryBackupSave(repository);
       await repository.deleteSave();
       window.setTimeout(() => {
         setSave(null);

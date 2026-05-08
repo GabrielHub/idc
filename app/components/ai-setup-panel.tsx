@@ -51,7 +51,7 @@ const PROVIDER_INFO: Record<AiProvider, { route: string; label: string; tagline:
   gateway: {
     route: "Cloud",
     label: "Vercel AI Gateway",
-    tagline: "DeepSeek, Gemini, Claude, Kimi. Needs a Gateway key.",
+    tagline: "DeepSeek, Gemini, Claude, Kimi. Sends prompts off this machine.",
   },
 };
 
@@ -81,9 +81,11 @@ export function AiSetupPanel({
   const [ollamaError, setOllamaError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveHint, setSaveHint] = useState<string | null>(null);
   const isProviderUrlLocked = areAiProviderBaseUrlsLockedForRuntime();
   const keyStorageCopy = isProviderUrlLocked
-    ? "Desktop stores Gateway keys in app local data, separate from saves. Wiping a save leaves the key on this device."
+    ? "Desktop stores Gateway keys as a plaintext file in app local data, separate from saves. It is not encrypted and not in the OS keychain. Wiping a save leaves the key on this device."
     : "Browser dev stores Gateway keys in localStorage. Game saves do not contain them.";
 
   useEffect(() => {
@@ -176,6 +178,8 @@ export function AiSetupPanel({
 
   async function saveAndCheck() {
     setIsSaving(true);
+    setSaveError(null);
+    setSaveHint(null);
 
     try {
       const pendingConfig = {
@@ -187,6 +191,9 @@ export function AiSetupPanel({
       const checkedStatus = await onCheck(pendingConfig, draftGatewayKey);
 
       if (checkedStatus.status !== "ready") {
+        setSaveHint(
+          "Saved, but the provider check did not return ready. Fix the issue above and click Verify.",
+        );
         return;
       }
 
@@ -197,6 +204,8 @@ export function AiSetupPanel({
       setDraftConfig(completeConfig);
       await onSave(completeConfig, draftGatewayKey);
       onClose();
+    } catch (error) {
+      setSaveError(errorToMessage(error) || "Cupid could not save the AI setup.");
     } finally {
       setIsSaving(false);
     }
@@ -272,6 +281,23 @@ export function AiSetupPanel({
               />
             </aside>
           </div>
+
+          {saveError === null ? null : (
+            <p className="mt-6 rounded-tile border border-aura-rose/30 bg-rose-50/75 px-3 py-2 text-label leading-relaxed text-aura-rose">
+              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+                save failed ::
+              </span>{" "}
+              {saveError}
+            </p>
+          )}
+          {saveError === null && saveHint !== null ? (
+            <p className="mt-6 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
+              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+                pending ::
+              </span>{" "}
+              {saveHint}
+            </p>
+          ) : null}
 
           <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
             <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
@@ -554,11 +580,14 @@ function GatewaySetupTab({
   onGatewayApiKey: (value: string) => void;
 }) {
   const endpointDescription = isUrlLocked
-    ? "Desktop uses the default Vercel AI Gateway URL. The key is stored in app local data, outside saves."
+    ? "Desktop uses the default Vercel AI Gateway URL. The key is stored as a plaintext file in app local data, outside saves."
     : "Browser dev uses this URL and stores the key in localStorage.";
   const keyPlaceholder = isUrlLocked
-    ? "Stored in app local data, outside saves"
+    ? "Stored as a plaintext file in app local data"
     : "Stored in browser localStorage for dev";
+  const keyTrustCopy = isUrlLocked
+    ? "The Gateway key is plaintext on disk under app local data. It is not encrypted and not in the OS keychain. Anyone with file access on this device can read it. Date prompts, character context, and transcripts are sent to the Gateway."
+    : "Browser dev stores the key in localStorage. Date prompts, character context, and transcripts are sent to the Gateway.";
 
   return (
     <div className="space-y-5">
@@ -578,6 +607,12 @@ function GatewaySetupTab({
             onChange={onGatewayApiKey}
           />
         </div>
+        <p className="mt-3 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+            data flow ::
+          </span>{" "}
+          {keyTrustCopy}
+        </p>
       </FormSection>
 
       <FormSection

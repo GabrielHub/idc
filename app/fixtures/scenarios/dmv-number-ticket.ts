@@ -4,60 +4,64 @@ export const dmvNumberTicket: DateScenario = {
   id: "dmv-number-ticket",
   title: "DMV, A Number Ticket",
   card: {
-    summary:
-      "A regional DMV at one in the afternoon. One member has a routine renewal. The other came along.",
+    summary: "A regional DMV at one in the afternoon. Two seats in row C. The wait is the date.",
     tags: ["career", "public", "low_pressure"],
     risk: "low",
     intimacy: "low",
     chaos: "low",
     idealFor: [
-      "members who relax inside a queue",
-      "pairs that can sit on plastic chairs together",
-      "members who treat paperwork as a love language",
+      "members whose trade work has filled out enough forms to relax in a queue",
+      "members whose stoic clipped voice fits a paper smell and a printer cycle",
+      "members who treat paperwork as a love language and a place to rest",
+      "members who read the renewal as a Term and the wait as a Renewal window",
     ],
-    badFor: ["members who need a venue to perform inside", "members who refuse to take a number"],
+    badFor: [
+      "members who refuse to take a number on principle",
+      "members with no stage in row C and no compliments to extract",
+      "members who cannot make a one-hour wait compound into anything useful",
+    ],
   },
   publicBrief: {
-    location: "The county DMV office on Route 4, Wednesday afternoon",
+    location: "Row C, the waiting area at the county DMV office on Route 4, Wednesday afternoon",
     premise:
       "Cupid set a one hour appointment around a routine renewal. The plus one came along to sit through it.",
     whatBothCharactersKnow:
-      "There is a number ticket, twenty rows of plastic chairs, and one window labeled REGISTRATION. The line moves in batches.",
+      "There is a number ticket between them, twenty rows of plastic chairs, and one display board. The line moves in batches.",
     openingSituation:
-      "Both members sit down with a paper number ticket and a folded form. The display board reads B 47.",
+      "Both members sit in row C with a paper number ticket and a folded form between them. The display board reads B 47.",
   },
   director: {
     tone: "fluorescent, paper smell, a printer starting and stopping behind the counter",
     rules: [
+      "Anchor the date to row C. The pair does not get up to walk the room.",
       "Treat the DMV as a real DMV. Lines move at the speed they move.",
-      "The clerks are not theatrical. They are doing their job.",
-      "Allow long stretches with nothing happening. The wait is the scene.",
+      "The clerks are not theatrical. They are doing their job at a distance.",
     ],
     beats: [
       {
-        atTurn: 6,
+        atTurn: 10,
         title: "Form check",
-        event: "One member reviews their form. A box has been left blank.",
+        event: "A box on the form has been left blank.",
         characterVisibleText:
-          "The form has eighteen boxes. The line for previous address is empty. A clipboard pen is chained to the counter ten feet away.",
+          "The form on the lap has eighteen boxes. The line for previous address is empty. A clipboard pen is chained to the counter ten feet away.",
         directorInstruction:
           "Use the small lapse to surface care, control, or deferral without scoring it.",
       },
       {
-        atTurn: 16,
-        title: "Number called",
+        atTurn: 20,
+        title: "Board jumps",
         event: "The display board moves three numbers in a row, then stops.",
         characterVisibleText:
-          "The board reads B 50. Their ticket says B 63. The clerk at window two has stood up.",
+          "The board reads B 50. Their ticket says B 63. The clerk at window two has stood up. The printer behind the counter starts and stops.",
         directorInstruction:
           "Let the wait open a window. A real question is cheaper here than across a table.",
       },
       {
-        atTurn: 26,
-        title: "Their number",
-        event: "Their number is called. The window has two minutes of patience and no more.",
+        atTurn: 28,
+        title: "Number called",
+        event: "Their number lights up on the board.",
         characterVisibleText:
-          "The board reads B 63. Window four waves them up without looking up from the keyboard.",
+          "The board reads B 63. Window four has its light on. Two minutes of patience are visibly available.",
         directorInstruction:
           "Push the pair to handle the window together or to step apart on purpose.",
       },

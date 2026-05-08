@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CompanyGoal,
   type DateFinalReport,
+  type DateMessage,
   type DateScenario,
   type DateSession,
   type FollowUpAction,
@@ -15,7 +16,9 @@ import {
   type ShiftState,
 } from "../domain/game";
 import {
+  canAddCupidIntervention,
   fallbackGoalProgress,
+  formatCupidInterventionText,
   isMemberRetained,
   type GoalProgressSnapshot,
 } from "../services/date-engine";
@@ -2759,7 +2762,8 @@ function DateFooter({
   onComplete: () => void;
   onIntervene: () => void;
 }) {
-  const interventionDisabled = !canAdvance || session.intervention !== undefined;
+  const interventionSlotAvailable = canAddCupidIntervention(session);
+  const interventionDisabled = !canAdvance || !interventionSlotAvailable;
   const nudgeTarget = participants.find((member) => member.id === interventionTargetMemberId);
   const resolveLabel = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
   const nextLineLabel =
@@ -2776,7 +2780,7 @@ function DateFooter({
       className="pointer-events-none fixed inset-x-0 bottom-6 z-30 px-6 lg:bottom-8"
     >
       <div className="aura-glass-strong pointer-events-auto mx-auto w-full max-w-4xl rounded-card px-5 py-4">
-        {session.intervention === undefined ? (
+        {interventionSlotAvailable ? (
           <NudgeSuggestionRail
             suggestions={nudgeSuggestions}
             disabled={interventionDisabled}
@@ -2805,9 +2809,9 @@ function DateFooter({
               disabled={interventionDisabled}
               onChange={(event) => onInterventionTextChange(event.target.value)}
               placeholder={
-                session.intervention === undefined
+                interventionSlotAvailable
                   ? `draft a nudge for ${nudgeTarget?.firstName ?? "one member"}`
-                  : "one intervention per date. Filed."
+                  : "judge beat already has a nudge filed."
               }
               className="block w-full min-w-0 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2.5 font-sans text-body text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
             />
@@ -3085,7 +3089,7 @@ function buildTranscriptItems(
     return {
       id: `turn-${message.sequenceIndex}`,
       order: message.sequenceIndex * 10,
-      ...buildNonCharacterLabel(message.kind, session, members, scenario),
+      ...buildNonCharacterLabel(message, session, members, scenario),
       tone: message.kind,
       text: message.text,
     };
@@ -3134,17 +3138,24 @@ function buildTranscriptItems(
 }
 
 function buildNonCharacterLabel(
-  kind: "scenario" | "cupid" | "system",
+  message: Extract<DateMessage, { kind: "scenario" | "cupid" | "system" }>,
   session: DateSession,
   members: Member[],
   scenario: DateScenario | undefined,
 ): { label: string; targetName?: string } {
-  if (kind === "scenario") {
+  if (message.kind === "scenario") {
     return { label: scenario?.title ?? "Scenario" };
   }
 
-  if (kind === "cupid") {
-    const targetId = session.intervention?.targetMemberId;
+  if (message.kind === "cupid") {
+    const intervention = session.intervention;
+    const matchesCurrentIntervention =
+      intervention !== undefined &&
+      message.turnIndex === intervention.usedAtTurn &&
+      message.text === formatCupidInterventionText(intervention.text);
+    const targetId =
+      message.targetMemberId ??
+      (matchesCurrentIntervention ? intervention?.targetMemberId : undefined);
     const target =
       targetId === undefined ? undefined : members.find((member) => member.id === targetId);
 

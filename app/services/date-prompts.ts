@@ -14,6 +14,7 @@ import type { MemoryPack } from "./cupid-memory";
 import {
   currentSceneBeatForTurn,
   exchangeIndexForPendingTurn,
+  isCurrentInterventionMessage,
   isInterventionActiveForMember,
 } from "./date-engine";
 
@@ -215,8 +216,11 @@ function filterCharacterVisibleTranscript({
   session: DateSession;
   member: Member;
 }): DateMessage[] {
+  const interventionActive = isInterventionActiveForMember(session, member.id);
   return transcript.filter(
-    (message) => message.kind !== "cupid" || isInterventionActiveForMember(session, member.id),
+    (message) =>
+      message.kind !== "cupid" ||
+      (interventionActive && isCurrentInterventionMessage(session, message, member.id)),
   );
 }
 

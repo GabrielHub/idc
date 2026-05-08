@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { memberRequests, starterScenarios } from "../fixtures";
-import { addCupidIntervention, startDateSession } from "./date-engine";
+import { addCupidIntervention, advanceDateExchange, startDateSession } from "./date-engine";
 import {
   buildCharacterPromptPacket,
   buildSummarizerPromptPacket,
@@ -379,6 +379,85 @@ describe("date prompt assembly", () => {
 
     expect(expiredPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
     expect(expiredPacket.prompt).not.toContain("Private Cupid nudge");
+  });
+
+  it("keeps old Cupid nudges out of later performer prompts", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const firstNudge = addCupidIntervention(started.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: "vhool",
+      text: "Ask about the receipt without recruiting anyone.",
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const judged = advanceDateExchange(firstNudge.save, {
+      dateSessionId: started.session.id,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+    const secondNudge = addCupidIntervention(judged.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: "jenna-pike",
+      text: "Name one normal coffee fact before the receipt escalates.",
+      now: new Date("2026-05-05T12:04:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = secondNudge.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = secondNudge.save.members.find((member) => member.id === "vhool");
+    const pairState = secondNudge.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const jennaPacket = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: secondNudge.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: secondNudge.session.transcript,
+      },
+    });
+    const vhoolPacket = buildCharacterPromptPacket({
+      member: vhool,
+      partner: jenna,
+      scenario,
+      session: secondNudge.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: secondNudge.session.transcript,
+      },
+    });
+
+    expect(jennaPacket.prompt).toContain(
+      "Name one normal coffee fact before the receipt escalates.",
+    );
+    expect(jennaPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
+    expect(vhoolPacket.prompt).not.toContain(
+      "Name one normal coffee fact before the receipt escalates.",
+    );
   });
 
   it("selects samples without looping on known collision seeds", () => {

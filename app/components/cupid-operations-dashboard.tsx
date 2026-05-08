@@ -14,13 +14,16 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
+import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
-import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
+import { isTauriRuntime, lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
+import { openTauriLogFolder } from "../platform/tauri-log-folder";
 import {
   addCupidIntervention,
   applyFollowUpAction,
   buildGoalProgressSnapshots,
   buildShiftGoalMetrics,
+  canAddCupidIntervention,
   CLIENT_LOSS_LIMIT,
   completeShift,
   getQuitMembers,
@@ -139,12 +142,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
 
     async function loadSave() {
       let recoveredOutdatedSave = false;
+      let backupKey: string | null = null;
       let existingSave: GameSave | null = null;
 
       try {
         existingSave = await repository.loadGame();
       } catch {
         recoveredOutdatedSave = true;
+        backupKey = await tryBackupSave(repository);
       }
 
       const nextSave = existingSave ?? (await repository.resetGame());
@@ -156,7 +161,9 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       setSave(nextSave);
       if (recoveredOutdatedSave) {
         setErrorMessage(
-          "Cupid reset an outdated local save. The previous file failed schema review.",
+          backupKey === null
+            ? "Cupid reset an outdated local save. The previous file failed schema review."
+            : "Cupid reset an outdated local save. The previous file is preserved next to it as a .bak.* file in your saves folder.",
         );
       }
       const restoredSession =
@@ -539,6 +546,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
 
   async function handleReset() {
     tryAction("reset", async () => {
+      await tryBackupSave(repository);
       const nextSave = await repository.resetGame();
       setSave(nextSave);
       setSelectedMemberIds(defaultMemberSelection(nextSave));
@@ -693,7 +701,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const canIntervene =
     canAdvanceDate &&
     activeSession !== null &&
-    activeSession.intervention === undefined &&
+    canAddCupidIntervention(activeSession) &&
     effectiveInterventionTargetMemberId !== "" &&
     interventionText.trim().length > 0;
   const dateStatus = activeSession?.status ?? null;
@@ -1111,8 +1119,16 @@ function SettingsMenu({
   onPunchOut: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled, volume, setVolume, play } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      return;
+    }
+    setIsConfirmingReset(false);
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -1142,8 +1158,17 @@ function SettingsMenu({
     };
   }, [isOpen]);
 
-  function handleReset() {
+  function handleAskReset() {
+    setIsConfirmingReset(true);
+  }
+
+  function handleCancelReset() {
+    setIsConfirmingReset(false);
+  }
+
+  function handleConfirmReset() {
     setIsOpen(false);
+    setIsConfirmingReset(false);
     onReset();
   }
 
@@ -1225,46 +1250,69 @@ function SettingsMenu({
               />
             </div>
             <div className="mx-2 h-px bg-aura-hairline" />
-            <button
-              type="button"
-              role="menuitem"
-              data-sfx="menu"
-              onClick={handleOpenAiSetup}
-              disabled={isActionPending}
-              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              AI setup
-            </button>
-            <button
-              type="button"
-              role="menuitemcheckbox"
-              aria-checked={sfxEnabled}
-              data-sfx="toggle"
-              onClick={handleToggleSfx}
-              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
-            >
-              {sfxEnabled ? "Mute" : "Unmute"}
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              data-sfx="menu"
-              onClick={handlePunchOut}
-              disabled={isActionPending}
-              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Punch out
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              data-sfx="danger"
-              onClick={handleReset}
-              disabled={isActionPending}
-              className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-aura-rose/10 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Reset save
-            </button>
+            {isConfirmingReset ? (
+              <ResetConfirm
+                disabled={isActionPending}
+                onCancel={handleCancelReset}
+                onConfirm={handleConfirmReset}
+              />
+            ) : (
+              <>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-sfx="menu"
+                  onClick={handleOpenAiSetup}
+                  disabled={isActionPending}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  AI setup
+                </button>
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={sfxEnabled}
+                  data-sfx="toggle"
+                  onClick={handleToggleSfx}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+                >
+                  {sfxEnabled ? "Mute" : "Unmute"}
+                </button>
+                {isTauriRuntime() ? (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    data-sfx="menu"
+                    onClick={() => {
+                      void openTauriLogFolder();
+                    }}
+                    className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+                  >
+                    Show log folder
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-sfx="menu"
+                  onClick={handlePunchOut}
+                  disabled={isActionPending}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Punch out
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  data-sfx="danger"
+                  onClick={handleAskReset}
+                  disabled={isActionPending}
+                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-aura-rose/10 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Reset save
+                </button>
+              </>
+            )}
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -1287,6 +1335,49 @@ function SettingsIcon() {
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H7a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
+  );
+}
+
+function ResetConfirm({
+  disabled,
+  onCancel,
+  onConfirm,
+}: {
+  disabled: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="px-3 py-2.5">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+        Reset save? This is permanent.
+      </p>
+      <p className="mt-1 text-label leading-snug text-aura-muted">
+        Cupid keeps a .bak.* copy of the current save before resetting.
+      </p>
+      <div className="mt-2.5 flex items-center justify-end gap-1">
+        <button
+          type="button"
+          role="menuitem"
+          data-sfx="dismiss"
+          disabled={disabled}
+          onClick={onCancel}
+          className="cursor-pointer rounded-chip px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          data-sfx="danger"
+          disabled={disabled}
+          onClick={onConfirm}
+          className="cursor-pointer rounded-chip bg-aura-rose px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-aura-fuchsia disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          Reset
+        </button>
+      </div>
+    </div>
   );
 }
 

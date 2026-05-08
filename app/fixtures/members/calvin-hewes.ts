@@ -120,5 +120,23 @@ export const calvinHewes: Member = {
         model: "image_gen built-in",
       },
     },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/calvin-hewes/portrait-confused.png",
+        cutoutPath: "/assets/portraits/calvin-hewes/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Calvin Hewes portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive red glowing eyes, polished cel shading, same actual mothman cryptid from Point Pleasant, same black moth-like humanoid head with no human face and no visible mouth, same short dark moth-fur at the collar, same large black moth wings with dark eye markings, same long slender limbs, same elegant taloned hands, same fashion-forward charcoal-black designer suit with a narrow waist, subtle satin lapels, crisp white shirt, deep oxblood silk tie, coordinated oxblood pocket square, polished black pointed dress shoes, wings tucked closer behind him, antennae angled unevenly, red eyes narrowed in guarded professional confusion, one taloned hand frozen mid cuff adjustment, other taloned hand raised in a precise corporate pause gesture, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible mouth, no human face, no smile, no new accessories, no changed suit design, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/calvin-hewes/portrait-angry.png",
+        cutoutPath: "/assets/portraits/calvin-hewes/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Calvin Hewes portrait, interpreted as controlled legal threat and privacy alarm, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive red glowing eyes, polished cel shading, same actual mothman cryptid from Point Pleasant, same black moth-like humanoid head with no human face and no visible mouth, same short dark moth-fur at the collar, same large black moth wings with dark eye markings, same long slender limbs, same elegant taloned hands, same fashion-forward charcoal-black designer suit with a narrow waist, subtle satin lapels, crisp white shirt, deep oxblood silk tie, coordinated oxblood pocket square, polished black pointed dress shoes, wings opened wider in a sharp warning silhouette, antennae drawn back, red eyes brighter and fixed forward, shoulders squared, taloned hands low and precise, cold professional boundary state, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible mouth, no human face, no gore, no new accessories, no changed suit design, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

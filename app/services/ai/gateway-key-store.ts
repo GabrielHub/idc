@@ -6,7 +6,7 @@ export const GATEWAY_API_KEY_STORAGE_KEY = "idc.cupid.aiGatewayKey";
 export const TAURI_GATEWAY_API_KEY_DIR = "secrets";
 export const TAURI_GATEWAY_API_KEY_FILE_PATH = `${TAURI_GATEWAY_API_KEY_DIR}/gateway-api-key.txt`;
 
-const MISSING_FILE_PATTERN = /No such file|os error 2|not found/i;
+const MISSING_FILE_PATTERN = /No such file|os error [23]|not found/i;
 
 export interface GatewayApiKeyStore {
   read(): Promise<string>;

@@ -115,5 +115,32 @@ export const tobyWenz: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/toby-wenz/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/toby-wenz/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Toby Wenz portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same twenty two year old ordinary midwestern young guy with a youthful narrow face, defined cheekbones, slightly prominent ears, messy medium brown wavy hair that has been slept on, mild dark circles under warm brown eyes, slim compact build, slightly hunched shoulders, generic plain navy grocery store work polo with a blank rectangular name tag pinned at the chest, gray zip up hoodie worn unzipped over the polo, dark cargo pants, boxy black work sneakers, black belt, yellow box cutter clipped to his belt, shoulders turned slightly in a three-quarter pose, one arm folded across his torso, other hand resting lightly at the side of his neck or hoodie collar, head turned back toward the viewer with bashful direct eye contact, anxious sincere closed-mouth smile, awkwardly flirty posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/toby-wenz/portrait-confused.png",
+        cutoutPath: "/assets/portraits/toby-wenz/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Toby Wenz portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same twenty two year old ordinary midwestern young guy with a youthful narrow face, defined cheekbones, slightly prominent ears, messy medium brown wavy hair that has been slept on, mild dark circles under warm brown eyes, slim compact build, slightly hunched shoulders, generic plain navy grocery store work polo with a blank rectangular name tag pinned at the chest, gray zip up hoodie worn unzipped over the polo, dark cargo pants, boxy black work sneakers, black belt, yellow box cutter clipped to his belt, shoulders pulled up and tucked in, torso leaning back slightly, one hand clutching the hoodie zipper or collar near his chest, other hand lifted near his cheek in a half open shocked gossip gesture, wide eyes, high lifted brows, mouth open in stunned disbelief like he just heard a wild sentence, anxious what did he say reaction, full body visible, plain white background, no text, no speech bubble, no logo, no frame, no scenery, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/toby-wenz/portrait-angry.png",
+        cutoutPath: "/assets/portraits/toby-wenz/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Toby Wenz portrait, interpreted as distressed shutdown rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive warm brown eyes, polished cel shading, same twenty two year old ordinary midwestern young guy with a youthful narrow face, defined cheekbones, slightly prominent ears, messy medium brown wavy hair that has been slept on, mild dark circles under warm brown eyes, slim compact build, slightly hunched shoulders, generic plain navy grocery store work polo with a blank rectangular name tag pinned at the chest, gray zip up hoodie worn unzipped over the polo, dark cargo pants, boxy black work sneakers, black belt, yellow box cutter clipped to his belt, shoulders tight and raised, body pulled inward, one hand gripping the hoodie fabric near his chest, other hand half raised near shoulder height in a small wait please do not gesture with palm partly open, weight shifted back, brows pinched high, eyes wide and hurt, mouth tense and partly open, overwhelmed guarded expression close to panic but still sincere, full body visible, plain white background, no text, no speech bubble, no logo, no frame, no scenery, no new accessories, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };
