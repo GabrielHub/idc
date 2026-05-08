@@ -487,6 +487,15 @@ export const scenarioDeckStateSchema = z.object({
   offeredScenarioIds: z.array(scenarioIdSchema),
 });
 
+export const deckPowerKindSchema = z.enum(["hold", "discard", "request_low_pressure"]);
+
+export const deckPowerUsageSchema = z.object({
+  kind: deckPowerKindSchema,
+  scenarioId: scenarioIdSchema,
+  swappedScenarioId: scenarioIdSchema.optional(),
+  usedAt: z.string().min(1),
+});
+
 export const goalScoreStatusSchema = z.enum(["met", "missed"]);
 
 export const shiftGoalResultSchema = z.object({
@@ -509,6 +518,7 @@ export const shiftReportSchema = z.object({
   ignoredRequestIds: z.array(z.string().min(1)),
   offeredScenarioIds: z.array(scenarioIdSchema),
   summary: z.string().min(1),
+  hrNote: z.string().min(1).optional(),
 });
 
 export const shiftStateSchema = z.object({
@@ -522,6 +532,8 @@ export const shiftStateSchema = z.object({
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
   scenarioDeck: scenarioDeckStateSchema,
+  deckPower: deckPowerUsageSchema.optional(),
+  heldScenarioId: scenarioIdSchema.optional(),
   startedAt: z.string().min(1),
   completedAt: z.string().min(1).optional(),
   report: shiftReportSchema.optional(),
@@ -632,6 +644,8 @@ export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
 export type ScenarioDeckState = z.infer<typeof scenarioDeckStateSchema>;
+export type DeckPowerKind = z.infer<typeof deckPowerKindSchema>;
+export type DeckPowerUsage = z.infer<typeof deckPowerUsageSchema>;
 export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
 export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
 export type ShiftReport = z.infer<typeof shiftReportSchema>;

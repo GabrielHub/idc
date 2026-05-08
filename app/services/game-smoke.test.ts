@@ -36,8 +36,11 @@ import {
   completeDateSession,
   completeShift,
   finalizeDateSession,
+  getMemberQuitRiskStatus,
   isCampaignLost,
   isMemberRetained,
+  MEMBER_QUIT_RISK_LOW_FLOOR,
+  MEMBER_QUIT_RISK_STABLE_FLOOR,
   startDateSession,
   startNextShift,
 } from "./date-engine";
@@ -419,6 +422,13 @@ describe("IDC playable smoke path", () => {
           ? shiftStateSchema.parse({
               ...shift,
               drawnScenarioIds: ["alternate-ex-double-date"],
+              heldScenarioId: "alternate-ex-double-date",
+              deckPower: {
+                kind: "request_low_pressure",
+                scenarioId: "alternate-ex-double-date",
+                swappedScenarioId: "alternate-ex-double-date",
+                usedAt: "2026-05-05T12:00:30.000Z",
+              },
               scenarioDeck: {
                 ...shift.scenarioDeck,
                 scenarioIds: shift.scenarioDeck.scenarioIds.map((scenarioId) =>
@@ -460,10 +470,15 @@ describe("IDC playable smoke path", () => {
     });
 
     expect(loadedShift?.drawnScenarioIds).toEqual(["phantom-doorbell-suite"]);
+    expect(loadedShift?.heldScenarioId).toBe("phantom-doorbell-suite");
+    expect(loadedShift?.deckPower?.scenarioId).toBe("phantom-doorbell-suite");
+    expect(loadedShift?.deckPower?.swappedScenarioId).toBe("phantom-doorbell-suite");
     expect(loadedShift?.scenarioDeck.scenarioIds).not.toContain("alternate-ex-double-date");
     expect(loadedSession?.scenarioId).toBe("phantom-doorbell-suite");
     expect(loadedPairState?.scenarioUseCounts["phantom-doorbell-suite"]).toBe(3);
     expect(persistedSave.dateSessions[0]?.scenarioId).toBe("phantom-doorbell-suite");
+    expect(persistedSave.shifts[0]?.heldScenarioId).toBe("phantom-doorbell-suite");
+    expect(persistedSave.shifts[0]?.deckPower?.scenarioId).toBe("phantom-doorbell-suite");
     expect(advanced.session.transcript.some((message) => message.kind === "character")).toBe(true);
   });
 
@@ -1115,6 +1130,49 @@ describe("IDC playable smoke path", () => {
     expect(isMemberRetained(jenna)).toBe(false);
   });
 
+  it("files an HR note covering filed dates and ignored asks at shift close", () => {
+    const incidentSave = withActiveShiftConfig(
+      createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")),
+      {
+        drawnScenarioIds: ["museum-exhibit-mixup"],
+        memberRequestIds: ["request-jenna-normal-date"],
+        featuredMemberIds: ["meridian-vale", "jenna-pike"],
+      },
+    );
+    const startedIncident = startDateSession(incidentSave, {
+      focusMemberId: "meridian-vale",
+      firstMemberId: "meridian-vale",
+      secondMemberId: "calvin-hewes",
+      scenarioId: "museum-exhibit-mixup",
+    });
+    const advancedIncident = advanceDateExchange(startedIncident.save, {
+      dateSessionId: startedIncident.session.id,
+    });
+
+    expect(advancedIncident.session.finalReport?.outcome).toBe("early_end");
+
+    const incidentShift = completeShift(
+      advancedIncident.save,
+      new Date("2026-05-05T13:00:00.000Z"),
+    );
+
+    expect(incidentShift.report.hrNote).toBe(
+      "Sole filing: Meridian and Calvin ended early. Standard cleanup is on schedule. 1 member ask left on the floor. HR cc'd.",
+    );
+
+    const cleanSave = withActiveShiftConfig(
+      createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")),
+      {
+        drawnScenarioIds: ["chain-restaurant-tuesday"],
+        memberRequestIds: [],
+        featuredMemberIds: ["sana-karim"],
+      },
+    );
+    const cleanShift = completeShift(cleanSave, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(cleanShift.report.hrNote).toBe("No dates filed. All member asks closed.");
+  });
+
   it("ends high tension low health dates before the turn limit", () => {
     let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
       drawnScenarioIds: ["phantom-doorbell-suite"],
@@ -1164,6 +1222,35 @@ describe("IDC playable smoke path", () => {
     }
 
     expect(isCampaignLost(save)).toBe(true);
+  });
+
+  it("maps retention to qualitative quit risk status tiers", () => {
+    let save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const memberId = save.members[0]?.id;
+    if (memberId === undefined) {
+      throw new Error("seed save has no members");
+    }
+
+    save = withMemberRetention(save, memberId, 100);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("file_stable");
+
+    save = withMemberRetention(save, memberId, MEMBER_QUIT_RISK_STABLE_FLOOR);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("file_stable");
+
+    save = withMemberRetention(save, memberId, MEMBER_QUIT_RISK_STABLE_FLOOR - 1);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("client_confidence_low");
+
+    save = withMemberRetention(save, memberId, MEMBER_QUIT_RISK_LOW_FLOOR);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("client_confidence_low");
+
+    save = withMemberRetention(save, memberId, MEMBER_QUIT_RISK_LOW_FLOOR - 1);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("closed_file_risk");
+
+    save = withMemberRetention(save, memberId, 1);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("closed_file_risk");
+
+    save = withMemberRetention(save, memberId, 0);
+    expect(getMemberQuitRiskStatus(findMember(save, memberId))).toBe("file_closed");
   });
 
   it("uses focused member asks as modifiers without ignored penalties", () => {

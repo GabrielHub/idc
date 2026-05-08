@@ -7,10 +7,13 @@ import {
   type DateMessage,
   type DateScenario,
   type DateSession,
+  type DeckPowerKind,
+  type DeckPowerUsage,
   type FollowUpAction,
   type JudgeSnapshot,
   type Member,
   type MemberRequest,
+  type MemoryRecord,
   type PairState,
   type PortraitMood,
   type ShiftState,
@@ -19,10 +22,14 @@ import {
   canAddCupidIntervention,
   fallbackGoalProgress,
   formatCupidInterventionText,
+  getMemberQuitRiskStatus,
   isMemberRetained,
+  MEMBER_QUIT_RISK_LABEL,
   type GoalProgressSnapshot,
+  type MemberQuitRiskStatus,
 } from "../services/date-engine";
 import type { MatchFitPublicSignal } from "../services/match-fit";
+import type { ScenarioPowerAvailability } from "../services/scenario-powers";
 import {
   EASE_OUT_QUART,
   Eyebrow,
@@ -54,6 +61,13 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   cool_down: "Cool Down",
   repair: "Repair",
   mark_bad_fit: "Mark Bad Fit",
+};
+
+const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
+  encourage: "Spark, chemistry, trust up. Retention nudges up.",
+  cool_down: "Conflict eases, stability up. Retention recovers.",
+  repair: "Trust and stability up, conflict down. Biggest retention bump.",
+  mark_bad_fit: "Chemistry and spark crash. Retention recovers; pair logged.",
 };
 
 export type PendingDateAction = "advanceExchange" | "completeDate";
@@ -461,10 +475,18 @@ function FeaturedCaseCard({
 
 function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean }) {
   return (
-    <div className="mt-5 grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
-      <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
-      <CaseStat label="Openness" value={member.state.openness} inverted={inverted} tone="violet" />
-      <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
+    <div className="mt-5 space-y-3">
+      <div className="grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
+        <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
+        <CaseStat
+          label="Openness"
+          value={member.state.openness}
+          inverted={inverted}
+          tone="violet"
+        />
+        <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
+      </div>
+      <QuitRiskBadge member={member} />
     </div>
   );
 }
@@ -533,6 +555,32 @@ function QuitStamp() {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-pill bg-aura-ink px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white shadow-quiet">
       quit
+    </span>
+  );
+}
+
+const QUIT_RISK_BADGE_TONE: Record<MemberQuitRiskStatus, string> = {
+  file_stable: "bg-white/65 text-aura-muted",
+  client_confidence_low: "bg-aura-amber/95 text-white",
+  closed_file_risk: "bg-aura-rose/95 text-white",
+  file_closed: "bg-aura-ink text-white",
+};
+
+const QUIT_RISK_DOT_TONE: Record<MemberQuitRiskStatus, string> = {
+  file_stable: "bg-aura-faint",
+  client_confidence_low: "bg-white/85",
+  closed_file_risk: "bg-white/85",
+  file_closed: "bg-white/70",
+};
+
+function QuitRiskBadge({ member }: { member: Member }) {
+  const status = getMemberQuitRiskStatus(member);
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] shadow-quiet ${QUIT_RISK_BADGE_TONE[status]}`}
+    >
+      <span aria-hidden className={`size-1.5 rounded-full ${QUIT_RISK_DOT_TONE[status]}`} />
+      {MEMBER_QUIT_RISK_LABEL[status]}
     </span>
   );
 }
@@ -633,20 +681,23 @@ function PartnerTile({
               </p>
             </div>
           </div>
-          <div className="mt-auto grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5 pt-1">
-            <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
-            <CaseStat
-              label="Openness"
-              value={member.state.openness}
-              inverted={isSelected}
-              tone="violet"
-            />
-            <CaseStat
-              label="Burnout"
-              value={member.state.burnout}
-              inverted={isSelected}
-              tone="amber"
-            />
+          <div className="mt-auto space-y-3 pt-1">
+            <div className="grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
+              <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
+              <CaseStat
+                label="Openness"
+                value={member.state.openness}
+                inverted={isSelected}
+                tone="violet"
+              />
+              <CaseStat
+                label="Burnout"
+                value={member.state.burnout}
+                inverted={isSelected}
+                tone="amber"
+              />
+            </div>
+            <QuitRiskBadge member={member} />
           </div>
         </button>
 
@@ -1097,6 +1148,10 @@ function MemberDossier({
               <Meter label="Burnout" value={member.state.burnout} tone="amber" size="md" />
             </div>
 
+            <DossierBlock eyebrow="// status">
+              <QuitRiskBadge member={member} />
+            </DossierBlock>
+
             {request === undefined ? null : (
               <DossierBlock eyebrow="// ask">
                 <p className="text-body text-aura-ink/90">{request.text}</p>
@@ -1249,6 +1304,12 @@ function SelectionBar({
 /* Brief                                                              */
 /* ================================================================== */
 
+export type PreviousFile = {
+  totalDates: number;
+  scenarioRepeatCount: number;
+  expectsCallbacks: boolean;
+};
+
 export type BriefProps = {
   shift: ShiftState;
   selectedMembers: Member[];
@@ -1256,6 +1317,7 @@ export type BriefProps = {
   selectedScenario: DateScenario | undefined;
   pairState: PairState | null;
   pairNote: string | null;
+  previousFile: PreviousFile | null;
   fitSignal: MatchFitPublicSignal | null;
   riskNotes: string[];
   goals: CompanyGoal[];
@@ -1265,10 +1327,15 @@ export type BriefProps = {
   canStart: boolean;
   localAiStatus: LocalAiBriefStatus;
   isActionPending: boolean;
+  deckPowerAvailability: ScenarioPowerAvailability;
+  carriedHeldScenario: DateScenario | undefined;
   onSelectScenario: (id: string) => void;
   onStart: () => void;
   onRetryLocalAi: () => void;
   onBack: () => void;
+  onHoldScenario: (scenarioId: string) => void;
+  onDiscardScenario: (scenarioId: string) => void;
+  onRequestLowPressure: (scenarioId: string) => void;
 };
 
 export type LocalAiBriefStatus = {
@@ -1307,6 +1374,7 @@ export function BriefView({
   selectedScenario,
   pairState,
   pairNote,
+  previousFile,
   fitSignal,
   riskNotes,
   goals,
@@ -1316,10 +1384,15 @@ export function BriefView({
   canStart,
   localAiStatus,
   isActionPending,
+  deckPowerAvailability,
+  carriedHeldScenario,
   onSelectScenario,
   onStart,
   onRetryLocalAi,
   onBack,
+  onHoldScenario,
+  onDiscardScenario,
+  onRequestLowPressure,
 }: BriefProps) {
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
 
@@ -1361,16 +1434,31 @@ export function BriefView({
           second={second}
           pairState={pairState}
           note={pairNote}
+          previousFile={previousFile}
           onMemberClick={setOpenMemberId}
         />
       </section>
 
       <div className="mt-16 grid gap-10 lg:grid-cols-[minmax(0,1fr)_18rem]">
-        <ScenarioDeck
-          scenarios={scenarios}
-          selectedScenario={selectedScenario}
-          onSelect={onSelectScenario}
-        />
+        <div className="space-y-8">
+          <ScenarioDeck
+            scenarios={scenarios}
+            selectedScenario={selectedScenario}
+            onSelect={onSelectScenario}
+            carriedHeldScenarioId={carriedHeldScenario?.id}
+          />
+
+          <DeckPowersPanel
+            shift={shift}
+            selectedScenario={selectedScenario}
+            availability={deckPowerAvailability}
+            carriedHeldScenario={carriedHeldScenario}
+            isActionPending={isActionPending}
+            onHold={onHoldScenario}
+            onDiscard={onDiscardScenario}
+            onRequestLowPressure={onRequestLowPressure}
+          />
+        </div>
 
         <aside className="space-y-6">
           <PinnedGoalsCard goals={goals} progress={goalProgress} />
@@ -1469,7 +1557,11 @@ function BriefDock({
   const dotTone = localAiStatus.status === "ready" ? "rose" : "amber";
   const fallbackRiskNote = briefRiskNote(fitSignal);
   const dockRiskNotes =
-    riskNotes.length > 0 ? riskNotes : fallbackRiskNote === null ? [] : [fallbackRiskNote];
+    riskNotes.length > 0
+      ? riskNotes.slice(0, 2)
+      : fallbackRiskNote === null
+        ? []
+        : [fallbackRiskNote];
 
   return (
     <motion.div
@@ -1486,7 +1578,12 @@ function BriefDock({
               {statusLabel}
             </p>
             <p className="truncate text-body font-semibold text-aura-ink">{statusText}</p>
-            {dockRiskNotes.slice(0, 2).map((note) => (
+            {dockRiskNotes.length === 0 ? null : (
+              <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
+                why this is dangerous
+              </p>
+            )}
+            {dockRiskNotes.map((note) => (
               <p key={note} className="mt-1 max-w-md text-label leading-snug text-aura-muted">
                 {note}
               </p>
@@ -1611,12 +1708,14 @@ function PairStage({
   second,
   pairState,
   note,
+  previousFile,
   onMemberClick,
 }: {
   first: Member;
   second: Member;
   pairState: PairState | null;
   note: string | null;
+  previousFile: PreviousFile | null;
   onMemberClick: (memberId: string) => void;
 }) {
   return (
@@ -1637,6 +1736,8 @@ function PairStage({
         </p>
       )}
 
+      <PreviousFileLine previousFile={previousFile} />
+
       {pairState === null ? null : (
         <div className="mx-auto mt-10 grid max-w-lg grid-cols-3 gap-8">
           <Meter label="Spark" value={pairState.stats.spark} />
@@ -1646,6 +1747,63 @@ function PairStage({
       )}
     </div>
   );
+}
+
+function PreviousFileLine({ previousFile }: { previousFile: PreviousFile | null }) {
+  if (previousFile === null) {
+    return null;
+  }
+  const segments: { tone: "ink" | "rose"; text: string }[] = [
+    {
+      tone: "ink",
+      text:
+        previousFile.totalDates === 1
+          ? "1 date on record"
+          : `${previousFile.totalDates} dates on record`,
+    },
+  ];
+  if (previousFile.scenarioRepeatCount > 0) {
+    segments.push({
+      tone: "ink",
+      text: `${ordinal(previousFile.scenarioRepeatCount + 1)} visit to this room`,
+    });
+  }
+  if (previousFile.expectsCallbacks) {
+    segments.push({ tone: "rose", text: "Cupid expects callbacks" });
+  }
+  return (
+    <p className="mx-auto mt-6 flex max-w-2xl flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+      <span className="text-aura-muted">Previous file</span>
+      {segments.flatMap((segment, index) => [
+        <span aria-hidden key={`sep-${index}`} className="text-aura-faint/60">
+          ·
+        </span>,
+        <span
+          key={`seg-${index}`}
+          className={segment.tone === "rose" ? "text-aura-rose" : "text-aura-ink"}
+        >
+          {segment.text}
+        </span>,
+      ])}
+    </p>
+  );
+}
+
+function ordinal(value: number): string {
+  const remainder100 = value % 100;
+  if (remainder100 >= 11 && remainder100 <= 13) {
+    return `${value}th`;
+  }
+  switch (value % 10) {
+    case 1:
+      return `${value}st`;
+    case 2:
+      return `${value}nd`;
+    case 3:
+      return `${value}rd`;
+    default:
+      return `${value}th`;
+  }
 }
 
 function PairBond() {
@@ -1724,10 +1882,12 @@ function ClickablePairMember({
 function ScenarioDeck({
   scenarios,
   selectedScenario,
+  carriedHeldScenarioId,
   onSelect,
 }: {
   scenarios: DateScenario[];
   selectedScenario: DateScenario | undefined;
+  carriedHeldScenarioId: string | undefined;
   onSelect: (id: string) => void;
 }) {
   const indexInDeck =
@@ -1749,6 +1909,7 @@ function ScenarioDeck({
             index={index}
             total={scenarios.length}
             isSelected={scenario.id === selectedScenario?.id}
+            isHeldOver={scenario.id === carriedHeldScenarioId}
             onSelect={() => onSelect(scenario.id)}
           />
         ))}
@@ -1767,12 +1928,14 @@ function ScenarioDeckTab({
   index,
   total,
   isSelected,
+  isHeldOver,
   onSelect,
 }: {
   scenario: DateScenario;
   index: number;
   total: number;
   isSelected: boolean;
+  isHeldOver: boolean;
   onSelect: () => void;
 }) {
   const indexLabel = `${pad2(index + 1)}/${pad2(total)}`;
@@ -1805,6 +1968,14 @@ function ScenarioDeckTab({
         >
           {scenario.title}
         </h4>
+        {isHeldOver ? (
+          <span
+            className={`inline-flex w-fit items-center gap-1.5 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${isSelected ? "bg-white/20 text-white/85" : "bg-aura-rose/10 text-aura-rose"}`}
+          >
+            <span className="size-1.5 rounded-full bg-aura-rose" />
+            held over
+          </span>
+        ) : null}
         {isSelected ? (
           <motion.span
             layoutId="brief-active-deck"
@@ -1933,6 +2104,148 @@ function RiskStamp({
       <span className={`size-1.5 rounded-full ${chip.dot}`} />
       {risk} risk
     </span>
+  );
+}
+
+const DECK_POWER_LABEL: Record<DeckPowerKind, string> = {
+  hold: "Held",
+  discard: "Discarded",
+  request_low_pressure: "Quiet swap",
+};
+
+const DECK_POWER_FILED_DESCRIPTION: Record<DeckPowerKind, string> = {
+  hold: "Held one room for tomorrow.",
+  discard: "Discarded one drawn room.",
+  request_low_pressure: "Swapped a high-pressure room for a quiet one.",
+};
+
+function DeckPowersPanel({
+  shift,
+  selectedScenario,
+  availability,
+  carriedHeldScenario,
+  isActionPending,
+  onHold,
+  onDiscard,
+  onRequestLowPressure,
+}: {
+  shift: ShiftState;
+  selectedScenario: DateScenario | undefined;
+  availability: ScenarioPowerAvailability;
+  carriedHeldScenario: DateScenario | undefined;
+  isActionPending: boolean;
+  onHold: (scenarioId: string) => void;
+  onDiscard: (scenarioId: string) => void;
+  onRequestLowPressure: (scenarioId: string) => void;
+}) {
+  const filed = shift.deckPower;
+  const isFiled = filed !== undefined;
+  const selectionId = selectedScenario?.id;
+  const baseDisabled = isActionPending || isFiled || selectionId === undefined;
+  const status = deckPowerStatusDisplay(isFiled, selectionId, availability);
+  const fire = (handler: (id: string) => void) => () => {
+    if (selectionId !== undefined) {
+      handler(selectionId);
+    }
+  };
+
+  return (
+    <section className="aura-glass rounded-card px-5 py-5">
+      <header className="flex items-baseline justify-between gap-4">
+        <Eyebrow>// procurement levers</Eyebrow>
+        <span
+          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${status.tone}`}
+        >
+          {status.label}
+        </span>
+      </header>
+      <p className="mt-2 max-w-2xl text-label leading-snug text-aura-muted">
+        One lever per shift. Pick a card above, then file Cupid&rsquo;s move.
+      </p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <DeckPowerButton
+          label="Hold for tomorrow"
+          hint="Reserve this room. It opens the next shift."
+          disabled={baseDisabled || !availability.canHold}
+          onClick={fire(onHold)}
+        />
+        <DeckPowerButton
+          label="Discard this room"
+          hint="Pull the booking from today. The date slot stays open."
+          disabled={baseDisabled || !availability.canDiscard}
+          onClick={fire(onDiscard)}
+        />
+        <DeckPowerButton
+          label="Request a quiet room"
+          hint="Swap a high-pressure card for a low-pressure one."
+          disabled={baseDisabled || !availability.canRequestLowPressure}
+          onClick={fire(onRequestLowPressure)}
+        />
+      </div>
+      {filed !== undefined ? (
+        <DeckPowerFiledLine usage={filed} />
+      ) : carriedHeldScenario === undefined ? null : (
+        <p className="mt-4 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
+          Carried over: {carriedHeldScenario.title}
+        </p>
+      )}
+    </section>
+  );
+}
+
+function deckPowerStatusDisplay(
+  isFiled: boolean,
+  selectionId: string | undefined,
+  availability: ScenarioPowerAvailability,
+): { label: string; tone: string } {
+  if (isFiled) {
+    return { label: "filed", tone: "text-aura-rose" };
+  }
+  if (selectionId === undefined) {
+    return { label: "pick a card", tone: "text-aura-faint" };
+  }
+  if (availability.reason === undefined) {
+    return { label: "ready", tone: "text-emerald-700" };
+  }
+  return { label: availability.reason, tone: "text-aura-muted" };
+}
+
+function DeckPowerButton({
+  label,
+  hint,
+  disabled,
+  onClick,
+}: {
+  label: string;
+  hint: string;
+  disabled: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="group flex h-full cursor-pointer flex-col items-start gap-1 rounded-chip bg-aura-ink px-3 py-2.5 text-left text-white transition hover:bg-aura-rose disabled:cursor-not-allowed disabled:bg-white/55 disabled:text-aura-faint"
+    >
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+        {label}
+      </span>
+      <span className="text-label leading-snug text-white/75 group-disabled:text-aura-faint">
+        {hint}
+      </span>
+    </button>
+  );
+}
+
+function DeckPowerFiledLine({ usage }: { usage: DeckPowerUsage }) {
+  return (
+    <p className="mt-4 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+      <span className="rounded-pill bg-aura-rose/10 px-2 py-0.5">
+        {DECK_POWER_LABEL[usage.kind]}
+      </span>
+      <span className="ml-2 text-aura-muted">{DECK_POWER_FILED_DESCRIPTION[usage.kind]}</span>
+    </p>
   );
 }
 
@@ -2720,11 +3033,16 @@ function FinalReportPanel({
         <span className="text-aura-rose">{FOLLOW_UP_LABELS[report.recommendedFollowUp]}</span>
       </p>
       {report.appliedFollowUp === undefined ? (
-        <div className="mt-5 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-x-3 gap-y-5">
           {followUpKeys.map((action) => (
-            <GhostButton key={action} disabled={isActionPending} onClick={() => onFollowUp(action)}>
-              {FOLLOW_UP_LABELS[action]}
-            </GhostButton>
+            <div key={action} className="flex max-w-[16rem] flex-col items-start gap-2">
+              <GhostButton disabled={isActionPending} onClick={() => onFollowUp(action)}>
+                {FOLLOW_UP_LABELS[action]}
+              </GhostButton>
+              <p className="text-label leading-snug text-aura-muted">
+                {FOLLOW_UP_PROJECTIONS[action]}
+              </p>
+            </div>
           ))}
         </div>
       ) : (
@@ -2949,6 +3267,522 @@ function suggestionLabel(suggestion: string): string {
 }
 
 /* ================================================================== */
+/* Notes                                                              */
+/* ================================================================== */
+
+export type NotesProps = {
+  memories: MemoryRecord[];
+  members: Member[];
+  pairStates: PairState[];
+  scenarios: DateScenario[];
+  shiftCount: number;
+};
+
+type NotesScopeFilter = "all" | "pairs" | "scenarios";
+
+const NOTES_SCOPE_FILTERS: { id: NotesScopeFilter; label: string }[] = [
+  { id: "all", label: "all" },
+  { id: "pairs", label: "pairs" },
+  { id: "scenarios", label: "scenarios" },
+];
+
+const PAIR_NOTE_SCOPES = new Set<MemoryRecord["scope"]>(["pair", "date"]);
+
+export function NotesView({ memories, members, pairStates, scenarios, shiftCount }: NotesProps) {
+  const [scopeFilter, setScopeFilter] = useState<NotesScopeFilter>("all");
+  const [selectedPairId, setSelectedPairId] = useState<string | "any">("any");
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | "any">("any");
+
+  const memberById = useMemo(
+    () => new Map(members.map((member) => [member.id, member])),
+    [members],
+  );
+  const pairStateById = useMemo(
+    () => new Map(pairStates.map((pair) => [pair.id, pair])),
+    [pairStates],
+  );
+  const scenarioById = useMemo(
+    () => new Map(scenarios.map((scenario) => [scenario.id, scenario])),
+    [scenarios],
+  );
+
+  const visibleMemories = useMemo(
+    () => memories.filter(isPlayerVisibleNote).sort(sortMemoriesNewestFirst),
+    [memories],
+  );
+
+  const pairOptions = useMemo(() => {
+    const seen = new Map<string, { id: string; label: string }>();
+    for (const memory of visibleMemories) {
+      if (!PAIR_NOTE_SCOPES.has(memory.scope) || memory.pairId === undefined) continue;
+      if (seen.has(memory.pairId)) continue;
+      seen.set(memory.pairId, {
+        id: memory.pairId,
+        label: pairLabel(memory.pairId, memberById, pairStateById),
+      });
+    }
+    return Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [visibleMemories, memberById, pairStateById]);
+
+  const scenarioOptions = useMemo(() => {
+    const seen = new Map<string, { id: string; label: string }>();
+    for (const memory of visibleMemories) {
+      if (memory.scope !== "scenario" || memory.scenarioId === undefined) continue;
+      if (seen.has(memory.scenarioId)) continue;
+      const scenario = scenarioById.get(memory.scenarioId);
+      seen.set(memory.scenarioId, {
+        id: memory.scenarioId,
+        label: scenario?.title ?? memory.scenarioId,
+      });
+    }
+    return Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label));
+  }, [visibleMemories, scenarioById]);
+
+  const filteredMemories = useMemo(() => {
+    return visibleMemories.filter((memory) => {
+      if (scopeFilter === "pairs" && !PAIR_NOTE_SCOPES.has(memory.scope)) return false;
+      if (scopeFilter === "scenarios" && memory.scope !== "scenario") return false;
+      if (selectedPairId !== "any" && memory.pairId !== selectedPairId) return false;
+      if (selectedScenarioId !== "any" && memory.scenarioId !== selectedScenarioId) return false;
+      return true;
+    });
+  }, [visibleMemories, scopeFilter, selectedPairId, selectedScenarioId]);
+
+  const totalCount = visibleMemories.length;
+  const shownCount = filteredMemories.length;
+  const hasFilters =
+    scopeFilter !== "all" || selectedPairId !== "any" || selectedScenarioId !== "any";
+
+  function clearNotesFilters() {
+    setScopeFilter("all");
+    setSelectedPairId("any");
+    setSelectedScenarioId("any");
+  }
+
+  return (
+    <ViewFrame wide>
+      <SectionHeader
+        eyebrow={`// notes.${pad2(shiftCount)}`}
+        title="Case notes"
+        meta={`${pad2(totalCount)} on file`}
+        tooltip="Public pair and scenario memories Cupid can share. Private member files and judge-only records stay sealed."
+      />
+
+      <NotesFilterRail
+        scopeFilter={scopeFilter}
+        onScopeFilterChange={(next) => {
+          setScopeFilter(next);
+          if (next === "pairs") setSelectedScenarioId("any");
+          if (next === "scenarios") setSelectedPairId("any");
+        }}
+        pairOptions={pairOptions}
+        selectedPairId={selectedPairId}
+        onSelectedPairChange={setSelectedPairId}
+        scenarioOptions={scenarioOptions}
+        selectedScenarioId={selectedScenarioId}
+        onSelectedScenarioChange={setSelectedScenarioId}
+        totalCount={totalCount}
+        shownCount={shownCount}
+        hasFilters={hasFilters}
+        onClearFilters={clearNotesFilters}
+      />
+
+      {totalCount === 0 ? (
+        <NotesEmptyTile
+          title="No public notes yet"
+          subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
+        />
+      ) : filteredMemories.length === 0 ? (
+        <NotesEmptyTile
+          title="No notes match this filter"
+          subhead="Loosen the filter to see more of the case archive."
+          action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
+        />
+      ) : (
+        <ul className="mt-8 grid gap-4">
+          <AnimatePresence initial={false}>
+            {filteredMemories.map((memory, index) => (
+              <NoteCard
+                key={memory.id}
+                memory={memory}
+                index={index}
+                memberById={memberById}
+                pairStateById={pairStateById}
+                scenarioById={scenarioById}
+              />
+            ))}
+          </AnimatePresence>
+        </ul>
+      )}
+    </ViewFrame>
+  );
+}
+
+function NotesFilterRail({
+  scopeFilter,
+  onScopeFilterChange,
+  pairOptions,
+  selectedPairId,
+  onSelectedPairChange,
+  scenarioOptions,
+  selectedScenarioId,
+  onSelectedScenarioChange,
+  totalCount,
+  shownCount,
+  hasFilters,
+  onClearFilters,
+}: {
+  scopeFilter: NotesScopeFilter;
+  onScopeFilterChange: (next: NotesScopeFilter) => void;
+  pairOptions: { id: string; label: string }[];
+  selectedPairId: string | "any";
+  onSelectedPairChange: (id: string | "any") => void;
+  scenarioOptions: { id: string; label: string }[];
+  selectedScenarioId: string | "any";
+  onSelectedScenarioChange: (id: string | "any") => void;
+  totalCount: number;
+  shownCount: number;
+  hasFilters: boolean;
+  onClearFilters: () => void;
+}) {
+  const showPairPicker = scopeFilter !== "scenarios" && pairOptions.length > 0;
+  const showScenarioPicker = scopeFilter !== "pairs" && scenarioOptions.length > 0;
+
+  return (
+    <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
+      <div className="inline-flex items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+        {NOTES_SCOPE_FILTERS.map((filter) => {
+          const active = scopeFilter === filter.id;
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              data-sfx="click"
+              onClick={() => onScopeFilterChange(filter.id)}
+              aria-pressed={active}
+              className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                active
+                  ? "bg-aura-ink text-white shadow-quiet"
+                  : "text-aura-muted hover:text-aura-ink"
+              }`}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {showPairPicker ? (
+        <NotesScopePicker
+          label="Pair"
+          value={selectedPairId}
+          options={pairOptions}
+          onChange={onSelectedPairChange}
+        />
+      ) : null}
+
+      {showScenarioPicker ? (
+        <NotesScopePicker
+          label="Scenario"
+          value={selectedScenarioId}
+          options={scenarioOptions}
+          onChange={onSelectedScenarioChange}
+        />
+      ) : null}
+
+      <div className="ml-auto flex items-center gap-3">
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          {pad2(shownCount)} of {pad2(totalCount)} shown
+        </span>
+        {hasFilters ? <GhostButton onClick={onClearFilters}>Reset filters</GhostButton> : null}
+      </div>
+    </div>
+  );
+}
+
+function NotesScopePicker({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string | "any";
+  options: { id: string; label: string }[];
+  onChange: (id: string | "any") => void;
+}) {
+  return (
+    <label className="inline-flex items-center gap-2">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+        {label}
+      </span>
+      <div className="relative">
+        <select
+          value={value}
+          aria-label={`${label} filter`}
+          onChange={(event) => onChange(event.currentTarget.value)}
+          className="cursor-pointer appearance-none rounded-pill border border-aura-hairline bg-white/70 px-3 py-1.5 pr-8 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-ink outline-none transition hover:border-aura-hairline-strong focus:border-aura-rose"
+        >
+          <option value="any">any</option>
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-aura-faint">
+          <svg aria-hidden width="12" height="12" viewBox="0 0 14 14" fill="none">
+            <path
+              d="M3.5 5.5L7 9L10.5 5.5"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      </div>
+    </label>
+  );
+}
+
+function NoteCard({
+  memory,
+  index,
+  memberById,
+  pairStateById,
+  scenarioById,
+}: {
+  memory: MemoryRecord;
+  index: number;
+  memberById: Map<string, Member>;
+  pairStateById: Map<string, PairState>;
+  scenarioById: Map<string, DateScenario>;
+}) {
+  const scopeLabel = noteScopeLabel(memory.scope);
+  const pairMembers =
+    memory.pairId === undefined
+      ? []
+      : (pairStateById.get(memory.pairId)?.participantIds ?? [])
+          .map((id) => memberById.get(id))
+          .filter((m): m is Member => Boolean(m));
+  const scenario =
+    memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
+  const title = noteCardTitle(memory, pairMembers, scenario);
+  const subhead = noteCardSubhead(memory, scenario);
+
+  return (
+    <motion.li
+      layout
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -4 }}
+      transition={{ duration: 0.32, delay: Math.min(index, 6) * 0.03, ease: EASE_OUT_QUART }}
+      className="list-none"
+    >
+      <article className="aura-glass aura-glass-lift overflow-hidden rounded-card">
+        <div className="flex items-start gap-5 p-5 lg:p-6">
+          {pairMembers.length > 0 ? (
+            <div className="flex shrink-0 -space-x-3">
+              {pairMembers.map((member) => (
+                <span
+                  key={member.id}
+                  className="rounded-full border-2 border-white/85 bg-white shadow-quiet"
+                >
+                  <Portrait member={member} variant="thumb" />
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="grid size-12 shrink-0 place-items-center rounded-full border border-aura-hairline bg-white/60">
+              <NoteScopeIcon scope={memory.scope} />
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <p className="flex items-baseline gap-2 font-mono text-micro font-semibold uppercase tracking-[0.24em]">
+                <span className="text-aura-rose">{scopeLabel}</span>
+                <span aria-hidden className="text-aura-faint/60">
+                  ·
+                </span>
+                <span className="text-aura-faint">{formatNoteTimestamp(memory.createdAt)}</span>
+              </p>
+              <ImportanceDots value={memory.importance} />
+            </div>
+            <h3 className="mt-1.5 line-clamp-1 font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
+              {title}
+            </h3>
+            {subhead === null ? null : (
+              <p className="mt-1 line-clamp-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
+                {subhead}
+              </p>
+            )}
+            <p className="mt-3 text-body leading-relaxed text-aura-ink/85">{memory.text}</p>
+            {memory.tags.length === 0 ? null : (
+              <ul className="mt-3 flex flex-wrap gap-1.5">
+                {memory.tags.map((tag) => (
+                  <li
+                    key={tag}
+                    className="rounded-pill bg-white/65 px-2.5 py-1 ring-1 ring-aura-hairline"
+                  >
+                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted">
+                      {tag.replace(/_/g, " ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      </article>
+    </motion.li>
+  );
+}
+
+function ImportanceDots({ value }: { value: number }) {
+  const filled = Math.max(1, Math.min(5, value));
+  return (
+    <span
+      aria-label={`Importance ${filled} of 5`}
+      className="inline-flex items-center gap-1"
+      title={`Importance ${filled} of 5`}
+    >
+      {Array.from({ length: 5 }, (_, dotIndex) => (
+        <span
+          key={dotIndex}
+          aria-hidden
+          className={`size-1.5 rounded-full ${dotIndex < filled ? "bg-aura-rose" : "bg-aura-hairline"}`}
+        />
+      ))}
+    </span>
+  );
+}
+
+function NoteScopeIcon({ scope }: { scope: MemoryRecord["scope"] }) {
+  if (scope === "scenario") {
+    return (
+      <svg viewBox="0 0 16 16" className="size-5 text-aura-rose" fill="none" aria-hidden>
+        <path
+          d="M3 4.5C3 3.67 3.67 3 4.5 3H11.5C12.33 3 13 3.67 13 4.5V11.5C13 12.33 12.33 13 11.5 13H4.5C3.67 13 3 12.33 3 11.5V4.5Z"
+          stroke="currentColor"
+          strokeWidth="1.4"
+        />
+        <path d="M6 6.5H10M6 9.5H9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 16 16" className="size-5 text-aura-rose" fill="none" aria-hidden>
+      <path
+        d="M8 13.5S2.5 10 2.5 6.25C2.5 4.45 3.95 3 5.75 3C6.85 3 7.6 3.55 8 4.4C8.4 3.55 9.15 3 10.25 3C12.05 3 13.5 4.45 13.5 6.25C13.5 10 8 13.5 8 13.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function NotesEmptyTile({
+  title,
+  subhead,
+  action,
+}: {
+  title: string;
+  subhead: string;
+  action?: React.ReactNode;
+}) {
+  return (
+    <div className="mt-10 grid place-items-center rounded-card border border-dashed border-aura-hairline bg-white/40 px-6 py-12 text-center">
+      <div className="max-w-md space-y-3">
+        <Eyebrow>// archive.empty</Eyebrow>
+        <h3 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
+          {title}
+        </h3>
+        <p className="text-label text-aura-muted">{subhead}</p>
+        {action === undefined ? null : <div className="pt-2">{action}</div>}
+      </div>
+    </div>
+  );
+}
+
+function isPlayerVisibleNote(memory: MemoryRecord): boolean {
+  if (memory.visibility !== "public") return false;
+  return memory.scope === "pair" || memory.scope === "date" || memory.scope === "scenario";
+}
+
+function sortMemoriesNewestFirst(first: MemoryRecord, second: MemoryRecord): number {
+  if (first.createdAt === second.createdAt) {
+    return second.importance - first.importance;
+  }
+  return first.createdAt < second.createdAt ? 1 : -1;
+}
+
+function noteScopeLabel(scope: MemoryRecord["scope"]): string {
+  if (scope === "pair") return "PAIR FILE";
+  if (scope === "date") return "DATE FILE";
+  if (scope === "scenario") return "SCENARIO FILE";
+  return "FILE";
+}
+
+function noteCardTitle(
+  memory: MemoryRecord,
+  pairMembers: Member[],
+  scenario: DateScenario | undefined,
+): string {
+  if (memory.scope === "scenario") {
+    return scenario?.title ?? memory.scenarioId ?? "Scenario file";
+  }
+  return (
+    joinPairFirstNames(pairMembers.map((member) => member.firstName)) ??
+    memory.pairId ??
+    "Pair file"
+  );
+}
+
+function noteCardSubhead(memory: MemoryRecord, scenario: DateScenario | undefined): string | null {
+  if (memory.scope === "scenario") {
+    return null;
+  }
+  if (scenario === undefined) {
+    return null;
+  }
+  return scenario.title;
+}
+
+function pairLabel(
+  pairId: string,
+  memberById: Map<string, Member>,
+  pairStateById: Map<string, PairState>,
+): string {
+  const participantIds = pairStateById.get(pairId)?.participantIds ?? [];
+  const names = participantIds
+    .map((id) => memberById.get(id)?.firstName)
+    .filter((name): name is string => name !== undefined);
+  return joinPairFirstNames(names) ?? pairId;
+}
+
+function joinPairFirstNames(names: readonly string[]): string | null {
+  if (names.length >= 2) return `${names[0]} & ${names[1]}`;
+  if (names.length === 1) return names[0];
+  return null;
+}
+
+function formatNoteTimestamp(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) {
+    return iso;
+  }
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+/* ================================================================== */
 /* Shared pieces                                                      */
 /* ================================================================== */
 
@@ -3047,6 +3881,15 @@ export function ShiftReportPanel({
             </li>
           ))}
         </ul>
+
+        {report.hrNote === undefined ? null : (
+          <div className="mt-8 rounded-card border border-aura-hairline bg-white/45 p-5">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+              // hr.note
+            </p>
+            <p className="mt-2 text-body text-aura-ink">{report.hrNote}</p>
+          </div>
+        )}
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
           <p className="text-label text-aura-muted">

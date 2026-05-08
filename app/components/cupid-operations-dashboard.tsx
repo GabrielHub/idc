@@ -42,6 +42,14 @@ import {
   type MatchFitPublicSignal,
 } from "../services/match-fit";
 import {
+  discardDrawnScenario,
+  evaluateScenarioPowers,
+  findScenarioFixture,
+  holdScenarioForTomorrow,
+  requestLowPressureScenario,
+  type ScenarioPowerResult,
+} from "../services/scenario-powers";
+import {
   readStoredGatewayApiKey,
   requestLocalAiStatus,
   storeGatewayApiKey,
@@ -60,14 +68,16 @@ import {
   BriefView,
   DashboardLoading,
   DateView,
+  NotesView,
   RosterView,
   ShiftReportPanel,
   type PendingDateAction,
+  type PreviousFile,
   type StreamingDraftMessage,
 } from "./dashboard-views";
 import { useSfx } from "./sfx-provider";
 
-type ViewKey = "roster" | "brief" | "date";
+type ViewKey = "roster" | "brief" | "date" | "notes";
 type DashboardPendingAction =
   | PendingDateAction
   | "startDate"
@@ -75,7 +85,8 @@ type DashboardPendingAction =
   | "followUp"
   | "endShift"
   | "reset"
-  | "nextShift";
+  | "nextShift"
+  | "deckPower";
 
 function asPendingDateAction(action: DashboardPendingAction | null): PendingDateAction | null {
   if (action === "advanceExchange" || action === "completeDate") {
@@ -337,10 +348,53 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
   const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
   const dateAmbientActive = view === "date" && activeSession?.status === "active";
+  const publicNoteCount = useMemo(
+    () =>
+      save === null
+        ? 0
+        : save.memories.filter(
+            (memory) =>
+              memory.visibility === "public" &&
+              (memory.scope === "pair" || memory.scope === "date" || memory.scope === "scenario"),
+          ).length,
+    [save],
+  );
   const diagnosticsSnapshot = useMemo(
     () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
     [save?.config, localAiStatus],
   );
+  const deckPowerAvailability = useMemo(
+    () =>
+      activeShift === null
+        ? {
+            canHold: false,
+            canDiscard: false,
+            canRequestLowPressure: false,
+            lowPressureSwapTargetId: undefined,
+            reason: "Cupid powers wait for a live shift.",
+          }
+        : evaluateScenarioPowers({
+            shift: activeShift,
+            selectedScenarioId,
+            hasActiveDate: activeSession?.status === "active",
+          }),
+    [activeShift, selectedScenarioId, activeSession?.status],
+  );
+  const carriedHeldScenario = useMemo(() => {
+    if (save === null || activeShift === null) {
+      return undefined;
+    }
+
+    const previousShift = save.shifts.find(
+      (shift) => shift.shiftNumber === activeShift.shiftNumber - 1,
+    );
+
+    if (previousShift?.heldScenarioId === undefined) {
+      return undefined;
+    }
+
+    return findScenarioFixture(previousShift.heldScenarioId);
+  }, [activeShift, save]);
 
   useEffect(() => {
     window.scrollTo({ left: 0, top: 0 });
@@ -623,6 +677,40 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
+  function fileDeckPower(
+    apply: (current: GameSave, input: { scenarioId: string }) => ScenarioPowerResult,
+    nextSelection: (result: ScenarioPowerResult) => string | undefined,
+  ) {
+    return (scenarioId: string) => {
+      if (save === null) {
+        return;
+      }
+
+      tryAction("deckPower", async () => {
+        const result = apply(save, { scenarioId });
+        await persist(result.save);
+        const next = nextSelection(result);
+
+        if (next !== undefined) {
+          setSelectedScenarioId(next);
+        }
+      });
+    };
+  }
+
+  const handleHoldScenario = fileDeckPower(
+    holdScenarioForTomorrow,
+    (result) => result.shift.drawnScenarioIds[0],
+  );
+  const handleDiscardScenario = fileDeckPower(
+    discardDrawnScenario,
+    (result) => result.shift.drawnScenarioIds[0],
+  );
+  const handleRequestLowPressureScenario = fileDeckPower(
+    requestLowPressureScenario,
+    (result) => result.shift.deckPower?.swappedScenarioId,
+  );
+
   async function handleReset() {
     tryAction("reset", async () => {
       await tryBackupSave(repository);
@@ -876,6 +964,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       <DashboardChrome
         activeShift={activeShift}
         featuredMemberCount={featuredMembers.length}
+        noteCount={publicNoteCount}
         localAiStatus={localAiStatus}
         diagnostics={diagnosticsSnapshot}
         canExportSave={save !== null}
@@ -941,6 +1030,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               selectedScenario={selectedScenario}
               pairState={pairPreview?.pairState ?? null}
               pairNote={pairPreview?.note ?? null}
+              previousFile={pairPreview?.previousFile ?? null}
               fitSignal={pairPreview?.fitSignal ?? null}
               riskNotes={pairPreview?.riskNotes ?? []}
               goals={pinnedGoals}
@@ -950,10 +1040,24 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               canStart={canStartDate}
               localAiStatus={localAiStatus}
               isActionPending={isActionPending}
+              deckPowerAvailability={deckPowerAvailability}
+              carriedHeldScenario={carriedHeldScenario}
               onSelectScenario={setSelectedScenarioId}
               onStart={handleStartDate}
               onRetryLocalAi={refreshLocalAiStatus}
               onBack={() => setView("roster")}
+              onHoldScenario={handleHoldScenario}
+              onDiscardScenario={handleDiscardScenario}
+              onRequestLowPressure={handleRequestLowPressureScenario}
+            />
+          ) : view === "notes" ? (
+            <NotesView
+              key="notes"
+              memories={save.memories}
+              members={save.members}
+              pairStates={save.pairStates}
+              scenarios={starterScenarios}
+              shiftCount={activeShift.shiftNumber}
             />
           ) : activeSession !== null ? (
             <DateView
@@ -1036,6 +1140,7 @@ function resolveInterventionTarget(session: DateSession | null, override: string
 function DashboardChrome({
   activeShift,
   featuredMemberCount,
+  noteCount,
   localAiStatus,
   diagnostics,
   canExportSave,
@@ -1054,6 +1159,7 @@ function DashboardChrome({
 }: {
   activeShift: ShiftState;
   featuredMemberCount: number;
+  noteCount: number;
   localAiStatus: LocalAiClientStatus;
   diagnostics: DiagnosticsSnapshot;
   canExportSave: boolean;
@@ -1083,6 +1189,7 @@ function DashboardChrome({
         <ViewTabs
           view={view}
           memberCount={featuredMemberCount}
+          noteCount={noteCount}
           dateStatus={dateStatus}
           onSelect={onSelectView}
         />
@@ -1161,11 +1268,13 @@ function BrandPill({
 function ViewTabs({
   view,
   memberCount,
+  noteCount,
   dateStatus,
   onSelect,
 }: {
   view: ViewKey;
   memberCount: number;
+  noteCount: number;
   dateStatus: DateSessionStatus | null;
   onSelect: (view: ViewKey) => void;
 }) {
@@ -1178,6 +1287,11 @@ function ViewTabs({
       label: "Date",
       tag: dateTag,
       live: dateStatus === "active",
+    },
+    {
+      key: "notes",
+      label: "Notes",
+      tag: noteCount === 0 ? "case archive" : `${noteCount} on file`,
     },
   ];
 
@@ -1968,6 +2082,7 @@ async function runDateAction(
 type PairPreview = {
   pairState: PairState | null;
   note: string;
+  previousFile: PreviousFile | null;
   fitSignal: MatchFitPublicSignal | null;
   riskNotes: string[];
 };
@@ -1988,6 +2103,11 @@ function buildPairPreview(
   const note = hasRealityGap
     ? "Cross-reality pair. Cupid expects paperwork and useful data."
     : "Same-species pair. Cupid still expects paperwork.";
+  const scenarioRepeatCount =
+    pairState === null || selectedScenario === undefined
+      ? 0
+      : (pairState.scenarioUseCounts[selectedScenario.id] ?? 0);
+  const previousFile = buildPreviousFile(pairState, members, scenarioRepeatCount);
   const focusRequests = activeRequests.filter((request) => request.memberId === members[0].id);
   const fitSignal: MatchFitPublicSignal | null =
     pairState === null || selectedScenario === undefined
@@ -2001,16 +2121,35 @@ function buildPairPreview(
           }),
         );
   const riskNotes =
-    selectedScenario === undefined || fitSignal === null
+    selectedScenario === undefined || fitSignal === null || pairState === null
       ? []
       : buildPublicRiskNotes({
           members,
           scenario: selectedScenario,
+          scenarioRepeatCount,
           fitSignal,
           focusRequests,
         });
 
-  return { pairState, note, fitSignal, riskNotes };
+  return { pairState, note, previousFile, fitSignal, riskNotes };
+}
+
+function buildPreviousFile(
+  pairState: PairState | null,
+  members: Member[],
+  scenarioRepeatCount: number,
+): PreviousFile | null {
+  if (pairState === null) {
+    return null;
+  }
+  const totalDates = pairState.completedDateIds.length;
+  if (totalDates === 0) {
+    return null;
+  }
+  const expectsCallbacks = members.some((member) =>
+    member.voice.patternsUsed.includes("callback_rematch_reference"),
+  );
+  return { totalDates, scenarioRepeatCount, expectsCallbacks };
 }
 
 function toPublicFitSignal(fit: {

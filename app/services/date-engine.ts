@@ -37,6 +37,7 @@ import {
   normalizeStarterScenarioId,
 } from "./game-seed";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import { applyHeldScenarioToDrawnIds } from "./scenario-powers";
 import {
   selectFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
@@ -610,6 +611,11 @@ export function completeShift(
       earlyEndedDates.length,
       goalMetrics.memberMoodDelta,
     ),
+    hrNote: buildShiftHrNote({
+      completedDates,
+      ignoredRequests,
+      members: save.members,
+    }),
   });
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
@@ -684,6 +690,30 @@ export function isMemberRetained(member: Member): boolean {
 
 export function getQuitMembers(members: readonly Member[]): Member[] {
   return members.filter((member) => !isMemberRetained(member));
+}
+
+export type MemberQuitRiskStatus =
+  | "file_stable"
+  | "client_confidence_low"
+  | "closed_file_risk"
+  | "file_closed";
+
+export const MEMBER_QUIT_RISK_STABLE_FLOOR = 61;
+export const MEMBER_QUIT_RISK_LOW_FLOOR = 26;
+
+export const MEMBER_QUIT_RISK_LABEL: Record<MemberQuitRiskStatus, string> = {
+  file_stable: "File stable",
+  client_confidence_low: "Client confidence low",
+  closed_file_risk: "Closed-file risk",
+  file_closed: "Client file closed",
+};
+
+export function getMemberQuitRiskStatus(member: Member): MemberQuitRiskStatus {
+  const retention = member.state.retention;
+  if (retention <= 0) return "file_closed";
+  if (retention < MEMBER_QUIT_RISK_LOW_FLOOR) return "closed_file_risk";
+  if (retention < MEMBER_QUIT_RISK_STABLE_FLOOR) return "client_confidence_low";
+  return "file_stable";
 }
 
 export function isCampaignLost(save: Pick<GameSave, "members">): boolean {
@@ -790,7 +820,17 @@ export function startNextShift(
       : activeShift.scenarioDeck.scenarioIds;
   const scenarioStartIndex =
     ((nextShiftNumber - 1) * save.config.shiftDateSlots) % scenarioIds.length;
-  const drawnScenarioIds = takeWrapped(scenarioIds, scenarioStartIndex, save.config.shiftDateSlots);
+  const baseDrawnScenarioIds = takeWrapped(
+    scenarioIds,
+    scenarioStartIndex,
+    save.config.shiftDateSlots,
+  );
+  const drawnScenarioIds = applyHeldScenarioToDrawnIds({
+    drawnScenarioIds: baseDrawnScenarioIds,
+    heldScenarioId: activeShift.heldScenarioId,
+    scenarioLibraryIds: scenarioIds,
+    shiftDateSlots: save.config.shiftDateSlots,
+  });
   const offeredScenarioIds = takeWrapped(
     scenarioIds,
     scenarioStartIndex + save.config.shiftDateSlots,
@@ -1487,6 +1527,113 @@ function buildShiftSummary(
   memberMoodDelta: number,
 ): string {
   return `${completedDates} dates completed. ${earlyEndedDates} ended early. Member Mood delta ${memberMoodDelta}. Filing.`;
+}
+
+const OUTCOME_RANK: Record<DateFinalReport["outcome"], number> = {
+  early_end: 0,
+  bad_fit: 1,
+  cool_down: 2,
+  mixed: 3,
+  second_date: 4,
+};
+
+type HrNoteLabels = {
+  highlight: (names: string) => string;
+  incident: (names: string) => string;
+  soleFiling: (names: string) => string;
+  fullBoard: (total: number) => string;
+};
+
+const HR_NOTE_LABELS: Record<DateFinalReport["outcome"], HrNoteLabels> = {
+  second_date: {
+    highlight: (names) => `Highlight: ${names} cleared for a second date.`,
+    incident: (names) => `Lowlight: ${names}, second date.`,
+    soleFiling: (names) => `Sole filing: ${names} cleared for a second date.`,
+    fullBoard: (total) => `Clean board: ${total} dates cleared for a second pass.`,
+  },
+  mixed: {
+    highlight: (names) => `Best of the board: ${names}, mixed but standing.`,
+    incident: (names) => `Lowlight: ${names}, mixed.`,
+    soleFiling: (names) => `Sole filing: ${names} closed mixed.`,
+    fullBoard: (total) => `Full board: ${total} dates closed mixed.`,
+  },
+  cool_down: {
+    highlight: (names) => `Best of the board: ${names}, cool down filed.`,
+    incident: (names) => `Incident: ${names} flagged for cool down.`,
+    soleFiling: (names) => `Sole filing: ${names} flagged for cool down.`,
+    fullBoard: (total) => `Full board: ${total} dates flagged for cool down.`,
+  },
+  bad_fit: {
+    highlight: (names) => `Best of the board: ${names}, marked bad fit.`,
+    incident: (names) => `Incident: ${names} filed bad fit.`,
+    soleFiling: (names) => `Sole filing: ${names} marked bad fit.`,
+    fullBoard: (total) => `Full incident board: ${total} bad fits filed.`,
+  },
+  early_end: {
+    highlight: (names) => `Best of the board: ${names}, walked early.`,
+    incident: (names) => `Incident: ${names} ended early. Standard cleanup is on schedule.`,
+    soleFiling: (names) => `Sole filing: ${names} ended early. Standard cleanup is on schedule.`,
+    fullBoard: (total) => `Full incident board: ${total} dates ended early. Cleanup on schedule.`,
+  },
+};
+
+type RankedOutcome = { session: DateSession; report: DateFinalReport };
+
+function buildShiftHrNote({
+  completedDates,
+  ignoredRequests,
+  members,
+}: {
+  completedDates: readonly DateSession[];
+  ignoredRequests: readonly MemberRequest[];
+  members: readonly Member[];
+}): string {
+  const ranked: RankedOutcome[] = completedDates.flatMap((session) =>
+    session.finalReport === undefined ? [] : [{ session, report: session.finalReport }],
+  );
+  const askLine = formatIgnoredAsksLine(ignoredRequests.length);
+
+  if (ranked.length === 0) {
+    return `No dates filed. ${askLine}`;
+  }
+
+  const memberById = new Map(members.map((member) => [member.id, member]));
+  const sortedAsc = [...ranked].sort(
+    (left, right) => OUTCOME_RANK[left.report.outcome] - OUTCOME_RANK[right.report.outcome],
+  );
+  const worst = sortedAsc[0];
+  const best = sortedAsc[sortedAsc.length - 1];
+
+  if (best.report.outcome === worst.report.outcome) {
+    const labels = HR_NOTE_LABELS[best.report.outcome];
+    const line =
+      ranked.length === 1
+        ? labels.soleFiling(formatPairNames(best.session, memberById))
+        : labels.fullBoard(ranked.length);
+    return `${line} ${askLine}`;
+  }
+
+  const highlight = HR_NOTE_LABELS[best.report.outcome].highlight(
+    formatPairNames(best.session, memberById),
+  );
+  const incident = HR_NOTE_LABELS[worst.report.outcome].incident(
+    formatPairNames(worst.session, memberById),
+  );
+  return `${highlight} ${incident} ${askLine}`;
+}
+
+function formatIgnoredAsksLine(count: number): string {
+  if (count === 0) {
+    return "All member asks closed.";
+  }
+  return `${count} member ${count === 1 ? "ask" : "asks"} left on the floor. HR cc'd.`;
+}
+
+function formatPairNames(session: DateSession, memberById: ReadonlyMap<string, Member>): string {
+  const [firstId, secondId] = session.participants;
+  const firstName = memberById.get(firstId)?.firstName ?? "Member";
+  const secondName = memberById.get(secondId)?.firstName ?? "Member";
+  return `${firstName} and ${secondName}`;
 }
 
 function followUpForOutcome(outcome: DateFinalReport["outcome"]): FollowUpAction {

@@ -6,6 +6,7 @@ import {
   scenarioDeckStateSchema,
   shiftStateSchema,
   type DateSession,
+  type DeckPowerUsage,
   type GameSave,
   type Member,
   type MemoryRecord,
@@ -111,14 +112,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
   const members = [...fixtureMembers, ...customMembers];
   const pairStates = hydratePairStates(save.pairStates, members);
   const dateSessions = save.dateSessions.map(hydrateDateSessionScenarioId);
-  const shifts = save.shifts.map((shift) =>
-    shiftStateSchema.parse({
-      ...shift,
-      featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
-      drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
-      scenarioDeck: hydrateScenarioDeckState(shift.scenarioDeck),
-    }),
-  );
+  const shifts = save.shifts.map((shift) => hydrateShiftScenarioIds(shift, members));
   const memories = save.memories.map(hydrateMemoryScenarioId);
 
   return gameSaveSchema.parse({
@@ -153,6 +147,40 @@ function hydrateScenarioDeckState(scenarioDeck: ScenarioDeckState): ScenarioDeck
     maxSize: Math.max(scenarioDeck.maxSize, STARTER_DECK_MAX_SIZE, scenarioIds.length),
     offeredScenarioIds: normalizeScenarioIds(scenarioDeck.offeredScenarioIds),
   });
+}
+
+function hydrateShiftScenarioIds(shift: ShiftState, members: Member[]): ShiftState {
+  return shiftStateSchema.parse({
+    ...shift,
+    featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
+    drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
+    scenarioDeck: hydrateScenarioDeckState(shift.scenarioDeck),
+    deckPower: hydrateDeckPowerUsage(shift.deckPower),
+    heldScenarioId:
+      shift.heldScenarioId === undefined
+        ? undefined
+        : normalizeStarterScenarioId(shift.heldScenarioId),
+  });
+}
+
+function hydrateDeckPowerUsage(deckPower: DeckPowerUsage | undefined): DeckPowerUsage | undefined {
+  if (deckPower === undefined) {
+    return undefined;
+  }
+
+  const hydratedUsage: DeckPowerUsage = {
+    ...deckPower,
+    scenarioId: normalizeStarterScenarioId(deckPower.scenarioId),
+  };
+
+  if (deckPower.swappedScenarioId === undefined) {
+    return hydratedUsage;
+  }
+
+  return {
+    ...hydratedUsage,
+    swappedScenarioId: normalizeStarterScenarioId(deckPower.swappedScenarioId),
+  };
 }
 
 function appendMissingStarterScenarioIds(scenarioIds: string[]): string[] {

@@ -143,45 +143,46 @@ export function pairRuleHits(fit: MatchFitResult): string[] {
 export function buildPublicRiskNotes({
   members,
   scenario,
+  scenarioRepeatCount,
   fitSignal,
   focusRequests,
 }: {
   members: readonly Member[];
   scenario: DateScenario;
+  scenarioRepeatCount: number;
   fitSignal: MatchFitPublicSignal;
   focusRequests: readonly MemberRequest[];
 }): string[] {
   const notes: string[] = [];
   const scenarioTags = scenario.card.tags;
+  const focusMember = members[0];
 
   for (const member of members) {
     if (scenarioTags.includes("prophecy") && hasTag(member, "prophecy_averse")) {
-      notes.push(`${member.firstName} has visible prophecy pressure risk. Expect a short leash.`);
+      notes.push(`${member.firstName} flags prophecy as a dealbreaker. One trigger ends the date.`);
     }
 
     if (scenarioTags.includes("public") && hasTag(member, "privacy_sensitive")) {
-      notes.push(`${member.firstName} has visible public exposure risk. Watch the room.`);
+      notes.push(`${member.firstName} cannot do public. The venue is the risk.`);
     }
 
     if (
       scenarioTags.includes("memory") &&
       (hasTag(member, "memory_sensitive") || hasTag(member, "grief_sensitive"))
     ) {
-      notes.push(`${member.firstName} has visible memory pressure risk. Push gently.`);
+      notes.push(`${member.firstName} flags memory pressure. Push gently or expect a report.`);
     }
   }
 
-  if (fitSignal.askSignal === "blocked" && focusRequests.length > 0) {
-    notes.push(
-      "Focused ask is blocked by the booking. This can still proceed, but the exit ramp is close.",
-    );
+  if (fitSignal.askSignal === "blocked" && focusRequests.length > 0 && focusMember !== undefined) {
+    notes.push(`${focusMember.firstName}'s ask is blocked here. The booking will not honor it.`);
   }
 
-  if (fitSignal.pressureLevel === "high" && notes.length === 0) {
-    notes.push("High pressure booking. Keep the nudge ready and let members leave early.");
+  if (scenarioRepeatCount > 0) {
+    notes.push("Pair has worked this room before. Returning to it costs points.");
   }
 
-  return Array.from(new Set(notes)).slice(0, 3);
+  return Array.from(new Set(notes)).slice(0, 2);
 }
 
 export function applyMatchFitToJudgeSnapshot({
