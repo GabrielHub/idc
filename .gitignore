@@ -13,3 +13,7 @@
 /build/
 /.idc-data/
 /output/
+
+# Tauri
+/src-tauri/target/
+/src-tauri/gen/schemas/

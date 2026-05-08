@@ -22,9 +22,9 @@ import {
   CURRENT_SAVE_KEY,
   LEGACY_SAVE_KEYS,
   LocalGameRepository,
-  MemoryStorageDriver,
-  readGameConfigFromStorage,
+  readGameConfigFromStore,
 } from "../repositories/local-game-repository";
+import { MemorySaveStore } from "../repositories/memory-save-store";
 import { searchCupidMemory } from "./cupid-memory";
 import {
   addCupidIntervention,
@@ -155,7 +155,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("seeds and persists canonical game state through the repository", async () => {
-    const repository = new LocalGameRepository(new MemoryStorageDriver(), "test-save");
+    const repository = new LocalGameRepository(new MemorySaveStore(), "test-save");
     const save = await repository.resetGame(new Date("2026-05-05T12:00:00.000Z"));
     const loaded = await repository.loadGame();
 
@@ -172,9 +172,9 @@ describe("IDC playable smoke path", () => {
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
-  it("reads legacy AI config from stale server saves without parsing gameplay state", () => {
-    const storage = new MemoryStorageDriver();
-    storage.setItem(
+  it("reads legacy AI config from stale server saves without parsing gameplay state", async () => {
+    const storage = new MemorySaveStore();
+    await storage.write(
       CURRENT_SAVE_KEY,
       JSON.stringify({
         version: SAVE_SCHEMA_VERSION,
@@ -188,7 +188,7 @@ describe("IDC playable smoke path", () => {
       }),
     );
 
-    const config = readGameConfigFromStorage(storage);
+    const config = await readGameConfigFromStore(storage);
 
     expect(config.aiProvider).toBe("ollama");
     expect(config.chatModel).toBe("custom-performer");
@@ -196,9 +196,9 @@ describe("IDC playable smoke path", () => {
   });
 
   it("migrates the experimental split AI defaults into one chat model", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const oldDefaultSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
-    storage.setItem(
+    await storage.write(
       CURRENT_SAVE_KEY,
       JSON.stringify({
         ...oldDefaultSave,
@@ -261,10 +261,10 @@ describe("IDC playable smoke path", () => {
       throw new Error("Expected a legacy save key for schema migration coverage.");
     }
 
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = createThirteenMemberSave(new Date("2026-05-05T12:00:00.000Z"));
-    storage.setItem(legacySaveKey, JSON.stringify(save));
+    await storage.write(legacySaveKey, JSON.stringify(save));
 
     const loaded = await repository.loadGame();
 
@@ -273,18 +273,18 @@ describe("IDC playable smoke path", () => {
     expect(loaded?.members).toHaveLength(21);
     expect(loaded?.pairStates).toHaveLength(210);
     expect(loaded?.members.some((member) => member.id === "marcus-pellish")).toBe(true);
-    expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
-    expect(storage.getItem(legacySaveKey)).toBeNull();
+    expect(await storage.read(CURRENT_SAVE_KEY)).not.toBeNull();
+    expect(await storage.read(legacySaveKey)).toBeNull();
   });
 
   it("hydrates new starter members and pair states into current schema saves", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = createThirteenMemberSave(new Date("2026-05-05T12:00:00.000Z"));
-    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(save));
+    await storage.write(CURRENT_SAVE_KEY, JSON.stringify(save));
 
     const loaded = await repository.loadGame();
-    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+    const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
 
     expect(loaded?.members).toHaveLength(21);
     expect(loaded?.pairStates).toHaveLength(210);
@@ -294,7 +294,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("hydrates new starter scenarios into existing scenario decks", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const oldStarterScenarioIds = starterScenarios.slice(0, 14).map((scenario) => scenario.id);
@@ -314,10 +314,10 @@ describe("IDC playable smoke path", () => {
         }),
       ),
     });
-    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(staleDeckSave));
+    await storage.write(CURRENT_SAVE_KEY, JSON.stringify(staleDeckSave));
 
     const loaded = await repository.loadGame();
-    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+    const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
     if (loaded === null) {
       throw new Error("Expected hydrated save.");
     }
@@ -335,13 +335,13 @@ describe("IDC playable smoke path", () => {
   });
 
   it("migrates pre-gameplay-tag v2 saves without resetting campaign state", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const staleSave = createPreGameplayTagSave(new Date("2026-05-05T12:00:00.000Z"));
-    storage.setItem(CURRENT_SAVE_KEY, JSON.stringify(staleSave));
+    await storage.write(CURRENT_SAVE_KEY, JSON.stringify(staleSave));
 
     const loaded = await repository.loadGame();
-    const persistedRaw = storage.getItem(CURRENT_SAVE_KEY);
+    const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
     const loadedJenna = loaded?.members.find((member) => member.id === "jenna-pike");
     const persistedSave = parsePersistedSave(persistedRaw);
     const persistedJenna = persistedSave?.members.find((member) => member.id === "jenna-pike");
@@ -362,26 +362,26 @@ describe("IDC playable smoke path", () => {
       throw new Error("Expected a legacy save key for delete coverage.");
     }
 
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
-    storage.setItem(legacySaveKey, JSON.stringify(save));
+    await storage.write(legacySaveKey, JSON.stringify(save));
 
     const resetSave = await repository.resetGame(new Date("2026-05-05T12:01:00.000Z"));
 
     expect(resetSave.version).toBe(SAVE_SCHEMA_VERSION);
-    expect(storage.getItem(CURRENT_SAVE_KEY)).not.toBeNull();
-    expect(storage.getItem(legacySaveKey)).toBeNull();
+    expect(await storage.read(CURRENT_SAVE_KEY)).not.toBeNull();
+    expect(await storage.read(legacySaveKey)).toBeNull();
 
-    storage.setItem(legacySaveKey, JSON.stringify(save));
+    await storage.write(legacySaveKey, JSON.stringify(save));
     await repository.deleteSave();
 
-    expect(storage.getItem(CURRENT_SAVE_KEY)).toBeNull();
-    expect(storage.getItem(legacySaveKey)).toBeNull();
+    expect(await storage.read(CURRENT_SAVE_KEY)).toBeNull();
+    expect(await storage.read(legacySaveKey)).toBeNull();
   });
 
   it("hydrates fixture-owned member portrait metadata from old saves", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage, "stale-portrait-save");
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const staleSave = gameSaveSchema.parse({
@@ -411,7 +411,7 @@ describe("IDC playable smoke path", () => {
           : member,
       ),
     });
-    storage.setItem("stale-portrait-save", JSON.stringify(staleSave));
+    await storage.write("stale-portrait-save", JSON.stringify(staleSave));
 
     const loaded = await repository.loadGame();
     const loadedSana = loaded?.members.find((member) => member.id === "sana-karim");
@@ -427,7 +427,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("hydrates fixture-owned data on load instead of ordinary save writes", async () => {
-    const storage = new MemoryStorageDriver();
+    const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage, "hot-path-save");
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const staleSave = gameSaveSchema.parse({
@@ -455,14 +455,14 @@ describe("IDC playable smoke path", () => {
     });
 
     await repository.saveGame(staleSave);
-    const persistedBeforeLoad = parsePersistedSave(storage.getItem("hot-path-save"));
+    const persistedBeforeLoad = parsePersistedSave(await storage.read("hot-path-save"));
     const savedSana = persistedBeforeLoad?.members.find((member) => member.id === "sana-karim");
 
     expect(savedSana?.portraits.neutral.avatar.model).toBe("stale-model");
 
     const loaded = await repository.loadGame();
     const loadedSana = loaded?.members.find((member) => member.id === "sana-karim");
-    const persistedAfterLoad = parsePersistedSave(storage.getItem("hot-path-save"));
+    const persistedAfterLoad = parsePersistedSave(await storage.read("hot-path-save"));
     const persistedSana = persistedAfterLoad?.members.find((member) => member.id === "sana-karim");
     const fixtureSana = starterMembers.find((member) => member.id === "sana-karim");
 
@@ -475,7 +475,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("searches stored embeddings with metadata and visibility filters", async () => {
-    const repository = new LocalGameRepository(new MemoryStorageDriver(), "memory-save");
+    const repository = new LocalGameRepository(new MemorySaveStore(), "memory-save");
     const save = await repository.resetGame(new Date("2026-05-05T12:00:00.000Z"));
     const pairId = makePairId("jenna-pike", "vhool");
     const memory = memoryRecordSchema.parse({
@@ -542,7 +542,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("does not leak pair-specific scenario memories to another pair", async () => {
-    const repository = new LocalGameRepository(new MemoryStorageDriver(), "scenario-memory-save");
+    const repository = new LocalGameRepository(new MemorySaveStore(), "scenario-memory-save");
     const save = await repository.resetGame(new Date("2026-05-05T12:00:00.000Z"));
     const originalPairId = makePairId("jenna-pike", "vhool");
     const otherPairId = makePairId("meridian-vale", "mr-whiskers");

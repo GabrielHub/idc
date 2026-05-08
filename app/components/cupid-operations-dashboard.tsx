@@ -14,10 +14,8 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
-import {
-  createBrowserStorageDriver,
-  LocalGameRepository,
-} from "../repositories/local-game-repository";
+import { createGameRepository } from "../repositories/create-game-repository";
+import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import {
   addCupidIntervention,
   applyFollowUpAction,
@@ -37,19 +35,17 @@ import {
   type MatchFitPublicSignal,
 } from "../services/match-fit";
 import {
-  gameApiErrorSchema,
-  gameStreamEventSchema,
-  type GameAction,
-  type GameActionResponse,
-  type GameStreamEvent,
-} from "../services/game-api-contracts";
-import {
-  readJsonResponse,
   readStoredGatewayApiKey,
   requestLocalAiStatus,
-  runtimeSecretsFromGatewayKey,
   storeGatewayApiKey,
 } from "../services/ai/client";
+import {
+  advanceDateExchangeWithLocalAiStream,
+  completeDateSessionWithLocalAiStream,
+  type LocalAiDateEngineResult,
+  type LocalAiDateStreamEvent,
+} from "../services/ai-date-engine";
+import type { AiRuntimeConfig } from "../services/ai/model-service";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { ChromeButton, GhostButton, LiveDot, PrimaryButton, pad2 } from "./dashboard-atoms";
 import {
@@ -81,9 +77,6 @@ function asPendingDateAction(action: DashboardPendingAction | null): PendingDate
   return null;
 }
 
-const GAME_API_TIMEOUT_MS = 120_000;
-const GAME_API_STREAM_URL = "/api/game?intent=stream";
-
 type LocalAiClientStatus = AiSetupStatus;
 
 const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
@@ -103,7 +96,7 @@ type CupidOperationsDashboardProps = {
 };
 
 export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboardProps) {
-  const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
+  const repository = useMemo(() => createGameRepository(), []);
   const { play, setDateAmbientActive } = useSfx();
   const [save, setSave] = useState<GameSave | null>(null);
   const [view, setView] = useState<ViewKey>("roster");
@@ -113,13 +106,33 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [interventionText, setInterventionText] = useState("");
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
   const [localAiStatus, setLocalAiStatus] = useState<LocalAiClientStatus>(CHECKING_LOCAL_AI_STATUS);
-  const [gatewayApiKey, setGatewayApiKey] = useState(readStoredGatewayApiKey);
+  const [gatewayApiKey, setGatewayApiKey] = useState("");
+  const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<DashboardPendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const lastErrorMessageRef = useRef<string | null>(null);
   const isActionPending = pendingAction !== null;
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void (async () => {
+      const storedKey = await readStoredGatewayApiKey();
+
+      if (!isMounted) {
+        return;
+      }
+
+      setGatewayApiKey(storedKey);
+      setIsGatewayApiKeyLoaded(true);
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -166,13 +179,25 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   }, [repository]);
 
   const config = save?.config ?? null;
+  const aiReadinessConfig = useMemo(
+    () => config,
+    [
+      config?.aiProvider,
+      config?.ollamaBaseURL,
+      config?.gatewayBaseURL,
+      config?.chatModel,
+      config?.embeddingModel,
+      config?.aiSetupComplete,
+      config?.reasoningLevel,
+    ],
+  );
 
   useEffect(() => {
-    if (config === null) {
+    if (aiReadinessConfig === null || !isGatewayApiKeyLoaded) {
       return;
     }
 
-    const currentConfig = config;
+    const currentConfig = aiReadinessConfig;
     let isMounted = true;
 
     async function loadLocalAiStatus() {
@@ -195,7 +220,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     return () => {
       isMounted = false;
     };
-  }, [gatewayApiKey, config]);
+  }, [gatewayApiKey, aiReadinessConfig, isGatewayApiKeyLoaded]);
 
   useEffect(() => {
     if (errorMessage === null) {
@@ -369,11 +394,12 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    storeGatewayApiKey(nextGatewayApiKey);
-    setGatewayApiKey(nextGatewayApiKey);
+    await storeGatewayApiKey(nextGatewayApiKey);
+    setGatewayApiKey(nextGatewayApiKey.trim());
+    setIsGatewayApiKeyLoaded(true);
     await persist({
       ...save,
-      config: nextConfig,
+      config: lockAiProviderBaseUrlsForRuntime(nextConfig),
     });
   }
 
@@ -423,14 +449,15 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     tryAction("advanceExchange", async () => {
       setStreamingDrafts([]);
       try {
-        const result = await runGameApiStreamAction(
+        const result = await runDateAction(
           {
             type: "advanceExchange",
             save,
             dateSessionId: activeSession.id,
             turnCount,
-            runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
           },
+          repository,
+          gatewayApiKey,
           applyGameStreamEvent,
         );
         await persist(result.save);
@@ -450,13 +477,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     tryAction("completeDate", async () => {
       setStreamingDrafts([]);
       try {
-        const result = await runGameApiStreamAction(
+        const result = await runDateAction(
           {
             type: "completeDate",
             save,
             dateSessionId: activeSession.id,
-            runtimeSecrets: runtimeSecretsFromGatewayKey(gatewayApiKey),
           },
+          repository,
+          gatewayApiKey,
           applyGameStreamEvent,
         );
         await persist(result.save);
@@ -541,7 +569,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
-  function applyGameStreamEvent(event: GameStreamEvent) {
+  function applyGameStreamEvent(event: LocalAiDateStreamEvent) {
     if (event.type === "characterStart") {
       play("message");
       setStreamingDrafts((current) => {
@@ -611,7 +639,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     }
   }
 
-  function setRuntimeWarnings(result: GameActionResponse) {
+  function setRuntimeWarnings(result: LocalAiDateEngineResult) {
     if (result.warningMessages.length === 0) {
       return;
     }
@@ -1384,133 +1412,52 @@ function TerminationPanel({
 }
 
 /* ================================================================== */
-/* API helpers                                                        */
+/* Date action runner                                                 */
 /* ================================================================== */
 
-async function runGameApiStreamAction(
-  input: GameAction,
-  onEvent: (event: GameStreamEvent) => void,
-): Promise<GameActionResponse> {
-  const abortController = new AbortController();
-  const timeoutId = window.setTimeout(() => abortController.abort(), GAME_API_TIMEOUT_MS);
+type LocalDateAction =
+  | {
+      type: "advanceExchange";
+      save: GameSave;
+      dateSessionId: string;
+      turnCount?: 1 | 2;
+    }
+  | {
+      type: "completeDate";
+      save: GameSave;
+      dateSessionId: string;
+    };
 
-  let response: Response;
+async function runDateAction(
+  input: LocalDateAction,
+  repository: ReturnType<typeof createGameRepository>,
+  gatewayApiKey: string,
+  onEvent: (event: LocalAiDateStreamEvent) => void,
+): Promise<LocalAiDateEngineResult> {
+  const config: Partial<AiRuntimeConfig> = { ...input.save.config, gatewayApiKey };
 
-  try {
-    response = await fetch(GAME_API_STREAM_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+  if (input.type === "advanceExchange") {
+    return advanceDateExchangeWithLocalAiStream(
+      input.save,
+      repository,
+      {
+        dateSessionId: input.dateSessionId,
+        turnCount: input.turnCount,
+        config,
       },
-      body: JSON.stringify(input),
-      signal: abortController.signal,
-    });
-  } catch (error) {
-    if (abortController.signal.aborted) {
-      throw new Error(
-        "AI provider did not return in time. Confirm the selected provider is running, then retry the exchange.",
-      );
-    }
-
-    throw error;
+      onEvent,
+    );
   }
 
-  try {
-    if (!response.ok) {
-      const payload = await readJsonResponse(response);
-      const parsedError = gameApiErrorSchema.safeParse(payload);
-
-      throw new Error(
-        parsedError.success ? parsedError.data.error : "Cupid API rejected the streamed action.",
-      );
-    }
-
-    if (response.body === null) {
-      throw new Error("Cupid API returned an empty stream.");
-    }
-
-    return await readGameStreamResponse(response.body, onEvent);
-  } catch (error) {
-    if (abortController.signal.aborted) {
-      throw new Error(
-        "AI provider did not return in time. Confirm the selected provider is running, then retry the exchange.",
-      );
-    }
-
-    throw error;
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
-async function readGameStreamResponse(
-  body: ReadableStream<Uint8Array>,
-  onEvent: (event: GameStreamEvent) => void,
-): Promise<GameActionResponse> {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  let completeResponse: GameActionResponse | null = null;
-
-  function processLine(line: string) {
-    const trimmedLine = line.trim();
-
-    if (trimmedLine.length === 0) {
-      return;
-    }
-
-    let payload: unknown;
-
-    try {
-      payload = JSON.parse(trimmedLine);
-    } catch {
-      throw new Error("Cupid API sent an unreadable stream event.");
-    }
-
-    const parsedEvent = gameStreamEventSchema.safeParse(payload);
-
-    if (!parsedEvent.success) {
-      throw new Error("Cupid API sent an unreadable stream event.");
-    }
-
-    const event = parsedEvent.data;
-
-    if (event.type === "error") {
-      throw new Error(event.message);
-    }
-
-    if (event.type === "complete") {
-      completeResponse = event.response;
-      return;
-    }
-
-    onEvent(event);
-  }
-
-  while (true) {
-    const { done, value } = await reader.read();
-
-    if (done) {
-      break;
-    }
-
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() ?? "";
-
-    for (const line of lines) {
-      processLine(line);
-    }
-  }
-
-  buffer += decoder.decode();
-  processLine(buffer);
-
-  if (completeResponse === null) {
-    throw new Error("Cupid API ended the stream before filing the date update.");
-  }
-
-  return completeResponse;
+  return completeDateSessionWithLocalAiStream(
+    input.save,
+    repository,
+    {
+      dateSessionId: input.dateSessionId,
+      config,
+    },
+    onEvent,
+  );
 }
 
 /* ================================================================== */

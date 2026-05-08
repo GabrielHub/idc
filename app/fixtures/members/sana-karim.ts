@@ -110,5 +110,32 @@ export const sanaKarim: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/sana-karim/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/sana-karim/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Sana Karim portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired eyes, polished cel shading, same exhausted twenty-eight year old South Asian fourth grade teacher with long glossy black center-parted hair, rectangular black glasses, warm medium-brown skin, soft taupe cardigan over a dark tee, high-waisted chinos, comfortable black flats, blue school district lanyard with blank badge, leaning slightly forward with both hands clasped under her chin, elbows tucked close, shoulders softened, weight on one hip, one foot crossed subtly in front of the other, half-lidded direct eye contact, faint blush, warm amused smile that still reads tired and dry, full body visible, plain white background, no text, no logo, no frame, no scenery, no binder, no papers, no worksheets, no new accessories, no changed clothing, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/sana-karim/portrait-confused.png",
+        cutoutPath: "/assets/portraits/sana-karim/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Sana Karim portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired eyes, polished cel shading, same exhausted twenty-eight year old South Asian fourth grade teacher with long glossy black center-parted hair, rectangular black glasses, warm medium-brown skin, soft taupe cardigan over a dark tee, high-waisted chinos, comfortable black flats, blue school district lanyard with blank badge, hunched slightly forward over a single blank worksheet held close to her chest at a diagonal angle, writing with a simple dark pen as if calculating a date problem under pressure, shoulders raised and tucked, elbows tight, head dipped, one foot angled inward, glasses sitting slightly low on her nose, one brow pinched higher than the other, tired narrowed eyes, mouth slightly parted in confused concentration, full body visible, plain white background, no visible text, no visible equations, no numbers, no grade marks, no red pen, no clipboard, no binder, no text, no logo, no frame, no scenery, no new accessories, no changed clothing, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/sana-karim/portrait-angry.png",
+        cutoutPath: "/assets/portraits/sana-karim/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Sana Karim portrait, interpreted as exhausted boundary accusation rather than uncontrolled rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired eyes, polished cel shading, same exhausted twenty-eight year old South Asian fourth grade teacher with long glossy black center-parted hair, rectangular black glasses, warm medium-brown skin, soft taupe cardigan over a dark tee, high-waisted chinos, comfortable black flats, blue school district lanyard with blank badge, leaning forward with one arm extended in a sharp accusatory point toward the viewer, other hand gripping the lanyard badge close to her body, shoulders tense, torso angled forward, feet planted in a practical stance, low brows behind the same glasses, tired narrowed eyes, mouth open mid-sentence like delivering a final teacher warning, controlled fury and boundary exhaustion, full body visible, plain white background, no other people, no animals, no table, no restaurant scene, no meme composition, no binder, no papers, no worksheets, no pen, no clipboard, no text, no logo, no frame, no scenery, no new accessories, no changed clothing, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

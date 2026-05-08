@@ -111,5 +111,14 @@ export const calvinHewes: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/calvin-hewes/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/calvin-hewes/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Calvin Hewes portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive red glowing eyes, polished cel shading, same actual mothman cryptid from Point Pleasant, same black moth-like humanoid head with no human face and no visible mouth, same short dark moth-fur at the collar, same large black moth wings with dark eye markings, same long slender limbs, same elegant taloned hands, same fashion-forward charcoal-black designer suit with a narrow waist, subtle satin lapels, crisp white shirt, deep oxblood silk tie, coordinated oxblood pocket square, polished black pointed dress shoes, wings raised behind him into a vague heart-shaped silhouette while keeping the same wing anatomy and texture, flustered guarded corporate attraction, wide glossy red eyes, antennae angled forward and inward, small stress marks near the head, one taloned hand pinching the oxblood tie knot at the throat and loosening it slightly, shirt collar only slightly open at the neck, other taloned hand raised beside the face with open palm angled inward as if fanning his face, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible mouth, no human face, no smile, no exposed chest, no paper fan, no new accessories, no changed suit design, no changed clothing identity, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

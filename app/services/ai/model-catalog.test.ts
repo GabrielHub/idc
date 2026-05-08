@@ -6,7 +6,9 @@ import {
   gatewayReasoningLevelForModel,
   isGatewayChatModel,
   isRecommendedOllamaChatModel,
+  isRecommendedOllamaEmbeddingModel,
   modelDefaultsForProvider,
+  normalizeOllamaModelName,
   recommendedOllamaChatModels,
 } from "./model-catalog";
 
@@ -51,6 +53,11 @@ describe("AI model catalog", () => {
 
     expect(filtered.map((model) => model.name)).toEqual(["gemma4:e4b", "qwen3.5:9b"]);
     expect(isRecommendedOllamaChatModel("llama3.3:70b")).toBe(false);
+  });
+
+  it("treats Ollama latest tags as the base model for recommendations", () => {
+    expect(normalizeOllamaModelName("embeddinggemma:latest")).toBe("embeddinggemma");
+    expect(isRecommendedOllamaEmbeddingModel("embeddinggemma:latest")).toBe(true);
   });
 
   it("keeps GPU tier recommendations explicit", () => {

@@ -10,10 +10,8 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { miraPark, mrWhiskers, vhool } from "../fixtures/members";
-import {
-  createBrowserStorageDriver,
-  LocalGameRepository,
-} from "../repositories/local-game-repository";
+import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
+import { createGameRepository } from "../repositories/create-game-repository";
 import {
   readStoredGatewayApiKey,
   requestLocalAiStatus,
@@ -190,16 +188,36 @@ type SplashPhase = "idle" | "authenticating" | "seeding" | "wiping" | "stamping"
 type AiBootState = "checking" | "ready" | "missing";
 
 export function SplashScreen({ onPunchIn }: SplashScreenProps) {
-  const repository = useMemo(() => new LocalGameRepository(createBrowserStorageDriver()), []);
+  const repository = useMemo(() => createGameRepository(), []);
   const [save, setSave] = useState<GameSave | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [phase, setPhase] = useState<SplashPhase>("idle");
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [confirmingWipe, setConfirmingWipe] = useState(false);
-  const [gatewayApiKey, setGatewayApiKey] = useState<string>(() => readStoredGatewayApiKey());
+  const [gatewayApiKey, setGatewayApiKey] = useState("");
+  const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiSetupStatus>(INITIAL_AI_STATUS);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [stampActive, setStampActive] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      const storedKey = await readStoredGatewayApiKey();
+
+      if (cancelled) {
+        return;
+      }
+
+      setGatewayApiKey(storedKey);
+      setIsGatewayApiKeyLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -230,8 +248,21 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     };
   }, [repository]);
 
+  const aiReadinessConfig = useMemo(
+    () => save?.config ?? null,
+    [
+      save?.config.aiProvider,
+      save?.config.ollamaBaseURL,
+      save?.config.gatewayBaseURL,
+      save?.config.chatModel,
+      save?.config.embeddingModel,
+      save?.config.aiSetupComplete,
+      save?.config.reasoningLevel,
+    ],
+  );
+
   useEffect(() => {
-    if (save === null) {
+    if (aiReadinessConfig === null) {
       setAiStatus({
         status: "unavailable",
         message: "No save on file. AI provider configures on first shift.",
@@ -240,11 +271,15 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
       return;
     }
 
+    if (!isGatewayApiKeyLoaded) {
+      return;
+    }
+
     let cancelled = false;
     setAiStatus(INITIAL_AI_STATUS);
 
     void (async () => {
-      const next = await requestLocalAiStatus(save.config, gatewayApiKey);
+      const next = await requestLocalAiStatus(aiReadinessConfig, gatewayApiKey);
       if (cancelled) {
         return;
       }
@@ -254,7 +289,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [save, gatewayApiKey]);
+  }, [aiReadinessConfig, gatewayApiKey, isGatewayApiKeyLoaded]);
 
   const aiBoot: AiBootState =
     aiStatus.status === "checking" ? "checking" : deriveAiBoot(save, aiStatus);
@@ -331,9 +366,10 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     if (save === null) {
       return;
     }
-    storeGatewayApiKey(nextGatewayApiKey);
-    setGatewayApiKey(nextGatewayApiKey);
-    const nextSave: GameSave = { ...save, config: nextConfig };
+    await storeGatewayApiKey(nextGatewayApiKey);
+    setGatewayApiKey(nextGatewayApiKey.trim());
+    setIsGatewayApiKeyLoaded(true);
+    const nextSave: GameSave = { ...save, config: lockAiProviderBaseUrlsForRuntime(nextConfig) };
     await repository.saveGame(nextSave);
     setSave(nextSave);
   }
@@ -525,7 +561,7 @@ function TopBar() {
         </motion.div>
 
         <div className="flex items-center gap-2">
-          <PlaygroundPill />
+          {import.meta.env.MODE === "desktop" ? null : <PlaygroundPill />}
           <ClockPill />
         </div>
       </div>

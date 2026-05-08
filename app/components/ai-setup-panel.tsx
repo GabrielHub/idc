@@ -10,6 +10,10 @@ import {
   type GameConfig,
 } from "../domain/game";
 import {
+  areAiProviderBaseUrlsLockedForRuntime,
+  lockAiProviderBaseUrlsForRuntime,
+} from "../platform/runtime";
+import {
   GATEWAY_CHAT_MODELS,
   GPU_RECOMMENDATION_PROFILES,
   OLLAMA_CHAT_MODEL_OPTIONS,
@@ -19,8 +23,7 @@ import {
   recommendedOllamaEmbeddings,
   type OllamaModelSummary,
 } from "../services/ai/model-catalog";
-import { readJsonResponse } from "../services/ai/client";
-import { aiModelDiscoveryResponseSchema } from "../services/game-api-contracts";
+import { listOllamaModelInventory } from "../services/ai/model-service";
 import { errorToMessage } from "../services/utils";
 import {
   ChromeButton,
@@ -31,8 +34,6 @@ import {
   PrimaryButton,
   SelectInput,
 } from "./dashboard-atoms";
-
-const AI_MODELS_URL = "/api/game?intent=ai-models";
 
 export type AiSetupStatus = {
   status: "checking" | "ready" | "unavailable";
@@ -80,6 +81,29 @@ export function AiSetupPanel({
   const [ollamaError, setOllamaError] = useState<string | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const isProviderUrlLocked = areAiProviderBaseUrlsLockedForRuntime();
+  const keyStorageCopy = isProviderUrlLocked
+    ? "Desktop stores Gateway keys in app local data, separate from saves. Wiping a save leaves the key on this device."
+    : "Browser dev stores Gateway keys in localStorage. Game saves do not contain them.";
+
+  useEffect(() => {
+    if (!isProviderUrlLocked) {
+      return;
+    }
+
+    setDraftConfig((current) => {
+      const lockedConfig = lockAiProviderBaseUrlsForRuntime(current);
+
+      if (
+        current.ollamaBaseURL === lockedConfig.ollamaBaseURL &&
+        current.gatewayBaseURL === lockedConfig.gatewayBaseURL
+      ) {
+        return current;
+      }
+
+      return lockedConfig;
+    });
+  }, [isProviderUrlLocked]);
 
   useEffect(() => {
     setDraftConfig(config);
@@ -138,21 +162,10 @@ export function AiSetupPanel({
     setOllamaError(null);
 
     try {
-      const response = await fetch(AI_MODELS_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ config: draftConfig }),
+      const inventory = await listOllamaModelInventory({
+        ollamaBaseURL: draftConfig.ollamaBaseURL,
       });
-      const payload = await readJsonResponse(response);
-      const parsed = aiModelDiscoveryResponseSchema.safeParse(payload);
-
-      if (!response.ok || !parsed.success) {
-        throw new Error("Scan returned no readable model list.");
-      }
-
-      setOllamaModels(parsed.data.models);
+      setOllamaModels(inventory.models);
     } catch (error) {
       setOllamaModels([]);
       setOllamaError(errorToMessage(error));
@@ -166,7 +179,7 @@ export function AiSetupPanel({
 
     try {
       const pendingConfig = {
-        ...draftConfig,
+        ...lockAiProviderBaseUrlsForRuntime(draftConfig),
         aiProvider: activeProvider,
         aiSetupComplete: false,
       };
@@ -232,6 +245,7 @@ export function AiSetupPanel({
                   embeddingModels={ollamaEmbeddingModels}
                   isScanning={isScanning}
                   error={ollamaError}
+                  isUrlLocked={isProviderUrlLocked}
                   onScan={scanOllama}
                   onConfig={updateDraft}
                 />
@@ -241,6 +255,7 @@ export function AiSetupPanel({
                   gatewayApiKey={draftGatewayKey}
                   reasoningDisabled={gatewayReasoningDisabled}
                   activeGatewayModelLabel={activeGatewayModel?.label ?? draftConfig.chatModel}
+                  isUrlLocked={isProviderUrlLocked}
                   onConfig={updateDraft}
                   onGatewayApiKey={setDraftGatewayKey}
                 />
@@ -259,9 +274,7 @@ export function AiSetupPanel({
           </div>
 
           <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
-            <p className="max-w-md text-label leading-relaxed text-aura-muted">
-              Keys stay outside the save file. Cupid files them on a separate clipboard.
-            </p>
+            <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
             <div className="flex flex-wrap gap-2">
               <GhostButton
                 disabled={busy}
@@ -392,6 +405,7 @@ function OllamaSetupTab({
   embeddingModels,
   isScanning,
   error,
+  isUrlLocked,
   onScan,
   onConfig,
 }: {
@@ -400,21 +414,23 @@ function OllamaSetupTab({
   embeddingModels: OllamaModelSummary[];
   isScanning: boolean;
   error: string | null;
+  isUrlLocked: boolean;
   onScan: () => void;
   onConfig: (config: Partial<GameConfig>) => void;
 }) {
   const embeddingLabel = embeddingModels.at(0)?.name ?? DEFAULT_OLLAMA_EMBEDDING_MODEL;
+  const urlDescription = isUrlLocked
+    ? "Desktop builds talk to localhost only. Other endpoints need a build with an updated HTTP scope."
+    : "The Ollama server Cupid talks to. Defaults to localhost.";
 
   return (
     <div className="space-y-5">
-      <FormSection
-        label="endpoint"
-        description="The Ollama server Cupid talks to. Defaults to localhost."
-      >
+      <FormSection label="endpoint" description={urlDescription}>
         <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
           <TextInput
             label="ollama url"
             value={config.ollamaBaseURL}
+            disabled={isUrlLocked}
             onChange={(value) => onConfig({ ollamaBaseURL: value })}
           />
           <GhostButton disabled={isScanning} onClick={onScan}>
@@ -525,6 +541,7 @@ function GatewaySetupTab({
   gatewayApiKey,
   reasoningDisabled,
   activeGatewayModelLabel,
+  isUrlLocked,
   onConfig,
   onGatewayApiKey,
 }: {
@@ -532,26 +549,32 @@ function GatewaySetupTab({
   gatewayApiKey: string;
   reasoningDisabled: boolean;
   activeGatewayModelLabel: string;
+  isUrlLocked: boolean;
   onConfig: (config: Partial<GameConfig>) => void;
   onGatewayApiKey: (value: string) => void;
 }) {
+  const endpointDescription = isUrlLocked
+    ? "Desktop uses the default Vercel AI Gateway URL. The key is stored in app local data, outside saves."
+    : "Browser dev uses this URL and stores the key in localStorage.";
+  const keyPlaceholder = isUrlLocked
+    ? "Stored in app local data, outside saves"
+    : "Stored in browser localStorage for dev";
+
   return (
     <div className="space-y-5">
-      <FormSection
-        label="endpoint"
-        description="Gateway URL and the key Cupid sends with each request."
-      >
+      <FormSection label="endpoint" description={endpointDescription}>
         <div className="grid gap-4 md:grid-cols-2">
           <TextInput
             label="gateway url"
             value={config.gatewayBaseURL}
+            disabled={isUrlLocked}
             onChange={(value) => onConfig({ gatewayBaseURL: value })}
           />
           <TextInput
             label="api key"
             type="password"
             value={gatewayApiKey}
-            placeholder="Server falls back to AI_GATEWAY_API_KEY when blank"
+            placeholder={keyPlaceholder}
             onChange={onGatewayApiKey}
           />
         </div>
@@ -713,14 +736,18 @@ function TextInput({
   value,
   type = "text",
   placeholder,
+  disabled = false,
   onChange,
 }: {
   label: string;
   value: string;
   type?: "password" | "text";
   placeholder?: string;
+  disabled?: boolean;
   onChange: (value: string) => void;
 }) {
+  const disabledClass = disabled ? "cursor-not-allowed opacity-60" : "focus:border-aura-rose";
+
   return (
     <label className="block">
       <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
@@ -730,8 +757,10 @@ function TextInput({
         type={type}
         value={value}
         placeholder={placeholder}
+        disabled={disabled}
+        readOnly={disabled}
         onChange={(event) => onChange(event.currentTarget.value)}
-        className="mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 font-mono text-label text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose"
+        className={`mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 font-mono text-label text-aura-ink outline-none transition placeholder:text-aura-faint ${disabledClass}`}
       />
     </label>
   );

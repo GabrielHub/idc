@@ -109,5 +109,14 @@ export const gideonGlass: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/gideon-glass/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/gideon-glass/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, eyes closed, faint blush, polite expression while coughing into one sleeve covered hand, other hand offering a small blank silver Hotel Palatine room keycard toward the viewer, keycard has no readable text, no logo, no room number, no markings, no symbols, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

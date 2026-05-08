@@ -19,7 +19,6 @@ import {
   isMemberRetained,
   type GoalProgressSnapshot,
 } from "../services/date-engine";
-import type { GameAction } from "../services/game-api-contracts";
 import type { MatchFitPublicSignal } from "../services/match-fit";
 import {
   EASE_OUT_QUART,
@@ -54,7 +53,7 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   mark_bad_fit: "Mark Bad Fit",
 };
 
-export type PendingDateAction = GameAction["type"];
+export type PendingDateAction = "advanceExchange" | "completeDate";
 
 const ADVANCE_BUTTON_LABELS: Record<PendingDateAction, string> = {
   advanceExchange: "Streaming...",

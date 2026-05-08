@@ -133,5 +133,14 @@ export const seraVohn: Member = {
         model: "image_gen built-in",
       },
     },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/sera-vohn/portrait-angry.png",
+        cutoutPath: "/assets/portraits/sera-vohn/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Sera Vohn portrait, interpreted as irritated dismissal while leaving the conversation, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, three-quarter rear angle with her back turned and one foot stepping forward as if already walking away, one arm raised in a dismissive goodbye wave with loose wrist and palm angled outward, other arm low near her side loosely holding the translucent audit tablet and slim stylus as an afterthought, head turned back over her shoulder toward the viewer, irritated dismissal expression with lowered brows, narrowed side glance, and lips parted in a small annoyed exhale, cold and professionally done with the conversation, full body visible, plain white background, no text, no logo, no frame, no scenery",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

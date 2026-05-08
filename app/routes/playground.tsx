@@ -23,7 +23,18 @@ import {
   modelDefaultsForProvider,
   type OllamaModelSummary,
 } from "../services/ai/model-catalog";
-import { errorToMessage, isRecord } from "../services/utils";
+import {
+  DEFAULT_DATE_PLAYGROUND_SETTINGS,
+  DEFAULT_MEMBER_CHAT_SETTINGS as DEFAULT_MEMBER_CHAT_PLAYGROUND_SETTINGS,
+  loadPlaygroundDefaults,
+  runPlaygroundDateConversation,
+  runPlaygroundMemberChat,
+  type DatePlaygroundInput,
+  type MemberChatPlaygroundInput,
+  type PlaygroundResult,
+  type PromptPreviewPayload,
+} from "../services/ai/playground";
+import { errorToMessage } from "../services/utils";
 
 const REACTION_TINT: Record<ReactionKind, string> = {
   spark: "text-violet-500",
@@ -51,22 +62,7 @@ type PlaygroundTestId = (typeof PLAYGROUND_TESTS)[number]["id"];
 
 type AiPlaygroundMode = "dateConversation" | "memberChat";
 
-type AiPromptPreviewPayload = {
-  system: string;
-  prompt: string;
-  model: string;
-  providerMode: AiProvider;
-  sampling: {
-    temperature: number;
-    topP: number;
-    topK: number;
-  };
-  limits: {
-    numCtx: number;
-    maxOutputTokens: number;
-  };
-  reasoningLevel: string;
-};
+type AiPromptPreviewPayload = PromptPreviewPayload;
 
 type AiBasePlaygroundSettings = {
   mode: AiPlaygroundMode;
@@ -85,96 +81,17 @@ type AiBasePlaygroundSettings = {
   promptOverride: string;
 };
 
-type AiPlaygroundResult = {
-  mode: AiPlaygroundMode;
-  text: string;
-  turns: AiGeneratedTurn[];
-  chatMessages?: MemberChatMessage[];
-  model: string;
-  providerMode: AiProvider;
-  elapsedMs: number;
-  promptCharacters: number;
-  approximatePromptTokens: number;
-  system: string;
-  prompt: string;
-  preview?: AiPromptPreviewPayload;
-};
+type AiPlaygroundResult = PlaygroundResult;
 
-type AiGeneratedTurn = {
-  speakerId: string;
-  speakerName: string;
-  text: string;
-};
+type AiDatePlaygroundSettings = Omit<DatePlaygroundInput, "action">;
+type AiMemberChatSettings = Omit<MemberChatPlaygroundInput, "action">;
 
-type MemberChatMessage = {
-  role: "tester" | "member";
-  text: string;
-};
-
-type AiDatePlaygroundSettings = AiBasePlaygroundSettings & {
-  mode: "dateConversation";
-  memberId: string;
-  partnerId: string;
-  scenarioId: string;
-  dateHealth: number;
-  spark: number;
-  strain: number;
-  transcriptText: string;
-  memoryText: string;
-  includeCurrentAsk: boolean;
-  turnCount: number;
-};
-
-type AiMemberChatSettings = AiBasePlaygroundSettings & {
-  mode: "memberChat";
-  memberId: string;
-  testerMessage: string;
-  chatMessages: MemberChatMessage[];
-};
-
-const AI_PLAYGROUND_API_URL = "/api/playground-ai";
-const DEFAULT_AI_SETTINGS: AiDatePlaygroundSettings = {
-  mode: "dateConversation",
-  provider: "ollama",
-  memberId: "jenna-pike",
-  partnerId: "vhool",
-  scenarioId: "temporal-coffee-shop",
-  model: "gemma4:26b",
-  reasoningLevel: "off",
-  temperature: 1,
-  topP: 0.95,
-  topK: 64,
-  numCtx: 16384,
-  maxOutputTokens: 160,
-  dateHealth: 62,
-  spark: 55,
-  strain: 24,
-  transcriptText: [
-    "Vhool: The coffee has reversed into its bean form. This is either flirting or inventory.",
-    "Jenna: I was hoping for normal, but I can work with inventory if it stays polite.",
-  ].join("\n"),
-  memoryText: "Jenna remembers that Vhool treated soup as a sincere planning document.",
-  includeCurrentAsk: true,
-  turnCount: 4,
-  systemOverride: "",
-  promptOverride: "",
-};
-const DEFAULT_MEMBER_CHAT_SETTINGS: AiMemberChatSettings = {
-  mode: "memberChat",
-  provider: "gateway",
-  memberId: "jenna-pike",
-  model: modelDefaultsForProvider("gateway").chatModel,
-  reasoningLevel: modelDefaultsForProvider("gateway").reasoningLevel,
-  temperature: 0.8,
-  topP: 0.95,
-  topK: 64,
-  numCtx: 8192,
-  maxOutputTokens: 180,
-  testerMessage: "What would make a date feel normal enough to trust?",
-  chatMessages: [],
-  systemOverride: "",
-  promptOverride: "",
-};
+const DEFAULT_AI_SETTINGS: AiDatePlaygroundSettings = toDateSettings(
+  DEFAULT_DATE_PLAYGROUND_SETTINGS,
+);
+const DEFAULT_MEMBER_CHAT_SETTINGS: AiMemberChatSettings = toMemberChatSettings(
+  DEFAULT_MEMBER_CHAT_PLAYGROUND_SETTINGS,
+);
 
 export function meta() {
   return [
@@ -418,16 +335,15 @@ function AiPromptLabTest() {
 
     async function loadModels() {
       try {
-        const response = await fetch(AI_PLAYGROUND_API_URL);
-        const payload: unknown = await response.json();
+        const payload = await loadPlaygroundDefaults();
 
-        if (!isMounted || !isAiLoaderPayload(payload)) {
+        if (!isMounted) {
           return;
         }
 
         setModels(payload.models);
-        setDateSettings(payload.defaults);
-        setMemberChatSettings(payload.memberChatDefaults);
+        setDateSettings(toDateSettings(payload.defaults));
+        setMemberChatSettings(toMemberChatSettings(payload.memberChatDefaults));
         setResult(previewToResult(payload.previews.dateConversation, "dateConversation"));
       } catch {
         if (isMounted) {
@@ -2039,25 +1955,25 @@ async function postPlayground(
     | (AiMemberChatSettings & { action: "generate" | "preview" }),
   signal?: AbortSignal,
 ): Promise<AiPlaygroundResult> {
-  const response = await fetch(AI_PLAYGROUND_API_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(settings),
-    signal,
-  });
-  const payload: unknown = await response.json();
-
-  if (!response.ok) {
-    throw new Error(readErrorMessage(payload));
+  if (signal?.aborted === true) {
+    throw new DOMException("Aborted", "AbortError");
   }
 
-  if (!isAiResultPayload(payload)) {
-    throw new Error("AI playground returned an unreadable result.");
+  if (settings.mode === "memberChat") {
+    return runPlaygroundMemberChat(settings);
   }
 
-  return payload;
+  return runPlaygroundDateConversation(settings);
+}
+
+function toDateSettings(input: DatePlaygroundInput): AiDatePlaygroundSettings {
+  const { action: _action, ...rest } = input;
+  return rest;
+}
+
+function toMemberChatSettings(input: MemberChatPlaygroundInput): AiMemberChatSettings {
+  const { action: _action, ...rest } = input;
+  return rest;
 }
 
 function previewToResult(
@@ -2077,87 +1993,4 @@ function previewToResult(
     prompt: preview.prompt,
     preview,
   };
-}
-
-function isAiLoaderPayload(value: unknown): value is {
-  models: OllamaModelSummary[];
-  defaults: AiDatePlaygroundSettings;
-  memberChatDefaults: AiMemberChatSettings;
-  previews: {
-    dateConversation: AiPromptPreviewPayload;
-    memberChat: AiPromptPreviewPayload;
-  };
-} {
-  if (
-    !isRecord(value) ||
-    !Array.isArray(value.models) ||
-    !isRecord(value.defaults) ||
-    !isRecord(value.memberChatDefaults) ||
-    !isRecord(value.previews)
-  ) {
-    return false;
-  }
-
-  return (
-    value.models.every((model) => isRecord(model) && typeof model.name === "string") &&
-    isPromptPreviewPayload(value.previews.dateConversation) &&
-    isPromptPreviewPayload(value.previews.memberChat)
-  );
-}
-
-function isAiResultPayload(value: unknown): value is AiPlaygroundResult {
-  return (
-    isRecord(value) &&
-    typeof value.text === "string" &&
-    Array.isArray(value.turns) &&
-    value.turns.every(
-      (turn) =>
-        isRecord(turn) &&
-        typeof turn.speakerId === "string" &&
-        typeof turn.speakerName === "string" &&
-        typeof turn.text === "string",
-    ) &&
-    typeof value.model === "string" &&
-    (value.providerMode === "ollama" || value.providerMode === "gateway") &&
-    typeof value.elapsedMs === "number" &&
-    typeof value.promptCharacters === "number" &&
-    typeof value.approximatePromptTokens === "number" &&
-    typeof value.system === "string" &&
-    typeof value.prompt === "string" &&
-    (value.preview === undefined || isPromptPreviewPayload(value.preview)) &&
-    (value.chatMessages === undefined ||
-      (Array.isArray(value.chatMessages) &&
-        value.chatMessages.every(
-          (message) =>
-            isRecord(message) &&
-            (message.role === "tester" || message.role === "member") &&
-            typeof message.text === "string",
-        )))
-  );
-}
-
-function isPromptPreviewPayload(value: unknown): value is AiPromptPreviewPayload {
-  return (
-    isRecord(value) &&
-    typeof value.system === "string" &&
-    typeof value.prompt === "string" &&
-    typeof value.model === "string" &&
-    (value.providerMode === "ollama" || value.providerMode === "gateway") &&
-    isRecord(value.sampling) &&
-    typeof value.sampling.temperature === "number" &&
-    typeof value.sampling.topP === "number" &&
-    typeof value.sampling.topK === "number" &&
-    isRecord(value.limits) &&
-    typeof value.limits.numCtx === "number" &&
-    typeof value.limits.maxOutputTokens === "number" &&
-    typeof value.reasoningLevel === "string"
-  );
-}
-
-function readErrorMessage(value: unknown): string {
-  if (isRecord(value) && typeof value.error === "string") {
-    return value.error;
-  }
-
-  return "AI playground rejected that prompt.";
 }

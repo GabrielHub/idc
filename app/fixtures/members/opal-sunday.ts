@@ -117,5 +117,32 @@ export const opalSunday: Member = {
         model: "image_gen built-in",
       },
     },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/opal-sunday/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/opal-sunday/portrait-flirty.png",
+        prompt:
+          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Opal Sunday portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive almond eyes, polished cel shading, same adult time-displaced wedding planner with warm tan skin, long glossy chestnut brown hair, pearl earrings and necklace, pearl bracelet, ivory lace-trim camisole, cropped ivory cardigan with lace trim, high-waisted light-wash bootcut jeans, cream kitten heels, rose-gold clock-face glow at the wrist, seated on a slim ivory high stool with one knee raised and both hands loosely clasped near the raised knee, other leg extended down so both cream kitten heels remain visible, lifted chin, soft half-lidded eye contact, subtle blush, small controlled romantic smile, full body visible, plain white background, no binder, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/opal-sunday/portrait-confused.png",
+        cutoutPath: "/assets/portraits/opal-sunday/portrait-confused.png",
+        prompt:
+          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Opal Sunday portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive almond eyes, polished cel shading, same adult time-displaced wedding planner with warm tan skin, long glossy chestnut brown hair, pearl earrings and necklace, pearl bracelet, ivory lace-trim camisole, cropped ivory cardigan with lace trim, high-waisted light-wash bootcut jeans, cream kitten heels, oversized ivory wedding binder with color-coded tabs, rose-gold clock-face glow at the binder clasp and wrist, pinched brows, wide uncertain almond eyes, parted mouth, head tilted slightly down toward the open ivory wedding binder, one hand holding the binder at her hip, other hand hovering over the color-coded tabs in a small frozen pause gesture, body angled slightly back as if the schedule has betrayed her, controlled planning spiral, full body visible, plain white background, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body, no slapstick confusion",
+        model: "image_gen built-in",
+      },
+    },
+    angry: {
+      portrait: {
+        sourcePath: "assets-source/portraits/opal-sunday/portrait-angry.png",
+        cutoutPath: "/assets/portraits/opal-sunday/portrait-angry.png",
+        prompt:
+          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Opal Sunday portrait, interpreted as an anime-dramatic boundary state, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive almond eyes, polished cel shading, same adult time-displaced wedding planner with warm tan skin, long glossy chestnut brown hair, pearl earrings and necklace, pearl bracelet, ivory lace-trim camisole, cropped ivory cardigan with lace trim, high-waisted light-wash bootcut jeans, cream kitten heels, oversized ivory wedding binder, rose-gold clock-face glow at the binder clasp and wrist, sharply arched angry brows, wide alarmed almond eyes with bright highlights, flushed cheeks, open scolding mouth, tense jaw, visible forehead stress, small stylized red anime anger mark near the temple, shoulders tense, body angled slightly away, binder snapped shut and clutched against her ribs like a shield, one hand raised at chest height in a firm stop gesture with palm facing outward, sharper rose-gold wrist clock glow, full body visible, plain white background, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body, no violence",
+        model: "image_gen built-in",
+      },
+    },
   },
 };

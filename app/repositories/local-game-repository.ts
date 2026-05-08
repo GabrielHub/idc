@@ -30,7 +30,8 @@ import {
 } from "../services/game-seed";
 import { replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
-import type { GameRepository, KeyValueStorage, MemorySearchFilters } from "./game-repository";
+import type { GameRepository, MemorySearchFilters } from "./game-repository";
+import type { RawSaveStore } from "./raw-save-store";
 
 const SAVE_KEY_PREFIX = "idc.cupid.save.v";
 export const CURRENT_SAVE_KEY = `${SAVE_KEY_PREFIX}${SAVE_SCHEMA_VERSION}`;
@@ -52,11 +53,11 @@ const persistedSaveWithLooseMembersSchema = gameSaveSchema.extend({
   ),
 });
 
-export function readGameConfigFromStorage(
-  storage: KeyValueStorage,
+export async function readGameConfigFromStore(
+  store: RawSaveStore,
   saveKey = DEFAULT_SAVE_KEY,
-): GameConfig {
-  const raw = storage.getItem(saveKey);
+): Promise<GameConfig> {
+  const raw = await store.read(saveKey);
 
   if (raw === null) {
     return gameConfigSchema.parse({});
@@ -75,35 +76,12 @@ export function readGameConfigFromStorage(
   }
 }
 
-export class MemoryStorageDriver implements KeyValueStorage {
-  private readonly values = new Map<string, string>();
-
-  getItem(key: string): string | null {
-    return this.values.get(key) ?? null;
-  }
-
-  setItem(key: string, value: string): void {
-    this.values.set(key, value);
-  }
-
-  removeItem(key: string): void {
-    this.values.delete(key);
-  }
-}
-
-export function createBrowserStorageDriver(): KeyValueStorage {
-  if (typeof window === "undefined") {
-    return new MemoryStorageDriver();
-  }
-
-  return window.localStorage;
-}
-
 export class LocalGameRepository implements GameRepository {
   private readonly legacySaveKeys: string[];
+  private legacySavesCleared = false;
 
   constructor(
-    private readonly storage: KeyValueStorage,
+    private readonly store: RawSaveStore,
     private readonly saveKey = DEFAULT_SAVE_KEY,
     legacySaveKeys?: string[],
   ) {
@@ -111,26 +89,26 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async loadGame(): Promise<GameSave | null> {
-    const currentSave = this.loadGameFromKey(this.saveKey);
+    const currentSave = await this.loadGameFromKey(this.saveKey);
 
     if (currentSave !== null) {
       if (currentSave.needsWrite) {
-        this.writeGameToKey(this.saveKey, currentSave.save);
+        await this.writeGameToKey(this.saveKey, currentSave.save);
       }
 
       return currentSave.save;
     }
 
     for (const legacySaveKey of this.legacySaveKeys) {
-      const legacySave = this.loadGameFromKey(legacySaveKey);
+      const legacySave = await this.loadGameFromKey(legacySaveKey);
 
       if (legacySave === null) {
         continue;
       }
 
-      this.writeGameToKey(this.saveKey, legacySave.save);
-      this.storage.removeItem(legacySaveKey);
-      this.deleteLegacySaves();
+      await this.writeGameToKey(this.saveKey, legacySave.save);
+      await this.store.delete(legacySaveKey);
+      await this.deleteLegacySaves();
       return legacySave.save;
     }
 
@@ -138,8 +116,10 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async saveGame(save: GameSave): Promise<void> {
-    this.writeGameToKey(this.saveKey, { ...save, updatedAt: new Date().toISOString() });
-    this.deleteLegacySaves();
+    await this.writeGameToKey(this.saveKey, { ...save, updatedAt: new Date().toISOString() });
+    if (!this.legacySavesCleared) {
+      await this.deleteLegacySaves();
+    }
   }
 
   async resetGame(now = new Date()): Promise<GameSave> {
@@ -149,8 +129,8 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async deleteSave(): Promise<void> {
-    this.storage.removeItem(this.saveKey);
-    this.deleteLegacySaves();
+    await this.store.delete(this.saveKey);
+    await this.deleteLegacySaves();
   }
 
   async listMembers(): Promise<Member[]> {
@@ -326,8 +306,10 @@ export class LocalGameRepository implements GameRepository {
     await this.saveGame(mutator(save));
   }
 
-  private loadGameFromKey(saveKey: string): { save: GameSave; needsWrite: boolean } | null {
-    const raw = this.storage.getItem(saveKey);
+  private async loadGameFromKey(
+    saveKey: string,
+  ): Promise<{ save: GameSave; needsWrite: boolean } | null> {
+    const raw = await this.store.read(saveKey);
 
     if (raw === null) {
       return null;
@@ -344,15 +326,16 @@ export class LocalGameRepository implements GameRepository {
     };
   }
 
-  private writeGameToKey(saveKey: string, save: GameSave): void {
+  private async writeGameToKey(saveKey: string, save: GameSave): Promise<void> {
     const parsed = gameSaveSchema.parse(save);
-    this.storage.setItem(saveKey, JSON.stringify(parsed));
+    await this.store.write(saveKey, JSON.stringify(parsed));
   }
 
-  private deleteLegacySaves(): void {
+  private async deleteLegacySaves(): Promise<void> {
     for (const legacySaveKey of this.legacySaveKeys) {
-      this.storage.removeItem(legacySaveKey);
+      await this.store.delete(legacySaveKey);
     }
+    this.legacySavesCleared = true;
   }
 }
 

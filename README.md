@@ -1,119 +1,218 @@
-# IDC
+# IDC: Cupid
 
-A local-first relationship operations dashboard for Cupid. The app pairs members with scenarios, runs date sessions through a deterministic game engine, and uses a required AI provider to perform characters, judge exchanges, and summarize memories within schema-validated bounds.
+IDC: Cupid is a local-first relationship operations game. The app books dates between hopefuls from across realities, runs each date through deterministic game services, and uses a required AI provider to perform characters, judge exchanges, and summarize memories inside schema-validated bounds.
+
+The current app ships as a React Router SPA and as a Tauri desktop shell over the same SPA. There is no Node gameplay server in the normal run path.
+
+## Current Shape
+
+- React Router 7 SPA with `ssr: false` and `/` prerendered.
+- Browser development runs through Vite Plus at `http://localhost:5173/`.
+- Desktop development and packaging run through Tauri 2, using the SPA bundle under `build/client`.
+- The browser dev shell includes `/playground`; desktop mode excludes it.
+- Runtime AI is required for player-facing dates. Ollama and Vercel AI Gateway are the supported providers.
+- `/api/game` has been removed. The dashboard calls TypeScript services directly for AI readiness, date advancement, streaming events, and completion.
+- Saves go through an async raw save-store boundary. Browser builds use localStorage. Desktop builds use files under the app local data directory.
 
 ## Stack
 
-- React Router 7 (SSR) on Node
-- React 19, TypeScript, Tailwind v4
+- React 19, React Router 7, TypeScript
+- Tailwind v4 through Vite
 - Zod for domain schemas and runtime validation
-- Vitest for unit and smoke tests
-- Vite Plus (`vp`) toolchain on top of Vite, Rolldown, Vitest, Oxlint, Oxfmt
-- Runtime AI through Ollama or Vercel AI Gateway via `ai-sdk-ollama` and `@ai-sdk/openai-compatible`
+- AI SDK with `ai-sdk-ollama` and `@ai-sdk/openai-compatible`
+- Tauri 2 with scoped filesystem and HTTP plugins
+- Vitest for service, domain, and smoke coverage
+- Vite Plus (`vp`) on top of Vite, Rolldown, Vitest, Oxlint, Oxfmt, and Vite Task
 
 ## Prerequisites
 
-- Node 20+ and `pnpm` 10 (declared in `package.json`)
-- The `vp` CLI installed globally (`npm i -g vite-plus`)
-- A working AI provider is required to book and run dates. Configure Ollama locally or set `AI_GATEWAY_API_KEY` for Vercel AI Gateway. This is intentional: the playable game has no non-AI date mode. The roster and brief can still load when the selected provider is unavailable.
-- Python 3 with `bria-rmbg` available if you run the portrait cutout script.
+- Node 20+ and `pnpm` 10, as declared in `package.json`.
+- The global Vite Plus CLI: `npm i -g vite-plus`.
+- Rust and the Tauri 2 platform prerequisites when running or packaging the desktop app.
+- One AI provider for playable dates:
+  - Ollama running locally with a chat model and `embeddinggemma`.
+  - A Vercel AI Gateway key entered in the app.
+- Python 3 with `bria-rmbg` only if you run the portrait cutout script.
 
-## Quick start
+## Quick Start
 
 ```bash
 vp install
 vp dev
 ```
 
-The dev server listens on `http://localhost:5173/`. The dashboard at `/` is the only user-facing route; `/api/game` is the server action endpoint used by the dashboard for AI-backed date turns.
+Open `http://localhost:5173/`. First run starts at the splash screen, creates the save when you punch in, then routes you through AI setup before Cupid can book a date.
 
-## Common commands
+Browser Ollama requests are normal browser fetches. If your local Ollama rejects the dev origin, configure Ollama CORS for `http://localhost:5173`. The desktop build does not need `OLLAMA_ORIGINS` because Tauri handles local Ollama calls through the scoped desktop HTTP path.
 
-| Command                  | Purpose                                       |
-| ------------------------ | --------------------------------------------- |
-| `vp install`             | Install dependencies. Run after pulling.      |
-| `vp dev`                 | Start the dev server with HMR.                |
-| `vp check`               | Format, lint, and type check.                 |
-| `vp test`                | Run Vitest.                                   |
-| `vp build`               | Production build to `build/`.                 |
-| `vp preview`             | Serve the production build locally.           |
-| `vp run portrait:cutout` | Run the portrait background-removal pipeline. |
+## Tauri Desktop Flow
 
-Fall back to `pnpm` scripts (`pnpm build`, `pnpm start`, `pnpm typecheck`) only where there is no `vp` equivalent.
-
-## Project layout
-
+```bash
+vp run tauri:dev
 ```
+
+Tauri runs `vp dev` from `src-tauri/tauri.conf.json` and opens the desktop window against `http://localhost:5173`.
+
+```bash
+vp run tauri:build
+```
+
+Tauri runs the desktop SPA build first:
+
+```bash
+vp exec react-router build --mode desktop
+vp node scripts/verify-desktop-build.mjs
+```
+
+Then it packages the app. The desktop verifier requires `build/client/index.html` and `build/client/__spa-fallback.html`, and fails if the desktop bundle contains API route artifacts, playground route artifacts, `.server` chunks, or `AI_GATEWAY_API_KEY`.
+
+The install guide for private alpha builds is in [docs/desktop-install-guide.md](docs/desktop-install-guide.md).
+
+## Common Commands
+
+| Command                                     | Purpose                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------ |
+| `vp install`                                | Install dependencies. Run after pulling changes.                   |
+| `vp dev`                                    | Start the browser SPA dev server at `http://localhost:5173/`.      |
+| `vp check`                                  | Format, lint, and type check.                                      |
+| `vp test`                                   | Run Vitest.                                                        |
+| `vp build`                                  | Build the browser SPA.                                             |
+| `vp preview`                                | Preview the latest browser production build.                       |
+| `vp exec react-router build --mode desktop` | Build the desktop-mode SPA bundle.                                 |
+| `vp node scripts/verify-desktop-build.mjs`  | Inspect the desktop bundle for forbidden server and dev artifacts. |
+| `vp run build:desktop`                      | Shortcut for the desktop SPA build plus verifier.                  |
+| `vp run tauri:dev`                          | Open the Tauri desktop shell for local development.                |
+| `vp run tauri:build`                        | Build Tauri installers or app bundles.                             |
+| `vp run portrait:cutout`                    | Run portrait background removal.                                   |
+| `vp run portrait:resize-avatars`            | Normalize portrait avatar crops.                                   |
+
+Use `vp` first. Run project scripts through `vp run` when there is no dedicated `vp` command.
+
+## AI Setup
+
+AI setup is in app, not in a server route.
+
+The setup panel lets the player choose:
+
+- Ollama on this PC. Default URL is `http://127.0.0.1:11434`, default chat model is `gemma4:26b`, and default embedding model is `embeddinggemma`.
+- Vercel AI Gateway. Default Gateway URL is `https://ai-gateway.vercel.sh/v1`, default chat model is `deepseek/deepseek-v4-flash`, and default embedding model is `google/gemini-embedding-2`.
+
+The current readiness path is:
+
+1. Splash screen or dashboard loads the save through `createGameRepository()`.
+2. `requestLocalAiStatus()` calls `checkAiReadiness()` directly from `app/services/ai/model-service.ts`.
+3. Date actions call `advanceDateExchangeWithLocalAiStream()` and `completeDateSessionWithLocalAiStream()` directly from `app/services/ai-date-engine.ts`.
+4. Streams update the UI as service events arrive.
+
+There is no `AI_GATEWAY_API_KEY` fallback. Gateway keys are entered by the player and stored outside the game save through `app/services/ai/client.ts` using the `idc.cupid.aiGatewayKey` browser storage key. The game save stores provider choice, model IDs, base URLs, and `aiSetupComplete`, but not the Gateway key.
+
+Desktop builds lock provider base URLs to the Tauri HTTP scope: localhost Ollama and the default Vercel AI Gateway URL. Custom provider hosts need a build with an updated desktop scope.
+
+## Removal Of `/api/game`
+
+The old `/api/game` route is gone. Do not add new gameplay through React Router API routes.
+
+Current route config lives in [app/routes.ts](app/routes.ts):
+
+- `/` loads [app/routes/home.tsx](app/routes/home.tsx).
+- `/playground` is available only outside desktop mode.
+- No app-owned `/api/*` route is registered.
+
+The app still talks to provider APIs. Ollama has its own local `/api/tags`, `/api/ps`, and generation endpoints, but those are provider URLs, not React Router routes.
+
+## Save Store Architecture
+
+Persistence now has three layers:
+
+1. `RawSaveStore` in [app/repositories/raw-save-store.ts](app/repositories/raw-save-store.ts) owns async raw text reads, writes, and deletes.
+2. `LocalGameRepository` in [app/repositories/local-game-repository.ts](app/repositories/local-game-repository.ts) owns save parsing, Zod validation, schema migration, fixture hydration, legacy save key migration, serialization, and repository methods.
+3. `createGameRepository()` in [app/repositories/create-game-repository.ts](app/repositories/create-game-repository.ts) selects the runtime store.
+
+Store implementations:
+
+- [BrowserLocalStorageSaveStore](app/repositories/browser-local-storage-save-store.ts) for browser dev and browser preview.
+- [TauriAppLocalDataSaveStore](app/repositories/tauri-app-local-data-save-store.ts) for desktop file saves under `saves/<safe-key>.json` in the app local data directory.
+- [MemorySaveStore](app/repositories/memory-save-store.ts) for tests and non-browser fallback.
+
+The repository owns save validity. Gameplay consequences still belong in services, not in persistence.
+
+Desktop save locations:
+
+- Windows: `%LOCALAPPDATA%\dev.idc.cupid\saves\`
+- macOS: `~/Library/Application Support/dev.idc.cupid/saves/`
+
+## Project Layout
+
+```text
 app/
-  domain/           Zod schemas and TypeScript types for game state
-  fixtures/         Static gameplay data (members, scenarios, goals)
-  services/         Game engine, AI date engine, prompts, memory, vector search
-    ai/             Model catalog and provider service for Ollama and Gateway
-  repositories/     Persistence (browser localStorage, Node JSON storage)
-  routes/           React Router routes (home dashboard, game API)
-  components/       UI components, including the main dashboard
+  components/       Dashboard, splash, AI setup, and shared UI pieces
+  domain/           Zod schemas and TypeScript game contracts
+  fixtures/         Static members, scenarios, goals, and starter content
+  platform/         Runtime detection and desktop URL policy
+  repositories/     Raw save stores and LocalGameRepository
+  routes/           SPA route modules
+  services/         Game systems, AI date engine, prompts, memory, vector search
+    ai/             Provider catalog, model service, fetch transport, AI client helpers
 docs/
-  world/            Voice, visual design, image style
-scripts/portraits/  Python asset pipeline (background removal)
-public/assets/      Shipped portrait folders
-assets-source/      Source portrait folders, never shipped to the client
+  world/            Voice, visual design, image style, gameplay traits
+scripts/
+  portraits/        Portrait processing scripts
+src-tauri/          Tauri shell, capabilities, icons, and Rust commands
+public/assets/      Shipped portraits and client assets
+assets-source/      Source portrait inputs, never shipped to the client
 ```
 
-A Vite plugin in `vite.config.ts` fails the build if portrait sources land under `public/assets/portraits/source/`. Source images belong in `assets-source/portraits/<member-id>/`.
+A Vite plugin fails the build if portrait source files land under `public/assets/portraits/source/`. Keep source images under `assets-source/portraits/<member-id>/`.
 
-## Architecture
+## Architecture Notes
 
-The system splits gameplay authority from generative content. Read `AGENTS.md` for the full set of rules; the short version:
+- App-owned canonical state is authoritative for gameplay.
+- Domain schemas own contracts.
+- Fixtures own static gameplay definitions.
+- Game services own consequences.
+- Runtime AI performs characters, judges exchanges, summarizes memories, and embeds memory text only after deterministic services choose the trigger, subject, allowed context, choices, and effects.
+- LLM outputs are parsed and validated before they update state.
+- Memory retrieval selects context. Visibility rules are enforced in application code before memories reach prompts or tool results.
+- Tauri owns the native shell, scoped filesystem access, and scoped HTTP access. Rust does not own gameplay.
 
-- **App-owned state is canonical.** The deterministic game engine in `app/services/date-engine.ts` decides triggers, subjects, allowed context, choices, and effects.
-- **Domain types own contracts.** Every save, message, judge snapshot, and memory record is parsed through a Zod schema in `app/domain/game.ts` before it touches state.
-- **Hidden member tags are gameplay inputs.** `member.tags` use a controlled taxonomy for deterministic match fit, hard stops, and request scoring. The UI shows profile evidence and dealbreakers, not internal tag names.
-- **Repositories own persistence.** `LocalGameRepository` reads and writes through a `KeyValueStorage` driver. The browser uses `localStorage`; the server route uses `NodeJsonStorageDriver`. Repositories do not repair gameplay.
-- **Runtime AI is bounded.** `app/services/ai-date-engine.server.ts` performs characters, judges exchanges, and summarizes memories only after the deterministic engine selects the moment. LLM outputs are validated against domain schemas before they update state.
-- **Date play is gated by the selected AI provider.** The dashboard probes `/api/game?intent=local-ai-status` on load and retries that probe before booking. If Ollama or Gateway is unavailable, roster and brief stay visible but date booking is blocked with a visible error state. Deterministic date paths exist for service tests and smoke coverage, not as a player-facing fallback.
-- **Implemented behavior lives in code.** Domain schemas, fixtures, game services, repositories, UI components, tests, and checked assets are the source of truth for current gameplay. Docs explain intent and workflows, but no separate planning document owns product behavior.
-- **Memory retrieval is context selection, not truth.** Vector search in `app/services/cupid-memory.ts` and `app/services/vector-memory.ts` produces candidates; visibility rules are enforced before a candidate reaches a prompt or tool result.
+## Testing And Verification
 
-## Testing
+Vitest covers deterministic engine behavior, save migration, AI provider plumbing, prompt assembly, fetch transport, and smoke flows:
 
-Vitest is the primary regression surface for engine and AI flows:
+```bash
+vp check
+vp test
+```
 
-- `app/services/game-smoke.test.ts` exercises a full deterministic shift: starter fixtures, date sessions, follow-up actions, and shift completion.
-- `app/services/ai-date-engine.server.test.ts`, `app/services/ai/model-service.server.test.ts`, and `app/services/ai/model-catalog.test.ts` cover AI date orchestration and provider plumbing.
+Run `vp build` when changes affect runtime behavior, saves, systems, fixtures, integration, or user-facing workflows.
 
-Playwright is the fast UI regression surface. The dev server must already be running at `http://localhost:5173/` before invoking Playwright; agents should not start it autonomously. Artifacts go under `playwright/screenshots/`, `playwright/logs/`, and `playwright/artifacts/`.
+For desktop packaging checks:
 
-Run `vp check` after every code change. Run `vp test` and `vp build` for changes that touch runtime behavior, saves, systems, fixtures, integration, or user-facing workflows.
+```bash
+vp exec react-router build --mode desktop
+vp node scripts/verify-desktop-build.mjs
+vp run tauri:build
+```
 
-## Asset pipeline
+Playwright is the primary UI regression surface. The dev server should already be running at `http://localhost:5173/` before Playwright work starts. Store screenshots in `playwright/screenshots/`, logs in `playwright/logs/`, and traces or other browser artifacts in `playwright/artifacts/`.
+
+## Asset Pipeline
 
 Member portraits live in per-member folders. Runtime cutouts use `public/assets/portraits/<member-id>/portrait.png` for the full body and `public/assets/portraits/<member-id>/avatar.png` for the upper half. Source images mirror that shape under `assets-source/portraits/<member-id>/`.
 
-1. Generate a portrait against a plain white background. See `docs/world/image-style.md` for prompt construction and acceptance criteria.
-2. Place the source under `assets-source/portraits/<member-id>/portrait.png` or `assets-source/portraits/<member-id>/avatar.png`. The Vite plugin will fail the build if a source file leaks into `public/`.
-3. After human approval, run `vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite` to produce the cutouts.
-
-## Production build
+1. Generate a portrait against a plain white background. See [docs/world/image-style.md](docs/world/image-style.md) for prompt construction and acceptance checks.
+2. Place the approved source under `assets-source/portraits/<member-id>/portrait.png` or `assets-source/portraits/<member-id>/avatar.png`.
+3. Run the cutout pipeline:
 
 ```bash
-vp build
-pnpm start
+vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite
 ```
-
-`pnpm start` runs `react-router-serve` against `build/server/index.js`. The build emits:
-
-```
-build/
-  client/   Static assets
-  server/   Server-side bundle
-```
-
-Any Node-capable host works. Containerization is out of scope for this repo.
 
 ## Documentation
 
-- [Visual design](docs/world/visual-design.md): Aura interface direction, Tailwind tokens.
+- [Desktop install guide](docs/desktop-install-guide.md): private alpha install flow, provider setup, save locations, caveats.
+- [Visual design](docs/world/visual-design.md): Aura interface direction and Tailwind tokens.
 - [Image style](docs/world/image-style.md): portrait style, prompt construction, cutout pipeline.
-- [Voice](docs/world/voice.md): voice registers, prose mechanics, member fingerprints.
+- [Voice](docs/world/voice.md): tone, prose mechanics, and member voice fingerprints.
 - [Gameplay traits](docs/world/gameplay-traits.md): hidden match tags, visible dealbreakers, hard stops.
 - [Agent instructions](AGENTS.md): architecture rules, toolchain conventions, copy style, UI rules.

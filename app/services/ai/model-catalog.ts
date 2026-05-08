@@ -213,5 +213,7 @@ export function recommendedOllamaEmbeddings(
 }
 
 export function normalizeOllamaModelName(modelId: string): string {
-  return modelId.trim().toLowerCase();
+  const normalized = modelId.trim().toLowerCase();
+
+  return normalized.endsWith(":latest") ? normalized.slice(0, -":latest".length) : normalized;
 }
