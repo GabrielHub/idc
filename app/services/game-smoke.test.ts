@@ -1512,6 +1512,55 @@ describe("IDC playable smoke path", () => {
     ).toThrow("not in today's drawn hand");
   });
 
+  it("seeds saves with empty player knowledge", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+
+    expect(save.playerKnowledge).toEqual([]);
+  });
+
+  it("persists hard stop reveals after a dealbreaker date", () => {
+    const incidentSave = withActiveShiftConfig(
+      createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")),
+      {
+        drawnScenarioIds: ["museum-exhibit-mixup"],
+        memberRequestIds: [],
+        featuredMemberIds: ["meridian-vale", "calvin-hewes"],
+      },
+    );
+    const startedIncident = startAndDraftDateSession(incidentSave, {
+      focusMemberId: "meridian-vale",
+      firstMemberId: "meridian-vale",
+      secondMemberId: "calvin-hewes",
+      scenarioId: "museum-exhibit-mixup",
+    });
+    const advancedIncident = completeDateSession(startedIncident.save, startedIncident.session.id);
+
+    expect(advancedIncident.save.playerKnowledge.length).toBeGreaterThan(0);
+    expect(
+      advancedIncident.save.playerKnowledge.some(
+        (record) => record.source === "hard_stop" && record.readKind === "boundary",
+      ),
+    ).toBe(true);
+
+    for (const record of advancedIncident.save.playerKnowledge) {
+      expect(record.readId).not.toMatch(/prophecy_averse|privacy_sensitive|grief_sensitive/);
+      expect(record.readText).not.toMatch(/prophecy_averse|privacy_sensitive|grief_sensitive/);
+    }
+
+    const lastSnapshot = advancedIncident.session.judgeSnapshots.at(-1);
+    expect(lastSnapshot?.usedEvidenceIds.length).toBeGreaterThan(0);
+    expect(advancedIncident.session.finalReport?.statSummary).not.toMatch(
+      /\b(Spark|Strain|Health)\s+\d/u,
+    );
+
+    const publicMemoryText = advancedIncident.save.memories
+      .filter((memory) => memory.visibility === "public")
+      .map((memory) => memory.text)
+      .join(" ");
+    expect(publicMemoryText).not.toMatch(/Final Date Health was \d+/u);
+    expect(publicMemoryText).not.toMatch(/Date Health delta [-+]?\d+/u);
+  });
+
   it("carries repeated scenario history into the next date transcript", () => {
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",

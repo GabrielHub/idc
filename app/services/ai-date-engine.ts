@@ -2,6 +2,7 @@ import {
   dateMessageSchema,
   dateSessionSchema,
   gameSaveSchema,
+  judgeSnapshotSchema,
   memoryCandidateSchema,
   memoryRecordSchema,
   type DateMessage,
@@ -40,6 +41,7 @@ import {
   findMemberRequestById,
   latestJudgedExchangeIndex,
   markPairDateComplete,
+  messagesSinceLastJudge,
   requireDateSession,
   requireMember,
   requirePairState,
@@ -57,7 +59,19 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
-import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, pairRuleHits } from "./match-fit";
+import {
+  applyMatchFitToJudgeSnapshot,
+  evaluateMatchFit,
+  pairRuleHits,
+  type MatchFitResult,
+} from "./match-fit";
+import {
+  applyJudgeReveals,
+  buildRevealCandidates,
+  filterExchangeEligibleRevealCandidates,
+  validateUsedEvidenceIds,
+  type RevealCandidate,
+} from "./player-knowledge";
 import { clampScore, errorToMessage, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
@@ -301,6 +315,7 @@ async function advanceDateExchangeWithLocalAiInternal(
       message.kind === "character" &&
       exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
   );
+  const pendingRevealMessages = messagesSinceLastJudge(session, transcript);
   const shouldJudgeExchange = shouldJudgePendingExchange({
     currentTurn,
     turnLimit: session.turnLimit,
@@ -334,6 +349,20 @@ async function advanceDateExchangeWithLocalAiInternal(
   if (emit !== undefined) {
     await emit({ type: "judgeStart", exchangeIndex });
   }
+  const revealCandidates = buildRevealCandidates({
+    members,
+    scenario,
+    pairState,
+    focusRequest,
+    matchFit,
+  });
+  const eligibleCandidates = filterExchangeEligibleRevealCandidates({
+    candidates: revealCandidates,
+    matchFit,
+    exchangeMessages: pendingRevealMessages,
+    triggeredEventIds: session.eventsTriggered,
+    focusRequest,
+  });
   const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
     config,
@@ -343,12 +372,22 @@ async function advanceDateExchangeWithLocalAiInternal(
     exchangeMessages,
     exchangeIndex,
     members,
+    revealCandidates: eligibleCandidates,
+  });
+  const acceptedEvidenceIds = computeAcceptedEvidenceIds({
+    proposed: localAiJudgeSnapshot.usedEvidenceIds,
+    candidates: eligibleCandidates,
+    matchFit,
+  });
+  const judgeSnapshotWithReveals = judgeSnapshotSchema.parse({
+    ...localAiJudgeSnapshot,
+    usedEvidenceIds: acceptedEvidenceIds,
   });
   const judgeSnapshot = applyMatchFitToJudgeSnapshot({
     session,
     pairState,
     members,
-    judgeSnapshot: localAiJudgeSnapshot,
+    judgeSnapshot: judgeSnapshotWithReveals,
     fit: matchFit,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
@@ -394,6 +433,14 @@ async function advanceDateExchangeWithLocalAiInternal(
         };
   warningMessages.push(...completion.warningMessages);
   const completedSession = completion.session;
+  const revealResult = applyJudgeReveals({
+    save,
+    candidates: eligibleCandidates,
+    acceptedIds: judgeSnapshot.usedEvidenceIds,
+    judgeSnapshot,
+    source: matchFit.hardStop !== null ? "hard_stop" : "judge",
+    revealedAt: timestamp,
+  });
   const finalPairState =
     completedSession.finalReport === undefined
       ? updatedPairState
@@ -408,6 +455,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairStates: replaceById(save.pairStates, finalPairState),
     dateSessions: replaceById(save.dateSessions, completedSession),
     memories: [...save.memories, ...completion.memories],
+    playerKnowledge: revealResult.save.playerKnowledge,
     updatedAt: timestamp,
   });
 
@@ -773,6 +821,7 @@ async function createLocalAiJudgeSnapshot({
   exchangeMessages,
   exchangeIndex,
   members,
+  revealCandidates,
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<AiRuntimeConfig>;
@@ -782,6 +831,7 @@ async function createLocalAiJudgeSnapshot({
   exchangeMessages: DateMessage[];
   exchangeIndex: number;
   members: Member[];
+  revealCandidates?: readonly RevealCandidate[];
 }): Promise<JudgeSnapshot> {
   try {
     const packet = buildJudgePromptPacket({
@@ -790,6 +840,7 @@ async function createLocalAiJudgeSnapshot({
       pairState,
       exchangeMessages,
       members,
+      revealCandidates,
     });
 
     const judgeSnapshot = await runtime.judgeDateExchange({
@@ -803,6 +854,41 @@ async function createLocalAiJudgeSnapshot({
   } catch (error) {
     throw new Error(`AI judge failed: ${errorToMessage(error)}`);
   }
+}
+
+function computeAcceptedEvidenceIds({
+  proposed,
+  candidates,
+  matchFit,
+}: {
+  proposed: readonly string[] | undefined;
+  candidates: readonly RevealCandidate[];
+  matchFit: MatchFitResult;
+}): string[] {
+  const validated = validateUsedEvidenceIds(proposed, candidates);
+
+  if (matchFit.hardStop === null) {
+    return validated;
+  }
+
+  const hardStopCandidate = candidates.find(
+    (candidate) => candidate.source === "hard_stop" && candidate.readKind === "boundary",
+  );
+  const accepted = [...validated];
+
+  if (hardStopCandidate !== undefined && !accepted.includes(hardStopCandidate.id)) {
+    accepted.unshift(hardStopCandidate.id);
+  }
+
+  const scenarioPressure = candidates.find(
+    (candidate) => candidate.readKind === "scenario_pressure",
+  );
+
+  if (scenarioPressure !== undefined && !accepted.includes(scenarioPressure.id)) {
+    accepted.push(scenarioPressure.id);
+  }
+
+  return accepted.slice(0, 3);
 }
 
 async function createLocalAiFinalSession({
@@ -900,7 +986,7 @@ function createLocalAiFallbackMemoryRecord({
     scenarioId: scenario.id,
     dateSessionId: session.id,
     text,
-    tags: ["date_summary", "fallback_summary", scenario.id],
+    tags: ["date_summary", "fallback_summary"],
     importance: 3,
     createdAt,
     embedding,
@@ -999,7 +1085,7 @@ function normalizeMemoryCandidate(
     pairId: session.pairId,
     scenarioId: session.scenarioId,
     dateSessionId: session.id,
-    text: normalizeForbiddenPunctuation(candidate.text),
+    text: normalizeMemoryText(candidate.text),
     tags: Array.from(new Set([...candidate.tags, "ai_summary"])).slice(0, 8),
     importance: Math.min(5, Math.max(1, candidate.importance)),
   });
@@ -1123,6 +1209,16 @@ function stripForbiddenPunctuation(text: string): string {
 
 function normalizeForbiddenPunctuation(text: string): string {
   return stripForbiddenPunctuation(text).trim();
+}
+
+function normalizeMemoryText(text: string): string {
+  return normalizeForbiddenPunctuation(text)
+    .replace(/\bFinal Date Health was \d+\.?/giu, "Cupid filed a nonnumeric comfort note.")
+    .replace(/\bwith Date Health delta [-+]?\d+\.?/giu, "with a filed comfort movement.")
+    .replace(/\bSpark \d+\.?\s*/giu, "")
+    .replace(/\bStrain \d+\.?\s*/giu, "")
+    .replace(/\bHealth \d+\.?\s*/giu, "")
+    .trim();
 }
 
 function escapeRegex(value: string): string {

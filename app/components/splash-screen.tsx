@@ -21,6 +21,7 @@ import {
 } from "../services/ai/client";
 import { getActiveShift } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
+import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { CupidMark, EASE_OUT_QUART, LiveDot, Portrait, Tooltip, pad2 } from "./dashboard-atoms";
 
@@ -89,12 +90,6 @@ type RiffleCardData = {
   member: Member;
   queueIndex: string;
   queueTotal: string;
-  registerLabel: string;
-  speciesLabel: string;
-  voiceQuote: string;
-  mood: string;
-  openness: string;
-  burnout: string;
 };
 
 const RIFFLE_CARDS: RiffleCardData[] = [
@@ -102,34 +97,16 @@ const RIFFLE_CARDS: RiffleCardData[] = [
     member: miraPark,
     queueIndex: "01",
     queueTotal: "21",
-    registerLabel: "human, modern",
-    speciesLabel: "ordinary human",
-    voiceQuote: "anyway, your dog is very cute, what's his name",
-    mood: "71",
-    openness: "64",
-    burnout: "22",
   },
   {
     member: vhool,
     queueIndex: "09",
     queueTotal: "21",
-    registerLabel: "ancient, sincere",
-    speciesLabel: "non-human",
-    voiceQuote: "I have great soup. I am sorry for any tremor you felt last Thursday.",
-    mood: "81",
-    openness: "74",
-    burnout: "12",
   },
   {
     member: mrWhiskers,
     queueIndex: "17",
     queueTotal: "21",
-    registerLabel: "business, clipped",
-    speciesLabel: "non-human",
-    voiceQuote: "I am between roles. I take meetings on Thursdays.",
-    mood: "54",
-    openness: "41",
-    burnout: "38",
   },
 ];
 
@@ -1072,6 +1049,12 @@ function RiffleCard({
 /* ------------------------------ Riffle card ----------------------------- */
 
 function RiffleCardSlot({ data }: { data: RiffleCardData }) {
+  const visibleProfile = buildVisibleMemberProfile(data.member, []);
+  const publicFragment =
+    visibleProfile.publicFragments[0] ??
+    "A hopeful file with several pages, one signature, and a suspiciously warm paperclip.";
+  const visibleSeals = visibleProfile.redactedBlocks.slice(0, 3);
+
   return (
     <div className="relative">
       <div
@@ -1108,58 +1091,47 @@ function RiffleCardSlot({ data }: { data: RiffleCardData }) {
               {data.member.firstName}
             </h2>
             <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-muted">
-              {data.speciesLabel}
+              hopeful file
               <span className="mx-2 text-aura-faint">·</span>
-              {data.registerLabel}
+              intake queued
             </p>
           </div>
         </div>
 
         <div className="relative z-10 mt-5">
           <p className="aura-accent line-clamp-2 text-lead leading-snug text-aura-ink/85">
-            &ldquo;{data.voiceQuote}&rdquo;
+            {publicFragment}
           </p>
         </div>
 
-        <dl className="relative z-10 mt-5 grid grid-cols-3 gap-x-4 gap-y-1">
-          <RiffleStat label="mood" value={data.mood} tone="rose" />
-          <RiffleStat label="open" value={data.openness} tone="violet" />
-          <RiffleStat label="burn" value={data.burnout} tone="amber" />
+        <dl className="relative z-10 mt-5 grid grid-cols-3 gap-x-3 gap-y-2">
+          {visibleSeals.map((seal) => (
+            <RiffleSeal key={seal.id} label={seal.label} lineCount={seal.lineCount} />
+          ))}
         </dl>
 
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3 font-mono text-micro uppercase tracking-[0.24em]">
-          <span className="text-aura-faint">// reading dossier</span>
-          <span className="text-aura-rose">filing</span>
+          <span className="text-aura-faint">// dossier preview</span>
+          <span className="text-aura-rose">sealed</span>
         </div>
       </article>
     </div>
   );
 }
 
-type RiffleStatTone = "rose" | "violet" | "amber";
-
-const RIFFLE_STAT_COLOR: Record<RiffleStatTone, string> = {
-  rose: "text-aura-rose",
-  violet: "text-aura-violet",
-  amber: "text-aura-amber",
-};
-
-function RiffleStat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: RiffleStatTone;
-}) {
+function RiffleSeal({ label, lineCount }: { label: string; lineCount: number }) {
   return (
     <div className="space-y-1">
       <dt className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">{label}</dt>
-      <dd
-        className={`font-display text-lead font-semibold tabular-nums tracking-tight ${RIFFLE_STAT_COLOR[tone]}`}
-      >
-        {value}
+      <dd className="flex items-center gap-1.5">
+        {Array.from({ length: lineCount }).map((_, index) => (
+          <span
+            aria-hidden
+            className="block h-1.5 w-5 rounded-full bg-aura-ink/20"
+            key={`${label}-${index}`}
+          />
+        ))}
+        <span className="sr-only">sealed</span>
       </dd>
     </div>
   );

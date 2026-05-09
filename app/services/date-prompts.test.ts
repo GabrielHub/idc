@@ -4,10 +4,13 @@ import { memberRequests, starterScenarios } from "../fixtures";
 import { addCupidIntervention, advanceDateExchange, triggerScenarioEvent } from "./date-engine";
 import {
   buildCharacterPromptPacket,
+  buildJudgePromptPacket,
   buildSummarizerPromptPacket,
   pickSamplesForTurn,
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { evaluateMatchFit } from "./match-fit";
+import { buildRevealCandidates } from "./player-knowledge";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
 describe("date prompt assembly", () => {
@@ -587,5 +590,193 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain(
       "Prefer memories that help the pair continue a later conversation",
     );
+  });
+});
+
+describe("buildJudgePromptPacket reveal candidates", () => {
+  it("includes reveal candidate ids and display reads", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
+    const opal = save.members.find((member) => member.id === "opal-sunday");
+    const bai = save.members.find((member) => member.id === "bai-wenshu");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("opal-sunday", "bai-wenshu"),
+    );
+
+    if (
+      scenario === undefined ||
+      opal === undefined ||
+      bai === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const members = [opal, bai];
+    const matchFit = evaluateMatchFit({
+      members,
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members,
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const session = {
+      id: "test-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 0,
+      dateHealth: 60,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages: [],
+      members,
+      revealCandidates: candidates,
+    });
+
+    expect(packet.prompt).toContain("Reveal candidates:");
+    expect(packet.prompt).toContain("usedEvidenceIds");
+    expect(packet.prompt).toContain("It is valid to return an empty array.");
+
+    expect(candidates.length).toBeGreaterThan(0);
+    const sample = candidates[0];
+    expect(packet.prompt).toContain(`id: ${sample.id}`);
+    expect(packet.prompt).toContain(`read: ${sample.readText}`);
+    expect(packet.prompt).toContain(`evidence: ${sample.evidenceText}`);
+  });
+
+  it("does not contain raw member tag enum names or rule hit strings", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
+    const opal = save.members.find((member) => member.id === "opal-sunday");
+    const bai = save.members.find((member) => member.id === "bai-wenshu");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("opal-sunday", "bai-wenshu"),
+    );
+
+    if (
+      scenario === undefined ||
+      opal === undefined ||
+      bai === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const members = [opal, bai];
+    const matchFit = evaluateMatchFit({
+      members,
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members,
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const session = {
+      id: "test-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 0,
+      dateHealth: 60,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages: [],
+      members,
+      revealCandidates: candidates,
+    });
+    const fullPrompt = `${packet.system}\n${packet.prompt}`;
+
+    expect(fullPrompt).not.toMatch(/prophecy_averse/);
+    expect(fullPrompt).not.toMatch(/privacy_sensitive/);
+    expect(fullPrompt).not.toMatch(/grief_sensitive/);
+    expect(fullPrompt).not.toMatch(/memory_sensitive/);
+    expect(fullPrompt).not.toMatch(/sincerity_vs_performance/);
+  });
+
+  it("instructs an empty array when no candidates are eligible", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const members = [jenna, vhool];
+    const session = {
+      id: "test-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 0,
+      dateHealth: 60,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages: [],
+      members,
+      revealCandidates: [],
+    });
+
+    expect(packet.prompt).toContain("Reveal candidates: none for this exchange.");
+    expect(packet.prompt).toContain("Return usedEvidenceIds as [].");
   });
 });

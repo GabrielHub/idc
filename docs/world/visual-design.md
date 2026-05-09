@@ -24,6 +24,14 @@ Status and meta labels read in `font-mono` at `text-micro` or `text-label`, uppe
 
 Portrait cutouts sit inside Aura surfaces; the dashboard provides the frame and the cutout provides character. See `docs/world/image-style.md` for portrait style and UI placement guidance.
 
+## Information Visibility
+
+The dashboard starts with sealed case files. Roster cards, dossier panels, and the splash riffle may show names, portraits, focused asks, public profile fragments, and sealed section hints. They must not show gated member fields, exact Mood, Openness, Burnout, retention, species, origin, reality status, full profiles, relationship needs, preferences, dealbreakers, raw scenario tags, or numeric pair stats before those facts are represented by filed reads.
+
+Use visible redaction treatments, sealed labels, and filed-read lists instead of hiding real text with opacity or placing gated text in invisible DOM. Search, filters, sort controls, tooltips, and aria labels follow the same boundary as visible UI.
+
+The live date footer can show exact Date Health, turn count, Judge count, nudge slots, and scene slots. Final reports, notes, brief panels, and follow-up actions should use nonnumeric outcome and intent copy.
+
 ## What Not To Build
 
 - No marketing landing page for the playable game shell.

@@ -11,7 +11,6 @@ import {
   type GameConfig,
   type GameSave,
   type Member,
-  type MemberRequest,
   type PairState,
   type ShiftState,
 } from "../domain/game";
@@ -39,11 +38,6 @@ import {
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
-import {
-  buildPublicRiskNotes,
-  evaluateMatchFit,
-  type MatchFitPublicSignal,
-} from "../services/match-fit";
 import {
   discardDrawnScenario,
   evaluateScenarioPowers,
@@ -358,8 +352,8 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     [save, activeDateSessionId],
   );
   const pairPreview = useMemo(
-    () => buildPairPreview(save, selectedMembers, selectedScenario, pinnedRequests),
-    [save, selectedMembers, selectedScenario, pinnedRequests],
+    () => buildPairPreview(save, selectedMembers, selectedScenario),
+    [save, selectedMembers, selectedScenario],
   );
   const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
   const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
@@ -1128,6 +1122,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               members={save.members}
               featuredMembers={featuredMembers}
               featuredRequests={pinnedRequests}
+              playerKnowledge={save.playerKnowledge}
               selectedMemberIds={selectedMemberIds}
               disabled={isActionPending}
               onSelectFocusMember={selectFocusMember}
@@ -1141,11 +1136,10 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               selectedMembers={selectedMembers}
               scenarios={drawnScenarios}
               selectedScenario={selectedScenario}
+              playerKnowledge={save.playerKnowledge}
               pairState={pairPreview?.pairState ?? null}
               pairNote={pairPreview?.note ?? null}
               previousFile={pairPreview?.previousFile ?? null}
-              fitSignal={pairPreview?.fitSignal ?? null}
-              riskNotes={pairPreview?.riskNotes ?? []}
               goals={pinnedGoals}
               goalProgress={pinnedGoalProgress}
               requests={pinnedRequests}
@@ -1181,6 +1175,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
                 starterScenarios.find((scenario) => scenario.id === activeSession.scenarioId)
               }
               members={save.members}
+              playerKnowledge={save.playerKnowledge}
               interventionText={interventionText}
               interventionTargetMemberId={effectiveInterventionTargetMemberId}
               canAdvance={canAdvanceDate}
@@ -2157,15 +2152,12 @@ type PairPreview = {
   pairState: PairState | null;
   note: string;
   previousFile: PreviousFile | null;
-  fitSignal: MatchFitPublicSignal | null;
-  riskNotes: string[];
 };
 
 function buildPairPreview(
   save: GameSave | null,
   members: Member[],
   selectedScenario: DateScenario | undefined,
-  activeRequests: MemberRequest[],
 ): PairPreview | null {
   if (save === null || members.length !== 2) {
     return null;
@@ -2173,39 +2165,13 @@ function buildPairPreview(
 
   const pairId = makePairId(members[0].id, members[1].id);
   const pairState = save.pairStates.find((candidate) => candidate.id === pairId) ?? null;
-  const hasRealityGap = members[0].species !== members[1].species;
-  const note = hasRealityGap
-    ? "Cross-reality pair. Cupid expects paperwork and useful data."
-    : "Same-species pair. Cupid still expects paperwork.";
+  const note = "Pair selected. Forecast sealed until the date gives Cupid evidence.";
   const scenarioRepeatCount =
     pairState === null || selectedScenario === undefined
       ? 0
       : (pairState.scenarioUseCounts[selectedScenario.id] ?? 0);
   const previousFile = buildPreviousFile(pairState, members, scenarioRepeatCount);
-  const focusRequests = activeRequests.filter((request) => request.memberId === members[0].id);
-  const fitSignal: MatchFitPublicSignal | null =
-    pairState === null || selectedScenario === undefined
-      ? null
-      : toPublicFitSignal(
-          evaluateMatchFit({
-            members,
-            scenario: selectedScenario,
-            pairState,
-            activeRequests: focusRequests,
-          }),
-        );
-  const riskNotes =
-    selectedScenario === undefined || fitSignal === null || pairState === null
-      ? []
-      : buildPublicRiskNotes({
-          members,
-          scenario: selectedScenario,
-          scenarioRepeatCount,
-          fitSignal,
-          focusRequests,
-        });
-
-  return { pairState, note, previousFile, fitSignal, riskNotes };
+  return { pairState, note, previousFile };
 }
 
 function buildPreviousFile(
@@ -2224,14 +2190,6 @@ function buildPreviousFile(
     member.voice.patternsUsed.includes("callback_rematch_reference"),
   );
   return { totalDates, scenarioRepeatCount, expectsCallbacks };
-}
-
-function toPublicFitSignal(fit: {
-  fitLevel: MatchFitPublicSignal["fitLevel"];
-  pressureLevel: MatchFitPublicSignal["pressureLevel"];
-  askSignal: MatchFitPublicSignal["askSignal"];
-}): MatchFitPublicSignal {
-  return { fitLevel: fit.fitLevel, pressureLevel: fit.pressureLevel, askSignal: fit.askSignal };
 }
 
 type DiagnosticsSnapshot = {

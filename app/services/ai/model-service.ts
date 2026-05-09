@@ -226,6 +226,7 @@ const judgeAiOutputSchema = z.object({
   notableMoments: z.array(z.string().min(1)),
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),
+  usedEvidenceIds: z.array(z.string().min(1)).max(3).default([]),
 });
 
 const ollamaListResponseSchema = z.object({

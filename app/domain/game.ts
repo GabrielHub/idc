@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 3;
+export const SAVE_SCHEMA_VERSION = 4;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -392,6 +392,37 @@ export const judgeSnapshotSchema = z.object({
   notableMoments: z.array(z.string().min(1)),
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),
+  usedEvidenceIds: z.array(z.string().min(1)).max(3).default([]),
+});
+
+export const playerKnowledgeSubjectKindSchema = z.enum(["member", "pair", "scenario"]);
+
+export const playerKnowledgeReadKindSchema = z.enum([
+  "profile",
+  "comfort",
+  "boundary",
+  "ask",
+  "pair_dynamic",
+  "scenario_pressure",
+]);
+
+export const playerKnowledgeConfidenceSchema = z.enum(["filed", "confirmed"]);
+
+export const playerKnowledgeSourceSchema = z.enum(["judge", "hard_stop", "final_report"]);
+
+export const playerKnowledgeRecordSchema = z.object({
+  id: z.string().min(1),
+  subjectKind: playerKnowledgeSubjectKindSchema,
+  subjectId: z.string().min(1),
+  readKind: playerKnowledgeReadKindSchema,
+  readId: z.string().min(1),
+  readText: z.string().min(1),
+  confidence: playerKnowledgeConfidenceSchema,
+  source: playerKnowledgeSourceSchema,
+  dateSessionId: dateSessionIdSchema.optional(),
+  judgeSnapshotId: z.string().min(1).optional(),
+  evidenceText: z.string().min(1).optional(),
+  revealedAt: z.string().min(1),
 });
 
 export const dateSessionStatusSchema = z.enum(["active", "completed", "ended_early"]);
@@ -567,6 +598,7 @@ export const gameSaveSchema = z.object({
   shifts: z.array(shiftStateSchema),
   activeShiftId: z.string().min(1),
   memories: z.array(memoryRecordSchema),
+  playerKnowledge: z.array(playerKnowledgeRecordSchema).default([]),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -620,3 +652,8 @@ export type AiProvider = z.infer<typeof aiProviderSchema>;
 export type AiReasoningLevel = z.infer<typeof aiReasoningLevelSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;
 export type GameSave = z.infer<typeof gameSaveSchema>;
+export type PlayerKnowledgeSubjectKind = z.infer<typeof playerKnowledgeSubjectKindSchema>;
+export type PlayerKnowledgeReadKind = z.infer<typeof playerKnowledgeReadKindSchema>;
+export type PlayerKnowledgeConfidence = z.infer<typeof playerKnowledgeConfidenceSchema>;
+export type PlayerKnowledgeSource = z.infer<typeof playerKnowledgeSourceSchema>;
+export type PlayerKnowledgeRecord = z.infer<typeof playerKnowledgeRecordSchema>;

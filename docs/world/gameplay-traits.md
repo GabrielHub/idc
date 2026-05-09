@@ -6,13 +6,47 @@ Gameplay traits are hidden deterministic tags used by Cupid systems to score mat
 
 Use member fields this way:
 
-- `relationshipNeeds`: visible reasons a member might want a specific kind of date.
-- `preferences`: visible soft clues for good rooms, partners, and pacing.
-- `dealbreakers`: visible icks the member watches for. These are public evidence for hard stops.
+- `datingProfile`: authored profile copy. The first sentence can be public at intake. Later sentences are revealed only through player knowledge.
+- `relationshipNeeds`: authored reasons a member might want a specific kind of date. These are not shown in full at intake.
+- `preferences`: authored soft clues for good rooms, partners, and pacing. These are not shown in full at intake.
+- `dealbreakers`: authored boundaries a member watches for. These are not shown in full at intake.
 - `tags`: hidden deterministic gameplay inputs.
 - `voice`: performance instructions for runtime AI only.
 
 Do not add new member fixture fields unless gameplay or UI reads them. Do not reintroduce `traits` or `redFlags`. `traits` were vague public labels. `redFlags` mixed member behavior with things members reject.
+
+## Player Knowledge And Visibility
+
+The player starts with incomplete case files. `GameSave.playerKnowledge` is the save-owned record of what Cupid has filed for the player. It does not live inside `Member`, because fixture-owned member data can hydrate forward while preserving only member state.
+
+Starting public member information:
+
+- Name, first name, portrait assets, and retained or closed-file state.
+- The focused member's current ask, because it is the active work order.
+- Public profile fragments returned by `buildVisibleMemberProfile`.
+- Redacted dossier blocks that show information exists without putting hidden text in visible UI, search, filters, sort modes, tooltips, aria labels, or hidden DOM text.
+
+Gated member information:
+
+- `species`, `origin`, `dimension`, `realityStatus`, and `bio`.
+- Full `datingProfile`.
+- `relationshipNeeds`, `preferences`, and `dealbreakers`.
+- Exact Mood, Openness, Burnout, and retention.
+
+Never player-facing:
+
+- `secrets`, `tags`, `voice`, model prompts, raw rule hits, fixture indexes, exact stat deltas, and prompt-only labels.
+
+Filed reads are player-facing knowledge, not raw facts. Current read kinds are:
+
+- `profile`: additional public profile context.
+- `comfort`: what helps a member relax or engage.
+- `boundary`: what pressure or behavior crosses a member line.
+- `ask`: whether the focused ask is fitting or blocked by the room.
+- `pair_dynamic`: how this pair reads together.
+- `scenario_pressure`: how the room is affecting the date.
+
+Runtime AI can propose evidence ids only from a bounded reveal candidate packet. Game services validate those ids against authoritative candidates before persistence. Deterministic hard stops can also file or confirm a boundary read. `JudgeSnapshot.usedEvidenceIds` stores only accepted ids so UI can attach filed reads to the Judge note that created them.
 
 ## Hidden Member Retention
 
@@ -26,19 +60,21 @@ Every member needs 3 to 5 hidden tags and exactly one identity tag:
 - Needs and sensitivities: `prophecy_averse`, `privacy_sensitive`, `grief_sensitive`, `memory_sensitive`, `status_sensitive`, `needs_low_pressure`, `needs_clear_plan`, `sincerity_seeking`.
 - Behaviors and pressure sources: `performative`, `attention_seeking`, `avoidant`, `competitive`, `ceremony_minded`, `career_focused`, `weirdness_native`, `reality_displaced`, `anxious_spiral`.
 
-Hidden tags must be supported by visible copy. If a member has `prophecy_averse`, their profile, ask, preferences, or dealbreakers should make prophecy pressure legible without naming the tag.
+Hidden tags must be supported by authored copy. If a member has `prophecy_averse`, their profile, ask, preferences, or dealbreakers should make prophecy pressure legible to services and eventual filed reads without naming the tag.
 
 ## Match Fit
 
 The match fit service scores a pair, a scenario, pair history, and active member asks. It returns:
 
-- Public signals: `Fit`, `Pressure`, and `Ask`.
+- Internal fit, pressure, and ask signals.
 - Private rule hits for tests and debugging.
 - A starting Date Health delta.
 - A small exchange drift after each judge pass.
 - An optional hard stop.
 
-The player sees only the public signals. Numeric deltas, tag names, and exact rule hits stay hidden.
+The pre-date brief does not show exact fit, pressure, ask, blocked ask copy, named member boundary risks, raw scenario tags, or numeric pair stat meters. Pair visibility comes from prior public notes, filed `pair_dynamic` reads, outcome labels, and nonnumeric follow-up intent copy. Spark, Strain, Relationship Health, tag names, numeric deltas, and exact rule hits stay hidden.
+
+Exact Date Health remains visible during the live date because it is the fail state players must manage. Final reports and public notes must not repeat exact Date Health, exact Date Health deltas, Spark, Strain, Relationship Health, or projected stat math. The saved `statSummary` field remains for schema stability, but its content is player-safe case copy.
 
 ## Member Request Tags
 
@@ -53,19 +89,19 @@ Avoid one-off request tags. If a new request tag is needed, add it to `memberReq
 
 ## Hard Stops
 
-A hard stop fires when a visible dealbreaker has enough deterministic evidence to collapse the date. Examples:
+A hard stop fires when an authored boundary has enough deterministic evidence to collapse the date. Examples:
 
 - Prophecy pressure against a prophecy-averse member.
 - Museum-style public exposure against a privacy-sensitive member.
 - Forced memory intimacy against a grief-sensitive member.
 
-A hard stop ends the date early, sets Date Health to 5, clamps relationship health to 5, raises conflict and strain sharply, and records the reason in the judge snapshot. It is not permanent zero, so future repair systems can still exist.
+A hard stop ends the date early, sets Date Health to 5, clamps relationship health to 5, raises conflict and strain sharply, records the reason in the judge snapshot, and files or confirms a player-facing boundary read. The UI shows the filed read, not the raw tag or rule hit. It is not permanent zero, so future repair systems can still exist.
 
 ## Roster Compatibility And Friction
 
-Members are designed against each other, not in isolation. Every member should have at least two natural warm partners and two natural friction partners in the existing roster, expressed through the visible fields and voice patterns. The match-fit service rewards or penalizes pair-trait combinations deterministically; the LLM reads needs, preferences, dealbreakers, secrets, and refused voice patterns to perform the friction or fit.
+Members are designed against each other, not in isolation. Every member should have at least two natural warm partners and two natural friction partners in the existing roster, expressed through authored profile fields and voice patterns. The match-fit service rewards or penalizes pair-trait combinations deterministically; the LLM reads needs, preferences, dealbreakers, secrets, and refused voice patterns to perform the friction or fit.
 
-Source the compatibility shape from voice and tone, not from a separate compatibility list. If a partner's voice patterns or tics would land on this character's `dealbreakers` or `voice.patternsRefused`, the friction is real. If a partner's preferences would let this character relax their guard, the warmth is real.
+Source the compatibility shape from voice and tone, not from a separate compatibility list. If a partner's voice patterns or tics would land on this character's `dealbreakers` or `voice.patternsRefused`, the friction is real. If a partner's preferences would let this character relax their guard, the warmth is real. The player should learn that shape through the date, filed reads, and notes instead of receiving the full answer key on the roster screen.
 
 ### Warm clusters in the current roster
 
@@ -111,10 +147,10 @@ When adding a member:
 1. Read this whole document and `docs/world/voice.md` first. The interdimensionality framing rule in the voice doc decides who treats interdimensional drift as normal and who treats it as weird. Get this wrong and the comedy breaks.
 2. Read every existing member fixture in `app/fixtures/members/`. Compatibility design cannot happen in isolation.
 3. Identify which warm cluster and which friction zone the new member slots into. If neither, the design is too generic; reshape it.
-4. Write the profile, needs, preferences, and dealbreakers first. At least two preferences should plausibly match the behavior of an existing warm partner. At least two dealbreakers should plausibly trip on an existing friction partner. The match should be readable from the prose alone, not from tag overlap.
-5. Pick 3 to 5 hidden tags that the visible copy proves. Include exactly one identity tag (`ordinary_human` or `non_human`).
+4. Write the profile, needs, preferences, and dealbreakers first. At least two preferences should plausibly match the behavior of an existing warm partner. At least two dealbreakers should plausibly trip on an existing friction partner. The match should be readable from the authored prose when the service sees it, but the player should only receive safe profile fragments and filed reads.
+5. Pick 3 to 5 hidden tags that the authored copy proves. Include exactly one identity tag (`ordinary_human` or `non_human`).
 6. Choose voice `patternsUsed` that the cluster shares and `patternsRefused` that the friction partners use. Patterns refused are how the LLM learns who the character recoils from.
 7. Avoid one-off tags. If a new tag is needed, add deterministic scoring in `app/services/match-fit.ts` and tests in the same change.
 8. Write 15 sample messages across four buckets (`opener`, `warming`, `cooling`, `crashingOut`). The LLM rotates through them deterministically per turn weighted by Date Health.
-9. Keep voice authoring separate from gameplay tags. Voice explains how the character talks; tags decide how the game scores them.
+9. Keep voice authoring separate from gameplay tags and player knowledge. Voice explains how the character talks, tags decide how the game scores them, and filed reads decide what the player has earned.
 10. Update the compatibility map above with the new member's warm and friction anchors.

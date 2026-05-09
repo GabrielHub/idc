@@ -1,6 +1,6 @@
 # Interdimensional Dating Coach (IDC)
 
-You work at Cupid, the agency that books dates between hopefuls from across realities. IDC is a local-first management sim where deterministic TypeScript services own gameplay, while runtime LLMs perform the characters, judge each exchange, and write the memories that build up over time. A vector-indexed memory layer drives scoped RAG into every prompt, and every LLM output is parsed against a Zod schema before it can touch state.
+You work at Cupid, the agency that books dates between hopefuls from across realities. IDC is a local-first management sim where deterministic TypeScript services own gameplay, while runtime LLMs perform the characters, judge each exchange, file player-facing reads, and write the memories that build up over time. A vector-indexed memory layer drives scoped RAG into every prompt, and every LLM output is parsed against a Zod schema before it can touch state.
 
 The app ships as a React Router 7 SPA and as a Tauri 2 desktop shell over the same SPA.
 
@@ -108,5 +108,5 @@ A Vite plugin fails the build if portrait source files land under `public/assets
 - [Visual design](docs/world/visual-design.md): Aura interface direction and Tailwind tokens.
 - [Image style](docs/world/image-style.md): portrait style, prompt construction, cutout pipeline.
 - [Voice](docs/world/voice.md): tone, prose mechanics, and member voice fingerprints.
-- [Gameplay traits](docs/world/gameplay-traits.md): hidden match tags, visible dealbreakers, hard stops.
+- [Gameplay traits](docs/world/gameplay-traits.md): hidden match tags, player knowledge, filed reads, hard stops.
 - [Agent instructions](AGENTS.md): architecture rules, toolchain conventions, copy style, UI rules.

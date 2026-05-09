@@ -17,6 +17,7 @@ import {
   isInterventionActiveForMember,
   lastTriggeredEvent,
 } from "./date-engine";
+import type { RevealCandidate } from "./player-knowledge";
 
 export type CharacterPromptPacket = {
   system: string;
@@ -243,12 +244,14 @@ export function buildJudgePromptPacket({
   pairState,
   exchangeMessages,
   members,
+  revealCandidates,
 }: {
   scenario: DateScenario;
   session: DateSession;
   pairState: PairState;
   exchangeMessages: DateMessage[];
   members: Member[];
+  revealCandidates?: readonly RevealCandidate[];
 }): JudgePromptPacket {
   const system = [
     "You are the IDC Judge.",
@@ -256,6 +259,8 @@ export function buildJudgePromptPacket({
     "Validate game state consequences. Do not perform characters.",
     "Player-facing summaries use Cupid corporate voice.",
   ].join("\n");
+  const candidates = revealCandidates ?? [];
+  const candidateLines = formatRevealCandidatesForPrompt(candidates);
   const messages: ModelMessage[] = [
     {
       role: "user",
@@ -271,8 +276,9 @@ export function buildJudgePromptPacket({
         "notableMoments must contain 1 to 3 short strings.",
         "playerSummary must be one short Cupid corporate sentence.",
         "memoryCandidates must be an empty array.",
+        "usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
         "Do not use em dashes or en dashes in any string.",
-        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
+        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[]}`,
         "",
         `Scenario: ${scenario.title}.`,
         `Participants: ${formatParticipants(members)}.`,
@@ -281,6 +287,7 @@ export function buildJudgePromptPacket({
         `Current Date Health: ${session.dateHealth}.`,
         `Current pair stats: ${JSON.stringify(pairState.stats)}.`,
         "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
+        ...candidateLines,
       ].join("\n"),
     },
     ...buildJudgeThreadMessages(session.judgeSnapshots),
@@ -299,6 +306,27 @@ export function buildJudgePromptPacket({
     prompt: formatPromptPreview(messages),
     messages,
   };
+}
+
+function formatRevealCandidatesForPrompt(candidates: readonly RevealCandidate[]): string[] {
+  if (candidates.length === 0) {
+    return ["", "Reveal candidates: none for this exchange. Return usedEvidenceIds as []."];
+  }
+
+  const lines = [
+    "",
+    "Reveal candidates:",
+    "Use these ids only if the exchange made the evidence matter. Hard stops always count.",
+    "Return at most 3 usedEvidenceIds. Do not invent ids. It is valid to return an empty array.",
+  ];
+
+  for (const candidate of candidates) {
+    lines.push(`- id: ${candidate.id}`);
+    lines.push(`  read: ${candidate.readText}`);
+    lines.push(`  evidence: ${candidate.evidenceText}`);
+  }
+
+  return lines;
 }
 
 export function buildSummarizerPromptPacket({
@@ -325,6 +353,7 @@ export function buildSummarizerPromptPacket({
       "Memory text must be one faithful sentence and must not copy the full transcript.",
       "Preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them.",
       "Do not preserve obvious contradictions, one-off non sequiturs, hidden secrets stated as fact, future events, or gameplay effects unless deterministic state already confirmed them.",
+      "Do not include exact Date Health, Spark, Strain, Health, stat values, or stat deltas in memory text.",
       "Prefer memories that help the pair continue a later conversation over generic compatibility summaries.",
       "Do not use em dashes or en dashes in any string.",
       `Shape: [{"scope":"pair","visibility":"public","subjectIds":["${session.participants[0]}","${session.participants[1]}"],"pairId":"${session.pairId}","scenarioId":"${session.scenarioId}","dateSessionId":"${session.id}","text":"One faithful sentence about the completed date.","tags":["date_summary"],"importance":3}]`,

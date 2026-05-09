@@ -1158,4 +1158,89 @@ describe("AI date engine orchestration", () => {
       expect(prompt).toContain("Vhool opener locked: I hear the cups practicing a hymn.");
     }
   });
+
+  it("validates judge usedEvidenceIds and persists only valid display-safe knowledge", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-reveal-validation-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const promptSeenByJudge: string[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("as Jenna Pike")
+          ? "Jenna asks a grounded coffee question."
+          : "Vhool answers without recruiting anyone.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
+        promptSeenByJudge.push(packet.prompt);
+
+        return judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {},
+          memberMoodDeltas: {
+            "jenna-pike": 0,
+            vhool: 0,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["the date filed nothing notable"],
+          playerSummary: "AI judge filed a quiet exchange.",
+          memoryCandidates: [],
+          usedEvidenceIds: ["fabricated:invented-id"],
+        });
+      },
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await completeDateSessionWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(promptSeenByJudge.length).toBeGreaterThan(0);
+    expect(promptSeenByJudge[0]).toContain("usedEvidenceIds");
+
+    const persistedSnapshots = result.session.judgeSnapshots;
+
+    for (const snapshot of persistedSnapshots) {
+      expect(snapshot.usedEvidenceIds).not.toContain("fabricated:invented-id");
+    }
+
+    for (const record of result.save.playerKnowledge) {
+      expect(record.readId).not.toContain("fabricated");
+    }
+  });
 });

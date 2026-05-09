@@ -88,6 +88,7 @@ export function createSeedGameSave(
     shifts: [activeShift],
     activeShiftId: activeShift.id,
     memories: createStarterMemories(timestamp),
+    playerKnowledge: [],
     createdAt: timestamp,
     updatedAt: timestamp,
   });

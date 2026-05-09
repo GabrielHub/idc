@@ -24,7 +24,7 @@ Rules:
 
 - Active voice.
 - Short, declarative sentences.
-- Treat the absurd as routine: "Vhool's date ended early. Standard cosmic-dread cleanup is on schedule."
+- Treat the absurd as routine: "Vhool's date ended early. Standard cosmic cleanup is on schedule."
 - Treat the routine as a procedure: "Member Mood is below floor. Recommend Repair."
 - KPI energy with the wrong noun: "Match one ordinary human with one obviously non-human member."
 - No exclamation points. No "oops." No mascot voice. No emoji unless the surface already carries them.
@@ -242,7 +242,7 @@ When authoring a new member fixture, define their `voice` block with these five 
 
 A member without a voice block is not ready to ship. The LLM character performer reads this block at prompt time. Vague voice blocks produce house-style mush.
 
-Voice fields do not score gameplay. Use `docs/world/gameplay-traits.md` for hidden match tags, visible dealbreakers, and hard stop authoring. A future member needs both: voice for how they talk, gameplay tags for how Cupid scores the match.
+Voice fields do not score gameplay. Use `docs/world/gameplay-traits.md` for hidden match tags, authored boundaries, filed reads, and hard stop authoring. A future member needs both: voice for how they talk, gameplay tags for how Cupid scores the match, and player knowledge rules for what Cupid may show.
 
 ## Prose Mechanics
 
@@ -329,7 +329,7 @@ Corporate voice. Quarterly KPI energy. The wrong noun does the work.
 
 Corporate voice. Short. Actionable. Treats the supernatural as procedural.
 
-> "Spark up. Strain up more. Repeated scenario noticed by both parties. Recommend Cool Down."
+> "Exchange improved. Repeat room noticed by both parties. Recommend Cool Down."
 
 ### Follow-Up Action Labels
 
@@ -337,15 +337,15 @@ Locked in code: `Encourage`, `Cool Down`, `Repair`, `Mark Bad Fit`. Corporate vo
 
 ### Scenario Card
 
-Premise sentence in corporate voice with a hint of the absurd. Tags are clinical.
+Premise sentence in corporate voice with a hint of the absurd. Raw scenario tags are not player copy. Use broad risk and room context in the UI.
 
-> "Coffee in a cafe where time runs backward. Drinks arrive before orders. Tag: Temporal."
+> "Coffee in a cafe where time runs backward. Drinks arrive before orders. Risk: unusual."
 
 ### End-Of-Shift Report
 
 Corporate voice. Bullet-feel. Treat the wins and the disasters with the same flat tone.
 
-> "Three dates completed. One ended early (cosmic-dread, ambient). Member Mood net positive. One repeat scenario noted. Filing."
+> "Three dates completed. One ended early after room pressure. Member Mood net positive. One repeat scenario noted. Filing."
 
 ### Error State / Load State
 

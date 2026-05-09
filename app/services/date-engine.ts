@@ -41,6 +41,12 @@ import {
   normalizeStarterScenarioId,
 } from "./game-seed";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import {
+  applyJudgeReveals,
+  buildRevealCandidates,
+  filterExchangeEligibleRevealCandidates,
+  selectDeterministicRevealIds,
+} from "./player-knowledge";
 import { applyHeldScenarioToDrawnIds } from "./scenario-powers";
 import {
   pickNextMemberRequestId,
@@ -614,6 +620,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
       message.kind === "character" &&
       exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
   );
+  const pendingRevealMessages = messagesSinceLastJudge(session, transcript);
   const shouldJudgeExchange = shouldJudgePendingExchange({
     currentTurn,
     turnLimit: session.turnLimit,
@@ -650,12 +657,35 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     pairState,
     activeRequests: focusRequest === undefined ? [] : [focusRequest],
   });
-  const judgeSnapshot = applyMatchFitToJudgeSnapshot({
+  const judgeSnapshotBeforeReveals = applyMatchFitToJudgeSnapshot({
     session,
     pairState,
     members,
     judgeSnapshot: deterministicJudgeSnapshot,
     fit: matchFit,
+  });
+  const revealCandidates = buildRevealCandidates({
+    members,
+    scenario,
+    pairState,
+    focusRequest,
+    matchFit,
+  });
+  const eligibleCandidates = filterExchangeEligibleRevealCandidates({
+    candidates: revealCandidates,
+    matchFit,
+    exchangeMessages: pendingRevealMessages,
+    triggeredEventIds: session.eventsTriggered,
+    focusRequest,
+  });
+  const deterministicAcceptedIds = selectDeterministicRevealIds({
+    candidates: eligibleCandidates,
+    matchFit,
+    judgeSnapshot: judgeSnapshotBeforeReveals,
+  });
+  const judgeSnapshot = judgeSnapshotSchema.parse({
+    ...judgeSnapshotBeforeReveals,
+    usedEvidenceIds: deterministicAcceptedIds,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -680,6 +710,14 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     playbackState: nextPlaybackState,
     transcript,
     judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
+  });
+  const revealResult = applyJudgeReveals({
+    save,
+    candidates: eligibleCandidates,
+    acceptedIds: deterministicAcceptedIds,
+    judgeSnapshot,
+    source: matchFit.hardStop !== null ? "hard_stop" : "judge",
+    revealedAt: timestamp,
   });
   const shouldFinish = nextStatus !== "active";
   const completedSession = shouldFinish
@@ -712,6 +750,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     pairStates: replaceById(save.pairStates, finalPairState),
     dateSessions: replaceById(save.dateSessions, completedSession),
     memories: finalMemories,
+    playerKnowledge: revealResult.save.playerKnowledge,
     updatedAt: timestamp,
   });
 
@@ -1261,7 +1300,7 @@ export function judgeExchangeDeterministically({
       pairId: session.pairId,
       scenarioId: scenario.id,
       dateSessionId: session.id,
-      text: `${members[0].name} and ${members[1].name} handled ${scenario.title} with Date Health delta ${dateHealthDelta}.`,
+      text: `${members[0].name} and ${members[1].name} produced a ${formatDateHealthShift(dateHealthDelta)} exchange at ${scenario.title}.`,
       tags: ["date", scenario.card.risk],
       importance: Math.min(5, Math.max(1, Math.abs(dateHealthDelta) >= 6 ? 4 : 2)),
     },
@@ -1306,7 +1345,7 @@ export function finalizeDateSession({
     completedAt,
     outcome,
     summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${finalReportStatusLine(session)}`,
-    statSummary: `Spark ${pairState.stats.spark}. Strain ${pairState.stats.strain}. Health ${pairState.stats.relationshipHealth}.`,
+    statSummary: finalReportCaseSummary(outcome),
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
       `memory-${session.id}-pair`,
@@ -1349,8 +1388,8 @@ export function createDateMemoryRecords(
       pairId: session.pairId,
       scenarioId: scenario.id,
       dateSessionId: session.id,
-      text: `${members[0].name} and ${members[1].name} went to ${scenario.title}. Final Date Health was ${session.dateHealth}.`,
-      tags: ["date_summary", scenario.id],
+      text: `${members[0].name} and ${members[1].name} completed ${scenario.title}. Cupid filed the date as ${formatOutcomeForMemory(session.finalReport?.outcome)}.`,
+      tags: ["date_summary"],
       importance: 4,
       createdAt,
     },
@@ -1377,7 +1416,7 @@ export function createDateMemoryRecords(
       scenarioId: scenario.id,
       dateSessionId: session.id,
       text: `${members[0].firstName} and ${members[1].firstName} have used ${scenario.title}. Repeat bookings should mention that Cupid has a file.`,
-      tags: ["scenario_repeat", scenario.id],
+      tags: ["scenario_repeat"],
       importance: 3,
       createdAt,
     },
@@ -1754,11 +1793,11 @@ function buildJudgeSummary(
   interventionBonus: number,
 ): string {
   if (dateHealthDelta > 4) {
-    return "Spark up. Date Health improved. Cupid may use a normal form.";
+    return "Exchange improved. Cupid may use a normal form.";
   }
 
   if (repeatPenalty < 0) {
-    return "Repeat scenario noticed. Strain up. Procurement has been informed.";
+    return "Repeat room noticed. Procurement has been informed.";
   }
 
   if (interventionBonus > 0) {
@@ -1793,6 +1832,27 @@ export function latestJudgedExchangeIndex(session: DateSession): number {
     (latest, snapshot) => Math.max(latest, snapshot.exchangeIndex),
     -1,
   );
+}
+
+export function messagesSinceLastJudge(
+  session: DateSession,
+  transcript: readonly DateMessage[],
+): DateMessage[] {
+  const lastJudgedExchange = latestJudgedExchangeIndex(session);
+
+  if (lastJudgedExchange < 0) {
+    return transcript.filter((message) => message.sequenceIndex > 0);
+  }
+
+  const judgedSequenceCutoff = transcript
+    .filter(
+      (message) =>
+        message.kind === "character" &&
+        exchangeIndexForTurn(message.turnIndex) <= lastJudgedExchange,
+    )
+    .reduce((latest, message) => Math.max(latest, message.sequenceIndex), 0);
+
+  return transcript.filter((message) => message.sequenceIndex > judgedSequenceCutoff);
 }
 
 export function exchangeIndexForTurn(turnIndex: number): number {
@@ -1980,6 +2040,66 @@ function finalReportStatusLine(session: DateSession): string {
   }
 
   return "Date completed. Cupid has enough data to be annoying.";
+}
+
+function finalReportCaseSummary(outcome: DateFinalReport["outcome"]): string {
+  if (outcome === "second_date") {
+    return "Case read: the pair left with enough mutual signal for a second booking.";
+  }
+
+  if (outcome === "cool_down") {
+    return "Case read: the room ran hot. Give the pair space before the next booking.";
+  }
+
+  if (outcome === "bad_fit") {
+    return "Case read: the mismatch is material. Do not force another room without a new reason.";
+  }
+
+  if (outcome === "early_end") {
+    return "Case read: a boundary ended the date. Repair the client file before rebooking.";
+  }
+
+  return "Case read: the pair produced useful notes but needs a cautious follow-up.";
+}
+
+function formatOutcomeForMemory(outcome: DateFinalReport["outcome"] | undefined): string {
+  if (outcome === "second_date") {
+    return "cleared for a second booking";
+  }
+
+  if (outcome === "cool_down") {
+    return "a cool-down file";
+  }
+
+  if (outcome === "bad_fit") {
+    return "a bad-fit file";
+  }
+
+  if (outcome === "early_end") {
+    return "an early-end incident";
+  }
+
+  return "a mixed case";
+}
+
+function formatDateHealthShift(delta: number): string {
+  if (delta >= 6) {
+    return "strong positive";
+  }
+
+  if (delta >= 2) {
+    return "positive";
+  }
+
+  if (delta <= -6) {
+    return "sharp negative";
+  }
+
+  if (delta <= -2) {
+    return "negative";
+  }
+
+  return "stable";
 }
 
 function replaceDateSession(save: GameSave, session: DateSession, timestamp: string): GameSave {

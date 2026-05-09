@@ -15,6 +15,7 @@ import {
   type MemberRequest,
   type MemoryRecord,
   type PairState,
+  type PlayerKnowledgeRecord,
   type PortraitMood,
   type ScenarioEvent,
   type ShiftState,
@@ -33,7 +34,7 @@ import {
   type GoalProgressSnapshot,
   type MemberQuitRiskStatus,
 } from "../services/date-engine";
-import type { MatchFitPublicSignal } from "../services/match-fit";
+import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import type { ScenarioPowerAvailability } from "../services/scenario-powers";
 import {
   EASE_OUT_QUART,
@@ -41,7 +42,6 @@ import {
   GhostButton,
   Hairline,
   LiveDot,
-  Meter,
   MutedLabel,
   pad2,
   Portrait,
@@ -67,10 +67,10 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
 };
 
 const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
-  encourage: "Spark, chemistry, trust up. Retention nudges up.",
-  cool_down: "Conflict eases, stability up. Retention recovers.",
-  repair: "Trust and stability up, conflict down. Biggest retention bump.",
-  mark_bad_fit: "Chemistry and spark crash. Retention recovers; pair logged.",
+  encourage: "Tell Cupid to pursue the opening while the file is warm.",
+  cool_down: "Give the pair room before the next booking.",
+  repair: "Send a careful follow-up before rebooking pressure returns.",
+  mark_bad_fit: "Close the romantic lane and keep the operational note.",
 };
 
 export type PendingDateAction = "advanceExchange" | "completeDate";
@@ -83,6 +83,7 @@ export type RosterProps = {
   members: Member[];
   featuredMembers: Member[];
   featuredRequests: MemberRequest[];
+  playerKnowledge: PlayerKnowledgeRecord[];
   selectedMemberIds: string[];
   disabled: boolean;
   onSelectFocusMember: (memberId: string) => void;
@@ -90,43 +91,24 @@ export type RosterProps = {
   onContinue: () => void;
 };
 
-type KindFilter = "all" | "human" | "non_human" | "picked";
-type MoodFilter = "in_a_mood" | "cool_customer" | "open_book" | "guarded";
-type SortMode = "default" | "name" | "mood-desc" | "openness-desc";
+type KindFilter = "all" | "picked";
+type SortMode = "default" | "name";
 
 const KIND_FILTERS: { id: KindFilter; label: string }[] = [
   { id: "all", label: "all" },
-  { id: "human", label: "humans" },
-  { id: "non_human", label: "non-humans" },
   { id: "picked", label: "picked" },
 ];
-
-const MOOD_FILTER_DEFS: Record<
-  MoodFilter,
-  { label: string; group: "mood" | "openness"; match: (member: Member) => boolean }
-> = {
-  in_a_mood: { label: "in a mood", group: "mood", match: (m) => m.state.mood < 50 },
-  cool_customer: { label: "cool customer", group: "mood", match: (m) => m.state.mood >= 65 },
-  open_book: { label: "open book", group: "openness", match: (m) => m.state.openness >= 65 },
-  guarded: { label: "guarded", group: "openness", match: (m) => m.state.openness < 50 },
-};
 
 const SORT_MENU: { value: SortMode; label: string }[] = [
   { value: "default", label: "default" },
   { value: "name", label: "by name" },
-  { value: "mood-desc", label: "mood, high to low" },
-  { value: "openness-desc", label: "openness, high to low" },
 ];
-
-function firstSentenceOf(text: string): string {
-  const match = text.match(/^[^.!?]+[.!?]/);
-  return (match ? match[0] : text).trim();
-}
 
 export function RosterView({
   members,
   featuredMembers,
   featuredRequests,
+  playerKnowledge,
   selectedMemberIds,
   disabled,
   onSelectFocusMember,
@@ -136,7 +118,6 @@ export function RosterView({
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
-  const [moodFilters, setMoodFilters] = useState<MoodFilter[]>([]);
   const [sortMode, setSortMode] = useState<SortMode>("default");
 
   const selectedMembers = selectedMemberIds
@@ -152,26 +133,15 @@ export function RosterView({
   const filteredPartners = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     let pool = partnerMembers.filter((member) => {
-      if (kindFilter === "human" && !member.tags.includes("ordinary_human")) return false;
-      if (kindFilter === "non_human" && !member.tags.includes("non_human")) return false;
       if (kindFilter === "picked" && member.id !== partnerMember?.id) return false;
 
-      for (const moodFilter of moodFilters) {
-        if (!MOOD_FILTER_DEFS[moodFilter].match(member)) return false;
-      }
-
       if (query.length > 0) {
+        const profile = buildVisibleMemberProfile(member, playerKnowledge);
         const haystack = [
           member.firstName,
           member.name,
-          member.species,
-          member.origin,
-          member.realityStatus,
-          member.bio,
-          member.datingProfile,
-          ...member.relationshipNeeds,
-          ...member.preferences,
-          ...member.dealbreakers,
+          ...profile.publicFragments,
+          ...profile.revealedReads.map((record) => record.readText),
         ]
           .join(" ")
           .toLowerCase();
@@ -182,14 +152,10 @@ export function RosterView({
 
     if (sortMode === "name") {
       pool = [...pool].sort((a, b) => a.firstName.localeCompare(b.firstName));
-    } else if (sortMode === "mood-desc") {
-      pool = [...pool].sort((a, b) => b.state.mood - a.state.mood);
-    } else if (sortMode === "openness-desc") {
-      pool = [...pool].sort((a, b) => b.state.openness - a.state.openness);
     }
 
     return pool;
-  }, [partnerMembers, searchQuery, kindFilter, moodFilters, sortMode, partnerMember?.id]);
+  }, [partnerMembers, searchQuery, kindFilter, sortMode, partnerMember?.id, playerKnowledge]);
 
   const openMember =
     openMemberId === null ? null : (members.find((m) => m.id === openMemberId) ?? null);
@@ -207,7 +173,6 @@ export function RosterView({
   function clearFilters() {
     setSearchQuery("");
     setKindFilter("all");
-    setMoodFilters([]);
   }
 
   function handleDossierPick() {
@@ -221,7 +186,7 @@ export function RosterView({
     setOpenMemberId(null);
   }
 
-  const hasActiveFilters = searchQuery.length > 0 || kindFilter !== "all" || moodFilters.length > 0;
+  const hasActiveFilters = searchQuery.length > 0 || kindFilter !== "all";
 
   return (
     <ViewFrame wide>
@@ -239,6 +204,7 @@ export function RosterView({
             <FeaturedCaseCard
               key={member.id}
               member={member}
+              playerKnowledge={playerKnowledge}
               request={request}
               index={index}
               isSelected={selectedMemberIds[0] === member.id}
@@ -267,8 +233,6 @@ export function RosterView({
           onSearchChange={setSearchQuery}
           kindFilter={kindFilter}
           onKindFilterChange={setKindFilter}
-          moodFilters={moodFilters}
-          onMoodFiltersChange={setMoodFilters}
           sortMode={sortMode}
           onSortModeChange={setSortMode}
           totalCount={partnerMembers.length}
@@ -294,6 +258,7 @@ export function RosterView({
                 <PartnerTile
                   key={member.id}
                   member={member}
+                  playerKnowledge={playerKnowledge}
                   index={index}
                   isSelected={selectedMemberIds[1] === member.id}
                   disabled={disabled || focusMember === undefined || !isMemberRetained(member)}
@@ -317,6 +282,7 @@ export function RosterView({
           <MemberDossier
             key={`roster-dossier-${openMember.id}`}
             member={openMember}
+            playerKnowledge={playerKnowledge}
             request={openMemberRequest}
             isSelected={openMemberIsSelected}
             disabled={
@@ -335,6 +301,7 @@ export function RosterView({
 
 function FeaturedCaseCard({
   member,
+  playerKnowledge,
   request,
   index,
   isSelected,
@@ -343,6 +310,7 @@ function FeaturedCaseCard({
   onOpenDossier,
 }: {
   member: Member;
+  playerKnowledge: PlayerKnowledgeRecord[];
   request: MemberRequest | undefined;
   index: number;
   isSelected: boolean;
@@ -351,6 +319,7 @@ function FeaturedCaseCard({
   onOpenDossier: () => void;
 }) {
   const hasQuit = !isMemberRetained(member);
+  const profile = buildVisibleMemberProfile(member, playerKnowledge);
 
   return (
     <motion.li
@@ -435,7 +404,7 @@ function FeaturedCaseCard({
                     &ldquo;{request.text}&rdquo;
                   </p>
                 )}
-                <CaseStatStrip member={member} inverted={isSelected} />
+                <SealedFileSummary profile={profile} inverted={isSelected} hasQuit={hasQuit} />
               </div>
             </div>
           </button>
@@ -471,72 +440,40 @@ function FeaturedCaseCard({
   );
 }
 
-function CaseStatStrip({ member, inverted }: { member: Member; inverted: boolean }) {
-  return (
-    <div className="mt-5 space-y-3">
-      <div className="grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
-        <CaseStat label="Mood" value={member.state.mood} inverted={inverted} tone="rose" />
-        <CaseStat
-          label="Openness"
-          value={member.state.openness}
-          inverted={inverted}
-          tone="violet"
-        />
-        <CaseStat label="Burnout" value={member.state.burnout} inverted={inverted} tone="amber" />
-      </div>
-      <QuitRiskBadge member={member} />
-    </div>
-  );
-}
-
-type CaseStatTone = "rose" | "violet" | "amber";
-
-const CASE_STAT_FILL: Record<CaseStatTone, string> = {
-  rose: "from-aura-rose to-aura-fuchsia",
-  violet: "from-aura-violet to-aura-fuchsia",
-  amber: "from-aura-amber to-aura-rose",
-};
-
-function CaseStat({
-  label,
-  value,
+function SealedFileSummary({
+  profile,
   inverted,
-  tone,
+  hasQuit,
 }: {
-  label: string;
-  value: number;
+  profile: ReturnType<typeof buildVisibleMemberProfile>;
   inverted: boolean;
-  tone: CaseStatTone;
+  hasQuit: boolean;
 }) {
-  const fill = CASE_STAT_FILL[tone];
-  const widthClass = scoreWidthClass(value);
+  const knownCount = profile.revealedReads.length;
+  const sealedCount = profile.redactedBlocks.length;
+  const textColor = inverted ? "text-white/70" : "text-aura-muted";
+  const dotColor = inverted ? "bg-white/70" : "bg-aura-rose";
+
   return (
-    <>
+    <div className="mt-5 flex flex-wrap items-center gap-2">
       <span
-        className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
-          inverted ? "text-white/55" : "text-aura-faint"
+        className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
+          inverted ? "bg-white/10 text-white/75" : "bg-white/65 text-aura-muted"
         }`}
       >
-        {label}
+        <span aria-hidden className={`size-1.5 rounded-full ${dotColor}`} />
+        {hasQuit
+          ? "closed file"
+          : `${sealedCount} sealed ${sealedCount === 1 ? "section" : "sections"}`}
       </span>
-      <span
-        className={`text-right font-mono text-micro font-semibold tabular-nums transition-colors duration-300 ${
-          inverted ? "text-white" : "text-aura-ink"
-        }`}
-      >
-        {value}
-      </span>
-      <span
-        aria-hidden
-        className={`relative block h-1 w-full overflow-hidden rounded-pill transition-colors duration-300 ${
-          inverted ? "bg-white/15" : "bg-aura-hairline"
-        }`}
-      >
+      {knownCount > 0 ? (
         <span
-          className={`aura-bar-fill block h-full rounded-pill bg-gradient-to-r ${fill} ${widthClass}`}
-        />
-      </span>
-    </>
+          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${textColor}`}
+        >
+          {knownCount} filed {knownCount === 1 ? "read" : "reads"}
+        </span>
+      ) : null}
+    </div>
   );
 }
 
@@ -613,6 +550,7 @@ function DossierGlyph() {
 
 function PartnerTile({
   member,
+  playerKnowledge,
   index,
   isSelected,
   disabled,
@@ -620,13 +558,15 @@ function PartnerTile({
   onOpenDossier,
 }: {
   member: Member;
+  playerKnowledge: PlayerKnowledgeRecord[];
   index: number;
   isSelected: boolean;
   disabled: boolean;
   onPick: () => void;
   onOpenDossier: () => void;
 }) {
-  const profileTeaser = firstSentenceOf(member.datingProfile);
+  const profile = buildVisibleMemberProfile(member, playerKnowledge);
+  const profileTeaser = profile.publicFragments[0] ?? "Profile fragment sealed pending evidence.";
   const hasQuit = !isMemberRetained(member);
   return (
     <motion.li
@@ -680,22 +620,7 @@ function PartnerTile({
             </div>
           </div>
           <div className="mt-auto space-y-3 pt-1">
-            <div className="grid grid-cols-[auto_auto_minmax(3rem,1fr)] items-center gap-x-3 gap-y-1.5">
-              <CaseStat label="Mood" value={member.state.mood} inverted={isSelected} tone="rose" />
-              <CaseStat
-                label="Openness"
-                value={member.state.openness}
-                inverted={isSelected}
-                tone="violet"
-              />
-              <CaseStat
-                label="Burnout"
-                value={member.state.burnout}
-                inverted={isSelected}
-                tone="amber"
-              />
-            </div>
-            <QuitRiskBadge member={member} />
+            <SealedFileSummary profile={profile} inverted={isSelected} hasQuit={hasQuit} />
           </div>
         </button>
 
@@ -723,8 +648,6 @@ function DossierFilterRail({
   onSearchChange,
   kindFilter,
   onKindFilterChange,
-  moodFilters,
-  onMoodFiltersChange,
   sortMode,
   onSortModeChange,
   totalCount,
@@ -737,8 +660,6 @@ function DossierFilterRail({
   onSearchChange: (value: string) => void;
   kindFilter: KindFilter;
   onKindFilterChange: (value: KindFilter) => void;
-  moodFilters: MoodFilter[];
-  onMoodFiltersChange: (value: MoodFilter[]) => void;
   sortMode: SortMode;
   onSortModeChange: (value: SortMode) => void;
   totalCount: number;
@@ -747,17 +668,6 @@ function DossierFilterRail({
   hasActiveFilters: boolean;
   onClearFilters: () => void;
 }) {
-  function toggleMood(mood: MoodFilter) {
-    if (moodFilters.includes(mood)) {
-      onMoodFiltersChange(moodFilters.filter((m) => m !== mood));
-      return;
-    }
-    const sameGroup = (Object.keys(MOOD_FILTER_DEFS) as MoodFilter[]).filter(
-      (other) => MOOD_FILTER_DEFS[other].group === MOOD_FILTER_DEFS[mood].group,
-    );
-    onMoodFiltersChange([...moodFilters.filter((existing) => !sameGroup.includes(existing)), mood]);
-  }
-
   return (
     <div className="sticky top-24 z-20 mt-8 lg:top-28">
       <div className="aura-glass-strong rounded-card px-4 py-3.5 lg:px-5">
@@ -792,18 +702,6 @@ function DossierFilterRail({
                 disabled={option.id === "picked" && !partnerPicked}
               >
                 {option.label}
-              </FilterChip>
-            ))}
-          </div>
-          <span aria-hidden className="h-4 w-px bg-aura-hairline-strong/40" />
-          <div
-            role="group"
-            aria-label="Filter by mood and openness"
-            className="flex flex-wrap items-center gap-1"
-          >
-            {(Object.keys(MOOD_FILTER_DEFS) as MoodFilter[]).map((id) => (
-              <FilterChip key={id} active={moodFilters.includes(id)} onClick={() => toggleMood(id)}>
-                {MOOD_FILTER_DEFS[id].label}
               </FilterChip>
             ))}
           </div>
@@ -1002,6 +900,7 @@ function SectionHeader({
 
 function MemberDossier({
   member,
+  playerKnowledge,
   request,
   isSelected,
   disabled,
@@ -1009,6 +908,7 @@ function MemberDossier({
   onPick,
 }: {
   member: Member;
+  playerKnowledge: PlayerKnowledgeRecord[];
   request: MemberRequest | undefined;
   isSelected: boolean;
   disabled: boolean;
@@ -1016,6 +916,7 @@ function MemberDossier({
   onPick?: () => void;
 }) {
   const hasQuit = !isMemberRetained(member);
+  const profile = buildVisibleMemberProfile(member, playerKnowledge);
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -1061,18 +962,18 @@ function MemberDossier({
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
                   {member.firstName}
                 </h2>
-                <p className="text-lead text-aura-muted">{member.datingProfile}</p>
+                <div className="space-y-2 text-lead text-aura-muted">
+                  {profile.publicFragments.map((fragment) => (
+                    <p key={fragment}>{fragment}</p>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Meter label="Mood" value={member.state.mood} size="md" />
-              <Meter label="Openness" value={member.state.openness} tone="violet" size="md" />
-              <Meter label="Burnout" value={member.state.burnout} tone="amber" size="md" />
-            </div>
+            <RedactedProfileBlocks blocks={profile.redactedBlocks} />
 
             <DossierBlock eyebrow="// status">
-              <QuitRiskBadge member={member} />
+              {hasQuit ? <QuitRiskBadge member={member} /> : <SealedStatusBadge />}
             </DossierBlock>
 
             {request === undefined ? null : (
@@ -1081,31 +982,12 @@ function MemberDossier({
               </DossierBlock>
             )}
 
-            <DossierBlock eyebrow="// looking for">
-              <ul className="space-y-1.5 text-label text-aura-ink/85">
-                {member.relationshipNeeds.map((need) => (
-                  <li key={need} className="flex gap-3">
-                    <span
-                      aria-hidden
-                      className="mt-1.5 size-1 shrink-0 rounded-full bg-aura-rose"
-                    />
-                    <span>{need}</span>
-                  </li>
-                ))}
-              </ul>
+            <DossierBlock eyebrow="// filed reads">
+              <FiledReadsList
+                reads={profile.revealedReads}
+                emptyText="No player-facing reads filed yet."
+              />
             </DossierBlock>
-
-            {member.preferences.length === 0 ? null : (
-              <DossierBlock eyebrow="// preferences">
-                <p className="text-label text-aura-ink/85">{member.preferences.join(" · ")}</p>
-              </DossierBlock>
-            )}
-
-            {member.dealbreakers.length === 0 ? null : (
-              <DossierBlock eyebrow="// dealbreakers">
-                <p className="text-label text-aura-rose/85">{member.dealbreakers.join(" · ")}</p>
-              </DossierBlock>
-            )}
           </div>
         </div>
 
@@ -1169,6 +1051,82 @@ function DossierBlock({ eyebrow, children }: { eyebrow: string; children: React.
       <div className="mt-2.5">{children}</div>
     </div>
   );
+}
+
+function RedactedProfileBlocks({
+  blocks,
+}: {
+  blocks: ReturnType<typeof buildVisibleMemberProfile>["redactedBlocks"];
+}) {
+  if (blocks.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {blocks.map((block) => (
+        <div key={block.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+            {block.label}
+          </p>
+          <div className="mt-3 space-y-1.5" aria-hidden>
+            {Array.from({ length: block.lineCount }, (_, index) => (
+              <span
+                key={`${block.id}-${index}`}
+                className="block h-2 rounded-pill bg-aura-hairline"
+              />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SealedStatusBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/65 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted shadow-quiet">
+      <span aria-hidden className="size-1.5 rounded-full bg-aura-faint" />
+      operational state sealed
+    </span>
+  );
+}
+
+function FiledReadsList({
+  reads,
+  emptyText,
+}: {
+  reads: readonly PlayerKnowledgeRecord[];
+  emptyText: string;
+}) {
+  if (reads.length === 0) {
+    return <p className="text-label text-aura-muted">{emptyText}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {reads.map((read) => (
+        <li key={read.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+            {readKindLabel(read)}
+          </p>
+          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function readKindLabel(read: PlayerKnowledgeRecord): string {
+  if (read.readKind === "pair_dynamic") {
+    return read.confidence === "confirmed" ? "confirmed pair read" : "filed pair read";
+  }
+
+  if (read.readKind === "scenario_pressure") {
+    return read.confidence === "confirmed" ? "confirmed room read" : "filed room read";
+  }
+
+  return read.confidence === "confirmed" ? `confirmed ${read.readKind}` : `filed ${read.readKind}`;
 }
 
 function SelectionBar({
@@ -1247,11 +1205,10 @@ export type BriefProps = {
   selectedMembers: Member[];
   scenarios: DateScenario[];
   selectedScenario: DateScenario | undefined;
+  playerKnowledge: PlayerKnowledgeRecord[];
   pairState: PairState | null;
   pairNote: string | null;
   previousFile: PreviousFile | null;
-  fitSignal: MatchFitPublicSignal | null;
-  riskNotes: string[];
   goals: CompanyGoal[];
   goalProgress: GoalProgressSnapshot[];
   requests: MemberRequest[];
@@ -1304,11 +1261,10 @@ export function BriefView({
   selectedMembers,
   scenarios,
   selectedScenario,
+  playerKnowledge,
   pairState,
   pairNote,
   previousFile,
-  fitSignal,
-  riskNotes,
   goals,
   goalProgress,
   requests,
@@ -1342,6 +1298,12 @@ export function BriefView({
   }
 
   const [first, second] = selectedMembers;
+  const pairReads =
+    pairState === null
+      ? []
+      : playerKnowledge.filter(
+          (record) => record.subjectKind === "pair" && record.subjectId === pairState.id,
+        );
   const openMember =
     openMemberId === null ? null : (members.find((m) => m.id === openMemberId) ?? null);
   const openMemberRequest =
@@ -1365,6 +1327,7 @@ export function BriefView({
           first={first}
           second={second}
           pairState={pairState}
+          pairReads={pairReads}
           note={pairNote}
           previousFile={previousFile}
           onMemberClick={setOpenMemberId}
@@ -1399,8 +1362,6 @@ export function BriefView({
 
       <BriefDock
         selectedScenario={selectedScenario}
-        fitSignal={fitSignal}
-        riskNotes={riskNotes}
         canStart={canStart}
         localAiStatus={localAiStatus}
         isActionPending={isActionPending}
@@ -1413,6 +1374,7 @@ export function BriefView({
           <MemberDossier
             key={`brief-dossier-${openMember.id}`}
             member={openMember}
+            playerKnowledge={playerKnowledge}
             request={openMemberRequest}
             isSelected={selectedMembers.some((m) => m.id === openMember.id)}
             disabled={false}
@@ -1451,8 +1413,6 @@ function BriefHeader({
 
 function BriefDock({
   selectedScenario,
-  fitSignal,
-  riskNotes,
   canStart,
   localAiStatus,
   isActionPending,
@@ -1460,8 +1420,6 @@ function BriefDock({
   onRetryLocalAi,
 }: {
   selectedScenario: DateScenario | undefined;
-  fitSignal: MatchFitPublicSignal | null;
-  riskNotes: string[];
   canStart: boolean;
   localAiStatus: LocalAiBriefStatus;
   isActionPending: boolean;
@@ -1487,14 +1445,6 @@ function BriefDock({
       ? "Checking AI"
       : "Begin date";
   const dotTone = localAiStatus.status === "ready" ? "rose" : "amber";
-  const fallbackRiskNote = briefRiskNote(fitSignal);
-  const dockRiskNotes =
-    riskNotes.length > 0
-      ? riskNotes.slice(0, 2)
-      : fallbackRiskNote === null
-        ? []
-        : [fallbackRiskNote];
-
   return (
     <motion.div
       initial={{ y: 80, opacity: 0 }}
@@ -1510,19 +1460,11 @@ function BriefDock({
               {statusLabel}
             </p>
             <p className="truncate text-body font-semibold text-aura-ink">{statusText}</p>
-            {dockRiskNotes.length === 0 ? null : (
-              <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-                why this is dangerous
-              </p>
-            )}
-            {dockRiskNotes.map((note) => (
-              <p key={note} className="mt-1 max-w-md text-label leading-snug text-aura-muted">
-                {note}
-              </p>
-            ))}
+            <p className="mt-1 max-w-md text-label leading-snug text-aura-muted">
+              Forecast pending. The Judge needs an actual exchange before filing a read.
+            </p>
           </div>
         </div>
-        <FitSignalStrip signal={fitSignal} />
         <div className="flex shrink-0 items-center gap-2">
           {localAiStatus.status === "unavailable" ? (
             <GhostButton disabled={isActionPending} onClick={onRetryLocalAi}>
@@ -1539,106 +1481,11 @@ function BriefDock({
   );
 }
 
-function briefRiskNote(signal: MatchFitPublicSignal | null): string | null {
-  if (signal === null) {
-    return null;
-  }
-
-  if (signal.askSignal === "blocked") {
-    return "Ask blocked. Expect strain or an early report.";
-  }
-
-  if (signal.fitLevel === "risky") {
-    return "Risky fit. Watch the first exchange closely.";
-  }
-
-  if (signal.pressureLevel === "high") {
-    return "High pressure room. Good pairs can still file bruises.";
-  }
-
-  return null;
-}
-
-const FIT_SIGNAL_LABELS: Record<MatchFitPublicSignal["fitLevel"], string> = {
-  strong: "strong",
-  neutral: "neutral",
-  risky: "risky",
-};
-
-const PRESSURE_SIGNAL_LABELS: Record<MatchFitPublicSignal["pressureLevel"], string> = {
-  low: "low",
-  medium: "medium",
-  high: "high",
-};
-
-const ASK_SIGNAL_LABELS: Record<MatchFitPublicSignal["askSignal"], string> = {
-  covered: "covered",
-  uncertain: "unclear",
-  blocked: "blocked",
-  none: "none",
-};
-
-function FitSignalStrip({ signal }: { signal: MatchFitPublicSignal | null }) {
-  if (signal === null) {
-    return null;
-  }
-
-  return (
-    <ul className="flex flex-wrap items-center gap-2">
-      <FitSignalPill
-        label="fit"
-        value={FIT_SIGNAL_LABELS[signal.fitLevel]}
-        tone={signal.fitLevel}
-      />
-      <FitSignalPill
-        label="pressure"
-        value={PRESSURE_SIGNAL_LABELS[signal.pressureLevel]}
-        tone={signal.pressureLevel}
-      />
-      <FitSignalPill
-        label="ask"
-        value={ASK_SIGNAL_LABELS[signal.askSignal]}
-        tone={signal.askSignal}
-      />
-    </ul>
-  );
-}
-
-function FitSignalPill({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone:
-    | MatchFitPublicSignal["fitLevel"]
-    | MatchFitPublicSignal["pressureLevel"]
-    | MatchFitPublicSignal["askSignal"];
-}) {
-  const toneClass =
-    tone === "strong" || tone === "low" || tone === "covered"
-      ? "text-emerald-700"
-      : tone === "risky" || tone === "high" || tone === "blocked"
-        ? "text-aura-rose"
-        : "text-aura-muted";
-
-  return (
-    <li className="rounded-pill bg-white/65 px-2.5 py-1 ring-1 ring-aura-hairline">
-      <span className="font-mono text-xs font-semibold uppercase tracking-[0.18em] text-aura-faint">
-        {label}{" "}
-      </span>
-      <span className={`font-mono text-xs font-semibold uppercase tracking-[0.18em] ${toneClass}`}>
-        {value}
-      </span>
-    </li>
-  );
-}
-
 function PairStage({
   first,
   second,
   pairState,
+  pairReads,
   note,
   previousFile,
   onMemberClick,
@@ -1646,6 +1493,7 @@ function PairStage({
   first: Member;
   second: Member;
   pairState: PairState | null;
+  pairReads: PlayerKnowledgeRecord[];
   note: string | null;
   previousFile: PreviousFile | null;
   onMemberClick: (memberId: string) => void;
@@ -1671,10 +1519,11 @@ function PairStage({
       <PreviousFileLine previousFile={previousFile} />
 
       {pairState === null ? null : (
-        <div className="mx-auto mt-10 grid max-w-lg grid-cols-3 gap-8">
-          <Meter label="Spark" value={pairState.stats.spark} />
-          <Meter label="Strain" value={pairState.stats.strain} tone="amber" />
-          <Meter label="Health" value={pairState.stats.relationshipHealth} tone="emerald" />
+        <div className="mx-auto mt-8 max-w-xl">
+          <FiledReadsList
+            reads={pairReads}
+            emptyText="No pair reads filed yet. Cupid will wait for evidence, despite visible discomfort from the dashboard."
+          />
         </div>
       )}
     </div>
@@ -1973,17 +1822,6 @@ function FeaturedScenarioCard({
         <p className="mt-4 max-w-2xl text-body leading-relaxed text-aura-ink/85">
           {scenario.publicBrief.premise}
         </p>
-
-        <div className="mt-6 flex flex-wrap gap-1.5">
-          {scenario.card.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-pill bg-white/65 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted"
-            >
-              {tag.replaceAll("_", " ")}
-            </span>
-          ))}
-        </div>
 
         <div className="mt-7 flex items-center gap-3 border-t border-aura-hairline pt-5">
           <span
@@ -2318,6 +2156,7 @@ export type DateProps = {
   session: DateSession;
   scenario: DateScenario | undefined;
   members: Member[];
+  playerKnowledge: PlayerKnowledgeRecord[];
   interventionText: string;
   interventionTargetMemberId: string;
   canAdvance: boolean;
@@ -2353,6 +2192,7 @@ export function DateView({
   session,
   scenario,
   members,
+  playerKnowledge,
   interventionText,
   interventionTargetMemberId,
   canAdvance,
@@ -2372,7 +2212,13 @@ export function DateView({
   onTogglePlayback,
   onBack,
 }: DateProps) {
-  const transcript = buildTranscriptItems(session, members, scenario, streamingDrafts);
+  const transcript = buildTranscriptItems(
+    session,
+    members,
+    scenario,
+    streamingDrafts,
+    playerKnowledge,
+  );
   const displayedCurrentTurn = Math.max(
     session.currentTurn,
     ...streamingDrafts.map((draft) => draft.turnIndex),
@@ -2454,6 +2300,7 @@ export function DateView({
           <FinalReportPanel
             report={session.finalReport}
             session={session}
+            playerKnowledge={playerKnowledge}
             isActionPending={isActionPending}
             onFollowUp={onFollowUp}
           />
@@ -2580,6 +2427,7 @@ type TranscriptItem = {
   label: string;
   text: string;
   tone: "member" | "scenario" | "cupid" | "system" | "judge";
+  reveals?: PlayerKnowledgeRecord[];
   member?: Member;
   targetName?: string;
   isDraft?: boolean;
@@ -2930,6 +2778,18 @@ function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatS
         <p className="mt-0.5 text-center text-label leading-snug text-emerald-900/80">
           {item.text}
         </p>
+        {item.reveals === undefined || item.reveals.length === 0 ? null : (
+          <ul className="mt-2 space-y-1.5 border-t border-emerald-500/15 pt-2">
+            {item.reveals.map((read) => (
+              <li key={read.id} className="text-left">
+                <p className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  {readKindLabel(read)}
+                </p>
+                <p className="text-label leading-snug text-emerald-950/80">{read.readText}</p>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </motion.li>
   );
@@ -2985,16 +2845,19 @@ function CupidStatusPill({ label, leading }: { label: string; leading: React.Rea
 function FinalReportPanel({
   report,
   session,
+  playerKnowledge,
   isActionPending,
   onFollowUp,
 }: {
   report: DateFinalReport;
   session: DateSession;
+  playerKnowledge: PlayerKnowledgeRecord[];
   isActionPending: boolean;
   onFollowUp: (action: FollowUpAction) => void;
 }) {
   const followUpKeys = Object.keys(FOLLOW_UP_LABELS) as FollowUpAction[];
   const sentimentBadge = describeEndSentiment(session);
+  const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -3013,6 +2876,12 @@ function FinalReportPanel({
       </div>
       <p className="mt-3 max-w-2xl text-lead text-aura-ink">{report.summary}</p>
       <p className="mt-2 max-w-2xl text-label text-aura-muted">{report.statSummary}</p>
+      <div className="mt-5 max-w-2xl">
+        <Eyebrow>// filed reads</Eyebrow>
+        <div className="mt-3">
+          <FiledReadsList reads={revealedThisDate} emptyText="No new reads filed from this date." />
+        </div>
+      </div>
       <p className="mt-4 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
         Recommended follow-up:{" "}
         <span className="text-aura-rose">{FOLLOW_UP_LABELS[report.recommendedFollowUp]}</span>
@@ -4578,8 +4447,9 @@ function FeaturedNoteCard({
     memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
   const title = noteCardTitle(memory, pairMembers, scenario);
   const subhead = noteCardSubhead(memory, scenario);
-  const { lead, tail } = splitNoteLead(memory.text);
+  const { lead, tail } = splitNoteLead(playerSafeMemoryText(memory.text));
   const caseNumber = caseNumberFor(memory);
+  const tagLabels = visibleMemoryTagLabels(memory);
 
   return (
     <motion.article
@@ -4651,15 +4521,15 @@ function FeaturedNoteCard({
             {tail === "" ? null : (
               <p className="mt-4 max-w-prose text-body leading-relaxed text-aura-ink/80">{tail}</p>
             )}
-            {memory.tags.length === 0 ? null : (
+            {tagLabels.length === 0 ? null : (
               <ul className="mt-5 flex flex-wrap gap-1.5">
-                {memory.tags.map((tag) => (
+                {tagLabels.map((tag) => (
                   <li
                     key={tag}
                     className="rounded-pill bg-white/70 px-2.5 py-1 ring-1 ring-aura-hairline"
                   >
                     <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
-                      {tag.replace(/_/g, " ")}
+                      {tag}
                     </span>
                   </li>
                 ))}
@@ -4706,8 +4576,9 @@ function NoteCard({
     memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
   const title = noteCardTitle(memory, pairMembers, scenario);
   const subhead = noteCardSubhead(memory, scenario);
-  const { lead, tail } = splitNoteLead(memory.text);
+  const { lead, tail } = splitNoteLead(playerSafeMemoryText(memory.text));
   const caseNumber = caseNumberFor(memory);
+  const tagLabels = visibleMemoryTagLabels(memory);
 
   return (
     <motion.li
@@ -4784,25 +4655,25 @@ function NoteCard({
           </div>
 
           <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-aura-hairline pt-3">
-            {memory.tags.length === 0 ? (
+            {tagLabels.length === 0 ? (
               <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
                 no tags filed
               </span>
             ) : (
               <ul className="flex flex-wrap gap-1.5">
-                {memory.tags.slice(0, 3).map((tag) => (
+                {tagLabels.slice(0, 3).map((tag) => (
                   <li
                     key={tag}
                     className="rounded-pill bg-white/70 px-2 py-0.5 ring-1 ring-aura-hairline"
                   >
                     <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-muted">
-                      {tag.replace(/_/g, " ")}
+                      {tag}
                     </span>
                   </li>
                 ))}
-                {memory.tags.length > 3 ? (
+                {tagLabels.length > 3 ? (
                   <li className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-                    +{memory.tags.length - 3}
+                    +{tagLabels.length - 3}
                   </li>
                 ) : null}
               </ul>
@@ -4956,6 +4827,42 @@ function NotesEmptyTile({
 function isPlayerVisibleNote(memory: MemoryRecord): boolean {
   if (memory.visibility !== "public") return false;
   return memory.scope === "pair" || memory.scope === "date" || memory.scope === "scenario";
+}
+
+const MEMORY_TAG_LABELS: Record<string, string> = {
+  date: "date",
+  date_summary: "date summary",
+  ai_summary: "AI filing",
+  fallback_summary: "fallback filing",
+  scenario_repeat: "repeat room",
+  low: "low risk",
+  medium: "medium risk",
+  high: "high risk",
+};
+
+function visibleMemoryTagLabels(memory: MemoryRecord): string[] {
+  const labels: string[] = [];
+
+  for (const tag of memory.tags) {
+    const label = MEMORY_TAG_LABELS[tag];
+
+    if (label === undefined || labels.includes(label)) {
+      continue;
+    }
+
+    labels.push(label);
+  }
+
+  return labels;
+}
+
+function playerSafeMemoryText(text: string): string {
+  return text
+    .replace(/\bFinal Date Health was \d+\.?/giu, "Cupid filed a nonnumeric comfort note.")
+    .replace(/\bwith Date Health delta [-+]?\d+\.?/giu, "with a filed comfort movement.")
+    .replace(/\bSpark \d+\.?\s*/giu, "")
+    .replace(/\bStrain \d+\.?\s*/giu, "")
+    .replace(/\bHealth \d+\.?\s*/giu, "");
 }
 
 function sortMemoriesNewestFirst(first: MemoryRecord, second: MemoryRecord): number {
@@ -5169,6 +5076,7 @@ export function buildTranscriptItems(
   members: Member[],
   scenario: DateScenario | undefined,
   streamingDrafts: StreamingDraftMessage[],
+  playerKnowledge: PlayerKnowledgeRecord[] = [],
 ): TranscriptItem[] {
   const messageItems: TranscriptItem[] = session.transcript.map((message) => {
     if (message.kind === "character") {
@@ -5202,13 +5110,18 @@ export function buildTranscriptItems(
       lastSequenceByExchange.set(exchangeIndex, message.sequenceIndex);
     }
   }
-  const judgeItems: TranscriptItem[] = session.judgeSnapshots.map((snapshot) => ({
-    id: `turn-judge-${snapshot.exchangeIndex}`,
-    order: (lastSequenceByExchange.get(snapshot.exchangeIndex) ?? 0) * 10 + 5,
-    label: "Judge note",
-    tone: "judge",
-    text: snapshot.playerSummary,
-  }));
+  const judgeItems: TranscriptItem[] = session.judgeSnapshots.map((snapshot) => {
+    const reveals = playerKnowledge.filter((record) => record.judgeSnapshotId === snapshot.id);
+
+    return {
+      id: `turn-judge-${snapshot.exchangeIndex}`,
+      order: (lastSequenceByExchange.get(snapshot.exchangeIndex) ?? 0) * 10 + 5,
+      label: "Judge note",
+      tone: "judge",
+      text: snapshot.playerSummary,
+      reveals,
+    };
+  });
   const committedSequenceIndexes = new Set(
     session.transcript.map((message) => message.sequenceIndex),
   );
