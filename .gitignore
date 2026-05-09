@@ -1,18 +1,51 @@
+# OS and editor noise
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Local secrets and machine-specific config
 .env
+.env.*
+!.env.example
+!.env.*.example
+.npmrc
+.pnpmrc
+*.local
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.mobileprovision
+*.provisionprofile
+
+# Agent and browser automation output
 /.claude/
 /.playwright-cli/
 /.playwright-mcp/
+/playwright/
+
+# Dependencies and package-manager caches
 /node_modules/
-/playwright/artifacts/
-/playwright/logs/
-/playwright/screenshots/
+/.pnpm-store/
+
+# Test and coverage output
+/coverage/
+/.vitest/
+/test-results/
+/playwright-report/
 
 # React Router
 /.react-router/
 /build/
+/.vite/
+
+# IDC local runtime output
 /.idc-data/
 /output/
+*.log
 
 # Tauri
 /src-tauri/target/

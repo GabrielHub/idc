@@ -2513,7 +2513,7 @@ function DateHeader({
           ? "rose"
           : "amber";
   const isDrafting = session.playbackState === "drafting";
-  const positionClass = isDrafting ? "relative mb-6" : "sticky top-16 mb-2 lg:top-20 lg:mb-3";
+  const positionClass = isDrafting ? "relative mb-6" : "sticky top-24 mb-2 lg:top-28 lg:mb-3";
   const memberLine = participants.map((m) => m.firstName).join(" / ");
   const locationLine = scenario?.publicBrief.location;
 
@@ -2615,7 +2615,7 @@ function DateStandeeFrame({
           speaking={rightSpeaking}
           listening={listening && !leftSpeaking}
           reactions={reactions.filter((reaction) => reaction.side === "right")}
-          className="absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72"
+          className="absolute top-40 left-full ml-3 h-[72vh] w-56 lg:top-44 2xl:ml-8 2xl:w-72"
         />
       </div>
     </div>
@@ -3246,6 +3246,7 @@ function DateFooter({
   const isPaused = session.playbackState === "paused";
   const interventionSlotAvailable = canAddCupidIntervention(session);
   const interventionDisabled = !canAdvance || !interventionSlotAvailable;
+  const nudgeButtonEnabled = isPaused && !interventionDisabled;
   const isStreaming = pendingDateAction !== null;
   const playbackBusy = !isPlaying && isStreaming;
   const togglePlayback = () => onTogglePlayback(isPlaying ? "paused" : "playing");
@@ -3257,6 +3258,25 @@ function DateFooter({
     canAdvance &&
     scenario !== undefined &&
     picks.some((eventId) => !session.eventsTriggered.includes(eventId));
+
+  const [composerOpen, setComposerOpen] = useState(false);
+
+  // Auto-close the composer if conditions change out from under it.
+  useEffect(() => {
+    if (composerOpen && !nudgeButtonEnabled) {
+      setComposerOpen(false);
+    }
+  }, [composerOpen, nudgeButtonEnabled]);
+
+  const openComposer = () => {
+    if (!nudgeButtonEnabled) return;
+    setComposerOpen(true);
+  };
+  const closeComposer = () => setComposerOpen(false);
+  const fileNudge = () => {
+    onIntervene();
+    setComposerOpen(false);
+  };
 
   // Space bar toggles playback when no input is focused. Director's instinct beats clicking.
   const playbackHandlerRef = useRef<() => void>(() => undefined);
@@ -3283,60 +3303,73 @@ function DateFooter({
   }, []);
 
   return (
-    <motion.footer
-      data-date-footer
-      initial={{ y: 60, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
-    >
-      <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-5xl items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
-        <StatusGauges
-          dateHealth={session.dateHealth}
-          displayedCurrentTurn={displayedCurrentTurn}
-          turnLimit={session.turnLimit}
-          judgePasses={session.judgeSnapshots.length}
-          nudgesRemaining={nudgesRemaining}
-          picks={picks}
-          eventsTriggered={session.eventsTriggered}
-          scenario={scenario}
-          dropsEnabled={dropsEnabled}
-          onTriggerEvent={onTriggerEvent}
-        />
-        <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline lg:block" />
-        <div className="flex min-w-0 flex-1 items-center">
-          {isPaused ? (
-            <NudgeComposer
-              participants={participants}
-              recipientId={interventionTargetMemberId}
-              text={interventionText}
-              suggestions={nudgeSuggestions}
-              disabled={interventionDisabled}
-              canIntervene={canIntervene}
-              slotAvailable={interventionSlotAvailable}
-              onTextChange={onInterventionTextChange}
-              onRecipientChange={onInterventionTargetChange}
-              onFile={onIntervene}
-            />
-          ) : (
-            <PlaybackBanner pendingDateAction={pendingDateAction} />
-          )}
+    <>
+      <motion.footer
+        data-date-footer
+        initial={{ y: 60, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
+        className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
+      >
+        <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-5xl items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
+          <StatusGauges
+            dateHealth={session.dateHealth}
+            displayedCurrentTurn={displayedCurrentTurn}
+            turnLimit={session.turnLimit}
+            judgePasses={session.judgeSnapshots.length}
+            nudgesRemaining={nudgesRemaining}
+            nudgeButtonEnabled={nudgeButtonEnabled}
+            onComposeNudge={openComposer}
+            picks={picks}
+            eventsTriggered={session.eventsTriggered}
+            scenario={scenario}
+            dropsEnabled={dropsEnabled}
+            onTriggerEvent={onTriggerEvent}
+          />
+          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline lg:block" />
+          <div className="flex min-w-0 flex-1 items-center">
+            {isPaused ? (
+              <PausedBanner
+                interventionSlotAvailable={interventionSlotAvailable}
+                dropsEnabled={dropsEnabled}
+              />
+            ) : (
+              <PlaybackBanner pendingDateAction={pendingDateAction} />
+            )}
+          </div>
+          <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
+          <TransportCluster
+            isPlaying={isPlaying}
+            isPaused={isPaused}
+            isStreaming={isStreaming}
+            playbackBusy={playbackBusy}
+            canAdvance={canAdvance}
+            pendingDateAction={pendingDateAction}
+            onAdvance={onAdvance}
+            onComplete={onComplete}
+            onCancel={onCancel}
+            onTogglePlayback={togglePlayback}
+          />
         </div>
-        <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
-        <TransportCluster
-          isPlaying={isPlaying}
-          isPaused={isPaused}
-          isStreaming={isStreaming}
-          playbackBusy={playbackBusy}
-          canAdvance={canAdvance}
-          pendingDateAction={pendingDateAction}
-          onAdvance={onAdvance}
-          onComplete={onComplete}
-          onCancel={onCancel}
-          onTogglePlayback={togglePlayback}
-        />
-      </div>
-    </motion.footer>
+      </motion.footer>
+      <AnimatePresence>
+        {composerOpen ? (
+          <NudgeComposerModal
+            key="nudge-composer-modal"
+            participants={participants}
+            recipientId={interventionTargetMemberId}
+            text={interventionText}
+            suggestions={nudgeSuggestions}
+            nudgesRemaining={nudgesRemaining}
+            canIntervene={canIntervene}
+            onTextChange={onInterventionTextChange}
+            onRecipientChange={onInterventionTargetChange}
+            onFile={fileNudge}
+            onClose={closeComposer}
+          />
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -3350,6 +3383,8 @@ function StatusGauges({
   turnLimit,
   judgePasses,
   nudgesRemaining,
+  nudgeButtonEnabled,
+  onComposeNudge,
   picks,
   eventsTriggered,
   scenario,
@@ -3361,6 +3396,8 @@ function StatusGauges({
   turnLimit: number;
   judgePasses: number;
   nudgesRemaining: number;
+  nudgeButtonEnabled: boolean;
+  onComposeNudge: () => void;
   picks: string[];
   eventsTriggered: string[];
   scenario: DateScenario | undefined;
@@ -3375,7 +3412,11 @@ function StatusGauges({
       <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
       <JudgeGauge passes={judgePasses} />
       <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
-      <NudgeGauge remaining={nudgesRemaining} />
+      <NudgeGauge
+        remaining={nudgesRemaining}
+        enabled={nudgeButtonEnabled}
+        onCompose={onComposeNudge}
+      />
       {picks.length > 0 ? (
         <>
           <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
@@ -3478,17 +3519,51 @@ function JudgeGauge({ passes }: { passes: number }) {
   );
 }
 
-function NudgeGauge({ remaining }: { remaining: number }) {
+function NudgeGauge({
+  remaining,
+  enabled,
+  onCompose,
+}: {
+  remaining: number;
+  enabled: boolean;
+  onCompose: () => void;
+}) {
   const total = MAX_NUDGES_PER_DATE;
-  const tipMessage =
-    remaining === 0
+  const tipMessage = enabled
+    ? `Whisper a nudge. ${remaining} of ${total} left.`
+    : remaining === 0
       ? "Every nudge slot used."
-      : `${remaining} of ${total} ${remaining === 1 ? "nudge" : "nudges"} left.`;
+      : `${remaining} of ${total} ${remaining === 1 ? "nudge" : "nudges"} left. Pause to whisper.`;
 
   return (
     <Tooltip placement="top-center" message={tipMessage}>
-      <GaugeColumn>
-        <GaugeLabel>Nudges</GaugeLabel>
+      <button
+        type="button"
+        data-sfx={enabled ? "click" : undefined}
+        disabled={!enabled}
+        onClick={onCompose}
+        aria-label={tipMessage}
+        className="group -mx-1.5 -my-1 flex cursor-pointer flex-col items-start gap-1.5 rounded-chip px-1.5 py-1 transition disabled:cursor-not-allowed enabled:hover:bg-white/55 enabled:hover:shadow-quiet"
+      >
+        <GaugeLabel>
+          <span className="inline-flex items-center gap-1">
+            <span>Nudges</span>
+            <svg
+              viewBox="0 0 8 8"
+              aria-hidden
+              className="size-2 text-aura-rose/60 opacity-0 transition group-enabled:group-hover:opacity-100"
+            >
+              <path
+                d="M1.5 4 H6 M4.2 1.8 L6.4 4 L4.2 6.2"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </GaugeLabel>
         <span className="inline-flex items-center gap-1">
           {Array.from({ length: total }).map((_, index) => {
             const filled = index < remaining;
@@ -3497,7 +3572,7 @@ function NudgeGauge({ remaining }: { remaining: number }) {
                 key={`nudge-pip-${index}`}
                 viewBox="0 0 12 12"
                 aria-hidden
-                className={`size-3 transition ${filled ? "text-aura-rose" : "text-aura-rose/25"}`}
+                className={`size-3 transition ${filled ? "text-aura-rose group-enabled:group-hover:scale-110" : "text-aura-rose/25"}`}
               >
                 <path
                   d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
@@ -3507,7 +3582,7 @@ function NudgeGauge({ remaining }: { remaining: number }) {
             );
           })}
         </span>
-      </GaugeColumn>
+      </button>
     </Tooltip>
   );
 }
@@ -3585,42 +3660,59 @@ function ScenesGauge({
 }
 
 /* ------------------------------------------------------------------ */
-/* Director's slate: nudge composer                                   */
+/* Director's slate: nudge composer modal                             */
 /* ------------------------------------------------------------------ */
 
-function NudgeComposer({
+const NUDGE_MAX_CHARS = 240;
+
+function NudgeComposerModal({
   participants,
   recipientId,
   text,
   suggestions,
-  disabled,
+  nudgesRemaining,
   canIntervene,
-  slotAvailable,
   onTextChange,
   onRecipientChange,
   onFile,
+  onClose,
 }: {
   participants: Member[];
   recipientId: string;
   text: string;
   suggestions: string[];
-  disabled: boolean;
+  nudgesRemaining: number;
   canIntervene: boolean;
-  slotAvailable: boolean;
   onTextChange: (text: string) => void;
   onRecipientChange: (memberId: string) => void;
   onFile: () => void;
+  onClose: () => void;
 }) {
-  const [focused, setFocused] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const recipient = participants.find((member) => member.id === recipientId);
   const recipientName = recipient?.firstName ?? "one";
-  const placeholder = slotAvailable
-    ? `whisper into ${recipientName}'s ear`
-    : "every nudge slot used.";
   const sendDisabled = !canIntervene || text.trim().length === 0;
-  const swapEnabled = participants.length >= 2 && !disabled;
-  const showSuggestions = focused && !disabled && slotAvailable && suggestions.length > 0;
+  const swapEnabled = participants.length >= 2;
+  const totalSlots = MAX_NUDGES_PER_DATE;
+
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  // Autofocus and place the cursor at the end of any prior draft.
+  useEffect(() => {
+    const node = textareaRef.current;
+    if (node === null) return;
+    node.focus();
+    const length = node.value.length;
+    node.setSelectionRange(length, length);
+  }, []);
 
   const swapRecipient = () => {
     if (!swapEnabled) return;
@@ -3632,98 +3724,252 @@ function NudgeComposer({
   const fileNudge = () => {
     if (sendDisabled) return;
     onFile();
-    inputRef.current?.blur();
   };
 
   return (
-    <div className="relative flex w-full items-center gap-2">
-      <AnimatePresence>
-        {showSuggestions ? (
-          <motion.div
-            key="quick-nudges"
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 4 }}
-            transition={{ duration: 0.18, ease: EASE_OUT_QUART }}
-            className="aura-glass pointer-events-auto absolute inset-x-0 bottom-[calc(100%+10px)] flex flex-wrap items-center gap-1.5 rounded-card px-3 py-2"
-          >
+    <motion.aside
+      key="nudge-composer-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
+      onClick={onClose}
+      className="fixed inset-0 z-40 grid place-items-center bg-aura-bg/55 px-4 py-10 backdrop-blur-xl"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Whisper a nudge to ${recipientName}`}
+        className="aura-glass-strong relative w-full max-w-xl overflow-hidden rounded-card"
+      >
+        <NudgeComposerCloseButton onClose={onClose} />
+        <div className="relative flex flex-col gap-6 px-7 py-7 lg:px-9 lg:py-8">
+          <header className="flex flex-col gap-3">
+            <Eyebrow>{"// nudge.compose"}</Eyebrow>
+            <h2 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink lg:text-display-md">
+              Whisper to {recipientName}
+            </h2>
+            <p className="aura-accent text-lead text-aura-muted">
+              One slip, then they hear it. They will not know it came from you.
+            </p>
+          </header>
+
+          <div className="flex flex-wrap items-center gap-3">
             <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-              quick nudges
+              to
             </span>
-            {suggestions.map((suggestion) => (
-              <button
-                key={suggestion}
-                type="button"
-                data-sfx="click"
-                onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  onTextChange(suggestion);
-                  inputRef.current?.focus();
-                }}
-                className="cursor-pointer rounded-pill bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose"
-              >
-                {suggestionLabel(suggestion)}
-              </button>
-            ))}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
-      <button
-        type="button"
-        data-sfx="toggle"
-        onMouseDown={(event) => event.preventDefault()}
-        onClick={swapRecipient}
-        disabled={!swapEnabled}
-        aria-label={`Whisper recipient: ${recipientName}. Click to swap.`}
-        title="Swap recipient"
-        className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-pill bg-aura-rose px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
+            <button
+              type="button"
+              data-sfx="toggle"
+              onClick={swapRecipient}
+              disabled={!swapEnabled}
+              aria-label={`Whisper recipient: ${recipientName}. ${swapEnabled ? "Click to swap." : ""}`}
+              title={swapEnabled ? "Swap recipient" : undefined}
+              className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-aura-rose px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {recipientName}
+              {swapEnabled ? (
+                <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
+                  <path
+                    d="M2 4 L10 4 M7 1 L10 4 L7 7 M10 8 L2 8 M5 11 L2 8 L5 5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : null}
+            </button>
+            <span aria-hidden className="h-3 w-px bg-aura-hairline-strong/50" />
+            <NudgeSlotMeter remaining={nudgesRemaining} total={totalSlots} />
+          </div>
+
+          <div className="relative">
+            <textarea
+              ref={textareaRef}
+              value={text}
+              maxLength={NUDGE_MAX_CHARS}
+              rows={4}
+              onChange={(event) => onTextChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  fileNudge();
+                }
+              }}
+              placeholder={`What should ${recipientName} do next?`}
+              aria-label={`Nudge for ${recipientName}`}
+              className="block min-h-[7.5rem] w-full resize-none rounded-card border border-aura-hairline bg-white/70 px-5 py-4 font-sans text-body text-aura-ink shadow-quiet outline-none transition placeholder:text-aura-faint focus:border-aura-rose/55 focus:bg-white focus:shadow-card"
+            />
+            <span className="pointer-events-none absolute bottom-3 right-4 font-mono text-micro tabular-nums text-aura-faint">
+              {text.length} / {NUDGE_MAX_CHARS}
+            </span>
+          </div>
+
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <Eyebrow>{"// quick nudges"}</Eyebrow>
+              <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+                tap to draft
+              </span>
+            </div>
+            <div className="grid gap-2.5 sm:grid-cols-3">
+              {suggestions.map((suggestion) => {
+                const isActive = text.trim() === suggestion.trim();
+                return (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    data-sfx="click"
+                    onClick={() => {
+                      onTextChange(suggestion);
+                      const node = textareaRef.current;
+                      if (node !== null) {
+                        node.focus();
+                        const length = suggestion.length;
+                        node.setSelectionRange(length, length);
+                      }
+                    }}
+                    aria-pressed={isActive}
+                    className={`group flex h-full cursor-pointer flex-col items-start gap-2 rounded-chip border px-3.5 py-3 text-left transition ${
+                      isActive
+                        ? "border-aura-rose/60 bg-aura-rose/10 shadow-quiet"
+                        : "border-aura-hairline bg-white/60 hover:-translate-y-px hover:border-aura-rose/40 hover:bg-white hover:shadow-quiet"
+                    }`}
+                  >
+                    <span
+                      className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                        isActive ? "text-aura-rose" : "text-aura-faint group-hover:text-aura-rose"
+                      }`}
+                    >
+                      {suggestionLabel(suggestion)}
+                    </span>
+                    <span className="text-label leading-snug text-aura-ink/85">{suggestion}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-aura-hairline bg-white/40 px-7 py-4 lg:px-9 lg:py-5">
+          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+            <span className="text-aura-muted">Enter</span> to file ·{" "}
+            <span className="text-aura-muted">Shift+Enter</span> for line break ·{" "}
+            <span className="text-aura-muted">Esc</span> to close
+          </p>
+          <div className="flex items-center gap-3">
+            <GhostButton onClick={onClose}>Cancel</GhostButton>
+            <button
+              type="button"
+              data-sfx="primary"
+              onClick={fileNudge}
+              disabled={sendDisabled}
+              aria-label="File whisper"
+              className="aura-cta inline-flex cursor-pointer items-center gap-2 rounded-pill bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-5 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+            >
+              <span>File whisper</span>
+              <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+                <path d="M2 8 L14 2 L11 14 L7.5 9 L2 8 Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.aside>
+  );
+}
+
+function NudgeComposerCloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button
+      type="button"
+      data-sfx="dismiss"
+      onClick={onClose}
+      aria-label="Close nudge composer"
+      className="absolute right-4 top-4 z-10 grid size-8 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+    >
+      <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
+        <path
+          d="M3 3L13 13M13 3L3 13"
+          stroke="currentColor"
+          strokeWidth="1.6"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
+  );
+}
+
+function NudgeSlotMeter({ remaining, total }: { remaining: number; total: number }) {
+  const usedLabel = total - remaining;
+  const message =
+    remaining === 0
+      ? "every slot spent"
+      : `${remaining} of ${total} ${remaining === 1 ? "slot" : "slots"} left`;
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className="inline-flex items-center gap-1">
+        {Array.from({ length: total }).map((_, index) => {
+          const filled = index < remaining;
+          return (
+            <svg
+              key={`composer-pip-${index}`}
+              viewBox="0 0 12 12"
+              aria-hidden
+              className={`size-3 transition ${filled ? "text-aura-rose" : "text-aura-rose/25"}`}
+            >
+              <path
+                d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
+                fill="currentColor"
+              />
+            </svg>
+          );
+        })}
+      </span>
+      <span
+        className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint"
+        aria-label={`${usedLabel} of ${total} used. ${message}.`}
       >
-        {recipientName}
-        <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
-          <path
-            d="M2 6 L10 6 M7 3 L10 6 L7 9"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.6"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      </button>
-      <input
-        ref={inputRef}
-        type="text"
-        value={text}
-        maxLength={240}
-        disabled={disabled}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        onChange={(event) => onTextChange(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            fileNudge();
-          } else if (event.key === "Escape") {
-            event.currentTarget.blur();
-          }
-        }}
-        placeholder={placeholder}
-        aria-label={`Nudge for ${recipientName}`}
-        className="block min-w-0 flex-1 rounded-pill border border-transparent bg-white/55 px-4 py-2 font-sans text-body text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose/50 focus:bg-white/85 disabled:cursor-not-allowed disabled:opacity-60"
-      />
-      <button
-        type="button"
-        data-sfx="primary"
-        onClick={fileNudge}
-        disabled={sendDisabled}
-        aria-label="File nudge"
-        title="File nudge (enter)"
-        className="aura-cta grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
-      >
-        <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
-          <path d="M2 8 L14 2 L11 14 L7.5 9 L2 8 Z" fill="currentColor" />
-        </svg>
-      </button>
+        {message}
+      </span>
+    </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Director's slate: paused-state hint                                */
+/* ------------------------------------------------------------------ */
+
+function PausedBanner({
+  interventionSlotAvailable,
+  dropsEnabled,
+}: {
+  interventionSlotAvailable: boolean;
+  dropsEnabled: boolean;
+}) {
+  const message = !interventionSlotAvailable
+    ? "Held. Every nudge spent. Drop a scene or advance the beat."
+    : dropsEnabled
+      ? "Held. Tap a heart to whisper, drop a scene, or advance the beat."
+      : "Held. Tap a heart to whisper, or advance the beat.";
+
+  return (
+    <div className="flex w-full items-center gap-3 px-2">
+      <span aria-hidden className="flex items-center gap-1.5">
+        <span className="size-1.5 rounded-full bg-aura-rose/65" />
+        <span className="size-1.5 rounded-full bg-aura-rose/45" />
+        <span className="size-1.5 rounded-full bg-aura-rose/25" />
+      </span>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
+        {message}
+      </p>
     </div>
   );
 }

@@ -1430,10 +1430,10 @@ function ViewTabs({
                 {tab.label}
               </span>
               <span
-                className={`hidden items-center font-mono text-micro uppercase tracking-[0.22em] xl:inline-flex ${isActive ? "text-white/70" : "text-aura-faint"}`}
+                className={`hidden items-center gap-1 font-mono text-micro uppercase leading-none tracking-[0.22em] xl:inline-flex ${isActive ? "text-white/70" : "text-aura-faint"}`}
               >
                 {tab.live ? <LiveDot tone="rose" /> : null}
-                {tab.live ? <span className="ml-1">{tab.tag}</span> : tab.tag}
+                <span>{tab.tag}</span>
               </span>
               {tab.live ? (
                 <span className="inline-flex xl:hidden" aria-hidden>
