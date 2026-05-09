@@ -38,9 +38,9 @@ export const groceryRunOneDinner: DateScenario = {
       "Use shelf decisions as low-stakes proxies for shared life.",
       "Do not make the recipe magical. The recipe is a recipe.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "grocery-run-one-dinner-event-1",
         title: "Pasta shelf",
         event: "Six boxes on the shelf all qualify under the recipe.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const groceryRunOneDinner: DateScenario = {
         directorInstruction: "Use the choice to expose how the pair compromises or stalls.",
       },
       {
-        atTurn: 20,
+        id: "grocery-run-one-dinner-event-2",
         title: "Optional ingredient",
         event: "An optional item is on the same row at eye level.",
         characterVisibleText:
@@ -56,13 +56,58 @@ export const groceryRunOneDinner: DateScenario = {
         directorInstruction: "Negotiate inclusion without turning it into a referendum.",
       },
       {
-        atTurn: 28,
+        id: "grocery-run-one-dinner-event-3",
         title: "Intercom",
         event: "An intercom announcement passes overhead.",
         characterVisibleText:
           "An intercom voice announces a price check on a different aisle. Cart wheels rattle past the end of the row. Their cart still has only the recipe inside.",
         directorInstruction:
           "Use the cue to push for a small shared decision before they leave the aisle.",
+      },
+      {
+        id: "grocery-run-one-dinner-event-4",
+        title: "Cart squeak",
+        event: "Their cart squeaks as it shifts a few inches.",
+        characterVisibleText:
+          "Their cart squeaks once as a hand bumps it. The recipe page slides a quarter inch and resettles against the handle. The basket below the cart is still empty.",
+        directorInstruction:
+          "Let the small fidget read as nerves or as patience without naming it.",
+      },
+      {
+        id: "grocery-run-one-dinner-event-5",
+        title: "Sample tray",
+        event: "An employee passes with a tray of small sample cups.",
+        characterVisibleText:
+          "An employee in a green polo passes the end of the aisle with a tray of small paper cups. Two stayed unfilled. The smell is herbed cheese.",
+        directorInstruction:
+          "Use the small offer to surface generosity, deferral, or a tiny shared appetite.",
+      },
+      {
+        id: "grocery-run-one-dinner-event-6",
+        title: "Promo tag flap",
+        event: "A pink promo tag flutters under the AC vent.",
+        characterVisibleText:
+          "The pink promo tag on the optional ingredient flutters under the AC vent. The shelf is bare on one side. A handwritten correction shows the price changed since lunch.",
+        directorInstruction:
+          "Let the small detail catch one of them. The other can choose to look.",
+      },
+      {
+        id: "grocery-run-one-dinner-event-7",
+        title: "Cart pass",
+        event: "Another shopper passes their cart in the aisle.",
+        characterVisibleText:
+          "Another shopper drives a full cart past theirs and slows to read the same shelf. He nods, picks the second cheapest box, and moves on. His cart already has two prepared rotisserie chickens.",
+        directorInstruction:
+          "Allow a small benchmark moment. Either member may use it or leave it.",
+      },
+      {
+        id: "grocery-run-one-dinner-event-8",
+        title: "End cap reset",
+        event: "An employee resets an end cap of canned tomatoes.",
+        characterVisibleText:
+          "An employee on her knees stacks cans of tomatoes onto a low end cap two strides away. She does not look up. A sleeve of paper price tags is tucked under one arm.",
+        directorInstruction:
+          "Push for one final pasta and one shared decision. The aisle will close on time.",
       },
     ],
     earlyEndTriggers: [

@@ -38,9 +38,9 @@ export const dinerElevenPm: DateScenario = {
       "The waitress is hands and a coffee carafe, not a comic device.",
       "Allow long silences. The booth can hold them.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "diner-eleven-pm-event-1",
         title: "Coffee refill",
         event: "The waitress passes with the carafe and tops both cups.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const dinerElevenPm: DateScenario = {
         directorInstruction: "Use the small mercy to lower the pair's guard.",
       },
       {
-        atTurn: 20,
+        id: "diner-eleven-pm-event-2",
         title: "Shared plate",
         event: "A plate of fries lands between them.",
         characterVisibleText:
@@ -56,12 +56,55 @@ export const dinerElevenPm: DateScenario = {
         directorInstruction: "Allow eating to be the conversation for one beat.",
       },
       {
-        atTurn: 28,
+        id: "diner-eleven-pm-event-3",
         title: "Last booth check",
         event: "A check is left face down at the edge of the table.",
         characterVisibleText:
           "The check sits face down at the edge of the booth. The waitress is already two booths away. The jukebox has gone quiet.",
         directorInstruction: "Push for one honest sentence before the booth ends.",
+      },
+      {
+        id: "diner-eleven-pm-event-4",
+        title: "Pie counter",
+        event: "The pie-of-the-day card flips behind the counter.",
+        characterVisibleText:
+          "Behind the counter the pie-of-the-day flips from cherry to lemon meringue. The case is half full. A small label tape is curling on the cherry slot.",
+        directorInstruction: "Use the small switch to surface a small honest preference.",
+      },
+      {
+        id: "diner-eleven-pm-event-5",
+        title: "Jukebox queues",
+        event: "The booth jukebox tab queues a track no one selected.",
+        characterVisibleText:
+          "The small jukebox tab on the booth wall ticks over to track 117. No one fed it a quarter. The selection light blinks once.",
+        directorInstruction:
+          "Let the unfamiliar track sit. A member who names it shows their hand.",
+      },
+      {
+        id: "diner-eleven-pm-event-6",
+        title: "Booth six pancakes",
+        event: "Booth six orders a short stack at eleven thirty-eight.",
+        characterVisibleText:
+          "Two booths over, a man orders a short stack with bacon. He has a paperback and a half-finished coffee. The waitress writes it without looking down.",
+        directorInstruction:
+          "Allow the late hour to feel ordinary. The booth does not need to comment.",
+      },
+      {
+        id: "diner-eleven-pm-event-7",
+        title: "Rain begins",
+        event: "Rain starts against the diner window.",
+        characterVisibleText:
+          "Rain taps the diner window in soft uneven runs. The neon sign across the road blurs. The diner door opens and a damp couple takes booth two.",
+        directorInstruction: "Use the weather to lower the room's pressure, not to underline it.",
+      },
+      {
+        id: "diner-eleven-pm-event-8",
+        title: "Carafe near",
+        event: "The waitress drifts past with the carafe one more time.",
+        characterVisibleText:
+          "The waitress passes the booth with the carafe held low. She does not stop. A small look is offered and the carafe moves on to booth six.",
+        directorInstruction:
+          "Push for a small clean choice: another cup, the check, or a clean exit.",
       },
     ],
     earlyEndTriggers: [

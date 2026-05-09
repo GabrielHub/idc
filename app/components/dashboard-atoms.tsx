@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { Member, PortraitMood } from "../domain/game";
 import {
@@ -355,53 +356,237 @@ export function MonoStat({
 /* Select input                                                       */
 /* ------------------------------------------------------------------ */
 
-export function SelectInput({
+type SelectInputLayout = "field" | "inline" | "toolbar";
+type SelectInputAlign = "left" | "right";
+
+export type SelectInputOption<TValue extends string = string> = {
+  value: TValue;
+  label: string;
+};
+
+export function SelectInput<TValue extends string = string>({
   label,
   value,
   options,
   disabled = false,
+  layout = "field",
+  align = "left",
+  placeholder = "Select",
   className = "",
   onChange,
 }: {
   label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
+  value: TValue;
+  options: ReadonlyArray<SelectInputOption<TValue>>;
   disabled?: boolean;
+  layout?: SelectInputLayout;
+  align?: SelectInputAlign;
+  placeholder?: string;
   className?: string;
-  onChange: (value: string) => void;
+  onChange: (value: TValue) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const activeOption = options.find((option) => option.value === value);
+  const activeLabel = activeOption?.label ?? (value.length > 0 ? value : placeholder);
+  const isDisabled = disabled || options.length === 0;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (containerRef.current === null) {
+        return;
+      }
+
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (isDisabled) {
+      setOpen(false);
+    }
+  }, [isDisabled]);
+
+  function handleTriggerKeyDown(event: React.KeyboardEvent<HTMLButtonElement>) {
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
+      return;
+    }
+
+    event.preventDefault();
+    setOpen(true);
+  }
+
+  function handleOptionSelect(option: SelectInputOption<TValue>) {
+    if (option.value !== value) {
+      onChange(option.value);
+    }
+    setOpen(false);
+  }
+
   return (
-    <label className={`block ${className}`}>
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-        {label}
-      </span>
-      <div className="relative mt-2">
-        <select
-          value={value}
-          disabled={disabled}
-          aria-label={label}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          className="block w-full cursor-pointer appearance-none truncate rounded-tile border border-aura-hairline bg-white/70 px-3 py-2.5 pr-9 text-body font-semibold text-aura-ink outline-none transition hover:border-aura-hairline-strong focus:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
+    <div ref={containerRef} className={selectInputRootClass(layout, className)}>
+      {layout === "toolbar" ? null : <span className={selectInputLabelClass(layout)}>{label}</span>}
+      <div className={layout === "field" ? "relative mt-2" : "relative"}>
+        <button
+          type="button"
+          data-sfx="menu"
+          disabled={isDisabled}
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          aria-label={`${label}: ${activeLabel}`}
+          onClick={() => setOpen((current) => !current)}
+          onKeyDown={handleTriggerKeyDown}
+          className={selectInputTriggerClass(layout)}
         >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-aura-faint">
-          <svg aria-hidden width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M3.5 5.5L7 9L10.5 5.5"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+          {layout === "toolbar" ? <span className="text-aura-faint">{label}</span> : null}
+          <span
+            className={`min-w-0 flex-1 truncate text-left ${
+              layout === "toolbar" ? "text-aura-ink" : ""
+            }`}
+          >
+            {activeLabel}
+          </span>
+          <SelectInputChevron open={open} />
+        </button>
+        <AnimatePresence>
+          {open ? (
+            <motion.ul
+              id={menuId}
+              key="select-input-menu"
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: EASE_OUT_QUART }}
+              role="menu"
+              aria-label={label}
+              className={selectInputMenuClass(layout, align)}
+            >
+              {options.map((option) => {
+                const selected = option.value === value;
+                return (
+                  <li key={option.value} role="none">
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={selected}
+                      data-sfx="menu"
+                      onClick={() => handleOptionSelect(option)}
+                      className={selectInputOptionClass(layout, selected)}
+                    >
+                      <span className="min-w-0 truncate">{option.label}</span>
+                      {selected ? <SelectInputCheck /> : null}
+                    </button>
+                  </li>
+                );
+              })}
+            </motion.ul>
+          ) : null}
+        </AnimatePresence>
       </div>
-    </label>
+    </div>
+  );
+}
+
+function selectInputRootClass(layout: SelectInputLayout, className: string): string {
+  const base =
+    layout === "field"
+      ? "block"
+      : layout === "inline"
+        ? "inline-flex items-center gap-2"
+        : "relative";
+  return [base, className].filter(Boolean).join(" ");
+}
+
+function selectInputLabelClass(layout: Exclude<SelectInputLayout, "toolbar">): string {
+  const base = "font-mono text-micro font-semibold uppercase text-aura-faint";
+  return layout === "field" ? `${base} tracking-[0.24em]` : `${base} tracking-[0.22em]`;
+}
+
+function selectInputTriggerClass(layout: SelectInputLayout): string {
+  const base =
+    "flex cursor-pointer items-center justify-between gap-2 border border-aura-hairline outline-none transition hover:border-aura-rose/40 focus-visible:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60";
+
+  if (layout === "field") {
+    return `${base} w-full rounded-tile bg-white/70 px-3 py-2.5 text-body font-semibold text-aura-ink`;
+  }
+
+  if (layout === "inline") {
+    return `${base} min-w-[8.5rem] max-w-[18rem] rounded-pill bg-white/70 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-ink`;
+  }
+
+  return `${base} rounded-pill bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted hover:text-aura-ink`;
+}
+
+function selectInputMenuClass(layout: SelectInputLayout, align: SelectInputAlign): string {
+  const side = align === "right" ? "right-0" : "left-0";
+  const width = layout === "field" ? "w-full min-w-full" : "min-w-[14rem]";
+  return `aura-glass-strong absolute ${side} z-50 mt-2 max-h-72 ${width} overflow-auto rounded-card p-1 shadow-card`;
+}
+
+function selectInputOptionClass(layout: SelectInputLayout, selected: boolean): string {
+  const base =
+    "flex w-full cursor-pointer items-center justify-between gap-3 rounded-tile px-3 py-2 text-left transition";
+  const typography =
+    layout === "field"
+      ? "text-body font-semibold"
+      : "font-mono text-micro font-semibold uppercase tracking-[0.22em]";
+  const tone = selected
+    ? "bg-aura-ink text-white"
+    : "text-aura-muted hover:bg-white/65 hover:text-aura-ink";
+  return `${base} ${typography} ${tone}`;
+}
+
+function SelectInputChevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 14 14"
+      fill="none"
+      className={`size-3.5 shrink-0 text-aura-faint transition ${open ? "rotate-180" : ""}`}
+    >
+      <path
+        d="M3.5 5.5L7 9L10.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function SelectInputCheck() {
+  return (
+    <svg aria-hidden viewBox="0 0 14 14" fill="none" className="size-3.5 shrink-0">
+      <path
+        d="M3.25 7.25L5.75 9.75L10.75 4.25"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

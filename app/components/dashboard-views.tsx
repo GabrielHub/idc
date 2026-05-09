@@ -16,14 +16,19 @@ import {
   type MemoryRecord,
   type PairState,
   type PortraitMood,
+  type ScenarioEvent,
   type ShiftState,
 } from "../domain/game";
 import {
   canAddCupidIntervention,
+  EVENT_DRAFT_PICKED,
+  exchangeIndexForTurn,
   fallbackGoalProgress,
+  findScenarioEventById,
   formatCupidInterventionText,
   getMemberQuitRiskStatus,
   isMemberRetained,
+  MAX_NUDGES_PER_DATE,
   MEMBER_QUIT_RISK_LABEL,
   type GoalProgressSnapshot,
   type MemberQuitRiskStatus,
@@ -37,12 +42,13 @@ import {
   Hairline,
   LiveDot,
   Meter,
-  MonoStat,
   MutedLabel,
   pad2,
   Portrait,
   PrimaryButton,
   scoreWidthClass,
+  SelectInput,
+  Tooltip,
 } from "./dashboard-atoms";
 import {
   DaterStandee,
@@ -50,11 +56,8 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "./date-reactions";
-import {
-  isMemberSpeaking,
-  memberStreamingReasoningText,
-  selectPortraitMood,
-} from "./date-presentation-signals";
+import { isMemberSpeaking, selectPortraitMood } from "./date-presentation-signals";
+import type { SfxCue } from "./sfx-provider";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   encourage: "Encourage",
@@ -71,11 +74,6 @@ const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
 };
 
 export type PendingDateAction = "advanceExchange" | "completeDate";
-
-const ADVANCE_BUTTON_LABELS: Record<PendingDateAction, string> = {
-  advanceExchange: "Streaming...",
-  completeDate: "Resolving...",
-};
 
 /* ================================================================== */
 /* Roster                                                             */
@@ -113,11 +111,11 @@ const MOOD_FILTER_DEFS: Record<
   guarded: { label: "guarded", group: "openness", match: (m) => m.state.openness < 50 },
 };
 
-const SORT_MENU: { id: SortMode; label: string }[] = [
-  { id: "default", label: "default" },
-  { id: "name", label: "by name" },
-  { id: "mood-desc", label: "mood, high to low" },
-  { id: "openness-desc", label: "openness, high to low" },
+const SORT_MENU: { value: SortMode; label: string }[] = [
+  { value: "default", label: "default" },
+  { value: "name", label: "by name" },
+  { value: "mood-desc", label: "mood, high to low" },
+  { value: "openness-desc", label: "openness, high to low" },
 ];
 
 function firstSentenceOf(text: string): string {
@@ -769,7 +767,14 @@ function DossierFilterRail({
           </span>
           <FilterSearchInput value={searchQuery} onChange={onSearchChange} />
           <div className="ml-auto flex items-center gap-3">
-            <FilterSortMenu sortMode={sortMode} onSortModeChange={onSortModeChange} />
+            <SelectInput
+              label="sort"
+              value={sortMode}
+              options={SORT_MENU}
+              layout="toolbar"
+              align="right"
+              onChange={onSortModeChange}
+            />
             <span className="font-mono text-micro font-semibold uppercase tabular-nums tracking-[0.24em] text-aura-faint">
               <span className="text-aura-ink">{pad2(shownCount)}</span>
               <span className="text-aura-faint">{` / ${pad2(totalCount)}`}</span>
@@ -900,88 +905,6 @@ function SearchGlyph() {
       <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
       <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
     </svg>
-  );
-}
-
-function FilterSortMenu({
-  sortMode,
-  onSortModeChange,
-}: {
-  sortMode: SortMode;
-  onSortModeChange: (mode: SortMode) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const activeOption = SORT_MENU.find((option) => option.id === sortMode) ?? SORT_MENU[0];
-
-  useEffect(() => {
-    if (!open) return;
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setOpen(false);
-      }
-    }
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
-    }
-    window.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleEscape);
-    return () => {
-      window.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleEscape);
-    };
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        className="flex cursor-pointer items-center gap-2 rounded-pill border border-aura-hairline bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-ink"
-      >
-        <span className="text-aura-faint">sort</span>
-        <span className="text-aura-ink">{activeOption.label}</span>
-        <span aria-hidden className={`transition ${open ? "rotate-180" : ""}`}>
-          ▾
-        </span>
-      </button>
-      <AnimatePresence>
-        {open ? (
-          <motion.ul
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.16, ease: EASE_OUT_QUART }}
-            role="menu"
-            className="aura-glass-strong absolute right-0 z-30 mt-2 min-w-[14rem] overflow-hidden rounded-card p-1 shadow-card"
-          >
-            {SORT_MENU.map((option) => (
-              <li key={option.id} role="none">
-                <button
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={sortMode === option.id}
-                  onClick={() => {
-                    onSortModeChange(option.id);
-                    setOpen(false);
-                  }}
-                  className={`flex w-full cursor-pointer items-center justify-between gap-3 whitespace-nowrap rounded-tile px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
-                    sortMode === option.id
-                      ? "bg-aura-ink text-white"
-                      : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
-                  }`}
-                >
-                  <span>{option.label}</span>
-                  {sortMode === option.id ? <span aria-hidden>✓</span> : null}
-                </button>
-              </li>
-            ))}
-          </motion.ul>
-        ) : null}
-      </AnimatePresence>
-    </div>
   );
 }
 
@@ -2400,6 +2323,9 @@ export type DateProps = {
   onCancel: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
+  onPickEvents: (eventIds: string[]) => void;
+  onTriggerEvent: (eventId: string) => void;
+  onTogglePlayback: (next: "playing" | "paused") => void;
   onBack: () => void;
 };
 
@@ -2432,6 +2358,9 @@ export function DateView({
   onCancel,
   onIntervene,
   onFollowUp,
+  onPickEvents,
+  onTriggerEvent,
+  onTogglePlayback,
   onBack,
 }: DateProps) {
   const transcript = buildTranscriptItems(session, members, scenario, streamingDrafts);
@@ -2439,14 +2368,25 @@ export function DateView({
     session.currentTurn,
     ...streamingDrafts.map((draft) => draft.turnIndex),
   );
-  const participants = session.participants
-    .map((id) => members.find((m) => m.id === id))
-    .filter((m): m is Member => Boolean(m));
+  const participants = useMemo(
+    () =>
+      session.participants
+        .map((id) => members.find((m) => m.id === id))
+        .filter((m): m is Member => Boolean(m)),
+    [session.participants, members],
+  );
   const [leftMember, rightMember] = participants;
-  const reactionSignals =
-    leftMember === undefined || rightMember === undefined
-      ? []
-      : buildReactionSignals(session, leftMember.id, rightMember.id);
+  const reactionSignals = useMemo(
+    () =>
+      leftMember === undefined || rightMember === undefined
+        ? []
+        : buildReactionSignals(session.judgeSnapshots, leftMember.id, rightMember.id),
+    [session.judgeSnapshots, leftMember, rightMember],
+  );
+  const nudgeSuggestions = useMemo(
+    () => buildNudgeSuggestions(session.judgeSnapshots),
+    [session.judgeSnapshots],
+  );
   const latestJudge = session.judgeSnapshots.at(-1);
   const leftMood =
     leftMember === undefined ? "neutral" : selectPortraitMood(leftMember.id, latestJudge);
@@ -2455,10 +2395,6 @@ export function DateView({
   const leftSpeaking = leftMember !== undefined && isMemberSpeaking(leftMember.id, streamingDrafts);
   const rightSpeaking =
     rightMember !== undefined && isMemberSpeaking(rightMember.id, streamingDrafts);
-  const leftReasoningText =
-    leftMember === undefined ? "" : memberStreamingReasoningText(leftMember.id, streamingDrafts);
-  const rightReasoningText =
-    rightMember === undefined ? "" : memberStreamingReasoningText(rightMember.id, streamingDrafts);
 
   return (
     <motion.div
@@ -2476,54 +2412,65 @@ export function DateView({
           rightMood={rightMood}
           leftSpeaking={leftSpeaking}
           rightSpeaking={rightSpeaking}
-          leftReasoningText={leftReasoningText}
-          rightReasoningText={rightReasoningText}
           listening={pendingDateAction === "advanceExchange"}
           reactions={reactionSignals}
         />
       ) : null}
 
-      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-56 lg:px-10">
-        <DateHeader
-          scenario={scenario}
-          session={session}
-          participants={participants}
-          displayedCurrentTurn={displayedCurrentTurn}
-          onBack={onBack}
-        />
+      <DateHeader
+        scenario={scenario}
+        session={session}
+        participants={participants}
+        onBack={onBack}
+      />
 
-        <ChatStream
-          items={transcript}
-          session={session}
-          leftMemberId={leftMember?.id}
-          pendingDateAction={pendingDateAction}
-        />
+      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-40 lg:px-10 lg:pb-44">
+        {session.playbackState === "drafting" && scenario !== undefined ? (
+          <DraftScreen
+            scenario={scenario}
+            session={session}
+            isActionPending={isActionPending}
+            onPickEvents={onPickEvents}
+          />
+        ) : (
+          <ChatStream
+            items={transcript}
+            session={session}
+            leftMemberId={leftMember?.id}
+            pendingDateAction={pendingDateAction}
+          />
+        )}
 
         {session.finalReport === undefined ? null : (
           <FinalReportPanel
             report={session.finalReport}
+            session={session}
             isActionPending={isActionPending}
             onFollowUp={onFollowUp}
           />
         )}
       </div>
 
-      {session.status === "active" ? (
+      {session.status === "active" && session.playbackState !== "drafting" ? (
         <DateFooter
           session={session}
+          scenario={scenario}
           interventionText={interventionText}
           interventionTargetMemberId={interventionTargetMemberId}
           participants={participants}
+          displayedCurrentTurn={displayedCurrentTurn}
           canAdvance={canAdvance}
           canIntervene={canIntervene}
           pendingDateAction={pendingDateAction}
-          nudgeSuggestions={buildNudgeSuggestions(session)}
+          nudgeSuggestions={nudgeSuggestions}
           onInterventionTextChange={onInterventionTextChange}
           onInterventionTargetChange={onInterventionTargetChange}
           onAdvance={onAdvance}
           onComplete={onComplete}
           onCancel={onCancel}
           onIntervene={onIntervene}
+          onTriggerEvent={onTriggerEvent}
+          onTogglePlayback={onTogglePlayback}
         />
       ) : null}
     </motion.div>
@@ -2540,13 +2487,11 @@ function DateHeader({
   scenario,
   session,
   participants,
-  displayedCurrentTurn,
   onBack,
 }: {
   scenario: DateScenario | undefined;
   session: DateSession;
   participants: Member[];
-  displayedCurrentTurn: number;
   onBack: () => void;
 }) {
   const statusLabel =
@@ -2554,58 +2499,67 @@ function DateHeader({
       ? "ended early"
       : session.status === "completed"
         ? "wrapped"
-        : "in session";
+        : session.playbackState === "drafting"
+          ? "drafting"
+          : session.playbackState === "playing"
+            ? "live"
+            : "paused";
   const statusTone: keyof typeof STATUS_TONE_TEXT =
     session.status === "ended_early"
       ? "amber"
       : session.status === "completed"
         ? "emerald"
-        : "rose";
+        : session.playbackState === "playing"
+          ? "rose"
+          : "amber";
+  const isDrafting = session.playbackState === "drafting";
+  const positionClass = isDrafting ? "relative mb-6" : "sticky top-16 mb-2 lg:top-20 lg:mb-3";
+  const memberLine = participants.map((m) => m.firstName).join(" / ");
+  const locationLine = scenario?.publicBrief.location;
 
   return (
     <header
       data-date-header
-      className="sticky top-20 z-20 -mx-6 border-b border-aura-hairline bg-aura-bg/72 px-6 pt-3 pb-4 backdrop-blur-xl lg:-mx-10 lg:top-24 lg:px-10"
+      className={`${positionClass} z-20 border-b border-aura-hairline bg-aura-bg/72 backdrop-blur-xl`}
     >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
-          <Eyebrow>// date.{pad2(session.currentTurn)}</Eyebrow>
-          <h1 className="font-display text-display-md font-semibold tracking-tight text-aura-ink lg:text-display-lg">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-6 py-2.5 lg:gap-5 lg:px-10">
+        <button
+          type="button"
+          data-sfx="click"
+          onClick={onBack}
+          aria-label="Back to brief"
+          title="Back to brief"
+          className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+        >
+          <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+            <path
+              d="M9.5 3 L4.5 8 L9.5 13"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </button>
+        <span aria-hidden className="hidden h-5 w-px bg-aura-hairline lg:inline-block" />
+        <div className="flex min-w-0 flex-1 items-baseline gap-3 lg:gap-4">
+          <span className="shrink-0 font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+            // {pad2(session.currentTurn)}
+          </span>
+          <h1 className="min-w-0 truncate font-display text-base font-semibold tracking-tight text-aura-ink lg:text-lead">
             {scenario?.title ?? "Date in session"}
           </h1>
-          <p className="text-label text-aura-muted lg:text-lead">
-            {participants.map((m) => m.name).join(" and ")}
-            {scenario === undefined ? "" : ` at ${scenario.publicBrief.location}.`}
+          <span aria-hidden className="hidden h-3 w-px bg-aura-hairline lg:inline-block" />
+          <p className="hidden min-w-0 truncate font-mono text-micro uppercase tracking-[0.24em] text-aura-faint lg:block">
+            {memberLine}
+            {locationLine === undefined ? "" : ` / ${locationLine}`}
           </p>
         </div>
-        <div className="flex flex-col items-end gap-2.5">
-          <GhostButton onClick={onBack}>← Brief</GhostButton>
-          <span className="inline-flex items-center gap-2 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-            <LiveDot tone={statusTone} />
-            <span className={`font-semibold ${STATUS_TONE_TEXT[statusTone]}`}>{statusLabel}</span>
-          </span>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-5 sm:grid-cols-[1fr_auto_auto]">
-        <div>
-          <div className="flex items-baseline justify-between">
-            <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted">
-              Date health
-            </span>
-            <span className="font-mono text-micro font-semibold tabular-nums text-aura-ink">
-              {session.dateHealth} / 100
-            </span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-pill bg-aura-hairline">
-            <div
-              aria-hidden
-              className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet ${scoreWidthClass(session.dateHealth)}`}
-            />
-          </div>
-        </div>
-        <MonoStat label="Turns" value={`${displayedCurrentTurn} / ${session.turnLimit}`} />
-        <MonoStat label="Judge" value={`${session.judgeSnapshots.length} passes`} tone="violet" />
+        <span className="inline-flex shrink-0 items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.24em]">
+          <LiveDot tone={statusTone} />
+          <span className={STATUS_TONE_TEXT[statusTone]}>{statusLabel}</span>
+        </span>
       </div>
     </header>
   );
@@ -2630,8 +2584,6 @@ function DateStandeeFrame({
   rightMood,
   leftSpeaking,
   rightSpeaking,
-  leftReasoningText,
-  rightReasoningText,
   listening,
   reactions,
 }: {
@@ -2641,8 +2593,6 @@ function DateStandeeFrame({
   rightMood: PortraitMood;
   leftSpeaking: boolean;
   rightSpeaking: boolean;
-  leftReasoningText: string;
-  rightReasoningText: string;
   listening: boolean;
   reactions: ReactionSignal[];
 }) {
@@ -2655,7 +2605,6 @@ function DateStandeeFrame({
           mood={leftMood}
           speaking={leftSpeaking}
           listening={listening && !rightSpeaking}
-          reasoningText={leftReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "left")}
           className="absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
         />
@@ -2665,7 +2614,6 @@ function DateStandeeFrame({
           mood={rightMood}
           speaking={rightSpeaking}
           listening={listening && !leftSpeaking}
-          reasoningText={rightReasoningText}
           reactions={reactions.filter((reaction) => reaction.side === "right")}
           className="absolute top-24 left-full ml-3 h-[78vh] w-56 2xl:ml-8 2xl:w-72"
         />
@@ -2693,6 +2641,8 @@ function ChatStream({
 }) {
   const listRef = useRef<HTMLOListElement | null>(null);
   const tailRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const footerRef = useRef<HTMLElement | null>(null);
   const previousItemCountRef = useRef(items.length);
   const latestText = items.at(-1)?.text ?? "";
 
@@ -2700,8 +2650,23 @@ function ChatStream({
     const itemCountIncreased = items.length > previousItemCountRef.current;
     previousItemCountRef.current = items.length;
     const behavior: ScrollBehavior = itemCountIncreased ? "smooth" : "auto";
-    const scroll = () =>
-      scrollLatestTranscriptItemIntoClearance(listRef.current, tailRef.current, behavior);
+    const resolveStickyEl = (current: HTMLElement | null, selector: string): HTMLElement | null => {
+      if (current !== null && document.contains(current)) {
+        return current;
+      }
+      return document.querySelector<HTMLElement>(selector);
+    };
+    const scroll = () => {
+      headerRef.current = resolveStickyEl(headerRef.current, "[data-date-header]");
+      footerRef.current = resolveStickyEl(footerRef.current, "[data-date-footer]");
+      scrollLatestTranscriptItemIntoClearance(
+        listRef.current,
+        tailRef.current,
+        headerRef.current,
+        footerRef.current,
+        behavior,
+      );
+    };
     const animationFrame = window.requestAnimationFrame(scroll);
     const retryTimeout = itemCountIncreased === true ? window.setTimeout(scroll, 180) : undefined;
 
@@ -2760,6 +2725,8 @@ function ChatStream({
 function scrollLatestTranscriptItemIntoClearance(
   listElement: HTMLOListElement | null,
   tailElement: HTMLDivElement | null,
+  headerElement: HTMLElement | null,
+  footerElement: HTMLElement | null,
   behavior: ScrollBehavior,
 ): void {
   const latestItem = listElement?.lastElementChild;
@@ -2768,10 +2735,8 @@ function scrollLatestTranscriptItemIntoClearance(
     return;
   }
 
-  const header = document.querySelector<HTMLElement>("[data-date-header]");
-  const footer = document.querySelector<HTMLElement>("[data-date-footer]");
-  const headerBottom = header?.getBoundingClientRect().bottom ?? 0;
-  const footerTop = footer?.getBoundingClientRect().top ?? window.innerHeight;
+  const headerBottom = headerElement?.getBoundingClientRect().bottom ?? 0;
+  const footerTop = footerElement?.getBoundingClientRect().top ?? window.innerHeight;
   const topLimit = headerBottom + 16;
   const bottomLimit = footerTop - 20;
 
@@ -3010,14 +2975,17 @@ function CupidStatusPill({ label, leading }: { label: string; leading: React.Rea
 
 function FinalReportPanel({
   report,
+  session,
   isActionPending,
   onFollowUp,
 }: {
   report: DateFinalReport;
+  session: DateSession;
   isActionPending: boolean;
   onFollowUp: (action: FollowUpAction) => void;
 }) {
   const followUpKeys = Object.keys(FOLLOW_UP_LABELS) as FollowUpAction[];
+  const sentimentBadge = describeEndSentiment(session);
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
@@ -3025,7 +2993,15 @@ function FinalReportPanel({
       transition={{ duration: 0.5, ease: EASE_OUT_QUART }}
       className="mt-10 border-t border-aura-hairline pt-8"
     >
-      <Eyebrow>// final report</Eyebrow>
+      <div className="flex flex-wrap items-center gap-3">
+        <Eyebrow>// final report</Eyebrow>
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${sentimentBadge.tone}`}
+        >
+          <span aria-hidden className={`size-1.5 rounded-full ${sentimentBadge.dot}`} />
+          {sentimentBadge.label}
+        </span>
+      </div>
       <p className="mt-3 max-w-2xl text-lead text-aura-ink">{report.summary}</p>
       <p className="mt-2 max-w-2xl text-label text-aura-muted">{report.statSummary}</p>
       <p className="mt-4 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
@@ -3054,11 +3030,186 @@ function FinalReportPanel({
   );
 }
 
+function DraftScreen({
+  scenario,
+  session,
+  isActionPending,
+  onPickEvents,
+}: {
+  scenario: DateScenario;
+  session: DateSession;
+  isActionPending: boolean;
+  onPickEvents: (eventIds: string[]) => void;
+}) {
+  const offered = session.eventDraft.offered;
+  const offeredEvents = offered
+    .map((id) => findScenarioEventById(scenario, id))
+    .filter((event): event is ScenarioEvent => event !== undefined);
+  const targetCount = Math.min(EVENT_DRAFT_PICKED, offeredEvents.length);
+  const [picks, setPicks] = useState<string[]>([]);
+  const canLockIn = picks.length === targetCount;
+
+  function togglePick(eventId: string) {
+    setPicks((current) => {
+      if (current.includes(eventId)) {
+        return current.filter((id) => id !== eventId);
+      }
+
+      if (current.length >= targetCount) {
+        return current;
+      }
+
+      return [...current, eventId];
+    });
+  }
+
+  return (
+    <motion.section
+      key="draft-screen"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART }}
+      className="mt-10"
+    >
+      <div className="space-y-3 text-center">
+        <Eyebrow>// scene draft</Eyebrow>
+        <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink lg:text-display-lg">
+          Pick three <span className="aura-accent text-aura-rose">scene cards</span>
+        </h2>
+        <p className="mx-auto max-w-md text-label text-aura-muted">
+          Cupid drafts six possible turns of fate for {scenario.title}. Choose the three you want to
+          drop into this date. The unpicked three sit out.
+        </p>
+      </div>
+
+      <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {offeredEvents.map((event, index) => {
+          const pickIndex = picks.indexOf(event.id);
+          const selected = pickIndex >= 0;
+          return (
+            <motion.li
+              key={event.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.32,
+                ease: EASE_OUT_QUART,
+                delay: 0.08 + index * 0.05,
+              }}
+            >
+              <button
+                type="button"
+                data-sfx="click"
+                aria-pressed={selected}
+                disabled={isActionPending}
+                onClick={() => togglePick(event.id)}
+                className={`aura-glass-lift flex h-full w-full flex-col gap-3 rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                  selected
+                    ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
+                    : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
+                    // scene {pad2(index + 1)}
+                  </span>
+                  <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                </div>
+                <h3 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
+                  {event.title}
+                </h3>
+                <p className="text-label leading-relaxed text-aura-muted">{event.event}</p>
+              </button>
+            </motion.li>
+          );
+        })}
+      </ol>
+
+      <div className="mt-9 flex flex-col items-center gap-3">
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint">
+          {picks.length} of {targetCount} drafted
+        </span>
+        <PrimaryButton disabled={!canLockIn || isActionPending} onClick={() => onPickEvents(picks)}>
+          {canLockIn ? "Lock the lineup" : `Pick ${targetCount - picks.length} more to begin`}
+        </PrimaryButton>
+        <p className="max-w-sm text-center text-label text-aura-faint">
+          You can drop these three scenes anytime the date is paused. Cupid never auto-fires them.
+        </p>
+      </div>
+    </motion.section>
+  );
+}
+
+function DraftPickPip({ selected, pickIndex }: { selected: boolean; pickIndex: number }) {
+  if (!selected) {
+    return (
+      <span
+        aria-hidden
+        className="grid size-5 place-items-center rounded-full border border-dashed border-aura-faint/60 text-aura-faint"
+      >
+        <span className="size-1.5 rounded-full bg-aura-faint/40" />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      aria-hidden
+      className="grid size-5 place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet font-mono text-xs font-semibold leading-none text-white shadow-cta"
+    >
+      {pickIndex + 1}
+    </span>
+  );
+}
+
+const END_SENTIMENT_BADGES: Record<string, { label: string; tone: string; dot: string }> = {
+  positive: {
+    label: "positive end",
+    tone: "bg-emerald-50/85 text-emerald-700 ring-1 ring-emerald-500/30",
+    dot: "bg-aura-emerald",
+  },
+  negative: {
+    label: "shut it down",
+    tone: "bg-rose-50/85 text-aura-rose ring-1 ring-rose-500/30",
+    dot: "bg-aura-rose",
+  },
+  natural: {
+    label: "ran the clock",
+    tone: "bg-violet-50/85 text-aura-violet ring-1 ring-violet-500/30",
+    dot: "bg-aura-violet",
+  },
+};
+
+function describeEndSentiment(session: DateSession): {
+  label: string;
+  tone: string;
+  dot: string;
+} {
+  if (session.status === "completed") {
+    if (session.endSentiment === "positive") {
+      return END_SENTIMENT_BADGES.positive;
+    }
+
+    return END_SENTIMENT_BADGES.natural;
+  }
+
+  if (session.status === "ended_early") {
+    return session.endSentiment === "positive"
+      ? END_SENTIMENT_BADGES.positive
+      : END_SENTIMENT_BADGES.negative;
+  }
+
+  return END_SENTIMENT_BADGES.natural;
+}
+
 function DateFooter({
   session,
+  scenario,
   interventionText,
   interventionTargetMemberId,
   participants,
+  displayedCurrentTurn,
   canAdvance,
   canIntervene,
   pendingDateAction,
@@ -3069,11 +3220,15 @@ function DateFooter({
   onComplete,
   onCancel,
   onIntervene,
+  onTriggerEvent,
+  onTogglePlayback,
 }: {
   session: DateSession;
+  scenario: DateScenario | undefined;
   interventionText: string;
   interventionTargetMemberId: string;
   participants: Member[];
+  displayedCurrentTurn: number;
   canAdvance: boolean;
   canIntervene: boolean;
   pendingDateAction: PendingDateAction | null;
@@ -3084,169 +3239,693 @@ function DateFooter({
   onComplete: () => void;
   onCancel: () => void;
   onIntervene: () => void;
+  onTriggerEvent: (eventId: string) => void;
+  onTogglePlayback: (next: "playing" | "paused") => void;
 }) {
+  const isPlaying = session.playbackState === "playing";
+  const isPaused = session.playbackState === "paused";
   const interventionSlotAvailable = canAddCupidIntervention(session);
   const interventionDisabled = !canAdvance || !interventionSlotAvailable;
-  const nudgeTarget = participants.find((member) => member.id === interventionTargetMemberId);
-  const resolveLabel = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
-  const nextLineLabel =
-    pendingDateAction === null ? "Next line" : ADVANCE_BUTTON_LABELS[pendingDateAction];
-  const exchangeLabel =
-    pendingDateAction === null ? "Exchange" : ADVANCE_BUTTON_LABELS[pendingDateAction];
   const isStreaming = pendingDateAction !== null;
+  const playbackBusy = !isPlaying && isStreaming;
+  const togglePlayback = () => onTogglePlayback(isPlaying ? "paused" : "playing");
+  const nudgesUsed = session.interventions.length;
+  const nudgesRemaining = Math.max(0, MAX_NUDGES_PER_DATE - nudgesUsed);
+  const picks = session.eventDraft.picked ?? [];
+  const dropsEnabled =
+    isPaused &&
+    canAdvance &&
+    scenario !== undefined &&
+    picks.some((eventId) => !session.eventsTriggered.includes(eventId));
+
+  // Space bar toggles playback when no input is focused. Director's instinct beats clicking.
+  const playbackHandlerRef = useRef<() => void>(() => undefined);
+  playbackHandlerRef.current = () => {
+    if (playbackBusy) return;
+    togglePlayback();
+  };
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.code !== "Space") return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable === true
+      ) {
+        return;
+      }
+      event.preventDefault();
+      playbackHandlerRef.current();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   return (
     <motion.footer
       data-date-footer
-      initial={{ y: 80, opacity: 0 }}
+      initial={{ y: 60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
-      className="pointer-events-none fixed inset-x-0 bottom-6 z-30 px-6 lg:bottom-8"
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
     >
-      <div className="aura-glass-strong pointer-events-auto mx-auto w-full max-w-4xl rounded-card px-5 py-4">
-        {interventionSlotAvailable ? (
-          <NudgeSuggestionRail
-            suggestions={nudgeSuggestions}
-            disabled={interventionDisabled}
-            onPick={onInterventionTextChange}
-          />
-        ) : null}
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:gap-4">
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
-                Cupid suggests
-              </span>
-              {participants.length >= 2 ? (
-                <NudgeRecipientToggle
-                  participants={participants}
-                  value={interventionTargetMemberId}
-                  disabled={interventionDisabled}
-                  onChange={onInterventionTargetChange}
-                />
-              ) : null}
-            </div>
-            <input
-              type="text"
-              value={interventionText}
-              maxLength={240}
+      <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-5xl items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
+        <StatusGauges
+          dateHealth={session.dateHealth}
+          displayedCurrentTurn={displayedCurrentTurn}
+          turnLimit={session.turnLimit}
+          judgePasses={session.judgeSnapshots.length}
+          nudgesRemaining={nudgesRemaining}
+          picks={picks}
+          eventsTriggered={session.eventsTriggered}
+          scenario={scenario}
+          dropsEnabled={dropsEnabled}
+          onTriggerEvent={onTriggerEvent}
+        />
+        <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline lg:block" />
+        <div className="flex min-w-0 flex-1 items-center">
+          {isPaused ? (
+            <NudgeComposer
+              participants={participants}
+              recipientId={interventionTargetMemberId}
+              text={interventionText}
+              suggestions={nudgeSuggestions}
               disabled={interventionDisabled}
-              onChange={(event) => onInterventionTextChange(event.target.value)}
-              placeholder={
-                interventionSlotAvailable
-                  ? `draft a nudge for ${nudgeTarget?.firstName ?? "one member"}`
-                  : "judge beat already has a nudge filed."
-              }
-              className="block w-full min-w-0 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2.5 font-sans text-body text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
+              canIntervene={canIntervene}
+              slotAvailable={interventionSlotAvailable}
+              onTextChange={onInterventionTextChange}
+              onRecipientChange={onInterventionTargetChange}
+              onFile={onIntervene}
             />
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <GhostButton onClick={onIntervene} disabled={!canIntervene}>
-              File nudge
-            </GhostButton>
-            {session.status === "active" ? (
-              <>
-                <GhostButton onClick={onComplete} disabled={!canAdvance}>
-                  {resolveLabel}
-                </GhostButton>
-                <GhostButton onClick={() => onAdvance(1)} disabled={!canAdvance}>
-                  {nextLineLabel}
-                </GhostButton>
-                <PrimaryButton onClick={() => onAdvance(2)} disabled={!canAdvance}>
-                  {exchangeLabel}
-                </PrimaryButton>
-                {isStreaming ? (
-                  <button
-                    type="button"
-                    data-sfx="dismiss"
-                    onClick={onCancel}
-                    className="cursor-pointer rounded-pill border border-aura-rose/40 bg-aura-rose/10 px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose transition hover:bg-aura-rose hover:text-white"
-                  >
-                    Stop
-                  </button>
-                ) : null}
-              </>
-            ) : null}
-          </div>
+          ) : (
+            <PlaybackBanner pendingDateAction={pendingDateAction} />
+          )}
         </div>
+        <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
+        <TransportCluster
+          isPlaying={isPlaying}
+          isPaused={isPaused}
+          isStreaming={isStreaming}
+          playbackBusy={playbackBusy}
+          canAdvance={canAdvance}
+          pendingDateAction={pendingDateAction}
+          onAdvance={onAdvance}
+          onComplete={onComplete}
+          onCancel={onCancel}
+          onTogglePlayback={togglePlayback}
+        />
       </div>
     </motion.footer>
   );
 }
 
-function NudgeRecipientToggle({
-  participants,
-  value,
-  disabled,
-  onChange,
+/* ------------------------------------------------------------------ */
+/* Director's slate: status gauges                                    */
+/* ------------------------------------------------------------------ */
+
+function StatusGauges({
+  dateHealth,
+  displayedCurrentTurn,
+  turnLimit,
+  judgePasses,
+  nudgesRemaining,
+  picks,
+  eventsTriggered,
+  scenario,
+  dropsEnabled,
+  onTriggerEvent,
 }: {
-  participants: Member[];
-  value: string;
-  disabled: boolean;
-  onChange: (memberId: string) => void;
+  dateHealth: number;
+  displayedCurrentTurn: number;
+  turnLimit: number;
+  judgePasses: number;
+  nudgesRemaining: number;
+  picks: string[];
+  eventsTriggered: string[];
+  scenario: DateScenario | undefined;
+  dropsEnabled: boolean;
+  onTriggerEvent: (eventId: string) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label="Cupid nudge recipient"
-      className="inline-flex items-center gap-1 rounded-full border border-aura-hairline bg-white/55 p-0.5"
-    >
-      {participants.map((member) => {
-        const selected = member.id === value;
-
-        return (
-          <button
-            key={member.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={disabled}
-            onClick={() => onChange(member.id)}
-            className={`cursor-pointer rounded-full px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] transition disabled:cursor-not-allowed disabled:opacity-60 ${
-              selected
-                ? "bg-aura-rose text-white shadow-quiet"
-                : "text-aura-faint hover:text-aura-ink"
-            }`}
-          >
-            {member.firstName}
-          </button>
-        );
-      })}
+    <div className="flex shrink-0 items-center gap-3 px-1 lg:gap-4 lg:px-2">
+      <HealthGauge value={dateHealth} />
+      <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
+      <TurnGauge current={displayedCurrentTurn} total={turnLimit} />
+      <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
+      <JudgeGauge passes={judgePasses} />
+      <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
+      <NudgeGauge remaining={nudgesRemaining} />
+      {picks.length > 0 ? (
+        <>
+          <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
+          <ScenesGauge
+            picks={picks}
+            eventsTriggered={eventsTriggered}
+            scenario={scenario}
+            enabled={dropsEnabled}
+            onTriggerEvent={onTriggerEvent}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
 
-function NudgeSuggestionRail({
-  suggestions,
-  disabled,
-  onPick,
-}: {
-  suggestions: string[];
-  disabled: boolean;
-  onPick: (text: string) => void;
-}) {
-  if (suggestions.length === 0) {
-    return null;
-  }
+function GaugeLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="block font-mono text-micro font-semibold uppercase leading-none tracking-[0.22em] text-aura-faint">
+      {children}
+    </span>
+  );
+}
+
+function GaugeColumn({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-col items-start gap-1.5">{children}</div>;
+}
+
+function HealthGauge({ value }: { value: number }) {
+  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  const tipMessage = `Date health: ${safeValue} of 100. Drops with conflict, lifts with chemistry.`;
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-aura-hairline pb-3">
-      <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-        quick nudges
+    <Tooltip placement="top-center" message={tipMessage}>
+      <GaugeColumn>
+        <GaugeLabel>Health</GaugeLabel>
+        <span className="inline-flex items-center gap-2">
+          <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
+            {safeValue}
+          </span>
+          <span
+            aria-hidden
+            className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline"
+          >
+            <span
+              className={`block h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet ${scoreWidthClass(safeValue)}`}
+            />
+          </span>
+        </span>
+      </GaugeColumn>
+    </Tooltip>
+  );
+}
+
+function TurnGauge({ current, total }: { current: number; total: number }) {
+  const tipMessage = `Turn ${current} of ${total}. Judges sweep at every sixth turn.`;
+  const pct = total === 0 ? 0 : Math.min(100, Math.round((current / total) * 100));
+
+  return (
+    <Tooltip placement="top-center" message={tipMessage}>
+      <GaugeColumn>
+        <GaugeLabel>Turn</GaugeLabel>
+        <span className="inline-flex items-center gap-2">
+          <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
+            {current}
+            <span className="text-aura-faint">/{total}</span>
+          </span>
+          <span
+            aria-hidden
+            className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline"
+          >
+            <span
+              className={`block h-full rounded-pill bg-aura-violet/80 ${scoreWidthClass(pct)}`}
+            />
+          </span>
+        </span>
+      </GaugeColumn>
+    </Tooltip>
+  );
+}
+
+function JudgeGauge({ passes }: { passes: number }) {
+  const tipMessage = `${passes} judge ${passes === 1 ? "pass" : "passes"} on file. Each pass logs how the date is reading.`;
+
+  return (
+    <Tooltip placement="top-center" message={tipMessage}>
+      <GaugeColumn>
+        <GaugeLabel>Judge</GaugeLabel>
+        <span className="inline-flex items-center gap-1.5 font-mono text-label font-semibold tabular-nums leading-none text-aura-violet">
+          <svg viewBox="0 0 12 12" className="size-3" aria-hidden>
+            <path
+              d="M6 1.5 L7.4 4.6 L10.7 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.3 5 L4.6 4.6 Z"
+              fill="currentColor"
+            />
+          </svg>
+          {passes}
+        </span>
+      </GaugeColumn>
+    </Tooltip>
+  );
+}
+
+function NudgeGauge({ remaining }: { remaining: number }) {
+  const total = MAX_NUDGES_PER_DATE;
+  const tipMessage =
+    remaining === 0
+      ? "Every nudge slot used."
+      : `${remaining} of ${total} ${remaining === 1 ? "nudge" : "nudges"} left.`;
+
+  return (
+    <Tooltip placement="top-center" message={tipMessage}>
+      <GaugeColumn>
+        <GaugeLabel>Nudges</GaugeLabel>
+        <span className="inline-flex items-center gap-1">
+          {Array.from({ length: total }).map((_, index) => {
+            const filled = index < remaining;
+            return (
+              <svg
+                key={`nudge-pip-${index}`}
+                viewBox="0 0 12 12"
+                aria-hidden
+                className={`size-3 transition ${filled ? "text-aura-rose" : "text-aura-rose/25"}`}
+              >
+                <path
+                  d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
+                  fill="currentColor"
+                />
+              </svg>
+            );
+          })}
+        </span>
+      </GaugeColumn>
+    </Tooltip>
+  );
+}
+
+function ScenesGauge({
+  picks,
+  eventsTriggered,
+  scenario,
+  enabled,
+  onTriggerEvent,
+}: {
+  picks: string[];
+  eventsTriggered: string[];
+  scenario: DateScenario | undefined;
+  enabled: boolean;
+  onTriggerEvent: (eventId: string) => void;
+}) {
+  return (
+    <GaugeColumn>
+      <GaugeLabel>Scenes</GaugeLabel>
+      <span className="inline-flex items-center gap-1">
+        {picks.map((eventId) => {
+          const event =
+            scenario === undefined ? undefined : findScenarioEventById(scenario, eventId);
+          const dropped = eventsTriggered.includes(eventId);
+          const interactive = enabled && !dropped && event !== undefined;
+          const title = event?.title ?? "Scene";
+          const tipMessage = dropped
+            ? `${title} dropped.`
+            : interactive
+              ? `Drop scene: ${title}. Click to trigger now.`
+              : `${title}. Pause and stop streaming to drop.`;
+          return (
+            <Tooltip key={eventId} placement="top-center" message={tipMessage}>
+              <button
+                type="button"
+                data-sfx={interactive ? "click" : undefined}
+                disabled={!interactive}
+                onClick={() => {
+                  if (!interactive) return;
+                  onTriggerEvent(eventId);
+                }}
+                aria-label={tipMessage}
+                className={`grid size-5 cursor-pointer place-items-center rounded transition disabled:cursor-not-allowed ${
+                  dropped
+                    ? "text-aura-emerald/80"
+                    : interactive
+                      ? "text-aura-violet hover:scale-110 hover:text-aura-fuchsia"
+                      : "text-aura-violet/40"
+                }`}
+              >
+                {dropped ? (
+                  <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
+                    <path
+                      d="M2.5 6.5 L5 9 L9.5 3.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
+                    <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
+                  </svg>
+                )}
+              </button>
+            </Tooltip>
+          );
+        })}
       </span>
-      {suggestions.map((suggestion) => (
-        <button
-          key={suggestion}
-          type="button"
-          data-sfx="click"
-          disabled={disabled}
-          onClick={() => onPick(suggestion)}
-          className="cursor-pointer rounded-pill bg-white/65 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {suggestionLabel(suggestion)}
-        </button>
-      ))}
+    </GaugeColumn>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Director's slate: nudge composer                                   */
+/* ------------------------------------------------------------------ */
+
+function NudgeComposer({
+  participants,
+  recipientId,
+  text,
+  suggestions,
+  disabled,
+  canIntervene,
+  slotAvailable,
+  onTextChange,
+  onRecipientChange,
+  onFile,
+}: {
+  participants: Member[];
+  recipientId: string;
+  text: string;
+  suggestions: string[];
+  disabled: boolean;
+  canIntervene: boolean;
+  slotAvailable: boolean;
+  onTextChange: (text: string) => void;
+  onRecipientChange: (memberId: string) => void;
+  onFile: () => void;
+}) {
+  const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const recipient = participants.find((member) => member.id === recipientId);
+  const recipientName = recipient?.firstName ?? "one";
+  const placeholder = slotAvailable
+    ? `whisper into ${recipientName}'s ear`
+    : "every nudge slot used.";
+  const sendDisabled = !canIntervene || text.trim().length === 0;
+  const swapEnabled = participants.length >= 2 && !disabled;
+  const showSuggestions = focused && !disabled && slotAvailable && suggestions.length > 0;
+
+  const swapRecipient = () => {
+    if (!swapEnabled) return;
+    const next = participants.find((member) => member.id !== recipientId);
+    if (next === undefined) return;
+    onRecipientChange(next.id);
+  };
+
+  const fileNudge = () => {
+    if (sendDisabled) return;
+    onFile();
+    inputRef.current?.blur();
+  };
+
+  return (
+    <div className="relative flex w-full items-center gap-2">
+      <AnimatePresence>
+        {showSuggestions ? (
+          <motion.div
+            key="quick-nudges"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.18, ease: EASE_OUT_QUART }}
+            className="aura-glass pointer-events-auto absolute inset-x-0 bottom-[calc(100%+10px)] flex flex-wrap items-center gap-1.5 rounded-card px-3 py-2"
+          >
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+              quick nudges
+            </span>
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                data-sfx="click"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  onTextChange(suggestion);
+                  inputRef.current?.focus();
+                }}
+                className="cursor-pointer rounded-pill bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose"
+              >
+                {suggestionLabel(suggestion)}
+              </button>
+            ))}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      <button
+        type="button"
+        data-sfx="toggle"
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={swapRecipient}
+        disabled={!swapEnabled}
+        aria-label={`Whisper recipient: ${recipientName}. Click to swap.`}
+        title="Swap recipient"
+        className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-pill bg-aura-rose px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        {recipientName}
+        <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
+          <path
+            d="M2 6 L10 6 M7 3 L10 6 L7 9"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      <input
+        ref={inputRef}
+        type="text"
+        value={text}
+        maxLength={240}
+        disabled={disabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        onChange={(event) => onTextChange(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            fileNudge();
+          } else if (event.key === "Escape") {
+            event.currentTarget.blur();
+          }
+        }}
+        placeholder={placeholder}
+        aria-label={`Nudge for ${recipientName}`}
+        className="block min-w-0 flex-1 rounded-pill border border-transparent bg-white/55 px-4 py-2 font-sans text-body text-aura-ink outline-none transition placeholder:text-aura-faint focus:border-aura-rose/50 focus:bg-white/85 disabled:cursor-not-allowed disabled:opacity-60"
+      />
+      <button
+        type="button"
+        data-sfx="primary"
+        onClick={fileNudge}
+        disabled={sendDisabled}
+        aria-label="File nudge"
+        title="File nudge (enter)"
+        className="aura-cta grid size-9 shrink-0 cursor-pointer place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+      >
+        <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
+          <path d="M2 8 L14 2 L11 14 L7.5 9 L2 8 Z" fill="currentColor" />
+        </svg>
+      </button>
     </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Director's slate: playback banner shown when the date is in motion */
+/* ------------------------------------------------------------------ */
+
+function PlaybackBanner({ pendingDateAction }: { pendingDateAction: PendingDateAction | null }) {
+  const message =
+    pendingDateAction === "completeDate"
+      ? "Cupid is wrapping the date."
+      : pendingDateAction === "advanceExchange"
+        ? "Date is in motion. Pause to direct."
+        : "Autoplay is rolling. Pause to direct.";
+
+  return (
+    <div className="flex w-full items-center gap-3 px-2">
+      <span aria-hidden className="flex items-center gap-1">
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/55 [animation-delay:0ms]" />
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/65 [animation-delay:180ms]" />
+        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/75 [animation-delay:360ms]" />
+      </span>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-violet">
+        {message}
+      </p>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Director's slate: transport cluster                                */
+/* ------------------------------------------------------------------ */
+
+function TransportCluster({
+  isPlaying,
+  isPaused,
+  isStreaming,
+  playbackBusy,
+  canAdvance,
+  pendingDateAction,
+  onAdvance,
+  onComplete,
+  onCancel,
+  onTogglePlayback,
+}: {
+  isPlaying: boolean;
+  isPaused: boolean;
+  isStreaming: boolean;
+  playbackBusy: boolean;
+  canAdvance: boolean;
+  pendingDateAction: PendingDateAction | null;
+  onAdvance: (turnCount: 1 | 2) => void;
+  onComplete: () => void;
+  onCancel: () => void;
+  onTogglePlayback: () => void;
+}) {
+  const advanceTip =
+    pendingDateAction === "advanceExchange" ? "Streaming next beat..." : "Advance one beat";
+  const resolveTip = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
+  const playTip = isPlaying ? "Pause autoplay (space)" : "Start autoplay (space)";
+  return (
+    <div className="flex shrink-0 items-center gap-1.5">
+      {isPaused ? (
+        <Tooltip placement="top-center" message={resolveTip}>
+          <TransportButton
+            kind="ghost"
+            disabled={!canAdvance}
+            onClick={onComplete}
+            ariaLabel={resolveTip}
+          >
+            <ResolveIcon />
+          </TransportButton>
+        </Tooltip>
+      ) : null}
+      {isPaused ? (
+        <Tooltip placement="top-center" message={advanceTip}>
+          <TransportButton
+            kind="ghost"
+            disabled={!canAdvance}
+            onClick={() => onAdvance(2)}
+            ariaLabel={advanceTip}
+          >
+            <AdvanceIcon />
+          </TransportButton>
+        </Tooltip>
+      ) : null}
+      {isPaused && isStreaming ? (
+        <Tooltip placement="top-center" message="Stop streaming">
+          <TransportButton
+            kind="stop"
+            disabled={false}
+            onClick={onCancel}
+            ariaLabel="Stop streaming"
+          >
+            <StopIcon />
+          </TransportButton>
+        </Tooltip>
+      ) : null}
+      <Tooltip placement="top-center" message={playTip}>
+        <TransportButton
+          kind={isPlaying ? "ghost-active" : "primary"}
+          disabled={playbackBusy}
+          onClick={onTogglePlayback}
+          ariaLabel={playTip}
+        >
+          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+        </TransportButton>
+      </Tooltip>
+    </div>
+  );
+}
+
+function TransportButton({
+  kind,
+  children,
+  onClick,
+  disabled,
+  ariaLabel,
+}: {
+  kind: "ghost" | "ghost-active" | "primary" | "stop";
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled: boolean;
+  ariaLabel: string;
+}) {
+  const baseClass =
+    "relative grid size-10 cursor-pointer place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40";
+  const toneClass =
+    kind === "primary"
+      ? "aura-cta bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet text-white shadow-cta ring-1 ring-white/40 ring-inset hover:-translate-y-px hover:shadow-cta-hover"
+      : kind === "ghost-active"
+        ? "bg-white/85 text-aura-violet ring-1 ring-aura-violet/40 hover:bg-white"
+        : kind === "stop"
+          ? "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/40 hover:bg-aura-rose hover:text-white"
+          : "text-aura-muted ring-1 ring-aura-hairline hover:bg-white/55 hover:text-aura-ink";
+  const sfxCue: SfxCue = kind === "primary" ? "primary" : kind === "stop" ? "dismiss" : "click";
+  return (
+    <button
+      type="button"
+      data-sfx={sfxCue}
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      className={`${baseClass} ${toneClass}`}
+    >
+      {kind === "ghost-active" ? (
+        <span
+          aria-hidden
+          className="absolute inset-0 -z-10 rounded-full bg-aura-violet/20 aura-pulse"
+        />
+      ) : null}
+      {children}
+    </button>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <path d="M3.8 2.4 L11.6 7 L3.8 11.6 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PauseIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <rect x="3" y="2.5" width="2.6" height="9" rx="0.7" fill="currentColor" />
+      <rect x="8.4" y="2.5" width="2.6" height="9" rx="0.7" fill="currentColor" />
+    </svg>
+  );
+}
+
+function AdvanceIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <path d="M2.5 2.5 L9 7 L2.5 11.5 Z" fill="currentColor" />
+      <rect x="9.6" y="2.5" width="1.7" height="9" rx="0.7" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ResolveIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <rect x="3.5" y="3.5" width="7" height="7" rx="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+function StopIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <path
+        d="M3 3 L11 11 M11 3 L3 11"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
@@ -3399,9 +4078,55 @@ export function NotesView({ memories, members, pairStates, scenarios, shiftCount
           action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
         />
       ) : (
-        <ul className="mt-8 grid gap-4">
+        <NotesArchive
+          memories={filteredMemories}
+          memberById={memberById}
+          pairStateById={pairStateById}
+          scenarioById={scenarioById}
+        />
+      )}
+    </ViewFrame>
+  );
+}
+
+function NotesArchive({
+  memories,
+  memberById,
+  pairStateById,
+  scenarioById,
+}: {
+  memories: MemoryRecord[];
+  memberById: Map<string, Member>;
+  pairStateById: Map<string, PairState>;
+  scenarioById: Map<string, DateScenario>;
+}) {
+  const [featured, ...rest] = memories;
+
+  return (
+    <div className="relative mt-8">
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-3 top-4 hidden h-[calc(100%-2rem)] w-px bg-gradient-to-b from-aura-rose/45 via-aura-hairline-strong to-transparent lg:block"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -left-[14px] top-3 hidden size-2 rounded-full bg-aura-rose/70 shadow-[0_0_0_4px_rgba(255,253,249,0.85)] lg:block"
+      />
+
+      {featured === undefined ? null : (
+        <FeaturedNoteCard
+          memory={featured}
+          memberById={memberById}
+          pairStateById={pairStateById}
+          scenarioById={scenarioById}
+          rank={memories.length}
+        />
+      )}
+
+      {rest.length === 0 ? null : (
+        <ul className="mt-6 grid gap-5 lg:grid-cols-2">
           <AnimatePresence initial={false}>
-            {filteredMemories.map((memory, index) => (
+            {rest.map((memory, index) => (
               <NoteCard
                 key={memory.id}
                 memory={memory}
@@ -3414,7 +4139,7 @@ export function NotesView({ memories, members, pairStates, scenarios, shiftCount
           </AnimatePresence>
         </ul>
       )}
-    </ViewFrame>
+    </div>
   );
 }
 
@@ -3511,38 +4236,215 @@ function NotesScopePicker({
   options: { id: string; label: string }[];
   onChange: (id: string | "any") => void;
 }) {
+  const selectOptions = [
+    { value: "any", label: "any" },
+    ...options.map((option) => ({ value: option.id, label: option.label })),
+  ];
+
   return (
-    <label className="inline-flex items-center gap-2">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-        {label}
-      </span>
-      <div className="relative">
-        <select
-          value={value}
-          aria-label={`${label} filter`}
-          onChange={(event) => onChange(event.currentTarget.value)}
-          className="cursor-pointer appearance-none rounded-pill border border-aura-hairline bg-white/70 px-3 py-1.5 pr-8 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-ink outline-none transition hover:border-aura-hairline-strong focus:border-aura-rose"
-        >
-          <option value="any">any</option>
-          {options.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-aura-faint">
-          <svg aria-hidden width="12" height="12" viewBox="0 0 14 14" fill="none">
-            <path
-              d="M3.5 5.5L7 9L10.5 5.5"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </span>
+    <SelectInput
+      label={label}
+      value={value}
+      options={selectOptions}
+      layout="inline"
+      onChange={onChange}
+    />
+  );
+}
+
+type NoteScopeKey = "pair" | "date" | "scenario";
+
+type ScopePalette = {
+  label: string;
+  ribbon: string;
+  rail: string;
+  watermark: string;
+  glyphRing: string;
+  glyphFill: string;
+  caseDot: string;
+};
+
+const NOTE_SCOPE_PALETTE: Record<NoteScopeKey, ScopePalette> = {
+  pair: {
+    label: "PAIR FILE",
+    ribbon: "bg-aura-rose/95 text-white",
+    rail: "bg-aura-rose",
+    watermark: "text-aura-rose",
+    glyphRing: "ring-aura-rose/35",
+    glyphFill: "from-rose-100 via-aura-paper to-fuchsia-50",
+    caseDot: "bg-aura-rose",
+  },
+  date: {
+    label: "DATE FILE",
+    ribbon: "bg-aura-fuchsia/95 text-white",
+    rail: "bg-aura-fuchsia",
+    watermark: "text-aura-fuchsia",
+    glyphRing: "ring-aura-fuchsia/35",
+    glyphFill: "from-fuchsia-100 via-aura-paper to-violet-50",
+    caseDot: "bg-aura-fuchsia",
+  },
+  scenario: {
+    label: "SCENARIO FILE",
+    ribbon: "bg-aura-amber/95 text-white",
+    rail: "bg-aura-amber",
+    watermark: "text-aura-amber",
+    glyphRing: "ring-aura-amber/40",
+    glyphFill: "from-amber-100 via-aura-paper to-rose-50",
+    caseDot: "bg-aura-amber",
+  },
+};
+
+function paletteForScope(scope: MemoryRecord["scope"]): ScopePalette {
+  if (scope === "pair" || scope === "date" || scope === "scenario") {
+    return NOTE_SCOPE_PALETTE[scope];
+  }
+  return NOTE_SCOPE_PALETTE.pair;
+}
+
+function caseNumberFor(memory: MemoryRecord): string {
+  const prefix = memory.scope === "pair" ? "PR" : memory.scope === "date" ? "DT" : "SC";
+  const cleaned = memory.id.replace(/[^0-9a-zA-Z]/g, "");
+  const tail = cleaned.slice(-4).toUpperCase().padStart(4, "0");
+  return `C-${prefix}-${tail}`;
+}
+
+function splitNoteLead(text: string): { lead: string; tail: string } {
+  const trimmed = text.trim();
+  const breaks = [". ", "? ", "! "]
+    .map((token) => trimmed.indexOf(token))
+    .filter((index) => index > 0);
+  if (breaks.length === 0) {
+    return { lead: trimmed, tail: "" };
+  }
+  const cut = Math.min(...breaks);
+  return { lead: trimmed.slice(0, cut + 1), tail: trimmed.slice(cut + 2) };
+}
+
+function FeaturedNoteCard({
+  memory,
+  memberById,
+  pairStateById,
+  scenarioById,
+  rank,
+}: {
+  memory: MemoryRecord;
+  memberById: Map<string, Member>;
+  pairStateById: Map<string, PairState>;
+  scenarioById: Map<string, DateScenario>;
+  rank: number;
+}) {
+  const palette = paletteForScope(memory.scope);
+  const pairMembers =
+    memory.pairId === undefined
+      ? []
+      : (pairStateById.get(memory.pairId)?.participantIds ?? [])
+          .map((id) => memberById.get(id))
+          .filter((m): m is Member => Boolean(m));
+  const scenario =
+    memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
+  const title = noteCardTitle(memory, pairMembers, scenario);
+  const subhead = noteCardSubhead(memory, scenario);
+  const { lead, tail } = splitNoteLead(memory.text);
+  const caseNumber = caseNumberFor(memory);
+
+  return (
+    <motion.article
+      key={memory.id}
+      layout
+      initial={{ opacity: 0, y: 12, scale: 0.985 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ duration: 0.46, ease: EASE_OUT_QUART }}
+      className={`aura-glass-strong relative overflow-hidden rounded-card ring-1 ${palette.glyphRing}`}
+    >
+      <NoteCardWatermark palette={palette} scope={memory.scope} large />
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-y-0 left-0 w-1.5 ${palette.rail} opacity-60`}
+      />
+      <ImportanceRail value={memory.importance} palette={palette} large />
+
+      <div className="relative z-10 px-7 pb-9 pl-12 pt-0 lg:px-9 lg:pb-11 lg:pl-14">
+        <div className="-mt-px flex items-start justify-between gap-4">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-b-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.26em] shadow-quiet ${palette.ribbon}`}
+          >
+            <span aria-hidden className="size-1.5 rounded-full bg-white/85" />
+            {palette.label}
+          </span>
+          <FiledStamp date={memory.createdAt} />
+        </div>
+
+        <div className="mt-6 grid gap-7 lg:grid-cols-[auto_1fr] lg:gap-9">
+          <div className="flex flex-col items-start gap-3">
+            {pairMembers.length > 0 ? (
+              <div className="flex -space-x-5">
+                {pairMembers.map((member, idx) => (
+                  <span
+                    key={member.id}
+                    className={`rounded-full border-[3px] border-white/90 bg-white shadow-quiet ${idx === 0 ? "rotate-[-3deg]" : "rotate-[2deg]"}`}
+                  >
+                    <Portrait member={member} variant="card" />
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <ScenarioGlyph
+                title={scenario?.title ?? memory.scenarioId ?? "S"}
+                palette={palette}
+                large
+              />
+            )}
+            <div className="space-y-1">
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+                Filed {formatNoteTimestamp(memory.createdAt)}
+              </p>
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-muted">
+                Lead case · {pad2(rank)} on file
+              </p>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <h3 className="font-display text-display-lg font-semibold leading-[0.98] tracking-tight text-aura-ink">
+              {title}
+            </h3>
+            {subhead === null ? null : (
+              <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-rose">
+                {subhead}
+              </p>
+            )}
+            <p className="aura-accent mt-5 text-display-sm leading-snug text-aura-ink/90">{lead}</p>
+            {tail === "" ? null : (
+              <p className="mt-4 max-w-prose text-body leading-relaxed text-aura-ink/80">{tail}</p>
+            )}
+            {memory.tags.length === 0 ? null : (
+              <ul className="mt-5 flex flex-wrap gap-1.5">
+                {memory.tags.map((tag) => (
+                  <li
+                    key={tag}
+                    className="rounded-pill bg-white/70 px-2.5 py-1 ring-1 ring-aura-hairline"
+                  >
+                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
+                      {tag.replace(/_/g, " ")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="mt-7 flex items-center justify-between gap-4 border-t border-aura-hairline pt-4">
+          <p className="flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+            <span aria-hidden className={`size-1.5 rounded-full ${palette.caseDot}`} />
+            Reviewed by Cupid
+          </p>
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted">
+            ref · {caseNumber}
+          </p>
+        </div>
       </div>
-    </label>
+    </motion.article>
   );
 }
 
@@ -3559,7 +4461,7 @@ function NoteCard({
   pairStateById: Map<string, PairState>;
   scenarioById: Map<string, DateScenario>;
 }) {
-  const scopeLabel = noteScopeLabel(memory.scope);
+  const palette = paletteForScope(memory.scope);
   const pairMembers =
     memory.pairId === undefined
       ? []
@@ -3570,69 +4472,111 @@ function NoteCard({
     memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
   const title = noteCardTitle(memory, pairMembers, scenario);
   const subhead = noteCardSubhead(memory, scenario);
+  const { lead, tail } = splitNoteLead(memory.text);
+  const caseNumber = caseNumberFor(memory);
 
   return (
     <motion.li
       layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -4 }}
-      transition={{ duration: 0.32, delay: Math.min(index, 6) * 0.03, ease: EASE_OUT_QUART }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.34, delay: Math.min(index, 6) * 0.04, ease: EASE_OUT_QUART }}
       className="list-none"
     >
-      <article className="aura-glass aura-glass-lift overflow-hidden rounded-card">
-        <div className="flex items-start gap-5 p-5 lg:p-6">
-          {pairMembers.length > 0 ? (
-            <div className="flex shrink-0 -space-x-3">
-              {pairMembers.map((member) => (
-                <span
-                  key={member.id}
-                  className="rounded-full border-2 border-white/85 bg-white shadow-quiet"
-                >
-                  <Portrait member={member} variant="thumb" />
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div className="grid size-12 shrink-0 place-items-center rounded-full border border-aura-hairline bg-white/60">
-              <NoteScopeIcon scope={memory.scope} />
-            </div>
-          )}
+      <article
+        className={`aura-glass aura-glass-lift relative h-full overflow-hidden rounded-card ring-1 ${palette.glyphRing}`}
+      >
+        <NoteCardWatermark palette={palette} scope={memory.scope} />
+        <span
+          aria-hidden
+          className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${palette.rail} opacity-55`}
+        />
+        <ImportanceRail value={memory.importance} palette={palette} />
 
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-              <p className="flex items-baseline gap-2 font-mono text-micro font-semibold uppercase tracking-[0.24em]">
-                <span className="text-aura-rose">{scopeLabel}</span>
-                <span aria-hidden className="text-aura-faint/60">
-                  ·
-                </span>
-                <span className="text-aura-faint">{formatNoteTimestamp(memory.createdAt)}</span>
-              </p>
-              <ImportanceDots value={memory.importance} />
-            </div>
-            <h3 className="mt-1.5 line-clamp-1 font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
-              {title}
-            </h3>
-            {subhead === null ? null : (
-              <p className="mt-1 line-clamp-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
-                {subhead}
-              </p>
+        <div className="relative z-10 flex h-full min-h-full flex-col gap-4 px-5 pb-5 pl-9 pt-0 lg:px-6 lg:pl-11">
+          <div className="flex items-start justify-between gap-3">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-b-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] shadow-quiet ${palette.ribbon}`}
+            >
+              <span aria-hidden className="size-1 rounded-full bg-white/85" />
+              {palette.label}
+            </span>
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+              {caseNumber}
+            </span>
+          </div>
+
+          <div className="flex items-start gap-4">
+            {pairMembers.length > 0 ? (
+              <div className="flex shrink-0 -space-x-3">
+                {pairMembers.map((member, idx) => (
+                  <span
+                    key={member.id}
+                    className={`rounded-full border-2 border-white/90 bg-white shadow-quiet ${idx === 0 ? "rotate-[-2deg]" : "rotate-[2deg]"}`}
+                  >
+                    <Portrait member={member} variant="thumb" />
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <ScenarioGlyph
+                title={scenario?.title ?? memory.scenarioId ?? "S"}
+                palette={palette}
+              />
             )}
-            <p className="mt-3 text-body leading-relaxed text-aura-ink/85">{memory.text}</p>
-            {memory.tags.length === 0 ? null : (
-              <ul className="mt-3 flex flex-wrap gap-1.5">
-                {memory.tags.map((tag) => (
+            <div className="min-w-0 flex-1">
+              <h3 className="line-clamp-1 font-display text-display-sm font-semibold leading-[1.05] tracking-tight text-aura-ink">
+                {title}
+              </h3>
+              {subhead === null ? null : (
+                <p className="mt-1 line-clamp-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+                  {subhead}
+                </p>
+              )}
+              <p className="mt-1 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+                Filed {formatNoteTimestamp(memory.createdAt)}
+              </p>
+            </div>
+          </div>
+
+          <div className="min-w-0">
+            <p className="aura-accent line-clamp-2 text-lead leading-snug text-aura-ink/90">
+              {lead}
+            </p>
+            {tail === "" ? null : (
+              <p className="mt-2 line-clamp-2 text-body leading-relaxed text-aura-ink/75">{tail}</p>
+            )}
+          </div>
+
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-aura-hairline pt-3">
+            {memory.tags.length === 0 ? (
+              <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+                no tags filed
+              </span>
+            ) : (
+              <ul className="flex flex-wrap gap-1.5">
+                {memory.tags.slice(0, 3).map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-pill bg-white/65 px-2.5 py-1 ring-1 ring-aura-hairline"
+                    className="rounded-pill bg-white/70 px-2 py-0.5 ring-1 ring-aura-hairline"
                   >
-                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-muted">
+                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-muted">
                       {tag.replace(/_/g, " ")}
                     </span>
                   </li>
                 ))}
+                {memory.tags.length > 3 ? (
+                  <li className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+                    +{memory.tags.length - 3}
+                  </li>
+                ) : null}
               </ul>
             )}
+            <span className="flex items-center gap-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+              <span aria-hidden className={`size-1 rounded-full ${palette.caseDot}`} />
+              {pad2(memory.importance)}/05
+            </span>
           </div>
         </div>
       </article>
@@ -3640,48 +4584,115 @@ function NoteCard({
   );
 }
 
-function ImportanceDots({ value }: { value: number }) {
+function ImportanceRail({
+  value,
+  palette,
+  large = false,
+}: {
+  value: number;
+  palette: ScopePalette;
+  large?: boolean;
+}) {
   const filled = Math.max(1, Math.min(5, value));
   return (
-    <span
+    <div
       aria-label={`Importance ${filled} of 5`}
-      className="inline-flex items-center gap-1"
       title={`Importance ${filled} of 5`}
+      className={`pointer-events-none absolute left-3 flex flex-col gap-1 ${large ? "inset-y-9 w-[3px]" : "inset-y-7 w-[2.5px]"}`}
     >
-      {Array.from({ length: 5 }, (_, dotIndex) => (
-        <span
-          key={dotIndex}
-          aria-hidden
-          className={`size-1.5 rounded-full ${dotIndex < filled ? "bg-aura-rose" : "bg-aura-hairline"}`}
-        />
-      ))}
+      {Array.from({ length: 5 }, (_, i) => {
+        const isLit = 5 - i <= filled;
+        return (
+          <span
+            key={i}
+            aria-hidden
+            className={`flex-1 rounded-full ${isLit ? palette.rail : "bg-aura-hairline"}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function FiledStamp({ date }: { date: string }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none inline-flex -rotate-[7deg] flex-col items-center justify-center gap-0.5 rounded-md border-2 border-aura-rose/45 px-3 py-1.5 font-mono font-semibold uppercase tracking-[0.32em] text-aura-rose/65"
+    >
+      <span className="text-micro leading-none">Filed</span>
+      <span className="text-micro leading-none tracking-[0.18em] text-aura-rose/55">
+        {formatStampDate(date)}
+      </span>
     </span>
   );
 }
 
-function NoteScopeIcon({ scope }: { scope: MemoryRecord["scope"] }) {
-  if (scope === "scenario") {
-    return (
-      <svg viewBox="0 0 16 16" className="size-5 text-aura-rose" fill="none" aria-hidden>
-        <path
-          d="M3 4.5C3 3.67 3.67 3 4.5 3H11.5C12.33 3 13 3.67 13 4.5V11.5C13 12.33 12.33 13 11.5 13H4.5C3.67 13 3 12.33 3 11.5V4.5Z"
-          stroke="currentColor"
-          strokeWidth="1.4"
-        />
-        <path d="M6 6.5H10M6 9.5H9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+function formatStampDate(iso: string): string {
+  const parsed = new Date(iso);
+  if (Number.isNaN(parsed.getTime())) return iso;
+  const day = parsed.toLocaleDateString(undefined, { day: "2-digit" });
+  const month = parsed.toLocaleDateString(undefined, { month: "short" }).toUpperCase();
+  return `${day} ${month}`;
+}
+
+function NoteCardWatermark({
+  palette,
+  scope,
+  large = false,
+}: {
+  palette: ScopePalette;
+  scope: MemoryRecord["scope"];
+  large?: boolean;
+}) {
+  return (
+    <div
+      aria-hidden
+      className={`pointer-events-none absolute opacity-[0.07] ${large ? "-bottom-12 -right-10 size-64" : "-bottom-10 -right-8 size-44"}`}
+    >
+      <svg viewBox="0 0 100 100" className={`size-full ${palette.watermark}`} fill="currentColor">
+        {scope === "scenario" ? (
+          <path d="M50 8 L60 38 L92 40 L66 60 L74 92 L50 74 L26 92 L34 60 L8 40 L40 38 Z" />
+        ) : (
+          <path d="M50 86 C22 64 12 48 12 33 C12 22 22 14 32 14 C40 14 47 19 50 26 C53 19 60 14 68 14 C78 14 88 22 88 33 C88 48 78 64 50 86 Z" />
+        )}
       </svg>
-    );
-  }
+    </div>
+  );
+}
+
+function ScenarioGlyph({
+  title,
+  palette,
+  large = false,
+}: {
+  title: string;
+  palette: ScopePalette;
+  large?: boolean;
+}) {
+  const initials =
+    title
+      .split(/\s+/)
+      .filter((part) => part.length > 0)
+      .slice(0, 2)
+      .map((part) => part.replace(/[^a-zA-Z0-9]/g, "").charAt(0))
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "S";
 
   return (
-    <svg viewBox="0 0 16 16" className="size-5 text-aura-rose" fill="none" aria-hidden>
-      <path
-        d="M8 13.5S2.5 10 2.5 6.25C2.5 4.45 3.95 3 5.75 3C6.85 3 7.6 3.55 8 4.4C8.4 3.55 9.15 3 10.25 3C12.05 3 13.5 4.45 13.5 6.25C13.5 10 8 13.5 8 13.5Z"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div
+      aria-hidden
+      className={`relative grid shrink-0 place-items-center rounded-full bg-gradient-to-br ring-2 ${palette.glyphFill} ${palette.glyphRing} ${large ? "size-28 shadow-quiet" : "size-12"}`}
+    >
+      <span aria-hidden className="absolute inset-1 rounded-full ring-1 ring-white/60" />
+      <span aria-hidden className="absolute inset-2.5 rounded-full ring-1 ring-aura-hairline" />
+      <span
+        className={`relative font-display font-semibold tracking-tight text-aura-ink/85 ${large ? "text-display-md" : "text-base"}`}
+      >
+        {initials}
+      </span>
+    </div>
   );
 }
 
@@ -3718,13 +4729,6 @@ function sortMemoriesNewestFirst(first: MemoryRecord, second: MemoryRecord): num
     return second.importance - first.importance;
   }
   return first.createdAt < second.createdAt ? 1 : -1;
-}
-
-function noteScopeLabel(scope: MemoryRecord["scope"]): string {
-  if (scope === "pair") return "PAIR FILE";
-  if (scope === "date") return "DATE FILE";
-  if (scope === "scenario") return "SCENARIO FILE";
-  return "FILE";
 }
 
 function noteCardTitle(
@@ -3926,7 +4930,7 @@ export function DashboardLoading() {
 /* Helpers                                                            */
 /* ================================================================== */
 
-function buildTranscriptItems(
+export function buildTranscriptItems(
   session: DateSession,
   members: Member[],
   scenario: DateScenario | undefined,
@@ -3958,7 +4962,7 @@ function buildTranscriptItems(
     if (message.kind !== "character") {
       continue;
     }
-    const exchangeIndex = Math.floor((message.turnIndex - 1) / 2);
+    const exchangeIndex = exchangeIndexForTurn(message.turnIndex);
     const previous = lastSequenceByExchange.get(exchangeIndex) ?? 0;
     if (message.sequenceIndex > previous) {
       lastSequenceByExchange.set(exchangeIndex, message.sequenceIndex);
@@ -4007,14 +5011,12 @@ function buildNonCharacterLabel(
   }
 
   if (message.kind === "cupid") {
-    const intervention = session.intervention;
-    const matchesCurrentIntervention =
-      intervention !== undefined &&
-      message.turnIndex === intervention.usedAtTurn &&
-      message.text === formatCupidInterventionText(intervention.text);
-    const targetId =
-      message.targetMemberId ??
-      (matchesCurrentIntervention ? intervention?.targetMemberId : undefined);
+    const matchingIntervention = session.interventions.find(
+      (intervention) =>
+        message.turnIndex === intervention.usedAtTurn &&
+        message.text === formatCupidInterventionText(intervention.text),
+    );
+    const targetId = message.targetMemberId ?? matchingIntervention?.targetMemberId;
     const target =
       targetId === undefined ? undefined : members.find((member) => member.id === targetId);
 
@@ -4025,11 +5027,11 @@ function buildNonCharacterLabel(
 }
 
 function buildReactionSignals(
-  session: DateSession,
+  judgeSnapshots: readonly JudgeSnapshot[],
   leftMemberId: string,
   rightMemberId: string,
 ): ReactionSignal[] {
-  const latestJudge = session.judgeSnapshots.at(-1);
+  const latestJudge = judgeSnapshots.at(-1);
 
   if (latestJudge === undefined) {
     return [];
@@ -4104,8 +5106,8 @@ function buildReactionSignals(
   return signals;
 }
 
-function buildNudgeSuggestions(session: DateSession): string[] {
-  const latestJudge = session.judgeSnapshots.at(-1);
+function buildNudgeSuggestions(judgeSnapshots: readonly JudgeSnapshot[]): string[] {
+  const latestJudge = judgeSnapshots.at(-1);
   const baseSuggestions = [
     "Ask one specific follow-up before changing topic.",
     "Move past logistics and name one honest feeling.",

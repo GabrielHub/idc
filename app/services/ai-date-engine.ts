@@ -7,6 +7,7 @@ import {
   type DateMessage,
   type DateScenario,
   type DateSession,
+  type FollowUpAction,
   type GameSave,
   type JudgeSnapshot,
   type Member,
@@ -33,18 +34,16 @@ import {
   applyJudgeToMembers,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
-  createNonCharacterMessage,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
-  isAtExchangeBoundary,
   latestJudgedExchangeIndex,
   markPairDateComplete,
   requireDateSession,
   requireMember,
   requirePairState,
   requireScenario,
-  sceneBeatsForUpcomingExchange,
+  resolveEndedDateSentiment,
   shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
@@ -59,6 +58,7 @@ import {
 } from "./date-prompts";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, pairRuleHits } from "./match-fit";
 import { clampScore, errorToMessage, replaceById } from "./utils";
+import { createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
@@ -225,7 +225,11 @@ async function advanceDateExchangeWithLocalAiInternal(
     runtimeMode: "local_ai",
   });
 
-  if (session.status !== "active") {
+  if (
+    session.status !== "active" ||
+    session.playbackState === "drafting" ||
+    session.playbackState === "ended"
+  ) {
     return {
       save,
       session,
@@ -250,20 +254,6 @@ async function advanceDateExchangeWithLocalAiInternal(
   let currentTurn = session.currentTurn;
   let workingSession = session;
   const turnCount = input.turnCount ?? 2;
-
-  if (isAtExchangeBoundary(currentTurn)) {
-    for (const beat of sceneBeatsForUpcomingExchange(scenario, currentTurn)) {
-      transcript.push(
-        createNonCharacterMessage(
-          { ...workingSession, transcript, currentTurn },
-          "scenario",
-          beat.characterVisibleText,
-          timestamp,
-        ),
-      );
-    }
-    workingSession = { ...workingSession, transcript, currentTurn };
-  }
 
   for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
@@ -360,25 +350,34 @@ async function advanceDateExchangeWithLocalAiInternal(
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
   const nextDateHealth = clampScore(session.dateHealth + judgeSnapshot.dateHealthDelta);
+  const isEndingEarly = nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly;
+  const isCompletingNaturally = !isEndingEarly && currentTurn >= session.turnLimit;
+  const nextStatus = isEndingEarly
+    ? "ended_early"
+    : isCompletingNaturally
+      ? "completed"
+      : session.status;
+  const nextEndSentiment = isEndingEarly
+    ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
+    : session.endSentiment;
+  const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
   const baseUpdatedSession = dateSessionSchema.parse({
     ...session,
     currentTurn,
     dateHealth: nextDateHealth,
-    status: nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly ? "ended_early" : session.status,
+    status: nextStatus,
+    endSentiment: nextEndSentiment,
+    playbackState: nextPlaybackState,
     transcript,
     judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
   });
-  const shouldFinish =
-    baseUpdatedSession.status === "ended_early" || currentTurn >= session.turnLimit;
+  const shouldFinish = nextStatus !== "active";
   const completion =
     shouldFinish === true
       ? await createLocalAiFinalSession({
           runtime,
           config,
-          session: {
-            ...baseUpdatedSession,
-            status: baseUpdatedSession.status === "ended_early" ? "ended_early" : "completed",
-          },
+          session: baseUpdatedSession,
           pairState: updatedPairState,
           members,
           scenario,
@@ -387,7 +386,9 @@ async function advanceDateExchangeWithLocalAiInternal(
       : {
           session: baseUpdatedSession,
           memories: [] satisfies MemoryRecord[],
+          warningMessages: [] satisfies string[],
         };
+  warningMessages.push(...completion.warningMessages);
   const completedSession = completion.session;
   const finalPairState =
     completedSession.finalReport === undefined
@@ -447,8 +448,17 @@ async function completeDateSessionWithLocalAiInternal(
   const warningMessages: string[] = [];
   const telemetry = createEmptyCharacterTelemetry();
 
+  if (nextSession.playbackState === "drafting") {
+    throw new Error("Pick scenario events before resolving the date.");
+  }
+
   while (nextSession.status === "active") {
     const result = await advanceDateExchangeWithLocalAiInternal(nextSave, repository, input, emit);
+
+    if (result.session.currentTurn === nextSession.currentTurn) {
+      break;
+    }
+
     nextSave = result.save;
     nextSession = result.session;
     warningMessages.push(...result.warningMessages);
@@ -759,24 +769,108 @@ async function createLocalAiFinalSession({
   members: Member[];
   scenario: DateScenario;
   completedAt: string;
-}): Promise<{ session: DateSession; memories: MemoryRecord[] }> {
-  const memories = await createLocalAiMemoryRecords({
-    runtime,
-    config,
-    session,
-    members,
-    createdAt: completedAt,
-  });
-  const completedSession = finalizeDateSession({
-    session,
-    pairState,
-    members,
-    scenario,
-    completedAt,
-    memoryRecordIds: memories.map((memory) => memory.id),
-  });
+}): Promise<{ session: DateSession; memories: MemoryRecord[]; warningMessages: string[] }> {
+  try {
+    const memories = await createLocalAiMemoryRecords({
+      runtime,
+      config,
+      session,
+      members,
+      createdAt: completedAt,
+    });
+    const completedSession = finalizeDateSession({
+      session,
+      pairState,
+      members,
+      scenario,
+      completedAt,
+      memoryRecordIds: memories.map((memory) => memory.id),
+    });
 
-  return { session: completedSession, memories };
+    return { session: completedSession, memories, warningMessages: [] };
+  } catch {
+    const fallbackMemoryId = `memory-${session.id}-ai-fallback`;
+    const completedSession = finalizeDateSession({
+      session,
+      pairState,
+      members,
+      scenario,
+      completedAt,
+      memoryRecordIds: [fallbackMemoryId],
+    });
+    const fallbackMemory = createLocalAiFallbackMemoryRecord({
+      id: fallbackMemoryId,
+      session: completedSession,
+      members,
+      scenario,
+      createdAt: completedAt,
+    });
+
+    return {
+      session: completedSession,
+      memories: [fallbackMemory],
+      warningMessages: [
+        "AI memory filing used a deterministic fallback case note. Structured memory output failed, but the date was filed.",
+      ],
+    };
+  }
+}
+
+function createLocalAiFallbackMemoryRecord({
+  id,
+  session,
+  members,
+  scenario,
+  createdAt,
+}: {
+  id: string;
+  session: DateSession;
+  members: Member[];
+  scenario: DateScenario;
+  createdAt: string;
+}): MemoryRecord {
+  const report = session.finalReport;
+  const followUp =
+    report === undefined ? "standard review" : formatFallbackFollowUp(report.recommendedFollowUp);
+  const summary =
+    report === undefined
+      ? `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}.`
+      : `${report.summary} ${report.statSummary}`;
+  const text = `${summary} Recommended follow-up: ${followUp}. Cupid filed a basic case note after the memory clerk missed the structured form.`;
+  const embedding = createDeterministicEmbedding(text);
+
+  return memoryRecordSchema.parse({
+    id,
+    scope: "pair",
+    visibility: "public",
+    subjectIds: session.participants,
+    pairId: session.pairId,
+    scenarioId: scenario.id,
+    dateSessionId: session.id,
+    text,
+    tags: ["date_summary", "fallback_summary", scenario.id],
+    importance: 3,
+    createdAt,
+    embedding,
+    embeddingModel: "deterministic-local",
+    embeddingDimensions: embedding.length,
+  });
+}
+
+function formatFallbackFollowUp(action: FollowUpAction): string {
+  if (action === "encourage") {
+    return "Encourage";
+  }
+
+  if (action === "cool_down") {
+    return "Cool down";
+  }
+
+  if (action === "mark_bad_fit") {
+    return "Mark bad fit";
+  }
+
+  return "Repair";
 }
 
 async function createLocalAiMemoryRecords({
@@ -836,27 +930,26 @@ function normalizeMemoryCandidate(
   candidate: MemoryCandidate,
   session: DateSession,
 ): MemoryCandidate {
-  const parsedCandidate = memoryCandidateSchema.parse(candidate);
   const participantIds = new Set(session.participants);
-  const subjectIds = parsedCandidate.subjectIds.filter((memberId) => participantIds.has(memberId));
+  const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
   const fallbackSubjectIds = subjectIds.length === 0 ? [...session.participants] : subjectIds;
   const visibleToMemberIds =
-    parsedCandidate.visibility === "member_private"
-      ? normalizeVisibleMemberIds(parsedCandidate.visibleToMemberIds, fallbackSubjectIds, [
+    candidate.visibility === "member_private"
+      ? normalizeVisibleMemberIds(candidate.visibleToMemberIds, fallbackSubjectIds, [
           ...session.participants,
         ])
       : undefined;
 
   return memoryCandidateSchema.parse({
-    ...parsedCandidate,
+    ...candidate,
     subjectIds: fallbackSubjectIds,
     visibleToMemberIds,
     pairId: session.pairId,
     scenarioId: session.scenarioId,
     dateSessionId: session.id,
-    text: normalizeForbiddenPunctuation(parsedCandidate.text),
-    tags: Array.from(new Set([...parsedCandidate.tags, "ai_summary"])).slice(0, 8),
-    importance: Math.min(5, Math.max(1, parsedCandidate.importance)),
+    text: normalizeForbiddenPunctuation(candidate.text),
+    tags: Array.from(new Set([...candidate.tags, "ai_summary"])).slice(0, 8),
+    importance: Math.min(5, Math.max(1, candidate.importance)),
   });
 }
 
@@ -885,6 +978,7 @@ function sanitizeJudgeSnapshot(judgeSnapshot: JudgeSnapshot, session: DateSessio
 
   return {
     ...judgeSnapshot,
+    endSentiment: judgeSnapshot.shouldEndEarly ? judgeSnapshot.endSentiment : null,
     memberMoodDeltas,
     earlyEndReason:
       judgeSnapshot.earlyEndReason === undefined

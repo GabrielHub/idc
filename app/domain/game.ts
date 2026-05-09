@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 2;
+export const SAVE_SCHEMA_VERSION = 3;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
@@ -179,8 +179,8 @@ export const relationshipStatSchema = z.enum([
 
 export const RELATIONSHIP_STATS = relationshipStatSchema.options;
 
-export const scenarioBeatSchema = z.object({
-  atTurn: z.number().int().min(1),
+export const scenarioEventSchema = z.object({
+  id: z.string().min(1),
   title: z.string().min(1),
   event: z.string().min(1),
   characterVisibleText: z.string().min(1),
@@ -208,7 +208,7 @@ export const dateScenarioSchema = z.object({
   director: z.object({
     tone: z.string().min(1),
     rules: z.array(z.string().min(1)).min(1),
-    beats: z.array(scenarioBeatSchema),
+    events: z.array(scenarioEventSchema).min(1),
     earlyEndTriggers: z.array(z.string().min(1)),
     repeatBehavior: z.string().min(1),
   }),
@@ -335,10 +335,19 @@ export const characterDateStateSchema = z.object({
 });
 
 export const cupidInterventionSchema = z.object({
+  id: z.string().min(1),
   text: z.string().min(1).max(240),
   usedAtTurn: z.number().int().min(0),
-  usedAtJudgeCount: z.number().int().min(0).default(0),
-  targetMemberId: memberIdSchema.optional(),
+  targetMemberId: memberIdSchema,
+});
+
+export const endSentimentSchema = z.enum(["positive", "negative"]);
+
+export const playbackStateSchema = z.enum(["drafting", "paused", "playing", "ended"]);
+
+export const eventDraftSchema = z.object({
+  offered: z.array(z.string().min(1)),
+  picked: z.array(z.string().min(1)).nullable(),
 });
 
 export const memoryScopeSchema = z.enum(["member", "pair", "date", "scenario", "company"]);
@@ -380,6 +389,7 @@ export const judgeSnapshotSchema = z.object({
   memberMoodDeltas: z.record(memberIdSchema, deltaSchema),
   shouldEndEarly: z.boolean(),
   earlyEndReason: z.string().min(1).optional(),
+  endSentiment: endSentimentSchema.nullable().default(null),
   notableMoments: z.array(z.string().min(1)),
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),
@@ -402,84 +412,28 @@ export const dateFinalReportSchema = z.object({
   memoryRecordIds: z.array(memoryIdSchema),
 });
 
-const CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION = 2;
-
-function toDateSessionInput(value: unknown): unknown {
-  if (typeof value !== "object" || value === null) {
-    return value;
-  }
-
-  const record = value as Record<string, unknown>;
-  const intervention = record.intervention;
-
-  if (typeof intervention !== "object" || intervention === null) {
-    return value;
-  }
-
-  const interventionRecord = intervention as Record<string, unknown>;
-
-  if (Object.hasOwn(interventionRecord, "usedAtJudgeCount")) {
-    return value;
-  }
-
-  return {
-    ...record,
-    intervention: {
-      ...interventionRecord,
-      usedAtJudgeCount: deriveInterventionJudgeCount(
-        interventionRecord.usedAtTurn,
-        record.judgeSnapshots,
-      ),
-    },
-  };
-}
-
-function deriveInterventionJudgeCount(usedAtTurn: unknown, judgeSnapshots: unknown): number {
-  if (typeof usedAtTurn !== "number" || !Number.isFinite(usedAtTurn)) {
-    return 0;
-  }
-
-  if (!Array.isArray(judgeSnapshots)) {
-    return Math.max(0, Math.floor(usedAtTurn / CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION));
-  }
-
-  return judgeSnapshots.filter((snapshot) => {
-    if (typeof snapshot !== "object" || snapshot === null) {
-      return false;
-    }
-
-    const snapshotRecord = snapshot as Record<string, unknown>;
-    const exchangeIndex = snapshotRecord.exchangeIndex;
-
-    return (
-      typeof exchangeIndex === "number" &&
-      Number.isFinite(exchangeIndex) &&
-      (exchangeIndex + 1) * CHARACTER_TURNS_PER_EXCHANGE_FOR_SAVE_MIGRATION <= usedAtTurn
-    );
-  }).length;
-}
-
-export const dateSessionSchema = z.preprocess(
-  toDateSessionInput,
-  z.object({
-    id: dateSessionIdSchema,
-    pairId: pairIdSchema,
-    scenarioId: scenarioIdSchema,
-    focusMemberId: memberIdSchema.optional(),
-    focusRequestId: z.string().min(1).optional(),
-    turnLimit: z.number().int().min(2).default(30),
-    currentTurn: z.number().int().min(0),
-    dateHealth: scoreSchema,
-    status: dateSessionStatusSchema,
-    runtimeMode: dateRuntimeModeSchema.default("local_ai"),
-    participants: z.tuple([memberIdSchema, memberIdSchema]),
-    transcript: z.array(dateMessageSchema),
-    privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
-    judgeSnapshots: z.array(judgeSnapshotSchema),
-    intervention: cupidInterventionSchema.optional(),
-    finalReport: dateFinalReportSchema.optional(),
-  }),
-);
+export const dateSessionSchema = z.object({
+  id: dateSessionIdSchema,
+  pairId: pairIdSchema,
+  scenarioId: scenarioIdSchema,
+  focusMemberId: memberIdSchema.optional(),
+  focusRequestId: z.string().min(1).optional(),
+  turnLimit: z.number().int().min(2).default(30),
+  currentTurn: z.number().int().min(0),
+  dateHealth: scoreSchema,
+  status: dateSessionStatusSchema,
+  runtimeMode: dateRuntimeModeSchema.default("local_ai"),
+  participants: z.tuple([memberIdSchema, memberIdSchema]),
+  transcript: z.array(dateMessageSchema),
+  privateStateByCharacter: z.record(memberIdSchema, characterDateStateSchema),
+  judgeSnapshots: z.array(judgeSnapshotSchema),
+  eventDraft: eventDraftSchema,
+  eventsTriggered: z.array(z.string().min(1)).default([]),
+  playbackState: playbackStateSchema.default("drafting"),
+  endSentiment: endSentimentSchema.nullable().default(null),
+  interventions: z.array(cupidInterventionSchema).default([]),
+  finalReport: dateFinalReportSchema.optional(),
+});
 
 export const scenarioDeckStateSchema = z.object({
   scenarioIds: z.array(scenarioIdSchema).min(1),
@@ -621,8 +575,11 @@ export type MemberTag = z.infer<typeof memberTagSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;
-export type ScenarioBeat = z.infer<typeof scenarioBeatSchema>;
+export type ScenarioEvent = z.infer<typeof scenarioEventSchema>;
 export type DateScenario = z.infer<typeof dateScenarioSchema>;
+export type EventDraft = z.infer<typeof eventDraftSchema>;
+export type PlaybackState = z.infer<typeof playbackStateSchema>;
+export type EndSentiment = z.infer<typeof endSentimentSchema>;
 export type GoalMetric = z.infer<typeof goalMetricSchema>;
 export type CompanyGoal = z.infer<typeof companyGoalSchema>;
 export type MemberRequestTag = z.infer<typeof memberRequestTagSchema>;

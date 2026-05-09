@@ -1,12 +1,9 @@
-import { z } from "zod";
-
 import {
   dateMessageSchema,
   dateSessionSchema,
   gameConfigSchema,
   gameSaveSchema,
   memberSchema,
-  memberStateSchema,
   memoryRecordSchema,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
@@ -22,7 +19,6 @@ import {
   type ScenarioDeckState,
   type ShiftState,
 } from "../domain/game";
-import { starterMembers } from "../fixtures";
 import {
   createSeedGameSave,
   getActiveShift,
@@ -41,17 +37,6 @@ export const LEGACY_SAVE_KEYS = Array.from(
 );
 
 const DEFAULT_SAVE_KEY = CURRENT_SAVE_KEY;
-
-const persistedSaveWithLooseMembersSchema = gameSaveSchema.extend({
-  members: z.array(
-    z
-      .object({
-        id: z.string().min(1),
-        state: memberStateSchema.optional(),
-      })
-      .passthrough(),
-  ),
-});
 
 export async function readGameConfigFromStore(
   store: RawSaveStore,
@@ -100,16 +85,13 @@ export class LocalGameRepository implements GameRepository {
     }
 
     for (const legacySaveKey of this.legacySaveKeys) {
-      const legacySave = await this.loadGameFromKey(legacySaveKey);
+      const rawLegacySave = await this.store.read(legacySaveKey);
 
-      if (legacySave === null) {
-        continue;
+      if (rawLegacySave !== null) {
+        throw new Error(
+          `Unsupported local save key ${legacySaveKey}. Alpha saves start fresh after schema changes.`,
+        );
       }
-
-      await this.writeGameToKey(this.saveKey, legacySave.save);
-      await this.store.delete(legacySaveKey);
-      await this.deleteLegacySaves();
-      return legacySave.save;
     }
 
     return null;
@@ -370,91 +352,9 @@ export class LocalGameRepository implements GameRepository {
 }
 
 function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: boolean } {
-  const currentSave = gameSaveSchema.safeParse(parsed);
+  const save = gameSaveSchema.parse(parsed);
 
-  if (currentSave.success) {
-    return migrateDefaultLocalAiConfig(
-      currentSave.data,
-      hasLegacyCupidInterventionJudgeCounts(parsed),
-    );
-  }
-
-  const looseSave = persistedSaveWithLooseMembersSchema.parse(parsed);
-  const savedMemberStateById = new Map(
-    looseSave.members
-      .filter((member) => member.state !== undefined)
-      .map((member) => [member.id, member.state] as const),
-  );
-  const starterMemberIds = new Set(starterMembers.map((member) => member.id));
-  const migratedFixtureMembers = starterMembers.map((fixtureMember) => {
-    const parsedFixtureMember = memberSchema.parse(fixtureMember);
-    const savedState = savedMemberStateById.get(parsedFixtureMember.id);
-
-    if (savedState === undefined) {
-      return parsedFixtureMember;
-    }
-
-    return memberSchema.parse({
-      ...parsedFixtureMember,
-      state: savedState,
-    });
-  });
-  const customMembers: Member[] = [];
-
-  for (const savedMember of looseSave.members) {
-    if (starterMemberIds.has(savedMember.id)) {
-      continue;
-    }
-
-    const parsedMember = memberSchema.safeParse(savedMember);
-
-    if (parsedMember.success) {
-      customMembers.push(parsedMember.data);
-    }
-  }
-
-  return migrateDefaultLocalAiConfig(
-    gameSaveSchema.parse({
-      ...looseSave,
-      members: [...migratedFixtureMembers, ...customMembers],
-    }),
-    true,
-  );
-}
-
-function hasLegacyCupidInterventionJudgeCounts(parsed: unknown): boolean {
-  if (typeof parsed !== "object" || parsed === null) {
-    return false;
-  }
-
-  const record = parsed as Record<string, unknown>;
-  const dateSessions = record.dateSessions;
-
-  if (!Array.isArray(dateSessions)) {
-    return false;
-  }
-
-  return dateSessions.some((session) => {
-    if (typeof session !== "object" || session === null) {
-      return false;
-    }
-
-    const sessionRecord = session as Record<string, unknown>;
-    const intervention = sessionRecord.intervention;
-
-    if (typeof intervention !== "object" || intervention === null) {
-      return false;
-    }
-
-    return !Object.hasOwn(intervention, "usedAtJudgeCount");
-  });
-}
-
-function migrateDefaultLocalAiConfig(
-  save: GameSave,
-  alreadyMigrated: boolean,
-): { save: GameSave; migrated: boolean } {
-  return { save, migrated: alreadyMigrated };
+  return { save, migrated: JSON.stringify(save) !== JSON.stringify(parsed) };
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {

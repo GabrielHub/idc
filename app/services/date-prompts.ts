@@ -12,10 +12,10 @@ import type {
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
 import {
-  currentSceneBeatForTurn,
   exchangeIndexForPendingTurn,
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
+  lastTriggeredEvent,
 } from "./date-engine";
 
 export type CharacterPromptPacket = {
@@ -53,7 +53,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     session,
     member,
   });
-  const currentBeat = currentSceneBeatForTurn(scenario, session.currentTurn + 1);
+  const currentEvent = lastTriggeredEvent(scenario, session);
   const phase = phaseForTurn(session.currentTurn + 1, session.turnLimit);
   const isSpeakerOpeningTurn = !session.transcript.some(
     (message) => message.kind === "character" && message.speakerId === member.id,
@@ -119,6 +119,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Soft improv can include a drink, a snack, a nearby object, a small thing you did today, or a personal anecdote.",
     "Do not use soft improv to change the venue, the participants, hidden secrets, Cupid's systems, hidden outcomes, future events, or serious harm.",
     "If the conversation already introduced a soft detail and nobody contradicted it, treat it as true for this date.",
+    "Treat profile details as app context from before this date, not things the partner said tonight. If you use them, call them profile details or ask about them.",
     "",
     "Reference lines:",
     formatBulletList(samples),
@@ -136,9 +137,12 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Date setting: ${scenario.title}, ${scenario.publicBrief.location}.`,
     `Shared premise: ${scenario.publicBrief.whatBothCharactersKnow}`,
     `Where the date is: ${phase.label}. ${phase.instruction}`,
-    currentBeat === undefined
+    currentEvent === undefined
       ? "Live room event: none right now."
-      : `Live room event: ${currentBeat.characterVisibleText}`,
+      : `Live room event: ${currentEvent.characterVisibleText}`,
+    currentEvent === undefined
+      ? "Live room pressure: none right now."
+      : `Live room pressure: ${currentEvent.directorInstruction}`,
     `Emotional weather: ${formatEmotionalWeather(session, pairState)} Use as subtext only.`,
     "",
     "Allowed memories:",
@@ -163,6 +167,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Do not restate a boundary, plan, order, preference, or offer you already named. Use the partner's answer to move one small step forward.",
     "Treat names, times, routes, exits, food orders, and plans as settled once the conversation settles them.",
     "Do not ask the same question or restate the same logistical concern from the last two messages.",
+    "Do not repeat the same named plan, time, object, or promise from the last two messages. If the plan is already set, add one new feeling, obstacle, or concrete next step instead of confirming it again.",
     "Use room events as something happening around you, not as the whole subject.",
     "You may introduce one grounded soft detail if it gives the partner something to react to.",
     "When the partner introduces a soft detail, either accept it, question it in character, or redirect naturally. Do not ignore it.",
@@ -254,11 +259,12 @@ export function buildJudgePromptPacket({
         `memberMoodDeltas must use only these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         "shouldEndEarly is true only when the exchange requires the date to stop now.",
         "Omit earlyEndReason unless shouldEndEarly is true.",
+        'endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
         "notableMoments must contain 1 to 3 short strings.",
         "playerSummary must be one short Cupid corporate sentence.",
         "memoryCandidates must be an empty array.",
         "Do not use em dashes or en dashes in any string.",
-        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
+        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[]}`,
         "",
         `Scenario: ${scenario.title}.`,
         `Participants: ${formatParticipants(members)}.`,
@@ -466,7 +472,8 @@ function phaseForTurn(
 
   return {
     label: "resolution",
-    instruction: "Move toward a clear read on whether this should continue.",
+    instruction:
+      "Move toward a clear read on whether this should continue. If a plan is already set, close or complicate it without repeating the time, place, object, or promise.",
   };
 }
 

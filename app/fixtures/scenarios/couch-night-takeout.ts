@@ -36,9 +36,9 @@ export const couchNightTakeout: DateScenario = {
       "Resist forcing a confession. Let silence count as connection.",
       "Use the remote, the food, and the couch as the only props.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "couch-night-takeout-event-1",
         title: "Home screen",
         event: "The TV times out and the home screen returns.",
         characterVisibleText:
@@ -46,7 +46,7 @@ export const couchNightTakeout: DateScenario = {
         directorInstruction: "Use the choice to expose decisiveness, deferral, or care.",
       },
       {
-        atTurn: 20,
+        id: "couch-night-takeout-event-2",
         title: "Container offered",
         event: "One container is held out across the cushion.",
         characterVisibleText:
@@ -54,12 +54,55 @@ export const couchNightTakeout: DateScenario = {
         directorInstruction: "Let the pair settle into shared eating or refuse it cleanly.",
       },
       {
-        atTurn: 28,
+        id: "couch-night-takeout-event-3",
         title: "Lamp click",
         event: "The lamp on the side table clicks down a level.",
         characterVisibleText:
           "The lamp on the side table dims to its lowest setting. The TV keeps playing. Neither member has spoken in a beat.",
         directorInstruction: "Reward members who can sit in silence. Notice members who cannot.",
+      },
+      {
+        id: "couch-night-takeout-event-4",
+        title: "Episode end",
+        event: "The episode ends and a next-up countdown starts.",
+        characterVisibleText:
+          "The credits roll on the screen. A small box in the corner counts down from ten. Neither container has been touched in a while.",
+        directorInstruction:
+          "Let the pair decide whether to let it autoplay or pick something on purpose.",
+      },
+      {
+        id: "couch-night-takeout-event-5",
+        title: "One container empty",
+        event: "One container is empty. The other is half done.",
+        characterVisibleText:
+          "One takeout container is closed and empty. The other has rice and one piece of broccoli. The chopsticks are pointed at the cushion.",
+        directorInstruction: "Use the imbalance to surface generosity or a small ask.",
+      },
+      {
+        id: "couch-night-takeout-event-6",
+        title: "Phone face down",
+        event: "One phone goes face down on the coffee table.",
+        characterVisibleText:
+          "One phone slides face-down onto the coffee table. The screen lit up once before it landed. The other phone is in a pocket.",
+        directorInstruction: "Let the small choice be a small choice. Do not narrate it.",
+      },
+      {
+        id: "couch-night-takeout-event-7",
+        title: "Foot up",
+        event: "One member puts a foot up on the coffee table.",
+        characterVisibleText:
+          "One foot goes up on the corner of the coffee table. The empty container shifts an inch. The remote stays where it is.",
+        directorInstruction:
+          "Use the small relaxation to test whether ease lands the same on both.",
+      },
+      {
+        id: "couch-night-takeout-event-8",
+        title: "Still watching",
+        event: "The TV asks if anyone is still watching.",
+        characterVisibleText:
+          "A prompt fills the TV: still watching? A timer counts down behind the prompt. The remote is still between them.",
+        directorInstruction:
+          "Push for a clear next step or a clean call it a night before the screen times out.",
       },
     ],
     earlyEndTriggers: [

@@ -38,9 +38,9 @@ export const executiveLunchOneAgendaItem: DateScenario = {
       "Keep the room efficient without turning the date into a meeting.",
       "Use the agenda card to invite directness, not performance.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "executive-lunch-one-agenda-item-event-1",
         title: "Agenda card",
         event: "The blank agenda card waits between them.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const executiveLunchOneAgendaItem: DateScenario = {
         directorInstruction: "Let the next speaker name a real topic or admit they need a minute.",
       },
       {
-        atTurn: 20,
+        id: "executive-lunch-one-agenda-item-event-2",
         title: "Water refill",
         event: "The server stops to refill water and steps back without speaking.",
         characterVisibleText:
@@ -56,13 +56,58 @@ export const executiveLunchOneAgendaItem: DateScenario = {
         directorInstruction: "Use the pause to test decisiveness without rewarding dominance.",
       },
       {
-        atTurn: 28,
+        id: "executive-lunch-one-agenda-item-event-3",
         title: "Calendar hold",
         event: "The check arrives with a tentative second hold penciled on the receipt.",
         characterVisibleText:
           "The receipt slides onto the table. A small line at the bottom reads: tentative hold, next Wednesday, 12:30.",
         directorInstruction:
           "Push the pair to accept, decline, or revise the hold with adult clarity.",
+      },
+      {
+        id: "executive-lunch-one-agenda-item-event-4",
+        title: "Bread basket",
+        event: "A small bread basket arrives without being asked for.",
+        characterVisibleText:
+          "A small bread basket lands on the table. Two crisp slices of focaccia, a pat of cold butter, and a folded linen napkin. The basket is the kind that disappears if neither person eats from it.",
+        directorInstruction:
+          "Use the quiet hospitality to surface ease or the inability to accept ease.",
+      },
+      {
+        id: "executive-lunch-one-agenda-item-event-5",
+        title: "Sommelier pass",
+        event: "The sommelier pauses near the table with a list and moves on.",
+        characterVisibleText:
+          "The sommelier reads the table for half a breath, holds the wine list against his arm, and moves to the next two-top. The agenda card has not moved. The pen has not been picked up.",
+        directorInstruction:
+          "Let the missed offer go unmentioned. The next sentence is the agenda item.",
+      },
+      {
+        id: "executive-lunch-one-agenda-item-event-6",
+        title: "One vibration",
+        event: "One phone on the table vibrates once.",
+        characterVisibleText:
+          "One phone on the corner of the table vibrates once and stops. The screen shows nothing visible. The other phone is in a coat draped over the chair.",
+        directorInstruction:
+          "Use the small interruption to test how the addressee handles a calendar trespass at lunch.",
+      },
+      {
+        id: "executive-lunch-one-agenda-item-event-7",
+        title: "Plates clear",
+        event: "Plates are cleared in one quiet pass.",
+        characterVisibleText:
+          "A server clears both plates in one efficient pass. Crumbs are swept off the cloth with a small folder. The pen on the agenda card has not moved.",
+        directorInstruction:
+          "Let the table be as clean as the question. The agenda card is now visible from any angle.",
+      },
+      {
+        id: "executive-lunch-one-agenda-item-event-8",
+        title: "Next reservation",
+        event: "The host walks past with a tablet showing the table's next seating.",
+        characterVisibleText:
+          "The host walks past with a small tablet. The screen shows table 12 has a 1:30 reservation under another last name. The host does not stop to mention it.",
+        directorInstruction:
+          "Push for a clear close. Lunch will end on time whether the date does or not.",
       },
     ],
     earlyEndTriggers: [

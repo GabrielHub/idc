@@ -37,9 +37,9 @@ export const bowlingLeagueNight: DateScenario = {
       "Use the league as ambient background. Do not invite a captain to comment on the date.",
       "Allow gutter balls to be funny. Keep them human.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "bowling-league-night-event-1",
         title: "Ball return",
         event: "The ball return delivers a ball with a thud they can feel through the bench.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const bowlingLeagueNight: DateScenario = {
           "Use the small noise to surface how each member treats their turn in front of the other.",
       },
       {
-        atTurn: 20,
+        id: "bowling-league-night-event-2",
         title: "Strike next door",
         event: "Lane 6 lights up with a strike celebration.",
         characterVisibleText:
@@ -57,13 +57,55 @@ export const bowlingLeagueNight: DateScenario = {
           "Use the borrowed noise to surface competitiveness, generosity, or deflection.",
       },
       {
-        atTurn: 28,
+        id: "bowling-league-night-event-3",
         title: "Pinsetter pause",
         event: "The pinsetter on lane 7 stops mid-cycle.",
         characterVisibleText:
           "The pinsetter freezes mid-rack with three pins still hanging. The bench light blinks. A small wait icon appears on the scoreboard.",
         directorInstruction:
           "Push the pair to share the wait or peel apart toward separate distractions.",
+      },
+      {
+        id: "bowling-league-night-event-4",
+        title: "Lace gives",
+        event: "A rental shoe lace gives mid-knot.",
+        characterVisibleText:
+          "The lace on a rented shoe lets go in the middle of a knot. The other shoe is already tied. The bench is barely wide enough for the retie.",
+        directorInstruction: "Use the small repair to surface care or impatience.",
+      },
+      {
+        id: "bowling-league-night-event-5",
+        title: "League pass",
+        event: "A league bowler walks the gap behind the bench.",
+        characterVisibleText:
+          "A bowler in a custom shirt walks behind their bench. The shirt reads Strike Force Tuesday. He nods once at lane 7 and keeps moving.",
+        directorInstruction: "Allow a tiny social moment that the pair can ignore or honor.",
+      },
+      {
+        id: "bowling-league-night-event-6",
+        title: "Concession run",
+        event: "A tray of hot dogs and a pitcher lands at the bench corner.",
+        characterVisibleText:
+          "A tray slides onto the corner of their bench. Two hot dogs in foil, one pitcher of beer, two paper cups. A folded check sits under the pitcher.",
+        directorInstruction:
+          "Let the pair eat or not. Either reads as a real choice in front of league chaperones.",
+      },
+      {
+        id: "bowling-league-night-event-7",
+        title: "Spare lights",
+        event: "Their lane finally records a spare.",
+        characterVisibleText:
+          "The scoreboard above lane 7 records a 7-pin spare. The animation runs once across their column. The bench light goes back to steady.",
+        directorInstruction: "Use the small win to test how each member receives credit.",
+      },
+      {
+        id: "bowling-league-night-event-8",
+        title: "House lights",
+        event: "House lights dim as the league wraps.",
+        characterVisibleText:
+          "The house lights dim by one notch. Two lanes shut down their scoreboards. The ball return on lane 7 is still warm.",
+        directorInstruction:
+          "Push for a clean exit or a stretched stay before the lanes close out.",
       },
     ],
     earlyEndTriggers: [

@@ -38,9 +38,9 @@ export const openHouseSunday: DateScenario = {
       "Treat the house as a real house. Do not let it become a portal, a haunting, or a trap.",
       "Allow either member to slip into a small private fantasy and then pull back.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "open-house-sunday-event-1",
         title: "Wind chime",
         event: "The neighbor's wind chime catches a soft gust.",
         characterVisibleText:
@@ -49,7 +49,7 @@ export const openHouseSunday: DateScenario = {
           "Use the small sound to surface a habit, a memory, or an ask neither has named.",
       },
       {
-        atTurn: 20,
+        id: "open-house-sunday-event-2",
         title: "Deck rail",
         event: "A loose railing slat shifts under one of their hands.",
         characterVisibleText:
@@ -58,13 +58,57 @@ export const openHouseSunday: DateScenario = {
           "Let the small flaw be private. A small honest sentence costs less here.",
       },
       {
-        atTurn: 28,
+        id: "open-house-sunday-event-3",
         title: "Inside footsteps",
         event: "Footsteps in the kitchen approach the back door.",
         characterVisibleText:
           "Inside, footsteps cross the kitchen toward the back door. The door does not open yet. The agent's voice is too far in to make out.",
         directorInstruction:
           "Let the pair stay or leave. A private claim, even refused, is the beat.",
+      },
+      {
+        id: "open-house-sunday-event-4",
+        title: "Faucet upstairs",
+        event: "A faucet runs upstairs and stops.",
+        characterVisibleText:
+          "An upstairs faucet runs for ten seconds and stops. A pipe in the wall ticks once. The kitchen window curtain has not moved.",
+        directorInstruction: "Use the small house sound to surface a quiet domestic preference.",
+      },
+      {
+        id: "open-house-sunday-event-5",
+        title: "Yard squirrel",
+        event: "A squirrel crosses the back fence.",
+        characterVisibleText:
+          "A squirrel runs the back fence in three jumps and disappears into the neighbor's evergreen. The wind chime catches one note. The lawn is freshly cut.",
+        directorInstruction:
+          "Allow the small backyard fact. The deck does not need to mean anything because of it.",
+      },
+      {
+        id: "open-house-sunday-event-6",
+        title: "Clipboard inside",
+        event: "The agent's clipboard is visible through the kitchen window.",
+        characterVisibleText:
+          "Through the kitchen window the agent's clipboard sits on the counter. Two more names have been added to the sign-in sheet. The clipboard is angled so neither name is readable from the deck.",
+        directorInstruction:
+          "Use the soft surveillance to test whether the deck still feels private.",
+      },
+      {
+        id: "open-house-sunday-event-7",
+        title: "Voices in kitchen",
+        event: "Two voices start in the kitchen and stay there.",
+        characterVisibleText:
+          "Two voices begin a low conversation in the kitchen. The vanilla candle is freshly lit. Neither voice is the agent's; the next walk-through has arrived early.",
+        directorInstruction:
+          "Let the small bubble of strangers behind them tighten the deck without forcing exit.",
+      },
+      {
+        id: "open-house-sunday-event-8",
+        title: "Flier slip",
+        event: "The folded flier slips out of a pocket onto the deck.",
+        characterVisibleText:
+          "The folded square footage flier slips from a pocket and lands face-up on the deck. The asking price is highlighted in the corner. The wind catches the corner of the page.",
+        directorInstruction:
+          "Push for one honest line about whether the deck stays a fantasy or becomes a real ask.",
       },
     ],
     earlyEndTriggers: [

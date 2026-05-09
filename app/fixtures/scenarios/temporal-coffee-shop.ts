@@ -36,9 +36,9 @@ export const temporalCoffeeShop: DateScenario = {
       "Use temporal confusion to reveal how each member handles uncertainty.",
       "Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "temporal-coffee-shop-event-1",
         title: "Receipt first",
         event: "The receipt already on the table carries one sincere compliment.",
         characterVisibleText:
@@ -47,7 +47,7 @@ export const temporalCoffeeShop: DateScenario = {
           "Let the next speaker decide whether to honor the compliment or avoid it.",
       },
       {
-        atTurn: 20,
+        id: "temporal-coffee-shop-event-2",
         title: "Cold coffee warning",
         event: "One cup turns cold and carries a warning about repeating old mistakes.",
         characterVisibleText:
@@ -55,12 +55,57 @@ export const temporalCoffeeShop: DateScenario = {
         directorInstruction: "Push one member toward a small honest admission.",
       },
       {
-        atTurn: 28,
+        id: "temporal-coffee-shop-event-3",
         title: "Loop reset",
         event: "Two new menus appear under their elbows.",
         characterVisibleText:
           "Two fresh menus drop onto the table, still warm from the printer. The receipt is gone.",
         directorInstruction: "Make repetition feel either comforting or exhausting for this pair.",
+      },
+      {
+        id: "temporal-coffee-shop-event-4",
+        title: "Sugar packet",
+        event: "A sugar packet appears, opens, and refills.",
+        characterVisibleText:
+          "A sugar packet sits closed on the saucer. It opens by itself and pours into a cup that has not arrived. The packet then reseals.",
+        directorInstruction:
+          "Use the small absurdity to test whether either of them stays in the conversation.",
+      },
+      {
+        id: "temporal-coffee-shop-event-5",
+        title: "Receipt timeline",
+        event: "A new receipt prints with tomorrow's date.",
+        characterVisibleText:
+          "A new receipt prints from the small printer at the corner of the table. The header reads: tomorrow, 10:14 a.m. The amount is listed but the items are blank.",
+        directorInstruction:
+          "Allow the future to be slightly visible without letting it become a script.",
+      },
+      {
+        id: "temporal-coffee-shop-event-6",
+        title: "Mug warm",
+        event: "An empty mug warms on its own.",
+        characterVisibleText:
+          "The empty mug between them grows warm. A faint ring of condensation forms below it. No one has put coffee in it.",
+        directorInstruction:
+          "Use the small heat to test whether either of them needs proof before they trust the table.",
+      },
+      {
+        id: "temporal-coffee-shop-event-7",
+        title: "Reflection lags",
+        event: "Their reflection in the window is half a beat behind.",
+        characterVisibleText:
+          "The window beside them shows their reflection. The reflection nods half a beat after the body. The cafe behind them is normal in the glass.",
+        directorInstruction:
+          "Let the small disagreement of self with self surface a small honest admission.",
+      },
+      {
+        id: "temporal-coffee-shop-event-8",
+        title: "Order ticket",
+        event: "A kitchen ticket prints listing their order before they ordered it.",
+        characterVisibleText:
+          "A kitchen ticket prints from the bar. It lists two coffees and one shared pastry. The pastry is the one neither has named yet.",
+        directorInstruction:
+          "Push for a clean read on whether they choose what the ticket suggests or pick something else on purpose.",
       },
     ],
     earlyEndTriggers: [

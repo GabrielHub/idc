@@ -37,9 +37,9 @@ export const phantomDoorbellSuite: DateScenario = {
       "Never voice a hallway visitor. The hallway stays empty.",
       "Use the interruption to test whether the pair stays in the conversation or treats the noise as the subject.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "phantom-doorbell-suite-event-1",
         title: "First doorbell",
         event: "The suite doorbell chimes once. The hallway camera shows nothing.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const phantomDoorbellSuite: DateScenario = {
           "Let the pair acknowledge the chime in passing or absorb it. Either reveals how steady they are.",
       },
       {
-        atTurn: 20,
+        id: "phantom-doorbell-suite-event-2",
         title: "Room phone",
         event: "The room phone rings on the side table. The display reads no caller.",
         characterVisibleText:
@@ -57,13 +57,58 @@ export const phantomDoorbellSuite: DateScenario = {
           "Use the silence after the rings to push the pair toward saying the thing they have been circling.",
       },
       {
-        atTurn: 28,
+        id: "phantom-doorbell-suite-event-3",
         title: "Knock at the inner door",
         event: "Three knocks land on the inner bedroom door from the bedroom side.",
         characterVisibleText:
           "Three soft knocks come from the inner bedroom door. The door is closed and the bedroom beyond it is empty.",
         directorInstruction:
           "Push for a clean read on whether the pair stays in the suite together or names a clean exit.",
+      },
+      {
+        id: "phantom-doorbell-suite-event-4",
+        title: "Bedroom TV",
+        event: "The bedroom TV turns on without input.",
+        characterVisibleText:
+          "Through the gap under the inner door, a soft blue glow appears. The bedroom TV has turned on with no sound. The remote is on the coffee table beside the welcome plate.",
+        directorInstruction:
+          "Allow the soft cue to land without interpretation. The pair does not need to decode it.",
+      },
+      {
+        id: "phantom-doorbell-suite-event-5",
+        title: "Lamp pulse",
+        event: "The reading lamp clicks off and back on.",
+        characterVisibleText:
+          "The reading lamp by the couch clicks off and clicks back on. The bulb does not flicker. The light is exactly the same.",
+        directorInstruction:
+          "Let the small mechanical loop pass. A member who narrates it gives themselves away.",
+      },
+      {
+        id: "phantom-doorbell-suite-event-6",
+        title: "Mints rearrange",
+        event: "The mints on the welcome plate rearrange themselves.",
+        characterVisibleText:
+          "The two mints on the welcome plate sit in a different pattern than they did a minute ago. The plate has not moved. Nothing else is missing.",
+        directorInstruction:
+          "Use the absurd small fact to test whether they laugh together or split on it.",
+      },
+      {
+        id: "phantom-doorbell-suite-event-7",
+        title: "Hallway crackle",
+        event: "A distant intercom voice clips once and stops.",
+        characterVisibleText:
+          "A faint intercom voice crackles in the hallway and cuts off mid-syllable. The hallway camera shows nothing changed. The room phone does not ring.",
+        directorInstruction:
+          "Let the distant world stay distant. The conversation belongs to the suite.",
+      },
+      {
+        id: "phantom-doorbell-suite-event-8",
+        title: "Blinds shift",
+        event: "The blinds across the window shift one slat.",
+        characterVisibleText:
+          "The blinds across the suite window shift one slat downward. The street outside is still. The hum of the building shifts a quarter tone.",
+        directorInstruction:
+          "Push for a clean read on whether they stay through the night or name a clean exit.",
       },
     ],
     earlyEndTriggers: [

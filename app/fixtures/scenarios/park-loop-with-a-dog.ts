@@ -37,9 +37,9 @@ export const parkLoopWithADog: DateScenario = {
       "Treat weather and geese as flavor, not omens.",
       "Use the dog's small choices as ambient pressure, not stage cues.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "park-loop-with-a-dog-event-1",
         title: "The dog picks a side",
         event: "The dog leans hard against one member's leg.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const parkLoopWithADog: DateScenario = {
           "Use the dog's preference to surface a real reaction without scoring points.",
       },
       {
-        atTurn: 20,
+        id: "park-loop-with-a-dog-event-2",
         title: "Geese pass",
         event: "A line of geese crosses the path in front of the bench.",
         characterVisibleText:
@@ -56,13 +56,56 @@ export const parkLoopWithADog: DateScenario = {
         directorInstruction: "Let the small interruption open a window for a quieter question.",
       },
       {
-        atTurn: 28,
+        id: "park-loop-with-a-dog-event-3",
         title: "Handler waves",
         event: "The dog handler waves from the parking lot.",
         characterVisibleText:
           "The handler at the parking lot raises a hand. The dog has not noticed. The light has turned the kind of orange that says one hour.",
         directorInstruction:
           "Push for a clear next step before the dog goes back to its second job.",
+      },
+      {
+        id: "park-loop-with-a-dog-event-4",
+        title: "Runner waves",
+        event: "A jogger waves on a second pass.",
+        characterVisibleText:
+          "A jogger they passed earlier comes back around and waves on her second loop. The wave is small. The dog watches her shoes go by and resettles.",
+        directorInstruction:
+          "Let the small recurring stranger be familiar without being a topic. The bench can hold both.",
+      },
+      {
+        id: "park-loop-with-a-dog-event-5",
+        title: "Leash slack",
+        event: "The leash drops further off the bench arm.",
+        characterVisibleText:
+          "The leash slides off the bench arm and lands on the gravel. The clip rests against the dog's collar without tension. The dog has decided it lives here now.",
+        directorInstruction:
+          "Use the small slack to surface trust or vigilance about the dog without scoring either.",
+      },
+      {
+        id: "park-loop-with-a-dog-event-6",
+        title: "Acorn drop",
+        event: "An acorn falls onto the slatted bench.",
+        characterVisibleText:
+          "An acorn drops from the tree behind them and bounces once off a slat. The dog ears flick. The acorn rolls into the grass.",
+        directorInstruction: "Let the small startle pass without making it a moment of impact.",
+      },
+      {
+        id: "park-loop-with-a-dog-event-7",
+        title: "Sun shifts",
+        event: "The sun moves behind a pine and the bench cools.",
+        characterVisibleText:
+          "The sun slides behind a pine and the bench loses its warmth. Both members feel it together. The dog leans more heavily into one shin.",
+        directorInstruction:
+          "Allow the small physical change to surface a small honest preference about staying.",
+      },
+      {
+        id: "park-loop-with-a-dog-event-8",
+        title: "Dog stretches",
+        event: "The dog stretches and resettles facing the parking lot.",
+        characterVisibleText:
+          "The dog stretches with a small groan and resettles facing the parking lot. The handler raises his hand again from the truck. The leash has not been picked up.",
+        directorInstruction: "Push for a clean ending. The dog is on the clock and so are they.",
       },
     ],
     earlyEndTriggers: [

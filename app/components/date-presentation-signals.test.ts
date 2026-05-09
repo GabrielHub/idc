@@ -205,6 +205,7 @@ function makeJudgeSnapshot({
     statDeltas,
     memberMoodDeltas,
     shouldEndEarly,
+    endSentiment: null,
     notableMoments: ["Cupid observed a test exchange."],
     playerSummary: "Cupid filed the exchange.",
     memoryCandidates: [],

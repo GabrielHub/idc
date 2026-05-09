@@ -9,11 +9,13 @@ import {
   shiftReportSchema,
   shiftStateSchema,
   type CompanyGoal,
+  type CupidIntervention,
   type DateFinalReport,
   type DateMessage,
   type DateScenario,
+  type EndSentiment,
   type DateSession,
-  type ScenarioBeat,
+  type EventDraft,
   type FollowUpAction,
   type GameSave,
   type GoalMetric,
@@ -24,7 +26,9 @@ import {
   type PairState,
   type PairStats,
   type MemberRequest,
+  type PlaybackState,
   type RelationshipStat,
+  type ScenarioEvent,
   type ShiftGoalResult,
   type ShiftReport,
   type ShiftState,
@@ -39,6 +43,7 @@ import {
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import { applyHeldScenarioToDrawnIds } from "./scenario-powers";
 import {
+  pickNextMemberRequestId,
   selectFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
@@ -79,6 +84,11 @@ export type DateEngineResult = {
 
 const CHARACTER_TURN_LIMIT = 30;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
+export const JUDGE_TURN_INTERVAL = 6;
+export const MAX_NUDGES_PER_DATE = 3;
+export const EVENT_POOL_SIZE = 8;
+export const EVENT_DRAFT_OFFERED = 6;
+export const EVENT_DRAFT_PICKED = 3;
 const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 export const CLIENT_LOSS_LIMIT = 3;
 
@@ -185,13 +195,19 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
       ];
     }),
   );
+  const eventDraft = drawScenarioEventOffer(scenario);
+  const draftIsTrivial = eventDraft.offered.length <= EVENT_DRAFT_PICKED;
+  const initialEventDraft: EventDraft = draftIsTrivial
+    ? { offered: eventDraft.offered, picked: [...eventDraft.offered] }
+    : eventDraft;
+  const initialPlaybackState: PlaybackState = draftIsTrivial ? "paused" : "drafting";
   const session = dateSessionSchema.parse({
     id: sessionId,
     pairId,
     scenarioId: scenario.id,
     focusMemberId: focusMember.id,
     focusRequestId: focusRequest?.id,
-    turnLimit: save.config.defaultDateMessageLimit || CHARACTER_TURN_LIMIT,
+    turnLimit: save.config.defaultDateMessageLimit ?? CHARACTER_TURN_LIMIT,
     currentTurn: 0,
     dateHealth: clampScore(startingDateHealth(pairState) + matchFit.startingDateHealthDelta),
     status: "active",
@@ -200,6 +216,11 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     transcript: [openingMessage],
     privateStateByCharacter,
     judgeSnapshots: [],
+    eventDraft: initialEventDraft,
+    eventsTriggered: [],
+    playbackState: initialPlaybackState,
+    endSentiment: null,
+    interventions: [],
   });
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
@@ -216,40 +237,41 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
 }
 
 export function isInterventionVisibleTo(
-  intervention: DateSession["intervention"],
+  intervention: CupidIntervention,
   memberId: string,
 ): boolean {
-  return intervention?.targetMemberId === undefined || intervention.targetMemberId === memberId;
+  return intervention.targetMemberId === memberId;
 }
 
 export function canAddCupidIntervention(session: DateSession): boolean {
-  if (session.status !== "active" || !isAtExchangeBoundary(session.currentTurn)) {
+  if (session.status !== "active" || session.playbackState !== "paused") {
     return false;
   }
 
-  return (
-    session.intervention === undefined ||
-    session.intervention.usedAtJudgeCount < session.judgeSnapshots.length
-  );
+  return session.interventions.length < MAX_NUDGES_PER_DATE;
+}
+
+export function findActiveInterventionForMember(
+  session: DateSession,
+  memberId: string,
+): CupidIntervention | undefined {
+  for (let index = session.interventions.length - 1; index >= 0; index -= 1) {
+    const intervention = session.interventions[index];
+
+    if (intervention === undefined || intervention.targetMemberId !== memberId) {
+      continue;
+    }
+
+    if (!hasMemberSpokenSinceIntervention(session, intervention)) {
+      return intervention;
+    }
+  }
+
+  return undefined;
 }
 
 export function isInterventionActiveForMember(session: DateSession, memberId: string): boolean {
-  if (!isInterventionVisibleTo(session.intervention, memberId)) {
-    return false;
-  }
-
-  const intervention = session.intervention;
-
-  if (intervention === undefined) {
-    return false;
-  }
-
-  return !session.transcript.some(
-    (message) =>
-      message.kind === "character" &&
-      message.speakerId === memberId &&
-      message.turnIndex > intervention.usedAtTurn,
-  );
+  return findActiveInterventionForMember(session, memberId) !== undefined;
 }
 
 export function isInterventionMessageActiveForMember(
@@ -257,10 +279,11 @@ export function isInterventionMessageActiveForMember(
   message: DateMessage,
   memberId: string,
 ): boolean {
-  return (
-    isInterventionActiveForMember(session, memberId) &&
-    isCurrentInterventionMessage(session, message, memberId)
-  );
+  if (message.kind !== "cupid" || message.targetMemberId !== memberId) {
+    return false;
+  }
+
+  return isCurrentInterventionMessage(session, message, memberId);
 }
 
 export function isCurrentInterventionMessage(
@@ -268,46 +291,60 @@ export function isCurrentInterventionMessage(
   message: DateMessage,
   memberId: string,
 ): boolean {
-  const intervention = session.intervention;
-
-  if (message.kind !== "cupid" || intervention === undefined) {
+  if (message.kind !== "cupid" || message.targetMemberId !== memberId) {
     return false;
   }
 
-  return (
-    message.turnIndex === intervention.usedAtTurn &&
-    message.text === formatCupidInterventionText(intervention.text) &&
-    (message.targetMemberId === undefined || message.targetMemberId === memberId)
+  const intervention = session.interventions.find(
+    (candidate) =>
+      candidate.usedAtTurn === message.turnIndex && candidate.targetMemberId === memberId,
+  );
+
+  if (intervention === undefined) {
+    return false;
+  }
+
+  return !hasMemberSpokenSinceIntervention(session, intervention);
+}
+
+function hasMemberSpokenSinceIntervention(
+  session: DateSession,
+  intervention: CupidIntervention,
+): boolean {
+  return session.transcript.some(
+    (message) =>
+      message.kind === "character" &&
+      message.speakerId === intervention.targetMemberId &&
+      message.turnIndex > intervention.usedAtTurn,
   );
 }
 
-export function currentSceneBeatForTurn(
+export function findScenarioEventById(
   scenario: DateScenario,
-  turnIndex: number,
-): ScenarioBeat | undefined {
-  const exchangeStartTurn =
-    Math.floor((turnIndex - 1) / CHARACTER_TURNS_PER_EXCHANGE) * CHARACTER_TURNS_PER_EXCHANGE + 1;
-  const exchangeEndTurn = exchangeStartTurn + CHARACTER_TURNS_PER_EXCHANGE - 1;
-
-  return scenario.director.beats.find(
-    (beat) => beat.atTurn >= exchangeStartTurn && beat.atTurn <= exchangeEndTurn,
-  );
+  eventId: string,
+): ScenarioEvent | undefined {
+  return scenario.director.events.find((event) => event.id === eventId);
 }
 
-export function sceneBeatsForUpcomingExchange(
+export function lastTriggeredEvent(
   scenario: DateScenario,
-  currentTurn: number,
-): ScenarioBeat[] {
-  const exchangeStartTurn = currentTurn + 1;
-  const exchangeEndTurn = currentTurn + CHARACTER_TURNS_PER_EXCHANGE;
+  session: DateSession,
+): ScenarioEvent | undefined {
+  const lastId = session.eventsTriggered.at(-1);
 
-  return scenario.director.beats.filter(
-    (beat) => beat.atTurn >= exchangeStartTurn && beat.atTurn <= exchangeEndTurn,
-  );
+  if (lastId === undefined) {
+    return undefined;
+  }
+
+  return findScenarioEventById(scenario, lastId);
 }
 
 export function isAtExchangeBoundary(currentTurn: number): boolean {
   return currentTurn % CHARACTER_TURNS_PER_EXCHANGE === 0;
+}
+
+export function isAtJudgeBoundary(currentTurn: number): boolean {
+  return currentTurn > 0 && currentTurn % JUDGE_TURN_INTERVAL === 0;
 }
 
 export function addCupidIntervention(save: GameSave, input: InterventionInput): DateEngineResult {
@@ -319,12 +356,12 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
     throw new Error("Cupid interventions are only available during active dates.");
   }
 
-  if (!canAddCupidIntervention(session)) {
-    throw new Error(
-      isAtExchangeBoundary(session.currentTurn)
-        ? "Cupid already filed a nudge for this judge beat."
-        : "Cupid nudges are filed between judged exchanges.",
-    );
+  if (session.playbackState !== "paused") {
+    throw new Error("Pause the date before filing a nudge.");
+  }
+
+  if (session.interventions.length >= MAX_NUDGES_PER_DATE) {
+    throw new Error("Cupid has used all available nudges on this date.");
   }
 
   if (!session.participants.includes(input.targetMemberId)) {
@@ -337,6 +374,7 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
     throw new Error("Cupid interventions must be between 1 and 240 characters.");
   }
 
+  const interventionId = `${session.id}-nudge-${session.interventions.length + 1}`;
   const interventionMessage: DateMessage = {
     id: `${session.id}-msg-${session.transcript.length}`,
     dateSessionId: session.id,
@@ -347,15 +385,16 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
     createdAt: timestamp,
     targetMemberId: input.targetMemberId,
   };
+  const newIntervention: CupidIntervention = {
+    id: interventionId,
+    text: trimmedText,
+    usedAtTurn: session.currentTurn,
+    targetMemberId: input.targetMemberId,
+  };
   const updatedSession = dateSessionSchema.parse({
     ...session,
     transcript: [...session.transcript, interventionMessage],
-    intervention: {
-      text: trimmedText,
-      usedAtTurn: session.currentTurn,
-      usedAtJudgeCount: session.judgeSnapshots.length,
-      targetMemberId: input.targetMemberId,
-    },
+    interventions: [...session.interventions, newIntervention],
   });
   const nextSave = replaceDateSession(save, updatedSession, timestamp);
 
@@ -364,6 +403,172 @@ export function addCupidIntervention(save: GameSave, input: InterventionInput): 
 
 export function formatCupidInterventionText(text: string): string {
   return `Cupid suggests: ${text}`;
+}
+
+export function drawScenarioEventOffer(
+  scenario: DateScenario,
+  randomFn: () => number = Math.random,
+): EventDraft {
+  const pool = [...scenario.director.events];
+
+  for (let index = pool.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(randomFn() * (index + 1));
+    const a = pool[index];
+    const b = pool[swapIndex];
+
+    if (a !== undefined && b !== undefined) {
+      pool[index] = b;
+      pool[swapIndex] = a;
+    }
+  }
+
+  const offeredPool = pool.slice(0, EVENT_POOL_SIZE);
+  const offerCount = Math.min(EVENT_DRAFT_OFFERED, offeredPool.length);
+
+  return {
+    offered: offeredPool.slice(0, offerCount).map((event) => event.id),
+    picked: null,
+  };
+}
+
+export type PickScenarioEventsInput = {
+  dateSessionId: string;
+  pickedEventIds: string[];
+  now?: Date;
+};
+
+export function pickScenarioEvents(
+  save: GameSave,
+  input: PickScenarioEventsInput,
+): DateEngineResult {
+  const now = input.now ?? new Date();
+  const timestamp = now.toISOString();
+  const session = requireDateSession(save, input.dateSessionId);
+
+  if (session.playbackState !== "drafting") {
+    throw new Error("Scenario events can only be drafted before the date begins.");
+  }
+
+  const offered = new Set(session.eventDraft.offered);
+  const allowedPickCount = Math.min(EVENT_DRAFT_PICKED, session.eventDraft.offered.length);
+  const uniquePicks = Array.from(new Set(input.pickedEventIds));
+
+  if (uniquePicks.length !== allowedPickCount) {
+    throw new Error(`Cupid drafts exactly ${allowedPickCount} events for this date.`);
+  }
+
+  for (const eventId of uniquePicks) {
+    if (!offered.has(eventId)) {
+      throw new Error(`Event ${eventId} was not offered in this draft.`);
+    }
+  }
+
+  const updatedSession = dateSessionSchema.parse({
+    ...session,
+    eventDraft: {
+      offered: session.eventDraft.offered,
+      picked: uniquePicks,
+    },
+    playbackState: "paused",
+  });
+  const nextSave = replaceDateSession(save, updatedSession, timestamp);
+
+  return { save: nextSave, session: updatedSession };
+}
+
+export type TriggerScenarioEventInput = {
+  dateSessionId: string;
+  eventId: string;
+  now?: Date;
+};
+
+export function triggerScenarioEvent(
+  save: GameSave,
+  input: TriggerScenarioEventInput,
+): DateEngineResult {
+  const now = input.now ?? new Date();
+  const timestamp = now.toISOString();
+  const session = requireDateSession(save, input.dateSessionId);
+  const scenario = requireScenario(session.scenarioId);
+
+  if (session.status !== "active") {
+    throw new Error("Scenario events can only be triggered during an active date.");
+  }
+
+  if (session.playbackState !== "paused") {
+    throw new Error("Pause the date before dropping a scenario event.");
+  }
+
+  const picked = session.eventDraft.picked;
+
+  if (picked === null) {
+    throw new Error("Cupid has not drafted scenario events for this date yet.");
+  }
+
+  if (!picked.includes(input.eventId)) {
+    throw new Error("That scenario event is not in this date's drafted lineup.");
+  }
+
+  if (session.eventsTriggered.includes(input.eventId)) {
+    throw new Error("That scenario event was already triggered on this date.");
+  }
+
+  const event = findScenarioEventById(scenario, input.eventId);
+
+  if (event === undefined) {
+    throw new Error(`Scenario event ${input.eventId} not found in scenario ${scenario.id}.`);
+  }
+
+  const eventMessage = createNonCharacterMessage(
+    session,
+    "scenario",
+    event.characterVisibleText,
+    timestamp,
+  );
+  const updatedSession = dateSessionSchema.parse({
+    ...session,
+    transcript: [...session.transcript, eventMessage],
+    eventsTriggered: [...session.eventsTriggered, input.eventId],
+  });
+  const nextSave = replaceDateSession(save, updatedSession, timestamp);
+
+  return { save: nextSave, session: updatedSession };
+}
+
+export type TogglePlaybackInput = {
+  dateSessionId: string;
+  desiredState: PlaybackState;
+  now?: Date;
+};
+
+export function togglePlayback(save: GameSave, input: TogglePlaybackInput): DateEngineResult {
+  const now = input.now ?? new Date();
+  const timestamp = now.toISOString();
+  const session = requireDateSession(save, input.dateSessionId);
+
+  if (session.status !== "active") {
+    throw new Error("Playback toggles only apply to active dates.");
+  }
+
+  if (input.desiredState !== "paused" && input.desiredState !== "playing") {
+    throw new Error("Playback can only flip between paused and playing.");
+  }
+
+  if (session.playbackState === "drafting") {
+    throw new Error("Pick scenario events before starting playback.");
+  }
+
+  if (session.playbackState === "ended") {
+    throw new Error("This date has already ended.");
+  }
+
+  const updatedSession = dateSessionSchema.parse({
+    ...session,
+    playbackState: input.desiredState,
+  });
+  const nextSave = replaceDateSession(save, updatedSession, timestamp);
+
+  return { save: nextSave, session: updatedSession };
 }
 
 export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): DateEngineResult {
@@ -375,6 +580,10 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     return { save, session };
   }
 
+  if (session.playbackState === "drafting" || session.playbackState === "ended") {
+    return { save, session };
+  }
+
   const scenario = requireScenario(session.scenarioId);
   const pairState = requirePairState(save, session.pairId);
   const members = session.participants.map((memberId) => requireMember(save, memberId));
@@ -382,19 +591,6 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
   const turnCount = input.turnCount ?? CHARACTER_TURNS_PER_EXCHANGE;
-
-  if (isAtExchangeBoundary(currentTurn)) {
-    for (const beat of sceneBeatsForUpcomingExchange(scenario, currentTurn)) {
-      transcript.push(
-        createNonCharacterMessage(
-          { ...session, transcript, currentTurn },
-          "scenario",
-          beat.characterVisibleText,
-          timestamp,
-        ),
-      );
-    }
-  }
 
   for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
@@ -439,10 +635,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     return { save: nextSave, session: updatedSession };
   }
 
-  const exchangeIndex = exchangeIndexForPendingTurn(
-    exchangeMessages,
-    session.judgeSnapshots.length,
-  );
+  const exchangeIndex = exchangeIndexForTurn(currentTurn);
   const deterministicJudgeSnapshot = judgeExchangeDeterministically({
     session,
     pairState,
@@ -467,22 +660,31 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
   const nextDateHealth = clampScore(session.dateHealth + judgeSnapshot.dateHealthDelta);
+  const isEndingEarly = nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly;
+  const isCompletingNaturally = !isEndingEarly && currentTurn >= session.turnLimit;
+  const nextStatus = isEndingEarly
+    ? "ended_early"
+    : isCompletingNaturally
+      ? "completed"
+      : session.status;
+  const nextEndSentiment = isEndingEarly
+    ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
+    : session.endSentiment;
+  const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
   const baseUpdatedSession = dateSessionSchema.parse({
     ...session,
     currentTurn,
     dateHealth: nextDateHealth,
-    status: nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly ? "ended_early" : session.status,
+    status: nextStatus,
+    endSentiment: nextEndSentiment,
+    playbackState: nextPlaybackState,
     transcript,
     judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
   });
-  const shouldFinish =
-    baseUpdatedSession.status === "ended_early" || currentTurn >= session.turnLimit;
+  const shouldFinish = nextStatus !== "active";
   const completedSession = shouldFinish
     ? finalizeDateSession({
-        session: {
-          ...baseUpdatedSession,
-          status: baseUpdatedSession.status === "ended_early" ? "ended_early" : "completed",
-        },
+        session: baseUpdatedSession,
         pairState: updatedPairState,
         members,
         scenario,
@@ -524,11 +726,20 @@ export function completeDateSession(
   let nextSave = save;
   let nextSession = requireDateSession(save, dateSessionId);
 
+  if (nextSession.playbackState === "drafting") {
+    throw new Error("Pick scenario events before resolving the date.");
+  }
+
   while (nextSession.status === "active") {
     const result = advanceDateExchange(nextSave, {
       dateSessionId,
       now,
     });
+
+    if (result.session.currentTurn === nextSession.currentTurn) {
+      break;
+    }
+
     nextSave = result.save;
     nextSession = result.session;
   }
@@ -623,7 +834,12 @@ export function completeShift(
     completedAt: timestamp,
     report,
   });
-  const updatedMembers = applyIgnoredRequestPenalties(save.members, ignoredRequests);
+  const penalizedMembers = applyIgnoredRequestPenalties(save.members, ignoredRequests);
+  const updatedMembers = rotateMemberRequestsForShift(
+    penalizedMembers,
+    activeShift,
+    completedDates,
+  );
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: updatedMembers,
@@ -894,15 +1110,15 @@ export function createCharacterMessage({
 }): DateMessage {
   const turnIndex = session.currentTurn + 1;
   const repeatCount = pairState.scenarioUseCounts[scenario.id] ?? 0;
+  const activeIntervention = findActiveInterventionForMember(session, speaker.id);
   const text = deterministicCharacterText({
     speaker,
     partner,
     scenario,
+    session,
     turnIndex,
     repeatCount,
-    interventionText: isInterventionActiveForMember(session, speaker.id)
-      ? session.intervention?.text
-      : undefined,
+    interventionText: activeIntervention?.text,
   });
 
   return {
@@ -938,6 +1154,7 @@ function deterministicCharacterText({
   speaker,
   partner,
   scenario,
+  session,
   turnIndex,
   repeatCount,
   interventionText,
@@ -945,12 +1162,13 @@ function deterministicCharacterText({
   speaker: Member;
   partner: Member;
   scenario: DateScenario;
+  session: DateSession;
   turnIndex: number;
   repeatCount: number;
   interventionText: string | undefined;
 }): string {
   const sample = speaker.voice.sampleMessages.opener[0] ?? "";
-  const beatHint = scenario.director.beats.find((beat) => beat.atTurn <= turnIndex);
+  const eventHint = lastTriggeredEvent(scenario, session);
   const repeatLine =
     repeatCount > 0
       ? ` I recognize this setup, which is either romantic or procurement missed a checkbox.`
@@ -964,8 +1182,8 @@ function deterministicCharacterText({
     return `${sample} ${partner.name}, this is apparently ${scenario.publicBrief.location}.${repeatLine}`;
   }
 
-  if (beatHint !== undefined && turnIndex % 4 === 0) {
-    return `${speaker.name} looks at ${partner.name}. ${beatHint.characterVisibleText} I can work with this if we stay specific.${interventionLine}`;
+  if (eventHint !== undefined && turnIndex % 4 === 0) {
+    return `${speaker.name} looks at ${partner.name}. ${eventHint.characterVisibleText} I can work with this if we stay specific.${interventionLine}`;
   }
 
   if (speaker.tags.includes("weirdness_native")) {
@@ -1004,12 +1222,13 @@ export function judgeExchangeDeterministically({
 }): JudgeSnapshot {
   const scenarioRiskPenalty =
     scenario.card.risk === "high" ? -7 : scenario.card.risk === "medium" ? -3 : 2;
-  const interventionBonus = exchangeMessages.some(
-    (message) =>
-      session.intervention !== undefined &&
-      message.kind === "character" &&
-      message.speakerId === session.intervention.targetMemberId &&
-      message.turnIndex > session.intervention.usedAtTurn,
+  const interventionBonus = session.interventions.some((intervention) =>
+    exchangeMessages.some(
+      (message) =>
+        message.kind === "character" &&
+        message.speakerId === intervention.targetMemberId &&
+        message.turnIndex > intervention.usedAtTurn,
+    ),
   )
     ? 3
     : 0;
@@ -1057,6 +1276,7 @@ export function judgeExchangeDeterministically({
     memberMoodDeltas,
     shouldEndEarly,
     earlyEndReason: shouldEndEarly ? "Date Health reached zero." : undefined,
+    endSentiment: shouldEndEarly ? "negative" : null,
     notableMoments: exchangeMessages.map((message) => message.text).slice(0, 2),
     playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
     memoryCandidates,
@@ -1085,7 +1305,7 @@ export function finalizeDateSession({
     dateSessionId: session.id,
     completedAt,
     outcome,
-    summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${session.status === "ended_early" ? "Date ended early. Standard cleanup is on schedule." : "Date completed. Cupid has enough data to be annoying."}`,
+    summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${finalReportStatusLine(session)}`,
     statSummary: `Spark ${pairState.stats.spark}. Strain ${pairState.stats.strain}. Health ${pairState.stats.relationshipHealth}.`,
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
@@ -1099,7 +1319,19 @@ export function finalizeDateSession({
   return dateSessionSchema.parse({
     ...session,
     finalReport: report,
+    playbackState: "ended",
   });
+}
+
+export function resolveEndedDateSentiment(
+  nextDateHealth: number,
+  judgeSnapshot: Pick<JudgeSnapshot, "endSentiment">,
+): EndSentiment {
+  if (nextDateHealth <= 0) {
+    return "negative";
+  }
+
+  return judgeSnapshot.endSentiment ?? "negative";
 }
 
 export function createDateMemoryRecords(
@@ -1144,7 +1376,7 @@ export function createDateMemoryRecords(
       pairId: session.pairId,
       scenarioId: scenario.id,
       dateSessionId: session.id,
-      text: `${session.pairId} has used ${scenario.title}. Repeat bookings should mention that Cupid has a file.`,
+      text: `${members[0].firstName} and ${members[1].firstName} have used ${scenario.title}. Repeat bookings should mention that Cupid has a file.`,
       tags: ["scenario_repeat", scenario.id],
       importance: 3,
       createdAt,
@@ -1243,6 +1475,65 @@ function applyIgnoredRequestPenalties(
       retention: -ignoredPenalty,
       recentDateResult: "Request ignored. Client confidence fell.",
     });
+  });
+}
+
+function rotateMemberRequestsForShift(
+  members: Member[],
+  shift: ShiftState,
+  completedDates: readonly DateSession[],
+): Member[] {
+  const shiftRequestIds = new Set(shift.memberRequestIds);
+  const memberIdsToRotate = new Set<string>();
+
+  for (const requestId of shiftRequestIds) {
+    const request = memberRequests.find((candidate) => candidate.id === requestId);
+
+    if (request !== undefined) {
+      memberIdsToRotate.add(request.memberId);
+    }
+  }
+
+  if (memberIdsToRotate.size === 0) {
+    return members;
+  }
+
+  const addressedRequestIds = new Set(
+    completedDates
+      .map((session) => session.focusRequestId)
+      .filter((requestId): requestId is string => requestId !== undefined),
+  );
+
+  return members.map((member) => {
+    if (!memberIdsToRotate.has(member.id) || !isMemberRetained(member)) {
+      return member;
+    }
+
+    const currentRequestId = member.state.currentRequestId;
+    const wasAddressed =
+      currentRequestId !== undefined && addressedRequestIds.has(currentRequestId);
+    const wasIgnored =
+      currentRequestId !== undefined &&
+      shiftRequestIds.has(currentRequestId) &&
+      !addressedRequestIds.has(currentRequestId);
+
+    if (!wasAddressed && !wasIgnored) {
+      return member;
+    }
+
+    const nextRequestId = pickNextMemberRequestId(member.id, currentRequestId);
+
+    if (nextRequestId === undefined || nextRequestId === currentRequestId) {
+      return member;
+    }
+
+    return {
+      ...member,
+      state: {
+        ...member.state,
+        currentRequestId: nextRequestId,
+      },
+    };
   });
 }
 
@@ -1494,7 +1785,7 @@ export function shouldJudgePendingExchange({
     return false;
   }
 
-  return exchangeMessages.length >= CHARACTER_TURNS_PER_EXCHANGE || currentTurn >= turnLimit;
+  return isAtJudgeBoundary(currentTurn) || currentTurn >= turnLimit;
 }
 
 export function latestJudgedExchangeIndex(session: DateSession): number {
@@ -1505,7 +1796,7 @@ export function latestJudgedExchangeIndex(session: DateSession): number {
 }
 
 export function exchangeIndexForTurn(turnIndex: number): number {
-  return Math.max(0, Math.floor((turnIndex - 1) / CHARACTER_TURNS_PER_EXCHANGE));
+  return Math.max(0, Math.ceil(turnIndex / JUDGE_TURN_INTERVAL) - 1);
 }
 
 export function exchangeIndexForPendingTurn(
@@ -1661,7 +1952,7 @@ function isBadFitOutcome(stats: PairStats): boolean {
 
 function deriveDateOutcome(session: DateSession, pairState: PairState): DateFinalReport["outcome"] {
   if (session.status === "ended_early") {
-    return "early_end";
+    return session.endSentiment === "positive" ? "second_date" : "early_end";
   }
 
   if (pairState.stats.relationshipHealth >= 65) {
@@ -1677,6 +1968,18 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
   }
 
   return "mixed";
+}
+
+function finalReportStatusLine(session: DateSession): string {
+  if (session.status === "ended_early" && session.endSentiment === "positive") {
+    return "Date ended early with a positive exit. Cupid filed it as efficient.";
+  }
+
+  if (session.status === "ended_early") {
+    return "Date ended early. Standard cleanup is on schedule.";
+  }
+
+  return "Date completed. Cupid has enough data to be annoying.";
 }
 
 function replaceDateSession(save: GameSave, session: DateSession, timestamp: string): GameSave {

@@ -4,8 +4,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   type DateScenario,
+  type DateSession,
   gameSaveSchema,
   type GameSave,
+  type JudgeSnapshot,
   MEMBER_IDENTITY_TAGS,
   memoryRecordSchema,
   memberRequestTagSchema,
@@ -39,15 +41,19 @@ import {
   getMemberQuitRiskStatus,
   isCampaignLost,
   isMemberRetained,
+  MAX_NUDGES_PER_DATE,
   MEMBER_QUIT_RISK_LOW_FLOOR,
   MEMBER_QUIT_RISK_STABLE_FLOOR,
-  startDateSession,
   startNextShift,
 } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
-import { evaluateMatchFit } from "./match-fit";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import { SHIFT_FEATURED_MEMBER_COUNT } from "./shift-planning";
-import { buildFeaturedMemberIds, withFeaturedMembers } from "./test-helpers";
+import {
+  buildFeaturedMemberIds,
+  startAndDraftDateSession,
+  withFeaturedMembers,
+} from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 const APPROVED_PORTRAIT_MEMBER_IDS = [
@@ -230,7 +236,7 @@ describe("IDC playable smoke path", () => {
     expect(config.embeddingModel).toBe("custom-embedding");
   });
 
-  it("migrates the experimental split AI defaults into one chat model", async () => {
+  it("normalizes the experimental split AI defaults into one chat model", async () => {
     const storage = new MemorySaveStore();
     const oldDefaultSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     await storage.write(
@@ -289,27 +295,22 @@ describe("IDC playable smoke path", () => {
     expect(activeShift.companyGoalIds).toHaveLength(2);
   });
 
-  it("migrates valid default saves from legacy storage keys", async () => {
+  it("rejects legacy storage keys so alpha saves start fresh", async () => {
     const legacySaveKey = LEGACY_SAVE_KEYS.at(-1);
 
     if (legacySaveKey === undefined) {
-      throw new Error("Expected a legacy save key for schema migration coverage.");
+      throw new Error("Expected a legacy save key for schema rejection coverage.");
     }
 
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = createThirteenMemberSave(new Date("2026-05-05T12:00:00.000Z"));
-    await storage.write(legacySaveKey, JSON.stringify(save));
+    const rawSave = JSON.stringify(save);
+    await storage.write(legacySaveKey, rawSave);
 
-    const loaded = await repository.loadGame();
-
-    expect(loaded?.version).toBe(SAVE_SCHEMA_VERSION);
-    expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(loaded?.members).toHaveLength(21);
-    expect(loaded?.pairStates).toHaveLength(210);
-    expect(loaded?.members.some((member) => member.id === "marcus-pellish")).toBe(true);
-    expect(await storage.read(CURRENT_SAVE_KEY)).not.toBeNull();
-    expect(await storage.read(legacySaveKey)).toBeNull();
+    await expect(repository.loadGame()).rejects.toThrow("Unsupported local save key");
+    expect(await storage.read(CURRENT_SAVE_KEY)).toBeNull();
+    expect(await storage.read(legacySaveKey)).toBe(rawSave);
   });
 
   it("backs up legacy save keys before reset recovery clears them", async () => {
@@ -391,7 +392,7 @@ describe("IDC playable smoke path", () => {
     expect(persistedShift?.scenarioDeck.maxSize).toBe(starterScenarios.length);
   });
 
-  it("migrates retired scenario ids in existing saves", async () => {
+  it("normalizes retired scenario ids in current-schema saves", async () => {
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
     const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
@@ -399,7 +400,7 @@ describe("IDC playable smoke path", () => {
       memberRequestIds: ["request-tasha-counterparty"],
       featuredMemberIds: ["tasha-rell"],
     });
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "tasha-rell",
       firstMemberId: "tasha-rell",
       secondMemberId: "mr-whiskers",
@@ -482,25 +483,35 @@ describe("IDC playable smoke path", () => {
     expect(advanced.session.transcript.some((message) => message.kind === "character")).toBe(true);
   });
 
-  it("migrates pre-gameplay-tag v2 saves without resetting campaign state", async () => {
+  it("rejects malformed current saves so the shell can back up and reset", async () => {
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
-    const staleSave = createPreGameplayTagSave(new Date("2026-05-05T12:00:00.000Z"));
-    await storage.write(CURRENT_SAVE_KEY, JSON.stringify(staleSave));
+    const staleSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const rawStaleSave = JSON.stringify({
+      ...staleSave,
+      members: staleSave.members.map((member) =>
+        member.id === "jenna-pike"
+          ? {
+              ...member,
+              tags: ["legacy_tag", "jenna-pike_legacy"],
+            }
+          : member,
+      ),
+    });
+    const now = new Date("2026-05-05T12:01:02.003Z");
+    const stamp = now.toISOString().replace(/[:.]/g, "-");
+    await storage.write(CURRENT_SAVE_KEY, rawStaleSave);
 
-    const loaded = await repository.loadGame();
-    const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
-    const loadedJenna = loaded?.members.find((member) => member.id === "jenna-pike");
-    const persistedSave = parsePersistedSave(persistedRaw);
-    const persistedJenna = persistedSave?.members.find((member) => member.id === "jenna-pike");
+    await expect(repository.loadGame()).rejects.toThrow();
 
-    expect(loaded?.members).toHaveLength(21);
-    expect(loaded?.pairStates).toHaveLength(210);
-    expect(loadedJenna?.firstName).toBe("Jenna");
-    expect(loadedJenna?.state.mood).toBe(11);
-    expect(loadedJenna?.tags).toContain("prophecy_averse");
-    expect(persistedJenna?.firstName).toBe("Jenna");
-    expect(persistedJenna?.tags.every((tag) => memberTagSchema.safeParse(tag).success)).toBe(true);
+    const backupKey = await repository.backupSave(now);
+    await repository.deleteSave();
+    const resetSave = await repository.resetGame(now);
+
+    expect(backupKey).toBe(`${CURRENT_SAVE_KEY}.bak.${stamp}`);
+    expect(await storage.read(`${CURRENT_SAVE_KEY}.bak.${stamp}`)).toBe(rawStaleSave);
+    expect(resetSave.version).toBe(SAVE_SCHEMA_VERSION);
+    expect(resetSave.dateSessions).toEqual([]);
   });
 
   it("removes legacy storage keys when resetting or wiping default saves", async () => {
@@ -528,7 +539,7 @@ describe("IDC playable smoke path", () => {
     expect(await storage.read(legacySaveKey)).toBeNull();
   });
 
-  it("hydrates fixture-owned member portrait metadata from old saves", async () => {
+  it("hydrates fixture-owned member portrait metadata from current-schema saves", async () => {
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage, "stale-portrait-save");
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
@@ -728,7 +739,7 @@ describe("IDC playable smoke path", () => {
       "jenna-pike",
       "vhool",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -753,7 +764,7 @@ describe("IDC playable smoke path", () => {
 
     expect(session.status).toBe("completed");
     expect(session.currentTurn).toBe(30);
-    expect(session.judgeSnapshots).toHaveLength(15);
+    expect(session.judgeSnapshots).toHaveLength(5);
     expect(session.finalReport?.recommendedFollowUp).toBeDefined();
     expect(pairState?.completedDateIds).toContain(session.id);
     expect(pairState?.scenarioUseCounts["temporal-coffee-shop"]).toBe(1);
@@ -762,126 +773,53 @@ describe("IDC playable smoke path", () => {
     );
   });
 
-  it("allows one Cupid nudge per judged exchange beat", () => {
-    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+  it(`allows up to ${MAX_NUDGES_PER_DATE} Cupid nudges per date when paused`, () => {
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
+    save = started.save;
 
+    expect(started.session.playbackState).toBe("paused");
     expect(canAddCupidIntervention(started.session)).toBe(true);
 
-    const firstNudge = addCupidIntervention(started.save, {
-      dateSessionId: started.session.id,
-      targetMemberId: "jenna-pike",
-      text: "Open with one question HR could survive.",
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
+    let latestSession = started.session;
 
-    expect(firstNudge.session.intervention?.usedAtJudgeCount).toBe(0);
-    expect(
-      firstNudge.session.transcript.filter((message) => message.kind === "cupid"),
-    ).toHaveLength(1);
-    expect(() =>
-      addCupidIntervention(firstNudge.save, {
+    for (let index = 0; index < MAX_NUDGES_PER_DATE; index += 1) {
+      const filed = addCupidIntervention(save, {
         dateSessionId: started.session.id,
-        targetMemberId: "vhool",
-        text: "This beat already has paperwork.",
-        now: new Date("2026-05-05T12:03:00.000Z"),
-      }),
-    ).toThrow("judge beat");
+        targetMemberId: index % 2 === 0 ? "jenna-pike" : "vhool",
+        text: `Nudge number ${index + 1}.`,
+        now: new Date(`2026-05-05T12:02:0${index}.000Z`),
+      });
 
-    const firstLine = advanceDateExchange(firstNudge.save, {
-      dateSessionId: started.session.id,
-      turnCount: 1,
-      now: new Date("2026-05-05T12:04:00.000Z"),
-    });
-
-    expect(canAddCupidIntervention(firstLine.session)).toBe(false);
-    expect(() =>
-      addCupidIntervention(firstLine.save, {
-        dateSessionId: started.session.id,
-        targetMemberId: "vhool",
-        text: "Wait for the judge note.",
-        now: new Date("2026-05-05T12:05:00.000Z"),
-      }),
-    ).toThrow("judged exchanges");
-
-    const judgedExchange = advanceDateExchange(firstLine.save, {
-      dateSessionId: started.session.id,
-      turnCount: 1,
-      now: new Date("2026-05-05T12:06:00.000Z"),
-    });
-
-    expect(judgedExchange.session.judgeSnapshots).toHaveLength(1);
-    expect(canAddCupidIntervention(judgedExchange.session)).toBe(true);
-
-    const secondNudge = addCupidIntervention(judgedExchange.save, {
-      dateSessionId: started.session.id,
-      targetMemberId: "vhool",
-      text: "Ask the receipt to stop supervising.",
-      now: new Date("2026-05-05T12:07:00.000Z"),
-    });
-
-    expect(secondNudge.session.intervention?.usedAtJudgeCount).toBe(1);
-    expect(
-      secondNudge.session.transcript.filter((message) => message.kind === "cupid"),
-    ).toHaveLength(2);
-  });
-
-  it("derives Cupid nudge judge counts in old saves", async () => {
-    const storage = new MemorySaveStore();
-    const repository = new LocalGameRepository(storage);
-    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
-      "jenna-pike",
-    ]);
-    const started = startDateSession(save, {
-      focusMemberId: "jenna-pike",
-      firstMemberId: "jenna-pike",
-      secondMemberId: "vhool",
-      scenarioId: "temporal-coffee-shop",
-      now: new Date("2026-05-05T12:01:00.000Z"),
-    });
-    const judgedExchange = advanceDateExchange(started.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
-    const nudge = addCupidIntervention(judgedExchange.save, {
-      dateSessionId: started.session.id,
-      targetMemberId: "vhool",
-      text: "Ask the receipt to stop supervising.",
-      now: new Date("2026-05-05T12:03:00.000Z"),
-    });
-    await storage.write(
-      CURRENT_SAVE_KEY,
-      JSON.stringify(dropFirstInterventionJudgeCount(nudge.save)),
-    );
-
-    const loaded = await repository.loadGame();
-    const loadedSession = loaded?.dateSessions.find((session) => session.id === started.session.id);
-    const persistedSession = parsePersistedSave(
-      await storage.read(CURRENT_SAVE_KEY),
-    )?.dateSessions.find((session) => session.id === started.session.id);
-
-    if (loadedSession === undefined) {
-      throw new Error("Expected migrated session.");
+      expect(filed.session.interventions).toHaveLength(index + 1);
+      save = filed.save;
+      latestSession = filed.session;
     }
 
-    expect(loadedSession.intervention?.usedAtJudgeCount).toBe(1);
-    expect(canAddCupidIntervention(loadedSession)).toBe(false);
-    expect(persistedSession?.intervention?.usedAtJudgeCount).toBe(1);
+    expect(canAddCupidIntervention(latestSession)).toBe(false);
+    expect(() =>
+      addCupidIntervention(save, {
+        dateSessionId: started.session.id,
+        targetMemberId: "jenna-pike",
+        text: "One nudge too many.",
+        now: new Date("2026-05-05T12:03:00.000Z"),
+      }),
+    ).toThrow("all available nudges");
   });
 
   it("keeps date participant order aligned to the selected pair order", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "vhool",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "vhool",
       firstMemberId: "vhool",
       secondMemberId: "jenna-pike",
@@ -901,74 +839,40 @@ describe("IDC playable smoke path", () => {
     expect(firstCharacterMessage?.speakerId).toBe("vhool");
   });
 
-  it("inserts room beats before the exchange they affect", () => {
+  it("can advance one member message and waits for the judge cadence boundary", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
-    const first = advanceDateExchange(started.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
-    const second = advanceDateExchange(first.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:03:00.000Z"),
-    });
-    const third = advanceDateExchange(second.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:04:00.000Z"),
-    });
-    const fourth = advanceDateExchange(third.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:05:00.000Z"),
-    });
-    const previousLength = fourth.session.transcript.length;
-    const fifth = advanceDateExchange(fourth.save, {
-      dateSessionId: started.session.id,
-      now: new Date("2026-05-05T12:06:00.000Z"),
-    });
-    const newMessages = fifth.session.transcript.slice(previousLength);
+    let nextSave = started.save;
+    const sessions: DateSession[] = [];
 
-    expect(newMessages[0]?.kind).toBe("scenario");
-    expect(newMessages[0]?.text).toContain("receipt on the table reads");
-    expect(newMessages[1]?.kind).toBe("character");
-    expect(newMessages[1]?.turnIndex).toBe(9);
-    expect(newMessages[2]?.kind).toBe("character");
-    expect(newMessages[2]?.turnIndex).toBe(10);
-  });
+    for (let turn = 1; turn <= 12; turn += 1) {
+      const advanced = advanceDateExchange(nextSave, {
+        dateSessionId: started.session.id,
+        turnCount: 1,
+        now: new Date(`2026-05-05T12:${String(turn + 1).padStart(2, "0")}:00.000Z`),
+      });
+      nextSave = advanced.save;
+      sessions.push(advanced.session);
+    }
 
-  it("can advance one member message before judging the exchange", () => {
-    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
-      "jenna-pike",
-    ]);
-    const started = startDateSession(save, {
-      focusMemberId: "jenna-pike",
-      firstMemberId: "jenna-pike",
-      secondMemberId: "vhool",
-      scenarioId: "temporal-coffee-shop",
-      now: new Date("2026-05-05T12:01:00.000Z"),
-    });
-    const firstLine = advanceDateExchange(started.save, {
-      dateSessionId: started.session.id,
-      turnCount: 1,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
-    const secondLine = advanceDateExchange(firstLine.save, {
-      dateSessionId: started.session.id,
-      turnCount: 1,
-      now: new Date("2026-05-05T12:03:00.000Z"),
-    });
-
-    expect(firstLine.session.currentTurn).toBe(1);
-    expect(firstLine.session.judgeSnapshots).toHaveLength(0);
-    expect(secondLine.session.currentTurn).toBe(2);
-    expect(secondLine.session.judgeSnapshots).toHaveLength(1);
+    expect(sessions[0]?.currentTurn).toBe(1);
+    expect(sessions[0]?.judgeSnapshots).toHaveLength(0);
+    expect(sessions[4]?.currentTurn).toBe(5);
+    expect(sessions[4]?.judgeSnapshots).toHaveLength(0);
+    expect(sessions[5]?.currentTurn).toBe(6);
+    expect(sessions[5]?.judgeSnapshots).toHaveLength(1);
+    expect(sessions[5]?.judgeSnapshots[0]?.exchangeIndex).toBe(0);
+    expect(sessions[11]?.currentTurn).toBe(12);
+    expect(sessions[11]?.judgeSnapshots).toHaveLength(2);
+    expect(sessions[11]?.judgeSnapshots[1]?.exchangeIndex).toBe(1);
   });
 
   it("scores match fit from hidden member tags and scenario pressure", () => {
@@ -1025,25 +929,58 @@ describe("IDC playable smoke path", () => {
       "meridian-vale",
       "calvin-hewes",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "meridian-vale",
       firstMemberId: "meridian-vale",
       secondMemberId: "calvin-hewes",
       scenarioId: "museum-exhibit-mixup",
     });
-    const advanced = advanceDateExchange(started.save, {
-      dateSessionId: started.session.id,
-    });
+    const advanced = completeDateSession(started.save, started.session.id);
     const session = advanced.session;
-    const pairState = findPairState(advanced.save, session.pairId);
 
     expect(session.status).toBe("ended_early");
-    expect(session.dateHealth).toBe(5);
     expect(session.finalReport?.outcome).toBe("early_end");
     expect(session.judgeSnapshots.at(-1)?.earlyEndReason).toContain("dealbreaker");
-    expect(pairState.stats.relationshipHealth).toBe(5);
-    expect(pairState.stats.conflict).toBeGreaterThanOrEqual(90);
-    expect(pairState.stats.strain).toBeGreaterThanOrEqual(90);
+    expect(session.endSentiment).toBe("negative");
+
+    const pairState = findPairState(started.save, started.session.pairId);
+    const scenario = findScenario("museum-exhibit-mixup");
+    const members = [
+      findMember(started.save, "meridian-vale"),
+      findMember(started.save, "calvin-hewes"),
+    ];
+    const optimisticJudge: JudgeSnapshot = {
+      id: "judge-hard-stop-positive",
+      dateSessionId: started.session.id,
+      exchangeIndex: 0,
+      dateHealthDelta: 8,
+      statDeltas: {},
+      memberMoodDeltas: {
+        "meridian-vale": 4,
+        "calvin-hewes": 4,
+      },
+      shouldEndEarly: false,
+      earlyEndReason: undefined,
+      endSentiment: "positive",
+      notableMoments: ["The judge tried to call it romantic."],
+      playerSummary: "Cupid almost filed the wrong ending.",
+      memoryCandidates: [],
+    };
+    const fit = evaluateMatchFit({
+      members,
+      scenario,
+      pairState,
+    });
+    const correctedJudge = applyMatchFitToJudgeSnapshot({
+      session: started.session,
+      pairState,
+      members,
+      judgeSnapshot: optimisticJudge,
+      fit,
+    });
+
+    expect(correctedJudge.shouldEndEarly).toBe(true);
+    expect(correctedJudge.endSentiment).toBe("negative");
 
     save = applyFollowUpAction(advanced.save, {
       dateSessionId: session.id,
@@ -1061,13 +998,55 @@ describe("IDC playable smoke path", () => {
     expect(preventEarlyEndGoal?.progress).toBe(1);
   });
 
+  it("files positive early exits as successful outcomes", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+    });
+    const pairState = findPairState(started.save, started.session.pairId);
+    const happyPairState: PairState = {
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        relationshipHealth: 74,
+        spark: 72,
+        strain: 18,
+      },
+    };
+    const scenario = findScenario("temporal-coffee-shop");
+    const members = started.session.participants.map((memberId) =>
+      findMember(started.save, memberId),
+    );
+    const finalSession = finalizeDateSession({
+      session: {
+        ...started.session,
+        status: "ended_early",
+        endSentiment: "positive",
+        currentTurn: 12,
+      },
+      pairState: happyPairState,
+      members,
+      scenario,
+      completedAt: "2026-05-05T12:18:00.000Z",
+    });
+
+    expect(finalSession.finalReport?.outcome).toBe("second_date");
+    expect(finalSession.finalReport?.recommendedFollowUp).toBe("encourage");
+    expect(finalSession.finalReport?.summary).toContain("positive exit");
+  });
+
   it("files completed collapsed compatibility as a bad fit", () => {
     const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
       drawnScenarioIds: ["chain-restaurant-tuesday"],
       memberRequestIds: ["request-sana-decompress"],
       featuredMemberIds: ["sana-karim"],
     });
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "sana-karim",
       firstMemberId: "sana-karim",
       secondMemberId: "brady-strait",
@@ -1114,7 +1093,7 @@ describe("IDC playable smoke path", () => {
       featuredMemberIds: ["sana-karim", "jenna-pike"],
     });
     save = withMemberRetention(save, "jenna-pike", 5);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "sana-karim",
       firstMemberId: "sana-karim",
       secondMemberId: "marcus-pellish",
@@ -1139,15 +1118,13 @@ describe("IDC playable smoke path", () => {
         featuredMemberIds: ["meridian-vale", "jenna-pike"],
       },
     );
-    const startedIncident = startDateSession(incidentSave, {
+    const startedIncident = startAndDraftDateSession(incidentSave, {
       focusMemberId: "meridian-vale",
       firstMemberId: "meridian-vale",
       secondMemberId: "calvin-hewes",
       scenarioId: "museum-exhibit-mixup",
     });
-    const advancedIncident = advanceDateExchange(startedIncident.save, {
-      dateSessionId: startedIncident.session.id,
-    });
+    const advancedIncident = completeDateSession(startedIncident.save, startedIncident.session.id);
 
     expect(advancedIncident.session.finalReport?.outcome).toBe("early_end");
 
@@ -1179,7 +1156,7 @@ describe("IDC playable smoke path", () => {
       memberRequestIds: ["request-tasha-counterparty"],
       featuredMemberIds: ["tasha-rell"],
     });
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "tasha-rell",
       firstMemberId: "tasha-rell",
       secondMemberId: "mr-whiskers",
@@ -1205,9 +1182,7 @@ describe("IDC playable smoke path", () => {
       ),
     });
 
-    const advanced = advanceDateExchange(save, {
-      dateSessionId: started.session.id,
-    });
+    const advanced = completeDateSession(save, started.session.id);
 
     expect(advanced.session.status).toBe("ended_early");
     expect(advanced.session.currentTurn).toBeLessThan(advanced.session.turnLimit);
@@ -1259,15 +1234,13 @@ describe("IDC playable smoke path", () => {
       memberRequestIds: ["request-jenna-normal-date"],
       featuredMemberIds: ["jenna-pike"],
     });
-    const blockedDate = startDateSession(save, {
+    const blockedDate = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "opal-sunday",
       scenarioId: "prophecy-karaoke",
     });
-    save = advanceDateExchange(blockedDate.save, {
-      dateSessionId: blockedDate.session.id,
-    }).save;
+    save = completeDateSession(blockedDate.save, blockedDate.session.id).save;
     const blockedShift = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
 
     expect(blockedDate.session.focusRequestId).toBe("request-jenna-normal-date");
@@ -1278,7 +1251,7 @@ describe("IDC playable smoke path", () => {
       memberRequestIds: ["request-sana-decompress"],
       featuredMemberIds: ["sana-karim"],
     });
-    const coveredDate = startDateSession(save, {
+    const coveredDate = startAndDraftDateSession(save, {
       focusMemberId: "sana-karim",
       firstMemberId: "sana-karim",
       secondMemberId: "marcus-pellish",
@@ -1291,12 +1264,122 @@ describe("IDC playable smoke path", () => {
     expect(coveredShift.report.ignoredRequestIds).toEqual([]);
   });
 
+  it("rotates a featured member's currentRequestId after the request is addressed", () => {
+    let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-sana-decompress"],
+      featuredMemberIds: ["sana-karim"],
+    });
+
+    expect(findMember(save, "sana-karim").state.currentRequestId).toBe("request-sana-decompress");
+
+    const sanaPool = memberRequests
+      .filter((request) => request.memberId === "sana-karim")
+      .map((request) => request.id);
+
+    expect(sanaPool.length).toBeGreaterThan(1);
+
+    const focused = startAndDraftDateSession(save, {
+      focusMemberId: "sana-karim",
+      firstMemberId: "sana-karim",
+      secondMemberId: "marcus-pellish",
+      scenarioId: "chain-restaurant-tuesday",
+    });
+    save = completeDateSession(focused.save, focused.session.id).save;
+
+    const completed = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(completed.report.ignoredRequestIds).toEqual([]);
+    expect(findMember(completed.save, "sana-karim").state.currentRequestId).toBe(sanaPool[1]);
+  });
+
+  it("rotates a featured member's currentRequestId after the request is ignored", () => {
+    const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-jenna-normal-date"],
+      featuredMemberIds: ["jenna-pike"],
+    });
+
+    expect(findMember(save, "jenna-pike").state.currentRequestId).toBe("request-jenna-normal-date");
+
+    const jennaPool = memberRequests
+      .filter((request) => request.memberId === "jenna-pike")
+      .map((request) => request.id);
+
+    expect(jennaPool.length).toBeGreaterThan(1);
+
+    const completed = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(completed.report.ignoredRequestIds).toContain("request-jenna-normal-date");
+    expect(findMember(completed.save, "jenna-pike").state.currentRequestId).toBe(jennaPool[1]);
+  });
+
+  it("leaves non-featured members' currentRequestId untouched after a shift", () => {
+    const save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-sana-decompress"],
+      featuredMemberIds: ["sana-karim"],
+    });
+    const opalRequestBefore = findMember(save, "opal-sunday").state.currentRequestId;
+
+    const completed = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(findMember(completed.save, "opal-sunday").state.currentRequestId).toBe(
+      opalRequestBefore,
+    );
+  });
+
+  it("does not rotate the request of a member who already quit", () => {
+    let save = withActiveShiftConfig(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: ["request-jenna-normal-date"],
+      featuredMemberIds: ["jenna-pike"],
+    });
+    save = withMemberRetention(save, "jenna-pike", 0);
+
+    const completed = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(findMember(completed.save, "jenna-pike").state.currentRequestId).toBe(
+      "request-jenna-normal-date",
+    );
+  });
+
+  it("wraps a featured member's request rotation back to the start of the pool", () => {
+    const baseSave = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const sanaPool = memberRequests
+      .filter((request) => request.memberId === "sana-karim")
+      .map((request) => request.id);
+    const lastRequestId = sanaPool.at(-1);
+
+    if (lastRequestId === undefined) {
+      throw new Error("Expected at least one request in Sana's pool.");
+    }
+
+    let save = gameSaveSchema.parse({
+      ...baseSave,
+      members: baseSave.members.map((member) =>
+        member.id === "sana-karim"
+          ? { ...member, state: { ...member.state, currentRequestId: lastRequestId } }
+          : member,
+      ),
+    });
+    save = withActiveShiftConfig(save, {
+      drawnScenarioIds: ["chain-restaurant-tuesday"],
+      memberRequestIds: [lastRequestId],
+      featuredMemberIds: ["sana-karim"],
+    });
+
+    const completed = completeShift(save, new Date("2026-05-05T13:00:00.000Z"));
+
+    expect(findMember(completed.save, "sana-karim").state.currentRequestId).toBe(sanaPool[0]);
+  });
+
   it("applies follow-up actions and scores a shift report", () => {
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
       "vhool",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -1334,7 +1417,7 @@ describe("IDC playable smoke path", () => {
       "jenna-pike",
       "vhool",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -1389,7 +1472,7 @@ describe("IDC playable smoke path", () => {
     }
 
     expect(() =>
-      startDateSession(save, {
+      startAndDraftDateSession(save, {
         focusMemberId: unfeaturedMember.id,
         firstMemberId: unfeaturedMember.id,
         secondMemberId: activeShift.featuredMemberIds[0] ?? "jenna-pike",
@@ -1397,7 +1480,7 @@ describe("IDC playable smoke path", () => {
       }),
     ).toThrow("not one of today's cases");
 
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -1405,7 +1488,7 @@ describe("IDC playable smoke path", () => {
     });
 
     expect(() =>
-      startDateSession(started.save, {
+      startAndDraftDateSession(started.save, {
         focusMemberId: "opal-sunday",
         firstMemberId: "opal-sunday",
         secondMemberId: "gideon-glass",
@@ -1426,7 +1509,7 @@ describe("IDC playable smoke path", () => {
       }),
     ).toThrow("already filed");
     expect(() =>
-      startDateSession(save, {
+      startAndDraftDateSession(save, {
         focusMemberId: "opal-sunday",
         firstMemberId: "opal-sunday",
         secondMemberId: "gideon-glass",
@@ -1440,14 +1523,14 @@ describe("IDC playable smoke path", () => {
       "jenna-pike",
       "vhool",
     ]);
-    const firstDate = startDateSession(save, {
+    const firstDate = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
       scenarioId: "temporal-coffee-shop",
     });
     save = completeDateSession(firstDate.save, firstDate.session.id).save;
-    const secondDate = startDateSession(save, {
+    const secondDate = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -1474,59 +1557,6 @@ function createThirteenMemberSave(now: Date) {
       pairState.participantIds.every((memberId) => legacyMemberIds.has(memberId)),
     ),
   });
-}
-
-function createPreGameplayTagSave(now: Date): Record<string, unknown> {
-  const save = createSeedGameSave(now);
-
-  return {
-    ...save,
-    members: save.members.map(toPreGameplayTagMember),
-    shifts: save.shifts.map(toPreFeaturedShift),
-  };
-}
-
-function toPreGameplayTagMember(member: Member): Record<string, unknown> {
-  return {
-    id: member.id,
-    name: member.name,
-    origin: member.origin,
-    species: member.species,
-    dimension: member.dimension,
-    realityStatus: member.realityStatus,
-    bio: member.bio,
-    datingProfile: member.datingProfile,
-    traits: ["legacy trait"],
-    relationshipNeeds: member.relationshipNeeds,
-    redFlags: ["legacy red flag"],
-    preferences: member.preferences,
-    dealbreakers: member.dealbreakers,
-    secrets: member.secrets,
-    tags: ["legacy_tag", `${member.id}_legacy`],
-    voice: member.voice,
-    state: {
-      ...member.state,
-      mood: member.id === "jenna-pike" ? 11 : member.state.mood,
-    },
-    portraits: member.portraits,
-  };
-}
-
-function toPreFeaturedShift(shift: GameSave["shifts"][number]): Record<string, unknown> {
-  return {
-    id: shift.id,
-    shiftNumber: shift.shiftNumber,
-    status: shift.status,
-    dateSlotsTotal: shift.dateSlotsTotal,
-    dateSlotsUsed: shift.dateSlotsUsed,
-    drawnScenarioIds: shift.drawnScenarioIds,
-    companyGoalIds: shift.companyGoalIds,
-    memberRequestIds: shift.memberRequestIds,
-    scenarioDeck: shift.scenarioDeck,
-    startedAt: shift.startedAt,
-    ...(shift.completedAt === undefined ? {} : { completedAt: shift.completedAt }),
-    ...(shift.report === undefined ? {} : { report: shift.report }),
-  };
 }
 
 function evaluateFixtureFit(
@@ -1654,43 +1684,6 @@ function findPairState(save: GameSave, pairId: string): PairState {
   }
 
   return pairState;
-}
-
-function dropFirstInterventionJudgeCount(save: GameSave): unknown {
-  const rawSave: unknown = JSON.parse(JSON.stringify(save));
-
-  if (typeof rawSave !== "object" || rawSave === null) {
-    throw new Error("Expected raw save object.");
-  }
-
-  const rawSaveRecord = rawSave as Record<string, unknown>;
-  const dateSessions = rawSaveRecord.dateSessions;
-
-  if (!Array.isArray(dateSessions)) {
-    throw new Error("Expected raw date sessions.");
-  }
-
-  const session = dateSessions.find((candidate) => {
-    if (typeof candidate !== "object" || candidate === null) {
-      return false;
-    }
-
-    return (candidate as Record<string, unknown>).intervention !== undefined;
-  });
-
-  if (typeof session !== "object" || session === null) {
-    throw new Error("Expected raw session with intervention.");
-  }
-
-  const sessionRecord = session as Record<string, unknown>;
-  const intervention = sessionRecord.intervention;
-
-  if (typeof intervention !== "object" || intervention === null) {
-    throw new Error("Expected raw intervention.");
-  }
-
-  delete (intervention as Record<string, unknown>).usedAtJudgeCount;
-  return rawSave;
 }
 
 function parsePersistedSave(raw: string | null) {

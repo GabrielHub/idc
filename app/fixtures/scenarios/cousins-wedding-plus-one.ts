@@ -37,9 +37,9 @@ export const cousinsWeddingPlusOne: DateScenario = {
       "Use ambient ritual, not invented dialogue from relatives.",
       "Honor a member who wants to leave after the toast.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "cousins-wedding-plus-one-event-1",
         title: "Glasses filled",
         event: "A server fills both their flutes without asking and moves on.",
         characterVisibleText:
@@ -47,7 +47,7 @@ export const cousinsWeddingPlusOne: DateScenario = {
         directorInstruction: "Use the small attention to test how the pair narrates themselves.",
       },
       {
-        atTurn: 20,
+        id: "cousins-wedding-plus-one-event-2",
         title: "Toast lands",
         event: "The maid of honor's toast carries across the hall.",
         characterVisibleText:
@@ -55,13 +55,57 @@ export const cousinsWeddingPlusOne: DateScenario = {
         directorInstruction: "Allow the pair a moment to be quiet together inside a public ritual.",
       },
       {
-        atTurn: 28,
+        id: "cousins-wedding-plus-one-event-3",
         title: "First slow song",
         event: "The DJ cues a slow song. The dance floor lights tilt warm.",
         characterVisibleText:
           "The first slow song begins. Two couples step out. The dance floor lights tilt warm. Their table is still mostly seated.",
         directorInstruction:
           "Let the pair choose to dance, sit, or leave. Each choice is information.",
+      },
+      {
+        id: "cousins-wedding-plus-one-event-4",
+        title: "Cake cut",
+        event: "The bride and groom cut the cake at the front of the room.",
+        characterVisibleText:
+          "Phones go up around the room. The bride and groom cut a sheet cake at the head table. A small cheer lands and fades. Their table is one person short of joining in.",
+        directorInstruction:
+          "Use the public ritual to test whether the pair stays close without staging it.",
+      },
+      {
+        id: "cousins-wedding-plus-one-event-5",
+        title: "Photographer pass",
+        event: "The wedding photographer drifts past table fourteen.",
+        characterVisibleText:
+          "The photographer drifts past table fourteen, lifts the camera, and chooses a different angle of the dance floor. The shutter does not fire here. The lens cap dangles from a strap.",
+        directorInstruction:
+          "Let the pair feel the lens turn away. A member who relaxes here is honest. A member who flinches is honest in another way.",
+      },
+      {
+        id: "cousins-wedding-plus-one-event-6",
+        title: "Bar refresh",
+        event: "A server passes with a tray of fresh pours.",
+        characterVisibleText:
+          "A tray of fresh pours moves between the tables. The server stops at table fifteen and not at fourteen. The flutes from earlier are still mostly full.",
+        directorInstruction:
+          "Use the small skip to surface whether the pair flags it down or lets it go.",
+      },
+      {
+        id: "cousins-wedding-plus-one-event-7",
+        title: "Bouquet round",
+        event: "The DJ calls the bouquet toss.",
+        characterVisibleText:
+          "The DJ asks anyone single to gather at the dance floor. Five guests drift over. A few stay seated and pretend not to hear. Their table does not move.",
+        directorInstruction:
+          "Allow the pair to opt out together or split on whether to play along.",
+      },
+      {
+        id: "cousins-wedding-plus-one-event-8",
+        title: "Coat check",
+        event: "A coat-check attendant arrives at the table with two tickets.",
+        characterVisibleText:
+          "A coat-check attendant in a red vest sets two paper tickets on the table. The numbers are in sequence. The reception still has at least an hour to run.",
+        directorInstruction: "Push for a clean read on whether to leave together or stay it out.",
       },
     ],
     earlyEndTriggers: [

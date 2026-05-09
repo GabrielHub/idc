@@ -37,9 +37,9 @@ export const hardwareStoreOneProject: DateScenario = {
       "Treat the bracket as a real object with a real fix. Do not turn it into a metaphor for the relationship.",
       "Allow staff in orange aprons to be helpful at a distance, never as comic relief.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "hardware-store-one-project-event-1",
         title: "Two acceptable parts",
         event: "Two brackets on the same peg both fit. One is half the price.",
         characterVisibleText:
@@ -47,7 +47,7 @@ export const hardwareStoreOneProject: DateScenario = {
         directorInstruction: "Let the choice expose how either member treats good enough.",
       },
       {
-        atTurn: 20,
+        id: "hardware-store-one-project-event-2",
         title: "Aisle traffic",
         event: "A staffer in an orange apron passes the end of the aisle without stopping.",
         characterVisibleText:
@@ -56,13 +56,58 @@ export const hardwareStoreOneProject: DateScenario = {
           "Use the small interruption to surface patience, deferral, or a quiet correction.",
       },
       {
-        atTurn: 28,
+        id: "hardware-store-one-project-event-3",
         title: "Closing notice",
         event: "An overhead voice notes the returns desk closes in ten minutes.",
         characterVisibleText:
           "The intercom notes that the returns desk closes in ten minutes. The cart has not moved from the peg. The broken bracket is still on top of the receipt.",
         directorInstruction:
           "Push the pair to commit to the project together or leave it as one person's task.",
+      },
+      {
+        id: "hardware-store-one-project-event-4",
+        title: "Paint mixer peak",
+        event: "The paint mixer two aisles over hits its loud cycle.",
+        characterVisibleText:
+          "The paint mixer two aisles over kicks into its loud cycle. The shelf rattles for one beat. The bagged brackets sway on the peg.",
+        directorInstruction:
+          "Use the small noise to surface flinching, focus, or a member who would not notice it.",
+      },
+      {
+        id: "hardware-store-one-project-event-5",
+        title: "Forklift signal",
+        event: "A forklift backup beep starts and stops.",
+        characterVisibleText:
+          "A forklift backup beep starts up two aisles down, runs three beats, and stops. A pallet jack rolls past the end of aisle 18. The orange apron from earlier is on it.",
+        directorInstruction:
+          "Let the small disruption pass. The bracket choice is still the bracket choice.",
+      },
+      {
+        id: "hardware-store-one-project-event-6",
+        title: "Hardware drop",
+        event: "A small bag of fasteners falls off a peg above their cart.",
+        characterVisibleText:
+          "A small bag of fasteners falls from a peg one row up. The bag lands on the floor between their feet. The peg above is still half full.",
+        directorInstruction:
+          "Use the small physical thing to test who picks up after a stranger's mess.",
+      },
+      {
+        id: "hardware-store-one-project-event-7",
+        title: "Apron return",
+        event: "A second orange apron pauses at the end of the aisle.",
+        characterVisibleText:
+          "A second orange apron pauses at the end of the aisle, scans the row, and reads the cart. He does not approach. A small pen is tucked behind one ear.",
+        directorInstruction:
+          "Allow a soft offer of help to be honored or quietly waved off. Do not voice the staffer.",
+      },
+      {
+        id: "hardware-store-one-project-event-8",
+        title: "Closing music",
+        event: "The store's closing track plays softly over the intercom.",
+        characterVisibleText:
+          "The intercom plays a slow piano version of a closing time song. The lights in the next aisle dim by a notch. The cart still has only the broken bracket.",
+        directorInstruction:
+          "Push for a final choice. The peg has two brackets. The receipt is still folded.",
       },
     ],
     earlyEndTriggers: [

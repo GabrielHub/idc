@@ -39,9 +39,9 @@ export const listeningBoothAfterClose: DateScenario = {
       "Do not force grief disclosure or private memory.",
       "Let silence count as participation when the pair earns it.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "listening-booth-after-close-event-1",
         title: "First track",
         event: "The first record starts.",
         characterVisibleText:
@@ -50,7 +50,7 @@ export const listeningBoothAfterClose: DateScenario = {
           "Invite a small reaction. The speaker can name the feeling without naming a wound.",
       },
       {
-        atTurn: 20,
+        id: "listening-booth-after-close-event-2",
         title: "Skipped groove",
         event: "The needle catches and repeats one chord.",
         characterVisibleText:
@@ -59,12 +59,55 @@ export const listeningBoothAfterClose: DateScenario = {
           "Push for one cleaner answer, then move on before the room becomes therapy.",
       },
       {
-        atTurn: 28,
+        id: "listening-booth-after-close-event-3",
         title: "House lights",
         event: "The house lights ease up a notch and the final sleeve appears on the side table.",
         characterVisibleText:
           "The booth lights lift one notch. A blank record sleeve slides onto the side table. It has two empty lines where names could go. A pen rests beside it.",
         directorInstruction: "Let the pair choose privacy, ritual, or a grounded goodbye.",
+      },
+      {
+        id: "listening-booth-after-close-event-4",
+        title: "Side flip",
+        event: "The record flips itself to side B.",
+        characterVisibleText:
+          "The arm lifts on its own. The platter pauses, and the record turns over to side B. The lamp does not flicker. The first chord lands cleaner than the last side.",
+        directorInstruction:
+          "Use the unforced continuation to surface stillness or restlessness without naming it.",
+      },
+      {
+        id: "listening-booth-after-close-event-5",
+        title: "Lamp dims",
+        event: "The bulb in the lamp dims by half a stop.",
+        characterVisibleText:
+          "The bulb in the booth's single lamp dims by half a stop. The dust in the light is now barely visible. The room does not feel emptier, only later.",
+        directorInstruction:
+          "Allow the shadow. A member who reaches for a lamp switch is asking a question.",
+      },
+      {
+        id: "listening-booth-after-close-event-6",
+        title: "Empty sleeve",
+        event: "An empty sleeve slides into the discard bin.",
+        characterVisibleText:
+          "A blank sleeve slides itself into the discard bin beside the turntable. The label is in pencil and unreadable. The bin already has two sleeves in it.",
+        directorInstruction: "Let the small clearing be a small clearing. Do not give it meaning.",
+      },
+      {
+        id: "listening-booth-after-close-event-7",
+        title: "Front door bell",
+        event: "The shop's front door bell chimes faintly down the hall.",
+        characterVisibleText:
+          "The front door bell of the shop chimes once down the hall and stops. A back-office voice calls out a soft good night. The booth door stays closed.",
+        directorInstruction:
+          "Use the distant world to make the booth more present, not more haunted.",
+      },
+      {
+        id: "listening-booth-after-close-event-8",
+        title: "Stack settles",
+        event: "The unlabeled stack of records settles to one side.",
+        characterVisibleText:
+          "The stack of unlabeled records on the side table tilts a quarter inch to one side. Nothing falls. The lamp catches the spine of the topmost sleeve.",
+        directorInstruction: "Push for a clean ending sentence. The booth will close on its own.",
       },
     ],
     earlyEndTriggers: [

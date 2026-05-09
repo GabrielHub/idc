@@ -38,9 +38,9 @@ export const prophecyKaraoke: DateScenario = {
       "Use song titles and screen text as pressure without writing real song lyrics.",
       "Let characters push back against the machine.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "prophecy-karaoke-event-1",
         title: "First prediction",
         event: "The screen loads a custom breakup title.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const prophecyKaraoke: DateScenario = {
         directorInstruction: "Let the pair decide whether to laugh, object, or panic.",
       },
       {
-        atTurn: 20,
+        id: "prophecy-karaoke-event-2",
         title: "Duet demand",
         event: "The room locks the next menu behind a duet.",
         characterVisibleText:
@@ -56,12 +56,57 @@ export const prophecyKaraoke: DateScenario = {
         directorInstruction: "Use the duet choice to test cooperation.",
       },
       {
-        atTurn: 28,
+        id: "prophecy-karaoke-event-3",
         title: "Encore correction",
         event: "The screen offers one encore where they can rename the future.",
         characterVisibleText:
           "The encore screen opens a blank title field and waits. The cursor blinks. Behind it the previous track titles fade by one shade.",
         directorInstruction: "Give the pair a chance to reject the predicted ending.",
+      },
+      {
+        id: "prophecy-karaoke-event-4",
+        title: "Volume nudges up",
+        event: "The room volume rises by itself.",
+        characterVisibleText:
+          "The room speakers nudge the volume up two notches. The screen displays: ambient pressure level adjusted. The tablet shows a small unmute icon.",
+        directorInstruction:
+          "Use the small ambient pressure to test whether either of them flinches at being heard.",
+      },
+      {
+        id: "prophecy-karaoke-event-5",
+        title: "Mic feedback",
+        event: "One mic squelches once on the table.",
+        characterVisibleText:
+          "One of the two mics on the table squelches and goes quiet. The tablet displays: feedback adjusted, voice still welcome. Neither member has picked it up.",
+        directorInstruction:
+          "Let the small noise pass without explanation. The mic is still there.",
+      },
+      {
+        id: "prophecy-karaoke-event-6",
+        title: "Score reveal",
+        event: "The screen flashes a score for honesty.",
+        characterVisibleText:
+          "The screen flashes a number: 78 honesty score, last recorded by this room. The tablet displays: machine has weak evidence and strong opinions.",
+        directorInstruction:
+          "Allow the pair to mock the score together or to sit with it without contesting it.",
+      },
+      {
+        id: "prophecy-karaoke-event-7",
+        title: "Lights cycle",
+        event: "The room lights cycle warm and back.",
+        characterVisibleText:
+          "The room lights cycle warm for two beats and return to normal. The tablet displays: mood lighting suggested by the machine, please disregard.",
+        directorInstruction:
+          "Use the small staged moment to test whether either of them performs for the room or for the partner.",
+      },
+      {
+        id: "prophecy-karaoke-event-8",
+        title: "Tablet timeout",
+        event: "The tablet asks if they are still here.",
+        characterVisibleText:
+          "The tablet displays: still in this room? A small countdown reads thirty seconds. The room lights are level. The mics are at rest.",
+        directorInstruction:
+          "Push for a clean answer to the room. Either staying or leaving is the right answer.",
       },
     ],
     earlyEndTriggers: [

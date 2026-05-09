@@ -77,7 +77,7 @@ Compare the printed value to the one in the release notes. If they differ, do no
 - Windows: `%LOCALAPPDATA%\dev.idc.cupid\saves\`
 - macOS: `~/Library/Application Support/dev.idc.cupid/saves/`
 
-The save is a JSON file. Wipe it to reset, copy it to back up, paste it into a new install to migrate.
+The save is a JSON file. Wipe it to reset or copy it to back up. Alpha saves are versioned to the current build only. When the schema changes, Cupid starts a fresh save instead of migrating old files.
 
 Gateway key storage lives under the same app local data root in `secrets/gateway-api-key.txt`. It is not part of the save backup path.
 
@@ -88,7 +88,7 @@ Gateway key storage lives under the same app local data root in `secrets/gateway
 
 ## Updating
 
-Run the new installer. It silently uninstalls the previous version before installing, which means **your saves and Gateway key are wiped on every update**. Alpha builds are not save-compatible across versions, so this matches reality, but copy `%LOCALAPPDATA%\dev.idc.cupid\saves\` aside first if you want to keep something.
+Run the new installer. It silently uninstalls the previous version before installing, which means **your saves and Gateway key are wiped on every update**. Alpha builds are not save-compatible across versions. This is expected until a release line exists, so start a new save after updating.
 
 ## Data flow
 

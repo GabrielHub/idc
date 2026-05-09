@@ -37,9 +37,9 @@ export const underworldDepartmentMixer: DateScenario = {
       "Use name tags and printed forms as public information. Coordinators are silent ambient pressure.",
       "Anchor to the high-top. The mixer floor surrounds them but does not pull them away.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "underworld-department-mixer-event-1",
         title: "Name tag update",
         event: "One name tag updates after a vulnerable sentence.",
         characterVisibleText:
@@ -47,7 +47,7 @@ export const underworldDepartmentMixer: DateScenario = {
         directorInstruction: "Let the wearer decide whether to own or dispute the label.",
       },
       {
-        atTurn: 20,
+        id: "underworld-department-mixer-event-2",
         title: "Icebreaker form",
         event: "An icebreaker form drops onto their high-top.",
         characterVisibleText:
@@ -55,12 +55,57 @@ export const underworldDepartmentMixer: DateScenario = {
         directorInstruction: "Use the form to invite dry honesty.",
       },
       {
-        atTurn: 28,
+        id: "underworld-department-mixer-event-3",
         title: "Exit clipboard",
         event: "A clipboard appears at the table edge as the mixer thins.",
         characterVisibleText:
           "A clipboard rests on the high-top. The top sheet asks for one sentence about whether they would meet again. The pen is already uncapped.",
         directorInstruction: "Ask for a clear next step without forcing romance.",
+      },
+      {
+        id: "underworld-department-mixer-event-4",
+        title: "Tag delivery",
+        event: "A coordinator drops a fresh sleeve of name tags at the high-top.",
+        characterVisibleText:
+          "A coordinator slides a fresh sleeve of blank name tags onto the high-top. A small note clipped to the front reads: revisions accepted at any time. The coordinator does not stop.",
+        directorInstruction:
+          "Use the small offer of revision to test whether either of them rewrites their tag.",
+      },
+      {
+        id: "underworld-department-mixer-event-5",
+        title: "Drink ticket",
+        event: "A drink ticket appears on the high-top.",
+        characterVisibleText:
+          "A small drink ticket lands on the high-top. The header reads: one beverage of restraint per person, on the bureau. The font is the same as the icebreaker form.",
+        directorInstruction:
+          "Allow either of them to use the small comp without making it a transaction.",
+      },
+      {
+        id: "underworld-department-mixer-event-6",
+        title: "Fluorescent flicker",
+        event: "The corporate fluorescent above the high-top flickers.",
+        characterVisibleText:
+          "The corporate fluorescent above the high-top flickers and steadies. The mixer floor music is on a low loop. The other tags around the room update at the same rate.",
+        directorInstruction:
+          "Use the small lighting glitch to surface either steadiness or a need to comment on the room.",
+      },
+      {
+        id: "underworld-department-mixer-event-7",
+        title: "Peer table",
+        event: "The next high-top compares their tags out loud.",
+        characterVisibleText:
+          "Two people at the next high-top compare their name tags. One of the tags has been revised three times tonight. They laugh. Their laugh does not carry far.",
+        directorInstruction:
+          "Allow the ambient social pressure. The pair can use it or refuse to use it.",
+      },
+      {
+        id: "underworld-department-mixer-event-8",
+        title: "Survey buzzer",
+        event: "A survey buzzer sounds across the floor.",
+        characterVisibleText:
+          "A small survey buzzer sounds across the mixer floor. The sound is brief. Two name tags reset to blank in the periphery. The clipboard at their high-top has not been picked up.",
+        directorInstruction:
+          "Push for a clean entry on the clipboard or a clean refusal to fill one out.",
       },
     ],
     earlyEndTriggers: [

@@ -1,21 +1,21 @@
 import { describe, expect, it } from "vitest";
 
 import { memberRequests, starterScenarios } from "../fixtures";
-import { addCupidIntervention, advanceDateExchange, startDateSession } from "./date-engine";
+import { addCupidIntervention, advanceDateExchange, triggerScenarioEvent } from "./date-engine";
 import {
   buildCharacterPromptPacket,
   buildSummarizerPromptPacket,
   pickSamplesForTurn,
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
-import { withFeaturedMembers } from "./test-helpers";
+import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
 describe("date prompt assembly", () => {
   it("only gives the focused member their own ask", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -74,6 +74,9 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("What you can see of Vhool:");
     expect(ownerPacket.prompt).toContain("Current date facts are the floor, not the ceiling.");
     expect(ownerPacket.prompt).toContain(
+      "Treat profile details as app context from before this date",
+    );
+    expect(ownerPacket.prompt).toContain(
       "Soft improv can include a drink, a snack, a nearby object",
     );
     expect(ownerPacket.prompt).toContain("These are voice examples only.");
@@ -100,7 +103,7 @@ describe("date prompt assembly", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "venus",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "venus",
       firstMemberId: "venus",
       secondMemberId: "vhool",
@@ -172,16 +175,75 @@ describe("date prompt assembly", () => {
     );
     expect(packet.prompt).toContain("Do not copy opener scaffolds after your first message.");
     expect(packet.prompt).toContain("Do not reuse a full sentence from the date conversation.");
+    expect(packet.prompt).toContain("Do not repeat the same named plan, time, object, or promise");
     expect(packet.prompt).not.toContain(
       "As the goddess of love I am uniquely qualified to assess your profile.",
     );
+  });
+
+  it("includes the hidden pressure for the live room event", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const eventId = started.session.eventDraft.picked?.[0];
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = started.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      eventId === undefined ||
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected live event prompt fixture setup.");
+    }
+
+    const event = scenario.director.events.find((candidate) => candidate.id === eventId);
+    const triggered = triggerScenarioEvent(started.save, {
+      dateSessionId: started.session.id,
+      eventId,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    if (event === undefined) {
+      throw new Error("Expected drafted event fixture.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: triggered.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: triggered.session.transcript,
+      },
+    });
+
+    expect(packet.prompt).toContain(`Live room event: ${event.characterVisibleText}`);
+    expect(packet.prompt).toContain(`Live room pressure: ${event.directorInstruction}`);
   });
 
   it("keeps scenario and Cupid notes out of the latest line to answer", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -276,7 +338,7 @@ describe("date prompt assembly", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -385,7 +447,7 @@ describe("date prompt assembly", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -499,7 +561,7 @@ describe("date prompt assembly", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",

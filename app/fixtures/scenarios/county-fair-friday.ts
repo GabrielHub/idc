@@ -38,9 +38,9 @@ export const countyFairFriday: DateScenario = {
       "Use the crowd as ambient pressure. Do not invent a heckler.",
       "Anchor the date to the picnic bench. The pair watches the fair, they do not march through it.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "county-fair-friday-event-1",
         title: "Funnel cake delivery",
         event: "A paper plate of funnel cake lands at their corner of the bench.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const countyFairFriday: DateScenario = {
         directorInstruction: "Use the food to surface generosity, decisiveness, or deferral.",
       },
       {
-        atTurn: 20,
+        id: "county-fair-friday-event-2",
         title: "4-H placard",
         event: "A volunteer flips a fresh placard on the goat pen rail in their sightline.",
         characterVisibleText:
@@ -57,12 +57,56 @@ export const countyFairFriday: DateScenario = {
           "Let the placard slow the pair. A member who reads names is not the same as a member who looks past.",
       },
       {
-        atTurn: 28,
+        id: "county-fair-friday-event-3",
         title: "Ferris wheel lights",
         event: "The ferris wheel behind them swings into a synced light cycle.",
         characterVisibleText:
           "The ferris wheel lights cycle blue, white, blue across their bench. The carousel music shifts a half step. The line at the funnel cake stand thins out.",
         directorInstruction: "Push the pair toward a clear next step before the lights cycle off.",
+      },
+      {
+        id: "county-fair-friday-event-4",
+        title: "Wristband cinch",
+        event: "A wristband loosens on one wrist.",
+        characterVisibleText:
+          "One bright orange wristband has stretched away from a wrist. The adhesive tab is curling. The other wristband is tight enough to leave a mark.",
+        directorInstruction: "Use the small fidget to surface care or self-containment.",
+      },
+      {
+        id: "county-fair-friday-event-5",
+        title: "Pet show call",
+        event: "A PA announcement names the pet show in the 4-H pen.",
+        characterVisibleText:
+          "The PA crackles and announces the small animal show in the 4-H pen at nine. Greg the llama has not moved. The placard volunteer flips a second page on the rail.",
+        directorInstruction:
+          "Let one member volunteer attention to the pen. Let the other choose to follow or stay.",
+      },
+      {
+        id: "county-fair-friday-event-6",
+        title: "Lemonade mix-up",
+        event: "A volunteer brings two lemonade cups to the wrong bench.",
+        characterVisibleText:
+          "A volunteer in a 4-H polo sets two paper cups of pink lemonade on their bench. The receipt taped to one cup names a different last name. The volunteer has already turned back to the line.",
+        directorInstruction:
+          "Use the small windfall to test honesty over convenience without scoring it.",
+      },
+      {
+        id: "county-fair-friday-event-7",
+        title: "Tilt-a-whirl pause",
+        event: "The tilt-a-whirl pauses for a safety check.",
+        characterVisibleText:
+          "The tilt-a-whirl rolls to a slow stop two rows over. A teenager in a yellow vest waves a flashlight at one of the cars. Riders stay in their seats.",
+        directorInstruction:
+          "Let the pair register the wait without commenting on it. The bench can hold the silence.",
+      },
+      {
+        id: "county-fair-friday-event-8",
+        title: "Last hour bell",
+        event: "A handbell announces the midway's last hour.",
+        characterVisibleText:
+          "A volunteer at the gate rings a small handbell. The crowd thins by a row. The 4-H pen lights cut from white to amber.",
+        directorInstruction:
+          "Push for a clear next step before the wristbands time out at the gate.",
       },
     ],
     earlyEndTriggers: [

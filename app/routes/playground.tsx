@@ -2,7 +2,13 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 
-import { EASE_OUT_QUART, Eyebrow, GhostButton, MutedLabel } from "../components/dashboard-atoms";
+import {
+  EASE_OUT_QUART,
+  Eyebrow,
+  GhostButton,
+  MutedLabel,
+  SelectInput,
+} from "../components/dashboard-atoms";
 import { DATE_PORTRAIT_MOODS, hasReadyPortraitMood } from "../components/date-presentation-signals";
 import {
   DaterStandee,
@@ -638,7 +644,7 @@ function RunSheet({
         </RunSheetSection>
 
         <RunSheetSection label="provider">
-          <SelectControl
+          <SelectInput
             label="provider"
             value={activeSettings.provider}
             options={[
@@ -654,7 +660,7 @@ function RunSheet({
           />
           {activeSettings.provider === "gateway" ? (
             <>
-              <SelectControl
+              <SelectInput
                 label="reasoning"
                 value={activeSettings.reasoningLevel}
                 options={[
@@ -678,7 +684,7 @@ function RunSheet({
         </RunSheetSection>
 
         <RunSheetSection label="subjects">
-          <SelectControl
+          <SelectInput
             label="member"
             value={activeSettings.memberId}
             options={starterMembers.map((member) => ({
@@ -693,7 +699,7 @@ function RunSheet({
           />
           {mode === "dateConversation" ? (
             <>
-              <SelectControl
+              <SelectInput
                 label="partner"
                 value={dateSettings.partnerId}
                 options={partnerOptions.map((member) => ({
@@ -702,7 +708,7 @@ function RunSheet({
                 }))}
                 onChange={(value) => onDate("partnerId", value)}
               />
-              <SelectControl
+              <SelectInput
                 label="scenario"
                 value={dateSettings.scenarioId}
                 options={starterScenarios.map((scenario) => ({
@@ -1245,37 +1251,6 @@ function PromptPreview({ title, value }: { title: string; value: string }) {
   );
 }
 
-function SelectControl({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-        {label}
-      </span>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.currentTarget.value)}
-        className="mt-2 block w-full cursor-pointer rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 text-body font-semibold text-aura-ink outline-none transition hover:border-aura-hairline-strong focus:border-aura-rose"
-      >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function ModelControl({
   value,
   models,
@@ -1627,7 +1602,7 @@ function SideController({
 
       <div className="space-y-5 px-5 pt-5 pb-5">
         <SideSection label="member">
-          <SelectControl
+          <SelectInput
             label="character"
             value={state.memberId}
             options={starterMembers.map((candidate) => ({

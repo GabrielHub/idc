@@ -38,9 +38,9 @@ export const softLaunchPhotoWall: DateScenario = {
       "Keep brand staff as silent ambient pressure. They place items, they do not address the pair.",
       "Let attention-seeking members enjoy the room only if they protect the partner's boundary.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "soft-launch-photo-wall-event-1",
         title: "Release form",
         event: "The release form on the clipboard waits between them.",
         characterVisibleText:
@@ -49,7 +49,7 @@ export const softLaunchPhotoWall: DateScenario = {
           "Force a consent check. The next speaker should ask, decline, or correct without steamrolling.",
       },
       {
-        atTurn: 20,
+        id: "soft-launch-photo-wall-event-2",
         title: "Ring lights up",
         event: "The ring lights warm up. A line begins to form behind the wall.",
         characterVisibleText:
@@ -58,12 +58,57 @@ export const softLaunchPhotoWall: DateScenario = {
           "Use public attention to test whether the pair acts together or splits.",
       },
       {
-        atTurn: 28,
+        id: "soft-launch-photo-wall-event-3",
         title: "Caption draft",
         event: "A tablet displays a draft caption.",
         characterVisibleText:
           "A tablet on the table displays a caption draft: love wins the soft launch. The post button pulses. A staffer's hand sets a gift bag at the corner of the table and withdraws.",
         directorInstruction: "Let the pair revise, refuse, or reclaim the public story.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-4",
+        title: "Gift bag drops",
+        event: "A second branded gift bag is set at the table corner.",
+        characterVisibleText:
+          "A second pink branded gift bag lands at the table corner. Tissue paper sticks out at an angle. A small QR code on the handle is angled toward the table.",
+        directorInstruction:
+          "Use the soft pressure of free goods to test whether either of them owes the brand a smile.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-5",
+        title: "Caption revises",
+        event: "The tablet caption revises itself.",
+        characterVisibleText:
+          "The caption on the tablet revises itself once: two early adopters of love. The post button pulses faster. A small character counter starts ticking down.",
+        directorInstruction:
+          "Let the pair watch the brand reach for them. The next sentence in the room is the answer.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-6",
+        title: "Other couple flashes",
+        event: "A flash from the next couple lands on the photo wall.",
+        characterVisibleText:
+          "A flash bursts from the photo wall as another couple poses. They laugh easily. Their release form is signed and clipped to the wall behind them.",
+        directorInstruction:
+          "Use the easy success of strangers to test whether the pair wants the same or wants out.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-7",
+        title: "Branded napkin",
+        event: "A branded cocktail napkin lands under one elbow.",
+        characterVisibleText:
+          "A staffer's hand slides a branded napkin under one elbow and withdraws. The logo across the napkin is the same logo behind the photo wall. The release form is still half-signed.",
+        directorInstruction:
+          "Allow the small reminder. The brand is everywhere; they can choose how much to be in it.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-8",
+        title: "Letter falls",
+        event: "One vinyl letter peels off the photo wall.",
+        characterVisibleText:
+          "One vinyl letter peels off the photo wall and falls onto the floor. The wall now reads: authentic onnection. A staffer is already three tables away with another release form.",
+        directorInstruction:
+          "Push for a clean exit from the brand or a clean stay inside it on their own terms.",
       },
     ],
     earlyEndTriggers: [

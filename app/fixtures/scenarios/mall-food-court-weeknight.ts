@@ -36,9 +36,9 @@ export const mallFoodCourtWeeknight: DateScenario = {
       "Use public foot traffic as ambient pressure, not as a plot device.",
       "Do not let the food court turn supernatural. Members can.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "mall-food-court-weeknight-event-1",
         title: "Tray reveal",
         event: "Both trays are now between them. Choices are visible.",
         characterVisibleText:
@@ -46,7 +46,7 @@ export const mallFoodCourtWeeknight: DateScenario = {
         directorInstruction: "Use the food choices to start a small honest exchange.",
       },
       {
-        atTurn: 20,
+        id: "mall-food-court-weeknight-event-2",
         title: "Concourse passersby",
         event: "A small public moment passes their table.",
         characterVisibleText:
@@ -54,12 +54,56 @@ export const mallFoodCourtWeeknight: DateScenario = {
         directorInstruction: "Let the interruption land or be ignored. Both reveal the pair.",
       },
       {
-        atTurn: 28,
+        id: "mall-food-court-weeknight-event-3",
         title: "Trays cleared",
         event: "A staffer clears one tray and leaves the other.",
         characterVisibleText:
           "A staffer with a dish bin lifts one tray off the table and walks past. The other tray is still in front of them. The escalators hum two stores away.",
         directorInstruction: "Push for a small clear next step or a clean goodbye.",
+      },
+      {
+        id: "mall-food-court-weeknight-event-4",
+        title: "Music shifts",
+        event: "The food court's overhead playlist shifts to a slow track.",
+        characterVisibleText:
+          "The food court's playlist shifts to a slower track. A soft saxophone runs over the escalator hum. The Sbarro counter pulls a fresh slice from the case.",
+        directorInstruction:
+          "Use the small atmosphere change to test whether either notices ease without commenting on it.",
+      },
+      {
+        id: "mall-food-court-weeknight-event-5",
+        title: "Tray return",
+        event: "An employee pushes a tray return cart along the seating row.",
+        characterVisibleText:
+          "An employee pushes a tray return cart down the row of tables. He stops twice, lifts trays, and keeps moving. The fortune cookie wrapper is still untouched on their tray.",
+        directorInstruction:
+          "Allow the small ambient cleanup. The pair can use the ten seconds or let it pass.",
+      },
+      {
+        id: "mall-food-court-weeknight-event-6",
+        title: "Bag at twenty-three",
+        event: "A shopper sets two large bags down at the next table.",
+        characterVisibleText:
+          "A shopper sets two department-store bags on the table next to theirs. A receipt is folded under one strap. He sits down and starts on a soft pretzel.",
+        directorInstruction: "Use the small public neighbor to lower the heat between them.",
+      },
+      {
+        id: "mall-food-court-weeknight-event-7",
+        title: "Pretzel pull",
+        event: "A pretzel comes out of the oven at a counter across the way.",
+        characterVisibleText:
+          "Across the food court, a fresh tray of soft pretzels comes out of the oven. The smell carries to the center table. No new line forms.",
+        directorInstruction:
+          "Let the small temptation surface a small honest preference. Refusing counts.",
+      },
+      {
+        id: "mall-food-court-weeknight-event-8",
+        title: "Closing chime",
+        event: "A closing chime sounds. Mall closes in 30 minutes.",
+        characterVisibleText:
+          "A two-tone chime announces the mall closes in 30 minutes. Two of the gated stores roll halfway down. The escalators slow to a walking pace.",
+        directorInstruction:
+          "Push for a clean next step. The food court is the only thing still open.",
       },
     ],
     earlyEndTriggers: [

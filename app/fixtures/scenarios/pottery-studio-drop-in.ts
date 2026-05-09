@@ -38,9 +38,9 @@ export const potteryStudioDropIn: DateScenario = {
       "Treat the clay as real clay. It collapses if it is overworked.",
       "Allow long working silences. The bench can carry them.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "pottery-studio-drop-in-event-1",
         title: "First slab",
         event: "Both members roll the shared slab. The slab is uneven.",
         characterVisibleText:
@@ -49,7 +49,7 @@ export const potteryStudioDropIn: DateScenario = {
           "Use the imperfection to surface patience or perfectionism without forcing a confession.",
       },
       {
-        atTurn: 20,
+        id: "pottery-studio-drop-in-event-2",
         title: "Timer rings",
         event: "The loaner timer on the bench buzzes.",
         characterVisibleText:
@@ -58,13 +58,58 @@ export const potteryStudioDropIn: DateScenario = {
           "Let the pair negotiate the timer without making it a referendum on time.",
       },
       {
-        atTurn: 28,
+        id: "pottery-studio-drop-in-event-3",
         title: "Tape and name",
         event: "A small piece of tape and a marker land between them.",
         characterVisibleText:
           "A small piece of blue tape and a felt marker sit on the bench. The bisque shelf at the back has thirty pieces and two empty slots.",
         directorInstruction:
           "Push for a small honest sentence about what they made and what they will pick up.",
+      },
+      {
+        id: "pottery-studio-drop-in-event-4",
+        title: "Tap drip",
+        event: "The studio's slow tap drips onto the slab.",
+        characterVisibleText:
+          "A drop from the slow tap above the bench lands on the slab. It widens. Another follows. The slab gets darker on one side.",
+        directorInstruction:
+          "Use the small accident to test whether either fixes it without making it a project.",
+      },
+      {
+        id: "pottery-studio-drop-in-event-5",
+        title: "Kiln tick",
+        event: "The kiln behind the curtain ticks audibly.",
+        characterVisibleText:
+          "The kiln behind the curtain begins ticking as it cools. The curtain barely moves. The bench is warmer than it was an hour ago.",
+        directorInstruction:
+          "Allow the small ambient warmth. A working silence here is a kindness, not a vacuum.",
+      },
+      {
+        id: "pottery-studio-drop-in-event-6",
+        title: "Rolling pin shift",
+        event: "The rolling pin slides across the bench.",
+        characterVisibleText:
+          "The rolling pin rolls a quarter turn across the bench and stops against a hand. The handle is wet. The slab between them is now thinner on the wet side.",
+        directorInstruction:
+          "Use the small mishap to surface generosity with material rather than blame.",
+      },
+      {
+        id: "pottery-studio-drop-in-event-7",
+        title: "Apron tie",
+        event: "One apron tie comes loose at the back.",
+        characterVisibleText:
+          "A wet hand brushes the bench and one apron tie comes loose at the back. The other apron is still cinched. The clay on the slab is still soft.",
+        directorInstruction:
+          "Let the small adjustment be small. A member who reaches to retie wordlessly is showing care.",
+      },
+      {
+        id: "pottery-studio-drop-in-event-8",
+        title: "Bisque shelf rocks",
+        event: "A piece on the bisque shelf rocks once and resettles.",
+        characterVisibleText:
+          "A piece on the bisque shelf rocks once on its base and resettles. The shelf has thirty other pieces; none of them moved. The kiln tick continues.",
+        directorInstruction:
+          "Push for a clean closing line about the piece on their own bench, finished or not.",
       },
     ],
     earlyEndTriggers: [

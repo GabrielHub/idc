@@ -38,9 +38,9 @@ export const hotelBarLastCall: DateScenario = {
       "Allow long silences. The bar can hold them.",
       "Use room cues, not the bartender's voice. The bartender is a pair of hands.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "hotel-bar-last-call-event-1",
         title: "First drink",
         event: "Two drinks land without ceremony.",
         characterVisibleText:
@@ -49,7 +49,7 @@ export const hotelBarLastCall: DateScenario = {
           "Use the small mercy of being served quickly to drop the pair's guard.",
       },
       {
-        atTurn: 20,
+        id: "hotel-bar-last-call-event-2",
         title: "Lobby quiet",
         event: "The lobby empties. A single lamp clicks on near the piano.",
         characterVisibleText:
@@ -58,13 +58,57 @@ export const hotelBarLastCall: DateScenario = {
           "Let the pair name the quiet without explaining it. A short admission costs less here.",
       },
       {
-        atTurn: 28,
+        id: "hotel-bar-last-call-event-3",
         title: "Last call",
         event: "The brass rail bell taps twice down the bar.",
         characterVisibleText:
           "The brass rail bell taps twice down the bar. The kitchen pass-through goes dark. The cheese plate is taken away in one quiet pass.",
         directorInstruction:
           "Push for a clear next step or a clean goodbye before the lights come up.",
+      },
+      {
+        id: "hotel-bar-last-call-event-4",
+        title: "Ice machine pause",
+        event: "The ice machine behind the bar quiets for a beat.",
+        characterVisibleText:
+          "The ice machine behind the bar quiets for the first time tonight. The ambient hum drops by half. The bartender's wiping cloth makes the only sound.",
+        directorInstruction:
+          "Allow the silence to be the room's, not theirs. A member who fills it gives themselves away.",
+      },
+      {
+        id: "hotel-bar-last-call-event-5",
+        title: "Coaster swap",
+        event: "Fresh coasters slide onto the brass rail.",
+        characterVisibleText:
+          "The bartender slides two fresh coasters in front of them and lifts the old ones in one move. A small cocktail napkin lands beside one glass. The lemon peel from earlier is gone.",
+        directorInstruction:
+          "Use the small reset to surface whether either member treats reset as care.",
+      },
+      {
+        id: "hotel-bar-last-call-event-6",
+        title: "Lobby crossing",
+        event: "Someone crosses the lobby toward the elevators.",
+        characterVisibleText:
+          "A guest in a wool coat crosses the lobby toward the elevators. He carries a small leather valise. He does not look at the bar. The lobby clock now reads quarter past.",
+        directorInstruction:
+          "Let the lone passerby pass. The bar can hold them inside their conversation.",
+      },
+      {
+        id: "hotel-bar-last-call-event-7",
+        title: "Glass swap",
+        event: "The bartender swaps a glass for a clean one without comment.",
+        characterVisibleText:
+          "The bartender lifts one of their glasses, replaces it with a fresh one, and refills it to the same line. The motion takes four seconds. He does not catch their eye.",
+        directorInstruction:
+          "Use the unprompted mercy to test how each receives small kindness from a stranger.",
+      },
+      {
+        id: "hotel-bar-last-call-event-8",
+        title: "Sconces up",
+        event: "The wall sconces brighten by one notch.",
+        characterVisibleText:
+          "The wall sconces lift by one notch. The brass rail is now clearly visible end to end. Two coasters and a folded check sit at the far stool.",
+        directorInstruction: "Push for one clean line before the bar tilts toward closing.",
       },
     ],
     earlyEndTriggers: [

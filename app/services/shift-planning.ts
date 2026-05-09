@@ -113,14 +113,50 @@ export function selectFeaturedMemberRequestIds({
 }): string[] {
   const featuredMembers = resolveMembers(members, featuredMemberIds);
   const requests = featuredMembers
-    .map(
-      (member) =>
-        memberRequests.find((request) => request.id === member.state.currentRequestId) ??
-        memberRequests.find((request) => request.memberId === member.id),
-    )
+    .map((member) => resolveCurrentMemberRequest(member))
     .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
 
   return seededSortById(requests, `shift:${shiftNumber}:requests`).map((request) => request.id);
+}
+
+export function getMemberRequestPoolIds(memberId: string): string[] {
+  return memberRequests
+    .filter((request) => request.memberId === memberId)
+    .map((request) => request.id);
+}
+
+export function pickNextMemberRequestId(
+  memberId: string,
+  currentRequestId: string | undefined,
+): string | undefined {
+  const poolIds = getMemberRequestPoolIds(memberId);
+
+  if (poolIds.length === 0) {
+    return undefined;
+  }
+
+  if (poolIds.length === 1) {
+    return poolIds[0];
+  }
+
+  if (currentRequestId === undefined) {
+    return poolIds[0];
+  }
+
+  const currentIndex = poolIds.indexOf(currentRequestId);
+
+  if (currentIndex === -1) {
+    return poolIds[0];
+  }
+
+  return poolIds[(currentIndex + 1) % poolIds.length];
+}
+
+function resolveCurrentMemberRequest(member: Member) {
+  return (
+    memberRequests.find((request) => request.id === member.state.currentRequestId) ??
+    memberRequests.find((request) => request.memberId === member.id)
+  );
 }
 
 function ensureIdentityTag(

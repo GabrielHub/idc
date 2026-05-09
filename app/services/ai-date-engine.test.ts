@@ -15,9 +15,8 @@ import {
   type LocalAiDateRuntime,
   type LocalAiDateStreamEvent,
 } from "./ai-date-engine";
-import { startDateSession } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
-import { withFeaturedMembers } from "./test-helpers";
+import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 describe("AI date engine orchestration", () => {
@@ -53,7 +52,7 @@ describe("AI date engine orchestration", () => {
         }),
       ],
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -95,6 +94,7 @@ describe("AI date engine orchestration", () => {
             "opal-sunday": -100,
           },
           shouldEndEarly: false,
+          endSentiment: "positive",
           notableMoments: ["Jenna asked a practical question."],
           playerSummary: "AI judge filed a useful report.",
           memoryCandidates: [],
@@ -133,6 +133,7 @@ describe("AI date engine orchestration", () => {
 
     expect(result.session.status).toBe("completed");
     expect(result.session.currentTurn).toBe(2);
+    expect(result.session.judgeSnapshots[0]?.endSentiment).toBeNull();
     expect(result.session.transcript.some((message) => message.text.startsWith("ai Jenna"))).toBe(
       true,
     );
@@ -152,6 +153,100 @@ describe("AI date engine orchestration", () => {
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
   });
 
+  it("completes the date when final memory filing fails", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-memory-fail-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("as Jenna Pike")
+          ? "Jenna asks one grounded coffee question."
+          : "Vhool answers the coffee question without recruiting anyone.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 3,
+          statDeltas: {
+            trust: 2,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["The pair handled coffee like adults."],
+          playerSummary: "The date stayed useful despite filing trouble.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer unavailable");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await completeDateSessionWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(result.session.status).toBe("completed");
+    expect(result.session.finalReport?.memoryRecordIds).toEqual([
+      `memory-${started.session.id}-ai-fallback`,
+    ]);
+    expect(result.save.memories).toHaveLength(started.save.memories.length + 1);
+    const fallbackMemory = result.save.memories.find(
+      (memory) => memory.id === `memory-${started.session.id}-ai-fallback`,
+    );
+    expect(fallbackMemory).toBeDefined();
+    if (fallbackMemory === undefined) {
+      throw new Error("Expected fallback memory to be saved.");
+    }
+    expect(fallbackMemory.visibility).toBe("public");
+    expect(fallbackMemory.tags).toContain("fallback_summary");
+    expect(fallbackMemory.embeddingModel).toBe("deterministic-local");
+    expect(fallbackMemory.text).toContain("Cupid filed a basic case note");
+    expect(result.warningMessages.join(" ")).toContain(
+      "AI memory filing used a deterministic fallback case note.",
+    );
+    expect(result.warningMessages.join(" ")).toContain(
+      "Structured memory output failed, but the date was filed.",
+    );
+  });
+
   it("blocks the date update when required AI callbacks fail", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-block-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -164,7 +259,7 @@ describe("AI date engine orchestration", () => {
         defaultDateMessageLimit: 2,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -223,7 +318,7 @@ describe("AI date engine orchestration", () => {
         defaultDateMessageLimit: 2,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -369,7 +464,7 @@ describe("AI date engine orchestration", () => {
         defaultDateMessageLimit: 2,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -538,7 +633,7 @@ describe("AI date engine orchestration", () => {
         defaultDateMessageLimit: 4,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -617,10 +712,10 @@ describe("AI date engine orchestration", () => {
       ...save,
       config: {
         ...save.config,
-        defaultDateMessageLimit: 6,
+        defaultDateMessageLimit: 18,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -678,41 +773,48 @@ describe("AI date engine orchestration", () => {
     };
     await repository.saveGame(started.save);
 
-    const firstAdvance = await advanceDateExchangeWithLocalAi(started.save, repository, {
-      dateSessionId: started.session.id,
-      runtime,
-      config: started.save.config,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
+    let runningSave = started.save;
+    let runningSession = started.session;
 
-    expect(firstAdvance.session.judgeSnapshots).toHaveLength(1);
-    const firstJudgeSnapshot = firstAdvance.session.judgeSnapshots[0];
-    expect(firstAdvance.session.currentTurn).toBe(2);
+    for (let exchange = 0; exchange < 3; exchange += 1) {
+      const advanced = await advanceDateExchangeWithLocalAi(runningSave, repository, {
+        dateSessionId: started.session.id,
+        runtime,
+        config: runningSave.config,
+        now: new Date(`2026-05-05T12:0${exchange + 2}:00.000Z`),
+      });
+      runningSave = advanced.save;
+      runningSession = advanced.session;
+    }
+
+    expect(runningSession.judgeSnapshots).toHaveLength(1);
+    const firstJudgeSnapshot = runningSession.judgeSnapshots[0];
+    expect(runningSession.currentTurn).toBe(6);
     expect(firstJudgeSnapshot).toBeDefined();
     if (firstJudgeSnapshot === undefined) {
-      throw new Error("Expected first judge snapshot after completed AI exchange.");
+      throw new Error("Expected first judge snapshot after completed judge cadence window.");
     }
-    expect(firstAdvance.session.dateHealth).toBe(
+    expect(runningSession.dateHealth).toBe(
       started.session.dateHealth + firstJudgeSnapshot.dateHealthDelta,
     );
-    expect(firstJudgeSnapshot.exchangeIndex).toBe(0);
     expect(judgePrompts[0]).toContain("line 1 response");
-    expect(judgePrompts[0]).toContain("line 2 response");
-    expect(judgePrompts[0]).not.toContain("line 3 response");
+    expect(judgePrompts[0]).toContain("line 6 response");
 
-    const secondAdvance = await advanceDateExchangeWithLocalAi(firstAdvance.save, repository, {
-      dateSessionId: started.session.id,
-      runtime,
-      config: firstAdvance.save.config,
-      now: new Date("2026-05-05T12:03:00.000Z"),
-    });
+    for (let exchange = 0; exchange < 3; exchange += 1) {
+      const advanced = await advanceDateExchangeWithLocalAi(runningSave, repository, {
+        dateSessionId: started.session.id,
+        runtime,
+        config: runningSave.config,
+        now: new Date(`2026-05-05T12:1${exchange}:00.000Z`),
+      });
+      runningSave = advanced.save;
+      runningSession = advanced.session;
+    }
 
-    expect(secondAdvance.session.currentTurn).toBe(4);
-    expect(secondAdvance.session.judgeSnapshots).toHaveLength(2);
-    expect(secondAdvance.session.judgeSnapshots[1]?.exchangeIndex).toBe(1);
-    expect(judgePrompts[1]).toContain("Prior judge filing for exchange 0");
-    expect(judgePrompts[1]).toContain("line 3 response");
-    expect(judgePrompts[1]).toContain("line 4 response");
+    expect(runningSession.currentTurn).toBe(12);
+    expect(runningSession.judgeSnapshots).toHaveLength(2);
+    expect(judgePrompts[1]).toContain("line 7 response");
+    expect(judgePrompts[1]).toContain("line 12 response");
   });
 
   it("can advance one AI member message before judging the exchange", async () => {
@@ -724,10 +826,10 @@ describe("AI date engine orchestration", () => {
       ...save,
       config: {
         ...save.config,
-        defaultDateMessageLimit: 4,
+        defaultDateMessageLimit: 8,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -785,27 +887,35 @@ describe("AI date engine orchestration", () => {
     };
     await repository.saveGame(started.save);
 
-    const firstLine = await advanceDateExchangeWithLocalAi(started.save, repository, {
+    let runningSave = started.save;
+    let runningSession = started.session;
+    for (let turn = 0; turn < 5; turn += 1) {
+      const advanced = await advanceDateExchangeWithLocalAi(runningSave, repository, {
+        dateSessionId: started.session.id,
+        turnCount: 1,
+        runtime,
+        config: runningSave.config,
+        now: new Date(`2026-05-05T12:0${turn + 2}:00.000Z`),
+      });
+      runningSave = advanced.save;
+      runningSession = advanced.session;
+    }
+
+    expect(runningSession.currentTurn).toBe(5);
+    expect(runningSession.judgeSnapshots).toHaveLength(0);
+
+    const sixthLine = await advanceDateExchangeWithLocalAi(runningSave, repository, {
       dateSessionId: started.session.id,
       turnCount: 1,
       runtime,
-      config: started.save.config,
-      now: new Date("2026-05-05T12:02:00.000Z"),
-    });
-    const secondLine = await advanceDateExchangeWithLocalAi(firstLine.save, repository, {
-      dateSessionId: started.session.id,
-      turnCount: 1,
-      runtime,
-      config: firstLine.save.config,
-      now: new Date("2026-05-05T12:03:00.000Z"),
+      config: runningSave.config,
+      now: new Date("2026-05-05T12:08:00.000Z"),
     });
 
-    expect(firstLine.session.currentTurn).toBe(1);
-    expect(firstLine.session.judgeSnapshots).toHaveLength(0);
-    expect(secondLine.session.currentTurn).toBe(2);
-    expect(secondLine.session.judgeSnapshots).toHaveLength(1);
+    expect(sixthLine.session.currentTurn).toBe(6);
+    expect(sixthLine.session.judgeSnapshots).toHaveLength(1);
     expect(judgePrompts[0]).toContain("single line 1");
-    expect(judgePrompts[0]).toContain("single line 2");
+    expect(judgePrompts[0]).toContain("single line 6");
   });
 
   it("feeds performers the full active date transcript after judged exchanges", async () => {
@@ -820,7 +930,7 @@ describe("AI date engine orchestration", () => {
         defaultDateMessageLimit: 14,
       },
     };
-    const started = startDateSession(save, {
+    const started = startAndDraftDateSession(save, {
       focusMemberId: "venus",
       firstMemberId: "venus",
       secondMemberId: "vhool",

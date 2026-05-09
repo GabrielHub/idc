@@ -3,13 +3,12 @@ import { describe, expect, it } from "vitest";
 import { type ShiftState } from "../domain/game";
 import { starterScenarios } from "../fixtures";
 import {
-  startDateSession,
   startNextShift,
   completeShift,
   completeDateSession,
   applyFollowUpAction,
 } from "./date-engine";
-import { createSeedGameSave } from "./game-seed";
+import { createSeedGameSave, getActiveShift } from "./game-seed";
 import {
   discardDrawnScenario,
   evaluateScenarioPowers,
@@ -18,7 +17,7 @@ import {
   isLowPressureScenario,
   requestLowPressureScenario,
 } from "./scenario-powers";
-import { withFeaturedMembers } from "./test-helpers";
+import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
 const NOW = new Date("2026-05-08T09:00:00.000Z");
 
@@ -27,16 +26,6 @@ function withDrawnScenarios(shift: ShiftState, scenarioIds: string[]): ShiftStat
     ...shift,
     drawnScenarioIds: scenarioIds,
   };
-}
-
-function getActiveShiftFromSave(save: ReturnType<typeof createSeedGameSave>): ShiftState {
-  const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
-
-  if (activeShift === undefined) {
-    throw new Error("Expected an active shift in test fixture.");
-  }
-
-  return activeShift;
 }
 
 describe("scenario deck powers", () => {
@@ -48,7 +37,7 @@ describe("scenario deck powers", () => {
 
   it("holds a drawn scenario and carries it into the next shift", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const activeShift = getActiveShiftFromSave(save);
+    const activeShift = getActiveShift(save);
     const heldId = activeShift.drawnScenarioIds[1];
 
     if (heldId === undefined) {
@@ -66,7 +55,7 @@ describe("scenario deck powers", () => {
     });
 
     const remainingId = heldResult.shift.drawnScenarioIds[0] ?? "temporal-coffee-shop";
-    const started = startDateSession(heldResult.save, {
+    const started = startAndDraftDateSession(heldResult.save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",
       secondMemberId: "vhool",
@@ -87,7 +76,7 @@ describe("scenario deck powers", () => {
 
   it("rejects holding when the drawn hand has only one room left", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const trimmedShift = withDrawnScenarios(getActiveShiftFromSave(save), ["temporal-coffee-shop"]);
+    const trimmedShift = withDrawnScenarios(getActiveShift(save), ["temporal-coffee-shop"]);
     const trimmedSave = {
       ...save,
       shifts: save.shifts.map((shift) => (shift.id === trimmedShift.id ? trimmedShift : shift)),
@@ -100,7 +89,7 @@ describe("scenario deck powers", () => {
 
   it("allows a quiet room swap when it is the only remaining card", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const trimmedShift = withDrawnScenarios(getActiveShiftFromSave(save), ["prophecy-karaoke"]);
+    const trimmedShift = withDrawnScenarios(getActiveShift(save), ["prophecy-karaoke"]);
     const trimmedSave = {
       ...save,
       shifts: save.shifts.map((shift) => (shift.id === trimmedShift.id ? trimmedShift : shift)),
@@ -131,7 +120,7 @@ describe("scenario deck powers", () => {
 
   it("discards a drawn scenario without touching the deck library", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const activeShift = getActiveShiftFromSave(save);
+    const activeShift = getActiveShift(save);
     const targetId = activeShift.drawnScenarioIds[0];
 
     if (targetId === undefined) {
@@ -148,7 +137,7 @@ describe("scenario deck powers", () => {
 
   it("blocks a second deck power once one has been filed", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const activeShift = getActiveShiftFromSave(save);
+    const activeShift = getActiveShift(save);
     const firstId = activeShift.drawnScenarioIds[0];
     const secondId = activeShift.drawnScenarioIds[1];
 
@@ -165,7 +154,7 @@ describe("scenario deck powers", () => {
 
   it("swaps a high pressure room for the first unused low pressure room", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const activeShift = getActiveShiftFromSave(save);
+    const activeShift = getActiveShift(save);
     const drawnWithHighPressure = ["prophecy-karaoke", "temporal-coffee-shop", "diner-eleven-pm"];
     const stagedShift = withDrawnScenarios(activeShift, drawnWithHighPressure);
     const stagedSave = {
@@ -197,7 +186,7 @@ describe("scenario deck powers", () => {
 
   it("evaluates power availability without mutating state", () => {
     const save = withFeaturedMembers(createSeedGameSave(NOW), ["jenna-pike", "vhool"]);
-    const activeShift = getActiveShiftFromSave(save);
+    const activeShift = getActiveShift(save);
     const lowPressureId = activeShift.drawnScenarioIds.find((id) =>
       isLowPressureScenario(findScenarioFixture(id)),
     );

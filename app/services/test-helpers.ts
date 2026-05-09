@@ -1,5 +1,32 @@
 import { gameSaveSchema, shiftStateSchema, type GameSave } from "../domain/game";
+import {
+  EVENT_DRAFT_PICKED,
+  pickScenarioEvents,
+  startDateSession,
+  type DateEngineResult,
+  type StartDateInput,
+} from "./date-engine";
 import { SHIFT_FEATURED_MEMBER_COUNT } from "./shift-planning";
+
+/**
+ * Starts a date session and immediately drafts the first three offered events
+ * so tests can run against a paused, post-draft session. Real flows route the
+ * draft through the player; tests skip it for brevity.
+ */
+export function startAndDraftDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
+  const started = startDateSession(save, input);
+
+  if (started.session.playbackState !== "drafting") {
+    return started;
+  }
+
+  const picks = started.session.eventDraft.offered.slice(0, EVENT_DRAFT_PICKED);
+
+  return pickScenarioEvents(started.save, {
+    dateSessionId: started.session.id,
+    pickedEventIds: picks,
+  });
+}
 
 export function buildFeaturedMemberIds(
   save: GameSave,

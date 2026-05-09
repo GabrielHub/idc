@@ -36,9 +36,9 @@ export const museumExhibitMixup: DateScenario = {
       "Use exhibit labels and pedestals as pressure. Do not voice an audio guide as a third speaker.",
       "Anchor the date to this one gallery. Do not march them through other rooms.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "museum-exhibit-mixup-event-1",
         title: "First label",
         event: "The blank placard fills with a mild but accurate insecurity.",
         characterVisibleText:
@@ -47,7 +47,7 @@ export const museumExhibitMixup: DateScenario = {
           "Let the affected member react. Let the other decide whether to be gentle.",
       },
       {
-        atTurn: 20,
+        id: "museum-exhibit-mixup-event-2",
         title: "Pedestal arrives",
         event: "A small object appears on the pedestal between them.",
         characterVisibleText:
@@ -55,12 +55,56 @@ export const museumExhibitMixup: DateScenario = {
         directorInstruction: "Use the artifact to make avoidance visible without forcing exposure.",
       },
       {
-        atTurn: 28,
+        id: "museum-exhibit-mixup-event-3",
         title: "Replica",
         event: "A tiny replica of the pair appears on a second pedestal.",
         characterVisibleText:
           "A snow globe with two figures inside slides onto the pedestal. The base is engraved with both their initials and tonight's date.",
         directorInstruction: "Let the pair choose humor, discomfort, or directness.",
+      },
+      {
+        id: "museum-exhibit-mixup-event-4",
+        title: "Floor squeak",
+        event: "The parquet under the gallery squeaks under one heel.",
+        characterVisibleText:
+          "The parquet under the gallery squeaks once under a heel. The sound is small. The placard at the next pedestal updates a single word.",
+        directorInstruction: "Use the tiny disclosure to test grace under unexpected attention.",
+      },
+      {
+        id: "museum-exhibit-mixup-event-5",
+        title: "Audio guide booth",
+        event: "An empty audio guide stand stands at the gallery entrance.",
+        characterVisibleText:
+          "An empty audio guide stand sits at the gallery entrance. Six rented players are in their slots. None of them has been signed out tonight.",
+        directorInstruction:
+          "Let the absence of a third voice keep the gallery between just the two of them.",
+      },
+      {
+        id: "museum-exhibit-mixup-event-6",
+        title: "Velvet rope",
+        event: "A velvet rope across an exhibit shifts on its stanchion.",
+        characterVisibleText:
+          "A velvet rope across the next exhibit slides a half inch on its stanchion. The placard behind it stays blank. A small hum starts in the floor.",
+        directorInstruction:
+          "Allow the small movement. The pair does not need to step toward it to read it.",
+      },
+      {
+        id: "museum-exhibit-mixup-event-7",
+        title: "Spotlight shift",
+        event: "Track lighting tilts onto the pair's pedestal.",
+        characterVisibleText:
+          "A track light overhead tilts a degree warmer and lands on the pedestal between them. The light on the previous placard cools. The snow globe is now in soft shadow.",
+        directorInstruction:
+          "Use the small spotlight to test who steps into attention and who steps out.",
+      },
+      {
+        id: "museum-exhibit-mixup-event-8",
+        title: "Wall update",
+        event: "The first placard rearranges its words.",
+        characterVisibleText:
+          "The first placard reshuffles its words. It now reads: subject is easier to admire than know unless they decide otherwise. The pedestal beside it is empty again.",
+        directorInstruction:
+          "Push for a clean response. Either member can revise the wall by saying so out loud.",
       },
     ],
     earlyEndTriggers: [

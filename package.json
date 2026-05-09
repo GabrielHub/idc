@@ -13,7 +13,7 @@
     "start": "react-router-serve ./build/server/index.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build",
+    "tauri:build": "vp check && react-router typegen && tsc && vp test run && tauri build",
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {

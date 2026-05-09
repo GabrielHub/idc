@@ -572,6 +572,11 @@ function buildPlaygroundSession({
       },
     },
     judgeSnapshots: [],
+    eventDraft: { offered: [], picked: [] },
+    eventsTriggered: [],
+    playbackState: "paused",
+    endSentiment: null,
+    interventions: [],
   });
 }
 

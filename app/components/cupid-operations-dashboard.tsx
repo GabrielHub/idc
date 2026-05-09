@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   gameSaveSchema,
@@ -31,8 +31,11 @@ import {
   completeShift,
   getQuitMembers,
   isMemberRetained,
+  pickScenarioEvents,
   startDateSession,
   startNextShift,
+  togglePlayback,
+  triggerScenarioEvent,
 } from "../services/date-engine";
 import { getActiveShift, makePairId } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
@@ -82,11 +85,16 @@ type DashboardPendingAction =
   | PendingDateAction
   | "startDate"
   | "intervention"
+  | "pickEvents"
+  | "triggerEvent"
+  | "togglePlayback"
   | "followUp"
   | "endShift"
   | "reset"
   | "nextShift"
   | "deckPower";
+
+const AUTOPLAY_TICK_DELAY_MS = 480;
 
 function asPendingDateAction(action: DashboardPendingAction | null): PendingDateAction | null {
   if (action === "advanceExchange" || action === "completeDate") {
@@ -137,6 +145,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const lastErrorMessageRef = useRef<string | null>(null);
   const localAiStatusRequestRef = useRef<Promise<LocalAiClientStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
+  const queuedPlaybackRef = useRef<"playing" | "paused" | null>(null);
   const isActionPending = pendingAction !== null;
 
   useEffect(() => {
@@ -652,6 +661,103 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
+  async function handlePickEvents(eventIds: string[]) {
+    if (save === null || activeSession === null) {
+      return;
+    }
+
+    tryAction("pickEvents", async () => {
+      const result = pickScenarioEvents(save, {
+        dateSessionId: activeSession.id,
+        pickedEventIds: eventIds,
+      });
+      await persist(result.save);
+    });
+  }
+
+  async function handleTriggerEvent(eventId: string) {
+    if (save === null || activeSession === null) {
+      return;
+    }
+
+    tryAction("triggerEvent", async () => {
+      const result = triggerScenarioEvent(save, {
+        dateSessionId: activeSession.id,
+        eventId,
+      });
+      await persist(result.save);
+    });
+  }
+
+  async function handleTogglePlayback(next: "playing" | "paused") {
+    if (save === null || activeSession === null) {
+      return;
+    }
+
+    if (next === "paused") {
+      const controller = dateAbortControllerRef.current;
+
+      if (controller !== null) {
+        controller.abort();
+      }
+    }
+
+    if (pendingAction !== null) {
+      queuedPlaybackRef.current = next;
+      return;
+    }
+
+    tryAction("togglePlayback", async () => {
+      const result = togglePlayback(save, {
+        dateSessionId: activeSession.id,
+        desiredState: next,
+      });
+      await persist(result.save);
+    });
+  }
+
+  const advanceRef = useRef(handleAdvanceExchange);
+  const toggleRef = useRef(handleTogglePlayback);
+  useLayoutEffect(() => {
+    advanceRef.current = handleAdvanceExchange;
+    toggleRef.current = handleTogglePlayback;
+  });
+
+  useEffect(() => {
+    if (queuedPlaybackRef.current === null) {
+      return;
+    }
+
+    if (isActionPending) {
+      return;
+    }
+
+    const next = queuedPlaybackRef.current;
+    queuedPlaybackRef.current = null;
+    void toggleRef.current(next);
+  }, [isActionPending]);
+
+  const autoplayShouldTick =
+    activeSession !== null &&
+    activeSession.status === "active" &&
+    activeSession.playbackState === "playing" &&
+    !isActionPending &&
+    errorMessage === null &&
+    pendingDateRetry === null &&
+    queuedPlaybackRef.current === null;
+  const autoplayTickKey = activeSession?.currentTurn ?? -1;
+  useEffect(() => {
+    if (!autoplayShouldTick) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void advanceRef.current(2);
+    }, AUTOPLAY_TICK_DELAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [autoplayShouldTick, autoplayTickKey]);
+
   async function handleFollowUp(action: FollowUpAction) {
     if (save === null || activeSession === null) {
       return;
@@ -1082,6 +1188,9 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               onCancel={handleCancelDate}
               onIntervene={handleIntervention}
               onFollowUp={handleFollowUp}
+              onPickEvents={handlePickEvents}
+              onTriggerEvent={handleTriggerEvent}
+              onTogglePlayback={handleTogglePlayback}
               onBack={() => setView("brief")}
             />
           ) : (

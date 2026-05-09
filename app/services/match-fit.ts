@@ -210,6 +210,7 @@ export function applyMatchFitToJudgeSnapshot({
       memberMoodDeltas,
       shouldEndEarly: true,
       earlyEndReason: fit.hardStop.reason,
+      endSentiment: "negative",
       notableMoments: [fit.hardStop.reason, ...judgeSnapshot.notableMoments].slice(0, 3),
       playerSummary: "Dealbreaker tripped. Date Health collapsed. Recommend Repair.",
     });
@@ -287,6 +288,7 @@ function applyWalkoutEscalation({
     ...judgeSnapshot,
     shouldEndEarly: true,
     earlyEndReason: reason,
+    endSentiment: "negative",
     notableMoments: [reason, ...judgeSnapshot.notableMoments].slice(0, 3),
     playerSummary: "Boundary crossed. Date ended before the room could make it worse.",
   });

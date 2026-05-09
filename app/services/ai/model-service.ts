@@ -168,6 +168,12 @@ const judgeAiOutputSchema = z.object({
     (value) => (value === "" ? undefined : value),
     z.string().min(1).optional(),
   ),
+  endSentiment: z
+    .preprocess(
+      (value) => (value === "" || value === undefined ? null : value),
+      z.enum(["positive", "negative"]).nullable(),
+    )
+    .default(null),
   notableMoments: z.array(z.string().min(1)),
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),

@@ -37,9 +37,9 @@ export const dmvNumberTicket: DateScenario = {
       "Treat the DMV as a real DMV. Lines move at the speed they move.",
       "The clerks are not theatrical. They are doing their job at a distance.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "dmv-number-ticket-event-1",
         title: "Form check",
         event: "A box on the form has been left blank.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const dmvNumberTicket: DateScenario = {
           "Use the small lapse to surface care, control, or deferral without scoring it.",
       },
       {
-        atTurn: 20,
+        id: "dmv-number-ticket-event-2",
         title: "Board jumps",
         event: "The display board moves three numbers in a row, then stops.",
         characterVisibleText:
@@ -57,13 +57,57 @@ export const dmvNumberTicket: DateScenario = {
           "Let the wait open a window. A real question is cheaper here than across a table.",
       },
       {
-        atTurn: 28,
+        id: "dmv-number-ticket-event-3",
         title: "Number called",
         event: "Their number lights up on the board.",
         characterVisibleText:
           "The board reads B 63. Window four has its light on. Two minutes of patience are visibly available.",
         directorInstruction:
           "Push the pair to handle the window together or to step apart on purpose.",
+      },
+      {
+        id: "dmv-number-ticket-event-4",
+        title: "Window two reopens",
+        event: "A clerk returns to window two with a fresh stack.",
+        characterVisibleText:
+          "A clerk in a blue cardigan sits down at window two and slides a fresh stack of forms onto the counter. The light over window two blinks on.",
+        directorInstruction:
+          "Allow the small relief without scoring it. The wait got two minutes shorter.",
+      },
+      {
+        id: "dmv-number-ticket-event-5",
+        title: "Form drop in row D",
+        event: "Someone in row D drops a stapled form.",
+        characterVisibleText:
+          "A man in row D drops a stapled form. Two pages slide under his neighbor's chair. He reaches across without speaking and the neighbor leans back to give him room.",
+        directorInstruction:
+          "Let the small kindness in row D land or be missed. The pair can use it either way.",
+      },
+      {
+        id: "dmv-number-ticket-event-6",
+        title: "Pen tether",
+        event: "The chained pen swings on its tether at the counter.",
+        characterVisibleText:
+          "The clipboard pen on its tether swings against the counter, then settles. The chain has a kink in it. No one is using the pen.",
+        directorInstruction:
+          "Use the small mechanical detail to ease pressure between two real questions.",
+      },
+      {
+        id: "dmv-number-ticket-event-7",
+        title: "Board jumps again",
+        event: "The display board jumps two more numbers in a row.",
+        characterVisibleText:
+          "The board reads B 65, then B 67. Window five rolls its number forward. The printer behind the counter starts again.",
+        directorInstruction: "Push the pair to use the gift of time without making it a meeting.",
+      },
+      {
+        id: "dmv-number-ticket-event-8",
+        title: "Lobby cuts out",
+        event: "The lobby music cuts out for half a beat.",
+        characterVisibleText:
+          "The lobby music drops for half a beat. The fluorescent overhead hums. The song cuts back in mid-song. No one looks up.",
+        directorInstruction:
+          "Let the silence open a clean window for one of them to ask the small thing.",
       },
     ],
     earlyEndTriggers: [

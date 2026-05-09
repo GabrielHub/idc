@@ -38,9 +38,9 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
       "Do not let the scene imply fate, vows, or permanent binding.",
       "The office is automated tonight. Forms slide into view, but no clerk speaks.",
     ],
-    beats: [
+    events: [
       {
-        atTurn: 10,
+        id: "midnight-notary-two-clean-promises-event-1",
         title: "Boundary form",
         event: "The first form lights up on the counter.",
         characterVisibleText:
@@ -48,7 +48,7 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
         directorInstruction: "Invite one specific boundary. Reward clarity over grandeur.",
       },
       {
-        atTurn: 20,
+        id: "midnight-notary-two-clean-promises-event-2",
         title: "Promise form",
         event: "The second form slides forward on the counter.",
         characterVisibleText:
@@ -56,13 +56,57 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
         directorInstruction: "Push for a modest promise that respects the boundary already named.",
       },
       {
-        atTurn: 28,
+        id: "midnight-notary-two-clean-promises-event-3",
         title: "Clean stamp",
         event: "The stamp lands once on the line both members can repeat.",
         characterVisibleText:
           "The stamp lands once. The ink reads: witnessed, understood, not legally romantic advice. The countdown clock reads 11:58.",
         directorInstruction:
           "Let the pair decide whether the ceremony felt safe, silly, or useful.",
+      },
+      {
+        id: "midnight-notary-two-clean-promises-event-4",
+        title: "Stamp test",
+        event: "A scrap of paper tests the stamp.",
+        characterVisibleText:
+          "A small scrap of paper slides forward under the stamp. The pad inks itself. The test impression reads: still working, please proceed in plain language.",
+        directorInstruction:
+          "Use the small reset to lower performance. Plain language costs less than ritual here.",
+      },
+      {
+        id: "midnight-notary-two-clean-promises-event-5",
+        title: "Counter dim",
+        event: "One panel of the counter lamp dims.",
+        characterVisibleText:
+          "The right panel of the brass counter lamp dims by a notch. The left panel holds steady. The countdown clock has not advanced for a beat.",
+        directorInstruction:
+          "Let the partial light test whether plain language can hold without spotlight.",
+      },
+      {
+        id: "midnight-notary-two-clean-promises-event-6",
+        title: "Form retracts",
+        event: "The boundary form retracts a quarter inch on the counter.",
+        characterVisibleText:
+          "The boundary form pulls back a quarter inch. The header line ticks: still revisable. A thin pencil rolls into view from the counter slot.",
+        directorInstruction:
+          "Allow a quiet edit. A member who edits without arguing is doing it correctly.",
+      },
+      {
+        id: "midnight-notary-two-clean-promises-event-7",
+        title: "Witness pen",
+        event: "A second pen slides onto the counter beside the first.",
+        characterVisibleText:
+          "A second pen slides onto the counter parallel to the first. The header on the page now reads: optional countersignature, still witnessed without it.",
+        directorInstruction:
+          "Use the optional second signature to test whether a member adds weight or chooses not to.",
+      },
+      {
+        id: "midnight-notary-two-clean-promises-event-8",
+        title: "Pad refresh",
+        event: "The stamp pad refreshes and the clock advances.",
+        characterVisibleText:
+          "The stamp pad opens, takes on a darker line of ink, and closes. The countdown clock advances one minute to 11:59.",
+        directorInstruction: "Push for a clean close. Witnessed or not is fine. Resented is not.",
       },
     ],
     earlyEndTriggers: [
