@@ -256,11 +256,11 @@ export async function runPlaygroundMemberChat(
     };
   }
 
-  const result = await generateCharacterTurn(
-    prompt.packet,
-    runtimeConfigFromPlaygroundInput(input),
-    generationOptionsFromInput(input),
-  );
+  const result = await generateCharacterTurn({
+    packet: prompt.packet,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput(input),
+  });
   const text = sanitizeCharacterText(result.text, member.name);
   const elapsedMs = Math.round(performance.now() - startedAt);
   const chatMessages = appendMemberReply(input, text);
@@ -367,15 +367,16 @@ async function runPlaygroundConversation({
         },
         focusRequest,
         frictionRuleHits,
+        memorySearchAvailable: false,
       }),
       input,
     );
     promptCharacters += packet.system.length + packet.prompt.length;
-    const result = await generateCharacterTurn(
+    const result = await generateCharacterTurn({
       packet,
-      runtimeConfigFromPlaygroundInput(input),
-      generationOptionsFromInput(input),
-    );
+      config: runtimeConfigFromPlaygroundInput(input),
+      options: generationOptionsFromInput(input),
+    });
     const text = sanitizeCharacterText(result.text, speaker.name);
     currentTurn += 1;
     transcript.push(
@@ -502,6 +503,7 @@ function buildDatePlaygroundPrompt(input: DatePlaygroundInput) {
       },
       focusRequest,
       frictionRuleHits: pairRuleHits(matchFit),
+      memorySearchAvailable: false,
     }),
     input,
   );

@@ -7,17 +7,17 @@ describe("local Ollama AI adapter", () => {
     "generates a short local character response",
     async () => {
       const { generateCharacterTurn } = await import("./model-service");
-      const result = await generateCharacterTurn(
-        {
+      const result = await generateCharacterTurn({
+        packet: {
           system: "You are a terse local smoke test for Interdimensional Dating Coach.",
           prompt: "Reply with exactly: IDC local model ready",
         },
-        {
+        config: {
           aiProvider: "ollama",
           chatModel: process.env.IDC_PERFORMER_MODEL ?? "gemma4:26b",
           requestTimeoutMs: 90_000,
         },
-      );
+      });
 
       expect(result.text.length).toBeGreaterThan(0);
       expect(result.model).toBe(process.env.IDC_PERFORMER_MODEL ?? "gemma4:26b");

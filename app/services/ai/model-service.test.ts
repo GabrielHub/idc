@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { gameConfigSchema } from "../../domain/game";
 import {
   defaultMaxOutputTokensForProvider,
   defaultRequestTimeoutMsForProvider,
   parseOllamaModelInventory,
+  providerOptionsForRuntime,
 } from "./model-service";
 
 describe("AI model service", () => {
@@ -45,5 +47,36 @@ describe("AI model service", () => {
   it("gives Gateway requests a longer default timeout", () => {
     expect(defaultRequestTimeoutMsForProvider("ollama")).toBe(30_000);
     expect(defaultRequestTimeoutMsForProvider("gateway")).toBe(120_000);
+  });
+
+  it("uses native Gateway provider options for provider reasoning", () => {
+    const gatewayConfig = gameConfigSchema.parse({
+      aiProvider: "gateway",
+      reasoningLevel: "high",
+    });
+
+    expect(providerOptionsForRuntime(gatewayConfig, "google/gemini-3-flash")).toEqual({
+      google: {
+        thinkingConfig: {
+          thinkingLevel: "high",
+          includeThoughts: true,
+        },
+      },
+    });
+    expect(providerOptionsForRuntime(gatewayConfig, "deepseek/deepseek-v4-flash")).toEqual({
+      deepseek: {
+        thinking: { type: "enabled" },
+      },
+    });
+    expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-haiku-4.5")).toBeUndefined();
+  });
+
+  it("does not send Gateway provider options for Ollama", () => {
+    const ollamaConfig = gameConfigSchema.parse({
+      aiProvider: "ollama",
+      reasoningLevel: "high",
+    });
+
+    expect(providerOptionsForRuntime(ollamaConfig, "google/gemini-3-flash")).toBeUndefined();
   });
 });

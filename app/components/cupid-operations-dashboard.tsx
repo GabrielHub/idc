@@ -66,7 +66,14 @@ import {
 } from "../services/ai-date-engine";
 import type { AiRuntimeConfig } from "../services/ai/model-service";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
-import { ChromeButton, GhostButton, LiveDot, PrimaryButton, pad2 } from "./dashboard-atoms";
+import {
+  ChromeButton,
+  GhostButton,
+  LiveDot,
+  MenuButton,
+  PrimaryButton,
+  pad2,
+} from "./dashboard-atoms";
 import {
   BriefView,
   DashboardLoading,
@@ -1732,72 +1739,44 @@ function SettingsMenu({
               />
             ) : (
               <>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-sfx="menu"
-                  onClick={handleOpenAiSetup}
-                  disabled={isActionPending}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
-                >
+                <MenuButton onClick={handleOpenAiSetup} disabled={isActionPending}>
                   AI setup
-                </button>
-                <button
-                  type="button"
+                </MenuButton>
+                <MenuButton
                   role="menuitemcheckbox"
-                  aria-checked={sfxEnabled}
-                  data-sfx="toggle"
+                  ariaChecked={sfxEnabled}
+                  sfx="toggle"
                   onClick={handleToggleSfx}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
                 >
                   {sfxEnabled ? "Mute" : "Unmute"}
-                </button>
+                </MenuButton>
                 {isTauriRuntime() ? (
                   <>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      data-sfx="menu"
+                    <MenuButton
                       onClick={() => {
                         void openTauriSaveFolder();
                       }}
-                      className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
                     >
                       Show save folder
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      data-sfx="menu"
+                    </MenuButton>
+                    <MenuButton
                       onClick={() => {
                         void openTauriLogFolder();
                       }}
-                      className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
                     >
                       Show log folder
-                    </button>
+                    </MenuButton>
                   </>
                 ) : null}
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-sfx="menu"
+                <MenuButton
                   onClick={handleExportSaveClick}
                   disabled={isActionPending || !canExportSave}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   Export save (JSON)
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-sfx="menu"
-                  onClick={handleImportSaveClick}
-                  disabled={isActionPending}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
-                >
+                </MenuButton>
+                <MenuButton onClick={handleImportSaveClick} disabled={isActionPending}>
                   Import save (JSON)
-                </button>
+                </MenuButton>
                 <input
                   ref={importInputRef}
                   type="file"
@@ -1815,26 +1794,12 @@ function SettingsMenu({
                   onCopy={handleCopyDiagnosticsClick}
                 />
                 <div className="mx-2 my-1 h-px bg-aura-hairline" />
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-sfx="menu"
-                  onClick={handlePunchOut}
-                  disabled={isActionPending}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
-                >
+                <MenuButton onClick={handlePunchOut} disabled={isActionPending}>
                   Punch out
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  data-sfx="danger"
-                  onClick={handleAskReset}
-                  disabled={isActionPending}
-                  className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-aura-rose/10 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
-                >
+                </MenuButton>
+                <MenuButton tone="danger" onClick={handleAskReset} disabled={isActionPending}>
                   Reset save
-                </button>
+                </MenuButton>
               </>
             )}
           </motion.div>

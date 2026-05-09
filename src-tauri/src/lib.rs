@@ -58,7 +58,7 @@ pub fn run() {
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::LogDir {
-                        file_name: Some("idc-cupid".into()),
+                        file_name: Some("idc".into()),
                     }),
                 ])
                 .max_file_size(1_000_000)

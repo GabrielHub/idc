@@ -1,5 +1,14 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { embed, generateText, Output, streamText, type ModelMessage } from "ai";
+import {
+  createGateway,
+  embed,
+  generateText,
+  Output,
+  stepCountIs,
+  streamText,
+  tool,
+  type JSONValue,
+  type ModelMessage,
+} from "ai";
 import {
   createOllama,
   type OllamaChatSettings,
@@ -13,6 +22,7 @@ import {
   gameConfigSchema,
   judgeSnapshotSchema,
   memoryCandidateSchema,
+  memoryScopeSchema,
   memberIdSchema,
   relationshipStatSchema,
   type AiProvider,
@@ -51,7 +61,6 @@ const OLLAMA_DISCOVERY_TIMEOUT_MS = 5_000;
 const OLLAMA_REQUEST_TIMEOUT_MS = 30_000;
 const GATEWAY_REQUEST_TIMEOUT_MS = 120_000;
 const OLLAMA_KEEP_ALIVE = "10m";
-const GATEWAY_PROVIDER_NAME = "vercel-ai-gateway";
 const OLLAMA_BASE_CHAT_SETTINGS: OllamaChatSettings = {
   think: false,
   keep_alive: OLLAMA_KEEP_ALIVE,
@@ -70,6 +79,39 @@ const STREAM_TEXT_DELTA_PART_SCHEMA = z.object({
 const STREAM_REASONING_DELTA_PART_SCHEMA = z.object({
   type: z.enum(["reasoning", "reasoning-delta"]),
   text: z.string(),
+});
+const CHARACTER_MEMORY_TOOL_MAX_STEPS = 4;
+const characterMemorySearchScopeSchema = z.enum(["self", "pair", "scenario"]);
+const characterMemorySearchInputSchema = z.object({
+  query: z
+    .string()
+    .trim()
+    .min(1)
+    .max(240)
+    .describe("Short natural-language memory search query for missing relationship context."),
+  scope: z
+    .array(characterMemorySearchScopeSchema)
+    .min(1)
+    .max(3)
+    .default(["self", "pair", "scenario"])
+    .describe("Memory areas to search. Use pair for shared relationship history."),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(3)
+    .default(3)
+    .describe("Maximum number of memories to return."),
+});
+const characterMemorySearchResultSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(1),
+  score: z.number(),
+  scope: memoryScopeSchema,
+  tags: z.array(z.string().min(1)),
+});
+const characterMemorySearchOutputSchema = z.object({
+  memories: z.array(characterMemorySearchResultSchema).max(5),
 });
 
 export type AiGenerationOptions = {
@@ -111,6 +153,13 @@ export type AiUsageTelemetry = {
   inputTokens?: number;
   outputTokens?: number;
   totalTokens?: number;
+};
+
+export type CharacterMemorySearchInput = z.infer<typeof characterMemorySearchInputSchema>;
+export type CharacterMemorySearchOutput = z.infer<typeof characterMemorySearchOutputSchema>;
+
+export type CharacterToolHandlers = {
+  searchCupidMemory(input: CharacterMemorySearchInput): Promise<CharacterMemorySearchOutput>;
 };
 
 export type AiReadiness = {
@@ -191,11 +240,17 @@ const ollamaListResponseSchema = z.object({
   ),
 });
 
-export async function generateCharacterTurn(
-  packet: CharacterPromptPacket,
-  config?: Partial<AiRuntimeConfig>,
-  options?: AiGenerationOptions,
-): Promise<GeneratedTextResult> {
+export async function generateCharacterTurn({
+  packet,
+  config,
+  options,
+  tools,
+}: {
+  packet: CharacterPromptPacket;
+  config?: Partial<AiRuntimeConfig>;
+  options?: AiGenerationOptions;
+  tools?: CharacterToolHandlers;
+}): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
 
@@ -213,18 +268,28 @@ export async function generateCharacterTurn(
         ),
     ),
     generationOptions,
+    tools,
     onTextDelta: () => undefined,
   });
 }
 
-export async function streamCharacterTurn(
-  packet: CharacterPromptPacket,
-  config: Partial<AiRuntimeConfig> | undefined,
-  onTextDelta: (delta: string) => Promise<void> | void,
-  onReasoningDelta?: (delta: string) => Promise<void> | void,
-  options?: AiGenerationOptions,
-  abortSignal?: AbortSignal,
-): Promise<GeneratedTextResult> {
+export async function streamCharacterTurn({
+  packet,
+  config,
+  onTextDelta,
+  onReasoningDelta,
+  options,
+  abortSignal,
+  tools,
+}: {
+  packet: CharacterPromptPacket;
+  config?: Partial<AiRuntimeConfig>;
+  onTextDelta: (delta: string) => Promise<void> | void;
+  onReasoningDelta?: (delta: string) => Promise<void> | void;
+  options?: AiGenerationOptions;
+  abortSignal?: AbortSignal;
+  tools?: CharacterToolHandlers;
+}): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
 
@@ -243,6 +308,7 @@ export async function streamCharacterTurn(
     ),
     generationOptions,
     abortSignal,
+    tools,
     onTextDelta,
     onReasoningDelta,
   });
@@ -460,6 +526,7 @@ async function generateTextWithModelService({
   config,
   maxOutputTokens,
   generationOptions,
+  tools,
 }: {
   system: string;
   prompt: string;
@@ -468,6 +535,7 @@ async function generateTextWithModelService({
   config: AiRuntimeConfig;
   maxOutputTokens?: number;
   generationOptions?: AiGenerationOptions;
+  tools?: CharacterToolHandlers;
 }): Promise<GeneratedTextResult> {
   try {
     const model = createLanguageModel(modelId, config, generationOptions);
@@ -487,6 +555,7 @@ async function generateTextWithModelService({
       topK: config.aiProvider === "ollama" ? generationOptions?.topK : undefined,
       timeout: config.requestTimeoutMs,
       providerOptions: providerOptionsForRuntime(config, modelId),
+      ...characterToolCallSettings(tools),
     };
     const result =
       messages === undefined
@@ -505,8 +574,7 @@ async function generateTextWithModelService({
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: result.steps.length,
-      toolCallCount: 0,
-      toolResultCount: 0,
+      ...toolTelemetryFromSteps(result.steps),
       ...buildPromptTelemetry(promptStats, result.totalUsage, result.warnings),
     };
   } catch (error) {
@@ -523,6 +591,7 @@ async function streamTextWithModelService({
   maxOutputTokens,
   generationOptions,
   abortSignal,
+  tools,
   onTextDelta,
   onReasoningDelta,
 }: {
@@ -534,6 +603,7 @@ async function streamTextWithModelService({
   maxOutputTokens?: number;
   generationOptions?: AiGenerationOptions;
   abortSignal?: AbortSignal;
+  tools?: CharacterToolHandlers;
   onTextDelta: (delta: string) => Promise<void> | void;
   onReasoningDelta?: (delta: string) => Promise<void> | void;
 }): Promise<GeneratedTextResult> {
@@ -559,6 +629,7 @@ async function streamTextWithModelService({
       timeout: config.requestTimeoutMs,
       abortSignal,
       providerOptions: providerOptionsForRuntime(config, modelId),
+      ...characterToolCallSettings(tools),
     };
     const result =
       messages === undefined
@@ -603,8 +674,7 @@ async function streamTextWithModelService({
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: steps.length,
-      toolCallCount: 0,
-      toolResultCount: 0,
+      ...toolTelemetryFromSteps(steps),
       ...buildPromptTelemetry(promptStats, usage, warnings),
     };
   } catch (error) {
@@ -630,6 +700,47 @@ function streamReasoningDeltaFromPart(part: unknown): string | null {
   const parsedPart = STREAM_REASONING_DELTA_PART_SCHEMA.safeParse(part);
 
   return parsedPart.success ? parsedPart.data.text : null;
+}
+
+function characterToolCallSettings(tools: CharacterToolHandlers | undefined) {
+  if (tools === undefined) {
+    return {};
+  }
+
+  return {
+    tools: createCharacterToolSet(tools),
+    stopWhen: stepCountIs(CHARACTER_MEMORY_TOOL_MAX_STEPS),
+  };
+}
+
+function createCharacterToolSet(handlers: CharacterToolHandlers) {
+  return {
+    searchCupidMemory: tool({
+      description:
+        "Search allowed IDC memory records when the character needs missing prior relationship, self, or place context before replying.",
+      inputSchema: characterMemorySearchInputSchema,
+      execute: async (input) => {
+        const result = await handlers.searchCupidMemory(input);
+
+        return characterMemorySearchOutputSchema.parse(result);
+      },
+    }),
+  };
+}
+
+function toolTelemetryFromSteps(
+  steps: readonly {
+    toolCalls: readonly unknown[];
+    toolResults: readonly unknown[];
+  }[],
+): Pick<GeneratedTextResult, "toolCallCount" | "toolResultCount"> {
+  return steps.reduce(
+    (totals, step) => ({
+      toolCallCount: totals.toolCallCount + step.toolCalls.length,
+      toolResultCount: totals.toolResultCount + step.toolResults.length,
+    }),
+    { toolCallCount: 0, toolResultCount: 0 },
+  );
 }
 
 async function generateObjectWithModelService<TSchema extends z.ZodType>(
@@ -762,7 +873,8 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
 }
 
 type OllamaProvider = ReturnType<typeof createOllama>;
-type GatewayProvider = ReturnType<typeof createOpenAICompatible>;
+type GatewayProvider = ReturnType<typeof createGateway>;
+type GatewayRuntimeProviderOptions = Record<string, Record<string, JSONValue>>;
 
 const PROVIDER_CACHE_LIMIT = 8;
 const ollamaProviderCache = new Map<string, OllamaProvider>();
@@ -864,13 +976,11 @@ function getOllamaProvider(baseURL: string | undefined): OllamaProvider {
   );
 }
 
-function getGatewayProvider(baseURL: string, apiKey: string | undefined): GatewayProvider {
-  return getOrCreateProvider(gatewayProviderCache, JSON.stringify([baseURL, apiKey ?? ""]), () =>
-    createOpenAICompatible({
-      name: GATEWAY_PROVIDER_NAME,
+function getGatewayProvider(baseURL: string, apiKey: string): GatewayProvider {
+  return getOrCreateProvider(gatewayProviderCache, JSON.stringify([baseURL, apiKey]), () =>
+    createGateway({
       baseURL,
       apiKey,
-      supportsStructuredOutputs: true,
       fetch: selectFetch(),
     }),
   );
@@ -908,11 +1018,10 @@ function createLanguageModel(
   options?: AiGenerationOptions,
 ) {
   if (config.aiProvider === "gateway") {
-    assertGatewayKey(config);
     return getGatewayProvider(
       config.gatewayBaseURL ?? DEFAULT_GATEWAY_BASE_URL,
-      config.gatewayApiKey,
-    ).chatModel(modelId);
+      gatewayApiKeyForRuntime(config),
+    ).languageModel(modelId);
   }
 
   return getOllamaProvider(config.ollamaBaseURL ?? DEFAULT_OLLAMA_BASE_URL)(
@@ -930,10 +1039,9 @@ function createJsonLanguageModel(modelId: string, config: AiRuntimeConfig) {
 
 function createEmbeddingModel(modelId: string, config: AiRuntimeConfig) {
   if (config.aiProvider === "gateway") {
-    assertGatewayKey(config);
     return getGatewayProvider(
       config.gatewayBaseURL ?? DEFAULT_GATEWAY_BASE_URL,
-      config.gatewayApiKey,
+      gatewayApiKeyForRuntime(config),
     ).embeddingModel(modelId);
   }
 
@@ -959,30 +1067,54 @@ function createOllamaChatSettings(
   };
 }
 
-function providerOptionsForRuntime(
+export function providerOptionsForRuntime(
   config: AiRuntimeConfig,
   modelId: string,
-): { openaiCompatible: { reasoningEffort: string } } | undefined {
+): GatewayRuntimeProviderOptions | undefined {
   if (config.aiProvider !== "gateway") {
     return undefined;
   }
 
-  const reasoningEffort = gatewayReasoningLevelForModel(modelId, config.reasoningLevel);
+  const reasoningLevel = gatewayReasoningLevelForModel(modelId, config.reasoningLevel);
 
-  if (reasoningEffort === "off") {
+  if (reasoningLevel === "off") {
     return undefined;
   }
 
-  return {
-    openaiCompatible: {
-      reasoningEffort,
-    },
-  };
+  const providerId = providerIdFromGatewayModelId(modelId);
+
+  if (providerId === "google") {
+    return {
+      google: {
+        thinkingConfig: {
+          thinkingLevel: reasoningLevel,
+          includeThoughts: true,
+        },
+      },
+    };
+  }
+
+  if (providerId === "deepseek") {
+    return {
+      deepseek: {
+        thinking: { type: "enabled" },
+      },
+    };
+  }
+
+  return undefined;
 }
 
-function assertGatewayKey(config: AiRuntimeConfig): void {
-  if (normalizeOptionalSecret(config.gatewayApiKey) !== undefined) {
-    return;
+function providerIdFromGatewayModelId(modelId: string): string {
+  const slashIndex = modelId.indexOf("/");
+  return slashIndex === -1 ? modelId : modelId.slice(0, slashIndex);
+}
+
+function gatewayApiKeyForRuntime(config: AiRuntimeConfig): string {
+  const apiKey = normalizeOptionalSecret(config.gatewayApiKey);
+
+  if (apiKey !== undefined) {
+    return apiKey;
   }
 
   throw new AiModelError(

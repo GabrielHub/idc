@@ -94,8 +94,8 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
 };
 
 const STANDEE_PORTRAIT_VARIANTS = new Set<PortraitVariant>(["standee-bottom", "standee-top"]);
-const PORTRAIT_FADE_MS = 420;
-const PORTRAIT_FADE_TRANSITION = `opacity ${PORTRAIT_FADE_MS}ms cubic-bezier(0.2,0.8,0.2,1)`;
+const PORTRAIT_FADE_CLASS =
+  "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 
 // Must match scripts/portraits/resize_avatars.py (DEFAULT_VARIANT_WIDTHS).
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
@@ -166,12 +166,9 @@ export function Portrait({
             src={path}
             srcSet={isActive ? avatarSrcSet : undefined}
             sizes={isActive ? avatarSizes : undefined}
-            className={`absolute inset-0 ${PORTRAIT_IMAGE[variant]}`}
-            style={{
-              opacity: visible ? 1 : 0,
-              transition: PORTRAIT_FADE_TRANSITION,
-              willChange: "opacity",
-            }}
+            className={`absolute inset-0 will-change-[opacity] ${PORTRAIT_FADE_CLASS} ${
+              PORTRAIT_IMAGE[variant]
+            } ${visible ? "opacity-100" : "opacity-0"}`}
             decoding="async"
             fetchPriority={isStandee ? "high" : "auto"}
             loading={isStandee ? "eager" : "lazy"}
@@ -182,11 +179,9 @@ export function Portrait({
       })}
       <span
         aria-hidden={activeReady}
-        className={`absolute inset-0 grid place-items-center ${PORTRAIT_INITIALS[variant]}`}
-        style={{
-          opacity: activeReady ? 0 : 1,
-          transition: PORTRAIT_FADE_TRANSITION,
-        }}
+        className={`absolute inset-0 grid place-items-center ${PORTRAIT_FADE_CLASS} ${
+          PORTRAIT_INITIALS[variant]
+        } ${activeReady ? "opacity-0" : "opacity-100"}`}
       >
         {initialsFor(member.firstName)}
       </span>
@@ -669,6 +664,38 @@ export function ChromeButton({ children, onClick, disabled, sfx = "click" }: But
       onClick={onClick}
       disabled={disabled}
       className="cursor-pointer whitespace-nowrap rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink disabled:cursor-not-allowed disabled:opacity-40"
+    >
+      {children}
+    </button>
+  );
+}
+
+export function MenuButton({
+  children,
+  onClick,
+  disabled,
+  tone = "default",
+  role = "menuitem",
+  ariaChecked,
+  sfx,
+}: ButtonProps & {
+  tone?: "default" | "danger";
+  role?: "menuitem" | "menuitemcheckbox";
+  ariaChecked?: boolean;
+}) {
+  const toneClass =
+    tone === "danger"
+      ? "text-aura-muted hover:bg-aura-rose/10 hover:text-aura-rose"
+      : "text-aura-muted hover:bg-white/55 hover:text-aura-ink";
+  return (
+    <button
+      type="button"
+      role={role}
+      aria-checked={role === "menuitemcheckbox" ? ariaChecked : undefined}
+      data-sfx={sfx ?? (tone === "danger" ? "danger" : "menu")}
+      onClick={onClick}
+      disabled={disabled}
+      className={`block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed disabled:opacity-40 ${toneClass}`}
     >
       {children}
     </button>

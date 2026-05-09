@@ -44,6 +44,7 @@ export type CharacterPromptInput = {
   memoryPack: MemoryPack;
   focusRequest?: MemberRequest;
   frictionRuleHits?: readonly string[];
+  memorySearchAvailable?: boolean;
 };
 
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
@@ -84,6 +85,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     partner,
     isOpeningTurn: isSpeakerOpeningTurn,
   });
+  const memorySearchAvailable = input.memorySearchAvailable ?? true;
 
   const system = [
     `You are ${member.name}.`,
@@ -91,6 +93,9 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Write only what you would say as the next message.",
     "Make it sound like a believable reply in a date conversation, not a voice sample.",
     "Use your private brief, the place, allowed memories, and the back and forth so far as grounding.",
+    memorySearchAvailable
+      ? "If allowed memories are not enough, use the memory search tool before speaking."
+      : "If allowed memories are not enough, stay within the supplied prompt context.",
     "You may add soft improv when it stays small, plausible, and answerable by the partner.",
     "Cupid may send private advice through the app. You may accept, resist, or ignore it in character.",
     "Secrets shape your tone as subtext only. Never state them aloud.",
@@ -149,6 +154,9 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Self memories: ${formatCharacterMemories(memoryPack.self)}`,
     `Pair memories: ${formatCharacterMemories(memoryPack.pair)}`,
     `Past visits here: ${formatCharacterMemories(memoryPack.scenario)}`,
+    memorySearchAvailable
+      ? "Memory search: available for missing self, pair, or place history. Use returned memories only as allowed context."
+      : "Memory search: not available in this prompt run.",
     "",
     "Back and forth so far: supplied below as chat messages.",
     `Latest incoming line to answer: ${latestIncomingLine}`,

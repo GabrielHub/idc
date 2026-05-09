@@ -153,6 +153,114 @@ describe("AI date engine orchestration", () => {
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
   });
 
+  it("lets character turns tool call scoped memory search", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-memory-tool-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const pairId = makePairId("jenna-pike", "vhool");
+    save = {
+      ...save,
+      memories: [
+        ...save.memories,
+        memoryRecordSchema.parse({
+          id: "memory-tool-visible-receipt",
+          scope: "pair",
+          visibility: "member_private",
+          subjectIds: ["jenna-pike", "vhool"],
+          visibleToMemberIds: ["jenna-pike"],
+          pairId,
+          scenarioId: "temporal-coffee-shop",
+          text: "Jenna remembers Vhool keeping a brass soup receipt after their first date.",
+          tags: ["soup", "receipt", "date_memory"],
+          importance: 4,
+          createdAt: "2026-05-05T12:00:00.000Z",
+          embedding: createDeterministicEmbedding("brass soup receipt first date"),
+          embeddingModel: "fake-embedding",
+          embeddingDimensions: 64,
+        }),
+        memoryRecordSchema.parse({
+          id: "memory-tool-hidden-surprise",
+          scope: "pair",
+          visibility: "member_private",
+          subjectIds: ["jenna-pike", "vhool"],
+          visibleToMemberIds: ["vhool"],
+          pairId,
+          scenarioId: "temporal-coffee-shop",
+          text: "Vhool is hiding a private surprise involving the receipt.",
+          tags: ["private", "surprise"],
+          importance: 3,
+          createdAt: "2026-05-05T12:00:00.000Z",
+          embedding: createDeterministicEmbedding("brass soup receipt first date"),
+          embeddingModel: "fake-embedding",
+          embeddingDimensions: 64,
+        }),
+      ],
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const toolMemoryIds: string[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ tools }) => {
+        if (tools === undefined) {
+          throw new Error("Expected character memory tools.");
+        }
+
+        const result = await tools.searchCupidMemory({
+          query: "brass soup receipt",
+          scope: ["pair"],
+          limit: 3,
+        });
+        toolMemoryIds.push(...result.memories.map((memory) => memory.id));
+
+        return {
+          text: "Jenna remembers the brass receipt and asks whether Vhool kept it on purpose.",
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 2,
+          toolCallCount: 1,
+          toolResultCount: 1,
+        };
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run after a single unpaired turn");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(toolMemoryIds).toContain("memory-tool-visible-receipt");
+    expect(toolMemoryIds).not.toContain("memory-tool-hidden-surprise");
+    expect(result.aiTelemetry.characterToolCallCount).toBe(1);
+    expect(result.aiTelemetry.characterToolResultCount).toBe(1);
+    expect(result.session.currentTurn).toBe(1);
+    expect(result.session.transcript.at(-1)?.text).toContain("brass receipt");
+  });
+
   it("completes the date when final memory filing fails", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-memory-fail-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [

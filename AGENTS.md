@@ -17,14 +17,16 @@
 
 ## Architecture
 
-- App-owned canonical state is authoritative for gameplay. Runtime AI providers never own gameplay authority.
+- App-owned canonical state is authoritative for gameplay. Runtime AI providers never mutate state directly or own hidden facts, persistence, validation, or migration.
 - Domain types and schemas own contracts.
 - Fixtures own static gameplay definitions.
 - Game services own gameplay consequences.
 - Repositories and save code own persistence, serialization, and migration. They do not repair gameplay.
 - UI owns presentation and typed user intents only.
 - React Router owns shell navigation, route boundaries, and local server routes.
-- Runtime AI providers may perform characters, judge exchanges, summarize memories, and phrase content only after deterministic game systems choose the trigger, subject, allowed context, choices, and effects.
+- Runtime AI providers may perform characters, judge exchanges, summarize memories, and phrase content within app prompts, schemas, memory visibility rules, numeric bounds, and deterministic context selection.
+- Validated LLM outputs may influence gameplay state, including Date Health, pair stats, member mood, early endings, memories, and final reports. Game services apply, clamp, overlay, reject, and persist those outputs.
+- Deterministic systems still choose the date frame, eligible context, match fit overlays, hard stops, and persistence boundaries.
 - LLM outputs must be validated before they affect state.
 - Vector retrieval and scoped memory tool calls are context selection tools, not sources of truth.
 - Memory visibility rules must be enforced in application code before prompt assembly or tool result return.

@@ -1,7 +1,7 @@
 [package]
-name = "idc-cupid"
+name = "idc"
 version = "0.1.2"
-description = "IDC: Cupid desktop alpha shell"
+description = "Interdimensional Dating Coach desktop alpha shell"
 authors = ["IDC team"]
 edition = "2021"
 rust-version = "1.77.2"

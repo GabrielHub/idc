@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { gameConfigSchema } from "../../domain/game";
+import { DEFAULT_GATEWAY_BASE_URL, gameConfigSchema } from "../../domain/game";
 import {
   GPU_RECOMMENDATION_PROFILES,
   gatewayReasoningLevelForModel,
@@ -33,6 +33,16 @@ describe("AI model catalog", () => {
     expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
     expect(config.embeddingModel).toBe("google/gemini-embedding-2");
     expect(config.reasoningLevel).toBe("medium");
+    expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
+  });
+
+  it("migrates the old OpenAI-compatible Gateway base URL", () => {
+    const config = gameConfigSchema.parse({
+      aiProvider: "gateway",
+      gatewayBaseURL: "https://ai-gateway.vercel.sh/v1",
+    });
+
+    expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
   });
 
   it("keeps Gateway choices narrow and disables reasoning for Kimi and Claude Haiku", () => {

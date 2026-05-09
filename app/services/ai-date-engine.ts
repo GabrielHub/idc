@@ -19,6 +19,7 @@ import {
 import type { GameRepository } from "../repositories/game-repository";
 import {
   type AiRuntimeConfig,
+  type CharacterToolHandlers,
   type GeneratedTextResult,
   DateStreamAbortedError,
   embedMemoryText,
@@ -29,7 +30,7 @@ import {
 } from "./ai/model-service";
 
 export { DateStreamAbortedError } from "./ai/model-service";
-import { retrieveRelevantMemories } from "./cupid-memory";
+import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPairState,
@@ -64,10 +65,12 @@ export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
     packet: CharacterPromptPacket;
     config: Partial<AiRuntimeConfig>;
+    tools?: CharacterToolHandlers;
   }): Promise<GeneratedTextResult>;
   streamCharacterTurn?(input: {
     packet: CharacterPromptPacket;
     config: Partial<AiRuntimeConfig>;
+    tools?: CharacterToolHandlers;
     abortSignal?: AbortSignal;
     onTextDelta: (delta: string) => Promise<void> | void;
     onReasoningDelta?: (delta: string) => Promise<void> | void;
@@ -173,16 +176,17 @@ const DEFAULT_MEMORY_LIMIT = 2;
 const CHARACTER_MESSAGE_MAX_LENGTH = 260;
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
-  generateCharacterTurn: ({ packet, config }) => generateCharacterTurn(packet, config),
-  streamCharacterTurn: ({ packet, config, abortSignal, onTextDelta, onReasoningDelta }) =>
-    streamCharacterTurnWithLocalAi(
+  generateCharacterTurn: ({ packet, config, tools }) =>
+    generateCharacterTurn({ packet, config, tools }),
+  streamCharacterTurn: ({ packet, config, tools, abortSignal, onTextDelta, onReasoningDelta }) =>
+    streamCharacterTurnWithLocalAi({
       packet,
       config,
       onTextDelta,
       onReasoningDelta,
-      undefined,
       abortSignal,
-    ),
+      tools,
+    }),
   judgeDateExchange: ({ packet, dateSessionId, exchangeIndex, config }) =>
     judgeDateExchange({ packet, dateSessionId, exchangeIndex, config }),
   summarizeDateMemories: ({ packet, config }) => summarizeDateMemories(packet, config),
@@ -531,16 +535,24 @@ async function createLocalAiCharacterMessage({
       focusRequest,
       frictionRuleHits,
     });
+    const tools = createCharacterToolHandlers({
+      repository,
+      runtime,
+      config,
+      session,
+      speaker,
+    });
     const sequenceIndex = session.transcript.length;
     const turnIndex = session.currentTurn + 1;
 
     const generation =
       emit === undefined
-        ? await runtime.generateCharacterTurn({ packet, config })
+        ? await runtime.generateCharacterTurn({ packet, config, tools })
         : await streamCharacterMessage({
             runtime,
             packet,
             config,
+            tools,
             speaker,
             sequenceIndex,
             turnIndex,
@@ -644,10 +656,48 @@ async function buildCharacterPacketForTurn({
   });
 }
 
+function createCharacterToolHandlers({
+  repository,
+  runtime,
+  config,
+  session,
+  speaker,
+}: {
+  repository: GameRepository;
+  runtime: LocalAiDateRuntime;
+  config: Partial<AiRuntimeConfig>;
+  session: DateSession;
+  speaker: Member;
+}): CharacterToolHandlers {
+  return {
+    searchCupidMemory: async ({ query, scope, limit }) => {
+      const queryEmbedding = await createRuntimeQueryEmbedding({
+        runtime,
+        config,
+        query,
+      });
+      const memories = await searchCupidMemory(repository, {
+        characterId: speaker.id,
+        pairId: session.pairId,
+        scenarioId: session.scenarioId,
+        query,
+        queryEmbedding: queryEmbedding.embedding,
+        queryEmbeddingModel: queryEmbedding.model,
+        queryEmbeddingDimensions: queryEmbedding.dimensions,
+        scope,
+        limit,
+      });
+
+      return { memories };
+    },
+  };
+}
+
 async function streamCharacterMessage({
   runtime,
   packet,
   config,
+  tools,
   speaker,
   sequenceIndex,
   turnIndex,
@@ -657,6 +707,7 @@ async function streamCharacterMessage({
   runtime: LocalAiDateRuntime;
   packet: CharacterPromptPacket;
   config: Partial<AiRuntimeConfig>;
+  tools: CharacterToolHandlers;
   speaker: Member;
   sequenceIndex: number;
   turnIndex: number;
@@ -678,6 +729,7 @@ async function streamCharacterMessage({
   return runtime.streamCharacterTurn({
     packet,
     config,
+    tools,
     abortSignal,
     onTextDelta: async (delta) => {
       const textDelta = stripForbiddenPunctuation(delta);

@@ -1,4 +1,4 @@
-# IDC: Cupid desktop install guide
+# Interdimensional Dating Coach (IDC) desktop install guide
 
 Private alpha. Unsigned builds. The install path is friction now and that is expected.
 
@@ -30,7 +30,7 @@ The local route. Prompts, character data, and date transcripts stay on your mach
 
 ### Option B: Vercel AI Gateway (cloud)
 
-The cloud route. Date prompts, character context, and transcripts are sent to the Vercel AI Gateway and forwarded to the model provider you choose. Use this only if you accept that data leaves your machine.
+The cloud route. Date prompts, character context, and transcripts are sent through the native Vercel AI Gateway endpoint and forwarded to the model provider you choose. Use this only if you accept that data leaves your machine.
 
 1. Get a Gateway key from your Vercel project settings.
 2. Open AI setup inside the app, switch the desk to Cloud, and paste the key into the api key field.
@@ -44,11 +44,11 @@ Each release lists a SHA256 checksum next to every artifact. Verify before runni
 
 - Windows PowerShell:
   ```
-  Get-FileHash .\IDC.Cupid.Setup.exe -Algorithm SHA256
+  Get-FileHash .\IDC_<version>_x64-setup.exe -Algorithm SHA256
   ```
 - macOS terminal:
   ```
-  shasum -a 256 IDC.Cupid.dmg
+  shasum -a 256 IDC_<version>_x64.dmg
   ```
 
 Compare the printed value to the one in the release notes. If they differ, do not run the file. Ask the team for a fresh link.
@@ -62,7 +62,7 @@ Compare the printed value to the one in the release notes. If they differ, do no
 ### macOS
 
 1. Download the DMG or app bundle from the release link.
-2. Drag IDC: Cupid.app into Applications.
+2. Drag IDC.app into Applications.
 3. The first launch will be blocked because the build is unsigned. Right-click the app, choose Open, and confirm. After the first run the system remembers and stops nagging.
 
 ## First run
@@ -83,8 +83,8 @@ Gateway key storage lives under the same app local data root in `secrets/gateway
 
 ## Uninstall
 
-- Windows: Settings, Apps, IDC: Cupid, Uninstall. The uninstaller wipes the entire app data directory: saves, logs, Gateway key, and WebView2 cache. Back up `%LOCALAPPDATA%\dev.idc.cupid\saves\` first if you want to keep a save.
-- macOS: drag IDC: Cupid.app to Trash. The Application Support directory is preserved unless you delete it manually.
+- Windows: Settings, Apps, IDC, Uninstall. The uninstaller wipes the entire app data directory: saves, logs, Gateway key, and WebView2 cache. Back up `%LOCALAPPDATA%\dev.idc.cupid\saves\` first if you want to keep a save.
+- macOS: drag IDC.app to Trash. The Application Support directory is preserved unless you delete it manually.
 
 ## Updating
 
@@ -93,7 +93,7 @@ Run the new installer. It silently uninstalls the previous version before instal
 ## Data flow
 
 - Ollama route: prompts, character data, and date transcripts stay on the machine. Only your Ollama process sees them.
-- Gateway route: prompts, character context, date transcripts, and any retrieved memories are sent to `https://ai-gateway.vercel.sh` and forwarded to the model provider Cupid is configured to use. The Gateway key is the trust boundary.
+- Gateway route: prompts, character context, date transcripts, and any retrieved memories are sent to `https://ai-gateway.vercel.sh/v3/ai` and forwarded to the model provider Cupid is configured to use. The Gateway key is the trust boundary.
 - Save files are local files. Cupid does not phone home and there is no telemetry.
 
 ## Logs

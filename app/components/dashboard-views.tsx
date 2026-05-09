@@ -1047,7 +1047,7 @@ function MemberDossier({
         aria-modal="true"
         aria-label={`${member.firstName} dossier`}
       >
-        <DossierCloseButton onClose={onClose} />
+        <ModalCloseButton onClose={onClose} label="Close dossier" />
 
         <div className="overflow-y-auto px-6 pb-6 pt-8 lg:px-10 lg:pb-8 lg:pt-10">
           <div className="space-y-7">
@@ -1133,12 +1133,21 @@ function MemberDossier({
   );
 }
 
-function DossierCloseButton({ onClose }: { onClose: () => void }) {
+function ModalCloseButton({
+  onClose,
+  label,
+  sfx,
+}: {
+  onClose: () => void;
+  label: string;
+  sfx?: SfxCue;
+}) {
   return (
     <button
       type="button"
+      data-sfx={sfx}
       onClick={onClose}
-      aria-label="Close dossier"
+      aria-label={label}
       className="absolute right-4 top-4 z-10 grid size-8 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
     >
       <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
@@ -3747,7 +3756,7 @@ function NudgeComposerModal({
         aria-label={`Whisper a nudge to ${recipientName}`}
         className="aura-glass-strong relative w-full max-w-xl overflow-hidden rounded-card"
       >
-        <NudgeComposerCloseButton onClose={onClose} />
+        <ModalCloseButton onClose={onClose} label="Close nudge composer" sfx="dismiss" />
         <div className="relative flex flex-col gap-6 px-7 py-7 lg:px-9 lg:py-8">
           <header className="flex flex-col gap-3">
             <Eyebrow>{"// nudge.compose"}</Eyebrow>
@@ -3883,27 +3892,6 @@ function NudgeComposerModal({
         </div>
       </motion.div>
     </motion.aside>
-  );
-}
-
-function NudgeComposerCloseButton({ onClose }: { onClose: () => void }) {
-  return (
-    <button
-      type="button"
-      data-sfx="dismiss"
-      onClick={onClose}
-      aria-label="Close nudge composer"
-      className="absolute right-4 top-4 z-10 grid size-8 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
-    >
-      <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
-        <path
-          d="M3 3L13 13M13 3L3 13"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-        />
-      </svg>
-    </button>
   );
 }
 

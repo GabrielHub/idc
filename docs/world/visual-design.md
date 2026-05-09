@@ -27,6 +27,6 @@ Portrait cutouts sit inside Aura surfaces; the dashboard provides the frame and 
 ## What Not To Build
 
 - No marketing landing page for the playable game shell.
-- No portrait-specific illustrated card backgrounds in v1; let Aura supply the frame.
+- No portrait-specific illustrated card backgrounds. Let Aura supply the frame.
 - No new global CSS classes unless the change needs shared base styling across multiple components.
 - No inline `style=` attributes for UI work. Use Tailwind utilities through `className`.

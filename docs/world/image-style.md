@@ -18,11 +18,11 @@ The reference direction is:
 - Romantic supernatural drama
 - Pretty, readable, character-forward composition
 
-Portraits should look like premium character cards adapted into clean UI cutouts. The style can be glamorous and dramatic, but the v1 portraits must still read clearly at member-card size.
+Portraits should look like premium character cards adapted into clean UI cutouts. The style can be glamorous and dramatic, but portraits must still read clearly at member-card size.
 
 ## Per-Member Asset Set
 
-For v1, each member gets two neutral baseline images:
+Each member gets two neutral baseline images:
 
 - **Full-body portrait**: complete character visible from head to feet. Pose reads like a polished first photo on a dating profile: relaxed, intentional, flattering, character revealing.
 - **Upper-half avatar**: same character, used as a profile picture. Pose reads like a realistic profile picture: close, natural, approachable, less theatrical than the full-body.
@@ -31,7 +31,7 @@ The avatar and full-body must be visibly different poses while preserving the sa
 
 Optional date-surface variants are full-body portraits only. Avatars stay neutral.
 
-Supported v1 variant file names:
+Supported variant file names:
 
 ```text
 portrait-flirty.png
@@ -47,7 +47,7 @@ Image-generation prompts in this project follow the OpenAI image prompting guida
 
 Every IDC portrait prompt has these labeled segments:
 
-- **Setting**: where the character is rendered. For v1 baselines this is always a plain white opaque background.
+- **Setting**: where the character is rendered. Baseline portraits always use a plain white opaque background.
 - **Subject**: who the character is, in one short line.
 - **Style**: the webtoon / manhwa / manhua medium and the rendering treatment.
 - **Composition**: framing, viewpoint, pose intent, silhouette readability.
@@ -201,7 +201,7 @@ The script walks `public/assets/portraits/<member-id>/avatar.png`, writes `avata
 
 Use avatar cutouts in member cards and compact profile surfaces. Use full-body portrait cutouts in profile panels, selected match panels, and date surfaces where the character can occupy a taller frame. Keep both images large enough to establish character identity.
 
-Portraits should sit inside the Aura UI language defined in `docs/world/visual-design.md`. Do not give every portrait its own illustrated card background in v1. Let the dashboard provide the frame and let the cutout provide character.
+Portraits should sit inside the Aura UI language defined in `docs/world/visual-design.md`. Do not give every portrait its own illustrated card background. Let the dashboard provide the frame and let the cutout provide character.
 
 ## Acceptance Checks
 

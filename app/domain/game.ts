@@ -3,11 +3,12 @@ import { z } from "zod";
 export const SAVE_SCHEMA_VERSION = 3;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
-export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
 export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:e4b";
 export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
+const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 
 export const memberIdSchema = z.string().min(1);
 export const scenarioIdSchema = z.string().min(1);
@@ -42,8 +43,6 @@ export const memberPortraitsSchema = z.object({
   flirty: memberPortraitVariantSchema.optional(),
   confused: memberPortraitVariantSchema.optional(),
   angry: memberPortraitVariantSchema.optional(),
-  embarrassed: memberPortraitVariantSchema.optional(),
-  furious: memberPortraitVariantSchema.optional(),
 });
 
 export const voicePatternSchema = z.enum([
@@ -529,9 +528,19 @@ function toGameConfigInput(value: unknown): unknown {
           : "medium",
     ollamaBaseURL:
       typeof record.ollamaBaseURL === "string" ? record.ollamaBaseURL : DEFAULT_OLLAMA_BASE_URL,
-    gatewayBaseURL:
-      typeof record.gatewayBaseURL === "string" ? record.gatewayBaseURL : DEFAULT_GATEWAY_BASE_URL,
+    gatewayBaseURL: normalizeGatewayBaseURL(record.gatewayBaseURL),
   };
+}
+
+function normalizeGatewayBaseURL(value: unknown): string {
+  if (typeof value !== "string") {
+    return DEFAULT_GATEWAY_BASE_URL;
+  }
+
+  const normalized = value.trim().replace(/\/+$/u, "");
+  return normalized === LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL
+    ? DEFAULT_GATEWAY_BASE_URL
+    : normalized;
 }
 
 export const gameConfigSchema = z.preprocess(

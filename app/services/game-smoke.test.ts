@@ -67,13 +67,7 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
   "mr-whiskers",
   "vhool",
 ];
-const OPTIONAL_PORTRAIT_VARIANTS = [
-  "flirty",
-  "confused",
-  "angry",
-  "embarrassed",
-  "furious",
-] as const;
+const OPTIONAL_PORTRAIT_VARIANTS = ["flirty", "confused", "angry"] as const;
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
     expect(starterMembers).toHaveLength(21);
