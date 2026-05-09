@@ -39,6 +39,7 @@ import {
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
+  isAtJudgeBoundary,
   latestJudgedExchangeIndex,
   markPairDateComplete,
   messagesSinceLastJudge,
@@ -184,6 +185,7 @@ type LocalAiDateEngineInput = {
   config?: Partial<AiRuntimeConfig>;
   runtime?: LocalAiDateRuntime;
   abortSignal?: AbortSignal;
+  shouldStopAfterCurrentTurn?: () => boolean;
 };
 
 const DEFAULT_MEMORY_LIMIT = 2;
@@ -307,6 +309,10 @@ async function advanceDateExchangeWithLocalAiInternal(
     transcript.push(characterResult.message);
     currentTurn += 1;
     workingSession = { ...workingSession, transcript, currentTurn };
+
+    if (input.shouldStopAfterCurrentTurn?.() === true || isAtJudgeBoundary(currentTurn)) {
+      break;
+    }
   }
 
   const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);

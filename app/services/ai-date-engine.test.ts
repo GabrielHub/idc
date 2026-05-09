@@ -560,6 +560,102 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
+  it("stops after the active streamed character when requested", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-pause-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let streamCallCount = 0;
+    let stopAfterCurrentTurn = false;
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        throw new Error("non-streaming performer should not run");
+      },
+      streamCharacterTurn: async ({ onTextDelta }) => {
+        streamCallCount += 1;
+        const text = "Jenna pauses at the backwards coffee.";
+
+        await onTextDelta(text);
+        stopAfterCurrentTurn = true;
+
+        return {
+          text,
+          providerMode: "ollama",
+          model: "fake-stream-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge waits for a full exchange");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer waits for a completed date");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    const events: LocalAiDateStreamEvent[] = [];
+    await repository.saveGame(started.save);
+
+    const result = await advanceDateExchangeWithLocalAiStream(
+      started.save,
+      repository,
+      {
+        dateSessionId: started.session.id,
+        runtime,
+        config: started.save.config,
+        turnCount: 2,
+        shouldStopAfterCurrentTurn: () => stopAfterCurrentTurn,
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      },
+      (event) => {
+        events.push(event);
+      },
+    );
+    const characterMessages = result.session.transcript.filter(
+      (message) => message.kind === "character",
+    );
+    const loadedSave = await repository.loadGame();
+    const loadedSession = loadedSave?.dateSessions.find(
+      (session) => session.id === started.session.id,
+    );
+
+    expect(streamCallCount).toBe(1);
+    expect(characterMessages).toHaveLength(1);
+    expect(characterMessages[0]?.text).toBe("Jenna pauses at the backwards coffee.");
+    expect(result.session.currentTurn).toBe(1);
+    expect(result.session.judgeSnapshots).toHaveLength(0);
+    expect(events.map((event) => event.type)).toEqual([
+      "characterStart",
+      "characterDelta",
+      "characterDone",
+    ]);
+    expect(loadedSession?.currentTurn).toBe(1);
+  });
+
   it("rejects the streamed exchange and preserves the prior commit when the second speaker fails", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-second-fail");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -1014,7 +1110,7 @@ describe("AI date engine orchestration", () => {
 
     const sixthLine = await advanceDateExchangeWithLocalAi(runningSave, repository, {
       dateSessionId: started.session.id,
-      turnCount: 1,
+      turnCount: 2,
       runtime,
       config: runningSave.config,
       now: new Date("2026-05-05T12:08:00.000Z"),
@@ -1022,6 +1118,7 @@ describe("AI date engine orchestration", () => {
 
     expect(sixthLine.session.currentTurn).toBe(6);
     expect(sixthLine.session.judgeSnapshots).toHaveLength(1);
+    expect(characterCount).toBe(6);
     expect(judgePrompts[0]).toContain("single line 1");
     expect(judgePrompts[0]).toContain("single line 6");
   });

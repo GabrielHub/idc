@@ -27,6 +27,7 @@ The local route. Prompts, character data, and date transcripts stay on your mach
    ollama pull embeddinggemma
    ```
 4. Make sure Ollama is running. The default port is 11434. Cupid does not need `OLLAMA_ORIGINS` because the desktop build talks to Ollama through a Tauri HTTP scope, not the browser CORS path.
+5. Reasoning can be enabled in AI setup for local models that support Ollama `think`. Models without thinking support still answer normally.
 
 ### Option B: Vercel AI Gateway (cloud)
 
@@ -35,6 +36,7 @@ The cloud route. Date prompts, character context, and transcripts are sent throu
 1. Get a Gateway key from your Vercel project settings.
 2. Open AI setup inside the app, switch the desk to Cloud, and paste the key into the api key field.
 3. The key is stored as a plaintext file in app local data on this device, outside save files. It is not encrypted and not in the OS keychain. Treat the device as the trust boundary. Wiping a save leaves the key in place at runtime, but uninstalling or updating the app wipes the key along with the rest of app data. Saving a blank key removes it.
+4. Gateway reasoning offers `none`, `minimal`, `low`, `medium`, `high`, and `xhigh` where the selected provider accepts those values.
 
 ## Install
 

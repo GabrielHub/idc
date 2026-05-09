@@ -16,6 +16,11 @@ export type AiModelOption = {
   reasoningSupported: boolean;
 };
 
+export type AiReasoningLevelOption = {
+  value: AiReasoningLevel;
+  label: string;
+};
+
 export type OllamaModelSummary = {
   name: string;
   size?: number;
@@ -35,6 +40,23 @@ const REASONING_DISABLED_GATEWAY_MODEL_IDS = new Set([
   "anthropic/claude-haiku-4.5",
   "moonshotai/kimi-k2.5",
 ]);
+
+export const OLLAMA_REASONING_LEVEL_OPTIONS: AiReasoningLevelOption[] = [
+  { value: "off", label: "Off" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+];
+
+export const GATEWAY_REASONING_LEVEL_OPTIONS: AiReasoningLevelOption[] = [
+  { value: "off", label: "Off" },
+  { value: "none", label: "None" },
+  { value: "minimal", label: "Minimal" },
+  { value: "low", label: "Low" },
+  { value: "medium", label: "Medium" },
+  { value: "high", label: "High" },
+  { value: "xhigh", label: "X-High" },
+];
 
 export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
   {
@@ -80,42 +102,42 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     label: "Gemma 4 E2B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
   {
     id: "gemma4:e4b",
     label: "Gemma 4 E4B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
   {
     id: "gemma4:26b",
     label: "Gemma 4 26B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
   {
     id: "qwen3.5:4b",
     label: "Qwen 3.5 4B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
   {
     id: "qwen3.5:9b",
     label: "Qwen 3.5 9B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
   {
     id: "qwen3.5:27b",
     label: "Qwen 3.5 27B",
     provider: "ollama",
     recommendedReasoningLevel: "off",
-    reasoningSupported: false,
+    reasoningSupported: true,
   },
 ];
 

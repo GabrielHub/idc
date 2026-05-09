@@ -15,8 +15,10 @@ import {
 } from "../platform/runtime";
 import {
   GATEWAY_CHAT_MODELS,
+  GATEWAY_REASONING_LEVEL_OPTIONS,
   GPU_RECOMMENDATION_PROFILES,
   OLLAMA_CHAT_MODEL_OPTIONS,
+  OLLAMA_REASONING_LEVEL_OPTIONS,
   gatewayReasoningSupported,
   modelDefaultsForProvider,
   recommendedOllamaChatModels,
@@ -503,13 +505,18 @@ function OllamaSetupTab({
             onConfig({
               chatModel: value,
               embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
-              reasoningLevel: "off",
             })
           }
         />
-        <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          embedding :: <span className="text-aura-ink">{embeddingLabel}</span>
-        </p>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <SelectInput
+            label="reasoning"
+            value={config.reasoningLevel}
+            options={OLLAMA_REASONING_LEVEL_OPTIONS}
+            onChange={(value) => onConfig({ reasoningLevel: value })}
+          />
+          <ReadOnlyField label="embedding" value={embeddingLabel} />
+        </div>
       </FormSection>
 
       <FormSection
@@ -542,7 +549,6 @@ function OllamaSetupTab({
                       onConfig({
                         chatModel: modelId,
                         embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
-                        reasoningLevel: "off",
                       })
                     }
                     className="cursor-pointer rounded-pill bg-aura-ink px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-aura-rose"
@@ -632,7 +638,7 @@ function GatewaySetupTab({
 
       <FormSection
         label="model"
-        description="Pick a chat model. Reasoning is held off on Haiku 4.5 and Kimi K2.5."
+        description="Pick a chat model. Gateway reasoning exposes the full effort set where the provider accepts it."
       >
         <SelectInput
           label="chat model"
@@ -652,13 +658,8 @@ function GatewaySetupTab({
             label="reasoning"
             value={config.reasoningLevel}
             disabled={reasoningDisabled}
-            options={[
-              { value: "off", label: "Off" },
-              { value: "low", label: "Low" },
-              { value: "medium", label: "Medium" },
-              { value: "high", label: "High" },
-            ]}
-            onChange={(value) => onConfig({ reasoningLevel: value as AiReasoningLevel })}
+            options={GATEWAY_REASONING_LEVEL_OPTIONS}
+            onChange={(value) => onConfig({ reasoningLevel: value })}
           />
           <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
         </div>

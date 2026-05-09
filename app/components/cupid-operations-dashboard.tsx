@@ -53,7 +53,6 @@ import {
 } from "../services/ai/client";
 import {
   advanceDateExchangeWithLocalAiStream,
-  completeDateSessionWithLocalAiStream,
   DateStreamAbortedError,
   type LocalAiDateEngineResult,
   type LocalAiDateStreamEvent,
@@ -98,7 +97,7 @@ type DashboardPendingAction =
 const AUTOPLAY_TICK_DELAY_MS = 480;
 
 function asPendingDateAction(action: DashboardPendingAction | null): PendingDateAction | null {
-  if (action === "advanceExchange" || action === "completeDate") {
+  if (action === "advanceExchange") {
     return action;
   }
 
@@ -107,7 +106,7 @@ function asPendingDateAction(action: DashboardPendingAction | null): PendingDate
 
 type LocalAiClientStatus = AiSetupStatus;
 
-type RetriableDateAction = { kind: "advanceExchange"; turnCount: 1 | 2 } | { kind: "completeDate" };
+type RetriableDateAction = { kind: "advanceExchange"; turnCount: 1 | 2 };
 
 const CHECKING_LOCAL_AI_STATUS: LocalAiClientStatus = {
   status: "checking",
@@ -143,10 +142,13 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [pendingDateRetry, setPendingDateRetry] = useState<RetriableDateAction | null>(null);
+  const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<"playing" | "paused" | null>(
+    null,
+  );
   const lastErrorMessageRef = useRef<string | null>(null);
   const localAiStatusRequestRef = useRef<Promise<LocalAiClientStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
-  const queuedPlaybackRef = useRef<"playing" | "paused" | null>(null);
+  const stopAfterCurrentTurnRef = useRef(false);
   const isActionPending = pendingAction !== null;
 
   useEffect(() => {
@@ -551,6 +553,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       "advanceExchange",
       async () => {
         setStreamingDrafts([]);
+        stopAfterCurrentTurnRef.current = false;
         const controller = new AbortController();
         dateAbortControllerRef.current = controller;
         try {
@@ -560,6 +563,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               save,
               dateSessionId: sessionId,
               turnCount,
+              shouldStopAfterCurrentTurn: () => stopAfterCurrentTurnRef.current,
             },
             repository,
             gatewayApiKey,
@@ -571,47 +575,11 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
           setRuntimeWarnings(result);
         } finally {
           dateAbortControllerRef.current = null;
+          stopAfterCurrentTurnRef.current = false;
           setStreamingDrafts([]);
         }
       },
       { kind: "advanceExchange", turnCount },
-    );
-  }
-
-  async function handleCompleteDate() {
-    if (save === null || activeSession === null) {
-      return;
-    }
-
-    const sessionId = activeSession.id;
-
-    tryAction(
-      "completeDate",
-      async () => {
-        setStreamingDrafts([]);
-        const controller = new AbortController();
-        dateAbortControllerRef.current = controller;
-        try {
-          const result = await runDateAction(
-            {
-              type: "completeDate",
-              save,
-              dateSessionId: sessionId,
-            },
-            repository,
-            gatewayApiKey,
-            applyGameStreamEvent,
-            controller.signal,
-          );
-          await persist(result.save);
-          setActiveDateSessionId(result.session.id);
-          setRuntimeWarnings(result);
-        } finally {
-          dateAbortControllerRef.current = null;
-          setStreamingDrafts([]);
-        }
-      },
-      { kind: "completeDate" },
     );
   }
 
@@ -632,13 +600,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
 
     setPendingDateRetry(null);
     setErrorMessage(null);
-
-    if (pendingDateRetry.kind === "advanceExchange") {
-      void handleAdvanceExchange(pendingDateRetry.turnCount);
-      return;
-    }
-
-    void handleCompleteDate();
+    void handleAdvanceExchange(pendingDateRetry.turnCount);
   }
 
   function handleDismissDateError() {
@@ -695,20 +657,17 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    if (next === "paused") {
-      const controller = dateAbortControllerRef.current;
-
-      if (controller !== null) {
-        controller.abort();
-      }
-    }
-
     if (pendingAction !== null) {
-      queuedPlaybackRef.current = next;
+      if (pendingAction === "advanceExchange") {
+        stopAfterCurrentTurnRef.current = next === "paused";
+      }
+
+      setQueuedPlaybackIntent(next);
       return;
     }
 
     tryAction("togglePlayback", async () => {
+      setQueuedPlaybackIntent(null);
       const result = togglePlayback(save, {
         dateSessionId: activeSession.id,
         desiredState: next,
@@ -725,7 +684,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   });
 
   useEffect(() => {
-    if (queuedPlaybackRef.current === null) {
+    if (queuedPlaybackIntent === null) {
       return;
     }
 
@@ -733,10 +692,15 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       return;
     }
 
-    const next = queuedPlaybackRef.current;
-    queuedPlaybackRef.current = null;
+    if (activeSession?.status !== "active" || activeSession.playbackState === "ended") {
+      setQueuedPlaybackIntent(null);
+      return;
+    }
+
+    const next = queuedPlaybackIntent;
+    setQueuedPlaybackIntent(null);
     void toggleRef.current(next);
-  }, [isActionPending]);
+  }, [activeSession?.playbackState, activeSession?.status, isActionPending, queuedPlaybackIntent]);
 
   const autoplayShouldTick =
     activeSession !== null &&
@@ -745,7 +709,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     !isActionPending &&
     errorMessage === null &&
     pendingDateRetry === null &&
-    queuedPlaybackRef.current === null;
+    queuedPlaybackIntent === null;
   const autoplayTickKey = activeSession?.currentTurn ?? -1;
   useEffect(() => {
     if (!autoplayShouldTick) {
@@ -1182,11 +1146,11 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
               canIntervene={canIntervene}
               isActionPending={isActionPending}
               pendingDateAction={pendingDateAction}
+              queuedPlaybackIntent={queuedPlaybackIntent}
               streamingDrafts={streamingDrafts}
               onInterventionTextChange={setInterventionText}
               onInterventionTargetChange={setInterventionTargetMemberId}
               onAdvance={handleAdvanceExchange}
-              onComplete={handleCompleteDate}
               onCancel={handleCancelDate}
               onIntervene={handleIntervention}
               onFollowUp={handleFollowUp}
@@ -2018,10 +1982,6 @@ function ErrorNotice({
 }
 
 function retryLabelFor(retry: RetriableDateAction): string {
-  if (retry.kind === "completeDate") {
-    return "Retry resolve";
-  }
-
   return retry.turnCount === 1 ? "Retry one line" : "Retry exchange";
 }
 
@@ -2096,18 +2056,13 @@ function TerminationPanel({
 /* Date action runner                                                 */
 /* ================================================================== */
 
-type LocalDateAction =
-  | {
-      type: "advanceExchange";
-      save: GameSave;
-      dateSessionId: string;
-      turnCount?: 1 | 2;
-    }
-  | {
-      type: "completeDate";
-      save: GameSave;
-      dateSessionId: string;
-    };
+type LocalDateAction = {
+  type: "advanceExchange";
+  save: GameSave;
+  dateSessionId: string;
+  turnCount?: 1 | 2;
+  shouldStopAfterCurrentTurn?: () => boolean;
+};
 
 async function runDateAction(
   input: LocalDateAction,
@@ -2118,26 +2073,14 @@ async function runDateAction(
 ): Promise<LocalAiDateEngineResult> {
   const config: Partial<AiRuntimeConfig> = { ...input.save.config, gatewayApiKey };
 
-  if (input.type === "advanceExchange") {
-    return advanceDateExchangeWithLocalAiStream(
-      input.save,
-      repository,
-      {
-        dateSessionId: input.dateSessionId,
-        turnCount: input.turnCount,
-        config,
-        abortSignal,
-      },
-      onEvent,
-    );
-  }
-
-  return completeDateSessionWithLocalAiStream(
+  return advanceDateExchangeWithLocalAiStream(
     input.save,
     repository,
     {
       dateSessionId: input.dateSessionId,
+      turnCount: input.turnCount,
       config,
+      shouldStopAfterCurrentTurn: input.shouldStopAfterCurrentTurn,
       abortSignal,
     },
     onEvent,

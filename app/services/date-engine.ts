@@ -612,6 +612,10 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
       }),
     );
     currentTurn += 1;
+
+    if (isAtJudgeBoundary(currentTurn)) {
+      break;
+    }
   }
 
   const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);

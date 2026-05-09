@@ -26,6 +26,8 @@ import { starterMembers, starterScenarios } from "../fixtures";
 import { jennaPike, vhool } from "../fixtures/members";
 import {
   GATEWAY_CHAT_MODELS,
+  GATEWAY_REASONING_LEVEL_OPTIONS,
+  OLLAMA_REASONING_LEVEL_OPTIONS,
   modelDefaultsForProvider,
   type OllamaModelSummary,
 } from "../services/ai/model-catalog";
@@ -616,6 +618,11 @@ function RunSheet({
     value: AiMemberChatSettings[TKey],
   ) => void;
 }) {
+  const reasoningOptions =
+    activeSettings.provider === "gateway"
+      ? GATEWAY_REASONING_LEVEL_OPTIONS
+      : OLLAMA_REASONING_LEVEL_OPTIONS;
+
   return (
     <section className="aura-glass h-fit rounded-card p-5">
       <header className="flex items-start justify-between gap-3">
@@ -658,28 +665,21 @@ function RunSheet({
             models={modelOptions}
             onChange={(value) => onBase("model", value)}
           />
+          <SelectInput
+            label="reasoning"
+            value={activeSettings.reasoningLevel}
+            options={reasoningOptions}
+            onChange={(value) =>
+              onBase("reasoningLevel", value as AiBasePlaygroundSettings["reasoningLevel"])
+            }
+          />
           {activeSettings.provider === "gateway" ? (
-            <>
-              <SelectInput
-                label="reasoning"
-                value={activeSettings.reasoningLevel}
-                options={[
-                  { value: "off", label: "Off" },
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                ]}
-                onChange={(value) =>
-                  onBase("reasoningLevel", value as AiBasePlaygroundSettings["reasoningLevel"])
-                }
-              />
-              <TextInputControl
-                label="gateway key"
-                type="password"
-                value={activeSettings.gatewayApiKey ?? ""}
-                onChange={(value) => onBase("gatewayApiKey", value)}
-              />
-            </>
+            <TextInputControl
+              label="gateway key"
+              type="password"
+              value={activeSettings.gatewayApiKey ?? ""}
+              onChange={(value) => onBase("gatewayApiKey", value)}
+            />
           ) : null}
         </RunSheetSection>
 

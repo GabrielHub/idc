@@ -524,7 +524,16 @@ export const shiftStateSchema = z.object({
 });
 
 export const aiProviderSchema = z.enum(["ollama", "gateway"]);
-export const aiReasoningLevelSchema = z.enum(["off", "low", "medium", "high"]);
+export const AI_REASONING_LEVELS = [
+  "off",
+  "none",
+  "minimal",
+  "low",
+  "medium",
+  "high",
+  "xhigh",
+] as const;
+export const aiReasoningLevelSchema = z.enum(AI_REASONING_LEVELS);
 
 function toGameConfigInput(value: unknown): unknown {
   if (typeof value !== "object" || value === null) {

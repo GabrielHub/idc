@@ -73,7 +73,41 @@ const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
   mark_bad_fit: "Close the romantic lane and keep the operational note.",
 };
 
-export type PendingDateAction = "advanceExchange" | "completeDate";
+export type PendingDateAction = "advanceExchange";
+export type PlaybackIntent = "playing" | "paused";
+
+type DatePlaybackUiState = {
+  isPlaying: boolean;
+  isPaused: boolean;
+  isStreaming: boolean;
+  pauseRequested: boolean;
+  playbackBusy: boolean;
+};
+
+export function resolveDatePlaybackUiState({
+  playbackState,
+  pendingDateAction,
+  queuedPlaybackIntent,
+}: {
+  playbackState: DateSession["playbackState"];
+  pendingDateAction: PendingDateAction | null;
+  queuedPlaybackIntent: PlaybackIntent | null;
+}): DatePlaybackUiState {
+  const isStreaming = pendingDateAction !== null;
+  const pauseRequested = playbackState === "playing" && queuedPlaybackIntent === "paused";
+  const playRequested = playbackState === "paused" && queuedPlaybackIntent === "playing";
+  const isPlaying = (playbackState === "playing" || playRequested) && !pauseRequested;
+  const isPaused = (playbackState === "paused" || pauseRequested) && !playRequested;
+  const playbackBusy = isStreaming && (playbackState === "paused" || queuedPlaybackIntent !== null);
+
+  return {
+    isPlaying,
+    isPaused,
+    isStreaming,
+    pauseRequested,
+    playbackBusy,
+  };
+}
 
 /* ================================================================== */
 /* Roster                                                             */
@@ -2163,11 +2197,11 @@ export type DateProps = {
   canIntervene: boolean;
   isActionPending: boolean;
   pendingDateAction: PendingDateAction | null;
+  queuedPlaybackIntent: PlaybackIntent | null;
   streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
-  onComplete: () => void;
   onCancel: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
@@ -2199,11 +2233,11 @@ export function DateView({
   canIntervene,
   isActionPending,
   pendingDateAction,
+  queuedPlaybackIntent,
   streamingDrafts,
   onInterventionTextChange,
   onInterventionTargetChange,
   onAdvance,
-  onComplete,
   onCancel,
   onIntervene,
   onFollowUp,
@@ -2250,6 +2284,11 @@ export function DateView({
   const leftSpeaking = leftMember !== undefined && isMemberSpeaking(leftMember.id, streamingDrafts);
   const rightSpeaking =
     rightMember !== undefined && isMemberSpeaking(rightMember.id, streamingDrafts);
+  const playbackUiState = resolveDatePlaybackUiState({
+    playbackState: session.playbackState,
+    pendingDateAction,
+    queuedPlaybackIntent,
+  });
 
   return (
     <motion.div
@@ -2293,6 +2332,7 @@ export function DateView({
             session={session}
             leftMemberId={leftMember?.id}
             pendingDateAction={pendingDateAction}
+            playbackUiState={playbackUiState}
           />
         )}
 
@@ -2318,11 +2358,11 @@ export function DateView({
           canAdvance={canAdvance}
           canIntervene={canIntervene}
           pendingDateAction={pendingDateAction}
+          playbackUiState={playbackUiState}
           nudgeSuggestions={nudgeSuggestions}
           onInterventionTextChange={onInterventionTextChange}
           onInterventionTargetChange={onInterventionTargetChange}
           onAdvance={onAdvance}
-          onComplete={onComplete}
           onCancel={onCancel}
           onIntervene={onIntervene}
           onTriggerEvent={onTriggerEvent}
@@ -2369,23 +2409,23 @@ function DateHeader({
           ? "rose"
           : "amber";
   const isDrafting = session.playbackState === "drafting";
-  const positionClass = isDrafting ? "relative mb-6" : "sticky top-24 mb-2 lg:top-28 lg:mb-3";
+  const positionClass = isDrafting
+    ? "relative mb-6 flex justify-center px-6 lg:px-10"
+    : "sticky top-24 mb-2 flex justify-center px-6 lg:top-28 lg:mb-3 lg:px-10";
   const memberLine = participants.map((m) => m.firstName).join(" / ");
   const locationLine = scenario?.publicBrief.location;
+  const detailLine = locationLine === undefined ? memberLine : `${memberLine} / ${locationLine}`;
 
   return (
-    <header
-      data-date-header
-      className={`${positionClass} z-20 border-b border-aura-hairline bg-aura-bg/72 backdrop-blur-xl`}
-    >
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-3 px-6 py-2.5 lg:gap-5 lg:px-10">
+    <header data-date-header className={`${positionClass} z-20`}>
+      <div className="group aura-glass pointer-events-auto flex max-w-full items-center gap-2.5 rounded-pill px-2 py-1.5 transition-[gap,padding] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:gap-3 hover:px-3 lg:gap-3 lg:py-2 lg:hover:gap-4 lg:hover:px-4">
         <button
           type="button"
           data-sfx="click"
           onClick={onBack}
           aria-label="Back to brief"
           title="Back to brief"
-          className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+          className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
         >
           <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
             <path
@@ -2398,20 +2438,22 @@ function DateHeader({
             />
           </svg>
         </button>
-        <span aria-hidden className="hidden h-5 w-px bg-aura-hairline lg:inline-block" />
-        <div className="flex min-w-0 flex-1 items-baseline gap-3 lg:gap-4">
-          <span className="shrink-0 font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-            // {pad2(session.currentTurn)}
-          </span>
-          <h1 className="min-w-0 truncate font-display text-base font-semibold tracking-tight text-aura-ink lg:text-lead">
-            {scenario?.title ?? "Date in session"}
-          </h1>
-          <span aria-hidden className="hidden h-3 w-px bg-aura-hairline lg:inline-block" />
-          <p className="hidden min-w-0 truncate font-mono text-micro uppercase tracking-[0.24em] text-aura-faint lg:block">
-            {memberLine}
-            {locationLine === undefined ? "" : ` / ${locationLine}`}
-          </p>
+        <span aria-hidden className="h-3 w-px shrink-0 bg-aura-hairline" />
+        <span className="shrink-0 font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+          // {pad2(session.currentTurn)}
+        </span>
+        <h1 className="min-w-0 shrink truncate font-display text-base font-semibold tracking-tight text-aura-ink lg:text-lead">
+          {scenario?.title ?? "Date in session"}
+        </h1>
+        <div className="hidden grid-cols-[0fr] transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:grid-cols-[1fr] lg:grid">
+          <div className="flex min-w-0 items-center gap-3 overflow-hidden lg:gap-4">
+            <span aria-hidden className="ml-1 h-3 w-px shrink-0 bg-aura-hairline" />
+            <p className="whitespace-nowrap font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+              {detailLine}
+            </p>
+          </div>
         </div>
+        <span aria-hidden className="h-3 w-px shrink-0 bg-aura-hairline" />
         <span className="inline-flex shrink-0 items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.24em]">
           <LiveDot tone={statusTone} />
           <span className={STATUS_TONE_TEXT[statusTone]}>{statusLabel}</span>
@@ -2490,11 +2532,13 @@ function ChatStream({
   session,
   leftMemberId,
   pendingDateAction,
+  playbackUiState,
 }: {
   items: TranscriptItem[];
   session: DateSession;
   leftMemberId: string | undefined;
   pendingDateAction: PendingDateAction | null;
+  playbackUiState: DatePlaybackUiState;
 }) {
   const listRef = useRef<HTMLOListElement | null>(null);
   const tailRef = useRef<HTMLDivElement | null>(null);
@@ -2537,7 +2581,12 @@ function ChatStream({
   }, [items.length, latestText]);
 
   const statusCue =
-    session.status === "active" ? <DateStatusCue pendingDateAction={pendingDateAction} /> : null;
+    session.status === "active" ? (
+      <DateStatusCue
+        pendingDateAction={pendingDateAction}
+        pauseRequested={playbackUiState.pauseRequested}
+      />
+    ) : null;
 
   if (items.length === 0) {
     return (
@@ -2805,7 +2854,13 @@ function SystemNote({ item, animation }: { item: TranscriptItem; animation: Chat
   );
 }
 
-function DateStatusCue({ pendingDateAction }: { pendingDateAction: PendingDateAction | null }) {
+function DateStatusCue({
+  pendingDateAction,
+  pauseRequested,
+}: {
+  pendingDateAction: PendingDateAction | null;
+  pauseRequested: boolean;
+}) {
   if (pendingDateAction === null) {
     return (
       <CupidStatusPill
@@ -2815,11 +2870,18 @@ function DateStatusCue({ pendingDateAction }: { pendingDateAction: PendingDateAc
     );
   }
 
-  const label = pendingDateAction === "completeDate" ? "Resolving date" : "Cupid is listening";
+  if (pauseRequested) {
+    return (
+      <CupidStatusPill
+        label="Pause filed"
+        leading={<span aria-hidden className="size-1.5 rounded-full bg-aura-amber" />}
+      />
+    );
+  }
 
   return (
     <CupidStatusPill
-      label={label}
+      label="Cupid is listening"
       leading={
         <span aria-hidden className="flex items-center gap-1">
           <span className="aura-typing-dot size-1.5 rounded-full bg-aura-rose/55 [animation-delay:0ms]" />
@@ -3091,11 +3153,11 @@ function DateFooter({
   canAdvance,
   canIntervene,
   pendingDateAction,
+  playbackUiState,
   nudgeSuggestions,
   onInterventionTextChange,
   onInterventionTargetChange,
   onAdvance,
-  onComplete,
   onCancel,
   onIntervene,
   onTriggerEvent,
@@ -3110,29 +3172,26 @@ function DateFooter({
   canAdvance: boolean;
   canIntervene: boolean;
   pendingDateAction: PendingDateAction | null;
+  playbackUiState: DatePlaybackUiState;
   nudgeSuggestions: string[];
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
-  onComplete: () => void;
   onCancel: () => void;
   onIntervene: () => void;
   onTriggerEvent: (eventId: string) => void;
   onTogglePlayback: (next: "playing" | "paused") => void;
 }) {
-  const isPlaying = session.playbackState === "playing";
-  const isPaused = session.playbackState === "paused";
+  const { isPlaying, isPaused, isStreaming, pauseRequested, playbackBusy } = playbackUiState;
   const interventionSlotAvailable = canAddCupidIntervention(session);
   const interventionDisabled = !canAdvance || !interventionSlotAvailable;
-  const nudgeButtonEnabled = isPaused && !interventionDisabled;
-  const isStreaming = pendingDateAction !== null;
-  const playbackBusy = !isPlaying && isStreaming;
+  const nudgeButtonEnabled = session.playbackState === "paused" && !interventionDisabled;
   const togglePlayback = () => onTogglePlayback(isPlaying ? "paused" : "playing");
   const nudgesUsed = session.interventions.length;
   const nudgesRemaining = Math.max(0, MAX_NUDGES_PER_DATE - nudgesUsed);
   const picks = session.eventDraft.picked ?? [];
   const dropsEnabled =
-    isPaused &&
+    session.playbackState === "paused" &&
     canAdvance &&
     scenario !== undefined &&
     picks.some((eventId) => !session.eventsTriggered.includes(eventId));
@@ -3189,45 +3248,46 @@ function DateFooter({
         transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
         className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
       >
-        <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-5xl items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
-          <StatusGauges
-            dateHealth={session.dateHealth}
-            displayedCurrentTurn={displayedCurrentTurn}
-            turnLimit={session.turnLimit}
-            judgePasses={session.judgeSnapshots.length}
-            nudgesRemaining={nudgesRemaining}
-            nudgeButtonEnabled={nudgeButtonEnabled}
-            onComposeNudge={openComposer}
-            picks={picks}
-            eventsTriggered={session.eventsTriggered}
-            scenario={scenario}
-            dropsEnabled={dropsEnabled}
-            onTriggerEvent={onTriggerEvent}
-          />
-          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline lg:block" />
-          <div className="flex min-w-0 flex-1 items-center">
-            {isPaused ? (
-              <PausedBanner
-                interventionSlotAvailable={interventionSlotAvailable}
-                dropsEnabled={dropsEnabled}
-              />
-            ) : (
-              <PlaybackBanner pendingDateAction={pendingDateAction} />
-            )}
+        <div className="relative mx-auto w-full max-w-5xl">
+          <div className="peer aura-glass-strong pointer-events-auto flex w-full items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
+            <StatusGauges
+              dateHealth={session.dateHealth}
+              displayedCurrentTurn={displayedCurrentTurn}
+              turnLimit={session.turnLimit}
+              judgePasses={session.judgeSnapshots.length}
+              nudgesRemaining={nudgesRemaining}
+              nudgeButtonEnabled={nudgeButtonEnabled}
+              onComposeNudge={openComposer}
+              picks={picks}
+              eventsTriggered={session.eventsTriggered}
+              scenario={scenario}
+              dropsEnabled={dropsEnabled}
+              onTriggerEvent={onTriggerEvent}
+            />
+            <span aria-hidden className="flex-1" />
+            <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
+            <TransportCluster
+              isPlaying={isPlaying}
+              isPaused={isPaused}
+              isStreaming={isStreaming}
+              pauseRequested={pauseRequested}
+              playbackBusy={playbackBusy}
+              canAdvance={canAdvance}
+              pendingDateAction={pendingDateAction}
+              onAdvance={onAdvance}
+              onCancel={onCancel}
+              onTogglePlayback={togglePlayback}
+            />
           </div>
-          <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
-          <TransportCluster
-            isPlaying={isPlaying}
-            isPaused={isPaused}
-            isStreaming={isStreaming}
-            playbackBusy={playbackBusy}
-            canAdvance={canAdvance}
-            pendingDateAction={pendingDateAction}
-            onAdvance={onAdvance}
-            onComplete={onComplete}
-            onCancel={onCancel}
-            onTogglePlayback={togglePlayback}
-          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-full mb-2 flex translate-y-1 justify-center opacity-0 transition duration-200 ease-out peer-hover:translate-y-0 peer-hover:opacity-100 peer-focus-within:translate-y-0 peer-focus-within:opacity-100">
+            <DirectorSlate
+              isPaused={isPaused}
+              pauseRequested={pauseRequested}
+              interventionSlotAvailable={interventionSlotAvailable}
+              dropsEnabled={dropsEnabled}
+              pendingDateAction={pendingDateAction}
+            />
+          </div>
         </div>
       </motion.footer>
       <AnimatePresence>
@@ -3801,59 +3861,135 @@ function NudgeSlotMeter({ remaining, total }: { remaining: number; total: number
 }
 
 /* ------------------------------------------------------------------ */
-/* Director's slate: paused-state hint                                */
+/* Director's slate: hover-revealed advisory above the date dock      */
 /* ------------------------------------------------------------------ */
 
-function PausedBanner({
+function DirectorSlate({
+  isPaused,
+  pauseRequested,
   interventionSlotAvailable,
   dropsEnabled,
+  pendingDateAction,
 }: {
+  isPaused: boolean;
+  pauseRequested: boolean;
   interventionSlotAvailable: boolean;
   dropsEnabled: boolean;
+  pendingDateAction: PendingDateAction | null;
 }) {
-  const message = !interventionSlotAvailable
-    ? "Held. Every nudge spent. Drop a scene or advance the beat."
-    : dropsEnabled
-      ? "Held. Tap a heart to whisper, drop a scene, or advance the beat."
-      : "Held. Tap a heart to whisper, or advance the beat.";
+  if (pauseRequested) {
+    return (
+      <div
+        role="status"
+        aria-label="Pause filed. Finishing this beat."
+        className="aura-glass-strong inline-flex items-center gap-2 rounded-pill border border-aura-amber/35 px-3.5 py-1.5"
+      >
+        <span aria-hidden className="inline-flex items-center gap-1">
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/55 [animation-delay:0ms]" />
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/65 [animation-delay:180ms]" />
+          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/75 [animation-delay:360ms]" />
+        </span>
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-amber">
+          Pause filed. Finishing this beat.
+        </span>
+      </div>
+    );
+  }
+
+  if (isPaused) {
+    return (
+      <div
+        role="status"
+        aria-label="Held. Paused for direction."
+        className="aura-glass-rose inline-flex items-center gap-2.5 rounded-pill px-3.5 py-1.5"
+      >
+        <span className="inline-flex items-center gap-1.5">
+          <span className="aura-pulse size-1.5 rounded-full bg-aura-rose" />
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
+            Held
+          </span>
+        </span>
+        <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
+        <span className="inline-flex items-center gap-1.5">
+          <SlateActionChip kind="whisper" enabled={interventionSlotAvailable} label="Whisper" />
+          <SlateActionChip kind="scene" enabled={dropsEnabled} label="Drop scene" />
+          <SlateActionChip kind="advance" enabled label="Advance beat" />
+        </span>
+      </div>
+    );
+  }
+
+  const rollingCopy =
+    pendingDateAction === "advanceExchange"
+      ? "Date in motion · pause to direct"
+      : "Autoplay rolling · pause to direct";
 
   return (
-    <div className="flex w-full items-center gap-3 px-2">
-      <span aria-hidden className="flex items-center gap-1.5">
-        <span className="size-1.5 rounded-full bg-aura-rose/65" />
-        <span className="size-1.5 rounded-full bg-aura-rose/45" />
-        <span className="size-1.5 rounded-full bg-aura-rose/25" />
-      </span>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
-        {message}
-      </p>
-    </div>
-  );
-}
-
-/* ------------------------------------------------------------------ */
-/* Director's slate: playback banner shown when the date is in motion */
-/* ------------------------------------------------------------------ */
-
-function PlaybackBanner({ pendingDateAction }: { pendingDateAction: PendingDateAction | null }) {
-  const message =
-    pendingDateAction === "completeDate"
-      ? "Cupid is wrapping the date."
-      : pendingDateAction === "advanceExchange"
-        ? "Date is in motion. Pause to direct."
-        : "Autoplay is rolling. Pause to direct.";
-
-  return (
-    <div className="flex w-full items-center gap-3 px-2">
-      <span aria-hidden className="flex items-center gap-1">
+    <div
+      role="status"
+      aria-label={rollingCopy}
+      className="aura-glass-strong inline-flex items-center gap-2 rounded-pill border border-aura-violet/25 px-3.5 py-1.5"
+    >
+      <span aria-hidden className="inline-flex items-center gap-1">
         <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/55 [animation-delay:0ms]" />
         <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/65 [animation-delay:180ms]" />
         <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/75 [animation-delay:360ms]" />
       </span>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-violet">
-        {message}
-      </p>
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-violet">
+        {rollingCopy}
+      </span>
     </div>
+  );
+}
+
+function SlateActionChip({
+  kind,
+  enabled,
+  label,
+}: {
+  kind: "whisper" | "scene" | "advance";
+  enabled: boolean;
+  label: string;
+}) {
+  const tone = !enabled
+    ? "border-aura-hairline-strong/50 bg-white/40 text-aura-faint"
+    : kind === "whisper"
+      ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
+      : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ${tone}`}
+    >
+      <SlateChipIcon kind={kind} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function SlateChipIcon({ kind }: { kind: "whisper" | "scene" | "advance" }) {
+  if (kind === "whisper") {
+    return (
+      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
+        <path
+          d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  }
+  if (kind === "scene") {
+    return (
+      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
+        <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
+      </svg>
+    );
+  }
+  return (
+    <svg viewBox="0 0 14 14" aria-hidden className="size-2.5">
+      <path d="M2.5 2.5 L9 7 L2.5 11.5 Z" fill="currentColor" />
+      <rect x="9.6" y="2.5" width="1.7" height="9" rx="0.7" fill="currentColor" />
+    </svg>
   );
 }
 
@@ -3865,44 +4001,35 @@ function TransportCluster({
   isPlaying,
   isPaused,
   isStreaming,
+  pauseRequested,
   playbackBusy,
   canAdvance,
   pendingDateAction,
   onAdvance,
-  onComplete,
   onCancel,
   onTogglePlayback,
 }: {
   isPlaying: boolean;
   isPaused: boolean;
   isStreaming: boolean;
+  pauseRequested: boolean;
   playbackBusy: boolean;
   canAdvance: boolean;
   pendingDateAction: PendingDateAction | null;
   onAdvance: (turnCount: 1 | 2) => void;
-  onComplete: () => void;
   onCancel: () => void;
   onTogglePlayback: () => void;
 }) {
   const advanceTip =
     pendingDateAction === "advanceExchange" ? "Streaming next beat..." : "Advance one beat";
-  const resolveTip = pendingDateAction === "completeDate" ? "Resolving date..." : "Resolve date";
-  const playTip = isPlaying ? "Pause autoplay (space)" : "Start autoplay (space)";
+  const playTip = pauseRequested
+    ? "Pause filed"
+    : isPlaying
+      ? "Pause autoplay (space)"
+      : "Start autoplay (space)";
   return (
     <div className="flex shrink-0 items-center gap-1.5">
-      {isPaused ? (
-        <Tooltip placement="top-center" message={resolveTip}>
-          <TransportButton
-            kind="ghost"
-            disabled={!canAdvance}
-            onClick={onComplete}
-            ariaLabel={resolveTip}
-          >
-            <ResolveIcon />
-          </TransportButton>
-        </Tooltip>
-      ) : null}
-      {isPaused ? (
+      {isPaused && !pauseRequested ? (
         <Tooltip placement="top-center" message={advanceTip}>
           <TransportButton
             kind="ghost"
@@ -3928,12 +4055,12 @@ function TransportCluster({
       ) : null}
       <Tooltip placement="top-center" message={playTip}>
         <TransportButton
-          kind={isPlaying ? "ghost-active" : "primary"}
+          kind={isPlaying && !pauseRequested ? "ghost-active" : "primary"}
           disabled={playbackBusy}
           onClick={onTogglePlayback}
           ariaLabel={playTip}
         >
-          {isPlaying ? <PauseIcon /> : <PlayIcon />}
+          {isPlaying && !pauseRequested ? <PauseIcon /> : <PlayIcon />}
         </TransportButton>
       </Tooltip>
     </div>
@@ -4006,14 +4133,6 @@ function AdvanceIcon() {
     <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
       <path d="M2.5 2.5 L9 7 L2.5 11.5 Z" fill="currentColor" />
       <rect x="9.6" y="2.5" width="1.7" height="9" rx="0.7" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ResolveIcon() {
-  return (
-    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
-      <rect x="3.5" y="3.5" width="7" height="7" rx="1.4" fill="currentColor" />
     </svg>
   );
 }

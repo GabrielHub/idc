@@ -26,6 +26,7 @@ import {
   memberIdSchema,
   relationshipStatSchema,
   type AiProvider,
+  type AiReasoningLevel,
   type GameConfig,
   type JudgeSnapshot,
   type MemoryCandidate,
@@ -1064,8 +1065,15 @@ function createOllamaChatSettings(
 
   return {
     ...baseSettings,
+    think: ollamaThinkForReasoningLevel(config.reasoningLevel),
     options: ollamaOptions,
   };
+}
+
+export function ollamaThinkForReasoningLevel(
+  reasoningLevel: AiReasoningLevel,
+): OllamaChatSettings["think"] {
+  return clampReasoningLevel(reasoningLevel) ?? false;
 }
 
 export function providerOptionsForRuntime(
@@ -1084,11 +1092,25 @@ export function providerOptionsForRuntime(
 
   const providerId = providerIdFromGatewayModelId(modelId);
 
+  if (providerId === "openai") {
+    return {
+      openai: {
+        reasoningEffort: reasoningLevel,
+      },
+    };
+  }
+
   if (providerId === "google") {
+    const thinkingLevel = scaledReasoningLevel(reasoningLevel);
+
+    if (thinkingLevel === undefined) {
+      return undefined;
+    }
+
     return {
       google: {
         thinkingConfig: {
-          thinkingLevel: reasoningLevel,
+          thinkingLevel,
           includeThoughts: true,
         },
       },
@@ -1096,6 +1118,10 @@ export function providerOptionsForRuntime(
   }
 
   if (providerId === "deepseek") {
+    if (reasoningLevel === "none") {
+      return undefined;
+    }
+
     return {
       deepseek: {
         thinking: { type: "enabled" },
@@ -1103,7 +1129,59 @@ export function providerOptionsForRuntime(
     };
   }
 
+  if (providerId === "anthropic") {
+    const effort = scaledReasoningLevel(reasoningLevel);
+
+    if (effort === undefined) {
+      return undefined;
+    }
+
+    return {
+      anthropic: {
+        thinking: {
+          type: "enabled",
+          budgetTokens: anthropicThinkingBudgetTokens(effort),
+        },
+        effort,
+      },
+    };
+  }
+
   return undefined;
+}
+
+function scaledReasoningLevel(
+  reasoningLevel: AiReasoningLevel,
+): "low" | "medium" | "high" | undefined {
+  return clampReasoningLevel(reasoningLevel) ?? undefined;
+}
+
+function clampReasoningLevel(reasoningLevel: AiReasoningLevel): "low" | "medium" | "high" | null {
+  if (reasoningLevel === "off" || reasoningLevel === "none") {
+    return null;
+  }
+
+  if (reasoningLevel === "minimal") {
+    return "low";
+  }
+
+  if (reasoningLevel === "xhigh") {
+    return "high";
+  }
+
+  return reasoningLevel;
+}
+
+function anthropicThinkingBudgetTokens(reasoningLevel: "low" | "medium" | "high"): number {
+  if (reasoningLevel === "low") {
+    return 4_000;
+  }
+
+  if (reasoningLevel === "medium") {
+    return 8_000;
+  }
+
+  return 12_000;
 }
 
 function providerIdFromGatewayModelId(modelId: string): string {

@@ -10,7 +10,7 @@ import {
 import { starterScenarios } from "../fixtures";
 import { createSeedGameSave, makePairId } from "../services/game-seed";
 import { startAndDraftDateSession, withFeaturedMembers } from "../services/test-helpers";
-import { buildTranscriptItems } from "./dashboard-views";
+import { buildTranscriptItems, resolveDatePlaybackUiState } from "./dashboard-views";
 
 describe("dashboard transcript presentation", () => {
   it("places judge notes after the full judged turn interval", () => {
@@ -164,5 +164,21 @@ describe("dashboard transcript presentation", () => {
     expect(judgeItem?.reveals?.map((record) => record.readText)).toEqual([
       "Gideon guards how his past gets handled.",
     ]);
+  });
+});
+
+describe("dashboard playback presentation", () => {
+  it("shows a queued pause while the active exchange is still streaming", () => {
+    const state = resolveDatePlaybackUiState({
+      playbackState: "playing",
+      pendingDateAction: "advanceExchange",
+      queuedPlaybackIntent: "paused",
+    });
+
+    expect(state.pauseRequested).toBe(true);
+    expect(state.isPaused).toBe(true);
+    expect(state.isPlaying).toBe(false);
+    expect(state.isStreaming).toBe(true);
+    expect(state.playbackBusy).toBe(true);
   });
 });

@@ -40,6 +40,7 @@
 - Never start dev servers autonomously for Playwright work.
 - Treat Playwright as a single-owner shared resource by default.
 - Do not run concurrent Playwright sessions or parallel Playwright agents unless the user explicitly asks for that coordination and the active owner releases the browser first.
+- Set every Playwright browser context or page viewport to `1920x1080` before testing, interacting with UI, or taking screenshots.
 - Always close the Playwright session when finished so other agents can open their own.
 - Store Playwright artifacts under `playwright/`, never in the repo root.
 - Put screenshots in `playwright/screenshots/`.

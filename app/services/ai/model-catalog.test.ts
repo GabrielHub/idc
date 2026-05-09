@@ -3,6 +3,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_GATEWAY_BASE_URL, gameConfigSchema } from "../../domain/game";
 import {
   GPU_RECOMMENDATION_PROFILES,
+  GATEWAY_REASONING_LEVEL_OPTIONS,
+  OLLAMA_REASONING_LEVEL_OPTIONS,
   gatewayReasoningLevelForModel,
   isGatewayChatModel,
   isRecommendedOllamaChatModel,
@@ -36,6 +38,12 @@ describe("AI model catalog", () => {
     expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
   });
 
+  it("accepts the expanded reasoning level set", () => {
+    expect(gameConfigSchema.parse({ reasoningLevel: "none" }).reasoningLevel).toBe("none");
+    expect(gameConfigSchema.parse({ reasoningLevel: "minimal" }).reasoningLevel).toBe("minimal");
+    expect(gameConfigSchema.parse({ reasoningLevel: "xhigh" }).reasoningLevel).toBe("xhigh");
+  });
+
   it("migrates the old OpenAI-compatible Gateway base URL", () => {
     const config = gameConfigSchema.parse({
       aiProvider: "gateway",
@@ -48,9 +56,30 @@ describe("AI model catalog", () => {
   it("keeps Gateway choices narrow and disables reasoning for Kimi and Claude Haiku", () => {
     expect(isGatewayChatModel(modelDefaultsForProvider("gateway").chatModel)).toBe(true);
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "off")).toBe("off");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "none")).toBe("none");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "minimal")).toBe("minimal");
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "high")).toBe("high");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("anthropic/claude-haiku-4.5", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("moonshotai/kimi-k2.5", "medium")).toBe("off");
+  });
+
+  it("exposes provider-specific reasoning option lists", () => {
+    expect(OLLAMA_REASONING_LEVEL_OPTIONS.map((option) => option.value)).toEqual([
+      "off",
+      "low",
+      "medium",
+      "high",
+    ]);
+    expect(GATEWAY_REASONING_LEVEL_OPTIONS.map((option) => option.value)).toEqual([
+      "off",
+      "none",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+    ]);
   });
 
   it("filters Ollama recommendations to Gemma and Qwen only", () => {

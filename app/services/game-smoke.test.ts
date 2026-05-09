@@ -845,28 +845,46 @@ describe("IDC playable smoke path", () => {
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
     let nextSave = started.save;
-    const sessions: DateSession[] = [];
+    let latestSession: DateSession = started.session;
 
-    for (let turn = 1; turn <= 12; turn += 1) {
+    for (let turn = 1; turn <= 5; turn += 1) {
       const advanced = advanceDateExchange(nextSave, {
         dateSessionId: started.session.id,
         turnCount: 1,
         now: new Date(`2026-05-05T12:${String(turn + 1).padStart(2, "0")}:00.000Z`),
       });
       nextSave = advanced.save;
-      sessions.push(advanced.session);
+      latestSession = advanced.session;
     }
 
-    expect(sessions[0]?.currentTurn).toBe(1);
-    expect(sessions[0]?.judgeSnapshots).toHaveLength(0);
-    expect(sessions[4]?.currentTurn).toBe(5);
-    expect(sessions[4]?.judgeSnapshots).toHaveLength(0);
-    expect(sessions[5]?.currentTurn).toBe(6);
-    expect(sessions[5]?.judgeSnapshots).toHaveLength(1);
-    expect(sessions[5]?.judgeSnapshots[0]?.exchangeIndex).toBe(0);
-    expect(sessions[11]?.currentTurn).toBe(12);
-    expect(sessions[11]?.judgeSnapshots).toHaveLength(2);
-    expect(sessions[11]?.judgeSnapshots[1]?.exchangeIndex).toBe(1);
+    expect(latestSession.currentTurn).toBe(5);
+    expect(latestSession.judgeSnapshots).toHaveLength(0);
+
+    const boundaryAdvance = advanceDateExchange(nextSave, {
+      dateSessionId: started.session.id,
+      turnCount: 2,
+      now: new Date("2026-05-05T12:07:00.000Z"),
+    });
+    nextSave = boundaryAdvance.save;
+    latestSession = boundaryAdvance.session;
+
+    expect(latestSession.currentTurn).toBe(6);
+    expect(latestSession.judgeSnapshots).toHaveLength(1);
+    expect(latestSession.judgeSnapshots[0]?.exchangeIndex).toBe(0);
+
+    for (let turn = 7; turn <= 12; turn += 1) {
+      const advanced = advanceDateExchange(nextSave, {
+        dateSessionId: started.session.id,
+        turnCount: 1,
+        now: new Date(`2026-05-05T12:${String(turn + 1).padStart(2, "0")}:00.000Z`),
+      });
+      nextSave = advanced.save;
+      latestSession = advanced.session;
+    }
+
+    expect(latestSession.currentTurn).toBe(12);
+    expect(latestSession.judgeSnapshots).toHaveLength(2);
+    expect(latestSession.judgeSnapshots[1]?.exchangeIndex).toBe(1);
   });
 
   it("scores match fit from hidden member tags and scenario pressure", () => {
