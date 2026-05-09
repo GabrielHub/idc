@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "IDC Cupid",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "identifier": "dev.idc.cupid",
   "build": {
     "frontendDist": "../build/client",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "IDC: Cupid v0.1.1 (test alpha)",
+        "title": "IDC: Cupid v0.1.2 (test alpha)",
         "width": 1440,
         "height": 900,
         "minWidth": 1100,
