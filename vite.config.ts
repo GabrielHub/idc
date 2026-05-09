@@ -19,9 +19,6 @@ const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), "package.json
 const APP_VERSION = packageJson.version;
 
 export default defineConfig({
-  fmt: {
-    ignorePatterns: [],
-  },
   plugins: [
     forbidPublicPortraitSources(),
     tailwindcss(),
