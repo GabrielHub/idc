@@ -890,8 +890,9 @@ function NodeTooltip({
 }) {
   const node = graph.nodeById.get(memberId);
   if (node === undefined) return null;
-  const incident = graph.edges.filter((edge) => edge.a === memberId || edge.b === memberId);
-  const latestNoteAt = incident.reduce((acc, edge) => Math.max(acc, edge.latestNoteAt), 0);
+  const noteSummary = graph.nodeNoteSummaryByNode.get(memberId);
+  const latestNoteAt = noteSummary?.latestNoteAt ?? 0;
+  const topImportance = noteSummary?.topImportance ?? 0;
   const recency = describeRecency(latestNoteAt, now);
   const radius = nodeBaseRadius(node.degree);
   const x = node.basePosition.x * size.width;
@@ -931,9 +932,7 @@ function NodeTooltip({
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
           top note
         </span>
-        <ImportanceDots
-          value={incident.reduce((acc, edge) => Math.max(acc, edge.topImportance), 0)}
-        />
+        <ImportanceDots value={topImportance} />
       </div>
       <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
         click to open · esc closes
@@ -1138,9 +1137,10 @@ function NodeDetailBody({
 }) {
   const member = memberById.get(memberId);
   if (member === undefined) return null;
-  const incident = graph.edges
-    .filter((edge) => edge.a === memberId || edge.b === memberId)
-    .sort((left, right) => right.latestNoteAt - left.latestNoteAt);
+  const incidentSource = graph.incidentEdgesByNode.get(memberId) ?? [];
+  const incident = [...incidentSource].sort(
+    (left, right) => right.latestNoteAt - left.latestNoteAt,
+  );
 
   return (
     <div className="space-y-5">

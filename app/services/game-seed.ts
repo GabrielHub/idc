@@ -22,7 +22,7 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
-import { clampScore } from "./utils";
+import { arraysShallowEqual, clampScore } from "./utils";
 
 const STARTER_DECK_MAX_SIZE = starterScenarios.length;
 const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
@@ -42,7 +42,7 @@ export function createSeedGameSave(
   const timestamp = now.toISOString();
   const random = options.random ?? Math.random;
   const config = gameConfigSchema.parse({});
-  const members = starterMembers.map((member) => memberSchema.parse(member));
+  const members = STARTER_FIXTURE_MEMBERS;
   const pairStates = createSeedPairStates(members);
   const scenarioIds =
     options.randomizeScenarioDeck === true
@@ -95,36 +95,140 @@ export function createSeedGameSave(
   });
 }
 
-export function hydrateFixtureOwnedMemberData(save: GameSave): GameSave {
+export type HydrateFixtureOwnedMemberDataResult = {
+  save: GameSave;
+  // True when hydration changed any field; the repository uses this to decide whether to write back.
+  dirty: boolean;
+};
+
+export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwnedMemberDataResult {
+  const fixtureMembers = STARTER_FIXTURE_MEMBERS;
   const savedMembersById = new Map(save.members.map((member) => [member.id, member] as const));
-  const fixtureMembers = starterMembers.map((fixtureMember) => {
-    const parsedFixtureMember = memberSchema.parse(fixtureMember);
-    const savedMember = savedMembersById.get(parsedFixtureMember.id);
+  let dirty = false;
+
+  const hydratedFixtureMembers = fixtureMembers.map((fixtureMember) => {
+    const savedMember = savedMembersById.get(fixtureMember.id);
 
     if (savedMember === undefined) {
-      return parsedFixtureMember;
+      dirty = true;
+      return fixtureMember;
     }
 
+    // Skip the schema parse when the saved member already matches the fixture; parse is the hot cost.
+    if (fixtureMemberMatchesState(fixtureMember, savedMember)) {
+      return savedMember;
+    }
+
+    dirty = true;
     return memberSchema.parse({
-      ...parsedFixtureMember,
+      ...fixtureMember,
       state: savedMember.state,
     });
   });
-  const customMembers = save.members.filter((member) => !STARTER_MEMBERS_BY_ID.has(member.id));
-  const members = [...fixtureMembers, ...customMembers];
-  const pairStates = hydratePairStates(save.pairStates, members);
-  const dateSessions = save.dateSessions.map(hydrateDateSessionScenarioId);
-  const shifts = save.shifts.map((shift) => hydrateShiftScenarioIds(shift, members));
-  const memories = save.memories.map(hydrateMemoryScenarioId);
+  const customMembers: Member[] = [];
+  for (const member of save.members) {
+    if (!STARTER_MEMBERS_BY_ID.has(member.id)) {
+      customMembers.push(member);
+    }
+  }
+  const members =
+    customMembers.length === 0
+      ? hydratedFixtureMembers
+      : [...hydratedFixtureMembers, ...customMembers];
 
-  return gameSaveSchema.parse({
-    ...save,
-    members,
-    pairStates,
-    dateSessions,
-    shifts,
-    memories,
+  if (save.members.length !== members.length) {
+    dirty = true;
+  }
+
+  const pairResult = hydratePairStates(save.pairStates, members);
+  if (pairResult.dirty) dirty = true;
+
+  const dateSessionResult = mapWithDirty(save.dateSessions, hydrateDateSessionScenarioId);
+  if (dateSessionResult.dirty) dirty = true;
+
+  const shiftsResult = mapWithDirty(
+    save.shifts,
+    (shift) => hydrateShiftScenarioIds(shift, members),
+    shiftsEqual,
+  );
+  if (shiftsResult.dirty) dirty = true;
+
+  const memoriesResult = mapWithDirty(save.memories, hydrateMemoryScenarioId);
+  if (memoriesResult.dirty) dirty = true;
+
+  if (!dirty) {
+    return { save, dirty: false };
+  }
+
+  return {
+    save: gameSaveSchema.parse({
+      ...save,
+      members,
+      pairStates: pairResult.pairStates,
+      dateSessions: dateSessionResult.items,
+      shifts: shiftsResult.items,
+      memories: memoriesResult.items,
+    }),
+    dirty: true,
+  };
+}
+
+function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): boolean {
+  return (
+    savedMember.name === fixtureMember.name &&
+    savedMember.firstName === fixtureMember.firstName &&
+    savedMember.origin === fixtureMember.origin &&
+    savedMember.species === fixtureMember.species &&
+    savedMember.dimension === fixtureMember.dimension &&
+    savedMember.realityStatus === fixtureMember.realityStatus &&
+    savedMember.bio === fixtureMember.bio &&
+    savedMember.datingProfile === fixtureMember.datingProfile &&
+    arraysShallowEqual(savedMember.tags, fixtureMember.tags) &&
+    arraysShallowEqual(savedMember.preferences, fixtureMember.preferences) &&
+    arraysShallowEqual(savedMember.dealbreakers, fixtureMember.dealbreakers) &&
+    arraysShallowEqual(savedMember.relationshipNeeds, fixtureMember.relationshipNeeds) &&
+    arraysShallowEqual(savedMember.secrets, fixtureMember.secrets) &&
+    deepEqualByJson(savedMember.voice, fixtureMember.voice) &&
+    deepEqualByJson(savedMember.portraits, fixtureMember.portraits) &&
+    deepEqualByJson(savedMember.chatBubble, fixtureMember.chatBubble)
+  );
+}
+
+function deepEqualByJson(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (left === undefined || right === undefined) return false;
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+
+function mapWithDirty<T>(
+  items: readonly T[],
+  hydrate: (item: T) => T,
+  // Defaults to reference identity (works when hydrate returns the same reference on no-op).
+  equals: (before: T, after: T) => boolean = (a, b) => a === b,
+): { items: T[]; dirty: boolean } {
+  let dirty = false;
+  const next = items.map((item) => {
+    const hydrated = hydrate(item);
+    if (!equals(item, hydrated)) dirty = true;
+    return hydrated;
   });
+  return { items: dirty ? next : (items as T[]), dirty };
+}
+
+function shiftsEqual(before: ShiftState, after: ShiftState): boolean {
+  return (
+    arraysShallowEqual(before.featuredMemberIds, after.featuredMemberIds) &&
+    arraysShallowEqual(before.drawnScenarioIds, after.drawnScenarioIds) &&
+    arraysShallowEqual(before.scenarioDeck.scenarioIds, after.scenarioDeck.scenarioIds) &&
+    arraysShallowEqual(
+      before.scenarioDeck.offeredScenarioIds ?? [],
+      after.scenarioDeck.offeredScenarioIds ?? [],
+    ) &&
+    before.scenarioDeck.maxSize === after.scenarioDeck.maxSize &&
+    before.heldScenarioId === after.heldScenarioId &&
+    before.deckPower?.scenarioId === after.deckPower?.scenarioId &&
+    before.deckPower?.swappedScenarioId === after.deckPower?.swappedScenarioId
+  );
 }
 
 export function getActiveShift(save: GameSave): ShiftState {
@@ -134,9 +238,57 @@ export function getActiveShift(save: GameSave): ShiftState {
   );
 }
 
-const STARTER_MEMBERS_BY_ID = new Map(
-  starterMembers.map((member) => [member.id, memberSchema.parse(member)]),
+const STARTER_FIXTURE_MEMBERS: Member[] = starterMembers.map((member) =>
+  memberSchema.parse(member),
 );
+
+const STARTER_MEMBERS_BY_ID = new Map(
+  STARTER_FIXTURE_MEMBERS.map((member) => [member.id, member] as const),
+);
+
+// Pair structure (ids, participantIds, base useCounts) only depends on the
+// static fixtures, so build it once at module load. Pair stats use live
+// member state and stay per-call inside hydratePairStates.
+const STARTER_SEED_PAIR_STRUCTURE: ReadonlyArray<{
+  id: string;
+  participantIds: [string, string];
+  scenarioUseCounts: Record<string, number>;
+}> = (() => {
+  const entries: Array<{
+    id: string;
+    participantIds: [string, string];
+    scenarioUseCounts: Record<string, number>;
+  }> = [];
+  const baseUseCounts: Record<string, number> = {};
+  for (const scenario of starterScenarios) {
+    baseUseCounts[scenario.id] = 0;
+  }
+  for (let firstIndex = 0; firstIndex < STARTER_FIXTURE_MEMBERS.length; firstIndex += 1) {
+    for (
+      let secondIndex = firstIndex + 1;
+      secondIndex < STARTER_FIXTURE_MEMBERS.length;
+      secondIndex += 1
+    ) {
+      const first = STARTER_FIXTURE_MEMBERS[firstIndex];
+      const second = STARTER_FIXTURE_MEMBERS[secondIndex];
+      const participantIds = sortMemberIds(first.id, second.id);
+      entries.push({
+        id: makePairId(first.id, second.id),
+        participantIds,
+        // Defensive copy so per-pair mutations don't bleed into the cached base counts.
+        scenarioUseCounts: { ...baseUseCounts },
+      });
+    }
+  }
+  return entries;
+})();
+
+function isStarterRoster(members: readonly Member[]): boolean {
+  return (
+    members.length === STARTER_FIXTURE_MEMBERS.length &&
+    members.every((member) => STARTER_MEMBERS_BY_ID.has(member.id))
+  );
+}
 
 function hydrateScenarioDeckState(scenarioDeck: ScenarioDeckState): ScenarioDeckState {
   const scenarioIds = appendMissingStarterScenarioIds(
@@ -286,8 +438,25 @@ export function sortMemberIds(firstMemberId: string, secondMemberId: string): [s
 }
 
 function createSeedPairStates(members: Member[]): PairState[] {
-  const pairStates: PairState[] = [];
+  const memberById = new Map(members.map((member) => [member.id, member]));
+  if (isStarterRoster(members)) {
+    return STARTER_SEED_PAIR_STRUCTURE.map((entry) => {
+      const first = memberById.get(entry.participantIds[0]);
+      const second = memberById.get(entry.participantIds[1]);
+      if (first === undefined || second === undefined) {
+        throw new Error("Starter pair seed lookup failed.");
+      }
+      return {
+        id: entry.id,
+        participantIds: entry.participantIds,
+        stats: createInitialPairStats(first, second),
+        completedDateIds: [],
+        scenarioUseCounts: { ...entry.scenarioUseCounts },
+      };
+    });
+  }
 
+  const pairStates: PairState[] = [];
   for (let firstIndex = 0; firstIndex < members.length; firstIndex += 1) {
     for (let secondIndex = firstIndex + 1; secondIndex < members.length; secondIndex += 1) {
       const first = members[firstIndex];
@@ -308,48 +477,93 @@ function createSeedPairStates(members: Member[]): PairState[] {
       });
     }
   }
-
   return pairStates;
 }
 
-function hydratePairStates(savedPairStates: PairState[], members: Member[]): PairState[] {
+function hydratePairStates(
+  savedPairStates: PairState[],
+  members: Member[],
+): { pairStates: PairState[]; dirty: boolean } {
+  if (isStarterRoster(members) && savedPairStates.length === STARTER_SEED_PAIR_STRUCTURE.length) {
+    const fastPath = hydratePairStatesStarterFast(savedPairStates);
+    if (fastPath !== null) return fastPath;
+  }
+
   const savedPairStatesById = new Map(
     savedPairStates.map((pairState) => [pairState.id, pairState] as const),
   );
   const seededPairStates = createSeedPairStates(members);
   const seededPairStateIds = new Set(seededPairStates.map((pairState) => pairState.id));
+  let dirty = false;
   const hydratedPairStates = seededPairStates.map((seedPairState) => {
     const savedPairState = savedPairStatesById.get(seedPairState.id);
 
     if (savedPairState === undefined) {
+      dirty = true;
       return seedPairState;
     }
 
+    const counts = hydrateScenarioUseCounts(savedPairState.scenarioUseCounts);
+    if (counts !== savedPairState.scenarioUseCounts) dirty = true;
     return {
       ...seedPairState,
       ...savedPairState,
       participantIds: seedPairState.participantIds,
       scenarioUseCounts: {
         ...seedPairState.scenarioUseCounts,
-        ...hydrateScenarioUseCounts(savedPairState.scenarioUseCounts),
+        ...counts,
       },
     };
   });
-  const orphanPairStates = savedPairStates
-    .filter((pairState) => !seededPairStateIds.has(pairState.id))
-    .map((pairState) => ({
+  const orphanPairStates: PairState[] = [];
+  for (const pairState of savedPairStates) {
+    if (seededPairStateIds.has(pairState.id)) continue;
+    const counts = hydrateScenarioUseCounts(pairState.scenarioUseCounts);
+    if (counts !== pairState.scenarioUseCounts) dirty = true;
+    orphanPairStates.push({
       ...pairState,
-      scenarioUseCounts: hydrateScenarioUseCounts(pairState.scenarioUseCounts),
-    }));
+      scenarioUseCounts: counts,
+    });
+  }
 
-  return [...hydratedPairStates, ...orphanPairStates];
+  if (savedPairStates.length !== hydratedPairStates.length + orphanPairStates.length) {
+    dirty = true;
+  }
+
+  return { pairStates: [...hydratedPairStates, ...orphanPairStates], dirty };
+}
+
+function hydratePairStatesStarterFast(
+  savedPairStates: PairState[],
+): { pairStates: PairState[]; dirty: boolean } | null {
+  const savedById = new Map(savedPairStates.map((pair) => [pair.id, pair] as const));
+  for (const entry of STARTER_SEED_PAIR_STRUCTURE) {
+    if (!savedById.has(entry.id)) return null;
+  }
+  let dirty = false;
+  const normalized = savedPairStates.map((pair) => {
+    const counts = hydrateScenarioUseCounts(pair.scenarioUseCounts);
+    if (counts === pair.scenarioUseCounts) return pair;
+    dirty = true;
+    return { ...pair, scenarioUseCounts: counts };
+  });
+  return { pairStates: dirty ? normalized : savedPairStates, dirty };
 }
 
 function hydrateScenarioUseCounts(
   scenarioUseCounts: Record<string, number>,
 ): Record<string, number> {
-  const hydratedScenarioUseCounts: Record<string, number> = {};
+  let needsRebuild = false;
+  for (const scenarioId of Object.keys(scenarioUseCounts)) {
+    if (normalizeStarterScenarioId(scenarioId) !== scenarioId) {
+      needsRebuild = true;
+      break;
+    }
+  }
+  // Return same reference when no retired ids found, so upstream change detection short-circuits.
+  if (!needsRebuild) return scenarioUseCounts;
 
+  const hydratedScenarioUseCounts: Record<string, number> = {};
   for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
     const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
     hydratedScenarioUseCounts[normalizedScenarioId] =

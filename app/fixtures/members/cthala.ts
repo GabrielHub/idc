@@ -116,14 +116,14 @@ export const cthala: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/cthala/portrait-confused.png",
         cutoutPath: "/assets/portraits/cthala/portrait-confused.png",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     angry: {
       portrait: {
         sourcePath: "assets-source/portraits/cthala/portrait-angry.png",
         cutoutPath: "/assets/portraits/cthala/portrait-angry.png",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
   },

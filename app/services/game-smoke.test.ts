@@ -382,6 +382,94 @@ describe("IDC playable smoke path", () => {
     expect(await storage.read(`${legacySaveKey}.bak.${stamp}`)).toBe(rawLegacySave);
   });
 
+  it("backs up archived completed transcripts inside the backup JSON", async () => {
+    const storage = new MemorySaveStore();
+    const repository = new LocalGameRepository(storage, "archive-backup-save");
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const completedSave = completeSessionForStorage(started.save, started.session.id);
+    const stamp = "2026-05-05T12-02-00-000Z";
+
+    await repository.saveGame(completedSave);
+    await repository.flush();
+
+    const persisted = parsePersistedSave(await storage.read("archive-backup-save"));
+    expect(persisted?.dateSessions[0]?.transcript).toEqual([]);
+
+    const backupKey = await repository.backupSave(new Date("2026-05-05T12:02:00.000Z"));
+    const backup = parsePersistedSave(await storage.read(`archive-backup-save.bak.${stamp}`));
+
+    expect(backupKey).toBe(`archive-backup-save.bak.${stamp}`);
+    expect(backup?.dateSessions[0]?.transcript.length).toBeGreaterThan(0);
+    expect(backup?.dateSessions[0]?.transcript[0]?.text).toBe(started.session.transcript[0]?.text);
+  });
+
+  it("clears archived transcript sidecars when replacing or resetting a save", async () => {
+    const storage = new MemorySaveStore();
+    const repository = new LocalGameRepository(storage, "archive-replace-save");
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const completedSave = completeSessionForStorage(started.save, started.session.id);
+    await repository.saveGame(completedSave);
+    await repository.flush();
+    expect(await storage.listKeys("archive-replace-save.transcript.")).toHaveLength(1);
+
+    const importedWithoutTranscript = gameSaveSchema.parse({
+      ...completedSave,
+      dateSessions: completedSave.dateSessions.map((session) =>
+        session.id === started.session.id ? { ...session, transcript: [] } : session,
+      ),
+    });
+    await repository.replaceGame(importedWithoutTranscript);
+    expect(await storage.listKeys("archive-replace-save.transcript.")).toHaveLength(0);
+
+    const reloaded = await new LocalGameRepository(storage, "archive-replace-save").loadGame();
+    expect(reloaded?.dateSessions[0]?.transcript).toEqual([]);
+
+    await repository.saveGame(completedSave);
+    await repository.flush();
+    expect(await storage.listKeys("archive-replace-save.transcript.")).toHaveLength(1);
+
+    await repository.resetGame(new Date("2026-05-05T12:05:00.000Z"));
+    expect(await storage.listKeys("archive-replace-save.transcript.")).toHaveLength(0);
+  });
+
+  it("does not resurrect a save when delete waits on an active write", async () => {
+    const storage = new BlockingWriteStore();
+    const repository = new LocalGameRepository(storage, "delete-race-save", undefined, {
+      writeDebounceMs: 0,
+    });
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+
+    storage.blockNextWriteForKey("delete-race-save");
+    const savePromise = repository.saveGame(save);
+    await storage.waitForBlockedWrite();
+    const deletePromise = repository.deleteSave();
+    storage.releaseBlockedWrite();
+    await savePromise;
+    await deletePromise;
+
+    expect(await storage.read("delete-race-save")).toBeNull();
+  });
+
   it("hydrates new starter members and pair states into current schema saves", async () => {
     const storage = new MemorySaveStore();
     const repository = new LocalGameRepository(storage);
@@ -661,12 +749,16 @@ describe("IDC playable smoke path", () => {
     });
 
     await repository.saveGame(staleSave);
+    await repository.flush();
     const persistedBeforeLoad = parsePersistedSave(await storage.read("hot-path-save"));
     const savedSana = persistedBeforeLoad?.members.find((member) => member.id === "sana-karim");
 
     expect(savedSana?.portraits.neutral.avatar.model).toBe("stale-model");
 
-    const loaded = await repository.loadGame();
+    // Fresh repository because the in-memory cache would short-circuit re-hydration.
+    const reloadingRepository = new LocalGameRepository(storage, "hot-path-save");
+    const loaded = await reloadingRepository.loadGame();
+    await reloadingRepository.flush();
     const loadedSana = loaded?.members.find((member) => member.id === "sana-karim");
     const persistedAfterLoad = parsePersistedSave(await storage.read("hot-path-save"));
     const persistedSana = persistedAfterLoad?.members.find((member) => member.id === "sana-karim");
@@ -1799,6 +1891,57 @@ function findPairState(save: GameSave, pairId: string): PairState {
   }
 
   return pairState;
+}
+
+function completeSessionForStorage(save: GameSave, dateSessionId: string): GameSave {
+  return gameSaveSchema.parse({
+    ...save,
+    dateSessions: save.dateSessions.map((session) =>
+      session.id === dateSessionId
+        ? {
+            ...session,
+            status: "completed",
+            playbackState: "ended",
+          }
+        : session,
+    ),
+  });
+}
+
+class BlockingWriteStore extends MemorySaveStore {
+  private blockedKey: string | null = null;
+  private blockedStarted: Promise<void> = Promise.resolve();
+  private blockedStartedResolve: (() => void) | null = null;
+  private blockedRelease: (() => void) | null = null;
+
+  blockNextWriteForKey(key: string): void {
+    this.blockedKey = key;
+    this.blockedStarted = new Promise<void>((resolve) => {
+      this.blockedStartedResolve = resolve;
+    });
+  }
+
+  async waitForBlockedWrite(): Promise<void> {
+    await this.blockedStarted;
+  }
+
+  releaseBlockedWrite(): void {
+    this.blockedRelease?.();
+    this.blockedRelease = null;
+  }
+
+  override async write(key: string, value: string): Promise<void> {
+    if (this.blockedKey === key) {
+      this.blockedKey = null;
+      this.blockedStartedResolve?.();
+      this.blockedStartedResolve = null;
+      await new Promise<void>((resolve) => {
+        this.blockedRelease = resolve;
+      });
+    }
+
+    await super.write(key, value);
+  }
 }
 
 function parsePersistedSave(raw: string | null) {

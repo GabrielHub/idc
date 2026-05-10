@@ -1,4 +1,11 @@
-import { BaseDirectory, mkdir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
+import {
+  BaseDirectory,
+  mkdir,
+  readDir,
+  readTextFile,
+  remove,
+  writeTextFile,
+} from "@tauri-apps/plugin-fs";
 
 import type { RawSaveStore } from "./raw-save-store";
 
@@ -11,6 +18,10 @@ function sanitizeKey(key: string): string {
 
 function filePathForKey(key: string): string {
   return `${SAVE_DIR}/${sanitizeKey(key)}.json`;
+}
+
+function keyFromFileName(fileName: string): string | null {
+  return fileName.endsWith(".json") ? fileName.slice(0, -".json".length) : null;
 }
 
 function isMissingFileError(error: unknown): boolean {
@@ -52,6 +63,21 @@ export class TauriAppLocalDataSaveStore implements RawSaveStore {
     } catch (error) {
       if (isMissingFileError(error)) {
         return;
+      }
+      throw error;
+    }
+  }
+
+  async listKeys(prefix = ""): Promise<string[]> {
+    try {
+      const entries = await readDir(SAVE_DIR, { baseDir: BaseDirectory.AppLocalData });
+      return entries
+        .filter((entry) => entry.isFile)
+        .map((entry) => keyFromFileName(entry.name))
+        .filter((key): key is string => key !== null && key.startsWith(prefix));
+    } catch (error) {
+      if (isMissingFileError(error)) {
+        return [];
       }
       throw error;
     }

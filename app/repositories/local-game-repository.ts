@@ -24,7 +24,7 @@ import {
   getActiveShift,
   hydrateFixtureOwnedMemberData,
 } from "../services/game-seed";
-import { replaceById } from "../services/utils";
+import { pushIntoBucket, replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, MemorySearchFilters } from "./game-repository";
 import type { RawSaveStore } from "./raw-save-store";
@@ -37,6 +37,13 @@ export const LEGACY_SAVE_KEYS = Array.from(
 );
 
 const DEFAULT_SAVE_KEY = CURRENT_SAVE_KEY;
+const DEFAULT_WRITE_DEBOUNCE_MS = 750;
+const TRANSCRIPT_ARCHIVE_SUFFIX = ".transcript.";
+
+export type LocalGameRepositoryOptions = {
+  // Set to 0 in tests to make writes synchronous.
+  writeDebounceMs?: number;
+};
 
 export async function readGameConfigFromStore(
   store: RawSaveStore,
@@ -61,26 +68,49 @@ export async function readGameConfigFromStore(
   }
 }
 
+type MemoryIndex = {
+  all: readonly MemoryRecord[];
+  byPairId: Map<string, MemoryRecord[]>;
+  byScenarioId: Map<string, MemoryRecord[]>;
+  bySubjectId: Map<string, MemoryRecord[]>;
+};
+
 export class LocalGameRepository implements GameRepository {
   private readonly legacySaveKeys: string[];
+  private readonly writeDebounceMs: number;
   private legacySavesCleared = false;
+
+  private cachedSave: GameSave | null = null;
+  private memoryIndex: MemoryIndex | null = null;
+  private writeTimer: ReturnType<typeof setTimeout> | null = null;
+  private writeInFlight: Promise<void> | null = null;
+  private pendingFlush: Promise<void> | null = null;
+  private flushHooksAbort: AbortController | null = null;
+  private readonly archivedTranscriptIds: Set<string> = new Set();
 
   constructor(
     private readonly store: RawSaveStore,
     private readonly saveKey = DEFAULT_SAVE_KEY,
     legacySaveKeys?: string[],
+    options: LocalGameRepositoryOptions = {},
   ) {
     this.legacySaveKeys = legacySaveKeys ?? (saveKey === DEFAULT_SAVE_KEY ? LEGACY_SAVE_KEYS : []);
+    this.writeDebounceMs = options.writeDebounceMs ?? DEFAULT_WRITE_DEBOUNCE_MS;
   }
 
   async loadGame(): Promise<GameSave | null> {
+    if (this.cachedSave !== null) {
+      return this.cachedSave;
+    }
+
     const currentSave = await this.loadGameFromKey(this.saveKey);
 
     if (currentSave !== null) {
+      this.cachedSave = currentSave.save;
       if (currentSave.needsWrite) {
-        await this.writeGameToKey(this.saveKey, currentSave.save);
+        // Migration writes bypass the debouncer so old-schema bytes never linger.
+        await this.runWriteNow(currentSave.save);
       }
-
       return currentSave.save;
     }
 
@@ -98,24 +128,64 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async saveGame(save: GameSave): Promise<void> {
-    await this.writeGameToKey(this.saveKey, { ...save, updatedAt: new Date().toISOString() });
-    if (!this.legacySavesCleared) {
-      await this.deleteLegacySaves();
+    const stamped = stampUpdatedAt(save);
+    this.cachedSave = stamped;
+
+    if (this.writeDebounceMs <= 0) {
+      await this.runWriteNow(stamped);
+      return;
     }
+
+    this.scheduleWrite();
+  }
+
+  async replaceGame(save: GameSave): Promise<GameSave> {
+    const stamped = stampUpdatedAt(save);
+    this.cancelScheduledWrite();
+    await this.settleWriteInFlight();
+    await this.deleteTranscriptArchivesForSaveKey(this.saveKey);
+    this.archivedTranscriptIds.clear();
+    this.memoryIndex = null;
+    this.cachedSave = stamped;
+    await this.runWriteNow(stamped);
+    return stamped;
   }
 
   async resetGame(now = new Date()): Promise<GameSave> {
     const save = createSeedGameSave(now, { randomizeScenarioDeck: true });
-    await this.saveGame(save);
+    this.cancelScheduledWrite();
+    await this.settleWriteInFlight();
+    await this.deleteTranscriptArchivesForSaveKey(this.saveKey);
+    this.archivedTranscriptIds.clear();
+    this.memoryIndex = null;
+    this.cachedSave = save;
+    await this.runWriteNow(save);
     return save;
   }
 
   async deleteSave(): Promise<void> {
+    this.cancelScheduledWrite();
+    await this.settleWriteInFlight();
+    this.cachedSave = null;
+    this.memoryIndex = null;
+    this.archivedTranscriptIds.clear();
+    if (this.flushHooksAbort !== null) {
+      this.flushHooksAbort.abort();
+      this.flushHooksAbort = null;
+    }
+    await this.deleteTranscriptArchivesForSaveKey(this.saveKey);
+    await Promise.all(
+      this.legacySaveKeys.map((legacySaveKey) =>
+        this.deleteTranscriptArchivesForSaveKey(legacySaveKey),
+      ),
+    );
     await this.store.delete(this.saveKey);
     await this.deleteLegacySaves();
   }
 
   async backupSave(now: Date = new Date()): Promise<string | null> {
+    await this.flush();
+
     const source = await this.findSaveToBackup();
 
     if (source === null) {
@@ -124,13 +194,38 @@ export class LocalGameRepository implements GameRepository {
 
     const stamp = now.toISOString().replace(/[:.]/g, "-");
     const backupKey = `${source.key}.bak.${stamp}`;
+    const backupRaw = await this.rawForBackup(source);
 
     try {
-      await this.store.write(backupKey, source.raw);
+      await this.store.write(backupKey, backupRaw);
       return backupKey;
     } catch {
       return null;
     }
+  }
+
+  async flush(): Promise<void> {
+    // Coalesce concurrent flush callers (browser hooks fire beforeunload +
+    // pagehide back-to-back). The shared promise reads the latest cachedSave
+    // at write time, so callers between the start and end of a flush still
+    // get their state persisted.
+    if (this.pendingFlush !== null) return this.pendingFlush;
+    this.pendingFlush = this.runFlush().finally(() => {
+      this.pendingFlush = null;
+    });
+    return this.pendingFlush;
+  }
+
+  private async runFlush(): Promise<void> {
+    if (this.writeTimer !== null) {
+      clearTimeout(this.writeTimer);
+      this.writeTimer = null;
+    }
+    if (this.cachedSave === null) {
+      if (this.writeInFlight !== null) await this.writeInFlight;
+      return;
+    }
+    await this.runWriteNow(this.cachedSave);
   }
 
   async listMembers(): Promise<Member[]> {
@@ -276,19 +371,24 @@ export class LocalGameRepository implements GameRepository {
     limit: number,
   ): Promise<Array<{ memory: MemoryRecord; score: number }>> {
     const save = await this.requireGame();
+    const index = this.getMemoryIndex(save);
+    const candidates = pickIndexedCandidates(index, filters);
 
-    return save.memories
-      .filter((memory) => matchesMemoryFilters(memory, filters))
-      .filter((memory) => memory.embedding !== undefined)
-      .map((memory) => ({
+    const results: Array<{ memory: MemoryRecord; score: number }> = [];
+    for (const memory of candidates) {
+      if (memory.embedding === undefined) continue;
+      if (!matchesMemoryFilters(memory, filters)) continue;
+      results.push({
         memory,
-        score: cosineSimilarity(embedding, memory.embedding ?? []),
-      }))
-      .sort(
-        (first, second) =>
-          second.score - first.score || first.memory.id.localeCompare(second.memory.id),
-      )
-      .slice(0, limit);
+        score: cosineSimilarity(embedding, memory.embedding),
+      });
+    }
+
+    results.sort(
+      (first, second) =>
+        second.score - first.score || first.memory.id.localeCompare(second.memory.id),
+    );
+    return results.slice(0, limit);
   }
 
   private async requireGame(): Promise<GameSave> {
@@ -318,6 +418,18 @@ export class LocalGameRepository implements GameRepository {
     return null;
   }
 
+  private async rawForBackup(source: { key: string; raw: string }): Promise<string> {
+    try {
+      const parsed: unknown = JSON.parse(source.raw);
+      const parsedSave = gameSaveSchema.parse(parsed);
+      const restored = await this.restoreArchivedTranscriptsForKey(source.key, parsedSave, false);
+      const hydrated = hydrateFixtureOwnedMemberData(restored.save);
+      return JSON.stringify(hydrated.save);
+    } catch {
+      return source.raw;
+    }
+  }
+
   private async loadGameFromKey(
     saveKey: string,
   ): Promise<{ save: GameSave; needsWrite: boolean } | null> {
@@ -328,19 +440,20 @@ export class LocalGameRepository implements GameRepository {
     }
 
     const parsed: unknown = JSON.parse(raw);
-    const parsedSave = parsePersistedGameSave(parsed);
-    const hydratedSave = hydrateFixtureOwnedMemberData(parsedSave.save);
+    const parsedSave = gameSaveSchema.parse(parsed);
+    const restored = await this.restoreArchivedTranscriptsForKey(saveKey, parsedSave, true);
+    const hydrationResult = hydrateFixtureOwnedMemberData(restored.save);
 
     return {
-      save: hydratedSave,
-      needsWrite:
-        parsedSave.migrated || JSON.stringify(parsedSave.save) !== JSON.stringify(hydratedSave),
+      save: hydrationResult.save,
+      needsWrite: hydrationResult.dirty || restored.restoredAny,
     };
   }
 
   private async writeGameToKey(saveKey: string, save: GameSave): Promise<void> {
     const parsed = gameSaveSchema.parse(save);
-    await this.store.write(saveKey, JSON.stringify(parsed));
+    const persistable = await this.archiveCompletedTranscripts(parsed);
+    await this.store.write(saveKey, JSON.stringify(persistable));
   }
 
   private async deleteLegacySaves(): Promise<void> {
@@ -349,12 +462,260 @@ export class LocalGameRepository implements GameRepository {
     }
     this.legacySavesCleared = true;
   }
+
+  // -- Cache + debouncer plumbing -----------------------------------
+
+  private cancelScheduledWrite(): void {
+    if (this.writeTimer === null) return;
+    clearTimeout(this.writeTimer);
+    this.writeTimer = null;
+  }
+
+  private async settleWriteInFlight(): Promise<void> {
+    if (this.writeInFlight === null) return;
+    try {
+      await this.writeInFlight;
+    } catch {
+      return;
+    }
+  }
+
+  private scheduleWrite(): void {
+    if (this.writeTimer !== null) return;
+    this.installFlushHooks();
+    this.writeTimer = setTimeout(() => {
+      this.writeTimer = null;
+      const save = this.cachedSave;
+      if (save === null) return;
+      void this.runWriteNow(save);
+    }, this.writeDebounceMs);
+  }
+
+  private async runWriteNow(save: GameSave): Promise<void> {
+    this.cancelScheduledWrite();
+    const previousWrite = this.writeInFlight ?? Promise.resolve();
+    const writePromise = previousWrite
+      .catch(() => {})
+      .then(async () => {
+        // Persist the latest cached save, not the one we were scheduled
+        // with: any saveGame between scheduling and writing has already
+        // updated cachedSave.
+        const latest = this.cachedSave ?? save;
+        await this.writeGameToKey(this.saveKey, latest);
+        if (!this.legacySavesCleared) {
+          await this.deleteLegacySaves();
+        }
+      });
+    const trackedWrite = writePromise.finally(() => {
+      if (this.writeInFlight === trackedWrite) {
+        this.writeInFlight = null;
+      }
+    });
+    this.writeInFlight = trackedWrite;
+    await this.writeInFlight;
+  }
+
+  private installFlushHooks(): void {
+    if (this.flushHooksAbort !== null) return;
+    if (typeof window === "undefined") return;
+    const controller = new AbortController();
+    this.flushHooksAbort = controller;
+    const flush = () => {
+      void this.flush();
+    };
+    // beforeunload + pagehide cover navigation/tab close. visibilitychange
+    // catches tab-hide on mobile where pagehide is unreliable.
+    window.addEventListener("beforeunload", flush, { signal: controller.signal });
+    window.addEventListener("pagehide", flush, { signal: controller.signal });
+    if (typeof document !== "undefined") {
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+          if (document.visibilityState === "hidden") flush();
+        },
+        { signal: controller.signal },
+      );
+    }
+  }
+
+  // -- Memory index -------------------------------------------------
+
+  private getMemoryIndex(save: GameSave): MemoryIndex {
+    if (this.memoryIndex !== null && this.memoryIndex.all === save.memories) {
+      return this.memoryIndex;
+    }
+    this.memoryIndex = buildMemoryIndex(save.memories);
+    return this.memoryIndex;
+  }
+
+  // -- Transcript archive -------------------------------------------
+
+  private transcriptArchiveKey(dateSessionId: string): string {
+    return this.transcriptArchiveKeyForSaveKey(this.saveKey, dateSessionId);
+  }
+
+  private transcriptArchiveKeyForSaveKey(saveKey: string, dateSessionId: string): string {
+    return `${saveKey}${TRANSCRIPT_ARCHIVE_SUFFIX}${dateSessionId}`;
+  }
+
+  private async deleteTranscriptArchivesForSaveKey(saveKey: string): Promise<void> {
+    const archiveKeys = await this.store.listKeys(`${saveKey}${TRANSCRIPT_ARCHIVE_SUFFIX}`);
+    await Promise.all(archiveKeys.map((archiveKey) => this.store.delete(archiveKey)));
+  }
+
+  private async archiveCompletedTranscripts(save: GameSave): Promise<GameSave> {
+    const pending: Array<{ index: number; id: string; json: string }> = [];
+    for (let index = 0; index < save.dateSessions.length; index += 1) {
+      const session = save.dateSessions[index];
+      if (session.status === "active") continue;
+      if (session.transcript.length === 0) {
+        continue;
+      }
+      if (!this.archivedTranscriptIds.has(session.id)) {
+        pending.push({
+          index,
+          id: session.id,
+          json: JSON.stringify(session.transcript),
+        });
+      } else {
+        pending.push({ index, id: session.id, json: "" });
+      }
+    }
+    if (pending.length === 0) return save;
+
+    const archiveResults = await Promise.all(
+      pending.map(async (entry) => {
+        if (entry.json === "") return { entry, ok: true };
+        try {
+          await this.store.write(this.transcriptArchiveKey(entry.id), entry.json);
+          this.archivedTranscriptIds.add(entry.id);
+          return { entry, ok: true };
+        } catch {
+          // If the archive write fails, leave the transcript in the live
+          // save and retry on the next flush.
+          return { entry, ok: false };
+        }
+      }),
+    );
+
+    let mutated: GameSave | null = null;
+    for (const { entry, ok } of archiveResults) {
+      if (!ok) continue;
+      if (mutated === null) {
+        mutated = { ...save, dateSessions: [...save.dateSessions] };
+      }
+      mutated.dateSessions[entry.index] = {
+        ...save.dateSessions[entry.index],
+        transcript: [],
+      };
+    }
+    return mutated ?? save;
+  }
+
+  private async restoreArchivedTranscriptsForKey(
+    saveKey: string,
+    save: GameSave,
+    markArchived: boolean,
+  ): Promise<{ save: GameSave; restoredAny: boolean }> {
+    const candidates: Array<{ index: number; id: string }> = [];
+    for (let index = 0; index < save.dateSessions.length; index += 1) {
+      const session = save.dateSessions[index];
+      const isCompleted = session.status === "completed" || session.status === "ended_early";
+      if (!isCompleted) continue;
+      // Inline transcript still present from older save formats; archived on next flush.
+      if (session.transcript.length > 0) continue;
+      candidates.push({ index, id: session.id });
+    }
+    if (candidates.length === 0) return { save, restoredAny: false };
+
+    const restored = await Promise.all(
+      candidates.map(async (entry) => ({
+        entry,
+        archived: await this.readTranscriptArchive(saveKey, entry.id),
+      })),
+    );
+
+    let nextSessions: DateSession[] | null = null;
+    let restoredAny = false;
+    for (const { entry, archived } of restored) {
+      if (archived === null || archived.length === 0) continue;
+      if (markArchived) {
+        this.archivedTranscriptIds.add(entry.id);
+      }
+      if (nextSessions === null) {
+        nextSessions = [...save.dateSessions];
+      }
+      nextSessions[entry.index] = {
+        ...save.dateSessions[entry.index],
+        transcript: archived,
+      };
+      restoredAny = true;
+    }
+    if (nextSessions === null) return { save, restoredAny: false };
+    // Skip a Zod re-parse: archived values were schema-validated on read and the rest of save is unchanged.
+    return { save: { ...save, dateSessions: nextSessions }, restoredAny };
+  }
+
+  private async readTranscriptArchive(
+    saveKey: string,
+    dateSessionId: string,
+  ): Promise<DateMessage[] | null> {
+    const raw = await this.store.read(this.transcriptArchiveKeyForSaveKey(saveKey, dateSessionId));
+    if (raw === null) return null;
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return null;
+      const messages: DateMessage[] = [];
+      for (const candidate of parsed) {
+        const message = dateMessageSchema.safeParse(candidate);
+        if (message.success) {
+          messages.push(message.data);
+        }
+      }
+      return messages;
+    } catch {
+      return null;
+    }
+  }
 }
 
-function parsePersistedGameSave(parsed: unknown): { save: GameSave; migrated: boolean } {
-  const save = gameSaveSchema.parse(parsed);
+function stampUpdatedAt(save: GameSave): GameSave {
+  return { ...save, updatedAt: new Date().toISOString() };
+}
 
-  return { save, migrated: JSON.stringify(save) !== JSON.stringify(parsed) };
+function buildMemoryIndex(memories: readonly MemoryRecord[]): MemoryIndex {
+  const byPairId = new Map<string, MemoryRecord[]>();
+  const byScenarioId = new Map<string, MemoryRecord[]>();
+  const bySubjectId = new Map<string, MemoryRecord[]>();
+  for (const memory of memories) {
+    if (memory.pairId !== undefined) {
+      pushIntoBucket(byPairId, memory.pairId, memory);
+    }
+    if (memory.scenarioId !== undefined) {
+      pushIntoBucket(byScenarioId, memory.scenarioId, memory);
+    }
+    for (const subjectId of memory.subjectIds) {
+      pushIntoBucket(bySubjectId, subjectId, memory);
+    }
+  }
+  return { all: memories, byPairId, byScenarioId, bySubjectId };
+}
+
+function pickIndexedCandidates(
+  index: MemoryIndex,
+  filters: MemorySearchFilters,
+): readonly MemoryRecord[] {
+  if (filters.pairId !== undefined) {
+    return index.byPairId.get(filters.pairId) ?? [];
+  }
+  if (filters.scenarioId !== undefined) {
+    return index.byScenarioId.get(filters.scenarioId) ?? [];
+  }
+  if (filters.subjectIds !== undefined && filters.subjectIds.length > 0) {
+    const seed = filters.subjectIds[0];
+    return index.bySubjectId.get(seed) ?? [];
+  }
+  return index.all;
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {

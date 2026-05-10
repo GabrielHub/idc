@@ -36,7 +36,7 @@ import {
   togglePlayback,
   triggerScenarioEvent,
 } from "../services/date-engine";
-import { getActiveShift, makePairId } from "../services/game-seed";
+import { getActiveShift, hydrateFixtureOwnedMemberData, makePairId } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
 import {
   discardDrawnScenario,
@@ -446,6 +446,15 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   useEffect(() => {
     return () => setDateAmbientActive(false);
   }, [setDateAmbientActive]);
+
+  // SPA navigation away doesn't fire pagehide/beforeunload, so flush on unmount.
+  useEffect(() => {
+    return () => {
+      repository.flush().catch((error) => {
+        console.warn("save flush on unmount failed", error);
+      });
+    };
+  }, [repository]);
 
   async function persist(nextSave: GameSave) {
     await repository.saveGame(nextSave);
@@ -866,8 +875,8 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       }
 
       await tryBackupSave(repository);
-      await repository.saveGame(validated.data);
-      const nextSave = (await repository.loadGame()) ?? validated.data;
+      const hydrated = hydrateFixtureOwnedMemberData(validated.data);
+      const nextSave = await repository.replaceGame(hydrated.save);
 
       setSave(nextSave);
       setSelectedMemberIds(defaultMemberSelection(nextSave));

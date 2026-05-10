@@ -41,9 +41,12 @@ export type MemorySearchResult = {
 export interface GameRepository {
   loadGame(): Promise<GameSave | null>;
   saveGame(save: GameSave): Promise<void>;
+  replaceGame(save: GameSave): Promise<GameSave>;
   resetGame(now?: Date): Promise<GameSave>;
   deleteSave(): Promise<void>;
   backupSave(now?: Date): Promise<string | null>;
+  // Force any pending debounced writes to disk synchronously.
+  flush(): Promise<void>;
   listMembers(): Promise<Member[]>;
   saveMember(member: Member): Promise<void>;
   getActiveShift(): Promise<ShiftState | null>;

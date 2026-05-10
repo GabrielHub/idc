@@ -13,7 +13,7 @@
  * ==================================================================== */
 
 import type { MemoryRecord, Member, PairState } from "../domain/game";
-import { hashSeedUint32 } from "../services/utils";
+import { hashSeedUint32, pushIntoBucket } from "../services/utils";
 
 export type PairBoardPoint = {
   x: number;
@@ -42,6 +42,11 @@ export type PairBoardEdge = {
   isGhost: boolean;
 };
 
+export type PairBoardNodeNoteSummary = {
+  topImportance: 1 | 2 | 3 | 4 | 5;
+  latestNoteAt: number;
+};
+
 export type PairBoardGraphMeta = {
   totalPairs: number;
   filedPairs: number;
@@ -55,6 +60,8 @@ export type PairBoardGraph = {
   nodeById: Map<string, PairBoardNode>;
   edgeById: Map<string, PairBoardEdge>;
   notesByPair: Map<string, MemoryRecord[]>;
+  incidentEdgesByNode: Map<string, PairBoardEdge[]>;
+  nodeNoteSummaryByNode: Map<string, PairBoardNodeNoteSummary>;
   meta: PairBoardGraphMeta;
 };
 
@@ -85,12 +92,7 @@ export function derivePairGraph(
     if (memory.scope !== "pair") continue;
     if (memory.visibility !== "public") continue;
     if (memory.pairId === undefined) continue;
-    const bucket = filedNotesByPair.get(memory.pairId);
-    if (bucket === undefined) {
-      filedNotesByPair.set(memory.pairId, [memory]);
-    } else {
-      bucket.push(memory);
-    }
+    pushIntoBucket(filedNotesByPair, memory.pairId, memory);
   }
 
   const allEdges: PairBoardEdge[] = [];
@@ -166,6 +168,15 @@ export function derivePairGraph(
     visibleDegree = degreeByMember;
   }
 
+  const incidentEdgesByNode = new Map<string, PairBoardEdge[]>();
+  const nodeNoteSummaryByNode = new Map<string, PairBoardNodeNoteSummary>();
+  for (const edge of visibleEdges) {
+    pushIntoBucket(incidentEdgesByNode, edge.a, edge);
+    pushIntoBucket(incidentEdgesByNode, edge.b, edge);
+    rollupNoteSummary(nodeNoteSummaryByNode, edge.a, edge);
+    rollupNoteSummary(nodeNoteSummaryByNode, edge.b, edge);
+  }
+
   const visibleMembers = members.filter((member) => visibleDegree.has(member.id));
   const isolatedMembers = members.filter((member) => !visibleDegree.has(member.id));
 
@@ -180,6 +191,8 @@ export function derivePairGraph(
     nodeById: new Map(layoutNodes.map((node) => [node.member.id, node])),
     edgeById: new Map(sortedEdges.map((edge) => [edge.pairId, edge])),
     notesByPair: filedNotesByPair,
+    incidentEdgesByNode,
+    nodeNoteSummaryByNode,
     meta: {
       totalPairs: pairStates.length,
       filedPairs: filedPairCount,
@@ -187,6 +200,27 @@ export function derivePairGraph(
       isolatedMembers,
     },
   };
+}
+
+function rollupNoteSummary(
+  bucket: Map<string, PairBoardNodeNoteSummary>,
+  memberId: string,
+  edge: PairBoardEdge,
+): void {
+  const existing = bucket.get(memberId);
+  if (existing === undefined) {
+    bucket.set(memberId, {
+      topImportance: edge.topImportance,
+      latestNoteAt: edge.latestNoteAt,
+    });
+    return;
+  }
+  if (edge.topImportance > existing.topImportance) {
+    existing.topImportance = edge.topImportance;
+  }
+  if (edge.latestNoteAt > existing.latestNoteAt) {
+    existing.latestNoteAt = edge.latestNoteAt;
+  }
 }
 
 export function layoutRadialByDegree(

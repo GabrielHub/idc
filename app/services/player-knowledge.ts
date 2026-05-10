@@ -14,6 +14,7 @@ import {
   type ScenarioTag,
 } from "../domain/game";
 import { evaluateMatchFit, type MatchFitResult } from "./match-fit";
+import { pushIntoBucket } from "./utils";
 
 export type RevealCandidate = {
   id: string;
@@ -62,29 +63,68 @@ const MAX_DETERMINISTIC_REVEALS_HIGH_DELTA = 2;
 const HIGH_DATE_HEALTH_DELTA_THRESHOLD = 6;
 const MEANINGFUL_DELTA_MAGNITUDE = 3;
 
+type PlayerKnowledgeIndex = {
+  bySubject: Map<string, PlayerKnowledgeRecord[]>;
+  knownReadIds: Set<string>;
+};
+
+const PLAYER_KNOWLEDGE_INDEX_CACHE = new WeakMap<
+  readonly PlayerKnowledgeRecord[],
+  PlayerKnowledgeIndex
+>();
+
+function buildPlayerKnowledgeIndex(
+  records: readonly PlayerKnowledgeRecord[],
+): PlayerKnowledgeIndex {
+  const bySubject = new Map<string, PlayerKnowledgeRecord[]>();
+  const knownReadIds = new Set<string>();
+  for (const record of records) {
+    pushIntoBucket(bySubject, `${record.subjectKind}:${record.subjectId}`, record);
+    knownReadIds.add(record.readId);
+  }
+  return { bySubject, knownReadIds };
+}
+
+function getOrBuildIndex(records: readonly PlayerKnowledgeRecord[]): PlayerKnowledgeIndex {
+  let index = PLAYER_KNOWLEDGE_INDEX_CACHE.get(records);
+  if (index === undefined) {
+    index = buildPlayerKnowledgeIndex(records);
+    PLAYER_KNOWLEDGE_INDEX_CACHE.set(records, index);
+  }
+  return index;
+}
+
+function getPlayerKnowledgeIndex(save: GameSave): PlayerKnowledgeIndex {
+  return getOrBuildIndex(save.playerKnowledge);
+}
+
+function readsForSubject(
+  save: GameSave,
+  kind: PlayerKnowledgeRecord["subjectKind"],
+  subjectId: string,
+): PlayerKnowledgeRecord[] {
+  const bucket = getPlayerKnowledgeIndex(save).bySubject.get(`${kind}:${subjectId}`);
+  // Defensive copy so callers can sort or splice without mutating the cached bucket.
+  return bucket === undefined ? [] : [...bucket];
+}
+
 export function visibleReadsForMember(save: GameSave, memberId: string): PlayerKnowledgeRecord[] {
-  return save.playerKnowledge.filter(
-    (record) => record.subjectKind === "member" && record.subjectId === memberId,
-  );
+  return readsForSubject(save, "member", memberId);
 }
 
 export function visibleReadsForPair(save: GameSave, pairId: string): PlayerKnowledgeRecord[] {
-  return save.playerKnowledge.filter(
-    (record) => record.subjectKind === "pair" && record.subjectId === pairId,
-  );
+  return readsForSubject(save, "pair", pairId);
 }
 
 export function visibleReadsForScenario(
   save: GameSave,
   scenarioId: string,
 ): PlayerKnowledgeRecord[] {
-  return save.playerKnowledge.filter(
-    (record) => record.subjectKind === "scenario" && record.subjectId === scenarioId,
-  );
+  return readsForSubject(save, "scenario", scenarioId);
 }
 
 export function isReadKnown(save: GameSave, readId: string): boolean {
-  return save.playerKnowledge.some((record) => record.readId === readId);
+  return getPlayerKnowledgeIndex(save).knownReadIds.has(readId);
 }
 
 export type VisibleMemberProfile = {
@@ -101,9 +141,7 @@ export function buildVisibleMemberProfile(
   member: Member,
   knowledge: readonly PlayerKnowledgeRecord[],
 ): VisibleMemberProfile {
-  const memberKnowledge = knowledge.filter(
-    (record) => record.subjectKind === "member" && record.subjectId === member.id,
-  );
+  const memberKnowledge = getOrBuildIndex(knowledge).bySubject.get(`member:${member.id}`) ?? [];
   const profileSentences = splitSentences(member.datingProfile);
   const publicFragments: string[] = [];
 
@@ -153,7 +191,7 @@ export function buildVisibleMemberProfile(
   return {
     publicFragments,
     redactedBlocks,
-    revealedReads: memberKnowledge,
+    revealedReads: [...memberKnowledge],
   };
 }
 

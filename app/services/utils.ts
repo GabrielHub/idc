@@ -28,6 +28,27 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
+export function pushIntoBucket<TKey, TValue>(
+  bucket: Map<TKey, TValue[]>,
+  key: TKey,
+  value: TValue,
+): void {
+  const existing = bucket.get(key);
+  if (existing === undefined) {
+    bucket.set(key, [value]);
+    return;
+  }
+  existing.push(value);
+}
+
+export function arraysShallowEqual<T>(left: readonly T[], right: readonly T[]): boolean {
+  if (left.length !== right.length) return false;
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] !== right[index]) return false;
+  }
+  return true;
+}
+
 export function hashSeedUint32(seed: string): number {
   let hash = 2166136261;
   for (let index = 0; index < seed.length; index += 1) {

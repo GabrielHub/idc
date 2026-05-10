@@ -14,4 +14,8 @@ export class MemorySaveStore implements RawSaveStore {
   async delete(key: string): Promise<void> {
     this.values.delete(key);
   }
+
+  async listKeys(prefix = ""): Promise<string[]> {
+    return [...this.values.keys()].filter((key) => key.startsWith(prefix));
+  }
 }

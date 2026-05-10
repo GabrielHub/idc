@@ -28,4 +28,25 @@ export class BrowserLocalStorageSaveStore implements RawSaveStore {
 
     window.localStorage.removeItem(key);
   }
+
+  async listKeys(prefix = ""): Promise<string[]> {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const keys: string[] = [];
+
+    try {
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (key !== null && key.startsWith(prefix)) {
+          keys.push(key);
+        }
+      }
+    } catch {
+      return [];
+    }
+
+    return keys;
+  }
 }
