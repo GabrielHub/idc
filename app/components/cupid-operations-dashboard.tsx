@@ -461,6 +461,34 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     setSave(nextSave);
   }
 
+  async function pauseActivePlaybackAfterDateFailure() {
+    if (save === null || activeSession === null) {
+      return;
+    }
+
+    const latestSave = (await repository.loadGame()) ?? save;
+    const latestSession = latestSave.dateSessions.find(
+      (session) => session.id === activeSession.id,
+    );
+
+    if (
+      latestSession === undefined ||
+      latestSession.status !== "active" ||
+      latestSession.playbackState !== "playing"
+    ) {
+      return;
+    }
+
+    const result = togglePlayback(latestSave, {
+      dateSessionId: latestSession.id,
+      desiredState: "paused",
+    });
+    await persist(result.save);
+    setActiveDateSessionId(result.session.id);
+    setQueuedPlaybackIntent(null);
+    stopAfterCurrentTurnRef.current = false;
+  }
+
   function selectFocusMember(memberId: string) {
     if (save?.members.some((member) => member.id === memberId && !isMemberRetained(member))) {
       return;
@@ -1021,6 +1049,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
       setErrorMessage(error instanceof Error ? error.message : "Cupid could not file that action.");
 
       if (retryOnFailure !== undefined) {
+        await pauseActivePlaybackAfterDateFailure().catch(() => undefined);
         setPendingDateRetry(retryOnFailure);
       }
     } finally {
@@ -1065,7 +1094,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const pendingDateAction = asPendingDateAction(pendingAction);
 
   return (
-    <div className="relative min-h-screen w-screen overflow-x-clip bg-aura-bg text-aura-ink">
+    <div className="relative min-h-screen w-full overflow-x-clip bg-aura-bg text-aura-ink">
       <AmbientMesh />
       <ScenarioBackdropLayer
         scenarioId={ambientScenario?.id}

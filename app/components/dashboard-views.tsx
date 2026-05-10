@@ -2507,7 +2507,10 @@ function DateStandeeFrame({
   reactions: ReactionSignal[];
 }) {
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden xl:block">
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 hidden overflow-hidden xl:block"
+    >
       <DaterStandee
         member={leftMember}
         placement="bottom-left"

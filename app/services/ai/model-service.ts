@@ -256,7 +256,7 @@ export async function generateCharacterTurn({
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
 
-  return streamTextWithModelService({
+  return generateTextWithModelService({
     system: packet.system,
     prompt: packet.prompt,
     messages: packet.messages,
@@ -271,7 +271,6 @@ export async function generateCharacterTurn({
     ),
     generationOptions,
     tools,
-    onTextDelta: () => undefined,
   });
 }
 

@@ -1353,7 +1353,7 @@ export function finalizeDateSession({
     dateSessionId: session.id,
     completedAt,
     outcome,
-    summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${finalReportStatusLine(session)}`,
+    summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${finalReportStatusLine(session, outcome)}`,
     statSummary: finalReportCaseSummary(outcome),
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
@@ -2039,7 +2039,7 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
   return "mixed";
 }
 
-function finalReportStatusLine(session: DateSession): string {
+function finalReportStatusLine(session: DateSession, outcome: DateFinalReport["outcome"]): string {
   if (session.status === "ended_early" && session.endSentiment === "positive") {
     return "Date ended early with a positive exit. Cupid filed it as efficient.";
   }
@@ -2048,7 +2048,19 @@ function finalReportStatusLine(session: DateSession): string {
     return "Date ended early. Standard cleanup is on schedule.";
   }
 
-  return "Date completed. Cupid has enough data to be annoying.";
+  if (outcome === "second_date") {
+    return "Second booking signal is strong enough to survive paperwork.";
+  }
+
+  if (outcome === "cool_down") {
+    return "The file needs air before Cupid touches the calendar again.";
+  }
+
+  if (outcome === "bad_fit") {
+    return "The mismatch is material. Cupid closed the romantic lane.";
+  }
+
+  return "Cupid filed the result as mixed and left the pen uncapped.";
 }
 
 function finalReportCaseSummary(outcome: DateFinalReport["outcome"]): string {

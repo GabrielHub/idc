@@ -90,6 +90,7 @@ html {
 html,
 body {
   background: var(--color-aura-bg);
+  overflow-x: clip;
 }
 
 body {

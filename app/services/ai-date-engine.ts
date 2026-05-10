@@ -1179,6 +1179,13 @@ function speakerLabelPattern(speakerName: string): RegExp {
   return cached;
 }
 
+export class EmptyPerformerMessageError extends Error {
+  constructor() {
+    super("Performer returned an empty message.");
+    this.name = "EmptyPerformerMessageError";
+  }
+}
+
 export function sanitizeCharacterText(text: string, speakerName: string): string {
   const trimmedText = normalizeForbiddenPunctuation(text)
     .replace(/\s+/g, " ")
@@ -1189,7 +1196,7 @@ export function sanitizeCharacterText(text: string, speakerName: string): string
   const memberFacingText = cleanMemberFacingText(trimmedText).trim();
 
   if (memberFacingText.length === 0) {
-    throw new Error("Performer returned an empty message.");
+    throw new EmptyPerformerMessageError();
   }
 
   if (memberFacingText.length <= CHARACTER_MESSAGE_MAX_LENGTH) {

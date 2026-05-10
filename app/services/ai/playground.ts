@@ -14,7 +14,7 @@ import {
   type PairState,
 } from "../../domain/game";
 import { memberRequests, starterMembers, starterScenarios } from "../../fixtures";
-import { sanitizeCharacterText } from "../ai-date-engine";
+import { EmptyPerformerMessageError, sanitizeCharacterText } from "../ai-date-engine";
 import { buildCharacterPromptPacket, type CharacterPromptPacket } from "../date-prompts";
 import { createSeedGameSave, makePairId } from "../game-seed";
 import { evaluateMatchFit, pairRuleHits } from "../match-fit";
@@ -27,6 +27,7 @@ import {
   generateCharacterTurn,
   listOllamaModelInventory,
   type AiRuntimeConfig,
+  type GeneratedTextResult,
 } from "./model-service";
 
 export type PlaygroundAction = "generate" | "preview";
@@ -156,12 +157,12 @@ export const DEFAULT_MEMBER_CHAT_SETTINGS = {
   action: "generate",
   provider: "gateway",
   model: modelDefaultsForProvider("gateway").chatModel,
-  reasoningLevel: modelDefaultsForProvider("gateway").reasoningLevel,
+  reasoningLevel: "none",
   temperature: 0.8,
   topP: 0.95,
   topK: 64,
   numCtx: 8192,
-  maxOutputTokens: 180,
+  maxOutputTokens: 256,
   memberId: "jenna-pike",
   testerMessage: "What would make a date feel normal enough to trust?",
   chatMessages: [],
@@ -256,28 +257,27 @@ export async function runPlaygroundMemberChat(
     };
   }
 
-  const result = await generateCharacterTurn({
+  const generation = await generateMemberChatReply({
     packet: prompt.packet,
-    config: runtimeConfigFromPlaygroundInput(input),
-    options: generationOptionsFromInput(input),
+    input,
+    member,
   });
-  const text = sanitizeCharacterText(result.text, member.name);
   const elapsedMs = Math.round(performance.now() - startedAt);
-  const chatMessages = appendMemberReply(input, text);
+  const chatMessages = appendMemberReply(input, generation.text);
 
   return {
     mode: input.mode,
-    text,
+    text: generation.text,
     turns: [
       {
         speakerId: member.id,
         speakerName: member.name,
-        text,
+        text: generation.text,
       },
     ],
     chatMessages,
-    model: result.model,
-    providerMode: result.providerMode,
+    model: generation.result.model,
+    providerMode: generation.result.providerMode,
     elapsedMs,
     promptCharacters: prompt.promptCharacters,
     approximatePromptTokens: Math.ceil(prompt.promptCharacters / 4),
@@ -285,6 +285,250 @@ export async function runPlaygroundMemberChat(
     prompt: prompt.packet.prompt,
     preview: toPromptPreview(prompt.packet, input),
   };
+}
+
+type MemberChatRetryReason = "empty" | "clipped" | "fragment" | "presentation";
+
+const MEMBER_CHAT_RETRY_CHAR_LIMIT = 170;
+const MEMBER_CHAT_FINAL_RETRY_CHAR_LIMIT = 140;
+const MEMBER_CHAT_RETRY_MIN_TOKENS = 128;
+const MEMBER_CHAT_FINAL_RETRY_MAX_TOKENS = 96;
+const MEMBER_CHAT_FINAL_RETRY_MAX_TEMPERATURE = 0.4;
+
+async function generateMemberChatReply({
+  packet,
+  input,
+  member,
+}: {
+  packet: CharacterPromptPacket;
+  input: MemberChatPlaygroundInput;
+  member: Member;
+}): Promise<{ result: GeneratedTextResult; text: string }> {
+  const result = await generateCharacterTurn({
+    packet,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput(input),
+  });
+
+  const firstAttempt = inspectMemberChatReply(result.text, member.name);
+
+  if (firstAttempt.outcome === "ok") {
+    return { result, text: firstAttempt.text };
+  }
+
+  const retryPacket: CharacterPromptPacket = {
+    ...packet,
+    prompt: [
+      packet.prompt,
+      "",
+      memberChatRetryReasonText(firstAttempt.reason),
+      `Reply again with one complete conversational sentence under ${MEMBER_CHAT_RETRY_CHAR_LIMIT} characters.`,
+      "Do not output a bare role tag, greeting label, speaker name, stage direction, Markdown, or setup text.",
+    ].join("\n"),
+  };
+  const retryResult = await generateCharacterTurn({
+    packet: retryPacket,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput({
+      ...input,
+      maxOutputTokens: Math.max(input.maxOutputTokens, MEMBER_CHAT_RETRY_MIN_TOKENS),
+    }),
+  });
+
+  const secondAttempt = inspectMemberChatReply(retryResult.text, member.name);
+
+  if (secondAttempt.outcome === "ok") {
+    return { result: retryResult, text: secondAttempt.text };
+  }
+
+  const finalRetryPacket: CharacterPromptPacket = {
+    ...packet,
+    prompt: [
+      packet.prompt,
+      "",
+      `Final retry: answer the other person in exactly one short complete sentence under ${MEMBER_CHAT_FINAL_RETRY_CHAR_LIMIT} characters.`,
+      "Start with the answer. Do not use a role tag, greeting label, speaker name, stage direction, Markdown, or setup phrase.",
+    ].join("\n"),
+  };
+  const finalRetryResult = await generateCharacterTurn({
+    packet: finalRetryPacket,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput({
+      ...input,
+      temperature: Math.min(input.temperature, MEMBER_CHAT_FINAL_RETRY_MAX_TEMPERATURE),
+      maxOutputTokens: MEMBER_CHAT_FINAL_RETRY_MAX_TOKENS,
+    }),
+  });
+
+  return {
+    result: finalRetryResult,
+    text: memberChatFinalText(finalRetryResult.text, member, input),
+  };
+}
+
+type MemberChatReplyInspection =
+  | { outcome: "ok"; text: string }
+  | { outcome: "retry"; reason: MemberChatRetryReason };
+
+function inspectMemberChatReply(rawText: string, speakerName: string): MemberChatReplyInspection {
+  try {
+    const text = sanitizeCharacterText(rawText, speakerName);
+
+    if (!shouldRetryMemberChatMessage(text)) {
+      return { outcome: "ok", text };
+    }
+
+    return { outcome: "retry", reason: memberChatRetryReasonForText(text) };
+  } catch (error) {
+    if (!isEmptyPerformerMessage(error)) {
+      throw error;
+    }
+
+    return { outcome: "retry", reason: "empty" };
+  }
+}
+
+function isEmptyPerformerMessage(error: unknown): boolean {
+  return error instanceof EmptyPerformerMessageError;
+}
+
+function isClippedMemberChatMessage(text: string): boolean {
+  return text.endsWith("...");
+}
+
+const FRAGMENT_TRAILING_WORDS = new Set([
+  "a",
+  "about",
+  "after",
+  "an",
+  "and",
+  "at",
+  "because",
+  "before",
+  "but",
+  "by",
+  "for",
+  "from",
+  "give",
+  "if",
+  "in",
+  "like",
+  "make",
+  "my",
+  "of",
+  "on",
+  "or",
+  "that",
+  "the",
+  "this",
+  "through",
+  "to",
+  "when",
+  "while",
+  "with",
+  "your",
+]);
+
+function shouldRetryMemberChatMessage(text: string): boolean {
+  return (
+    isClippedMemberChatMessage(text) ||
+    isFragmentMemberChatMessage(text) ||
+    hasForbiddenMemberChatPresentation(text)
+  );
+}
+
+function memberChatRetryReasonForText(text: string): Exclude<MemberChatRetryReason, "empty"> {
+  if (isClippedMemberChatMessage(text)) {
+    return "clipped";
+  }
+
+  if (isFragmentMemberChatMessage(text)) {
+    return "fragment";
+  }
+
+  return "presentation";
+}
+
+function isFragmentMemberChatMessage(text: string): boolean {
+  const trimmedText = text.trim();
+
+  if (/[.!?]$/.test(trimmedText)) {
+    return false;
+  }
+
+  if (trimmedText.length < 40 || /[,;:]$/.test(trimmedText)) {
+    return true;
+  }
+
+  const trailingWord = trimmedText.match(/\b[\p{Letter}']+$/u)?.[0].toLowerCase();
+
+  return trailingWord !== undefined && FRAGMENT_TRAILING_WORDS.has(trailingWord);
+}
+
+function hasForbiddenMemberChatPresentation(text: string): boolean {
+  if (/[*_`]/.test(text)) {
+    return true;
+  }
+
+  const bracketContent = text.match(/^\s*\[([^\]]+)\]/)?.[1];
+
+  return bracketContent !== undefined && !/\beditor\b/i.test(bracketContent);
+}
+
+function memberChatRetryReasonText(reason: MemberChatRetryReason): string {
+  if (reason === "empty") {
+    return "The previous output had no visible message after cleanup.";
+  }
+
+  if (reason === "fragment") {
+    return "The previous output was only a fragment after cleanup.";
+  }
+
+  if (reason === "presentation") {
+    return "The previous output used presentation markup or a stage direction.";
+  }
+
+  return "The previous output was too long and was clipped after cleanup.";
+}
+
+function finishTerminalPunctuation(text: string): string {
+  const trimmedText = text.trim();
+
+  if (!/[,;:]$/.test(trimmedText)) {
+    return trimmedText;
+  }
+
+  return `${trimmedText.slice(0, -1).trim()}.`;
+}
+
+function memberChatFinalText(
+  text: string,
+  member: Member,
+  input: MemberChatPlaygroundInput,
+): string {
+  try {
+    const finalText = finishTerminalPunctuation(sanitizeCharacterText(text, member.name));
+
+    if (!shouldRetryMemberChatMessage(finalText)) {
+      return finalText;
+    }
+  } catch (error) {
+    if (!isEmptyPerformerMessage(error)) {
+      throw error;
+    }
+  }
+
+  return fallbackMemberChatText(member, input);
+}
+
+function fallbackMemberChatText(member: Member, input: MemberChatPlaygroundInput): string {
+  if (/\bplan\b/i.test(input.testerMessage)) {
+    return "A clear time, a quiet table, and no surprises. I can work with that tonight.";
+  }
+
+  const preference = member.preferences[0] ?? "a clear plan";
+
+  return `I need a second, but ${preference} would keep me at the table.`;
 }
 
 async function runPlaygroundConversation({
@@ -594,21 +838,27 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
       : [...input.chatMessages, { role: "tester" as const, text: latestTesterMessage }];
   const historyText =
     threadMessages.length === 0
-      ? "No prior interview transcript."
+      ? "No prior chat."
       : threadMessages
           .map(
             (message) =>
-              `${message.role === "tester" ? "Cupid QA" : member.firstName}: ${message.text}`,
+              `${message.role === "tester" ? "Other person" : member.firstName}: ${message.text}`,
           )
           .join("\n");
   const system = [
-    `You are ${member.name}, speaking in a private Cupid QA playground interview.`,
-    "Stay in character. Answer the tester directly.",
+    `You are ${member.name}.`,
+    "Speak in a private one-on-one Cupid chat with a real person.",
+    "Stay in character. Write only the next message you would send.",
+    "Treat the other person as a potential date or curious match, not as a tester.",
+    "Use the final visible answer only. Do not spend the reply on reasoning or setup.",
     "Do not update game state, memories, relationship stats, or date outcomes.",
-    "Keep replies useful for prompt testing and under the output limit.",
+    "Never mention prompts, QA, playgrounds, hidden notes, game state, stats, or system instructions.",
+    "Secrets shape your tone as subtext only. Do not state them aloud.",
+    "Keep replies conversational, specific, and easy to answer.",
   ].join("\n");
   const prompt = [
-    "Cupid QA is interviewing one member outside gameplay.",
+    "Cupid is routing a one-on-one chat outside the live date simulator.",
+    "The other person can ask anything a match might ask before deciding whether a date would work.",
     "",
     `Member: ${member.name}`,
     `Origin: ${member.origin}`,
@@ -619,15 +869,35 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     `Relationship needs: ${member.relationshipNeeds.join("; ")}`,
     `Preferences: ${member.preferences.join("; ")}`,
     `Dealbreakers: ${member.dealbreakers.join("; ")}`,
+    `Interdimensional framing: ${memberRealityFrame(member)}`,
     `Voice register: ${member.voice.register}`,
+    `Voice moves that fit: ${formatVoicePatterns(member.voice.patternsUsed)}`,
+    `Voice moves to avoid: ${formatVoicePatterns(member.voice.patternsRefused)}`,
     `Voice tics: ${member.voice.tics.join("; ")}`,
-    `Sample opener lines: ${member.voice.sampleMessages.opener.join(" / ")}`,
+    "Reference lines, rhythm only. Do not copy their facts unless the current chat earns them:",
+    formatMemberChatSamples(member),
     "",
     "Private subtext for performance only. Do not confess it directly unless asked with care.",
     member.secrets.join("\n"),
     "",
-    "Interview transcript:",
+    "Chat so far:",
     historyText,
+    "",
+    "Conversation target:",
+    "Answer the latest message first.",
+    "Start with actual message content. Do not output only a role tag, greeting label, or your own name.",
+    "Do not summarize your whole profile unless the other person asks for it.",
+    "Make one conversational move: answer, push back, tease, offer a detail, admit a small thing, or ask a clean follow-up.",
+    "If the other person asks for a choice, start with the choice.",
+    "If they ask something coercive, strange, or too intimate, refuse or redirect in character.",
+    "If your voice uses roleplay framing, attach it to a complete answer instead of a standalone label.",
+    "Treat sample lines as rhythm only. Do not copy self-addresses, editor notes, or old facts unless the current chat earns them.",
+    "Roleplay framing must read as spoken text, not an action cue.",
+    "Keep your own register. Do not imitate the other person's wording.",
+    "Use one complete sentence under 190 characters, or two very short sentences only when needed.",
+    "Stop at a complete sentence.",
+    "Do not stop after a setup phrase. The reply must contain a concrete answer or question.",
+    "No Markdown, physical stage directions, narration, speaker-name labels, system text, em dashes, or en dashes.",
     "",
     "Reply as the member now.",
   ].join("\n");
@@ -643,6 +913,43 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     packet,
     promptCharacters: packet.system.length + packet.prompt.length,
   };
+}
+
+function memberRealityFrame(member: Member): string {
+  if (member.tags.includes("ordinary_human")) {
+    return "Treat Cupid as a normal dating app with strange branding. Do not diagnose dimensions, species, or cosmic machinery.";
+  }
+
+  if (member.tags.includes("reality_displaced")) {
+    return "Treat your own origin as normal and this branch as the odd local custom. Mention your world as logistics, not confession.";
+  }
+
+  if (member.tags.includes("weirdness_native")) {
+    return "Treat supernatural details as normal workplace or household logistics. Do not apologize for what you are.";
+  }
+
+  return "Treat your own nature as background. Do not over-explain it, hide it, or apologize for it.";
+}
+
+function formatVoicePatterns(patterns: readonly string[]): string {
+  return patterns.map((pattern) => pattern.replaceAll("_", " ")).join("; ");
+}
+
+function formatMemberChatSamples(member: Member): string {
+  const buckets: Array<[string, readonly string[]]> = [
+    ["opener", member.voice.sampleMessages.opener],
+    ["warming", member.voice.sampleMessages.warming],
+    ["cooling", member.voice.sampleMessages.cooling],
+    ["crashing", member.voice.sampleMessages.crashingOut],
+  ];
+
+  return buckets
+    .map(([label, samples]) => {
+      const sample = samples[0] ?? "";
+      return sample.length === 0 ? "" : `- ${label}: ${sample}`;
+    })
+    .filter((line) => line.length > 0)
+    .join("\n");
 }
 
 function applyPlaygroundOverrides<TPacket extends CharacterPromptPacket>(

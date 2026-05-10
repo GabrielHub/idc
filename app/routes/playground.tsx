@@ -101,7 +101,7 @@ const PLAYGROUND_TESTS = [
   {
     id: "ai-lab",
     title: "AI prompt bench",
-    summary: "Character turn prompting, model choice, sampling.",
+    summary: "Character turn prompting, one-on-one chat, model choice, sampling.",
   },
   {
     id: "date-reactions",
@@ -1601,7 +1601,8 @@ function AiPromptLabTest() {
     const nextBase = {
       provider,
       model: defaults.chatModel,
-      reasoningLevel: defaults.reasoningLevel,
+      reasoningLevel:
+        mode === "memberChat" && provider === "gateway" ? "none" : defaults.reasoningLevel,
     };
 
     if (mode === "dateConversation") {
@@ -1669,7 +1670,7 @@ function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt bench"
-        description="Run a date prompt or interview a single member. Prompt previews refresh as you type so the route is easier to audit."
+        description="Run a date prompt or chat one-on-one with a single member. Prompt previews refresh as you type so the route is easier to audit."
       />
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
@@ -1691,9 +1692,9 @@ function AiPromptLabTest() {
         <section className="min-w-0 space-y-6">
           <AiRunSummary
             memberName={selectedMember?.name ?? "Member"}
-            partnerName={selectedPartner?.name ?? "Cupid QA"}
+            partnerName={selectedPartner?.name ?? "You"}
             scenarioTitle={
-              mode === "dateConversation" ? (selectedScenario?.title ?? "Scenario") : "Private QA"
+              mode === "dateConversation" ? (selectedScenario?.title ?? "Scenario") : "Private chat"
             }
             result={result}
             error={error}
@@ -1796,7 +1797,7 @@ function RunSheet({
         <div>
           <MutedLabel>run sheet</MutedLabel>
           <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-            {mode === "dateConversation" ? "Date sim" : "Member interview"}
+            {mode === "dateConversation" ? "Date sim" : "Member chat"}
           </h3>
         </div>
         <button
@@ -1813,7 +1814,7 @@ function RunSheet({
         <RunSheetSection label="test mode">
           <div className="flex flex-wrap gap-2">
             <ModeButton label="Date sim" value="dateConversation" mode={mode} onSelect={onMode} />
-            <ModeButton label="Member interview" value="memberChat" mode={mode} onSelect={onMode} />
+            <ModeButton label="Member chat" value="memberChat" mode={mode} onSelect={onMode} />
           </div>
         </RunSheetSection>
 
@@ -1861,7 +1862,7 @@ function RunSheet({
             onChange={(value) =>
               mode === "dateConversation"
                 ? onDate("memberId", value)
-                : onMemberChat("memberId", value)
+                : selectMemberChatSubject(value, onMemberChat)
             }
           />
           {mode === "dateConversation" ? (
@@ -1981,6 +1982,17 @@ function RunSheet({
   );
 }
 
+function selectMemberChatSubject(
+  memberId: string,
+  onMemberChat: <TKey extends keyof AiMemberChatSettings>(
+    key: TKey,
+    value: AiMemberChatSettings[TKey],
+  ) => void,
+) {
+  onMemberChat("memberId", memberId);
+  onMemberChat("chatMessages", []);
+}
+
 function RunSheetSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3 border-t border-aura-hairline pt-5 first:border-t-0 first:pt-0">
@@ -2071,7 +2083,7 @@ function MemberChatPanel({
     <div className="aura-glass rounded-card p-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <MutedLabel>interview thread</MutedLabel>
+          <MutedLabel>one-on-one thread</MutedLabel>
           <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
             {member?.name ?? "Member"}
           </h3>
@@ -2089,7 +2101,7 @@ function MemberChatPanel({
       <ol className="mt-4 max-h-72 space-y-2 overflow-y-auto pr-1">
         {chatMessages.length === 0 ? (
           <li className="rounded-tile border border-dashed border-aura-hairline-strong bg-white/45 px-3 py-4 text-center font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-            // no interview filed yet
+            // no chat filed yet
           </li>
         ) : (
           chatMessages.map((message, index) => (
@@ -2100,7 +2112,7 @@ function MemberChatPanel({
               }`}
             >
               <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] opacity-70">
-                {message.role === "tester" ? "Cupid QA" : (member?.firstName ?? "Member")}
+                {message.role === "tester" ? "You" : (member?.firstName ?? "Member")}
               </span>
               <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed">{message.text}</p>
             </li>
@@ -2109,7 +2121,7 @@ function MemberChatPanel({
       </ol>
 
       <TextAreaControl
-        label="interviewer message"
+        label="your message"
         value={settings.testerMessage}
         rows={4}
         onChange={onMessage}

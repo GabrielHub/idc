@@ -57,6 +57,12 @@ const PROVIDER_INFO: Record<AiProvider, { route: string; label: string; tagline:
   },
 };
 
+const DRAFT_PENDING_STATUS: AiSetupStatus = {
+  status: "checking",
+  message: "Settings changed. Save and verify before Cupid trusts this desk.",
+  details: [],
+};
+
 export function AiSetupPanel({
   config,
   gatewayApiKey,
@@ -120,10 +126,13 @@ export function AiSetupPanel({
   }, [gatewayApiKey]);
 
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
     };
   }, []);
 
@@ -144,6 +153,25 @@ export function AiSetupPanel({
   );
   const gatewayReasoningDisabled =
     draftConfig.aiProvider === "gateway" && !gatewayReasoningSupported(draftConfig.chatModel);
+  const verifiedConfig = useMemo(() => lockAiProviderBaseUrlsForRuntime(config), [config]);
+  const draftStatusMatchesVerifiedConfig = useMemo(() => {
+    const activeDraftConfig = lockAiProviderBaseUrlsForRuntime({
+      ...draftConfig,
+      aiProvider: activeProvider,
+    });
+    const configMatches =
+      activeDraftConfig.aiProvider === verifiedConfig.aiProvider &&
+      activeDraftConfig.ollamaBaseURL === verifiedConfig.ollamaBaseURL &&
+      activeDraftConfig.gatewayBaseURL === verifiedConfig.gatewayBaseURL &&
+      activeDraftConfig.chatModel === verifiedConfig.chatModel &&
+      activeDraftConfig.embeddingModel === verifiedConfig.embeddingModel &&
+      activeDraftConfig.reasoningLevel === verifiedConfig.reasoningLevel;
+    const keyMatches =
+      activeProvider !== "gateway" || draftGatewayKey.trim() === gatewayApiKey.trim();
+
+    return configMatches && keyMatches;
+  }, [activeProvider, draftConfig, draftGatewayKey, gatewayApiKey, verifiedConfig]);
+  const displayedStatus = draftStatusMatchesVerifiedConfig ? status : DRAFT_PENDING_STATUS;
 
   function updateDraft(nextConfig: Partial<GameConfig>) {
     setDraftConfig((current) => ({
@@ -292,7 +320,7 @@ export function AiSetupPanel({
             </div>
 
             <aside className="space-y-4">
-              <StatusCard status={status} />
+              <StatusCard status={displayedStatus} />
               <ResolvedCard
                 provider={activeProvider}
                 chatModel={draftConfig.chatModel}
