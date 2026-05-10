@@ -102,15 +102,11 @@ export const aldricValeMarsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/aldric-vale-marsh/portrait.png",
         cutoutPath: "/assets/portraits/aldric-vale-marsh/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, late twenties to early thirties alternate reality crusader knight from the Briar Hold, always wearing huge bulky battered white ceramic armor and a closed helmet, chipped cracked soot smudged battle stained plate as if it would be pure white if restored, exaggerated broad pauldrons, oversized gauntlets, thick greaves, deep blue torn surcoat and mantle accents with a stylized briar wreath emblem at the chest, leather belt with sword scabbard at his left hip and small drawstring pouch at his right hip, faint briar shaped blue light glowing through cracked ceramic seams and around the helmet eye slit, one gauntleted hand holding a modern smartphone awkwardly, other gauntleted hand touching the chin area of the helmet in puzzled thought, devout earnest courteous body language, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible face, helmet always on",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/aldric-vale-marsh/avatar.png",
         cutoutPath: "/assets/portraits/aldric-vale-marsh/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Sir Aldric of Vale Marsh portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive earnest eyes visible through the helmet eye slit, polished cel shading, same late twenties to early thirties alternate reality crusader knight, same huge bulky battered white ceramic armor, same closed helmet, same broad pauldrons, oversized gauntlets, cracked and soot smudged ceramic plates, same deep blue weathered cloth accents and stylized briar wreath emblem, same faint briar shaped blue glow from armor seams and helmet eye slit, one oversized gauntleted hand giving a sincere awkward thumbs-up near shoulder height, other hand holding a modern smartphone close to the chest, friendly puzzled expression through the eyes, upper half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery, helmet always on",
         model: "image_gen built-in",
       },
     },
@@ -118,8 +114,6 @@ export const aldricValeMarsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/aldric-vale-marsh/portrait-flirty.png",
         cutoutPath: "/assets/portraits/aldric-vale-marsh/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Sir Aldric of Vale Marsh portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same late twenties to early thirties alternate reality crusader knight from the Briar Hold, same huge bulky battered white ceramic armor and closed helmet, same chipped cracked soot smudged battle stained plate, same exaggerated broad pauldrons, oversized gauntlets, thick greaves, deep blue torn surcoat and mantle accents with a stylized briar wreath emblem at the chest, leather belt with sword scabbard at his left hip and small drawstring pouch at his right hip, same faint briar shaped blue light glowing through cracked ceramic seams and around the helmet eye slit, both oversized gauntleted hands raised over the helmet mouth area like he is covering a delighted gasp, soft pink anime blush marks across the lower front of the closed ceramic helmet, wide bashful blue eye slit glow, awkward courtly flirty body language, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible face, no visible skin, helmet always on, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -127,8 +121,6 @@ export const aldricValeMarsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/aldric-vale-marsh/portrait-confused.png",
         cutoutPath: "/assets/portraits/aldric-vale-marsh/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Sir Aldric of Vale Marsh portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same late twenties to early thirties alternate reality crusader knight from the Briar Hold, same huge bulky battered white ceramic armor and closed helmet, same chipped cracked soot smudged battle stained plate, same exaggerated broad pauldrons, oversized gauntlets, thick greaves, deep blue torn surcoat and mantle accents with a stylized briar wreath emblem at the chest, leather belt with sword scabbard at his left hip and small drawstring pouch at his right hip, same faint briar shaped blue light glowing through cracked ceramic seams and around the helmet eye slit, one oversized gauntleted hand extended outward at chest height with palm facing forward in a clear wait gesture, other oversized gauntleted hand holding the same modern smartphone close to the helmet, helmet tilted sharply down toward the phone, wide tense blue eye slit glow, small pale blue anime spiral and short jitter lines hovering above the helmet, subtle blue stress ticks on the helmet surface, frantic polite confusion, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible face, no visible skin, helmet always on, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -136,8 +128,6 @@ export const aldricValeMarsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/aldric-vale-marsh/portrait-angry.png",
         cutoutPath: "/assets/portraits/aldric-vale-marsh/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Sir Aldric of Vale Marsh portrait, interpreted as menacing wounded Honor, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same late twenties to early thirties alternate reality crusader knight from the Briar Hold, same huge bulky battered white ceramic armor and closed helmet, same chipped cracked soot smudged battle stained plate, same exaggerated broad pauldrons, oversized gauntlets, thick greaves, deep blue torn surcoat and mantle accents with a stylized briar wreath emblem at the chest, leather belt with sword scabbard at his left hip and small drawstring pouch at his right hip, same faint briar shaped blue light glowing through cracked ceramic seams and around the helmet eye slit, own sword drawn and planted blade point down directly in front of him, both oversized gauntleted hands stacked over the pommel, leaning forward over the sword with squared shoulders, helmet angled downward, cold narrowed blue eye slit glow, subtle red anime anger marks on the closed white ceramic helmet and pauldron, controlled intimidating offended body language, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible face, no visible skin, helmet always on, no blood, no gore, no injury, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -153,8 +143,8 @@ export const aldricValeMarsh: Member = {
     tail: "sharp",
     border: "filigree",
     texture: "parchment",
-    entryAnimation: "settle",
-    fontFamily: "serif",
+    entryAnimation: "unfurl",
+    fontFamily: "antique",
     textEffect: "tight",
   },
 };

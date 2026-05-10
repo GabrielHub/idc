@@ -10,7 +10,7 @@ export const seraVohn: Member = {
   realityStatus: "Stranded between contracts",
   bio: "Sera was an Intimacy Auditor at Vantage Match in 2087 NYC, where she compliance-reviewed corporate marriages for breach. She fell through a thin spot in the Vantage server room mid-audit and arrived in 2026 with eleven months of accrued PTO and no network to ping. She believes Cupid is a primitive consumer-tier competitor she can professionally evaluate while she finds her way back. She is not entirely wrong.",
   datingProfile:
-    "Sera Vohn. Intimacy Auditor, Vantage Match, between contracts. Offering: clean Term language, week-three cohabitation review on standard schedule, a partner who closes a tab when asked. Note that I am six floors taller than my photo registers. The augment cuff at my left wrist is decorative locally. Halcyon allergies in row two are accurate. Confirm a Term and we proceed.",
+    "Intimacy Auditor, Vantage Match, between contracts. Offering: clean Term language, week-three cohabitation review on standard schedule, a partner who closes a tab when asked. Note that I am six floors taller than my photo registers. The augment cuff at my left wrist is decorative locally. Halcyon allergies in row two are accurate. Confirm a Term and we proceed.",
   relationshipNeeds: [
     "A counterparty who confirms a Term once and does not amend it past the second course",
     "Someone who treats her contract language as the love language it is",
@@ -103,15 +103,11 @@ export const seraVohn: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/sera-vohn/portrait.png",
         cutoutPath: "/assets/portraits/sera-vohn/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, translucent audit tablet in one hand and stylus in the other, composed evaluative expression with a faint amused tilt at the mouth, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/sera-vohn/avatar.png",
         cutoutPath: "/assets/portraits/sera-vohn/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Sera Vohn portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, faint chrome augment seam at the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture with magenta neon edge piping, upper-half three-quarter rear pose with her back partly turned to the camera, head turned over her shoulder toward the viewer, one bare shoulder and upper back visible, elegant chrome-and-cyan cybernetic tracery along the left shoulder blade, upper back, collarbone, jawline, and forearm, one hand holding a slim audit stylus near the shoulder, composed evaluative expression, gently biting her lower lip, upper half realistic dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -119,8 +115,6 @@ export const seraVohn: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/sera-vohn/portrait-flirty.png",
         cutoutPath: "/assets/portraits/sera-vohn/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Sera Vohn portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, seated on the front edge of a simple translucent acrylic cyberpunk ledge, one hand braced beside her hip on the ledge, torso leaned back slightly with relaxed shoulders, one leg hanging down naturally and the other crossed for a sharp pinup silhouette, confident flirty audit-professional expression with half-lidded direct eye contact, faint blush, small controlled smile, and one raised eyebrow, full body visible, plain white background, no text, no logo, no frame, no scenery, no tablet focus, no stylus focus",
         model: "image_gen built-in",
       },
     },
@@ -128,8 +122,6 @@ export const seraVohn: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/sera-vohn/portrait-confused.png",
         cutoutPath: "/assets/portraits/sera-vohn/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Sera Vohn portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, sharp skeptical three-quarter pose with one hand planted firmly on her hip and the other hand holding the same slim audit stylus near shoulder height as if paused mid note, direct camera eye contact, skeptical disbelief expression with one eyebrow raised, slightly pinched brows, narrowed evaluative eyes, and a dry doubtful mouth as if silently asking whether she is expected to believe that claim, full body visible, plain white background, no text, no logo, no frame, no scenery, no tablet focus",
         model: "image_gen built-in",
       },
     },
@@ -137,8 +129,6 @@ export const seraVohn: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/sera-vohn/portrait-angry.png",
         cutoutPath: "/assets/portraits/sera-vohn/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Sera Vohn portrait, interpreted as irritated dismissal while leaving the conversation, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive evaluative eyes, polished cel shading, same early thirties future cyberpunk Manhattan auditor with warm light olive skin, glossy jet black asymmetric bob with one bright magenta neon strand at the temple, sharp clean cheekbones, faint chrome augment seam tracing the left jawline, small dark cyan augment LED at the temple, avant-garde graphite black cyberpunk couture, asymmetric halter bodysuit with one bare shoulder, exposed midriff cutouts, open side panel revealing chrome-and-cyan cybernetic rib tracery, cropped structured jacket worn off one shoulder with magenta neon edge piping, split-panel tailored trousers with smoky tech mesh exposing cybernetic thigh plating, polished dark futurist heeled ankle boots, cyan circuit-traced augment cuff at the left wrist, chrome filaments across the left collarbone and upper arm, three-quarter rear angle with her back turned and one foot stepping forward as if already walking away, one arm raised in a dismissive goodbye wave with loose wrist and palm angled outward, other arm low near her side loosely holding the translucent audit tablet and slim stylus as an afterthought, head turned back over her shoulder toward the viewer, irritated dismissal expression with lowered brows, narrowed side glance, and lips parted in a small annoyed exhale, cold and professionally done with the conversation, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -152,10 +142,10 @@ export const seraVohn: Member = {
     textColor: "light",
     shape: "sharp",
     tail: "sharp",
-    border: "glow",
+    border: "none",
     glow: { color: "#22d3ee", intensity: "medium" },
     texture: "noise",
-    entryAnimation: "snap",
+    entryAnimation: "type",
     fontFamily: "mono",
     textEffect: "tight",
   },

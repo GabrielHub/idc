@@ -1,23 +1,19 @@
-import {
-  MEMBER_IDENTITY_TAGS,
-  type GoalMetric,
-  type Member,
-  type MemberTag,
-  type ShiftState,
-} from "../domain/game";
+import { type GoalMetric, type Member, type ShiftState } from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
+import { hashSeedUint32 } from "./utils";
 
 export const SHIFT_FEATURED_MEMBER_COUNT = 4;
 const SHIFT_COMPANY_GOAL_COUNT = 2;
+type RandomSource = () => number;
 
 export function selectFeaturedMemberIds({
   members,
-  shiftNumber,
   count = SHIFT_FEATURED_MEMBER_COUNT,
+  random = Math.random,
 }: {
   members: readonly Member[];
-  shiftNumber: number;
   count?: number;
+  random?: RandomSource;
 }): string[] {
   const activeMembers = members.filter(isMemberRetained);
   const desiredCount = Math.min(count, activeMembers.length);
@@ -26,14 +22,9 @@ export function selectFeaturedMemberIds({
     return [];
   }
 
-  const shuffledMembers = seededSortMembers(activeMembers, `shift:${shiftNumber}:featured`);
-  const featuredMembers = shuffledMembers.slice(0, desiredCount);
-
-  for (const tag of MEMBER_IDENTITY_TAGS) {
-    ensureIdentityTag(featuredMembers, shuffledMembers, tag);
-  }
-
-  return featuredMembers.map((member) => member.id);
+  return shuffleMembers(activeMembers, random)
+    .slice(0, desiredCount)
+    .map((member) => member.id);
 }
 
 export function hydrateFeaturedMemberIds({
@@ -62,7 +53,7 @@ export function hydrateFeaturedMemberIds({
     featuredMembers.push(member);
   }
 
-  const shuffledMembers = seededSortMembers(members, `shift:${shift.shiftNumber}:featured`);
+  const shuffledMembers = seededSortById(members, `shift:${shift.shiftNumber}:featured`);
 
   for (const member of shuffledMembers) {
     if (featuredMembers.length >= desiredCount) {
@@ -75,10 +66,6 @@ export function hydrateFeaturedMemberIds({
   }
 
   featuredMembers.splice(desiredCount);
-
-  for (const tag of MEMBER_IDENTITY_TAGS) {
-    ensureIdentityTag(featuredMembers, shuffledMembers, tag);
-  }
 
   return featuredMembers.map((member) => member.id);
 }
@@ -159,52 +146,6 @@ function resolveCurrentMemberRequest(member: Member) {
   );
 }
 
-function ensureIdentityTag(
-  featuredMembers: Member[],
-  shuffledMembers: readonly Member[],
-  tag: MemberTag,
-) {
-  if (featuredMembers.some((member) => member.tags.includes(tag))) {
-    return;
-  }
-
-  const replacement = shuffledMembers.find(
-    (member) =>
-      member.tags.includes(tag) && !featuredMembers.some((selected) => selected.id === member.id),
-  );
-
-  if (replacement === undefined) {
-    return;
-  }
-
-  const protectedTags = MEMBER_IDENTITY_TAGS.filter((candidate) => candidate !== tag);
-  const replacementIndex = findReplacementIndex(featuredMembers, protectedTags);
-
-  featuredMembers[replacementIndex] = replacement;
-}
-
-function findReplacementIndex(
-  featuredMembers: readonly Member[],
-  protectedTags: readonly MemberTag[],
-): number {
-  for (let index = featuredMembers.length - 1; index >= 0; index -= 1) {
-    const member = featuredMembers[index];
-
-    if (
-      member !== undefined &&
-      protectedTags.every((tag) =>
-        featuredMembers.some(
-          (candidate, candidateIndex) => candidateIndex !== index && candidate.tags.includes(tag),
-        ),
-      )
-    ) {
-      return index;
-    }
-  }
-
-  return Math.max(0, featuredMembers.length - 1);
-}
-
 function isCompanyGoalPossible(
   metric: GoalMetric,
   target: number,
@@ -244,8 +185,33 @@ function isMemberRetained(member: Member): boolean {
   return member.state.retention > 0;
 }
 
-function seededSortMembers(members: readonly Member[], seed: string): Member[] {
-  return seededSortById(members, seed);
+function shuffleMembers(members: readonly Member[], random: RandomSource): Member[] {
+  const shuffledMembers = [...members];
+
+  for (let index = shuffledMembers.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(clampRandom(random()) * (index + 1));
+    const currentMember = shuffledMembers[index];
+    const swapMember = shuffledMembers[swapIndex];
+
+    if (currentMember === undefined || swapMember === undefined) {
+      continue;
+    }
+
+    shuffledMembers[index] = swapMember;
+    shuffledMembers[swapIndex] = currentMember;
+  }
+
+  return shuffledMembers;
+}
+
+// Injected RandomSource may return 1 or NaN; clamp to [0, 1) so
+// Math.floor(value * length) cannot index past the end of the array.
+function clampRandom(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.min(Math.max(value, 0), 1 - Number.EPSILON);
 }
 
 function seededSortById<TValue extends { id: string }>(
@@ -253,20 +219,9 @@ function seededSortById<TValue extends { id: string }>(
   seed: string,
 ): TValue[] {
   return [...values].sort((first, second) => {
-    const firstScore = seededScore(`${seed}:${first.id}`);
-    const secondScore = seededScore(`${seed}:${second.id}`);
+    const firstScore = hashSeedUint32(`${seed}:${first.id}`);
+    const secondScore = hashSeedUint32(`${seed}:${second.id}`);
 
     return firstScore - secondScore || first.id.localeCompare(second.id);
   });
-}
-
-function seededScore(value: string): number {
-  let hash = 2166136261;
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-
-  return hash >>> 0;
 }

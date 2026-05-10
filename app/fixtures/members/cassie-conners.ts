@@ -10,7 +10,7 @@ export const cassieConners: Member = {
   realityStatus: "On approved personal time, signal-locked from Comms",
   bio: "Cassie Conners crossed over from a continuous Helios-licensed Earth where powered individuals are syndicated brand assets. She was licensed at nineteen after a publicized highway rescue and has been DAYBREAK on her dimension's billboards for eight years. Helios Comms diagnosed an approachability gap and routed her to a tier-one matchmaking platform. Cupid was the platform their intermediary named. The earpiece in her ear no longer reaches Renata, her handler. She has not turned it off.",
   datingProfile:
-    "hi, Cassie. I am told this is the part where I introduce myself. I am, on the record, twenty seven, employed by Helios Group out of Tower Three (Comms wants me to say Tower Three, I do not yet know what difference it makes here). photos: me on a balcony, me on a different balcony, me holding a beverage that I am told is a placement. Renata says I should pick a venue. Renata is in my ear. Renata cannot hear me right now. you pick. anything that is not a step and repeat.",
+    "I am told this is the part where I introduce myself. hi, Cassie. on the record, twenty seven, employed by Helios Group out of Tower Three (Comms wants me to say Tower Three, I do not yet know what difference it makes here). photos: me on a balcony, me on a different balcony, me holding a beverage that I am told is a placement. Renata says I should pick a venue. Renata is in my ear. Renata cannot hear me right now. you pick. anything that is not a step and repeat.",
   relationshipNeeds: [
     "Someone who treats Cassie as a person, not the brief",
     "A date with no Pose, no caption, and no second-camera angle",
@@ -103,61 +103,51 @@ export const cassieConners: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/cassie-conners/portrait.png",
         cutoutPath: "/assets/portraits/cassie-conners/portrait.png",
-        prompt:
-          "Original full body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive glowing eyes, polished cel shading, twenty seven year old Helios-licensed superhero on personal time and corporate brand identity called DAYBREAK, fair midwestern complexion with light freckles across the nose, softly rounded heart-shaped face, refined straight nose, clear cheekbones, fuller natural lips, warm amber-glowing hazel eyes with sunrise-wing eyeliner and a small lower-lid amber accent, athletic toned build with modest bust, lean waist, strong dancer-like legs, distinctive honey blonde sculptural pixie cut with coral-tinted tips and micro-braid detailing above the left ear, discreet flesh-tone earpiece with a thin clear cord disappearing behind the sheer collar seam, original runway superhero couture in pearl smoke, deep graphite plum, dawn coral, and muted solar amber, sheer translucent pearl-smoke high-neck organza top with long sleeves and structured shoulders flowing over the visible waist into short split side drape panels, fitted dawn-coral athletic cropped underlayer with a flat chest panel, high-waisted graphite-plum tailored superhero trousers with an integrated smooth waistband and no separate belt, knee-high graphite-pewter boots with low sculptural heels, slim pewter bracer cuffs, larger DAYBREAK collar insignia showing three rising amber rays over a curved dawn arc inside a slim graphite oval clasp, controlled brand-trained half-smile that barely holds, hovering in a graceful diagonal flying pose with one hand raised in a simple wave and the other hand relaxed open near the thigh, full body visible, plain white background, no cape, no star emblem, no sunburst chest emblem, no belt, no hand in pocket, no logo, no text, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/cassie-conners/avatar.png",
         cutoutPath: "/assets/portraits/cassie-conners/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the approved full body Cassie Conners portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive glowing eyes, polished cel shading, same twenty seven year old Helios-licensed superhero and DAYBREAK brand identity, fair midwestern complexion with light freckles across the nose, softly rounded heart-shaped face, refined straight nose, clear cheekbones, fuller natural lips, warm amber-glowing hazel eyes with sunrise-wing eyeliner and a small lower-lid amber accent, same honey blonde sculptural pixie cut with coral-tinted tips and micro-braid detailing above the left ear, discreet flesh-tone earpiece with a thin clear cord, sheer pearl-smoke high-neck organza top, dawn-coral athletic underlayer, larger DAYBREAK collar insignia with three rising amber rays over a curved dawn arc inside a slim graphite oval clasp, controlled brand-trained smile that does not reach the eyes, upper half dating profile picture pose that is close, natural, and less theatrical than the full body portrait, plain white background, no cape, no star emblem, no sunburst emblem, no logo, no text, no frame, no scenery",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     flirty: {
       portrait: {
         sourcePath: "assets-source/portraits/cassie-conners/portrait-flirty.png",
         cutoutPath: "/assets/portraits/cassie-conners/portrait-flirty.png",
-        prompt:
-          "Original full body flirty portrait variant for Interdimensional Dating Coach matching the approved Cassie Conners portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive amber-glowing hazel eyes, polished cel shading, same twenty seven year old Helios-licensed superhero and DAYBREAK brand identity, same fair midwestern complexion with light freckles, same softly rounded face, same honey blonde sculptural pixie cut with coral-tinted tips and micro-braid detailing above the left ear, same flesh-tone earpiece, same pearl-smoke sheer organza top, dawn-coral athletic underlayer, graphite-plum tailored trousers, short split sheer drape panels, graphite-pewter boots, slim bracer cuffs, and DAYBREAK collar insignia, hovering full body visible with a softer romantic flying pose, one hand lifted near the cheek in a small wave and the other open in unguarded greeting, real unscripted smile that reaches the eyes for the first time, soft natural blush across the cheeks and over the freckles, restrained warm dawn light in the eyes, collar symbol, bracer seams, and fingertips, plain white background, no cape, no star emblem, no sunburst emblem, no belt, no hand in pocket, no logo, no text, no frame, no scenery, no changed clothing, no changed face, no changed body",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     confused: {
       portrait: {
         sourcePath: "assets-source/portraits/cassie-conners/portrait-confused.png",
         cutoutPath: "/assets/portraits/cassie-conners/portrait-confused.png",
-        prompt:
-          "Original full body confused portrait variant for Interdimensional Dating Coach matching the approved Cassie Conners portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive amber-glowing hazel eyes, polished cel shading, same twenty seven year old Helios-licensed superhero and DAYBREAK brand identity, same fair midwestern complexion with light freckles, same softly rounded face, same honey blonde sculptural pixie cut with coral-tinted tips and micro-braid detailing above the left ear, same flesh-tone earpiece, same pearl-smoke sheer organza top, dawn-coral athletic underlayer, graphite-plum tailored trousers, short split sheer drape panels, graphite-pewter boots, slim bracer cuffs, and DAYBREAK collar insignia, hovering full body visible with the flying posture briefly losing polish, one hand raised toward the earpiece with two fingers gently pressed near it as if listening for a Comms voice that is not coming, other hand open with palm slightly turned out, brows pinched in polite professional bafflement, lips slightly parted in a small almost-question, controlled but visibly off-script expression, plain white background, no panic, no exaggerated reaction, no cape, no star emblem, no sunburst emblem, no belt, no logo, no text, no frame, no scenery, no question marks, no sweat drops, no changed clothing, no changed face, no changed body",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     angry: {
       portrait: {
         sourcePath: "assets-source/portraits/cassie-conners/portrait-angry.png",
         cutoutPath: "/assets/portraits/cassie-conners/portrait-angry.png",
-        prompt:
-          "Original full body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Cassie Conners portrait, interpreted as drained brand-discipline boundary rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive amber-glowing hazel eyes, polished cel shading, same twenty seven year old Helios-licensed superhero and DAYBREAK brand identity, same fair midwestern complexion with light freckles, same softly rounded face, same honey blonde sculptural pixie cut with coral-tinted tips and micro-braid detailing above the left ear, same flesh-tone earpiece, same pearl-smoke sheer organza top, dawn-coral athletic underlayer, graphite-plum tailored trousers, short split sheer drape panels, graphite-pewter boots, slim bracer cuffs, and DAYBREAK collar insignia, hovering full body visible but still and controlled, one hand raised flat in a clear stop signal at chest height, other hand reaching toward the left ear as if about to remove the earpiece, earpiece cord visible at her shoulder, restrained warm dawn light in her eyes, collar symbol, bracer seams, and stopping palm, level boundary expression with a tense closed mouth and lowered chin, polished controlled refusal rather than shouting anger, plain white background, no blast, no clenched teeth, no cape, no star emblem, no sunburst emblem, no belt, no logo, no text, no frame, no scenery, no changed clothing, no changed face, no changed body",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
   },
   chatBubble: {
     background: {
       kind: "gradient",
-      angle: 180,
-      stops: ["#fff7ed", "#fed7aa", "#fbbf24"],
+      angle: 160,
+      stops: ["#fb7185", "#ec4899", "#c026d3"],
     },
-    textColor: "dark",
-    shape: "pill",
+    textColor: "light",
+    shape: "soft",
     tail: "rounded",
-    border: "glow",
-    glow: { color: "#fbbf24", intensity: "medium" },
+    border: "none",
+    glow: { color: "#f472b6", intensity: "soft" },
     texture: "holographic",
     entryAnimation: "fade",
     fontFamily: "display",
     textEffect: "glow",
-    accentColor: "#d97706",
+    accentColor: "#9f1239",
   },
 };

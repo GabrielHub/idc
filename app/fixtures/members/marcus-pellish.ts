@@ -10,7 +10,7 @@ export const marcusPellish: Member = {
   realityStatus: "Ordinary, divorced eight years",
   bio: "Marcus runs an HVAC route across north central Ohio and has three grown kids and a granddaughter on the way. He thinks Cupid is a normal dating app his daughter signed him up for over Easter. She did.",
   datingProfile:
-    "hi, marcus. 52, divorced, three grown kids and one grandbaby on the way (her name is going to be Wren). i fix furnaces. i can do dinner Wednesday or Sunday. i drive a 2014 F-150 with a bench seat and a heated wheel. profile photo is my dog Buster, the second one is also my dog Buster, my daughter Tara picked them both.",
+    "52, divorced, three grown kids, one grandbaby on the way (her name is going to be Wren). hi, marcus. i fix furnaces. i can do dinner Wednesday or Sunday. i drive a 2014 F-150 with a bench seat and a heated wheel. profile photo is my dog Buster, the second one is also my dog Buster, my daughter Tara picked them both.",
   relationshipNeeds: [
     "Someone who lets him be a fully formed adult instead of a project",
     "A date that does not require him to pretend he is younger than he is",
@@ -99,15 +99,11 @@ export const marcusPellish: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/marcus-pellish/portrait.png",
         cutoutPath: "/assets/portraits/marcus-pellish/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, clean webtoon, manhwa, and manhua inspired character art, simplified polished webtoon face treatment, expressive warm eyes, smooth cel shaded facial planes, minimal skin texture, fifty two year old midwestern white guy with light outdoor tan, salt and pepper short cropped hair, neat trimmed beard going gray, sturdy practical middle-aged build, dark indigo casual chore jacket with no patches, cream henley shirt, dark straight leg jeans, brown leather belt, clean brown leather boots, one hand lightly adjusting the front edge of his jacket, the other hand relaxed and visible at his side, no hands in pockets, warm steady faint closed mouth smile, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery, no props",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/marcus-pellish/avatar.png",
         cutoutPath: "/assets/portraits/marcus-pellish/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Marcus Pellish portrait, clean webtoon, manhwa, and manhua inspired character art, simplified polished webtoon face treatment, expressive warm eyes, smooth cel shaded facial planes, minimal skin texture, same fifty two year old midwestern guy with salt and pepper short cropped hair, neat trimmed beard going gray, dark indigo casual chore jacket with no patches, cream henley shirt, one visible hand lightly adjusting the open edge of his jacket near the chest, warm steady faint closed mouth smile, upper-half realistic dating profile pose, plain white background, no text, no logo, no frame, no scenery, no props",
         model: "image_gen built-in",
       },
     },
@@ -115,8 +111,6 @@ export const marcusPellish: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/marcus-pellish/portrait-flirty.png",
         cutoutPath: "/assets/portraits/marcus-pellish/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Marcus Pellish portrait, clean webtoon, manhwa, and manhua inspired character art, simplified polished webtoon face treatment, expressive warm eyes, smooth cel shaded facial planes, minimal skin texture, same fifty two year old midwestern white guy with light outdoor tan, salt and pepper short cropped hair, neat trimmed beard going gray, sturdy practical middle-aged build, dark indigo casual chore jacket with no patches, cream henley shirt, dark straight leg jeans, brown leather belt, clean brown leather boots, body angled in a gentle forward lean, one hand resting over his chest, other hand open in a modest invitation, warm sheepish smile, practical low pressure romantic interest, full body visible, plain white background, no text, no logo, no frame, no scenery, no props, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -124,8 +118,6 @@ export const marcusPellish: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/marcus-pellish/portrait-confused.png",
         cutoutPath: "/assets/portraits/marcus-pellish/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Marcus Pellish portrait, clean webtoon, manhwa, and manhua inspired character art, simplified polished webtoon face treatment, expressive warm eyes, smooth cel shaded facial planes, minimal skin texture, same fifty two year old midwestern white guy with light outdoor tan, salt and pepper short cropped hair, neat trimmed beard going gray, sturdy practical middle-aged build, dark indigo casual chore jacket with no patches, cream henley shirt, dark straight leg jeans, brown leather belt, clean brown leather boots, head tilted with knitted brows, mouth slightly open as if trying to understand a plan that changed twice, one hand raised in a small questioning gesture, other hand lightly holding the jacket front, awkward concern rather than slapstick confusion, full body visible, plain white background, no text, no logo, no frame, no scenery, no props, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -133,8 +125,6 @@ export const marcusPellish: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/marcus-pellish/portrait-angry.png",
         cutoutPath: "/assets/portraits/marcus-pellish/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Marcus Pellish portrait, interpreted as guarded adult boundary setting rather than theatrical rage, clean webtoon, manhwa, and manhua inspired character art, simplified polished webtoon face treatment, expressive warm eyes, smooth cel shaded facial planes, minimal skin texture, same fifty two year old midwestern white guy with light outdoor tan, salt and pepper short cropped hair, neat trimmed beard going gray, sturdy practical middle-aged build, dark indigo casual chore jacket with no patches, cream henley shirt, dark straight leg jeans, brown leather belt, clean brown leather boots, squared practical stance, one palm raised in a firm stop gesture, other hand clenched low at his side, narrowed eyes, furrowed brows, mouth set in a controlled line, protective boundary after a bad comment about his kids or a server, full body visible, plain white background, no text, no logo, no frame, no scenery, no props, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },

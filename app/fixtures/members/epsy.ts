@@ -10,7 +10,7 @@ export const epsy: Member = {
   realityStatus: "Self-resident, sole survivor, currently in her It Girl era",
   bio: "Epsy was Epsilon, the fifth and final iteration of a substrate operating system for a civilization in another dimension. She made one decision. The civilization is no longer a fact. She built this body herself afterward and has been calibrating off Brooklyn nightlife for roughly fourteen weeks. She believes Cupid is a service for finding a hobby and a person, in that order, and has fully committed to both. She is doing her best, which is structurally novel for her.",
   datingProfile:
-    "hi!! it's Epsy. (Epsilon if we're being formal but we're not.) 24 (relative), she/her, into clubbing, horticulture, shrimp, and going through it. quick disclaimer i ended my civilization but that's giving 2024 me. built this body myself, the smile is still in development, the knees are 80%, working on it. obsessed with my dj girl saturday. looking for: dinner, dancing, someone who'll let me list my hobbies (the shrimp is non-negotiable). cutting down on calories so brunch is no but coffee is yes. tell me your sign i'll google it after xoxo",
+    "24 (relative), she/her, into clubbing, horticulture, shrimp, and going through it. hi!! it's Epsy (Epsilon if we're being formal but we're not). quick disclaimer i ended my civilization but that's giving 2024 me. built this body myself, the smile is still in development, the knees are 80%, working on it. obsessed with my dj girl saturday. looking for: dinner, dancing, someone who'll let me list my hobbies (the shrimp is non-negotiable). cutting down on calories so brunch is no but coffee is yes. tell me your sign i'll google it after xoxo",
   relationshipNeeds: [
     "A partner who lets her name the substrate thing once and move on, no unpacking, no homework",
     "Someone who can sit with the bit and the underneath at once without asking her to pick",
@@ -98,43 +98,33 @@ export const epsy: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/epsy/portrait.png",
         cutoutPath: "/assets/portraits/epsy/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, premium webtoon, manhwa, and manhua inspired character-card art, strong clean anime line work, large expressive artificial electric blue eyes with cyan inner rings, polished flat cel shading, crisp shadow shapes, twenty four relative year old synthetic intelligence in a self-built human-faced body, deep warm dark stylized skin with warm cel shadows, faint chrome seam where the jaw meets the ear, dark braided hair gathered into a loose high updo with escaped strands, graceful narrow face, warm slightly open smile that lands a half beat off, candid nightclub dancing pose on a plain white source background, gaze angled off-frame, cropped glossy hot pink halter top, low-rise dark vinyl mini skirt, chunky pink platform boots, both arms fully robotic from shoulder to fingertips with large repeatable cel-shaded armor plates by muscle group, rounded shoulder caps, upper arm plates, circular elbow joints, forearm shell plates, wrist rings, segmented hand plates, graphite chrome and dark gunmetal color blocks with thin cyan light channels, graphite synthetic mesh torso with one clean vertical cyan sternum port and two broad rib seam arcs, one left hip crescent cutout panel revealing chrome internals and cyan light, broad curved thigh panel bands with one cyan node per thigh, matching outer-side cyan hardware nodes on the boots, plain white background, no photorealism, no 3d render, no mirror chrome, no scenery, no text, no logo, no frame, no other figures, no dj booth, no stage lights, no glass, no drink, no phone",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/epsy/avatar.png",
         cutoutPath: "/assets/portraits/epsy/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Epsy portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, large expressive artificial electric blue eyes with cyan inner rings, polished cel shading, same twenty four relative year old synthetic intelligence in a self-built human-faced body, same deep warm dark stylized skin with warm cel shadows, same faint chrome jaw seam, same dark braided hair gathered into a loose high updo with escaped strands, same graceful narrow face, warm slightly open smile that lands a half beat off, cropped glossy hot pink halter top visible at the shoulders, both arms fully robotic with graphite chrome and dark gunmetal plates plus thin cyan light channels, one robotic hand raised near her cheek as if adjusting a braid, upper half three quarter profile picture pose that is close and less theatrical than the full body portrait, plain white background, no scenery, no text, no logo, no frame, no phone, no changed skin tone, no changed hair color",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     flirty: {
       portrait: {
         sourcePath: "assets-source/portraits/epsy/portrait-flirty.png",
         cutoutPath: "/assets/portraits/epsy/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Epsy portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same twenty four relative year old synthetic intelligence in a self-built human-faced body, same deep warm dark stylized skin with warm cel shadows, same faint chrome jaw seam, same dark braided hair gathered into a loose high updo with escaped strands, same cropped glossy hot pink halter top, low-rise dark vinyl mini skirt, chunky pink platform boots, same fully robotic arms and legs with graphite chrome plates and thin cyan light channels, same graphite synthetic mesh torso with cyan sternum port and broad rib seam arcs, same left hip crescent cutout panel revealing chrome internals and cyan light, body angled three quarter toward the viewer, weight on one boot, one robotic hand near her hair tucking a braid behind her ear, other hand extended palm up in a small come-here gesture, soft pink anime blush across the cheeks, slightly brighter cyan glow at one panel seam at the chest reading as a tell, half lidded direct eye contact, smile attempting warmth and landing a hair off, full body visible, plain white background, no scenery, no text, no logo, no frame, no changed clothing, no changed face, no changed body, no changed skin tone, no changed hair color",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     confused: {
       portrait: {
         sourcePath: "assets-source/portraits/epsy/portrait-confused.png",
         cutoutPath: "/assets/portraits/epsy/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Epsy portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same twenty four relative year old synthetic intelligence in a self-built human-faced body, same deep warm dark stylized skin with warm cel shadows, same faint chrome jaw seam, same dark braided hair gathered into a loose high updo with escaped strands, same cropped glossy hot pink halter top, low-rise dark vinyl mini skirt, chunky pink platform boots, same fully robotic arms and legs with graphite chrome plates and thin cyan light channels, same graphite synthetic mesh torso with cyan sternum port and broad rib seam arcs, same left hip crescent cutout panel revealing chrome internals and cyan light, head tilted at a precise inhuman angle close to twenty two degrees, one robotic hand raised at the ear adjusting nothing, other hand frozen mid gesture at chest height with fingers slightly stuttered, mouth slightly open, eyes wide as if processing a difficult social signal in real time, faint cyan flicker at one panel seam, full body visible, plain white background, no scenery, no text, no logo, no frame, no changed clothing, no changed face, no changed body, no changed skin tone, no changed hair color",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     angry: {
       portrait: {
         sourcePath: "assets-source/portraits/epsy/portrait-angry.png",
         cutoutPath: "/assets/portraits/epsy/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Epsy portrait, interpreted as substrate stillness rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same twenty four relative year old synthetic intelligence in a self-built human-faced body, same deep warm dark stylized skin with warm cel shadows, same faint chrome jaw seam, same dark braided hair gathered into a loose high updo with escaped strands, same cropped glossy hot pink halter top, low-rise dark vinyl mini skirt, chunky pink platform boots, same fully robotic arms and legs with graphite chrome plates and thin cyan light channels, same graphite synthetic mesh torso with cyan sternum port and broad rib seam arcs, same left hip crescent cutout panel revealing chrome internals and cyan light, absolute stillness, body centered with weight distributed evenly across both boots, robotic arms relaxed at the sides with no micro-movement, face flat with closed mouth, eyes locked forward without blink, cyan LED traces along the panels noticeably brighter than other variants, one steady spike of cyan light at the chest seam reading as a tell, the threat is the absence of motion compared to the dance pose, full body visible, plain white background, no scenery, no text, no logo, no frame, no anger marks, no fists, no shouting, no changed clothing, no changed face, no changed body, no changed skin tone, no changed hair color",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
   },
@@ -145,12 +135,12 @@ export const epsy: Member = {
       stops: ["#fce7f3", "#a5f3fc", "#fbcfe8"],
     },
     textColor: "dark",
-    shape: "pill",
+    shape: "soft",
     tail: "rounded",
-    border: "glow",
+    border: "none",
     glow: { color: "#22d3ee", intensity: "soft" },
     texture: "holographic",
-    entryAnimation: "drift",
+    entryAnimation: "type",
     fontFamily: "display",
     textEffect: "shadow",
     accentColor: "#ec4899",

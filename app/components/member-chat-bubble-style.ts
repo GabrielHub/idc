@@ -20,6 +20,13 @@ export interface ResolvedMemberChatBubble {
   caretClass: string;
 }
 
+export const HOUSE_BUBBLE_FONT_CLASS =
+  "font-[ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,sans-serif]";
+
+export const HOUSE_BUBBLE_LEFT_CLASS = `rounded-[22px] rounded-bl-md bg-gradient-to-b from-[#34a0ff] to-[#0a84ff] px-4 py-2 shadow-[0_4px_14px_rgba(10,132,255,0.32)] ring-1 ring-white/15 ring-inset ${HOUSE_BUBBLE_FONT_CLASS}`;
+
+export const HOUSE_BUBBLE_NAME_CLASS = `text-[#0a84ff]/85 ${HOUSE_BUBBLE_FONT_CLASS}`;
+
 type MemberBubbleCssVariables = CSSProperties & {
   "--member-bubble-accent"?: string;
   "--member-bubble-glow"?: string;
@@ -28,7 +35,6 @@ type MemberBubbleCssVariables = CSSProperties & {
 
 const SHAPE_CLASS: Record<MemberChatBubbleShape, string> = {
   soft: "member-bubble-shape-soft",
-  pill: "member-bubble-shape-pill",
   sharp: "member-bubble-shape-sharp",
   torn: "member-bubble-shape-torn",
   papercut: "member-bubble-shape-papercut",
@@ -72,12 +78,20 @@ const ANIMATION_CLASS: Record<MemberChatBubbleAnimation, string> = {
   drip: "member-bubble-anim-drip",
   snap: "member-bubble-anim-snap",
   settle: "member-bubble-anim-settle",
+  materialize: "member-bubble-anim-materialize",
+  shimmer: "member-bubble-anim-shimmer",
+  flicker: "member-bubble-anim-flicker",
+  type: "member-bubble-anim-type",
+  unfurl: "member-bubble-anim-unfurl",
 };
 
 const FONT_CLASS: Record<MemberChatBubbleFontFamily, string> = {
   serif: "member-bubble-font-serif",
   display: "member-bubble-font-display",
   mono: "member-bubble-font-mono",
+  antique: "member-bubble-font-antique",
+  "italic-script": "member-bubble-font-italic-script",
+  eldritch: "member-bubble-font-eldritch",
 };
 
 const TEXT_EFFECT_CLASS: Record<MemberChatBubbleTextEffect, string> = {

@@ -97,15 +97,11 @@ export const gideonGlass: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/gideon-glass/portrait.png",
         cutoutPath: "/assets/portraits/gideon-glass/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, faintly translucent edges, glossy silver hair with a side part, gentle melancholy expression, soft blue rim light, baseline first picture on a dating profile pose, standing at a slight three-quarter angle with one hand resting lightly over his robe front and the other relaxed at his side, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/gideon-glass/avatar.png",
         cutoutPath: "/assets/portraits/gideon-glass/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, slender mid century hotel ghost in a soft silver dressing robe, glossy silver hair with a side part, gentle melancholy expression, soft blue rim light, upper-half realistic profile picture pose, close natural approachable framing, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -113,8 +109,6 @@ export const gideonGlass: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/gideon-glass/portrait-flirty.png",
         cutoutPath: "/assets/portraits/gideon-glass/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, eyes closed, faint blush, polite expression while coughing into one sleeve covered hand, other hand offering a small blank silver Hotel Palatine room keycard toward the viewer, keycard has no readable text, no logo, no room number, no markings, no symbols, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture",
         model: "image_gen built-in",
       },
     },
@@ -122,8 +116,6 @@ export const gideonGlass: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/gideon-glass/portrait-confused.png",
         cutoutPath: "/assets/portraits/gideon-glass/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, shoulders slightly drawn inward, one sleeve covered hand hovering near the robe front, other hand holding a small blank silver Hotel Palatine room keycard as if he forgot why he offered it, tender bewildered expression, brows lifted, mouth softly parted, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture, no changed robe, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -131,8 +123,6 @@ export const gideonGlass: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/gideon-glass/portrait-angry.png",
         cutoutPath: "/assets/portraits/gideon-glass/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Gideon Glass portrait, interpreted as wounded boundary and the room going cold, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same slender mid century hotel ghost in a soft silver dressing robe over pressed pajamas and house slippers, pale glowing ghost skin, glossy silver side parted hair, translucent robe edges, soft blue rim light, robe sash wrapped continuously around the entire outer dressing robe layer and tied at the front, shoulders closed, one sleeve covered hand raised in a quiet stop gesture, other hand holding the robe closed near his chest, translucent edges sharper and colder, hurt controlled expression with dimmed eyes and tense mouth, full body visible, plain white background, no text, no logo, no frame, no scenery, no piano, no lamp, no furniture, no blood, no gore, no changed robe, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -146,11 +136,12 @@ export const gideonGlass: Member = {
     textColor: "dark",
     shape: "soft",
     tail: "rounded",
-    border: "glow",
+    border: "none",
     glow: { color: "#7dd3fc", intensity: "soft" },
     texture: "glass",
-    entryAnimation: "drift",
+    entryAnimation: "materialize",
     fontFamily: "serif",
     textEffect: "glow",
+    accentColor: "#075985",
   },
 };

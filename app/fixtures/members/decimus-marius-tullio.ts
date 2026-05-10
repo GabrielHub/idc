@@ -10,7 +10,7 @@ export const decimusMariusTullio: Member = {
   realityStatus: "Retired, recently widowed",
   bio: "Decimus retired from the Tenth Legion after thirty one years. Eight months later he lost Lavinia Cornelia, his wife of twenty four years. His daughter Aurelia signed him up for Cupid over Saturnalia and told him a man his age should not be eating alone six nights a week. He believes Cupid is a routine dating service from back home. She did sign him up.",
   datingProfile:
-    "Decimus Marius Tullio. Centurion, retired. 54. Widower. One daughter, Aurelia, who set this up. I will not pretend I am younger than I am. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. Wednesdays and Sundays are open. I am told the food in the city is acceptable. Aurelia chose the photographs. She has told me one of them is wrong. I have not asked which.",
+    "Centurion, retired, 54, widower. Decimus Marius Tullio. One daughter, Aurelia, who set this up. I will not pretend I am younger than I am. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. Wednesdays and Sundays are open. I am told the food in the city is acceptable. Aurelia chose the photographs. She has told me one of them is wrong. I have not asked which.",
   relationshipNeeds: [
     "Someone who does not need him to perform recovery from grief",
     "A counterpart who can name a place and a time and not negotiate it three times",
@@ -104,15 +104,11 @@ export const decimusMariusTullio: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait.png",
         cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build with the bearing of a career officer at rest, futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, standing at relaxed attention with one hand near the belt clasp and one hand holding his helmet at his side, calm steady closed mouth expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/decimus-marius-tullio/avatar.png",
         cutoutPath: "/assets/portraits/decimus-marius-tullio/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, graphite black and burnished bronze futuristic Roman centurion helmet with restrained crest and cheek guards, matching segmented armor with deep wine red underlayer and laurel details, warm restrained smile, upper half candid work moment pose with one armored hand near the helmet strap, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -120,8 +116,6 @@ export const decimusMariusTullio: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-flirty.png",
         cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, posture softened from attention, helmet held respectfully at his side, one armored hand resting near the chest plate, warm restrained attraction with a small closed mouth smile, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed armor, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -129,8 +123,6 @@ export const decimusMariusTullio: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-confused.png",
         cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, helmet tucked under one arm, brows drawn in disciplined uncertainty, head slightly tilted, one armored hand lifted in a precise pause gesture as if correcting the Schedule, full body visible, plain white background, no text, no logo, no frame, no scenery, no new accessories, no changed armor, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -138,8 +130,6 @@ export const decimusMariusTullio: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/decimus-marius-tullio/portrait-angry.png",
         cutoutPath: "/assets/portraits/decimus-marius-tullio/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Decimus Marius Tullio portrait, interpreted as controlled grief boundary rather than spectacle, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive steady eyes, polished cel shading, same fifty four year old retired Roman centurion from a parallel future where the Roman Empire continued into advanced modernity, same weathered Mediterranean features, sun lined skin, short wavy salt and pepper military cut, full neat beard going gray, fit lean disciplined build, same futuristic Roman centurion armor with graphite black and burnished bronze segmented lorica forms, deep wine red underlayer, laurel details, armored belt, polished armored boots, simple stainless steel watch on his left wrist, shoulders squared, helmet held rigid at his side, one armored hand raised in a clear warning to stop, cold steady eyes, jaw set, full body visible, plain white background, no text, no logo, no frame, no scenery, no blood, no gore, no new accessories, no changed armor, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },

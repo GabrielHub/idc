@@ -100,15 +100,11 @@ export const mrWhiskers: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/mr-whiskers/portrait.png",
         cutoutPath: "/assets/portraits/mr-whiskers/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream double breasted trench coat, white dress shirt and burgundy tie just visible, belted waist, brown trousers, brown leather shoes, controlled irritated expression, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/mr-whiskers/avatar.png",
         cutoutPath: "/assets/portraits/mr-whiskers/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, dignified grey tabby cat head emerging from the upturned collar of an oversized cream trench coat, white dress shirt and burgundy tie just visible, controlled irritated expression, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -116,8 +112,6 @@ export const mrWhiskers: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/mr-whiskers/portrait-flirty.png",
         cutoutPath: "/assets/portraits/mr-whiskers/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Mr. Whiskers portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, the same dignified grey tabby cat head emerging from the upturned collar of an oversized cream double breasted trench coat, white dress shirt and burgundy tie just visible, pocket square, gold chain, belted waist with a small awkward gold belt tip protruding near the waist as coat hardware, brown trousers, brown leather shoes, softened yellow eyes, restrained pleading cute cat expression, small tongue touching one raised paw at the collar opening, other paw resting near the lapel, both long coat sleeves hanging empty with hollow cuffs, full body visible, plain white background, no text, no logo, no frame, no scenery, no nudity, no exposed anatomy",
         model: "image_gen built-in",
       },
     },
@@ -125,8 +119,6 @@ export const mrWhiskers: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/mr-whiskers/portrait-confused.png",
         cutoutPath: "/assets/portraits/mr-whiskers/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Mr. Whiskers portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, the same dignified grey tabby cat head emerging from the upturned collar of an oversized cream double breasted trench coat, white dress shirt and burgundy tie just visible, pocket square, gold chain, belted waist, brown trousers, brown leather shoes, head tilted in controlled confused irritation, one small front paw from the collar opening scratching the ear, other small front paw resting near the opposite lapel, narrowed yellow eyes, dry offended disbelief, both long coat sleeves hanging empty with hollow cuffs, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -134,8 +126,6 @@ export const mrWhiskers: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/mr-whiskers/portrait-angry.png",
         cutoutPath: "/assets/portraits/mr-whiskers/portrait-angry.png",
-        prompt:
-          "Original full-body angry portrait variant for Interdimensional Dating Coach matching the approved Mr. Whiskers portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, the same grey tabby cat ripping upward through the upper shirt, tie, collar, and lapel opening of an oversized cream double breasted trench coat, furry shoulders and short front legs visible above the torn collar, both paws raised beside his head in a swatting attack pose with tiny claws visible, flattened ears, sharp angry yellow eyes, bristled cheek fur, scrunched muzzle, small open shouting mouth, pocket square, gold chain, belted waist, brown trousers, brown leather shoes, both long coat sleeves hanging empty with hollow cuffs, full body visible, plain white background, no paws emerging from sleeves, no sleeve arms, no human hands, no extra limbs, no weapons, no new accessories, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -146,7 +136,7 @@ export const mrWhiskers: Member = {
       color: "#f5f5f4",
     },
     textColor: "dark",
-    shape: "pill",
+    shape: "sharp",
     tail: "rounded",
     border: "hairline",
     entryAnimation: "snap",

@@ -135,14 +135,7 @@ export const memberChatBubbleBackgroundSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
-export const memberChatBubbleShapeSchema = z.enum([
-  "soft",
-  "pill",
-  "sharp",
-  "torn",
-  "papercut",
-  "scroll",
-]);
+export const memberChatBubbleShapeSchema = z.enum(["soft", "sharp", "torn", "papercut", "scroll"]);
 
 export const memberChatBubbleTailSchema = z.enum([
   "rounded",
@@ -168,9 +161,27 @@ export const memberChatBubbleTextureSchema = z.enum([
   "noise",
 ]);
 
-export const memberChatBubbleAnimationSchema = z.enum(["fade", "drift", "drip", "snap", "settle"]);
+export const memberChatBubbleAnimationSchema = z.enum([
+  "fade",
+  "drift",
+  "drip",
+  "snap",
+  "settle",
+  "materialize",
+  "shimmer",
+  "flicker",
+  "type",
+  "unfurl",
+]);
 
-export const memberChatBubbleFontFamilySchema = z.enum(["serif", "display", "mono"]);
+export const memberChatBubbleFontFamilySchema = z.enum([
+  "serif",
+  "display",
+  "mono",
+  "antique",
+  "italic-script",
+  "eldritch",
+]);
 
 export const memberChatBubbleTextColorSchema = z.enum([
   "light",

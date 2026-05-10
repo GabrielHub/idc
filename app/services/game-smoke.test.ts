@@ -48,7 +48,7 @@ import {
 } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
-import { SHIFT_FEATURED_MEMBER_COUNT } from "./shift-planning";
+import { selectFeaturedMemberIds, SHIFT_FEATURED_MEMBER_COUNT } from "./shift-planning";
 import {
   buildFeaturedMemberIds,
   startAndDraftDateSession,
@@ -70,7 +70,7 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
 const OPTIONAL_PORTRAIT_VARIANTS = ["flirty", "confused", "angry"] as const;
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(26);
+    expect(starterMembers).toHaveLength(28);
     expect(starterScenarios).toHaveLength(39);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
@@ -197,8 +197,8 @@ describe("IDC playable smoke path", () => {
     expect(save.config.aiSetupComplete).toBe(false);
     expect(save.shifts[0]?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(26);
-    expect(await repository.listPairStates()).toHaveLength(325);
+    expect(await repository.listMembers()).toHaveLength(28);
+    expect(await repository.listPairStates()).toHaveLength(378);
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
@@ -292,7 +292,9 @@ describe("IDC playable smoke path", () => {
   });
 
   it("seeds featured cases and derives shift asks from featured members", () => {
-    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"), {
+      random: () => 0.99,
+    });
     const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
 
     if (activeShift === undefined) {
@@ -300,12 +302,9 @@ describe("IDC playable smoke path", () => {
     }
 
     const featuredMemberIds = new Set(activeShift.featuredMemberIds);
-    const featuredMembers = save.members.filter((member) => featuredMemberIds.has(member.id));
 
     expect(activeShift.featuredMemberIds).toHaveLength(SHIFT_FEATURED_MEMBER_COUNT);
     expect(featuredMemberIds.size).toBe(SHIFT_FEATURED_MEMBER_COUNT);
-    expect(featuredMembers.some((member) => member.tags.includes("ordinary_human"))).toBe(true);
-    expect(featuredMembers.some((member) => member.tags.includes("non_human"))).toBe(true);
     expect(
       activeShift.memberRequestIds.every((requestId) => {
         const request = memberRequests.find((candidate) => candidate.id === requestId);
@@ -313,6 +312,34 @@ describe("IDC playable smoke path", () => {
       }),
     ).toBe(true);
     expect(activeShift.companyGoalIds).toHaveLength(2);
+  });
+
+  it("does not repair featured cases to force identity coverage", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"), {
+      random: () => 0.99,
+    });
+    const orderedMemberIds = ["jenna-pike", "meridian-vale", "tasha-rell", "reaver", "vhool"];
+    const orderedMembers = orderedMemberIds.map((memberId) => {
+      const member = save.members.find((candidate) => candidate.id === memberId);
+
+      if (member === undefined) {
+        throw new Error(`Expected member ${memberId}.`);
+      }
+
+      return member;
+    });
+
+    const featuredMemberIds = selectFeaturedMemberIds({
+      members: orderedMembers,
+      random: () => 0.99,
+    });
+    const featuredMembers = orderedMembers.filter((member) =>
+      featuredMemberIds.includes(member.id),
+    );
+
+    expect(featuredMemberIds).toEqual(["jenna-pike", "meridian-vale", "tasha-rell", "reaver"]);
+    expect(featuredMembers.every((member) => member.tags.includes("ordinary_human"))).toBe(true);
+    expect(featuredMembers.some((member) => member.tags.includes("non_human"))).toBe(false);
   });
 
   it("rejects legacy storage keys so alpha saves start fresh", async () => {
@@ -364,11 +391,11 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
     const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
 
-    expect(loaded?.members).toHaveLength(26);
-    expect(loaded?.pairStates).toHaveLength(325);
+    expect(loaded?.members).toHaveLength(28);
+    expect(loaded?.pairStates).toHaveLength(378);
     expect(loaded?.members.some((member) => member.id === "aldric-vale-marsh")).toBe(true);
     expect(persistedRaw).not.toBeNull();
-    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(26);
+    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(28);
   });
 
   it("hydrates new starter scenarios into existing scenario decks", async () => {

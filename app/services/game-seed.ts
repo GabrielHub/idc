@@ -40,16 +40,17 @@ export function createSeedGameSave(
   options: CreateSeedGameSaveOptions = {},
 ): GameSave {
   const timestamp = now.toISOString();
+  const random = options.random ?? Math.random;
   const config = gameConfigSchema.parse({});
   const members = starterMembers.map((member) => memberSchema.parse(member));
   const pairStates = createSeedPairStates(members);
   const scenarioIds =
     options.randomizeScenarioDeck === true
-      ? shuffleScenarioIds(STARTER_SCENARIO_IDS, options.random ?? Math.random)
+      ? shuffleScenarioIds(STARTER_SCENARIO_IDS, random)
       : [...STARTER_SCENARIO_IDS];
   const featuredMemberIds = selectFeaturedMemberIds({
     members,
-    shiftNumber: 1,
+    random,
   });
   const drawnScenarioIds = scenarioIds.slice(0, config.shiftDateSlots);
   const offeredScenarioIds = scenarioIds.slice(config.shiftDateSlots, config.shiftDateSlots * 2);

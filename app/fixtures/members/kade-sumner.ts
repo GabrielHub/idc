@@ -96,15 +96,11 @@ export const kadeSumner: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/kade-sumner/portrait.png",
         cutoutPath: "/assets/portraits/kade-sumner/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-three year old gen z content creator with glossy black undercut and a bleached front piece, oversized graphic hoodie over a thin tee, baggy cargos, chunky white sneakers, smartphone held casually at hip, performative confident expression with anxious eyes, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/kade-sumner/avatar.png",
         cutoutPath: "/assets/portraits/kade-sumner/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art matching the full-body Kade Sumner portrait, clean anime line work, expressive eyes, polished cel shading, twenty-three year old gen z content creator with glossy black undercut and a bleached front piece, small black ear stud, oversized off-white and soft lavender graphic hoodie over a thin tee, slim red pendant necklace, one hand raised beside his face, performative confident expression with anxious eyes, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -112,8 +108,6 @@ export const kadeSumner: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/kade-sumner/portrait-flirty.png",
         cutoutPath: "/assets/portraits/kade-sumner/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Kade Sumner portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-three year old gen z content creator with glossy black undercut and a bleached front piece, same oversized graphic hoodie over a thin tee, baggy cargos, chunky white sneakers, smartphone, performative confident expression with anxious eyes, leaning toward the viewer with a playful soft launch grin, phone held low with screen blank and turned away, one hand raised near his cheek in a casual selfie-ready gesture, energized flirty posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible phone UI, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -121,8 +115,6 @@ export const kadeSumner: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/kade-sumner/portrait-confused.png",
         cutoutPath: "/assets/portraits/kade-sumner/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Kade Sumner portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-three year old gen z content creator with glossy black undercut and a bleached front piece, same oversized graphic hoodie over a thin tee, baggy cargos, chunky white sneakers, smartphone, performative confident expression strained by anxious eyes, phone held in both hands low with screen blank, brows pinched, mouth slightly open as if reading the room late, one shoulder lifted, uncertain checked-out hesitation, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible phone UI, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -130,8 +122,6 @@ export const kadeSumner: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/kade-sumner/portrait-angry.png",
         cutoutPath: "/assets/portraits/kade-sumner/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Kade Sumner portrait, interpreted as embarrassed boundary discomfort rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-three year old gen z content creator with glossy black undercut and a bleached front piece, same oversized graphic hoodie over a thin tee, baggy cargos, chunky white sneakers, smartphone, phone lowered with screen blank, one hand raised in a compact stop gesture near the chest, wounded defensive grimace, brows pinched, posture pulling back from the viewer, full body visible, plain white background, no text, no logo, no frame, no scenery, no visible phone UI, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },

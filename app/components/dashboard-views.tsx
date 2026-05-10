@@ -59,7 +59,12 @@ import {
   type ReactionSignal,
 } from "./date-reactions";
 import { isMemberSpeaking, selectPortraitMood } from "./date-presentation-signals";
-import { resolveMemberChatBubbleStyle } from "./member-chat-bubble-style";
+import {
+  HOUSE_BUBBLE_LEFT_CLASS,
+  HOUSE_BUBBLE_NAME_CLASS,
+  resolveMemberChatBubbleStyle,
+} from "./member-chat-bubble-style";
+import { PairBoard } from "./pair-board";
 import type { SfxCue } from "./sfx-provider";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
@@ -2743,17 +2748,15 @@ function ChatBubble({
   const nameAlign = customBubble
     ? "text-left text-[color:var(--member-bubble-accent)] opacity-80"
     : isLeft
-      ? "text-left text-aura-rose/75"
+      ? `text-left ${HOUSE_BUBBLE_NAME_CLASS}`
       : "text-right text-aura-faint";
   const accentStyle = customBubble?.accentStyle;
-  const defaultLeftClass =
-    "rounded-[22px] rounded-bl-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
   const defaultRightClass =
     "rounded-[22px] rounded-br-md bg-white/85 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md";
   const bubbleClass = customBubble
     ? customBubble.className
     : isLeft
-      ? defaultLeftClass
+      ? HOUSE_BUBBLE_LEFT_CLASS
       : defaultRightClass;
   const bubbleStyle = customBubble?.style;
   const textColorClass = customBubble ? "" : isLeft ? "text-white" : "text-aura-ink";
@@ -2766,10 +2769,10 @@ function ChatBubble({
 
   return (
     <motion.li {...animation} className={`flex ${justify} ${tightClass}`}>
-      <div className={`flex max-w-[78%] flex-col gap-1 ${itemsAlign}`} style={accentStyle}>
+      <div className={`flex max-w-[78%] flex-col gap-2 ${itemsAlign}`} style={accentStyle}>
         {showName ? (
           <span
-            className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameAlign}`}
+            className={`relative z-20 px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameAlign}`}
           >
             {member.firstName}
           </span>
@@ -4291,44 +4294,68 @@ export function NotesView({ memories, members, pairStates, scenarios, shiftCount
         tooltip="Public pair and scenario memories Cupid can share. Private member files and judge-only records stay sealed."
       />
 
-      <NotesFilterRail
-        scopeFilter={scopeFilter}
-        onScopeFilterChange={(next) => {
-          setScopeFilter(next);
-          if (next === "pairs") setSelectedScenarioId("any");
-          if (next === "scenarios") setSelectedPairId("any");
-        }}
-        pairOptions={pairOptions}
-        selectedPairId={selectedPairId}
-        onSelectedPairChange={setSelectedPairId}
-        scenarioOptions={scenarioOptions}
-        selectedScenarioId={selectedScenarioId}
-        onSelectedScenarioChange={setSelectedScenarioId}
-        totalCount={totalCount}
-        shownCount={shownCount}
-        hasFilters={hasFilters}
-        onClearFilters={clearNotesFilters}
-      />
+      <div className="mt-8">
+        <PairBoard
+          members={members}
+          pairStates={pairStates}
+          memories={memories}
+          scenarios={scenarios}
+          shiftCount={shiftCount}
+        />
+      </div>
 
-      {totalCount === 0 ? (
-        <NotesEmptyTile
-          title="No public notes yet"
-          subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
+      <section className="mt-12">
+        <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-aura-hairline pb-3">
+          <div className="space-y-1">
+            <Eyebrow>// archive.notes</Eyebrow>
+            <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
+              Filed notes
+            </h3>
+          </div>
+          <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+            date and scenario cards
+          </p>
+        </header>
+
+        <NotesFilterRail
+          scopeFilter={scopeFilter}
+          onScopeFilterChange={(next) => {
+            setScopeFilter(next);
+            if (next === "pairs") setSelectedScenarioId("any");
+            if (next === "scenarios") setSelectedPairId("any");
+          }}
+          pairOptions={pairOptions}
+          selectedPairId={selectedPairId}
+          onSelectedPairChange={setSelectedPairId}
+          scenarioOptions={scenarioOptions}
+          selectedScenarioId={selectedScenarioId}
+          onSelectedScenarioChange={setSelectedScenarioId}
+          totalCount={totalCount}
+          shownCount={shownCount}
+          hasFilters={hasFilters}
+          onClearFilters={clearNotesFilters}
         />
-      ) : filteredMemories.length === 0 ? (
-        <NotesEmptyTile
-          title="No notes match this filter"
-          subhead="Loosen the filter to see more of the case archive."
-          action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
-        />
-      ) : (
-        <NotesArchive
-          memories={filteredMemories}
-          memberById={memberById}
-          pairStateById={pairStateById}
-          scenarioById={scenarioById}
-        />
-      )}
+
+        {totalCount === 0 ? (
+          <NotesEmptyTile
+            title="No public notes yet"
+            subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
+          />
+        ) : filteredMemories.length === 0 ? (
+          <NotesEmptyTile
+            title="No notes match this filter"
+            subhead="Loosen the filter to see more of the case archive."
+            action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
+          />
+        ) : (
+          <NotesArchive
+            memories={filteredMemories}
+            memberById={memberById}
+            pairStateById={pairStateById}
+            scenarioById={scenarioById}
+          />
+        )}
+      </section>
     </ViewFrame>
   );
 }

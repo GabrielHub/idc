@@ -1061,9 +1061,14 @@ function formatGoalProgress(metric: GoalMetric, progress: number, target: number
   return GOAL_PROGRESS_TEMPLATES[metric](progress, target);
 }
 
+export type StartNextShiftOptions = {
+  random?: () => number;
+};
+
 export function startNextShift(
   save: GameSave,
   now = new Date(),
+  options: StartNextShiftOptions = {},
 ): { save: GameSave; shift: ShiftState } {
   const activeShift = getActiveShift(save);
 
@@ -1097,7 +1102,7 @@ export function startNextShift(
   );
   const featuredMemberIds = selectFeaturedMemberIds({
     members: save.members,
-    shiftNumber: nextShiftNumber,
+    random: options.random,
   });
   const companyGoalIds = selectShiftCompanyGoalIds({
     members: save.members,

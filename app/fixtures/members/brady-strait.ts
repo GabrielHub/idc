@@ -98,15 +98,11 @@ export const bradyStrait: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/brady-strait/portrait.png",
         cutoutPath: "/assets/portraits/brady-strait/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, thirty one year old midwestern white guy with shaggy dark blonde hair that looks intentionally grown out, wire-rim glasses pushed slightly down his nose, modern fashionable try hard online writer outfit with a boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers cropped above the ankle, black belt, off white minimalist sneakers, cheap silver watch, small folded notebook clipped under one arm, small handheld voice recorder held in one visible hand, other hand open in a self conscious interview gesture, no hands in pockets, no lanyard, no neck badge, smug performative expression with anxious eyes, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/brady-strait/avatar.png",
         cutoutPath: "/assets/portraits/brady-strait/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Brady Strait portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, cheap silver watch, one visible hand adjusting his glasses near the temple, other visible hand holding a small handheld voice recorder near his shoulder, no hands in pockets, no lanyard, no neck badge, smug performative expression with anxious eyes, upper-half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -114,8 +110,6 @@ export const bradyStrait: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/brady-strait/portrait-flirty.png",
         cutoutPath: "/assets/portraits/brady-strait/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, leaning forward as if he accidentally became sincere, one hand open near his chest, other hand holding the recorder low as if he forgot it was on, visibly charmed expression with anxious eyes and a controlled smile, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -123,8 +117,6 @@ export const bradyStrait: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/brady-strait/portrait-confused.png",
         cutoutPath: "/assets/portraits/brady-strait/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, glasses slipped lower, brows pinched, mouth caught between a bit and a real question, one hand holding the notebook open, other hand pointing awkwardly toward himself, uncertain self-conscious posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -132,8 +124,6 @@ export const bradyStrait: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/brady-strait/portrait-angry.png",
         cutoutPath: "/assets/portraits/brady-strait/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Brady Strait portrait, interpreted as defensive boundary discomfort rather than rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same thirty one year old midwestern guy with shaggy dark blonde hair, wire-rim glasses pushed slightly down his nose, boxy dark olive cropped chore jacket, clean black mock neck tee with no text, charcoal pleated wide leg trousers, black belt, off white minimalist sneakers, cheap silver watch, folded notebook and small handheld voice recorder, notebook tucked hard under one arm, recorder lowered, one hand raised in a compact stop gesture, jaw tense, anxious defensive eyes, full body visible, plain white background, no text, no logo, no frame, no scenery, no lanyard, no neck badge, no new accessories, no changed outfit, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },

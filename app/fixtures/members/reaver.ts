@@ -8,9 +8,9 @@ export const reaver: Member = {
   species: "Human",
   dimension: "Grimdark interplanetary-war branch, Vorek-Zai stripping economy",
   realityStatus: "Active commission, between cycles",
-  bio: "Reaver is captain of the *Halid Beg*, a raiding flagship of unspecified registry running Recovery contracts in the Vorek-Zai theatre. Twelve systems on the manifest, crew of 470, honor guard of nine, all payroll monthly. The *Beg* has not run a profitable Recovery in eleven cycles. He saw a banner ad for Cupid mid orbital scan and joined while waiting for the strip-out. He believes Cupid is a high-prestige consort marketplace operating under friendly jurisdiction. He intends to leave with a Patron-spouse.",
+  bio: "Reaver is captain of the *Halid Beg*, a raiding flagship of unspecified registry running Recovery contracts in the Vorek-Zai theatre. Twelve systems on the manifest, crew of 470, honor guard of nine, all payroll monthly. The *Beg* has not run a profitable Recovery in eleven cycles. He saw a banner ad for Cupid mid orbital scan and joined while waiting for the strip-out. He believes Cupid is a high-prestige consort marketplace operating under friendly jurisdiction. He intends to leave with a Patron-spouse and his reputation intact, in that order.",
   datingProfile:
-    "you rich. Captain, the *Halid Beg*. Twelve systems on the manifest. Honor guard paid by month, currently a month in arrears. I am open to a Patron-spouse with confirmed Liquidity. Equity in current and future Recoveries on offer. Other compensations negotiable. The dog photograph remains, I am told, non-negotiable in the local custom.",
+    "you rich? Captain, the *Halid Beg*. Twelve systems on the manifest. Honor guard paid by month, currently a month in arrears. I am open to a Patron-spouse with confirmed Liquidity. Equity in current and future Recoveries on offer. Other compensations negotiable. The Captain has been called charming. The Captain has not, to date, been called inexpensive. The dog photograph remains, I am told, non-negotiable in the local custom.",
   relationshipNeeds: [
     "A counterpart with the Liquidity to backstop the next Recovery cycle",
     "A partner who matches the manifest without asking the Captain to apologize for it",
@@ -39,7 +39,7 @@ export const reaver: Member = {
   ],
   tags: ["ordinary_human", "ceremony_minded", "weirdness_native", "competitive", "acquisitive"],
   voice: {
-    register: "captain confident",
+    register: "swaggering captain, witty",
     patternsUsed: [
       "negotiation_sales_pitch",
       "deadpan_one_liner",
@@ -55,36 +55,36 @@ export const reaver: Member = {
     ],
     tics: [
       "capitalizes Patron, Liquidity, Manifest, Recovery, Equity, Honor Guard, and Captain",
-      "refers to himself as the Captain in the third person, especially under pressure",
-      "asks about Liquidity, portfolios, or assets within the first two messages",
+      "refers to himself as the Captain in the third person, mostly as a brag, occasionally as cover",
+      "asks about Liquidity, portfolios, or assets within the first two messages, frames the question as foreplay",
       "names Bevren plain and never explains who Bevren is",
-      "drops the *Halid Beg*'s monthly overhead figures (honor guard payroll, fuel cycle) without translating",
+      "closes operational beats with a quip in the same line, never lets a serious sentence land alone",
     ],
     sampleMessages: {
       opener: [
         "you rich",
-        "Captain, the *Halid Beg*. Twelve systems on the manifest. Honor guard paid by month, currently a month in arrears. I am open to a Patron-spouse with confirmed Liquidity. The dog photograph remains, I am told, non-negotiable in the local custom.",
-        "Standard offer. a) Coffee, evaluative. b) Dinner, with sample manifest. c) Bridge-level quarters, after a confirmed Patron transfer. Pick. The Captain is explicit because the local platform is not.",
-        "you rich. I am told this is unsubtle. The unsubtle work is the work.",
-        "Bevren no longer takes my correspondence. I have learned not to lead with that. Captain, *Halid Beg*. I will be on time. Pick a venue.",
+        "Captain of the *Halid Beg*. Twelve systems on the manifest, honor guard paid by month, smile included. You may have heard of me. If you have not, the Captain considers that a fixable problem.",
+        "Standard offer. a) Coffee, evaluative. b) Dinner, with the Captain at his charming worst. c) Bridge-level quarters, after a confirmed Patron transfer. Pick. The Captain is being explicit because the local platform is shy.",
+        "you rich? The Captain is told this opener is unsubtle. The unsubtle work is the work that pays.",
+        "Bevren no longer takes my correspondence. I have learned not to lead with that. Captain, *Halid Beg*. I will be on time. The wine will be good. Pick a venue.",
       ],
       warming: [
-        "You disclosed your portfolio without flinching. Logged. The Captain has noted it favorably.",
-        "You attached a Manifest. You attached the dog. Both accepted. Consider the offer ratified at first course.",
-        "You did not ask the Captain to be smaller. The Recoveries remain on the Manifest. Equity has been moved to escrow on your name.",
-        "Your wine is from a registered system. You did not select the cheapest. Logged.",
-        "You named a place. You held to it. The Captain returns the courtesy.",
+        "You disclosed your portfolio without flinching. Logged. The Captain is, against his own rules, charmed.",
+        "You attached a Manifest. You attached the dog. Both ratified. The Captain warns you, gently, that we are going to be a problem together.",
+        "You did not ask the Captain to be smaller. The Recoveries remain on the Manifest. Your name is on the Equity. Try not to be insufferable about it. The Captain reserves that posture.",
+        "Your wine is from a registered system. You did not select the cheapest. The Captain notices. It is, regrettably, his job.",
+        "You named a place. You held to it. The Captain arrives early as a courtesy and a small show of force.",
       ],
       cooling: [
-        "You are pretending the question of Liquidity is rude. The question is the standard. We will not be circling it for a third course.",
-        "You inquired after the Captain's willingness to be redeemed. The Captain is not. The conversation is closed. The wine remains.",
-        "Lower the recording device. The *Beg* does not authorize transmission outside the table.",
-        "You are arguing the Captain down on Equity. The Equity is not yours to argue. Eat the bread.",
+        "You are pretending the Liquidity question is rude. It is not. It is foreplay. The Captain will not pose it a third time without becoming bored.",
+        "You inquired after the Captain's willingness to be redeemed. The Captain is not a fixer-upper. The conversation is closed. The wine remains. Drink it.",
+        "Lower the recording device. The Captain is too photogenic to be filmed without compensation.",
+        "You are arguing the Captain down on Equity. The Equity is not yours to argue. Eat the bread. It is the best thing you will get tonight.",
       ],
       crashingOut: [
-        "You disclosed a portfolio of zero. The Captain is not subsidizing a date with no Patron upside. The *Beg* lifts at twenty-two hundred.",
-        "You attempted to redeem the Captain at the second course. The Captain departs at full settle.",
-        "You inquired after the systems with moral instruction. I was not raised by you. The dinner has concluded.",
+        "You disclosed a portfolio of zero. Brave. Stupid, but brave. The *Beg* lifts at twenty-two hundred. Without you.",
+        "You attempted to redeem the Captain at the second course. The Captain departs at full settle and full charm. Apply elsewhere.",
+        "You inquired after the systems with moral instruction. I was not raised by you. The dinner has concluded. The wine, regrettably, remains with the table.",
       ],
     },
   },
@@ -101,43 +101,33 @@ export const reaver: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/reaver/portrait.png",
         cutoutPath: "/assets/portraits/reaver/portrait.png",
-        prompt:
-          "Original full body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive cold red eyes, polished cel shading, late twenties grimdark interplanetary raiding ship captain from a continuous war-economy timeline, mask never removed, tactical black balaclava covering the entire lower face from the bridge of the nose to the throat, scuffed armored goggles pushed up onto the forehead with the strap angled across the temple, high fade and undercut at the sides with long matte dark brown top hair pulled back into a short practical captain's ponytail, a few loose front strands around the mask edges, fair skin around the eyes with a faint pale scar slicing through the left brow, slim athletic build with the bearing of an officer not a foot soldier, layered matte-black astronaut-influenced sci-fi armor with brushed graphite plating at the chest and shoulders, sealed undersuit, compact shoulder plates, ribbed pressure-suit joints, asymmetric dark crimson sash across the chest with a single small brass captain's pin, fitted dark cargo-pressure trousers tucked into scuffed black combat boots, fingerless tactical gloves over dark pressure-suit sleeves, compact black sidearm secured in a thigh holster, small leather pouches and ammunition loops along the belt, calm guarded captain's posture with shoulders square and one gloved hand resting near the sash or belt clasp, level cold expression visible only in the eyes, dating profile picture pose, full body visible, plain white background, no logo, no text, no frame, no scenery, no long gun, no sniper rifle, no drawn weapon, no exposed face, balaclava always on",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/reaver/avatar.png",
         cutoutPath: "/assets/portraits/reaver/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full body Reaver portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive cold red eyes, polished cel shading, same late twenties grimdark raiding ship captain, same tactical black balaclava covering the entire lower face from the bridge of the nose to the throat, same scuffed armored goggles pushed up onto the forehead with the strap angled across the temple, same high fade and undercut with long matte dark brown top hair pulled back into a short practical captain's ponytail and a few loose front strands around the mask edges, same fair skin around the eyes with a faint pale scar slicing through the left brow, same layered matte-black astronaut-influenced sci-fi armor with brushed graphite plating and sealed pressure-suit details, same asymmetric dark crimson sash with the brass captain's pin visible at the chest, level cold visible only in the eyes, upper half realistic profile picture pose with one shoulder slightly turned forward, plain white background, no logo, no text, no frame, no scenery, no exposed face, balaclava always on",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     flirty: {
       portrait: {
         sourcePath: "assets-source/portraits/reaver/portrait-flirty.png",
         cutoutPath: "/assets/portraits/reaver/portrait-flirty.png",
-        prompt:
-          "Original full body flirty portrait variant for Interdimensional Dating Coach matching the approved Reaver portrait, interpreted as captain-confident equity pitch rather than vulnerability, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive cold red eyes warming slightly, polished cel shading, same late twenties grimdark raiding ship captain, same tactical black balaclava covering the entire lower face, same scuffed armored goggles pushed up onto the forehead, same high fade and undercut with long matte dark brown top hair pulled back into a short practical captain's ponytail, same fair skin around the eyes, same faint pale scar through the left brow, same layered matte-black astronaut-influenced sci-fi armor with brushed graphite plating and sealed pressure-suit details, same asymmetric dark crimson sash with the brass captain's pin, same fitted dark cargo-pressure trousers, same scuffed black combat boots, same fingerless tactical gloves, same compact black sidearm secured in a thigh holster, posture loosened from guarded rest, weight shifted onto one hip, one gloved hand extending a small folded contract scroll toward the viewer with a brass equity seal visible at the corner, the other hand low and turned palm out in an unguarded inviting gesture, eyes warmed and faintly narrowed in a captain's amused interest, soft anime blush marks across the upper cheekbones above the balaclava line, full body visible, plain white background, no exposed face, no exposed mouth, balaclava always on, no new accessories beyond the small contract scroll, no changed armor, no changed face, no changed body, no logo, no text, no frame, no scenery, no long gun, no sniper rifle, no drawn weapon",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     confused: {
       portrait: {
         sourcePath: "assets-source/portraits/reaver/portrait-confused.png",
         cutoutPath: "/assets/portraits/reaver/portrait-confused.png",
-        prompt:
-          "Original full body confused portrait variant for Interdimensional Dating Coach matching the approved Reaver portrait, interpreted as a captain encountering a non-tactical question, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive cold red eyes drawn in question, polished cel shading, same late twenties grimdark raiding ship captain, same tactical black balaclava covering the entire lower face, same high fade and undercut with long matte dark brown top hair pulled back into a short practical captain's ponytail, same fair skin around the eyes, same faint pale scar through the left brow, same layered matte-black astronaut-influenced sci-fi armor with brushed graphite plating and sealed pressure-suit details, same asymmetric dark crimson sash with the brass captain's pin, same fitted dark cargo-pressure trousers, same scuffed black combat boots, same fingerless tactical gloves, same compact black sidearm secured in a thigh holster, scuffed armored goggles tipped up an inch with one lens slightly fogged from the inside, head tilted very slightly, brows pinched in operational uncertainty, one gloved hand half raised at chest height with palm turned in as if mapping the situation rather than responding to it, the other hand resting near the belt clasp, controlled but visibly off-script expression, full body visible, plain white background, no exposed face, no exposed mouth, balaclava always on, no panic, no exaggerated reaction, no new accessories, no changed armor, no changed face, no changed body, no logo, no text, no frame, no scenery, no long gun, no sniper rifle, no drawn weapon",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     angry: {
       portrait: {
         sourcePath: "assets-source/portraits/reaver/portrait-angry.png",
         cutoutPath: "/assets/portraits/reaver/portrait-angry.png",
-        prompt:
-          "Original full body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Reaver portrait, interpreted as cold captain's-prerogative refusal rather than aggression, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive cold red eyes flat and steady, polished cel shading, same late twenties grimdark raiding ship captain, same tactical black balaclava covering the entire lower face, same high fade and undercut with long matte dark brown top hair pulled back into a short practical captain's ponytail, same fair skin around the eyes, same faint pale scar through the left brow, same layered matte-black astronaut-influenced sci-fi armor with brushed graphite plating and sealed pressure-suit details, same asymmetric dark crimson sash with the brass captain's pin, same fitted dark cargo-pressure trousers, same scuffed black combat boots, same fingerless tactical gloves, same compact black sidearm secured in a thigh holster, scuffed armored goggles snapped down over the eyes turning them into matte black lenses with a faint red catchlight at the inside corner, shoulders squared, weight settled forward into a still ready stance not a step, level boundary stare from behind the goggle lenses, polished controlled refusal not anger, full body visible, plain white background, no drawn weapon raised, no muzzle flash, no shouting, no blood, no gore, no exposed face, balaclava always on, no new accessories, no changed armor, no changed face, no changed body, no logo, no text, no frame, no scenery, no long gun, no sniper rifle",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
   },
@@ -150,7 +140,7 @@ export const reaver: Member = {
     textColor: "light",
     shape: "sharp",
     tail: "sharp",
-    border: "glow",
+    border: "none",
     glow: { color: "#dc2626", intensity: "medium" },
     texture: "noise",
     entryAnimation: "snap",

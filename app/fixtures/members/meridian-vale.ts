@@ -96,15 +96,11 @@ export const meridianVale: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/meridian-vale/portrait.png",
         cutoutPath: "/assets/portraits/meridian-vale/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, slim charcoal security trousers, black lace-up tactical boots, discreet earpiece coiled at the collar, dark sunglasses held in one hand, small black enamel redaction-bar lapel pin, alert guarded expression with a trace of embarrassed warmth, elegant security agent silhouette, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/meridian-vale/avatar.png",
         cutoutPath: "/assets/portraits/meridian-vale/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, discreet earpiece coiled at the collar, wearing dark sunglasses and pushing them down the bridge of her nose with one index finger so her watchful eyes are visible, small black enamel redaction-bar lapel pin, alert guarded expression with a trace of embarrassed warmth, upper half dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -112,8 +108,6 @@ export const meridianVale: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/meridian-vale/portrait-flirty.png",
         cutoutPath: "/assets/portraits/meridian-vale/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Meridian Vale portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, same warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, slim charcoal security trousers, black belt, black lace-up tactical boots, discreet earpiece coiled at the collar, dark sunglasses gripped in one lowered hand, small black enamel redaction-bar lapel pin, upright professional security-agent guard posture with shoulders squared and feet planted, other hand raised to her mouth in a closed fist as if politely coughing into it, head tilted down while her eyes look up toward the viewer from under her lashes, contained embarrassed attraction with a light controlled blush, tiny sweat beads, and a tense almost-smile hidden behind the fist, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -121,8 +115,6 @@ export const meridianVale: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/meridian-vale/portrait-confused.png",
         cutoutPath: "/assets/portraits/meridian-vale/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Meridian Vale portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, same warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, slim charcoal security trousers, black belt, black lace-up tactical boots, discreet earpiece coiled at the collar, dark sunglasses held low in one lowered hand, small black enamel redaction-bar lapel pin, upright professional security-agent stance with a small controlled break in composure, one hand raised to the earpiece as if listening to impossible instructions, brows pinched, narrowed watchful eyes, lips slightly parted in a clipped almost-question, dry concerned confusion without panic or slapstick, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -130,8 +122,6 @@ export const meridianVale: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/meridian-vale/portrait-angry.png",
         cutoutPath: "/assets/portraits/meridian-vale/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Meridian Vale portrait, interpreted as a cold professional boundary and protective security response, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive presence behind dark sunglasses, polished cel shading, same warm honey blonde windswept shoulder-length hair, sharp cheekbones, fitted white knit top under a neat tailored black blazer, slim charcoal security trousers, black belt, black lace-up tactical boots, discreet earpiece coiled at the collar, wearing the same dark sunglasses over her eyes, small black enamel redaction-bar lapel pin, three-quarter front stance with the arm closest to the viewer raised in a firm stop signal, opposite arm reaching behind her waist at the lower back with the blazer edge and torso angle hiding whether anything is there, no visible weapon or holster, stoic concerned boundary expression with tense mouth, controlled jaw, slight downward head angle, formal alert posture, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },

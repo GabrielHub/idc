@@ -5,6 +5,7 @@ import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
 import { cassieConners } from "./cassie-conners";
 import { chaYusung } from "./cha-yusung";
+import { cthala } from "./cthala";
 import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { eleanorAsh } from "./eleanor-ash";
 import { epsy } from "./epsy";
@@ -17,6 +18,7 @@ import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
 import { mrWhiskers } from "./mr-whiskers";
+import { naiaVelorae } from "./naia-velorae";
 import { opalSunday } from "./opal-sunday";
 import { reaver } from "./reaver";
 import { sanaKarim } from "./sana-karim";
@@ -28,7 +30,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(26)
+  .length(28)
   .parse([
     jennaPike,
     meridianVale,
@@ -56,6 +58,8 @@ export const starterMembers = memberSchema
     cassieConners,
     idrisMahari,
     reaver,
+    cthala,
+    naiaVelorae,
   ]);
 
 export {
@@ -65,6 +69,7 @@ export {
   calvinHewes,
   cassieConners,
   chaYusung,
+  cthala,
   decimusMariusTullio,
   eleanorAsh,
   epsy,
@@ -77,6 +82,7 @@ export {
   meridianVale,
   miraPark,
   mrWhiskers,
+  naiaVelorae,
   opalSunday,
   reaver,
   sanaKarim,

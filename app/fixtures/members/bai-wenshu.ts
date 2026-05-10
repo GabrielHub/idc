@@ -103,15 +103,11 @@ export const baiWenshu: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/bai-wenshu/portrait.png",
         cutoutPath: "/assets/portraits/bai-wenshu/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, expressive earnest eyes that contradict a deliberately serious mouth, mid twenties wuxia cultivator from a continuous cultivation timeline, Falling Plum Sect Inner Disciple, Han Chinese coded features, fair complexion with a faint warm undertone, glossy jet black hair pulled into a tall topknot bound with a small jade hairpin, two long stray strands framing the face, layered traditional cultivator robes in deep ink black with plum blossom pink piping along the inner collar and sleeves, wide white inner robe peeking at the cuffs and collar, dark sash at the waist, slim sheathed jian sword at the left hip with a plum blossom hilt wrap, large round jade pendant on a black cord hanging prominent over the chest, sleeve theatrically rolled back on the right forearm to show a faint pink qi mist tracing the skin, posed in a modern thirst trap influencer stance with weight on one foot, hips angled, free hand gripping the topknot at the back of the head as if styling it, other thumb hooked into the sash, smouldering off camera gaze, lips slightly parted in a deliberate sigma pose, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/bai-wenshu/avatar.png",
         cutoutPath: "/assets/portraits/bai-wenshu/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Bai Wenshu portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, expressive earnest eyes, same mid twenties wuxia cultivator from a continuous cultivation timeline, Falling Plum Sect Inner Disciple, Han Chinese coded features, glossy jet black hair in a tall topknot with small jade hairpin, two long stray strands framing the face, layered traditional cultivator robes in deep ink black with plum blossom pink collar piping, white inner robe at the cuffs and collar, large round jade pendant on a black cord at the chest, slim sheathed jian sword visible at the left shoulder strap, posed in an influencer fake candid profile picture, three quarter turn with one shoulder closer to camera, one hand lightly adjusting a loose strand of hair near the temple, other hand holding a sleek modern smartphone low at chest height as if just lowered after taking a picture, eyes glancing slightly off camera, practiced serious half smile with a deliberate soft pout, upper half realistic dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -119,8 +115,6 @@ export const baiWenshu: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/bai-wenshu/portrait-flirty.png",
         cutoutPath: "/assets/portraits/bai-wenshu/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Bai Wenshu portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same mid twenties wuxia cultivator from a continuous cultivation timeline, Falling Plum Sect Inner Disciple, Han Chinese coded features, fair complexion with a faint warm undertone, glossy jet black hair pulled into a tall topknot bound with a small jade hairpin, two long stray strands framing the face, layered traditional cultivator robes in deep ink black with plum blossom pink piping along the inner collar and sleeves, wide white inner robe peeking at the cuffs and collar, dark sash at the waist, slim sheathed jian sword at the left hip with a plum blossom hilt wrap, large round jade pendant on a black cord hanging prominent over the chest, sleeve rolled back on the right forearm with faint pink qi mist tracing the skin, seated in a low forward lean with a confident triangular silhouette, knees apart, torso angled toward the viewer, one hand lightly holding the jade pendant, other hand relaxed against the thigh near the sword, direct half-lidded eye contact, restrained confident smile, formal Romance Dao thirst trap posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -128,8 +122,6 @@ export const baiWenshu: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/bai-wenshu/portrait-confused.png",
         cutoutPath: "/assets/portraits/bai-wenshu/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Bai Wenshu portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same mid twenties wuxia cultivator from a continuous cultivation timeline, Falling Plum Sect Inner Disciple, Han Chinese coded features, fair complexion with a faint warm undertone, glossy jet black hair pulled into a tall topknot bound with a small jade hairpin, two long stray strands framing the face, layered traditional cultivator robes in deep ink black with plum blossom pink piping along the inner collar and sleeves, wide white inner robe peeking at the cuffs and collar, dark sash at the waist, slim sheathed jian sword at the left hip with a plum blossom hilt wrap, large round jade pendant on a black cord hanging prominent over the chest, faint pink qi mist tracing the right forearm, standing in side profile with hands folded behind the back, chin raised, spine straight, body held in calm meditative sect discipline, eyes closed with tense eyelids, furrowed brow, mouth held in a strained controlled line, as if a Romance Dao contradiction has pierced his meditation, sparse pink Falling Plum petals drifting near him, full body visible, plain white background, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -137,8 +129,6 @@ export const baiWenshu: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/bai-wenshu/portrait-angry.png",
         cutoutPath: "/assets/portraits/bai-wenshu/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Bai Wenshu portrait, interpreted as controlled sect disgust rather than shouting rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, polished cel shading, same mid twenties wuxia cultivator from a continuous cultivation timeline, Falling Plum Sect Inner Disciple, Han Chinese coded features, fair complexion with a faint warm undertone, glossy jet black hair pulled into a tall topknot bound with a small jade hairpin, two long stray strands framing the face, layered traditional cultivator robes in deep ink black with plum blossom pink piping along the inner collar and sleeves, wide white inner robe peeking at the cuffs and collar, dark sash at the waist, slim sheathed jian sword at the left hip with a plum blossom hilt wrap, large round jade pendant on a black cord hanging prominent over the chest, faint pink qi mist tracing the right forearm, standing in a formal three-quarter pose with stiff posture, squared shoulders, chin slightly lifted, torso subtly angled away, one arm held behind the back, visible hand resting on the sheathed sword hilt without drawing it, narrowed contemptuous eyes, sharply furrowed brows, tight downturned mouth, faint curled upper lip, quiet revulsion as if someone called the Falling Plum Sect a costume, full body visible, plain white background, no text, no logo, no frame, no scenery, no changed clothing, no changed face, no changed body",
         model: "image_gen built-in",
       },
     },
@@ -154,7 +144,7 @@ export const baiWenshu: Member = {
     tail: "papercut",
     border: "hairline",
     texture: "parchment",
-    entryAnimation: "settle",
+    entryAnimation: "unfurl",
     fontFamily: "serif",
     textEffect: "loose",
     accentColor: "#be185d",

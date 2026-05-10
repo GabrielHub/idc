@@ -98,15 +98,11 @@ export const venus: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/venus/portrait.png",
         cutoutPath: "/assets/portraits/venus/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, the Roman goddess Venus as a young woman with warm olive skin, long glossy pale rose-pink hair with subtle silver-blonde highlights, thin gold laurel circlet, gold hoop earrings, single gold upper-arm cuff, white and pale rose chiton-inspired dress with gold corded waist detail, gold sandals, faint pearly sea-foam glow at the hair tips and jewelry, knowing smug expression with a faint smile, glamorous dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/venus/avatar.png",
         cutoutPath: "/assets/portraits/venus/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same Roman goddess Venus as the full-body portrait, warm olive skin, long glossy pale rose-pink hair with subtle silver-blonde highlights, thin gold laurel circlet, gold hoop earrings, gold jewelry, white and pale rose chiton-inspired outfit, faint pearly sea-foam glow at the hair tips and jewelry, knowing smug expression with a faint smile, upper-half realistic dating profile picture pose, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -114,8 +110,6 @@ export const venus: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/venus/portrait-flirty.png",
         cutoutPath: "/assets/portraits/venus/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Venus portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, the same adult Roman goddess Venus with warm olive skin, long glossy pale rose-pink hair with subtle silver-blonde highlights, thin gold laurel circlet, gold hoop earrings, single gold upper-arm cuff, white and pale rose chiton-inspired dress with gold corded waist detail, gold sandals, faint pearly sea-foam glow at the hair tips and jewelry, leaning slightly toward the viewer with direct half-lidded eye contact, pronounced soft lip bite, one hand extended in a relaxed come-closer gesture, other hand gripping the existing lower dress hem from underneath to hold it down, seductive self-possessed commanding expression, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -123,8 +117,6 @@ export const venus: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/venus/portrait-confused.png",
         cutoutPath: "/assets/portraits/venus/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Venus portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, the same adult Roman goddess Venus with warm olive skin, long glossy pale rose-pink hair with subtle silver-blonde highlights, thin gold laurel circlet, gold hoop earrings, single gold upper-arm cuff, white and pale rose chiton-inspired dress with gold corded waist detail, gold sandals, faint pearly sea-foam glow at the hair tips and jewelry, three-quarter front pose with a slight lean back, brows pinched, eyes narrowed sideways, lips pursed, one index finger resting vertically against the pursed lips in offended deduction, other arm folded loosely across the waist near the gold corded detail, controlled divine confusion, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -132,8 +124,6 @@ export const venus: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/venus/portrait-angry.png",
         cutoutPath: "/assets/portraits/venus/portrait-angry.png",
-        prompt:
-          "Original full-body angry portrait variant for Interdimensional Dating Coach matching the approved Venus portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, the same adult Roman goddess Venus with warm olive skin, long glossy pale rose-pink hair with subtle silver-blonde highlights, thin gold laurel circlet, gold hoop earrings, single gold upper-arm cuff, white and pale rose chiton-inspired dress with gold corded waist detail, gold sandals, faint pearly sea-foam glow at the hair tips and jewelry, three-quarter back view while turning away from the viewer, face readable over one shoulder, eyes closed in cold disgust, pronounced tense lip bite, one hand raised in a loose dismissive wave, other hand lightly controlling the dress drape, contemptuous divine rejection, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -142,16 +132,16 @@ export const venus: Member = {
     background: {
       kind: "gradient",
       angle: 135,
-      stops: ["#fff5f7", "#fce7f3", "#fbcfe8"],
+      stops: ["#f43f5e", "#d946ef"],
     },
-    textColor: "dark",
-    shape: "pill",
+    textColor: "light",
+    shape: "soft",
     tail: "rounded",
-    border: "glow",
-    glow: { color: "#fb7185", intensity: "medium" },
-    texture: "glass",
+    border: "none",
+    glow: { color: "#f43f5e", intensity: "medium" },
     entryAnimation: "settle",
     fontFamily: "display",
     textEffect: "loose",
+    accentColor: "#9f1239",
   },
 };

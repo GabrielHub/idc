@@ -1,5 +1,5 @@
-import { motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router";
 
 import {
@@ -7,8 +7,12 @@ import {
   Eyebrow,
   GhostButton,
   MutedLabel,
+  pad2,
+  Portrait,
   SelectInput,
 } from "../components/dashboard-atoms";
+import { NotesView } from "../components/dashboard-views";
+import { PairBoard } from "../components/pair-board";
 import {
   DATE_PORTRAIT_MOODS,
   hasReadyPortraitMood,
@@ -25,7 +29,11 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "../components/date-reactions";
-import { resolveMemberChatBubbleStyle } from "../components/member-chat-bubble-style";
+import {
+  HOUSE_BUBBLE_LEFT_CLASS,
+  HOUSE_BUBBLE_NAME_CLASS,
+  resolveMemberChatBubbleStyle,
+} from "../components/member-chat-bubble-style";
 import {
   loadScenarioBackdropIds,
   SCENARIO_BACKDROP_MICRO_MOTION_VARIANTS,
@@ -34,9 +42,32 @@ import {
   type ScenarioBackdropMicroMotion,
   type ScenarioBackdropParticleStyle,
 } from "../components/scenario-backdrop";
-import type { AiProvider, AiReasoningLevel, Member, PortraitMood } from "../domain/game";
+import type {
+  AiProvider,
+  AiReasoningLevel,
+  MemoryRecord,
+  Member,
+  PairState,
+  PortraitMood,
+} from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
-import { jennaPike, vhool } from "../fixtures/members";
+import {
+  bradyStrait,
+  chaYusung,
+  eleanorAsh,
+  gideonGlass,
+  jennaPike,
+  marcusPellish,
+  meiSato,
+  miraPark,
+  naiaVelorae,
+  opalSunday,
+  reaver,
+  seraVohn,
+  tashaRell,
+  vhool,
+} from "../fixtures/members";
+import { makePairId, sortMemberIds } from "../services/game-seed";
 import {
   GATEWAY_CHAT_MODELS,
   GATEWAY_REASONING_LEVEL_OPTIONS,
@@ -81,6 +112,16 @@ const PLAYGROUND_TESTS = [
     id: "chat-bubbles",
     title: "Chat bubble gallery",
     summary: "Per-member focused-side bubble styles in one grid.",
+  },
+  {
+    id: "notes-archive",
+    title: "Notes archive",
+    summary: "Case notes view with mock pair, date, and scenario memories.",
+  },
+  {
+    id: "pair-board",
+    title: "Pair board",
+    summary: "Network-graph view of filed pair connections with hover, expand, and rail UX.",
   },
 ] as const;
 
@@ -145,6 +186,8 @@ export default function PlaygroundRoute() {
           {activeTestId === "ai-lab" ? <AiPromptLabTest /> : null}
           {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
+          {activeTestId === "notes-archive" ? <NotesArchiveTest /> : null}
+          {activeTestId === "pair-board" ? <PairBoardTest /> : null}
         </div>
       </div>
     </main>
@@ -250,7 +293,7 @@ function PlaygroundHeader({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.05 }}
-      className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between"
+      className="relative z-30 flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between"
     >
       <div className="space-y-3">
         <Eyebrow>// internal.tooling.ui</Eyebrow>
@@ -279,38 +322,143 @@ function TestList({
   activeTestId: PlaygroundTestId;
   onSelect: (testId: PlaygroundTestId) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
+  const activeTest =
+    PLAYGROUND_TESTS.find((test) => test.id === activeTestId) ?? PLAYGROUND_TESTS[0];
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (containerRef.current === null) {
+        return;
+      }
+      if (!containerRef.current.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function handleSelect(testId: PlaygroundTestId) {
+    if (testId !== activeTestId) {
+      onSelect(testId);
+    }
+    setOpen(false);
+  }
+
   return (
     <aside className="aura-glass h-fit rounded-card p-4 lg:w-72 lg:shrink-0">
-      <MutedLabel>bench tests</MutedLabel>
-      <ul className="mt-3 space-y-1.5">
-        {PLAYGROUND_TESTS.map((test) => {
-          const isActive = test.id === activeTestId;
-          return (
-            <li key={test.id}>
-              <button
-                type="button"
-                aria-current={isActive ? "true" : undefined}
-                onClick={() => onSelect(test.id)}
-                className={`block w-full cursor-pointer rounded-tile px-3 py-2 text-left transition ${
-                  isActive
-                    ? "bg-aura-ink text-white shadow-[0_8px_22px_-12px_rgba(15,23,42,0.45)]"
-                    : "text-aura-muted hover:bg-white/55 hover:text-aura-ink"
-                }`}
-              >
-                <span className="block font-display text-body font-semibold tracking-tight">
-                  {test.title}
-                </span>
-                <span
-                  className={`mt-0.5 block font-mono text-micro uppercase tracking-[0.22em] ${isActive ? "text-white/70" : "text-aura-faint"}`}
-                >
-                  {test.id}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      <div className="flex items-center justify-between gap-3">
+        <MutedLabel>bench tests</MutedLabel>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          {PLAYGROUND_TESTS.length}
+        </span>
+      </div>
+
+      <div ref={containerRef} className="relative mt-3">
+        <button
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={open}
+          aria-controls={open ? menuId : undefined}
+          aria-label={`Bench test: ${activeTest.title}`}
+          onClick={() => setOpen((current) => !current)}
+          className="flex w-full cursor-pointer items-center justify-between gap-3 rounded-tile bg-aura-ink px-3 py-2 text-left text-white shadow-[0_8px_22px_-12px_rgba(15,23,42,0.45)] outline-none transition hover:opacity-95 focus-visible:ring-2 focus-visible:ring-aura-rose/50"
+        >
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-display text-body font-semibold tracking-tight">
+              {activeTest.title}
+            </span>
+            <span className="mt-0.5 block truncate font-mono text-micro uppercase tracking-[0.22em] text-white/70">
+              {activeTest.id}
+            </span>
+          </span>
+          <TestListChevron open={open} />
+        </button>
+
+        <AnimatePresence>
+          {open ? (
+            <motion.ul
+              id={menuId}
+              key="test-list-menu"
+              role="menu"
+              aria-label="Bench tests"
+              initial={{ opacity: 0, y: -4, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -4, scale: 0.98 }}
+              transition={{ duration: 0.16, ease: EASE_OUT_QUART }}
+              className="aura-glass-strong absolute inset-x-0 top-full z-[60] mt-2 max-h-80 space-y-1 overflow-auto rounded-card p-1.5 shadow-card"
+            >
+              {PLAYGROUND_TESTS.map((test) => {
+                const selected = test.id === activeTestId;
+                return (
+                  <li key={test.id} role="none">
+                    <button
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={selected}
+                      onClick={() => handleSelect(test.id)}
+                      className={`block w-full cursor-pointer rounded-tile px-3 py-2 text-left transition ${
+                        selected
+                          ? "bg-aura-ink text-white"
+                          : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
+                      }`}
+                    >
+                      <span className="block truncate font-display text-body font-semibold tracking-tight">
+                        {test.title}
+                      </span>
+                      <span
+                        className={`mt-0.5 block truncate font-mono text-micro uppercase tracking-[0.22em] ${selected ? "text-white/70" : "text-aura-faint"}`}
+                      >
+                        {test.id}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </motion.ul>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      <p className="mt-3 text-sm text-aura-muted">{activeTest.summary}</p>
     </aside>
+  );
+}
+
+function TestListChevron({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 14 14"
+      fill="none"
+      className={`size-3.5 shrink-0 text-white/70 transition ${open ? "rotate-180" : ""}`}
+    >
+      <path
+        d="M3.5 5.5L7 9L10.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
@@ -385,14 +533,12 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
   const customBubble = member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
   const sampleText = pickChatBubbleSample(member);
 
-  const bubbleClass = customBubble
-    ? customBubble.className
-    : "rounded-[22px] rounded-bl-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
+  const bubbleClass = customBubble ? customBubble.className : HOUSE_BUBBLE_LEFT_CLASS;
   const bubbleStyle = customBubble?.style;
   const textColorClass = customBubble ? "" : "text-white";
   const nameClass = customBubble
     ? "text-[color:var(--member-bubble-accent)] opacity-80"
-    : "text-aura-rose/75";
+    : HOUSE_BUBBLE_NAME_CLASS;
   const accentStyle = customBubble?.accentStyle;
 
   const axes = describeBubbleAxes(member);
@@ -400,17 +546,20 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
   return (
     <article className="aura-glass flex flex-col gap-4 rounded-card p-5">
       <header className="flex items-start justify-between gap-3">
-        <div className="space-y-1">
-          <h3 className="font-display text-body font-semibold tracking-tight text-aura-ink">
-            {member.name}
-          </h3>
-          <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-            {member.voice.register}
-          </p>
+        <div className="flex items-center gap-3">
+          <Portrait member={member} variant="row" />
+          <div className="space-y-1">
+            <h3 className="font-display text-body font-semibold tracking-tight text-aura-ink">
+              {member.name}
+            </h3>
+            <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+              {member.voice.register}
+            </p>
+          </div>
         </div>
         <span
           className={`shrink-0 rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${
-            customBubble ? "bg-aura-ink/5 text-aura-muted" : "bg-aura-rose/15 text-aura-rose"
+            customBubble ? "bg-aura-ink/5 text-aura-muted" : "bg-[#0a84ff]/10 text-[#0a84ff]"
           }`}
         >
           {customBubble ? "custom" : "default house"}
@@ -418,9 +567,9 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
       </header>
 
       <div className="flex justify-start">
-        <div className="flex max-w-[88%] flex-col items-start gap-1" style={accentStyle}>
+        <div className="flex max-w-[88%] flex-col items-start gap-2" style={accentStyle}>
           <span
-            className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-left ${nameClass}`}
+            className={`relative z-20 px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-left ${nameClass}`}
           >
             {member.firstName}
           </span>
@@ -444,7 +593,7 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
         </ul>
       ) : (
         <p className="border-t border-aura-hairline pt-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-          // falls through to the rose fuchsia house style
+          // falls through to the default house bubble
         </p>
       )}
     </article>
@@ -484,6 +633,840 @@ function describeBubbleAxes(member: Member): ReadonlyArray<{ label: string; valu
     axes.push({ label: "fx", value: bubble.textEffect });
   }
   return axes;
+}
+
+/* ================================================================== */
+/* Test: Notes archive                                                */
+/* ================================================================== */
+
+type NotesPreviewState = "full" | "single" | "pairs-only" | "scenarios-only" | "empty";
+
+const NOTES_PREVIEW_STATES: {
+  id: NotesPreviewState;
+  label: string;
+  hint: string;
+}[] = [
+  { id: "full", label: "full archive", hint: "Many notes across pair, date, and scenario scopes" },
+  { id: "single", label: "single lead", hint: "One filed note (only the featured card renders)" },
+  { id: "pairs-only", label: "pairs only", hint: "Pair and date scope notes only" },
+  { id: "scenarios-only", label: "scenarios only", hint: "Scenario scope notes only" },
+  { id: "empty", label: "empty", hint: "No public notes filed yet" },
+];
+
+function NotesArchiveTest() {
+  const [previewState, setPreviewState] = useState<NotesPreviewState>("full");
+  const [shiftCount, setShiftCount] = useState(3);
+
+  const dataset = useMemo(() => buildNotesPreviewDataset(previewState), [previewState]);
+  const activeOption =
+    NOTES_PREVIEW_STATES.find((option) => option.id === previewState) ?? NOTES_PREVIEW_STATES[0];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.15 }}
+      className="space-y-6"
+    >
+      <TestHeader
+        title="Notes archive"
+        description="Mounts the live Notes view with mock public memories so we can preview the filter rail, empty states, and card layouts without playing through to a date wrap. The featured lead card, paired-portrait stack, scenario glyph, and importance rail all render against the same code path the dashboard uses."
+      />
+
+      <div className="aura-glass flex flex-wrap items-end gap-x-6 gap-y-4 rounded-card px-5 py-4">
+        <div className="space-y-2">
+          <MutedLabel>preview state</MutedLabel>
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+            {NOTES_PREVIEW_STATES.map((option) => {
+              const active = option.id === previewState;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-sfx="click"
+                  aria-pressed={active}
+                  title={option.hint}
+                  onClick={() => setPreviewState(option.id)}
+                  className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                    active
+                      ? "bg-aura-ink text-white shadow-quiet"
+                      : "text-aura-muted hover:text-aura-ink"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <NotesShiftStepper value={shiftCount} onChange={setShiftCount} />
+
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <MutedLabel>records loaded</MutedLabel>
+          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+            <span className="text-aura-ink tabular-nums">{dataset.memories.length}</span> on file
+            <span aria-hidden> · </span>
+            <span className="text-aura-ink">{activeOption.label}</span>
+          </span>
+        </div>
+      </div>
+
+      <div className="overflow-hidden rounded-card bg-white/45 ring-1 ring-aura-hairline">
+        <NotesView
+          memories={dataset.memories}
+          members={dataset.members}
+          pairStates={dataset.pairStates}
+          scenarios={dataset.scenarios}
+          shiftCount={shiftCount}
+        />
+      </div>
+    </motion.section>
+  );
+}
+
+function NotesShiftStepper({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (next: number) => void;
+}) {
+  return (
+    <div className="space-y-2">
+      <MutedLabel>shift number</MutedLabel>
+      <div className="inline-flex items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+        <button
+          type="button"
+          aria-label="Decrement shift number"
+          onClick={() => onChange(Math.max(0, value - 1))}
+          disabled={value === 0}
+          className="cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:text-aura-ink disabled:cursor-not-allowed disabled:text-aura-faint"
+        >
+          minus
+        </button>
+        <span className="min-w-12 text-center font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-ink tabular-nums">
+          {pad2(value)}
+        </span>
+        <button
+          type="button"
+          aria-label="Increment shift number"
+          onClick={() => onChange(Math.min(99, value + 1))}
+          disabled={value === 99}
+          className="cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:text-aura-ink disabled:cursor-not-allowed disabled:text-aura-faint"
+        >
+          plus
+        </button>
+      </div>
+    </div>
+  );
+}
+
+type NotesPreviewDataset = {
+  members: Member[];
+  pairStates: PairState[];
+  scenarios: typeof starterScenarios;
+  memories: MemoryRecord[];
+};
+
+function buildNotesPreviewDataset(state: NotesPreviewState): NotesPreviewDataset {
+  const couples: { a: Member; b: Member }[] = [
+    { a: jennaPike, b: vhool },
+    { a: meiSato, b: bradyStrait },
+    { a: eleanorAsh, b: marcusPellish },
+  ];
+
+  const pairStates = couples.map(({ a, b }) => buildBoardPairState(a, b, 64));
+  const scenarios = starterScenarios;
+  const members = starterMembers;
+
+  if (state === "empty") {
+    return { members, pairStates, scenarios, memories: [] };
+  }
+
+  const all = buildPreviewMemories();
+
+  if (state === "single") {
+    return { members, pairStates, scenarios, memories: all.slice(0, 1) };
+  }
+  if (state === "pairs-only") {
+    return {
+      members,
+      pairStates,
+      scenarios,
+      memories: all.filter((memory) => memory.scope === "pair" || memory.scope === "date"),
+    };
+  }
+  if (state === "scenarios-only") {
+    return {
+      members,
+      pairStates,
+      scenarios,
+      memories: all.filter((memory) => memory.scope === "scenario"),
+    };
+  }
+
+  return { members, pairStates, scenarios, memories: all };
+}
+
+function buildPreviewMemories(): MemoryRecord[] {
+  const jennaVhool = makePairId(jennaPike.id, vhool.id);
+  const meiBrady = makePairId(meiSato.id, bradyStrait.id);
+  const eleanorMarcus = makePairId(eleanorAsh.id, marcusPellish.id);
+
+  const records: MemoryRecord[] = [
+    {
+      id: "preview-pair-jenna-vhool-temporal",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(jennaPike.id, vhool.id),
+      pairId: jennaVhool,
+      scenarioId: "temporal-coffee-shop",
+      dateSessionId: "preview-session-jenna-vhool-1",
+      text: "Jenna and Vhool produced a steady warm-up exchange at Temporal Coffee Shop. Vhool kept the questions concrete after Cupid flagged it, and Jenna stopped editing her schedule mid-sentence by exchange three.",
+      tags: ["date_summary", "low"],
+      importance: 4,
+      createdAt: "2026-05-08T19:24:00.000Z",
+    },
+    {
+      id: "preview-date-mei-brady-volcano",
+      scope: "date",
+      visibility: "public",
+      subjectIds: sortMemberIds(meiSato.id, bradyStrait.id),
+      pairId: meiBrady,
+      scenarioId: "volcano-hot-spring",
+      dateSessionId: "preview-session-mei-brady-1",
+      text: "Mei and Brady cleared a tense exchange at Hot Spring Inside The Volcano. Brady asked a follow-up about the lab schedule instead of pivoting to himself, and Mei filed a comfort movement upward.",
+      tags: ["ai_summary", "high"],
+      importance: 5,
+      createdAt: "2026-05-08T22:11:00.000Z",
+    },
+    {
+      id: "preview-scenario-temporal-repeat",
+      scope: "scenario",
+      visibility: "public",
+      subjectIds: sortMemberIds(jennaPike.id, vhool.id),
+      pairId: jennaVhool,
+      scenarioId: "temporal-coffee-shop",
+      dateSessionId: "preview-session-jenna-vhool-1",
+      text: "Jenna and Vhool have used Temporal Coffee Shop. Repeat bookings should mention that Cupid has a file and that the espresso machine eats one minute every third pull.",
+      tags: ["scenario_repeat"],
+      importance: 3,
+      createdAt: "2026-05-08T19:25:00.000Z",
+    },
+    {
+      id: "preview-pair-eleanor-marcus-listening",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(eleanorAsh.id, marcusPellish.id),
+      pairId: eleanorMarcus,
+      scenarioId: "listening-booth-after-close",
+      dateSessionId: "preview-session-eleanor-marcus-1",
+      text: "Eleanor and Marcus filed a clean exchange at Listening Booth After Close. They agreed on a second meeting before Cupid had to suggest one, which is rare on a first booking.",
+      tags: ["date_summary", "medium"],
+      importance: 3,
+      createdAt: "2026-05-07T23:48:00.000Z",
+    },
+    {
+      id: "preview-scenario-diner-cupid-note",
+      scope: "scenario",
+      visibility: "public",
+      subjectIds: sortMemberIds(meiSato.id, bradyStrait.id),
+      pairId: meiBrady,
+      scenarioId: "diner-eleven-pm",
+      dateSessionId: "preview-session-mei-brady-2",
+      text: "Diner At Eleven keeps producing comfort movements when Cupid sets a clear closing time. Hold the booth at the back and let the first soda land before the first hard question.",
+      tags: ["scenario_repeat", "low"],
+      importance: 2,
+      createdAt: "2026-05-07T03:02:00.000Z",
+    },
+    {
+      id: "preview-date-jenna-vhool-diner",
+      scope: "date",
+      visibility: "public",
+      subjectIds: sortMemberIds(jennaPike.id, vhool.id),
+      pairId: jennaVhool,
+      scenarioId: "diner-eleven-pm",
+      dateSessionId: "preview-session-jenna-vhool-2",
+      text: "Jenna and Vhool kept a steady tempo at Diner At Eleven. Vhool ordered the pancakes a second time without explanation and Jenna let it go, which Cupid is filing as progress.",
+      tags: ["ai_summary", "low"],
+      importance: 3,
+      createdAt: "2026-05-06T04:18:00.000Z",
+    },
+    {
+      id: "preview-pair-mei-brady-temporal",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(meiSato.id, bradyStrait.id),
+      pairId: meiBrady,
+      scenarioId: "temporal-coffee-shop",
+      dateSessionId: "preview-session-mei-brady-3",
+      text: "Mei and Brady filed a flat second exchange at Temporal Coffee Shop. Cupid logged a fallback filing because the AI judge timed out. Hold the room from the rotation until next shift.",
+      tags: ["fallback_summary", "medium"],
+      importance: 2,
+      createdAt: "2026-05-05T18:33:00.000Z",
+    },
+    {
+      id: "preview-scenario-volcano-room-note",
+      scope: "scenario",
+      visibility: "public",
+      subjectIds: sortMemberIds(meiSato.id, bradyStrait.id),
+      pairId: meiBrady,
+      scenarioId: "volcano-hot-spring",
+      dateSessionId: "preview-session-mei-brady-1",
+      text: "Hot Spring Inside The Volcano runs hot for first dates and cool for confessions. Two pairs have reported the temperature ladder cleared a held topic without an intervention.",
+      tags: ["scenario_repeat", "high"],
+      importance: 4,
+      createdAt: "2026-05-05T20:08:00.000Z",
+    },
+  ];
+
+  return records;
+}
+
+/* ================================================================== */
+/* Test: Pair board                                                   */
+/* ================================================================== */
+
+type PairBoardPreviewState = "dense" | "sparse" | "single-hub" | "ghost-only" | "empty";
+
+const PAIR_BOARD_PREVIEW_STATES: {
+  id: PairBoardPreviewState;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    id: "dense",
+    label: "dense graph",
+    hint: "Many cross-pairs across the roster, multiple hubs",
+  },
+  {
+    id: "sparse",
+    label: "sparse graph",
+    hint: "A handful of pairs, mostly single connections",
+  },
+  {
+    id: "single-hub",
+    label: "single hub",
+    hint: "One central member connected to several spokes",
+  },
+  {
+    id: "ghost-only",
+    label: "ghost only",
+    hint: "Pair states exist but no notes filed yet",
+  },
+  {
+    id: "empty",
+    label: "empty",
+    hint: "No pair states at all",
+  },
+];
+
+function PairBoardTest() {
+  const [previewState, setPreviewState] = useState<PairBoardPreviewState>("dense");
+  const [shiftCount, setShiftCount] = useState(7);
+
+  const dataset = useMemo(() => buildPairBoardPreviewDataset(previewState), [previewState]);
+  const activeOption =
+    PAIR_BOARD_PREVIEW_STATES.find((option) => option.id === previewState) ??
+    PAIR_BOARD_PREVIEW_STATES[0];
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.15 }}
+      className="space-y-6"
+    >
+      <TestHeader
+        title="Pair board"
+        description="Standalone graph view of filed pair connections. Each member is a node bubble, each filed pair is a curved thread between two nodes. Hover a node to highlight its connections, hover a thread to preview the latest pair note, click anywhere to expand the bespoke detail rail."
+      />
+
+      <div className="aura-glass flex flex-wrap items-end gap-x-6 gap-y-4 rounded-card px-5 py-4">
+        <div className="space-y-2">
+          <MutedLabel>preview state</MutedLabel>
+          <div className="inline-flex flex-wrap items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+            {PAIR_BOARD_PREVIEW_STATES.map((option) => {
+              const active = option.id === previewState;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-sfx="click"
+                  aria-pressed={active}
+                  title={option.hint}
+                  onClick={() => setPreviewState(option.id)}
+                  className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
+                    active
+                      ? "bg-aura-ink text-white shadow-quiet"
+                      : "text-aura-muted hover:text-aura-ink"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <NotesShiftStepper value={shiftCount} onChange={setShiftCount} />
+
+        <div className="ml-auto flex flex-col items-end gap-1">
+          <MutedLabel>graph contents</MutedLabel>
+          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+            <span className="text-aura-ink tabular-nums">{dataset.pairStates.length}</span> pair
+            {dataset.pairStates.length === 1 ? "" : "s"}
+            <span aria-hidden> · </span>
+            <span className="text-aura-ink tabular-nums">{dataset.memories.length}</span> note
+            {dataset.memories.length === 1 ? "" : "s"}
+            <span aria-hidden> · </span>
+            <span className="text-aura-ink">{activeOption.label}</span>
+          </span>
+        </div>
+      </div>
+
+      <PairBoard
+        members={dataset.members}
+        pairStates={dataset.pairStates}
+        memories={dataset.memories}
+        scenarios={starterScenarios}
+        shiftCount={shiftCount}
+      />
+    </motion.section>
+  );
+}
+
+type PairBoardPreviewDataset = {
+  members: Member[];
+  pairStates: PairState[];
+  memories: MemoryRecord[];
+};
+
+function buildPairBoardPreviewDataset(state: PairBoardPreviewState): PairBoardPreviewDataset {
+  if (state === "empty") {
+    return { members: starterMembers, pairStates: [], memories: [] };
+  }
+
+  if (state === "single-hub") {
+    return buildSingleHubDataset();
+  }
+
+  if (state === "sparse") {
+    return buildSparseDataset();
+  }
+
+  if (state === "ghost-only") {
+    return buildGhostOnlyDataset();
+  }
+
+  return buildDenseDataset();
+}
+
+function buildDenseDataset(): PairBoardPreviewDataset {
+  const couples: { a: Member; b: Member; health: number }[] = [
+    { a: jennaPike, b: vhool, health: 72 },
+    { a: jennaPike, b: bradyStrait, health: 58 },
+    { a: jennaPike, b: opalSunday, health: 64 },
+    { a: meiSato, b: bradyStrait, health: 81 },
+    { a: meiSato, b: gideonGlass, health: 47 },
+    { a: meiSato, b: chaYusung, health: 69 },
+    { a: eleanorAsh, b: marcusPellish, health: 76 },
+    { a: eleanorAsh, b: gideonGlass, health: 52 },
+    { a: miraPark, b: chaYusung, health: 60 },
+    { a: miraPark, b: tashaRell, health: 66 },
+    { a: seraVohn, b: reaver, health: 41 },
+    { a: seraVohn, b: vhool, health: 55 },
+    { a: naiaVelorae, b: opalSunday, health: 63 },
+    { a: tashaRell, b: gideonGlass, health: 49 },
+  ];
+
+  const pairStates = couples.map(({ a, b, health }) => buildBoardPairState(a, b, health));
+  const memories = buildDenseMemories();
+  const members = collectMembers(couples);
+  return { members, pairStates, memories };
+}
+
+function buildSparseDataset(): PairBoardPreviewDataset {
+  const couples: { a: Member; b: Member; health: number }[] = [
+    { a: jennaPike, b: vhool, health: 64 },
+    { a: meiSato, b: bradyStrait, health: 70 },
+    { a: eleanorAsh, b: marcusPellish, health: 55 },
+    { a: miraPark, b: chaYusung, health: 48 },
+  ];
+  const pairStates = couples.map(({ a, b, health }) => buildBoardPairState(a, b, health));
+  const members = collectMembers(couples);
+  const memories: MemoryRecord[] = [
+    {
+      id: "preview-pair-jenna-vhool-sparse-1",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(jennaPike.id, vhool.id),
+      pairId: makePairId(jennaPike.id, vhool.id),
+      scenarioId: "temporal-coffee-shop",
+      dateSessionId: "preview-sparse-1",
+      text: "Jenna and Vhool produced a steady warm-up exchange at Temporal Coffee Shop. Vhool kept the questions concrete after Cupid flagged it.",
+      tags: ["date_summary", "low"],
+      importance: 3,
+      createdAt: "2026-05-09T18:20:00.000Z",
+    },
+    {
+      id: "preview-pair-mei-brady-sparse-1",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(meiSato.id, bradyStrait.id),
+      pairId: makePairId(meiSato.id, bradyStrait.id),
+      scenarioId: "volcano-hot-spring",
+      dateSessionId: "preview-sparse-2",
+      text: "Mei and Brady cleared a tense exchange at Hot Spring Inside The Volcano. Brady asked a follow-up about the lab schedule instead of pivoting to himself.",
+      tags: ["date_summary", "high"],
+      importance: 5,
+      createdAt: "2026-05-08T22:11:00.000Z",
+    },
+    {
+      id: "preview-pair-eleanor-marcus-sparse-1",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(eleanorAsh.id, marcusPellish.id),
+      pairId: makePairId(eleanorAsh.id, marcusPellish.id),
+      scenarioId: "listening-booth-after-close",
+      dateSessionId: "preview-sparse-3",
+      text: "Eleanor and Marcus filed a clean exchange at Listening Booth After Close. They agreed on a second meeting before Cupid had to suggest one.",
+      tags: ["date_summary", "medium"],
+      importance: 3,
+      createdAt: "2026-05-07T23:48:00.000Z",
+    },
+    {
+      id: "preview-pair-mira-cha-sparse-1",
+      scope: "pair",
+      visibility: "public",
+      subjectIds: sortMemberIds(miraPark.id, chaYusung.id),
+      pairId: makePairId(miraPark.id, chaYusung.id),
+      scenarioId: "world-sim-operator-booth",
+      dateSessionId: "preview-sparse-4",
+      text: "Mira and Cha kept a quiet bench at World-Sim Operator Booth. Neither pushed for an answer and the room let it be.",
+      tags: ["date_summary", "low"],
+      importance: 2,
+      createdAt: "2026-05-06T21:02:00.000Z",
+    },
+  ];
+  return { members, pairStates, memories };
+}
+
+function buildSingleHubDataset(): PairBoardPreviewDataset {
+  const hub = meiSato;
+  const spokes: {
+    partner: Member;
+    health: number;
+    importance: 1 | 2 | 3 | 4 | 5;
+    scenario: string;
+    text: string;
+    createdAt: string;
+  }[] = [
+    {
+      partner: bradyStrait,
+      health: 78,
+      importance: 5,
+      scenario: "volcano-hot-spring",
+      text: "Mei and Brady cleared a tense exchange at Hot Spring Inside The Volcano. Brady asked a follow-up about the lab schedule instead of pivoting to himself.",
+      createdAt: "2026-05-09T22:11:00.000Z",
+    },
+    {
+      partner: gideonGlass,
+      health: 51,
+      importance: 3,
+      scenario: "underworld-department-mixer",
+      text: "Mei and Gideon held a flat first exchange at Underworld Department Mixer. Gideon read the room and shifted the topic before the second round.",
+      createdAt: "2026-05-08T20:14:00.000Z",
+    },
+    {
+      partner: chaYusung,
+      health: 65,
+      importance: 4,
+      scenario: "world-sim-operator-booth",
+      text: "Mei and Cha shared a steady debrief at World-Sim Operator Booth. Cha drew a workplace boundary cleanly and Mei did not push.",
+      createdAt: "2026-05-07T19:33:00.000Z",
+    },
+    {
+      partner: jennaPike,
+      health: 60,
+      importance: 3,
+      scenario: "temporal-coffee-shop",
+      text: "Mei and Jenna kept a warm pace at Temporal Coffee Shop. Jenna stopped editing her schedule by exchange three.",
+      createdAt: "2026-05-06T17:48:00.000Z",
+    },
+    {
+      partner: opalSunday,
+      health: 44,
+      importance: 2,
+      scenario: "diner-eleven-pm",
+      text: "Mei and Opal logged a quiet round at Diner At Eleven. Cupid filed a fallback summary because the judge timed out.",
+      createdAt: "2026-05-05T03:18:00.000Z",
+    },
+  ];
+
+  const couples = spokes.map((s) => ({ a: hub, b: s.partner, health: s.health }));
+  const pairStates = couples.map(({ a, b, health }) => buildBoardPairState(a, b, health));
+  const members = collectMembers(couples);
+  const memories: MemoryRecord[] = spokes.map((spoke, index) => ({
+    id: `preview-hub-${spoke.partner.id}-${index}`,
+    scope: "pair",
+    visibility: "public",
+    subjectIds: sortMemberIds(hub.id, spoke.partner.id),
+    pairId: makePairId(hub.id, spoke.partner.id),
+    scenarioId: spoke.scenario,
+    dateSessionId: `preview-hub-${index}`,
+    text: spoke.text,
+    tags: ["date_summary"],
+    importance: spoke.importance,
+    createdAt: spoke.createdAt,
+  }));
+  return { members, pairStates, memories };
+}
+
+function buildGhostOnlyDataset(): PairBoardPreviewDataset {
+  const couples: { a: Member; b: Member; health: number }[] = [
+    { a: jennaPike, b: vhool, health: 60 },
+    { a: meiSato, b: bradyStrait, health: 60 },
+    { a: eleanorAsh, b: marcusPellish, health: 60 },
+    { a: miraPark, b: chaYusung, health: 60 },
+    { a: seraVohn, b: reaver, health: 60 },
+    { a: gideonGlass, b: tashaRell, health: 60 },
+  ];
+  const pairStates = couples.map(({ a, b, health }) => buildBoardPairState(a, b, health));
+  const members = collectMembers(couples);
+  return { members, pairStates, memories: [] };
+}
+
+function buildDenseMemories(): MemoryRecord[] {
+  const items: {
+    a: Member;
+    b: Member;
+    scenario: string;
+    text: string;
+    tags: string[];
+    importance: 1 | 2 | 3 | 4 | 5;
+    iso: string;
+    idTag: string;
+  }[] = [
+    {
+      a: jennaPike,
+      b: vhool,
+      scenario: "temporal-coffee-shop",
+      text: "Jenna and Vhool produced a steady warm-up exchange at Temporal Coffee Shop. Vhool kept the questions concrete after Cupid flagged it, and Jenna stopped editing her schedule by exchange three.",
+      tags: ["date_summary", "low"],
+      importance: 4,
+      iso: "2026-05-09T18:24:00.000Z",
+      idTag: "jenna-vhool-temporal",
+    },
+    {
+      a: jennaPike,
+      b: vhool,
+      scenario: "diner-eleven-pm",
+      text: "Jenna and Vhool kept a steady tempo at Diner At Eleven. Vhool ordered the pancakes a second time without explanation and Jenna let it go.",
+      tags: ["date_summary", "low"],
+      importance: 3,
+      iso: "2026-05-07T04:18:00.000Z",
+      idTag: "jenna-vhool-diner",
+    },
+    {
+      a: jennaPike,
+      b: bradyStrait,
+      scenario: "executive-lunch-one-agenda-item",
+      text: "Jenna and Brady held a clipped exchange at Executive Lunch One Agenda Item. Brady tried a single agenda item and Jenna gave it back to him cleaner.",
+      tags: ["date_summary", "medium"],
+      importance: 3,
+      iso: "2026-05-08T13:02:00.000Z",
+      idTag: "jenna-brady-exec",
+    },
+    {
+      a: jennaPike,
+      b: opalSunday,
+      scenario: "open-house-sunday",
+      text: "Jenna and Opal toured Open House Sunday and filed a pleasant first exchange. Opal asked for a follow-up before Cupid prompted.",
+      tags: ["date_summary", "medium"],
+      importance: 4,
+      iso: "2026-05-09T15:11:00.000Z",
+      idTag: "jenna-opal-open",
+    },
+    {
+      a: meiSato,
+      b: bradyStrait,
+      scenario: "volcano-hot-spring",
+      text: "Mei and Brady cleared a tense exchange at Hot Spring Inside The Volcano. Brady asked a follow-up about the lab schedule instead of pivoting to himself, and Mei filed a comfort movement upward.",
+      tags: ["date_summary", "high"],
+      importance: 5,
+      iso: "2026-05-09T22:11:00.000Z",
+      idTag: "mei-brady-volcano",
+    },
+    {
+      a: meiSato,
+      b: bradyStrait,
+      scenario: "temporal-coffee-shop",
+      text: "Mei and Brady filed a flat second exchange at Temporal Coffee Shop. Cupid logged a fallback filing because the AI judge timed out.",
+      tags: ["fallback_summary", "medium"],
+      importance: 2,
+      iso: "2026-05-05T18:33:00.000Z",
+      idTag: "mei-brady-temporal",
+    },
+    {
+      a: meiSato,
+      b: gideonGlass,
+      scenario: "underworld-department-mixer",
+      text: "Mei and Gideon held a flat first exchange at Underworld Department Mixer. Gideon read the room and shifted the topic before the second round.",
+      tags: ["date_summary", "low"],
+      importance: 3,
+      iso: "2026-05-08T20:14:00.000Z",
+      idTag: "mei-gideon-underworld",
+    },
+    {
+      a: meiSato,
+      b: chaYusung,
+      scenario: "world-sim-operator-booth",
+      text: "Mei and Cha shared a steady debrief at World-Sim Operator Booth. Cha drew a workplace boundary cleanly and Mei did not push.",
+      tags: ["date_summary", "medium"],
+      importance: 4,
+      iso: "2026-05-07T19:33:00.000Z",
+      idTag: "mei-cha-worldsim",
+    },
+    {
+      a: eleanorAsh,
+      b: marcusPellish,
+      scenario: "listening-booth-after-close",
+      text: "Eleanor and Marcus filed a clean exchange at Listening Booth After Close. They agreed on a second meeting before Cupid had to suggest one, which is rare on a first booking.",
+      tags: ["date_summary", "medium"],
+      importance: 4,
+      iso: "2026-05-08T23:48:00.000Z",
+      idTag: "eleanor-marcus-listening",
+    },
+    {
+      a: eleanorAsh,
+      b: gideonGlass,
+      scenario: "memory-course-dinner",
+      text: "Eleanor and Gideon ran cool through Memory Course Dinner. Gideon paced his stories and Eleanor matched him for a clean exit.",
+      tags: ["date_summary", "low"],
+      importance: 3,
+      iso: "2026-05-06T20:22:00.000Z",
+      idTag: "eleanor-gideon-memory",
+    },
+    {
+      a: miraPark,
+      b: chaYusung,
+      scenario: "park-loop-with-a-dog",
+      text: "Mira and Cha walked Park Loop With A Dog and kept the pace easy. Mira deferred to Cha on a tense neighbor and Cha noticed.",
+      tags: ["date_summary", "medium"],
+      importance: 3,
+      iso: "2026-05-09T16:54:00.000Z",
+      idTag: "mira-cha-park",
+    },
+    {
+      a: miraPark,
+      b: tashaRell,
+      scenario: "bowling-league-night",
+      text: "Mira and Tasha closed Bowling League Night without a hard topic. Tasha telegraphed her interest before the score reset and Mira rolled with it.",
+      tags: ["date_summary", "low"],
+      importance: 3,
+      iso: "2026-05-08T22:39:00.000Z",
+      idTag: "mira-tasha-bowling",
+    },
+    {
+      a: seraVohn,
+      b: reaver,
+      scenario: "phantom-doorbell-suite",
+      text: "Sera and Reaver filed a tense pass through Phantom Doorbell Suite. Reaver tested an entry early and Sera held the line without escalating.",
+      tags: ["date_summary", "high"],
+      importance: 5,
+      iso: "2026-05-09T01:02:00.000Z",
+      idTag: "sera-reaver-phantom",
+    },
+    {
+      a: seraVohn,
+      b: vhool,
+      scenario: "midnight-notary-two-clean-promises",
+      text: "Sera and Vhool walked Midnight Notary clean. Vhool signed both promises without an edit and Sera kept the silence after.",
+      tags: ["date_summary", "high"],
+      importance: 4,
+      iso: "2026-05-08T04:18:00.000Z",
+      idTag: "sera-vhool-notary",
+    },
+    {
+      a: naiaVelorae,
+      b: opalSunday,
+      scenario: "moon-picnic",
+      text: "Naia and Opal kept Moon Picnic still and unhurried. Naia named what was on her mind and Opal answered without filling.",
+      tags: ["date_summary", "medium"],
+      importance: 4,
+      iso: "2026-05-09T03:14:00.000Z",
+      idTag: "naia-opal-moon",
+    },
+    {
+      a: tashaRell,
+      b: gideonGlass,
+      scenario: "hardware-store-one-project",
+      text: "Tasha and Gideon split Hardware Store One Project into halves. Gideon picked his half first and Tasha did not negotiate.",
+      tags: ["date_summary", "low"],
+      importance: 2,
+      iso: "2026-05-06T17:09:00.000Z",
+      idTag: "tasha-gideon-hardware",
+    },
+  ];
+
+  return items.map((entry, index) => ({
+    id: `preview-board-${entry.idTag}-${index}`,
+    scope: "pair" as const,
+    visibility: "public" as const,
+    subjectIds: sortMemberIds(entry.a.id, entry.b.id),
+    pairId: makePairId(entry.a.id, entry.b.id),
+    scenarioId: entry.scenario,
+    dateSessionId: `preview-board-session-${index}`,
+    text: entry.text,
+    tags: entry.tags,
+    importance: entry.importance,
+    createdAt: entry.iso,
+  }));
+}
+
+function buildBoardPairState(a: Member, b: Member, health: number): PairState {
+  return {
+    id: makePairId(a.id, b.id),
+    participantIds: sortMemberIds(a.id, b.id),
+    stats: {
+      chemistry: 65,
+      trust: 60,
+      stability: 55,
+      conflict: 25,
+      weirdnessTolerance: 70,
+      spark: 60,
+      strain: 30,
+      relationshipHealth: health,
+    },
+    completedDateIds: [],
+    scenarioUseCounts: {},
+  };
+}
+
+function collectMembers(couples: { a: Member; b: Member }[]): Member[] {
+  const seen = new Set<string>();
+  const ordered: Member[] = [];
+  for (const { a, b } of couples) {
+    if (!seen.has(a.id)) {
+      ordered.push(a);
+      seen.add(a.id);
+    }
+    if (!seen.has(b.id)) {
+      ordered.push(b);
+      seen.add(b.id);
+    }
+  }
+  // Pad with a few un-paired starter members so the off-the-board chip strip
+  // has content to render and we can validate the empty-degree case.
+  for (const member of starterMembers) {
+    if (ordered.length >= 18) break;
+    if (seen.has(member.id)) continue;
+    ordered.push(member);
+    seen.add(member.id);
+  }
+  return ordered;
 }
 
 /* ================================================================== */

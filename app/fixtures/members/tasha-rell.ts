@@ -97,15 +97,11 @@ export const tashaRell: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/tasha-rell/portrait.png",
         cutoutPath: "/assets/portraits/tasha-rell/portrait.png",
-        prompt:
-          "Original full body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, smartwatch on the left wrist, confident upbeat expression, slight forward lean, both hands visible outside pockets, one hand relaxed at her side, one hand holding a slim trading notebook, dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/tasha-rell/avatar.png",
         cutoutPath: "/assets/portraits/tasha-rell/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art matching the full body Tasha Rell portrait, clean anime line work, expressive eyes, polished cel shading, twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, gold jewelry, smartwatch on the left wrist, confident upbeat expression, slight three-quarter turn, one hand lightly touching the blazer lapel, upper half dating profile picture pose with shoulders visible, plain white background, no text, no logo, no frame, no scenery",
         model: "image_gen built-in",
       },
     },
@@ -113,8 +109,6 @@ export const tashaRell: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/tasha-rell/portrait-flirty.png",
         cutoutPath: "/assets/portraits/tasha-rell/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer sliding off both shoulders, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, perched on the front edge of a partial painterly office desk with brushstroke sides fading into the white background, both arms reaching back with hands braced on the desk, torso leaning forward with controlled confidence, dramatic flirty expression with half-lidded eye contact and a pronounced lower lip bite, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
         model: "image_gen built-in",
       },
     },
@@ -122,8 +116,6 @@ export const tashaRell: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/tasha-rell/portrait-confused.png",
         cutoutPath: "/assets/portraits/tasha-rell/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer worn open, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, controlled market-confusion expression with pinched brows, narrowed sideways eyes, and parted skeptical mouth, leaning slightly back with weight shifted onto one hip, one hand hovering over the smartwatch as if checking whether reality just moved against her, other hand raised near chest height with two fingers lifted in a small pause gesture, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
         model: "image_gen built-in",
       },
     },
@@ -131,24 +123,23 @@ export const tashaRell: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/tasha-rell/portrait-angry.png",
         cutoutPath: "/assets/portraits/tasha-rell/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Tasha Rell portrait, interpreted as guarded boundary irritation while calling for the check, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive eyes, polished cel shading, same twenty-nine year old day trader with warm medium skin, glossy deep chestnut shoulder-length wavy hair swept to one side, champagne satin square-neck crop shell, cropped ivory blazer held more closed by a crossed arm, high-waisted tailored black trousers, designer loafers, slim gold arm cuff, subtle gold necklace, black smartwatch on the left wrist, seated on a minimal restaurant chair, body angled slightly away, head turned aside toward an implied server, cold done expression with lowered brows, narrowed side glance, and tight flat mouth, one raised hand pinched as if signing for the check with an invisible pen and no visible writing, other arm crossed across her body in a guarded posture, full body visible, plain white background, no text, no logo, no frame, no scenery, no trading notebook",
         model: "image_gen built-in",
       },
     },
   },
   chatBubble: {
     background: {
-      kind: "solid",
-      color: "#0a0a0a",
+      kind: "gradient",
+      angle: 145,
+      stops: ["#fafaf9", "#ecfdf5"],
     },
-    textColor: "light",
+    textColor: "dark",
     shape: "sharp",
     tail: "sharp",
-    border: "glow",
-    glow: { color: "#10b981", intensity: "medium" },
+    border: "hairline",
     entryAnimation: "snap",
     fontFamily: "mono",
     textEffect: "tight",
+    accentColor: "#15803d",
   },
 };

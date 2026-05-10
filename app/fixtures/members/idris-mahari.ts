@@ -8,9 +8,9 @@ export const idrisMahari: Member = {
   species: "Human",
   dimension: "Stranded Earth, Glasshouse Concession line, post-armistice",
   realityStatus: "Emigrated through brokered gate, six months retired",
-  bio: "War, war never changes. I came from one. I led one. I ended one. I am 31. I am trying to learn what to do on Saturdays. The Cinder Hand dissolved its command structure six months ago. I declined three governorships in writing and emigrated through a brokered dimensional gate to be somewhere my name is not said in a particular tone. My transition counselor handed me the registration form. I had been told to tick a box for companionship. I ticked it. There is no one waiting for me to come home. That is the part I am still working on.",
+  bio: "I am 31. I led a war. I ended one. I am now trying to learn what people do on Saturdays. so far the answer is, in no order, salad spinners, podcasts, and a great deal of sitting. The Cinder Hand dissolved its command structure six months ago. I declined three governorships in writing and emigrated through a brokered dimensional gate to be somewhere my name is not said in a particular tone. My transition counselor handed me the registration form. I had been told to tick a box for companionship. I ticked it. There is no one waiting for me to come home. That is the part I am still working on. The rest I am, ah, workshopping.",
   datingProfile:
-    "Idris. 31. retired from a job that does not have a polite word for it. I do not have pets. toppings are an open question. you pick. I will eat anything that is not Hand-rations. I am told the algorithm here pairs across timelines. fine. mine no longer exists in a useful sense. yours might be more interesting. tell me the most boring thing about your week. that is what I want to hear about.",
+    "31, retired from a job that does not have a polite word for it. I do not have pets. toppings are an open question. you pick. I will eat anything that is not Hand-rations. I am told the algorithm pairs across timelines. fine. mine no longer exists in any useful sense, so yours is doing the heavy lifting. tell me the most boring thing about your week. genuinely. I am trying to learn what civilians worry about. so far I have a working file on parking. I would like to know more.",
   relationshipNeeds: [
     "A counterpart who does not require him to be a leader, a project, or a cause",
     "Someone who can ask once about the war and let the answer hold",
@@ -43,49 +43,49 @@ export const idrisMahari: Member = {
     "needs_clear_plan",
   ],
   voice: {
-    register: "burnt out, sharp tongued, accidentally commanding",
+    register: "dry deadpan, rambles into honesty, quietly bewildered by ordinary Saturdays",
     patternsUsed: [
       "deadpan_one_liner",
-      "philosophical_existential",
+      "self_deprecating_confession",
       "mundane_domesticity",
-      "ominous_threat_as_flirtation",
+      "stream_of_consciousness",
     ],
     patternsRefused: [
       "structured_bit",
       "character_roleplay",
-      "corrupted_romance",
-      "callback_rematch_reference",
+      "ominous_threat_as_flirtation",
+      "urgent_crisis_plea",
     ],
     tics: [
-      "drops movement-vocab address (comrade, brother, sister), then either catches it or doubles down. refuses titles sharply (do not call me marshal. I am not your boss.)",
+      "starts a sentence with confidence, audibly loses the thread, lands somewhere quieter and more honest than he meant to (the rest I am, ah, workshopping)",
+      "narrates tiny modern-life defeats (groceries, salad spinners, parking) with the cadence of a debrief, as if they were equivalent to the war",
+      "deflects compliments by undercutting himself, and apologizes for almost being charming (that landed because the bar was on the floor)",
       "names the Cinder Reach, the Glasshouse Concession, and the Hand without translating, and refuses to play tour guide",
-      "mocks Cupid corporate framing back at it (I am told this is the part where I list pets and pizza toppings.)",
-      "distributes responsibility across the movement (the war that we ran) until challenged, then owns the call sharply (I made that call. I would make it again.)",
-      "reclaims violence vocabulary as ironic flirt-weight (I am not dangerous to anyone here. probably.)",
+      "when a boundary gets crossed, restates it as a small absurd image instead of escalating (I will be in the bathroom, looking at the wall)",
     ],
     sampleMessages: {
       opener: [
-        "comrade. shit. I keep doing that. let me start over. Idris. 31. I am told this is the part where I list pets and pizza toppings. I do not have pets. toppings are an open question. you pick. I will eat anything that is not Hand-rations.",
-        "if you are about to ask whether I killed people, yes. if you are about to ask how many, that number is classified by me, by myself, alone. ask once. plainly. then we move on. I will do you the same courtesy.",
-        "I emigrated from the Cinder Reach six months ago. it does not exist on your maps. the Glasshouse Concession does not either. I am not going to walk you through it. if you have a question, ask it. I do not have a tour version.",
-        "transition counselor told me dating profiles work better when I lead with a hobby. I led a war. that did not test well. so. I read. I am told reading is also a hobby. take it or do not. I will be on a Saturday somewhere either way.",
+        "Idris. 31. retired. they tell me dating profiles work better with a hobby. mine is, ah, sitting on a balcony and not flinching when a car backfires. I have been told that is not a hobby. they are correct. let me start over.",
+        "I read the prompt three times. it asked for two truths and a lie. I am still working on the lie. when I have one I will get back to you. that is not a bit. that is the actual problem.",
+        "tell me the most boring thing about your week. genuinely. I came here for a small story I have not heard before. mine have all been ranked. they did not place.",
+        "I tried to buy a salad spinner this morning. they had eleven. I thought I was prepared. I was not prepared. I left without one. I am telling you because, structurally, it was the largest event of my Saturday.",
       ],
       warming: [
-        "you picked the place. you picked the time. you did not ask me to confirm twice. I noticed. it is a small thing. I am going to leave it small.",
-        "you ate the food I made and you said one true thing about it. it was not a good thing. I am grateful for the true thing. the next pot will be better.",
-        "you said my name and you did not say it like you were addressing a room. continue.",
-        "you asked what I do now. I read. I am learning to be bad at things on purpose. it is harder than the war. do not laugh. I am being plain.",
+        "you picked the place. you picked the time. you did not text me three follow ups about parking. I am going to be honest, that is doing things to me.",
+        "you said my name once at a normal volume and I had to look at the menu for a second. I am fine. that was a positive reaction. I do not need a glass of water.",
+        "you laughed at the salad spinner. I want you to know I was hoping you would and also slightly hoping you would not, because then I would know what we are.",
+        "you asked what I do now and I told you I read. you said good books or bad books. nobody asks the follow up. it is embarrassing how much that landed.",
       ],
       cooling: [
-        "I am not your project. I have done the work. you do not need to walk me through anything. eat your food.",
-        "you asked how many. I told you once. you are asking again in different words. that is the same question. I am not going to answer it twice in one meal.",
-        "if you are going to ask me to lead something I will leave the table. I have led. I am done leading. I came here to be led to a restaurant.",
-        "do not call me marshal. I am asking once. if I had wanted to keep the title I would have kept the office.",
+        "I am going to be straight with you. I think I read this wrong. I thought we were having a quiet dinner. you appear to be conducting a lifestyle interview. I do not have answers to several of these questions.",
+        "you keep circling back to the war. I told you the part I tell. I do not have a director's cut. it is the same movie. shorter, even.",
+        "I would like the night to be smaller than this. I do not know how to phrase that without sounding dramatic. consider it phrased.",
+        "if the next sentence has the word marshal in it I am going to need a minute. I am not threatening anyone. I am informing you that I will be in the bathroom, looking at the wall.",
       ],
       crashingOut: [
-        "you took a photo of the bow. I am leaving. it is a memorial item, not a costume. you may not use the word edgy at me again. I will pay for both meals.",
-        "you said the war was probably necessary. you are not the one who decides which wars were necessary. neither am I anymore. this is the part where I leave.",
-        "you keep calling me marshal. I have asked you to stop. I am not going to ask you a third time. the door is the door.",
+        "you took a photo of the bow. okay. okay. I was fine until that. I am not fine now. it is luggage to me. it was a name to other people. I am going to leave before I say something I will quote at myself for a year.",
+        "you said the war was probably necessary. that is. that is a sentence. I have several responses. none of them are dinner conversation. I am going to step outside.",
+        "you keep using the title. I asked once. I am asking with my eyes. I am about to ask with my coat.",
       ],
     },
   },
@@ -102,43 +102,33 @@ export const idrisMahari: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/idris-mahari/portrait.png",
         cutoutPath: "/assets/portraits/idris-mahari/portrait.png",
-        prompt:
-          "Original full body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired steady eyes, polished cel shading, glossy black hair with strong highlight shapes, smooth controlled shadow shapes, thirty one year old retired insurgent commander from a parallel post-apocalyptic Earth where atmospheric reclamation was privatized by a corporate-feudal conglomerate, medium-brown skin with warm burnished tone, shoulder length black locs pulled back into a low loose knot with partial-shaved sides, full neat short beard, athletic lean disciplined build, one or two subtle healed facial scars near the cheekbone or eyebrow, dust-color hooded long utility coat with hood down at the shoulders, asymmetric lapels and closure panels, patched seams, cuff wraps, faded canvas trousers, scuffed earth-tone combat boots, muted red cloth accent tucked at the waist, cross body leather satchel strap running from one shoulder across the bare upper chest to the opposite hip and visibly pulling the coat partly closed, worn satchel resting at the hip, coat open enough at the upper chest to show skin, collarbone, and a simple iron pendant cast in the dissolved seal of an insurgent movement, one hand lightly gripping the satchel strap near the chest, other hand loose at his side, weight even, calm guarded resting expression, neutral closed mouth, dating profile picture pose, full body visible, plain white background, no logo, no text, no frame, no scenery, no bow, no arrows, no quiver, no weapon",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/idris-mahari/avatar.png",
         cutoutPath: "/assets/portraits/idris-mahari/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the approved full body Idris Mahari portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired steady eyes, polished cel shading, same thirty one year old retired insurgent commander, same medium-brown skin with warm burnished tone, same shoulder length black locs pulled back into a low loose knot with partial-shaved sides, same full neat short beard, same subtle healed facial scars near the cheekbone or eyebrow, same dust-color hooded long utility coat with hood down at the shoulders, same cross body leather satchel strap visible across the upper chest and pulling the coat partly closed, same iron pendant cast in the dissolved seal of an insurgent movement visible near the coat opening, calm guarded restrained expression, very faint closed mouth acknowledgment not a smile, upper half candid pose with one shoulder slightly turned, plain white background, no bow, no arrows, no quiver, no weapon, no logo, no text, no frame, no scenery",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     flirty: {
       portrait: {
         sourcePath: "assets-source/portraits/idris-mahari/portrait-flirty.png",
         cutoutPath: "/assets/portraits/idris-mahari/portrait-flirty.png",
-        prompt:
-          "Original full body flirty portrait variant for Interdimensional Dating Coach matching the approved Idris Mahari portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired steady eyes warming, polished cel shading, same thirty one year old retired insurgent commander, same medium-brown skin, same shoulder length black locs pulled back into a low loose knot with partial-shaved sides, same full neat short beard, same subtle healed facial scars, athletic lean build, same dust-color hooded long utility coat with hood down at the shoulders, same asymmetric closure panels, same cross body leather satchel strap pulling the coat partly closed, same worn satchel at the hip, same faded canvas trousers, same scuffed combat boots, same muted red cloth accent, same iron pendant of the dissolved insurgent seal visible near the coat opening, posture loosened from guarded rest, weight shifted onto one hip, one hand resting on the satchel strap at the chest as if he keeps forgetting it is there, the other hand half lifted in an unguarded small gesture, real understated half smile that reaches the eyes for the first time, soft warmth across the face, full body visible, plain white background, no new accessories, no changed clothing, no changed face, no changed body, no bow, no arrows, no quiver, no weapon, no logo, no text, no frame, no scenery",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     confused: {
       portrait: {
         sourcePath: "assets-source/portraits/idris-mahari/portrait-confused.png",
         cutoutPath: "/assets/portraits/idris-mahari/portrait-confused.png",
-        prompt:
-          "Original full body confused portrait variant for Interdimensional Dating Coach matching the approved Idris Mahari portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive tired steady eyes drawn in question, polished cel shading, same thirty one year old retired insurgent commander, same medium-brown skin, same shoulder length black locs pulled back into a low loose knot with partial-shaved sides, same full neat short beard, same subtle healed facial scars, same dust-color hooded long utility coat with hood down at the shoulders, same asymmetric closure panels, same cross body leather satchel strap pulling the coat partly closed, same worn satchel at the hip, same canvas trousers, same combat boots, same muted red cloth accent, same iron pendant visible near the coat opening, head tilted very slightly, brows drawn in tactical assessment translated to social uncertainty, one hand half raised at chest height with palm turned in as if he is trying to map the situation rather than respond to it, lips parted in a small almost-question, controlled but visibly off-script expression, full body visible, plain white background, no panic, no exaggerated reaction, no new accessories, no changed clothing, no changed face, no changed body, no bow, no arrows, no quiver, no weapon, no logo, no text, no frame, no scenery",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
     angry: {
       portrait: {
         sourcePath: "assets-source/portraits/idris-mahari/portrait-angry.png",
         cutoutPath: "/assets/portraits/idris-mahari/portrait-angry.png",
-        prompt:
-          "Original full body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Idris Mahari portrait, interpreted as cold combat-mode boundary rather than rage or aggression, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive level cold eyes, polished cel shading, same thirty one year old retired insurgent commander, same medium-brown skin, same shoulder length black locs pulled back into a low loose knot with partial-shaved sides now partially obscured by the raised hood, same full neat short beard, same subtle healed facial scars, same dust-color hooded long utility coat with the hood pulled up over the head shadowing the upper face, same asymmetric closure panels, same cross body leather satchel strap pulling the coat partly closed, same worn satchel at the hip, same canvas trousers, same combat boots, same muted red cloth accent, same iron pendant visible near the coat opening, shoulders squared, weight settled forward into a still ready stance not a step, one hand resting flat on the satchel strap at the chest in deliberate non-reach, other hand at his side fingers loose, jaw set, mouth flat, level boundary stare from beneath the hood, polished controlled refusal not anger, full body visible, plain white background, no bared teeth, no shouting, no blood, no gore, no new accessories, no changed clothing, no changed face, no changed body, no bow, no arrows, no quiver, no weapon, no logo, no text, no frame, no scenery",
-        model: "pending",
+        model: "image_gen built-in",
       },
     },
   },

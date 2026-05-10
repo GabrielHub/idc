@@ -104,15 +104,11 @@ export const eleanorAsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/eleanor-ash/portrait.png",
         cutoutPath: "/assets/portraits/eleanor-ash/portrait.png",
-        prompt:
-          "Original full-body character portrait for Interdimensional Dating Coach, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with a tasteful sheer lace top, opaque fitted bodice, botanical lace embroidery, pale gold floral accents, flowing translucent organza panels, slim ivory trousers, sage green leather gloves, polished nature-toned ankle boots, long slender smoking pipe held gracefully in one gloved hand, faint curling smoke, courtly composed expression with a faint amused tilt at the mouth, noble seductive dating profile picture pose, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
         model: "image_gen built-in",
       },
       avatar: {
         sourcePath: "assets-source/portraits/eleanor-ash/avatar.png",
         cutoutPath: "/assets/portraits/eleanor-ash/avatar.png",
-        prompt:
-          "Original avatar portrait for Interdimensional Dating Coach matching the full-body Eleanor Ash portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, same fae noblewoman in glamour with subtly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with a tasteful sheer lace top, opaque fitted bodice, botanical lace embroidery, pale gold floral accents, flowing translucent organza layers, sage green leather gloves, fake candid fashion profile pose with a three-quarter turn, one shoulder forward, head turned back toward the viewer, one gloved hand lifting a strand of silver ash hair, the other hand lightly adjusting the lace collar, elegant seductive expression with controlled cool confidence, upper half realistic profile picture pose, plain white background, no text, no logo, no frame, no scenery, no iron, no pipe, no book, no ledger",
         model: "image_gen built-in",
       },
     },
@@ -120,8 +116,6 @@ export const eleanorAsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/eleanor-ash/portrait-flirty.png",
         cutoutPath: "/assets/portraits/eleanor-ash/portrait-flirty.png",
-        prompt:
-          "Original full-body flirty portrait variant for Interdimensional Dating Coach matching the approved Eleanor Ash portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, the same fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with the same tasteful sheer lace top, opaque fitted bodice, bust and waist shape, lace collar, botanical lace embroidery, pale gold floral accents, front wrap, flowing translucent organza panels, slim ivory trousers, sage green leather gloves, polished nature-toned ankle boots, seated elegantly on a simple pale marble stool, long slender smoking pipe held as one continuous pipe with the stem at her lower lip and faint smoke from the attached bowl, flirty but flustered expression with a small controlled smile and faint blush, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
         model: "image_gen built-in",
       },
     },
@@ -129,8 +123,6 @@ export const eleanorAsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/eleanor-ash/portrait-confused.png",
         cutoutPath: "/assets/portraits/eleanor-ash/portrait-confused.png",
-        prompt:
-          "Original full-body confused portrait variant for Interdimensional Dating Coach matching the approved Eleanor Ash portrait, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful face, polished cel shading, the same fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with the same tasteful sheer lace top, opaque fitted bodice, bust and waist shape, lace collar, botanical lace embroidery, pale gold floral accents, front wrap, flowing translucent organza panels, slim ivory trousers, sage green leather gloves, polished nature-toned ankle boots, controlled halted step with weight on the back leg, front knee softly bent inward, front boot angled across the center line, one gloved hand lightly adjusting the lace collar, long slender smoking pipe lowered quietly in the other gloved hand, eyes shut, lips pursed in precise contemplation, thoughtful uncertainty as if auditing a difficult statement for Vow compliance, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
         model: "image_gen built-in",
       },
     },
@@ -138,8 +130,6 @@ export const eleanorAsh: Member = {
       portrait: {
         sourcePath: "assets-source/portraits/eleanor-ash/portrait-angry.png",
         cutoutPath: "/assets/portraits/eleanor-ash/portrait-angry.png",
-        prompt:
-          "Original full-body angry gameplay portrait variant for Interdimensional Dating Coach matching the approved Eleanor Ash portrait, interpreted as guarded boundary refusal rather than uncontrolled rage, webtoon, manhwa, and manhua inspired character art, clean anime line work, expressive watchful eyes, polished cel shading, the same fae noblewoman in glamour with subtly elongated proportions, slightly pointed ears, shoulder length silver ash hair pulled into a low half up knot with a single dark thorn pin, fair skin with a faint cool undertone, sharp clear eyes the color of pale wintergreen, luminous sage and ivory fae couture with the same tasteful sheer lace top, opaque fitted bodice, bust and waist shape, lace collar, botanical lace embroidery, pale gold floral accents, front wrap, flowing translucent organza panels, slim ivory trousers, sage green leather gloves, polished nature-toned ankle boots, seated with courtly control on a simple pale marble stool, torso turned slightly away, shoulders upright and closed, one boot planted firmly forward, the other leg angled back in restrained withdrawal, one gloved hand raised near chest height in a small precise stop gesture, long slender smoking pipe lowered quietly in the other gloved hand, cold direct stare, low controlled brows, flat unsmiling lips, full body visible, plain white background, no text, no logo, no frame, no scenery, no iron",
         model: "image_gen built-in",
       },
     },
@@ -156,8 +146,8 @@ export const eleanorAsh: Member = {
     border: "filigree",
     glow: { color: "#d4af37", intensity: "soft" },
     texture: "parchment",
-    entryAnimation: "settle",
-    fontFamily: "serif",
+    entryAnimation: "shimmer",
+    fontFamily: "italic-script",
     textEffect: "tight",
   },
 };
