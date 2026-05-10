@@ -439,6 +439,11 @@ function pairTraitScore(
     ruleHits.push("pair:ceremony_alignment");
   }
 
+  if (bothHaveTag(firstMember, secondMember, "acquisitive")) {
+    score += 1;
+    ruleHits.push("pair:mutual_acquisition");
+  }
+
   if (bothHaveTag(firstMember, secondMember, "competitive")) {
     score -= 1;
     ruleHits.push("pair:competitive_clash");

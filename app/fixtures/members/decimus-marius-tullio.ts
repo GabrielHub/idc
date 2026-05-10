@@ -144,4 +144,19 @@ export const decimusMariusTullio: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 150,
+      stops: ["#7f1d1d", "#3f1d1d", "#1c1917"],
+    },
+    textColor: "light",
+    shape: "sharp",
+    tail: "sharp",
+    border: "hairline",
+    texture: "noise",
+    entryAnimation: "snap",
+    fontFamily: "serif",
+    textEffect: "tight",
+  },
 };

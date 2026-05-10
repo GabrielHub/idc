@@ -144,4 +144,20 @@ export const eleanorAsh: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 145,
+      stops: ["#fffaeb", "#f5e6c8", "#e6d4a4"],
+    },
+    textColor: "dark",
+    shape: "scroll",
+    tail: "papercut",
+    border: "filigree",
+    glow: { color: "#d4af37", intensity: "soft" },
+    texture: "parchment",
+    entryAnimation: "settle",
+    fontFamily: "serif",
+    textEffect: "tight",
+  },
 };

@@ -261,6 +261,13 @@ const MEMBER_COMFORT_READS: Partial<
     toReadText: (firstName) => `${firstName} responds to plain sincerity from a partner.`,
     evidence: "The exchange let plain sincerity land instead of routing through performance.",
   },
+  acquisitive: {
+    readId: "comfort:transactional-register",
+    toReadText: (firstName) =>
+      `${firstName} settles when the room treats relationships as something to acquire.`,
+    evidence:
+      "The room or exchange let transactional, contractual, or recruiting language land plainly.",
+  },
 };
 
 const SCENARIO_PRESSURE_READS: Partial<
@@ -328,6 +335,11 @@ const PAIR_DYNAMIC_READS: Record<string, { readId: string; readText: string; evi
     readId: "dynamic:ceremony-alignment",
     readText: "Both members lean into ritual together.",
     evidence: "Both members hold ceremony as a shared anchor.",
+  },
+  "pair:mutual_acquisition": {
+    readId: "dynamic:mutual-acquisition",
+    readText: "Both members treat the table as a recruitment funnel.",
+    evidence: "Both members run on transactional or contractual relationship vocabulary.",
   },
   "pair:competitive_clash": {
     readId: "dynamic:competitive-clash",
@@ -815,6 +827,7 @@ function scenarioTagSupportsComfort(
   if (memberTag === "ceremony_minded")
     return scenarioTags.has("low_pressure") || scenarioTags.has("public");
   if (memberTag === "sincerity_seeking") return scenario.card.intimacy !== "low";
+  if (memberTag === "acquisitive") return scenarioTags.has("career");
   return false;
 }
 
@@ -904,6 +917,16 @@ const MEMBER_READ_KEYWORDS: Record<string, string[]> = {
   "comfort:weirdness-tolerance": ["weird", "strange", "odd", "cosmic", "ritual", "portal"],
   "comfort:ceremony": ["ceremony", "ritual", "formal", "vow", "promise", "toast"],
   "comfort:sincerity": ["sincere", "honest", "real", "plain", "mean it"],
+  "comfort:transactional-register": [
+    "deal",
+    "terms",
+    "contract",
+    "trade",
+    "equity",
+    "portfolio",
+    "asset",
+    "liquidity",
+  ],
 };
 
 function splitSentences(text: string): string[] {

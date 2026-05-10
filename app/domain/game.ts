@@ -109,12 +109,96 @@ export const memberTagSchema = z.enum([
   "weirdness_native",
   "reality_displaced",
   "anxious_spiral",
+  "acquisitive",
 ]);
 
 export const MEMBER_IDENTITY_TAGS: readonly z.infer<typeof memberTagSchema>[] = [
   "ordinary_human",
   "non_human",
 ];
+
+const hexColorSchema = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/, "expected #RRGGBB or #RRGGBBAA");
+
+// Per-member chat bubble style for the focused dater. Authoring guide and axis
+// reference live in docs/world/visual-design.md under "Per-Member Chat Bubbles".
+export const memberChatBubbleBackgroundSchema = z.discriminatedUnion("kind", [
+  z.object({
+    kind: z.literal("solid"),
+    color: hexColorSchema,
+  }),
+  z.object({
+    kind: z.literal("gradient"),
+    angle: z.number().int().min(0).max(360),
+    stops: z.array(hexColorSchema).min(2).max(3),
+  }),
+]);
+
+export const memberChatBubbleShapeSchema = z.enum([
+  "soft",
+  "pill",
+  "sharp",
+  "torn",
+  "papercut",
+  "scroll",
+]);
+
+export const memberChatBubbleTailSchema = z.enum([
+  "rounded",
+  "sharp",
+  "fanged",
+  "papercut",
+  "none",
+]);
+
+export const memberChatBubbleBorderSchema = z.enum([
+  "none",
+  "hairline",
+  "glow",
+  "filigree",
+  "crackling",
+]);
+
+export const memberChatBubbleTextureSchema = z.enum([
+  "parchment",
+  "glass",
+  "ooze",
+  "holographic",
+  "noise",
+]);
+
+export const memberChatBubbleAnimationSchema = z.enum(["fade", "drift", "drip", "snap", "settle"]);
+
+export const memberChatBubbleFontFamilySchema = z.enum(["serif", "display", "mono"]);
+
+export const memberChatBubbleTextColorSchema = z.enum([
+  "light",
+  "dark",
+  "muted-light",
+  "muted-dark",
+]);
+
+export const memberChatBubbleTextEffectSchema = z.enum(["shadow", "glow", "tight", "loose"]);
+
+export const memberChatBubbleStyleSchema = z.object({
+  background: memberChatBubbleBackgroundSchema,
+  textColor: memberChatBubbleTextColorSchema,
+  shape: memberChatBubbleShapeSchema,
+  tail: memberChatBubbleTailSchema.optional(),
+  border: memberChatBubbleBorderSchema.optional(),
+  glow: z
+    .object({
+      color: hexColorSchema,
+      intensity: z.enum(["soft", "medium", "strong"]),
+    })
+    .optional(),
+  texture: memberChatBubbleTextureSchema.optional(),
+  entryAnimation: memberChatBubbleAnimationSchema.optional(),
+  fontFamily: memberChatBubbleFontFamilySchema.optional(),
+  textEffect: memberChatBubbleTextEffectSchema.optional(),
+  accentColor: hexColorSchema.optional(),
+});
 
 export const memberSchema = z
   .object({
@@ -135,6 +219,7 @@ export const memberSchema = z
     voice: memberVoiceSchema,
     state: memberStateSchema,
     portraits: memberPortraitsSchema,
+    chatBubble: memberChatBubbleStyleSchema.optional(),
   })
   .superRefine((member, context) => {
     const identityTagCount = member.tags.filter((tag) => MEMBER_IDENTITY_TAGS.includes(tag)).length;
@@ -622,6 +707,16 @@ export type MemberSampleMessages = z.infer<typeof memberSampleMessagesSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;
 export type MemberState = z.infer<typeof memberStateSchema>;
 export type MemberTag = z.infer<typeof memberTagSchema>;
+export type MemberChatBubbleStyle = z.infer<typeof memberChatBubbleStyleSchema>;
+export type MemberChatBubbleBackground = z.infer<typeof memberChatBubbleBackgroundSchema>;
+export type MemberChatBubbleShape = z.infer<typeof memberChatBubbleShapeSchema>;
+export type MemberChatBubbleTail = z.infer<typeof memberChatBubbleTailSchema>;
+export type MemberChatBubbleBorder = z.infer<typeof memberChatBubbleBorderSchema>;
+export type MemberChatBubbleTexture = z.infer<typeof memberChatBubbleTextureSchema>;
+export type MemberChatBubbleAnimation = z.infer<typeof memberChatBubbleAnimationSchema>;
+export type MemberChatBubbleFontFamily = z.infer<typeof memberChatBubbleFontFamilySchema>;
+export type MemberChatBubbleTextColor = z.infer<typeof memberChatBubbleTextColorSchema>;
+export type MemberChatBubbleTextEffect = z.infer<typeof memberChatBubbleTextEffectSchema>;
 export type Member = z.infer<typeof memberSchema>;
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;

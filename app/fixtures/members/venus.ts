@@ -138,4 +138,20 @@ export const venus: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 135,
+      stops: ["#fff5f7", "#fce7f3", "#fbcfe8"],
+    },
+    textColor: "dark",
+    shape: "pill",
+    tail: "rounded",
+    border: "glow",
+    glow: { color: "#fb7185", intensity: "medium" },
+    texture: "glass",
+    entryAnimation: "settle",
+    fontFamily: "display",
+    textEffect: "loose",
+  },
 };

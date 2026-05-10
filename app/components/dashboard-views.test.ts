@@ -67,6 +67,7 @@ describe("dashboard transcript presentation", () => {
       notableMoments: ["Cupid saw a useful exchange."],
       playerSummary: "Cupid judged all six character turns.",
       memoryCandidates: [],
+      usedEvidenceIds: [],
     };
     const session = dateSessionSchema.parse({
       ...started.session,

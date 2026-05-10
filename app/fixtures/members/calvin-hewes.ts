@@ -139,4 +139,19 @@ export const calvinHewes: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 165,
+      stops: ["#f0fdf4", "#d1fae5"],
+    },
+    textColor: "dark",
+    shape: "sharp",
+    tail: "sharp",
+    border: "hairline",
+    texture: "noise",
+    entryAnimation: "snap",
+    textEffect: "tight",
+    accentColor: "#059669",
+  },
 };

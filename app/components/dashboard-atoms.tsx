@@ -54,8 +54,7 @@ type PortraitVariant =
   | "stage"
   | "hero"
   | "transcript"
-  | "standee-bottom"
-  | "standee-top";
+  | "standee-bottom";
 
 const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
   thumb:
@@ -68,7 +67,6 @@ const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
   transcript:
     "size-9 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
   "standee-bottom": "size-full",
-  "standee-top": "size-full",
 };
 
 const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
@@ -79,7 +77,6 @@ const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
   hero: "size-full object-contain object-bottom p-2",
   transcript: "size-full object-cover object-top",
   "standee-bottom": "size-full object-contain object-bottom",
-  "standee-top": "size-full object-contain object-top",
 };
 
 const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
@@ -90,10 +87,9 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
   hero: "font-display text-5xl font-bold text-aura-rose",
   transcript: "font-display text-xs font-bold text-aura-rose",
   "standee-bottom": "font-display text-display-xl font-bold text-aura-rose/30",
-  "standee-top": "font-display text-display-xl font-bold text-aura-rose/30",
 };
 
-const STANDEE_PORTRAIT_VARIANTS = new Set<PortraitVariant>(["standee-bottom", "standee-top"]);
+const STANDEE_PORTRAIT_VARIANTS = new Set<PortraitVariant>(["standee-bottom"]);
 const PORTRAIT_FADE_CLASS =
   "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 
@@ -108,7 +104,6 @@ const AVATAR_SIZES_FOR_VARIANT: Record<PortraitVariant, string | undefined> = {
   hero: "224px",
   transcript: "36px",
   "standee-bottom": undefined,
-  "standee-top": undefined,
 };
 
 export function Portrait({

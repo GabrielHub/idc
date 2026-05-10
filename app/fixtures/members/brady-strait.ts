@@ -138,4 +138,18 @@ export const bradyStrait: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "solid",
+      color: "#fafaf9",
+    },
+    textColor: "dark",
+    shape: "sharp",
+    tail: "sharp",
+    border: "hairline",
+    entryAnimation: "drip",
+    fontFamily: "mono",
+    textEffect: "tight",
+    accentColor: "#334155",
+  },
 };

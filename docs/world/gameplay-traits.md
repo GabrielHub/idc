@@ -58,7 +58,9 @@ Every member needs 3 to 5 hidden tags and exactly one identity tag:
 
 - Identity: `ordinary_human`, `non_human`.
 - Needs and sensitivities: `prophecy_averse`, `privacy_sensitive`, `grief_sensitive`, `memory_sensitive`, `status_sensitive`, `needs_low_pressure`, `needs_clear_plan`, `sincerity_seeking`.
-- Behaviors and pressure sources: `performative`, `attention_seeking`, `avoidant`, `competitive`, `ceremony_minded`, `career_focused`, `weirdness_native`, `reality_displaced`, `anxious_spiral`.
+- Behaviors and pressure sources: `performative`, `attention_seeking`, `avoidant`, `competitive`, `ceremony_minded`, `career_focused`, `weirdness_native`, `reality_displaced`, `anxious_spiral`, `acquisitive`.
+
+The `acquisitive` tag marks members who run relationships as recruitment funnels into a larger structure they already control. Their pitch is incorporation, not partnership, and their vocabulary treats a counterpart as something to be added to a manifest, a Pact, a fleet, or a household. Authored copy must show the recruiter cadence (Pact talk, manifest talk, equity talk, claim talk) for the tag to be earned. Authors should not stack `acquisitive` with `sincerity_seeking` casually; if both are present, the contradiction is the character (Vhool wants kindred sincerely and is also recruiting for the Lower Choir).
 
 Hidden tags must be supported by authored copy. If a member has `prophecy_averse`, their profile, ask, preferences, or dealbreakers should make prophecy pressure legible to services and eventual filed reads without naming the tag.
 
@@ -107,9 +109,10 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 
 - **Sincerity tribe**: Jenna, Sana, Marcus, Toby, Mei. Marcus + Sana, Marcus + Jenna, Toby + Sana all warm. Mundane domesticity, low pressure, no performance. Mei sits at the high-energy end of the cluster: hyperfocused on her craft, no bit, lets others finish a sentence because she expects the same.
 - **Ceremony tribe**: Vhool, Aldric, Eleanor, Decimus, Wenshu. Aldric + Vhool (sacred bargain), Aldric + Decimus (soldiers), Eleanor + Decimus (cold formal pair), Wenshu + Vhool (Dao-talk meets Pact-talk, same dialect of seriousness). Shared formal cadence reads as fluency.
-- **Reality-displaced peers**: Opal, Aldric, Decimus, Meridian, Sera, Wenshu. Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one. Sera is the only one displaced from a future. Wenshu is the only one who believes his displacement is a sanctioned trial; the others know better.
-- **Grief siblings (low intimacy only)**: Gideon, Marcus, Decimus. Marcus + Decimus is healthy. High intimacy compounds.
+- **Reality-displaced peers**: Opal, Aldric, Decimus, Meridian, Sera, Wenshu, Cha. Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one. Sera is the only one displaced from a future. Wenshu is the only one who believes his displacement is a sanctioned trial; the others know better. Cha is displaced from a continuous Awakened branch where Gates opened in his lifetime; he treats 2026 Earth as quiet, not strange.
+- **Grief siblings (low intimacy only)**: Gideon, Marcus, Decimus, Cha. Marcus + Decimus is healthy. Decimus + Cha sits clean: two soldiers two centuries apart, both buried teammates, both got shoved onto Cupid by a daughter or sister. High intimacy compounds for the rest.
 - **Career grind**: Tasha, Mr. Whiskers, Meridian, Marcus, Sera. Calendars, decisive plans, no negotiation. Sera + Tasha share confirmation discipline; Sera + Eleanor share Term-and-Bargain protocol fluency.
+- **Acquisition register**: Vhool, Reaver. Both treat the date as a recruitment funnel into a structure they already own (Pact / fleet). Their vocabulary lands on each other as familiar shop talk. Match-fit reads `pair:mutual_acquisition` as volatile-warm; the warmth comes from neither flinching at the other's claim language, the volatility from neither surrendering the cosmology to the other.
 
 ### Friction zones in the current roster
 
@@ -121,6 +124,7 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 - **Formal lockup**: Mr. Whiskers vs Eleanor (neither will drop the formality), Meridian vs Mr. Whiskers (both clipped, both armored).
 - **Bit collision**: Brady vs Kade. Different vintages, same dishonesty. Each can feel the other doing it.
 - **Protocol vs sincerity**: Sera vs Sana, Sera vs Marcus, Sera vs Jenna, Sera vs Toby. Sera offers Standard Terms and week-three cohabitation review; sincerity-seekers read it as evasion. She reads their pace as missing data.
+- **Cha's combat-strength filter**: Cha's narrow read of the roster. He warms to literal combat-tier strength as recognition (Decimus, Aldric, Vhool, Venus on the divine register) and to anxious or fragile members as protection (Toby, Opal, Brady when the bit cracks, Wenshu under his performance). Everyone in between (Sera, Eleanor, Calvin, Mei, Mr. Whiskers, Kade, modern unmarked humans) gets two-word replies and a polite dismissal. The filter is sharp on purpose; most matches die in warming.
 
 ### Volatile but interesting
 
@@ -137,6 +141,25 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 - Aldric vs Wenshu: Saints vs Sect. Two ceremonialists raised on different scriptures with identical conviction. Either fluent doctrinal feud or surprised warm recognition. Both default to M'Lady on occasion, Aldric by tradition and Wenshu by absorbed internet text.
 - Eleanor vs Wenshu: she literally cannot lie. His surface is lyrical lies he believes. He cannot tell which lies he is living inside. She will unmake at least one of them by accident.
 - Vhool vs Wenshu: both treat their metaphysics as routine. Pact and Dao recognize each other and the awe drains out of the table. The most likely warm landing for Wenshu in the roster.
+- Cha vs Wenshu: he is what Wenshu is pretending to be. Cha sees through to the demoted kid under the flourish. Cold-correct reading shatters Wenshu; quiet pity shatters him worse. Wenshu would rather be defeated by the real article than pitied by it.
+- Cha vs Decimus: two soldiers two centuries apart. Both buried teammates, both got pushed onto Cupid by a daughter or sister. Mutual recognition without ceremony. They could share most of a meal silent and call it good.
+- Cha vs Aldric: Sir Hunter and Sir Knight, different scriptures, identical conviction. Aldric will not correct his vocabulary; Cha will not correct his.
+- Cha vs Vhool: cosmic-tier recognition without sincerity-seeking. Vhool's Pact talk reads as familiar shop talk. The risk is Cha being too level for Vhool's loneliness; the win is Cha letting one too-honest sentence slip and Vhool registering it.
+- Cha vs Venus: he respects the divine. He will not perform the compliments she counts. Either she finds the unbothered register fascinating or she rescinds before dessert.
+- Cha vs Opal: surprise warm. He refuses cosmic vocabulary at the table. He never says fated. He never says chosen. The safest match Opal has had on Cupid, and she clocks it inside the first course.
+- Cha vs Toby: surprise warm. Cha protects anxious people by default; the dead get to finish their sentences and the living get the same courtesy. Toby's spirals do not wear him down.
+- Cha vs Calvin: sharp friction. Cha's whole architecture is plain about what he is. Calvin's whole architecture denies what he is. One short flat sentence about it lands and Calvin lawyers up.
+- Cha vs Brady: default dismissal. The bit gets two-word replies and falls flat. If Brady cracks, Cha softens; if Brady hardens, the date dies in warming.
+- Reaver vs Aldric: mirror-image recruiters. Both pitch a Lady to make the journey home, both name a household with a Mission, both will list equity. Aldric's frame is Saints and Honor; Reaver's frame is Manifest and Recovery. Aldric stays longer than the player expects and departs cleanly when the systems are named. Friction is not deterministic; it lives in the authored fixtures.
+- Reaver vs Cassie: openly the heroine and openly the villain. Cassie is Helios-licensed and runs from publicity; Reaver broadcasts the Manifest as the opener. Her dealbreaker on release-form energy fires against his Patron-asking. Friction is not deterministic; the brand-trained Cassie performer and the captain-confident Reaver performer collide on register alone.
+- Reaver vs Cha: protector versus predator. Cha hunts to protect Seoul; Reaver runs Recovery contracts. Cha's filter clocks combat-tier strength on the wrong side. Date dies in warming.
+- Reaver vs Decimus: retired Republic centurion versus active raiding captain. Decimus would clock him as exactly what the Tenth Legion existed to fight. Cold formal friction.
+- Reaver vs Eleanor: surprise warm. She literally cannot lie; he announces what he is. The Bargain has shape on the first message. Possibly her cleanest match in the roster.
+- Reaver vs Sera: clipped audit register meets clipped operator register. He sends a Term sheet for queenship; she audits the Liquidity figures. Either fluent partnership or formal breach.
+- Reaver vs Vhool: both `acquisitive`. Pact talk meets Manifest talk and neither flinches. Match-fit fires `pair:mutual_acquisition` as volatile-warm. The risk is Reaver being too level for Vhool's loneliness.
+- Reaver vs Calvin: both privacy-sensitive in shape, opposite in mode. Calvin denies what he is; Reaver broadcasts. Calvin lawyers up by message three.
+- Reaver vs Mr. Whiskers: business-class mutual courtesy. Both refuse to address what they actually do; both hold professional register. Surprise warm.
+- Reaver vs sincerity tribe (Sana, Marcus, Toby, Jenna, Mei, Mira): worst-date-ever territory. Mira might pitch him on Series A before catching herself.
 
 Update this map when adding a member. If a new member does not slot into any cluster or friction zone, that is a sign the design is too generic.
 

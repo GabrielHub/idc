@@ -9,7 +9,11 @@ import {
   MutedLabel,
   SelectInput,
 } from "../components/dashboard-atoms";
-import { DATE_PORTRAIT_MOODS, hasReadyPortraitMood } from "../components/date-presentation-signals";
+import {
+  DATE_PORTRAIT_MOODS,
+  hasReadyPortraitMood,
+  selectDominantMood,
+} from "../components/date-presentation-signals";
 import {
   DaterStandee,
   pushReactionSignal,
@@ -21,6 +25,15 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "../components/date-reactions";
+import { resolveMemberChatBubbleStyle } from "../components/member-chat-bubble-style";
+import {
+  loadScenarioBackdropIds,
+  SCENARIO_BACKDROP_MICRO_MOTION_VARIANTS,
+  SCENARIO_BACKDROP_PARTICLE_STYLES,
+  ScenarioBackdropLayer,
+  type ScenarioBackdropMicroMotion,
+  type ScenarioBackdropParticleStyle,
+} from "../components/scenario-backdrop";
 import type { AiProvider, AiReasoningLevel, Member, PortraitMood } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { jennaPike, vhool } from "../fixtures/members";
@@ -63,6 +76,11 @@ const PLAYGROUND_TESTS = [
     id: "date-reactions",
     title: "Date reactions",
     summary: "Mood, speaking bubble, and reactions on the date standee.",
+  },
+  {
+    id: "chat-bubbles",
+    title: "Chat bubble gallery",
+    summary: "Per-member focused-side bubble styles in one grid.",
   },
 ] as const;
 
@@ -121,15 +139,12 @@ export default function PlaygroundRoute() {
       <PlaygroundTopBar />
 
       <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-24 pt-28 lg:px-10 lg:pt-32">
-        <PlaygroundHeader />
+        <PlaygroundHeader activeTestId={activeTestId} onSelect={setActiveTestId} />
 
-        <div className="mt-10 grid gap-6 lg:grid-cols-[240px_1fr]">
-          <TestList activeTestId={activeTestId} onSelect={setActiveTestId} />
-
-          <div className="min-w-0">
-            {activeTestId === "ai-lab" ? <AiPromptLabTest /> : null}
-            {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
-          </div>
+        <div className="mt-10 min-w-0">
+          {activeTestId === "ai-lab" ? <AiPromptLabTest /> : null}
+          {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
+          {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
         </div>
       </div>
     </main>
@@ -223,29 +238,38 @@ function BackArrow() {
 /* Page header                                                        */
 /* ================================================================== */
 
-function PlaygroundHeader() {
+function PlaygroundHeader({
+  activeTestId,
+  onSelect,
+}: {
+  activeTestId: PlaygroundTestId;
+  onSelect: (testId: PlaygroundTestId) => void;
+}) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.05 }}
-      className="space-y-3"
+      className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between"
     >
-      <Eyebrow>// internal.tooling.ui</Eyebrow>
-      <h1 className="font-display text-display-lg font-semibold leading-[1] tracking-tight text-aura-ink">
-        Component <span className="aura-accent text-display-lg text-aura-rose">workshop.</span>
-      </h1>
-      <p className="max-w-[58ch] text-lead text-aura-muted">
-        Live previews of game components, wired to mock data. Same code paths as the operations
-        floor. Use this to isolate motion, layout, and color changes that are awkward to reach
-        through normal play.
-      </p>
+      <div className="space-y-3">
+        <Eyebrow>// internal.tooling.ui</Eyebrow>
+        <h1 className="font-display text-display-lg font-semibold leading-[1] tracking-tight text-aura-ink">
+          Component <span className="aura-accent text-display-lg text-aura-rose">workshop.</span>
+        </h1>
+        <p className="max-w-[58ch] text-lead text-aura-muted">
+          Live previews of game components, wired to mock data. Same code paths as the operations
+          floor. Use this to isolate motion, layout, and color changes that are awkward to reach
+          through normal play.
+        </p>
+      </div>
+      <TestList activeTestId={activeTestId} onSelect={onSelect} />
     </motion.section>
   );
 }
 
 /* ================================================================== */
-/* Test list (sidebar)                                                */
+/* Test list (header selector)                                        */
 /* ================================================================== */
 
 function TestList({
@@ -256,12 +280,7 @@ function TestList({
   onSelect: (testId: PlaygroundTestId) => void;
 }) {
   return (
-    <motion.aside
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.1 }}
-      className="aura-glass h-fit rounded-card p-5"
-    >
+    <aside className="aura-glass h-fit rounded-card p-4 lg:w-72 lg:shrink-0">
       <MutedLabel>bench tests</MutedLabel>
       <ul className="mt-3 space-y-1.5">
         {PLAYGROUND_TESTS.map((test) => {
@@ -272,7 +291,7 @@ function TestList({
                 type="button"
                 aria-current={isActive ? "true" : undefined}
                 onClick={() => onSelect(test.id)}
-                className={`block w-full cursor-pointer rounded-tile px-3 py-2.5 text-left transition ${
+                className={`block w-full cursor-pointer rounded-tile px-3 py-2 text-left transition ${
                   isActive
                     ? "bg-aura-ink text-white shadow-[0_8px_22px_-12px_rgba(15,23,42,0.45)]"
                     : "text-aura-muted hover:bg-white/55 hover:text-aura-ink"
@@ -282,7 +301,7 @@ function TestList({
                   {test.title}
                 </span>
                 <span
-                  className={`mt-1 block font-mono text-micro uppercase tracking-[0.22em] ${isActive ? "text-white/70" : "text-aura-faint"}`}
+                  className={`mt-0.5 block font-mono text-micro uppercase tracking-[0.22em] ${isActive ? "text-white/70" : "text-aura-faint"}`}
                 >
                   {test.id}
                 </span>
@@ -291,15 +310,180 @@ function TestList({
           );
         })}
       </ul>
-      <p className="mt-5 border-t border-aura-hairline pt-4 text-label leading-relaxed text-aura-muted">
-        File a new bench test by adding an entry to{" "}
-        <span className="font-mono text-micro tracking-[0.22em] text-aura-ink">
-          PLAYGROUND_TESTS
-        </span>{" "}
-        and a render branch in the route.
-      </p>
-    </motion.aside>
+    </aside>
   );
+}
+
+/* ================================================================== */
+/* Test: Chat bubble gallery                                          */
+/* ================================================================== */
+
+const CHAT_BUBBLE_FALLBACK_SAMPLE =
+  "no but seriously, send me a time, a place, and a chair that does not creak. that is the whole vibe.";
+
+function pickChatBubbleSample(member: Member): string {
+  const opener = member.voice.sampleMessages.opener[0];
+  if (typeof opener === "string" && opener.trim().length > 0) {
+    return opener;
+  }
+  return CHAT_BUBBLE_FALLBACK_SAMPLE;
+}
+
+function ChatBubbleGalleryTest() {
+  const [replayKey, setReplayKey] = useState(0);
+
+  const customCount = useMemo(
+    () => starterMembers.filter((member) => member.chatBubble !== undefined).length,
+    [],
+  );
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.15 }}
+      className="space-y-6"
+    >
+      <TestHeader
+        title="Chat bubble gallery"
+        description="Every member's focused-side bubble in one screen. Each card uses the same resolver as a live date so authoring tweaks land here first. Continuous textures (drift, holographic, crackling) animate in place. Replay re-mounts the grid to retrigger entry animations."
+      />
+
+      <div className="aura-glass flex flex-wrap items-center justify-between gap-3 rounded-card px-5 py-4">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <MutedLabel>roster</MutedLabel>
+          <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+            <span className="text-aura-ink tabular-nums">{customCount}</span> custom
+            <span aria-hidden> · </span>
+            <span className="text-aura-ink tabular-nums">
+              {starterMembers.length - customCount}
+            </span>{" "}
+            default
+            <span aria-hidden> · </span>
+            <span className="text-aura-ink tabular-nums">{starterMembers.length}</span> total
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setReplayKey((current) => current + 1)}
+          className="cursor-pointer rounded-pill bg-aura-ink px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose"
+        >
+          Replay animations
+        </button>
+      </div>
+
+      <div key={replayKey} className="grid gap-4 lg:grid-cols-2">
+        {starterMembers.map((member) => (
+          <ChatBubblePreviewCard key={member.id} member={member} />
+        ))}
+      </div>
+    </motion.section>
+  );
+}
+
+function ChatBubblePreviewCard({ member }: { member: Member }) {
+  const customBubble = member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
+  const sampleText = pickChatBubbleSample(member);
+
+  const bubbleClass = customBubble
+    ? customBubble.className
+    : "rounded-[22px] rounded-bl-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
+  const bubbleStyle = customBubble?.style;
+  const textColorClass = customBubble ? "" : "text-white";
+  const nameClass = customBubble
+    ? "text-[color:var(--member-bubble-accent)] opacity-80"
+    : "text-aura-rose/75";
+  const accentStyle = customBubble?.accentStyle;
+
+  const axes = describeBubbleAxes(member);
+
+  return (
+    <article className="aura-glass flex flex-col gap-4 rounded-card p-5">
+      <header className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h3 className="font-display text-body font-semibold tracking-tight text-aura-ink">
+            {member.name}
+          </h3>
+          <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+            {member.voice.register}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${
+            customBubble ? "bg-aura-ink/5 text-aura-muted" : "bg-aura-rose/15 text-aura-rose"
+          }`}
+        >
+          {customBubble ? "custom" : "default house"}
+        </span>
+      </header>
+
+      <div className="flex justify-start">
+        <div className="flex max-w-[88%] flex-col items-start gap-1" style={accentStyle}>
+          <span
+            className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-left ${nameClass}`}
+          >
+            {member.firstName}
+          </span>
+          <div className={bubbleClass} style={bubbleStyle}>
+            <p className={`text-body leading-relaxed ${textColorClass}`}>{sampleText}</p>
+          </div>
+        </div>
+      </div>
+
+      {axes.length > 0 ? (
+        <ul className="flex flex-wrap gap-1.5 border-t border-aura-hairline pt-3">
+          {axes.map((axis) => (
+            <li
+              key={axis.label}
+              className="rounded-pill border border-aura-hairline bg-white/55 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted"
+            >
+              <span className="text-aura-faint">{axis.label}</span>{" "}
+              <span className="text-aura-ink">{axis.value}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="border-t border-aura-hairline pt-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+          // falls through to the rose fuchsia house style
+        </p>
+      )}
+    </article>
+  );
+}
+
+function describeBubbleAxes(member: Member): ReadonlyArray<{ label: string; value: string }> {
+  const bubble = member.chatBubble;
+  if (!bubble) {
+    return [];
+  }
+  const axes: Array<{ label: string; value: string }> = [];
+  axes.push({
+    label: "bg",
+    value: bubble.background.kind === "solid" ? "solid" : `${bubble.background.stops.length}-stop`,
+  });
+  axes.push({ label: "shape", value: bubble.shape });
+  if (bubble.tail) {
+    axes.push({ label: "tail", value: bubble.tail });
+  }
+  if (bubble.border && bubble.border !== "none") {
+    axes.push({ label: "border", value: bubble.border });
+  }
+  if (bubble.glow) {
+    axes.push({ label: "glow", value: bubble.glow.intensity });
+  }
+  if (bubble.texture) {
+    axes.push({ label: "texture", value: bubble.texture });
+  }
+  if (bubble.entryAnimation) {
+    axes.push({ label: "anim", value: bubble.entryAnimation });
+  }
+  if (bubble.fontFamily) {
+    axes.push({ label: "font", value: bubble.fontFamily });
+  }
+  if (bubble.textEffect) {
+    axes.push({ label: "fx", value: bubble.textEffect });
+  }
+  return axes;
 }
 
 /* ================================================================== */
@@ -965,6 +1149,31 @@ type SideState = {
   reactions: ReactionSignal[];
 };
 
+type MoodTintSelection = "off" | "auto" | PortraitMood;
+
+const MOOD_TINT_OPTIONS: ReadonlyArray<{ value: MoodTintSelection; label: string }> = [
+  { value: "off", label: "off" },
+  { value: "auto", label: "auto (sides)" },
+  { value: "neutral", label: "neutral" },
+  { value: "flirty", label: "flirty" },
+  { value: "confused", label: "confused" },
+  { value: "angry", label: "angry" },
+];
+
+const MICRO_MOTION_LABELS: Record<ScenarioBackdropMicroMotion, string> = {
+  off: "off",
+  drift: "drift",
+  pointer: "pointer",
+  "drift-pointer": "drift + pointer",
+};
+
+const PARTICLE_STYLE_LABELS: Record<ScenarioBackdropParticleStyle, string> = {
+  off: "off",
+  motes: "motes",
+  embers: "embers",
+  snow: "snow",
+};
+
 const SIDE_THEME: Record<
   SideId,
   {
@@ -981,7 +1190,7 @@ const SIDE_THEME: Record<
     railGradient: "from-rose-200/40 via-rose-100/8 to-transparent",
   },
   right: {
-    label: "top-right",
+    label: "bottom-right",
     accentText: "text-violet-600",
     accentPill: "bg-violet-100/70 text-violet-600",
     railGradient: "from-violet-200/40 via-violet-100/8 to-transparent",
@@ -1008,9 +1217,37 @@ function DateReactionsTest() {
   const [leftSide, setLeftSide] = useState<SideState>(() => defaultSideState(jennaPike.id));
   const [rightSide, setRightSide] = useState<SideState>(() => defaultSideState(vhool.id));
   const [intensity, setIntensity] = useState<ReactionIntensity>(2);
+  const [backdropScenarioId, setBackdropScenarioId] = useState<string>("");
+  const [availableBackdropIds, setAvailableBackdropIds] = useState<readonly string[]>([]);
+  const [microMotion, setMicroMotion] = useState<ScenarioBackdropMicroMotion>("drift");
+  const [particleStyle, setParticleStyle] = useState<ScenarioBackdropParticleStyle>("motes");
+  const [moodTint, setMoodTint] = useState<MoodTintSelection>("auto");
 
   const leftMember = starterMembers.find((member) => member.id === leftSide.memberId) ?? jennaPike;
   const rightMember = starterMembers.find((member) => member.id === rightSide.memberId) ?? vhool;
+
+  useEffect(() => {
+    let isCurrent = true;
+    void loadScenarioBackdropIds().then((ids) => {
+      if (isCurrent) {
+        setAvailableBackdropIds(Array.from(ids));
+      }
+    });
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
+
+  const backdropOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> = [
+      { value: "", label: "None (fallback)" },
+    ];
+    availableBackdropIds.forEach((id) => {
+      const scenario = starterScenarios.find((candidate) => candidate.id === id);
+      options.push({ value: id, label: scenario?.title ?? id });
+    });
+    return options;
+  }, [availableBackdropIds]);
 
   function fire(side: SideId, kind: ReactionKind) {
     const signal: ReactionSignal = {
@@ -1062,6 +1299,15 @@ function DateReactionsTest() {
         rightMember={rightMember}
         leftSide={leftSide}
         rightSide={rightSide}
+        backdropScenarioId={backdropScenarioId}
+        backdropOptions={backdropOptions}
+        microMotion={microMotion}
+        particleStyle={particleStyle}
+        moodTint={moodTint}
+        onBackdropChange={setBackdropScenarioId}
+        onMicroMotionChange={setMicroMotion}
+        onParticleStyleChange={setParticleStyle}
+        onMoodTintChange={setMoodTint}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -1420,19 +1666,102 @@ function BubbleStage({
   rightMember,
   leftSide,
   rightSide,
+  backdropScenarioId,
+  backdropOptions,
+  microMotion,
+  particleStyle,
+  moodTint,
+  onBackdropChange,
+  onMicroMotionChange,
+  onParticleStyleChange,
+  onMoodTintChange,
 }: {
   leftMember: Member;
   rightMember: Member;
   leftSide: SideState;
   rightSide: SideState;
+  backdropScenarioId: string;
+  backdropOptions: ReadonlyArray<{ value: string; label: string }>;
+  microMotion: ScenarioBackdropMicroMotion;
+  particleStyle: ScenarioBackdropParticleStyle;
+  moodTint: MoodTintSelection;
+  onBackdropChange: (value: string) => void;
+  onMicroMotionChange: (value: ScenarioBackdropMicroMotion) => void;
+  onParticleStyleChange: (value: ScenarioBackdropParticleStyle) => void;
+  onMoodTintChange: (value: MoodTintSelection) => void;
 }) {
+  const activeBackdropId = backdropScenarioId === "" ? undefined : backdropScenarioId;
+  const resolvedMoodTint =
+    moodTint === "off"
+      ? undefined
+      : moodTint === "auto"
+        ? selectDominantMood(leftSide.mood, rightSide.mood)
+        : moodTint;
+  const microMotionOptions = SCENARIO_BACKDROP_MICRO_MOTION_VARIANTS.map((value) => ({
+    value,
+    label: MICRO_MOTION_LABELS[value],
+  }));
+  const particleStyleOptions = SCENARIO_BACKDROP_PARTICLE_STYLES.map((value) => ({
+    value,
+    label: PARTICLE_STYLE_LABELS[value],
+  }));
+
   return (
     <div className="aura-glass-strong relative overflow-hidden rounded-card">
-      <span
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_60%,rgba(244,63,94,0.08),transparent_70%)]"
-      />
-      <div className="relative h-[68vh] min-h-[520px] w-full">
+      <header className="relative z-10 space-y-3 border-b border-aura-hairline/60 px-5 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
+            // stage backdrop
+          </span>
+          <SelectInput
+            label="scenario"
+            value={backdropScenarioId}
+            options={backdropOptions}
+            onChange={onBackdropChange}
+            layout="inline"
+            align="right"
+          />
+        </div>
+        <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2">
+          <SelectInput<ScenarioBackdropMicroMotion>
+            label="motion"
+            value={microMotion}
+            options={microMotionOptions}
+            onChange={onMicroMotionChange}
+            layout="inline"
+            align="right"
+          />
+          <SelectInput<ScenarioBackdropParticleStyle>
+            label="particles"
+            value={particleStyle}
+            options={particleStyleOptions}
+            onChange={onParticleStyleChange}
+            layout="inline"
+            align="right"
+          />
+          <SelectInput<MoodTintSelection>
+            label="mood tint"
+            value={moodTint}
+            options={MOOD_TINT_OPTIONS}
+            onChange={onMoodTintChange}
+            layout="inline"
+            align="right"
+          />
+        </div>
+      </header>
+
+      <div className="relative h-[68vh] min-h-[520px] w-full overflow-hidden">
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_60%,rgba(244,63,94,0.08),transparent_70%)]"
+        />
+        <ScenarioBackdropLayer
+          scenarioId={activeBackdropId}
+          containment="absolute"
+          microMotion={microMotion}
+          particles={particleStyle}
+          moodTint={resolvedMoodTint}
+        />
         <DaterStandee
           member={leftMember}
           placement="bottom-left"
@@ -1440,16 +1769,16 @@ function BubbleStage({
           speaking={leftSide.speaking}
           reasoningText={leftSide.reasoningText}
           reactions={leftSide.reactions}
-          className="absolute bottom-0 left-6 h-full w-44 lg:left-16 lg:w-56"
+          className="absolute bottom-0 left-6 h-full w-48 lg:left-16 lg:w-64"
         />
         <DaterStandee
           member={rightMember}
-          placement="top-right"
+          placement="bottom-right"
           mood={rightSide.mood}
           speaking={rightSide.speaking}
           reasoningText={rightSide.reasoningText}
           reactions={rightSide.reactions}
-          className="absolute top-12 right-6 h-[88%] w-44 lg:right-16 lg:w-56"
+          className="absolute bottom-0 right-6 h-full w-48 lg:right-16 lg:w-64"
         />
 
         <StageScrim />

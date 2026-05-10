@@ -136,4 +136,18 @@ export const meridianVale: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "solid",
+      color: "#0f172a",
+    },
+    textColor: "muted-light",
+    shape: "sharp",
+    tail: "sharp",
+    border: "hairline",
+    entryAnimation: "snap",
+    fontFamily: "mono",
+    textEffect: "tight",
+    accentColor: "#475569",
+  },
 };

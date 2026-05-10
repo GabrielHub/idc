@@ -11,7 +11,7 @@ export type ReactionKind = "spark" | "love" | "laugh" | "anger" | "cry" | "warni
 
 export type ReactionIntensity = 1 | 2 | 3;
 
-export type ReactionPlacement = "bottom-left" | "top-right";
+export type ReactionPlacement = "bottom-left" | "bottom-right";
 
 export type ReactionSignal = {
   id: string;
@@ -35,7 +35,7 @@ export const REACTION_ICON: Record<ReactionKind, string> = {
   laugh: "😂",
   anger: "😡",
   cry: "😢",
-  warning: "⚠️",
+  warning: "‼️",
 };
 
 export const REACTION_LABEL: Record<ReactionKind, string> = {
@@ -119,21 +119,20 @@ export function DaterStandee({
   reasoningText?: string;
   className?: string;
 }) {
-  const isBottom = placement === "bottom-left";
-  const baseGlow = isBottom
-    ? "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_82%,rgba(244,63,94,0.2),rgba(217,70,239,0.06)_55%,transparent_75%)]"
-    : "absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_50%_22%,rgba(167,139,250,0.22),rgba(217,70,239,0.06)_55%,transparent_75%)]";
-  const shadowClass = isBottom
+  const isFocus = placement === "bottom-left";
+  const baseGlow = isFocus
+    ? "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(244,63,94,0.3)_0%,rgba(217,70,239,0.09)_42%,transparent_74%)]"
+    : "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(167,139,250,0.26)_0%,rgba(217,70,239,0.08)_42%,transparent_74%)]";
+  const shadowClass = isFocus
     ? "drop-shadow-[0_30px_42px_rgba(244,63,94,0.22)]"
     : "drop-shadow-[0_30px_42px_rgba(167,139,250,0.22)]";
-  const variant = isBottom ? "standee-bottom" : "standee-top";
 
   return (
     <div className={className}>
       <span aria-hidden className={baseGlow} />
-      <MoodAmbientGlow mood={mood} placement={placement} />
+      <MoodAmbientGlow mood={mood} />
       <div className={`relative size-full ${shadowClass}`}>
-        <Portrait member={member} variant={variant} asset="portrait" mood={mood} />
+        <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
         <SpeakingBubble
           placement={placement}
           speaking={speaking}
@@ -151,7 +150,7 @@ export function DaterStandee({
 /* Mood ambient glow, sits behind the standee                         */
 /* ------------------------------------------------------------------ */
 
-const MOOD_AMBIENT_GLOW_BOTTOM: Record<PortraitMood, string> = {
+const MOOD_AMBIENT_GLOW: Record<PortraitMood, string> = {
   neutral: "",
   flirty:
     "bg-[radial-gradient(ellipse_at_50%_72%,rgba(244,63,94,0.32),rgba(244,63,94,0.06)_50%,transparent_70%)]",
@@ -161,25 +160,8 @@ const MOOD_AMBIENT_GLOW_BOTTOM: Record<PortraitMood, string> = {
     "bg-[radial-gradient(ellipse_at_50%_72%,rgba(220,38,38,0.34),rgba(220,38,38,0.06)_45%,transparent_65%)]",
 };
 
-const MOOD_AMBIENT_GLOW_TOP: Record<PortraitMood, string> = {
-  neutral: "",
-  flirty:
-    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(244,63,94,0.32),rgba(244,63,94,0.06)_50%,transparent_70%)]",
-  confused:
-    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(99,102,241,0.26),rgba(99,102,241,0.05)_50%,transparent_70%)]",
-  angry:
-    "bg-[radial-gradient(ellipse_at_50%_28%,rgba(220,38,38,0.34),rgba(220,38,38,0.06)_45%,transparent_65%)]",
-};
-
-function MoodAmbientGlow({
-  mood,
-  placement,
-}: {
-  mood: PortraitMood;
-  placement: ReactionPlacement;
-}) {
-  const glowMap = placement === "bottom-left" ? MOOD_AMBIENT_GLOW_BOTTOM : MOOD_AMBIENT_GLOW_TOP;
-  const glowClass = glowMap[mood];
+function MoodAmbientGlow({ mood }: { mood: PortraitMood }) {
+  const glowClass = MOOD_AMBIENT_GLOW[mood];
 
   return (
     <AnimatePresence mode="sync">
@@ -255,15 +237,14 @@ function SpeakingBubble({
   reasoningText: string;
   mood: PortraitMood;
 }) {
-  const isBottom = placement === "bottom-left";
+  const isLeft = placement === "bottom-left";
   const normalizedReasoningText = compactReasoningText(reasoningText);
   const hasReasoningText = speaking && normalizedReasoningText.length > 0;
   const tint = MOOD_BUBBLE_TINT[mood];
-  const anchorClass = isBottom
-    ? "absolute left-1 top-[34%] origin-top-left"
-    : "absolute right-1 top-[70%] origin-top-right";
-  const tailSideClass = isBottom ? "right-6" : "left-6";
-  const tailEdge = isBottom ? "bottom" : "top";
+  const anchorClass = isLeft
+    ? "absolute left-1 top-2 origin-top-left"
+    : "absolute right-1 top-2 origin-top-right";
+  const tailSideClass = isLeft ? "right-6" : "left-6";
   const visible = speaking || listening;
 
   return (
@@ -338,7 +319,7 @@ function SpeakingBubble({
             </div>
           </motion.div>
 
-          <ThoughtTail edge={tailEdge} sideClass={tailSideClass} />
+          <ThoughtTail sideClass={tailSideClass} />
         </motion.div>
       ) : null}
     </AnimatePresence>
@@ -351,14 +332,11 @@ const TAIL_DOTS = [
   { sizeClass: "size-1", baseOpacity: 0.78, delay: 0.4 },
 ] as const;
 
-function ThoughtTail({ edge, sideClass }: { edge: "top" | "bottom"; sideClass: string }) {
-  const edgeClass =
-    edge === "top" ? "absolute -top-2.5 flex-col-reverse" : "absolute -bottom-2.5 flex-col";
-
+function ThoughtTail({ sideClass }: { sideClass: string }) {
   return (
     <div
       aria-hidden
-      className={`pointer-events-none ${edgeClass} ${sideClass} flex items-center gap-[3px]`}
+      className={`pointer-events-none absolute -bottom-2.5 ${sideClass} flex flex-col items-center gap-[3px]`}
     >
       {TAIL_DOTS.map((dot, index) => (
         <motion.span
@@ -425,7 +403,9 @@ export function ReactionStream({
   }
 
   const anchorClass =
-    placement === "bottom-left" ? "absolute left-1/2 bottom-[28%]" : "absolute right-1/2 top-[20%]";
+    placement === "bottom-left"
+      ? "absolute left-1/2 bottom-[28%]"
+      : "absolute right-1/2 bottom-[28%]";
 
   return (
     <div aria-hidden className={`${anchorClass} pointer-events-none z-20`}>

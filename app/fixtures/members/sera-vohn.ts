@@ -143,4 +143,20 @@ export const seraVohn: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 165,
+      stops: ["#0a0a0a", "#18181b", "#1f2937"],
+    },
+    textColor: "light",
+    shape: "sharp",
+    tail: "sharp",
+    border: "glow",
+    glow: { color: "#22d3ee", intensity: "medium" },
+    texture: "noise",
+    entryAnimation: "snap",
+    fontFamily: "mono",
+    textEffect: "tight",
+  },
 };

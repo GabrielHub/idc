@@ -140,4 +140,18 @@ export const mrWhiskers: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "solid",
+      color: "#f5f5f4",
+    },
+    textColor: "dark",
+    shape: "pill",
+    tail: "rounded",
+    border: "hairline",
+    entryAnimation: "snap",
+    fontFamily: "mono",
+    textEffect: "tight",
+    accentColor: "#57534e",
+  },
 };

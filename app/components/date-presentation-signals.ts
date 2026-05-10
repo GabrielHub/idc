@@ -51,6 +51,22 @@ export function selectPortraitMood(
   return "neutral";
 }
 
+export function selectDominantMood(left: PortraitMood, right: PortraitMood): PortraitMood {
+  if (left === "angry" || right === "angry") {
+    return "angry";
+  }
+
+  if (left === "flirty" || right === "flirty") {
+    return "flirty";
+  }
+
+  if (left === "confused" || right === "confused") {
+    return "confused";
+  }
+
+  return "neutral";
+}
+
 export function isMemberSpeaking(
   memberId: string,
   streamingDrafts: readonly StreamingSpeakerDraft[],

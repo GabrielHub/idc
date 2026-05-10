@@ -75,9 +75,12 @@ import {
   RosterView,
   ShiftReportPanel,
   type PendingDateAction,
+  type PlaybackIntent,
   type PreviousFile,
   type StreamingDraftMessage,
 } from "./dashboard-views";
+import { selectDominantMood, selectPortraitMood } from "./date-presentation-signals";
+import { ScenarioBackdropLayer } from "./scenario-backdrop";
 import { useSfx } from "./sfx-provider";
 
 type ViewKey = "roster" | "brief" | "date" | "notes";
@@ -142,9 +145,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [pendingDateRetry, setPendingDateRetry] = useState<RetriableDateAction | null>(null);
-  const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<"playing" | "paused" | null>(
-    null,
-  );
+  const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
   const lastErrorMessageRef = useRef<string | null>(null);
   const localAiStatusRequestRef = useRef<Promise<LocalAiClientStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
@@ -353,6 +354,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
         : (save.dateSessions.find((session) => session.id === activeDateSessionId) ?? null),
     [save, activeDateSessionId],
   );
+  const activeDateScenario = useMemo(
+    () =>
+      activeSession === null
+        ? undefined
+        : (drawnScenarios.find((scenario) => scenario.id === activeSession.scenarioId) ??
+          starterScenarios.find((scenario) => scenario.id === activeSession.scenarioId)),
+    [activeSession, drawnScenarios],
+  );
   const pairPreview = useMemo(
     () => buildPairPreview(save, selectedMembers, selectedScenario),
     [save, selectedMembers, selectedScenario],
@@ -360,6 +369,24 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const quitMembers = useMemo(() => (save === null ? [] : getQuitMembers(save.members)), [save]);
   const campaignLost = quitMembers.length >= CLIENT_LOSS_LIMIT;
   const dateAmbientActive = view === "date" && activeSession?.status === "active";
+  const ambientScenario =
+    view === "date" ? activeDateScenario : view === "brief" ? selectedScenario : undefined;
+  const ambientMoodTint = useMemo(() => {
+    if (!dateAmbientActive || activeSession === null) {
+      return undefined;
+    }
+
+    const [leftId, rightId] = activeSession.participants;
+    if (leftId === undefined || rightId === undefined) {
+      return undefined;
+    }
+
+    const latestJudge = activeSession.judgeSnapshots.at(-1);
+    return selectDominantMood(
+      selectPortraitMood(leftId, latestJudge),
+      selectPortraitMood(rightId, latestJudge),
+    );
+  }, [dateAmbientActive, activeSession]);
   const publicNoteCount = useMemo(
     () =>
       save === null
@@ -652,7 +679,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
     });
   }
 
-  async function handleTogglePlayback(next: "playing" | "paused") {
+  async function handleTogglePlayback(next: PlaybackIntent) {
     if (save === null || activeSession === null) {
       return;
     }
@@ -1029,8 +1056,14 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
   const pendingDateAction = asPendingDateAction(pendingAction);
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-aura-bg text-aura-ink">
+    <div className="relative min-h-screen w-screen overflow-x-clip bg-aura-bg text-aura-ink">
       <AmbientMesh />
+      <ScenarioBackdropLayer
+        scenarioId={ambientScenario?.id}
+        microMotion="drift"
+        particles={dateAmbientActive ? "motes" : "off"}
+        moodTint={ambientMoodTint}
+      />
 
       <DashboardChrome
         activeShift={activeShift}
@@ -1134,10 +1167,7 @@ export function CupidOperationsDashboard({ onPunchOut }: CupidOperationsDashboar
             <DateView
               key="date"
               session={activeSession}
-              scenario={
-                drawnScenarios.find((scenario) => scenario.id === activeSession.scenarioId) ??
-                starterScenarios.find((scenario) => scenario.id === activeSession.scenarioId)
-              }
+              scenario={activeDateScenario}
               members={save.members}
               playerKnowledge={save.playerKnowledge}
               interventionText={interventionText}
@@ -1390,9 +1420,9 @@ function ViewTabs({
               />
             ) : null}
             <span
-              className={`relative z-10 flex items-baseline gap-2 whitespace-nowrap ${isActive ? "text-white" : "text-aura-muted hover:text-aura-ink"}`}
+              className={`relative z-10 flex items-center gap-2 whitespace-nowrap ${isActive ? "text-white" : "text-aura-muted hover:text-aura-ink"}`}
             >
-              <span className="font-display text-base font-semibold tracking-tight">
+              <span className="font-display text-base font-semibold leading-none tracking-tight">
                 {tab.label}
               </span>
               <span

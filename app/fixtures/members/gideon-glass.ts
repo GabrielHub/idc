@@ -137,4 +137,20 @@ export const gideonGlass: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 160,
+      stops: ["#f8fafc", "#dbeafe", "#cbd5e1"],
+    },
+    textColor: "dark",
+    shape: "soft",
+    tail: "rounded",
+    border: "glow",
+    glow: { color: "#7dd3fc", intensity: "soft" },
+    texture: "glass",
+    entryAnimation: "drift",
+    fontFamily: "serif",
+    textEffect: "glow",
+  },
 };

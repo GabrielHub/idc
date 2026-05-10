@@ -138,4 +138,20 @@ export const meiSato: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 135,
+      stops: ["#0c1f3d", "#7c3aed", "#ec4899"],
+    },
+    textColor: "light",
+    shape: "soft",
+    tail: "rounded",
+    border: "glow",
+    glow: { color: "#c084fc", intensity: "medium" },
+    texture: "noise",
+    entryAnimation: "drift",
+    fontFamily: "display",
+    textEffect: "shadow",
+  },
 };

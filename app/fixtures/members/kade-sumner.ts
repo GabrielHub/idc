@@ -136,4 +136,19 @@ export const kadeSumner: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 135,
+      stops: ["#fef3c7", "#fed7aa", "#fbcfe8"],
+    },
+    textColor: "dark",
+    shape: "soft",
+    tail: "rounded",
+    border: "hairline",
+    texture: "holographic",
+    entryAnimation: "drift",
+    fontFamily: "display",
+    accentColor: "#fb923c",
+  },
 };

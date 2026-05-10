@@ -137,4 +137,18 @@ export const tashaRell: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "solid",
+      color: "#0a0a0a",
+    },
+    textColor: "light",
+    shape: "sharp",
+    tail: "sharp",
+    border: "glow",
+    glow: { color: "#10b981", intensity: "medium" },
+    entryAnimation: "snap",
+    fontFamily: "mono",
+    textEffect: "tight",
+  },
 };

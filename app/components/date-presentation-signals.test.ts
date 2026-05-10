@@ -6,6 +6,7 @@ import {
   isMemberSpeaking,
   memberStreamingReasoningText,
   readyPortraitMoodPaths,
+  selectDominantMood,
   selectPortraitAsset,
   selectPortraitMood,
 } from "./date-presentation-signals";
@@ -112,6 +113,15 @@ describe("date presentation signals", () => {
     ).toBe("neutral");
   });
 
+  it("picks the loudest mood across both daters", () => {
+    expect(selectDominantMood("neutral", "neutral")).toBe("neutral");
+    expect(selectDominantMood("flirty", "neutral")).toBe("flirty");
+    expect(selectDominantMood("confused", "flirty")).toBe("flirty");
+    expect(selectDominantMood("flirty", "angry")).toBe("angry");
+    expect(selectDominantMood("angry", "confused")).toBe("angry");
+    expect(selectDominantMood("confused", "neutral")).toBe("confused");
+  });
+
   it("only treats active streaming drafts as speaking", () => {
     expect(
       isMemberSpeaking(LEFT_MEMBER_ID, [
@@ -209,6 +219,7 @@ function makeJudgeSnapshot({
     notableMoments: ["Cupid observed a test exchange."],
     playerSummary: "Cupid filed the exchange.",
     memoryCandidates: [],
+    usedEvidenceIds: [],
   };
 }
 

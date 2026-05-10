@@ -145,4 +145,19 @@ export const miraPark: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "solid",
+      color: "#f8fafc",
+    },
+    textColor: "dark",
+    shape: "soft",
+    tail: "rounded",
+    border: "glow",
+    glow: { color: "#a78bfa", intensity: "soft" },
+    texture: "glass",
+    entryAnimation: "snap",
+    fontFamily: "display",
+    textEffect: "tight",
+  },
 };

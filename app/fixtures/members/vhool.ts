@@ -35,7 +35,7 @@ export const vhool: Member = {
     "Vhool is afraid no one would choose them without awe involved.",
     "Vhool has been practicing the word maybe alone in their apartment.",
   ],
-  tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded"],
+  tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded", "acquisitive"],
   voice: {
     register: "ancient sincere",
     patternsUsed: [
@@ -134,5 +134,21 @@ export const vhool: Member = {
         model: "image_gen built-in",
       },
     },
+  },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 135,
+      stops: ["#160b22", "#4c1d6b", "#86198f"],
+    },
+    textColor: "light",
+    shape: "torn",
+    tail: "fanged",
+    border: "crackling",
+    glow: { color: "#a855f7", intensity: "medium" },
+    texture: "ooze",
+    entryAnimation: "drift",
+    fontFamily: "serif",
+    textEffect: "shadow",
   },
 };

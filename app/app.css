@@ -431,3 +431,421 @@ body {
   background-image: radial-gradient(rgba(15, 23, 42, 0.07) 1px, transparent 1px);
   background-size: 18px 18px;
 }
+
+/* ========================================================================
+   AURA scenario particles, atmospheric motes for the date stage.
+   ======================================================================== */
+
+@keyframes aura-particle-mote {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--aura-particle-opacity, 0.4);
+  }
+  50% {
+    transform: translate3d(calc(var(--aura-particle-drift, 0vw) * 0.6), -55vh, 0);
+    opacity: var(--aura-particle-opacity, 0.4);
+  }
+  90% {
+    opacity: calc(var(--aura-particle-opacity, 0.4) * 0.6);
+  }
+  100% {
+    transform: translate3d(var(--aura-particle-drift, 0vw), -110vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes aura-particle-ember {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  6% {
+    opacity: calc(var(--aura-particle-opacity, 0.6) * 0.45);
+  }
+  20% {
+    opacity: var(--aura-particle-opacity, 0.6);
+  }
+  35% {
+    transform: translate3d(calc(var(--aura-particle-drift, 0vw) * 0.45), -32vh, 0);
+    opacity: calc(var(--aura-particle-opacity, 0.6) * 0.55);
+  }
+  55% {
+    transform: translate3d(calc(var(--aura-particle-drift, 0vw) * 0.7), -60vh, 0);
+    opacity: var(--aura-particle-opacity, 0.6);
+  }
+  80% {
+    opacity: calc(var(--aura-particle-opacity, 0.6) * 0.7);
+  }
+  100% {
+    transform: translate3d(var(--aura-particle-drift, 0vw), -110vh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes aura-particle-snow {
+  0% {
+    transform: translate3d(0, -10vh, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--aura-particle-opacity, 0.5);
+  }
+  50% {
+    transform: translate3d(calc(var(--aura-particle-drift, 0vw) * 0.5), 50vh, 0);
+    opacity: var(--aura-particle-opacity, 0.5);
+  }
+  90% {
+    opacity: calc(var(--aura-particle-opacity, 0.5) * 0.7);
+  }
+  100% {
+    transform: translate3d(var(--aura-particle-drift, 0vw), 110vh, 0);
+    opacity: 0;
+  }
+}
+
+/* ========================================================================
+   MEMBER CHAT BUBBLE, per-member styling for the focused dater. The base
+   class .member-bubble owns padding, position, and stacking. Stackable axis
+   classes (shape, tail, border, texture, glow, animation, font, text effect)
+   layer on top. Background gradient/color, tail color, glow color, and accent
+   color come from inline style as CSS variables since they are data-driven per
+   member.
+   ======================================================================== */
+
+.member-bubble {
+  --member-bubble-border-animation: none;
+  --member-bubble-entry-animation: none;
+  position: relative;
+  padding: 0.625rem 1rem;
+  isolation: isolate;
+  animation: var(--member-bubble-border-animation), var(--member-bubble-entry-animation);
+}
+.member-bubble > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Shapes, control overall corner radius / clip path. */
+.member-bubble-shape-soft {
+  border-radius: 22px;
+}
+.member-bubble-shape-pill {
+  border-radius: 9999px;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+.member-bubble-shape-sharp {
+  border-radius: 6px;
+}
+.member-bubble-shape-torn {
+  border-radius: 4px;
+  clip-path: polygon(
+    0% 5%,
+    5% 0%,
+    14% 4%,
+    24% 1%,
+    34% 5%,
+    46% 0%,
+    58% 4%,
+    72% 0%,
+    84% 5%,
+    94% 1%,
+    100% 4%,
+    100% 100%,
+    0% 100%
+  );
+}
+.member-bubble-shape-papercut {
+  border-radius: 2px;
+  clip-path: polygon(8% 0%, 100% 0%, 96% 100%, 0% 100%, 0% 14%);
+}
+.member-bubble-shape-scroll {
+  border-radius: 22px 4px 22px 4px;
+}
+
+/* Tails, bottom-left detail. Pairs with any shape that does not already
+   define its bottom-left via clip-path. */
+.member-bubble-tail-rounded {
+  border-bottom-left-radius: 6px;
+}
+.member-bubble-tail-sharp {
+  border-bottom-left-radius: 0;
+}
+.member-bubble-tail-papercut {
+  border-bottom-left-radius: 2px;
+}
+.member-bubble-tail-none {
+  /* shape default applies */
+}
+.member-bubble-tail-fanged::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  bottom: 4px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--member-bubble-tail-color, currentColor);
+  clip-path: polygon(100% 0, 100% 100%, 0% 50%);
+  z-index: -1;
+}
+
+/* Text colors. */
+.member-bubble-text-light {
+  color: #ffffff;
+}
+.member-bubble-text-dark {
+  color: var(--color-aura-ink);
+}
+.member-bubble-text-muted-light {
+  color: rgba(255, 255, 255, 0.86);
+}
+.member-bubble-text-muted-dark {
+  color: var(--color-aura-muted);
+}
+
+/* Borders / outlines. */
+.member-bubble-border-none {
+  /* no border */
+}
+.member-bubble-border-hairline {
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.12);
+}
+.member-bubble-border-glow {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.32),
+    0 0 0 1px var(--member-bubble-glow, rgba(255, 255, 255, 0.4)),
+    0 0 18px 2px var(--member-bubble-glow, rgba(255, 255, 255, 0.4));
+}
+.member-bubble-border-filigree {
+  box-shadow:
+    inset 0 0 0 1px rgba(212, 175, 55, 0.7),
+    inset 0 0 0 3px rgba(255, 253, 230, 0.32),
+    inset 0 0 0 4px rgba(212, 175, 55, 0.5);
+}
+.member-bubble-border-crackling {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 0 1px var(--member-bubble-glow, #b91c1c),
+    0 0 14px 1px var(--member-bubble-glow, #b91c1c),
+    0 0 28px 4px color-mix(in oklab, var(--member-bubble-glow, #b91c1c) 55%, transparent);
+  --member-bubble-border-animation: member-bubble-crackle 2.4s steps(8) infinite;
+}
+
+@keyframes member-bubble-crackle {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+      0 0 0 1px var(--member-bubble-glow, #b91c1c),
+      0 0 14px 1px var(--member-bubble-glow, #b91c1c),
+      0 0 28px 4px color-mix(in oklab, var(--member-bubble-glow, #b91c1c) 55%, transparent);
+  }
+  25% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.22),
+      0 0 0 1px var(--member-bubble-glow, #b91c1c),
+      0 0 18px 2px var(--member-bubble-glow, #b91c1c),
+      0 0 34px 6px color-mix(in oklab, var(--member-bubble-glow, #b91c1c) 62%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+      0 0 0 1px var(--member-bubble-glow, #b91c1c),
+      0 0 11px 1px var(--member-bubble-glow, #b91c1c),
+      0 0 24px 3px color-mix(in oklab, var(--member-bubble-glow, #b91c1c) 48%, transparent);
+  }
+  75% {
+    box-shadow:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+      0 0 0 1px var(--member-bubble-glow, #b91c1c),
+      0 0 16px 2px var(--member-bubble-glow, #b91c1c),
+      0 0 31px 5px color-mix(in oklab, var(--member-bubble-glow, #b91c1c) 58%, transparent);
+  }
+}
+
+/* Glow halos (drop-shadow around the bubble). Combine cleanly with border. */
+.member-bubble-glow-soft {
+  filter: drop-shadow(0 0 6px var(--member-bubble-glow, rgba(244, 63, 94, 0.45)));
+}
+.member-bubble-glow-medium {
+  filter: drop-shadow(0 0 12px var(--member-bubble-glow, rgba(244, 63, 94, 0.55)));
+}
+.member-bubble-glow-strong {
+  filter: drop-shadow(0 0 20px var(--member-bubble-glow, rgba(244, 63, 94, 0.7)))
+    drop-shadow(0 0 4px var(--member-bubble-glow, rgba(244, 63, 94, 0.7)));
+}
+
+/* Textures, overlaid pseudo-element above background, behind text. */
+.member-bubble-texture-parchment::before,
+.member-bubble-texture-glass::before,
+.member-bubble-texture-ooze::before,
+.member-bubble-texture-holographic::before,
+.member-bubble-texture-noise::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+}
+.member-bubble-texture-parchment::before {
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(120, 53, 15, 0.07) 0, transparent 40%),
+    radial-gradient(circle at 80% 70%, rgba(120, 53, 15, 0.06) 0, transparent 35%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.1) 0, transparent 60%);
+  mix-blend-mode: multiply;
+  opacity: 0.6;
+}
+.member-bubble-texture-glass::before {
+  background-image: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 32%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.18) 100%
+  );
+  opacity: 0.95;
+}
+.member-bubble-texture-ooze::before {
+  background-image: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.18) 60%,
+    rgba(0, 0, 0, 0.32) 100%
+  );
+  opacity: 0.8;
+}
+.member-bubble-texture-holographic::before {
+  background-image: linear-gradient(
+    115deg,
+    rgba(186, 230, 253, 0.45),
+    rgba(221, 214, 254, 0.45),
+    rgba(254, 240, 138, 0.45),
+    rgba(252, 165, 165, 0.45),
+    rgba(186, 230, 253, 0.45)
+  );
+  background-size: 220% 220%;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  animation: member-bubble-holo 6s ease infinite;
+}
+.member-bubble-texture-noise::before {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 4px 4px;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+@keyframes member-bubble-holo {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Entry animations. Stay on transform/scale/clip so they do not fight
+   framer-motion opacity/translate on the parent list item. */
+.member-bubble-anim-fade {
+  /* default, framer-motion handles entry */
+}
+.member-bubble-anim-drift {
+  background-size: 220% 220%;
+  --member-bubble-entry-animation: member-bubble-drift 8s ease-in-out infinite;
+}
+.member-bubble-anim-drip {
+  --member-bubble-entry-animation: member-bubble-drip 520ms cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+.member-bubble-anim-snap {
+  --member-bubble-entry-animation: member-bubble-snap 280ms cubic-bezier(0.7, -0.4, 0.2, 1.6)
+    backwards;
+}
+.member-bubble-anim-settle {
+  --member-bubble-entry-animation: member-bubble-settle 460ms cubic-bezier(0.2, 0.8, 0.2, 1)
+    backwards;
+}
+
+@keyframes member-bubble-drift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+@keyframes member-bubble-drip {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-4px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+@keyframes member-bubble-snap {
+  0% {
+    transform: scale(0.85);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes member-bubble-settle {
+  from {
+    transform: translateY(3px) scale(0.96);
+  }
+  60% {
+    transform: translateY(0) scale(1.01);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Font family overrides for the bubble text. */
+.member-bubble-font-serif {
+  font-family: var(--font-serif);
+}
+.member-bubble-font-display {
+  font-family: var(--font-display);
+}
+.member-bubble-font-mono {
+  font-family: var(--font-mono);
+}
+
+/* Text effects, applied to the text inside the bubble. */
+.member-bubble-effect-shadow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
+}
+.member-bubble-effect-glow {
+  text-shadow:
+    0 0 6px var(--member-bubble-glow, rgba(255, 255, 255, 0.6)),
+    0 0 12px var(--member-bubble-glow, rgba(255, 255, 255, 0.4));
+}
+.member-bubble-effect-tight {
+  letter-spacing: 0;
+  font-weight: 650;
+}
+.member-bubble-effect-loose {
+  letter-spacing: 0.08em;
+}
+
+/* Reduced motion, disable continuous and entry animations. */
+@media (prefers-reduced-motion: reduce) {
+  .member-bubble {
+    animation: none;
+  }
+  .member-bubble-texture-holographic::before {
+    animation: none;
+  }
+}

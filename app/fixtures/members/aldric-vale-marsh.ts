@@ -142,4 +142,19 @@ export const aldricValeMarsh: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 160,
+      stops: ["#7f1d1d", "#dc2626"],
+    },
+    textColor: "light",
+    shape: "sharp",
+    tail: "sharp",
+    border: "filigree",
+    texture: "parchment",
+    entryAnimation: "settle",
+    fontFamily: "serif",
+    textEffect: "tight",
+  },
 };

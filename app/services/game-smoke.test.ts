@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -70,8 +70,8 @@ const APPROVED_PORTRAIT_MEMBER_IDS = [
 const OPTIONAL_PORTRAIT_VARIANTS = ["flirty", "confused", "angry"] as const;
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(21);
-    expect(starterScenarios).toHaveLength(25);
+    expect(starterMembers).toHaveLength(26);
+    expect(starterScenarios).toHaveLength(39);
     expect(
       starterMembers.every((member) => member.portraits.neutral.avatar.cutoutPath.length > 0),
     ).toBe(true);
@@ -139,6 +139,17 @@ describe("IDC playable smoke path", () => {
     }
   });
 
+  it("keeps every ready portrait asset backed by checked files", () => {
+    for (const member of starterMembers) {
+      const assets = memberPortraitAssets(member).filter((asset) => asset.model !== "pending");
+
+      for (const asset of assets) {
+        expectCheckedFile(asset.sourcePath);
+        expectCheckedFile(asset.cutoutPath);
+      }
+    }
+  });
+
   it("keeps approved portrait sets backed by checked files", () => {
     const approvedMembers = starterMembers.filter((member) =>
       APPROVED_PORTRAIT_MEMBER_IDS.includes(member.id),
@@ -158,6 +169,21 @@ describe("IDC playable smoke path", () => {
     }
   });
 
+  it("keeps starter scenario backgrounds wired through manifest and checked files", () => {
+    const manifestIds = parseScenarioBackgroundManifest(
+      readFileSync(toWorkspaceFilePath("/assets/scenarios/manifest.json"), "utf8"),
+    );
+    const expectedScenarioIds = starterScenarios.map((scenario) => scenario.id);
+
+    expect(new Set(manifestIds).size).toBe(manifestIds.length);
+    expect([...manifestIds].sort()).toEqual([...expectedScenarioIds].sort());
+
+    for (const scenarioId of expectedScenarioIds) {
+      expectCheckedFile(`assets-source/scenarios/${scenarioId}/background.png`);
+      expectCheckedFile(`/assets/scenarios/${scenarioId}/background.webp`);
+    }
+  });
+
   it("seeds and persists canonical game state through the repository", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "test-save");
     const save = await repository.resetGame(new Date("2026-05-05T12:00:00.000Z"));
@@ -171,8 +197,8 @@ describe("IDC playable smoke path", () => {
     expect(save.config.aiSetupComplete).toBe(false);
     expect(save.shifts[0]?.scenarioDeck.maxSize).toBe(starterScenarios.length);
     expect(loaded?.activeShiftId).toBe(save.activeShiftId);
-    expect(await repository.listMembers()).toHaveLength(21);
-    expect(await repository.listPairStates()).toHaveLength(210);
+    expect(await repository.listMembers()).toHaveLength(26);
+    expect(await repository.listPairStates()).toHaveLength(325);
     expect(await repository.getActiveShift()).not.toBeNull();
   });
 
@@ -338,11 +364,11 @@ describe("IDC playable smoke path", () => {
     const loaded = await repository.loadGame();
     const persistedRaw = await storage.read(CURRENT_SAVE_KEY);
 
-    expect(loaded?.members).toHaveLength(21);
-    expect(loaded?.pairStates).toHaveLength(210);
+    expect(loaded?.members).toHaveLength(26);
+    expect(loaded?.pairStates).toHaveLength(325);
     expect(loaded?.members.some((member) => member.id === "aldric-vale-marsh")).toBe(true);
     expect(persistedRaw).not.toBeNull();
-    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(21);
+    expect(parsePersistedSave(persistedRaw)?.members).toHaveLength(26);
   });
 
   it("hydrates new starter scenarios into existing scenario decks", async () => {
@@ -977,6 +1003,7 @@ describe("IDC playable smoke path", () => {
       notableMoments: ["The judge tried to call it romantic."],
       playerSummary: "Cupid almost filed the wrong ending.",
       memoryCandidates: [],
+      usedEvidenceIds: [],
     };
     const fit = evaluateMatchFit({
       members,
@@ -1754,6 +1781,45 @@ function parsePersistedSave(raw: string | null) {
 
   const parsed: unknown = JSON.parse(raw);
   return gameSaveSchema.parse(parsed);
+}
+
+type ScenarioBackgroundManifest = {
+  backgrounds: string[];
+};
+
+function parseScenarioBackgroundManifest(text: string): string[] {
+  const parsed: unknown = JSON.parse(text);
+
+  if (!isScenarioBackgroundManifest(parsed)) {
+    throw new Error("Scenario background manifest must include a string backgrounds array.");
+  }
+
+  return parsed.backgrounds;
+}
+
+function isScenarioBackgroundManifest(value: unknown): value is ScenarioBackgroundManifest {
+  return (
+    isRecord(value) &&
+    Array.isArray(value.backgrounds) &&
+    value.backgrounds.every((background) => typeof background === "string")
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function expectCheckedFile(assetPath: string) {
+  const filePath = toWorkspaceFilePath(assetPath);
+  const exists = existsSync(filePath);
+
+  expect(exists).toBe(true);
+
+  if (!exists) {
+    return;
+  }
+
+  expect(statSync(filePath).size).toBeGreaterThan(0);
 }
 
 function toWorkspaceFilePath(assetPath: string) {

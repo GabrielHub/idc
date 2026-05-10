@@ -145,4 +145,19 @@ export const opalSunday: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 150,
+      stops: ["#fef3c7", "#fce7f3"],
+    },
+    textColor: "muted-dark",
+    shape: "soft",
+    tail: "rounded",
+    border: "hairline",
+    texture: "noise",
+    entryAnimation: "settle",
+    fontFamily: "serif",
+    accentColor: "#be185d",
+  },
 };

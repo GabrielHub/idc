@@ -41,6 +41,18 @@ portrait-angry.png
 
 Members may ship with any subset of these variants. The UI falls back to `portrait.png` when a requested variant is missing or still marked `pending`.
 
+## Portrait Canvas Contract
+
+Full-body portraits are date standee assets, so their canvas geometry is part of the product contract, not a loose generation preference.
+
+- Neutral full-body sources and full-body expression variant sources must be PNG files at exactly `887x1774`.
+- The required full-body aspect ratio is `0.500`, matching the good standee-safe reference family.
+- Full-body sources must use a plain white opaque background. Runtime cutouts must preserve the same `887x1774` canvas after background removal.
+- The complete character must be visible from head to feet, centered, and large on the canvas. The visible character area should use most of the canvas height without cropped hair, feet, carried props, or supernatural silhouette details.
+- In a `256x520` standee audit frame, visible character height should land near `470px` or higher unless the approved pose is intentionally seated or crouched and that exception is documented in the asset review.
+- If a generation tool returns a nearby tall image, crop or pad to `887x1774` without stretching the character. Do not ship full-body portraits at `1024x1536`, square, landscape, or other wide ratios.
+- Do not correct undersized standees with member-specific CSS scaling. Fix the source geometry and rerun the cutout pipeline.
+
 ## Prompt Construction
 
 Image-generation prompts in this project follow the OpenAI image prompting guidance: write in a consistent order (scene then subject then key details then constraints), use labeled segments instead of one long paragraph, and state exclusions explicitly. State what must remain invariant when iterating, so the model does not redesign the character between images.
@@ -63,7 +75,7 @@ Keep the character details block tight. Do not paste lore. The details that affe
 Setting: plain white opaque background. No scenery, no floor, no shadow plane, no props beyond what the character carries.
 Subject: an original character for the supernatural dating sim Interdimensional Dating Coach.
 Style: webtoon, manhwa, and manhua inspired character art. Clean anime line work, expressive eyes, polished cel shading, glossy hair with strong highlight shapes, soft gradient shadowing, high color contrast on accents.
-Composition: full body visible from head to feet, centered with negative space on either side, eye-level framing, readable silhouette with strong separation from the background. Pose reads like a polished first photo on a dating profile: relaxed, intentional, flattering, character revealing.
+Composition: final PNG canvas must be exactly 887x1774. Full body visible from head to feet, centered with negative space on either side, eye-level framing, readable silhouette with strong separation from the background. Character should use most of the canvas height. Pose reads like a polished first photo on a dating profile: relaxed, intentional, flattering, character revealing.
 Expression: neutral baseline, lightly pleasant.
 Character details:
 - Species or origin: <from fixture>
@@ -124,7 +136,7 @@ Variant prompt template:
 Setting: plain white opaque background. No scenery, no floor, no shadow plane, no props beyond what the character already carries.
 Subject: the same character as the attached approved full-body portrait.
 Style: webtoon, manhwa, and manhua inspired character art. Match the established rendering style.
-Composition: full body visible from head to feet, centered, eye-level framing, readable silhouette. Preserve the approved outfit, character proportions, and supernatural visual hook.
+Composition: final PNG canvas must be exactly 887x1774. Full body visible from head to feet, centered, eye-level framing, readable silhouette. Character should use most of the canvas height. Preserve the approved outfit, character proportions, and supernatural visual hook.
 Expression: <variant-specific expression and body language>.
 Character preservation: same facial features, hair shape and color, eye color, skin tone, color palette, outfit, accessories, and supernatural hook as the approved full-body portrait. Do not redesign the character.
 Constraints: no text, no logos, no watermarks, no frames, no UI, no scenery, no cropped feet. Avoid photorealism, western comic rendering, chibi proportions, oil-paint texture, sketchy unfinished line work, and busy illustrated backgrounds.
@@ -203,6 +215,36 @@ Use avatar cutouts in member cards and compact profile surfaces. Use full-body p
 
 Portraits should sit inside the Aura UI language defined in `docs/world/visual-design.md`. Do not give every portrait its own illustrated card background. Let the dashboard provide the frame and let the cutout provide character.
 
+## Scenario Backgrounds
+
+Scenario backgrounds are ambient room art for the brief and live date scene. They should add place and pressure without replacing the Aura operations shell or becoming a card texture.
+
+Source images belong outside the shipped client tree:
+
+```text
+assets-source/scenarios/<scenario-id>/background.png
+```
+
+Runtime images belong in:
+
+```text
+public/assets/scenarios/<scenario-id>/background.webp
+```
+
+Approved runtime backgrounds must also be listed in:
+
+```text
+public/assets/scenarios/manifest.json
+```
+
+The manifest prevents the app from probing missing image paths. Scenarios not listed in the manifest fall back to the default Aura mesh without a broken request.
+
+Generate scenario backgrounds as bright webtoon, manhwa, and manhua inspired environment art. Use the scenario public brief as the source of truth. Creative contextual details are allowed when they fit the public room, but image details must not reveal private member facts, hidden outcomes, exact gameplay values, or future event results.
+
+Composition should keep the center transcript lane calm: the middle 45 to 55 percent should stay bright, lower contrast, and readable after blur. Denser props, architectural detail, dramatic lighting, or supernatural pressure can live near the edges, upper corners, or far background. The runtime treats scenario backgrounds as cover images, so the source must tolerate edge cropping across wide desktop viewports. It always applies blur, a cream veil, and edge gradients, so the approved source should still look useful when softened and cropped.
+
+One background per scenario is the default. Event-specific backgrounds are future scope and should only be added if the date flow needs scene-level visual state.
+
 ## Acceptance Checks
 
 A portrait is acceptable when:
@@ -211,6 +253,9 @@ A portrait is acceptable when:
 - It is an original character.
 - Both source images have white backgrounds.
 - Both images have clean transparent cutouts after `bria-rmbg`, with no halos or fringing.
+- Every full-body source and full-body expression variant source is exactly `887x1774`.
+- Every full-body runtime cutout preserves the `887x1774` canvas after background removal.
+- Every full-body portrait uses a standee-safe visible character scale, with `256x520` audit visible height near `470px` or higher unless a documented seated or crouched pose requires less.
 - The full-body portrait shows the complete character from head to feet and can be cropped later.
 - The avatar works at small member-card size.
 - The avatar preserves the full-body's facial features, hair, color palette, and outfit while showing a visibly different pose.

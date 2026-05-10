@@ -143,4 +143,20 @@ export const baiWenshu: Member = {
       },
     },
   },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 145,
+      stops: ["#fefce8", "#fce7f3"],
+    },
+    textColor: "dark",
+    shape: "scroll",
+    tail: "papercut",
+    border: "hairline",
+    texture: "parchment",
+    entryAnimation: "settle",
+    fontFamily: "serif",
+    textEffect: "loose",
+    accentColor: "#be185d",
+  },
 };

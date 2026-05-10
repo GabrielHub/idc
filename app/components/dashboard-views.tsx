@@ -36,6 +36,8 @@ import {
 } from "../services/date-engine";
 import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import type { ScenarioPowerAvailability } from "../services/scenario-powers";
+import { clampScore } from "../services/utils";
+import type { AiSetupStatus } from "./ai-setup-panel";
 import {
   EASE_OUT_QUART,
   Eyebrow,
@@ -57,6 +59,7 @@ import {
   type ReactionSignal,
 } from "./date-reactions";
 import { isMemberSpeaking, selectPortraitMood } from "./date-presentation-signals";
+import { resolveMemberChatBubbleStyle } from "./member-chat-bubble-style";
 import type { SfxCue } from "./sfx-provider";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
@@ -353,7 +356,10 @@ function FeaturedCaseCard({
   onOpenDossier: () => void;
 }) {
   const hasQuit = !isMemberRetained(member);
-  const profile = buildVisibleMemberProfile(member, playerKnowledge);
+  const profile = useMemo(
+    () => buildVisibleMemberProfile(member, playerKnowledge),
+    [member, playerKnowledge],
+  );
 
   return (
     <motion.li
@@ -599,7 +605,10 @@ function PartnerTile({
   onPick: () => void;
   onOpenDossier: () => void;
 }) {
-  const profile = buildVisibleMemberProfile(member, playerKnowledge);
+  const profile = useMemo(
+    () => buildVisibleMemberProfile(member, playerKnowledge),
+    [member, playerKnowledge],
+  );
   const profileTeaser = profile.publicFragments[0] ?? "Profile fragment sealed pending evidence.";
   const hasQuit = !isMemberRetained(member);
   return (
@@ -1261,10 +1270,7 @@ export type BriefProps = {
   onRequestLowPressure: (scenarioId: string) => void;
 };
 
-export type LocalAiBriefStatus = {
-  status: "checking" | "ready" | "unavailable";
-  message: string;
-};
+export type LocalAiBriefStatus = Pick<AiSetupStatus, "status" | "message">;
 
 const RISK_CHIP: Record<
   DateScenario["card"]["risk"],
@@ -2207,7 +2213,7 @@ export type DateProps = {
   onFollowUp: (action: FollowUpAction) => void;
   onPickEvents: (eventIds: string[]) => void;
   onTriggerEvent: (eventId: string) => void;
-  onTogglePlayback: (next: "playing" | "paused") => void;
+  onTogglePlayback: (next: PlaybackIntent) => void;
   onBack: () => void;
 };
 
@@ -2497,26 +2503,24 @@ function DateStandeeFrame({
 }) {
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 z-0 hidden xl:block">
-      <div className="relative mx-auto h-full w-full max-w-2xl">
-        <DaterStandee
-          member={leftMember}
-          placement="bottom-left"
-          mood={leftMood}
-          speaking={leftSpeaking}
-          listening={listening && !rightSpeaking}
-          reactions={reactions.filter((reaction) => reaction.side === "left")}
-          className="absolute bottom-0 right-full mr-3 h-[78vh] w-56 2xl:mr-8 2xl:w-72"
-        />
-        <DaterStandee
-          member={rightMember}
-          placement="top-right"
-          mood={rightMood}
-          speaking={rightSpeaking}
-          listening={listening && !leftSpeaking}
-          reactions={reactions.filter((reaction) => reaction.side === "right")}
-          className="absolute top-40 left-full ml-3 h-[72vh] w-56 lg:top-44 2xl:ml-8 2xl:w-72"
-        />
-      </div>
+      <DaterStandee
+        member={leftMember}
+        placement="bottom-left"
+        mood={leftMood}
+        speaking={leftSpeaking}
+        listening={listening && !rightSpeaking}
+        reactions={reactions.filter((reaction) => reaction.side === "left")}
+        className="absolute bottom-0 left-0 h-[92vh] w-72 2xl:w-96"
+      />
+      <DaterStandee
+        member={rightMember}
+        placement="bottom-right"
+        mood={rightMood}
+        speaking={rightSpeaking}
+        listening={listening && !leftSpeaking}
+        reactions={reactions.filter((reaction) => reaction.side === "right")}
+        className="absolute bottom-0 right-0 h-[92vh] w-72 2xl:w-96"
+      />
     </div>
   );
 }
@@ -2734,17 +2738,35 @@ function ChatBubble({
   const justify = isLeft ? "justify-start" : "justify-end";
   const tightClass = tight ? "!mt-1" : "";
   const itemsAlign = isLeft ? "items-start" : "items-end";
-  const nameAlign = isLeft ? "text-left text-aura-faint" : "text-right text-aura-rose/75";
-  const bubbleClass = isLeft
-    ? "rounded-[22px] rounded-bl-md bg-white/85 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md"
-    : "rounded-[22px] rounded-br-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
-  const textColor = isLeft ? "text-aura-ink" : "text-white";
-  const caretColor = isLeft ? "bg-aura-rose/70" : "bg-white/85";
+  const customBubble =
+    isLeft && member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
+  const nameAlign = customBubble
+    ? "text-left text-[color:var(--member-bubble-accent)] opacity-80"
+    : isLeft
+      ? "text-left text-aura-rose/75"
+      : "text-right text-aura-faint";
+  const accentStyle = customBubble?.accentStyle;
+  const defaultLeftClass =
+    "rounded-[22px] rounded-bl-md bg-gradient-to-br from-aura-rose to-aura-fuchsia px-4 py-2.5 shadow-cta ring-1 ring-white/30 ring-inset";
+  const defaultRightClass =
+    "rounded-[22px] rounded-br-md bg-white/85 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md";
+  const bubbleClass = customBubble
+    ? customBubble.className
+    : isLeft
+      ? defaultLeftClass
+      : defaultRightClass;
+  const bubbleStyle = customBubble?.style;
+  const textColorClass = customBubble ? "" : isLeft ? "text-white" : "text-aura-ink";
+  const caretColor = customBubble
+    ? customBubble.caretClass
+    : isLeft
+      ? "bg-white/85"
+      : "bg-aura-rose/70";
   const draftClass = item.isDraft === true ? "opacity-95" : "";
 
   return (
     <motion.li {...animation} className={`flex ${justify} ${tightClass}`}>
-      <div className={`flex max-w-[78%] flex-col gap-1 ${itemsAlign}`}>
+      <div className={`flex max-w-[78%] flex-col gap-1 ${itemsAlign}`} style={accentStyle}>
         {showName ? (
           <span
             className={`px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameAlign}`}
@@ -2752,8 +2774,8 @@ function ChatBubble({
             {member.firstName}
           </span>
         ) : null}
-        <div className={`${bubbleClass} ${draftClass}`}>
-          <p className={`text-body leading-relaxed ${textColor}`}>
+        <div className={`${bubbleClass} ${draftClass}`} style={bubbleStyle}>
+          <p className={`text-body leading-relaxed ${textColorClass}`}>
             {item.text}
             {item.isStreaming === true ? (
               <span
@@ -3180,7 +3202,7 @@ function DateFooter({
   onCancel: () => void;
   onIntervene: () => void;
   onTriggerEvent: (eventId: string) => void;
-  onTogglePlayback: (next: "playing" | "paused") => void;
+  onTogglePlayback: (next: PlaybackIntent) => void;
 }) {
   const { isPlaying, isPaused, isStreaming, pauseRequested, playbackBusy } = playbackUiState;
   const interventionSlotAvailable = canAddCupidIntervention(session);
@@ -3248,7 +3270,7 @@ function DateFooter({
         transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
         className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
       >
-        <div className="relative mx-auto w-full max-w-5xl">
+        <div className="relative mx-auto w-full max-w-3xl">
           <div className="peer aura-glass-strong pointer-events-auto flex w-full items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
             <StatusGauges
               dateHealth={session.dateHealth}
@@ -3384,7 +3406,7 @@ function GaugeColumn({ children }: { children: React.ReactNode }) {
 }
 
 function HealthGauge({ value }: { value: number }) {
-  const safeValue = Math.max(0, Math.min(100, Math.round(value)));
+  const safeValue = clampScore(Math.round(value));
   const tipMessage = `Date health: ${safeValue} of 100. Drops with conflict, lifts with chemistry.`;
 
   return (

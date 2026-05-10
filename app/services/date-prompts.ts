@@ -696,6 +696,10 @@ function ruleHitToSubtext(hit: string, member: Member, partner: Member): string 
     return `You and ${partner.firstName} share formal cadence. Ceremony reads as fluency, not bit.`;
   }
 
+  if (hit === "pair:mutual_acquisition") {
+    return `You and ${partner.firstName} both run the date as a recruiting funnel. Pact talk meets manifest talk and neither flinches.`;
+  }
+
   if (hit === "pair:competitive_clash") {
     return `You and ${partner.firstName} are both competitive. Spark is high, trust is fragile.`;
   }
