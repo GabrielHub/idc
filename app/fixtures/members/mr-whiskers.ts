@@ -94,6 +94,7 @@ export const mrWhiskers: Member = {
     retention: 100,
     currentRequestId: "request-whiskers-career",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

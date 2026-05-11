@@ -7,7 +7,7 @@ import {
   memoryRecordSchema,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
-  scenarioDeckStateSchema,
+  scenarioDeckSchema,
   shiftStateSchema,
   type DateMessage,
   type DateSession,
@@ -16,7 +16,7 @@ import {
   type Member,
   type MemoryRecord,
   type PairState,
-  type ScenarioDeckState,
+  type ScenarioDeck,
   type ShiftState,
 } from "../domain/game";
 import {
@@ -152,7 +152,7 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async resetGame(now = new Date()): Promise<GameSave> {
-    const save = createSeedGameSave(now, { randomizeScenarioDeck: true });
+    const save = createSeedGameSave(now);
     this.cancelScheduledWrite();
     await this.settleWriteInFlight();
     await this.deleteTranscriptArchivesForSaveKey(this.saveKey);
@@ -253,20 +253,12 @@ export class LocalGameRepository implements GameRepository {
     }));
   }
 
-  async saveActiveScenarioDeck(scenarioDeck: ScenarioDeckState): Promise<void> {
-    const parsedScenarioDeck = scenarioDeckStateSchema.parse(scenarioDeck);
-    await this.updateSave((save) => {
-      const activeShift = getActiveShift(save);
-      const nextShift = {
-        ...activeShift,
-        scenarioDeck: parsedScenarioDeck,
-      };
-
-      return {
-        ...save,
-        shifts: replaceById(save.shifts, nextShift),
-      };
-    });
+  async saveScenarioDeck(scenarioDeck: ScenarioDeck): Promise<void> {
+    const parsedScenarioDeck = scenarioDeckSchema.parse(scenarioDeck);
+    await this.updateSave((save) => ({
+      ...save,
+      scenarioDeck: parsedScenarioDeck,
+    }));
   }
 
   async listPairStates(): Promise<PairState[]> {

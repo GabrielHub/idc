@@ -97,6 +97,7 @@ export const seraVohn: Member = {
     retention: 100,
     currentRequestId: "request-sera-clean-term",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

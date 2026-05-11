@@ -92,6 +92,7 @@ export const bradyStrait: Member = {
     retention: 100,
     currentRequestId: "request-brady-drop-bit",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

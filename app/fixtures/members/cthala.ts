@@ -91,6 +91,7 @@ export const cthala: Member = {
     retention: 100,
     currentRequestId: "request-cthala-no-what-question",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

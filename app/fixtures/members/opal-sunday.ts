@@ -99,6 +99,7 @@ export const opalSunday: Member = {
     retention: 100,
     currentRequestId: "request-opal-no-prophecy",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

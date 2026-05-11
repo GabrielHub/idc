@@ -95,6 +95,7 @@ export const reaver: Member = {
     retention: 100,
     currentRequestId: "request-reaver-no-redemption-arc",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

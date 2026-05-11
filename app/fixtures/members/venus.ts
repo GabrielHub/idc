@@ -92,6 +92,7 @@ export const venus: Member = {
     retention: 100,
     currentRequestId: "request-venus-listen",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

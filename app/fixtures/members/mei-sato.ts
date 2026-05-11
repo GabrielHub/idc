@@ -92,6 +92,7 @@ export const meiSato: Member = {
     retention: 100,
     currentRequestId: "request-mei-listen",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

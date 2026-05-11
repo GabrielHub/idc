@@ -1,31 +1,9 @@
 import { type GoalMetric, type Member, type ShiftState } from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
-import { hashSeedUint32, shuffleInPlace } from "./utils";
+import { hashSeedUint32 } from "./utils";
 
 export const SHIFT_FEATURED_MEMBER_COUNT = 4;
 const SHIFT_COMPANY_GOAL_COUNT = 2;
-type RandomSource = () => number;
-
-export function selectFeaturedMemberIds({
-  members,
-  count = SHIFT_FEATURED_MEMBER_COUNT,
-  random = Math.random,
-}: {
-  members: readonly Member[];
-  count?: number;
-  random?: RandomSource;
-}): string[] {
-  const activeMembers = members.filter(isMemberRetained);
-  const desiredCount = Math.min(count, activeMembers.length);
-
-  if (desiredCount === 0) {
-    return [];
-  }
-
-  return shuffleMembers(activeMembers, random)
-    .slice(0, desiredCount)
-    .map((member) => member.id);
-}
 
 export function hydrateFeaturedMemberIds({
   shift,
@@ -34,12 +12,6 @@ export function hydrateFeaturedMemberIds({
   shift: ShiftState;
   members: readonly Member[];
 }): string[] {
-  const desiredCount = Math.min(SHIFT_FEATURED_MEMBER_COUNT, members.length);
-
-  if (desiredCount === 0) {
-    return [];
-  }
-
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   const featuredMembers: Member[] = [];
 
@@ -53,20 +25,6 @@ export function hydrateFeaturedMemberIds({
     featuredMembers.push(member);
   }
 
-  const shuffledMembers = seededSortById(members, `shift:${shift.shiftNumber}:featured`);
-
-  for (const member of shuffledMembers) {
-    if (featuredMembers.length >= desiredCount) {
-      break;
-    }
-
-    if (!featuredMembers.some((selected) => selected.id === member.id)) {
-      featuredMembers.push(member);
-    }
-  }
-
-  featuredMembers.splice(desiredCount);
-
   return featuredMembers.map((member) => member.id);
 }
 
@@ -79,7 +37,7 @@ export function selectShiftCompanyGoalIds({
   shiftNumber: number;
   dateSlotsTotal: number;
 }): string[] {
-  const activeMembers = members.filter(isMemberRetained);
+  const activeMembers = members.filter(isMemberActiveForShift);
   const possibleGoals = companyGoals.filter((goal) =>
     isCompanyGoalPossible(goal.metric, goal.target, activeMembers, dateSlotsTotal),
   );
@@ -139,6 +97,13 @@ export function pickNextMemberRequestId(
   return poolIds[(currentIndex + 1) % poolIds.length];
 }
 
+export function isMemberInCooldown(member: Member, currentShift: number): boolean {
+  if (member.state.lastDateShift === undefined) {
+    return false;
+  }
+  return member.state.lastDateShift >= currentShift - 1;
+}
+
 function resolveCurrentMemberRequest(member: Member) {
   return (
     memberRequests.find((request) => request.id === member.state.currentRequestId) ??
@@ -181,14 +146,8 @@ function resolveMembers(members: readonly Member[], memberIds: readonly string[]
     .filter((member): member is Member => member !== undefined);
 }
 
-function isMemberRetained(member: Member): boolean {
-  return member.state.retention > 0;
-}
-
-function shuffleMembers(members: readonly Member[], random: RandomSource): Member[] {
-  const shuffledMembers = [...members];
-  shuffleInPlace(shuffledMembers, random);
-  return shuffledMembers;
+function isMemberActiveForShift(member: Member): boolean {
+  return member.state.status === "active";
 }
 
 function seededSortById<TValue extends { id: string }>(

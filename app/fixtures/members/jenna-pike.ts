@@ -93,6 +93,7 @@ export const jennaPike: Member = {
     retention: 100,
     currentRequestId: "request-jenna-normal-date",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

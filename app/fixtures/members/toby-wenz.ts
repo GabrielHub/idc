@@ -97,6 +97,7 @@ export const tobyWenz: Member = {
     retention: 100,
     currentRequestId: "request-toby-redirect",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

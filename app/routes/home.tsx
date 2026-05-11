@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
-import { CupidOperationsDashboard } from "../components/cupid-operations-dashboard";
+import { CupidShell } from "../components/cupid-shell";
 import { SfxProvider } from "../components/sfx-provider";
 import { SplashScreen } from "../components/splash-screen";
 
@@ -54,7 +54,7 @@ export default function Home() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <CupidOperationsDashboard onPunchOut={() => setShellPhase("splash")} />
+            <CupidShell onPunchOut={() => setShellPhase("splash")} />
           </motion.div>
         )}
       </AnimatePresence>

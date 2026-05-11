@@ -96,6 +96,7 @@ export const naiaVelorae: Member = {
     retention: 100,
     currentRequestId: "request-naia-no-next-quarter",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -11,7 +11,7 @@ import {
   startDateSession,
 } from "./date-engine";
 import { createSeedGameSave } from "./game-seed";
-import { withFeaturedMembers } from "./test-helpers";
+import { ensureScenarioInHand, withFeaturedMembers } from "./test-helpers";
 import { mulberry32 } from "./utils";
 
 function zeroCountsByKind(): Record<ScenarioEventKind, number> {
@@ -81,9 +81,10 @@ describe("scenario event draft", () => {
   });
 
   it("requires picks to be drawn from the offered set under the new pool size", () => {
-    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
-      "jenna-pike",
-    ]);
+    const save = ensureScenarioInHand(
+      withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), ["jenna-pike"]),
+      "temporal-coffee-shop",
+    );
     const started = startDateSession(save, {
       focusMemberId: "jenna-pike",
       firstMemberId: "jenna-pike",

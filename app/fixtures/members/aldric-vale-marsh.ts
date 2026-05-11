@@ -96,6 +96,7 @@ export const aldricValeMarsh: Member = {
     retention: 100,
     currentRequestId: "request-aldric-honest-bargain",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -93,6 +93,7 @@ export const calvinHewes: Member = {
     retention: 100,
     currentRequestId: "request-calvin-no-cameras",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

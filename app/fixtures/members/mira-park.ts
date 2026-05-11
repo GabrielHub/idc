@@ -99,6 +99,7 @@ export const miraPark: Member = {
     retention: 100,
     currentRequestId: "request-mira-high-caliber",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

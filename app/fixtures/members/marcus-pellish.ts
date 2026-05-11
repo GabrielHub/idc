@@ -93,6 +93,7 @@ export const marcusPellish: Member = {
     retention: 100,
     currentRequestId: "request-marcus-grown-adult",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -92,6 +92,7 @@ export const epsy: Member = {
     retention: 100,
     currentRequestId: "request-epsy-not-the-civilization",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

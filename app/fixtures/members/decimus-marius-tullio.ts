@@ -98,6 +98,7 @@ export const decimusMariusTullio: Member = {
     retention: 100,
     currentRequestId: "request-decimus-no-recovery-script",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -97,6 +97,7 @@ export const cassieConners: Member = {
     retention: 100,
     currentRequestId: "request-cassie-real-name",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

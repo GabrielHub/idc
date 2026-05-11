@@ -7,7 +7,7 @@ import type {
   MemoryScope,
   MemoryVisibility,
   PairState,
-  ScenarioDeckState,
+  ScenarioDeck,
   ShiftState,
 } from "../domain/game";
 
@@ -51,7 +51,7 @@ export interface GameRepository {
   saveMember(member: Member): Promise<void>;
   getActiveShift(): Promise<ShiftState | null>;
   saveShift(shift: ShiftState): Promise<void>;
-  saveActiveScenarioDeck(scenarioDeck: ScenarioDeckState): Promise<void>;
+  saveScenarioDeck(scenarioDeck: ScenarioDeck): Promise<void>;
   listPairStates(): Promise<PairState[]>;
   getPairState(pairId: string): Promise<PairState | null>;
   savePairState(pairState: PairState): Promise<void>;

@@ -97,6 +97,7 @@ export const baiWenshu: Member = {
     retention: 100,
     currentRequestId: "request-bai-honest-trial",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

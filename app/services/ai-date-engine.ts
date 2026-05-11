@@ -51,6 +51,7 @@ import {
   shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
+import { getActiveShift } from "./game-seed";
 import {
   buildCharacterPromptPacket,
   buildJudgePromptPacket,
@@ -454,7 +455,11 @@ async function advanceDateExchangeWithLocalAiInternal(
   const finalMembers =
     completedSession.finalReport === undefined
       ? updatedMembers
-      : applyDateFinalReportToMembers(updatedMembers, completedSession);
+      : applyDateFinalReportToMembers(
+          updatedMembers,
+          completedSession,
+          getActiveShift(save).shiftNumber,
+        );
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: finalMembers,

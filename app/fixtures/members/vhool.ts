@@ -89,6 +89,7 @@ export const vhool: Member = {
     retention: 100,
     currentRequestId: "request-vhool-seen",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -3,35 +3,33 @@ import {
   gameSaveSchema,
   memberSchema,
   SAVE_SCHEMA_VERSION,
-  scenarioDeckStateSchema,
+  SCENARIO_DECK_SIZE,
+  scenarioDeckSchema,
   shiftStateSchema,
   type DateSession,
-  type DeckPowerUsage,
   type GameSave,
   type Member,
   type MemoryRecord,
   type PairState,
   type PairStats,
-  type ScenarioDeckState,
+  type ScenarioDeck,
   type ShiftState,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
+import { createInitialScenarioDeck, drawHand } from "./deck";
 import {
   hydrateFeaturedMemberIds,
-  selectFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
 import { arraysShallowEqual, clampScore } from "./utils";
 
-const STARTER_DECK_MAX_SIZE = starterScenarios.length;
 const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
 const SCENARIO_ID_REPLACEMENTS: Record<string, string> = {
   "alternate-ex-double-date": "phantom-doorbell-suite",
 };
 
 export type CreateSeedGameSaveOptions = {
-  randomizeScenarioDeck?: boolean;
   random?: () => number;
 };
 
@@ -40,27 +38,19 @@ export function createSeedGameSave(
   options: CreateSeedGameSaveOptions = {},
 ): GameSave {
   const timestamp = now.toISOString();
-  const random = options.random ?? Math.random;
   const config = gameConfigSchema.parse({});
   const members = STARTER_FIXTURE_MEMBERS;
   const pairStates = createSeedPairStates(members);
-  const scenarioIds =
-    options.randomizeScenarioDeck === true
-      ? shuffleScenarioIds(STARTER_SCENARIO_IDS, random)
-      : [...STARTER_SCENARIO_IDS];
-  const featuredMemberIds = selectFeaturedMemberIds({
-    members,
-    random,
-  });
-  const drawnScenarioIds = scenarioIds.slice(0, config.shiftDateSlots);
-  const offeredScenarioIds = scenarioIds.slice(config.shiftDateSlots, config.shiftDateSlots * 2);
+  const scenarioDeck = createInitialScenarioDeck(starterScenarios);
+  const focusedMemberIds: string[] = [];
+  const drawnScenarioIds = drawHand(scenarioDeck, 1, options.random);
   const activeShift: ShiftState = {
     id: "shift-1",
     shiftNumber: 1,
     status: "active",
     dateSlotsTotal: config.shiftDateSlots,
     dateSlotsUsed: 0,
-    featuredMemberIds,
+    featuredMemberIds: focusedMemberIds,
     drawnScenarioIds,
     companyGoalIds: selectShiftCompanyGoalIds({
       members,
@@ -69,14 +59,9 @@ export function createSeedGameSave(
     }),
     memberRequestIds: selectFeaturedMemberRequestIds({
       members,
-      featuredMemberIds,
+      featuredMemberIds: focusedMemberIds,
       shiftNumber: 1,
     }),
-    scenarioDeck: {
-      scenarioIds,
-      maxSize: STARTER_DECK_MAX_SIZE,
-      offeredScenarioIds,
-    },
     startedAt: timestamp,
   };
 
@@ -90,6 +75,8 @@ export function createSeedGameSave(
     activeShiftId: activeShift.id,
     memories: createStarterMemories(timestamp),
     playerKnowledge: [],
+    focusedMemberIds,
+    scenarioDeck,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -97,7 +84,6 @@ export function createSeedGameSave(
 
 export type HydrateFixtureOwnedMemberDataResult = {
   save: GameSave;
-  // True when hydration changed any field; the repository uses this to decide whether to write back.
   dirty: boolean;
 };
 
@@ -114,7 +100,6 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
       return fixtureMember;
     }
 
-    // Skip the schema parse when the saved member already matches the fixture; parse is the hot cost.
     if (fixtureMemberMatchesState(fixtureMember, savedMember)) {
       return savedMember;
     }
@@ -156,6 +141,9 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   const memoriesResult = mapWithDirty(save.memories, hydrateMemoryScenarioId);
   if (memoriesResult.dirty) dirty = true;
 
+  const scenarioDeckResult = hydrateScenarioDeck(save.scenarioDeck);
+  if (scenarioDeckResult !== save.scenarioDeck) dirty = true;
+
   if (!dirty) {
     return { save, dirty: false };
   }
@@ -168,6 +156,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
       dateSessions: dateSessionResult.items,
       shifts: shiftsResult.items,
       memories: memoriesResult.items,
+      scenarioDeck: scenarioDeckResult,
     }),
     dirty: true,
   };
@@ -203,7 +192,6 @@ function deepEqualByJson(left: unknown, right: unknown): boolean {
 function mapWithDirty<T>(
   items: readonly T[],
   hydrate: (item: T) => T,
-  // Defaults to reference identity (works when hydrate returns the same reference on no-op).
   equals: (before: T, after: T) => boolean = (a, b) => a === b,
 ): { items: T[]; dirty: boolean } {
   let dirty = false;
@@ -218,16 +206,7 @@ function mapWithDirty<T>(
 function shiftsEqual(before: ShiftState, after: ShiftState): boolean {
   return (
     arraysShallowEqual(before.featuredMemberIds, after.featuredMemberIds) &&
-    arraysShallowEqual(before.drawnScenarioIds, after.drawnScenarioIds) &&
-    arraysShallowEqual(before.scenarioDeck.scenarioIds, after.scenarioDeck.scenarioIds) &&
-    arraysShallowEqual(
-      before.scenarioDeck.offeredScenarioIds ?? [],
-      after.scenarioDeck.offeredScenarioIds ?? [],
-    ) &&
-    before.scenarioDeck.maxSize === after.scenarioDeck.maxSize &&
-    before.heldScenarioId === after.heldScenarioId &&
-    before.deckPower?.scenarioId === after.deckPower?.scenarioId &&
-    before.deckPower?.swappedScenarioId === after.deckPower?.swappedScenarioId
+    arraysShallowEqual(before.drawnScenarioIds, after.drawnScenarioIds)
   );
 }
 
@@ -246,9 +225,6 @@ const STARTER_MEMBERS_BY_ID = new Map(
   STARTER_FIXTURE_MEMBERS.map((member) => [member.id, member] as const),
 );
 
-// Pair structure (ids, participantIds, base useCounts) only depends on the
-// static fixtures, so build it once at module load. Pair stats use live
-// member state and stay per-call inside hydratePairStates.
 const STARTER_SEED_PAIR_STRUCTURE: ReadonlyArray<{
   id: string;
   participantIds: [string, string];
@@ -275,7 +251,6 @@ const STARTER_SEED_PAIR_STRUCTURE: ReadonlyArray<{
       entries.push({
         id: makePairId(first.id, second.id),
         participantIds,
-        // Defensive copy so per-pair mutations don't bleed into the cached base counts.
         scenarioUseCounts: { ...baseUseCounts },
       });
     }
@@ -290,17 +265,47 @@ function isStarterRoster(members: readonly Member[]): boolean {
   );
 }
 
-function hydrateScenarioDeckState(scenarioDeck: ScenarioDeckState): ScenarioDeckState {
-  const scenarioIds = appendMissingStarterScenarioIds(
-    normalizeScenarioIds(scenarioDeck.scenarioIds),
-  );
+function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
+  const knownScenarioIds = new Set(STARTER_SCENARIO_IDS);
+  const seen = new Set<string>();
+  const cardIds: string[] = [];
 
-  return scenarioDeckStateSchema.parse({
-    ...scenarioDeck,
-    scenarioIds,
-    maxSize: Math.max(scenarioDeck.maxSize, STARTER_DECK_MAX_SIZE, scenarioIds.length),
-    offeredScenarioIds: normalizeScenarioIds(scenarioDeck.offeredScenarioIds),
-  });
+  for (const cardId of scenarioDeck.cardIds) {
+    const normalized = normalizeStarterScenarioId(cardId);
+    if (!knownScenarioIds.has(normalized)) continue;
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    cardIds.push(normalized);
+  }
+
+  const retiredById = new Map<string, number>();
+  for (const entry of scenarioDeck.retiredCards) {
+    const normalized = normalizeStarterScenarioId(entry.cardId);
+    if (!knownScenarioIds.has(normalized)) continue;
+    if (seen.has(normalized)) continue;
+    const existing = retiredById.get(normalized);
+    if (existing === undefined || existing < entry.availableOnShift) {
+      retiredById.set(normalized, entry.availableOnShift);
+    }
+  }
+
+  const retiredCards = Array.from(retiredById.entries()).map(([cardId, availableOnShift]) => ({
+    cardId,
+    availableOnShift,
+  }));
+  const pendingLibraryPick = scenarioDeck.pendingLibraryPick;
+  const expectedSize =
+    pendingLibraryPick === undefined ? SCENARIO_DECK_SIZE : SCENARIO_DECK_SIZE - 1;
+
+  if (cardIds.length === expectedSize) {
+    return scenarioDeckSchema.parse({
+      cardIds,
+      pendingLibraryPick,
+      retiredCards,
+    });
+  }
+
+  return scenarioDeck;
 }
 
 function hydrateShiftScenarioIds(shift: ShiftState, members: Member[]): ShiftState {
@@ -308,49 +313,7 @@ function hydrateShiftScenarioIds(shift: ShiftState, members: Member[]): ShiftSta
     ...shift,
     featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
     drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
-    scenarioDeck: hydrateScenarioDeckState(shift.scenarioDeck),
-    deckPower: hydrateDeckPowerUsage(shift.deckPower),
-    heldScenarioId:
-      shift.heldScenarioId === undefined
-        ? undefined
-        : normalizeStarterScenarioId(shift.heldScenarioId),
   });
-}
-
-function hydrateDeckPowerUsage(deckPower: DeckPowerUsage | undefined): DeckPowerUsage | undefined {
-  if (deckPower === undefined) {
-    return undefined;
-  }
-
-  const hydratedUsage: DeckPowerUsage = {
-    ...deckPower,
-    scenarioId: normalizeStarterScenarioId(deckPower.scenarioId),
-  };
-
-  if (deckPower.swappedScenarioId === undefined) {
-    return hydratedUsage;
-  }
-
-  return {
-    ...hydratedUsage,
-    swappedScenarioId: normalizeStarterScenarioId(deckPower.swappedScenarioId),
-  };
-}
-
-function appendMissingStarterScenarioIds(scenarioIds: string[]): string[] {
-  const hydratedScenarioIds = [...scenarioIds];
-  const existingScenarioIds = new Set(hydratedScenarioIds);
-
-  for (const scenarioId of STARTER_SCENARIO_IDS) {
-    if (existingScenarioIds.has(scenarioId)) {
-      continue;
-    }
-
-    hydratedScenarioIds.push(scenarioId);
-    existingScenarioIds.add(scenarioId);
-  }
-
-  return hydratedScenarioIds;
 }
 
 export function normalizeStarterScenarioId(scenarioId: string): string {
@@ -389,37 +352,6 @@ function hydrateMemoryScenarioId(memory: MemoryRecord): MemoryRecord {
   const scenarioId = normalizeStarterScenarioId(memory.scenarioId);
 
   return scenarioId === memory.scenarioId ? memory : { ...memory, scenarioId };
-}
-
-function shuffleScenarioIds(scenarioIds: readonly string[], random: () => number): string[] {
-  const shuffledScenarioIds = [...scenarioIds];
-
-  for (let currentIndex = shuffledScenarioIds.length - 1; currentIndex > 0; currentIndex -= 1) {
-    const swapIndex = randomIndex(random, currentIndex + 1);
-    const currentScenarioId = shuffledScenarioIds[currentIndex];
-    const swapScenarioId = shuffledScenarioIds[swapIndex];
-
-    if (currentScenarioId === undefined || swapScenarioId === undefined) {
-      throw new Error("Scenario shuffle lookup failed.");
-    }
-
-    shuffledScenarioIds[currentIndex] = swapScenarioId;
-    shuffledScenarioIds[swapIndex] = currentScenarioId;
-  }
-
-  return shuffledScenarioIds;
-}
-
-function randomIndex(random: () => number, exclusiveMax: number): number {
-  const randomValue = random();
-
-  if (!Number.isFinite(randomValue)) {
-    throw new Error("Scenario shuffle random source returned a non-finite value.");
-  }
-
-  const scaledIndex = Math.floor(randomValue * exclusiveMax);
-
-  return Math.min(Math.max(scaledIndex, 0), exclusiveMax - 1);
 }
 
 export function findMemberInSave(save: GameSave, memberId: string): Member | undefined {
@@ -560,7 +492,6 @@ function hydrateScenarioUseCounts(
       break;
     }
   }
-  // Return same reference when no retired ids found, so upstream change detection short-circuits.
   if (!needsRebuild) return scenarioUseCounts;
 
   const hydratedScenarioUseCounts: Record<string, number> = {};
@@ -604,7 +535,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened shift one with seventeen starter members and a three scenario hand.",
+      text: "Cupid has opened the office with a 28 member roster and a 12 card deck.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

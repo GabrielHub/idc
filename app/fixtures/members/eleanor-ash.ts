@@ -98,6 +98,7 @@ export const eleanorAsh: Member = {
     retention: 100,
     currentRequestId: "request-eleanor-no-true-name",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

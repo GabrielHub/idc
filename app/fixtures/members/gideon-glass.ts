@@ -91,6 +91,7 @@ export const gideonGlass: Member = {
     retention: 100,
     currentRequestId: "request-gideon-name",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

@@ -96,6 +96,7 @@ export const idrisMahari: Member = {
     retention: 100,
     currentRequestId: "request-idris-no-marshal",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

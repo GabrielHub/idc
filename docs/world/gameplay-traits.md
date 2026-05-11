@@ -183,6 +183,17 @@ Source the compatibility shape from voice and tone, not from a separate compatib
 
 Update this map when adding a member. If a new member does not slot into any cluster or friction zone, that is a sign the design is too generic.
 
+## Focused Cases And Shift Cadence
+
+Cupid runs four focus cases at a time and one date per shift. This frames the player as a relationship operator who carries small case loads instead of a matchmaker who rerolls every shift.
+
+- The save owns `focusedMemberIds`, capped at 4. Onboarding requires exactly 4 selected from the 28 active members; closures free a slot. `app/services/focus-cases.ts` exposes `selectInitialFocusCases`, `addFocusCase`, `removeFocusCase`, and `swapFocusCase`. The shift's `featuredMemberIds` mirror `focusedMemberIds` for backwards compatibility.
+- Swapping a focus case costs 25 retention to the dropped member. Removing a case (through closure or open-slot freeing) does not. Adding into an open slot is free.
+- Closed and quit members cannot be focused, matched, or selected for shift requests. Their lifecycle status lives on `member.state.status` as `active`, `closed`, or `quit`. When retention drops to zero the engine flips status to `quit`. Closure is a separate workflow.
+- Each shift books one date. After a date finishes (completed or ended early), both participants stamp `member.state.lastDateShift` and enter a one-shift cooldown. `isMemberInCooldown(member, currentShift)` is true on the date shift and the immediately following shift. Cupid cannot book a member while they are in cooldown.
+- The deck is a save-owned 12-card library, not a shift-owned hand. Each shift draws 3 cards into `shift.drawnScenarioIds` deterministically from the shift number. Playing a card opens a pending library slot; the player resolves the slot from the casebook. Voluntary swaps retire the dropped card for 3 shifts. See the deck service in `app/services/deck.ts`.
+- The `goal-complete-three-dates` goal is filtered out when shifts only book one date.
+
 ## Adding Members
 
 When adding a member:

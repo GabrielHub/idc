@@ -91,6 +91,7 @@ export const tashaRell: Member = {
     retention: 100,
     currentRequestId: "request-tasha-counterparty",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

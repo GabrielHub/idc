@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 4;
+export const SAVE_SCHEMA_VERSION = 5;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -80,6 +80,8 @@ export const memberVoiceSchema = z.object({
   sampleMessages: memberSampleMessagesSchema,
 });
 
+export const memberLifecycleStatusSchema = z.enum(["active", "closed", "quit"]);
+
 export const memberStateSchema = z.object({
   mood: scoreSchema,
   openness: scoreSchema,
@@ -87,6 +89,8 @@ export const memberStateSchema = z.object({
   retention: scoreSchema.default(100),
   currentRequestId: z.string().min(1).optional(),
   recentDateResult: z.string().min(1).optional(),
+  status: memberLifecycleStatusSchema.default("active"),
+  lastDateShift: z.number().int().min(1).optional(),
 });
 
 export const memberTagSchema = z.enum([
@@ -592,20 +596,49 @@ export const dateSessionSchema = z.object({
   finalReport: dateFinalReportSchema.optional(),
 });
 
-export const scenarioDeckStateSchema = z.object({
-  scenarioIds: z.array(scenarioIdSchema).min(1),
-  maxSize: z.number().int().min(1),
-  offeredScenarioIds: z.array(scenarioIdSchema),
+export const SCENARIO_DECK_SIZE = 12;
+export const SCENARIO_DECK_RETIREMENT_SHIFTS = 3;
+
+export const pendingLibraryPickSchema = z.object({
+  playedCardId: scenarioIdSchema,
+  playedAtShift: z.number().int().min(1),
 });
 
-export const deckPowerKindSchema = z.enum(["hold", "discard", "request_low_pressure"]);
-
-export const deckPowerUsageSchema = z.object({
-  kind: deckPowerKindSchema,
-  scenarioId: scenarioIdSchema,
-  swappedScenarioId: scenarioIdSchema.optional(),
-  usedAt: z.string().min(1),
+export const retiredScenarioCardSchema = z.object({
+  cardId: scenarioIdSchema,
+  availableOnShift: z.number().int().min(1),
 });
+
+export const scenarioDeckSchema = z
+  .object({
+    cardIds: z.array(scenarioIdSchema),
+    pendingLibraryPick: pendingLibraryPickSchema.optional(),
+    retiredCards: z.array(retiredScenarioCardSchema).default([]),
+  })
+  .superRefine((deck, context) => {
+    const uniqueCardIds = new Set(deck.cardIds);
+
+    if (uniqueCardIds.size !== deck.cardIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Scenario deck card ids must be unique.",
+        path: ["cardIds"],
+      });
+    }
+
+    const expectedSize =
+      deck.pendingLibraryPick === undefined ? SCENARIO_DECK_SIZE : SCENARIO_DECK_SIZE - 1;
+
+    if (deck.cardIds.length !== expectedSize) {
+      context.addIssue({
+        code: "custom",
+        message: `Scenario deck must hold ${expectedSize} cards when ${
+          deck.pendingLibraryPick === undefined ? "no pick is pending" : "a pick is pending"
+        }.`,
+        path: ["cardIds"],
+      });
+    }
+  });
 
 export const goalScoreStatusSchema = z.enum(["met", "missed"]);
 
@@ -636,15 +669,12 @@ export const shiftStateSchema = z.object({
   id: z.string().min(1),
   shiftNumber: z.number().int().min(1),
   status: z.enum(["active", "completed"]),
-  dateSlotsTotal: z.number().int().min(1).default(3),
+  dateSlotsTotal: z.number().int().min(1).default(1),
   dateSlotsUsed: z.number().int().min(0),
   featuredMemberIds: z.array(memberIdSchema).default([]),
   drawnScenarioIds: z.array(scenarioIdSchema),
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
-  scenarioDeck: scenarioDeckStateSchema,
-  deckPower: deckPowerUsageSchema.optional(),
-  heldScenarioId: scenarioIdSchema.optional(),
   startedAt: z.string().min(1),
   completedAt: z.string().min(1).optional(),
   report: shiftReportSchema.optional(),
@@ -721,7 +751,7 @@ export const gameConfigSchema = z.preprocess(
     gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
     aiSetupComplete: z.boolean().default(false),
     defaultDateMessageLimit: z.number().int().min(2).default(30),
-    shiftDateSlots: z.number().int().min(1).default(3),
+    shiftDateSlots: z.number().int().min(1).default(1),
   }),
 );
 
@@ -735,6 +765,8 @@ export const gameSaveSchema = z.object({
   activeShiftId: z.string().min(1),
   memories: z.array(memoryRecordSchema),
   playerKnowledge: z.array(playerKnowledgeRecordSchema).default([]),
+  focusedMemberIds: z.array(memberIdSchema).max(4).default([]),
+  scenarioDeck: scenarioDeckSchema,
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -788,9 +820,10 @@ export type DateRuntimeMode = z.infer<typeof dateRuntimeModeSchema>;
 export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
-export type ScenarioDeckState = z.infer<typeof scenarioDeckStateSchema>;
-export type DeckPowerKind = z.infer<typeof deckPowerKindSchema>;
-export type DeckPowerUsage = z.infer<typeof deckPowerUsageSchema>;
+export type ScenarioDeck = z.infer<typeof scenarioDeckSchema>;
+export type PendingLibraryPick = z.infer<typeof pendingLibraryPickSchema>;
+export type RetiredScenarioCard = z.infer<typeof retiredScenarioCardSchema>;
+export type MemberLifecycleStatus = z.infer<typeof memberLifecycleStatusSchema>;
 export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
 export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
 export type ShiftReport = z.infer<typeof shiftReportSchema>;

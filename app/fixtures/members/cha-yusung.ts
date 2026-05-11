@@ -94,6 +94,7 @@ export const chaYusung: Member = {
     retention: 100,
     currentRequestId: "request-cha-make-sister-stop",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

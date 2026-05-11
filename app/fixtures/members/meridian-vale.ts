@@ -90,6 +90,7 @@ export const meridianVale: Member = {
     retention: 100,
     currentRequestId: "request-meridian-no-followups",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

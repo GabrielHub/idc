@@ -49,10 +49,10 @@ import {
   filterExchangeEligibleRevealCandidates,
   selectDeterministicRevealIds,
 } from "./player-knowledge";
-import { applyHeldScenarioToDrawnIds } from "./scenario-powers";
+import { drawHand, markCardPlayed, pruneExpiredRetirements } from "./deck";
 import {
+  isMemberInCooldown,
   pickNextMemberRequestId,
-  selectFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
@@ -142,8 +142,16 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     throw new Error("All date slots are already assigned.");
   }
 
+  if (save.scenarioDeck.pendingLibraryPick !== undefined) {
+    throw new Error("Resolve the pending library pick before booking.");
+  }
+
   if (!activeShift.drawnScenarioIds.includes(input.scenarioId)) {
     throw new Error("That scenario is not in today's drawn hand.");
+  }
+
+  if (!save.scenarioDeck.cardIds.includes(input.scenarioId)) {
+    throw new Error("That scenario is no longer in the active deck.");
   }
 
   const firstMember = requireMember(save, input.firstMemberId);
@@ -154,16 +162,23 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     throw new Error("Cupid has lost too many clients to book another date.");
   }
 
-  if (!isMemberRetained(firstMember) || !isMemberRetained(secondMember)) {
-    throw new Error("Cupid cannot book members who already quit the app.");
+  if (firstMember.state.status !== "active" || secondMember.state.status !== "active") {
+    throw new Error("Cupid cannot book closed or quit members.");
   }
 
   if (focusMember.id !== firstMember.id && focusMember.id !== secondMember.id) {
     throw new Error("The focused member must be one of the date participants.");
   }
 
-  if (!activeShift.featuredMemberIds.includes(focusMember.id)) {
-    throw new Error("The focused member is not one of today's cases.");
+  if (!save.focusedMemberIds.includes(focusMember.id)) {
+    throw new Error("The focused member is not on the case board.");
+  }
+
+  if (
+    isMemberInCooldown(firstMember, activeShift.shiftNumber) ||
+    isMemberInCooldown(secondMember, activeShift.shiftNumber)
+  ) {
+    throw new Error("One of the members is still in cooldown from a recent date.");
   }
 
   const scenario = requireScenario(input.scenarioId);
@@ -234,10 +249,11 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     ...activeShift,
     dateSlotsUsed: activeShift.dateSlotsUsed + 1,
   });
+  const saveWithPlayedCard = markCardPlayed(save, scenario.id, activeShift.shiftNumber);
   const nextSave = gameSaveSchema.parse({
-    ...save,
-    dateSessions: [...save.dateSessions, session],
-    shifts: replaceById(save.shifts, updatedShift),
+    ...saveWithPlayedCard,
+    dateSessions: [...saveWithPlayedCard.dateSessions, session],
+    shifts: replaceById(saveWithPlayedCard.shifts, updatedShift),
     updatedAt: timestamp,
   });
 
@@ -756,7 +772,11 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const finalMembers =
     completedSession.finalReport === undefined
       ? updatedMembers
-      : applyDateFinalReportToMembers(updatedMembers, completedSession);
+      : applyDateFinalReportToMembers(
+          updatedMembers,
+          completedSession,
+          getActiveShift(save).shiftNumber,
+        );
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
@@ -868,7 +888,7 @@ export function completeShift(
     memberMoodDelta: goalMetrics.memberMoodDelta,
     goalResults,
     ignoredRequestIds: ignoredRequests.map((request) => request.id),
-    offeredScenarioIds: activeShift.scenarioDeck.offeredScenarioIds,
+    offeredScenarioIds: [],
     summary: buildShiftSummary(
       completedDates.length,
       earlyEndedDates.length,
@@ -953,11 +973,23 @@ export function buildShiftGoalMetrics({
 }
 
 export function isMemberRetained(member: Member): boolean {
-  return member.state.retention > 0;
+  return member.state.status !== "quit" && member.state.retention > 0;
+}
+
+export function isMemberActive(member: Member): boolean {
+  return member.state.status === "active";
+}
+
+export function isMemberClosed(member: Member): boolean {
+  return member.state.status === "closed";
+}
+
+export function isMemberQuit(member: Member): boolean {
+  return member.state.status === "quit";
 }
 
 export function getQuitMembers(members: readonly Member[]): Member[] {
-  return members.filter((member) => !isMemberRetained(member));
+  return members.filter(isMemberQuit);
 }
 
 export type MemberQuitRiskStatus =
@@ -1087,31 +1119,12 @@ export function startNextShift(
 
   const timestamp = now.toISOString();
   const nextShiftNumber = Math.max(...save.shifts.map((shift) => shift.shiftNumber)) + 1;
-  const scenarioIds =
-    activeShift.scenarioDeck.scenarioIds.length === 0
-      ? starterScenarios.map((scenario) => scenario.id)
-      : activeShift.scenarioDeck.scenarioIds;
-  const scenarioStartIndex =
-    ((nextShiftNumber - 1) * save.config.shiftDateSlots) % scenarioIds.length;
-  const baseDrawnScenarioIds = takeWrapped(
-    scenarioIds,
-    scenarioStartIndex,
-    save.config.shiftDateSlots,
-  );
-  const drawnScenarioIds = applyHeldScenarioToDrawnIds({
-    drawnScenarioIds: baseDrawnScenarioIds,
-    heldScenarioId: activeShift.heldScenarioId,
-    scenarioLibraryIds: scenarioIds,
-    shiftDateSlots: save.config.shiftDateSlots,
-  });
-  const offeredScenarioIds = takeWrapped(
-    scenarioIds,
-    scenarioStartIndex + save.config.shiftDateSlots,
-    save.config.shiftDateSlots,
-  );
-  const featuredMemberIds = selectFeaturedMemberIds({
-    members: save.members,
-    random: options.random,
+  const prunedDeck = pruneExpiredRetirements(save.scenarioDeck, nextShiftNumber);
+  const drawnScenarioIds = drawHand(prunedDeck, nextShiftNumber, options.random);
+  const membersById = new Map(save.members.map((member) => [member.id, member] as const));
+  const featuredMemberIds = save.focusedMemberIds.filter((memberId) => {
+    const member = membersById.get(memberId);
+    return member !== undefined && isMemberActive(member);
   });
   const companyGoalIds = selectShiftCompanyGoalIds({
     members: save.members,
@@ -1133,15 +1146,11 @@ export function startNextShift(
     drawnScenarioIds,
     companyGoalIds,
     memberRequestIds,
-    scenarioDeck: {
-      scenarioIds,
-      maxSize: activeShift.scenarioDeck.maxSize,
-      offeredScenarioIds,
-    },
     startedAt: timestamp,
   });
   const nextSave = gameSaveSchema.parse({
     ...save,
+    scenarioDeck: prunedDeck,
     shifts: [...save.shifts, nextShift],
     activeShiftId: nextShift.id,
     updatedAt: timestamp,
@@ -1489,17 +1498,28 @@ type MemberStateDeltas = {
   recentDateResult: string;
 };
 
-export function applyDateFinalReportToMembers(members: Member[], session: DateSession): Member[] {
+export function applyDateFinalReportToMembers(
+  members: Member[],
+  session: DateSession,
+  shiftNumber: number,
+): Member[] {
   const outcome = session.finalReport?.outcome;
 
   if (outcome === undefined) {
     return members;
   }
 
-  return applyStateDeltasToMembers(members, session.participants, {
+  const afterDeltas = applyStateDeltasToMembers(members, session.participants, {
     ...FINAL_OUTCOME_DELTAS[outcome],
     recentDateResult: finalOutcomeMemberResult(outcome),
   });
+  const participantIds = new Set(session.participants);
+
+  return afterDeltas.map((member) =>
+    participantIds.has(member.id)
+      ? { ...member, state: { ...member.state, lastDateShift: shiftNumber } }
+      : member,
+  );
 }
 
 function applyFollowUpToMembers(
@@ -1620,13 +1640,15 @@ function applyStateDeltasToMembers(
 }
 
 function applyMemberStateDeltas(member: Member, deltas: MemberStateDeltas): Member {
-  if (!isMemberRetained(member)) {
+  if (!isMemberActive(member)) {
     return member;
   }
 
   const retention = clampScore(member.state.retention + deltas.retention);
-  const recentDateResult =
-    retention === 0 ? "Client file closed. Member quit the app." : deltas.recentDateResult;
+  const hasQuit = retention === 0;
+  const recentDateResult = hasQuit
+    ? "Client file closed. Member quit the app."
+    : deltas.recentDateResult;
 
   return {
     ...member,
@@ -1636,6 +1658,7 @@ function applyMemberStateDeltas(member: Member, deltas: MemberStateDeltas): Memb
       burnout: clampScore(member.state.burnout + deltas.burnout),
       retention,
       recentDateResult,
+      status: hasQuit ? "quit" : member.state.status,
     },
   };
 }
@@ -2197,21 +2220,4 @@ function startingDateHealth(pairState: PairState): number {
 
 function isOrdinaryHuman(member: Member): boolean {
   return member.tags.includes("ordinary_human");
-}
-
-function takeWrapped<TValue>(values: TValue[], startIndex: number, count: number): TValue[] {
-  if (values.length === 0) {
-    return [];
-  }
-
-  return Array.from({ length: Math.min(count, values.length) }, (_, index) => {
-    const wrappedIndex = (startIndex + index) % values.length;
-    const value = values[wrappedIndex];
-
-    if (value === undefined) {
-      throw new Error("Wrapped list lookup failed.");
-    }
-
-    return value;
-  });
 }

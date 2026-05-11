@@ -92,6 +92,7 @@ export const sanaKarim: Member = {
     retention: 100,
     currentRequestId: "request-sana-decompress",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {

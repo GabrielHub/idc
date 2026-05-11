@@ -59,6 +59,22 @@ Authoring guidance:
 
 The composed CSS classes live in `app/app.css` under the `MEMBER CHAT BUBBLE` section. Color values that vary per member flow through inline `style` only as CSS variables (`--member-bubble-tail-color`, `--member-bubble-glow`, `--member-bubble-accent`) and the resolved gradient string. This is the same pattern `app/components/scenario-backdrop.tsx` uses for data-driven backgrounds, and it is the only inline-style use sanctioned for the bubble system.
 
+## Canvas Layout And Floating Nav
+
+The playable shell uses a canvas-and-floating-nav layout instead of tab strips. After the splash, the shell hosts five rooms with their own staging.
+
+- Office: Cupid's desk, four focus case slots, today's shift card, and the deck strip. Begin date lives here.
+- Gallery: portrait hall with every member framed. Focus cases get a distinguished frame. Closed members get a heart overlay, quit members get a red X overlay. Read-only sheets respect player knowledge visibility.
+- Casebook: filing cabinet metaphor. Twelve face-up cards. Side drawer shows library scenarios, retired cards greyed out with availability text. Click-to-select then confirm is the canonical interaction; drag-and-drop is optional.
+- Stage: live date UI ported into the canvas treatment. Nav cluster hides while a date is live.
+- Files: notes archive ported into the canvas treatment.
+
+The floating nav cluster sits at the bottom right of every room. Five round buttons (Office, Gallery, Casebook, Stage, Files) with rose accents on the active button. Stage is enabled only while a session exists. The cluster hides when a date is live so the stage owns the canvas.
+
+### Scenario Card System
+
+`app/components/scenario-card.tsx` is the shared component used in Casebook, Office, Files, the library drawer, and onboarding. It shows the scenario title, one-line summary, three risk dots (risk, intimacy, chaos), and at most three player-safe chips. Card states are `default`, `selected`, `disabled`, `retired`, and `open-slot`. The card never shows raw scenario tags, exact pressure, or stat math.
+
 ## What Not To Build
 
 - No marketing landing page for the playable game shell.

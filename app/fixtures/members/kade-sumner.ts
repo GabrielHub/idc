@@ -90,6 +90,7 @@ export const kadeSumner: Member = {
     retention: 100,
     currentRequestId: "request-kade-not-content",
     recentDateResult: "No Cupid dates yet.",
+    status: "active",
   },
   portraits: {
     neutral: {
