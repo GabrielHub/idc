@@ -78,7 +78,7 @@ Saves go through an async raw save-store boundary. Browser builds use localStora
 
 ```text
 app/
-  components/       Cupid shell, canvas rooms (Office, Gallery, Casebook, Stage, Files), splash, AI setup, shared UI
+  components/       Cupid shell, canvas rooms (Live Date, Roster, Date Book, Files), splash, AI setup, shared UI
   domain/           Zod schemas and TypeScript game contracts
   fixtures/         Static members, scenarios, goals, and starter content
   platform/         Runtime detection and desktop URL policy

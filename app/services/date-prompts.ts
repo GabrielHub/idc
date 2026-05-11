@@ -42,6 +42,107 @@ export type ClosureSummaryPromptPacket = {
   prompt: string;
 };
 
+export const RECENT_LINE_GUARD_COUNT = 3;
+
+/**
+ * Words that flag corporate consulting voice, therapy-speak, or AI slop in
+ * Cupid corporate copy. Anything containing one of these in any case fails the
+ * copy check and gets replaced with a deterministic fallback.
+ */
+export const CUPID_COPY_BANNED_PHRASES: readonly string[] = [
+  "tapestry",
+  "intricate",
+  "myriad",
+  "plethora",
+  "unleash",
+  "leverage",
+  "harness",
+  "elevate",
+  "delve",
+  "navigate",
+  "navigating",
+  "navigated",
+  "journey",
+  "chapter",
+  "moreover",
+  "in essence",
+  "it is worth noting",
+  "synergy",
+  "synergies",
+  "unlock potential",
+  "unlocked potential",
+  "unlocking potential",
+  "deeper connection",
+  "deep connection",
+  "explored their feelings",
+  "explored feelings",
+  "navigated tension",
+  "emotional landscape",
+  "robust connection",
+];
+
+/**
+ * Phrases that signal abstract, generic compatibility talk. They are not
+ * universally banned, but if a summary contains one without naming any concrete
+ * scene noun, it fails the copy check.
+ */
+export const CUPID_COPY_GENERIC_PATTERNS: readonly RegExp[] = [
+  /\b(deep|deeper|profound|meaningful)\s+(connection|bond|level|understanding)\b/i,
+  /\bgenuine\s+(connection|chemistry|spark)\b/i,
+  /\b(common|shared)\s+ground\b/i,
+  /\bbuilt\s+rapport\b/i,
+  /\bfostered\s+\w+/i,
+  /\bopen(ed)?\s+up\s+to\s+each\s+other\b/i,
+  /\bemotional\s+(rollercoaster|journey)\b/i,
+];
+
+export type CupidCopyCheckResult =
+  | { ok: true }
+  | {
+      ok: false;
+      reason: "banned_phrase" | "generic_phrase" | "empty" | "too_long";
+      offender?: string;
+    };
+
+/**
+ * Checks Cupid corporate copy for banned phrases, generic abstractions, or
+ * empty/overlong output. Returns the first reason for rejection.
+ */
+export function checkCupidCorporateCopy(
+  text: string,
+  options: { maxLength?: number } = {},
+): CupidCopyCheckResult {
+  const trimmed = text.trim();
+
+  if (trimmed.length === 0) {
+    return { ok: false, reason: "empty" };
+  }
+
+  const maxLength = options.maxLength ?? 320;
+
+  if (trimmed.length > maxLength) {
+    return { ok: false, reason: "too_long" };
+  }
+
+  const lowered = trimmed.toLowerCase();
+
+  for (const phrase of CUPID_COPY_BANNED_PHRASES) {
+    if (
+      new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b`, "i").test(lowered)
+    ) {
+      return { ok: false, reason: "banned_phrase", offender: phrase };
+    }
+  }
+
+  for (const pattern of CUPID_COPY_GENERIC_PATTERNS) {
+    if (pattern.test(trimmed)) {
+      return { ok: false, reason: "generic_phrase", offender: pattern.source };
+    }
+  }
+
+  return { ok: true };
+}
+
 export type CharacterPromptInput = {
   member: Member;
   partner: Member;
@@ -52,6 +153,7 @@ export type CharacterPromptInput = {
   focusRequest?: MemberRequest;
   frictionRuleHits?: readonly string[];
   memorySearchAvailable?: boolean;
+  repetitionRetry?: { repeatedLine: string };
 };
 
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
@@ -87,6 +189,16 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   });
   const latestIncomingLine = formatLatestIncomingLine(visibleTranscript, member, partner);
   const latestSelfLine = formatLatestSelfLine(visibleTranscript, member);
+  const recentSpeakerLines = collectRecentSpeakerLines(
+    visibleTranscript,
+    member.id,
+    RECENT_LINE_GUARD_COUNT,
+  );
+  const recentPartnerLines = collectRecentSpeakerLines(
+    visibleTranscript,
+    partner.id,
+    RECENT_LINE_GUARD_COUNT,
+  );
   const currentSceneLines = formatCurrentSceneLines({
     scenario,
     partner,
@@ -168,6 +280,10 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Back and forth so far: supplied below as chat messages.",
     `Latest incoming line to answer: ${latestIncomingLine}`,
     `Your last line, do not repeat: ${latestSelfLine}`,
+    `Your last ${RECENT_LINE_GUARD_COUNT} lines, do not repeat verbatim or lightly reword:`,
+    formatRecentLinesBlock(recentSpeakerLines),
+    `${partner.name}'s last ${RECENT_LINE_GUARD_COUNT} lines, do not echo verbatim:`,
+    formatRecentLinesBlock(recentPartnerLines),
     "",
     "Conversation target:",
     "Talk to the partner, not to the room and not to Cupid.",
@@ -199,6 +315,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "No bracketed asides, editor notes, screenplay labels, or fake channels.",
     "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
     "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
+    ...buildRepetitionRetryNotice(input.repetitionRetry),
   ].join("\n");
   const messages: ModelMessage[] = [
     {
@@ -281,7 +398,17 @@ export function buildJudgePromptPacket({
     "You are the IDC Judge.",
     "Score the exchange with structured output only.",
     "Validate game state consequences. Do not perform characters.",
-    "Player-facing summaries use Cupid corporate voice.",
+    "Player-facing summaries use Cupid corporate voice: dry, procedural, specific, never therapy-speak.",
+    "Accepted playerSummary examples:",
+    '- "Vhool conceded the receipt. Trust is up, recruiting talk is off the table."',
+    '- "Coffee escalated. Jenna held the room. Spark filed."',
+    '- "Pair stalled on the same plan twice. Cupid recommends a sharper next ask."',
+    "Rejected playerSummary patterns:",
+    "- generic compatibility statements like the pair connected on a deeper level",
+    "- therapy-speak like they explored their feelings or navigated tension",
+    "- corporate consulting voice like leveraging synergies or unlocking potential",
+    "- AI slop verbs: delve, navigate, leverage, harness, unleash, elevate",
+    'Accepted notableMoments examples: "Vhool offered the receipt."; "Coffee unspilled at turn 4."; "Jenna refused to recruit."',
   ].join("\n");
   const candidates = revealCandidates ?? [];
   const candidateLines = formatRevealCandidatesForPrompt(candidates);
@@ -297,8 +424,8 @@ export function buildJudgePromptPacket({
         "shouldEndEarly is true only when the exchange requires the date to stop now.",
         "Omit earlyEndReason unless shouldEndEarly is true.",
         'endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
-        "notableMoments must contain 1 to 3 short strings.",
-        "playerSummary must be one short Cupid corporate sentence.",
+        "notableMoments must contain 1 to 3 short strings, each anchored in a concrete scene detail.",
+        "playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
         "memoryCandidates must be an empty array.",
         "usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
         "Do not use em dashes or en dashes in any string.",
@@ -366,7 +493,9 @@ export function buildSummarizerPromptPacket({
     system: [
       "Summarize completed IDC dates into compact memory records.",
       "Memory text is plain prose used for retrieval.",
+      "Anchor each memory in a concrete object, place, or move from the date. Skip generic vibes.",
       "Do not store full transcript chunks.",
+      "Avoid AI slop: tapestry, intricate, myriad, plethora, unleash, leverage, harness, elevate, delve, navigate, journey, chapter.",
     ].join("\n"),
     prompt: [
       "Structured output contract:",
@@ -374,12 +503,13 @@ export function buildSummarizerPromptPacket({
       "Return 1 to 3 memory objects.",
       `Each object must use "scope":"pair", "visibility":"public", "subjectIds":["${session.participants[0]}","${session.participants[1]}"], "pairId":"${session.pairId}", "scenarioId":"${session.scenarioId}", "dateSessionId":"${session.id}", and importance from 1 to 5.`,
       "Use tags with short snake_case strings. Include date_summary as one tag.",
-      "Memory text must be one faithful sentence and must not copy the full transcript.",
+      "Memory text must be one faithful sentence anchored in a named object, room beat, or commitment, and must not copy the full transcript.",
       "Preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them.",
       "Do not preserve obvious contradictions, one-off non sequiturs, hidden secrets stated as fact, future events, or gameplay effects unless deterministic state already confirmed them.",
       "Do not include exact Date Health, Spark, Strain, Health, stat values, or stat deltas in memory text.",
       "Prefer memories that help the pair continue a later conversation over generic compatibility summaries.",
       "Do not use em dashes or en dashes in any string.",
+      "Reject phrases like deeper connection, explored their feelings, navigated tension, or unlocked potential. Use plain operational nouns instead.",
       `Shape: [{"scope":"pair","visibility":"public","subjectIds":["${session.participants[0]}","${session.participants[1]}"],"pairId":"${session.pairId}","scenarioId":"${session.scenarioId}","dateSessionId":"${session.id}","text":"One faithful sentence about the completed date.","tags":["date_summary"],"importance":3}]`,
       "",
       `Date session: ${session.id}. Pair: ${session.pairId}. Scenario: ${session.scenarioId}.`,
@@ -960,4 +1090,120 @@ function truncateForPrompt(text: string): string {
   }
 
   return `${text.slice(0, 217)}...`;
+}
+
+function collectRecentSpeakerLines(
+  transcript: DateMessage[],
+  speakerId: string,
+  count: number,
+): string[] {
+  const lines: string[] = [];
+
+  for (let index = transcript.length - 1; index >= 0 && lines.length < count; index -= 1) {
+    const message = transcript[index];
+
+    if (message?.kind === "character" && message.speakerId === speakerId) {
+      lines.unshift(message.text);
+    }
+  }
+
+  return lines;
+}
+
+function formatRecentLinesBlock(lines: readonly string[]): string {
+  if (lines.length === 0) {
+    return "  None yet.";
+  }
+
+  return lines.map((line, index) => `  ${index + 1}. ${line}`).join("\n");
+}
+
+function buildRepetitionRetryNotice(retry: { repeatedLine: string } | undefined): string[] {
+  if (retry === undefined) {
+    return [];
+  }
+
+  return [
+    "",
+    "Retry guard:",
+    `Your previous attempt was rejected because it repeated this prior line: "${retry.repeatedLine}".`,
+    "Do not repeat that line or a lightly reworded version. Make a different conversational move.",
+  ];
+}
+
+const REPETITION_TOKEN_PATTERN = /[a-z0-9]+/g;
+
+export function hasNearDuplicateRecentLine(input: {
+  text: string;
+  recentLines: readonly string[];
+  jaccardThreshold?: number;
+}): { repeatedLine: string } | null {
+  const threshold = input.jaccardThreshold ?? 0.6;
+  const candidateTokens = tokenizeForRepetition(input.text);
+
+  if (candidateTokens.size < 4) {
+    for (const recent of input.recentLines) {
+      if (normalizeForRepetitionCompare(recent) === normalizeForRepetitionCompare(input.text)) {
+        return { repeatedLine: recent };
+      }
+    }
+
+    return null;
+  }
+
+  for (const recent of input.recentLines) {
+    const recentTokens = tokenizeForRepetition(recent);
+
+    if (recentTokens.size < 4) {
+      continue;
+    }
+
+    const similarity = jaccardSimilarity(candidateTokens, recentTokens);
+
+    if (similarity >= threshold) {
+      return { repeatedLine: recent };
+    }
+  }
+
+  return null;
+}
+
+function tokenizeForRepetition(text: string): Set<string> {
+  const tokens = new Set<string>();
+  const matches = text.toLowerCase().match(REPETITION_TOKEN_PATTERN);
+
+  if (matches === null) {
+    return tokens;
+  }
+
+  for (const token of matches) {
+    if (token.length >= 3) {
+      tokens.add(token);
+    }
+  }
+
+  return tokens;
+}
+
+function normalizeForRepetitionCompare(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function jaccardSimilarity(first: ReadonlySet<string>, second: ReadonlySet<string>): number {
+  if (first.size === 0 && second.size === 0) {
+    return 0;
+  }
+
+  let intersection = 0;
+  const smaller = first.size <= second.size ? first : second;
+  const larger = smaller === first ? second : first;
+
+  for (const value of smaller) {
+    if (larger.has(value)) {
+      intersection += 1;
+    }
+  }
+
+  const union = first.size + second.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }

@@ -96,7 +96,7 @@ export type DateEngineResult = {
   session: DateSession;
 };
 
-const CHARACTER_TURN_LIMIT = 30;
+const CHARACTER_TURN_LIMIT = 24;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
 export const JUDGE_TURN_INTERVAL = 6;
 export const MAX_NUDGES_PER_DATE = 3;
@@ -264,13 +264,6 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   });
 
   return { save: nextSave, session };
-}
-
-export function isInterventionVisibleTo(
-  intervention: CupidIntervention,
-  memberId: string,
-): boolean {
-  return intervention.targetMemberId === memberId;
 }
 
 export function canAddCupidIntervention(session: DateSession): boolean {
@@ -706,12 +699,18 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     focusRequest,
     matchFit,
   });
+  const pendingEventKinds = collectPendingEventKinds({
+    scenario,
+    session,
+    pendingMessages: pendingRevealMessages,
+  });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
     matchFit,
     exchangeMessages: pendingRevealMessages,
     triggeredEventIds: session.eventsTriggered,
     focusRequest,
+    pendingEventKinds,
   });
   const deterministicAcceptedIds = selectDeterministicRevealIds({
     candidates: eligibleCandidates,
@@ -1912,6 +1911,44 @@ export function messagesSinceLastJudge(
   return transcript.filter((message) => message.sequenceIndex > judgedSequenceCutoff);
 }
 
+/**
+ * Returns the kinds of scenario events triggered in the supplied pending
+ * exchange messages. The pending messages must be drawn from
+ * `messagesSinceLastJudge`. We match by counting scenario messages and pulling
+ * the same count from the end of `session.eventsTriggered`, which preserves
+ * trigger order.
+ */
+export function collectPendingEventKinds({
+  scenario,
+  session,
+  pendingMessages,
+}: {
+  scenario: DateScenario;
+  session: DateSession;
+  pendingMessages: readonly DateMessage[];
+}): ScenarioEventKind[] {
+  const pendingScenarioCount = pendingMessages.filter(
+    (message) => message.kind === "scenario",
+  ).length;
+
+  if (pendingScenarioCount === 0) {
+    return [];
+  }
+
+  const pendingEventIds = session.eventsTriggered.slice(-pendingScenarioCount);
+  const kinds: ScenarioEventKind[] = [];
+
+  for (const eventId of pendingEventIds) {
+    const event = scenario.director.events.find((candidate) => candidate.id === eventId);
+
+    if (event !== undefined) {
+      kinds.push(event.kind);
+    }
+  }
+
+  return kinds;
+}
+
 export function exchangeIndexForTurn(turnIndex: number): number {
   return Math.max(0, Math.ceil(turnIndex / JUDGE_TURN_INTERVAL) - 1);
 }
@@ -1934,7 +1971,8 @@ function buildShiftSummary(
   earlyEndedDates: number,
   memberMoodDelta: number,
 ): string {
-  return `${completedDates} dates completed. ${earlyEndedDates} ended early. Member Mood delta ${memberMoodDelta}. Filing.`;
+  const completedLabel = completedDates === 1 ? "date" : "dates";
+  return `${completedDates} ${completedLabel} completed. ${earlyEndedDates} ended early. Member Mood delta ${memberMoodDelta}. Filing.`;
 }
 
 const OUTCOME_RANK: Record<DateFinalReport["outcome"], number> = {

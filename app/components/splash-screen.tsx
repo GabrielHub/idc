@@ -28,7 +28,7 @@ import { CupidMark, EASE_OUT_QUART, LiveDot, Portrait, Tooltip, pad2 } from "./d
 const MARQUEE_LINES = [
   "// reality bridge stable",
   "// embedding model warm",
-  "// scenarios shuffled",
+  "// date plans shuffled",
   "// timesheets pending review",
   "// hopefuls awaiting brief",
   "// prophecy ledger sealed",
@@ -1269,7 +1269,7 @@ function EmptyTerminalGrid() {
         <FeaturedStat label="dates this shift" value="0 / 3" sub="awaiting issue" />
       </dl>
       <p className="border-t border-aura-hairline pt-3 text-label text-aura-muted">
-        Punch in to seed the roster, draw scenarios, and have HR run a prophecy check on your
+        Punch in to seed the roster, draw date plans, and have HR run a prophecy check on your
         behalf.
       </p>
     </div>

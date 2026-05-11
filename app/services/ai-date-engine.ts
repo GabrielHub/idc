@@ -36,6 +36,7 @@ import {
   applyJudgeToMembers,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
+  collectPendingEventKinds,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
@@ -56,7 +57,10 @@ import {
   buildCharacterPromptPacket,
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
+  checkCupidCorporateCopy,
   cleanMemberFacingText,
+  hasNearDuplicateRecentLine,
+  RECENT_LINE_GUARD_COUNT,
   type CharacterPromptPacket,
   type JudgePromptPacket,
   type SummarizerPromptPacket,
@@ -363,12 +367,18 @@ async function advanceDateExchangeWithLocalAiInternal(
     focusRequest,
     matchFit,
   });
+  const pendingEventKinds = collectPendingEventKinds({
+    scenario,
+    session,
+    pendingMessages: pendingRevealMessages,
+  });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
     matchFit,
     exchangeMessages: pendingRevealMessages,
     triggeredEventIds: session.eventsTriggered,
     focusRequest,
+    pendingEventKinds,
   });
   const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
@@ -582,18 +592,6 @@ async function createLocalAiCharacterMessage({
   warningMessages: string[];
 }> {
   try {
-    const packet = await buildCharacterPacketForTurn({
-      repository,
-      runtime,
-      config,
-      session,
-      speaker,
-      partner,
-      scenario,
-      pairState,
-      focusRequest,
-      frictionRuleHits,
-    });
     const tools = createCharacterToolHandlers({
       repository,
       runtime,
@@ -603,22 +601,74 @@ async function createLocalAiCharacterMessage({
     });
     const sequenceIndex = session.transcript.length;
     const turnIndex = session.currentTurn + 1;
+    const recentSpeakerLines = collectRecentCharacterLinesForSpeaker(
+      session.transcript,
+      speaker.id,
+      RECENT_LINE_GUARD_COUNT,
+    );
+    const warningMessages: string[] = [];
 
-    const generation =
-      emit === undefined
-        ? await runtime.generateCharacterTurn({ packet, config, tools })
-        : await streamCharacterMessage({
-            runtime,
-            packet,
-            config,
-            tools,
-            speaker,
-            sequenceIndex,
-            turnIndex,
-            emit,
-            abortSignal,
-          });
-    const text = sanitizeCharacterText(generation.text, speaker.name);
+    async function runAttempt(
+      repetitionRetry: { repeatedLine: string } | undefined,
+    ): Promise<{ text: string; generation: GeneratedTextResult }> {
+      const packet = await buildCharacterPacketForTurn({
+        repository,
+        runtime,
+        config,
+        session,
+        speaker,
+        partner,
+        scenario,
+        pairState,
+        focusRequest,
+        frictionRuleHits,
+        repetitionRetry,
+      });
+      const generation =
+        emit === undefined
+          ? await runtime.generateCharacterTurn({ packet, config, tools })
+          : await streamCharacterMessage({
+              runtime,
+              packet,
+              config,
+              tools,
+              speaker,
+              sequenceIndex,
+              turnIndex,
+              emit,
+              abortSignal,
+            });
+
+      return { text: sanitizeCharacterText(generation.text, speaker.name), generation };
+    }
+
+    let attempt = await runAttempt(undefined);
+    const initialRepeat = hasNearDuplicateRecentLine({
+      text: attempt.text,
+      recentLines: recentSpeakerLines,
+    });
+
+    if (initialRepeat !== null) {
+      warningMessages.push(
+        `Cupid asked ${speaker.name} to rewrite a near duplicate line before filing the turn.`,
+      );
+      const retry = await runAttempt(initialRepeat);
+      const stillRepeats = hasNearDuplicateRecentLine({
+        text: retry.text,
+        recentLines: recentSpeakerLines,
+      });
+
+      if (stillRepeats === null) {
+        attempt = retry;
+      } else {
+        warningMessages.push(
+          `${speaker.name} stayed on the same line after the rewrite. Cupid filed the turn anyway.`,
+        );
+      }
+    }
+
+    const text = attempt.text;
+    const generation = attempt.generation;
     const message = dateMessageSchema.parse({
       id: `${session.id}-msg-${sequenceIndex}`,
       dateSessionId: session.id,
@@ -649,7 +699,7 @@ async function createLocalAiCharacterMessage({
       inputTokens: generation.usage?.inputTokens ?? 0,
       outputTokens: generation.usage?.outputTokens ?? 0,
       totalTokens: generation.usage?.totalTokens ?? 0,
-      warningMessages: generation.warningMessages ?? [],
+      warningMessages: [...warningMessages, ...(generation.warningMessages ?? [])],
     };
   } catch (error) {
     if (error instanceof DateStreamAbortedError) {
@@ -658,6 +708,24 @@ async function createLocalAiCharacterMessage({
 
     throw new Error(`AI performer failed for ${speaker.name}: ${errorToMessage(error)}`);
   }
+}
+
+function collectRecentCharacterLinesForSpeaker(
+  transcript: readonly DateMessage[],
+  speakerId: string,
+  count: number,
+): string[] {
+  const lines: string[] = [];
+
+  for (let index = transcript.length - 1; index >= 0 && lines.length < count; index -= 1) {
+    const message = transcript[index];
+
+    if (message?.kind === "character" && message.speakerId === speakerId) {
+      lines.unshift(message.text);
+    }
+  }
+
+  return lines;
 }
 
 async function buildCharacterPacketForTurn({
@@ -671,6 +739,7 @@ async function buildCharacterPacketForTurn({
   pairState,
   focusRequest,
   frictionRuleHits,
+  repetitionRetry,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -682,6 +751,7 @@ async function buildCharacterPacketForTurn({
   pairState: PairState;
   focusRequest: MemberRequest | undefined;
   frictionRuleHits: readonly string[];
+  repetitionRetry?: { repeatedLine: string };
 }): Promise<CharacterPromptPacket> {
   const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
   const queryEmbedding = await createRuntimeQueryEmbedding({
@@ -712,6 +782,7 @@ async function buildCharacterPacketForTurn({
     memoryPack,
     focusRequest,
     frictionRuleHits,
+    repetitionRetry,
   });
 }
 
@@ -861,7 +932,7 @@ async function createLocalAiJudgeSnapshot({
       config,
     });
 
-    return sanitizeJudgeSnapshot(judgeSnapshot, session);
+    return sanitizeJudgeSnapshot(judgeSnapshot, session, { members, scenario });
   } catch (error) {
     throw new Error(`AI judge failed: ${errorToMessage(error)}`);
   }
@@ -1045,8 +1116,9 @@ async function createLocalAiMemoryRecords({
       packet,
       config,
     });
+    const scenario = requireScenario(session.scenarioId);
     const normalizedCandidates = candidates
-      .map((candidate) => normalizeMemoryCandidate(candidate, session))
+      .map((candidate) => normalizeMemoryCandidate(candidate, session, { scenario, members }))
       .slice(0, 6);
 
     if (normalizedCandidates.length === 0) {
@@ -1078,6 +1150,7 @@ async function createLocalAiMemoryRecords({
 function normalizeMemoryCandidate(
   candidate: MemoryCandidate,
   session: DateSession,
+  context: { scenario: DateScenario; members: readonly Member[] },
 ): MemoryCandidate {
   const participantIds = new Set(session.participants);
   const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
@@ -1088,6 +1161,17 @@ function normalizeMemoryCandidate(
           ...session.participants,
         ])
       : undefined;
+  const cleanedText = normalizeMemoryText(candidate.text);
+  const memoryCheck = checkCupidCorporateCopy(cleanedText, { maxLength: 320 });
+  const memoryText = memoryCheck.ok
+    ? cleanedText
+    : buildDeterministicMemoryText({
+        scenario: context.scenario,
+        members: context.members,
+      });
+  const tags = Array.from(
+    new Set([...candidate.tags, "ai_summary", ...(memoryCheck.ok ? [] : ["fallback_summary"])]),
+  ).slice(0, 8);
 
   return memoryCandidateSchema.parse({
     ...candidate,
@@ -1096,10 +1180,26 @@ function normalizeMemoryCandidate(
     pairId: session.pairId,
     scenarioId: session.scenarioId,
     dateSessionId: session.id,
-    text: normalizeMemoryText(candidate.text),
-    tags: Array.from(new Set([...candidate.tags, "ai_summary"])).slice(0, 8),
+    text: memoryText,
+    tags,
     importance: Math.min(5, Math.max(1, candidate.importance)),
   });
+}
+
+export function buildDeterministicMemoryText({
+  scenario,
+  members,
+}: {
+  scenario: DateScenario;
+  members: readonly Member[];
+}): string {
+  const [first, second] = members;
+
+  if (first === undefined || second === undefined) {
+    return `Cupid filed a quiet note from ${scenario.title}.`;
+  }
+
+  return `${first.firstName} and ${second.firstName} sat through ${scenario.title}. Cupid filed the moves without further notes.`;
 }
 
 function normalizeVisibleMemberIds(
@@ -1117,13 +1217,46 @@ function normalizeVisibleMemberIds(
   return filteredIds.length === 0 ? fallbackSubjectIds : filteredIds;
 }
 
-function sanitizeJudgeSnapshot(judgeSnapshot: JudgeSnapshot, session: DateSession): JudgeSnapshot {
+function sanitizeJudgeSnapshot(
+  judgeSnapshot: JudgeSnapshot,
+  session: DateSession,
+  context: { members: readonly Member[]; scenario: DateScenario },
+): JudgeSnapshot {
   const participantIds = new Set(session.participants);
   const memberMoodDeltas = Object.fromEntries(
     Object.entries(judgeSnapshot.memberMoodDeltas).filter(([memberId]) =>
       participantIds.has(memberId),
     ),
   );
+  const cleanedSummary = normalizeForbiddenPunctuation(judgeSnapshot.playerSummary);
+  const summaryCheck = checkCupidCorporateCopy(cleanedSummary, { maxLength: 320 });
+  const playerSummary = summaryCheck.ok
+    ? cleanedSummary
+    : buildDeterministicJudgeSummary({
+        scenario: context.scenario,
+        members: context.members,
+        judgeSnapshot,
+      });
+  const cleanedMoments = judgeSnapshot.notableMoments
+    .map((moment) => normalizeForbiddenPunctuation(moment))
+    .filter((moment) => moment.length > 0);
+  const sanitizedMoments = cleanedMoments.map((moment) =>
+    checkCupidCorporateCopy(moment, { maxLength: 220 }).ok
+      ? moment
+      : buildDeterministicNotableMoment({
+          scenario: context.scenario,
+          judgeSnapshot,
+        }),
+  );
+  const notableMoments =
+    sanitizedMoments.length === 0
+      ? [
+          buildDeterministicNotableMoment({
+            scenario: context.scenario,
+            judgeSnapshot,
+          }),
+        ]
+      : sanitizedMoments;
 
   return {
     ...judgeSnapshot,
@@ -1133,11 +1266,60 @@ function sanitizeJudgeSnapshot(judgeSnapshot: JudgeSnapshot, session: DateSessio
       judgeSnapshot.earlyEndReason === undefined
         ? undefined
         : normalizeForbiddenPunctuation(judgeSnapshot.earlyEndReason),
-    notableMoments: judgeSnapshot.notableMoments.map((moment) =>
-      normalizeForbiddenPunctuation(moment),
-    ),
-    playerSummary: normalizeForbiddenPunctuation(judgeSnapshot.playerSummary),
+    notableMoments,
+    playerSummary,
   };
+}
+
+export function buildDeterministicJudgeSummary({
+  scenario,
+  members,
+  judgeSnapshot,
+}: {
+  scenario: DateScenario;
+  members: readonly Member[];
+  judgeSnapshot: Pick<JudgeSnapshot, "dateHealthDelta" | "exchangeIndex" | "shouldEndEarly">;
+}): string {
+  const [first, second] = members;
+  const pair =
+    first === undefined || second === undefined
+      ? "The pair"
+      : `${first.firstName} and ${second.firstName}`;
+  const exchangeLabel = `exchange ${judgeSnapshot.exchangeIndex + 1}`;
+
+  if (judgeSnapshot.shouldEndEarly === true) {
+    return `Cupid stopped ${exchangeLabel}. ${pair} cut ${scenario.title} short.`;
+  }
+
+  const direction = describeDateHealthDirection(judgeSnapshot.dateHealthDelta);
+  return `Cupid filed ${exchangeLabel}. ${pair} ${direction} at ${scenario.title}.`;
+}
+
+function describeDateHealthDirection(delta: number): string {
+  if (delta >= 4) {
+    return "warmed the room";
+  }
+  if (delta >= 1) {
+    return "held the room";
+  }
+  if (delta <= -4) {
+    return "stalled the room";
+  }
+  if (delta <= -1) {
+    return "drifted in the room";
+  }
+  return "kept the room flat";
+}
+
+export function buildDeterministicNotableMoment({
+  scenario,
+  judgeSnapshot,
+}: {
+  scenario: DateScenario;
+  judgeSnapshot: Pick<JudgeSnapshot, "dateHealthDelta" | "exchangeIndex">;
+}): string {
+  const direction = describeDateHealthDirection(judgeSnapshot.dateHealthDelta);
+  return `${scenario.title}: pair ${direction}.`;
 }
 
 function buildMemoryQuery(

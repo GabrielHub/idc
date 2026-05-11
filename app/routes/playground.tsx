@@ -1670,7 +1670,7 @@ function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt bench"
-        description="Run a date prompt or chat one-on-one with a single member. Prompt previews refresh as you type so the route is easier to audit."
+        description="Run a date prompt or chat one-on-one with a single member. Prompt previews refresh as you type so the route is easier to review."
       />
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
@@ -1739,7 +1739,7 @@ function AiPromptLabTest() {
             />
           </div>
 
-          <AiOutputPanel result={result} />
+          <AiOutputPanel result={result} mode={mode} />
         </section>
       </div>
     </motion.section>
@@ -1811,7 +1811,7 @@ function RunSheet({
       </header>
 
       <div className="mt-5 space-y-5">
-        <RunSheetSection label="test mode">
+        <RunSheetSection label="bench mode">
           <div className="flex flex-wrap gap-2">
             <ModeButton label="Date sim" value="dateConversation" mode={mode} onSelect={onMode} />
             <ModeButton label="Member chat" value="memberChat" mode={mode} onSelect={onMode} />
@@ -2344,7 +2344,7 @@ function TestHeader({ title, description }: { title: string; description: string
   return (
     <header className="space-y-2">
       <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint">
-        // active test
+        // active bench
       </p>
       <h2 className="font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
         {title}
@@ -2371,7 +2371,7 @@ function AiRunSummary({
     <div className="aura-glass-strong rounded-card p-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <MutedLabel>test target</MutedLabel>
+          <MutedLabel>bench target</MutedLabel>
           <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
             {memberName} to {partnerName}
           </h3>
@@ -2407,12 +2407,25 @@ function MetricPill({ label, value }: { label: string; value: string }) {
   );
 }
 
-function AiOutputPanel({ result }: { result: AiPlaygroundResult | null }) {
+function AiOutputPanel({
+  result,
+  mode,
+}: {
+  result: AiPlaygroundResult | null;
+  mode: AiPlaygroundMode;
+}) {
+  const outputMode = result?.mode ?? mode;
+  const isMemberChat = outputMode === "memberChat";
+  const emptyLabel = isMemberChat ? "// no reply on file" : "// no transcript on file";
+  const emptyText = isMemberChat
+    ? "Run the bench to file the first member reply. Prompts update as you change settings."
+    : "Run the bench to file the first transcript. Prompts update as you change settings.";
+
   return (
     <div className="space-y-4">
       <div className="aura-glass rounded-card p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <MutedLabel>generated transcript</MutedLabel>
+          <MutedLabel>{isMemberChat ? "generated reply" : "generated transcript"}</MutedLabel>
           {result === null || result.turns.length === 0 ? (
             <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
               idle
@@ -2426,11 +2439,9 @@ function AiOutputPanel({ result }: { result: AiPlaygroundResult | null }) {
         {result === null || result.turns.length === 0 ? (
           <div className="mt-3 flex min-h-32 flex-col items-center justify-center gap-2 rounded-tile border border-dashed border-aura-hairline-strong bg-white/45 px-4 py-8 text-center">
             <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
-              // no transcript on file
+              {emptyLabel}
             </p>
-            <p className="max-w-md text-label leading-relaxed text-aura-muted">
-              Run the bench to file the first transcript. Prompts update as you change settings.
-            </p>
+            <p className="max-w-md text-label leading-relaxed text-aura-muted">{emptyText}</p>
           </div>
         ) : (
           <ol className="mt-3 space-y-2">

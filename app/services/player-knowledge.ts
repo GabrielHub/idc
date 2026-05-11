@@ -11,9 +11,10 @@ import {
   type PlayerKnowledgeReadKind,
   type PlayerKnowledgeRecord,
   type PlayerKnowledgeSource,
+  type ScenarioEventKind,
   type ScenarioTag,
 } from "../domain/game";
-import { evaluateMatchFit, type MatchFitResult } from "./match-fit";
+import { type MatchFitResult } from "./match-fit";
 import { pushIntoBucket } from "./utils";
 
 export type RevealCandidate = {
@@ -40,6 +41,7 @@ export type FilterExchangeEligibleInput = {
   exchangeMessages: readonly DateMessage[];
   triggeredEventIds: readonly string[];
   focusRequest?: MemberRequest;
+  pendingEventKinds?: readonly ScenarioEventKind[];
 };
 
 export type SelectDeterministicRevealIdsInput = {
@@ -609,6 +611,11 @@ export function filterExchangeEligibleRevealCandidates(
   const hasPendingScenarioEvent = input.exchangeMessages.some(
     (message) => message.kind === "scenario",
   );
+  const hasUsableTranscript = input.exchangeMessages.some(
+    (message) => message.kind === "character" && message.text.trim().length > 0,
+  );
+  const hasRevealEvent =
+    input.pendingEventKinds?.includes("reveal") === true && hasUsableTranscript;
 
   for (const candidate of input.candidates) {
     if (candidate.source === "hard_stop") {
@@ -629,7 +636,12 @@ export function filterExchangeEligibleRevealCandidates(
     if (candidate.readKind === "scenario_pressure") {
       const referencesEvidence = scenarioPressureMatchesExchange(candidate, exchangeText);
 
-      if (referencesEvidence || hasPendingScenarioEvent || input.matchFit.hardStop !== null) {
+      if (
+        referencesEvidence ||
+        hasPendingScenarioEvent ||
+        hasRevealEvent ||
+        input.matchFit.hardStop !== null
+      ) {
         eligible.push(candidate);
       }
       continue;
@@ -638,7 +650,7 @@ export function filterExchangeEligibleRevealCandidates(
     if (candidate.readKind === "pair_dynamic") {
       const meaningfulDrift = Math.abs(input.matchFit.exchangeDateHealthDrift) >= 1;
       const referencesEvidence = pairDynamicMatchesExchange(candidate, exchangeText);
-      if (meaningfulDrift || referencesEvidence) {
+      if (meaningfulDrift || referencesEvidence || hasRevealEvent) {
         eligible.push(candidate);
       }
       continue;
@@ -646,14 +658,45 @@ export function filterExchangeEligibleRevealCandidates(
 
     if (candidate.readKind === "comfort" || candidate.readKind === "boundary") {
       const referencesEvidence = memberReadMatchesExchange(candidate, exchangeText);
-      if (referencesEvidence || input.matchFit.hardStop !== null) {
+      if (referencesEvidence || hasRevealEvent || input.matchFit.hardStop !== null) {
         eligible.push(candidate);
       }
       continue;
     }
   }
 
+  // When a reveal-kind scenario event lands in the exchange and the transcript
+  // gives us usable evidence, surface at least one safe, nonnumeric candidate
+  // so the date does not produce zero filed reads from an explicit reveal beat.
+  if (hasRevealEvent && eligible.length === 0) {
+    const safeFallback = pickRevealEventFallback(input.candidates);
+    if (safeFallback !== null) {
+      eligible.push(safeFallback);
+    }
+  }
+
   return prioritizeAndCap(eligible);
+}
+
+function pickRevealEventFallback(candidates: readonly RevealCandidate[]): RevealCandidate | null {
+  const fallbackOrder: PlayerKnowledgeReadKind[] = [
+    "scenario_pressure",
+    "pair_dynamic",
+    "comfort",
+    "boundary",
+  ];
+
+  for (const readKind of fallbackOrder) {
+    const match = candidates.find(
+      (candidate) => candidate.readKind === readKind && candidate.source !== "hard_stop",
+    );
+
+    if (match !== undefined) {
+      return match;
+    }
+  }
+
+  return null;
 }
 
 function prioritizeAndCap(candidates: RevealCandidate[]): RevealCandidate[] {
@@ -784,20 +827,6 @@ export function applyJudgeReveals({
     acceptedIds: accepted,
     records,
   };
-}
-
-export function evaluateMatchFitForReveal(input: {
-  members: readonly Member[];
-  scenario: DateScenario;
-  pairState: PairState;
-  focusRequest?: MemberRequest;
-}): MatchFitResult {
-  return evaluateMatchFit({
-    members: input.members,
-    scenario: input.scenario,
-    pairState: input.pairState,
-    activeRequests: input.focusRequest === undefined ? [] : [input.focusRequest],
-  });
 }
 
 export function buildJudgeRevealCandidatePacket(input: {

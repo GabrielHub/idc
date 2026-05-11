@@ -9,7 +9,9 @@ import {
   listLibraryCards,
   markCardPlayed,
   pickLibraryCard,
+  pruneExpiredRetirements,
   SCENARIO_HAND_SIZE,
+  SCENARIO_PLAYED_COOLDOWN_SHIFTS,
   STARTER_DECK_CARD_IDS,
   softComposeWarnings,
   swapCard,
@@ -169,6 +171,37 @@ describe("deck service", () => {
     const updatedLibrary = listLibraryCards(swapped, starterScenarios);
     const retired = updatedLibrary.find((entry) => entry.scenarioId === droppedId);
     expect(retired?.availableOnShift).toBe(2 + SCENARIO_DECK_RETIREMENT_SHIFTS + 1);
+  });
+
+  it("just-played card cools off until next shift", () => {
+    const save = createSeedGameSave();
+    const playedId = save.scenarioDeck.cardIds[0];
+    if (playedId === undefined) {
+      throw new Error("Starter deck unexpectedly empty.");
+    }
+
+    const afterPlay = markCardPlayed(save, playedId, 1);
+    const retired = afterPlay.scenarioDeck.retiredCards.find((entry) => entry.cardId === playedId);
+    expect(retired?.availableOnShift).toBe(1 + SCENARIO_PLAYED_COOLDOWN_SHIFTS);
+
+    const library = listLibraryCards(afterPlay, starterScenarios);
+    const playedEntry = library.find((entry) => entry.scenarioId === playedId);
+    expect(playedEntry?.availableOnShift).toBe(1 + SCENARIO_PLAYED_COOLDOWN_SHIFTS);
+
+    expect(() => pickLibraryCard(afterPlay, playedId)).toThrow(/retired until shift/);
+  });
+
+  it("pruneExpiredRetirements clears the played card on the next shift", () => {
+    const save = createSeedGameSave();
+    const playedId = save.scenarioDeck.cardIds[0];
+    if (playedId === undefined) {
+      throw new Error("Starter deck unexpectedly empty.");
+    }
+
+    const afterPlay = markCardPlayed(save, playedId, 1);
+    const pruned = pruneExpiredRetirements(afterPlay.scenarioDeck, 2);
+
+    expect(pruned.retiredCards.find((entry) => entry.cardId === playedId)).toBeUndefined();
   });
 
   it("softComposeWarnings returns advisory strings only", () => {

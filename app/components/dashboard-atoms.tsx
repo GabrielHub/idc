@@ -59,7 +59,7 @@ type PortraitVariant =
 const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
   thumb:
     "size-12 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
-  row: "size-16 rounded-2xl border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
+  row: "size-16 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
   card: "size-24 rounded-full border-2 border-white/85 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100 shadow-quiet",
   stage:
     "size-44 rounded-full border-2 border-white/85 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100 shadow-card",
@@ -173,7 +173,7 @@ export function Portrait({
         );
       })}
       <span
-        aria-hidden={activeReady}
+        aria-hidden="true"
         className={`absolute inset-0 grid place-items-center ${PORTRAIT_FADE_CLASS} ${
           PORTRAIT_INITIALS[variant]
         } ${activeReady ? "opacity-0" : "opacity-100"}`}
@@ -237,52 +237,6 @@ function initialsFor(name: string) {
     .toUpperCase();
 }
 
-/* ------------------------------------------------------------------ */
-/* Meter, used inline; kept hairline thin                             */
-/* ------------------------------------------------------------------ */
-
-export function Meter({
-  label,
-  value,
-  tone = "rose",
-  size = "sm",
-}: {
-  label: string;
-  value: number;
-  tone?: "rose" | "violet" | "emerald" | "amber";
-  size?: "sm" | "md";
-}) {
-  const fillTone =
-    tone === "violet"
-      ? "from-aura-violet to-aura-fuchsia"
-      : tone === "emerald"
-        ? "from-aura-emerald to-aura-violet"
-        : tone === "amber"
-          ? "from-aura-amber to-aura-rose"
-          : "from-aura-rose to-aura-fuchsia";
-  const trackHeight = size === "md" ? "h-1.5" : "h-1";
-  const widthClass = scoreWidthClass(value);
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-baseline justify-between gap-3">
-        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
-          {label}
-        </span>
-        <span className="font-mono text-micro font-semibold tabular-nums text-aura-ink">
-          {value}
-        </span>
-      </div>
-      <div className={`overflow-hidden rounded-pill bg-aura-hairline ${trackHeight}`}>
-        <div
-          aria-hidden
-          className={`aura-bar-fill h-full rounded-pill bg-gradient-to-r ${fillTone} ${widthClass}`}
-        />
-      </div>
-    </div>
-  );
-}
-
 const SCORE_WIDTH_CLASSES = [
   "w-0",
   "w-[5%]",
@@ -311,35 +265,6 @@ export function scoreWidthClass(score: number): (typeof SCORE_WIDTH_CLASSES)[num
   const boundedScore = Math.min(100, Math.max(0, score));
   const index = Math.round(boundedScore / 5);
   return SCORE_WIDTH_CLASSES[index] ?? "w-full";
-}
-
-/* ------------------------------------------------------------------ */
-/* Mono status pill, used in the top rail and inline chrome           */
-/* ------------------------------------------------------------------ */
-
-const STATUS_TONES = {
-  rose: "text-aura-rose",
-  violet: "text-violet-600",
-  emerald: "text-emerald-600",
-  amber: "text-amber-600",
-  neutral: "text-aura-muted",
-} as const;
-
-export function MonoStat({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string;
-  value: string;
-  tone?: keyof typeof STATUS_TONES;
-}) {
-  return (
-    <span className="inline-flex items-baseline gap-2 font-mono text-micro uppercase tracking-[0.24em]">
-      <span className="text-aura-faint">{label}</span>
-      <span className={`font-semibold ${STATUS_TONES[tone]}`}>{value}</span>
-    </span>
-  );
 }
 
 /* ------------------------------------------------------------------ */

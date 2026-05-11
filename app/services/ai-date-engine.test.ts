@@ -1256,6 +1256,240 @@ describe("AI date engine orchestration", () => {
     }
   });
 
+  it("retries the performer once when the line nearly duplicates a recent speaker line", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-repetition-guard-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 6,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const repeatedLine =
+      "Jenna keeps circling the same pizza place across the street with the new neon sign.";
+    const correctedLine =
+      "Jenna pivots to the lemon tart at the back booth and asks Vhool to commit.";
+    const transcriptWithPriorJenna = [
+      ...started.session.transcript,
+      dateMessageSchema.parse({
+        id: `${started.session.id}-msg-1`,
+        dateSessionId: started.session.id,
+        kind: "character" as const,
+        speakerId: "jenna-pike",
+        turnIndex: 1,
+        sequenceIndex: 1,
+        text: repeatedLine,
+        createdAt: "2026-05-05T12:01:30.000Z",
+      }),
+      dateMessageSchema.parse({
+        id: `${started.session.id}-msg-2`,
+        dateSessionId: started.session.id,
+        kind: "character" as const,
+        speakerId: "vhool",
+        turnIndex: 2,
+        sequenceIndex: 2,
+        text: "Vhool answers about the awning that the recruiter pinned to the menu.",
+        createdAt: "2026-05-05T12:01:45.000Z",
+      }),
+    ];
+    const sessionWithHistory = {
+      ...started.session,
+      currentTurn: 2,
+      transcript: transcriptWithPriorJenna,
+    };
+    const saveWithHistory = {
+      ...started.save,
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === sessionWithHistory.id ? sessionWithHistory : session,
+      ),
+    };
+    const performerCalls: { promptIncludesRetryGuard: boolean; recentLinesPresent: boolean }[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => {
+        const isJennaPrompt = packet.prompt.includes("as Jenna Pike");
+
+        if (!isJennaPrompt) {
+          return {
+            text: "Vhool answers the lemon tart question without recruiting anyone.",
+            providerMode: "ollama",
+            model: "fake-performer",
+            stepCount: 1,
+            toolCallCount: 0,
+            toolResultCount: 0,
+          };
+        }
+
+        performerCalls.push({
+          promptIncludesRetryGuard: packet.prompt.includes("Retry guard:"),
+          recentLinesPresent: packet.prompt.includes(repeatedLine),
+        });
+        const text =
+          performerCalls.length === 1
+            ? "Jenna circles the same pizza place again across the street with the neon sign."
+            : correctedLine;
+
+        return {
+          text,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {},
+          memberMoodDeltas: {},
+          shouldEndEarly: false,
+          notableMoments: ["The retry kept the date moving."],
+          playerSummary: "Cupid filed a recovered turn.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(saveWithHistory);
+
+    const result = await advanceDateExchangeWithLocalAi(saveWithHistory, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: saveWithHistory.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(performerCalls).toHaveLength(2);
+    expect(performerCalls[0]?.promptIncludesRetryGuard).toBe(false);
+    expect(performerCalls[0]?.recentLinesPresent).toBe(true);
+    expect(performerCalls[1]?.promptIncludesRetryGuard).toBe(true);
+    expect(result.session.transcript.at(-1)?.text).toBe(correctedLine);
+    expect(result.warningMessages.join(" ")).toContain(
+      "Cupid asked Jenna Pike to rewrite a near duplicate line",
+    );
+  });
+
+  it("replaces generic judge summaries and memory text with deterministic fallbacks", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-voice-fallback-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("as Jenna Pike")
+          ? "Jenna asks a grounded coffee question."
+          : "Vhool answers without recruiting anyone.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 4,
+          statDeltas: {
+            trust: 2,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": 1,
+            vhool: 1,
+          },
+          shouldEndEarly: false,
+          notableMoments: ["The pair built a deeper connection over the coffee."],
+          playerSummary:
+            "Cupid helped Jenna and Vhool leverage their synergies to elevate their connection.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => [
+        memoryCandidateSchema.parse({
+          scope: "pair",
+          visibility: "public",
+          subjectIds: ["jenna-pike", "vhool"],
+          pairId: started.session.pairId,
+          scenarioId: started.session.scenarioId,
+          dateSessionId: started.session.id,
+          text: "Jenna and Vhool navigated their feelings and built a deep connection.",
+          tags: ["date_summary"],
+          importance: 3,
+        }),
+      ],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await completeDateSessionWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    const snapshot = result.session.judgeSnapshots[0];
+    expect(snapshot?.playerSummary).not.toContain("leverage");
+    expect(snapshot?.playerSummary).not.toContain("synergies");
+    expect(snapshot?.playerSummary).toContain("Cupid filed exchange 1.");
+    expect(snapshot?.playerSummary).toContain("Temporal Coffee Shop");
+    expect(snapshot?.notableMoments.join(" ")).not.toMatch(/deeper connection/i);
+
+    const memory = result.save.memories.find(
+      (entry) => entry.id === `memory-${started.session.id}-ai-1`,
+    );
+    expect(memory).toBeDefined();
+    expect(memory?.text).not.toMatch(/deep connection/i);
+    expect(memory?.text).not.toMatch(/navigated/i);
+    expect(memory?.tags).toContain("fallback_summary");
+  });
+
   it("validates judge usedEvidenceIds and persists only valid display-safe knowledge", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-reveal-validation-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [

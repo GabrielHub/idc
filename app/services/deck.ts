@@ -7,16 +7,7 @@ import {
   type RetiredScenarioCard,
   type ScenarioDeck,
 } from "../domain/game";
-import { starterScenarios } from "../fixtures";
 import { hashSeedUint32, mulberry32 } from "./utils";
-
-const STARTER_SCENARIOS_BY_ID: ReadonlyMap<string, DateScenario> = new Map(
-  starterScenarios.map((scenario) => [scenario.id, scenario]),
-);
-
-export function findScenarioFixture(scenarioId: string): DateScenario | undefined {
-  return STARTER_SCENARIOS_BY_ID.get(scenarioId);
-}
 
 export const STARTER_DECK_CARD_IDS: readonly string[] = [
   "dmv-number-ticket",
@@ -79,6 +70,13 @@ export function drawHand(deck: ScenarioDeck, shiftNumber: number, random?: () =>
   return drawn;
 }
 
+/**
+ * Number of full shifts a just-played card stays out of the library before it
+ * can be re-added. A card played on shift N becomes available again on shift
+ * N + this constant.
+ */
+export const SCENARIO_PLAYED_COOLDOWN_SHIFTS = 1;
+
 export function markCardPlayed(save: GameSave, cardId: string, currentShift: number): GameSave {
   if (save.scenarioDeck.pendingLibraryPick !== undefined) {
     throw new Error("Cupid already filed a pending library pick. Resolve it before playing again.");
@@ -88,13 +86,22 @@ export function markCardPlayed(save: GameSave, cardId: string, currentShift: num
     throw new Error(`Card ${cardId} is not in the active deck.`);
   }
 
+  const playedCardCooldown = currentShift + SCENARIO_PLAYED_COOLDOWN_SHIFTS;
+  const retiredWithoutPlayed = save.scenarioDeck.retiredCards.filter(
+    (entry) => entry.cardId !== cardId,
+  );
+  const retiredCards: RetiredScenarioCard[] = [
+    ...retiredWithoutPlayed,
+    { cardId, availableOnShift: playedCardCooldown },
+  ];
+
   const updatedDeck = scenarioDeckSchema.parse({
     cardIds: save.scenarioDeck.cardIds.filter((id) => id !== cardId),
     pendingLibraryPick: {
       playedCardId: cardId,
       playedAtShift: currentShift,
     },
-    retiredCards: save.scenarioDeck.retiredCards,
+    retiredCards,
   });
 
   return { ...save, scenarioDeck: updatedDeck };

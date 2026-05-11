@@ -580,7 +580,7 @@ export const dateSessionSchema = z.object({
   scenarioId: scenarioIdSchema,
   focusMemberId: memberIdSchema.optional(),
   focusRequestId: z.string().min(1).optional(),
-  turnLimit: z.number().int().min(2).default(30),
+  turnLimit: z.number().int().min(2).default(24),
   currentTurn: z.number().int().min(0),
   dateHealth: scoreSchema,
   status: dateSessionStatusSchema,
@@ -751,7 +751,7 @@ export const gameConfigSchema = z.preprocess(
     ollamaBaseURL: z.string().min(1).default(DEFAULT_OLLAMA_BASE_URL),
     gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
     aiSetupComplete: z.boolean().default(false),
-    defaultDateMessageLimit: z.number().int().min(2).default(30),
+    defaultDateMessageLimit: z.number().int().min(2).default(24),
     shiftDateSlots: z.number().int().min(1).default(1),
   }),
 );

@@ -8,7 +8,9 @@ import {
   FOCUS_CASE_LIMIT,
   FOCUS_SWAP_RETENTION_PENALTY,
   getFocusedMembers,
+  previewReselectDrops,
   removeFocusCase,
+  reselectFocusCases,
   selectInitialFocusCases,
   syncActiveShiftFocusCases,
   swapFocusCase,
@@ -166,6 +168,111 @@ describe("focus cases service", () => {
     expect(next.focusedMemberIds).toHaveLength(FOCUS_CASE_LIMIT - 1);
     expect(activeShift.featuredMemberIds).toEqual(next.focusedMemberIds);
     expect(activeShift.memberRequestIds).toHaveLength(FOCUS_CASE_LIMIT - 1);
+  });
+
+  it("reselectFocusCases keeps unchanged ids without retention penalty", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const seeded = selectInitialFocusCases(save, ids);
+    const reordered = [...ids].reverse();
+    const next = reselectFocusCases(seeded, reordered);
+    expect(next.focusedMemberIds).toEqual(reordered);
+    for (const id of ids) {
+      const member = next.members.find((candidate) => candidate.id === id);
+      expect(member?.state.retention).toBe(100);
+    }
+  });
+
+  it("reselectFocusCases deducts 25 retention from each dropped active member", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const seeded = selectInitialFocusCases(save, ids);
+    const activeIds = save.members.filter(canBeFocusCase).map((member) => member.id);
+    const incomingA = activeIds[FOCUS_CASE_LIMIT];
+    const incomingB = activeIds[FOCUS_CASE_LIMIT + 1];
+    if (incomingA === undefined || incomingB === undefined) {
+      throw new Error("Expected at least 6 active members in starter roster.");
+    }
+    const droppedIds = ids.slice(0, 2);
+    const nextIds = [...ids.slice(2), incomingA, incomingB];
+    const next = reselectFocusCases(seeded, nextIds);
+
+    expect(next.focusedMemberIds).toEqual(nextIds);
+    for (const droppedId of droppedIds) {
+      const member = next.members.find((candidate) => candidate.id === droppedId);
+      expect(member?.state.retention).toBe(100 - FOCUS_SWAP_RETENTION_PENALTY);
+      expect(member?.state.recentDateResult).toBe(
+        "Case rotated off the focus board. Client confidence fell.",
+      );
+    }
+  });
+
+  it("reselectFocusCases marks a dropped member quit when retention reaches zero", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const droppedId = ids[0];
+    const incoming = save.members.filter(canBeFocusCase)[FOCUS_CASE_LIMIT];
+    if (droppedId === undefined || incoming === undefined) {
+      throw new Error("Expected enough active members.");
+    }
+    const lowered = {
+      ...save,
+      members: save.members.map((member) =>
+        member.id === droppedId
+          ? { ...member, state: { ...member.state, retention: FOCUS_SWAP_RETENTION_PENALTY } }
+          : member,
+      ),
+    };
+    const seeded = selectInitialFocusCases(lowered, ids);
+    const nextIds = [...ids.slice(1), incoming.id];
+    const next = reselectFocusCases(seeded, nextIds);
+    const dropped = next.members.find((member) => member.id === droppedId);
+
+    expect(dropped?.state.retention).toBe(0);
+    expect(dropped?.state.status).toBe("quit");
+    expect(dropped?.state.recentDateResult).toBe("Client file closed. Member quit the app.");
+  });
+
+  it("reselectFocusCases rejects fewer than 4 picked", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const seeded = selectInitialFocusCases(save, ids);
+    expect(() => reselectFocusCases(seeded, ids.slice(0, 3))).toThrow();
+  });
+
+  it("reselectFocusCases rejects an inactive incoming member", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const replacement = save.members.filter(canBeFocusCase)[FOCUS_CASE_LIMIT];
+    if (replacement === undefined) {
+      throw new Error("Expected at least 5 active members.");
+    }
+    const seeded = selectInitialFocusCases(save, ids);
+    const withQuit = {
+      ...seeded,
+      members: seeded.members.map((member) =>
+        member.id === replacement.id
+          ? { ...member, state: { ...member.state, status: "quit" as const } }
+          : member,
+      ),
+    };
+    const nextIds = [...ids.slice(1), replacement.id];
+    expect(() => reselectFocusCases(withQuit, nextIds)).toThrow();
+  });
+
+  it("previewReselectDrops returns only active members being dropped", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const seeded = selectInitialFocusCases(save, ids);
+    const replacement = save.members.filter(canBeFocusCase)[FOCUS_CASE_LIMIT];
+    if (replacement === undefined) {
+      throw new Error("Expected at least 5 active members.");
+    }
+    const droppedId = ids[ids.length - 1];
+    const nextIds = [...ids.slice(0, ids.length - 1), replacement.id];
+    const drops = previewReselectDrops(seeded, nextIds);
+    expect(drops).toHaveLength(1);
+    expect(drops[0]?.id).toBe(droppedId);
   });
 
   it("canBeFocusCase requires active status", () => {

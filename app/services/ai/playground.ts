@@ -24,6 +24,7 @@ import {
   type OllamaModelSummary,
 } from "./model-catalog";
 import {
+  type AiGenerationOptions,
   generateCharacterTurn,
   listOllamaModelInventory,
   type AiRuntimeConfig,
@@ -122,6 +123,18 @@ export type PlaygroundDefaults = {
     dateConversation: PromptPreviewPayload;
     memberChat: PromptPreviewPayload;
   };
+};
+
+export type MemberChatGenerationRuntime = {
+  generateCharacterTurn(input: {
+    packet: CharacterPromptPacket;
+    config?: Partial<AiRuntimeConfig>;
+    options?: AiGenerationOptions;
+  }): Promise<GeneratedTextResult>;
+};
+
+const MODEL_SERVICE_MEMBER_CHAT_RUNTIME: MemberChatGenerationRuntime = {
+  generateCharacterTurn,
 };
 
 export const DEFAULT_DATE_PLAYGROUND_SETTINGS = {
@@ -235,6 +248,7 @@ export async function runPlaygroundDateConversation(
 
 export async function runPlaygroundMemberChat(
   input: MemberChatPlaygroundInput,
+  runtime: MemberChatGenerationRuntime = MODEL_SERVICE_MEMBER_CHAT_RUNTIME,
 ): Promise<PlaygroundResult> {
   const member = requireMember(input.memberId);
   const startedAt = performance.now();
@@ -261,6 +275,7 @@ export async function runPlaygroundMemberChat(
     packet: prompt.packet,
     input,
     member,
+    runtime,
   });
   const elapsedMs = Math.round(performance.now() - startedAt);
   const chatMessages = appendMemberReply(input, generation.text);
@@ -299,18 +314,20 @@ async function generateMemberChatReply({
   packet,
   input,
   member,
+  runtime,
 }: {
   packet: CharacterPromptPacket;
   input: MemberChatPlaygroundInput;
   member: Member;
+  runtime: MemberChatGenerationRuntime;
 }): Promise<{ result: GeneratedTextResult; text: string }> {
-  const result = await generateCharacterTurn({
+  const result = await runtime.generateCharacterTurn({
     packet,
     config: runtimeConfigFromPlaygroundInput(input),
     options: generationOptionsFromInput(input),
   });
 
-  const firstAttempt = inspectMemberChatReply(result.text, member.name);
+  const firstAttempt = inspectMemberChatReply(result.text, member);
 
   if (firstAttempt.outcome === "ok") {
     return { result, text: firstAttempt.text };
@@ -322,11 +339,12 @@ async function generateMemberChatReply({
       packet.prompt,
       "",
       memberChatRetryReasonText(firstAttempt.reason),
-      `Reply again with one complete conversational sentence under ${MEMBER_CHAT_RETRY_CHAR_LIMIT} characters.`,
-      "Do not output a bare role tag, greeting label, speaker name, stage direction, Markdown, or setup text.",
+      "Rewrite the reply as plain chat.",
+      `Use one complete conversational sentence under ${MEMBER_CHAT_RETRY_CHAR_LIMIT} characters.`,
+      "Start with message content. No labels, brackets, Markdown, HTML, bullets, stage directions, setup text, or notes.",
     ].join("\n"),
   };
-  const retryResult = await generateCharacterTurn({
+  const retryResult = await runtime.generateCharacterTurn({
     packet: retryPacket,
     config: runtimeConfigFromPlaygroundInput(input),
     options: generationOptionsFromInput({
@@ -335,7 +353,7 @@ async function generateMemberChatReply({
     }),
   });
 
-  const secondAttempt = inspectMemberChatReply(retryResult.text, member.name);
+  const secondAttempt = inspectMemberChatReply(retryResult.text, member);
 
   if (secondAttempt.outcome === "ok") {
     return { result: retryResult, text: secondAttempt.text };
@@ -346,11 +364,11 @@ async function generateMemberChatReply({
     prompt: [
       packet.prompt,
       "",
-      `Final retry: answer the other person in exactly one short complete sentence under ${MEMBER_CHAT_FINAL_RETRY_CHAR_LIMIT} characters.`,
-      "Start with the answer. Do not use a role tag, greeting label, speaker name, stage direction, Markdown, or setup phrase.",
+      `Final retry. Write exactly one short complete chat sentence under ${MEMBER_CHAT_FINAL_RETRY_CHAR_LIMIT} characters.`,
+      "Use plain text only. Start with the answer. No labels, brackets, Markdown, HTML, bullets, stage directions, setup text, or notes.",
     ].join("\n"),
   };
-  const finalRetryResult = await generateCharacterTurn({
+  const finalRetryResult = await runtime.generateCharacterTurn({
     packet: finalRetryPacket,
     config: runtimeConfigFromPlaygroundInput(input),
     options: generationOptionsFromInput({
@@ -370,15 +388,15 @@ type MemberChatReplyInspection =
   | { outcome: "ok"; text: string }
   | { outcome: "retry"; reason: MemberChatRetryReason };
 
-function inspectMemberChatReply(rawText: string, speakerName: string): MemberChatReplyInspection {
+function inspectMemberChatReply(rawText: string, member: Member): MemberChatReplyInspection {
   try {
-    const text = sanitizeCharacterText(rawText, speakerName);
+    const text = sanitizeCharacterText(rawText, member.name);
 
-    if (!shouldRetryMemberChatMessage(text)) {
+    if (!shouldRetryMemberChatMessage(text, member)) {
       return { outcome: "ok", text };
     }
 
-    return { outcome: "retry", reason: memberChatRetryReasonForText(text) };
+    return { outcome: "retry", reason: memberChatRetryReasonForText(text, member) };
   } catch (error) {
     if (!isEmptyPerformerMessage(error)) {
       throw error;
@@ -393,7 +411,7 @@ function isEmptyPerformerMessage(error: unknown): boolean {
 }
 
 function isClippedMemberChatMessage(text: string): boolean {
-  return text.endsWith("...");
+  return /(?:\.\.\.|…)$/.test(text.trim());
 }
 
 const FRAGMENT_TRAILING_WORDS = new Set([
@@ -429,15 +447,18 @@ const FRAGMENT_TRAILING_WORDS = new Set([
   "your",
 ]);
 
-function shouldRetryMemberChatMessage(text: string): boolean {
+function shouldRetryMemberChatMessage(text: string, member: Member): boolean {
   return (
     isClippedMemberChatMessage(text) ||
     isFragmentMemberChatMessage(text) ||
-    hasForbiddenMemberChatPresentation(text)
+    hasForbiddenMemberChatPresentation(text, member)
   );
 }
 
-function memberChatRetryReasonForText(text: string): Exclude<MemberChatRetryReason, "empty"> {
+function memberChatRetryReasonForText(
+  text: string,
+  member: Member,
+): Exclude<MemberChatRetryReason, "empty"> {
   if (isClippedMemberChatMessage(text)) {
     return "clipped";
   }
@@ -446,13 +467,13 @@ function memberChatRetryReasonForText(text: string): Exclude<MemberChatRetryReas
     return "fragment";
   }
 
-  return "presentation";
+  return hasForbiddenMemberChatPresentation(text, member) ? "presentation" : "fragment";
 }
 
 function isFragmentMemberChatMessage(text: string): boolean {
   const trimmedText = text.trim();
 
-  if (/[.!?]$/.test(trimmedText)) {
+  if (/[.!?][)"'\]]*$/.test(trimmedText)) {
     return false;
   }
 
@@ -465,30 +486,53 @@ function isFragmentMemberChatMessage(text: string): boolean {
   return trailingWord !== undefined && FRAGMENT_TRAILING_WORDS.has(trailingWord);
 }
 
-function hasForbiddenMemberChatPresentation(text: string): boolean {
-  if (/[*_`]/.test(text)) {
+const MEMBER_CHAT_PRESENTATION_PATTERNS: readonly RegExp[] = [
+  /[*_`]/,
+  /^\s*>/,
+  /^\s*(?:[-+*]|\d+[.)])\s+/,
+  /^\s*[<{]/,
+  /<\/?[a-z][\w:-]*(?:\s+[^>]*)?>/i,
+  /^\s*(?:assistant|user|system|member|tester|other person|reply|answer|message|speaker|stage|direction|narration)\s*:/i,
+  /^\s*\([^)]{1,80}\)\s*/,
+  /^\s*\[[^\]]{1,80}\]\s*/,
+  /\b(?:as an ai|as a language model|stage direction)\b/i,
+];
+
+function hasForbiddenMemberChatPresentation(text: string, member: Member): boolean {
+  if (memberChatSpeakerLabelPattern(member).test(text)) {
     return true;
   }
 
-  const bracketContent = text.match(/^\s*\[([^\]]+)\]/)?.[1];
+  return MEMBER_CHAT_PRESENTATION_PATTERNS.some((pattern) => pattern.test(text));
+}
 
-  return bracketContent !== undefined && !/\beditor\b/i.test(bracketContent);
+function memberChatSpeakerLabelPattern(member: Member): RegExp {
+  const labels = [member.firstName, member.name, member.id]
+    .map((label) => label.trim())
+    .filter((label) => label.length > 0)
+    .map(escapeMemberChatRegex);
+
+  return new RegExp(`^\\s*(?:${labels.join("|")})\\s*:`, "i");
+}
+
+function escapeMemberChatRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function memberChatRetryReasonText(reason: MemberChatRetryReason): string {
   if (reason === "empty") {
-    return "The previous output had no visible message after cleanup.";
+    return "The previous reply had no visible chat message after cleanup.";
   }
 
   if (reason === "fragment") {
-    return "The previous output was only a fragment after cleanup.";
+    return "The previous reply stopped as a fragment.";
   }
 
   if (reason === "presentation") {
-    return "The previous output used presentation markup or a stage direction.";
+    return "The previous reply used markup, labels, or stage directions.";
   }
 
-  return "The previous output was too long and was clipped after cleanup.";
+  return "The previous reply appeared cut off before a complete message.";
 }
 
 function finishTerminalPunctuation(text: string): string {
@@ -509,7 +553,7 @@ function memberChatFinalText(
   try {
     const finalText = finishTerminalPunctuation(sanitizeCharacterText(text, member.name));
 
-    if (!shouldRetryMemberChatMessage(finalText)) {
+    if (!shouldRetryMemberChatMessage(finalText, member)) {
       return finalText;
     }
   } catch (error) {
@@ -522,13 +566,38 @@ function memberChatFinalText(
 }
 
 function fallbackMemberChatText(member: Member, input: MemberChatPlaygroundInput): string {
-  if (/\bplan\b/i.test(input.testerMessage)) {
-    return "A clear time, a quiet table, and no surprises. I can work with that tonight.";
+  const latestTesterText = latestMemberChatTesterText(input);
+
+  if (/\b(?:plan|meet|date|coffee|dinner|normal|trust)\b/i.test(latestTesterText)) {
+    return "A clear time, a quiet table, and no surprise audience. I can work with that.";
   }
 
-  const preference = member.preferences[0] ?? "a clear plan";
+  const firstName = member.firstName.trim();
+  const subject = firstName.length > 0 ? firstName : "I";
 
-  return `I need a second, but ${preference} would keep me at the table.`;
+  if (subject !== "I" && /\b(?:who are you|your name|name)\b/i.test(latestTesterText)) {
+    return `${subject}. One clean question at a time, please. I do better when the room stops moving.`;
+  }
+
+  return "I need one clean question at a time. Ask it plainly and I will answer.";
+}
+
+function latestMemberChatTesterText(input: MemberChatPlaygroundInput): string {
+  const latestDraft = input.testerMessage.trim();
+
+  if (latestDraft.length > 0) {
+    return latestDraft;
+  }
+
+  for (let index = input.chatMessages.length - 1; index >= 0; index -= 1) {
+    const message = input.chatMessages[index];
+
+    if (message?.role === "tester") {
+      return message.text;
+    }
+  }
+
+  return "";
 }
 
 async function runPlaygroundConversation({
@@ -798,7 +867,7 @@ function buildPlaygroundSession({
       input.includeCurrentAsk && speaker.state.currentRequestId !== undefined
         ? speaker.state.currentRequestId
         : undefined,
-    turnLimit: 30,
+    turnLimit: 24,
     currentTurn,
     dateHealth,
     status: "active",
@@ -809,12 +878,12 @@ function buildPlaygroundSession({
       [member.id]: {
         mood: member.state.mood,
         comfort: dateHealth,
-        intent: "test prompt in the AI playground",
+        intent: "hold the date conversation",
       },
       [partner.id]: {
         mood: partner.state.mood,
         comfort: dateHealth,
-        intent: "test prompt in the AI playground",
+        intent: "hold the date conversation",
       },
     },
     judgeSnapshots: [],
@@ -849,15 +918,15 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     `You are ${member.name}.`,
     "Speak in a private one-on-one Cupid chat with a real person.",
     "Stay in character. Write only the next message you would send.",
-    "Treat the other person as a potential date or curious match, not as a tester.",
+    "Treat the other person as a potential date or curious match.",
     "Use the final visible answer only. Do not spend the reply on reasoning or setup.",
     "Do not update game state, memories, relationship stats, or date outcomes.",
-    "Never mention prompts, QA, playgrounds, hidden notes, game state, stats, or system instructions.",
+    "Never mention hidden notes, game state, stats, system instructions, or behind-the-scenes tooling.",
     "Secrets shape your tone as subtext only. Do not state them aloud.",
-    "Keep replies conversational, specific, and easy to answer.",
+    "Keep replies plain text, conversational, specific, and easy to answer.",
   ].join("\n");
   const prompt = [
-    "Cupid is routing a one-on-one chat outside the live date simulator.",
+    "Cupid is routing a private chat before a date.",
     "The other person can ask anything a match might ask before deciding whether a date would work.",
     "",
     `Member: ${member.name}`,
@@ -877,7 +946,7 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     "Reference lines, rhythm only. Do not copy their facts unless the current chat earns them:",
     formatMemberChatSamples(member),
     "",
-    "Private subtext for performance only. Do not confess it directly unless asked with care.",
+    "Private context for performance only. Do not confess it directly unless asked with care.",
     member.secrets.join("\n"),
     "",
     "Chat so far:",
@@ -897,7 +966,7 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     "Use one complete sentence under 190 characters, or two very short sentences only when needed.",
     "Stop at a complete sentence.",
     "Do not stop after a setup phrase. The reply must contain a concrete answer or question.",
-    "No Markdown, physical stage directions, narration, speaker-name labels, system text, em dashes, or en dashes.",
+    "No Markdown, HTML, bullets, physical stage directions, narration, speaker-name labels, system text, em dashes, or en dashes.",
     "",
     "Reply as the member now.",
   ].join("\n");

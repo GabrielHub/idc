@@ -2,6 +2,8 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
+  gameSaveSchema,
+  SAVE_SCHEMA_VERSION,
   type DateScenario,
   type FollowUpAction,
   type GameConfig,
@@ -40,19 +42,20 @@ import {
   triggerScenarioEvent,
 } from "../services/date-engine";
 import { pickLibraryCard as deckPickLibraryCard, swapCard as deckSwapCard } from "../services/deck";
+import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
   addFocusCase as focusAddCase,
   getFocusedMembers,
   removeFocusCase as focusRemoveCase,
+  reselectFocusCases as focusReselect,
   selectInitialFocusCases as focusSelectInitial,
   syncActiveShiftFocusCases,
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
-import { getActiveShift } from "../services/game-seed";
+import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
-import { CasebookCanvas } from "./casebook-canvas";
-import { GhostButton } from "./dashboard-atoms";
+import { AmbientMesh } from "./ambient-mesh";
 import {
   DashboardLoading,
   DateView,
@@ -62,10 +65,13 @@ import {
   type PlaybackIntent,
   type StreamingDraftMessage,
 } from "./dashboard-views";
+import { GhostButton } from "./dashboard-atoms";
+import { DateBookCanvas } from "./date-book-canvas";
 import { FloatingNavCluster, type RoomKey } from "./floating-nav-cluster";
-import { GalleryCanvas } from "./gallery-canvas";
-import { OfficeCanvas } from "./office-canvas";
 import { OnboardingScreen } from "./onboarding-screen";
+import { PreDateCanvas } from "./pre-date-canvas";
+import { RosterCanvas } from "./roster-canvas";
+import { buildDiagnosticsSnapshot, MutedIndicator, SettingsMenu } from "./settings-menu";
 import { useSfx } from "./sfx-provider";
 import { SoftWinCutscene } from "./soft-win-cutscene";
 
@@ -100,7 +106,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
   const { play } = useSfx();
   const [save, setSave] = useState<GameSave | null>(null);
-  const [currentRoom, setCurrentRoom] = useState<RoomKey>("office");
+  const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
@@ -121,6 +127,21 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const stopAfterCurrentTurnRef = useRef(false);
   const lastErrorMessageRef = useRef<string | null>(null);
   const isActionPending = pendingAction !== null;
+  const aiStatusConfigRef = useRef<GameConfig | null>(null);
+  const aiStatusConfig = save?.config;
+  aiStatusConfigRef.current = aiStatusConfig ?? null;
+  const aiStatusConfigKey =
+    aiStatusConfig === undefined
+      ? ""
+      : [
+          aiStatusConfig.aiProvider,
+          aiStatusConfig.chatModel,
+          aiStatusConfig.embeddingModel,
+          aiStatusConfig.reasoningLevel,
+          aiStatusConfig.ollamaBaseURL,
+          aiStatusConfig.gatewayBaseURL,
+          aiStatusConfig.aiSetupComplete ? "complete" : "incomplete",
+        ].join("|");
 
   useEffect(() => {
     let mounted = true;
@@ -147,7 +168,18 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         recoveredOutdatedSave = true;
         backupKey = await tryBackupSave(repository);
       }
-      const nextSave = existingSave ?? (await repository.resetGame());
+      let nextSave = existingSave ?? (await repository.resetGame());
+      const seedRequest = readDevSeedRequest();
+
+      if (seedRequest !== null) {
+        try {
+          nextSave = await applyDevSeed(repository, nextSave, seedRequest);
+        } catch (error) {
+          console.warn("dev seed failed", error);
+        } finally {
+          clearDevSeedQueryParam();
+        }
+      }
       if (!mounted) return;
       setSave(nextSave);
       if (recoveredOutdatedSave) {
@@ -163,7 +195,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         null;
       setActiveDateSessionId(restoredSession?.id ?? null);
       if (restoredSession?.status === "active") {
-        setCurrentRoom("stage");
+        setCurrentRoom("livedate");
       }
     }
     void loadSave();
@@ -173,17 +205,18 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   }, [repository]);
 
   useEffect(() => {
-    if (save?.config === undefined || !isGatewayApiKeyLoaded) {
+    const configSnapshot = aiStatusConfigRef.current;
+    if (configSnapshot === null || !isGatewayApiKeyLoaded) {
       return;
     }
+    const configForStatus = configSnapshot;
     let mounted = true;
     async function loadStatus() {
       setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-      if (save === null) return;
-      const status = await requestLocalAiStatus(save.config, gatewayApiKey);
+      const status = await requestLocalAiStatus(configForStatus, gatewayApiKey);
       if (!mounted) return;
       setLocalAiStatus(status);
-      if (status.status === "unavailable" && save.config.aiSetupComplete) {
+      if (status.status === "unavailable" && configForStatus.aiSetupComplete) {
         setErrorMessage(status.message);
       }
     }
@@ -191,7 +224,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     return () => {
       mounted = false;
     };
-  }, [save?.config, gatewayApiKey, isGatewayApiKeyLoaded]);
+  }, [aiStatusConfigKey, gatewayApiKey, isGatewayApiKeyLoaded]);
 
   useEffect(() => {
     if (errorMessage === null) {
@@ -242,6 +275,10 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     [activeShift],
   );
   const dateAmbientActive = activeSession?.status === "active";
+  const diagnosticsSnapshot = useMemo(
+    () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
+    [save?.config, localAiStatus],
+  );
 
   async function persist(nextSave: GameSave) {
     await repository.saveGame(nextSave);
@@ -338,7 +375,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       setActiveDateSessionId(result.session.id);
       setInterventionText("");
       setInterventionTargetMemberId("");
-      setCurrentRoom("stage");
+      setCurrentRoom("livedate");
     });
   }
 
@@ -384,8 +421,9 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   function applyStreamEvent(event: LocalAiDateStreamEvent) {
     setStreamingDrafts((current) => {
       if (event.type === "characterStart") {
+        const withoutPrior = current.filter((draft) => draft.sequenceIndex !== event.sequenceIndex);
         return [
-          ...current,
+          ...withoutPrior,
           {
             id: `${event.speakerId}-${event.sequenceIndex}`,
             speakerId: event.speakerId,
@@ -398,28 +436,30 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
           },
         ];
       }
+      if (
+        event.type !== "characterDelta" &&
+        event.type !== "characterReasoningDelta" &&
+        event.type !== "characterDone"
+      ) {
+        return current;
+      }
+      const matchIndex = current.findIndex((draft) => draft.sequenceIndex === event.sequenceIndex);
+      if (matchIndex === -1) return current;
+      const target = current[matchIndex];
+      if (target === undefined) return current;
+      let updated: StreamingDraftMessage;
       if (event.type === "characterDelta") {
-        return current.map((draft) =>
-          draft.sequenceIndex === event.sequenceIndex
-            ? { ...draft, text: draft.text + event.textDelta }
-            : draft,
-        );
+        updated = { ...target, text: target.text + event.textDelta };
+      } else if (event.type === "characterReasoningDelta") {
+        updated = { ...target, reasoningText: target.reasoningText + event.textDelta };
+      } else if (event.type === "characterDone") {
+        updated = { ...target, text: event.text, status: "done" };
+      } else {
+        return current;
       }
-      if (event.type === "characterReasoningDelta") {
-        return current.map((draft) =>
-          draft.sequenceIndex === event.sequenceIndex
-            ? { ...draft, reasoningText: draft.reasoningText + event.textDelta }
-            : draft,
-        );
-      }
-      if (event.type === "characterDone") {
-        return current.map((draft) =>
-          draft.sequenceIndex === event.sequenceIndex
-            ? { ...draft, text: event.text, status: "done" }
-            : draft,
-        );
-      }
-      return current;
+      const next = current.slice();
+      next[matchIndex] = updated;
+      return next;
     });
   }
 
@@ -541,7 +581,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     tryAction("focusCase", async () => {
       await persist(syncActiveShiftFocusCases(focusSelectInitial(save, memberIds)));
-      setCurrentRoom("office");
+      setCurrentRoom("livedate");
     });
   }
 
@@ -563,6 +603,13 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     tryAction("focusCase", async () => {
       await persist(syncActiveShiftFocusCases(focusSwapCase(save, oldId, newId)));
+    });
+  }
+
+  async function handleReselectFocus(nextFocusIds: string[]) {
+    if (save === null) return;
+    tryAction("focusCase", async () => {
+      await persist(syncActiveShiftFocusCases(focusReselect(save, nextFocusIds)));
     });
   }
 
@@ -634,6 +681,83 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     });
   }
 
+  function resetTransientShellState() {
+    setInterventionText("");
+    setInterventionTargetMemberId("");
+    setStreamingDrafts([]);
+    setQueuedPlaybackIntent(null);
+    setClosingPairId(null);
+    setClosureError(null);
+    setCurrentRoom("livedate");
+  }
+
+  async function handleResetSave() {
+    tryAction("reset", async () => {
+      await tryBackupSave(repository);
+      const nextSave = await repository.resetGame();
+      setSave(nextSave);
+      setActiveDateSessionId(null);
+      resetTransientShellState();
+    });
+  }
+
+  function handleExportSave() {
+    if (save === null) return;
+    const blob = new Blob([JSON.stringify(save, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `cupid-save-v${SAVE_SCHEMA_VERSION}-${stamp}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImportSave(file: File) {
+    tryAction("reset", async () => {
+      const text = await file.text();
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(text);
+      } catch (error) {
+        throw new Error(`Cupid could not read that JSON file. ${errorToMessage(error)}`.trim());
+      }
+      const validated = gameSaveSchema.safeParse(parsed);
+      if (!validated.success) {
+        const firstIssue = validated.error.issues[0];
+        const detail =
+          firstIssue === undefined
+            ? "schema mismatch"
+            : `${firstIssue.path.join(".") || "save"}: ${firstIssue.message}`;
+        throw new Error(
+          `Imported save did not match save schema v${SAVE_SCHEMA_VERSION} (${detail}).`,
+        );
+      }
+      await tryBackupSave(repository);
+      const hydrated = hydrateFixtureOwnedMemberData(validated.data);
+      const nextSave = await repository.replaceGame(hydrated.save);
+      setSave(nextSave);
+      const restoredSession =
+        nextSave.dateSessions.find((session) => session.status === "active") ??
+        nextSave.dateSessions.at(-1) ??
+        null;
+      setActiveDateSessionId(restoredSession?.id ?? null);
+      resetTransientShellState();
+    });
+  }
+
+  async function handleCopyDiagnostics(): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(diagnosticsSnapshot, null, 2));
+      return true;
+    } catch (error) {
+      setErrorMessage(`Cupid could not copy diagnostics: ${errorToMessage(error)}`);
+      return false;
+    }
+  }
+
   if (save === null) {
     return <DashboardLoading />;
   }
@@ -644,7 +768,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
   if (needsInitialFocusCases) {
     return (
-      <div className="min-h-screen w-full bg-aura-cream-soft">
+      <div className="min-h-screen w-full">
         <OnboardingScreen members={save.members} onConfirm={handleConfirmOnboarding} />
         {errorMessage !== null ? (
           <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
@@ -654,10 +778,12 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   }
 
   const aiReady = localAiStatus.status === "ready" && save.config.aiSetupComplete === true;
+  const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
 
   return (
-    <div className="relative min-h-screen w-full bg-aura-cream-soft">
-      <header className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-12">
+    <div className="relative min-h-screen w-full">
+      <AmbientMesh />
+      <header className="mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -671,15 +797,26 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             shift {String(activeShift?.shiftNumber ?? 1).padStart(2, "0")} / {currentRoom}
           </span>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <MutedIndicator />
           <button
             type="button"
             onClick={() => setIsAiSetupOpen(true)}
             data-sfx="click"
             className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/30"
           >
-            ai · {localAiStatus.status}
+            ai · {aiStatusLabel}
           </button>
+          <SettingsMenu
+            isActionPending={isActionPending}
+            diagnostics={diagnosticsSnapshot}
+            canExportSave={save !== null}
+            onOpenAiSetup={() => setIsAiSetupOpen(true)}
+            onReset={handleResetSave}
+            onExportSave={handleExportSave}
+            onImportSave={handleImportSave}
+            onCopyDiagnostics={handleCopyDiagnostics}
+          />
         </div>
       </header>
 
@@ -691,45 +828,78 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
           exit={{ opacity: 0, y: -12 }}
           transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
         >
-          {currentRoom === "office" && activeShift !== null ? (
-            <OfficeCanvas
-              save={save}
-              shift={activeShift}
-              focusedMembers={focusedMembers}
-              scenarios={starterScenarios}
-              drawnScenarios={drawnScenarios}
-              memberRequests={memberRequests.slice()}
-              pairStates={save.pairStates}
-              isActionPending={isActionPending}
-              aiReady={aiReady}
-              readyClosurePairs={readyClosurePairs}
-              closingPairId={closingPairId}
-              closureError={closureError}
-              onStartDate={handleStartDate}
-              onConfirmClosure={handleConfirmClosure}
-              onDismissClosureError={handleDismissClosureError}
-              onOpenCasebook={() => setCurrentRoom("casebook")}
-              onOpenGallery={() => setCurrentRoom("gallery")}
-              onCloseShift={handleEndShift}
-              onStartNextShift={handleStartNextShift}
-              onResolveLibraryPick={() => setCurrentRoom("casebook")}
-            />
+          {currentRoom === "livedate" && activeShift !== null ? (
+            activeSession !== null ? (
+              <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
+                <DateView
+                  session={activeSession}
+                  scenario={activeDateScenario}
+                  members={save.members}
+                  playerKnowledge={save.playerKnowledge}
+                  interventionText={interventionText}
+                  interventionTargetMemberId={interventionTargetMemberId}
+                  canAdvance={
+                    activeSession.status === "active" &&
+                    activeSession.playbackState !== "drafting" &&
+                    activeSession.playbackState !== "ended"
+                  }
+                  canIntervene={canAddCupidIntervention(activeSession)}
+                  isActionPending={isActionPending}
+                  pendingDateAction={pendingAction === "advanceExchange" ? "advanceExchange" : null}
+                  queuedPlaybackIntent={queuedPlaybackIntent}
+                  streamingDrafts={streamingDrafts}
+                  onInterventionTextChange={setInterventionText}
+                  onInterventionTargetChange={setInterventionTargetMemberId}
+                  onAdvance={handleAdvanceExchange}
+                  onCancel={handleCancelDate}
+                  onIntervene={handleIntervention}
+                  onFollowUp={handleFollowUp}
+                  onPickEvents={handlePickEvents}
+                  onTriggerEvent={handleTriggerEvent}
+                  onTogglePlayback={handleTogglePlayback}
+                  onBack={() => setActiveDateSessionId(null)}
+                />
+              </div>
+            ) : (
+              <PreDateCanvas
+                save={save}
+                shift={activeShift}
+                focusedMembers={focusedMembers}
+                drawnScenarios={drawnScenarios}
+                memberRequests={memberRequests}
+                pairStates={save.pairStates}
+                isActionPending={isActionPending}
+                aiReady={aiReady}
+                readyClosurePairs={readyClosurePairs}
+                closingPairId={closingPairId}
+                closureError={closureError}
+                onStartDate={handleStartDate}
+                onConfirmClosure={handleConfirmClosure}
+                onDismissClosureError={handleDismissClosureError}
+                onOpenDateBook={() => setCurrentRoom("datebook")}
+                onOpenRoster={() => setCurrentRoom("roster")}
+                onCloseShift={handleEndShift}
+                onStartNextShift={handleStartNextShift}
+                onResolveLibraryPick={() => setCurrentRoom("datebook")}
+              />
+            )
           ) : null}
 
-          {currentRoom === "casebook" && activeShift !== null ? (
-            <CasebookCanvas
+          {currentRoom === "datebook" && activeShift !== null ? (
+            <DateBookCanvas
               save={save}
               currentShift={activeShift.shiftNumber}
+              drawnScenarioIds={activeShift.drawnScenarioIds}
               scenarios={starterScenarios}
               isActionPending={isActionPending}
               onPickLibrary={handlePickLibrary}
               onSwap={handleSwap}
-              onBack={() => setCurrentRoom("office")}
+              onBack={() => setCurrentRoom("livedate")}
             />
           ) : null}
 
-          {currentRoom === "gallery" ? (
-            <GalleryCanvas
+          {currentRoom === "roster" ? (
+            <RosterCanvas
               members={save.members}
               focusedMemberIds={save.focusedMemberIds}
               playerKnowledge={save.playerKnowledge}
@@ -737,45 +907,13 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
               onAddFocus={handleAddFocus}
               onRemoveFocus={handleRemoveFocus}
               onSwapFocus={handleSwapFocus}
-              onBack={() => setCurrentRoom("office")}
+              onReselectFocus={handleReselectFocus}
+              onBack={() => setCurrentRoom("livedate")}
             />
           ) : null}
 
-          {currentRoom === "stage" && activeSession !== null ? (
-            <div className="mx-auto w-full max-w-6xl px-6 py-8 lg:px-12">
-              <DateView
-                session={activeSession}
-                scenario={activeDateScenario}
-                members={save.members}
-                playerKnowledge={save.playerKnowledge}
-                interventionText={interventionText}
-                interventionTargetMemberId={interventionTargetMemberId}
-                canAdvance={
-                  activeSession.status === "active" &&
-                  activeSession.playbackState !== "drafting" &&
-                  activeSession.playbackState !== "ended"
-                }
-                canIntervene={canAddCupidIntervention(activeSession)}
-                isActionPending={isActionPending}
-                pendingDateAction={pendingAction === "advanceExchange" ? "advanceExchange" : null}
-                queuedPlaybackIntent={queuedPlaybackIntent}
-                streamingDrafts={streamingDrafts}
-                onInterventionTextChange={setInterventionText}
-                onInterventionTargetChange={setInterventionTargetMemberId}
-                onAdvance={handleAdvanceExchange}
-                onCancel={handleCancelDate}
-                onIntervene={handleIntervention}
-                onFollowUp={handleFollowUp}
-                onPickEvents={handlePickEvents}
-                onTriggerEvent={handleTriggerEvent}
-                onTogglePlayback={handleTogglePlayback}
-                onBack={() => setCurrentRoom("office")}
-              />
-            </div>
-          ) : null}
-
           {currentRoom === "files" ? (
-            <div className="mx-auto w-full max-w-7xl px-6 py-8 lg:px-12">
+            <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
               <NotesView
                 memories={save.memories}
                 members={save.members}
@@ -801,8 +939,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
       <FloatingNavCluster
         current={currentRoom}
-        stageEnabled={activeSession !== null}
-        hidden={dateAmbientActive || currentRoom === "stage"}
+        hidden={dateAmbientActive}
         onSelect={(room) => setCurrentRoom(room)}
       />
 

@@ -9,7 +9,6 @@ import {
   type FollowUpAction,
   type JudgeSnapshot,
   type Member,
-  type MemberRequest,
   type MemoryRecord,
   type PairState,
   type PlayerKnowledgeRecord,
@@ -24,14 +23,9 @@ import {
   exchangeIndexForTurn,
   findScenarioEventById,
   formatCupidInterventionText,
-  getMemberQuitRiskStatus,
-  isMemberRetained,
   MAX_NUDGES_PER_DATE,
-  MEMBER_QUIT_RISK_LABEL,
-  type MemberQuitRiskStatus,
 } from "../services/date-engine";
 import { PAIR_CLOSURE_TAG } from "../services/closures";
-import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import { clampScore } from "../services/utils";
 import {
   EASE_OUT_QUART,
@@ -110,793 +104,6 @@ export function resolveDatePlaybackUiState({
   };
 }
 
-/* ================================================================== */
-/* Roster                                                             */
-/* ================================================================== */
-
-export type RosterProps = {
-  members: Member[];
-  featuredMembers: Member[];
-  featuredRequests: MemberRequest[];
-  playerKnowledge: PlayerKnowledgeRecord[];
-  selectedMemberIds: string[];
-  disabled: boolean;
-  onSelectFocusMember: (memberId: string) => void;
-  onSelectPartnerMember: (memberId: string) => void;
-  onContinue: () => void;
-};
-
-type KindFilter = "all" | "picked";
-type SortMode = "default" | "name";
-
-const KIND_FILTERS: { id: KindFilter; label: string }[] = [
-  { id: "all", label: "all" },
-  { id: "picked", label: "picked" },
-];
-
-const SORT_MENU: { value: SortMode; label: string }[] = [
-  { value: "default", label: "default" },
-  { value: "name", label: "by name" },
-];
-
-export function RosterView({
-  members,
-  featuredMembers,
-  featuredRequests,
-  playerKnowledge,
-  selectedMemberIds,
-  disabled,
-  onSelectFocusMember,
-  onSelectPartnerMember,
-  onContinue,
-}: RosterProps) {
-  const [openMemberId, setOpenMemberId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [kindFilter, setKindFilter] = useState<KindFilter>("all");
-  const [sortMode, setSortMode] = useState<SortMode>("default");
-
-  const selectedMembers = selectedMemberIds
-    .map((id) => members.find((m) => m.id === id))
-    .filter((m): m is Member => Boolean(m));
-  const focusMember = selectedMembers[0];
-  const partnerMember = selectedMembers[1];
-  const partnerMembers = useMemo(
-    () => members.filter((member) => member.id !== focusMember?.id),
-    [members, focusMember?.id],
-  );
-
-  const filteredPartners = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    let pool = partnerMembers.filter((member) => {
-      if (kindFilter === "picked" && member.id !== partnerMember?.id) return false;
-
-      if (query.length > 0) {
-        const profile = buildVisibleMemberProfile(member, playerKnowledge);
-        const haystack = [
-          member.firstName,
-          member.name,
-          ...profile.publicFragments,
-          ...profile.revealedReads.map((record) => record.readText),
-        ]
-          .join(" ")
-          .toLowerCase();
-        if (!haystack.includes(query)) return false;
-      }
-      return true;
-    });
-
-    if (sortMode === "name") {
-      pool = [...pool].sort((a, b) => a.firstName.localeCompare(b.firstName));
-    }
-
-    return pool;
-  }, [partnerMembers, searchQuery, kindFilter, sortMode, partnerMember?.id, playerKnowledge]);
-
-  const openMember =
-    openMemberId === null ? null : (members.find((m) => m.id === openMemberId) ?? null);
-  const openMemberRequest =
-    openMember === null
-      ? undefined
-      : (featuredRequests.find((entry) => entry.id === openMember.state.currentRequestId) ??
-        featuredRequests.find((entry) => entry.memberId === openMember.id));
-  const openMemberIsFeatured =
-    openMember !== null && featuredMembers.some((featured) => featured.id === openMember.id);
-  const openMemberIsSelected = openMember !== null && selectedMemberIds.includes(openMember.id);
-  const selectedMembersCanDate =
-    selectedMembers.length === 2 && selectedMembers.every(isMemberRetained);
-
-  function clearFilters() {
-    setSearchQuery("");
-    setKindFilter("all");
-  }
-
-  function handleDossierPick() {
-    if (openMember === null) return;
-    if (!isMemberRetained(openMember)) return;
-    if (openMemberIsFeatured) {
-      onSelectFocusMember(openMember.id);
-    } else {
-      onSelectPartnerMember(openMember.id);
-    }
-    setOpenMemberId(null);
-  }
-
-  const hasActiveFilters = searchQuery.length > 0 || kindFilter !== "all";
-
-  return (
-    <ViewFrame wide>
-      <SectionHeader
-        eyebrow={`// cases.${pad2(featuredMembers.length)}`}
-        title="Today's cases"
-        meta={`${pad2(featuredMembers.length)} featured`}
-        tooltip="One featured member becomes the focus. Their ask guides the match."
-      />
-
-      <ul className="mt-6 grid gap-4 sm:grid-cols-2">
-        {featuredMembers.map((member, index) => {
-          const request = featuredRequests.find((entry) => entry.memberId === member.id);
-          return (
-            <FeaturedCaseCard
-              key={member.id}
-              member={member}
-              playerKnowledge={playerKnowledge}
-              request={request}
-              index={index}
-              isSelected={selectedMemberIds[0] === member.id}
-              disabled={disabled || !isMemberRetained(member)}
-              onPick={() => onSelectFocusMember(member.id)}
-              onOpenDossier={() => setOpenMemberId(member.id)}
-            />
-          );
-        })}
-      </ul>
-
-      <section className="mt-14">
-        <SectionHeader
-          eyebrow={`// roster.${pad2(members.length)}`}
-          title="Partner roster"
-          meta={`${pad2(partnerMembers.length)} on file`}
-          tooltip={
-            focusMember === undefined
-              ? "Browse the room. Picks need a focus first."
-              : `Pair anyone with ${focusMember.firstName}.`
-          }
-        />
-
-        <DossierFilterRail
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          kindFilter={kindFilter}
-          onKindFilterChange={setKindFilter}
-          sortMode={sortMode}
-          onSortModeChange={setSortMode}
-          totalCount={partnerMembers.length}
-          shownCount={filteredPartners.length}
-          partnerPicked={partnerMember !== undefined}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-        />
-
-        <RosterSentinel
-          totalCount={partnerMembers.length}
-          shownCount={filteredPartners.length}
-          hasActiveFilters={hasActiveFilters}
-          focusPicked={focusMember !== undefined}
-        />
-
-        {filteredPartners.length === 0 ? (
-          <RosterEmptyTile onClear={clearFilters} />
-        ) : (
-          <ul className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            <AnimatePresence initial={false}>
-              {filteredPartners.map((member, index) => (
-                <PartnerTile
-                  key={member.id}
-                  member={member}
-                  playerKnowledge={playerKnowledge}
-                  index={index}
-                  isSelected={selectedMemberIds[1] === member.id}
-                  disabled={disabled || focusMember === undefined || !isMemberRetained(member)}
-                  onPick={() => onSelectPartnerMember(member.id)}
-                  onOpenDossier={() => setOpenMemberId(member.id)}
-                />
-              ))}
-            </AnimatePresence>
-          </ul>
-        )}
-      </section>
-
-      <SelectionBar
-        selectedMembers={selectedMembers}
-        disabled={disabled || !selectedMembersCanDate}
-        onContinue={onContinue}
-      />
-
-      <AnimatePresence>
-        {openMember === null ? null : (
-          <MemberDossier
-            key={`roster-dossier-${openMember.id}`}
-            member={openMember}
-            playerKnowledge={playerKnowledge}
-            request={openMemberRequest}
-            isSelected={openMemberIsSelected}
-            disabled={
-              disabled ||
-              !isMemberRetained(openMember) ||
-              (!openMemberIsFeatured && focusMember === undefined)
-            }
-            onClose={() => setOpenMemberId(null)}
-            onPick={openMemberIsSelected ? undefined : handleDossierPick}
-          />
-        )}
-      </AnimatePresence>
-    </ViewFrame>
-  );
-}
-
-function FeaturedCaseCard({
-  member,
-  playerKnowledge,
-  request,
-  index,
-  isSelected,
-  disabled,
-  onPick,
-  onOpenDossier,
-}: {
-  member: Member;
-  playerKnowledge: PlayerKnowledgeRecord[];
-  request: MemberRequest | undefined;
-  index: number;
-  isSelected: boolean;
-  disabled: boolean;
-  onPick: () => void;
-  onOpenDossier: () => void;
-}) {
-  const hasQuit = !isMemberRetained(member);
-  const profile = useMemo(
-    () => buildVisibleMemberProfile(member, playerKnowledge),
-    [member, playerKnowledge],
-  );
-
-  return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: 0.05 * index, ease: EASE_OUT_QUART }}
-      className="list-none"
-    >
-      <article
-        className={`group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift ${
-          hasQuit ? "opacity-75 grayscale" : ""
-        }`}
-      >
-        <div
-          aria-hidden
-          className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
-            isSelected ? "opacity-100" : "opacity-0"
-          }`}
-        />
-        <div className="relative z-10 flex h-full w-full flex-col">
-          <button
-            type="button"
-            onClick={onPick}
-            disabled={disabled}
-            aria-pressed={isSelected}
-            aria-label={`Pick ${member.firstName} as today's focus case`}
-            className="block w-full flex-1 cursor-pointer text-left disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            <div className="flex gap-5 p-5 lg:gap-6 lg:p-6">
-              <div className="shrink-0">
-                <Portrait member={member} variant="card" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex h-6 items-center justify-between gap-3">
-                  <span
-                    className={`font-mono text-micro font-semibold uppercase tabular-nums tracking-[0.28em] transition-colors duration-300 ${
-                      isSelected ? "text-white/55" : "text-aura-faint"
-                    }`}
-                  >
-                    {`case.${pad2(index + 1)}`}
-                  </span>
-                  <AnimatePresence>
-                    {hasQuit ? (
-                      <motion.span
-                        key="quit-stamp"
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.85 }}
-                        transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
-                        className="origin-right"
-                      >
-                        <QuitStamp />
-                      </motion.span>
-                    ) : isSelected ? (
-                      <motion.span
-                        key="focus-stamp"
-                        initial={{ opacity: 0, scale: 0.85 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.85 }}
-                        transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
-                        className="origin-right"
-                      >
-                        <FocusStamp />
-                      </motion.span>
-                    ) : null}
-                  </AnimatePresence>
-                </div>
-                <h3
-                  className={`mt-2 line-clamp-1 font-display text-display-md font-semibold leading-[1.05] tracking-tight transition-colors duration-300 ${
-                    isSelected ? "text-white" : "text-aura-ink"
-                  }`}
-                >
-                  {member.firstName}
-                </h3>
-                {request === undefined ? null : (
-                  <p
-                    className={`mt-3 line-clamp-2 aura-accent text-lead leading-snug transition-colors duration-300 ${
-                      isSelected ? "text-white/85" : "text-aura-ink/80"
-                    }`}
-                  >
-                    &ldquo;{request.text}&rdquo;
-                  </p>
-                )}
-                <SealedFileSummary profile={profile} inverted={isSelected} hasQuit={hasQuit} />
-              </div>
-            </div>
-          </button>
-
-          <div
-            className={`flex items-center justify-between gap-3 border-t px-5 py-2.5 transition-colors duration-300 lg:px-6 ${
-              isSelected ? "border-white/15 bg-white/5" : "border-aura-hairline bg-white/35"
-            }`}
-          >
-            <span
-              className={`truncate font-mono text-micro uppercase tracking-[0.24em] transition-colors duration-300 ${
-                isSelected ? "text-white/55" : "text-aura-faint"
-              }`}
-            >
-              {hasQuit ? "quit app" : isSelected ? "on the desk" : "tap card to focus"}
-            </span>
-            <button
-              type="button"
-              onClick={onOpenDossier}
-              className={`shrink-0 cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition-colors duration-300 ${
-                isSelected
-                  ? "text-white/85 hover:bg-white/10"
-                  : "text-aura-rose hover:bg-aura-rose/10"
-              }`}
-            >
-              Open file ↗
-            </button>
-          </div>
-        </div>
-        {hasQuit ? <QuitMemberMark /> : null}
-      </article>
-    </motion.li>
-  );
-}
-
-function SealedFileSummary({
-  profile,
-  inverted,
-  hasQuit,
-}: {
-  profile: ReturnType<typeof buildVisibleMemberProfile>;
-  inverted: boolean;
-  hasQuit: boolean;
-}) {
-  const knownCount = profile.revealedReads.length;
-  const sealedCount = profile.redactedBlocks.length;
-  const textColor = inverted ? "text-white/70" : "text-aura-muted";
-  const dotColor = inverted ? "bg-white/70" : "bg-aura-rose";
-
-  return (
-    <div className="mt-5 flex flex-wrap items-center gap-2">
-      <span
-        className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
-          inverted ? "bg-white/10 text-white/75" : "bg-white/65 text-aura-muted"
-        }`}
-      >
-        <span aria-hidden className={`size-1.5 rounded-full ${dotColor}`} />
-        {hasQuit
-          ? "closed file"
-          : `${sealedCount} sealed ${sealedCount === 1 ? "section" : "sections"}`}
-      </span>
-      {knownCount > 0 ? (
-        <span
-          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${textColor}`}
-        >
-          {knownCount} filed {knownCount === 1 ? "read" : "reads"}
-        </span>
-      ) : null}
-    </div>
-  );
-}
-
-function FocusStamp() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-white px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-ink shadow-quiet">
-      <span aria-hidden className="size-1.5 rounded-full bg-aura-rose" />
-      focus
-    </span>
-  );
-}
-
-function QuitStamp() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-aura-ink px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white shadow-quiet">
-      quit
-    </span>
-  );
-}
-
-const QUIT_RISK_BADGE_TONE: Record<MemberQuitRiskStatus, string> = {
-  file_stable: "bg-white/65 text-aura-muted",
-  client_confidence_low: "bg-aura-amber/95 text-white",
-  closed_file_risk: "bg-aura-rose/95 text-white",
-  file_closed: "bg-aura-ink text-white",
-};
-
-const QUIT_RISK_DOT_TONE: Record<MemberQuitRiskStatus, string> = {
-  file_stable: "bg-aura-faint",
-  client_confidence_low: "bg-white/85",
-  closed_file_risk: "bg-white/85",
-  file_closed: "bg-white/70",
-};
-
-function QuitRiskBadge({ member }: { member: Member }) {
-  const status = getMemberQuitRiskStatus(member);
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] shadow-quiet ${QUIT_RISK_BADGE_TONE[status]}`}
-    >
-      <span aria-hidden className={`size-1.5 rounded-full ${QUIT_RISK_DOT_TONE[status]}`} />
-      {MEMBER_QUIT_RISK_LABEL[status]}
-    </span>
-  );
-}
-
-function QuitMemberMark() {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-20 grid place-items-center bg-white/20">
-      <span
-        aria-hidden
-        className="font-display text-[7rem] font-semibold leading-none text-aura-rose/70"
-      >
-        X
-      </span>
-    </div>
-  );
-}
-
-function DossierGlyph() {
-  return (
-    <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
-      <path
-        d="M6 4H12V10"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function PartnerTile({
-  member,
-  playerKnowledge,
-  index,
-  isSelected,
-  disabled,
-  onPick,
-  onOpenDossier,
-}: {
-  member: Member;
-  playerKnowledge: PlayerKnowledgeRecord[];
-  index: number;
-  isSelected: boolean;
-  disabled: boolean;
-  onPick: () => void;
-  onOpenDossier: () => void;
-}) {
-  const profile = useMemo(
-    () => buildVisibleMemberProfile(member, playerKnowledge),
-    [member, playerKnowledge],
-  );
-  const profileTeaser = profile.publicFragments[0] ?? "Profile fragment sealed pending evidence.";
-  const hasQuit = !isMemberRetained(member);
-  return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -6, transition: { duration: 0.18 } }}
-      transition={{
-        duration: 0.32,
-        delay: 0.02 * Math.min(index, 14),
-        ease: EASE_OUT_QUART,
-      }}
-      className="list-none"
-    >
-      <article
-        className={`group relative flex h-full flex-col overflow-hidden rounded-card aura-glass aura-glass-lift ${
-          hasQuit ? "opacity-75 grayscale" : ""
-        }`}
-      >
-        <div
-          aria-hidden
-          className={`aura-glass-ink pointer-events-none absolute inset-0 transition-opacity duration-300 ${
-            isSelected ? "opacity-100" : "opacity-0"
-          }`}
-        />
-        <button
-          type="button"
-          onClick={onPick}
-          disabled={disabled}
-          aria-pressed={isSelected}
-          aria-label={`Pick ${member.firstName} as the partner`}
-          className="relative z-10 flex flex-1 cursor-pointer flex-col gap-3 px-4 py-4 text-left disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <div className="flex items-start gap-3">
-            <Portrait member={member} variant="row" />
-            <div className="min-w-0 flex-1 space-y-1">
-              <h4
-                className={`line-clamp-1 pr-9 font-display text-display-sm font-semibold leading-tight tracking-tight transition-colors duration-300 ${
-                  isSelected ? "text-white" : "text-aura-ink"
-                }`}
-              >
-                {member.firstName}
-              </h4>
-              <p
-                className={`line-clamp-2 aura-accent pr-9 text-label leading-snug transition-colors duration-300 ${
-                  isSelected ? "text-white/80" : "text-aura-ink/75"
-                }`}
-              >
-                &ldquo;{profileTeaser}&rdquo;
-              </p>
-            </div>
-          </div>
-          <div className="mt-auto space-y-3 pt-1">
-            <SealedFileSummary profile={profile} inverted={isSelected} hasQuit={hasQuit} />
-          </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={onOpenDossier}
-          aria-label={`Open ${member.firstName} dossier`}
-          title="Open dossier"
-          className={`absolute right-3 top-3 z-20 grid size-7 cursor-pointer place-items-center rounded-full transition-colors duration-300 ${
-            isSelected
-              ? "bg-white/10 text-white/85 hover:bg-white/20 hover:text-white"
-              : "bg-white/55 text-aura-muted hover:bg-white hover:text-aura-rose"
-          }`}
-        >
-          <DossierGlyph />
-        </button>
-        {hasQuit ? <QuitMemberMark /> : null}
-      </article>
-    </motion.li>
-  );
-}
-
-function DossierFilterRail({
-  searchQuery,
-  onSearchChange,
-  kindFilter,
-  onKindFilterChange,
-  sortMode,
-  onSortModeChange,
-  totalCount,
-  shownCount,
-  partnerPicked,
-  hasActiveFilters,
-  onClearFilters,
-}: {
-  searchQuery: string;
-  onSearchChange: (value: string) => void;
-  kindFilter: KindFilter;
-  onKindFilterChange: (value: KindFilter) => void;
-  sortMode: SortMode;
-  onSortModeChange: (value: SortMode) => void;
-  totalCount: number;
-  shownCount: number;
-  partnerPicked: boolean;
-  hasActiveFilters: boolean;
-  onClearFilters: () => void;
-}) {
-  return (
-    <div className="sticky top-24 z-20 mt-8 lg:top-28">
-      <div className="aura-glass-strong rounded-card px-4 py-3.5 lg:px-5">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-          <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-            // room
-          </span>
-          <FilterSearchInput value={searchQuery} onChange={onSearchChange} />
-          <div className="ml-auto flex items-center gap-3">
-            <SelectInput
-              label="sort"
-              value={sortMode}
-              options={SORT_MENU}
-              layout="toolbar"
-              align="right"
-              onChange={onSortModeChange}
-            />
-            <span className="font-mono text-micro font-semibold uppercase tabular-nums tracking-[0.24em] text-aura-faint">
-              <span className="text-aura-ink">{pad2(shownCount)}</span>
-              <span className="text-aura-faint">{` / ${pad2(totalCount)}`}</span>
-            </span>
-          </div>
-        </div>
-        <div className="mt-3 aura-rule" />
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div role="group" aria-label="Filter by kind" className="flex items-center gap-1">
-            {KIND_FILTERS.map((option) => (
-              <FilterChip
-                key={option.id}
-                active={kindFilter === option.id}
-                onClick={() => onKindFilterChange(option.id)}
-                disabled={option.id === "picked" && !partnerPicked}
-              >
-                {option.label}
-              </FilterChip>
-            ))}
-          </div>
-          {hasActiveFilters ? (
-            <button
-              type="button"
-              onClick={onClearFilters}
-              className="ml-auto cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose"
-            >
-              clear ✕
-            </button>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function FilterChip({
-  active,
-  disabled,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-pressed={active}
-      className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] transition disabled:cursor-not-allowed disabled:opacity-40 ${
-        active
-          ? "bg-aura-ink text-white shadow-quiet"
-          : "text-aura-muted hover:bg-white/65 hover:text-aura-ink"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-function FilterSearchInput({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    function handleShortcut(event: KeyboardEvent) {
-      const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k";
-      if (!isShortcut) return;
-      event.preventDefault();
-      inputRef.current?.focus();
-    }
-    window.addEventListener("keydown", handleShortcut);
-    return () => window.removeEventListener("keydown", handleShortcut);
-  }, []);
-
-  return (
-    <label className="flex min-w-[14rem] flex-1 max-w-md items-center gap-2 rounded-pill border border-aura-hairline bg-white/65 px-3.5 py-1.5 transition focus-within:border-aura-rose/40 focus-within:bg-white/85">
-      <SearchGlyph />
-      <input
-        ref={inputRef}
-        type="text"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        placeholder="search file room"
-        className="w-full border-0 bg-transparent font-mono text-label text-aura-ink placeholder:font-semibold placeholder:uppercase placeholder:tracking-[0.22em] placeholder:text-aura-faint focus:outline-none"
-      />
-      {value.length > 0 ? (
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          aria-label="Clear search"
-          className="cursor-pointer rounded-full px-1 font-mono text-micro text-aura-faint transition hover:text-aura-rose"
-        >
-          ✕
-        </button>
-      ) : (
-        <kbd className="hidden rounded border border-aura-hairline bg-white/70 px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint sm:inline-block">
-          ⌘K
-        </kbd>
-      )}
-    </label>
-  );
-}
-
-function SearchGlyph() {
-  return (
-    <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-aura-faint" fill="none" aria-hidden>
-      <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.4" />
-      <path d="M11 11L14 14" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function RosterSentinel({
-  totalCount,
-  shownCount,
-  hasActiveFilters,
-  focusPicked,
-}: {
-  totalCount: number;
-  shownCount: number;
-  hasActiveFilters: boolean;
-  focusPicked: boolean;
-}) {
-  const line = (() => {
-    if (totalCount === 0) {
-      return "Empty room. Cupid is professionally relieved.";
-    }
-    if (!focusPicked) {
-      return "Browse the room. Picks unlock once a focus is on the desk.";
-    }
-    if (shownCount === 0) {
-      return "Empty room. Cupid blames you, lightly.";
-    }
-    if (!hasActiveFilters) {
-      return `${shownCount} files in the room. Cupid pretends not to keep score.`;
-    }
-    if (shownCount === 1) {
-      return "One file matches. Convenient or alarming.";
-    }
-    return `${shownCount} of ${totalCount} files match. Cupid quietly approves.`;
-  })();
-
-  return <p className="mt-4 aura-accent text-lead text-aura-muted">&ldquo;{line}&rdquo;</p>;
-}
-
-function RosterEmptyTile({ onClear }: { onClear: () => void }) {
-  return (
-    <div className="aura-glass mt-6 rounded-card px-6 py-12 text-center">
-      <Eyebrow>// no match</Eyebrow>
-      <p className="mt-3 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-        Filed under nothing.
-      </p>
-      <p className="mt-2 text-body text-aura-muted">
-        Loosen the filters or clear the room and try again.
-      </p>
-      <div className="mt-5">
-        <GhostButton onClick={onClear}>Reset filters</GhostButton>
-      </div>
-    </div>
-  );
-}
-
 function SectionHeader({
   eyebrow,
   title,
@@ -939,123 +146,6 @@ function SectionHeader({
   );
 }
 
-function MemberDossier({
-  member,
-  playerKnowledge,
-  request,
-  isSelected,
-  disabled,
-  onClose,
-  onPick,
-}: {
-  member: Member;
-  playerKnowledge: PlayerKnowledgeRecord[];
-  request: MemberRequest | undefined;
-  isSelected: boolean;
-  disabled: boolean;
-  onClose: () => void;
-  onPick?: () => void;
-}) {
-  const hasQuit = !isMemberRetained(member);
-  const profile = buildVisibleMemberProfile(member, playerKnowledge);
-
-  useEffect(() => {
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
-  return (
-    <motion.aside
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.25, ease: EASE_OUT_QUART }}
-      onClick={onClose}
-      className="fixed inset-0 z-40 grid place-items-center bg-aura-bg/55 px-4 py-10 backdrop-blur-xl"
-    >
-      <motion.div
-        initial={{ opacity: 0, scale: 0.96, y: 12 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 8 }}
-        transition={{ duration: 0.4, ease: EASE_OUT_QUART }}
-        onClick={(event) => event.stopPropagation()}
-        className="aura-glass-strong relative flex max-h-[88vh] w-full max-w-3xl flex-col overflow-hidden rounded-card"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${member.firstName} dossier`}
-      >
-        <ModalCloseButton onClose={onClose} label="Close dossier" />
-
-        <div className="overflow-y-auto px-6 pb-6 pt-8 lg:px-10 lg:pb-8 lg:pt-10">
-          <div className="space-y-7">
-            <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-left">
-              <span className="relative inline-block">
-                <Portrait member={member} variant="stage" />
-                {hasQuit ? <QuitMemberMark /> : null}
-              </span>
-              <div className="min-w-0 space-y-2">
-                <Eyebrow>{hasQuit ? "// dossier.closed" : "// dossier"}</Eyebrow>
-                <h2 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
-                  {member.firstName}
-                </h2>
-                <div className="space-y-2 text-lead text-aura-muted">
-                  {profile.publicFragments.map((fragment) => (
-                    <p key={fragment}>{fragment}</p>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            <RedactedProfileBlocks blocks={profile.redactedBlocks} />
-
-            <DossierBlock eyebrow="// status">
-              {hasQuit ? <QuitRiskBadge member={member} /> : <SealedStatusBadge />}
-            </DossierBlock>
-
-            {request === undefined ? null : (
-              <DossierBlock eyebrow="// ask">
-                <p className="text-body text-aura-ink/90">{request.text}</p>
-              </DossierBlock>
-            )}
-
-            <DossierBlock eyebrow="// filed reads">
-              <FiledReadsList
-                reads={profile.revealedReads}
-                emptyText="No player-facing reads filed yet."
-              />
-            </DossierBlock>
-          </div>
-        </div>
-
-        <div className="flex shrink-0 items-center justify-between gap-4 border-t border-aura-hairline px-6 py-4 lg:px-10 lg:py-5">
-          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-            {hasQuit
-              ? "Client file closed"
-              : isSelected
-                ? "On the call sheet"
-                : "Awaiting your call"}
-          </p>
-          {onPick === undefined ? null : isSelected ? (
-            <GhostButton onClick={onPick} disabled={disabled} ariaPressed>
-              Remove from date
-            </GhostButton>
-          ) : (
-            <PrimaryButton onClick={onPick} disabled={disabled}>
-              Pick for date
-              <span className="ml-2 inline-block">→</span>
-            </PrimaryButton>
-          )}
-        </div>
-      </motion.div>
-    </motion.aside>
-  );
-}
-
 function ModalCloseButton({
   onClose,
   label,
@@ -1082,152 +172,6 @@ function ModalCloseButton({
         />
       </svg>
     </button>
-  );
-}
-
-function DossierBlock({ eyebrow, children }: { eyebrow: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <Eyebrow>{eyebrow}</Eyebrow>
-      <div className="mt-2.5">{children}</div>
-    </div>
-  );
-}
-
-function RedactedProfileBlocks({
-  blocks,
-}: {
-  blocks: ReturnType<typeof buildVisibleMemberProfile>["redactedBlocks"];
-}) {
-  if (blocks.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      {blocks.map((block) => (
-        <div key={block.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-            {block.label}
-          </p>
-          <div className="mt-3 space-y-1.5" aria-hidden>
-            {Array.from({ length: block.lineCount }, (_, index) => (
-              <span
-                key={`${block.id}-${index}`}
-                className="block h-2 rounded-pill bg-aura-hairline"
-              />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SealedStatusBadge() {
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-pill bg-white/65 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted shadow-quiet">
-      <span aria-hidden className="size-1.5 rounded-full bg-aura-faint" />
-      operational state sealed
-    </span>
-  );
-}
-
-function FiledReadsList({
-  reads,
-  emptyText,
-}: {
-  reads: readonly PlayerKnowledgeRecord[];
-  emptyText: string;
-}) {
-  if (reads.length === 0) {
-    return <p className="text-label text-aura-muted">{emptyText}</p>;
-  }
-
-  return (
-    <ul className="space-y-2">
-      {reads.map((read) => (
-        <li key={read.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-            {readKindLabel(read)}
-          </p>
-          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function readKindLabel(read: PlayerKnowledgeRecord): string {
-  if (read.readKind === "pair_dynamic") {
-    return read.confidence === "confirmed" ? "confirmed pair read" : "filed pair read";
-  }
-
-  if (read.readKind === "scenario_pressure") {
-    return read.confidence === "confirmed" ? "confirmed room read" : "filed room read";
-  }
-
-  return read.confidence === "confirmed" ? `confirmed ${read.readKind}` : `filed ${read.readKind}`;
-}
-
-function SelectionBar({
-  selectedMembers,
-  disabled,
-  onContinue,
-}: {
-  selectedMembers: Member[];
-  disabled: boolean;
-  onContinue: () => void;
-}) {
-  const hasClosedMember = selectedMembers.some((member) => !isMemberRetained(member));
-  const statusLabel = hasClosedMember
-    ? "closed file selected"
-    : selectedMembers.length === 2
-      ? "focus and partner"
-      : "focus selected";
-
-  return (
-    <AnimatePresence>
-      {selectedMembers.length > 0 ? (
-        <motion.div
-          key="selection-bar"
-          initial={{ y: 80, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 80, opacity: 0 }}
-          transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
-          className="pointer-events-none fixed inset-x-0 bottom-6 z-30 px-6 lg:bottom-8"
-        >
-          <div className="aura-glass-strong pointer-events-auto mx-auto flex w-full max-w-3xl items-center justify-between gap-6 rounded-pill px-3 py-2.5 pl-5">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-3">
-                {selectedMembers.map((member) => (
-                  <span
-                    key={member.id}
-                    className="rounded-full border-2 border-white/90 bg-white shadow-sm"
-                  >
-                    <Portrait member={member} variant="thumb" />
-                  </span>
-                ))}
-              </div>
-              <div className="leading-tight">
-                <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-                  {statusLabel}
-                </p>
-                <p className="text-body font-semibold text-aura-ink">
-                  {selectedMembers.length === 2
-                    ? `${selectedMembers[0].firstName} and ${selectedMembers[1].firstName}`
-                    : `${selectedMembers[0].firstName}, awaiting partner`}
-                </p>
-              </div>
-            </div>
-            <PrimaryButton disabled={disabled} onClick={onContinue}>
-              Continue to brief
-              <span className="ml-2 inline-block">→</span>
-            </PrimaryButton>
-          </div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
   );
 }
 
@@ -1475,8 +419,8 @@ function DateHeader({
               type="button"
               data-sfx="click"
               onClick={onBack}
-              aria-label="Back to office"
-              title="Back to office"
+              aria-label="Back to lobby"
+              title="Back to lobby"
               className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
             >
               <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
@@ -1923,6 +867,43 @@ function SystemNote({ item, animation }: { item: TranscriptItem; animation: Chat
       </p>
     </motion.li>
   );
+}
+
+function FiledReadsList({
+  reads,
+  emptyText,
+}: {
+  reads: readonly PlayerKnowledgeRecord[];
+  emptyText: string;
+}) {
+  if (reads.length === 0) {
+    return <p className="text-label text-aura-muted">{emptyText}</p>;
+  }
+
+  return (
+    <ul className="space-y-2">
+      {reads.map((read) => (
+        <li key={read.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+            {readKindLabel(read)}
+          </p>
+          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function readKindLabel(read: PlayerKnowledgeRecord): string {
+  if (read.readKind === "pair_dynamic") {
+    return read.confidence === "confirmed" ? "confirmed pair read" : "filed pair read";
+  }
+
+  if (read.readKind === "scenario_pressure") {
+    return read.confidence === "confirmed" ? "confirmed room read" : "filed room read";
+  }
+
+  return read.confidence === "confirmed" ? `confirmed ${read.readKind}` : `filed ${read.readKind}`;
 }
 
 function DateStatusCue({
@@ -2713,7 +1694,10 @@ function NudgeComposerModal({
   onClose: () => void;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
-  const recipient = participants.find((member) => member.id === recipientId);
+  const fallbackRecipient = participants[0];
+  const recipient =
+    participants.find((member) => member.id === recipientId) ?? fallbackRecipient ?? null;
+  const effectiveRecipientId = recipient?.id ?? "";
   const recipientName = recipient?.firstName ?? "one";
   const sendDisabled = !canIntervene || text.trim().length === 0;
   const swapEnabled = participants.length >= 2;
@@ -2740,7 +1724,7 @@ function NudgeComposerModal({
 
   const swapRecipient = () => {
     if (!swapEnabled) return;
-    const next = participants.find((member) => member.id !== recipientId);
+    const next = participants.find((member) => member.id !== effectiveRecipientId);
     if (next === undefined) return;
     onRecipientChange(next.id);
   };
@@ -3355,68 +2339,70 @@ export function NotesView({ memories, members, pairStates, scenarios, shiftCount
         tooltip="Public pair and scenario memories Cupid can share. Private member files and judge-only records stay sealed."
       />
 
-      <div className="mt-8">
-        <PairBoard
-          members={members}
-          pairStates={pairStates}
-          memories={memories}
-          scenarios={scenarios}
-          shiftCount={shiftCount}
-        />
+      <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(44rem,1fr)_minmax(26rem,34rem)]">
+        <div className="min-w-0 xl:sticky xl:top-6">
+          <PairBoard
+            members={members}
+            pairStates={pairStates}
+            memories={memories}
+            scenarios={scenarios}
+            shiftCount={shiftCount}
+          />
+        </div>
+
+        <section className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100vh-8rem)] xl:overflow-y-auto xl:pr-2">
+          <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-aura-hairline pb-3">
+            <div className="space-y-1">
+              <Eyebrow>// archive.notes</Eyebrow>
+              <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
+                Filed notes
+              </h3>
+            </div>
+            <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+              date and scenario cards
+            </p>
+          </header>
+
+          <NotesFilterRail
+            scopeFilter={scopeFilter}
+            onScopeFilterChange={(next) => {
+              setScopeFilter(next);
+              if (next === "pairs") setSelectedScenarioId("any");
+              if (next === "scenarios") setSelectedPairId("any");
+            }}
+            pairOptions={pairOptions}
+            selectedPairId={selectedPairId}
+            onSelectedPairChange={setSelectedPairId}
+            scenarioOptions={scenarioOptions}
+            selectedScenarioId={selectedScenarioId}
+            onSelectedScenarioChange={setSelectedScenarioId}
+            totalCount={totalCount}
+            shownCount={shownCount}
+            hasFilters={hasFilters}
+            onClearFilters={clearNotesFilters}
+          />
+
+          {totalCount === 0 ? (
+            <NotesEmptyTile
+              title="No public notes yet"
+              subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
+            />
+          ) : filteredMemories.length === 0 ? (
+            <NotesEmptyTile
+              title="No notes match this filter"
+              subhead="Loosen the filter to see more of the case archive."
+              action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
+            />
+          ) : (
+            <NotesArchive
+              memories={filteredMemories}
+              memberById={memberById}
+              pairStateById={pairStateById}
+              scenarioById={scenarioById}
+            />
+          )}
+        </section>
       </div>
-
-      <section className="mt-12">
-        <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-aura-hairline pb-3">
-          <div className="space-y-1">
-            <Eyebrow>// archive.notes</Eyebrow>
-            <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
-              Filed notes
-            </h3>
-          </div>
-          <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
-            date and scenario cards
-          </p>
-        </header>
-
-        <NotesFilterRail
-          scopeFilter={scopeFilter}
-          onScopeFilterChange={(next) => {
-            setScopeFilter(next);
-            if (next === "pairs") setSelectedScenarioId("any");
-            if (next === "scenarios") setSelectedPairId("any");
-          }}
-          pairOptions={pairOptions}
-          selectedPairId={selectedPairId}
-          onSelectedPairChange={setSelectedPairId}
-          scenarioOptions={scenarioOptions}
-          selectedScenarioId={selectedScenarioId}
-          onSelectedScenarioChange={setSelectedScenarioId}
-          totalCount={totalCount}
-          shownCount={shownCount}
-          hasFilters={hasFilters}
-          onClearFilters={clearNotesFilters}
-        />
-
-        {totalCount === 0 ? (
-          <NotesEmptyTile
-            title="No public notes yet"
-            subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
-          />
-        ) : filteredMemories.length === 0 ? (
-          <NotesEmptyTile
-            title="No notes match this filter"
-            subhead="Loosen the filter to see more of the case archive."
-            action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
-          />
-        ) : (
-          <NotesArchive
-            memories={filteredMemories}
-            memberById={memberById}
-            pairStateById={pairStateById}
-            scenarioById={scenarioById}
-          />
-        )}
-      </section>
     </ViewFrame>
   );
 }
@@ -3456,7 +2442,7 @@ function NotesArchive({
       )}
 
       {rest.length === 0 ? null : (
-        <ul className="mt-6 grid gap-5 lg:grid-cols-2">
+        <ul className="mt-6 grid gap-5">
           <AnimatePresence initial={false}>
             {rest.map((memory, index) => (
               <NoteCard
@@ -3540,7 +2526,7 @@ function NotesFilterRail({
 
       {showScenarioPicker ? (
         <NotesScopePicker
-          label="Scenario"
+          label="Date plan"
           value={selectedScenarioId}
           options={scenarioOptions}
           onChange={onSelectedScenarioChange}
@@ -3721,7 +2707,7 @@ function FeaturedNoteCard({
       />
       <ImportanceRail value={memory.importance} palette={palette} large />
 
-      <div className="relative z-10 px-7 pb-9 pl-12 pt-0 lg:px-9 lg:pb-11 lg:pl-14">
+      <div className="relative z-10 px-6 pb-8 pl-11 pt-0">
         <div className="-mt-px flex items-start justify-between gap-4">
           <span
             className={`inline-flex items-center gap-1.5 rounded-b-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.26em] shadow-quiet ${palette.ribbon}`}
@@ -3732,7 +2718,7 @@ function FeaturedNoteCard({
           <FiledStamp date={memory.createdAt} />
         </div>
 
-        <div className="mt-6 grid gap-7 lg:grid-cols-[auto_1fr] lg:gap-9">
+        <div className="mt-6 grid gap-6">
           <div className="flex flex-col items-start gap-3">
             {pairMembers.length > 0 ? (
               <div className="flex -space-x-5">
@@ -3763,7 +2749,7 @@ function FeaturedNoteCard({
           </div>
 
           <div className="min-w-0">
-            <h3 className="font-display text-display-lg font-semibold leading-[0.98] tracking-tight text-aura-ink">
+            <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
               {title}
             </h3>
             {subhead === null ? null : (
@@ -3771,7 +2757,7 @@ function FeaturedNoteCard({
                 {subhead}
               </p>
             )}
-            <p className="aura-accent mt-5 text-display-sm leading-snug text-aura-ink/90">{lead}</p>
+            <p className="aura-accent mt-5 text-lead leading-snug text-aura-ink/90">{lead}</p>
             {tail === "" ? null : (
               <p className="mt-4 max-w-prose text-body leading-relaxed text-aura-ink/80">{tail}</p>
             )}
@@ -4138,7 +3124,7 @@ function noteCardTitle(
   scenario: DateScenario | undefined,
 ): string {
   if (memory.scope === "scenario") {
-    return scenario?.title ?? memory.scenarioId ?? "Scenario file";
+    return scenario?.title ?? memory.scenarioId ?? "Date plan file";
   }
   return (
     joinPairFirstNames(pairMembers.map((member) => member.firstName)) ??
@@ -4198,7 +3184,9 @@ export function ViewFrame({ children, wide }: { children: React.ReactNode; wide?
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
-      className={`mx-auto w-full ${wide ? "max-w-5xl" : "max-w-4xl"} px-6 pb-40 pt-6 lg:px-10`}
+      className={`mx-auto w-full pb-40 pt-6 ${
+        wide ? "max-w-canvas px-0" : "max-w-4xl px-6 lg:px-10"
+      }`}
     >
       {children}
     </motion.div>
@@ -4388,7 +3376,7 @@ function buildNonCharacterLabel(
   scenario: DateScenario | undefined,
 ): { label: string; targetName?: string } {
   if (message.kind === "scenario") {
-    return { label: scenario?.title ?? "Scenario" };
+    return { label: scenario?.title ?? "Date plan" };
   }
 
   if (message.kind === "cupid") {

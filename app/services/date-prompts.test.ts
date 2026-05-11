@@ -7,7 +7,9 @@ import {
   buildCharacterPromptPacket,
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
+  checkCupidCorporateCopy,
   formatDirectorInstructionWithKindSuffix,
+  hasNearDuplicateRecentLine,
   pickSamplesForTurn,
   SCENARIO_EVENT_KIND_SUFFIXES,
 } from "./date-prompts";
@@ -793,6 +795,238 @@ describe("buildJudgePromptPacket reveal candidates", () => {
 
     expect(packet.prompt).toContain("Reveal candidates: none for this exchange.");
     expect(packet.prompt).toContain("Return usedEvidenceIds as [].");
+  });
+});
+
+describe("Cupid corporate copy check", () => {
+  it("accepts concrete operational notes", () => {
+    expect(checkCupidCorporateCopy("Cupid filed the receipt. Trust is up.").ok).toBe(true);
+    expect(checkCupidCorporateCopy("Coffee escalated. Jenna held the room. Spark filed.").ok).toBe(
+      true,
+    );
+  });
+
+  it("rejects banned AI slop verbs and consulting jargon", () => {
+    const slop = checkCupidCorporateCopy("Cupid helped the pair leverage their synergies.");
+    expect(slop.ok).toBe(false);
+    if (slop.ok === false) {
+      expect(slop.reason).toBe("banned_phrase");
+    }
+
+    const navigate = checkCupidCorporateCopy("The pair navigated their differences with grace.");
+    expect(navigate.ok).toBe(false);
+  });
+
+  it("rejects therapy-speak generic compatibility phrasing", () => {
+    const generic = checkCupidCorporateCopy("Jenna and Vhool found common ground over coffee.");
+    expect(generic.ok).toBe(false);
+    if (generic.ok === false) {
+      expect(generic.reason).toBe("generic_phrase");
+    }
+
+    const opened = checkCupidCorporateCopy("Jenna and Vhool opened up to each other over coffee.");
+    expect(opened.ok).toBe(false);
+    if (opened.ok === false) {
+      expect(opened.reason).toBe("generic_phrase");
+    }
+  });
+
+  it("rejects empty or overlong copy", () => {
+    expect(checkCupidCorporateCopy("   ").ok).toBe(false);
+
+    const long = checkCupidCorporateCopy("x".repeat(400), { maxLength: 100 });
+    expect(long.ok).toBe(false);
+    if (long.ok === false) {
+      expect(long.reason).toBe("too_long");
+    }
+  });
+});
+
+describe("character prompt repetition guard", () => {
+  it("includes the speaker's last lines and the partner's last lines", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const baseSession = {
+      id: "date-session-repeat-guard",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      focusMemberId: jenna.id,
+      turnLimit: 30,
+      currentTurn: 4,
+      dateHealth: 65,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const transcript = [
+      {
+        id: "msg-jenna-1",
+        dateSessionId: baseSession.id,
+        kind: "character" as const,
+        speakerId: jenna.id,
+        turnIndex: 1,
+        sequenceIndex: 1,
+        text: "Jenna brought up the lemon tart at the back booth.",
+        createdAt: "2026-05-05T12:01:00.000Z",
+      },
+      {
+        id: "msg-vhool-1",
+        dateSessionId: baseSession.id,
+        kind: "character" as const,
+        speakerId: vhool.id,
+        turnIndex: 2,
+        sequenceIndex: 2,
+        text: "Vhool counted the brass receipts on the saucer.",
+        createdAt: "2026-05-05T12:01:30.000Z",
+      },
+      {
+        id: "msg-jenna-2",
+        dateSessionId: baseSession.id,
+        kind: "character" as const,
+        speakerId: jenna.id,
+        turnIndex: 3,
+        sequenceIndex: 3,
+        text: "Jenna mentioned the rain pinging the window.",
+        createdAt: "2026-05-05T12:02:00.000Z",
+      },
+      {
+        id: "msg-vhool-2",
+        dateSessionId: baseSession.id,
+        kind: "character" as const,
+        speakerId: vhool.id,
+        turnIndex: 4,
+        sequenceIndex: 4,
+        text: "Vhool offered to share the saucer with the receipts.",
+        createdAt: "2026-05-05T12:02:30.000Z",
+      },
+    ];
+    const session = {
+      ...baseSession,
+      transcript,
+    };
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: transcript,
+      },
+    });
+
+    expect(packet.prompt).toContain("Your last 3 lines, do not repeat verbatim or lightly reword:");
+    expect(packet.prompt).toContain("Jenna brought up the lemon tart at the back booth.");
+    expect(packet.prompt).toContain("Jenna mentioned the rain pinging the window.");
+    expect(packet.prompt).toContain("Vhool's last 3 lines, do not echo verbatim:");
+    expect(packet.prompt).toContain("Vhool counted the brass receipts on the saucer.");
+    expect(packet.prompt).toContain("Vhool offered to share the saucer with the receipts.");
+    expect(packet.prompt).not.toContain("Retry guard:");
+  });
+
+  it("adds a retry guard block when repetition feedback is supplied", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const repeatedLine = "Jenna keeps circling the same pizza place.";
+    const session = {
+      id: "date-session-retry",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      focusMemberId: jenna.id,
+      turnLimit: 30,
+      currentTurn: 1,
+      dateHealth: 65,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: [],
+      },
+      repetitionRetry: { repeatedLine },
+    });
+
+    expect(packet.prompt).toContain("Retry guard:");
+    expect(packet.prompt).toContain(repeatedLine);
+    expect(packet.prompt).toContain("Make a different conversational move.");
+  });
+
+  it("detects near duplicate lines via Jaccard overlap", () => {
+    const match = hasNearDuplicateRecentLine({
+      text: "Jenna keeps circling the same pizza place again across the street with the neon sign.",
+      recentLines: ["Jenna circled the same pizza place across the street with the new neon sign."],
+    });
+
+    expect(match).not.toBeNull();
+    if (match !== null) {
+      expect(match.repeatedLine).toContain("pizza place");
+    }
+  });
+
+  it("does not flag a short prompt against a different short prompt", () => {
+    const match = hasNearDuplicateRecentLine({
+      text: "line 3 response",
+      recentLines: ["line 1 response"],
+    });
+
+    expect(match).toBeNull();
   });
 });
 

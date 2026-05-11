@@ -81,19 +81,22 @@
   --shadow-cta: 0 18px 40px -12px rgba(236, 72, 153, 0.6);
   --shadow-cta-hover: 0 22px 50px -12px rgba(236, 72, 153, 0.75);
   --shadow-quiet: 0 1px 0 0 rgba(15, 23, 42, 0.04), 0 12px 30px -18px rgba(244, 63, 94, 0.18);
+
+  /* Canvas width. Single source for the playable shell width across every room
+     (Office, Roster, Date Book, Live Date, Files) and the top header. Tuned
+     wider than Tailwind's max-w-7xl so the dashboard reads as a game surface
+     on desktop without stretching prose past comfortable measure. */
+  --container-canvas: 100rem;
 }
 
 html {
   scrollbar-gutter: stable;
-}
-
-html,
-body {
   background: var(--color-aura-bg);
   overflow-x: clip;
 }
 
 body {
+  overflow-x: clip;
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--text-body);

@@ -136,6 +136,16 @@ export function AiSetupPanel({
     };
   }, []);
 
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
   const ollamaChatModels = useMemo(
     () =>
       uniqueModelOptions([
@@ -267,114 +277,109 @@ export function AiSetupPanel({
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[60]" role="dialog" aria-modal="true">
-      <div aria-hidden className="absolute inset-0 bg-aura-bg" />
-      <ModalAmbientMesh />
-      <div className="absolute inset-0 overflow-y-auto px-4 py-8">
-        <motion.section
-          initial={{ opacity: 0, y: 14 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
-          className="aura-glass-strong relative mx-auto w-full max-w-5xl rounded-card p-6 shadow-card lg:p-10"
-        >
-          <header className="flex flex-wrap items-start justify-between gap-4 border-b border-aura-hairline pb-7">
-            <div className="max-w-2xl space-y-3">
-              <MutedLabel>{formSerial}</MutedLabel>
-              <h2 className="font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
-                Provision an AI desk.
-              </h2>
-              <p className="text-body leading-relaxed text-aura-muted">
-                Pick one provider. Cupid will not book a date until the desk is staffed and the
-                provider status reads ready.
-              </p>
-            </div>
-            {required ? null : <ChromeButton onClick={onClose}>Close</ChromeButton>}
-          </header>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.24, ease: EASE_OUT_QUART }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="AI desk setup"
+      onClick={onClose}
+      className="fixed inset-0 z-[60] overflow-y-auto bg-aura-ink/45 px-4 py-8 backdrop-blur-xl"
+    >
+      <motion.section
+        initial={{ opacity: 0, y: 14, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.98 }}
+        transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+        onClick={(event) => event.stopPropagation()}
+        className="aura-glass-strong relative mx-auto w-full max-w-4xl rounded-card p-6 shadow-card lg:p-10"
+      >
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-aura-hairline pb-7">
+          <div className="max-w-2xl space-y-3">
+            <MutedLabel>{formSerial}</MutedLabel>
+            <h2 className="font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
+              Provision an AI desk.
+            </h2>
+            <p className="text-body leading-relaxed text-aura-muted">
+              Pick one provider. Cupid will not book a date until the desk is staffed and the
+              provider status reads ready.
+            </p>
+          </div>
+          <ChromeButton onClick={onClose}>Close</ChromeButton>
+        </header>
 
-          <ProviderRouter activeProvider={activeProvider} onSelect={selectProvider} />
+        <ProviderRouter activeProvider={activeProvider} onSelect={selectProvider} />
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
-            <div className="min-w-0 space-y-6">
-              {activeProvider === "ollama" ? (
-                <OllamaSetupTab
-                  config={draftConfig}
-                  chatModels={ollamaChatModels}
-                  embeddingModels={ollamaEmbeddingModels}
-                  isScanning={isScanning}
-                  error={ollamaError}
-                  isUrlLocked={isProviderUrlLocked}
-                  onScan={scanOllama}
-                  onConfig={updateDraft}
-                />
-              ) : (
-                <GatewaySetupTab
-                  config={draftConfig}
-                  gatewayApiKey={draftGatewayKey}
-                  reasoningDisabled={gatewayReasoningDisabled}
-                  activeGatewayModelLabel={activeGatewayModel?.label ?? draftConfig.chatModel}
-                  isUrlLocked={isProviderUrlLocked}
-                  onConfig={updateDraft}
-                  onGatewayApiKey={setDraftGatewayKey}
-                />
-              )}
-            </div>
-
-            <aside className="space-y-4">
-              <StatusCard status={displayedStatus} />
-              <ResolvedCard
-                provider={activeProvider}
-                chatModel={draftConfig.chatModel}
-                embeddingModel={draftConfig.embeddingModel}
-                reasoningLevel={draftConfig.reasoningLevel}
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
+          <div className="min-w-0 space-y-6">
+            {activeProvider === "ollama" ? (
+              <OllamaSetupTab
+                config={draftConfig}
+                chatModels={ollamaChatModels}
+                embeddingModels={ollamaEmbeddingModels}
+                isScanning={isScanning}
+                error={ollamaError}
+                isUrlLocked={isProviderUrlLocked}
+                onScan={scanOllama}
+                onConfig={updateDraft}
               />
-            </aside>
+            ) : (
+              <GatewaySetupTab
+                config={draftConfig}
+                gatewayApiKey={draftGatewayKey}
+                reasoningDisabled={gatewayReasoningDisabled}
+                activeGatewayModelLabel={activeGatewayModel?.label ?? draftConfig.chatModel}
+                isUrlLocked={isProviderUrlLocked}
+                onConfig={updateDraft}
+                onGatewayApiKey={setDraftGatewayKey}
+              />
+            )}
           </div>
 
-          {saveError === null ? null : (
-            <p className="mt-6 rounded-tile border border-aura-rose/30 bg-rose-50/75 px-3 py-2 text-label leading-relaxed text-aura-rose">
-              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
-                save failed ::
-              </span>{" "}
-              {saveError}
-            </p>
-          )}
-          {saveError === null && saveHint !== null ? (
-            <p className="mt-6 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
-              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
-                pending ::
-              </span>{" "}
-              {saveHint}
-            </p>
-          ) : null}
+          <aside className="space-y-4">
+            <StatusCard status={displayedStatus} />
+            <ResolvedCard
+              provider={activeProvider}
+              chatModel={draftConfig.chatModel}
+              embeddingModel={draftConfig.embeddingModel}
+              reasoningLevel={draftConfig.reasoningLevel}
+            />
+          </aside>
+        </div>
 
-          <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
-            <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
-            <div className="flex flex-wrap gap-2">
-              <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
-                {isVerifying ? "Verifying" : "Verify"}
-              </GhostButton>
-              <PrimaryButton disabled={busy} onClick={saveAndCheck}>
-                {isSaving ? "Verifying" : "Save and verify"}
-              </PrimaryButton>
-            </div>
-          </footer>
-        </motion.section>
-      </div>
-    </div>,
+        {saveError === null ? null : (
+          <p className="mt-6 rounded-tile border border-aura-rose/30 bg-rose-50/75 px-3 py-2 text-label leading-relaxed text-aura-rose">
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+              save failed ::
+            </span>{" "}
+            {saveError}
+          </p>
+        )}
+        {saveError === null && saveHint !== null ? (
+          <p className="mt-6 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+              pending ::
+            </span>{" "}
+            {saveHint}
+          </p>
+        ) : null}
+
+        <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
+          <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
+          <div className="flex flex-wrap gap-2">
+            <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
+              {isVerifying ? "Verifying" : "Verify"}
+            </GhostButton>
+            <PrimaryButton disabled={busy} onClick={saveAndCheck}>
+              {isSaving ? "Verifying" : "Save and verify"}
+            </PrimaryButton>
+          </div>
+        </footer>
+      </motion.section>
+    </motion.div>,
     document.body,
-  );
-}
-
-/* ================================================================== */
-/* Modal ambient mesh                                                 */
-/* ================================================================== */
-
-function ModalAmbientMesh() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-      <div className="absolute -top-32 -left-24 h-[420px] w-[420px] rounded-full bg-aura-mesh-rose/35 blur-[140px]" />
-      <div className="absolute -bottom-24 right-0 h-[420px] w-[420px] rounded-full bg-aura-mesh-violet/35 blur-[140px]" />
-    </div>
   );
 }
 

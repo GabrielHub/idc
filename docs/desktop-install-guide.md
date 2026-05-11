@@ -70,9 +70,9 @@ Compare the printed value to the one in the release notes. If they differ, do no
 ## First run
 
 1. Punch in. Cupid issues your badge and seeds the roster.
-2. Open AI setup from the splash hint or the dashboard chrome.
+2. Open AI setup from the splash hint or the top shell button.
 3. Pick a provider, fill the fields, and Save and verify. Wait for the readiness check.
-4. Once the desk reads ready, book a date from the brief view.
+4. Once the desk reads ready, pick four focus cases, then book a date from the Live Date lobby.
 
 ## Where saves live
 

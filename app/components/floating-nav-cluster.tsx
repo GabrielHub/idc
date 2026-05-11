@@ -1,50 +1,41 @@
 import { motion } from "motion/react";
 
-export type RoomKey = "office" | "gallery" | "casebook" | "stage" | "files";
+export type RoomKey = "livedate" | "roster" | "datebook" | "files";
 
 export type FloatingNavClusterProps = {
   current: RoomKey;
-  stageEnabled: boolean;
   hidden?: boolean;
   onSelect: (room: RoomKey) => void;
 };
 
 const ROOM_LABELS: Record<RoomKey, string> = {
-  office: "Office",
-  gallery: "Gallery",
-  casebook: "Casebook",
-  stage: "Stage",
+  livedate: "Live Date",
+  roster: "Roster",
+  datebook: "Date Book",
   files: "Files",
 };
 
-export function FloatingNavCluster({
-  current,
-  stageEnabled,
-  hidden = false,
-  onSelect,
-}: FloatingNavClusterProps) {
-  const buttons: RoomKey[] = ["office", "gallery", "casebook", "stage", "files"];
+export function FloatingNavCluster({ current, hidden = false, onSelect }: FloatingNavClusterProps) {
+  const buttons: RoomKey[] = ["livedate", "roster", "datebook", "files"];
+
+  if (hidden) {
+    return null;
+  }
 
   return (
     <motion.nav
       aria-label="Cupid rooms"
       initial={{ opacity: 0, y: 24 }}
-      animate={{
-        opacity: hidden ? 0 : 1,
-        y: hidden ? 24 : 0,
-        pointerEvents: hidden ? "none" : "auto",
-      }}
+      animate={{ opacity: 1, y: 0, pointerEvents: "auto" }}
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       className="fixed bottom-6 right-6 z-40 flex flex-col gap-3"
     >
       {buttons.map((room) => {
-        const disabled = room === "stage" && !stageEnabled;
         const active = current === room;
         return (
           <NavButton
             key={room}
             active={active}
-            disabled={disabled}
             onClick={() => onSelect(room)}
             label={ROOM_LABELS[room]}
             icon={<RoomIcon room={room} />}
@@ -57,13 +48,11 @@ export function FloatingNavCluster({
 
 function NavButton({
   active,
-  disabled,
   onClick,
   label,
   icon,
 }: {
   active: boolean;
-  disabled: boolean;
   onClick: () => void;
   label: string;
   icon: React.ReactNode;
@@ -72,7 +61,6 @@ function NavButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={disabled}
       aria-label={label}
       title={label}
       data-sfx="click"
@@ -93,7 +81,7 @@ function NavButton({
 }
 
 function RoomIcon({ room }: { room: RoomKey }) {
-  if (room === "office") {
+  if (room === "livedate") {
     return (
       <svg
         viewBox="0 0 20 20"
@@ -101,14 +89,13 @@ function RoomIcon({ room }: { room: RoomKey }) {
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
+        strokeLinejoin="round"
       >
-        <rect x="3" y="6" width="14" height="10" rx="1.5" />
-        <path d="M3 9h14" />
-        <path d="M7 6V4h6v2" />
+        <path d="M10 17 C 3 12.5 2 7.5 5.5 5 C 7 4 8.75 4.5 10 6 C 11.25 4.5 13 4 14.5 5 C 18 7.5 17 12.5 10 17 Z" />
       </svg>
     );
   }
-  if (room === "gallery") {
+  if (room === "roster") {
     return (
       <svg
         viewBox="0 0 20 20"
@@ -116,14 +103,19 @@ function RoomIcon({ room }: { room: RoomKey }) {
         fill="none"
         stroke="currentColor"
         strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <rect x="3" y="4" width="14" height="12" rx="1.5" />
-        <circle cx="8" cy="9" r="1.5" />
-        <path d="M3 14l4-4 3 3 4-5 3 4" />
+        <circle cx="10" cy="6.5" r="2.5" />
+        <path d="M4.5 16.5c0-2.6 2.5-4.5 5.5-4.5s5.5 1.9 5.5 4.5" />
+        <circle cx="4" cy="8" r="1.75" />
+        <path d="M1.5 15.5c0-1.7 1.1-3 2.75-3" />
+        <circle cx="16" cy="8" r="1.75" />
+        <path d="M18.5 15.5c0-1.7-1.1-3-2.75-3" />
       </svg>
     );
   }
-  if (room === "casebook") {
+  if (room === "datebook") {
     return (
       <svg
         viewBox="0 0 20 20"
@@ -135,21 +127,6 @@ function RoomIcon({ room }: { room: RoomKey }) {
         <rect x="4" y="3" width="12" height="14" rx="1.5" />
         <path d="M7 3v14" />
         <path d="M11 7h3M11 10h3M11 13h3" />
-      </svg>
-    );
-  }
-  if (room === "stage") {
-    return (
-      <svg
-        viewBox="0 0 20 20"
-        className="size-5"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <path d="M3 7l3-3h8l3 3" />
-        <path d="M5 7v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7" />
-        <path d="M10 12v3" />
       </svg>
     );
   }

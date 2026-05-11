@@ -381,6 +381,108 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     expect(relatedEligible.map((candidate) => candidate.id)).toContain(boundary.id);
   });
 
+  it("surfaces at least one safe read when a reveal-kind event triggers in the exchange", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "mei-sato");
+    const partner = findMember(seed, "calvin-hewes");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = seed.pairStates.find(
+      (state) => state.id === makePairId(member.id, partner.id),
+    )!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const exchangeMessages = [
+      {
+        id: "message-1",
+        dateSessionId: "test",
+        kind: "character" as const,
+        speakerId: member.id,
+        turnIndex: 1,
+        sequenceIndex: 1,
+        text: "Mei admits she keeps the same takeout reciept on the fridge for three weeks.",
+        createdAt: SEED_DATE.toISOString(),
+      },
+      {
+        id: "message-2",
+        dateSessionId: "test",
+        kind: "scenario" as const,
+        turnIndex: 1,
+        sequenceIndex: 2,
+        text: "The room turns honest. The packaging holds a sticky note in old handwriting.",
+        createdAt: SEED_DATE.toISOString(),
+      },
+    ];
+
+    const withoutReveal = filterExchangeEligibleRevealCandidates({
+      candidates,
+      matchFit,
+      exchangeMessages,
+      triggeredEventIds: [],
+    });
+    const withReveal = filterExchangeEligibleRevealCandidates({
+      candidates,
+      matchFit,
+      exchangeMessages,
+      triggeredEventIds: [],
+      pendingEventKinds: ["reveal"],
+    });
+
+    expect(withReveal.length).toBeGreaterThanOrEqual(1);
+    expect(withReveal.length).toBeGreaterThanOrEqual(withoutReveal.length);
+    for (const candidate of withReveal) {
+      expect(candidate.readText).not.toMatch(/\d+/);
+    }
+  });
+
+  it("does not fabricate reveal-fallback candidates when the transcript is empty", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "mei-sato");
+    const partner = findMember(seed, "calvin-hewes");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = seed.pairStates.find(
+      (state) => state.id === makePairId(member.id, partner.id),
+    )!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      matchFit,
+      exchangeMessages: [
+        {
+          id: "scenario-only",
+          dateSessionId: "test",
+          kind: "scenario" as const,
+          turnIndex: 0,
+          sequenceIndex: 1,
+          text: "A scene happens without any spoken line.",
+          createdAt: SEED_DATE.toISOString(),
+        },
+      ],
+      triggeredEventIds: [],
+      pendingEventKinds: ["reveal"],
+    });
+
+    expect(eligible).toEqual([]);
+  });
+
   it("hard stop candidates are always eligible", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "opal-sunday");

@@ -1,0 +1,872 @@
+import { useEffect, useMemo, useState } from "react";
+
+import type {
+  DateScenario,
+  GameSave,
+  Member,
+  MemberRequest,
+  PairState,
+  ShiftState,
+} from "../domain/game";
+import { clientLossLimit, type ReadyClosurePair } from "../services/closures";
+import {
+  getMemberQuitRiskStatus,
+  getQuitMembers,
+  MEMBER_QUIT_RISK_LABEL,
+} from "../services/date-engine";
+import { evaluateMatchFit } from "../services/match-fit";
+import { makePairId } from "../services/game-seed";
+import { isMemberInCooldown } from "../services/shift-planning";
+import { GhostButton, Hairline, pad2, Portrait, PrimaryButton } from "./dashboard-atoms";
+import {
+  MemberCard,
+  MemberDetailsModal,
+  type MemberCardPill,
+  type MemberCardState,
+} from "./member-card";
+import { ScenarioCard } from "./scenario-card";
+
+export type PreDateCanvasProps = {
+  save: GameSave;
+  shift: ShiftState;
+  focusedMembers: Member[];
+  drawnScenarios: DateScenario[];
+  memberRequests: readonly MemberRequest[];
+  pairStates: readonly PairState[];
+  isActionPending: boolean;
+  aiReady: boolean;
+  readyClosurePairs: ReadyClosurePair[];
+  closingPairId: string | null;
+  closureError: { pairId: string; message: string } | null;
+  onStartDate: (input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    scenarioId: string;
+  }) => void;
+  onConfirmClosure: (pairId: string) => void;
+  onDismissClosureError: () => void;
+  onOpenDateBook: () => void;
+  onOpenRoster: () => void;
+  onCloseShift: () => void;
+  onStartNextShift: () => void;
+  onResolveLibraryPick: () => void;
+};
+
+export function PreDateCanvas({
+  save,
+  shift,
+  focusedMembers,
+  drawnScenarios,
+  memberRequests: requests,
+  pairStates,
+  isActionPending,
+  aiReady,
+  readyClosurePairs,
+  closingPairId,
+  closureError,
+  onStartDate,
+  onConfirmClosure,
+  onDismissClosureError,
+  onOpenDateBook,
+  onOpenRoster,
+  onCloseShift,
+  onStartNextShift,
+  onResolveLibraryPick,
+}: PreDateCanvasProps) {
+  const focusedIds = useMemo(
+    () => new Set(focusedMembers.map((member) => member.id)),
+    [focusedMembers],
+  );
+  const focusedClosurePairs = useMemo(
+    () =>
+      readyClosurePairs.filter((entry) =>
+        entry.participants.some((participant) => focusedIds.has(participant.id)),
+      ),
+    [readyClosurePairs, focusedIds],
+  );
+  const lossLimit = clientLossLimit(save);
+  const quitCount = useMemo(() => getQuitMembers(save.members).length, [save.members]);
+  const quitsRemaining = Math.max(0, lossLimit - quitCount);
+  const eligibleFocus = useMemo(
+    () =>
+      focusedMembers.filter(
+        (member) =>
+          member.state.status === "active" && !isMemberInCooldown(member, shift.shiftNumber),
+      ),
+    [focusedMembers, shift.shiftNumber],
+  );
+
+  const [activeFocusId, setActiveFocusId] = useState<string | null>(eligibleFocus[0]?.id ?? null);
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [scenarioId, setScenarioId] = useState<string | null>(drawnScenarios[0]?.id ?? null);
+  const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+
+  const requestsById = useMemo(() => {
+    const map = new Map<string, MemberRequest>();
+    for (const request of requests) map.set(request.id, request);
+    return map;
+  }, [requests]);
+  const requestForMember = (member: Member): MemberRequest | undefined => {
+    if (member.state.currentRequestId === undefined) return undefined;
+    return requestsById.get(member.state.currentRequestId);
+  };
+
+  useEffect(() => {
+    if (activeFocusId !== null && eligibleFocus.some((member) => member.id === activeFocusId)) {
+      return;
+    }
+    setActiveFocusId(eligibleFocus[0]?.id ?? null);
+  }, [activeFocusId, eligibleFocus]);
+
+  useEffect(() => {
+    if (scenarioId !== null && drawnScenarios.some((scenario) => scenario.id === scenarioId)) {
+      return;
+    }
+    setScenarioId(drawnScenarios[0]?.id ?? null);
+  }, [scenarioId, drawnScenarios]);
+
+  const activeFocus = useMemo(
+    () => save.members.find((member) => member.id === activeFocusId) ?? null,
+    [save.members, activeFocusId],
+  );
+
+  const candidatePartners = useMemo(() => {
+    if (activeFocus === null) return [];
+    return save.members.filter(
+      (member) =>
+        member.id !== activeFocus.id &&
+        member.state.status === "active" &&
+        !isMemberInCooldown(member, shift.shiftNumber),
+    );
+  }, [save.members, activeFocus, shift.shiftNumber]);
+
+  useEffect(() => {
+    if (partnerId === null) return;
+    const stillEligible = candidatePartners.some((member) => member.id === partnerId);
+    if (!stillEligible) {
+      setPartnerId(null);
+    }
+  }, [candidatePartners, partnerId]);
+
+  const selectedScenario = useMemo(
+    () => drawnScenarios.find((scenario) => scenario.id === scenarioId) ?? null,
+    [drawnScenarios, scenarioId],
+  );
+
+  const pairStateById = useMemo(
+    () => new Map(pairStates.map((state) => [state.id, state])),
+    [pairStates],
+  );
+  const fallbackScenario = drawnScenarios[0] ?? null;
+
+  const suggestedPartner = useMemo(() => {
+    if (activeFocus === null) return null;
+    const scenario = selectedScenario ?? fallbackScenario;
+    if (scenario === null) return null;
+    let best: Member | null = null;
+    let bestScore = -Infinity;
+    for (const candidate of candidatePartners) {
+      const pairState = pairStateById.get(makePairId(activeFocus.id, candidate.id));
+      if (pairState === undefined) continue;
+      try {
+        const fit = evaluateMatchFit({
+          members: [activeFocus, candidate],
+          scenario,
+          pairState,
+          activeRequests: [],
+        });
+        const score = fit.startingDateHealthDelta;
+        if (score > bestScore) {
+          best = candidate;
+          bestScore = score;
+        }
+      } catch {
+        continue;
+      }
+    }
+    return best;
+  }, [activeFocus, candidatePartners, fallbackScenario, selectedScenario, pairStateById]);
+
+  const effectivePartner = useMemo(
+    () =>
+      partnerId === null
+        ? suggestedPartner
+        : (save.members.find((member) => member.id === partnerId) ?? null),
+    [partnerId, suggestedPartner, save.members],
+  );
+
+  const shiftClosed = shift.status === "completed";
+  const slotsRemaining = shift.dateSlotsTotal - shift.dateSlotsUsed;
+  const pendingLibraryPick = save.scenarioDeck.pendingLibraryPick;
+
+  const canStart =
+    aiReady &&
+    !isActionPending &&
+    !shiftClosed &&
+    pendingLibraryPick === undefined &&
+    slotsRemaining > 0 &&
+    activeFocus !== null &&
+    effectivePartner !== null &&
+    selectedScenario !== null &&
+    activeFocus.state.status === "active" &&
+    effectivePartner.state.status === "active";
+
+  const openMember = useMemo(
+    () => save.members.find((member) => member.id === openMemberId) ?? null,
+    [save.members, openMemberId],
+  );
+  const openMemberRequest = openMember === null ? undefined : requestForMember(openMember);
+
+  return (
+    <section className="relative mx-auto w-full max-w-canvas px-6 pb-44 pt-12 lg:px-12">
+      <PreDateHeader
+        shiftNumber={shift.shiftNumber}
+        slotsRemaining={slotsRemaining}
+        eligibleFocusCount={eligibleFocus.length}
+        focusedTotal={focusedMembers.length}
+        quitsRemaining={quitsRemaining}
+        lossLimit={lossLimit}
+        closureCount={save.closureCount}
+        shiftClosed={shiftClosed}
+        isActionPending={isActionPending}
+        onCloseShift={onCloseShift}
+        onStartNextShift={onStartNextShift}
+      />
+
+      {focusedClosurePairs.length > 0 ? (
+        <ClosureCallout
+          entries={focusedClosurePairs}
+          closingPairId={closingPairId}
+          closureError={closureError}
+          isActionPending={isActionPending}
+          onConfirm={onConfirmClosure}
+          onDismissError={onDismissClosureError}
+        />
+      ) : null}
+
+      <Hairline className="mt-2" />
+
+      <ScenarioStep
+        drawnScenarios={drawnScenarios}
+        selectedId={selectedScenario?.id ?? null}
+        pendingLibraryPick={pendingLibraryPick}
+        onSelect={setScenarioId}
+        onOpenDateBook={onOpenDateBook}
+        onResolveLibraryPick={onResolveLibraryPick}
+      />
+
+      <Hairline className="mt-12" />
+
+      <FocusStep
+        focusedMembers={focusedMembers}
+        activeFocusId={activeFocusId}
+        playerKnowledge={save.playerKnowledge}
+        shiftNumber={shift.shiftNumber}
+        requestForMember={requestForMember}
+        onSelect={setActiveFocusId}
+        onOpenRoster={onOpenRoster}
+        onExpand={(id) => setOpenMemberId(id)}
+      />
+
+      <Hairline className="mt-12" />
+
+      <PartnerStep
+        activeFocus={activeFocus}
+        candidatePartners={candidatePartners}
+        partnerId={partnerId}
+        suggestedPartnerId={suggestedPartner?.id ?? null}
+        playerKnowledge={save.playerKnowledge}
+        onOpenRoster={onOpenRoster}
+        onSelect={(id) => setPartnerId(id)}
+        onExpand={(id) => setOpenMemberId(id)}
+      />
+
+      <BeginDateDock
+        focus={activeFocus}
+        partner={effectivePartner}
+        scenario={selectedScenario}
+        canStart={canStart}
+        aiReady={aiReady}
+        pendingLibraryPick={pendingLibraryPick}
+        slotsRemaining={slotsRemaining}
+        shiftClosed={shiftClosed}
+        onStart={() => {
+          if (activeFocus !== null && effectivePartner !== null && selectedScenario !== null) {
+            onStartDate({
+              focusMemberId: activeFocus.id,
+              partnerMemberId: effectivePartner.id,
+              scenarioId: selectedScenario.id,
+            });
+          }
+        }}
+      />
+
+      {openMember === null ? null : (
+        <MemberDetailsModal
+          member={openMember}
+          playerKnowledge={save.playerKnowledge}
+          request={openMemberRequest}
+          isFocused={focusedMembers.some((focus) => focus.id === openMember.id)}
+          onClose={() => setOpenMemberId(null)}
+        />
+      )}
+    </section>
+  );
+}
+
+function PreDateHeader({
+  shiftNumber,
+  slotsRemaining,
+  eligibleFocusCount,
+  focusedTotal,
+  quitsRemaining,
+  lossLimit,
+  closureCount,
+  shiftClosed,
+  isActionPending,
+  onCloseShift,
+  onStartNextShift,
+}: {
+  shiftNumber: number;
+  slotsRemaining: number;
+  eligibleFocusCount: number;
+  focusedTotal: number;
+  quitsRemaining: number;
+  lossLimit: number;
+  closureCount: number;
+  shiftClosed: boolean;
+  isActionPending: boolean;
+  onCloseShift: () => void;
+  onStartNextShift: () => void;
+}) {
+  const quitsTone =
+    quitsRemaining <= 1
+      ? "text-aura-rose"
+      : quitsRemaining <= 2
+        ? "text-aura-amber"
+        : "text-aura-faint";
+
+  return (
+    <header className="mb-8">
+      <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose">
+        // livedate.shift.{pad2(shiftNumber)}
+      </p>
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-semibold tracking-tight text-aura-ink lg:text-4xl">
+            Tonight's date
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-aura-muted">
+            Pick a focus case, pick their partner, pick the room. Cupid prefills the obvious choice
+            so you can hit Begin date in one tap.
+          </p>
+        </div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex items-center gap-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+            <span>
+              {shiftClosed
+                ? "shift closed"
+                : `${slotsRemaining} slot${slotsRemaining === 1 ? "" : "s"} left`}
+            </span>
+            <span aria-hidden>•</span>
+            <span>
+              {eligibleFocusCount} ready / {focusedTotal} on file
+            </span>
+            <span aria-hidden>•</span>
+            <span
+              className={quitsTone}
+              title={`Cap rises by 1 with each closed pair. ${closureCount} closure${closureCount === 1 ? "" : "s"} on file.`}
+            >
+              quits remaining: {quitsRemaining} / {lossLimit}
+            </span>
+          </div>
+          {shiftClosed ? (
+            <PrimaryButton onClick={onStartNextShift} disabled={isActionPending}>
+              Open next shift →
+            </PrimaryButton>
+          ) : slotsRemaining > 0 ? (
+            <GhostButton onClick={onCloseShift} disabled={isActionPending}>
+              File the shift
+            </GhostButton>
+          ) : (
+            <PrimaryButton onClick={onCloseShift} disabled={isActionPending}>
+              Close the shift →
+            </PrimaryButton>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function StepHeader({
+  index,
+  eyebrow,
+  title,
+  hint,
+  rightSlot,
+}: {
+  index: number;
+  eyebrow: string;
+  title: string;
+  hint: string;
+  rightSlot?: React.ReactNode;
+}) {
+  return (
+    <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 place-items-center rounded-full border border-aura-rose/30 bg-white font-display text-base font-semibold text-aura-rose shadow-quiet">
+          {index}
+        </span>
+        <div>
+          <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+            {eyebrow}
+          </p>
+          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-aura-ink">
+            {title}
+          </h2>
+          <p className="mt-1 max-w-xl text-xs text-aura-muted">{hint}</p>
+        </div>
+      </div>
+      {rightSlot === undefined ? null : <div className="flex items-center gap-2">{rightSlot}</div>}
+    </header>
+  );
+}
+
+function FocusStep({
+  focusedMembers,
+  activeFocusId,
+  playerKnowledge,
+  shiftNumber,
+  requestForMember,
+  onSelect,
+  onOpenRoster,
+  onExpand,
+}: {
+  focusedMembers: Member[];
+  activeFocusId: string | null;
+  playerKnowledge: GameSave["playerKnowledge"];
+  shiftNumber: number;
+  requestForMember: (member: Member) => MemberRequest | undefined;
+  onSelect: (id: string) => void;
+  onOpenRoster: () => void;
+  onExpand: (id: string) => void;
+}) {
+  return (
+    <section className="mt-10">
+      <StepHeader
+        index={2}
+        eyebrow="// step.02.focus"
+        title="Focus case"
+        hint="Pick which case you're working tonight. Cooldowns and closed files cannot be picked."
+        rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
+      />
+      <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {focusedMembers.map((member, index) => {
+          const isActive = member.id === activeFocusId;
+          const isInCooldown = isMemberInCooldown(member, shiftNumber);
+          const askPreview =
+            member.state.status === "active" ? requestForMember(member)?.text : undefined;
+          const cardState: MemberCardState =
+            member.state.status === "closed"
+              ? "closed"
+              : member.state.status === "quit"
+                ? "quit"
+                : isActive
+                  ? "focused"
+                  : "default";
+          return (
+            <MemberCard
+              key={member.id}
+              member={member}
+              state={cardState}
+              density="compact"
+              playerKnowledge={playerKnowledge}
+              index={index}
+              statusPill={buildFocusPill(member, isInCooldown)}
+              askPreview={askPreview}
+              disabled={member.state.status !== "active" || isInCooldown}
+              onClick={() => {
+                if (member.state.status === "active" && !isInCooldown) onSelect(member.id);
+              }}
+              onExpand={() => onExpand(member.id)}
+            />
+          );
+        })}
+        {focusedMembers.length < 4 ? (
+          <li className="list-none">
+            <button
+              type="button"
+              onClick={onOpenRoster}
+              data-sfx="click"
+              className="flex h-full min-h-[5.5rem] w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-aura-rose/40 bg-white/40 px-4 py-6 font-mono text-micro uppercase tracking-[0.24em] text-aura-rose transition hover:bg-white/60"
+            >
+              + add focus case
+            </button>
+          </li>
+        ) : null}
+      </ul>
+    </section>
+  );
+}
+
+function PartnerStep({
+  activeFocus,
+  candidatePartners,
+  partnerId,
+  suggestedPartnerId,
+  playerKnowledge,
+  onOpenRoster,
+  onSelect,
+  onExpand,
+}: {
+  activeFocus: Member | null;
+  candidatePartners: Member[];
+  partnerId: string | null;
+  suggestedPartnerId: string | null;
+  playerKnowledge: GameSave["playerKnowledge"];
+  onOpenRoster: () => void;
+  onSelect: (id: string) => void;
+  onExpand: (id: string) => void;
+}) {
+  if (activeFocus === null) {
+    return (
+      <section className="mt-10">
+        <StepHeader
+          index={3}
+          eyebrow="// step.03.partner"
+          title="Partner"
+          hint="Pick a focus case first."
+        />
+      </section>
+    );
+  }
+
+  if (candidatePartners.length === 0) {
+    return (
+      <section className="mt-10">
+        <StepHeader
+          index={3}
+          eyebrow="// step.03.partner"
+          title={`Partner for ${activeFocus.firstName}`}
+          hint="No eligible partners on file. Open the roster to add a focus case or wait out a cooldown."
+          rightSlot={<GhostButton onClick={onOpenRoster}>Open roster</GhostButton>}
+        />
+      </section>
+    );
+  }
+
+  const effectivePartnerId = partnerId ?? suggestedPartnerId;
+
+  return (
+    <section className="mt-10">
+      <StepHeader
+        index={3}
+        eyebrow="// step.03.partner"
+        title={`Partner for ${activeFocus.firstName}`}
+        hint={
+          suggestedPartnerId === null
+            ? "Tap any active member to set the partner."
+            : "Cupid suggests the highest match-fit partner. Tap any active member to override."
+        }
+        rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
+      />
+      <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {candidatePartners.map((member, index) => {
+          const isPicked = member.id === effectivePartnerId;
+          const isSuggested = member.id === suggestedPartnerId;
+          const cardState: MemberCardState = isPicked ? "selected" : "default";
+          const statusPill: MemberCardPill | undefined =
+            isPicked && partnerId === null && isSuggested
+              ? { tone: "ink", label: "best match" }
+              : isPicked
+                ? { tone: "rose", label: "your pick" }
+                : isSuggested
+                  ? { tone: "ink", label: "best match" }
+                  : undefined;
+          return (
+            <MemberCard
+              key={member.id}
+              member={member}
+              state={cardState}
+              density="standard"
+              playerKnowledge={playerKnowledge}
+              index={index}
+              statusPill={statusPill}
+              onClick={() => onSelect(member.id)}
+              onExpand={() => onExpand(member.id)}
+            />
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function ScenarioStep({
+  drawnScenarios,
+  selectedId,
+  pendingLibraryPick,
+  onSelect,
+  onOpenDateBook,
+  onResolveLibraryPick,
+}: {
+  drawnScenarios: DateScenario[];
+  selectedId: string | null;
+  pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
+  onSelect: (id: string) => void;
+  onOpenDateBook: () => void;
+  onResolveLibraryPick: () => void;
+}) {
+  return (
+    <section className="mt-10">
+      <StepHeader
+        index={1}
+        eyebrow="// step.01.scene"
+        title="Date plan"
+        hint="Three cards drawn for tonight. Open the date book to swap or pick from the library."
+        rightSlot={
+          <>
+            {pendingLibraryPick !== undefined ? (
+              <GhostButton onClick={onResolveLibraryPick}>Resolve library pick →</GhostButton>
+            ) : null}
+            <GhostButton onClick={onOpenDateBook}>Open the date book</GhostButton>
+          </>
+        }
+      />
+      {drawnScenarios.length === 0 ? (
+        <p className="text-sm text-aura-muted">
+          No drawn hand yet. Open the date book to draw three for tonight.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {drawnScenarios.map((scenario) => (
+            <ScenarioCard
+              key={scenario.id}
+              scenario={scenario}
+              size="compact"
+              state={selectedId === scenario.id ? "selected" : "default"}
+              onClick={() => onSelect(scenario.id)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function BeginDateDock({
+  focus,
+  partner,
+  scenario,
+  canStart,
+  aiReady,
+  pendingLibraryPick,
+  slotsRemaining,
+  shiftClosed,
+  onStart,
+}: {
+  focus: Member | null;
+  partner: Member | null;
+  scenario: DateScenario | null;
+  canStart: boolean;
+  aiReady: boolean;
+  pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
+  slotsRemaining: number;
+  shiftClosed: boolean;
+  onStart: () => void;
+}) {
+  const status = !aiReady
+    ? "ai not ready"
+    : shiftClosed
+      ? "shift filed, open the next one to book"
+      : slotsRemaining <= 0
+        ? "no date slots left in this shift"
+        : pendingLibraryPick !== undefined
+          ? "resolve the pending library pick first"
+          : focus === null
+            ? "pick a focus case"
+            : partner === null
+              ? "pick a partner"
+              : scenario === null
+                ? "pick a date plan"
+                : null;
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-6">
+      <div className="aura-glass-strong pointer-events-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-3 rounded-pill px-5 py-2.5 shadow-aura-soft">
+        <DockSummary focus={focus} partner={partner} scenario={scenario} />
+        <div className="flex items-center gap-3">
+          {status !== null ? (
+            <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+              {status}
+            </span>
+          ) : null}
+          <PrimaryButton onClick={onStart} disabled={!canStart}>
+            Begin date →
+          </PrimaryButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DockSummary({
+  focus,
+  partner,
+  scenario,
+}: {
+  focus: Member | null;
+  partner: Member | null;
+  scenario: DateScenario | null;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-4">
+      <DockChip label="focus">
+        {focus === null ? (
+          <span className="text-aura-faint">··</span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Portrait member={focus} variant="transcript" />
+            <span className="truncate font-display text-sm font-semibold tracking-tight">
+              {focus.firstName}
+            </span>
+          </span>
+        )}
+      </DockChip>
+      <DockDivider />
+      <DockChip label="partner">
+        {partner === null ? (
+          <span className="text-aura-faint">··</span>
+        ) : (
+          <span className="flex items-center gap-2">
+            <Portrait member={partner} variant="transcript" />
+            <span className="truncate font-display text-sm font-semibold tracking-tight">
+              {partner.firstName}
+            </span>
+          </span>
+        )}
+      </DockChip>
+      <DockDivider />
+      <DockChip label="plan">
+        {scenario === null ? (
+          <span className="text-aura-faint">··</span>
+        ) : (
+          <span className="truncate font-display text-sm font-semibold tracking-tight">
+            {scenario.title}
+          </span>
+        )}
+      </DockChip>
+    </div>
+  );
+}
+
+function DockChip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col">
+      <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+        {label}
+      </span>
+      <span className="mt-1 flex min-w-0 items-center text-sm text-aura-ink">{children}</span>
+    </div>
+  );
+}
+
+function DockDivider() {
+  return <span aria-hidden className="h-7 w-px bg-aura-hairline" />;
+}
+
+function buildFocusPill(member: Member, isInCooldown: boolean): MemberCardPill {
+  if (member.state.status !== "active") {
+    return { tone: "neutral", label: MEMBER_QUIT_RISK_LABEL[getMemberQuitRiskStatus(member)] };
+  }
+  if (isInCooldown) {
+    return { tone: "amber", label: "cooldown" };
+  }
+  const status = getMemberQuitRiskStatus(member);
+  if (status === "client_confidence_low" || status === "closed_file_risk") {
+    return { tone: "rose", label: MEMBER_QUIT_RISK_LABEL[status] };
+  }
+  return { tone: "emerald", label: "ready" };
+}
+
+function ClosureCallout({
+  entries,
+  closingPairId,
+  closureError,
+  isActionPending,
+  onConfirm,
+  onDismissError,
+}: {
+  entries: ReadyClosurePair[];
+  closingPairId: string | null;
+  closureError: { pairId: string; message: string } | null;
+  isActionPending: boolean;
+  onConfirm: (pairId: string) => void;
+  onDismissError: () => void;
+}) {
+  return (
+    <section className="mb-6 mt-2 space-y-3">
+      {entries.map((entry) => {
+        const [first, second] = entry.participants;
+        const isClosing = closingPairId === entry.pairState.id;
+        const errorForEntry =
+          closureError !== null && closureError.pairId === entry.pairState.id
+            ? closureError.message
+            : null;
+        return (
+          <article
+            key={entry.pairState.id}
+            className="aura-glass-strong relative flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-aura-rose/40 bg-white/80 p-4 shadow-aura-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-3">
+                <span className="rounded-full border-2 border-white/90 bg-white shadow-quiet">
+                  <Portrait member={first} variant="card" />
+                </span>
+                <span className="rounded-full border-2 border-white/90 bg-white shadow-quiet">
+                  <Portrait member={second} variant="card" />
+                </span>
+              </div>
+              <div>
+                <p className="font-mono text-micro uppercase tracking-[0.26em] text-aura-rose">
+                  // closure.ready
+                </p>
+                <h2 className="font-display text-lg font-semibold tracking-tight text-aura-ink">
+                  {first.firstName} and {second.firstName} are ready to delete the app.
+                </h2>
+                <p className="mt-1 text-xs text-aura-muted">
+                  Close their case to file a pair memory, free their focus slots, and raise the
+                  client cap by one.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <PrimaryButton
+                onClick={() => onConfirm(entry.pairState.id)}
+                disabled={isActionPending || isClosing}
+              >
+                {isClosing ? "Filing closure…" : "Close their case →"}
+              </PrimaryButton>
+            </div>
+            {errorForEntry !== null ? (
+              <div className="basis-full rounded-2xl border border-aura-rose/30 bg-aura-rose/5 px-4 py-2 text-xs text-aura-rose">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{errorForEntry}</span>
+                  <button
+                    type="button"
+                    onClick={onDismissError}
+                    data-sfx="click"
+                    className="cursor-pointer rounded-pill border border-aura-rose/40 px-3 py-1 font-mono text-micro uppercase tracking-[0.18em]"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </section>
+  );
+}

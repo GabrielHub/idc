@@ -107,15 +107,73 @@ export function swapFocusCase(save: GameSave, oldId: string, newId: string): Gam
   return { ...save, focusedMemberIds: updatedFocus, members: updatedMembers };
 }
 
+export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): GameSave {
+  const uniqueIds = Array.from(new Set(nextIds));
+
+  if (uniqueIds.length !== FOCUS_CASE_LIMIT) {
+    throw new Error(`Cupid runs on exactly ${FOCUS_CASE_LIMIT} focus cases.`);
+  }
+
+  const membersById = new Map(save.members.map((member) => [member.id, member] as const));
+
+  for (const memberId of uniqueIds) {
+    const member = membersById.get(memberId);
+    if (member === undefined) {
+      throw new Error(`Focus case ${memberId} is not on the roster.`);
+    }
+    if (!canBeFocusCase(member)) {
+      throw new Error(`${member.firstName} cannot be focused. Pick an active member.`);
+    }
+  }
+
+  const nextSet = new Set(uniqueIds);
+  const droppedActiveIds = save.focusedMemberIds.filter((id) => {
+    if (nextSet.has(id)) return false;
+    const member = membersById.get(id);
+    return member !== undefined && member.state.status === "active";
+  });
+
+  if (droppedActiveIds.length === 0) {
+    return { ...save, focusedMemberIds: uniqueIds };
+  }
+
+  const droppedSet = new Set(droppedActiveIds);
+  const updatedMembers = save.members.map((member) => {
+    if (!droppedSet.has(member.id)) {
+      return member;
+    }
+    const retention = clampScore(member.state.retention - FOCUS_SWAP_RETENTION_PENALTY);
+    return {
+      ...member,
+      state: {
+        ...member.state,
+        retention,
+        recentDateResult:
+          retention === 0
+            ? "Client file closed. Member quit the app."
+            : "Case rotated off the focus board. Client confidence fell.",
+        status: retention === 0 ? "quit" : member.state.status,
+      },
+    };
+  });
+
+  return { ...save, focusedMemberIds: uniqueIds, members: updatedMembers };
+}
+
+export function previewReselectDrops(save: GameSave, nextIds: readonly string[]): Member[] {
+  const nextSet = new Set(nextIds);
+  const membersById = new Map(save.members.map((member) => [member.id, member] as const));
+  return save.focusedMemberIds
+    .filter((id) => !nextSet.has(id))
+    .map((id) => membersById.get(id))
+    .filter((member): member is Member => member !== undefined && member.state.status === "active");
+}
+
 export function getFocusedMembers(save: GameSave): Member[] {
   const membersById = new Map(save.members.map((member) => [member.id, member] as const));
   return save.focusedMemberIds
     .map((memberId) => membersById.get(memberId))
     .filter((member): member is Member => member !== undefined);
-}
-
-export function hasOpenFocusSlot(save: GameSave): boolean {
-  return save.focusedMemberIds.length < FOCUS_CASE_LIMIT;
 }
 
 export function syncActiveShiftFocusCases(save: GameSave): GameSave {
