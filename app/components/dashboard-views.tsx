@@ -30,6 +30,7 @@ import {
   MEMBER_QUIT_RISK_LABEL,
   type MemberQuitRiskStatus,
 } from "../services/date-engine";
+import { PAIR_CLOSURE_TAG } from "../services/closures";
 import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import { clampScore } from "../services/utils";
 import {
@@ -3583,7 +3584,7 @@ function NotesScopePicker({
   );
 }
 
-type NoteScopeKey = "pair" | "date" | "scenario";
+type NoteScopeKey = "pair" | "date" | "scenario" | "closure";
 
 type ScopePalette = {
   label: string;
@@ -3623,7 +3624,27 @@ const NOTE_SCOPE_PALETTE: Record<NoteScopeKey, ScopePalette> = {
     glyphFill: "from-amber-100 via-aura-paper to-rose-50",
     caseDot: "bg-aura-amber",
   },
+  closure: {
+    label: "CASE CLOSED",
+    ribbon: "bg-aura-ink text-white",
+    rail: "bg-gradient-to-b from-aura-rose via-aura-fuchsia to-aura-amber",
+    watermark: "text-aura-rose",
+    glyphRing: "ring-aura-rose/50",
+    glyphFill: "from-aura-cream via-rose-50 to-fuchsia-100",
+    caseDot: "bg-aura-ink",
+  },
 };
+
+function isPairClosureMemory(memory: MemoryRecord): boolean {
+  return memory.scope === "pair" && memory.tags.includes(PAIR_CLOSURE_TAG);
+}
+
+function paletteForMemory(memory: MemoryRecord): ScopePalette {
+  if (isPairClosureMemory(memory)) {
+    return NOTE_SCOPE_PALETTE.closure;
+  }
+  return paletteForScope(memory.scope);
+}
 
 function paletteForScope(scope: MemoryRecord["scope"]): ScopePalette {
   if (scope === "pair" || scope === "date" || scope === "scenario") {
@@ -3633,6 +3654,11 @@ function paletteForScope(scope: MemoryRecord["scope"]): ScopePalette {
 }
 
 function caseNumberFor(memory: MemoryRecord): string {
+  if (isPairClosureMemory(memory)) {
+    const cleaned = memory.id.replace(/[^0-9a-zA-Z]/g, "");
+    const tail = cleaned.slice(-4).toUpperCase().padStart(4, "0");
+    return `C-CL-${tail}`;
+  }
   const prefix = memory.scope === "pair" ? "PR" : memory.scope === "date" ? "DT" : "SC";
   const cleaned = memory.id.replace(/[^0-9a-zA-Z]/g, "");
   const tail = cleaned.slice(-4).toUpperCase().padStart(4, "0");
@@ -3664,7 +3690,7 @@ function FeaturedNoteCard({
   scenarioById: Map<string, DateScenario>;
   rank: number;
 }) {
-  const palette = paletteForScope(memory.scope);
+  const palette = paletteForMemory(memory);
   const pairMembers =
     memory.pairId === undefined
       ? []
@@ -3793,7 +3819,7 @@ function NoteCard({
   pairStateById: Map<string, PairState>;
   scenarioById: Map<string, DateScenario>;
 }) {
-  const palette = paletteForScope(memory.scope);
+  const palette = paletteForMemory(memory);
   const pairMembers =
     memory.pairId === undefined
       ? []
@@ -4063,6 +4089,7 @@ const MEMORY_TAG_LABELS: Record<string, string> = {
   ai_summary: "AI filing",
   fallback_summary: "fallback filing",
   scenario_repeat: "repeat room",
+  pair_closure: "closure",
   low: "low risk",
   medium: "medium risk",
   high: "high risk",
@@ -4094,6 +4121,11 @@ function playerSafeMemoryText(text: string): string {
 }
 
 function sortMemoriesNewestFirst(first: MemoryRecord, second: MemoryRecord): number {
+  const firstIsClosure = isPairClosureMemory(first);
+  const secondIsClosure = isPairClosureMemory(second);
+  if (firstIsClosure !== secondIsClosure) {
+    return firstIsClosure ? -1 : 1;
+  }
   if (first.createdAt === second.createdAt) {
     return second.importance - first.importance;
   }

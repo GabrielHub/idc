@@ -194,6 +194,18 @@ Cupid runs four focus cases at a time and one date per shift. This frames the pl
 - The deck is a save-owned 12-card library, not a shift-owned hand. Each shift draws 3 cards into `shift.drawnScenarioIds` deterministically from the shift number. Playing a card opens a pending library slot; the player resolves the slot from the casebook. Voluntary swaps retire the dropped card for 3 shifts. See the deck service in `app/services/deck.ts`.
 - The `goal-complete-three-dates` goal is filtered out when shifts only book one date.
 
+## Case Closures And Win Conditions
+
+Cupid's positive endgame is the case closure. A pair that earns enough mutual signal can delete the app together. Closure is permanent and rewards the player with a +5 retention bump on every other active member and a +1 raise to the campaign quit cap.
+
+- Threshold lives in `app/services/closures.ts` as `CLOSURE_THRESHOLD`: `chemistry >= 75`, `trust >= 75`, `relationshipHealth >= 75`, `strain <= 30`, `conflict <= 30`, completed date count including the just-finished date `>= 3`, and `finalReport.outcome === "second_date"`. The `second_date` gate ties closure to a good date moment so a pair cannot close from a cool-down or repair-shaped report even if stats are still high.
+- `finalizeDateSession` stamps `dateFinalReportSchema.readyToClose` after each completed date. `getReadyClosurePairs(save)` re-checks the threshold against current pair stats and member status so stale `readyToClose` flags from earlier sessions cannot survive a later non-ready filing or a quit.
+- Closure is player-initiated. The Office canvas renders a callout for any ready pair with at least one focused member. Confirming the callout calls `generateClosureSummary` (AI hook in `app/services/closure-summary.ts`) and then `closePair` (in `app/services/closures.ts`). On failure the callout stays pending with a retryable error. Cupid never closes a pair with an empty summary.
+- `closePair` files a pair memory tagged `pair_closure`, flips both members to `member.state.status = "closed"`, removes them from `focusedMemberIds`, bumps `closureCount`, and applies `CLOSURE_RETENTION_BUMP` (+5) to remaining active members. Closure is permanent; closed members never re-enter focus, matchmaking, or shift requests, and retention math will not flip a closed member to `quit`.
+- The campaign quit cap is dynamic: `clientLossLimit(save) = CLIENT_LOSS_LIMIT_BASE + closureCount`. The base is 3, so a campaign that has closed 5 pairs can absorb 8 quits before `isCampaignLost(save)` fires.
+- `closureCount >= 5` triggers a one-time soft-win cutscene (`SoftWinCutscene` in `app/components/soft-win-cutscene.tsx`). The cutscene shows the first 5 closed pairs and their closure summaries with the title "Cupid received a promotion". Continue calls `markSoftWinSeen`, the game continues after, and the cutscene never fires again on the same save.
+- Out of scope for the current closure pass: re-opening closed cases, player-edited closure summaries, regenerating closure summaries, per-pair leaderboards, roster expansion, drift mechanics. Neglect is not punished. Closure is real reward without an inverse penalty.
+
 ## Adding Members
 
 When adding a member:

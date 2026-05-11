@@ -37,6 +37,7 @@ import {
 } from "../../platform/runtime";
 import type {
   CharacterPromptPacket,
+  ClosureSummaryPromptPacket,
   JudgePromptPacket,
   SummarizerPromptPacket,
 } from "../date-prompts";
@@ -52,10 +53,12 @@ import {
 const OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS = 160;
 const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 360;
 const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
+const OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS = 220;
 const OLLAMA_READINESS_MAX_OUTPUT_TOKENS = 32;
 const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 16384;
+const OLLAMA_CLOSURE_SUMMARY_CONTEXT_WINDOW_TOKENS = 8192;
 const OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS = 4096;
 const OLLAMA_EMBEDDING_CONTEXT_WINDOW_TOKENS = 2048;
 const OLLAMA_DISCOVERY_TIMEOUT_MS = 5_000;
@@ -344,6 +347,32 @@ export async function judgeDateExchange({
     exchangeIndex,
     ...output,
   });
+}
+
+export async function generateClosureSummaryText(
+  packet: ClosureSummaryPromptPacket,
+  config?: Partial<AiRuntimeConfig>,
+): Promise<string> {
+  const runtimeConfig = normalizeRuntimeConfig(config);
+  const result = await generateTextWithModelService({
+    system: packet.system,
+    prompt: packet.prompt,
+    modelId: runtimeConfig.chatModel,
+    config: withSecondaryContextWindow(runtimeConfig, OLLAMA_CLOSURE_SUMMARY_CONTEXT_WINDOW_TOKENS),
+    ...withOptionalMaxOutputTokens(
+      defaultMaxOutputTokensForProvider(
+        runtimeConfig.aiProvider,
+        OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS,
+      ),
+    ),
+    generationOptions: {
+      temperature: 0.7,
+      topP: 0.9,
+      topK: 40,
+    },
+  });
+
+  return result.text;
 }
 
 export async function summarizeDateMemories(

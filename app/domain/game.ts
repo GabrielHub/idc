@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 5;
+export const SAVE_SCHEMA_VERSION = 6;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -571,6 +571,7 @@ export const dateFinalReportSchema = z.object({
   recommendedFollowUp: followUpActionSchema,
   appliedFollowUp: followUpActionSchema.optional(),
   memoryRecordIds: z.array(memoryIdSchema),
+  readyToClose: z.boolean().default(false),
 });
 
 export const dateSessionSchema = z.object({
@@ -767,6 +768,8 @@ export const gameSaveSchema = z.object({
   playerKnowledge: z.array(playerKnowledgeRecordSchema).default([]),
   focusedMemberIds: z.array(memberIdSchema).max(4).default([]),
   scenarioDeck: scenarioDeckSchema,
+  closureCount: z.number().int().min(0).default(0),
+  softWinSeen: z.boolean().default(false),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });

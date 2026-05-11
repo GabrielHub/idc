@@ -49,6 +49,12 @@ import {
   filterExchangeEligibleRevealCandidates,
   selectDeterministicRevealIds,
 } from "./player-knowledge";
+import {
+  CLIENT_LOSS_LIMIT_BASE,
+  CLOSURE_THRESHOLD,
+  clientLossLimit,
+  evaluateClosureReadiness,
+} from "./closures";
 import { drawHand, markCardPlayed, pruneExpiredRetirements } from "./deck";
 import {
   isMemberInCooldown,
@@ -98,7 +104,7 @@ export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
 export const EVENT_DRAFT_OFFERED = EVENT_DRAFT_OFFERED_PER_KIND * SCENARIO_EVENT_KINDS.length;
 export const EVENT_DRAFT_PICKED = 3;
 const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
-export const CLIENT_LOSS_LIMIT = 3;
+export { CLIENT_LOSS_LIMIT_BASE, CLOSURE_THRESHOLD, clientLossLimit };
 
 type OutcomeStateDeltas = {
   retention: number;
@@ -1016,8 +1022,8 @@ export function getMemberQuitRiskStatus(member: Member): MemberQuitRiskStatus {
   return "file_stable";
 }
 
-export function isCampaignLost(save: Pick<GameSave, "members">): boolean {
-  return getQuitMembers(save.members).length >= CLIENT_LOSS_LIMIT;
+export function isCampaignLost(save: Pick<GameSave, "members" | "closureCount">): boolean {
+  return getQuitMembers(save.members).length >= clientLossLimit(save);
 }
 
 export type GoalProgressStatus = GoalScoreStatus | "open";
@@ -1366,6 +1372,15 @@ export function finalizeDateSession({
 }): DateSession {
   const outcome = deriveDateOutcome(session, pairState);
   const recommendedFollowUp = followUpForOutcome(outcome);
+  const completedDateCount = pairState.completedDateIds.includes(session.id)
+    ? pairState.completedDateIds.length
+    : pairState.completedDateIds.length + 1;
+  const readyToClose = evaluateClosureReadiness({
+    pairState,
+    outcome,
+    completedDateCount,
+    members,
+  });
   const report: DateFinalReport = dateFinalReportSchema.parse({
     id: `final-${session.id}`,
     dateSessionId: session.id,
@@ -1380,6 +1395,7 @@ export function finalizeDateSession({
       `memory-${session.id}-${members[1].id}`,
       `memory-${session.id}-scenario`,
     ],
+    readyToClose,
   });
 
   return dateSessionSchema.parse({

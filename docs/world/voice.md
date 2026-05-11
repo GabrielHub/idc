@@ -432,6 +432,20 @@ Every scenario fixture ships exactly nine `events`, three of each `kind`: `ambie
 
 Scenarios may carry one non-continuing environmental utterance through `characterVisibleText`, like a PA announcement or a printed label. The `directorInstruction` must say not to voice that source as a continuing speaker. Servers, hosts, volunteers, audio guides, voices in the kitchen, intercoms, coordinators, and creatures inside the venue do not become a third party in the conversation. If a scenario reads like a third character could pick up dialogue, rewrite it.
 
+## Closure Summary Voice
+
+Closure summaries are filed by `generateClosureSummary` when the player closes a pair. They live on the pair memory tagged `pair_closure` and surface in the Files canvas with the "CASE CLOSED" frame treatment, in the Office closure callout, and in the soft-win cutscene.
+
+Voice rules:
+
+- Warm, specific, short. Two to four sentences. Anchor the note in one to three concrete shared moments from the pair's filed history.
+- Workplace-comedy professional, not sentimental. Treat the pair landing as routine, not as a victory lap.
+- Never editorialize about Cupid, the company, the app, the agency, or matchmaking. The pair leaves on their own terms. Cupid's role belongs in the Office chrome, not in the closure note.
+- Never include exact stat numbers, Date Health values, Spark, Strain, Relationship Health values, or raw percentages. Closure notes are case copy, not stat dumps.
+- Never use em dashes or en dashes. Use commas, periods, colons, or separate sentences. The validator in `app/services/closures.ts` rejects either form.
+- No filler like `tapestry`, `intricate`, `myriad`, `unleash`, `leverage`, `elevate`, `journey`, or `chapter`. No `not just X but also Y`.
+- Death and serious-injury copy is never funny. The closure is the warm endgame; keep it warm.
+
 ## Reference Library
 
 The example pool that grounds this tone lives below by pattern. Use these as direct generation references, not as canonical IDC content. They are voice samples; characters in IDC will speak with overlapping but distinct fingerprints.

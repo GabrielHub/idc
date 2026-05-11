@@ -21,6 +21,13 @@ import {
   DateStreamAbortedError,
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
+import { generateClosureSummary } from "../services/closure-summary";
+import {
+  closePair,
+  getReadyClosurePairs,
+  markSoftWinSeen,
+  shouldShowSoftWinForActiveShift,
+} from "../services/closures";
 import {
   addCupidIntervention,
   applyFollowUpAction,
@@ -60,6 +67,7 @@ import { GalleryCanvas } from "./gallery-canvas";
 import { OfficeCanvas } from "./office-canvas";
 import { OnboardingScreen } from "./onboarding-screen";
 import { useSfx } from "./sfx-provider";
+import { SoftWinCutscene } from "./soft-win-cutscene";
 
 const AUTOPLAY_TICK_DELAY_MS = 480;
 const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
@@ -84,6 +92,8 @@ type PendingAction =
   | "nextShift"
   | "deck"
   | "focusCase"
+  | "closure"
+  | "softWin"
   | "reset";
 
 export function CupidShell({ onPunchOut }: CupidShellProps) {
@@ -102,6 +112,10 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
+  const [closingPairId, setClosingPairId] = useState<string | null>(null);
+  const [closureError, setClosureError] = useState<{ pairId: string; message: string } | null>(
+    null,
+  );
   const localAiStatusRequestRef = useRef<Promise<AiSetupStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
@@ -199,6 +213,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
   const activeShift = save === null ? null : getActiveShift(save);
   const focusedMembers = useMemo(() => (save === null ? [] : getFocusedMembers(save)), [save]);
+  const readyClosurePairs = useMemo(
+    () => (save === null ? [] : getReadyClosurePairs(save)),
+    [save],
+  );
+  const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
   const activeSession = useMemo(
     () =>
       save === null || activeDateSessionId === null
@@ -563,6 +582,58 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     });
   }
 
+  async function handleConfirmClosure(pairId: string) {
+    if (save === null) return;
+    const ready = readyClosurePairs.find((entry) => entry.pairState.id === pairId);
+    if (ready === undefined) {
+      setClosureError({ pairId, message: "That pair no longer meets the closure threshold." });
+      return;
+    }
+
+    if (!save.config.aiSetupComplete) {
+      setIsAiSetupOpen(true);
+      setClosureError({ pairId, message: "AI setup is required to file a closure summary." });
+      return;
+    }
+
+    setClosingPairId(pairId);
+    setClosureError(null);
+
+    tryAction("closure", async () => {
+      try {
+        const status = await refreshLocalAiStatus();
+        if (status.status !== "ready") {
+          throw new Error(status.message);
+        }
+        const summary = await generateClosureSummary({
+          save,
+          ready,
+          config: { ...save.config, gatewayApiKey: gatewayApiKey || undefined },
+        });
+        const closed = closePair({ save, pairId, summary });
+        await persist(closed);
+        setClosingPairId(null);
+      } catch (error) {
+        setClosingPairId(null);
+        setClosureError({ pairId, message: errorToMessage(error) });
+        throw error;
+      }
+    });
+  }
+
+  function handleDismissClosureError() {
+    setClosureError(null);
+    setClosingPairId(null);
+  }
+
+  async function handleMarkSoftWinSeen() {
+    if (save === null) return;
+    tryAction("softWin", async () => {
+      const next = markSoftWinSeen(save);
+      await persist(next);
+    });
+  }
+
   if (save === null) {
     return <DashboardLoading />;
   }
@@ -631,7 +702,12 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
               pairStates={save.pairStates}
               isActionPending={isActionPending}
               aiReady={aiReady}
+              readyClosurePairs={readyClosurePairs}
+              closingPairId={closingPairId}
+              closureError={closureError}
               onStartDate={handleStartDate}
+              onConfirmClosure={handleConfirmClosure}
+              onDismissClosureError={handleDismissClosureError}
               onOpenCasebook={() => setCurrentRoom("casebook")}
               onOpenGallery={() => setCurrentRoom("gallery")}
               onCloseShift={handleEndShift}
@@ -741,6 +817,16 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             onClose={() => setIsAiSetupOpen(false)}
             onSave={handleSaveAiConfig}
             onCheck={handleCheckAiConfig}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {softWinDue ? (
+          <SoftWinCutscene
+            save={save}
+            isActionPending={isActionPending}
+            onContinue={handleMarkSoftWinSeen}
           />
         ) : null}
       </AnimatePresence>

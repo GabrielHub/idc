@@ -130,25 +130,41 @@ export function GalleryCanvas({
                 <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-aura-cream">
                   <Portrait member={member} variant="card" />
                   {status === "closed" ? (
-                    <span className="absolute inset-0 grid place-items-center bg-aura-cream/70 text-aura-rose">
-                      <svg viewBox="0 0 60 60" className="size-24" fill="currentColor">
+                    <span
+                      className="absolute inset-0 grid place-items-center bg-aura-cream/75 text-aura-rose"
+                      aria-label="Case closed"
+                    >
+                      <svg
+                        viewBox="0 0 60 60"
+                        className="size-24 drop-shadow-[0_2px_8px_rgba(255,90,120,0.25)]"
+                        fill="currentColor"
+                      >
                         <path d="M30 50 L8 28 a12 12 0 0 1 17-17 l5 5 5-5 a12 12 0 0 1 17 17 z" />
                       </svg>
+                      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-aura-rose px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.22em] text-white shadow-quiet">
+                        Case closed.
+                      </span>
                     </span>
                   ) : null}
                   {status === "quit" ? (
-                    <span className="absolute inset-0 grid place-items-center bg-aura-cream/70 text-aura-rose">
+                    <span
+                      className="absolute inset-0 grid place-items-center bg-aura-cream/80 text-aura-rose"
+                      aria-label="Cancelled membership"
+                    >
                       <svg
                         viewBox="0 0 60 60"
-                        className="size-24"
+                        className="size-28 drop-shadow-[0_2px_8px_rgba(255,90,120,0.25)]"
                         fill="none"
                         stroke="currentColor"
-                        strokeWidth="6"
+                        strokeWidth="8"
                         strokeLinecap="round"
                       >
                         <path d="M12 12 L48 48" />
                         <path d="M48 12 L12 48" />
                       </svg>
+                      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 rounded-pill bg-aura-rose px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.22em] text-white shadow-quiet">
+                        Cancelled membership.
+                      </span>
                     </span>
                   ) : null}
                 </div>
@@ -157,7 +173,13 @@ export function GalleryCanvas({
                     {member.firstName}
                   </h3>
                   <p className="mt-1 text-micro font-mono uppercase tracking-[0.18em] text-aura-faint">
-                    {status === "active" ? (isFocused ? "focus case" : "candidate") : status}
+                    {status === "active"
+                      ? isFocused
+                        ? "focus case"
+                        : "candidate"
+                      : status === "closed"
+                        ? "case closed"
+                        : "cancelled"}
                   </p>
                 </div>
               </button>

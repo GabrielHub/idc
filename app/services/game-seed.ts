@@ -77,6 +77,8 @@ export function createSeedGameSave(
     playerKnowledge: [],
     focusedMemberIds,
     scenarioDeck,
+    closureCount: 0,
+    softWinSeen: false,
     createdAt: timestamp,
     updatedAt: timestamp,
   });

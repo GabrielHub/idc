@@ -7,7 +7,7 @@ import { MemorySaveStore } from "../repositories/memory-save-store";
 import {
   advanceDateExchange,
   applyFollowUpAction,
-  CLIENT_LOSS_LIMIT,
+  CLIENT_LOSS_LIMIT_BASE,
   completeShift,
   isCampaignLost,
   isMemberRetained,
@@ -146,6 +146,7 @@ describe("IDC playable smoke path", () => {
         statSummary: "Test stat summary.",
         recommendedFollowUp: "mark_bad_fit" as const,
         memoryRecordIds: [],
+        readyToClose: false,
       },
     };
 
@@ -184,7 +185,7 @@ describe("IDC playable smoke path", () => {
 
   it("detects campaign loss when enough members quit", () => {
     const save = createSeedGameSave();
-    const quitMembers = save.members.slice(0, CLIENT_LOSS_LIMIT).map((member) => ({
+    const quitMembers = save.members.slice(0, CLIENT_LOSS_LIMIT_BASE).map((member) => ({
       ...member,
       state: { ...member.state, retention: 0, status: "quit" as const },
     }));

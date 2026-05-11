@@ -8,7 +8,12 @@ import type {
   PairState,
   ShiftState,
 } from "../domain/game";
-import { getMemberQuitRiskStatus, MEMBER_QUIT_RISK_LABEL } from "../services/date-engine";
+import { clientLossLimit, type ReadyClosurePair } from "../services/closures";
+import {
+  getMemberQuitRiskStatus,
+  getQuitMembers,
+  MEMBER_QUIT_RISK_LABEL,
+} from "../services/date-engine";
 import { findScenarioFixture, softComposeWarnings } from "../services/deck";
 import { isMemberInCooldown } from "../services/shift-planning";
 import { evaluateMatchFit } from "../services/match-fit";
@@ -26,11 +31,16 @@ export type OfficeCanvasProps = {
   pairStates: PairState[];
   isActionPending: boolean;
   aiReady: boolean;
+  readyClosurePairs: ReadyClosurePair[];
+  closingPairId: string | null;
+  closureError: { pairId: string; message: string } | null;
   onStartDate: (input: {
     focusMemberId: string;
     partnerMemberId: string;
     scenarioId: string;
   }) => void;
+  onConfirmClosure: (pairId: string) => void;
+  onDismissClosureError: () => void;
   onOpenCasebook: () => void;
   onOpenGallery: () => void;
   onCloseShift: () => void;
@@ -48,13 +58,32 @@ export function OfficeCanvas({
   pairStates,
   isActionPending,
   aiReady,
+  readyClosurePairs,
+  closingPairId,
+  closureError,
   onStartDate,
+  onConfirmClosure,
+  onDismissClosureError,
   onOpenCasebook,
   onOpenGallery,
   onCloseShift,
   onStartNextShift,
   onResolveLibraryPick,
 }: OfficeCanvasProps) {
+  const focusedIds = useMemo(
+    () => new Set(focusedMembers.map((member) => member.id)),
+    [focusedMembers],
+  );
+  const focusedClosurePairs = useMemo(
+    () =>
+      readyClosurePairs.filter((entry) =>
+        entry.participants.some((participant) => focusedIds.has(participant.id)),
+      ),
+    [readyClosurePairs, focusedIds],
+  );
+  const lossLimit = clientLossLimit(save);
+  const quitCount = useMemo(() => getQuitMembers(save.members).length, [save.members]);
+  const quitsRemaining = Math.max(0, lossLimit - quitCount);
   const eligibleFocus = useMemo(
     () =>
       focusedMembers.filter(
@@ -171,9 +200,33 @@ export function OfficeCanvas({
             <span>
               {eligibleFocus.length} ready / {focusedMembers.length} on file
             </span>
+            <span aria-hidden>•</span>
+            <span
+              className={
+                quitsRemaining <= 1
+                  ? "text-aura-rose"
+                  : quitsRemaining <= 2
+                    ? "text-aura-amber"
+                    : "text-aura-faint"
+              }
+              title={`Cap rises by 1 with each closed pair. ${save.closureCount} closure${save.closureCount === 1 ? "" : "s"} on file.`}
+            >
+              quits remaining: {quitsRemaining} / {lossLimit}
+            </span>
           </div>
         </div>
       </header>
+
+      {focusedClosurePairs.length > 0 ? (
+        <ClosureCallout
+          entries={focusedClosurePairs}
+          closingPairId={closingPairId}
+          closureError={closureError}
+          isActionPending={isActionPending}
+          onConfirm={onConfirmClosure}
+          onDismissError={onDismissClosureError}
+        />
+      ) : null}
 
       <Hairline />
 
@@ -482,6 +535,87 @@ function Chip({
     >
       {children}
     </span>
+  );
+}
+
+function ClosureCallout({
+  entries,
+  closingPairId,
+  closureError,
+  isActionPending,
+  onConfirm,
+  onDismissError,
+}: {
+  entries: ReadyClosurePair[];
+  closingPairId: string | null;
+  closureError: { pairId: string; message: string } | null;
+  isActionPending: boolean;
+  onConfirm: (pairId: string) => void;
+  onDismissError: () => void;
+}) {
+  return (
+    <section className="mb-8 mt-6 space-y-3">
+      {entries.map((entry) => {
+        const [first, second] = entry.participants;
+        const isClosing = closingPairId === entry.pairState.id;
+        const errorForEntry =
+          closureError !== null && closureError.pairId === entry.pairState.id
+            ? closureError.message
+            : null;
+        return (
+          <article
+            key={entry.pairState.id}
+            className="aura-glass-strong relative flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-aura-rose/40 bg-white/80 p-4 shadow-aura-soft"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-3">
+                <span className="rounded-full border-2 border-white/90 bg-white shadow-quiet">
+                  <Portrait member={first} variant="card" />
+                </span>
+                <span className="rounded-full border-2 border-white/90 bg-white shadow-quiet">
+                  <Portrait member={second} variant="card" />
+                </span>
+              </div>
+              <div>
+                <p className="font-mono text-micro uppercase tracking-[0.26em] text-aura-rose">
+                  // closure.ready
+                </p>
+                <h2 className="font-display text-lg font-semibold tracking-tight text-aura-ink">
+                  {first.firstName} and {second.firstName} are ready to delete the app.
+                </h2>
+                <p className="mt-1 text-xs text-aura-muted">
+                  Close their case to file a pair memory, free their focus slots, and raise the
+                  client cap by one.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <PrimaryButton
+                onClick={() => onConfirm(entry.pairState.id)}
+                disabled={isActionPending || isClosing}
+              >
+                {isClosing ? "Filing closure…" : "Close their case →"}
+              </PrimaryButton>
+            </div>
+            {errorForEntry !== null ? (
+              <div className="basis-full rounded-2xl border border-aura-rose/30 bg-aura-rose/5 px-4 py-2 text-xs text-aura-rose">
+                <div className="flex items-center justify-between gap-2">
+                  <span>{errorForEntry}</span>
+                  <button
+                    type="button"
+                    onClick={onDismissError}
+                    data-sfx="click"
+                    className="cursor-pointer rounded-pill border border-aura-rose/40 px-3 py-1 font-mono text-micro uppercase tracking-[0.18em]"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </article>
+        );
+      })}
+    </section>
   );
 }
 

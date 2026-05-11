@@ -37,6 +37,11 @@ export type SummarizerPromptPacket = {
   prompt: string;
 };
 
+export type ClosureSummaryPromptPacket = {
+  system: string;
+  prompt: string;
+};
+
 export type CharacterPromptInput = {
   member: Member;
   partner: Member;
@@ -381,6 +386,61 @@ export function buildSummarizerPromptPacket({
       `Participants: ${formatParticipants(members)}.`,
       `Final judge summary: ${finalJudgeSnapshot?.playerSummary ?? "No judge summary."}`,
       `Transcript:\n${formatLabeledTranscript(session.transcript, members)}`,
+    ].join("\n"),
+  };
+}
+
+export function buildClosureSummaryPromptPacket({
+  members,
+  pairId,
+  pairMemories,
+  lastFinalReport,
+  lastSessionScenarioTitle,
+}: {
+  members: [Member, Member];
+  pairId: string;
+  pairMemories: readonly { text: string; tags: readonly string[]; importance: number }[];
+  lastFinalReport: {
+    outcome: string;
+    summary: string;
+    statSummary: string;
+  };
+  lastSessionScenarioTitle: string;
+}): ClosureSummaryPromptPacket {
+  const [first, second] = members;
+  const sharedHistory = pairMemories
+    .slice(-8)
+    .map(
+      (memory, index) =>
+        `${index + 1}. ${truncateForPrompt(cleanMemberFacingText(memory.text))} (tags: ${memory.tags.join(", ") || "none"})`,
+    )
+    .join("\n");
+
+  return {
+    system: [
+      "You are filing a single warm closure note for an IDC pair that is leaving together.",
+      "Voice: workplace-comedy professional, warm, specific, short.",
+      "Anchor the note in 1 to 3 concrete shared moments from the supplied history.",
+      "Never editorialize about Cupid, the company, the app, or the agency.",
+      "Never include exact stat numbers, Date Health values, Spark, Strain, or percentages.",
+      "Never use em dashes or en dashes. Use commas, periods, colons, or separate sentences.",
+      "Avoid AI-slop filler such as `tapestry`, `intricate`, `myriad`, `unleash`, `leverage`, `elevate`.",
+      "Death and serious-injury copy is never funny.",
+      "Return plain prose only. No Markdown, no JSON, no preface.",
+    ].join("\n"),
+    prompt: [
+      `Pair: ${pairId}. Members: ${first.firstName} (${first.name}) and ${second.firstName} (${second.name}).`,
+      `Final date: ${lastSessionScenarioTitle}. Outcome filed: ${lastFinalReport.outcome}.`,
+      `Last final report summary: ${cleanMemberFacingText(lastFinalReport.summary)}`,
+      `Case read: ${cleanMemberFacingText(lastFinalReport.statSummary)}`,
+      "",
+      "Shared history notes (most recent last):",
+      sharedHistory.length > 0 ? sharedHistory : "No prior pair notes on file.",
+      "",
+      "Write 2 to 4 sentences. The first sentence should anchor the pair in a specific shared moment.",
+      "The closing sentence should land soft and forward looking, without naming Cupid or the app.",
+      `Use ${first.firstName} and ${second.firstName}, not generic pronouns.`,
+      "Plain text only.",
     ].join("\n"),
   };
 }
