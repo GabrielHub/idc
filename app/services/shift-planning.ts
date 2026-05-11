@@ -1,6 +1,6 @@
 import { type GoalMetric, type Member, type ShiftState } from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
-import { hashSeedUint32 } from "./utils";
+import { hashSeedUint32, shuffleInPlace } from "./utils";
 
 export const SHIFT_FEATURED_MEMBER_COUNT = 4;
 const SHIFT_COMPANY_GOAL_COUNT = 2;
@@ -187,31 +187,8 @@ function isMemberRetained(member: Member): boolean {
 
 function shuffleMembers(members: readonly Member[], random: RandomSource): Member[] {
   const shuffledMembers = [...members];
-
-  for (let index = shuffledMembers.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(clampRandom(random()) * (index + 1));
-    const currentMember = shuffledMembers[index];
-    const swapMember = shuffledMembers[swapIndex];
-
-    if (currentMember === undefined || swapMember === undefined) {
-      continue;
-    }
-
-    shuffledMembers[index] = swapMember;
-    shuffledMembers[swapIndex] = currentMember;
-  }
-
+  shuffleInPlace(shuffledMembers, random);
   return shuffledMembers;
-}
-
-// Injected RandomSource may return 1 or NaN; clamp to [0, 1) so
-// Math.floor(value * length) cannot index past the end of the array.
-function clampRandom(value: number): number {
-  if (!Number.isFinite(value)) {
-    return 0;
-  }
-
-  return Math.min(Math.max(value, 0), 1 - Number.EPSILON);
 }
 
 function seededSortById<TValue extends { id: string }>(

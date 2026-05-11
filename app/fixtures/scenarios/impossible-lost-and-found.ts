@@ -42,32 +42,37 @@ export const impossibleLostAndFound: DateScenario = {
       {
         id: "impossible-lost-and-found-event-1",
         title: "First item",
+        kind: "reveal",
         event: "The first object sits in a clear bag on top of the bin.",
         characterVisibleText:
           "The first item is sealed in a clear bag. The label reads: claimed shortly, probably. The bin's other compartment is still closed.",
         directorInstruction:
-          "Let the affected member decide whether to take the hint, reject it, or ask the partner what they see.",
+          "Let the affected member decide whether to take the hint, reject it, or ask the partner what they see. Draw on existing register, not new biography. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "impossible-lost-and-found-event-2",
         title: "Almost yours bin",
+        kind: "reveal",
         event: "A second bin rolls into the window.",
         characterVisibleText:
           "A second bin rolls itself onto the counter. The label reads almost yours and the rest of the line is smudged.",
         directorInstruction:
-          "Use uncertainty to test patience and partnership instead of prophecy.",
+          "Use uncertainty to test patience and partnership instead of prophecy. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "impossible-lost-and-found-event-3",
         title: "Claim ticket",
+        kind: "provocation",
         event: "A claim ticket prints from the slot.",
         characterVisibleText:
           "A claim ticket prints from the counter slot. It has one unchecked box: leave it lost. A pen sits beside the slot.",
-        directorInstruction: "Push the pair toward choosing together or clearly choosing apart.",
+        directorInstruction:
+          "Push the pair toward choosing together or clearly choosing apart. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "impossible-lost-and-found-event-4",
         title: "Tube flicker",
+        kind: "ambient",
         event: "The buzzing fluorescent tube above the counter flickers.",
         characterVisibleText:
           "The buzzing fluorescent tube above window B flickers and steadies. The conveyor stops. A second tube down the hall is dimmer than it should be.",
@@ -77,23 +82,27 @@ export const impossibleLostAndFound: DateScenario = {
       {
         id: "impossible-lost-and-found-event-5",
         title: "Third bin",
+        kind: "reveal",
         event: "A third bin rolls in with a single object inside.",
         characterVisibleText:
           "A third bin rolls itself onto the counter. One object sits inside under a clear lid. The label tape reads: not yours. Honor it.",
-        directorInstruction: "Allow the refusal as a real refusal. Do not negotiate it open.",
+        directorInstruction:
+          "Allow the refusal as a real refusal. Do not negotiate it open. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "impossible-lost-and-found-event-6",
         title: "Receipt stack",
+        kind: "ambient",
         event: "Unread receipts pile beside the slot.",
         characterVisibleText:
           "A small stack of unread receipts collects beside the slot. The top one reads: filed at 8:04 p.m., expected to be claimed by you tonight.",
         directorInstruction:
-          "Let the small bureaucracy hum. The pair is not required to read every page.",
+          "Let the small bureaucracy hum. The pair is not required to read every page. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "impossible-lost-and-found-event-7",
         title: "Buzzer hush",
+        kind: "provocation",
         event: "The service buzzer briefly goes silent.",
         characterVisibleText:
           "The service buzzer above the counter, which had been chirping intermittently, goes silent. The chair behind the window stays empty. The conveyor restarts on its own.",
@@ -102,10 +111,20 @@ export const impossibleLostAndFound: DateScenario = {
       {
         id: "impossible-lost-and-found-event-8",
         title: "Approved seal",
+        kind: "provocation",
         event: "A clear lid prints itself with the word approved.",
         characterVisibleText:
           "A new clear lid drops onto the counter with the word approved printed in small green type. The previous bin is closed. The pen is now on top of the lid.",
         directorInstruction: "Push for one clean choice: claim, leave, or sign together.",
+      },
+      {
+        id: "impossible-lost-and-found-event-9",
+        title: "Conveyor idles",
+        kind: "ambient",
+        event: "The conveyor runs slow and empty under the window.",
+        characterVisibleText:
+          "The conveyor under window B runs at half speed. No new bin is on it. The hum settles into the floor at chest height.",
+        directorInstruction: "Let the slow loop pass. The room does not need a fix from the pair.",
       },
     ],
     earlyEndTriggers: [

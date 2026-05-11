@@ -42,6 +42,7 @@ export const memoryCourseDinner: DateScenario = {
       {
         id: "memory-course-dinner-event-1",
         title: "Soup memory",
+        kind: "reveal",
         event: "The cover lifts off the first bowl.",
         characterVisibleText:
           "The cover lifts off the bowl. The soup tastes like a kitchen where someone once asked a careful question.",
@@ -49,39 +50,48 @@ export const memoryCourseDinner: DateScenario = {
       },
       {
         id: "memory-course-dinner-event-2",
-        title: "Plates rearrange",
-        event: "The main plates are placed on the table and shift to whoever was listened to last.",
+        title: "Plate slide",
+        kind: "provocation",
+        event: "The main plates land hard and slide toward the last listener.",
         characterVisibleText:
-          "Two plates land on the table. After a beat they slide one inch toward the listener of the last line. The meal appears to have preferences about listening.",
-        directorInstruction: "Reward active listening or expose its absence.",
+          "Two plates land between them with a clear scrape. After a beat they slide a full hand toward the listener of the last line, edging cutlery toward the table edge.",
+        directorInstruction:
+          "Push the listener to settle the cutlery aloud or pass the slide back. The motion needs a physical answer before the next line.",
       },
       {
         id: "memory-course-dinner-event-3",
         title: "Dessert receipt",
+        kind: "reveal",
         event: "Dessert arrives with a receipt listing one thing each member avoided.",
         characterVisibleText:
           "Dessert lands between them with a receipt titled: items left unsaid. The line items are short and printed in the same ink as the menu.",
-        directorInstruction: "Let the pair decide whether one item is worth saying now.",
+        directorInstruction:
+          "Let the pair decide whether one item is worth saying now. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "memory-course-dinner-event-4",
         title: "Bread course",
+        kind: "reveal",
         event: "A small bread course arrives between bowls.",
         characterVisibleText:
           "A small wooden board lands between them. Two slices of dark bread, a pat of butter, and a tag that reads: a kitchen that hosted children, briefly.",
-        directorInstruction: "Invite a smaller, lighter memory. Do not press for a wound.",
+        directorInstruction:
+          "Invite a smaller, lighter memory. Do not press for a wound. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "memory-course-dinner-event-5",
-        title: "Glass refill",
-        event: "Water is refilled and a memory rises on the rim.",
+        title: "Carafe spill",
+        kind: "provocation",
+        event: "The water carafe refills past the rim and spills toward the receipt.",
         characterVisibleText:
-          "Water glasses are refilled to the rim. A faint memory crosses the air at one of them: a kitchen, a sink, a hand drying a glass without speaking.",
-        directorInstruction: "Allow the affected member to share or let the moment go quiet.",
+          "The carafe refills past the rim. Water beads, sheets across the linen, and reaches the items-left-unsaid receipt at one corner. The receipt darkens at the edge.",
+        directorInstruction:
+          "Push for a physical save before the receipt blurs out. A clean reset of the table or a deliberate let-it-soak both count as answers.",
       },
       {
         id: "memory-course-dinner-event-6",
         title: "Salt cellar",
+        kind: "ambient",
         event: "A small salt cellar slides toward the older speaker of the two.",
         characterVisibleText:
           "The salt cellar slides on its own toward whichever of them last named a place. A small spoon sits in it. The lid is engraved with a single year.",
@@ -91,6 +101,7 @@ export const memoryCourseDinner: DateScenario = {
       {
         id: "memory-course-dinner-event-7",
         title: "Plates rebalance",
+        kind: "ambient",
         event: "Plates shift again toward the listener of the last line.",
         characterVisibleText:
           "Both plates slide one inch toward whoever was listened to last. The tilt is mild. The empty water carafe is replaced without a word.",
@@ -100,11 +111,22 @@ export const memoryCourseDinner: DateScenario = {
       {
         id: "memory-course-dinner-event-8",
         title: "Empty third seat",
+        kind: "ambient",
         event: "The empty third seat at the alcove softens at its edge.",
         characterVisibleText:
           "The empty third seat at the alcove edge softens for a beat. A thin line of light eases along the back of it. No one is there. The light returns to normal.",
         directorInstruction:
           "Allow each member to register the small absence privately. Do not voice the absence.",
+      },
+      {
+        id: "memory-course-dinner-event-9",
+        title: "Final tray surge",
+        kind: "provocation",
+        event: "A late tray slides into the alcove with a single covered course.",
+        characterVisibleText:
+          "A wheeled tray rolls itself into the alcove and stops a hand from the table. A single domed plate is on it. The wheels lock with a hard click and the lid lifts halfway, then waits.",
+        directorInstruction:
+          "Push for a clean call: take the dish, send it back, or close out the tasting. The tray will not retreat without an answer.",
       },
     ],
     earlyEndTriggers: [

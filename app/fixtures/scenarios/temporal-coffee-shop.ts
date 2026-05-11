@@ -40,23 +40,27 @@ export const temporalCoffeeShop: DateScenario = {
       {
         id: "temporal-coffee-shop-event-1",
         title: "Receipt first",
+        kind: "reveal",
         event: "The receipt already on the table carries one sincere compliment.",
         characterVisibleText:
           "The receipt on the table reads: thank you for the honest compliment. Neither member has given it yet.",
         directorInstruction:
-          "Let the next speaker decide whether to honor the compliment or avoid it.",
+          "Let the next speaker decide whether to honor the compliment or avoid it. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "temporal-coffee-shop-event-2",
         title: "Cold coffee warning",
+        kind: "reveal",
         event: "One cup turns cold and carries a warning about repeating old mistakes.",
         characterVisibleText:
           "One coffee cup goes cold mid-table. The foam settles into a line that reads: say the thing before it curdles.",
-        directorInstruction: "Push one member toward a small honest admission.",
+        directorInstruction:
+          "Push one member toward a small honest admission. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "temporal-coffee-shop-event-3",
         title: "Loop reset",
+        kind: "ambient",
         event: "Two new menus appear under their elbows.",
         characterVisibleText:
           "Two fresh menus drop onto the table, still warm from the printer. The receipt is gone.",
@@ -65,6 +69,7 @@ export const temporalCoffeeShop: DateScenario = {
       {
         id: "temporal-coffee-shop-event-4",
         title: "Sugar packet",
+        kind: "ambient",
         event: "A sugar packet appears, opens, and refills.",
         characterVisibleText:
           "A sugar packet sits closed on the saucer. It opens by itself and pours into a cup that has not arrived. The packet then reseals.",
@@ -74,24 +79,27 @@ export const temporalCoffeeShop: DateScenario = {
       {
         id: "temporal-coffee-shop-event-5",
         title: "Receipt timeline",
+        kind: "ambient",
         event: "A new receipt prints with tomorrow's date.",
         characterVisibleText:
           "A new receipt prints from the small printer at the corner of the table. The header reads: tomorrow, 10:14 a.m. The amount is listed but the items are blank.",
         directorInstruction:
-          "Allow the future to be slightly visible without letting it become a script.",
+          "Allow the future to be slightly visible without letting it become a script. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "temporal-coffee-shop-event-6",
-        title: "Mug warm",
-        event: "An empty mug warms on its own.",
+        title: "Mug overspill",
+        kind: "provocation",
+        event: "The empty mug between them fills and tips toward one of them.",
         characterVisibleText:
-          "The empty mug between them grows warm. A faint ring of condensation forms below it. No one has put coffee in it.",
+          "The empty mug between them fills itself with hot coffee in a single beat. The handle pivots and the mug tips a finger's width toward one member, sloshing onto the table.",
         directorInstruction:
-          "Use the small heat to test whether either of them needs proof before they trust the table.",
+          "This is a real spill. The character must register the heat and move before resuming.",
       },
       {
         id: "temporal-coffee-shop-event-7",
         title: "Reflection lags",
+        kind: "reveal",
         event: "Their reflection in the window is half a beat behind.",
         characterVisibleText:
           "The window beside them shows their reflection. The reflection nods half a beat after the body. The cafe behind them is normal in the glass.",
@@ -101,11 +109,22 @@ export const temporalCoffeeShop: DateScenario = {
       {
         id: "temporal-coffee-shop-event-8",
         title: "Order ticket",
+        kind: "provocation",
         event: "A kitchen ticket prints listing their order before they ordered it.",
         characterVisibleText:
           "A kitchen ticket prints from the bar. It lists two coffees and one shared pastry. The pastry is the one neither has named yet.",
         directorInstruction:
           "Push for a clean read on whether they choose what the ticket suggests or pick something else on purpose.",
+      },
+      {
+        id: "temporal-coffee-shop-event-9",
+        title: "Printer cascade",
+        kind: "provocation",
+        event: "The corner printer floods the table with old tickets.",
+        characterVisibleText:
+          "The small printer at the corner of the table runs without stopping. A ribbon of pale receipts spools across both their hands and onto the floor. The most recent line on the topmost slip reads: still here?",
+        directorInstruction:
+          "Push for a concrete next move: stay with the table, kill the printer feed, or call the lap done. Do not voice any background person or cue as a continuing speaker.",
       },
     ],
     earlyEndTriggers: [

@@ -41,6 +41,7 @@ export const bowlingLeagueNight: DateScenario = {
       {
         id: "bowling-league-night-event-1",
         title: "Ball return",
+        kind: "ambient",
         event: "The ball return delivers a ball with a thud they can feel through the bench.",
         characterVisibleText:
           "The ball return rumbles and a house ball rolls up. The thud carries through the bench. The lane line glow flickers once.",
@@ -50,24 +51,27 @@ export const bowlingLeagueNight: DateScenario = {
       {
         id: "bowling-league-night-event-2",
         title: "Strike next door",
+        kind: "reveal",
         event: "Lane 6 lights up with a strike celebration.",
         characterVisibleText:
           "Lane 6 erupts. A strike animation runs across the scoreboard above lane 7 by mistake. Their column reads two columns of zeros.",
         directorInstruction:
-          "Use the borrowed noise to surface competitiveness, generosity, or deflection.",
+          "Use the borrowed noise to surface competitiveness, generosity, or deflection drawn from each member's existing register. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "bowling-league-night-event-3",
         title: "Pinsetter pause",
+        kind: "provocation",
         event: "The pinsetter on lane 7 stops mid-cycle.",
         characterVisibleText:
           "The pinsetter freezes mid-rack with three pins still hanging. The bench light blinks. A small wait icon appears on the scoreboard.",
         directorInstruction:
-          "Push the pair to share the wait or peel apart toward separate distractions.",
+          "Push the pair to share the wait or peel apart toward separate distractions. The wait demands a move.",
       },
       {
         id: "bowling-league-night-event-4",
         title: "Lace gives",
+        kind: "ambient",
         event: "A rental shoe lace gives mid-knot.",
         characterVisibleText:
           "The lace on a rented shoe lets go in the middle of a knot. The other shoe is already tied. The bench is barely wide enough for the retie.",
@@ -76,14 +80,17 @@ export const bowlingLeagueNight: DateScenario = {
       {
         id: "bowling-league-night-event-5",
         title: "League pass",
+        kind: "ambient",
         event: "A league bowler walks the gap behind the bench.",
         characterVisibleText:
           "A bowler in a custom shirt walks behind their bench. The shirt reads Strike Force Tuesday. He nods once at lane 7 and keeps moving.",
-        directorInstruction: "Allow a tiny social moment that the pair can ignore or honor.",
+        directorInstruction:
+          "Allow a tiny social moment that the pair can ignore or honor. The bowler does not speak.",
       },
       {
         id: "bowling-league-night-event-6",
         title: "Concession run",
+        kind: "reveal",
         event: "A tray of hot dogs and a pitcher lands at the bench corner.",
         characterVisibleText:
           "A tray slides onto the corner of their bench. Two hot dogs in foil, one pitcher of beer, two paper cups. A folded check sits under the pitcher.",
@@ -93,6 +100,7 @@ export const bowlingLeagueNight: DateScenario = {
       {
         id: "bowling-league-night-event-7",
         title: "Spare lights",
+        kind: "reveal",
         event: "Their lane finally records a spare.",
         characterVisibleText:
           "The scoreboard above lane 7 records a 7-pin spare. The animation runs once across their column. The bench light goes back to steady.",
@@ -101,11 +109,22 @@ export const bowlingLeagueNight: DateScenario = {
       {
         id: "bowling-league-night-event-8",
         title: "House lights",
+        kind: "provocation",
         event: "House lights dim as the league wraps.",
         characterVisibleText:
           "The house lights dim by one notch. Two lanes shut down their scoreboards. The ball return on lane 7 is still warm.",
         directorInstruction:
           "Push for a clean exit or a stretched stay before the lanes close out.",
+      },
+      {
+        id: "bowling-league-night-event-9",
+        title: "Lane lights kill",
+        kind: "provocation",
+        event: "Lane 7's overhead bank goes dark mid-frame.",
+        characterVisibleText:
+          "The overhead light bank on lane 7 cuts to half and then to dark. The pins at the far end are still visible by the lane line glow. The scoreboard logs the frame as incomplete.",
+        directorInstruction:
+          "Push for a clean choice: bowl by the lane glow, log the frame as is, or rack out and head to the bench. The desk will not reset without an answer.",
       },
     ],
     earlyEndTriggers: [

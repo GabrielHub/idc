@@ -42,15 +42,17 @@ export const openHouseSunday: DateScenario = {
       {
         id: "open-house-sunday-event-1",
         title: "Wind chime",
+        kind: "reveal",
         event: "The neighbor's wind chime catches a soft gust.",
         characterVisibleText:
           "The neighbor's wind chime runs three notes and stops. A small movement of curtain in the kitchen window suggests the agent has not come outside.",
         directorInstruction:
-          "Use the small sound to surface a habit, a memory, or an ask neither has named.",
+          "Use the small sound to surface a habit, a memory, or an ask neither has named, drawn from each member's own brief.",
       },
       {
         id: "open-house-sunday-event-2",
         title: "Deck rail",
+        kind: "reveal",
         event: "A loose railing slat shifts under one of their hands.",
         characterVisibleText:
           "One slat in the deck rail moves under a hand. It is loose but not broken. A small staple has come halfway out of the wood.",
@@ -60,15 +62,17 @@ export const openHouseSunday: DateScenario = {
       {
         id: "open-house-sunday-event-3",
         title: "Inside footsteps",
+        kind: "provocation",
         event: "Footsteps in the kitchen approach the back door.",
         characterVisibleText:
           "Inside, footsteps cross the kitchen toward the back door. The door does not open yet. The agent's voice is too far in to make out.",
         directorInstruction:
-          "Let the pair stay or leave. A private claim, even refused, is the beat.",
+          "Push for a clean choice: stay on the deck, retreat to the lawn, or step in. Do not voice the agent.",
       },
       {
         id: "open-house-sunday-event-4",
         title: "Faucet upstairs",
+        kind: "ambient",
         event: "A faucet runs upstairs and stops.",
         characterVisibleText:
           "An upstairs faucet runs for ten seconds and stops. A pipe in the wall ticks once. The kitchen window curtain has not moved.",
@@ -77,6 +81,7 @@ export const openHouseSunday: DateScenario = {
       {
         id: "open-house-sunday-event-5",
         title: "Yard squirrel",
+        kind: "ambient",
         event: "A squirrel crosses the back fence.",
         characterVisibleText:
           "A squirrel runs the back fence in three jumps and disappears into the neighbor's evergreen. The wind chime catches one note. The lawn is freshly cut.",
@@ -86,29 +91,42 @@ export const openHouseSunday: DateScenario = {
       {
         id: "open-house-sunday-event-6",
         title: "Clipboard inside",
+        kind: "reveal",
         event: "The agent's clipboard is visible through the kitchen window.",
         characterVisibleText:
           "Through the kitchen window the agent's clipboard sits on the counter. Two more names have been added to the sign-in sheet. The clipboard is angled so neither name is readable from the deck.",
         directorInstruction:
-          "Use the soft surveillance to test whether the deck still feels private.",
+          "Use the soft surveillance to test whether the deck still feels private. Surface what each member already shows about being seen, not new claims.",
       },
       {
         id: "open-house-sunday-event-7",
         title: "Voices in kitchen",
+        kind: "ambient",
         event: "Two voices start in the kitchen and stay there.",
         characterVisibleText:
           "Two voices begin a low conversation in the kitchen. The vanilla candle is freshly lit. Neither voice is the agent's; the next walk-through has arrived early.",
         directorInstruction:
-          "Let the small bubble of strangers behind them tighten the deck without forcing exit.",
+          "Let the small bubble of strangers behind them tighten the deck without forcing exit. Do not voice the kitchen pair as continuing speakers.",
       },
       {
         id: "open-house-sunday-event-8",
         title: "Flier slip",
+        kind: "provocation",
         event: "The folded flier slips out of a pocket onto the deck.",
         characterVisibleText:
           "The folded square footage flier slips from a pocket and lands face-up on the deck. The asking price is highlighted in the corner. The wind catches the corner of the page.",
         directorInstruction:
           "Push for one honest line about whether the deck stays a fantasy or becomes a real ask.",
+      },
+      {
+        id: "open-house-sunday-event-9",
+        title: "Sliding door cracks",
+        kind: "provocation",
+        event: "The sliding back door slides open a hand's width.",
+        characterVisibleText:
+          "The sliding back door from the kitchen rolls open a hand's width on its own. The vanilla candle smell carries onto the deck. The clipboard on the counter is now visible at a clear angle.",
+        directorInstruction:
+          "Push for a clean call: close the door, step inside, or move to the lawn. The next walk-through is in the kitchen and the door does not close itself.",
       },
     ],
     earlyEndTriggers: [

@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 
+import { type ScenarioEventKind } from "../domain/game";
 import { memberRequests, starterScenarios } from "../fixtures";
 import { addCupidIntervention, advanceDateExchange, triggerScenarioEvent } from "./date-engine";
 import {
   buildCharacterPromptPacket,
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
+  formatDirectorInstructionWithKindSuffix,
   pickSamplesForTurn,
+  SCENARIO_EVENT_KIND_SUFFIXES,
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
@@ -75,6 +78,12 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("Personality in conversation:");
     expect(ownerPacket.prompt).toContain("Current date:");
     expect(ownerPacket.prompt).toContain("What you can see of Vhool:");
+    expect(ownerPacket.prompt).toContain(
+      "Room constraint: Keep the scene readable even when time glitches.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Room constraint: Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
+    );
     expect(ownerPacket.prompt).toContain("Current date facts are the floor, not the ceiling.");
     expect(ownerPacket.prompt).toContain(
       "Treat profile details as app context from before this date",
@@ -239,7 +248,13 @@ describe("date prompt assembly", () => {
     });
 
     expect(packet.prompt).toContain(`Live room event: ${event.characterVisibleText}`);
-    expect(packet.prompt).toContain(`Live room pressure: ${event.directorInstruction}`);
+    expect(packet.prompt).toContain(
+      `Live room pressure: ${formatDirectorInstructionWithKindSuffix(
+        event.directorInstruction,
+        event.kind,
+      )}`,
+    );
+    expect(packet.prompt).toContain(SCENARIO_EVENT_KIND_SUFFIXES[event.kind]);
   });
 
   it("keeps scenario and Cupid notes out of the latest line to answer", () => {
@@ -778,5 +793,81 @@ describe("buildJudgePromptPacket reveal candidates", () => {
 
     expect(packet.prompt).toContain("Reveal candidates: none for this exchange.");
     expect(packet.prompt).toContain("Return usedEvidenceIds as [].");
+  });
+});
+
+describe("scenario event kind suffixes", () => {
+  const expectedSuffixes: Record<ScenarioEventKind, string> = {
+    ambient: "Treat this as ambient texture",
+    provocation: "This is a physical interruption",
+    reveal: "This puts something honest into the open",
+  };
+
+  it.each(Object.entries(expectedSuffixes))(
+    "returns the documented suffix for kind %s",
+    (kind, fragment) => {
+      expect(SCENARIO_EVENT_KIND_SUFFIXES[kind as ScenarioEventKind]).toContain(fragment);
+    },
+  );
+
+  it("appends the suffix without trailing punctuation creating doubles", () => {
+    const formatted = formatDirectorInstructionWithKindSuffix(
+      "Push for a clean answer",
+      "provocation",
+    );
+
+    expect(formatted.startsWith("Push for a clean answer.")).toBe(true);
+    expect(formatted).toContain("This is a physical interruption.");
+  });
+
+  it("does not mutate director instructions that already end with punctuation", () => {
+    const original = "Push for a clean answer.";
+    const formatted = formatDirectorInstructionWithKindSuffix(original, "provocation");
+
+    expect(formatted).toContain("Push for a clean answer. ");
+    expect(formatted.split(".. ").length).toBe(1);
+  });
+
+  it("does not mutate the underlying scenario fixture when triggered", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const eventId = started.session.eventDraft.picked?.[0];
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+
+    if (eventId === undefined || scenario === undefined) {
+      throw new Error("Expected fixture setup for kind suffix non-mutation test.");
+    }
+
+    const event = scenario.director.events.find((candidate) => candidate.id === eventId);
+
+    if (event === undefined) {
+      throw new Error("Expected drafted event to exist on the fixture.");
+    }
+
+    const originalInstruction = event.directorInstruction;
+    const triggered = triggerScenarioEvent(started.save, {
+      dateSessionId: started.session.id,
+      eventId,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    const refreshed = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const refreshedEvent = refreshed?.director.events.find((candidate) => candidate.id === eventId);
+
+    expect(refreshedEvent?.directorInstruction).toBe(originalInstruction);
+
+    const sessionFromSave = triggered.save.dateSessions.find(
+      (candidate) => candidate.id === started.session.id,
+    );
+
+    expect(sessionFromSave?.eventsTriggered).toContain(eventId);
   });
 });

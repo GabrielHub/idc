@@ -40,14 +40,17 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-1",
         title: "Home screen",
+        kind: "provocation",
         event: "The TV times out and the home screen returns.",
         characterVisibleText:
           "The TV home screen returns to the top. The remote sits closer to one member. A small sleep timer starts a countdown in the corner.",
-        directorInstruction: "Use the choice to expose decisiveness, deferral, or care.",
+        directorInstruction:
+          "Push for a clear pick before the timer expires. Decisiveness, deferral, or care all read as a real answer.",
       },
       {
         id: "couch-night-takeout-event-2",
         title: "Container offered",
+        kind: "reveal",
         event: "One container is held out across the cushion.",
         characterVisibleText:
           "One container is held out across the cushion. A fork hovers above it. The other container is still mostly closed.",
@@ -56,6 +59,7 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-3",
         title: "Lamp click",
+        kind: "ambient",
         event: "The lamp on the side table clicks down a level.",
         characterVisibleText:
           "The lamp on the side table dims to its lowest setting. The TV keeps playing. Neither member has spoken in a beat.",
@@ -64,15 +68,17 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-4",
         title: "Episode end",
+        kind: "provocation",
         event: "The episode ends and a next-up countdown starts.",
         characterVisibleText:
           "The credits roll on the screen. A small box in the corner counts down from ten. Neither container has been touched in a while.",
         directorInstruction:
-          "Let the pair decide whether to let it autoplay or pick something on purpose.",
+          "Push for a clear move before autoplay: let it run, pick on purpose, or kill the screen.",
       },
       {
         id: "couch-night-takeout-event-5",
         title: "One container empty",
+        kind: "reveal",
         event: "One container is empty. The other is half done.",
         characterVisibleText:
           "One takeout container is closed and empty. The other has rice and one piece of broccoli. The chopsticks are pointed at the cushion.",
@@ -81,6 +87,7 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-6",
         title: "Phone face down",
+        kind: "ambient",
         event: "One phone goes face down on the coffee table.",
         characterVisibleText:
           "One phone slides face-down onto the coffee table. The screen lit up once before it landed. The other phone is in a pocket.",
@@ -89,6 +96,7 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-7",
         title: "Foot up",
+        kind: "ambient",
         event: "One member puts a foot up on the coffee table.",
         characterVisibleText:
           "One foot goes up on the corner of the coffee table. The empty container shifts an inch. The remote stays where it is.",
@@ -98,11 +106,22 @@ export const couchNightTakeout: DateScenario = {
       {
         id: "couch-night-takeout-event-8",
         title: "Still watching",
+        kind: "provocation",
         event: "The TV asks if anyone is still watching.",
         characterVisibleText:
           "A prompt fills the TV: still watching? A timer counts down behind the prompt. The remote is still between them.",
         directorInstruction:
-          "Push for a clear next step or a clean call it a night before the screen times out.",
+          "Push for a clear next step or a clean call it a night before the screen times out. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "couch-night-takeout-event-9",
+        title: "Recommendations carousel",
+        kind: "reveal",
+        event: "The home screen rolls a row of titles tuned to the room.",
+        characterVisibleText:
+          "A row of recommendations slides across the home screen. Each title sits beside a one-line tag. The remote pulses softly between them.",
+        directorInstruction:
+          "Let the next speaker name a row title that fits something already true about them on file. Draw only from existing brief or filed reads, not new biography.",
       },
     ],
     earlyEndTriggers: [

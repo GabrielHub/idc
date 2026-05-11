@@ -42,15 +42,17 @@ export const chainRestaurantTuesday: DateScenario = {
       {
         id: "chain-restaurant-tuesday-event-1",
         title: "Server pen at the booth",
+        kind: "reveal",
         event: "The server stops at the booth's edge with pen and pad ready.",
         characterVisibleText:
           "The server stops at the booth's edge, pen above pad, and waits without speaking. The first basket of breadsticks is half gone.",
         directorInstruction:
-          "Reveal how each member handles a low-stakes choice with another person waiting.",
+          "Reveal how each member handles a low-stakes choice with another person waiting. The server does not speak.",
       },
       {
         id: "chain-restaurant-tuesday-event-2",
         title: "Bread refill",
+        kind: "ambient",
         event: "A second breadstick basket arrives. Neither member asked.",
         characterVisibleText:
           "A fresh basket lands on the table. The original basket is still half full.",
@@ -60,6 +62,7 @@ export const chainRestaurantTuesday: DateScenario = {
       {
         id: "chain-restaurant-tuesday-event-3",
         title: "Check drop",
+        kind: "provocation",
         event: "The check arrives in a leatherette folder with two mints.",
         characterVisibleText:
           "The check sits at the edge of the table. The folder is leatherette and slightly warm from the kitchen window.",
@@ -69,45 +72,62 @@ export const chainRestaurantTuesday: DateScenario = {
       {
         id: "chain-restaurant-tuesday-event-4",
         title: "Wrong fork",
+        kind: "reveal",
         event: "The server swaps a salad fork for a dinner fork without a word.",
         characterVisibleText:
           "The server lifts a salad fork, sets a dinner fork in its place, and moves on. The candle in the small jar at the booth is unlit. The breadstick basket is on its third pass.",
-        directorInstruction: "Use the small correction to expose how the pair handles a quiet fix.",
+        directorInstruction:
+          "Use the small correction to expose how the pair handles a quiet fix. The server stays silent.",
       },
       {
         id: "chain-restaurant-tuesday-event-5",
         title: "Tablet sleep",
+        kind: "reveal",
         event: "The booth tablet auto-sleeps and the room hum returns.",
         characterVisibleText:
           "The check tablet on the booth dims to its sleep screen. The booth's overhead speaker plays a smooth-jazz instrumental at low volume.",
         directorInstruction:
-          "Let the pause invite a topic neither has needed help raising. No staff to lean on.",
+          "Let the pause invite a topic neither has needed help raising. The pair speaks from what they already know about each other, not new biography.",
       },
       {
         id: "chain-restaurant-tuesday-event-6",
         title: "Booth twelve",
+        kind: "ambient",
         event: "A toddler at booth twelve drops a crayon into the aisle.",
         characterVisibleText:
           "A red crayon rolls from booth twelve into the aisle. A parent leans down and retrieves it. The toddler waves at the entire dining room.",
-        directorInstruction: "Use the small public moment to test warmth without performance.",
+        directorInstruction:
+          "Use the small public moment to test warmth without performance. Do not voice the toddler or the parent.",
       },
       {
         id: "chain-restaurant-tuesday-event-7",
         title: "Manager pass",
+        kind: "ambient",
         event: "The manager walks the dining room without stopping at booth fourteen.",
         characterVisibleText:
           "The manager walks the floor in a polo shirt with a name tag clipped on. He passes booth fourteen, slows, and keeps moving without speaking.",
         directorInstruction:
-          "Let the pair sit with the small near-attention. A member who flags him reveals something.",
+          "Let the pair sit with the small near-attention. A member who flags him reveals something. The manager does not speak.",
       },
       {
         id: "chain-restaurant-tuesday-event-8",
         title: "Mints arrive",
+        kind: "provocation",
         event: "Two mints come in a small dish with the check folder.",
         characterVisibleText:
           "The mints come in a small black dish on top of the closed leatherette folder. The kitchen pass-through has gone quiet. The breadstick basket is empty.",
         directorInstruction:
           "Push for a clean handoff or a clean stall before the booth turns over.",
+      },
+      {
+        id: "chain-restaurant-tuesday-event-9",
+        title: "Booth turn",
+        kind: "provocation",
+        event: "A host taps the booth edge with a fresh menu set.",
+        characterVisibleText:
+          "A host steps to the booth and sets two laminated menus and two folded napkins on the corner. The new pair waits at the host stand. The folder with the check is now half off the table.",
+        directorInstruction:
+          "Push for a clean exit or a polite stall in front of the next pair. The host does not speak.",
       },
     ],
     earlyEndTriggers: [

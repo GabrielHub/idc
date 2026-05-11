@@ -42,6 +42,7 @@ export const softLaunchPhotoWall: DateScenario = {
       {
         id: "soft-launch-photo-wall-event-1",
         title: "Release form",
+        kind: "provocation",
         event: "The release form on the clipboard waits between them.",
         characterVisibleText:
           "The release form on the clipboard has both names misspelled. A pink pen rests on top. The signature line is highlighted.",
@@ -51,23 +52,27 @@ export const softLaunchPhotoWall: DateScenario = {
       {
         id: "soft-launch-photo-wall-event-2",
         title: "Ring lights up",
+        kind: "reveal",
         event: "The ring lights warm up. A line begins to form behind the wall.",
         characterVisibleText:
           "Three ring lights glow on. The wall reads authentic connection in vinyl lettering. A line of three couples forms behind the wall.",
         directorInstruction:
-          "Use public attention to test whether the pair acts together or splits.",
+          "Use public attention to surface whether the pair acts together or splits, drawn from each member's existing stance on being seen. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "soft-launch-photo-wall-event-3",
         title: "Caption draft",
+        kind: "reveal",
         event: "A tablet displays a draft caption.",
         characterVisibleText:
           "A tablet on the table displays a caption draft: love wins the soft launch. The post button pulses. A staffer's hand sets a gift bag at the corner of the table and withdraws.",
-        directorInstruction: "Let the pair revise, refuse, or reclaim the public story.",
+        directorInstruction:
+          "Let the pair revise, refuse, or reclaim the public story. Staff hands do not speak. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "soft-launch-photo-wall-event-4",
         title: "Gift bag drops",
+        kind: "ambient",
         event: "A second branded gift bag is set at the table corner.",
         characterVisibleText:
           "A second pink branded gift bag lands at the table corner. Tissue paper sticks out at an angle. A small QR code on the handle is angled toward the table.",
@@ -77,38 +82,52 @@ export const softLaunchPhotoWall: DateScenario = {
       {
         id: "soft-launch-photo-wall-event-5",
         title: "Caption revises",
+        kind: "ambient",
         event: "The tablet caption revises itself.",
         characterVisibleText:
           "The caption on the tablet revises itself once: two early adopters of love. The post button pulses faster. A small character counter starts ticking down.",
         directorInstruction:
-          "Let the pair watch the brand reach for them. The next sentence in the room is the answer.",
+          "Let the small auto-revision pass as ambient brand churn. The pair does not need to answer it. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "soft-launch-photo-wall-event-6",
         title: "Other couple flashes",
+        kind: "reveal",
         event: "A flash from the next couple lands on the photo wall.",
         characterVisibleText:
           "A flash bursts from the photo wall as another couple poses. They laugh easily. Their release form is signed and clipped to the wall behind them.",
         directorInstruction:
-          "Use the easy success of strangers to test whether the pair wants the same or wants out.",
+          "Use the easy success of strangers to surface what the pair already wants. Do not voice the other couple.",
       },
       {
         id: "soft-launch-photo-wall-event-7",
         title: "Branded napkin",
+        kind: "ambient",
         event: "A branded cocktail napkin lands under one elbow.",
         characterVisibleText:
           "A staffer's hand slides a branded napkin under one elbow and withdraws. The logo across the napkin is the same logo behind the photo wall. The release form is still half-signed.",
         directorInstruction:
-          "Allow the small reminder. The brand is everywhere; they can choose how much to be in it.",
+          "Allow the small reminder. The brand is everywhere; they can choose how much to be in it. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "soft-launch-photo-wall-event-8",
         title: "Letter falls",
+        kind: "provocation",
         event: "One vinyl letter peels off the photo wall.",
         characterVisibleText:
           "One vinyl letter peels off the photo wall and falls onto the floor. The wall now reads: authentic onnection. A staffer is already three tables away with another release form.",
         directorInstruction:
-          "Push for a clean exit from the brand or a clean stay inside it on their own terms.",
+          "Push for a clean exit from the brand or a clean stay inside it on their own terms. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "soft-launch-photo-wall-event-9",
+        title: "Camera pivots",
+        kind: "provocation",
+        event: "A wall-mounted camera swivels onto the bistro table.",
+        characterVisibleText:
+          "A small wall-mounted camera by the photo wall swivels on its mount until the lens is aimed at their bistro table. A red recording dot lights below the lens. The release form is still half-signed.",
+        directorInstruction:
+          "Push for a physical answer: cover the lens, walk out of frame, sign the release, or kill the post. The camera will not look away first.",
       },
     ],
     earlyEndTriggers: [

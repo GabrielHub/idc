@@ -42,6 +42,7 @@ export const cloudCastleMiniGolf: DateScenario = {
       {
         id: "cloud-castle-mini-golf-event-1",
         title: "Hole 1",
+        kind: "ambient",
         event: "The first tee opens the round.",
         characterVisibleText:
           "Hole 1 is a flat par three on stone. Two pink balls sit on the tee. The cup is twenty feet ahead. The two scorecards and two pencils are within reach. Neither pencil has been picked up yet.",
@@ -51,6 +52,7 @@ export const cloudCastleMiniGolf: DateScenario = {
       {
         id: "cloud-castle-mini-golf-event-2",
         title: "Cloud-floor",
+        kind: "ambient",
         event: "Hole 4 begins on cloud-floor.",
         characterVisibleText:
           "Hole 4 begins on cloud-floor. The surface is springy underfoot and squeaks lightly with each step. The cup sits in a small stone island a few steps in. Their footprints behind them have already smoothed out.",
@@ -60,56 +62,72 @@ export const cloudCastleMiniGolf: DateScenario = {
       {
         id: "cloud-castle-mini-golf-event-3",
         title: "Narrow parapet",
+        kind: "reveal",
         event: "Hole 7 runs along a narrow stone parapet.",
         characterVisibleText:
           "Hole 7 is a long par three on a parapet two arms wide. The drop on the right is open sky. A short rope along the left holds for balance. The cup is at the far end, set into the wall.",
         directorInstruction:
-          "Use the narrow path to test whether either of them positions for the partner's safety without making a show of it.",
+          "Use the narrow path to surface whether either of them positions for the partner's safety without making a show of it.",
       },
       {
         id: "cloud-castle-mini-golf-event-4",
         title: "Turn fountain",
+        kind: "reveal",
         event: "The water fountain at the turn is between holes 9 and 10.",
         characterVisibleText:
           "Between holes 9 and 10, a small stone fountain sits in an alcove. A stack of paper cups is in a dispenser on the wall. The fountain handle is cold to the touch. The path is empty in both directions.",
         directorInstruction:
-          "Use the small pause to test small care. Either may fill, drink first, or hand a cup across.",
+          "Use the small pause to surface small care. Either may fill, drink first, or hand a cup across.",
       },
       {
         id: "cloud-castle-mini-golf-event-5",
         title: "Wind on twelve",
+        kind: "provocation",
         event: "Hole 12 has a steady crosswind.",
         characterVisibleText:
           "Hole 12 is a par three on stone with a steady wind across the line. A small windsock at the cup is full. The first putt drifts left of the cup by half a length. The scorecard has space for a second stroke.",
         directorInstruction:
-          "Use the wind to test whether either of them pushes for a do-over or takes the stroke.",
+          "Push for a clean call: take the stroke, ask for a do-over, or give the partner the line.",
       },
       {
         id: "cloud-castle-mini-golf-event-6",
         title: "Windmill",
+        kind: "provocation",
         event: "Hole 14 is the windmill.",
         characterVisibleText:
           "Hole 14 is the windmill, set on stone. The blades turn at a steady speed. The opening at the base is small. The cup is on the far side. A small placard reads no dispute the windmill.",
         directorInstruction:
-          "Push for one direct moment about timing and turn order. Either may take the first try.",
+          "Push for one direct moment about timing and turn order. Either may take the first try. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "cloud-castle-mini-golf-event-7",
         title: "Hole 17",
+        kind: "reveal",
         event: "The scorecard count narrows on hole 17.",
         characterVisibleText:
           "Hole 17 is a short par two on cloud-floor. The scorecard shows a close round, one ahead by two strokes. A pencil mark on the card has been smudged at hole 11. The smudge is recoverable if either of them wants to revisit it.",
         directorInstruction:
-          "Use the smudge to test whether either of them rewrites the count or leaves it.",
+          "Use the smudge to surface whether either of them rewrites the count or leaves it.",
       },
       {
         id: "cloud-castle-mini-golf-event-8",
         title: "Putter bin",
+        kind: "provocation",
         event: "Hole 18 ends at the putter drop bin.",
         characterVisibleText:
           "Hole 18 is a flat par three on stone. The cup sits a few feet from the drop bin. Two pink balls go into a small return chute. A slot at the bin takes the scorecards. The exit gate is just past it.",
         directorInstruction:
           "Push for a clean exit. The pair tallies, drops the putters, and walks out together or apart. Either is the right answer if it is honest.",
+      },
+      {
+        id: "cloud-castle-mini-golf-event-9",
+        title: "Cloud thinning",
+        kind: "ambient",
+        event: "A patch of cloud-floor thins to translucent under one foot.",
+        characterVisibleText:
+          "A patch of cloud-floor thins under one foot. Open sky shows through for a beat before the cloud knits itself back. The squeak underfoot is the same as before.",
+        directorInstruction:
+          "Allow the small thinning. The cloud holds. The pair does not need to make it a stunt or a story.",
       },
     ],
     earlyEndTriggers: [

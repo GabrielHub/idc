@@ -403,6 +403,35 @@ When prompting the Memory Summarizer:
 - Plain prose. Memory records are read by retrieval, not by the player. Voice does not matter; faithful summary does.
 - Memory text should preserve specifics from the transcript ("Derek asked Vhool a genuinely kind follow-up question") rather than collapsing them into generic phrasing.
 
+## Event Kinds
+
+Every scenario fixture ships exactly nine `events`, three of each `kind`: `ambient`, `provocation`, `reveal`. The draft step deals two of each kind into a six-card offer; the player picks any three. The trigger flow appends an automatic suffix to the `directorInstruction` based on the event's kind so the performer prompt always knows what register the event needs.
+
+### Ambient
+
+- Environmental texture. Tests tolerance and attention without demanding a response.
+- Examples: a sugar packet refilling itself, a mug warming on its own, parquet squeaking under a heel.
+- Voice pull: small, sensory, easy to skip if the speaker has nothing to say. The character may notice the cue or move on without comment.
+- Suffix appended in prompt: `Treat this as ambient texture. The character may notice it or move on as feels true.`
+
+### Provocation
+
+- A physical interruption that demands a reaction before the conversation continues.
+- Examples: a drink spill, a fire alarm, a dropped tray, a partner's ex entering the room, a door swinging open.
+- Voice pull: registers the disruption, names the physical move, returns to thread.
+- Suffix appended in prompt: `This is a physical interruption. The character must register and react before resuming.`
+
+### Reveal
+
+- A reusable scene hook that lets the current speaker surface something honest already present in supplied member context, filed reads, or pair history.
+- Reveals must not invent new biography. Author the event text generically and let the `directorInstruction` map the surfacing back to existing context.
+- Voice pull: lands a real admission, in-register, drawn only from what the speaker already shows on file.
+- Suffix appended in prompt: `This puts something honest into the open. The character chooses how to be seen, drawing only on their own brief, filed reads, or pair history.`
+
+### No Continuing Offstage Speakers
+
+Scenarios may carry one non-continuing environmental utterance through `characterVisibleText`, like a PA announcement or a printed label. The `directorInstruction` must say not to voice that source as a continuing speaker. Servers, hosts, volunteers, audio guides, voices in the kitchen, intercoms, coordinators, and creatures inside the venue do not become a third party in the conversation. If a scenario reads like a third character could pick up dialogue, rewrite it.
+
 ## Reference Library
 
 The example pool that grounds this tone lives below by pattern. Use these as direct generation references, not as canonical IDC content. They are voice samples; characters in IDC will speak with overlapping but distinct fingerprints.

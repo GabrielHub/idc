@@ -18,6 +18,7 @@ import {
   type PlayerKnowledgeRecord,
   type PortraitMood,
   type ScenarioEvent,
+  type ScenarioEventKind,
   type ShiftState,
 } from "../domain/game";
 import {
@@ -2998,6 +2999,12 @@ function FinalReportPanel({
   );
 }
 
+const SCENARIO_EVENT_KIND_CHIP_CLASS: Record<ScenarioEventKind, string> = {
+  ambient: "bg-aura-violet/12 text-aura-violet ring-1 ring-aura-violet/30",
+  provocation: "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/35",
+  reveal: "bg-aura-emerald/15 text-aura-emerald ring-1 ring-aura-emerald/35",
+};
+
 function DraftScreen({
   scenario,
   session,
@@ -3046,8 +3053,8 @@ function DraftScreen({
           Pick three <span className="aura-accent text-aura-rose">scene cards</span>
         </h2>
         <p className="mx-auto max-w-md text-label text-aura-muted">
-          Cupid drafts six possible turns of fate for {scenario.title}. Choose the three you want to
-          drop into this date. The unpicked three sit out.
+          Cupid deals two of each scene kind for {scenario.title}: ambient texture, provocations,
+          and reveals. Pick any three to drop into the date.
         </p>
       </div>
 
@@ -3055,6 +3062,7 @@ function DraftScreen({
         {offeredEvents.map((event, index) => {
           const pickIndex = picks.indexOf(event.id);
           const selected = pickIndex >= 0;
+          const kindClass = SCENARIO_EVENT_KIND_CHIP_CLASS[event.kind];
           return (
             <motion.li
               key={event.id}
@@ -3078,11 +3086,19 @@ function DraftScreen({
                     : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
                 }`}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-3">
                   <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
                     // scene {pad2(index + 1)}
                   </span>
-                  <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                  <div className="flex items-center gap-2">
+                    <span
+                      data-event-kind={event.kind}
+                      className={`rounded-full px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${kindClass}`}
+                    >
+                      {event.kind}
+                    </span>
+                    <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                  </div>
                 </div>
                 <h3 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
                   {event.title}

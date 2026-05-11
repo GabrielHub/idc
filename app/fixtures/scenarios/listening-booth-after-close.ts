@@ -43,15 +43,17 @@ export const listeningBoothAfterClose: DateScenario = {
       {
         id: "listening-booth-after-close-event-1",
         title: "First track",
+        kind: "reveal",
         event: "The first record starts.",
         characterVisibleText:
           "The speakers crackle and the song starts. There are no lyrics. The track has a very specific opinion about restraint.",
         directorInstruction:
-          "Invite a small reaction. The speaker can name the feeling without naming a wound.",
+          "Invite a small reaction. The speaker can name the feeling without naming a wound, drawing only on what they already show on file.",
       },
       {
         id: "listening-booth-after-close-event-2",
         title: "Skipped groove",
+        kind: "provocation",
         event: "The needle catches and repeats one chord.",
         characterVisibleText:
           "The needle catches on the same soft chord and repeats it. The booth waits with unacceptable patience. The lamp does not flicker.",
@@ -61,6 +63,7 @@ export const listeningBoothAfterClose: DateScenario = {
       {
         id: "listening-booth-after-close-event-3",
         title: "House lights",
+        kind: "reveal",
         event: "The house lights ease up a notch and the final sleeve appears on the side table.",
         characterVisibleText:
           "The booth lights lift one notch. A blank record sleeve slides onto the side table. It has two empty lines where names could go. A pen rests beside it.",
@@ -69,6 +72,7 @@ export const listeningBoothAfterClose: DateScenario = {
       {
         id: "listening-booth-after-close-event-4",
         title: "Side flip",
+        kind: "ambient",
         event: "The record flips itself to side B.",
         characterVisibleText:
           "The arm lifts on its own. The platter pauses, and the record turns over to side B. The lamp does not flicker. The first chord lands cleaner than the last side.",
@@ -78,15 +82,17 @@ export const listeningBoothAfterClose: DateScenario = {
       {
         id: "listening-booth-after-close-event-5",
         title: "Lamp dims",
+        kind: "reveal",
         event: "The bulb in the lamp dims by half a stop.",
         characterVisibleText:
           "The bulb in the booth's single lamp dims by half a stop. The dust in the light is now barely visible. The room does not feel emptier, only later.",
         directorInstruction:
-          "Allow the shadow. A member who reaches for a lamp switch is asking a question.",
+          "Allow the shadow. A member who reaches for a lamp switch is asking a question. Surface what each carries on file, not new wound.",
       },
       {
         id: "listening-booth-after-close-event-6",
         title: "Empty sleeve",
+        kind: "ambient",
         event: "An empty sleeve slides into the discard bin.",
         characterVisibleText:
           "A blank sleeve slides itself into the discard bin beside the turntable. The label is in pencil and unreadable. The bin already has two sleeves in it.",
@@ -95,19 +101,31 @@ export const listeningBoothAfterClose: DateScenario = {
       {
         id: "listening-booth-after-close-event-7",
         title: "Front door bell",
+        kind: "ambient",
         event: "The shop's front door bell chimes faintly down the hall.",
         characterVisibleText:
           "The front door bell of the shop chimes once down the hall and stops. A back-office voice calls out a soft good night. The booth door stays closed.",
         directorInstruction:
-          "Use the distant world to make the booth more present, not more haunted.",
+          "Use the distant world to make the booth more present, not more haunted. Do not voice the back office as a continuing speaker.",
       },
       {
         id: "listening-booth-after-close-event-8",
         title: "Stack settles",
+        kind: "provocation",
         event: "The unlabeled stack of records settles to one side.",
         characterVisibleText:
           "The stack of unlabeled records on the side table tilts a quarter inch to one side. Nothing falls. The lamp catches the spine of the topmost sleeve.",
         directorInstruction: "Push for a clean ending sentence. The booth will close on its own.",
+      },
+      {
+        id: "listening-booth-after-close-event-9",
+        title: "Arm lifts",
+        kind: "provocation",
+        event: "The tonearm lifts mid-track and waits over the rest.",
+        characterVisibleText:
+          "The tonearm lifts off the record mid-track and hangs above the rest. The platter slows but does not stop. The lamp dims one more notch.",
+        directorInstruction:
+          "Push for a clean call: drop the needle back, set the arm at rest, or close the booth out. The booth will not decide for them.",
       },
     ],
     earlyEndTriggers: [

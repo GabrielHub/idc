@@ -2,6 +2,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 
 import type { PortraitMood } from "../domain/game";
+import { mulberry32 } from "../services/utils";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
 
 type ScenarioBackdropLoadState = "loading" | "loaded" | "failed";
@@ -391,17 +392,6 @@ const STYLE_SEED: Record<Exclude<ScenarioBackdropParticleStyle, "off">, number> 
   embers: 0xb1a2e,
   snow: 0x5009,
 };
-
-function mulberry32(seed: number): () => number {
-  let state = seed >>> 0;
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 function ScenarioMoodTintLayer({
   mood,

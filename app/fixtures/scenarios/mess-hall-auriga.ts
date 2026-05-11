@@ -42,6 +42,7 @@ export const messHallAuriga: DateScenario = {
       {
         id: "mess-hall-auriga-event-1",
         title: "Tray settle",
+        kind: "ambient",
         event: "Both trays settle on the booth's mag plate.",
         characterVisibleText:
           "Both trays click softly to the booth surface as the magnets engage. The meatloaf is warm. The green beans are slightly overcooked. The cup of water at each tray is the right temperature.",
@@ -51,41 +52,47 @@ export const messHallAuriga: DateScenario = {
       {
         id: "mess-hall-auriga-event-2",
         title: "Window flicker",
+        kind: "ambient",
         event: "The window's star feed reloads.",
         characterVisibleText:
           "The window beside the booth flickers once and reloads. The same starfield comes back. A small caption at the bottom corner reads: external feed nominal. The next booth does not look up.",
-        directorInstruction: "Treat the moment as routine. Do not mistake it for an omen.",
+        directorInstruction:
+          "Treat the moment as routine. Do not mistake it for an omen. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "mess-hall-auriga-event-3",
         title: "Pairing card",
+        kind: "reveal",
         event: "A pairing card surfaces on the booth surface.",
         characterVisibleText:
           "A small text card glows on the booth surface between their trays. It reads: rotation match, Tuesday week 12, no further obligation. Two thumbprint pads sit below the text.",
         directorInstruction:
-          "Let the small bureaucratic acknowledgment test how each of them holds being assigned.",
+          "Let the small bureaucratic acknowledgment test how each of them holds being assigned. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "mess-hall-auriga-event-4",
         title: "Ration cookie",
+        kind: "reveal",
         event: "Two ration cookies arrive on a small plate.",
         characterVisibleText:
           "A small plate slides up the table from the booth's center slot. Two oat cookies sit on it. A small card reads: rotation pair courtesy. Both cookies are the same size.",
         directorInstruction:
-          "Use the small offering to test small generosity. Either may take, leave, or split.",
+          "Use the small offering to test small generosity. Either may take, leave, or split. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "mess-hall-auriga-event-5",
         title: "Generational shift",
+        kind: "reveal",
         event: "An announcement passes through the deck speakers.",
         characterVisibleText:
           "The deck speakers pass a routine generational shift announcement at low volume. The text scrolls along the wall: archive update, week 12, ancestor logs available. Nobody at any booth turns to read it.",
         directorInstruction:
-          "Use the routine cue to test whether either of them treats their own life as already part of a long record.",
+          "Use the routine cue to surface whether either of them treats their own life as part of a long record. Do not voice the deck speakers as continuing dialogue.",
       },
       {
         id: "mess-hall-auriga-event-6",
         title: "Window dim",
+        kind: "ambient",
         event: "The starfield dims a notch as the ship rotates.",
         characterVisibleText:
           "The window dims a single notch as the ship rotates a degree on its spin axis. The starfield slides slowly to the left. The lights at booth 14 hold steady.",
@@ -95,20 +102,32 @@ export const messHallAuriga: DateScenario = {
       {
         id: "mess-hall-auriga-event-7",
         title: "Tray return",
+        kind: "provocation",
         event: "The next booth over clears their trays.",
         characterVisibleText:
           "The two younger crew at the next booth stand and walk their trays to the return slot. They nod at booth 14 once on the way past. The mess is now thinner. A staff member begins wiping a far table.",
         directorInstruction:
-          "Allow the small time pressure. The mess is not closing yet. Either may name the next move.",
+          "Push for the next move from one of them. The mess is not closing yet, but the room has begun the slow turn. The next booth does not speak.",
       },
       {
         id: "mess-hall-auriga-event-8",
         title: "Closing chime",
+        kind: "provocation",
         event: "The mess closing chime sounds at low volume.",
         characterVisibleText:
           "A soft chime passes through the deck speakers. The wall scroll updates: mess closing in fifteen minutes. The window holds. The cookies, if untaken, are still on the small plate.",
         directorInstruction:
-          "Push for a clean answer to the chime. Either staying through the closing minutes or walking back to quarters is the right answer.",
+          "Push for a clean answer to the chime. Either staying through the closing minutes or walking back to quarters is the right answer. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "mess-hall-auriga-event-9",
+        title: "Lights to night",
+        kind: "provocation",
+        event: "The mess shifts to night-cycle lighting.",
+        characterVisibleText:
+          "The deck lights cycle from mealtime warm to night-cycle blue. Two booths over, the trays clear themselves into the return chute. The mag plate under their trays clicks once to release.",
+        directorInstruction:
+          "Push for a clean physical move: rack out and walk back to quarters, take the cookies, or hold the booth as the mess clears.",
       },
     ],
     earlyEndTriggers: [

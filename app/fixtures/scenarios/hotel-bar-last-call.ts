@@ -42,24 +42,27 @@ export const hotelBarLastCall: DateScenario = {
       {
         id: "hotel-bar-last-call-event-1",
         title: "First drink",
+        kind: "ambient",
         event: "Two drinks land without ceremony.",
         characterVisibleText:
           "The bartender places two glasses on the coasters and turns to wipe a different glass. Two slim straws lean against the rim.",
         directorInstruction:
-          "Use the small mercy of being served quickly to drop the pair's guard.",
+          "Use the small mercy of being served quickly to drop the pair's guard. The bartender does not speak.",
       },
       {
         id: "hotel-bar-last-call-event-2",
         title: "Lobby quiet",
+        kind: "reveal",
         event: "The lobby empties. A single lamp clicks on near the piano.",
         characterVisibleText:
           "A floor lamp by the piano clicks on. The bench is closed. No one is near it. The lobby clock reads ten of the hour.",
         directorInstruction:
-          "Let the pair name the quiet without explaining it. A short admission costs less here.",
+          "Let the pair name the quiet without explaining it. A short admission costs less here. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "hotel-bar-last-call-event-3",
         title: "Last call",
+        kind: "provocation",
         event: "The brass rail bell taps twice down the bar.",
         characterVisibleText:
           "The brass rail bell taps twice down the bar. The kitchen pass-through goes dark. The cheese plate is taken away in one quiet pass.",
@@ -69,46 +72,61 @@ export const hotelBarLastCall: DateScenario = {
       {
         id: "hotel-bar-last-call-event-4",
         title: "Ice machine pause",
+        kind: "ambient",
         event: "The ice machine behind the bar quiets for a beat.",
         characterVisibleText:
           "The ice machine behind the bar quiets for the first time tonight. The ambient hum drops by half. The bartender's wiping cloth makes the only sound.",
         directorInstruction:
-          "Allow the silence to be the room's, not theirs. A member who fills it gives themselves away.",
+          "Allow the silence to be the room's, not theirs. A member who fills it gives themselves away. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "hotel-bar-last-call-event-5",
         title: "Coaster swap",
+        kind: "reveal",
         event: "Fresh coasters slide onto the brass rail.",
         characterVisibleText:
           "The bartender slides two fresh coasters in front of them and lifts the old ones in one move. A small cocktail napkin lands beside one glass. The lemon peel from earlier is gone.",
         directorInstruction:
-          "Use the small reset to surface whether either member treats reset as care.",
+          "Use the small reset to surface whether either member treats reset as care. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "hotel-bar-last-call-event-6",
         title: "Lobby crossing",
+        kind: "ambient",
         event: "Someone crosses the lobby toward the elevators.",
         characterVisibleText:
           "A guest in a wool coat crosses the lobby toward the elevators. He carries a small leather valise. He does not look at the bar. The lobby clock now reads quarter past.",
         directorInstruction:
-          "Let the lone passerby pass. The bar can hold them inside their conversation.",
+          "Let the lone passerby pass. The bar can hold them inside their conversation. Do not voice the guest.",
       },
       {
         id: "hotel-bar-last-call-event-7",
         title: "Glass swap",
+        kind: "reveal",
         event: "The bartender swaps a glass for a clean one without comment.",
         characterVisibleText:
           "The bartender lifts one of their glasses, replaces it with a fresh one, and refills it to the same line. The motion takes four seconds. He does not catch their eye.",
         directorInstruction:
-          "Use the unprompted mercy to test how each receives small kindness from a stranger.",
+          "Use the unprompted mercy to test how each receives small kindness from a stranger. The bartender does not speak.",
       },
       {
         id: "hotel-bar-last-call-event-8",
         title: "Sconces up",
+        kind: "provocation",
         event: "The wall sconces brighten by one notch.",
         characterVisibleText:
           "The wall sconces lift by one notch. The brass rail is now clearly visible end to end. Two coasters and a folded check sit at the far stool.",
         directorInstruction: "Push for one clean line before the bar tilts toward closing.",
+      },
+      {
+        id: "hotel-bar-last-call-event-9",
+        title: "Stools up",
+        kind: "provocation",
+        event: "The bartender flips the far stools onto the bar one at a time.",
+        characterVisibleText:
+          "At the far end of the bar, the bartender flips the first stool upside down onto the rail. The second follows. The folded check at the far stool is set on top of the brass between them and the door.",
+        directorInstruction:
+          "Push for a clean exit move: settle the check, take a last sip together, or split the stools. The bar is closing one stool at a time. Do not voice any background person or cue as a continuing speaker.",
       },
     ],
     earlyEndTriggers: [

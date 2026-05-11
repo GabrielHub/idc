@@ -42,6 +42,7 @@ export const moonPicnic: DateScenario = {
       {
         id: "moon-picnic-event-1",
         title: "Quilt corners",
+        kind: "ambient",
         event: "The quilt settles on the platform.",
         characterVisibleText:
           "The quilt is down. All four magnetic corners are locked to the platform. The basket sits in the center. A small tray slides out of the basket holding two sealed sandwich cases. Each case is labeled with a first name.",
@@ -51,15 +52,17 @@ export const moonPicnic: DateScenario = {
       {
         id: "moon-picnic-event-2",
         title: "First bite",
+        kind: "reveal",
         event: "A visor seal opens for a first bite.",
         characterVisibleText:
           "The lower visor seal opens for a bite and closes between bites. The sandwich is cut thin enough to fit. A crumb leaves the bread, drifts, and settles slowly on the quilt. The other visor has not opened yet.",
         directorInstruction:
-          "Use the small mechanic to test whether either of them notices the partner's first bite without staring.",
+          "Use the small mechanic to surface whether either of them notices the partner's first bite without staring.",
       },
       {
         id: "moon-picnic-event-3",
         title: "Earth at the angle",
+        kind: "ambient",
         event: "Earth sits over the right shoulder at a fixed angle.",
         characterVisibleText:
           "Earth sits over the right shoulder of both members at the same fixed angle. It does not move. The blue is the blue from the postcards. Neither member has turned to look at it yet.",
@@ -69,24 +72,27 @@ export const moonPicnic: DateScenario = {
       {
         id: "moon-picnic-event-4",
         title: "Tether",
+        kind: "provocation",
         event: "The shared tether tightens a quarter inch.",
         characterVisibleText:
           "The thin shared tether between their suit belts tightens a quarter inch as one of them shifts weight. The clip on the platform is solid. The other end of the tether is solid. The line is not in either lap.",
         directorInstruction:
-          "Use the small physical link to test whether either of them adjusts so the partner is not pulled.",
+          "Push for a physical adjustment so the partner is not pulled. The shift demands a real move before the next line.",
       },
       {
         id: "moon-picnic-event-5",
         title: "Thermos",
+        kind: "reveal",
         event: "The squeeze thermos comes out of the basket.",
         characterVisibleText:
           "A squeeze thermos with a long flexible spout sits in a clip on the basket. The spout fits the visor seal. There is one thermos. The label reads warm.",
         directorInstruction:
-          "Use the shared object to test how either of them offers it across the quilt.",
+          "Use the shared object to surface how either of them offers it across the quilt. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "moon-picnic-event-6",
         title: "Footprints at the edge",
+        kind: "ambient",
         event: "Past boot marks are visible at the platform edge.",
         characterVisibleText:
           "Two old sets of boot prints are pressed into the regolith just past the platform's edge. The prints are different sizes. They have not moved in the time the platform has been there. No wind reaches them.",
@@ -96,20 +102,32 @@ export const moonPicnic: DateScenario = {
       {
         id: "moon-picnic-event-7",
         title: "Two cookies",
+        kind: "reveal",
         event: "A small tin of two cookies opens inside the basket.",
         characterVisibleText:
           "A small round tin pops its lid in the basket. Two cookies sit inside, one slightly larger than the other. A note in the tin reads share. The visor seal can fit a cookie.",
         directorInstruction:
-          "Use the small choice to test whether either of them takes the larger cookie or offers it across the quilt.",
+          "Use the small choice to surface whether either of them takes the larger cookie or offers it across the quilt. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "moon-picnic-event-8",
         title: "Retract chime",
+        kind: "provocation",
         event: "The platform sounds a soft chime to begin retraction.",
         characterVisibleText:
           "A soft chime comes through the suit speakers. The platform has begun a slow retract toward the dome airlock. The basket clips itself shut. The quilt corners release on a delay.",
         directorInstruction:
           "Push for a clean exit. The pair packs out together, or one of them takes the lead. Either is right if it is honest.",
+      },
+      {
+        id: "moon-picnic-event-9",
+        title: "Suit warning",
+        kind: "provocation",
+        event: "A suit climate light blinks amber on one of them.",
+        characterVisibleText:
+          "A small amber light blinks on the chest plate of one suit. The visor heads-up reads: climate within tolerance, manual check advised. The other suit reads green.",
+        directorInstruction:
+          "Push for a clean physical answer: check the seal together, run the manual, or call the platform back early. The amber will not clear without a touch. Do not voice any background person or cue as a continuing speaker.",
       },
     ],
     earlyEndTriggers: [

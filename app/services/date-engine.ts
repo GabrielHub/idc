@@ -29,6 +29,8 @@ import {
   type PlaybackState,
   type RelationshipStat,
   type ScenarioEvent,
+  type ScenarioEventKind,
+  SCENARIO_EVENT_KINDS,
   type ShiftGoalResult,
   type ShiftReport,
   type ShiftState,
@@ -54,7 +56,7 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
-import { clampDelta, clampScore, replaceById } from "./utils";
+import { clampDelta, clampScore, pushIntoBucket, replaceById, shuffleInPlace } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type StartDateInput = {
@@ -92,8 +94,8 @@ const CHARACTER_TURN_LIMIT = 30;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
 export const JUDGE_TURN_INTERVAL = 6;
 export const MAX_NUDGES_PER_DATE = 3;
-export const EVENT_POOL_SIZE = 8;
-export const EVENT_DRAFT_OFFERED = 6;
+export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
+export const EVENT_DRAFT_OFFERED = EVENT_DRAFT_OFFERED_PER_KIND * SCENARIO_EVENT_KINDS.length;
 export const EVENT_DRAFT_PICKED = 3;
 const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 export const CLIENT_LOSS_LIMIT = 3;
@@ -415,24 +417,31 @@ export function drawScenarioEventOffer(
   scenario: DateScenario,
   randomFn: () => number = Math.random,
 ): EventDraft {
-  const pool = [...scenario.director.events];
+  const buckets = new Map<ScenarioEventKind, ScenarioEvent[]>();
 
-  for (let index = pool.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(randomFn() * (index + 1));
-    const a = pool[index];
-    const b = pool[swapIndex];
+  for (const event of scenario.director.events) {
+    pushIntoBucket(buckets, event.kind, event);
+  }
 
-    if (a !== undefined && b !== undefined) {
-      pool[index] = b;
-      pool[swapIndex] = a;
+  const offered: string[] = [];
+
+  for (const kind of SCENARIO_EVENT_KINDS) {
+    const bucket = buckets.get(kind) ?? [];
+    shuffleInPlace(bucket, randomFn);
+
+    const targetCount = Math.min(EVENT_DRAFT_OFFERED_PER_KIND, bucket.length);
+
+    for (let index = 0; index < targetCount; index += 1) {
+      const event = bucket[index];
+
+      if (event !== undefined) {
+        offered.push(event.id);
+      }
     }
   }
 
-  const offeredPool = pool.slice(0, EVENT_POOL_SIZE);
-  const offerCount = Math.min(EVENT_DRAFT_OFFERED, offeredPool.length);
-
   return {
-    offered: offeredPool.slice(0, offerCount).map((event) => event.id),
+    offered,
     picked: null,
   };
 }

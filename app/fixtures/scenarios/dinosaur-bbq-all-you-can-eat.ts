@@ -42,51 +42,57 @@ export const dinosaurBbqAllYouCanEat: DateScenario = {
       {
         id: "dinosaur-bbq-all-you-can-eat-event-1",
         title: "First plate",
+        kind: "ambient",
         event: "The sampler plate slides out of the wall track.",
         characterVisibleText:
           "The wall panel opens and a sampler plate slides out: thinly sliced brontosaurus short rib, raptor flank, triceratops ribeye, and a small portion of T-Rex chuck. Two long tongs sit in the middle of the table. The grill is at temperature. The booking timer reads one fifty-eight.",
         directorInstruction:
-          "Open the date with the small action of starting the grill. Either may pick up tongs, lay down the first piece, or wait.",
+          "Open the date with the small action of starting the grill. Either may pick up tongs, lay down the first piece, or wait. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "dinosaur-bbq-all-you-can-eat-event-2",
         title: "Tongs",
+        kind: "reveal",
         event: "One of them picks up tongs first.",
         characterVisibleText:
           "One pair of tongs is now in a hand. The other pair is still on the table. The first piece of brontosaurus short rib hits the grill and sears immediately. The smoke goes up to the vent.",
         directorInstruction:
-          "Use the small grip on the tongs to test whether either of them claims the flipper role or shares it.",
+          "Use the small grip on the tongs to surface whether either of them claims the flipper role or shares it.",
       },
       {
         id: "dinosaur-bbq-all-you-can-eat-event-3",
         title: "Lazy susan",
+        kind: "reveal",
         event: "The lazy susan turns to bring sides across.",
         characterVisibleText:
           "The lazy susan in the middle of the table turns at a hand. The kimchi and the scallion salad come around to one member's side. The ssamjang sits in the middle. The lettuce and perilla are stacked under a small dome.",
         directorInstruction:
-          "Use the small turn to test whether either of them brings a side around for the partner without being asked.",
+          "Use the small turn to surface whether either of them brings a side around for the partner without being asked.",
       },
       {
         id: "dinosaur-bbq-all-you-can-eat-event-4",
         title: "Far call",
+        kind: "ambient",
         event: "A distant carnivore call carries through the trees.",
         characterVisibleText:
           "A low call from a carnivore carries through the trees on the far side of the platform. The fence does not move. The grill does not change. A second call answers from a different direction. Neither call is close.",
         directorInstruction:
-          "Allow the small environmental sound. The fence is solid. The pair does not need to interpret the calls.",
+          "Allow the small environmental sound. The fence is solid. The pair does not need to interpret the calls. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "dinosaur-bbq-all-you-can-eat-event-5",
         title: "Refill",
+        kind: "reveal",
         event: "The first plate is empty and the tablet is open.",
         characterVisibleText:
           "The first sampler plate is bones and char. The tablet shows the refill menu. The triceratops ribeye is the marbled premium cut and has a small note: limited per table. The other cuts are unlimited. The booking timer reads one twenty-two.",
         directorInstruction:
-          "Use the tablet order to test how either of them chooses for the partner without overcalling.",
+          "Use the tablet order to surface how either of them chooses for the partner without overcalling. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "dinosaur-bbq-all-you-can-eat-event-6",
         title: "Best cut",
+        kind: "provocation",
         event: "One piece of triceratops ribeye sits on the grill.",
         characterVisibleText:
           "The second plate has come out of the wall track. The triceratops ribeye is on the grill, browning at the edges. There is one piece in the cap section, the most marbled cut of the plate. The tongs are within reach of either of them.",
@@ -96,6 +102,7 @@ export const dinosaurBbqAllYouCanEat: DateScenario = {
       {
         id: "dinosaur-bbq-all-you-can-eat-event-7",
         title: "Brontosaurs",
+        kind: "ambient",
         event: "A small herd of brontosaurs moves past the tree line.",
         characterVisibleText:
           "Past the tree line, three brontosaurs walk slowly across an open stretch. They stop at a tall fern and one of them pulls a frond. The herd is moving the other direction. The fence is closer than the herd.",
@@ -105,11 +112,22 @@ export const dinosaurBbqAllYouCanEat: DateScenario = {
       {
         id: "dinosaur-bbq-all-you-can-eat-event-8",
         title: "Last round",
+        kind: "provocation",
         event: "The booking timer crosses zero ten.",
         characterVisibleText:
           "The booking timer reads zero ten. The grill has one last piece of raptor flank cooking. The lazy susan has half a portion of kimchi left. The tablet shows a small button at the bottom: wrap and exit.",
         directorInstruction:
-          "Push for a clean exit. The pair finishes the last piece together or one of them flags the wrap. Either is the right answer if it is honest.",
+          "Push for a clean exit. The pair finishes the last piece together or one of them flags the wrap. Either is the right answer if it is honest. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "dinosaur-bbq-all-you-can-eat-event-9",
+        title: "Grill flare",
+        kind: "provocation",
+        event: "Fat from the cap piece flares the grill into a hand-high flame.",
+        characterVisibleText:
+          "Fat dripping off the cap piece catches and the grill flares into a hand-high yellow flame. The vent fan over the table kicks to high. The tongs are still on the table.",
+        directorInstruction:
+          "Push for a physical save: lift the cap piece off, choke the flame with a tile of meat, or hit the vent boost. The flare drops on its own in a beat but the cap piece will char if neither moves.",
       },
     ],
     earlyEndTriggers: [

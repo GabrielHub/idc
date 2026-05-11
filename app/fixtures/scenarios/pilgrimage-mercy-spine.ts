@@ -42,42 +42,47 @@ export const pilgrimageMercySpine: DateScenario = {
       {
         id: "pilgrimage-mercy-spine-event-1",
         title: "Ranger booth",
+        kind: "reveal",
         event: "The petition form is on the clipboard at the booth.",
         characterVisibleText:
           "A clipboard rests on the booth counter. The top form has two blank lines for the wish, two signature blocks, and a small block at the bottom that reads: filed jointly or not filed. The pen is uncapped. The ranger is two seats over with a thermos.",
         directorInstruction:
-          "Let the form set the bar. Neither member has to fill it. They have ninety minutes before the cairn.",
+          "Let the form set the bar. Neither member has to fill it. The ranger does not speak.",
       },
       {
         id: "pilgrimage-mercy-spine-event-2",
         title: "First marker",
+        kind: "reveal",
         event: "The first trail marker stands at the base of rib eight.",
         characterVisibleText:
           "A small wooden marker reads marker one, ten percent. The trail past it climbs at a comfortable angle. A faint slow drum pulses through the rock under their feet, twice a minute.",
         directorInstruction:
-          "Use the long walk to surface what either of them actually wants but has not said.",
+          "Use the long walk to surface what either of them actually wants but has not said. Draw on each member's existing brief. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "pilgrimage-mercy-spine-event-3",
         title: "Other pair",
+        kind: "ambient",
         event: "Another pair passes on their way down with the form unsigned.",
         characterVisibleText:
           "Two other pilgrims pass on their way down the trail. The lead pilgrim carries a clipboard. The petition form clipped to it has both signature lines blank. They nod at the pair and keep walking.",
         directorInstruction:
-          "Allow the small benchmark moment. The pair may use it or set it aside.",
+          "Allow the small benchmark moment. The pair may use it or set it aside. Do not voice the other pilgrims.",
       },
       {
         id: "pilgrimage-mercy-spine-event-4",
         title: "Resting bench",
+        kind: "reveal",
         event: "A resting bench cut from the god's bone sits between markers four and five.",
         characterVisibleText:
           "A bench sits in a notch between two ribs. The bench is carved from a chip of bone. A small plaque reads: bench five, intended for a quiet exchange. A bottle of water has been left by a previous pair.",
         directorInstruction:
-          "Use the bench to invite a single direct sentence about what each of them might actually want.",
+          "Use the bench to invite a single direct sentence about what each of them might actually want. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "pilgrimage-mercy-spine-event-5",
         title: "Heart drum",
+        kind: "ambient",
         event: "The drum under the rock skips a beat.",
         characterVisibleText:
           "The slow drum under the trail pauses by half a beat and resumes. A sparrow on a rock blinks once. The petition form on the clipboard is still blank.",
@@ -87,6 +92,7 @@ export const pilgrimageMercySpine: DateScenario = {
       {
         id: "pilgrimage-mercy-spine-event-6",
         title: "Summit approach",
+        kind: "provocation",
         event: "The summit cairn comes into view above marker eight.",
         characterVisibleText:
           "The summit cairn comes into view at the top of the spine, a stack of small stones at chest height. A flat slate rests on top with a slot for the form. The trail past marker eight gentles toward it.",
@@ -96,20 +102,32 @@ export const pilgrimageMercySpine: DateScenario = {
       {
         id: "pilgrimage-mercy-spine-event-7",
         title: "Cairn slot",
+        kind: "provocation",
         event: "The slate on the cairn opens its slot.",
         characterVisibleText:
           "At the cairn, the slate's small slot opens with a soft click. The clipboard pen is still uncapped. The wish lines on the form are still blank. The drum is steady.",
         directorInstruction:
-          "Allow whatever happens. A signed shared wish, two different unsigned drafts, or a clean refusal are all real outcomes.",
+          "Push for a clean physical move at the cairn: file a shared wish, hold the form back, or step aside together. The slot will close after a beat.",
       },
       {
         id: "pilgrimage-mercy-spine-event-8",
         title: "Descent",
+        kind: "provocation",
         event: "The form is filed or pocketed and the trail begins descending.",
         characterVisibleText:
           "The clipboard is in one of their hands as the trail begins back down. The form is either in the slot or still on the board. The drum is unchanged. The ranger booth is forty minutes back the way they came.",
         directorInstruction:
-          "Push for a clean read on whether the pair shares the descent the way they shared the climb.",
+          "Push for a clean read on whether the pair shares the descent the way they shared the climb. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "pilgrimage-mercy-spine-event-9",
+        title: "Wind through ribs",
+        kind: "ambient",
+        event: "A slow wind crosses between two ribs over the trail.",
+        characterVisibleText:
+          "A slow wind funnels between rib seven and rib eight and carries across the trail. The clipboard pages lift and settle. The drum continues its slow count.",
+        directorInstruction:
+          "Allow the wind. The pair does not need to interpret it. The walk continues at its own pace.",
       },
     ],
     earlyEndTriggers: [

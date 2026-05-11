@@ -42,6 +42,7 @@ export const volcanoHotSpring: DateScenario = {
       {
         id: "volcano-hot-spring-event-1",
         title: "First step in",
+        kind: "ambient",
         event: "Both members step into the pool.",
         characterVisibleText:
           "The first step in is a hot wrap up the calf and the thigh. The pool floor is smooth stone. They settle on opposite ends of the small pool. The water is at chest height. The steam settles between them.",
@@ -51,6 +52,7 @@ export const volcanoHotSpring: DateScenario = {
       {
         id: "volcano-hot-spring-event-2",
         title: "Vent",
+        kind: "ambient",
         event: "The vent at the far end of the pool glows.",
         characterVisibleText:
           "The protected vent in the far stone wall holds a small window onto the lava behind the spring house. The lava moves slowly. The vent is at eye height when seated on the bench inside the pool. The glow is steady, not flickering.",
@@ -60,33 +62,37 @@ export const volcanoHotSpring: DateScenario = {
       {
         id: "volcano-hot-spring-event-3",
         title: "Kettle",
+        kind: "reveal",
         event: "The kettle on the side table is hot.",
         characterVisibleText:
           "A small brass kettle sits on a stone trivet on the side table at the pool edge. Two ceramic cups sit beside it. A tin of loose tea leaves and a small infuser are next to the cups. The kettle has been hot since they arrived.",
         directorInstruction:
-          "Use the small offering to test how either of them prepares a cup for the other.",
+          "Use the small offering to surface how either of them prepares a cup for the other.",
       },
       {
         id: "volcano-hot-spring-event-4",
         title: "Drift",
+        kind: "reveal",
         event: "The pool current drifts one of them an inch.",
         characterVisibleText:
           "A slow current moves through the pool from the inflow stone. One of them drifts an inch closer to the center of the pool. The bench under the water is long enough to slide along.",
         directorInstruction:
-          "Use the small drift to test whether either of them closes the gap or keeps the distance.",
+          "Use the small drift to surface whether either of them closes the gap or keeps the distance.",
       },
       {
         id: "volcano-hot-spring-event-5",
         title: "Heat threshold",
+        kind: "provocation",
         event: "One of them is at the edge of their heat tolerance.",
         characterVisibleText:
           "One of them is flushed in the cheeks and shoulders. The pool edge has a stone shelf at the level where someone could sit half out of the water. A small step out for a minute is part of the routine here.",
         directorInstruction:
-          "Use the small body cue to test whether either of them suggests a short step out without making it a quitting line.",
+          "Push for a clean physical move: a short step out, a slide to the cooler end, or a clear hold. The body needs a real answer.",
       },
       {
         id: "volcano-hot-spring-event-6",
         title: "Long quiet",
+        kind: "ambient",
         event: "A long quiet stretches between them.",
         characterVisibleText:
           "Neither of them has spoken in three or four minutes. The water is the only sound, a slow lap against the stone. The vent glow has not changed. The cups on the side table have steam off them.",
@@ -96,20 +102,32 @@ export const volcanoHotSpring: DateScenario = {
       {
         id: "volcano-hot-spring-event-7",
         title: "Reheat",
+        kind: "reveal",
         event: "The inflow runs warmer for a moment.",
         characterVisibleText:
           "The inflow stone runs a small reheat through the pool. The water around their ankles warms a noticeable degree. A small chime on the wall rings once and stops.",
         directorInstruction:
-          "Use the small change to test whether either of them takes the moment as a marker for something honest.",
+          "Use the small change to surface whether either of them takes the moment as a marker for something honest.",
       },
       {
         id: "volcano-hot-spring-event-8",
         title: "Robes",
+        kind: "provocation",
         event: "The booking timer reads zero five.",
         characterVisibleText:
           "A small clock on the deck reads zero five. The robes are on the hooks where they were left. The towels are dry and folded. The kettle is still on the trivet. The vent is unchanged.",
         directorInstruction:
-          "Push for a clean exit. The pair steps out together or one moves first. Either is the right answer if it is honest.",
+          "Push for a clean exit. The pair steps out together or one moves first. Either is the right answer if it is honest. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "volcano-hot-spring-event-9",
+        title: "Vent surge",
+        kind: "provocation",
+        event: "The vent glow brightens and the chime rings twice.",
+        characterVisibleText:
+          "The lava behind the protected vent brightens for a beat. The chime on the wall rings twice instead of once. The water around the inflow stone runs hotter and the cups on the side table tremble in their saucers.",
+        directorInstruction:
+          "Push for a physical answer: take the stone shelf, slide to the cool end, or close out the booking early. The vent is safe but the pool will keep heating for a beat.",
       },
     ],
     earlyEndTriggers: [

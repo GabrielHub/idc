@@ -274,9 +274,17 @@ export const relationshipStatSchema = z.enum([
 
 export const RELATIONSHIP_STATS = relationshipStatSchema.options;
 
+export const scenarioEventKindSchema = z.enum(["ambient", "provocation", "reveal"]);
+
+export const SCENARIO_EVENT_KINDS = scenarioEventKindSchema.options;
+
+export const SCENARIO_EVENTS_PER_KIND = 3;
+export const SCENARIO_EVENT_TOTAL = SCENARIO_EVENTS_PER_KIND * SCENARIO_EVENT_KINDS.length;
+
 export const scenarioEventSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
+  kind: scenarioEventKindSchema,
   event: z.string().min(1),
   characterVisibleText: z.string().min(1),
   directorInstruction: z.string().min(1),
@@ -303,7 +311,30 @@ export const dateScenarioSchema = z.object({
   director: z.object({
     tone: z.string().min(1),
     rules: z.array(z.string().min(1)).min(1),
-    events: z.array(scenarioEventSchema).min(1),
+    events: z
+      .array(scenarioEventSchema)
+      .length(SCENARIO_EVENT_TOTAL)
+      .superRefine((events, context) => {
+        const counts: Record<z.infer<typeof scenarioEventKindSchema>, number> = {
+          ambient: 0,
+          provocation: 0,
+          reveal: 0,
+        };
+
+        for (const event of events) {
+          counts[event.kind] += 1;
+        }
+
+        for (const kind of SCENARIO_EVENT_KINDS) {
+          if (counts[kind] !== SCENARIO_EVENTS_PER_KIND) {
+            context.addIssue({
+              code: "custom",
+              message: `Scenario events require exactly ${SCENARIO_EVENTS_PER_KIND} of kind "${kind}", got ${counts[kind]}.`,
+              path: [],
+            });
+          }
+        }
+      }),
     earlyEndTriggers: z.array(z.string().min(1)),
     repeatBehavior: z.string().min(1),
   }),
@@ -731,6 +762,7 @@ export type MemberChatBubbleTextEffect = z.infer<typeof memberChatBubbleTextEffe
 export type Member = z.infer<typeof memberSchema>;
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;
+export type ScenarioEventKind = z.infer<typeof scenarioEventKindSchema>;
 export type ScenarioEvent = z.infer<typeof scenarioEventSchema>;
 export type DateScenario = z.infer<typeof dateScenarioSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;

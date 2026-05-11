@@ -9,6 +9,7 @@ import type {
   MemberRequest,
   MemberSampleMessages,
   PairState,
+  ScenarioEventKind,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
 import {
@@ -148,7 +149,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       : `Live room event: ${currentEvent.characterVisibleText}`,
     currentEvent === undefined
       ? "Live room pressure: none right now."
-      : `Live room pressure: ${currentEvent.directorInstruction}`,
+      : `Live room pressure: ${formatDirectorInstructionWithKindSuffix(currentEvent.directorInstruction, currentEvent.kind)}`,
     `Emotional weather: ${formatEmotionalWeather(session, pairState)} Use as subtext only.`,
     "",
     "Allowed memories:",
@@ -236,6 +237,24 @@ function filterCharacterVisibleTranscript({
       message.kind !== "cupid" ||
       (interventionActive && isCurrentInterventionMessage(session, message, member.id)),
   );
+}
+
+export const SCENARIO_EVENT_KIND_SUFFIXES: Record<ScenarioEventKind, string> = {
+  ambient: "Treat this as ambient texture. The character may notice it or move on as feels true.",
+  provocation:
+    "This is a physical interruption. The character must register and react before resuming.",
+  reveal:
+    "This puts something honest into the open. The character chooses how to be seen, drawing only on their own brief, filed reads, or pair history.",
+};
+
+export function formatDirectorInstructionWithKindSuffix(
+  directorInstruction: string,
+  kind: ScenarioEventKind,
+): string {
+  const trimmed = directorInstruction.trimEnd();
+  const needsTerminator = !/[.!?]$/.test(trimmed);
+  const punctuated = needsTerminator ? `${trimmed}.` : trimmed;
+  return `${punctuated} ${SCENARIO_EVENT_KIND_SUFFIXES[kind]}`;
 }
 
 export function buildJudgePromptPacket({
@@ -756,6 +775,7 @@ function formatCurrentSceneLines({
     `Where you are: ${scenario.publicBrief.location}. ${scenario.publicBrief.openingSituation}`,
     `What both of you understand: ${scenario.publicBrief.whatBothCharactersKnow}`,
     `Room feel: ${scenario.director.tone}.`,
+    ...scenario.director.rules.map((rule) => `Room constraint: ${rule}`),
     `What you can see of ${partner.firstName}: ${formatVisiblePartnerRead(partner)}`,
   ];
 

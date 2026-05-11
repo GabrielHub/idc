@@ -43,42 +43,47 @@ export const capitalShipWarDinner: DateScenario = {
       {
         id: "capital-ship-war-dinner-event-1",
         title: "Seated",
+        kind: "reveal",
         event: "The booking begins at window table 4.",
         characterVisibleText:
           "The candle on the table is at full burn. The two menus are open to the same set: a bread service, a fish course, and a meat course paired with one wine. The leather folder reads paid, with a number that funds an operation tonight. The booking timer at the side of the table reads two hours.",
         directorInstruction:
-          "Open the date with the question of consent in the room. Either may sit, hesitate, or speak about the folder.",
+          "Open the date with the question of consent in the room. Either may sit, hesitate, or speak about the folder, drawn from each member's existing stance. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "capital-ship-war-dinner-event-2",
         title: "First view",
+        kind: "ambient",
         event: "The view through the panoramic window registers.",
         characterVisibleText:
           "Through the reinforced glass, a city sits below at the level of low cloud. Three columns of dark smoke rise from separate districts. A bridge over a river is partly down. The river is brown. None of the sound reaches the window.",
         directorInstruction:
-          "Allow the view to land. Do not gloss it. Either may look, look away, or speak. None of the three is wrong if it is honest.",
+          "Allow the view to land. Do not gloss it. Either may look, look away, or speak. The view does not become a continuing speaker.",
       },
       {
         id: "capital-ship-war-dinner-event-3",
         title: "Bread service",
+        kind: "ambient",
         event: "Bread arrives on the wall track.",
         characterVisibleText:
           "A small panel slides open in the wall and the bread service arrives on a warm tray. Two small loaves, salted butter in a stone dish, a tiny bowl of olive oil. The track closes. The candle has not moved.",
         directorInstruction:
-          "Use the small first course to test how either of them holds the table. Eating is not a failure. Refusing to eat is not a virtue.",
+          "Allow the small first course. Eating is not a failure. Refusing to eat is not a virtue.",
       },
       {
         id: "capital-ship-war-dinner-event-4",
         title: "Wine pour",
+        kind: "reveal",
         event: "The decanter is on the table.",
         characterVisibleText:
           "A glass decanter sits between them with the paired wine, already breathed. Two glasses are dry on the table. The pour is up to them. The booking timer reads one forty.",
         directorInstruction:
-          "Use the small ritual to test how either of them pours for the partner without making it a performance.",
+          "Use the small ritual to surface how either of them pours for the partner without making it a performance. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "capital-ship-war-dinner-event-5",
         title: "Burst",
+        kind: "reveal",
         event: "A small flash visible far below.",
         characterVisibleText:
           "A small flash, low and to the south, far enough below that no sound carries up. A second flash a moment later, smaller, near the same district. A faint column of new smoke begins to rise. The candle does not flicker.",
@@ -88,29 +93,42 @@ export const capitalShipWarDinner: DateScenario = {
       {
         id: "capital-ship-war-dinner-event-6",
         title: "Fish course",
+        kind: "provocation",
         event: "The fish course arrives on the track.",
         characterVisibleText:
           "The wall panel opens and the fish course slides out. A whole small fish on a green sauce, two side plates, two small lemons in a stone cup. The track closes. The booking timer reads one ten.",
         directorInstruction:
-          "Push for one direct line about whether either of them wants to continue or to leave. Either answer is real. The meat course is still ahead.",
+          "Push for one direct line about whether either of them wants to continue or to leave. Either answer is real. The meat course is still ahead. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "capital-ship-war-dinner-event-7",
         title: "Quiet stretch",
+        kind: "ambient",
         event: "A long quiet sits between them.",
         characterVisibleText:
           "Neither has spoken in a few minutes. The fish is half eaten on each plate. The window has not changed. The booking timer reads zero forty-eight. The folder on the side is unmoved.",
         directorInstruction:
-          "Allow the quiet to be honest. Filling it with a personal pitch is the failure. The quiet is the right move if it is honest.",
+          "Allow the quiet to be honest. Filling it with a personal pitch is the failure. The quiet is the right move if it is honest. Do not voice any background person or cue as a continuing speaker.",
       },
       {
         id: "capital-ship-war-dinner-event-8",
         title: "Walk out",
+        kind: "provocation",
         event: "The booking timer crosses zero ten.",
         characterVisibleText:
           "The booking timer reads zero ten. The meat course is still on the track and has not been delivered. The candle is at half. The folder on the side has a small leaf for tip notes if either of them has one. The exit is across the room.",
         directorInstruction:
-          "Push for a clean exit. The pair leaves the table together or one of them leaves first. Finishing the meal, leaving early, or leaving without speaking are all real outcomes if they are honest.",
+          "Push for a clean exit. The pair leaves the table together or one of them leaves first. Finishing the meal, leaving early, or leaving without speaking are all real outcomes if they are honest. Do not voice any background person or cue as a continuing speaker.",
+      },
+      {
+        id: "capital-ship-war-dinner-event-9",
+        title: "Course delivered",
+        kind: "provocation",
+        event: "The meat course slides out of the wall track.",
+        characterVisibleText:
+          "The wall panel opens and the meat course arrives on a warm tray. The cut is small, the sauce dark, two side plates set down. The track closes. The candle is at half.",
+        directorInstruction:
+          "Push for a clean call: take the course, send it back, or leave the table. Refusing the course is a real answer.",
       },
     ],
     earlyEndTriggers: [

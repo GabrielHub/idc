@@ -58,6 +58,39 @@ export function hashSeedUint32(seed: string): number {
   return hash >>> 0;
 }
 
+// Clamp a random source value to [0, 1) so Math.floor(value * length) cannot
+// index past the end of an array. Non-finite inputs collapse to 0.
+export function clampRandom(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return Math.min(Math.max(value, 0), 1 - Number.EPSILON);
+}
+
+export function shuffleInPlace<T>(items: T[], randomFn: () => number): void {
+  for (let index = items.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(clampRandom(randomFn()) * (index + 1));
+    const current = items[index];
+    const swap = items[swapIndex];
+
+    if (current !== undefined && swap !== undefined) {
+      items[index] = swap;
+      items[swapIndex] = current;
+    }
+  }
+}
+
+export function mulberry32(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function jsonResponse(value: unknown, init?: ResponseInit): Response {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");
