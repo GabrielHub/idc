@@ -12,6 +12,7 @@ import {
   hasNearDuplicateRecentLine,
   pickSamplesForTurn,
   SCENARIO_EVENT_KIND_SUFFIXES,
+  type CharacterPromptImageAttachment,
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
@@ -111,6 +112,85 @@ describe("date prompt assembly", () => {
       /\b(scenario|director|Date Health|gameplay|transcript|turn)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
+  });
+
+  it("labels first turn visual attachments in the final user message", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = started.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const imageAttachments: CharacterPromptImageAttachment[] = [
+      {
+        description: "Vhool's full-body date portrait",
+        image: new Uint8Array([1, 2, 3]),
+        mediaType: "image/png",
+      },
+      {
+        description: "Temporal Coffee Shop, the date scenario background",
+        image: new Uint8Array([4, 5, 6]),
+        mediaType: "image/webp",
+      },
+    ];
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+      imageAttachments,
+    });
+
+    expect(packet.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
+    expect(packet.prompt).toContain(
+      "Attached image 2 is Temporal Coffee Shop, the date scenario background.",
+    );
+    expect(packet.prompt).toContain("[attached image: image/png]");
+    expect(packet.prompt).toContain("[attached image: image/webp]");
+    expect(packet.prompt).not.toContain("1,2,3");
+
+    const finalMessage = packet.messages?.at(-1);
+
+    if (finalMessage?.role !== "user" || !Array.isArray(finalMessage.content)) {
+      throw new Error("Expected final user message with image parts.");
+    }
+
+    const [textPart, firstImage, secondImage] = finalMessage.content;
+
+    if (textPart?.type !== "text") {
+      throw new Error("Expected attachment labels in a text part.");
+    }
+
+    expect(textPart.text).toContain("Attached image 1 is Vhool's full-body date portrait.");
+    expect(firstImage?.type).toBe("image");
+    expect(secondImage?.type).toBe("image");
   });
 
   it("does not keep feeding opener samples after a speaker has joined the date", () => {
@@ -678,6 +758,71 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     expect(packet.prompt).toContain(`id: ${sample.id}`);
     expect(packet.prompt).toContain(`read: ${sample.readText}`);
     expect(packet.prompt).toContain(`evidence: ${sample.evidenceText}`);
+  });
+
+  it("includes compact member briefs without secrets or raw state numbers", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const members = [jenna, vhool];
+    const session = {
+      id: "test-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 0,
+      dateHealth: 60,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages: [],
+      members,
+      revealCandidates: [],
+    });
+    const fullPrompt = `${packet.system}\n${packet.prompt}`;
+
+    expect(packet.prompt).toContain("Member briefs, private scoring context only.");
+    expect(packet.prompt).toContain("- jenna-pike (Jenna Pike)");
+    expect(packet.prompt).toContain(
+      "identity: Human; Ordinary, pending review; origin: East Rainfield, Ohio; dimension: Prime adjacent.",
+    );
+    expect(packet.prompt).toContain("wants: A date that feels normal by human standards");
+    expect(packet.prompt).toContain("guarded around: cruelty; being recruited");
+    expect(packet.prompt).toContain("current pressure: mood steady, openness open, burnout low");
+    expect(packet.prompt).toContain("- vhool (Vhool)");
+    expect(fullPrompt).not.toContain(jenna.secrets[0]);
+    expect(fullPrompt).not.toContain(vhool.secrets[0]);
+    expect(fullPrompt).not.toContain("mood 68");
+    expect(fullPrompt).not.toContain("openness 72");
+    expect(fullPrompt).not.toContain("burnout 38");
+    expect(fullPrompt).not.toContain("retention 100");
   });
 
   it("does not contain raw member tag enum names or rule hit strings", () => {

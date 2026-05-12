@@ -96,17 +96,17 @@ const RIFFLE_CARDS: RiffleCardData[] = [
   {
     member: miraPark,
     queueIndex: "01",
-    queueTotal: "28",
+    queueTotal: "33",
   },
   {
     member: vhool,
     queueIndex: "09",
-    queueTotal: "28",
+    queueTotal: "33",
   },
   {
     member: mrWhiskers,
     queueIndex: "17",
-    queueTotal: "28",
+    queueTotal: "33",
   },
 ];
 
@@ -1239,14 +1239,20 @@ function SaveStatGrid({ save }: { save: GameSave }) {
   const createdAbsolute = useMemo(() => formatTimestamp(save.createdAt), [save.createdAt]);
 
   const shiftStatusLabel = activeShift.status === "active" ? "open" : "closed";
-  const slotsLabel = `${activeShift.dateSlotsUsed} / ${activeShift.dateSlotsTotal}`;
+  const shiftDateLabel =
+    activeShift.dateSlotsUsed > 0
+      ? "booked"
+      : activeShift.status === "completed"
+        ? "skipped"
+        : "open";
+  const shiftDateSub = activeShift.status === "active" ? "one per shift" : "filed";
   const lifetimeLabel = dateCount === 0 ? "none yet" : `${dateCount} logged`;
 
   return (
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">
         <FeaturedStat label="hopefuls" value={`${memberCount}`} sub="on file" />
-        <FeaturedStat label="dates this shift" value={slotsLabel} sub="booked" />
+        <FeaturedStat label="shift date" value={shiftDateLabel} sub={shiftDateSub} />
       </dl>
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2 border-t border-aura-hairline pt-3">
         <Stat label="last in" value={updatedRelative} accent />
@@ -1266,7 +1272,7 @@ function EmptyTerminalGrid() {
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">
         <FeaturedStat label="hopefuls" value="0" sub="awaiting brief" />
-        <FeaturedStat label="dates this shift" value="0 / 1" sub="awaiting issue" />
+        <FeaturedStat label="shift date" value="pending" sub="one per shift" />
       </dl>
       <p className="border-t border-aura-hairline pt-3 text-label text-aura-muted">
         Punch in to seed the roster, draw date plans, and have HR run a prophecy check on your

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_GATEWAY_BASE_URL,
   dateMessageSchema,
   dateSessionSchema,
   gameSaveSchema,
@@ -29,6 +30,7 @@ import {
   streamCharacterTurn as streamCharacterTurnWithLocalAi,
   summarizeDateMemories,
 } from "./ai/model-service";
+import { gatewayImageInputSupported } from "./ai/model-catalog";
 
 export { DateStreamAbortedError } from "./ai/model-service";
 import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
@@ -59,8 +61,10 @@ import {
   buildSummarizerPromptPacket,
   checkCupidCorporateCopy,
   cleanMemberFacingText,
+  collectRecentSpeakerLines,
   hasNearDuplicateRecentLine,
   RECENT_LINE_GUARD_COUNT,
+  type CharacterPromptImageAttachment,
   type CharacterPromptPacket,
   type JudgePromptPacket,
   type SummarizerPromptPacket,
@@ -78,7 +82,7 @@ import {
   validateUsedEvidenceIds,
   type RevealCandidate,
 } from "./player-knowledge";
-import { clampScore, errorToMessage, replaceById } from "./utils";
+import { clampScore, errorToMessage, isRecord, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
@@ -195,6 +199,13 @@ type LocalAiDateEngineInput = {
 
 const DEFAULT_MEMORY_LIMIT = 2;
 const CHARACTER_MESSAGE_MAX_LENGTH = 260;
+const SCENARIO_BACKGROUND_MANIFEST_PATH = "/assets/scenarios/manifest.json";
+const AVATAR_PATH_SUFFIX = "/avatar.png";
+const PORTRAIT_PATH_SUFFIX = "/portrait.png";
+
+let scenarioBackgroundIdCache: ReadonlySet<string> | null = null;
+let scenarioBackgroundIdRequest: Promise<ReadonlySet<string>> | null = null;
+const gatewayImageInputSupportCache = new Map<string, boolean>();
 
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config, tools }) =>
@@ -601,28 +612,36 @@ async function createLocalAiCharacterMessage({
     });
     const sequenceIndex = session.transcript.length;
     const turnIndex = session.currentTurn + 1;
-    const recentSpeakerLines = collectRecentCharacterLinesForSpeaker(
+    const recentSpeakerLines = collectRecentSpeakerLines(
       session.transcript,
       speaker.id,
       RECENT_LINE_GUARD_COUNT,
     );
     const warningMessages: string[] = [];
+    const promptInputs = await prepareCharacterPromptInputs({
+      repository,
+      runtime,
+      config,
+      session,
+      speaker,
+      partner,
+      scenario,
+    });
 
     async function runAttempt(
       repetitionRetry: { repeatedLine: string } | undefined,
     ): Promise<{ text: string; generation: GeneratedTextResult }> {
-      const packet = await buildCharacterPacketForTurn({
-        repository,
-        runtime,
-        config,
-        session,
-        speaker,
+      const packet = buildCharacterPromptPacket({
+        member: speaker,
         partner,
         scenario,
+        session,
         pairState,
+        memoryPack: promptInputs.memoryPack,
         focusRequest,
         frictionRuleHits,
         repetitionRetry,
+        imageAttachments: promptInputs.imageAttachments,
       });
       const generation =
         emit === undefined
@@ -710,25 +729,7 @@ async function createLocalAiCharacterMessage({
   }
 }
 
-function collectRecentCharacterLinesForSpeaker(
-  transcript: readonly DateMessage[],
-  speakerId: string,
-  count: number,
-): string[] {
-  const lines: string[] = [];
-
-  for (let index = transcript.length - 1; index >= 0 && lines.length < count; index -= 1) {
-    const message = transcript[index];
-
-    if (message?.kind === "character" && message.speakerId === speakerId) {
-      lines.unshift(message.text);
-    }
-  }
-
-  return lines;
-}
-
-async function buildCharacterPacketForTurn({
+async function prepareCharacterPromptInputs({
   repository,
   runtime,
   config,
@@ -736,10 +737,6 @@ async function buildCharacterPacketForTurn({
   speaker,
   partner,
   scenario,
-  pairState,
-  focusRequest,
-  frictionRuleHits,
-  repetitionRetry,
 }: {
   repository: GameRepository;
   runtime: LocalAiDateRuntime;
@@ -748,42 +745,285 @@ async function buildCharacterPacketForTurn({
   speaker: Member;
   partner: Member;
   scenario: DateScenario;
-  pairState: PairState;
-  focusRequest: MemberRequest | undefined;
-  frictionRuleHits: readonly string[];
-  repetitionRetry?: { repeatedLine: string };
-}): Promise<CharacterPromptPacket> {
+}): Promise<{
+  memoryPack: Awaited<ReturnType<typeof retrieveRelevantMemories>>;
+  imageAttachments: CharacterPromptImageAttachment[];
+}> {
   const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
   const queryEmbedding = await createRuntimeQueryEmbedding({
     runtime,
     config,
     query: memoryQuery,
   });
-  const memoryPack = await retrieveRelevantMemories(repository, {
-    characterId: speaker.id,
-    partnerId: partner.id,
-    pairId: session.pairId,
-    scenarioId: session.scenarioId,
-    dateSessionId: session.id,
-    session,
-    query: memoryQuery,
-    queryEmbedding: queryEmbedding.embedding,
-    queryEmbeddingModel: queryEmbedding.model,
-    queryEmbeddingDimensions: queryEmbedding.dimensions,
-    limit: DEFAULT_MEMORY_LIMIT,
-  });
+  const [memoryPack, imageAttachments] = await Promise.all([
+    retrieveRelevantMemories(repository, {
+      characterId: speaker.id,
+      partnerId: partner.id,
+      pairId: session.pairId,
+      scenarioId: session.scenarioId,
+      dateSessionId: session.id,
+      session,
+      query: memoryQuery,
+      queryEmbedding: queryEmbedding.embedding,
+      queryEmbeddingModel: queryEmbedding.model,
+      queryEmbeddingDimensions: queryEmbedding.dimensions,
+      limit: DEFAULT_MEMORY_LIMIT,
+    }),
+    loadFirstTurnImageAttachments({
+      config,
+      session,
+      partner,
+      scenario,
+    }),
+  ]);
 
-  return buildCharacterPromptPacket({
-    member: speaker,
-    partner,
-    scenario,
-    session,
-    pairState,
-    memoryPack,
-    focusRequest,
-    frictionRuleHits,
-    repetitionRetry,
+  return { memoryPack, imageAttachments };
+}
+
+async function loadFirstTurnImageAttachments({
+  config,
+  session,
+  partner,
+  scenario,
+}: {
+  config: Partial<AiRuntimeConfig>;
+  session: DateSession;
+  partner: Member;
+  scenario: DateScenario;
+}): Promise<CharacterPromptImageAttachment[]> {
+  if (
+    config.aiProvider !== "gateway" ||
+    typeof config.chatModel !== "string" ||
+    session.currentTurn !== 0
+  ) {
+    return [];
+  }
+
+  if (!(await gatewayModelSupportsImageInput(config))) {
+    return [];
+  }
+
+  const [partnerPortrait, scenarioBackground] = await Promise.all([
+    loadPartnerDatePortraitAttachment(partner),
+    loadScenarioBackgroundAttachment(scenario),
+  ]);
+
+  return [partnerPortrait, scenarioBackground].filter(isCharacterPromptImageAttachment);
+}
+
+async function gatewayModelSupportsImageInput(config: Partial<AiRuntimeConfig>): Promise<boolean> {
+  const modelId = config.chatModel;
+
+  if (typeof modelId !== "string") {
+    return false;
+  }
+
+  const cacheKey = `${config.gatewayBaseURL ?? "default"}:${modelId}`;
+  const cached = gatewayImageInputSupportCache.get(cacheKey);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const discovered = await discoverGatewayModelImageInputSupport(config, modelId);
+  const supported = discovered ?? gatewayImageInputSupported(modelId);
+  gatewayImageInputSupportCache.set(cacheKey, supported);
+  return supported;
+}
+
+async function discoverGatewayModelImageInputSupport(
+  config: Partial<AiRuntimeConfig>,
+  modelId: string,
+): Promise<boolean | null> {
+  if (!canFetchPublicAssets()) {
+    return null;
+  }
+
+  try {
+    const response = await globalThis.fetch(gatewayModelListUrl(config.gatewayBaseURL), {
+      cache: "force-cache",
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload: unknown = await response.json();
+
+    if (!isRecord(payload) || !Array.isArray(payload.data)) {
+      return null;
+    }
+
+    for (const entry of payload.data) {
+      if (!isRecord(entry) || entry.id !== modelId) {
+        continue;
+      }
+
+      return gatewayModelEntrySupportsImageInput(entry);
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function gatewayModelListUrl(baseURL: string | undefined): string {
+  try {
+    const url = new URL(baseURL ?? DEFAULT_GATEWAY_BASE_URL);
+    return `${url.origin}/v1/models`;
+  } catch {
+    return "https://ai-gateway.vercel.sh/v1/models";
+  }
+}
+
+function gatewayModelEntrySupportsImageInput(entry: Record<string, unknown>): boolean {
+  const tagValues = Array.isArray(entry.tags) ? entry.tags : [];
+  const tags = new Set(tagValues.filter((tag): tag is string => typeof tag === "string"));
+  const architecture = entry.architecture;
+  const inputModalities =
+    isRecord(architecture) && Array.isArray(architecture.input_modalities)
+      ? architecture.input_modalities.filter(
+          (modality): modality is string => typeof modality === "string",
+        )
+      : [];
+
+  return tags.has("vision") || tags.has("file-input") || inputModalities.includes("image");
+}
+
+function isCharacterPromptImageAttachment(
+  value: CharacterPromptImageAttachment | null,
+): value is CharacterPromptImageAttachment {
+  return value !== null;
+}
+
+async function loadPartnerDatePortraitAttachment(
+  partner: Member,
+): Promise<CharacterPromptImageAttachment | null> {
+  const portraitPath = readyPartnerPortraitPath(partner);
+
+  if (portraitPath === null) {
+    return null;
+  }
+
+  return fetchImageAttachment({
+    path: portraitPath,
+    mediaType: "image/png",
+    description: `${partner.name}'s full-body date portrait`,
   });
+}
+
+function readyPartnerPortraitPath(partner: Member): string | null {
+  const asset = partner.portraits.neutral.portrait;
+
+  if (asset.model === "pending") {
+    return null;
+  }
+
+  return preferPortraitPath(asset.cutoutPath);
+}
+
+function preferPortraitPath(cutoutPath: string): string {
+  if (cutoutPath.endsWith(AVATAR_PATH_SUFFIX)) {
+    return `${cutoutPath.slice(0, -AVATAR_PATH_SUFFIX.length)}${PORTRAIT_PATH_SUFFIX}`;
+  }
+
+  return cutoutPath;
+}
+
+async function loadScenarioBackgroundAttachment(
+  scenario: DateScenario,
+): Promise<CharacterPromptImageAttachment | null> {
+  const hasBackground = await scenarioBackgroundExists(scenario.id);
+
+  if (!hasBackground) {
+    return null;
+  }
+
+  return fetchImageAttachment({
+    path: `/assets/scenarios/${scenario.id}/background.webp`,
+    mediaType: "image/webp",
+    description: `${scenario.title}, the date scenario background`,
+  });
+}
+
+async function scenarioBackgroundExists(scenarioId: string): Promise<boolean> {
+  const ids = await loadScenarioBackgroundIds();
+  return ids.has(scenarioId);
+}
+
+async function loadScenarioBackgroundIds(): Promise<ReadonlySet<string>> {
+  if (!canFetchPublicAssets()) {
+    return new Set();
+  }
+
+  if (scenarioBackgroundIdCache !== null) {
+    return scenarioBackgroundIdCache;
+  }
+
+  scenarioBackgroundIdRequest ??= globalThis
+    .fetch(SCENARIO_BACKGROUND_MANIFEST_PATH, { cache: "force-cache" })
+    .then((response) => (response.ok ? response.json() : { backgrounds: [] }))
+    .then((value: unknown) => {
+      scenarioBackgroundIdCache = parseScenarioBackgroundIds(value);
+      return scenarioBackgroundIdCache;
+    })
+    .catch(() => {
+      scenarioBackgroundIdCache = new Set();
+      return scenarioBackgroundIdCache;
+    });
+
+  return scenarioBackgroundIdRequest;
+}
+
+function parseScenarioBackgroundIds(value: unknown): ReadonlySet<string> {
+  if (!isRecord(value) || !Array.isArray(value.backgrounds)) {
+    return new Set();
+  }
+
+  return new Set(
+    value.backgrounds.filter((background): background is string => typeof background === "string"),
+  );
+}
+
+async function fetchImageAttachment({
+  path,
+  mediaType,
+  description,
+}: {
+  path: string;
+  mediaType: CharacterPromptImageAttachment["mediaType"];
+  description: string;
+}): Promise<CharacterPromptImageAttachment | null> {
+  if (!canFetchPublicAssets()) {
+    return null;
+  }
+
+  try {
+    const response = await globalThis.fetch(path, { cache: "force-cache" });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const image = new Uint8Array(await response.arrayBuffer());
+
+    if (image.byteLength === 0) {
+      return null;
+    }
+
+    return {
+      description,
+      image,
+      mediaType,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function canFetchPublicAssets(): boolean {
+  return typeof window !== "undefined" && typeof globalThis.fetch === "function";
 }
 
 function createCharacterToolHandlers({

@@ -56,7 +56,7 @@ const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS = 220;
 const OLLAMA_READINESS_MAX_OUTPUT_TOKENS = 32;
 const OLLAMA_CONTEXT_WINDOW_TOKENS = 16384;
-const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 4096;
+const OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS = 16384;
 const OLLAMA_CLOSURE_SUMMARY_CONTEXT_WINDOW_TOKENS = 8192;
 const OLLAMA_READINESS_CONTEXT_WINDOW_TOKENS = 4096;
@@ -117,6 +117,8 @@ const characterMemorySearchResultSchema = z.object({
 const characterMemorySearchOutputSchema = z.object({
   memories: z.array(characterMemorySearchResultSchema).max(5),
 });
+
+type ModelMessageContentPart = Exclude<ModelMessage["content"], string>[number];
 
 export type AiGenerationOptions = {
   maxOutputTokens?: number;
@@ -948,7 +950,31 @@ function messageContentText(content: ModelMessage["content"]): string {
     return content;
   }
 
-  return JSON.stringify(content);
+  return content.map(messagePartText).join("\n");
+}
+
+function messagePartText(part: ModelMessageContentPart): string {
+  if (part.type === "text") {
+    return part.text;
+  }
+
+  if (part.type === "image") {
+    return `[attached image: ${part.mediaType ?? "auto"}]`;
+  }
+
+  if (part.type === "file") {
+    return `[attached file: ${part.filename ?? part.mediaType}]`;
+  }
+
+  if (part.type === "tool-call") {
+    return `[tool call: ${part.toolName}]`;
+  }
+
+  if (part.type === "tool-result") {
+    return `[tool result: ${part.toolName}]`;
+  }
+
+  return JSON.stringify(part);
 }
 
 function usageTelemetryFrom(usage: {

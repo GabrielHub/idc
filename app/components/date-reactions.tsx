@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 
 import type { Member, PortraitMood } from "../domain/game";
+import { hashSeedUint32 } from "../services/utils";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
 
 /* ------------------------------------------------------------------ */
@@ -132,14 +133,15 @@ export function DaterStandee({
       <span aria-hidden className={baseGlow} />
       <MoodAmbientGlow mood={mood} />
       <div className={`relative size-full ${shadowClass}`}>
-        <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
-        <SpeakingBubble
-          placement={placement}
-          speaking={speaking}
-          listening={listening}
-          reasoningText={reasoningText}
-          mood={mood}
-        />
+        <div className="absolute inset-x-0 bottom-0 aspect-[887/1774]">
+          <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
+          <SpeakingBubble
+            speaking={speaking}
+            listening={listening}
+            reasoningText={reasoningText}
+            mood={mood}
+          />
+        </div>
         <ReactionStream reactions={reactions} placement={placement} />
       </div>
     </div>
@@ -225,26 +227,21 @@ const MOOD_BUBBLE_TINT: Record<
 };
 
 function SpeakingBubble({
-  placement,
   speaking,
   listening,
   reasoningText,
   mood,
 }: {
-  placement: ReactionPlacement;
   speaking: boolean;
   listening: boolean;
   reasoningText: string;
   mood: PortraitMood;
 }) {
-  const isLeft = placement === "bottom-left";
   const normalizedReasoningText = compactReasoningText(reasoningText);
   const hasReasoningText = speaking && normalizedReasoningText.length > 0;
   const tint = MOOD_BUBBLE_TINT[mood];
-  const anchorClass = isLeft
-    ? "absolute left-1 top-2 origin-top-left"
-    : "absolute right-1 top-2 origin-top-right";
-  const tailSideClass = isLeft ? "right-6" : "left-6";
+  const anchorClass = "absolute left-1/2 bottom-[96%] -translate-x-1/2 origin-bottom";
+  const tailSideClass = "left-1/2 -translate-x-1/2";
   const visible = speaking || listening;
 
   return (
@@ -468,7 +465,7 @@ function ReactionBubble({
   placement: ReactionPlacement;
 }) {
   // Deterministic per-bubble seed keeps SSR and client renders in sync.
-  const seed = bubbleIndex * 31 + reaction.kind.charCodeAt(0);
+  const seed = hashSeedUint32(`${reaction.kind}:${bubbleIndex}`);
 
   const baseIdx = reaction.intensity === 3 ? 3 : reaction.intensity === 2 ? 1 : 0;
   const slot = bubbleIndex % 3;

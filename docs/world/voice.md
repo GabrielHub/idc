@@ -434,7 +434,7 @@ Scenarios may carry one non-continuing environmental utterance through `characte
 
 ## Closure Summary Voice
 
-Closure summaries are filed by `generateClosureSummary` when the player closes a pair. They live on the pair memory tagged `pair_closure` and surface in the Files canvas with the "CASE CLOSED" frame treatment, in the Live Date lobby closure callout, and in the soft-win cutscene.
+Closure summaries are filed by `generateClosureSummary` when the player closes a pair. They live on the pair memory tagged `pair_closure` and surface in the Files canvas with the "CASE CLOSED" frame treatment, in the Live Date planning closure callout, and in the soft-win cutscene.
 
 Voice rules:
 

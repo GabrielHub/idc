@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 
 import {
+  DEFAULT_GATEWAY_BASE_URL,
   DEFAULT_GATEWAY_EMBEDDING_MODEL,
   DEFAULT_OLLAMA_EMBEDDING_MODEL,
   type AiProvider,
@@ -44,16 +45,36 @@ export type AiSetupStatus = {
   checkedAt?: string;
 };
 
-const PROVIDER_INFO: Record<AiProvider, { route: string; label: string; tagline: string }> = {
+type ProviderInfo = {
+  route: string;
+  label: string;
+  tagline: string;
+};
+
+type TrustBoundaryItem = {
+  label: string;
+  value: string;
+};
+
+const OLLAMA_LOCAL_FLOW =
+  "Prompts, character data, date transcripts, and retrieved memories stay on this machine and only your Ollama process sees them.";
+const GATEWAY_CLOUD_FLOW =
+  "Date prompts, character context, transcripts, and retrieved memories leave this machine through Vercel AI Gateway and go to the selected model provider.";
+const DESKTOP_GATEWAY_KEY_STORAGE =
+  "Plaintext file in app local data at secrets/gateway-api-key.txt, outside saves and not in the OS keychain.";
+const BROWSER_GATEWAY_KEY_STORAGE =
+  "Browser dev stores the key in localStorage under idc.cupid.aiGatewayKey. This is not the desktop key path.";
+
+const PROVIDER_INFO: Record<AiProvider, ProviderInfo> = {
   ollama: {
     route: "Local",
-    label: "Ollama on this PC",
-    tagline: "Stays on the workstation. No keys, no network.",
+    label: "Ollama local",
+    tagline: "Private route. Date simulation stays on this machine.",
   },
   gateway: {
     route: "Cloud",
     label: "Vercel AI Gateway",
-    tagline: "DeepSeek, Gemini, Claude, Kimi. Sends prompts off this machine.",
+    tagline: "Cloud route. Cupid sends date context to the selected provider.",
   },
 };
 
@@ -96,11 +117,11 @@ export function AiSetupPanel({
   const footerCopy =
     activeProvider === "gateway"
       ? isProviderUrlLocked
-        ? "Gateway keys are stored as plaintext in app local data, separate from saves. Date prompts and transcripts leave this device."
-        : "Browser dev stores Gateway keys in localStorage. Date prompts and transcripts leave this device."
+        ? "Desktop stores the Gateway key as plaintext in app local data outside saves. Saving a blank key removes it. Gateway sends date prompts, context, transcripts, and retrieved memories off this device."
+        : "Browser dev stores the Gateway key in localStorage. Gateway sends date prompts, context, transcripts, and retrieved memories off this device."
       : isProviderUrlLocked
-        ? "Ollama prompts stay on this workstation. Desktop builds talk to localhost Ollama only."
-        : "Ollama prompts stay on this workstation through the configured local endpoint.";
+        ? "Ollama route keeps date data local. Desktop builds talk only to localhost Ollama."
+        : "Ollama route keeps date data local to the configured endpoint.";
 
   useEffect(() => {
     if (!isProviderUrlLocked) {
@@ -305,8 +326,8 @@ export function AiSetupPanel({
               Provision an AI desk.
             </h2>
             <p className="text-body leading-relaxed text-aura-muted">
-              Pick one provider. Cupid will not book a date until the desk is staffed and the
-              provider status reads ready.
+              Pick one provider. Cupid will not book a date until the desk is staffed, verified, and
+              clear about where date data goes.
             </p>
           </div>
           <ChromeButton onClick={onClose}>Close</ChromeButton>
@@ -346,6 +367,7 @@ export function AiSetupPanel({
               chatModel={draftConfig.chatModel}
               embeddingModel={draftConfig.embeddingModel}
               reasoningLevel={draftConfig.reasoningLevel}
+              isUrlLocked={isProviderUrlLocked}
             />
           </aside>
         </div>
@@ -499,8 +521,11 @@ function OllamaSetupTab({
 }) {
   const embeddingLabel = embeddingModels.at(0)?.name ?? DEFAULT_OLLAMA_EMBEDDING_MODEL;
   const urlDescription = isUrlLocked
-    ? "Desktop builds talk to localhost only. Other endpoints need a build with an updated HTTP scope."
-    : "The Ollama server Cupid talks to. Defaults to localhost.";
+    ? "Desktop talks to localhost Ollama through the app HTTP scope. Custom hosts need a new build."
+    : "Browser dev talks to this Ollama URL. Use a local endpoint you trust.";
+  const endpointTrustCopy = isUrlLocked
+    ? "No Gateway key is used, and desktop does not need OLLAMA_ORIGINS for localhost."
+    : "No Gateway key is used. Browser CORS rules still apply to the local Ollama server.";
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
@@ -522,11 +547,17 @@ function OllamaSetupTab({
               {error}
             </p>
           )}
+          <p className="mt-3 rounded-tile border border-aura-emerald/30 bg-aura-emerald/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-emerald">
+              local route ::
+            </span>{" "}
+            {OLLAMA_LOCAL_FLOW} {endpointTrustCopy}
+          </p>
         </FormSection>
 
         <FormSection
           label="model"
-          description="Pick a pulled chat model. Embedding stays on embeddinggemma."
+          description="Pick a pulled chat model. The default is gemma4:e4b, and embedding stays on embeddinggemma."
         >
           <SelectInput
             label="chat model"
@@ -612,14 +643,12 @@ function GatewaySetupTab({
   onGatewayApiKey: (value: string) => void;
 }) {
   const endpointDescription = isUrlLocked
-    ? "Desktop uses the default Vercel AI Gateway URL. The key stays outside saves."
-    : "Browser dev uses this URL and stores the key in localStorage.";
-  const keyPlaceholder = isUrlLocked
-    ? "Stored as a plaintext file in app local data"
-    : "Stored in browser localStorage for dev";
-  const keyTrustCopy = isUrlLocked
-    ? "Gateway sends date prompts, character context, and transcripts off this machine. The key is plaintext on disk."
-    : "Gateway sends date prompts, character context, and transcripts off this machine.";
+    ? `Desktop uses the fixed Vercel AI Gateway endpoint: ${DEFAULT_GATEWAY_BASE_URL}.`
+    : "Browser dev uses this Gateway URL and keeps the key in localStorage.";
+  const keyPlaceholder = isUrlLocked ? "Plaintext app local data" : "Browser localStorage for dev";
+  const storageTrustCopy = isUrlLocked
+    ? `${DESKTOP_GATEWAY_KEY_STORAGE} Wiping a save leaves it in place. Saving a blank key removes it.`
+    : BROWSER_GATEWAY_KEY_STORAGE;
 
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
@@ -643,13 +672,19 @@ function GatewaySetupTab({
           <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
             data flow ::
           </span>{" "}
-          {keyTrustCopy}
+          {GATEWAY_CLOUD_FLOW} Use this route only if you accept that date data leaves the machine.
+        </p>
+        <p className="mt-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+            key storage ::
+          </span>{" "}
+          {storageTrustCopy}
         </p>
       </FormSection>
 
       <FormSection
         label="model"
-        description="Pick a chat model. Gateway reasoning exposes the full effort set where the provider accepts it."
+        description="Pick a chat model. Gateway forwards each date request to that provider, and reasoning only applies where the provider accepts it."
       >
         <SelectInput
           label="chat model"
@@ -689,12 +724,14 @@ function StatusCard({
   chatModel,
   embeddingModel,
   reasoningLevel,
+  isUrlLocked,
 }: {
   status: AiSetupStatus;
   provider: AiProvider;
   chatModel: string;
   embeddingModel: string;
   reasoningLevel: AiReasoningLevel;
+  isUrlLocked: boolean;
 }) {
   const tone =
     status.status === "ready"
@@ -705,6 +742,7 @@ function StatusCard({
   const checkedAtLabel =
     status.checkedAt === undefined ? "" : new Date(status.checkedAt).toLocaleTimeString();
   const showDetails = status.status !== "ready" && status.details.length > 0;
+  const trustBoundaryItems = providerTrustBoundaryItems(provider, isUrlLocked);
 
   return (
     <div className={`aura-glass rounded-card p-4 ring-1 ${tone.ring}`}>
@@ -734,8 +772,70 @@ function StatusCard({
         <KeyValue label="embedding" value={embeddingModel} />
         <KeyValue label="reasoning" value={reasoningLevel} />
       </dl>
+      <div className="mt-4 border-t border-aura-hairline pt-3">
+        <MutedLabel>trust boundary</MutedLabel>
+        <ul className="mt-3 divide-y divide-aura-hairline">
+          {trustBoundaryItems.map((item) => (
+            <li key={item.label} className="py-2 first:pt-0 last:pb-0">
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+                {item.label}
+              </p>
+              <p className="mt-1 text-label leading-relaxed text-aura-ink">{item.value}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
+}
+
+function providerTrustBoundaryItems(
+  provider: AiProvider,
+  isUrlLocked: boolean,
+): TrustBoundaryItem[] {
+  if (provider === "ollama") {
+    return [
+      {
+        label: "stays local",
+        value: OLLAMA_LOCAL_FLOW,
+      },
+      {
+        label: "endpoint",
+        value: isUrlLocked
+          ? "Desktop is scoped to localhost Ollama."
+          : "Browser dev uses the configured Ollama URL.",
+      },
+      {
+        label: "key",
+        value: "No Gateway key is used for this route.",
+      },
+      {
+        label: "saves",
+        value: "Save files stay local. Cupid does not send telemetry.",
+      },
+    ];
+  }
+
+  return [
+    {
+      label: "leaves machine",
+      value: GATEWAY_CLOUD_FLOW,
+    },
+    {
+      label: "endpoint",
+      value: isUrlLocked
+        ? "Desktop is scoped to the default Vercel AI Gateway."
+        : "Browser dev uses the configured Gateway URL.",
+    },
+    {
+      label: "key",
+      value: isUrlLocked ? DESKTOP_GATEWAY_KEY_STORAGE : BROWSER_GATEWAY_KEY_STORAGE,
+    },
+    {
+      label: "saves",
+      value: "Save files stay local. Gateway requests still leave the machine by design.",
+    },
+  ];
 }
 
 /* ================================================================== */

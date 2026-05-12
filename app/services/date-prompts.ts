@@ -1,4 +1,4 @@
-import type { ModelMessage } from "ai";
+import type { ImagePart, ModelMessage, TextPart } from "ai";
 
 import type {
   DateMessage,
@@ -24,6 +24,12 @@ export type CharacterPromptPacket = {
   system: string;
   prompt: string;
   messages?: ModelMessage[];
+};
+
+export type CharacterPromptImageAttachment = {
+  description: string;
+  image: Uint8Array;
+  mediaType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
 };
 
 export type JudgePromptPacket = {
@@ -81,6 +87,11 @@ export const CUPID_COPY_BANNED_PHRASES: readonly string[] = [
   "robust connection",
 ];
 
+const REGEX_META_PATTERN = /[\\^$.*+?()[\]{}|]/g;
+const CUPID_COPY_BANNED_PHRASE_PATTERNS: readonly RegExp[] = CUPID_COPY_BANNED_PHRASES.map(
+  (phrase) => new RegExp(`\\b${phrase.replace(REGEX_META_PATTERN, "\\$&")}\\b`, "i"),
+);
+
 /**
  * Phrases that signal abstract, generic compatibility talk. They are not
  * universally banned, but if a summary contains one without naming any concrete
@@ -124,13 +135,9 @@ export function checkCupidCorporateCopy(
     return { ok: false, reason: "too_long" };
   }
 
-  const lowered = trimmed.toLowerCase();
-
-  for (const phrase of CUPID_COPY_BANNED_PHRASES) {
-    if (
-      new RegExp(`\\b${phrase.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\$&")}\\b`, "i").test(lowered)
-    ) {
-      return { ok: false, reason: "banned_phrase", offender: phrase };
+  for (let index = 0; index < CUPID_COPY_BANNED_PHRASE_PATTERNS.length; index += 1) {
+    if (CUPID_COPY_BANNED_PHRASE_PATTERNS[index].test(trimmed)) {
+      return { ok: false, reason: "banned_phrase", offender: CUPID_COPY_BANNED_PHRASES[index] };
     }
   }
 
@@ -154,6 +161,7 @@ export type CharacterPromptInput = {
   frictionRuleHits?: readonly string[];
   memorySearchAvailable?: boolean;
   repetitionRetry?: { repeatedLine: string };
+  imageAttachments?: readonly CharacterPromptImageAttachment[];
 };
 
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
@@ -317,6 +325,12 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
     ...buildRepetitionRetryNotice(input.repetitionRetry),
   ].join("\n");
+  const finalUserPrompt = buildFinalCharacterPrompt({
+    latestIncomingLine,
+    member,
+    partner,
+    imageAttachments: input.imageAttachments ?? [],
+  });
   const messages: ModelMessage[] = [
     {
       role: "user",
@@ -329,11 +343,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     }),
     {
       role: "user",
-      content: [
-        `Latest incoming line: ${latestIncomingLine}`,
-        `Write the next message as ${member.name} to ${partner.name}.`,
-        "Answer that line first. Add only one small hook if needed.",
-      ].join("\n"),
+      content: buildFinalUserMessageContent(finalUserPrompt, input.imageAttachments ?? []),
     },
   ];
 
@@ -342,6 +352,63 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     prompt: formatPromptPreview(messages),
     messages,
   };
+}
+
+function buildFinalCharacterPrompt({
+  latestIncomingLine,
+  member,
+  partner,
+  imageAttachments,
+}: {
+  latestIncomingLine: string;
+  member: Member;
+  partner: Member;
+  imageAttachments: readonly CharacterPromptImageAttachment[];
+}): string {
+  return [
+    ...formatAttachmentPromptLines(imageAttachments),
+    `Latest incoming line: ${latestIncomingLine}`,
+    `Write the next message as ${member.name} to ${partner.name}.`,
+    "Answer that line first. Add only one small hook if needed.",
+  ].join("\n");
+}
+
+function formatAttachmentPromptLines(
+  imageAttachments: readonly CharacterPromptImageAttachment[],
+): string[] {
+  if (imageAttachments.length === 0) {
+    return [];
+  }
+
+  return [
+    "Visual references are attached to this user message.",
+    ...imageAttachments.map(
+      (attachment, index) => `Attached image ${index + 1} is ${attachment.description}.`,
+    ),
+    "Use the attached images for visual grounding only. Written character, place, and date facts are authoritative.",
+    "Do not mention the attached images aloud.",
+    "",
+  ];
+}
+
+function buildFinalUserMessageContent(
+  text: string,
+  imageAttachments: readonly CharacterPromptImageAttachment[],
+): string | Array<TextPart | ImagePart> {
+  if (imageAttachments.length === 0) {
+    return text;
+  }
+
+  const textPart: TextPart = { type: "text", text };
+  const imageParts = imageAttachments.map(
+    (attachment): ImagePart => ({
+      type: "image",
+      image: attachment.image,
+      mediaType: attachment.mediaType,
+    }),
+  );
+
+  return [textPart, ...imageParts];
 }
 
 function filterCharacterVisibleTranscript({
@@ -433,6 +500,8 @@ export function buildJudgePromptPacket({
         "",
         `Scenario: ${scenario.title}.`,
         `Participants: ${formatParticipants(members)}.`,
+        "Member briefs, private scoring context only. Use these notes to interpret behavior. Do not reveal fixture notes in playerSummary unless the exchange made the detail explicit.",
+        formatJudgeMemberBriefs(members),
         `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,
         `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
         `Current Date Health: ${session.dateHealth}.`,
@@ -850,8 +919,34 @@ function formatLatestSelfLine(transcript: DateMessage[], member: Member): string
 
 function formatPromptPreview(messages: ModelMessage[]): string {
   return messages
-    .map((message) => `${message.role.toUpperCase()}:\n${message.content}`)
+    .map(
+      (message) => `${message.role.toUpperCase()}:\n${formatPromptPreviewContent(message.content)}`,
+    )
     .join("\n\n");
+}
+
+function formatPromptPreviewContent(content: ModelMessage["content"]): string {
+  if (typeof content === "string") {
+    return content;
+  }
+
+  return content
+    .map((part) => {
+      if (part.type === "text") {
+        return part.text;
+      }
+
+      if (part.type === "image") {
+        return `[attached image: ${part.mediaType ?? "auto"}]`;
+      }
+
+      if (part.type === "file") {
+        return `[attached file: ${part.filename ?? part.mediaType}]`;
+      }
+
+      return JSON.stringify(part);
+    })
+    .join("\n");
 }
 
 function buildPairFrictionLine({
@@ -1018,6 +1113,55 @@ function formatParticipants(members: Member[]): string {
   return members.map((member) => `${member.id} (${member.name})`).join(", ");
 }
 
+function formatJudgeMemberBriefs(members: Member[]): string {
+  return members.map(formatJudgeMemberBrief).join("\n");
+}
+
+function formatJudgeMemberBrief(member: Member): string {
+  return [
+    `- ${member.id} (${member.name})`,
+    `  identity: ${member.species}; ${member.realityStatus}; origin: ${member.origin}; dimension: ${member.dimension}.`,
+    `  profile: ${truncateForPrompt(member.datingProfile)}`,
+    `  brief: ${truncateForPrompt(member.bio)}`,
+    `  wants: ${joinAsSentence(member.relationshipNeeds)}`,
+    `  relaxes around: ${joinAsSentence(member.preferences)}`,
+    `  guarded around: ${joinAsSentence(member.dealbreakers)}`,
+    `  current pressure: ${formatJudgeMemberPressure(member)}`,
+  ].join("\n");
+}
+
+function formatJudgeMemberPressure(member: Member): string {
+  return [
+    `mood ${scoreBand(member.state.mood, {
+      low: "strained",
+      middle: "steady",
+      high: "good",
+    })}`,
+    `openness ${scoreBand(member.state.openness, {
+      low: "guarded",
+      middle: "measured",
+      high: "open",
+    })}`,
+    `burnout ${scoreBand(member.state.burnout, {
+      low: "low",
+      middle: "present",
+      high: "high",
+    })}`,
+  ].join(", ");
+}
+
+function scoreBand(value: number, labels: { low: string; middle: string; high: string }): string {
+  if (value >= 70) {
+    return labels.high;
+  }
+
+  if (value >= 40) {
+    return labels.middle;
+  }
+
+  return labels.low;
+}
+
 function buildJudgeThreadMessages(judgeSnapshots: readonly JudgeSnapshot[]): ModelMessage[] {
   return judgeSnapshots.slice(-6).flatMap((snapshot) => [
     {
@@ -1092,8 +1236,8 @@ function truncateForPrompt(text: string): string {
   return `${text.slice(0, 217)}...`;
 }
 
-function collectRecentSpeakerLines(
-  transcript: DateMessage[],
+export function collectRecentSpeakerLines(
+  transcript: readonly DateMessage[],
   speakerId: string,
   count: number,
 ): string[] {

@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 
 import type { Member, PlayerKnowledgeRecord } from "../domain/game";
 import { FOCUS_CASE_LIMIT } from "../services/focus-cases";
+import { sortMembersByCuratedRosterOrder } from "../services/member-roster-order";
 import { buildVisibleMemberProfile } from "../services/player-knowledge";
 import { AmbientMesh } from "./ambient-mesh";
 import { GhostButton, PrimaryButton } from "./dashboard-atoms";
@@ -20,7 +21,8 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
   const playerKnowledge = useMemo<PlayerKnowledgeRecord[]>(() => [], []);
 
   const eligibleMembers = useMemo(
-    () => members.filter((member) => member.state.status === "active"),
+    () =>
+      sortMembersByCuratedRosterOrder(members.filter((member) => member.state.status === "active")),
     [members],
   );
 
@@ -55,12 +57,12 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
   function stateFor(member: Member): MemberCardState {
     const isSelected = selectedIds.includes(member.id);
     if (isSelected) return "selected";
-    if (!isSelected && selectedIds.length >= FOCUS_CASE_LIMIT) return "disabled";
+    if (selectedIds.length >= FOCUS_CASE_LIMIT) return "disabled";
     return "default";
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden px-6 pb-40 pt-20 lg:px-12">
+    <div className="relative isolate min-h-screen w-full overflow-hidden px-6 pb-40 pt-20 lg:px-12">
       <AmbientMesh />
 
       <div className="relative mx-auto max-w-[88rem]">
@@ -139,7 +141,7 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
                 }
               }}
             >
-              Open the lobby
+              Start the shift
               <span className="ml-2 inline-block">→</span>
             </PrimaryButton>
           </div>

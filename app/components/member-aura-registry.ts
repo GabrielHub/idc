@@ -1,4 +1,6 @@
-import type { MemberId } from "../domain/game";
+import type { Member } from "../domain/game";
+
+type MemberId = Member["id"];
 
 /**
  * Per-member ambient aura, used behind the standee on focused cards and inside
@@ -64,6 +66,26 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
   "mei-sato": {
     kind: "godray",
     tint: { primary: "rgba(255, 226, 188, 0.55)", glow: "rgba(252, 218, 174, 0.32)" },
+  },
+  "gabriel-tan": {
+    kind: "godray",
+    tint: { primary: "rgba(232, 218, 190, 0.5)", glow: "rgba(220, 206, 178, 0.3)" },
+  },
+  "noah-kim": {
+    kind: "godray",
+    tint: { primary: "rgba(248, 220, 172, 0.55)", glow: "rgba(238, 204, 156, 0.34)" },
+  },
+  "derek-halsey": {
+    kind: "godray",
+    tint: { primary: "rgba(228, 212, 174, 0.52)", glow: "rgba(212, 196, 156, 0.32)" },
+  },
+  "ryan-doyle": {
+    kind: "godray",
+    tint: { primary: "rgba(252, 218, 152, 0.58)", glow: "rgba(238, 196, 120, 0.36)" },
+  },
+  "alex-yoon": {
+    kind: "godray",
+    tint: { primary: "rgba(244, 184, 96, 0.6)", glow: "rgba(220, 156, 68, 0.4)" },
   },
 
   "gideon-glass": {

@@ -145,7 +145,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   }
 
   if (activeShift.dateSlotsUsed >= activeShift.dateSlotsTotal) {
-    throw new Error("All date slots are already assigned.");
+    throw new Error("This shift's date is already booked.");
   }
 
   if (save.scenarioDeck.pendingLibraryPick !== undefined) {

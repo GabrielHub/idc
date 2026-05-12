@@ -5,6 +5,7 @@ import {
   GPU_RECOMMENDATION_PROFILES,
   GATEWAY_REASONING_LEVEL_OPTIONS,
   OLLAMA_REASONING_LEVEL_OPTIONS,
+  gatewayImageInputSupported,
   gatewayReasoningLevelForModel,
   isGatewayChatModel,
   isRecommendedOllamaChatModel,
@@ -62,6 +63,14 @@ describe("AI model catalog", () => {
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("anthropic/claude-haiku-4.5", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("moonshotai/kimi-k2.5", "medium")).toBe("off");
+  });
+
+  it("marks Gateway models that accept image input", () => {
+    expect(gatewayImageInputSupported("deepseek/deepseek-v4-flash")).toBe(false);
+    expect(gatewayImageInputSupported("google/gemini-3-flash")).toBe(true);
+    expect(gatewayImageInputSupported("google/gemini-3.1-flash-lite-preview")).toBe(true);
+    expect(gatewayImageInputSupported("anthropic/claude-haiku-4.5")).toBe(true);
+    expect(gatewayImageInputSupported("moonshotai/kimi-k2.5")).toBe(true);
   });
 
   it("exposes provider-specific reasoning option lists", () => {

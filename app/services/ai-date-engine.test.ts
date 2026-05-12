@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   dateMessageSchema,
@@ -151,6 +151,127 @@ describe("AI date engine orchestration", () => {
     expect(aiMemory?.scenarioId).toBe(started.session.scenarioId);
     expect(aiMemory?.visibleToMemberIds).toEqual(["jenna-pike"]);
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
+  });
+
+  it("attaches Gateway vision images only to the first generated turn", async () => {
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input.toString();
+
+        if (url.endsWith("/v1/models")) {
+          return Response.json({
+            data: [{ id: "google/gemini-3-flash", tags: ["vision", "file-input"] }],
+          });
+        }
+
+        if (url.endsWith("/assets/scenarios/manifest.json")) {
+          return Response.json({ backgrounds: ["temporal-coffee-shop"] });
+        }
+
+        if (
+          url.endsWith("/assets/portraits/vhool/portrait.png") ||
+          url.endsWith("/assets/scenarios/temporal-coffee-shop/background.webp")
+        ) {
+          return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+        }
+
+        return new Response(null, { status: 404 });
+      }),
+    );
+
+    try {
+      const repository = new LocalGameRepository(new MemorySaveStore(), "ai-vision-test");
+      const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+        "jenna-pike",
+      ]);
+      const started = startAndDraftDateSession(save, {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "vhool",
+        scenarioId: "temporal-coffee-shop",
+        now: new Date("2026-05-05T12:01:00.000Z"),
+      });
+      const packets: Array<Parameters<LocalAiDateRuntime["generateCharacterTurn"]>[0]["packet"]> =
+        [];
+      const runtime: LocalAiDateRuntime = {
+        generateCharacterTurn: async ({ packet }) => {
+          packets.push(packet);
+
+          return {
+            text:
+              packets.length === 1
+                ? "Jenna notices the table and asks Vhool about the receipt."
+                : "Vhool answers without recruiting anyone.",
+            providerMode: "gateway",
+            model: "fake-gateway",
+            stepCount: 1,
+            toolCallCount: 0,
+            toolResultCount: 0,
+          };
+        },
+        judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+          judgeSnapshotSchema.parse({
+            id: `judge-${dateSessionId}-${exchangeIndex}`,
+            dateSessionId,
+            exchangeIndex,
+            dateHealthDelta: 0,
+            statDeltas: {},
+            memberMoodDeltas: {
+              "jenna-pike": 0,
+              vhool: 0,
+            },
+            shouldEndEarly: false,
+            endSentiment: null,
+            notableMoments: ["The pair held the table."],
+            playerSummary: "Cupid filed the table.",
+            memoryCandidates: [],
+          }),
+        summarizeDateMemories: async () => [],
+        embedMemoryText: async ({ text }) => {
+          const embedding = createDeterministicEmbedding(text);
+
+          return {
+            embedding,
+            model: "fake-embedding",
+            dimensions: embedding.length,
+          };
+        },
+      };
+      await repository.saveGame(started.save);
+
+      const result = await advanceDateExchangeWithLocalAi(started.save, repository, {
+        dateSessionId: started.session.id,
+        turnCount: 2,
+        runtime,
+        config: {
+          ...started.save.config,
+          aiProvider: "gateway",
+          chatModel: "google/gemini-3-flash",
+        },
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      });
+
+      expect(result.session.currentTurn).toBe(2);
+      expect(packets).toHaveLength(2);
+      expect(packets[0]?.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
+      expect(packets[0]?.prompt).toContain(
+        "Attached image 2 is Temporal Coffee Shop, the date scenario background.",
+      );
+      expect(packets[1]?.prompt).not.toContain("Attached image 1 is");
+
+      const firstFinalMessage = packets[0]?.messages?.at(-1);
+      const secondFinalMessage = packets[1]?.messages?.at(-1);
+
+      expect(Array.isArray(firstFinalMessage?.content)).toBe(true);
+      expect(typeof secondFinalMessage?.content).toBe("string");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("lets character turns tool call scoped memory search", async () => {

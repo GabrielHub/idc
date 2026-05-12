@@ -10,7 +10,11 @@ import {
 import { starterScenarios } from "../fixtures";
 import { createSeedGameSave, makePairId } from "../services/game-seed";
 import { startAndDraftDateSession, withFeaturedMembers } from "../services/test-helpers";
-import { buildTranscriptItems, resolveDatePlaybackUiState } from "./dashboard-views";
+import {
+  buildTranscriptItems,
+  resolveDatePlaybackUiState,
+  type StreamingDraftMessage,
+} from "./dashboard-views";
 
 describe("dashboard transcript presentation", () => {
   it("places judge notes after the full judged turn interval", () => {
@@ -165,6 +169,82 @@ describe("dashboard transcript presentation", () => {
     expect(judgeItem?.reveals?.map((record) => record.readText)).toEqual([
       "Gideon guards how his past gets handled.",
     ]);
+  });
+
+  it("keeps repeated streaming drafts in the loading state until retry text diverges", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const members = started.save.members.filter((member): member is Member =>
+      started.session.participants.includes(member.id),
+    );
+
+    if (scenario === undefined || members.length !== 2) {
+      throw new Error("Expected streaming draft fixture setup.");
+    }
+
+    const repeatedLine =
+      "it depends on if the mess is something i can actually fix or if it is just someone else's mistake, but i try to leave it at the door.";
+    const session = dateSessionSchema.parse({
+      ...started.session,
+      currentTurn: 2,
+      transcript: [
+        {
+          id: `${started.session.id}-msg-0`,
+          dateSessionId: started.session.id,
+          kind: "character",
+          speakerId: "jenna-pike",
+          turnIndex: 1,
+          sequenceIndex: 0,
+          text: repeatedLine,
+          createdAt: "2026-05-05T12:02:00.000Z",
+        },
+        {
+          id: `${started.session.id}-msg-1`,
+          dateSessionId: started.session.id,
+          kind: "character",
+          speakerId: "vhool",
+          turnIndex: 2,
+          sequenceIndex: 1,
+          text: "Vhool asks whether the door has a union representative.",
+          createdAt: "2026-05-05T12:03:00.000Z",
+        },
+      ],
+    });
+    const baseDraft: StreamingDraftMessage = {
+      id: "jenna-pike-2",
+      speakerId: "jenna-pike",
+      speakerName: "Jenna Pike",
+      sequenceIndex: 2,
+      turnIndex: 3,
+      text: repeatedLine,
+      reasoningText: "",
+      status: "streaming",
+    };
+    const repeatedDraftItem = buildTranscriptItems(session, members, scenario, [baseDraft]).find(
+      (item) => item.id === baseDraft.id,
+    );
+    const correctedDraft: StreamingDraftMessage = {
+      ...baseDraft,
+      text: "not really, because if i stayed to fix every little thing, i would never actually get to go home.",
+    };
+    const correctedDraftItem = buildTranscriptItems(session, members, scenario, [
+      correctedDraft,
+    ]).find((item) => item.id === correctedDraft.id);
+
+    expect(repeatedDraftItem?.isStreaming).toBe(true);
+    expect(repeatedDraftItem?.isLoading).toBe(true);
+    expect(repeatedDraftItem?.text).toBe("");
+    expect(correctedDraftItem?.isLoading).toBe(false);
+    expect(correctedDraftItem?.text).toContain("not really");
   });
 });
 

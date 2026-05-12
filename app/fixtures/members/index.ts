@@ -1,5 +1,6 @@
 import { memberSchema } from "../../domain/game";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
+import { alexYoon } from "./alex-yoon";
 import { baiWenshu } from "./bai-wenshu";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
@@ -7,8 +8,10 @@ import { cassieConners } from "./cassie-conners";
 import { chaYusung } from "./cha-yusung";
 import { cthala } from "./cthala";
 import { decimusMariusTullio } from "./decimus-marius-tullio";
+import { derekHalsey } from "./derek-halsey";
 import { eleanorAsh } from "./eleanor-ash";
 import { epsy } from "./epsy";
+import { gabrielTan } from "./gabriel-tan";
 import { gideonGlass } from "./gideon-glass";
 import { idrisMahari } from "./idris-mahari";
 import { jennaPike } from "./jenna-pike";
@@ -19,8 +22,10 @@ import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
 import { mrWhiskers } from "./mr-whiskers";
 import { naiaVelorae } from "./naia-velorae";
+import { noahKim } from "./noah-kim";
 import { opalSunday } from "./opal-sunday";
 import { reaver } from "./reaver";
+import { ryanDoyle } from "./ryan-doyle";
 import { sanaKarim } from "./sana-karim";
 import { seraVohn } from "./sera-vohn";
 import { tashaRell } from "./tasha-rell";
@@ -30,7 +35,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(28)
+  .length(33)
   .parse([
     jennaPike,
     meridianVale,
@@ -60,10 +65,16 @@ export const starterMembers = memberSchema
     reaver,
     cthala,
     naiaVelorae,
+    gabrielTan,
+    noahKim,
+    derekHalsey,
+    ryanDoyle,
+    alexYoon,
   ]);
 
 export {
   aldricValeMarsh,
+  alexYoon,
   baiWenshu,
   bradyStrait,
   calvinHewes,
@@ -71,8 +82,10 @@ export {
   chaYusung,
   cthala,
   decimusMariusTullio,
+  derekHalsey,
   eleanorAsh,
   epsy,
+  gabrielTan,
   gideonGlass,
   idrisMahari,
   jennaPike,
@@ -83,8 +96,10 @@ export {
   miraPark,
   mrWhiskers,
   naiaVelorae,
+  noahKim,
   opalSunday,
   reaver,
+  ryanDoyle,
   sanaKarim,
   seraVohn,
   tashaRell,

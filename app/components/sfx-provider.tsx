@@ -9,6 +9,8 @@ import {
   type ReactNode,
 } from "react";
 
+import { detectRuntimePlatform, type RuntimePlatform } from "../platform/runtime";
+
 export type SfxCue =
   | "alert"
   | "click"
@@ -65,7 +67,9 @@ const FALLBACK_SFX_CONTEXT: SfxContextValue = {
 const SfxContext = createContext<SfxContextValue>(FALLBACK_SFX_CONTEXT);
 
 export function SfxProvider({ children }: { children: ReactNode }) {
-  const [isEnabled, setIsEnabledState] = useState(false);
+  const [isEnabled, setIsEnabledState] = useState(() =>
+    isSfxEnabledByDefault(detectRuntimePlatform()),
+  );
   const [volume, setVolumeState] = useState(DEFAULT_VOLUME);
   const [dateAmbientActive, setDateAmbientActive] = useState(false);
   const isEnabledRef = useRef(isEnabled);
@@ -77,7 +81,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedVolume = readStoredSfxVolume();
     setVolumeState(storedVolume);
-    applyMasterGain(storedVolume, true);
+    applyMasterGain(storedVolume, !isEnabledRef.current);
   }, []);
 
   useEffect(() => {
@@ -162,6 +166,10 @@ export function SfxProvider({ children }: { children: ReactNode }) {
 
 export function useSfx(): SfxContextValue {
   return useContext(SfxContext);
+}
+
+export function isSfxEnabledByDefault(platform: RuntimePlatform): boolean {
+  return platform === "tauri";
 }
 
 function readStoredSfxVolume(): number {

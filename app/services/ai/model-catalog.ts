@@ -41,6 +41,13 @@ const REASONING_DISABLED_GATEWAY_MODEL_IDS = new Set([
   "moonshotai/kimi-k2.5",
 ]);
 
+const GATEWAY_IMAGE_INPUT_MODEL_IDS = new Set([
+  "google/gemini-3-flash",
+  "google/gemini-3.1-flash-lite-preview",
+  "anthropic/claude-haiku-4.5",
+  "moonshotai/kimi-k2.5",
+]);
+
 export const OLLAMA_REASONING_LEVEL_OPTIONS: AiReasoningLevelOption[] = [
   { value: "off", label: "Off" },
   { value: "low", label: "Low" },
@@ -209,6 +216,10 @@ export function gatewayReasoningLevelForModel(
 
 export function gatewayReasoningSupported(modelId: string): boolean {
   return !REASONING_DISABLED_GATEWAY_MODEL_IDS.has(modelId);
+}
+
+export function gatewayImageInputSupported(modelId: string): boolean {
+  return GATEWAY_IMAGE_INPUT_MODEL_IDS.has(modelId);
 }
 
 export function isGatewayChatModel(modelId: string): boolean {

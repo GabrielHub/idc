@@ -361,7 +361,7 @@ function DateBookHeader({
             retire the dropped plan for {SCENARIO_DECK_RETIREMENT_SHIFTS} shifts.
           </p>
         </div>
-        <GhostButton onClick={onBack}>← Back to lobby</GhostButton>
+        <GhostButton onClick={onBack}>← Back to Live Date</GhostButton>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

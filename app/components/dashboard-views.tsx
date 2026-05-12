@@ -25,6 +25,7 @@ import {
   formatCupidInterventionText,
   MAX_NUDGES_PER_DATE,
 } from "../services/date-engine";
+import { collectRecentSpeakerLines, hasNearDuplicateRecentLine } from "../services/date-prompts";
 import { PAIR_CLOSURE_TAG } from "../services/closures";
 import { clampScore } from "../services/utils";
 import {
@@ -52,6 +53,7 @@ import {
   resolveMemberChatBubbleStyle,
 } from "./member-chat-bubble-style";
 import { PairBoard } from "./pair-board";
+import { ScenarioBackdropLayer } from "./scenario-backdrop";
 import type { SfxCue } from "./sfx-provider";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
@@ -239,17 +241,19 @@ export function DateView({
   onTogglePlayback,
   onBack,
 }: DateProps) {
-  const transcript = buildTranscriptItems(
-    session,
-    members,
-    scenario,
-    streamingDrafts,
-    playerKnowledge,
+  const transcript = useMemo(
+    () => buildTranscriptItems(session, members, scenario, streamingDrafts, playerKnowledge),
+    [session, members, scenario, streamingDrafts, playerKnowledge],
   );
-  const displayedCurrentTurn = Math.max(
-    session.currentTurn,
-    ...streamingDrafts.map((draft) => draft.turnIndex),
-  );
+  const displayedCurrentTurn = useMemo(() => {
+    let highest = session.currentTurn;
+    for (const draft of streamingDrafts) {
+      if (draft.turnIndex > highest) {
+        highest = draft.turnIndex;
+      }
+    }
+    return highest;
+  }, [session.currentTurn, streamingDrafts]);
   const participants = useMemo(
     () =>
       session.participants
@@ -284,13 +288,8 @@ export function DateView({
   });
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
-      className="relative w-full"
-    >
+    <>
+      <ScenarioBackdropLayer scenarioId={scenario?.id} microMotion="drift-pointer" />
       {leftMember !== undefined && rightMember !== undefined ? (
         <DateStandeeFrame
           leftMember={leftMember}
@@ -304,33 +303,68 @@ export function DateView({
         />
       ) : null}
 
-      <DateHeader
-        scenario={scenario}
-        session={session}
-        participants={participants}
-        onBack={onBack}
-      />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
+        className="relative w-full"
+      >
+        <DateHeader
+          scenario={scenario}
+          session={session}
+          participants={participants}
+          onBack={onBack}
+        />
 
-      <div className="relative z-10 mx-auto w-full max-w-2xl px-6 pt-6 pb-40 lg:px-10 lg:pb-44">
-        {session.playbackState === "drafting" && scenario !== undefined ? (
-          <DraftScreen
+        <div
+          className={`relative z-10 mx-auto w-full px-6 pt-6 pb-40 lg:px-10 lg:pb-44 ${
+            session.playbackState === "drafting" ? "max-w-2xl 2xl:max-w-6xl" : "max-w-3xl"
+          }`}
+        >
+          {session.playbackState === "drafting" && scenario !== undefined ? (
+            <DraftScreen
+              scenario={scenario}
+              session={session}
+              isActionPending={isActionPending}
+              onPickEvents={onPickEvents}
+            />
+          ) : (
+            <ChatStream
+              items={transcript}
+              session={session}
+              leftMemberId={leftMember?.id}
+              pendingDateAction={pendingDateAction}
+              playbackUiState={playbackUiState}
+            />
+          )}
+        </div>
+
+        {session.status === "active" && session.playbackState !== "drafting" ? (
+          <DateFooter
+            session={session}
             scenario={scenario}
-            session={session}
-            isActionPending={isActionPending}
-            onPickEvents={onPickEvents}
-          />
-        ) : (
-          <ChatStream
-            items={transcript}
-            session={session}
-            leftMemberId={leftMember?.id}
+            interventionText={interventionText}
+            interventionTargetMemberId={interventionTargetMemberId}
+            participants={participants}
+            displayedCurrentTurn={displayedCurrentTurn}
+            canAdvance={canAdvance}
+            canIntervene={canIntervene}
             pendingDateAction={pendingDateAction}
             playbackUiState={playbackUiState}
+            nudgeSuggestions={nudgeSuggestions}
+            onInterventionTextChange={onInterventionTextChange}
+            onInterventionTargetChange={onInterventionTargetChange}
+            onAdvance={onAdvance}
+            onCancel={onCancel}
+            onIntervene={onIntervene}
+            onTriggerEvent={onTriggerEvent}
+            onTogglePlayback={onTogglePlayback}
           />
-        )}
+        ) : null}
 
         {session.finalReport === undefined ? null : (
-          <FinalReportPanel
+          <FinalReportFooter
             report={session.finalReport}
             session={session}
             playerKnowledge={playerKnowledge}
@@ -338,31 +372,8 @@ export function DateView({
             onFollowUp={onFollowUp}
           />
         )}
-      </div>
-
-      {session.status === "active" && session.playbackState !== "drafting" ? (
-        <DateFooter
-          session={session}
-          scenario={scenario}
-          interventionText={interventionText}
-          interventionTargetMemberId={interventionTargetMemberId}
-          participants={participants}
-          displayedCurrentTurn={displayedCurrentTurn}
-          canAdvance={canAdvance}
-          canIntervene={canIntervene}
-          pendingDateAction={pendingDateAction}
-          playbackUiState={playbackUiState}
-          nudgeSuggestions={nudgeSuggestions}
-          onInterventionTextChange={onInterventionTextChange}
-          onInterventionTargetChange={onInterventionTargetChange}
-          onAdvance={onAdvance}
-          onCancel={onCancel}
-          onIntervene={onIntervene}
-          onTriggerEvent={onTriggerEvent}
-          onTogglePlayback={onTogglePlayback}
-        />
-      ) : null}
-    </motion.div>
+      </motion.div>
+    </>
   );
 }
 
@@ -405,7 +416,7 @@ function DateHeader({
   const canLeaveStage = session.status !== "active";
   const positionClass = isDrafting
     ? "relative mb-6 flex justify-center px-6 lg:px-10"
-    : "sticky top-24 mb-2 flex justify-center px-6 lg:top-28 lg:mb-3 lg:px-10";
+    : "sticky top-3 mb-2 flex justify-center px-6 lg:top-4 lg:mb-3 lg:px-10";
   const memberLine = participants.map((m) => m.firstName).join(" / ");
   const locationLine = scenario?.publicBrief.location;
   const detailLine = locationLine === undefined ? memberLine : `${memberLine} / ${locationLine}`;
@@ -419,8 +430,8 @@ function DateHeader({
               type="button"
               data-sfx="click"
               onClick={onBack}
-              aria-label="Back to lobby"
-              title="Back to lobby"
+              aria-label="Back to Live Date"
+              title="Back to Live Date"
               className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
             >
               <svg viewBox="0 0 16 16" className="size-3.5" aria-hidden>
@@ -472,6 +483,7 @@ type TranscriptItem = {
   targetName?: string;
   isDraft?: boolean;
   isStreaming?: boolean;
+  isLoading?: boolean;
 };
 
 function DateStandeeFrame({
@@ -755,6 +767,13 @@ function ChatBubble({
     : isLeft
       ? "bg-white/85"
       : "bg-aura-rose/70";
+  const loadingDotColor = customBubble
+    ? customBubble.caretClass
+    : isLeft
+      ? "bg-white"
+      : "bg-aura-rose";
+  const isLoading = item.isLoading === true;
+  const isStreamingText = item.isStreaming === true && !isLoading;
   const draftClass = item.isDraft === true ? "opacity-95" : "";
 
   return (
@@ -769,17 +788,47 @@ function ChatBubble({
         ) : null}
         <div className={`${bubbleClass} ${draftClass}`} style={bubbleStyle}>
           <p className={`text-body leading-relaxed ${textColorClass}`}>
-            {item.text}
-            {item.isStreaming === true ? (
-              <span
-                aria-hidden
-                className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
-              />
-            ) : null}
+            {isLoading ? (
+              <ChatLoadingDots dotClass={loadingDotColor} />
+            ) : (
+              <>
+                {item.text}
+                {isStreamingText ? (
+                  <span
+                    aria-hidden
+                    className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
+                  />
+                ) : null}
+              </>
+            )}
           </p>
         </div>
       </div>
     </motion.li>
+  );
+}
+
+const CHAT_LOADING_DOT_DELAY_CLASSES = [
+  "[animation-delay:0ms]",
+  "[animation-delay:180ms]",
+  "[animation-delay:360ms]",
+] as const;
+
+function ChatLoadingDots({ dotClass }: { dotClass: string }) {
+  return (
+    <span
+      role="status"
+      aria-label="Loading message"
+      className="inline-flex h-6 items-center gap-1.5"
+    >
+      {CHAT_LOADING_DOT_DELAY_CLASSES.map((animationClass) => (
+        <span
+          key={animationClass}
+          aria-hidden
+          className={`aura-typing-dot size-1.5 rounded-full ${dotClass} ${animationClass}`}
+        />
+      ))}
+    </span>
   );
 }
 
@@ -869,31 +918,6 @@ function SystemNote({ item, animation }: { item: TranscriptItem; animation: Chat
   );
 }
 
-function FiledReadsList({
-  reads,
-  emptyText,
-}: {
-  reads: readonly PlayerKnowledgeRecord[];
-  emptyText: string;
-}) {
-  if (reads.length === 0) {
-    return <p className="text-label text-aura-muted">{emptyText}</p>;
-  }
-
-  return (
-    <ul className="space-y-2">
-      {reads.map((read) => (
-        <li key={read.id} className="rounded-card bg-white/55 p-3 ring-1 ring-aura-hairline">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-            {readKindLabel(read)}
-          </p>
-          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 function readKindLabel(read: PlayerKnowledgeRecord): string {
   if (read.readKind === "pair_dynamic") {
     return read.confidence === "confirmed" ? "confirmed pair read" : "filed pair read";
@@ -956,7 +980,14 @@ function CupidStatusPill({ label, leading }: { label: string; leading: React.Rea
   );
 }
 
-function FinalReportPanel({
+const FOLLOW_UP_ORDER: readonly FollowUpAction[] = [
+  "encourage",
+  "cool_down",
+  "repair",
+  "mark_bad_fit",
+];
+
+function FinalReportFooter({
   report,
   session,
   playerKnowledge,
@@ -969,56 +1000,167 @@ function FinalReportPanel({
   isActionPending: boolean;
   onFollowUp: (action: FollowUpAction) => void;
 }) {
-  const followUpKeys = Object.keys(FOLLOW_UP_LABELS) as FollowUpAction[];
   const sentimentBadge = describeEndSentiment(session);
   const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
+  const filed = report.appliedFollowUp;
+
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE_OUT_QUART }}
-      className="mt-10 border-t border-aura-hairline pt-8"
+    <motion.footer
+      data-final-report-footer
+      initial={{ y: 60, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
+      className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
     >
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="relative mx-auto w-full max-w-5xl">
+        <div className="aura-glass-strong pointer-events-auto grid w-full gap-4 rounded-card px-4 py-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-5 lg:px-6 lg:py-5">
+          <FinalReportSummarySection report={report} sentimentBadge={sentimentBadge} />
+          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
+          <FinalReportReadsSection reads={revealedThisDate} />
+          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
+          <FinalReportFollowUpSection
+            recommended={report.recommendedFollowUp}
+            filed={filed}
+            isActionPending={isActionPending}
+            onFollowUp={onFollowUp}
+          />
+        </div>
+      </div>
+    </motion.footer>
+  );
+}
+
+function FinalReportSummarySection({
+  report,
+  sentimentBadge,
+}: {
+  report: DateFinalReport;
+  sentimentBadge: { label: string; tone: string; dot: string };
+}) {
+  return (
+    <section className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Eyebrow>// final report</Eyebrow>
         <span
-          className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${sentimentBadge.tone}`}
+          className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${sentimentBadge.tone}`}
         >
           <span aria-hidden className={`size-1.5 rounded-full ${sentimentBadge.dot}`} />
           {sentimentBadge.label}
         </span>
       </div>
-      <p className="mt-3 max-w-2xl text-lead text-aura-ink">{report.summary}</p>
-      <p className="mt-2 max-w-2xl text-label text-aura-muted">{report.statSummary}</p>
-      <div className="mt-5 max-w-2xl">
-        <Eyebrow>// filed reads</Eyebrow>
-        <div className="mt-3">
-          <FiledReadsList reads={revealedThisDate} emptyText="No new reads filed from this date." />
-        </div>
-      </div>
-      <p className="mt-4 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-        Recommended follow-up:{" "}
-        <span className="text-aura-rose">{FOLLOW_UP_LABELS[report.recommendedFollowUp]}</span>
-      </p>
-      {report.appliedFollowUp === undefined ? (
-        <div className="mt-5 flex flex-wrap gap-x-3 gap-y-5">
-          {followUpKeys.map((action) => (
-            <div key={action} className="flex max-w-[16rem] flex-col items-start gap-2">
-              <GhostButton disabled={isActionPending} onClick={() => onFollowUp(action)}>
-                {FOLLOW_UP_LABELS[action]}
-              </GhostButton>
-              <p className="text-label leading-snug text-aura-muted">
-                {FOLLOW_UP_PROJECTIONS[action]}
+      <p className="text-label leading-snug text-aura-ink">{report.summary}</p>
+      <p className="text-label leading-snug text-aura-muted">{report.statSummary}</p>
+    </section>
+  );
+}
+
+function FinalReportReadsSection({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
+  return (
+    <section className="flex min-w-0 flex-col gap-2">
+      <Eyebrow>// filed reads</Eyebrow>
+      {reads.length === 0 ? (
+        <p className="text-label text-aura-muted">No new reads filed from this date.</p>
+      ) : (
+        <ul className="flex max-h-32 flex-col gap-1.5 overflow-y-auto pr-1">
+          {reads.map((read) => (
+            <li
+              key={read.id}
+              className="rounded-chip bg-white/55 px-2.5 py-1.5 ring-1 ring-aura-hairline"
+            >
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                {readKindLabel(read)}
               </p>
-            </div>
+              <p className="mt-0.5 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function FinalReportFollowUpSection({
+  recommended,
+  filed,
+  isActionPending,
+  onFollowUp,
+}: {
+  recommended: FollowUpAction;
+  filed: FollowUpAction | undefined;
+  isActionPending: boolean;
+  onFollowUp: (action: FollowUpAction) => void;
+}) {
+  return (
+    <section className="flex min-w-0 flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Eyebrow>// follow-up</Eyebrow>
+        {filed === undefined ? (
+          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+            Recommended: <span className="text-aura-rose">{FOLLOW_UP_LABELS[recommended]}</span>
+          </span>
+        ) : (
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-emerald-600">
+            Filed: {FOLLOW_UP_LABELS[filed]}
+          </span>
+        )}
+      </div>
+      {filed === undefined ? (
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+          {FOLLOW_UP_ORDER.map((action) => (
+            <FollowUpActionButton
+              key={action}
+              action={action}
+              isRecommended={action === recommended}
+              disabled={isActionPending}
+              onSelect={() => onFollowUp(action)}
+            />
           ))}
         </div>
-      ) : (
-        <p className="mt-4 font-mono text-micro uppercase tracking-[0.24em] text-emerald-600">
-          Filed: {FOLLOW_UP_LABELS[report.appliedFollowUp]}
-        </p>
-      )}
-    </motion.section>
+      ) : null}
+    </section>
+  );
+}
+
+function FollowUpActionButton({
+  action,
+  isRecommended,
+  disabled,
+  onSelect,
+}: {
+  action: FollowUpAction;
+  isRecommended: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+}) {
+  const label = FOLLOW_UP_LABELS[action];
+  const projection = FOLLOW_UP_PROJECTIONS[action];
+  const baseClass =
+    "relative flex h-full w-full cursor-pointer items-center justify-center gap-1.5 rounded-pill px-2.5 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed disabled:opacity-40";
+  const toneClass = isRecommended
+    ? "bg-gradient-to-r from-aura-rose/15 via-aura-fuchsia/12 to-aura-violet/15 text-aura-rose ring-1 ring-aura-rose/45 hover:ring-aura-rose/70 hover:shadow-cta"
+    : "aura-glass text-aura-muted hover:text-aura-ink";
+
+  return (
+    <Tooltip message={projection} placement="top-center" className="w-full">
+      <button
+        type="button"
+        data-sfx="click"
+        disabled={disabled}
+        onClick={onSelect}
+        aria-label={`${label}. ${projection}`}
+        className={`${baseClass} ${toneClass}`}
+      >
+        {isRecommended ? (
+          <svg viewBox="0 0 12 12" className="size-3 text-aura-rose" aria-hidden>
+            <path
+              d="M6 1.4 L7.4 4.6 L10.8 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.2 5 L4.6 4.6 Z"
+              fill="currentColor"
+            />
+          </svg>
+        ) : null}
+        <span>{label}</span>
+      </button>
+    </Tooltip>
   );
 }
 
@@ -1027,6 +1169,28 @@ const SCENARIO_EVENT_KIND_CHIP_CLASS: Record<ScenarioEventKind, string> = {
   provocation: "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/35",
   reveal: "bg-aura-emerald/15 text-aura-emerald ring-1 ring-aura-emerald/35",
 };
+
+const SCENARIO_EVENT_KIND_COLUMN_ORDER: readonly ScenarioEventKind[] = [
+  "ambient",
+  "provocation",
+  "reveal",
+];
+
+const SCENARIO_EVENT_KIND_COLUMN_META: Record<ScenarioEventKind, { label: string; blurb: string }> =
+  {
+    ambient: {
+      label: "ambient",
+      blurb: "Environmental texture. Easy to notice or skip.",
+    },
+    provocation: {
+      label: "provocation",
+      blurb: "Physical interruptions. Demand a reaction.",
+    },
+    reveal: {
+      label: "reveal",
+      blurb: "Honest beats drawn from what's on file.",
+    },
+  };
 
 function DraftScreen({
   scenario,
@@ -1040,12 +1204,28 @@ function DraftScreen({
   onPickEvents: (eventIds: string[]) => void;
 }) {
   const offered = session.eventDraft.offered;
-  const offeredEvents = offered
-    .map((id) => findScenarioEventById(scenario, id))
-    .filter((event): event is ScenarioEvent => event !== undefined);
+  const offeredEvents = useMemo(
+    () =>
+      offered
+        .map((id) => findScenarioEventById(scenario, id))
+        .filter((event): event is ScenarioEvent => event !== undefined),
+    [offered, scenario],
+  );
   const targetCount = Math.min(EVENT_DRAFT_PICKED, offeredEvents.length);
   const [picks, setPicks] = useState<string[]>([]);
   const canLockIn = picks.length === targetCount;
+
+  const offeredEventsByKind = useMemo(() => {
+    const groups: Record<ScenarioEventKind, Array<{ event: ScenarioEvent; sceneIndex: number }>> = {
+      ambient: [],
+      provocation: [],
+      reveal: [],
+    };
+    offeredEvents.forEach((event, sceneIndex) => {
+      groups[event.kind].push({ event, sceneIndex });
+    });
+    return groups;
+  }, [offeredEvents]);
 
   function togglePick(eventId: string) {
     setPicks((current) => {
@@ -1075,63 +1255,77 @@ function DraftScreen({
         <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink lg:text-display-lg">
           Pick three <span className="aura-accent text-aura-rose">scene cards</span>
         </h2>
-        <p className="mx-auto max-w-md text-label text-aura-muted">
-          Cupid deals two of each scene kind for {scenario.title}: ambient texture, provocations,
-          and reveals. Pick any three to drop into the date.
+        <p className="mx-auto max-w-xl text-label text-aura-muted">
+          Cupid deals two of each scene kind for {scenario.title}. Pick any three to drop into the
+          date.
         </p>
       </div>
 
-      <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {offeredEvents.map((event, index) => {
-          const pickIndex = picks.indexOf(event.id);
-          const selected = pickIndex >= 0;
-          const kindClass = SCENARIO_EVENT_KIND_CHIP_CLASS[event.kind];
+      <div className="mt-9 grid gap-6 2xl:grid-cols-3">
+        {SCENARIO_EVENT_KIND_COLUMN_ORDER.map((kind, columnIndex) => {
+          const meta = SCENARIO_EVENT_KIND_COLUMN_META[kind];
+          const chipClass = SCENARIO_EVENT_KIND_CHIP_CLASS[kind];
+          const items = offeredEventsByKind[kind];
           return (
-            <motion.li
-              key={event.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{
-                duration: 0.32,
-                ease: EASE_OUT_QUART,
-                delay: 0.08 + index * 0.05,
-              }}
-            >
-              <button
-                type="button"
-                data-sfx="click"
-                aria-pressed={selected}
-                disabled={isActionPending}
-                onClick={() => togglePick(event.id)}
-                className={`aura-glass-lift flex h-full w-full flex-col gap-3 rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                  selected
-                    ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
-                    : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
-                    // scene {pad2(index + 1)}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      data-event-kind={event.kind}
-                      className={`rounded-full px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${kindClass}`}
+            <section key={kind} className="flex flex-col gap-3">
+              <header className="flex items-baseline justify-between gap-3 px-1">
+                <span
+                  data-event-kind={kind}
+                  className={`rounded-full px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] ${chipClass}`}
+                >
+                  {meta.label}
+                </span>
+                <span className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+                  {items.length} dealt
+                </span>
+              </header>
+              <p className="px-1 text-label leading-relaxed text-aura-muted">{meta.blurb}</p>
+              <ol className="flex flex-col gap-3">
+                {items.map(({ event, sceneIndex }, indexInColumn) => {
+                  const pickIndex = picks.indexOf(event.id);
+                  const selected = pickIndex >= 0;
+                  return (
+                    <motion.li
+                      key={event.id}
+                      initial={{ opacity: 0, y: 14 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{
+                        duration: 0.32,
+                        ease: EASE_OUT_QUART,
+                        delay: 0.08 + columnIndex * 0.06 + indexInColumn * 0.04,
+                      }}
                     >
-                      {event.kind}
-                    </span>
-                    <DraftPickPip selected={selected} pickIndex={pickIndex} />
-                  </div>
-                </div>
-                <h3 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
-                  {event.title}
-                </h3>
-                <p className="text-label leading-relaxed text-aura-muted">{event.event}</p>
-              </button>
-            </motion.li>
+                      <button
+                        type="button"
+                        data-sfx="click"
+                        aria-pressed={selected}
+                        disabled={isActionPending}
+                        onClick={() => togglePick(event.id)}
+                        className={`aura-glass-lift flex h-full w-full flex-col gap-3 rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                          selected
+                            ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
+                            : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
+                            // scene {pad2(sceneIndex + 1)}
+                          </span>
+                          <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                        </div>
+                        <h3 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
+                          {event.title}
+                        </h3>
+                        <p className="text-label leading-relaxed text-aura-muted">{event.event}</p>
+                      </button>
+                    </motion.li>
+                  );
+                })}
+              </ol>
+            </section>
           );
         })}
-      </ol>
+      </div>
 
       <div className="mt-9 flex flex-col items-center gap-3">
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint">
@@ -1452,75 +1646,64 @@ function GaugeColumn({ children }: { children: React.ReactNode }) {
 
 function HealthGauge({ value }: { value: number }) {
   const safeValue = clampScore(Math.round(value));
-  const tipMessage = `Date health: ${safeValue} of 100. Drops with conflict, lifts with chemistry.`;
+  const ariaLabel = `Date health: ${safeValue} of 100. Drops with conflict, lifts with chemistry.`;
 
   return (
-    <Tooltip placement="top-center" message={tipMessage}>
-      <GaugeColumn>
-        <GaugeLabel>Health</GaugeLabel>
-        <span className="inline-flex items-center gap-2">
-          <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
-            {safeValue}
-          </span>
-          <span
-            aria-hidden
-            className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline"
-          >
-            <span
-              className={`block h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet ${scoreWidthClass(safeValue)}`}
-            />
-          </span>
+    <GaugeColumn>
+      <GaugeLabel>Health</GaugeLabel>
+      <span className="inline-flex items-center gap-2" aria-label={ariaLabel}>
+        <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
+          {safeValue}
         </span>
-      </GaugeColumn>
-    </Tooltip>
+        <span aria-hidden className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline">
+          <span
+            className={`block h-full rounded-pill bg-gradient-to-r from-aura-emerald via-aura-rose to-aura-violet ${scoreWidthClass(safeValue)}`}
+          />
+        </span>
+      </span>
+    </GaugeColumn>
   );
 }
 
 function TurnGauge({ current, total }: { current: number; total: number }) {
-  const tipMessage = `Turn ${current} of ${total}. Judges sweep at every sixth turn.`;
+  const ariaLabel = `Turn ${current} of ${total}. Judges sweep at every sixth turn.`;
   const pct = total === 0 ? 0 : Math.min(100, Math.round((current / total) * 100));
 
   return (
-    <Tooltip placement="top-center" message={tipMessage}>
-      <GaugeColumn>
-        <GaugeLabel>Turn</GaugeLabel>
-        <span className="inline-flex items-center gap-2">
-          <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
-            {current}
-            <span className="text-aura-faint">/{total}</span>
-          </span>
-          <span
-            aria-hidden
-            className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline"
-          >
-            <span
-              className={`block h-full rounded-pill bg-aura-violet/80 ${scoreWidthClass(pct)}`}
-            />
-          </span>
+    <GaugeColumn>
+      <GaugeLabel>Turn</GaugeLabel>
+      <span className="inline-flex items-center gap-2" aria-label={ariaLabel}>
+        <span className="font-mono text-label font-semibold tabular-nums leading-none text-aura-ink">
+          {current}
+          <span className="text-aura-faint">/{total}</span>
         </span>
-      </GaugeColumn>
-    </Tooltip>
+        <span aria-hidden className="block h-1 w-12 overflow-hidden rounded-pill bg-aura-hairline">
+          <span className={`block h-full rounded-pill bg-aura-violet/80 ${scoreWidthClass(pct)}`} />
+        </span>
+      </span>
+    </GaugeColumn>
   );
 }
 
 function JudgeGauge({ passes }: { passes: number }) {
-  const tipMessage = `${passes} judge ${passes === 1 ? "pass" : "passes"} on file. Each pass logs how the date is reading.`;
+  const ariaLabel = `${passes} judge ${passes === 1 ? "pass" : "passes"} on file. Each pass logs how the date is reading.`;
 
   return (
-    <Tooltip placement="top-center" message={tipMessage}>
-      <GaugeColumn>
-        <GaugeLabel>Judge</GaugeLabel>
-        <span className="inline-flex items-center gap-1.5 font-mono text-label font-semibold tabular-nums leading-none text-aura-violet">
-          <svg viewBox="0 0 12 12" className="size-3" aria-hidden>
-            <path
-              d="M6 1.5 L7.4 4.6 L10.7 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.3 5 L4.6 4.6 Z"
-              fill="currentColor"
-            />
-          </svg>
-          {passes}
-        </span>
-      </GaugeColumn>
-    </Tooltip>
+    <GaugeColumn>
+      <GaugeLabel>Judge</GaugeLabel>
+      <span
+        className="inline-flex items-center gap-1.5 font-mono text-label font-semibold tabular-nums leading-none text-aura-violet"
+        aria-label={ariaLabel}
+      >
+        <svg viewBox="0 0 12 12" className="size-3" aria-hidden>
+          <path
+            d="M6 1.5 L7.4 4.6 L10.7 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.3 5 L4.6 4.6 Z"
+            fill="currentColor"
+          />
+        </svg>
+        {passes}
+      </span>
+    </GaugeColumn>
   );
 }
 
@@ -1534,61 +1717,59 @@ function NudgeGauge({
   onCompose: () => void;
 }) {
   const total = MAX_NUDGES_PER_DATE;
-  const tipMessage = enabled
+  const ariaLabel = enabled
     ? `Whisper a nudge. ${remaining} of ${total} left.`
     : remaining === 0
-      ? "Every nudge slot used."
+      ? "Every nudge filed."
       : `${remaining} of ${total} ${remaining === 1 ? "nudge" : "nudges"} left. Pause to whisper.`;
 
   return (
-    <Tooltip placement="top-center" message={tipMessage}>
-      <button
-        type="button"
-        data-sfx={enabled ? "click" : undefined}
-        disabled={!enabled}
-        onClick={onCompose}
-        aria-label={tipMessage}
-        className="group -mx-1.5 -my-1 flex cursor-pointer flex-col items-start gap-1.5 rounded-chip px-1.5 py-1 transition disabled:cursor-not-allowed enabled:hover:bg-white/55 enabled:hover:shadow-quiet"
-      >
-        <GaugeLabel>
-          <span className="inline-flex items-center gap-1">
-            <span>Nudges</span>
+    <button
+      type="button"
+      data-sfx={enabled ? "click" : undefined}
+      disabled={!enabled}
+      onClick={onCompose}
+      aria-label={ariaLabel}
+      className="group -mx-1.5 -my-1 flex cursor-pointer flex-col items-start gap-1.5 rounded-chip px-1.5 py-1 transition disabled:cursor-not-allowed enabled:hover:bg-white/55 enabled:hover:shadow-quiet"
+    >
+      <GaugeLabel>
+        <span className="inline-flex items-center gap-1">
+          <span>Nudges</span>
+          <svg
+            viewBox="0 0 8 8"
+            aria-hidden
+            className="size-2 text-aura-rose/60 opacity-0 transition group-enabled:group-hover:opacity-100"
+          >
+            <path
+              d="M1.5 4 H6 M4.2 1.8 L6.4 4 L4.2 6.2"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      </GaugeLabel>
+      <span className="inline-flex items-center gap-1">
+        {Array.from({ length: total }).map((_, index) => {
+          const filled = index < remaining;
+          return (
             <svg
-              viewBox="0 0 8 8"
+              key={`nudge-pip-${index}`}
+              viewBox="0 0 12 12"
               aria-hidden
-              className="size-2 text-aura-rose/60 opacity-0 transition group-enabled:group-hover:opacity-100"
+              className={`size-3 transition ${filled ? "text-aura-rose group-enabled:group-hover:scale-110" : "text-aura-rose/25"}`}
             >
               <path
-                d="M1.5 4 H6 M4.2 1.8 L6.4 4 L4.2 6.2"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+                d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
+                fill="currentColor"
               />
             </svg>
-          </span>
-        </GaugeLabel>
-        <span className="inline-flex items-center gap-1">
-          {Array.from({ length: total }).map((_, index) => {
-            const filled = index < remaining;
-            return (
-              <svg
-                key={`nudge-pip-${index}`}
-                viewBox="0 0 12 12"
-                aria-hidden
-                className={`size-3 transition ${filled ? "text-aura-rose group-enabled:group-hover:scale-110" : "text-aura-rose/25"}`}
-              >
-                <path
-                  d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
-                  fill="currentColor"
-                />
-              </svg>
-            );
-          })}
-        </span>
-      </button>
-    </Tooltip>
+          );
+        })}
+      </span>
+    </button>
   );
 }
 
@@ -1605,58 +1786,64 @@ function ScenesGauge({
   enabled: boolean;
   onTriggerEvent: (eventId: string) => void;
 }) {
+  const droppedSet = useMemo(() => new Set(eventsTriggered), [eventsTriggered]);
+  const eventById = useMemo(() => {
+    if (scenario === undefined) {
+      return new Map<string, ScenarioEvent>();
+    }
+    return new Map(scenario.director.events.map((event) => [event.id, event]));
+  }, [scenario]);
+
   return (
     <GaugeColumn>
       <GaugeLabel>Scenes</GaugeLabel>
       <span className="inline-flex items-center gap-1">
         {picks.map((eventId) => {
-          const event =
-            scenario === undefined ? undefined : findScenarioEventById(scenario, eventId);
-          const dropped = eventsTriggered.includes(eventId);
+          const event = eventById.get(eventId);
+          const dropped = droppedSet.has(eventId);
           const interactive = enabled && !dropped && event !== undefined;
           const title = event?.title ?? "Scene";
-          const tipMessage = dropped
+          const ariaLabel = dropped
             ? `${title} dropped.`
             : interactive
               ? `Drop scene: ${title}. Click to trigger now.`
               : `${title}. Pause and stop streaming to drop.`;
           return (
-            <Tooltip key={eventId} placement="top-center" message={tipMessage}>
-              <button
-                type="button"
-                data-sfx={interactive ? "click" : undefined}
-                disabled={!interactive}
-                onClick={() => {
-                  if (!interactive) return;
-                  onTriggerEvent(eventId);
-                }}
-                aria-label={tipMessage}
-                className={`grid size-5 cursor-pointer place-items-center rounded transition disabled:cursor-not-allowed ${
-                  dropped
-                    ? "text-aura-emerald/80"
-                    : interactive
-                      ? "text-aura-violet hover:scale-110 hover:text-aura-fuchsia"
-                      : "text-aura-violet/40"
-                }`}
-              >
-                {dropped ? (
-                  <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
-                    <path
-                      d="M2.5 6.5 L5 9 L9.5 3.5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                ) : (
-                  <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
-                    <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
-                  </svg>
-                )}
-              </button>
-            </Tooltip>
+            <button
+              key={eventId}
+              type="button"
+              data-sfx={interactive ? "click" : undefined}
+              disabled={!interactive}
+              onClick={() => {
+                if (!interactive) return;
+                onTriggerEvent(eventId);
+              }}
+              aria-label={ariaLabel}
+              className={`grid size-5 cursor-pointer place-items-center rounded transition disabled:cursor-not-allowed ${
+                dropped
+                  ? "text-aura-emerald/80"
+                  : interactive
+                    ? "text-aura-violet hover:scale-110 hover:text-aura-fuchsia"
+                    : "text-aura-violet/40"
+              }`}
+            >
+              {dropped ? (
+                <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
+                  <path
+                    d="M2.5 6.5 L5 9 L9.5 3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 12 12" className="size-full" aria-hidden>
+                  <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
+                </svg>
+              )}
+            </button>
           );
         })}
       </span>
@@ -1898,8 +2085,8 @@ function NudgeSlotMeter({ remaining, total }: { remaining: number; total: number
   const usedLabel = total - remaining;
   const message =
     remaining === 0
-      ? "every slot spent"
-      : `${remaining} of ${total} ${remaining === 1 ? "slot" : "slots"} left`;
+      ? "every nudge filed"
+      : `${remaining} of ${total} ${remaining === 1 ? "nudge" : "nudges"} left`;
   return (
     <span className="inline-flex items-center gap-2">
       <span className="inline-flex items-center gap-1">
@@ -1922,7 +2109,7 @@ function NudgeSlotMeter({ remaining, total }: { remaining: number; total: number
       </span>
       <span
         className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint"
-        aria-label={`${usedLabel} of ${total} used. ${message}.`}
+        aria-label={`${usedLabel} of ${total} nudges used. ${message}.`}
       >
         {message}
       </span>
@@ -2100,39 +2287,28 @@ function TransportCluster({
   return (
     <div className="flex shrink-0 items-center gap-1.5">
       {isPaused && !pauseRequested ? (
-        <Tooltip placement="top-center" message={advanceTip}>
-          <TransportButton
-            kind="ghost"
-            disabled={!canAdvance}
-            onClick={() => onAdvance(2)}
-            ariaLabel={advanceTip}
-          >
-            <AdvanceIcon />
-          </TransportButton>
-        </Tooltip>
+        <TransportButton
+          kind="ghost"
+          disabled={!canAdvance}
+          onClick={() => onAdvance(2)}
+          ariaLabel={advanceTip}
+        >
+          <AdvanceIcon />
+        </TransportButton>
       ) : null}
       {isPaused && isStreaming ? (
-        <Tooltip placement="top-center" message="Stop streaming">
-          <TransportButton
-            kind="stop"
-            disabled={false}
-            onClick={onCancel}
-            ariaLabel="Stop streaming"
-          >
-            <StopIcon />
-          </TransportButton>
-        </Tooltip>
-      ) : null}
-      <Tooltip placement="top-center" message={playTip}>
-        <TransportButton
-          kind={isPlaying && !pauseRequested ? "ghost-active" : "primary"}
-          disabled={playbackBusy}
-          onClick={onTogglePlayback}
-          ariaLabel={playTip}
-        >
-          {isPlaying && !pauseRequested ? <PauseIcon /> : <PlayIcon />}
+        <TransportButton kind="stop" disabled={false} onClick={onCancel} ariaLabel="Stop streaming">
+          <StopIcon />
         </TransportButton>
-      </Tooltip>
+      ) : null}
+      <TransportButton
+        kind={isPlaying && !pauseRequested ? "ghost-active" : "primary"}
+        disabled={playbackBusy}
+        onClick={onTogglePlayback}
+        ariaLabel={playTip}
+      >
+        {isPlaying && !pauseRequested ? <PauseIcon /> : <PlayIcon />}
+      </TransportButton>
     </div>
   );
 }
@@ -3082,15 +3258,17 @@ const MEMORY_TAG_LABELS: Record<string, string> = {
 };
 
 function visibleMemoryTagLabels(memory: MemoryRecord): string[] {
+  const seen = new Set<string>();
   const labels: string[] = [];
 
   for (const tag of memory.tags) {
     const label = MEMORY_TAG_LABELS[tag];
 
-    if (label === undefined || labels.includes(label)) {
+    if (label === undefined || seen.has(label)) {
       continue;
     }
 
+    seen.add(label);
     labels.push(label);
   }
 
@@ -3300,9 +3478,10 @@ export function buildTranscriptItems(
   streamingDrafts: StreamingDraftMessage[],
   playerKnowledge: PlayerKnowledgeRecord[] = [],
 ): TranscriptItem[] {
+  const memberById = new Map(members.map((member) => [member.id, member]));
   const messageItems: TranscriptItem[] = session.transcript.map((message) => {
     if (message.kind === "character") {
-      const member = members.find((candidate) => candidate.id === message.speakerId);
+      const member = memberById.get(message.speakerId);
       return {
         id: `turn-${message.sequenceIndex}`,
         order: message.sequenceIndex * 10,
@@ -3350,23 +3529,73 @@ export function buildTranscriptItems(
   const draftItems: TranscriptItem[] = streamingDrafts
     .filter((draft) => !committedSequenceIndexes.has(draft.sequenceIndex))
     .map((draft) => {
-      const member = members.find((candidate) => candidate.id === draft.speakerId);
+      const member = memberById.get(draft.speakerId);
+      const visibleText = visibleStreamingDraftText(session, draft);
+      const isStreaming = draft.status === "streaming";
 
       return {
         id: draft.id,
         order: draft.sequenceIndex * 10,
         label: member?.firstName ?? draft.speakerName,
         tone: "member",
-        text: draft.text,
+        text: visibleText,
         member,
         isDraft: true,
-        isStreaming: draft.status === "streaming",
+        isStreaming,
+        isLoading: isStreaming && visibleText.trim().length === 0,
       };
     });
 
   return [...messageItems, ...draftItems, ...judgeItems].sort(
     (first, second) => first.order - second.order,
   );
+}
+
+const STREAMING_ECHO_GUARD_COUNT = 3;
+const STREAMING_ECHO_PREFIX_MIN_LENGTH = 8;
+const STREAMING_ECHO_JACCARD_THRESHOLD = 0.6;
+
+function visibleStreamingDraftText(session: DateSession, draft: StreamingDraftMessage): string {
+  if (draft.status !== "streaming" || draft.text.trim().length === 0) {
+    return draft.text;
+  }
+
+  const recentLines = collectRecentSpeakerLines(
+    session.transcript,
+    draft.speakerId,
+    STREAMING_ECHO_GUARD_COUNT,
+  );
+
+  if (recentLines.some((line) => isStreamingEchoOfRecentLine(draft.text, line))) {
+    return "";
+  }
+
+  return draft.text;
+}
+
+function isStreamingEchoOfRecentLine(draftText: string, recentLine: string): boolean {
+  const draft = normalizeStreamingEchoText(draftText);
+  const recent = normalizeStreamingEchoText(recentLine);
+
+  if (draft.length === 0 || recent.length === 0) {
+    return false;
+  }
+
+  if (draft.length >= STREAMING_ECHO_PREFIX_MIN_LENGTH && recent.startsWith(draft)) {
+    return true;
+  }
+
+  return (
+    hasNearDuplicateRecentLine({
+      text: draftText,
+      recentLines: [recentLine],
+      jaccardThreshold: STREAMING_ECHO_JACCARD_THRESHOLD,
+    }) !== null
+  );
+}
+
+function normalizeStreamingEchoText(text: string): string {
+  return text.toLowerCase().replace(/\s+/g, " ").trim();
 }
 
 function buildNonCharacterLabel(

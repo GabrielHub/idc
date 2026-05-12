@@ -1,6 +1,6 @@
 [package]
 name = "idc"
-version = "0.1.3"
+version = "0.1.4"
 description = "Interdimensional Dating Coach desktop alpha shell"
 authors = ["IDC team"]
 edition = "2021"

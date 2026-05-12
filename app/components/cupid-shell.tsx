@@ -282,14 +282,40 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   );
   const dateAmbientActive = activeSession?.status === "active";
   const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
+  const screenKey =
+    currentRoom === "livedate"
+      ? `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`
+      : currentRoom;
   const diagnosticsSnapshot = useMemo(
     () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
     [save?.config, localAiStatus],
   );
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [screenKey]);
+
   async function persist(nextSave: GameSave) {
     await repository.saveGame(nextSave);
     setSave(nextSave);
+  }
+
+  async function pausePlayingSessionAfterAdvanceFailure(
+    acceptedSave: GameSave,
+    dateSessionId: string,
+  ) {
+    const failedSession = acceptedSave.dateSessions.find((session) => session.id === dateSessionId);
+
+    if (failedSession?.status !== "active" || failedSession.playbackState !== "playing") {
+      return;
+    }
+
+    setQueuedPlaybackIntent(null);
+    const result = togglePlayback(acceptedSave, {
+      dateSessionId,
+      desiredState: "paused",
+    });
+    await persist(result.save);
   }
 
   async function refreshLocalAiStatus(
@@ -415,6 +441,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       } catch (error) {
         if (error instanceof DateStreamAbortedError) {
           return;
+        }
+        try {
+          await pausePlayingSessionAfterAdvanceFailure(save, sessionId);
+        } catch (pauseError) {
+          console.warn("pause after date advance failure failed", pauseError);
         }
         throw error;
       } finally {
@@ -794,9 +825,9 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
 
   return (
-    <div className="relative min-h-screen w-full">
+    <div className="relative isolate min-h-screen w-full">
       <AmbientMesh />
-      <header className="mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
+      <header className="relative z-40 mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
         <div className="flex items-center gap-3">
           <button
             type="button"

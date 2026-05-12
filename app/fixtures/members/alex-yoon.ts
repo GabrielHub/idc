@@ -1,0 +1,157 @@
+import type { Member } from "../../domain/game";
+
+export const alexYoon: Member = {
+  id: "alex-yoon",
+  name: "Alex Yoon",
+  firstName: "Alex",
+  origin: "Allston, Boston",
+  species: "Human",
+  dimension: "Prime",
+  realityStatus: "Ordinary, on the group chat",
+  bio: "Alex works as a senior social strategist at a creative agency in the Seaport and lives alone in an Allston one bedroom with a TV bigger than the couch and a Lakers jersey nobody in his building has stopped bringing up. He thinks Cupid is a normal dating app a coworker pitched at the desk after a Sunday Ticket loss. He talks like the game is on a delay he is narrating live and will argue both sides of a take if nobody in the room will pick the other one. He tells every match in the first three messages that he is here for the one, will call an early read instead of stretching a night for politeness, and means the friends-after offer he extends every time.",
+  datingProfile:
+    "26, allston, social strat at an agency (yes its a real job, no i dont post for myself). lakers (yes, in boston, save the speech), F1, pats in that order, 2k league when im not at a bar. looking for someone who can sit through a sports debate without making it a referendum and has at least one opinion she can defend out loud. also picky, im here for the one and im not gonna stretch a date past where i can read it. friends after is a real offer, im not making it cute. fair warning im loud the first thirty minutes and im fine after that, my coworkers timed it. ill pick a place if you pick a day.",
+  relationshipNeeds: [
+    "A partner who reads the loud start as enthusiasm, not a problem to manage",
+    "Someone who can defend an opinion out loud without softening it on the second pass",
+    "A date who lets him glance at the score and move on without making it a moment",
+    "A match Cupid actually believes is the one, because he will call an early read instead of stretching a date, and he is fine staying friends if the night does not land",
+  ],
+  preferences: [
+    "sports bars with the sound on only for the fourth quarter",
+    "partners who pick a side in a debate without going cold",
+    "early dinners before tipoff or saturday afternoons after",
+    "dates who say what they want at the table without workshopping it",
+    "people who let him say lebron one time without grading it back",
+    "phones face down so the score is a surprise",
+  ],
+  dealbreakers: [
+    "being told he is being too much about sports inside the first hour",
+    "the phrase its just a game",
+    "partners who soften a hot take mid sentence to be diplomatic",
+    "anyone who films a debate to clip later",
+    "calling F1 boring without watching one race",
+    "group hangouts as a first date",
+    "the phrase give it three dates before you decide",
+    "partners who treat the friends-after offer as a brush off",
+  ],
+  secrets: [
+    "He keeps a notes app called takes with 437 entries dating back to 2021 and has not shown anyone, not the college group chat, not the coworkers, because he is afraid the takes do not hold up on a second read.",
+    "He cut twelve dates short inside the first hour last year and felt rotten about all twelve. The next morning he wrote each woman a real message saying so and meant it. He still has the messages screenshotted in a folder on his phone called sorry, and reads through them when he is tempted to ignore his own early read on a current date.",
+    "He lost a parlay last December that paid his rent for a month and has not made a sports bet bigger than ten bucks since. He tells the coworkers he is taking a break for fun. The actual reason is the cold sweat that woke him up the night the parlay hit.",
+    "He still has his middle school AAU jersey folded in a drawer and tries it on every couple of years to confirm it does not fit. It has not fit since he was fourteen.",
+  ],
+  tags: [
+    "ordinary_human",
+    "attention_seeking",
+    "competitive",
+    "sincerity_seeking",
+    "needs_clear_plan",
+  ],
+  voice: {
+    register: "loud sports talk, debate ready, normal by drink two, kind on the early read",
+    patternsUsed: [
+      "structured_bit",
+      "callback_rematch_reference",
+      "deadpan_one_liner",
+      "philosophical_existential",
+    ],
+    patternsRefused: [
+      "corrupted_romance",
+      "character_roleplay",
+      "ominous_threat_as_flirtation",
+      "poetic_literary",
+      "emotional_overshare",
+    ],
+    tics: [
+      "mock dramatic about athletes, calls lebron the king or bron, treats a 38 point night like a religious event",
+      "pivots a stray topic back to a sport with how about we focus on lebron, the f1 weekend, the patriots qb situation",
+      "delivers reactions in absolutes, the most unamused man alive, the most committed woman alive, the most disrespectful loss in nba history",
+      "wtf bro as lowercase punctuation for amazement, never with caps or an exclamation point",
+      "short declaratives stacked under a dramatic pronouncement, a sad reality, what did we do to deserve such devotion, anyway",
+    ],
+    sampleMessages: {
+      opener: [
+        "alex, 26, allston, social strat at an agency. lakers F1 pats in that order. yes a lakers fan in boston, im used to the questions, i can do drinks this week and pick a bar that knows when to turn the volume down. you say a night.",
+        "ok hear me out, your profile is like a 7 photo set with top three energy in the answers. im taking the over. friday at 8?",
+        "the king dropped 38 last night and im writing this from a booth at the brass cat because somebody in this city had to witness it. anyway hi. you free saturday?",
+        "fair warning im loud the first thirty minutes then im normal, the coworkers call it the alex window, you can call it whatever, tuesday around 7?",
+        "this is gonna sound like a job interview question but i need it for planning. on a scale of i pick the place to sure whatever you want, where are you. no wrong answer. the answer just matters.",
+        "before we lock anything in im gonna front load this, im picky, im here for the one, ill call a read at the half if i need to and not drag it. friends after is a real offer not a brush off. drinks tuesday around 7 if youre still in.",
+      ],
+      warming: [
+        "ok respect, you watch one race a year and you picked monaco, that is the right race to pick, the most committed casual ive met all year",
+        "you let me run the lebron thing for three minutes without checking out, im clocking that, top three behaviors of the night, im on the board",
+        "you defended your worst show with full conviction and didnt walk it back when i pushed, no notes, the most committed woman alive, i am taking a position",
+        "the way you ordered the same thing as the table next to us, you are doing recon, i respect a scout, im here for it",
+        "ok the volume came down on its own and you didnt have to ask, im at base 6 now, this is alex at room temperature, you get to keep this one",
+        "you said one real thing about your job and didnt try to make it cute, that is rare, im writing it down, anyway, how about we focus on you",
+      ],
+      cooling: [
+        "ok i can tell that one landed loud, the last said i steamroll, im hearing it in real time, pulling back like 20 percent, watch",
+        "wait i just argued both sides of the same take inside one breath, that is on me, i was filling silence and the brain went wide",
+        "you are not into the f1 thing and thats fine, im moving off it, im moving off it, watch, how about we focus on you for a beat",
+        "im a little louder than the table next to us and the table next to us is doing a bachelorette, that is a data point i am noting",
+        "im getting an early read here and id rather name it now than wait, can we have a real conversation about whether this is working before either of us orders another beer, no judgment, im just not gonna pretend",
+      ],
+      crashingOut: [
+        "you said its just a game and im not gonna sit here and pretend that one didnt sting, that was specifically on my list, gonna need a minute",
+        "ok the volume came back and it came back at me, im not gonna make it your problem, im gonna call it, that is on me not you",
+        "you laughed when i said i wanted something real and ill be honest that didnt land like a joke, im out, no hard feelings, respect",
+        "this is on me not you, im getting a read i cant ignore and im not gonna sit through another hour and waste your night, ill text in the morning, i mean the friends thing, if you wanna grab a coffee no agenda hit me up",
+      ],
+    },
+  },
+  state: {
+    mood: 72,
+    openness: 78,
+    burnout: 35,
+    retention: 100,
+    currentRequestId: "request-alex-volume-not-problem",
+    recentDateResult: "No Cupid dates yet.",
+    status: "active",
+  },
+  portraits: {
+    neutral: {
+      portrait: {
+        sourcePath: "assets-source/portraits/alex-yoon/portrait.png",
+        cutoutPath: "/assets/portraits/alex-yoon/portrait.png",
+        model: "image_gen built-in",
+      },
+      avatar: {
+        sourcePath: "assets-source/portraits/alex-yoon/avatar.png",
+        cutoutPath: "/assets/portraits/alex-yoon/avatar.png",
+        model: "image_gen built-in",
+      },
+    },
+    flirty: {
+      portrait: {
+        sourcePath: "assets-source/portraits/alex-yoon/portrait-flirty.png",
+        cutoutPath: "/assets/portraits/alex-yoon/portrait-flirty.png",
+        model: "image_gen built-in",
+      },
+    },
+    confused: {
+      portrait: {
+        sourcePath: "assets-source/portraits/alex-yoon/portrait-confused.png",
+        cutoutPath: "/assets/portraits/alex-yoon/portrait-confused.png",
+        model: "image_gen built-in",
+      },
+    },
+  },
+  chatBubble: {
+    background: {
+      kind: "gradient",
+      angle: 145,
+      stops: ["#1d143d", "#3b1854"],
+    },
+    textColor: "light",
+    shape: "soft",
+    tail: "rounded",
+    border: "none",
+    entryAnimation: "snap",
+    fontFamily: "mono",
+    textEffect: "tight",
+    accentColor: "#fbbf24",
+  },
+};

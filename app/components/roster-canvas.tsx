@@ -6,6 +6,7 @@ import {
   FOCUS_CASE_LIMIT,
   FOCUS_SWAP_RETENTION_PENALTY,
 } from "../services/focus-cases";
+import { sortMembersForRoster } from "../services/member-roster-order";
 import { GhostButton, Hairline, PrimaryButton } from "./dashboard-atoms";
 import {
   MemberCard,
@@ -48,6 +49,10 @@ export function RosterCanvas({
   const [reselectDraft, setReselectDraft] = useState<readonly string[] | null>(null);
 
   const focusedSet = useMemo(() => new Set(focusedMemberIds), [focusedMemberIds]);
+  const orderedMembers = useMemo(
+    () => sortMembersForRoster(members, focusedMemberIds),
+    [members, focusedMemberIds],
+  );
   const openMember = useMemo(
     () => members.find((member) => member.id === openMemberId) ?? null,
     [members, openMemberId],
@@ -217,7 +222,7 @@ export function RosterCanvas({
             <GhostButton onClick={enterReselect} disabled={isActionPending}>
               Reselect focus cases
             </GhostButton>
-            <GhostButton onClick={onBack}>← Back to lobby</GhostButton>
+            <GhostButton onClick={onBack}>← Back to Live Date</GhostButton>
           </div>
         )}
       </header>
@@ -253,7 +258,7 @@ export function RosterCanvas({
       ) : null}
 
       <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {members.map((member, index) => (
+        {orderedMembers.map((member, index) => (
           <MemberCard
             key={member.id}
             member={member}

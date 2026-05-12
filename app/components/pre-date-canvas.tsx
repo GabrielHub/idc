@@ -17,6 +17,10 @@ import {
 } from "../services/date-engine";
 import { evaluateMatchFit } from "../services/match-fit";
 import { makePairId } from "../services/game-seed";
+import {
+  moveSuggestedMemberFirst,
+  sortMembersByCuratedRosterOrder,
+} from "../services/member-roster-order";
 import { isMemberInCooldown } from "../services/shift-planning";
 import { GhostButton, Hairline, pad2, Portrait, PrimaryButton } from "./dashboard-atoms";
 import {
@@ -146,11 +150,13 @@ export function PreDateCanvas({
 
   const candidatePartners = useMemo(() => {
     if (activeFocus === null) return [];
-    return save.members.filter(
-      (member) =>
-        member.id !== activeFocus.id &&
-        member.state.status === "active" &&
-        !isMemberInCooldown(member, shift.shiftNumber),
+    return sortMembersByCuratedRosterOrder(
+      save.members.filter(
+        (member) =>
+          member.id !== activeFocus.id &&
+          member.state.status === "active" &&
+          !isMemberInCooldown(member, shift.shiftNumber),
+      ),
     );
   }, [save.members, activeFocus, shift.shiftNumber]);
 
@@ -205,6 +211,11 @@ export function PreDateCanvas({
     return best;
   }, [activeFocus, candidatePartners, fallbackScenario, selectedScenario, pairStateById]);
 
+  const orderedCandidatePartners = useMemo(
+    () => moveSuggestedMemberFirst(candidatePartners, suggestedPartner?.id ?? null),
+    [candidatePartners, suggestedPartner?.id],
+  );
+
   const effectivePartner = useMemo(
     () =>
       partnerId === null
@@ -214,7 +225,7 @@ export function PreDateCanvas({
   );
 
   const shiftClosed = shift.status === "completed";
-  const slotsRemaining = shift.dateSlotsTotal - shift.dateSlotsUsed;
+  const shiftDateAvailable = shift.dateSlotsUsed < shift.dateSlotsTotal;
   const pendingLibraryPick = save.scenarioDeck.pendingLibraryPick;
 
   const canStart =
@@ -222,7 +233,7 @@ export function PreDateCanvas({
     !isActionPending &&
     !shiftClosed &&
     pendingLibraryPick === undefined &&
-    slotsRemaining > 0 &&
+    shiftDateAvailable &&
     activeFocus !== null &&
     effectivePartner !== null &&
     selectedScenario !== null &&
@@ -239,7 +250,7 @@ export function PreDateCanvas({
     <section className="relative mx-auto w-full max-w-canvas px-6 pb-44 pt-12 lg:px-12">
       <PreDateHeader
         shiftNumber={shift.shiftNumber}
-        slotsRemaining={slotsRemaining}
+        shiftDateAvailable={shiftDateAvailable}
         eligibleFocusCount={eligibleFocus.length}
         focusedTotal={focusedMembers.length}
         quitsRemaining={quitsRemaining}
@@ -298,7 +309,7 @@ export function PreDateCanvas({
         sectionRef={partnerSectionRef}
         selectedCardRef={selectedPartnerCardRef}
         activeFocus={activeFocus}
-        candidatePartners={candidatePartners}
+        candidatePartners={orderedCandidatePartners}
         partnerId={partnerId}
         suggestedPartnerId={suggestedPartner?.id ?? null}
         playerKnowledge={save.playerKnowledge}
@@ -315,7 +326,7 @@ export function PreDateCanvas({
         canStart={canStart}
         aiReady={aiReady}
         pendingLibraryPick={pendingLibraryPick}
-        slotsRemaining={slotsRemaining}
+        shiftDateAvailable={shiftDateAvailable}
         shiftClosed={shiftClosed}
         onScrollTo={(step) => {
           const target: Record<BookingStep, () => HTMLElement | null> = {
@@ -366,7 +377,7 @@ function scrollCardIntoView(target: HTMLElement | null) {
 
 function PreDateHeader({
   shiftNumber,
-  slotsRemaining,
+  shiftDateAvailable,
   eligibleFocusCount,
   focusedTotal,
   quitsRemaining,
@@ -378,7 +389,7 @@ function PreDateHeader({
   onStartNextShift,
 }: {
   shiftNumber: number;
-  slotsRemaining: number;
+  shiftDateAvailable: boolean;
   eligibleFocusCount: number;
   focusedTotal: number;
   quitsRemaining: number;
@@ -414,9 +425,7 @@ function PreDateHeader({
         <div className="flex flex-col items-end gap-3">
           <div className="flex items-center gap-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
             <span>
-              {shiftClosed
-                ? "shift closed"
-                : `${slotsRemaining} slot${slotsRemaining === 1 ? "" : "s"} left`}
+              {shiftClosed ? "shift closed" : shiftDateAvailable ? "date open" : "date booked"}
             </span>
             <span aria-hidden>•</span>
             <span>
@@ -434,7 +443,7 @@ function PreDateHeader({
             <PrimaryButton onClick={onStartNextShift} disabled={isActionPending}>
               Open next shift →
             </PrimaryButton>
-          ) : slotsRemaining > 0 ? (
+          ) : shiftDateAvailable ? (
             <GhostButton onClick={onCloseShift} disabled={isActionPending}>
               File the shift
             </GhostButton>
@@ -740,7 +749,7 @@ function BeginDateDock({
   canStart,
   aiReady,
   pendingLibraryPick,
-  slotsRemaining,
+  shiftDateAvailable,
   shiftClosed,
   onScrollTo,
   onStart,
@@ -751,7 +760,7 @@ function BeginDateDock({
   canStart: boolean;
   aiReady: boolean;
   pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
-  slotsRemaining: number;
+  shiftDateAvailable: boolean;
   shiftClosed: boolean;
   onScrollTo: (step: BookingStep) => void;
   onStart: () => void;
@@ -760,8 +769,8 @@ function BeginDateDock({
     ? "ai not ready"
     : shiftClosed
       ? "shift filed, open the next one to book"
-      : slotsRemaining <= 0
-        ? "no date slots left in this shift"
+      : !shiftDateAvailable
+        ? "this shift's date is already booked"
         : pendingLibraryPick !== undefined
           ? "resolve the pending library pick first"
           : focus === null

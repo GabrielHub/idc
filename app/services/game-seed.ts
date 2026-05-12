@@ -537,7 +537,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened the office with a 28 member roster and a 12 card deck.",
+      text: "Cupid has opened the office with a 33 member roster and a 12 card deck.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,
