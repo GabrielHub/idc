@@ -4,19 +4,19 @@ import { useState } from "react";
 import type { DateScenario } from "../domain/game";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 
-const RISK_DOT_TONE = {
+export const RISK_DOT_TONE = {
   low: "bg-emerald-500",
   medium: "bg-amber-500",
   high: "bg-aura-rose",
 } as const;
 
-const RISK_TEXT_TONE = {
+export const RISK_TEXT_TONE = {
   low: "text-emerald-700",
   medium: "text-amber-700",
   high: "text-aura-rose",
 } as const;
 
-const RISK_SHORT = {
+export const RISK_SHORT = {
   low: "LOW",
   medium: "MED",
   high: "HIGH",
@@ -45,6 +45,7 @@ export type ScenarioCardProps = {
   availableOnShift?: number | null;
   currentShift?: number;
   onClick?: () => void;
+  onExpand?: () => void;
   layoutId?: string;
 };
 
@@ -56,6 +57,7 @@ export function ScenarioCard({
   availableOnShift,
   currentShift,
   onClick,
+  onExpand,
   layoutId,
 }: ScenarioCardProps) {
   const isRetired = state === "retired";
@@ -78,19 +80,24 @@ export function ScenarioCard({
   ].join(" ");
 
   return (
-    <motion.button
+    <motion.article
       layoutId={layoutId}
-      type="button"
-      onClick={interactive ? onClick : undefined}
-      disabled={isDisabled}
-      aria-pressed={isSelected || undefined}
-      aria-label={`${scenario.title} · ${scenario.card.risk} risk date plan`}
       whileHover={interactive ? { y: -3, rotate: -0.5 } : undefined}
       whileTap={interactive ? { scale: 0.985 } : undefined}
       transition={{ type: "spring", stiffness: 340, damping: 26 }}
-      data-sfx={interactive ? "click" : undefined}
       className={shellClass}
     >
+      <button
+        type="button"
+        onClick={interactive ? onClick : undefined}
+        disabled={!interactive}
+        aria-pressed={isSelected || undefined}
+        aria-label={`${scenario.title} · ${scenario.card.risk} risk date plan`}
+        data-sfx={interactive ? "click" : undefined}
+        className="absolute inset-0 z-30 cursor-pointer text-left disabled:cursor-not-allowed disabled:opacity-100"
+      >
+        <span className="sr-only">Select {scenario.title}</span>
+      </button>
       <CardArtLayer
         scenarioId={scenario.id}
         dimmed={isRetired || state === "disabled"}
@@ -103,12 +110,17 @@ export function ScenarioCard({
       />
 
       <header
-        className={`relative z-20 flex items-start justify-between gap-1.5 ${
+        className={`pointer-events-none relative z-40 flex items-start justify-between gap-1.5 ${
           isTile ? "px-2 pt-2" : isCompact ? "px-2.5 pt-2.5" : "px-3 pt-3"
         }`}
       >
         <RiskBadge risk={scenario.card.risk} isTile={isTile} />
-        <CornerStatus selected={isSelected} inHand={inHand} isTile={isTile} />
+        <div className="flex items-center justify-end gap-1.5">
+          <CornerStatus selected={isSelected} inHand={inHand} isTile={isTile} />
+          {onExpand !== undefined ? (
+            <ScenarioExpandButton scenarioTitle={scenario.title} onExpand={onExpand} />
+          ) : null}
+        </div>
       </header>
 
       {isTile ? (
@@ -125,7 +137,7 @@ export function ScenarioCard({
           }
         />
       )}
-    </motion.button>
+    </motion.article>
   );
 }
 
@@ -175,11 +187,11 @@ function CardArtLayer({
           draggable={false}
           onError={() => setFailed(true)}
           className={`absolute inset-0 size-full scale-105 object-cover object-center saturate-[1.1] transition-opacity duration-500 ${
-            isTile ? "blur-[2px]" : "blur-[3px]"
-          } ${dimmed ? "opacity-15" : "opacity-30"}`}
+            isTile ? "blur-[1px]" : "blur-[2px]"
+          } ${dimmed ? "opacity-25" : "opacity-45"}`}
         />
       )}
-      <span aria-hidden className="absolute inset-0 bg-[rgba(255,253,249,0.55)]" />
+      <span aria-hidden className="absolute inset-0 bg-[rgba(255,253,249,0.42)]" />
       <span
         aria-hidden
         className="absolute inset-0 bg-[linear-gradient(180deg,transparent_0%,transparent_72%,rgba(255,253,249,0.22)_100%)]"
@@ -267,10 +279,49 @@ function CornerStatus({
   return null;
 }
 
+function ScenarioExpandButton({
+  scenarioTitle,
+  onExpand,
+}: {
+  scenarioTitle: string;
+  onExpand: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={(event) => {
+        event.stopPropagation();
+        onExpand();
+      }}
+      aria-label={`Open ${scenarioTitle} details`}
+      title="Open details"
+      data-sfx="click"
+      className="pointer-events-auto relative z-40 grid size-8 cursor-pointer place-items-center rounded-full bg-white/85 text-aura-muted shadow-quiet ring-1 ring-white/60 backdrop-blur-sm transition hover:bg-white hover:text-aura-rose"
+    >
+      <ScenarioExpandGlyph />
+    </button>
+  );
+}
+
+function ScenarioExpandGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
+      <path
+        d="M6 4H12V10"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 4L4 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function TileNamePlate({ title }: { title: string }) {
   return (
     <div className="relative z-20 mt-auto px-2.5 pb-2.5 pt-1">
-      <h3 className="font-display text-xs font-semibold leading-tight tracking-tight text-aura-ink line-clamp-2">
+      <h3 className="pr-7 font-display text-[13px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
         {title}
       </h3>
     </div>
@@ -283,7 +334,7 @@ function CompactNamePlate({ scenario }: { scenario: DateScenario }) {
       <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted line-clamp-1">
         {scenario.publicBrief.location}
       </p>
-      <h3 className="font-display text-sm font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-1">
+      <h3 className="font-display text-[15px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-1">
         {scenario.title}
       </h3>
       <p className="text-xs leading-[1.4] text-aura-muted line-clamp-2">{scenario.card.summary}</p>
@@ -306,7 +357,7 @@ function FullNamePlate({
       <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted line-clamp-1">
         {scenario.publicBrief.location}
       </p>
-      <h3 className="font-display text-sm font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
+      <h3 className="font-display text-[17px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
         {scenario.title}
       </h3>
       <p className="text-xs leading-[1.45] text-aura-muted line-clamp-3">{scenario.card.summary}</p>

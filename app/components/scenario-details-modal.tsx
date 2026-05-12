@@ -1,0 +1,247 @@
+import { motion } from "motion/react";
+import { useEffect, useState, type ReactNode } from "react";
+
+import type { DateScenario } from "../domain/game";
+import { EASE_OUT_QUART, GhostButton, PrimaryButton } from "./dashboard-atoms";
+import { scenarioBackdropPath } from "./scenario-backdrop";
+import { RISK_DOT_TONE, RISK_SHORT, RISK_TEXT_TONE } from "./scenario-card";
+
+export type ScenarioDetailsAction = {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+export type ScenarioDetailsModalProps = {
+  scenario: DateScenario;
+  eyebrow: string;
+  statusLabel?: string;
+  primaryAction?: ScenarioDetailsAction;
+  onClose: () => void;
+};
+
+export function ScenarioDetailsModal({
+  scenario,
+  eyebrow,
+  statusLabel,
+  primaryAction,
+  onClose,
+}: ScenarioDetailsModalProps) {
+  useEffect(() => {
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      key="scenario-detail-scrim"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
+      onClick={onClose}
+      className="fixed inset-0 z-50 grid place-items-center bg-aura-ink/60 px-4 py-8 backdrop-blur-xl"
+    >
+      <motion.div
+        key="scenario-detail-card"
+        initial={{ opacity: 0, scale: 0.96, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+        onClick={(event) => event.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${scenario.title} scenario detail`}
+        className="relative isolate flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-card shadow-[0_50px_120px_-30px_rgba(15,23,42,0.6)] ring-1 ring-white/50"
+      >
+        <ScenarioDetailBackdrop scenarioId={scenario.id} />
+
+        <button
+          type="button"
+          data-sfx="click"
+          onClick={onClose}
+          aria-label="Close scenario detail"
+          className="absolute right-6 top-6 z-30 grid size-10 cursor-pointer place-items-center rounded-full bg-white/90 text-aura-ink shadow-quiet ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose"
+        >
+          ✕
+        </button>
+
+        <div className="relative z-10 flex min-h-0 flex-col">
+          <header className="px-12 pt-12 md:px-16 md:pt-14">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+              {eyebrow}
+            </p>
+            <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-aura-ink md:text-[2.75rem]">
+              {scenario.title}
+            </h2>
+            <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+              {scenario.publicBrief.location}
+            </p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <VibeChip label="Risk" tone={scenario.card.risk} />
+              <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
+              <VibeChip label="Chaos" tone={scenario.card.chaos} />
+              {statusLabel === undefined ? null : (
+                <span className="inline-flex items-center gap-1.5 rounded-pill border border-amber-400/70 bg-amber-50/90 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-amber-800">
+                  {statusLabel}
+                </span>
+              )}
+            </div>
+          </header>
+
+          <div className="flex-1 overflow-y-auto px-12 pb-10 pt-8 md:px-16">
+            <div className="grid gap-5 md:grid-cols-[1.25fr_0.95fr]">
+              <div className="space-y-5">
+                <section className={glassSectionClass("px-5 py-5 md:px-6 md:py-6")}>
+                  <p className="font-display text-lead font-medium leading-relaxed text-aura-ink">
+                    {scenario.publicBrief.premise}
+                  </p>
+                  <p className="mt-3 text-base leading-relaxed text-aura-ink">
+                    {scenario.publicBrief.openingSituation}
+                  </p>
+
+                  <p className="aura-accent mt-6 text-lg leading-snug text-aura-ink">
+                    {scenario.director.tone}
+                  </p>
+                </section>
+
+                <DetailSection label="Room constraints">
+                  <BulletList items={scenario.director.rules} tone="rose" />
+                </DetailSection>
+              </div>
+
+              <div className="space-y-5">
+                <SignalList
+                  label="Watch for"
+                  tone="emerald"
+                  items={scenario.judgeRubric.successSignals}
+                />
+                <SignalList label="Avoid" tone="rose" items={scenario.judgeRubric.failureSignals} />
+
+                <DetailSection label="What both know">
+                  {scenario.publicBrief.whatBothCharactersKnow}
+                </DetailSection>
+                <DetailSection label="Repeat behavior">
+                  {scenario.director.repeatBehavior}
+                </DetailSection>
+              </div>
+            </div>
+          </div>
+
+          <footer className="relative flex flex-wrap items-center justify-end gap-3 bg-gradient-to-t from-white/85 via-white/55 to-transparent px-12 pb-7 pt-10 md:px-16">
+            <GhostButton onClick={onClose}>Close</GhostButton>
+            {primaryAction === undefined ? null : (
+              <PrimaryButton onClick={primaryAction.onClick} disabled={primaryAction.disabled}>
+                {primaryAction.label}
+              </PrimaryButton>
+            )}
+          </footer>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ScenarioDetailBackdrop({ scenarioId }: { scenarioId: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+      {failed ? (
+        <span className="absolute inset-0 bg-gradient-to-br from-aura-mesh-rose/55 via-white to-aura-mesh-violet/55" />
+      ) : (
+        <img
+          src={scenarioBackdropPath(scenarioId)}
+          alt=""
+          decoding="async"
+          loading="eager"
+          draggable={false}
+          onError={() => setFailed(true)}
+          className="absolute inset-0 size-full scale-105 object-cover object-center blur-[6px] saturate-[1.3] contrast-[1.05]"
+        />
+      )}
+      <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,249,0.42)_0%,rgba(255,253,249,0.3)_50%,rgba(255,253,249,0.5)_100%)]" />
+    </div>
+  );
+}
+
+function VibeChip({ label, tone }: { label: string; tone: "low" | "medium" | "high" }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-pill border border-aura-hairline bg-white/85 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] shadow-[0_2px_8px_-4px_rgba(15,23,42,0.12)]">
+      <span aria-hidden className={`size-1.5 rounded-full ${RISK_DOT_TONE[tone]}`} />
+      <span className="text-aura-ink">{label}</span>
+      <span className={RISK_TEXT_TONE[tone]}>{RISK_SHORT[tone]}</span>
+    </span>
+  );
+}
+
+function DetailSection({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={glassSectionClass(className)}>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
+        {label}
+      </p>
+      {typeof children === "string" ? (
+        <p className="mt-2 text-sm leading-relaxed text-aura-ink">{children}</p>
+      ) : (
+        <div className="mt-3">{children}</div>
+      )}
+    </section>
+  );
+}
+
+function BulletList({ items, tone }: { items: readonly string[]; tone: "rose" | "emerald" }) {
+  const dotClass = tone === "emerald" ? "bg-emerald-500" : "bg-aura-rose";
+  return (
+    <ul className="space-y-2.5">
+      {items.map((item) => (
+        <li key={item} className="flex gap-2.5 text-sm leading-relaxed text-aura-ink">
+          <span aria-hidden className={`mt-2 size-1.5 shrink-0 rounded-full ${dotClass}`} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SignalList({
+  label,
+  tone,
+  items,
+}: {
+  label: string;
+  tone: "emerald" | "rose";
+  items: readonly string[];
+}) {
+  const labelClass = tone === "emerald" ? "text-emerald-700" : "text-aura-rose";
+  return (
+    <section className={glassSectionClass()}>
+      <p className={`font-mono text-micro font-semibold uppercase tracking-[0.28em] ${labelClass}`}>
+        {label}
+      </p>
+      <div className="mt-3">
+        <BulletList items={items} tone={tone} />
+      </div>
+    </section>
+  );
+}
+
+function glassSectionClass(className = ""): string {
+  return [
+    "aura-glass-strong rounded-[24px] px-5 py-4 text-aura-ink shadow-[0_18px_48px_-28px_rgba(15,23,42,0.34)]",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}

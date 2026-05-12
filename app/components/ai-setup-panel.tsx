@@ -93,9 +93,14 @@ export function AiSetupPanel({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveHint, setSaveHint] = useState<string | null>(null);
   const isProviderUrlLocked = areAiProviderBaseUrlsLockedForRuntime();
-  const keyStorageCopy = isProviderUrlLocked
-    ? "Desktop stores Gateway keys as a plaintext file in app local data, separate from saves. It is not encrypted and not in the OS keychain. Wiping a save leaves the key on this device."
-    : "Browser dev stores Gateway keys in localStorage. Game saves do not contain them.";
+  const footerCopy =
+    activeProvider === "gateway"
+      ? isProviderUrlLocked
+        ? "Gateway keys are stored as plaintext in app local data, separate from saves. Date prompts and transcripts leave this device."
+        : "Browser dev stores Gateway keys in localStorage. Date prompts and transcripts leave this device."
+      : isProviderUrlLocked
+        ? "Ollama prompts stay on this workstation. Desktop builds talk to localhost Ollama only."
+        : "Ollama prompts stay on this workstation through the configured local endpoint.";
 
   useEffect(() => {
     if (!isProviderUrlLocked) {
@@ -157,9 +162,6 @@ export function AiSetupPanel({
   const ollamaEmbeddingModels = useMemo(
     () => recommendedOllamaEmbeddings(ollamaModels),
     [ollamaModels],
-  );
-  const activeGatewayModel = GATEWAY_CHAT_MODELS.find(
-    (model) => model.id === draftConfig.chatModel,
   );
   const gatewayReasoningDisabled =
     draftConfig.aiProvider === "gateway" && !gatewayReasoningSupported(draftConfig.chatModel);
@@ -286,7 +288,7 @@ export function AiSetupPanel({
       aria-modal="true"
       aria-label="AI desk setup"
       onClick={onClose}
-      className="fixed inset-0 z-[60] overflow-y-auto bg-aura-ink/45 px-4 py-8 backdrop-blur-xl"
+      className="fixed inset-0 z-[60] overflow-y-auto bg-aura-ink/45 px-4 py-6 backdrop-blur-xl lg:px-6"
     >
       <motion.section
         initial={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -294,9 +296,9 @@ export function AiSetupPanel({
         exit={{ opacity: 0, y: 8, scale: 0.98 }}
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
         onClick={(event) => event.stopPropagation()}
-        className="aura-glass-strong relative mx-auto w-full max-w-4xl rounded-card p-6 shadow-card lg:p-10"
+        className="aura-glass-strong relative mx-auto w-full max-w-[88rem] rounded-card p-5 shadow-card lg:p-8"
       >
-        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-aura-hairline pb-7">
+        <header className="flex flex-wrap items-start justify-between gap-4 border-b border-aura-hairline pb-6">
           <div className="max-w-2xl space-y-3">
             <MutedLabel>{formSerial}</MutedLabel>
             <h2 className="font-display text-display-md font-semibold leading-[1.05] tracking-tight text-aura-ink">
@@ -312,7 +314,7 @@ export function AiSetupPanel({
 
         <ProviderRouter activeProvider={activeProvider} onSelect={selectProvider} />
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-6">
             {activeProvider === "ollama" ? (
               <OllamaSetupTab
@@ -330,7 +332,6 @@ export function AiSetupPanel({
                 config={draftConfig}
                 gatewayApiKey={draftGatewayKey}
                 reasoningDisabled={gatewayReasoningDisabled}
-                activeGatewayModelLabel={activeGatewayModel?.label ?? draftConfig.chatModel}
                 isUrlLocked={isProviderUrlLocked}
                 onConfig={updateDraft}
                 onGatewayApiKey={setDraftGatewayKey}
@@ -338,9 +339,9 @@ export function AiSetupPanel({
             )}
           </div>
 
-          <aside className="space-y-4">
-            <StatusCard status={displayedStatus} />
-            <ResolvedCard
+          <aside className="xl:sticky xl:top-6 xl:self-start">
+            <StatusCard
+              status={displayedStatus}
               provider={activeProvider}
               chatModel={draftConfig.chatModel}
               embeddingModel={draftConfig.embeddingModel}
@@ -366,8 +367,8 @@ export function AiSetupPanel({
           </p>
         ) : null}
 
-        <footer className="mt-9 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-6">
-          <p className="max-w-md text-label leading-relaxed text-aura-muted">{keyStorageCopy}</p>
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-5">
+          <p className="max-w-2xl text-label leading-relaxed text-aura-muted">{footerCopy}</p>
           <div className="flex flex-wrap gap-2">
             <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
               {isVerifying ? "Verifying" : "Verify"}
@@ -394,15 +395,17 @@ function ProviderRouter({
   activeProvider: AiProvider;
   onSelect: (provider: AiProvider) => void;
 }) {
+  const selectedRoute = PROVIDER_INFO[activeProvider].route.toLowerCase();
+
   return (
-    <div className="mt-7 space-y-3">
+    <div className="mt-6 space-y-3">
       <div className="flex items-baseline justify-between gap-3">
         <MutedLabel>routing slip</MutedLabel>
         <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          1 / 2 selected
+          {selectedRoute} selected
         </span>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="grid gap-3 lg:grid-cols-2">
         {(Object.keys(PROVIDER_INFO) as AiProvider[]).map((provider) => (
           <ProviderCard
             key={provider}
@@ -435,7 +438,7 @@ function ProviderCard({
       type="button"
       aria-pressed={isActive}
       onClick={() => onSelect(provider)}
-      className={`group block cursor-pointer rounded-card p-5 text-left transition ${surface}`}
+      className={`group block cursor-pointer rounded-card p-4 text-left transition ${surface}`}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span
@@ -454,14 +457,14 @@ function ProviderCard({
         </span>
       </div>
       <p
-        className={`mt-3 font-display text-display-sm font-semibold tracking-tight ${
+        className={`mt-2.5 font-display text-display-sm font-semibold tracking-tight ${
           isActive ? "text-white" : "text-aura-ink"
         }`}
       >
         {info.label}
       </p>
       <p
-        className={`mt-2 text-label leading-relaxed ${
+        className={`mt-1.5 text-label leading-relaxed ${
           isActive ? "text-white/72" : "text-aura-muted"
         }`}
       >
@@ -500,69 +503,62 @@ function OllamaSetupTab({
     : "The Ollama server Cupid talks to. Defaults to localhost.";
 
   return (
-    <div className="space-y-5">
-      <FormSection label="endpoint" description={urlDescription}>
-        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-          <TextInput
-            label="ollama url"
-            value={config.ollamaBaseURL}
-            disabled={isUrlLocked}
-            onChange={(value) => onConfig({ ollamaBaseURL: value })}
-          />
-          <GhostButton disabled={isScanning} onClick={onScan}>
-            {isScanning ? "Scanning" : "Scan local desk"}
-          </GhostButton>
-        </div>
-        <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          polls /api/tags and /api/ps
-        </p>
-        {error === null ? null : (
-          <p className="mt-3 rounded-tile border border-aura-rose/25 bg-rose-50/75 px-3 py-2 text-label text-aura-rose">
-            {error}
-          </p>
-        )}
-      </FormSection>
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
+      <div className="space-y-5">
+        <FormSection label="endpoint" description={urlDescription}>
+          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
+            <TextInput
+              label="ollama url"
+              value={config.ollamaBaseURL}
+              disabled={isUrlLocked}
+              onChange={(value) => onConfig({ ollamaBaseURL: value })}
+            />
+            <GhostButton disabled={isScanning} onClick={onScan}>
+              {isScanning ? "Scanning" : "Scan local desk"}
+            </GhostButton>
+          </div>
+          {error === null ? null : (
+            <p className="mt-3 rounded-tile border border-aura-rose/25 bg-rose-50/75 px-3 py-2 text-label text-aura-rose">
+              {error}
+            </p>
+          )}
+        </FormSection>
 
-      <FormSection
-        label="model"
-        description="Pick a chat model already pulled into Ollama. Embedding stays on embeddinggemma."
-      >
-        <SelectInput
-          label="chat model"
-          value={config.chatModel}
-          options={chatModels.map((model) => ({
-            value: model.name,
-            label: model.running === true ? `${model.name} (running)` : model.name,
-          }))}
-          onChange={(value) =>
-            onConfig({
-              chatModel: value,
-              embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
-            })
-          }
-        />
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <FormSection
+          label="model"
+          description="Pick a pulled chat model. Embedding stays on embeddinggemma."
+        >
           <SelectInput
-            label="reasoning"
-            value={config.reasoningLevel}
-            options={OLLAMA_REASONING_LEVEL_OPTIONS}
-            onChange={(value) => onConfig({ reasoningLevel: value })}
+            label="chat model"
+            value={config.chatModel}
+            options={chatModels.map((model) => ({
+              value: model.name,
+              label: model.running === true ? `${model.name} (running)` : model.name,
+            }))}
+            onChange={(value) =>
+              onConfig({
+                chatModel: value,
+                embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
+              })
+            }
           />
-          <ReadOnlyField label="embedding" value={embeddingLabel} />
-        </div>
-      </FormSection>
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <SelectInput
+              label="reasoning"
+              value={config.reasoningLevel}
+              options={OLLAMA_REASONING_LEVEL_OPTIONS}
+              onChange={(value) => onConfig({ reasoningLevel: value })}
+            />
+            <ReadOnlyField label="embedding" value={embeddingLabel} />
+          </div>
+        </FormSection>
+      </div>
 
-      <FormSection
-        label="card recommendations"
-        description="One-click chat picks per VRAM tier. Cupid swaps embedding to embeddinggemma."
-      >
-        <ul className="grid gap-3 md:grid-cols-2">
+      <FormSection label="model shortcuts" description="One-click chat picks by VRAM tier.">
+        <ul className="divide-y divide-aura-hairline">
           {GPU_RECOMMENDATION_PROFILES.map((profile) => (
-            <li
-              key={profile.id}
-              className="aura-glass-lift rounded-card bg-white/65 p-4 ring-1 ring-aura-hairline"
-            >
-              <div className="flex items-baseline justify-between gap-3">
+            <li key={profile.id} className="py-3 first:pt-0 last:pb-0">
+              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                 <p className="font-display text-body font-semibold tracking-tight text-aura-ink">
                   {profile.label}
                 </p>
@@ -570,10 +566,8 @@ function OllamaSetupTab({
                   {profile.vram}
                 </span>
               </div>
-              <p className="mt-1.5 text-label leading-relaxed text-aura-muted">
-                {profile.examples}
-              </p>
-              <div className="mt-3 flex flex-wrap gap-1.5">
+              <p className="mt-1 text-label leading-relaxed text-aura-muted">{profile.examples}</p>
+              <div className="mt-2 flex flex-wrap gap-1.5">
                 {profile.modelIds.map((modelId) => (
                   <button
                     key={modelId}
@@ -594,20 +588,6 @@ function OllamaSetupTab({
           ))}
         </ul>
       </FormSection>
-
-      <FormSection
-        label="first-time checklist"
-        description="Walk this list on a fresh PC, then run a scan."
-      >
-        <ol className="grid gap-2 md:grid-cols-2">
-          <ChecklistItem step={1} text="Install Ollama." />
-          <ChecklistItem step={2} text="Open a terminal." />
-          <ChecklistItem step={3} text="Pull a recommended chat model." />
-          <ChecklistItem step={4} text="Pull embeddinggemma." />
-          <ChecklistItem step={5} text="Keep Ollama running." />
-          <ChecklistItem step={6} text="Return here. Click scan." />
-        </ol>
-      </FormSection>
     </div>
   );
 }
@@ -620,7 +600,6 @@ function GatewaySetupTab({
   config,
   gatewayApiKey,
   reasoningDisabled,
-  activeGatewayModelLabel,
   isUrlLocked,
   onConfig,
   onGatewayApiKey,
@@ -628,23 +607,22 @@ function GatewaySetupTab({
   config: GameConfig;
   gatewayApiKey: string;
   reasoningDisabled: boolean;
-  activeGatewayModelLabel: string;
   isUrlLocked: boolean;
   onConfig: (config: Partial<GameConfig>) => void;
   onGatewayApiKey: (value: string) => void;
 }) {
   const endpointDescription = isUrlLocked
-    ? "Desktop uses the default Vercel AI Gateway URL. The key is stored as a plaintext file in app local data, outside saves."
+    ? "Desktop uses the default Vercel AI Gateway URL. The key stays outside saves."
     : "Browser dev uses this URL and stores the key in localStorage.";
   const keyPlaceholder = isUrlLocked
     ? "Stored as a plaintext file in app local data"
     : "Stored in browser localStorage for dev";
   const keyTrustCopy = isUrlLocked
-    ? "The Gateway key is plaintext on disk under app local data. It is not encrypted and not in the OS keychain. Anyone with file access on this device can read it. Date prompts, character context, and transcripts are sent to the Gateway."
-    : "Browser dev stores the key in localStorage. Date prompts, character context, and transcripts are sent to the Gateway.";
+    ? "Gateway sends date prompts, character context, and transcripts off this machine. The key is plaintext on disk."
+    : "Gateway sends date prompts, character context, and transcripts off this machine.";
 
   return (
-    <div className="space-y-5">
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
       <FormSection label="endpoint" description={endpointDescription}>
         <div className="grid gap-4 md:grid-cols-2">
           <TextInput
@@ -697,15 +675,6 @@ function GatewaySetupTab({
           <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
         </div>
       </FormSection>
-
-      <p className="rounded-tile border border-aura-hairline bg-white/55 px-4 py-3 leading-relaxed">
-        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          active ::
-        </span>{" "}
-        <span className="font-display text-body font-semibold text-aura-ink">
-          {activeGatewayModelLabel}
-        </span>
-      </p>
     </div>
   );
 }
@@ -714,7 +683,19 @@ function GatewaySetupTab({
 /* Sidebar cards                                                      */
 /* ================================================================== */
 
-function StatusCard({ status }: { status: AiSetupStatus }) {
+function StatusCard({
+  status,
+  provider,
+  chatModel,
+  embeddingModel,
+  reasoningLevel,
+}: {
+  status: AiSetupStatus;
+  provider: AiProvider;
+  chatModel: string;
+  embeddingModel: string;
+  reasoningLevel: AiReasoningLevel;
+}) {
   const tone =
     status.status === "ready"
       ? { dot: "emerald" as const, badge: "ready", ring: "ring-emerald-300/40" }
@@ -723,6 +704,7 @@ function StatusCard({ status }: { status: AiSetupStatus }) {
         : { dot: "rose" as const, badge: "offline", ring: "ring-rose-300/40" };
   const checkedAtLabel =
     status.checkedAt === undefined ? "" : new Date(status.checkedAt).toLocaleTimeString();
+  const showDetails = status.status !== "ready" && status.details.length > 0;
 
   return (
     <div className={`aura-glass rounded-card p-4 ring-1 ${tone.ring}`}>
@@ -734,37 +716,19 @@ function StatusCard({ status }: { status: AiSetupStatus }) {
         </span>
       </div>
       <p className="mt-3 text-label leading-relaxed text-aura-ink">{status.message}</p>
-      {status.details.length === 0 ? null : (
+      {showDetails ? (
         <ul className="mt-3 space-y-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted">
           {status.details.map((detail) => (
             <li key={detail}>{detail}</li>
           ))}
         </ul>
-      )}
+      ) : null}
       {checkedAtLabel === "" ? null : (
         <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
           checked :: <span className="text-aura-ink">{checkedAtLabel}</span>
         </p>
       )}
-    </div>
-  );
-}
-
-function ResolvedCard({
-  provider,
-  chatModel,
-  embeddingModel,
-  reasoningLevel,
-}: {
-  provider: AiProvider;
-  chatModel: string;
-  embeddingModel: string;
-  reasoningLevel: AiReasoningLevel;
-}) {
-  return (
-    <div className="rounded-card border border-aura-hairline bg-white/55 p-4">
-      <MutedLabel>resolved</MutedLabel>
-      <dl className="mt-3 space-y-2">
+      <dl className="mt-4 space-y-2 border-t border-aura-hairline pt-3">
         <KeyValue label="provider" value={provider} />
         <KeyValue label="chat" value={chatModel} />
         <KeyValue label="embedding" value={embeddingModel} />
@@ -788,7 +752,7 @@ function FormSection({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-aura-hairline bg-white/45 p-5">
+    <section className="rounded-card border border-aura-hairline bg-white/45 p-4">
       <header className="space-y-1.5">
         <MutedLabel>{label}</MutedLabel>
         {description === undefined ? null : (
@@ -797,17 +761,6 @@ function FormSection({
       </header>
       <div className="mt-4">{children}</div>
     </section>
-  );
-}
-
-function ChecklistItem({ step, text }: { step: number; text: string }) {
-  return (
-    <li className="flex items-start gap-2.5">
-      <span className="mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-aura-ink font-mono text-micro font-semibold text-white">
-        {step}
-      </span>
-      <span className="text-label leading-relaxed text-aura-muted">{text}</span>
-    </li>
   );
 }
 

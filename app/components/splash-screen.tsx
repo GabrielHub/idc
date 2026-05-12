@@ -96,17 +96,17 @@ const RIFFLE_CARDS: RiffleCardData[] = [
   {
     member: miraPark,
     queueIndex: "01",
-    queueTotal: "21",
+    queueTotal: "28",
   },
   {
     member: vhool,
     queueIndex: "09",
-    queueTotal: "21",
+    queueTotal: "28",
   },
   {
     member: mrWhiskers,
     queueIndex: "17",
-    queueTotal: "21",
+    queueTotal: "28",
   },
 ];
 
@@ -1266,7 +1266,7 @@ function EmptyTerminalGrid() {
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-x-5 gap-y-2">
         <FeaturedStat label="hopefuls" value="0" sub="awaiting brief" />
-        <FeaturedStat label="dates this shift" value="0 / 3" sub="awaiting issue" />
+        <FeaturedStat label="dates this shift" value="0 / 1" sub="awaiting issue" />
       </dl>
       <p className="border-t border-aura-hairline pt-3 text-label text-aura-muted">
         Punch in to seed the roster, draw date plans, and have HR run a prophecy check on your

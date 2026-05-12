@@ -4,8 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { DateScenario, GameSave } from "../domain/game";
 import { SCENARIO_DECK_RETIREMENT_SHIFTS } from "../domain/game";
 import { listLibraryCards, softComposeWarnings } from "../services/deck";
-import { EASE_OUT_QUART, GhostButton, PrimaryButton } from "./dashboard-atoms";
+import { EASE_OUT_QUART, GhostButton } from "./dashboard-atoms";
 import { ScenarioCard } from "./scenario-card";
+import { ScenarioDetailsModal, type ScenarioDetailsAction } from "./scenario-details-modal";
 
 export type DateBookCanvasProps = {
   save: GameSave;
@@ -274,21 +275,25 @@ export function DateBookCanvas({
           onDeckCardClick={handleDeckCardClick}
         />
 
-        <LibraryColumn
-          library={filteredLibrary}
-          scenarioById={scenarioById}
-          search={search}
-          riskFilter={riskFilter}
-          sortMode={sortMode}
-          showRetired={showRetired}
-          currentShift={currentShift}
-          swapMode={swapMode}
-          onSearchChange={setSearch}
-          onRiskFilterChange={setRiskFilter}
-          onSortChange={setSortMode}
-          onShowRetiredToggle={() => setShowRetired((value) => !value)}
-          onLibraryCardClick={handleLibraryCardClick}
-        />
+        <div className="lg:relative">
+          <div className="lg:absolute lg:inset-0">
+            <LibraryColumn
+              library={filteredLibrary}
+              scenarioById={scenarioById}
+              search={search}
+              riskFilter={riskFilter}
+              sortMode={sortMode}
+              showRetired={showRetired}
+              currentShift={currentShift}
+              swapMode={swapMode}
+              onSearchChange={setSearch}
+              onRiskFilterChange={setRiskFilter}
+              onSortChange={setSortMode}
+              onShowRetiredToggle={() => setShowRetired((value) => !value)}
+              onLibraryCardClick={handleLibraryCardClick}
+            />
+          </div>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -508,7 +513,6 @@ function DeckColumn({
 
           {pendingLibraryPick !== undefined ? (
             <li className="relative">
-              <SlotLabel numeral="+" highlighted muted />
               <OpenSlot />
             </li>
           ) : null}
@@ -518,20 +522,12 @@ function DeckColumn({
   );
 }
 
-function SlotLabel({
-  numeral,
-  highlighted,
-  muted = false,
-}: {
-  numeral: string;
-  highlighted: boolean;
-  muted?: boolean;
-}) {
-  const tone = muted ? "text-aura-rose" : highlighted ? "text-aura-rose" : "text-aura-faint";
+function SlotLabel({ numeral, highlighted }: { numeral: string; highlighted: boolean }) {
+  const tone = highlighted ? "text-aura-rose" : "text-aura-muted/70";
   return (
     <span
       aria-hidden
-      className={`pointer-events-none absolute -top-2 left-2 z-10 font-display text-micro font-semibold uppercase tracking-[0.28em] ${tone}`}
+      className={`pointer-events-none absolute bottom-1.5 right-2.5 z-30 font-antique italic text-[13px] leading-none ${tone}`}
     >
       {numeral}
     </span>
@@ -602,7 +598,7 @@ function LibraryColumn({
   const isHoldingLibraryCard = swapMode.kind === "swap-in";
 
   return (
-    <aside className="relative">
+    <aside className="relative lg:flex lg:h-full lg:flex-col">
       <div className="flex items-baseline justify-between gap-3 pb-3">
         <div className="flex items-baseline gap-3">
           <h2 className="font-display text-lg font-semibold tracking-tight text-aura-ink">
@@ -619,7 +615,7 @@ function LibraryColumn({
         ) : null}
       </div>
 
-      <div className="aura-glass relative flex flex-col gap-3 rounded-card p-4 lg:p-5">
+      <div className="aura-glass relative flex flex-col gap-3 rounded-card p-4 lg:min-h-0 lg:flex-1 lg:p-5">
         <LibraryFilters
           search={search}
           riskFilter={riskFilter}
@@ -633,7 +629,7 @@ function LibraryColumn({
 
         <div className="aura-rule" />
 
-        <div className="max-h-[64vh] overflow-y-auto pr-1">
+        <div className="max-h-[64vh] overflow-y-auto pr-1 lg:max-h-none lg:min-h-0 lg:flex-1">
           {library.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-aura-muted">
               No cards match these filters.
@@ -897,207 +893,47 @@ function InspectorModal({
 }) {
   const scenario = scenarioById.get(target.cardId);
 
-  useEffect(() => {
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose]);
-
   if (scenario === undefined) return null;
 
   const isLibrary = target.kind === "library";
   const isRetired =
     isLibrary && target.availableOnShift !== null && target.availableOnShift > currentShift;
+  const eyebrow = target.kind === "deck" ? "// active deck slot" : "// library card";
+  let primaryAction: ScenarioDetailsAction | undefined;
+
+  if (target.kind === "library" && !isRetired) {
+    primaryAction = hasPendingLibraryPick
+      ? {
+          label: "Add to deck",
+          onClick: () => onConfirmLibraryPick(target.cardId),
+          disabled: isActionPending,
+        }
+      : {
+          label: "Swap into deck",
+          onClick: () => onStartSwapIn(target.cardId),
+          disabled: isActionPending,
+        };
+  }
+
+  if (target.kind === "deck" && !hasPendingLibraryPick) {
+    primaryAction = {
+      label: "Drop this card",
+      onClick: () => onStartDrop(target.cardId),
+      disabled: isActionPending,
+    };
+  }
 
   return (
-    <motion.div
-      key="inspector-scrim"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
-      onClick={onClose}
-      className="fixed inset-0 z-40 grid place-items-center bg-aura-ink/45 px-4 py-8 backdrop-blur-xl"
-    >
-      <motion.div
-        key="inspector-card"
-        initial={{ opacity: 0, scale: 0.96, y: 14 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.97, y: 8 }}
-        transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-        onClick={(event) => event.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${scenario.title} scenario detail`}
-        className="aura-glass-strong relative grid max-h-[88vh] w-full max-w-5xl grid-cols-1 overflow-hidden rounded-card md:grid-cols-[minmax(280px,360px)_minmax(0,1fr)]"
-      >
-        <button
-          type="button"
-          data-sfx="click"
-          onClick={onClose}
-          aria-label="Close scenario detail"
-          className="absolute right-4 top-4 z-30 grid size-9 cursor-pointer place-items-center rounded-full bg-white/85 text-aura-muted shadow-quiet ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-ink"
-        >
-          ✕
-        </button>
-
-        <div className="relative flex items-start justify-center bg-gradient-to-br from-aura-mesh-rose/30 via-white/40 to-aura-mesh-violet/30 p-6 md:p-7">
-          <div aria-hidden className="aura-dot-grid absolute inset-0 opacity-30" />
-          <div className="relative w-full max-w-[280px]">
-            <ScenarioCard scenario={scenario} size="full" state="default" />
-          </div>
-        </div>
-
-        <div className="relative flex min-h-0 flex-col">
-          <div className="border-b border-aura-hairline px-6 py-5 md:px-7">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-              {target.kind === "deck" ? "// active deck slot" : "// library card"}
-            </p>
-            <h3 className="mt-1.5 font-display text-2xl font-semibold leading-tight tracking-tight text-aura-ink">
-              {scenario.title}
-            </h3>
-            <p className="mt-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-              {scenario.publicBrief.location}
-            </p>
-            {isRetired && target.kind === "library" ? (
-              <p className="mt-2 inline-flex items-center gap-2 rounded-pill border border-amber-300/60 bg-amber-50/80 px-2.5 py-0.5 font-mono text-micro uppercase tracking-[0.22em] text-amber-800">
-                retired · returns shift {target.availableOnShift}
-              </p>
-            ) : null}
-          </div>
-
-          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5 md:px-7">
-            <DetailSection eyebrow="// premise">
-              <p className="text-sm leading-relaxed text-aura-ink">
-                {scenario.publicBrief.premise}
-              </p>
-            </DetailSection>
-
-            <DetailSection eyebrow="// opening situation">
-              <p className="text-sm leading-relaxed text-aura-ink">
-                {scenario.publicBrief.openingSituation}
-              </p>
-            </DetailSection>
-
-            <DetailSection eyebrow="// what both know">
-              <p className="text-sm leading-relaxed text-aura-muted">
-                {scenario.publicBrief.whatBothCharactersKnow}
-              </p>
-            </DetailSection>
-
-            <DetailSection eyebrow="// director tone">
-              <p className="aura-accent text-lead leading-snug text-aura-ink">
-                {scenario.director.tone}
-              </p>
-            </DetailSection>
-
-            <DetailSection eyebrow="// room constraints">
-              <ul className="space-y-1.5">
-                {scenario.director.rules.map((rule) => (
-                  <li key={rule} className="flex gap-2 text-sm leading-relaxed text-aura-muted">
-                    <span
-                      aria-hidden
-                      className="mt-2 size-1 shrink-0 rounded-full bg-aura-rose/60"
-                    />
-                    <span>{rule}</span>
-                  </li>
-                ))}
-              </ul>
-            </DetailSection>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <DetailSection eyebrow="// success signals" tone="emerald">
-                <ul className="space-y-1.5">
-                  {scenario.judgeRubric.successSignals.map((signal) => (
-                    <li key={signal} className="flex gap-2 text-sm leading-relaxed text-aura-muted">
-                      <span
-                        aria-hidden
-                        className="mt-2 size-1 shrink-0 rounded-full bg-emerald-500"
-                      />
-                      <span>{signal}</span>
-                    </li>
-                  ))}
-                </ul>
-              </DetailSection>
-
-              <DetailSection eyebrow="// failure signals" tone="rose">
-                <ul className="space-y-1.5">
-                  {scenario.judgeRubric.failureSignals.map((signal) => (
-                    <li key={signal} className="flex gap-2 text-sm leading-relaxed text-aura-muted">
-                      <span
-                        aria-hidden
-                        className="mt-2 size-1 shrink-0 rounded-full bg-aura-rose"
-                      />
-                      <span>{signal}</span>
-                    </li>
-                  ))}
-                </ul>
-              </DetailSection>
-            </div>
-
-            <DetailSection eyebrow="// repeat behavior">
-              <p className="text-sm leading-relaxed text-aura-muted">
-                {scenario.director.repeatBehavior}
-              </p>
-            </DetailSection>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-end gap-3 border-t border-aura-hairline bg-white/55 px-6 py-4 md:px-7">
-            <GhostButton onClick={onClose}>Close</GhostButton>
-            {target.kind === "library" && !isRetired ? (
-              hasPendingLibraryPick ? (
-                <PrimaryButton
-                  onClick={() => onConfirmLibraryPick(target.cardId)}
-                  disabled={isActionPending}
-                >
-                  Add to deck
-                </PrimaryButton>
-              ) : (
-                <PrimaryButton
-                  onClick={() => onStartSwapIn(target.cardId)}
-                  disabled={isActionPending}
-                >
-                  Swap into deck
-                </PrimaryButton>
-              )
-            ) : null}
-            {target.kind === "deck" && !hasPendingLibraryPick ? (
-              <PrimaryButton onClick={() => onStartDrop(target.cardId)} disabled={isActionPending}>
-                Drop this card
-              </PrimaryButton>
-            ) : null}
-          </div>
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function DetailSection({
-  eyebrow,
-  children,
-  tone,
-}: {
-  eyebrow: string;
-  children: React.ReactNode;
-  tone?: "emerald" | "rose";
-}) {
-  const eyebrowClass =
-    tone === "emerald"
-      ? "text-emerald-700"
-      : tone === "rose"
-        ? "text-aura-rose"
-        : "text-aura-faint";
-  return (
-    <section className="space-y-2">
-      <p
-        className={`font-mono text-micro font-semibold uppercase tracking-[0.28em] ${eyebrowClass}`}
-      >
-        {eyebrow}
-      </p>
-      {children}
-    </section>
+    <ScenarioDetailsModal
+      scenario={scenario}
+      eyebrow={eyebrow}
+      statusLabel={
+        isRetired && target.kind === "library"
+          ? `Retired · returns shift ${target.availableOnShift}`
+          : undefined
+      }
+      primaryAction={primaryAction}
+      onClose={onClose}
+    />
   );
 }

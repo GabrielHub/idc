@@ -37,6 +37,8 @@ Never player-facing:
 
 - `secrets`, `tags`, `voice`, model prompts, raw rule hits, fixture indexes, exact stat deltas, and prompt-only labels.
 
+Dev builds may expose a settings toggle for visual QA of fully unveiled member files. That preview may show gated member information and exact member state, but it must not file reads, mutate saves, or surface never player-facing fields.
+
 Filed reads are player-facing knowledge, not raw facts. Current read kinds are:
 
 - `profile`: additional public profile context.
@@ -192,7 +194,6 @@ Cupid runs four focus cases at a time and one date per shift. This frames the pl
 - Closed and quit members cannot be focused, matched, or selected for shift requests. Their lifecycle status lives on `member.state.status` as `active`, `closed`, or `quit`. When retention drops to zero the engine flips status to `quit`. Closure is a separate workflow.
 - Each shift books one date. After a date finishes (completed or ended early), both participants stamp `member.state.lastDateShift` and enter a one-shift cooldown. `isMemberInCooldown(member, currentShift)` is true on the date shift and the immediately following shift. Cupid cannot book a member while they are in cooldown.
 - The deck is a save-owned 12-card library, not a shift-owned hand. Each shift draws 3 cards into `shift.drawnScenarioIds` deterministically from the shift number. Playing a card opens a pending library slot; the player resolves the slot from the date book. Voluntary swaps retire the dropped card for 3 shifts. The just-played card itself goes on a one-shift cooldown (`SCENARIO_PLAYED_COOLDOWN_SHIFTS`) so the player cannot immediately re-add it through the pending slot. See the deck service in `app/services/deck.ts`.
-- The `goal-complete-three-dates` goal is filtered out when shifts only book one date.
 - Default date length is 24 character turns (`CHARACTER_TURN_LIMIT` in `app/services/date-engine.ts`), which produces 4 judged exchanges at the 6-turn judge interval and a phase distribution of roughly 3 opener turns, 9 pressure turns, 6 pivot turns, and 6 resolution turns. The previous 30-turn default dragged late-game on local models without adding judge filings or phase coverage; the new default keeps the same judge cadence while shortening the redundant tail. The schema floor stays at 2 so test fixtures can shorten dates without resetting other defaults.
 - For Playwright validation only, the dev shell honors `?seed=closures` when `import.meta.env.DEV` is true and the build is not the desktop variant. The handler in `app/components/cupid-shell.tsx` calls `seedClosedAndQuitMembers` from `app/services/dev-seeds.ts`, which flips one pair to `closed` (filing a pair closure memory) and one member to `quit` (retention zero), then clears the query string. The seed is gated on `import.meta.env.DEV` and the desktop mode check so production and desktop builds cannot trigger it.
 

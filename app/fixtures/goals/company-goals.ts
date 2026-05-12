@@ -2,14 +2,6 @@ import type { CompanyGoal } from "../../domain/game";
 
 export const starterCompanyGoals: CompanyGoal[] = [
   {
-    id: "goal-complete-three-dates",
-    title: "Complete 3 dates this shift",
-    description: "Cupid expects full slot use. Idle romance inventory creates paperwork.",
-    metric: "completedDates",
-    target: 3,
-    tags: ["shift", "throughput"],
-  },
-  {
     id: "goal-one-good-date",
     title: "File 1 good date outcome",
     description: "Cupid would like one report that does not use the phrase containment bucket.",

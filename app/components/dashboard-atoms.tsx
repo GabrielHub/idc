@@ -641,13 +641,40 @@ export function LiveDot({ tone = "rose" }: { tone?: "rose" | "emerald" | "amber"
 /* Tooltip                                                            */
 /* ------------------------------------------------------------------ */
 
-type TooltipPlacement = "bottom-start" | "bottom-end" | "bottom-center" | "top-center";
+type TooltipPlacement =
+  | "bottom-start"
+  | "bottom-end"
+  | "bottom-center"
+  | "top-center"
+  | "left-center";
 
-const TOOLTIP_PLACEMENT: Record<TooltipPlacement, string> = {
-  "bottom-start": "left-0 top-full mt-2",
-  "bottom-end": "right-0 top-full mt-2",
-  "bottom-center": "left-1/2 top-full mt-2 -translate-x-1/2",
-  "top-center": "left-1/2 bottom-full mb-2 -translate-x-1/2",
+const TOOLTIP_REVEAL_Y = {
+  rest: "translate-y-1",
+  active: "group-hover:translate-y-0 group-focus-within:translate-y-0",
+} as const;
+const TOOLTIP_REVEAL_X = {
+  rest: "translate-x-1",
+  active: "group-hover:translate-x-0 group-focus-within:translate-x-0",
+} as const;
+
+const TOOLTIP_PLACEMENT: Record<
+  TooltipPlacement,
+  { position: string; rest: string; active: string }
+> = {
+  "bottom-start": { position: "left-0 top-full mt-2", ...TOOLTIP_REVEAL_Y },
+  "bottom-end": { position: "right-0 top-full mt-2", ...TOOLTIP_REVEAL_Y },
+  "bottom-center": {
+    position: "left-1/2 top-full mt-2 -translate-x-1/2",
+    ...TOOLTIP_REVEAL_Y,
+  },
+  "top-center": {
+    position: "left-1/2 bottom-full mb-2 -translate-x-1/2",
+    ...TOOLTIP_REVEAL_Y,
+  },
+  "left-center": {
+    position: "right-full top-1/2 mr-3 -translate-y-1/2",
+    ...TOOLTIP_REVEAL_X,
+  },
 };
 
 export function Tooltip({
@@ -661,12 +688,14 @@ export function Tooltip({
   children: React.ReactNode;
   className?: string;
 }) {
+  const placementClass = TOOLTIP_PLACEMENT[placement];
+
   return (
     <span className={`group relative inline-flex ${className}`}>
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute z-30 w-max max-w-xs translate-y-1 rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 ${TOOLTIP_PLACEMENT[placement]}`}
+        className={`pointer-events-none absolute z-30 w-max max-w-xs rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100 ${placementClass.position} ${placementClass.rest} ${placementClass.active}`}
       >
         <span className="aura-accent block text-label leading-snug text-aura-muted">{message}</span>
       </span>

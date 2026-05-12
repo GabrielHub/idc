@@ -520,6 +520,143 @@ body {
 }
 
 /* ========================================================================
+   MEMBER AURA, per-member ambient effect on focused cards and the modal.
+   Particles use percent transforms so they scale to whatever container they
+   sit in, unlike the scenario backdrop which uses viewport units.
+   ======================================================================== */
+
+@keyframes member-aura-godray {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  35%,
+  65% {
+    opacity: var(--member-aura-opacity, 0.3);
+  }
+}
+
+@keyframes member-aura-ectoplasm {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  25%,
+  75% {
+    opacity: var(--member-aura-opacity, 0.5);
+  }
+  100% {
+    transform: translate3d(var(--member-aura-drift-x, 0cqw), var(--member-aura-drift-y, -20cqh), 0);
+    opacity: 0;
+  }
+}
+
+@keyframes member-aura-fieldmote {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--member-aura-opacity, 0.5);
+  }
+  85% {
+    opacity: calc(var(--member-aura-opacity, 0.5) * 0.7);
+  }
+  100% {
+    transform: translate3d(var(--member-aura-drift, 0cqw), -120cqh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes member-aura-rune {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  20%,
+  80% {
+    opacity: var(--member-aura-opacity, 0.7);
+  }
+  100% {
+    transform: translate3d(0, var(--member-aura-drift-y, -30cqh), 0)
+      rotate(var(--member-aura-drift, 0deg));
+    opacity: 0;
+  }
+}
+
+@keyframes member-aura-petal {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: var(--member-aura-opacity, 0.7);
+  }
+  90% {
+    opacity: calc(var(--member-aura-opacity, 0.7) * 0.6);
+  }
+  100% {
+    transform: translate3d(var(--member-aura-drift, 0cqw), 130cqh, 0)
+      rotate(var(--member-aura-drift-y, 360deg));
+    opacity: 0;
+  }
+}
+
+@keyframes member-aura-pulse-breathe {
+  0% {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  25% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3);
+  }
+}
+
+@keyframes member-aura-pixelrain {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  50% {
+    opacity: var(--member-aura-opacity, 0.8);
+    transform: scale(1.2);
+  }
+}
+
+@keyframes member-aura-ember {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  15% {
+    opacity: var(--member-aura-opacity, 0.7);
+  }
+  60% {
+    transform: translate3d(calc(var(--member-aura-drift, 0cqw) * 0.6), -60cqh, 0);
+    opacity: var(--member-aura-opacity, 0.7);
+  }
+  100% {
+    transform: translate3d(var(--member-aura-drift, 0cqw), -130cqh, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes member-aura-prism-hue {
+  0% {
+    filter: blur(22px) hue-rotate(0deg);
+  }
+  100% {
+    filter: blur(22px) hue-rotate(360deg);
+  }
+}
+
+/* ========================================================================
    MEMBER CHAT BUBBLE, per-member styling for the focused dater. The base
    class .member-bubble owns padding, position, and stacking. Stackable axis
    classes (shape, tail, border, texture, glow, animation, font, text effect)

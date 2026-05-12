@@ -23,6 +23,7 @@ export type RosterCanvasProps = {
   focusedMemberIds: string[];
   playerKnowledge: PlayerKnowledgeRecord[];
   isActionPending: boolean;
+  revealAllMemberDetails: boolean;
   onAddFocus: (memberId: string) => void;
   onRemoveFocus: (memberId: string) => void;
   onSwapFocus: (oldId: string, newId: string) => void;
@@ -35,6 +36,7 @@ export function RosterCanvas({
   focusedMemberIds,
   playerKnowledge,
   isActionPending,
+  revealAllMemberDetails,
   onAddFocus,
   onRemoveFocus,
   onSwapFocus,
@@ -258,6 +260,7 @@ export function RosterCanvas({
             state={cardStateFor(member)}
             density="standard"
             playerKnowledge={playerKnowledge}
+            revealAllDetails={revealAllMemberDetails}
             priorityIndex={priorityIndexFor(member)}
             index={index}
             disabled={isActionPending}
@@ -271,6 +274,7 @@ export function RosterCanvas({
         <MemberDetailsModal
           member={openMember}
           playerKnowledge={playerKnowledge}
+          revealAllDetails={revealAllMemberDetails}
           isFocused={isReselecting ? draftSet.has(openMember.id) : focusedSet.has(openMember.id)}
           onClose={() => setOpenMemberId(null)}
           primaryAction={

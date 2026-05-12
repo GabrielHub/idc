@@ -67,7 +67,7 @@ import {
 } from "./dashboard-views";
 import { GhostButton } from "./dashboard-atoms";
 import { DateBookCanvas } from "./date-book-canvas";
-import { FloatingNavCluster, type RoomKey } from "./floating-nav-cluster";
+import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";
 import { PreDateCanvas } from "./pre-date-canvas";
 import { RosterCanvas } from "./roster-canvas";
@@ -81,6 +81,8 @@ const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
   message: "Checking AI provider. Cupid is holding the clipboard very still.",
   details: [],
 };
+const DEV_MEMBER_DETAILS_STORAGE_KEY = "idc.cupid.dev.memberDetailsPreview";
+const CAN_USE_DEV_MEMBER_DETAILS_PREVIEW = import.meta.env.DEV;
 
 type CupidShellProps = {
   onPunchOut: () => void;
@@ -122,11 +124,15 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const [closureError, setClosureError] = useState<{ pairId: string; message: string } | null>(
     null,
   );
+  const [devRevealAllMemberDetails, setDevRevealAllMemberDetails] = useState(
+    readStoredDevMemberDetailsPreview,
+  );
   const localAiStatusRequestRef = useRef<Promise<AiSetupStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
   const lastErrorMessageRef = useRef<string | null>(null);
   const isActionPending = pendingAction !== null;
+  const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
   const aiStatusConfigRef = useRef<GameConfig | null>(null);
   const aiStatusConfig = save?.config;
   aiStatusConfigRef.current = aiStatusConfig ?? null;
@@ -275,6 +281,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     [activeShift],
   );
   const dateAmbientActive = activeSession?.status === "active";
+  const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
   const diagnosticsSnapshot = useMemo(
     () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
     [save?.config, localAiStatus],
@@ -758,6 +765,12 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     }
   }
 
+  function handleDevRevealAllMemberDetailsChange(enabled: boolean) {
+    const next = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW ? enabled : false;
+    setDevRevealAllMemberDetails(next);
+    writeStoredDevMemberDetailsPreview(next);
+  }
+
   if (save === null) {
     return <DashboardLoading />;
   }
@@ -811,11 +824,14 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             isActionPending={isActionPending}
             diagnostics={diagnosticsSnapshot}
             canExportSave={save !== null}
+            canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+            devRevealAllMemberDetails={revealAllMemberDetails}
             onOpenAiSetup={() => setIsAiSetupOpen(true)}
             onReset={handleResetSave}
             onExportSave={handleExportSave}
             onImportSave={handleImportSave}
             onCopyDiagnostics={handleCopyDiagnostics}
+            onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
           />
         </div>
       </header>
@@ -873,6 +889,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                 readyClosurePairs={readyClosurePairs}
                 closingPairId={closingPairId}
                 closureError={closureError}
+                revealAllMemberDetails={revealAllMemberDetails}
                 onStartDate={handleStartDate}
                 onConfirmClosure={handleConfirmClosure}
                 onDismissClosureError={handleDismissClosureError}
@@ -904,6 +921,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
               focusedMemberIds={save.focusedMemberIds}
               playerKnowledge={save.playerKnowledge}
               isActionPending={isActionPending}
+              revealAllMemberDetails={revealAllMemberDetails}
               onAddFocus={handleAddFocus}
               onRemoveFocus={handleRemoveFocus}
               onSwapFocus={handleSwapFocus}
@@ -940,6 +958,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       <FloatingNavCluster
         current={currentRoom}
         hidden={dateAmbientActive}
+        liveDateState={liveDateState}
         onSelect={(room) => setCurrentRoom(room)}
       />
 
@@ -975,6 +994,16 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   );
 }
 
+function deriveLiveDateState(
+  activeSession: { status: string } | null,
+  currentRoom: RoomKey,
+): LiveDateState {
+  if (activeSession === null) {
+    return currentRoom === "livedate" ? "planning" : "idle";
+  }
+  return activeSession.status === "active" ? "live" : "wrap";
+}
+
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
     <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-6 pt-4">
@@ -984,4 +1013,32 @@ function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () =>
       </div>
     </div>
   );
+}
+
+function readStoredDevMemberDetailsPreview(): boolean {
+  if (!CAN_USE_DEV_MEMBER_DETAILS_PREVIEW || typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    return window.localStorage.getItem(DEV_MEMBER_DETAILS_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeStoredDevMemberDetailsPreview(enabled: boolean): void {
+  if (!CAN_USE_DEV_MEMBER_DETAILS_PREVIEW || typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    if (enabled) {
+      window.localStorage.setItem(DEV_MEMBER_DETAILS_STORAGE_KEY, "true");
+    } else {
+      window.localStorage.removeItem(DEV_MEMBER_DETAILS_STORAGE_KEY);
+    }
+  } catch {
+    return;
+  }
 }

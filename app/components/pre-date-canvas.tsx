@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import { type Ref, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   DateScenario,
@@ -24,7 +25,11 @@ import {
   type MemberCardPill,
   type MemberCardState,
 } from "./member-card";
+import { scenarioBackdropPath } from "./scenario-backdrop";
 import { ScenarioCard } from "./scenario-card";
+import { ScenarioDetailsModal } from "./scenario-details-modal";
+
+type BookingStep = "focus" | "partner" | "date";
 
 export type PreDateCanvasProps = {
   save: GameSave;
@@ -38,6 +43,7 @@ export type PreDateCanvasProps = {
   readyClosurePairs: ReadyClosurePair[];
   closingPairId: string | null;
   closureError: { pairId: string; message: string } | null;
+  revealAllMemberDetails: boolean;
   onStartDate: (input: {
     focusMemberId: string;
     partnerMemberId: string;
@@ -64,6 +70,7 @@ export function PreDateCanvas({
   readyClosurePairs,
   closingPairId,
   closureError,
+  revealAllMemberDetails,
   onStartDate,
   onConfirmClosure,
   onDismissClosureError,
@@ -100,6 +107,13 @@ export function PreDateCanvas({
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [scenarioId, setScenarioId] = useState<string | null>(drawnScenarios[0]?.id ?? null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+  const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
+  const dateSectionRef = useRef<HTMLElement | null>(null);
+  const focusSectionRef = useRef<HTMLElement | null>(null);
+  const partnerSectionRef = useRef<HTMLElement | null>(null);
+  const selectedDateCardRef = useRef<HTMLDivElement | null>(null);
+  const selectedFocusCardRef = useRef<HTMLLIElement | null>(null);
+  const selectedPartnerCardRef = useRef<HTMLLIElement | null>(null);
 
   const requestsById = useMemo(() => {
     const map = new Map<string, MemberRequest>();
@@ -151,6 +165,10 @@ export function PreDateCanvas({
   const selectedScenario = useMemo(
     () => drawnScenarios.find((scenario) => scenario.id === scenarioId) ?? null,
     [drawnScenarios, scenarioId],
+  );
+  const openScenario = useMemo(
+    () => drawnScenarios.find((scenario) => scenario.id === openScenarioId) ?? null,
+    [drawnScenarios, openScenarioId],
   );
 
   const pairStateById = useMemo(
@@ -247,10 +265,13 @@ export function PreDateCanvas({
       <Hairline className="mt-2" />
 
       <ScenarioStep
+        sectionRef={dateSectionRef}
+        selectedCardRef={selectedDateCardRef}
         drawnScenarios={drawnScenarios}
         selectedId={selectedScenario?.id ?? null}
         pendingLibraryPick={pendingLibraryPick}
         onSelect={setScenarioId}
+        onExpand={setOpenScenarioId}
         onOpenDateBook={onOpenDateBook}
         onResolveLibraryPick={onResolveLibraryPick}
       />
@@ -258,11 +279,14 @@ export function PreDateCanvas({
       <Hairline className="mt-12" />
 
       <FocusStep
+        sectionRef={focusSectionRef}
+        selectedCardRef={selectedFocusCardRef}
         focusedMembers={focusedMembers}
         activeFocusId={activeFocusId}
         playerKnowledge={save.playerKnowledge}
         shiftNumber={shift.shiftNumber}
         requestForMember={requestForMember}
+        revealAllMemberDetails={revealAllMemberDetails}
         onSelect={setActiveFocusId}
         onOpenRoster={onOpenRoster}
         onExpand={(id) => setOpenMemberId(id)}
@@ -271,11 +295,14 @@ export function PreDateCanvas({
       <Hairline className="mt-12" />
 
       <PartnerStep
+        sectionRef={partnerSectionRef}
+        selectedCardRef={selectedPartnerCardRef}
         activeFocus={activeFocus}
         candidatePartners={candidatePartners}
         partnerId={partnerId}
         suggestedPartnerId={suggestedPartner?.id ?? null}
         playerKnowledge={save.playerKnowledge}
+        revealAllMemberDetails={revealAllMemberDetails}
         onOpenRoster={onOpenRoster}
         onSelect={(id) => setPartnerId(id)}
         onExpand={(id) => setOpenMemberId(id)}
@@ -290,6 +317,14 @@ export function PreDateCanvas({
         pendingLibraryPick={pendingLibraryPick}
         slotsRemaining={slotsRemaining}
         shiftClosed={shiftClosed}
+        onScrollTo={(step) => {
+          const target: Record<BookingStep, () => HTMLElement | null> = {
+            focus: () => selectedFocusCardRef.current ?? focusSectionRef.current,
+            partner: () => selectedPartnerCardRef.current ?? partnerSectionRef.current,
+            date: () => selectedDateCardRef.current ?? dateSectionRef.current,
+          };
+          scrollCardIntoView(target[step]());
+        }}
         onStart={() => {
           if (activeFocus !== null && effectivePartner !== null && selectedScenario !== null) {
             onStartDate({
@@ -307,11 +342,26 @@ export function PreDateCanvas({
           playerKnowledge={save.playerKnowledge}
           request={openMemberRequest}
           isFocused={focusedMembers.some((focus) => focus.id === openMember.id)}
+          revealAllDetails={revealAllMemberDetails}
           onClose={() => setOpenMemberId(null)}
         />
       )}
+
+      <AnimatePresence>
+        {openScenario === null ? null : (
+          <ScenarioDetailsModal
+            scenario={openScenario}
+            eyebrow="// date plan"
+            onClose={() => setOpenScenarioId(null)}
+          />
+        )}
+      </AnimatePresence>
     </section>
   );
+}
+
+function scrollCardIntoView(target: HTMLElement | null) {
+  target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
 }
 
 function PreDateHeader({
@@ -434,26 +484,32 @@ function StepHeader({
 }
 
 function FocusStep({
+  sectionRef,
+  selectedCardRef,
   focusedMembers,
   activeFocusId,
   playerKnowledge,
   shiftNumber,
   requestForMember,
+  revealAllMemberDetails,
   onSelect,
   onOpenRoster,
   onExpand,
 }: {
+  sectionRef: Ref<HTMLElement>;
+  selectedCardRef: Ref<HTMLLIElement>;
   focusedMembers: Member[];
   activeFocusId: string | null;
   playerKnowledge: GameSave["playerKnowledge"];
   shiftNumber: number;
   requestForMember: (member: Member) => MemberRequest | undefined;
+  revealAllMemberDetails: boolean;
   onSelect: (id: string) => void;
   onOpenRoster: () => void;
   onExpand: (id: string) => void;
 }) {
   return (
-    <section className="mt-10">
+    <section ref={sectionRef} className="mt-10">
       <StepHeader
         index={2}
         eyebrow="// step.02.focus"
@@ -482,7 +538,9 @@ function FocusStep({
               state={cardState}
               density="compact"
               playerKnowledge={playerKnowledge}
+              revealAllDetails={revealAllMemberDetails}
               index={index}
+              cardRef={isActive ? selectedCardRef : undefined}
               statusPill={buildFocusPill(member, isInCooldown)}
               askPreview={askPreview}
               disabled={member.state.status !== "active" || isInCooldown}
@@ -511,27 +569,33 @@ function FocusStep({
 }
 
 function PartnerStep({
+  sectionRef,
+  selectedCardRef,
   activeFocus,
   candidatePartners,
   partnerId,
   suggestedPartnerId,
   playerKnowledge,
+  revealAllMemberDetails,
   onOpenRoster,
   onSelect,
   onExpand,
 }: {
+  sectionRef: Ref<HTMLElement>;
+  selectedCardRef: Ref<HTMLLIElement>;
   activeFocus: Member | null;
   candidatePartners: Member[];
   partnerId: string | null;
   suggestedPartnerId: string | null;
   playerKnowledge: GameSave["playerKnowledge"];
+  revealAllMemberDetails: boolean;
   onOpenRoster: () => void;
   onSelect: (id: string) => void;
   onExpand: (id: string) => void;
 }) {
   if (activeFocus === null) {
     return (
-      <section className="mt-10">
+      <section ref={sectionRef} className="mt-10">
         <StepHeader
           index={3}
           eyebrow="// step.03.partner"
@@ -544,7 +608,7 @@ function PartnerStep({
 
   if (candidatePartners.length === 0) {
     return (
-      <section className="mt-10">
+      <section ref={sectionRef} className="mt-10">
         <StepHeader
           index={3}
           eyebrow="// step.03.partner"
@@ -559,7 +623,7 @@ function PartnerStep({
   const effectivePartnerId = partnerId ?? suggestedPartnerId;
 
   return (
-    <section className="mt-10">
+    <section ref={sectionRef} className="mt-10">
       <StepHeader
         index={3}
         eyebrow="// step.03.partner"
@@ -591,7 +655,9 @@ function PartnerStep({
               state={cardState}
               density="standard"
               playerKnowledge={playerKnowledge}
+              revealAllDetails={revealAllMemberDetails}
               index={index}
+              cardRef={isPicked ? selectedCardRef : undefined}
               statusPill={statusPill}
               onClick={() => onSelect(member.id)}
               onExpand={() => onExpand(member.id)}
@@ -604,25 +670,31 @@ function PartnerStep({
 }
 
 function ScenarioStep({
+  sectionRef,
+  selectedCardRef,
   drawnScenarios,
   selectedId,
   pendingLibraryPick,
   onSelect,
+  onExpand,
   onOpenDateBook,
   onResolveLibraryPick,
 }: {
+  sectionRef: Ref<HTMLElement>;
+  selectedCardRef: Ref<HTMLDivElement>;
   drawnScenarios: DateScenario[];
   selectedId: string | null;
   pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
   onSelect: (id: string) => void;
+  onExpand: (id: string) => void;
   onOpenDateBook: () => void;
   onResolveLibraryPick: () => void;
 }) {
   return (
-    <section className="mt-10">
+    <section ref={sectionRef} className="mt-10">
       <StepHeader
         index={1}
-        eyebrow="// step.01.scene"
+        eyebrow="// step.01.date"
         title="Date plan"
         hint="Three cards drawn for tonight. Open the date book to swap or pick from the library."
         rightSlot={
@@ -641,13 +713,19 @@ function ScenarioStep({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {drawnScenarios.map((scenario) => (
-            <ScenarioCard
+            <div
               key={scenario.id}
-              scenario={scenario}
-              size="compact"
-              state={selectedId === scenario.id ? "selected" : "default"}
-              onClick={() => onSelect(scenario.id)}
-            />
+              ref={selectedId === scenario.id ? selectedCardRef : undefined}
+              className="min-w-0"
+            >
+              <ScenarioCard
+                scenario={scenario}
+                size="compact"
+                state={selectedId === scenario.id ? "selected" : "default"}
+                onClick={() => onSelect(scenario.id)}
+                onExpand={() => onExpand(scenario.id)}
+              />
+            </div>
           ))}
         </div>
       )}
@@ -664,6 +742,7 @@ function BeginDateDock({
   pendingLibraryPick,
   slotsRemaining,
   shiftClosed,
+  onScrollTo,
   onStart,
 }: {
   focus: Member | null;
@@ -674,6 +753,7 @@ function BeginDateDock({
   pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
   slotsRemaining: number;
   shiftClosed: boolean;
+  onScrollTo: (step: BookingStep) => void;
   onStart: () => void;
 }) {
   const status = !aiReady
@@ -695,7 +775,7 @@ function BeginDateDock({
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-6">
       <div className="aura-glass-strong pointer-events-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-3 rounded-pill px-5 py-2.5 shadow-aura-soft">
-        <DockSummary focus={focus} partner={partner} scenario={scenario} />
+        <DockSummary focus={focus} partner={partner} scenario={scenario} onScrollTo={onScrollTo} />
         <div className="flex items-center gap-3">
           {status !== null ? (
             <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
@@ -715,18 +795,20 @@ function DockSummary({
   focus,
   partner,
   scenario,
+  onScrollTo,
 }: {
   focus: Member | null;
   partner: Member | null;
   scenario: DateScenario | null;
+  onScrollTo: (step: BookingStep) => void;
 }) {
   return (
     <div className="flex min-w-0 items-center gap-4">
-      <DockChip label="focus">
+      <DockChip label="focus" onClick={() => onScrollTo("focus")}>
         {focus === null ? (
           <span className="text-aura-faint">··</span>
         ) : (
-          <span className="flex items-center gap-2">
+          <span className="flex min-w-0 items-center gap-2">
             <Portrait member={focus} variant="transcript" />
             <span className="truncate font-display text-sm font-semibold tracking-tight">
               {focus.firstName}
@@ -735,11 +817,11 @@ function DockSummary({
         )}
       </DockChip>
       <DockDivider />
-      <DockChip label="partner">
+      <DockChip label="partner" onClick={() => onScrollTo("partner")}>
         {partner === null ? (
           <span className="text-aura-faint">··</span>
         ) : (
-          <span className="flex items-center gap-2">
+          <span className="flex min-w-0 items-center gap-2">
             <Portrait member={partner} variant="transcript" />
             <span className="truncate font-display text-sm font-semibold tracking-tight">
               {partner.firstName}
@@ -748,12 +830,15 @@ function DockSummary({
         )}
       </DockChip>
       <DockDivider />
-      <DockChip label="plan">
+      <DockChip label="date" onClick={() => onScrollTo("date")}>
         {scenario === null ? (
           <span className="text-aura-faint">··</span>
         ) : (
-          <span className="truncate font-display text-sm font-semibold tracking-tight">
-            {scenario.title}
+          <span className="flex min-w-0 items-center gap-2">
+            <ScenarioDockAvatar scenario={scenario} />
+            <span className="truncate font-display text-sm font-semibold tracking-tight">
+              {scenario.title}
+            </span>
           </span>
         )}
       </DockChip>
@@ -761,14 +846,54 @@ function DockSummary({
   );
 }
 
-function DockChip({ label, children }: { label: string; children: React.ReactNode }) {
+function ScenarioDockAvatar({ scenario }: { scenario: DateScenario }) {
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    setFailed(false);
+  }, [scenario.id]);
+
   return (
-    <div className="flex min-w-0 flex-col">
+    <span className="relative grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-white/80 bg-[radial-gradient(circle_at_28%_24%,rgba(254,205,211,0.62)_0%,rgba(221,214,254,0.4)_52%,rgba(186,230,253,0.3)_100%)] shadow-quiet">
+      {failed ? null : (
+        <img
+          src={scenarioBackdropPath(scenario.id)}
+          alt=""
+          decoding="async"
+          loading="lazy"
+          draggable={false}
+          onError={() => setFailed(true)}
+          className="absolute inset-0 size-full scale-110 object-cover object-center saturate-[1.12]"
+        />
+      )}
+      <span aria-hidden className="absolute inset-0 bg-[rgba(255,253,249,0.18)]" />
+      <span aria-hidden className="absolute inset-0 rounded-full ring-1 ring-inset ring-white/65" />
+    </span>
+  );
+}
+
+function DockChip({
+  label,
+  children,
+  onClick,
+}: {
+  label: string;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-sfx="click"
+      aria-label={`Scroll to ${label}`}
+      className="-mx-2 flex min-w-0 cursor-pointer flex-col rounded-2xl px-2 py-1 text-left transition hover:bg-white/55 focus:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/45"
+    >
       <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
         {label}
       </span>
       <span className="mt-1 flex min-w-0 items-center text-sm text-aura-ink">{children}</span>
-    </div>
+    </button>
   );
 }
 

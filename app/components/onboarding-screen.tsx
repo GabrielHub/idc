@@ -63,7 +63,7 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
     <div className="relative min-h-screen w-full overflow-hidden px-6 pb-40 pt-20 lg:px-12">
       <AmbientMesh />
 
-      <div className="relative mx-auto max-w-6xl">
+      <div className="relative mx-auto max-w-[88rem]">
         <header className="mb-14 text-center">
           <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose">
             // onboarding.cases
@@ -117,6 +117,7 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
                   playerKnowledge={playerKnowledge}
                   index={index}
                   priorityIndex={isSelected ? selectionIndex : undefined}
+                  hideSealedSummary
                   onClick={() => toggle(member.id)}
                   onExpand={() => setOpenMemberId(member.id)}
                 />

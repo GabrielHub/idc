@@ -139,11 +139,19 @@ export type VisibleMemberProfile = {
   revealedReads: PlayerKnowledgeRecord[];
 };
 
+export type MemberProfileVisibilityMode = "earned" | "dev_unveiled";
+
+export type BuildVisibleMemberProfileOptions = {
+  visibilityMode?: MemberProfileVisibilityMode;
+};
+
 export function buildVisibleMemberProfile(
   member: Member,
   knowledge: readonly PlayerKnowledgeRecord[],
+  options: BuildVisibleMemberProfileOptions = {},
 ): VisibleMemberProfile {
   const memberKnowledge = getOrBuildIndex(knowledge).bySubject.get(`member:${member.id}`) ?? [];
+  const revealAll = options.visibilityMode === "dev_unveiled";
   const profileSentences = splitSentences(member.datingProfile);
   const publicFragments: string[] = [];
 
@@ -151,7 +159,8 @@ export function buildVisibleMemberProfile(
     publicFragments.push(profileSentences[0]);
   }
 
-  const hasProfileRead = memberKnowledge.some((record) => record.readKind === "profile");
+  const hasProfileRead =
+    revealAll || memberKnowledge.some((record) => record.readKind === "profile");
 
   if (hasProfileRead && profileSentences.length > 1) {
     publicFragments.push(...profileSentences.slice(1));
@@ -168,9 +177,9 @@ export function buildVisibleMemberProfile(
     });
   }
 
-  const hasNeedsRead = memberKnowledge.some(
-    (record) => record.readKind === "comfort" || record.readKind === "ask",
-  );
+  const hasNeedsRead =
+    revealAll ||
+    memberKnowledge.some((record) => record.readKind === "comfort" || record.readKind === "ask");
 
   if (!hasNeedsRead) {
     redactedBlocks.push({
@@ -180,7 +189,8 @@ export function buildVisibleMemberProfile(
     });
   }
 
-  const hasBoundaryRead = memberKnowledge.some((record) => record.readKind === "boundary");
+  const hasBoundaryRead =
+    revealAll || memberKnowledge.some((record) => record.readKind === "boundary");
 
   if (!hasBoundaryRead && member.dealbreakers.length > 0) {
     redactedBlocks.push({

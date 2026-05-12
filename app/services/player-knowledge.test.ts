@@ -167,6 +167,21 @@ describe("buildVisibleMemberProfile", () => {
       expect(blockJson.includes(need)).toBe(false);
     }
   });
+
+  it("supports dev preview without filing player reads", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "opal-sunday");
+    const earnedProfile = buildVisibleMemberProfile(member, []);
+    const previewProfile = buildVisibleMemberProfile(member, [], {
+      visibilityMode: "dev_unveiled",
+    });
+
+    expect(previewProfile.publicFragments.length).toBeGreaterThan(
+      earnedProfile.publicFragments.length,
+    );
+    expect(previewProfile.redactedBlocks).toHaveLength(0);
+    expect(previewProfile.revealedReads).toHaveLength(0);
+  });
 });
 
 describe("buildRevealCandidates", () => {

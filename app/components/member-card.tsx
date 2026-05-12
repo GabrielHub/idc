@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo } from "react";
+import { type ReactNode, type Ref, useEffect, useMemo } from "react";
 
 import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
-import { buildVisibleMemberProfile } from "../services/player-knowledge";
+import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { hashSeedUint32 } from "../services/utils";
-import { EASE_OUT_QUART, Eyebrow, Portrait } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
+import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
 
 export type MemberCardState = "default" | "focused" | "selected" | "disabled" | "closed" | "quit";
@@ -21,13 +22,16 @@ export type MemberCardProps = {
   state?: MemberCardState;
   density?: MemberCardDensity;
   playerKnowledge?: readonly PlayerKnowledgeRecord[];
+  revealAllDetails?: boolean;
   fileNumber?: string;
   priorityIndex?: number;
   askPreview?: string;
   statusPill?: MemberCardPill;
   blurbOverride?: string;
+  hideSealedSummary?: boolean;
   index?: number;
   disabled?: boolean;
+  cardRef?: Ref<HTMLLIElement>;
   onClick?: () => void;
   onExpand?: () => void;
 };
@@ -60,7 +64,7 @@ const CARD_FRAME_CLASS: Record<MemberCardState, string> = {
   closed: "border-aura-hairline shadow-quiet opacity-90",
   quit: "border-aura-hairline shadow-quiet opacity-90",
   default:
-    "border-aura-hairline shadow-quiet hover:-translate-y-1 hover:border-aura-rose/30 hover:shadow-card",
+    "border-aura-hairline shadow-quiet hover:-translate-y-1.5 hover:border-aura-rose/40 hover:shadow-card",
 };
 
 const COMPACT_SURFACE_CLASS: Record<MemberCardState, string> = {
@@ -86,19 +90,25 @@ export function MemberCard({
   state = "default",
   density = "standard",
   playerKnowledge,
+  revealAllDetails = false,
   fileNumber,
   priorityIndex,
   askPreview,
   statusPill,
   blurbOverride,
+  hideSealedSummary = false,
   index = 0,
   disabled = false,
+  cardRef,
   onClick,
   onExpand,
 }: MemberCardProps) {
   const profile = useMemo(
-    () => buildVisibleMemberProfile(member, playerKnowledge ?? []),
-    [member, playerKnowledge],
+    () =>
+      buildVisibleMemberProfile(member, playerKnowledge ?? [], {
+        visibilityMode: revealAllDetails ? "dev_unveiled" : "earned",
+      }),
+    [member, playerKnowledge, revealAllDetails],
   );
   const blurb = blurbOverride ?? profile.publicFragments[0];
   const palette = usePortraitPalette(member);
@@ -109,6 +119,7 @@ export function MemberCard({
   if (density === "compact") {
     return (
       <CompactMemberCard
+        cardRef={cardRef}
         member={member}
         state={state}
         index={index}
@@ -123,6 +134,7 @@ export function MemberCard({
 
   return (
     <motion.li
+      ref={cardRef}
       layout
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
@@ -130,15 +142,21 @@ export function MemberCard({
       className="list-none"
     >
       <div
-        className={`group relative rounded-card transition-transform duration-300 ${
+        className={`group relative isolate rounded-card transition-transform duration-300 ${
           state === "focused"
             ? "p-[2px] bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet shadow-cta"
             : "p-px"
         }`}
         style={paletteToCssVars(palette)}
       >
+        {state === "default" ? (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute -inset-3 rounded-[36px] bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)] opacity-0 blur-2xl transition-opacity duration-[600ms] ease-out group-hover:opacity-55"
+          />
+        ) : null}
         <article
-          className={`relative flex aspect-[3/4] flex-col overflow-hidden rounded-card border bg-white text-aura-ink transition-[transform,box-shadow] duration-300 ${CARD_FRAME_CLASS[state]}`}
+          className={`relative flex aspect-[3/4] flex-col overflow-hidden rounded-card border bg-white text-aura-ink transition-[transform,box-shadow,border-color] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] ${CARD_FRAME_CLASS[state]}`}
         >
           <PortraitBackdrop />
 
@@ -154,9 +172,21 @@ export function MemberCard({
             <span className="sr-only">Open {member.firstName} card</span>
           </button>
 
-          <div className="absolute inset-0 z-0 transition-transform duration-500 group-hover:scale-[1.015]">
+          {state === "focused" ? (
+            <div className="pointer-events-none absolute inset-0 z-0">
+              <MemberAuraLayer member={member} density="card" slot="back" />
+            </div>
+          ) : null}
+
+          <div className="absolute inset-0 z-0 transition-transform duration-[700ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.06]">
             <Portrait member={member} variant="standee-bottom" asset="portrait" />
           </div>
+
+          {state === "focused" ? (
+            <div className="pointer-events-none absolute inset-0 z-[15]">
+              <MemberAuraLayer member={member} density="card" slot="front" />
+            </div>
+          ) : null}
 
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-between px-3 pt-3">
             {state === "selected" && priorityIndex !== undefined ? (
@@ -191,6 +221,8 @@ export function MemberCard({
             knownCount={knownCount}
             askPreview={askPreview}
             statusPill={statusPill}
+            hideSealedSummary={hideSealedSummary}
+            revealAllDetails={revealAllDetails}
           />
         </article>
       </div>
@@ -230,6 +262,8 @@ function InfoOverlay({
   knownCount,
   askPreview,
   statusPill,
+  hideSealedSummary,
+  revealAllDetails,
 }: {
   member: Member;
   state: MemberCardState;
@@ -238,6 +272,8 @@ function InfoOverlay({
   knownCount: number;
   askPreview: string | undefined;
   statusPill: MemberCardPill | undefined;
+  hideSealedSummary: boolean;
+  revealAllDetails: boolean;
 }) {
   if (state === "closed" || state === "quit") return null;
   return (
@@ -257,7 +293,13 @@ function InfoOverlay({
                   {STATE_PILL_LABEL[state]}
                 </p>
               </div>
-              <SealedSummaryChip sealedCount={sealedCount} knownCount={knownCount} />
+              {hideSealedSummary ? null : (
+                <SealedSummaryChip
+                  sealedCount={sealedCount}
+                  knownCount={knownCount}
+                  revealAllDetails={revealAllDetails}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -280,6 +322,7 @@ function InfoOverlay({
 }
 
 function CompactMemberCard({
+  cardRef,
   member,
   state,
   index,
@@ -289,6 +332,7 @@ function CompactMemberCard({
   onClick,
   onExpand,
 }: {
+  cardRef?: Ref<HTMLLIElement>;
   member: Member;
   state: MemberCardState;
   index: number;
@@ -302,6 +346,7 @@ function CompactMemberCard({
 
   return (
     <motion.li
+      ref={cardRef}
       layout
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
@@ -384,10 +429,21 @@ function PriorityBadge({ index }: { index: number }) {
 function SealedSummaryChip({
   sealedCount,
   knownCount,
+  revealAllDetails,
 }: {
   sealedCount: number;
   knownCount: number;
+  revealAllDetails: boolean;
 }) {
+  if (revealAllDetails) {
+    return (
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-aura-rose/10 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose ring-1 ring-aura-rose/20">
+        <span aria-hidden className="size-1.5 rounded-full bg-aura-rose" />
+        unveiled
+      </span>
+    );
+  }
+
   const showSealed = sealedCount > 0;
   const showKnown = knownCount > 0;
   if (!showSealed && !showKnown) {
@@ -515,6 +571,7 @@ export type MemberDetailsAction = {
 export type MemberDetailsModalProps = {
   member: Member;
   playerKnowledge: readonly PlayerKnowledgeRecord[];
+  revealAllDetails?: boolean;
   request?: MemberRequest;
   primaryAction?: MemberDetailsAction;
   secondaryAction?: MemberDetailsAction;
@@ -525,6 +582,7 @@ export type MemberDetailsModalProps = {
 export function MemberDetailsModal({
   member,
   playerKnowledge,
+  revealAllDetails = false,
   request,
   primaryAction,
   secondaryAction,
@@ -532,11 +590,15 @@ export function MemberDetailsModal({
   onClose,
 }: MemberDetailsModalProps) {
   const profile = useMemo(
-    () => buildVisibleMemberProfile(member, playerKnowledge),
-    [member, playerKnowledge],
+    () =>
+      buildVisibleMemberProfile(member, playerKnowledge, {
+        visibilityMode: revealAllDetails ? "dev_unveiled" : "earned",
+      }),
+    [member, playerKnowledge, revealAllDetails],
   );
   const palette = usePortraitPalette(member);
   const status = member.state.status;
+  const publicProfileLead = profile.publicFragments[0];
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -545,6 +607,22 @@ export function MemberDetailsModal({
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [onClose]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") {
+      return;
+    }
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   const statusLabel =
     status === "active"
@@ -564,7 +642,7 @@ export function MemberDetailsModal({
         exit={{ opacity: 0 }}
         transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
         onClick={onClose}
-        className="fixed inset-0 z-40 grid place-items-center bg-aura-ink/45 px-4 py-10 backdrop-blur-xl"
+        className="fixed inset-0 z-[100] grid place-items-center overflow-hidden bg-aura-ink/45 px-3 py-3 backdrop-blur-xl md:px-5 md:py-5"
       >
         <motion.div
           key="member-details-modal-card"
@@ -577,7 +655,7 @@ export function MemberDetailsModal({
           aria-modal="true"
           aria-label={`${member.firstName} file`}
           style={paletteToCssVars(palette)}
-          className="aura-glass-strong relative grid max-h-[88vh] w-full max-w-6xl grid-cols-1 overflow-hidden rounded-card md:grid-cols-[minmax(320px,420px)_minmax(0,1fr)]"
+          className="aura-glass-strong relative grid w-full max-w-[108rem] grid-cols-1 overflow-hidden rounded-card md:w-[calc(100vw-2.5rem)] md:grid-cols-[minmax(260px,330px)_minmax(0,1fr)]"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)]" />
@@ -585,17 +663,33 @@ export function MemberDetailsModal({
             <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/10" />
           </div>
 
+          {status === "active" ? (
+            <div className="pointer-events-none absolute inset-0 z-[1]">
+              <MemberAuraLayer member={member} density="modal" slot="back" mode="broad" />
+            </div>
+          ) : null}
+
           <ModalTint />
           <ModalCloseTab onClose={onClose} />
 
-          <aside className="relative z-10 hidden flex-col items-center justify-end gap-4 px-5 pb-6 pt-12 md:flex md:px-6 md:pt-14">
+          <aside className="relative z-10 hidden flex-col items-center justify-end gap-4 px-4 pb-5 pt-8 md:flex">
             <div className="absolute inset-0 z-0 overflow-hidden">
+              {status === "active" ? (
+                <div className="pointer-events-none absolute inset-0">
+                  <MemberAuraLayer member={member} density="modal" slot="back" mode="anchored" />
+                </div>
+              ) : null}
               <Portrait member={member} variant="standee-bottom" asset="portrait" />
+              {status === "active" ? (
+                <div className="pointer-events-none absolute inset-0">
+                  <MemberAuraLayer member={member} density="modal" slot="front" />
+                </div>
+              ) : null}
               {status === "closed" || status === "quit" ? (
                 <StatusOverlay status={status} placement="modal" />
               ) : null}
             </div>
-            <div className="aura-glass-strong relative z-10 w-full rounded-2xl px-4 py-3.5 text-center shadow-[0_18px_50px_-18px_rgba(15,23,42,0.32)]">
+            <div className="aura-glass-strong relative z-10 w-full rounded-2xl px-4 py-3 text-center shadow-[0_18px_50px_-18px_rgba(15,23,42,0.32)]">
               <Eyebrow>// file.{caseFileNumber(member.id).toLowerCase()}</Eyebrow>
               <h2 className="mt-1.5 font-display text-2xl font-semibold leading-tight tracking-tight text-aura-ink">
                 {member.firstName}
@@ -624,7 +718,7 @@ export function MemberDetailsModal({
               </div>
             </div>
 
-            <div className="hidden items-center gap-4 px-9 pt-12 md:flex">
+            <div className="hidden items-center gap-4 px-7 pt-7 md:flex">
               <span className="relative inline-flex shrink-0 rounded-full ring-2 ring-white/90 shadow-[0_10px_28px_-12px_rgba(15,23,42,0.45)]">
                 <Portrait member={member} variant="row" />
               </span>
@@ -639,81 +733,59 @@ export function MemberDetailsModal({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2 pt-6 md:px-9 md:pt-7">
+            <div className="px-6 pb-5 pt-4 md:px-7 md:pt-4">
               <section>
                 <Eyebrow>// public profile</Eyebrow>
-                <div className="mt-2 space-y-2 text-lead text-aura-muted">
-                  {profile.publicFragments.map((fragment) => (
-                    <p key={fragment}>{fragment}</p>
-                  ))}
+                <div className="mt-1.5 space-y-1.5 text-body text-aura-muted">
+                  {publicProfileLead === undefined ? (
+                    <p>No public profile line on file.</p>
+                  ) : (
+                    <p>{publicProfileLead}</p>
+                  )}
                 </div>
               </section>
 
-              {profile.redactedBlocks.length > 0 ? (
-                <section className="mt-6">
-                  <Eyebrow>// sealed sections</Eyebrow>
-                  <p className="mt-1 text-xs text-aura-muted">
-                    These sections open when Cupid files a matching read.
-                  </p>
-                  <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                    {profile.redactedBlocks.map((block) => (
-                      <article
-                        key={block.id}
-                        className="rounded-2xl bg-white/55 p-3 ring-1 ring-aura-hairline"
-                      >
-                        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-                          {block.label}
-                        </p>
-                        <div className="mt-3 space-y-1.5" aria-hidden>
-                          {Array.from({ length: block.lineCount }, (_, lineIndex) => (
-                            <span
-                              key={`${block.id}-${lineIndex}`}
-                              className="block h-2 rounded-pill bg-aura-hairline"
-                            />
-                          ))}
-                        </div>
-                        <p className="mt-3 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/80">
-                          sealed
-                        </p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
+              <MemberIntelBoard
+                member={member}
+                profile={profile}
+                revealAllDetails={revealAllDetails}
+              />
 
-              {request !== undefined ? (
-                <section className="mt-6">
-                  <Eyebrow>// current ask</Eyebrow>
-                  <p className="mt-2 rounded-2xl bg-white/55 p-4 text-body text-aura-ink/85 ring-1 ring-aura-hairline">
-                    {request.text}
-                  </p>
-                </section>
-              ) : null}
+              <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+                {request !== undefined ? (
+                  <section>
+                    <Eyebrow>// current ask</Eyebrow>
+                    <p className="mt-2 rounded-2xl bg-white/55 px-4 py-3 text-body text-aura-ink/85 ring-1 ring-aura-hairline">
+                      {request.text}
+                    </p>
+                  </section>
+                ) : null}
 
-              <section className="mt-6">
-                <Eyebrow>// filed reads</Eyebrow>
-                {profile.revealedReads.length === 0 ? (
-                  <p className="mt-2 text-label text-aura-muted">
-                    No player-facing reads filed yet. Run a date to learn how this file moves.
-                  </p>
-                ) : (
-                  <ul className="mt-2 space-y-2">
-                    {profile.revealedReads.map((read) => (
-                      <li
-                        key={read.id}
-                        className="rounded-2xl bg-white/55 p-3 ring-1 ring-aura-hairline"
-                      >
-                        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-                          {readKindLabel(read.readKind, read.confidence)}
-                        </p>
-                        <p className="mt-1 text-label leading-snug text-aura-ink/85">
-                          {read.readText}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
+                <section>
+                  <Eyebrow>// filed reads</Eyebrow>
+                  {profile.revealedReads.length === 0 ? (
+                    <p className="mt-2 text-label text-aura-muted">
+                      No player-facing reads filed yet. Run a date to learn how this file moves.
+                    </p>
+                  ) : (
+                    <ul className="mt-2 space-y-2">
+                      {profile.revealedReads.map((read) => (
+                        <li
+                          key={read.id}
+                          className="rounded-2xl bg-white/55 p-3 ring-1 ring-aura-hairline"
+                        >
+                          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                            {readKindLabel(read.readKind, read.confidence)}
+                          </p>
+                          <p className="mt-1 text-label leading-snug text-aura-ink/85">
+                            {read.readText}
+                          </p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              </div>
 
               {status === "closed" ? (
                 <p className="mt-6 rounded-2xl border border-aura-hairline bg-aura-cream-soft px-4 py-3 text-sm text-aura-muted">
@@ -760,6 +832,225 @@ export function MemberDetailsModal({
         </motion.div>
       </motion.div>
     </AnimatePresence>
+  );
+}
+
+type RedactedBlock = VisibleMemberProfile["redactedBlocks"][number];
+
+function MemberIntelBoard({
+  member,
+  profile,
+  revealAllDetails,
+}: {
+  member: Member;
+  profile: VisibleMemberProfile;
+  revealAllDetails: boolean;
+}) {
+  const profileContinuation = profile.publicFragments.slice(1);
+  const profileBlock = findRedactedBlock(profile, "profile:remainder");
+  const needsBlock = findRedactedBlock(profile, "needs:sealed");
+  const boundaryBlock = findRedactedBlock(profile, "dealbreakers:sealed");
+  const needsReads = profile.revealedReads.filter(
+    (read) => read.readKind === "comfort" || read.readKind === "ask",
+  );
+  const boundaryReads = profile.revealedReads.filter((read) => read.readKind === "boundary");
+
+  return (
+    <section className="mt-4">
+      <div className="flex flex-wrap items-end justify-between gap-2">
+        <Eyebrow>{revealAllDetails ? "// dev.unveiled" : "// case intel"}</Eyebrow>
+        <span className="rounded-pill bg-aura-rose/5 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/70 ring-1 ring-aura-rose/20">
+          {revealAllDetails ? "preview only" : "filed reads only"}
+        </span>
+      </div>
+
+      <div className="mt-3 overflow-hidden rounded-2xl bg-aura-hairline ring-1 ring-aura-hairline">
+        <div className="grid gap-px lg:grid-cols-2 xl:grid-cols-3">
+          <IntelCell title="identity">
+            {revealAllDetails ? (
+              <dl className="mt-3 space-y-2 text-label">
+                <UnveiledRow label="species" value={member.species} />
+                <UnveiledRow label="origin" value={member.origin} />
+                <UnveiledRow label="dimension" value={member.dimension} />
+                <UnveiledRow label="reality" value={member.realityStatus} />
+              </dl>
+            ) : (
+              <SealedLines lineCount={4} />
+            )}
+          </IntelCell>
+
+          <IntelCell title="current state">
+            {revealAllDetails ? (
+              <div className="mt-3 grid gap-2">
+                <StateMeter label="Mood" value={member.state.mood} />
+                <StateMeter label="Openness" value={member.state.openness} />
+                <StateMeter label="Burnout" value={member.state.burnout} />
+                <StateMeter label="Retention" value={member.state.retention} />
+              </div>
+            ) : (
+              <SealedLines lineCount={4} />
+            )}
+          </IntelCell>
+
+          <IntelCell title="profile continues">
+            {profileContinuation.length > 0 ? (
+              <div className="mt-2 space-y-1.5 text-label leading-snug text-aura-ink/85">
+                {profileContinuation.map((fragment) => (
+                  <p key={fragment}>{fragment}</p>
+                ))}
+              </div>
+            ) : profileBlock !== undefined ? (
+              <SealedLines lineCount={profileBlock.lineCount} />
+            ) : (
+              <p className="mt-2 text-label text-aura-muted">No extra profile read filed.</p>
+            )}
+            {revealAllDetails ? (
+              <div className="mt-3 border-t border-aura-hairline pt-3">
+                <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
+                  bio
+                </p>
+                <p className="mt-2 text-label leading-snug text-aura-ink/85">{member.bio}</p>
+              </div>
+            ) : null}
+          </IntelCell>
+
+          <IntelCell title="looking for">
+            {revealAllDetails ? (
+              <IntelList items={member.relationshipNeeds} emptyText="No needs on file." />
+            ) : needsReads.length > 0 ? (
+              <FiledReadSummary reads={needsReads} />
+            ) : (
+              <SealedLines lineCount={lineCountFor(needsBlock, 3)} />
+            )}
+          </IntelCell>
+
+          <IntelCell title="preferences">
+            {revealAllDetails ? (
+              <IntelList items={member.preferences} emptyText="No soft reads filed." />
+            ) : (
+              <SealedLines lineCount={3} />
+            )}
+          </IntelCell>
+
+          <IntelCell title="dealbreakers">
+            {revealAllDetails ? (
+              <IntelList items={member.dealbreakers} emptyText="None on file." />
+            ) : boundaryReads.length > 0 ? (
+              <FiledReadSummary reads={boundaryReads} />
+            ) : (
+              <SealedLines lineCount={lineCountFor(boundaryBlock, 3)} />
+            )}
+          </IntelCell>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function findRedactedBlock(
+  profile: VisibleMemberProfile,
+  idFragment: string,
+): RedactedBlock | undefined {
+  return profile.redactedBlocks.find((block) => block.id.includes(idFragment));
+}
+
+function lineCountFor(block: RedactedBlock | undefined, fallback: number): number {
+  return block?.lineCount ?? fallback;
+}
+
+function IntelCell({
+  title,
+  className = "",
+  children,
+}: {
+  title: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <article className={`min-h-[6.5rem] bg-white/55 p-3 ${className}`}>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
+        {title}
+      </p>
+      {children}
+    </article>
+  );
+}
+
+function UnveiledRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="grid grid-cols-[5.75rem_1fr] gap-2">
+      <dt className="font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/65">{label}</dt>
+      <dd className="text-aura-ink/85">{value}</dd>
+    </div>
+  );
+}
+
+function StateMeter({ label, value }: { label: string; value: number }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3 font-mono text-micro uppercase tracking-[0.2em]">
+        <span className="text-aura-rose/65">{label}</span>
+        <span className="tabular-nums text-aura-ink">{value}</span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-aura-hairline">
+        <div className={`h-full rounded-pill bg-aura-rose ${scoreWidthClass(value)}`} />
+      </div>
+    </div>
+  );
+}
+
+function IntelList({
+  items,
+  emptyText = "No entries on file.",
+}: {
+  items: readonly string[];
+  emptyText?: string;
+}) {
+  if (items.length === 0) {
+    return <p className="mt-2 text-label text-aura-muted">{emptyText}</p>;
+  }
+
+  return (
+    <ul className="mt-2 grid gap-1.5">
+      {items.map((item) => (
+        <li key={item} className="text-label leading-snug text-aura-ink/85">
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function FiledReadSummary({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
+  return (
+    <ul className="mt-2 grid gap-1.5">
+      {reads.map((read) => (
+        <li key={read.id} className="rounded-tile bg-aura-rose/5 px-2.5 py-1.5">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-rose">
+            {readKindLabel(read.readKind, read.confidence)}
+          </p>
+          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function SealedLines({ lineCount }: { lineCount: number }) {
+  const normalizedCount = Math.min(Math.max(lineCount, 1), 5);
+
+  return (
+    <>
+      <div className="mt-3 space-y-1.5" aria-hidden>
+        {Array.from({ length: normalizedCount }, (_, lineIndex) => (
+          <span key={lineIndex} className="block h-2 rounded-pill bg-aura-hairline last:w-2/3" />
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/80">
+        sealed
+      </p>
+    </>
   );
 }
 

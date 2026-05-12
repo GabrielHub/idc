@@ -73,20 +73,26 @@ export function SettingsMenu({
   isActionPending,
   diagnostics,
   canExportSave,
+  canUseDevMemberDetailsPreview,
+  devRevealAllMemberDetails,
   onOpenAiSetup,
   onReset,
   onExportSave,
   onImportSave,
   onCopyDiagnostics,
+  onDevRevealAllMemberDetailsChange,
 }: {
   isActionPending: boolean;
   diagnostics: DiagnosticsSnapshot;
   canExportSave: boolean;
+  canUseDevMemberDetailsPreview: boolean;
+  devRevealAllMemberDetails: boolean;
   onOpenAiSetup: () => void;
   onReset: () => void;
   onExportSave: () => void;
   onImportSave: (file: File) => void;
   onCopyDiagnostics: () => Promise<boolean>;
+  onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
@@ -186,6 +192,10 @@ export function SettingsMenu({
     setSfxEnabled(!sfxEnabled);
   }
 
+  function handleToggleDevMemberDetails() {
+    onDevRevealAllMemberDetailsChange(!devRevealAllMemberDetails);
+  }
+
   function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
     const next = Number(event.target.value) / 100;
     setVolume(next);
@@ -269,6 +279,29 @@ export function SettingsMenu({
                 >
                   {sfxEnabled ? "Mute" : "Unmute"}
                 </MenuButton>
+                {canUseDevMemberDetailsPreview ? (
+                  <>
+                    <div className="mx-2 my-1 h-px bg-aura-hairline" />
+                    <div className="px-1 py-1.5">
+                      <p className="px-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                        Dev preview
+                      </p>
+                      <MenuButton
+                        role="menuitemcheckbox"
+                        ariaChecked={devRevealAllMemberDetails}
+                        sfx="toggle"
+                        onClick={handleToggleDevMemberDetails}
+                      >
+                        {devRevealAllMemberDetails
+                          ? "Member files unveiled"
+                          : "Member files sealed"}
+                      </MenuButton>
+                      <p className="px-2 pb-1 text-xs leading-snug text-aura-muted">
+                        Shows earned-file member details without filing reads.
+                      </p>
+                    </div>
+                  </>
+                ) : null}
                 {isTauriRuntime() ? (
                   <>
                     <MenuButton
