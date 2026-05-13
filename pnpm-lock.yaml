@@ -51,11 +51,11 @@ importers:
         specifier: ~2.10.1
         version: 2.10.1
       ai:
-        specifier: ^6.0.180
-        version: 6.0.180(zod@4.4.3)
+        specifier: ^6.0.182
+        version: 6.0.182(zod@4.4.3)
       ai-sdk-ollama:
         specifier: ^3.8.4
-        version: 3.8.4(ai@6.0.180(zod@4.4.3))(zod@4.4.3)
+        version: 3.8.4(ai@6.0.182(zod@4.4.3))(zod@4.4.3)
       isbot:
         specifier: ^5.1.40
         version: 5.1.40
@@ -1019,8 +1019,8 @@ packages:
     peerDependencies:
       ai: ^6.0.177
 
-  ai@6.0.180:
-    resolution: {integrity: sha512-tOyRbwD0PEjMZKGvYQcTsv95K2zktwwNhQ49QOUAh0g8MNprO7ELIO1SgANMuPc0BFtkP6Ny6OAdjq3TtxLCbQ==}
+  ai@6.0.182:
+    resolution: {integrity: sha512-ooJdziFjYrYRcsCx107roqA8gDTI3P82nUfroNWIhVvwrkYzEN3W1l50YK+XNqkUew8AiimaW0/SLBewRXMuHQ==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^3.25.76 || ^4.1.8
@@ -2672,17 +2672,17 @@ snapshots:
       mime-types: 2.1.35
       negotiator: 0.6.3
 
-  ai-sdk-ollama@3.8.4(ai@6.0.180(zod@4.4.3))(zod@4.4.3):
+  ai-sdk-ollama@3.8.4(ai@6.0.182(zod@4.4.3))(zod@4.4.3):
     dependencies:
       '@ai-sdk/provider': 3.0.10
       '@ai-sdk/provider-utils': 4.0.27(zod@4.4.3)
-      ai: 6.0.180(zod@4.4.3)
+      ai: 6.0.182(zod@4.4.3)
       jsonrepair: 3.14.0
       ollama: 0.6.3
     transitivePeerDependencies:
       - zod
 
-  ai@6.0.180(zod@4.4.3):
+  ai@6.0.182(zod@4.4.3):
     dependencies:
       '@ai-sdk/gateway': 3.0.114(zod@4.4.3)
       '@ai-sdk/provider': 3.0.10

@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "motion/react";
 import type { Member, PortraitMood } from "../domain/game";
 import { hashSeedUint32 } from "../services/utils";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
+import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
+import { resolveStandeeFooting } from "./standee-footing";
 
 /* ------------------------------------------------------------------ */
 /* Reaction types                                                     */
@@ -194,6 +196,8 @@ export function DaterStandee({
 }) {
   const isFocus = placement === "bottom-left";
   const heightScale = resolveStandeeHeightScale(member.standeeRenderHeightInInches);
+  const activePortraitPath = readyPortraitPath(selectPortraitAsset(member, "portrait", mood));
+  const footing = resolveStandeeFooting(activePortraitPath);
   const baseGlow = isFocus
     ? "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(244,63,94,0.3)_0%,rgba(217,70,239,0.09)_42%,transparent_74%)]"
     : "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(167,139,250,0.26)_0%,rgba(217,70,239,0.08)_42%,transparent_74%)]";
@@ -209,13 +213,17 @@ export function DaterStandee({
         <div
           className={`absolute inset-x-0 bottom-0 aspect-[887/1774] origin-bottom ${heightScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
         >
-          <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
-          <SpeakingBubble
-            speaking={speaking}
-            listening={listening}
-            reasoningText={reasoningText}
-            mood={mood}
-          />
+          <div
+            className={`absolute inset-0 ${footing.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+          >
+            <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
+            <SpeakingBubble
+              speaking={speaking}
+              listening={listening}
+              reasoningText={reasoningText}
+              mood={mood}
+            />
+          </div>
         </div>
         <ReactionStream reactions={reactions} placement={placement} />
       </div>

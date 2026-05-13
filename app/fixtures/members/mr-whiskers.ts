@@ -4,7 +4,7 @@ export const mrWhiskers: Member = {
   id: "mr-whiskers",
   name: "Mr. Whiskers",
   firstName: "Whiskers",
-  characterHeightInInches: 67,
+  characterHeightInInches: 66,
   standeeRenderHeightInInches: 56,
   origin: "Greenwich, apparently",
   species: "Talking cat",

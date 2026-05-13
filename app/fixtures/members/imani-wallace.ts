@@ -4,7 +4,7 @@ export const imaniWallace: Member = {
   id: "imani-wallace",
   name: "Imani Wallace",
   firstName: "Imani",
-  characterHeightInInches: 64,
+  characterHeightInInches: 65,
   standeeRenderHeightInInches: 70,
   origin: "Bedford-Stuyvesant, Brooklyn",
   species: "Reaper",

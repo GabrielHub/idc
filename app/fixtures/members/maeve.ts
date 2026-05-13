@@ -4,7 +4,7 @@ export const maeve: Member = {
   id: "maeve",
   name: "Maeve",
   firstName: "Maeve",
-  characterHeightInInches: 77,
+  characterHeightInInches: 74,
   standeeRenderHeightInInches: 67,
   origin: "An older table, somewhere in Connacht, when the table was still a stone",
   species: "Eater of almosts, singular",

@@ -4,7 +4,7 @@ import { type ReactNode, type Ref, useEffect, useMemo } from "react";
 import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { hashSeedUint32 } from "../services/utils";
-import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass, Tooltip } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
 import { formatMemberHeightShort } from "./date-reactions";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
@@ -153,7 +153,7 @@ export function MemberCard({
         {state === "default" ? (
           <span
             aria-hidden
-            className="pointer-events-none absolute -inset-3 rounded-[36px] bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)] opacity-0 blur-2xl transition-opacity duration-[600ms] ease-out group-hover/card:opacity-55"
+            className="pointer-events-none absolute -inset-3 rounded-[36px] bg-[radial-gradient(circle_at_20%_18%,var(--char-accent-glow)_0%,transparent_36%),linear-gradient(135deg,var(--char-from)_0%,var(--char-via)_48%,var(--char-to)_100%)] opacity-0 blur-2xl transition-opacity duration-[600ms] ease-out group-hover/card:opacity-65"
           />
         ) : null}
         <article
@@ -238,18 +238,22 @@ function PortraitBackdrop() {
         aria-hidden
         className="absolute inset-0 bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)]"
       />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(circle_at_20%_18%,var(--char-accent-wash)_0%,transparent_34%),radial-gradient(ellipse_at_82%_28%,var(--char-via-wash)_0%,transparent_42%),radial-gradient(ellipse_at_48%_74%,var(--char-to-wash)_0%,transparent_58%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[linear-gradient(160deg,rgba(255,255,255,0.24)_0%,transparent_42%,rgba(255,255,255,0.18)_100%)]"
+      />
       <div aria-hidden className="aura-dot-grid absolute inset-0 opacity-40" />
       <div
         aria-hidden
-        className="absolute -left-16 -top-12 size-44 rounded-full bg-white/40 blur-3xl"
+        className="absolute inset-x-0 top-0 h-1/2 bg-[radial-gradient(ellipse_at_45%_0%,rgba(255,255,255,0.42)_0%,transparent_72%)]"
       />
       <div
         aria-hidden
-        className="absolute -right-12 top-16 size-36 rounded-full bg-white/30 blur-3xl"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-white/85 via-white/35 to-transparent"
+        className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-white/72 via-white/24 to-transparent"
       />
     </>
   );
@@ -425,11 +429,9 @@ function FileNumberChip({ file }: { file: string }) {
 
 function HeightChip({ heightInInches }: { heightInInches: number }) {
   return (
-    <Tooltip message="with shoes" placement="bottom-end">
-      <span className="pointer-events-auto cursor-help rounded-pill bg-white/85 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline">
-        {formatMemberHeightShort(heightInInches)}
-      </span>
-    </Tooltip>
+    <span className="pointer-events-none rounded-pill bg-white/85 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline">
+      {formatMemberHeightShort(heightInInches)}
+    </span>
   );
 }
 
@@ -674,6 +676,7 @@ export function MemberDetailsModal({
         >
           <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
             <div className="absolute inset-0 bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,var(--char-accent-wash)_0%,transparent_34%),radial-gradient(ellipse_at_82%_22%,var(--char-via-wash)_0%,transparent_42%),radial-gradient(ellipse_at_46%_82%,var(--char-to-wash)_0%,transparent_60%)]" />
             <div className="aura-dot-grid absolute inset-0 opacity-20" />
             <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/10" />
           </div>

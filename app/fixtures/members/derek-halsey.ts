@@ -4,7 +4,7 @@ export const derekHalsey: Member = {
   id: "derek-halsey",
   name: "Derek Halsey",
   firstName: "Derek",
-  characterHeightInInches: 77,
+  characterHeightInInches: 76,
   standeeRenderHeightInInches: 76,
   origin: "Catonsville, Maryland",
   species: "Human",

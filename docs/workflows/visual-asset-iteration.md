@@ -12,6 +12,7 @@ Use an agent with image generation capability for this workflow.
 - Do not store image prompts in member fixtures, scenario fixtures, or `portraitAsset.prompt`.
 - Use fixture facts as visual inputs. Do not reveal hidden member facts, future outcomes, private secrets, exact gameplay values, or unearned player knowledge in an image.
 - Check final assets against `docs/product/image-style.md` before approval.
+- Check member full-body height reads against `docs/product/character-heights.md` after the approved cutout exists.
 
 ## Member Portrait Sequence
 
@@ -24,6 +25,18 @@ Use an agent with image generation capability for this workflow.
 7. Generate the avatar only after the neutral full-body portrait is approved. Attach the approved neutral full-body portrait as the character reference.
 8. Inspect the avatar. Check face match, pose difference, small-card readability, white background, and absence of redesign.
 9. Give adjustment recommendations and iterate until approved.
+
+## Member Height Calibration
+
+Run this pass after the approved neutral full-body cutout exists and before treating a member's height values as final.
+
+1. Open the playground Height lineup.
+2. Compare the member against locked generated-height anchors and nearby roster members.
+3. Adjust source-scale review first until the face and head scale read correctly next to the anchors.
+4. Then compare the normalized visual height against the Derek-derived 6 ft guide and relative characters.
+5. Ignore hats, ears, props, aura effects, and empty shoe-to-canvas-bottom space when reading body height.
+6. Subtract an estimated footwear amount, then compensate for head tilt, lean, crouch, or floating posture.
+7. Apply any fixture changes using the rules in `docs/product/character-heights.md`.
 
 ## Variant Sequence
 
@@ -69,6 +82,7 @@ After source approval, run:
 ```powershell
 vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite
 vp run portrait:resize-avatars
+vp run portrait:standee-footing
 ```
 
 Approved scenario source backgrounds go under:

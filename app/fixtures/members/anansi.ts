@@ -4,7 +4,7 @@ export const anansi: Member = {
   id: "anansi",
   name: "Anansi",
   firstName: "Anansi",
-  characterHeightInInches: 74,
+  characterHeightInInches: 75,
   standeeRenderHeightInInches: 74,
   origin: "The Sky Realm of Nyame, originally. Most evenings since, somebody's porch.",
   species: "Spider deity, Akan branch",

@@ -4,7 +4,7 @@ export const tashaRell: Member = {
   id: "tasha-rell",
   name: "Tasha Rell",
   firstName: "Tasha",
-  characterHeightInInches: 64,
+  characterHeightInInches: 67,
   standeeRenderHeightInInches: 68,
   origin: "Hoboken, New Jersey",
   species: "Human",

@@ -5,7 +5,7 @@ export const junieMarrow: Member = {
   name: "Junie Marrow",
   firstName: "Junie",
   characterHeightInInches: 65,
-  standeeRenderHeightInInches: 64,
+  standeeRenderHeightInInches: 65,
   origin: "Greyhollow, a town with three vet clinics and one set of old woods that walks",
   species: "Human",
   dimension: "Branch Veylor, modern with magic intact",

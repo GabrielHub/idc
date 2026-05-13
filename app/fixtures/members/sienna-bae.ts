@@ -4,7 +4,7 @@ export const siennaBae: Member = {
   id: "sienna-bae",
   name: "Sienna Bae",
   firstName: "Sienna",
-  characterHeightInInches: 67,
+  characterHeightInInches: 66,
   standeeRenderHeightInInches: 64,
   origin: "Coquitlam, British Columbia, then a trainee dorm in Seoul from age thirteen",
   species: "Human",

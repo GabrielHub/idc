@@ -4,7 +4,7 @@ export const kadeSumner: Member = {
   id: "kade-sumner",
   name: "Kade Sumner",
   firstName: "Kade",
-  characterHeightInInches: 67,
+  characterHeightInInches: 68,
   standeeRenderHeightInInches: 71,
   origin: "Allen, Texas",
   species: "Human",

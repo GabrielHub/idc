@@ -4,7 +4,7 @@ export const opalSunday: Member = {
   id: "opal-sunday",
   name: "Opal Sunday",
   firstName: "Opal",
-  characterHeightInInches: 61,
+  characterHeightInInches: 62,
   standeeRenderHeightInInches: 66,
   origin: "1998, aisle seven of a bridal superstore",
   species: "Time-displaced human",

@@ -14,6 +14,7 @@ Code, tests, fixtures, and assets are the source of truth for implemented behavi
 - `product/gameplay-traits.md`: hidden member tags, request tags, player knowledge, match fit, focus cases, closures, and roster chemistry pressure.
 - `product/voice.md`: IDC tone, prose mechanics, comedic engines, member voice patterns, scenario event kinds, and LLM prompt voice rules.
 - `product/visual-design.md`: Aura interface direction, Tailwind token usage, member chat bubbles, member auras, canvas layout, and scenario card UI.
+- `product/character-heights.md`: member height canon, source-scale normalization, playground Height lineup workflow, and genuine profile-height measurement rules.
 - `product/image-style.md`: portrait style, portrait canvas contract, prompt construction, cutout pipeline, scenario background style, and asset acceptance checks.
 
 ## Workflow Docs

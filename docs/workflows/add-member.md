@@ -8,7 +8,8 @@ This workflow is the content pass. Complete the member's nonvisual game content 
 
 - `docs/product/gameplay-traits.md`, especially hidden tags, player knowledge, match fit, roster chemistry pressure, and member authoring requirements.
 - `docs/product/voice.md`, especially member voice fingerprints, prose mechanics, interdimensionality framing, and generation notes.
-- `docs/product/image-style.md`, especially portrait canvas contract, character height canon, and acceptance checks.
+- `docs/product/character-heights.md`, especially genuine profile height canon, source-scale normalization, and the playground Height lineup workflow.
+- `docs/product/image-style.md`, especially portrait canvas contract, prompt construction, and acceptance checks.
 - `docs/product/visual-design.md`, especially per-member chat bubbles and per-member auras when existing approved visual direction already exists.
 - Existing member fixtures in `app/fixtures/members/`, existing member requests in `app/fixtures/goals/member-requests.ts`, and the current aura registry in `app/components/member-aura-registry.ts`.
 
@@ -27,8 +28,8 @@ Add `app/fixtures/members/<member-id>.ts` with a `Member` object that satisfies 
 
 - Identity fields: `id`, `name`, `firstName`, `origin`, `species`, `dimension`, `realityStatus`.
 - Height: two fields, both integers in inches.
-  - `characterHeightInInches`: the canonical character height shown on labels and in the dossier. Set this to how tall the character actually is.
-  - `standeeRenderHeightInInches`: the standee scale-bucket input. Tune this (together with the per-member SRC in the playground height lineup) until the rendered standee reads at the right height against neighbors and the 6 ft guide. Keep this inside the lineup bounds enforced by `members.test.ts`.
+  - `characterHeightInInches`: the canonical genuine date-surface profile height shown on labels and in the dossier. Start with the height the designer pictures, then confirm it through the height workflow after approved full-body art exists.
+  - `standeeRenderHeightInInches`: the standee scale-bucket input. Tune this after source-scale normalization so the rendered standee reads at the canonical height against neighbors and the 6 ft guide. Keep this inside the lineup bounds enforced by `members.test.ts`.
 - Core prose: `bio`, `datingProfile`, `relationshipNeeds`, `preferences`, `dealbreakers`, `secrets`.
 - Hidden tags: 3 to 5 tags from `memberTagSchema`, with exactly one identity tag: `ordinary_human` or `non_human`.
 - Voice: `register`, `patternsUsed`, `patternsRefused`, `tics`, and `sampleMessages`.
@@ -71,7 +72,7 @@ Voice patterns are also bounded:
 
 ## Visual Assets Out Of Scope
 
-Do not create image prompts, generate images, run cutouts, or commit new portrait files in this content workflow. The fixture pass can write visual requirements in plain member facts that a later image-capable agent can use, such as apparent height, species or origin, age presentation, outfit language, and supernatural visual hook.
+Do not create image prompts, generate images, run cutouts, or commit new portrait files in this content workflow. The fixture pass can write visual requirements in plain member facts that a later image-capable agent can use, such as intended profile height, species or origin, age presentation, outfit language, and supernatural visual hook.
 
 Member fixtures should not include the prompts used to create images. Leave `portraitAsset.prompt` unset.
 

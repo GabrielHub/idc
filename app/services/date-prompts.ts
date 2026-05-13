@@ -1,4 +1,4 @@
-import type { ImagePart, ModelMessage, TextPart } from "ai";
+import type { ImagePart, ModelMessage, TextPart, UserModelMessage } from "ai";
 
 import type {
   DateMessage,
@@ -59,8 +59,8 @@ function appendRetryTextToLastUserMessage(
   }
 
   return messages.map((message, index) =>
-    index === lastUserIndex
-      ? { ...message, content: appendRetryTextToContent(message.content, retryText) }
+    index === lastUserIndex && message.role === "user"
+      ? appendRetryTextToUserMessage(message, retryText)
       : message,
   );
 }
@@ -75,10 +75,20 @@ function findLastUserMessageIndex(messages: readonly ModelMessage[]): number {
   return -1;
 }
 
-function appendRetryTextToContent(
-  content: ModelMessage["content"],
+function appendRetryTextToUserMessage(
+  message: UserModelMessage,
   retryText: string,
-): ModelMessage["content"] {
+): UserModelMessage {
+  return {
+    ...message,
+    content: appendRetryTextToContent(message.content, retryText),
+  };
+}
+
+function appendRetryTextToContent(
+  content: UserModelMessage["content"],
+  retryText: string,
+): UserModelMessage["content"] {
   if (typeof content === "string") {
     return [content, "", retryText].join("\n");
   }

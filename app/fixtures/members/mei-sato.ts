@@ -4,7 +4,7 @@ export const meiSato: Member = {
   id: "mei-sato",
   name: "Mei Sato",
   firstName: "Mei",
-  characterHeightInInches: 61,
+  characterHeightInInches: 62,
   standeeRenderHeightInInches: 65,
   origin: "Bushwick, Brooklyn",
   species: "Human",

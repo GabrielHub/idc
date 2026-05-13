@@ -4,7 +4,7 @@ export const chaYusung: Member = {
   id: "cha-yusung",
   name: "Cha Yusung",
   firstName: "Yusung",
-  characterHeightInInches: 78,
+  characterHeightInInches: 77,
   standeeRenderHeightInInches: 73,
   origin: "Seoul, post-Gate, year following the Second Gate",
   species: "Human",

@@ -4,7 +4,7 @@ export const tobyWenz: Member = {
   id: "toby-wenz",
   name: "Toby Wenz",
   firstName: "Toby",
-  characterHeightInInches: 60,
+  characterHeightInInches: 62,
   standeeRenderHeightInInches: 70,
   origin: "Findlay, Ohio",
   species: "Human",

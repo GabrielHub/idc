@@ -5,7 +5,7 @@ export const anubis: Member = {
   name: "Anubis",
   firstName: "Anubis",
   characterHeightInInches: 80,
-  standeeRenderHeightInInches: 76,
+  standeeRenderHeightInInches: 77,
   origin: "The Sacred Land, west of the Nile, originally",
   species: "Egyptian deity",
   dimension: "Pantheon Egyptian branch",

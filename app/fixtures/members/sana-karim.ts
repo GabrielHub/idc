@@ -4,7 +4,7 @@ export const sanaKarim: Member = {
   id: "sana-karim",
   name: "Sana Karim",
   firstName: "Sana",
-  characterHeightInInches: 64,
+  characterHeightInInches: 65,
   standeeRenderHeightInInches: 65,
   origin: "Toledo, Ohio",
   species: "Human",

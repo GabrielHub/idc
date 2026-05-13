@@ -31,6 +31,7 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "../components/date-reactions";
+import { resolveStandeeFooting } from "../components/standee-footing";
 import {
   HOUSE_BUBBLE_LEFT_CLASS,
   HOUSE_BUBBLE_NAME_CLASS,
@@ -2220,12 +2221,12 @@ function defaultSideState(memberId: string): SideState {
 /* Test: Height lineup                                                */
 /* ================================================================== */
 
-type HeightLineupSort = "visual-desc" | "height-desc" | "height-asc" | "roster" | "name";
+type HeightLineupSort = "visible-desc" | "height-desc" | "height-asc" | "roster" | "name";
 
 const HEIGHT_LINEUP_SORT_OPTIONS: ReadonlyArray<{ value: HeightLineupSort; label: string }> = [
+  { value: "visible-desc", label: "Visible height" },
   { value: "height-desc", label: "Tallest first" },
   { value: "height-asc", label: "Shortest first" },
-  { value: "visual-desc", label: "Body scale first" },
   { value: "roster", label: "Roster order" },
   { value: "name", label: "Name" },
 ];
@@ -2239,6 +2240,7 @@ const HEIGHT_ANCHOR_MEMBER_IDS = [
 ] as const;
 const KNOWN_HEIGHT_ANCHOR_IDS = new Set<string>(HEIGHT_ANCHOR_MEMBER_IDS);
 const HEIGHT_GUIDE_IN_INCHES = 72;
+const HEIGHT_LINEUP_GUIDE_BOTTOM_CLASS = "bottom-[29.07rem]";
 const HEIGHT_LINEUP_Z_CLASSES = [
   "z-[1]",
   "z-[2]",
@@ -2281,6 +2283,8 @@ const HEIGHT_LINEUP_Z_CLASSES = [
   "z-[39]",
   "z-[40]",
 ] as const;
+const HEIGHT_LINEUP_BACKGROUND_MEMBER_IDS = new Set<string>(["junie-marrow"]);
+const HEIGHT_LINEUP_BACKGROUND_Z_CLASS = "z-0";
 
 type HeightLineupPortraitScale = {
   className: string;
@@ -2296,11 +2300,13 @@ const HEIGHT_LINEUP_PORTRAIT_SCALE_BY_MEMBER_ID: Readonly<
   Partial<Record<string, HeightLineupPortraitScale>>
 > = {
   "aldric-vale-marsh": { className: "scale-[1.26]", value: 1.26 },
+  anubis: { className: "scale-[1.05]", value: 1.05 },
   "brady-strait": { className: "scale-[0.94]", value: 0.94 },
   "cassie-conners": { className: "scale-[1.09]", value: 1.09 },
   "decimus-marius-tullio": { className: "scale-[1.03]", value: 1.03 },
   epsy: { className: "scale-[1.05]", value: 1.05 },
   "imani-wallace": { className: "scale-[0.93]", value: 0.93 },
+  "junie-marrow": { className: "scale-[2.35]", value: 2.35 },
   "marcus-pellish": { className: "scale-[1.04]", value: 1.04 },
   maeve: { className: "scale-[1.24]", value: 1.24 },
   "meridian-vale": { className: "scale-[0.96]", value: 0.96 },
@@ -2315,7 +2321,7 @@ const HEIGHT_LINEUP_PORTRAIT_SCALE_BY_MEMBER_ID: Readonly<
 };
 
 function HeightLineupTest() {
-  const [sort, setSort] = useState<HeightLineupSort>("height-desc");
+  const [sort, setSort] = useState<HeightLineupSort>("visible-desc");
   const [showHeightGuide, setShowHeightGuide] = useState(true);
   const stageScrollRef = useRef<HTMLDivElement>(null);
   const sortedMembers = useMemo(() => sortHeightLineupMembers(starterMembers, sort), [sort]);
@@ -2344,7 +2350,7 @@ function HeightLineupTest() {
     >
       <TestHeader
         title="Height lineup"
-        description="Neutral cutouts rendered through the live date standee path. Use the locked generated-height anchors to normalize portrait scale before inferring non-anchor heights."
+        description="Neutral cutouts rendered through the live date standee path. Derek anchors the 6 ft guide from his 6 ft 4 in visual height."
       />
 
       <div className="aura-glass relative z-20 flex flex-wrap items-center justify-between gap-4 rounded-card px-5 py-4">
@@ -2401,10 +2407,10 @@ function sortHeightLineupMembers(
   const indexedMembers = members.map((member, index) => ({ member, index }));
 
   indexedMembers.sort((first, second) => {
-    if (sort === "visual-desc") {
+    if (sort === "visible-desc") {
       return (
-        resolveHeightLineupOrderScale(second.member) -
-          resolveHeightLineupOrderScale(first.member) || first.index - second.index
+        resolveHeightLineupVisibleHeight(second.member) -
+          resolveHeightLineupVisibleHeight(first.member) || first.index - second.index
       );
     }
     if (sort === "height-desc") {
@@ -2434,12 +2440,11 @@ function resolveHeightLineupPortraitScale(member: Member): HeightLineupPortraitS
   );
 }
 
-function resolveHeightLineupOrderScale(member: Member): number {
+function resolveHeightLineupVisibleHeight(member: Member): number {
   const heightScale = resolveStandeeHeightScale(member.standeeRenderHeightInInches).value;
-  if (KNOWN_HEIGHT_ANCHOR_IDS.has(member.id)) {
-    return heightScale;
-  }
-  return heightScale * resolveHeightLineupPortraitScale(member).value;
+  const portraitScale = resolveHeightLineupPortraitScale(member).value;
+  const footing = resolveStandeeFooting(member.portraits.neutral.portrait.cutoutPath);
+  return footing.renderedVisibleHeightRatio * heightScale * portraitScale;
 }
 
 function buildHeightLineupZClassByMemberId(
@@ -2447,14 +2452,21 @@ function buildHeightLineupZClassByMemberId(
 ): ReadonlyMap<string, string> {
   const sortedMembers = [...members].sort(
     (first, second) =>
-      resolveHeightLineupOrderScale(first) - resolveHeightLineupOrderScale(second) ||
+      resolveHeightLineupVisibleHeight(first) - resolveHeightLineupVisibleHeight(second) ||
       first.name.localeCompare(second.name),
   );
   const zClassByMemberId = new Map<string, string>();
   const maxIndex = HEIGHT_LINEUP_Z_CLASSES.length - 1;
+  let foregroundIndex = 0;
 
-  sortedMembers.forEach((member, index) => {
-    zClassByMemberId.set(member.id, HEIGHT_LINEUP_Z_CLASSES[Math.min(index, maxIndex)]);
+  sortedMembers.forEach((member) => {
+    if (HEIGHT_LINEUP_BACKGROUND_MEMBER_IDS.has(member.id)) {
+      zClassByMemberId.set(member.id, HEIGHT_LINEUP_BACKGROUND_Z_CLASS);
+      return;
+    }
+
+    zClassByMemberId.set(member.id, HEIGHT_LINEUP_Z_CLASSES[Math.min(foregroundIndex, maxIndex)]);
+    foregroundIndex += 1;
   });
 
   return zClassByMemberId;
@@ -2546,7 +2558,7 @@ function HeightLineupStage({
           {showHeightGuide ? (
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-x-10 bottom-[30.75rem] z-0 h-px bg-aura-rose/60 shadow-[0_0_18px_rgba(244,63,94,0.28)]"
+              className={`pointer-events-none absolute inset-x-10 ${HEIGHT_LINEUP_GUIDE_BOTTOM_CLASS} z-0 h-px bg-aura-rose/60 shadow-[0_0_18px_rgba(244,63,94,0.28)]`}
             />
           ) : null}
           {members.map((member) => (

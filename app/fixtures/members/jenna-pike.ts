@@ -4,7 +4,7 @@ export const jennaPike: Member = {
   id: "jenna-pike",
   name: "Jenna Pike",
   firstName: "Jenna",
-  characterHeightInInches: 58,
+  characterHeightInInches: 60,
   standeeRenderHeightInInches: 63,
   origin: "East Rainfield, Ohio",
   species: "Human",

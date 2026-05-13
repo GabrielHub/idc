@@ -4,7 +4,7 @@ export const eleanorAsh: Member = {
   id: "eleanor-ash",
   name: "Eleanor Ash",
   firstName: "Eleanor",
-  characterHeightInInches: 76,
+  characterHeightInInches: 74,
   standeeRenderHeightInInches: 75,
   origin: "The Court of Lower Hawthorn",
   species: "Fae",

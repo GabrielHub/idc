@@ -4,7 +4,7 @@ export const bradyStrait: Member = {
   id: "brady-strait",
   name: "Brady Strait",
   firstName: "Brady",
-  characterHeightInInches: 64,
+  characterHeightInInches: 66,
   standeeRenderHeightInInches: 70,
   origin: "Akron, Ohio (sister's basement)",
   species: "Human",

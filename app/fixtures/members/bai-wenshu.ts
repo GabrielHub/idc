@@ -4,7 +4,7 @@ export const baiWenshu: Member = {
   id: "bai-wenshu",
   name: "Bai Wenshu of the Falling Plum Sect",
   firstName: "Wenshu",
-  characterHeightInInches: 72,
+  characterHeightInInches: 73,
   standeeRenderHeightInInches: 73,
   origin: "Falling Plum Sect, Eighth Cycle, year of the Pale Plum",
   species: "Human",
