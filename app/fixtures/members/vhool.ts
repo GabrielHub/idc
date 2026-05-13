@@ -4,6 +4,7 @@ export const vhool: Member = {
   id: "vhool",
   name: "Vhool",
   firstName: "Vhool",
+  apparentHeightInInches: 79,
   origin: "The Lower Choir Beneath Old Stone",
   species: "Eldritch god",
   dimension: "Subbasement infinity",

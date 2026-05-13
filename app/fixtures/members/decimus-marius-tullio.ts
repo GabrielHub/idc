@@ -4,6 +4,7 @@ export const decimusMariusTullio: Member = {
   id: "decimus-marius-tullio",
   name: "Decimus Marius Tullio",
   firstName: "Decimus",
+  apparentHeightInInches: 72,
   origin: "Mediolanum, Provincia Italia",
   species: "Human",
   dimension: "Continuous Latin branch, Imperial line",

@@ -4,6 +4,7 @@ export const gabrielTan: Member = {
   id: "gabriel-tan",
   name: "Gabriel Tan",
   firstName: "Gabriel",
+  apparentHeightInInches: 69,
   origin: "Williamsburg, Brooklyn",
   species: "Human",
   dimension: "Prime",

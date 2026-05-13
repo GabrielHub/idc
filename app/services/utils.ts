@@ -91,6 +91,10 @@ export function mulberry32(seed: number): () => number {
   };
 }
 
+export function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function jsonResponse(value: unknown, init?: ResponseInit): Response {
   const headers = new Headers(init?.headers);
   headers.set("Content-Type", "application/json");

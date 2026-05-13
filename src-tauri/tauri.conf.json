@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "IDC",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "identifier": "dev.idc.cupid",
   "build": {
     "frontendDist": "../build/client",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "IDC v0.1.4 (test alpha)",
+        "title": "IDC v0.2.0 (test alpha)",
         "width": 1440,
         "height": 900,
         "minWidth": 1100,
@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis", "app", "dmg"],
+    "createUpdaterArtifacts": true,
     "category": "Game",
     "shortDescription": "A workplace comedy management sim where you coach dates between hopefuls from across realities.",
     "longDescription": "IDC (Interdimensional Dating Coach) is a private alpha desktop build of a local-first management sim. You work at Cupid, the agency that books dates between hopefuls drawn from across realities. Bring your own Ollama or Vercel AI Gateway key.",
@@ -53,6 +54,17 @@
     },
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDlBRTgzNTFEQTI5NjAyRDAKUldUUUFwYWlIVFhvbXBndHViRUVwZEhjYi9jdVVCTkxpMzMrdUFBK2dSaHM3WHhNSXZNQVo5ejEK",
+      "endpoints": [
+        "https://github.com/GabrielHub/idc/releases/download/desktop-alpha/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
     }
   }
 }

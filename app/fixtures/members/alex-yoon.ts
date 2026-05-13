@@ -4,6 +4,7 @@ export const alexYoon: Member = {
   id: "alex-yoon",
   name: "Alex Yoon",
   firstName: "Alex",
+  apparentHeightInInches: 70,
   origin: "Allston, Boston",
   species: "Human",
   dimension: "Prime",

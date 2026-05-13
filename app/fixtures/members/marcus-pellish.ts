@@ -4,6 +4,7 @@ export const marcusPellish: Member = {
   id: "marcus-pellish",
   name: "Marcus Pellish",
   firstName: "Marcus",
+  apparentHeightInInches: 70,
   origin: "Mansfield, Ohio",
   species: "Human",
   dimension: "Prime",

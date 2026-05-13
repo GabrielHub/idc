@@ -688,9 +688,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const judgeSnapshotBeforeReveals = applyMatchFitToJudgeSnapshot({
     session,
     pairState,
-    members,
     judgeSnapshot: deterministicJudgeSnapshot,
-    fit: matchFit,
   });
   const revealCandidates = buildRevealCandidates({
     members,
@@ -750,7 +748,6 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     candidates: eligibleCandidates,
     acceptedIds: deterministicAcceptedIds,
     judgeSnapshot,
-    source: matchFit.hardStop !== null ? "hard_stop" : "judge",
     revealedAt: timestamp,
   });
   const shouldFinish = nextStatus !== "active";

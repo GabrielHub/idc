@@ -4,13 +4,14 @@ export const bradyStrait: Member = {
   id: "brady-strait",
   name: "Brady Strait",
   firstName: "Brady",
+  apparentHeightInInches: 70,
   origin: "Akron, Ohio (sister's basement)",
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, allegedly researching",
   bio: "Brady runs a Substack with 47 readers about why dating apps don't work. He is fifteen months and forty seven Cupid dates into the research phase. He lives in his sister's basement for tax reasons he can explain at length.",
   datingProfile:
-    "31, akron oh, journalist (independent). working on a long form essay about the modern dating apparatus. looking for a participant willing to sign nothing and feel everything. i am paying for parking. i cannot promise i will be myself, but i can promise to commit. photos are stylized. dm for press kit.",
+    "independent journalist, sister's basement bureau, currently embedded in the modern dating apparatus and paying for parking. looking for a participant willing to sign nothing and feel everything. i cannot promise i will be myself, but i can promise to commit. photos are stylized. dm for press kit.",
   relationshipNeeds: [
     "Someone willing to sit with the bit until it cracks",
     "A date with enough structure that he is not improvising his identity",

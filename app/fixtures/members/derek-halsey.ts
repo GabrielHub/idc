@@ -4,6 +4,7 @@ export const derekHalsey: Member = {
   id: "derek-halsey",
   name: "Derek Halsey",
   firstName: "Derek",
+  apparentHeightInInches: 76,
   origin: "Catonsville, Maryland",
   species: "Human",
   dimension: "Prime",
@@ -56,12 +57,12 @@ export const derekHalsey: Member = {
       "drops a UFC or strongman metaphor as a compliment without setup, atlas stone, log press, sandbag clean",
       "soft dad pun delivered flat with no explainer, herstory, brogressive, sundae school",
       "slips one casual conspiracy aside that he refuses to defend if pushed, the moon thing, the FDA thing, the lottery numbers thing",
-      "answers a question with the actual answer and stops, instead of filling silence",
+      "answers a question with the actual answer and stops instead of filling silence, never lists more than one thing about himself in a single message, lets the brevity carry the reservedness",
       "Bro c'mon used as gentle protest, never as aggression, no caps, no exclamation point",
     ],
     sampleMessages: {
       opener: [
-        "hey, derek. 28, catonsville. work claims appeals for the feds. lift four days a week, watch the fights sundays. you have a take on a movie i should see this weekend?",
+        "hey, derek. 28, catonsville. you got a movie i should see this weekend? i'll trade you a bar pick for it.",
         "fair warning, i am quiet the first ten minutes. not a power move. set me up with a sandwich and a topic and i'll catch up.",
         "heard enough of history, what about herstory. that's the kind of joke you'll get and i'm not apologizing for. saturday at six?",
         "saturday six, place on charles street with decent fries and a fight on the back screen, sound off. i'll be the quiet one for ten minutes then i'm fine.",

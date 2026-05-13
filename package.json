@@ -1,6 +1,6 @@
 {
   "name": "idc",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "private": true,
   "description": "Interdimensional Dating Coach desktop alpha shell.",
   "type": "module",
@@ -13,8 +13,9 @@
     "start": "react-router-serve ./build/server/index.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "vp check && react-router typegen && tsc && vp test run && tauri build",
-    "typecheck": "react-router typegen && tsc"
+    "tauri:build": "vp check && react-router typegen && tsc && vp test run && tauri build --ci",
+    "typecheck": "react-router typegen && tsc",
+    "updater:manifest": "node scripts/create-updater-manifest.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",
@@ -29,8 +30,10 @@
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-fs": "~2.5.1",
     "@tauri-apps/plugin-http": "~2.5.9",
-    "ai": "^6.0.177",
-    "ai-sdk-ollama": "^3.8.3",
+    "@tauri-apps/plugin-process": "~2.3.1",
+    "@tauri-apps/plugin-updater": "~2.10.1",
+    "ai": "^6.0.180",
+    "ai-sdk-ollama": "^3.8.4",
     "isbot": "^5.1.40",
     "motion": "^12.38.0",
     "react": "^19.2.6",
@@ -42,7 +45,7 @@
     "@react-router/dev": "7.14.0",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/cli": "^2.11.1",
-    "@types/node": "^22.19.18",
+    "@types/node": "^22.19.19",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4.3.0",

@@ -7,9 +7,10 @@ import {
   type GameConfig,
   type GameSave,
   type Member,
+  type PlayerKnowledgeRecord,
   type ShiftState,
 } from "../domain/game";
-import { miraPark, mrWhiskers, vhool } from "../fixtures/members";
+import { miraPark, mrWhiskers, starterMembers, vhool } from "../fixtures/members";
 import { APP_VERSION } from "../platform/release-identity";
 import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import { tryBackupSave } from "../repositories/backup-save";
@@ -89,26 +90,17 @@ const INITIAL_AI_STATUS: AiSetupStatus = {
 type RiffleCardData = {
   member: Member;
   queueIndex: string;
-  queueTotal: string;
 };
 
 const RIFFLE_CARDS: RiffleCardData[] = [
-  {
-    member: miraPark,
-    queueIndex: "01",
-    queueTotal: "33",
-  },
-  {
-    member: vhool,
-    queueIndex: "09",
-    queueTotal: "33",
-  },
-  {
-    member: mrWhiskers,
-    queueIndex: "17",
-    queueTotal: "33",
-  },
+  { member: miraPark, queueIndex: "01" },
+  { member: vhool, queueIndex: "09" },
+  { member: mrWhiskers, queueIndex: "17" },
 ];
+
+const RIFFLE_QUEUE_TOTAL = pad2(starterMembers.length);
+
+const EMPTY_KNOWLEDGE: readonly PlayerKnowledgeRecord[] = [];
 
 /**
  * Per-card layout keyframes for the boot riffle. Each card sits at its peek
@@ -1049,7 +1041,7 @@ function RiffleCard({
 /* ------------------------------ Riffle card ----------------------------- */
 
 function RiffleCardSlot({ data }: { data: RiffleCardData }) {
-  const visibleProfile = buildVisibleMemberProfile(data.member, []);
+  const visibleProfile = buildVisibleMemberProfile(data.member, EMPTY_KNOWLEDGE);
   const publicFragment =
     visibleProfile.publicFragments[0] ??
     "A hopeful file with several pages, one signature, and a suspiciously warm paperclip.";
@@ -1077,7 +1069,7 @@ function RiffleCardSlot({ data }: { data: RiffleCardData }) {
           </p>
           <p className="inline-flex items-center gap-2 font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
             <LiveDot tone="amber" />
-            queue {data.queueIndex} / {data.queueTotal}
+            queue {data.queueIndex} / {RIFFLE_QUEUE_TOTAL}
           </p>
         </div>
 

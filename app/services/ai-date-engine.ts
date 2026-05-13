@@ -69,12 +69,7 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
-import {
-  applyMatchFitToJudgeSnapshot,
-  evaluateMatchFit,
-  pairRuleHits,
-  type MatchFitResult,
-} from "./match-fit";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
@@ -82,7 +77,7 @@ import {
   validateUsedEvidenceIds,
   type RevealCandidate,
 } from "./player-knowledge";
-import { clampScore, errorToMessage, isRecord, replaceById } from "./utils";
+import { clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
 import { createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
@@ -285,7 +280,6 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     activeRequests: focusRequest === undefined ? [] : [focusRequest],
   });
-  const frictionRuleHits = pairRuleHits(matchFit);
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
   let workingSession = session;
@@ -305,7 +299,6 @@ async function advanceDateExchangeWithLocalAiInternal(
       scenario,
       pairState,
       focusRequest,
-      frictionRuleHits,
       createdAt: timestamp,
       emit,
       abortSignal: input.abortSignal,
@@ -405,7 +398,6 @@ async function advanceDateExchangeWithLocalAiInternal(
   const acceptedEvidenceIds = computeAcceptedEvidenceIds({
     proposed: localAiJudgeSnapshot.usedEvidenceIds,
     candidates: eligibleCandidates,
-    matchFit,
   });
   const judgeSnapshotWithReveals = judgeSnapshotSchema.parse({
     ...localAiJudgeSnapshot,
@@ -414,9 +406,7 @@ async function advanceDateExchangeWithLocalAiInternal(
   const judgeSnapshot = applyMatchFitToJudgeSnapshot({
     session,
     pairState,
-    members,
     judgeSnapshot: judgeSnapshotWithReveals,
-    fit: matchFit,
   });
   const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
@@ -466,7 +456,6 @@ async function advanceDateExchangeWithLocalAiInternal(
     candidates: eligibleCandidates,
     acceptedIds: judgeSnapshot.usedEvidenceIds,
     judgeSnapshot,
-    source: matchFit.hardStop !== null ? "hard_stop" : "judge",
     revealedAt: timestamp,
   });
   const finalPairState =
@@ -573,7 +562,6 @@ async function createLocalAiCharacterMessage({
   scenario,
   pairState,
   focusRequest,
-  frictionRuleHits,
   createdAt,
   emit,
   abortSignal,
@@ -587,7 +575,6 @@ async function createLocalAiCharacterMessage({
   scenario: DateScenario;
   pairState: PairState;
   focusRequest: MemberRequest | undefined;
-  frictionRuleHits: readonly string[];
   createdAt: string;
   emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void;
   abortSignal?: AbortSignal;
@@ -639,7 +626,6 @@ async function createLocalAiCharacterMessage({
         pairState,
         memoryPack: promptInputs.memoryPack,
         focusRequest,
-        frictionRuleHits,
         repetitionRetry,
         imageAttachments: promptInputs.imageAttachments,
       });
@@ -1181,36 +1167,11 @@ async function createLocalAiJudgeSnapshot({
 function computeAcceptedEvidenceIds({
   proposed,
   candidates,
-  matchFit,
 }: {
   proposed: readonly string[] | undefined;
   candidates: readonly RevealCandidate[];
-  matchFit: MatchFitResult;
 }): string[] {
-  const validated = validateUsedEvidenceIds(proposed, candidates);
-
-  if (matchFit.hardStop === null) {
-    return validated;
-  }
-
-  const hardStopCandidate = candidates.find(
-    (candidate) => candidate.source === "hard_stop" && candidate.readKind === "boundary",
-  );
-  const accepted = [...validated];
-
-  if (hardStopCandidate !== undefined && !accepted.includes(hardStopCandidate.id)) {
-    accepted.unshift(hardStopCandidate.id);
-  }
-
-  const scenarioPressure = candidates.find(
-    (candidate) => candidate.readKind === "scenario_pressure",
-  );
-
-  if (scenarioPressure !== undefined && !accepted.includes(scenarioPressure.id)) {
-    accepted.push(scenarioPressure.id);
-  }
-
-  return accepted.slice(0, 3);
+  return validateUsedEvidenceIds(proposed, candidates);
 }
 
 async function createLocalAiFinalSession({
@@ -1659,8 +1620,4 @@ function normalizeMemoryText(text: string): string {
     .replace(/\bStrain \d+\.?\s*/giu, "")
     .replace(/\bHealth \d+\.?\s*/giu, "")
     .trim();
-}
-
-function escapeRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }

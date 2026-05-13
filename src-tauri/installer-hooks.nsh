@@ -1,12 +1,18 @@
-; Wipe per-user app data on uninstall AND on upgrade (the new installer
-; runs the previous uninstaller silently with /UPDATE before installing).
-; In both cases we want a clean slate: alpha saves are not forward-compatible
-; across builds, and leaving the plaintext Vercel Gateway key behind is a
-; security gotcha. POSTUNINSTALL fires after the template's own conditional
-; cleanup block, so this overrides the default "preserve unless checkbox
-; ticked AND not upgrading" behavior.
+!include FileFunc.nsh
+!include LogicLib.nsh
+
+!insertmacro GetParameters
+!insertmacro GetOptions
+
+; Wipe per-user app data on manual uninstall, but preserve it during updates.
+; Tauri updater and the normal NSIS upgrade path run the previous uninstaller
+; with /UPDATE. Save schema recovery and Gateway key storage belong to app code.
 !macro NSIS_HOOK_POSTUNINSTALL
-  SetShellVarContext current
-  RMDir /r "$LOCALAPPDATA\dev.idc.cupid"
-  RMDir /r "$APPDATA\dev.idc.cupid"
+  ${GetParameters} $R0
+  ${GetOptions} $R0 "/UPDATE" $R1
+  ${If} ${Errors}
+    SetShellVarContext current
+    RMDir /r "$LOCALAPPDATA\dev.idc.cupid"
+    RMDir /r "$APPDATA\dev.idc.cupid"
+  ${EndIf}
 !macroend

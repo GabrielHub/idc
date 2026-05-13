@@ -12,4 +12,4 @@ The scenarios below currently ship with solid-color placeholder PNGs (1672x941) 
 | `vivarium-wing-tiny-residents` | Museum wing of glass-walled habitats containing tiny humans at one-twentieth scale. Low warm gallery lighting, an apartment block on one side, a farming village across the aisle. |
 | `world-sim-operator-booth`     | Two-seat AR arcade booth with a domed display showing a seeded continent at evening. Console between two seats, AR rigs hanging from a track, laminated rule sheet on the surface. |
 
-Voice and style references: `docs/world/visual-design.md`, `docs/world/image-style.md`.
+Voice and style references: `docs/product/visual-design.md`, `docs/product/image-style.md`.

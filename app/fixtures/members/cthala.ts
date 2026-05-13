@@ -4,6 +4,7 @@ export const cthala: Member = {
   id: "cthala",
   name: "Cthala",
   firstName: "Cthala",
+  apparentHeightInInches: 75,
   origin: "The Drowned Spire, Beneath the Lower Choir",
   species: "Eldritch sleeper, in chosen form",
   dimension: "Subbasement infinity, drowned register",

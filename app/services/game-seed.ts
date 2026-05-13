@@ -168,6 +168,7 @@ function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): 
   return (
     savedMember.name === fixtureMember.name &&
     savedMember.firstName === fixtureMember.firstName &&
+    savedMember.apparentHeightInInches === fixtureMember.apparentHeightInInches &&
     savedMember.origin === fixtureMember.origin &&
     savedMember.species === fixtureMember.species &&
     savedMember.dimension === fixtureMember.dimension &&
@@ -537,7 +538,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened the office with a 33 member roster and a 12 card deck.",
+      text: "Cupid has opened the office with a 38 member roster and a 12 card deck.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

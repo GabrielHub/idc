@@ -15,7 +15,11 @@ import {
   getQuitMembers,
   MEMBER_QUIT_RISK_LABEL,
 } from "../services/date-engine";
-import { evaluateMatchFit } from "../services/match-fit";
+import {
+  chooseRecommendedMatchCandidate,
+  evaluateMatchFit,
+  type MatchRecommendationCandidate,
+} from "../services/match-fit";
 import { makePairId } from "../services/game-seed";
 import {
   moveSuggestedMemberFirst,
@@ -182,13 +186,24 @@ export function PreDateCanvas({
     [pairStates],
   );
   const fallbackScenario = drawnScenarios[0] ?? null;
+  const activeFocusRequest = useMemo(() => {
+    if (activeFocus === null) return undefined;
+
+    for (const requestId of shift.memberRequestIds) {
+      const request = requestsById.get(requestId);
+      if (request?.memberId === activeFocus.id) {
+        return request;
+      }
+    }
+
+    return undefined;
+  }, [activeFocus, requestsById, shift.memberRequestIds]);
 
   const suggestedPartner = useMemo(() => {
     if (activeFocus === null) return null;
     const scenario = selectedScenario ?? fallbackScenario;
     if (scenario === null) return null;
-    let best: Member | null = null;
-    let bestScore = -Infinity;
+    const candidates: MatchRecommendationCandidate<Member>[] = [];
     for (const candidate of candidatePartners) {
       const pairState = pairStateById.get(makePairId(activeFocus.id, candidate.id));
       if (pairState === undefined) continue;
@@ -197,19 +212,22 @@ export function PreDateCanvas({
           members: [activeFocus, candidate],
           scenario,
           pairState,
-          activeRequests: [],
+          activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
         });
-        const score = fit.startingDateHealthDelta;
-        if (score > bestScore) {
-          best = candidate;
-          bestScore = score;
-        }
+        candidates.push({ candidate, fit });
       } catch {
         continue;
       }
     }
-    return best;
-  }, [activeFocus, candidatePartners, fallbackScenario, selectedScenario, pairStateById]);
+    return chooseRecommendedMatchCandidate(candidates);
+  }, [
+    activeFocus,
+    activeFocusRequest,
+    candidatePartners,
+    fallbackScenario,
+    selectedScenario,
+    pairStateById,
+  ]);
 
   const orderedCandidatePartners = useMemo(
     () => moveSuggestedMemberFirst(candidatePartners, suggestedPartner?.id ?? null),
@@ -418,8 +436,8 @@ function PreDateHeader({
             Tonight's date
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-aura-muted">
-            Pick a focus case, pick their partner, pick the room. Cupid prefills the obvious choice
-            so you can hit Begin date in one tap.
+            Pick a focus case, pick their partner, pick the room. Cupid only recommends a partner
+            when one booking clearly stands out.
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
@@ -639,8 +657,8 @@ function PartnerStep({
         title={`Partner for ${activeFocus.firstName}`}
         hint={
           suggestedPartnerId === null
-            ? "Tap any active member to set the partner."
-            : "Cupid suggests the highest match-fit partner. Tap any active member to override."
+            ? "No clear recommendation on file. Pick any active member."
+            : "Cupid found one clear booking recommendation. Tap any active member to override."
         }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
@@ -651,11 +669,11 @@ function PartnerStep({
           const cardState: MemberCardState = isPicked ? "selected" : "default";
           const statusPill: MemberCardPill | undefined =
             isPicked && partnerId === null && isSuggested
-              ? { tone: "ink", label: "best match" }
+              ? { tone: "ink", label: "recommended" }
               : isPicked
                 ? { tone: "rose", label: "your pick" }
                 : isSuggested
-                  ? { tone: "ink", label: "best match" }
+                  ? { tone: "ink", label: "recommended" }
                   : undefined;
           return (
             <MemberCard

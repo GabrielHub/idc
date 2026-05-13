@@ -4,6 +4,7 @@ export const naiaVelorae: Member = {
   id: "naia-velorae",
   name: "Naia Velorae",
   firstName: "Naia",
+  apparentHeightInInches: 72,
   origin: "Velorae regency, third precinct of the Vellaine Glow",
   species: "Vellaine",
   dimension: "Vellaine cluster, Glow-Side",

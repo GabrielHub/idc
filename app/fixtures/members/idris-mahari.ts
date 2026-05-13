@@ -4,6 +4,7 @@ export const idrisMahari: Member = {
   id: "idris-mahari",
   name: "Idris Mahari",
   firstName: "Idris",
+  apparentHeightInInches: 73,
   origin: "Cinder Reach, Southern Ledger",
   species: "Human",
   dimension: "Stranded Earth, Glasshouse Concession line, post-armistice",

@@ -17,7 +17,8 @@ import { memberRequests, starterMembers, starterScenarios } from "../../fixtures
 import { EmptyPerformerMessageError, sanitizeCharacterText } from "../ai-date-engine";
 import { buildCharacterPromptPacket, type CharacterPromptPacket } from "../date-prompts";
 import { createSeedGameSave, makePairId } from "../game-seed";
-import { evaluateMatchFit, pairRuleHits } from "../match-fit";
+import { evaluateMatchFit } from "../match-fit";
+import { escapeRegex } from "../utils";
 import {
   modelDefaultsForProvider,
   recommendedOllamaChatModels,
@@ -510,13 +511,9 @@ function memberChatSpeakerLabelPattern(member: Member): RegExp {
   const labels = [member.firstName, member.name, member.id]
     .map((label) => label.trim())
     .filter((label) => label.length > 0)
-    .map(escapeMemberChatRegex);
+    .map(escapeRegex);
 
   return new RegExp(`^\\s*(?:${labels.join("|")})\\s*:`, "i");
-}
-
-function escapeMemberChatRegex(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function memberChatRetryReasonText(reason: MemberChatRetryReason): string {
@@ -610,7 +607,6 @@ async function runPlaygroundConversation({
   participantIds,
   initialTranscript,
   dateHealth,
-  frictionRuleHits,
 }: {
   input: DatePlaygroundInput;
   member: Member;
@@ -621,7 +617,6 @@ async function runPlaygroundConversation({
   participantIds: [string, string];
   initialTranscript: DateMessage[];
   dateHealth: number;
-  frictionRuleHits: readonly string[];
 }): Promise<{
   turns: PlaygroundGeneratedTurn[];
   lastPacket: CharacterPromptPacket;
@@ -679,7 +674,6 @@ async function runPlaygroundConversation({
           recentTranscript: transcript,
         },
         focusRequest,
-        frictionRuleHits,
         memorySearchAvailable: false,
       }),
       input,
@@ -815,7 +809,6 @@ function buildDatePlaygroundPrompt(input: DatePlaygroundInput) {
         recentTranscript: transcript,
       },
       focusRequest,
-      frictionRuleHits: pairRuleHits(matchFit),
       memorySearchAvailable: false,
     }),
     input,
@@ -830,7 +823,6 @@ function buildDatePlaygroundPrompt(input: DatePlaygroundInput) {
     participantIds,
     initialTranscript: transcript,
     dateHealth: input.dateHealth,
-    frictionRuleHits: pairRuleHits(matchFit),
     matchFit,
     packet,
     promptCharacters: packet.system.length + packet.prompt.length,

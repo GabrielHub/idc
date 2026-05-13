@@ -4,6 +4,7 @@ export const gideonGlass: Member = {
   id: "gideon-glass",
   name: "Gideon Glass",
   firstName: "Gideon",
+  apparentHeightInInches: 71,
   origin: "Room 414, the Hotel Palatine",
   species: "Ghost",
   dimension: "Prime adjacent afterlife annex",

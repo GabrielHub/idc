@@ -4,6 +4,7 @@ export const calvinHewes: Member = {
   id: "calvin-hewes",
   name: "Calvin Hewes",
   firstName: "Calvin",
+  apparentHeightInInches: 80,
   origin: "Point Pleasant, West Virginia, allegedly",
   species: "Cryptid (denied)",
   dimension: "Prime, regional",

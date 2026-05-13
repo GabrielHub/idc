@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   judgeSnapshotSchema,
+  type DateMessage,
   type GameSave,
   type JudgeSnapshot,
   type Member,
@@ -215,7 +216,7 @@ describe("buildRevealCandidates", () => {
     }
   });
 
-  it("hard stop produces a hard_stop boundary candidate", () => {
+  it("boundary risk produces a judge-owned boundary candidate", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
@@ -234,11 +235,13 @@ describe("buildRevealCandidates", () => {
       pairState,
       matchFit,
     });
-    const hardStopCandidate = candidates.find((candidate) => candidate.source === "hard_stop");
+    const boundaryCandidate = candidates.find(
+      (candidate) => candidate.readKind === "boundary" && candidate.subjectId === member.id,
+    );
 
-    expect(matchFit.hardStop).not.toBeNull();
-    expect(hardStopCandidate).toBeDefined();
-    expect(hardStopCandidate?.readKind).toBe("boundary");
+    expect(matchFit.boundaryRisk).not.toBeNull();
+    expect(boundaryCandidate).toBeDefined();
+    expect(boundaryCandidate?.source).toBe("judge");
   });
 
   it("blocked ask produces an ask candidate", () => {
@@ -498,7 +501,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     expect(eligible).toEqual([]);
   });
 
-  it("hard stop candidates are always eligible", () => {
+  it("boundary risk candidates need transcript evidence before eligibility", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
@@ -523,8 +526,27 @@ describe("filterExchangeEligibleRevealCandidates", () => {
       exchangeMessages: [],
       triggeredEventIds: [],
     });
+    const exchangeMessages: DateMessage[] = [
+      {
+        id: "exchange-1",
+        dateSessionId: "test",
+        kind: "character",
+        speakerId: member.id,
+        text: "I need less prophecy pressure at this table.",
+        turnIndex: 1,
+        sequenceIndex: 0,
+        createdAt: SEED_DATE.toISOString(),
+      },
+    ];
+    const eligibleWithEvidence = filterExchangeEligibleRevealCandidates({
+      candidates,
+      matchFit,
+      exchangeMessages,
+      triggeredEventIds: [],
+    });
 
-    expect(eligible.some((candidate) => candidate.source === "hard_stop")).toBe(true);
+    expect(eligible.some((candidate) => candidate.readKind === "boundary")).toBe(false);
+    expect(eligibleWithEvidence.some((candidate) => candidate.readKind === "boundary")).toBe(true);
   });
 });
 
@@ -596,7 +618,7 @@ describe("selectDeterministicRevealIds", () => {
     expect(ids.length).toBeLessThanOrEqual(2);
   });
 
-  it("hard stop selects boundary plus scenario pressure", () => {
+  it("does not select boundary reads only because match fit flagged risk", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
@@ -615,6 +637,12 @@ describe("selectDeterministicRevealIds", () => {
       pairState,
       matchFit,
     });
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      matchFit,
+      exchangeMessages: [],
+      triggeredEventIds: [],
+    });
     const judgeSnapshot = makeJudgeSnapshot({
       dateSessionId: "test",
       exchangeIndex: 0,
@@ -622,15 +650,13 @@ describe("selectDeterministicRevealIds", () => {
       dateHealthDelta: -50,
     });
     const ids = selectDeterministicRevealIds({
-      candidates,
+      candidates: eligible,
       matchFit,
       judgeSnapshot,
     });
 
-    expect(matchFit.hardStop).not.toBeNull();
-    expect(ids.length).toBeGreaterThanOrEqual(1);
-    const idTexts = ids.join(",");
-    expect(idTexts).toContain("boundary");
+    expect(matchFit.boundaryRisk).not.toBeNull();
+    expect(ids).toEqual([]);
   });
 });
 
@@ -714,7 +740,6 @@ describe("applyJudgeReveals", () => {
       candidates,
       acceptedIds: [candidate.id, "unknown-id"],
       judgeSnapshot,
-      source: "judge",
       revealedAt: SEED_DATE.toISOString(),
     });
 

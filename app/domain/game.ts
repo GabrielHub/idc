@@ -126,7 +126,7 @@ const hexColorSchema = z
   .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/, "expected #RRGGBB or #RRGGBBAA");
 
 // Per-member chat bubble style for the focused dater. Authoring guide and axis
-// reference live in docs/world/visual-design.md under "Per-Member Chat Bubbles".
+// reference live in docs/product/visual-design.md under "Per-Member Chat Bubbles".
 export const memberChatBubbleBackgroundSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("solid"),
@@ -220,6 +220,7 @@ export const memberSchema = z
     id: memberIdSchema,
     name: z.string().min(1),
     firstName: z.string().min(1),
+    apparentHeightInInches: z.number().int().min(24).max(108).default(66),
     origin: z.string().min(1),
     species: z.string().min(1),
     dimension: z.string().min(1),

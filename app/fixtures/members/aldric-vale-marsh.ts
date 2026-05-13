@@ -4,6 +4,7 @@ export const aldricValeMarsh: Member = {
   id: "aldric-vale-marsh",
   name: "Sir Aldric of Vale Marsh",
   firstName: "Aldric",
+  apparentHeightInInches: 72,
   origin: "The Briar Hold, Vale Marsh, year of our Lord one thousand one hundred and ninety",
   species: "Human",
   dimension: "Continuous chivalric branch, Lower Briar",

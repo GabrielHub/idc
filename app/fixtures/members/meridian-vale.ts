@@ -4,6 +4,7 @@ export const meridianVale: Member = {
   id: "meridian-vale",
   name: "Meridian Vale",
   firstName: "Meridian",
+  apparentHeightInInches: 74,
   origin: "Classified",
   species: "Human",
   dimension: "Federal continuity branch",

@@ -1,6 +1,7 @@
 import { memberSchema } from "../../domain/game";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
 import { alexYoon } from "./alex-yoon";
+import { anansi } from "./anansi";
 import { baiWenshu } from "./bai-wenshu";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
@@ -14,20 +15,24 @@ import { epsy } from "./epsy";
 import { gabrielTan } from "./gabriel-tan";
 import { gideonGlass } from "./gideon-glass";
 import { idrisMahari } from "./idris-mahari";
+import { imaniWallace } from "./imani-wallace";
 import { jennaPike } from "./jenna-pike";
 import { kadeSumner } from "./kade-sumner";
+import { maeve } from "./maeve";
 import { marcusPellish } from "./marcus-pellish";
 import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
 import { mrWhiskers } from "./mr-whiskers";
 import { naiaVelorae } from "./naia-velorae";
+import { nawalMarrash } from "./nawal-marrash";
 import { noahKim } from "./noah-kim";
 import { opalSunday } from "./opal-sunday";
 import { reaver } from "./reaver";
 import { ryanDoyle } from "./ryan-doyle";
 import { sanaKarim } from "./sana-karim";
 import { seraVohn } from "./sera-vohn";
+import { siennaBae } from "./sienna-bae";
 import { tashaRell } from "./tasha-rell";
 import { tobyWenz } from "./toby-wenz";
 import { venus } from "./venus";
@@ -35,7 +40,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(33)
+  .length(38)
   .parse([
     jennaPike,
     meridianVale,
@@ -70,11 +75,17 @@ export const starterMembers = memberSchema
     derekHalsey,
     ryanDoyle,
     alexYoon,
+    anansi,
+    nawalMarrash,
+    imaniWallace,
+    siennaBae,
+    maeve,
   ]);
 
 export {
   aldricValeMarsh,
   alexYoon,
+  anansi,
   baiWenshu,
   bradyStrait,
   calvinHewes,
@@ -88,20 +99,24 @@ export {
   gabrielTan,
   gideonGlass,
   idrisMahari,
+  imaniWallace,
   jennaPike,
   kadeSumner,
+  maeve,
   marcusPellish,
   meiSato,
   meridianVale,
   miraPark,
   mrWhiskers,
   naiaVelorae,
+  nawalMarrash,
   noahKim,
   opalSunday,
   reaver,
   ryanDoyle,
   sanaKarim,
   seraVohn,
+  siennaBae,
   tashaRell,
   tobyWenz,
   venus,

@@ -10,7 +10,6 @@ import {
   type PairState,
   type PlayerKnowledgeReadKind,
   type PlayerKnowledgeRecord,
-  type PlayerKnowledgeSource,
   type ScenarioEventKind,
   type ScenarioTag,
 } from "../domain/game";
@@ -24,7 +23,7 @@ export type RevealCandidate = {
   readKind: PlayerKnowledgeReadKind;
   readText: string;
   evidenceText: string;
-  source: "judge" | "hard_stop";
+  source: "judge";
 };
 
 export type BuildRevealCandidatesInput = {
@@ -55,7 +54,6 @@ export type ApplyJudgeRevealsInput = {
   candidates: readonly RevealCandidate[];
   acceptedIds: readonly string[];
   judgeSnapshot: JudgeSnapshot;
-  source: PlayerKnowledgeSource;
   revealedAt: string;
 };
 
@@ -450,14 +448,14 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
   };
   const scenarioTags = new Set<ScenarioTag>(input.scenario.card.tags);
 
-  if (input.matchFit.hardStop !== null) {
-    const hardStopCandidate = buildHardStopBoundaryCandidate(
+  if (input.matchFit.boundaryRisk !== null) {
+    const boundaryRiskCandidate = buildBoundaryRiskCandidate(
       input.members,
       input.scenario,
-      input.matchFit.hardStop.memberId,
+      input.matchFit.boundaryRisk.memberId,
     );
-    if (hardStopCandidate !== null) {
-      pushCandidate(hardStopCandidate);
+    if (boundaryRiskCandidate !== null) {
+      pushCandidate(boundaryRiskCandidate);
     }
   }
 
@@ -473,7 +471,7 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
           readKind: "boundary",
           readText: boundary.toReadText(member.firstName),
           evidenceText: boundary.evidence,
-          source: input.matchFit.hardStop?.memberId === member.id ? "hard_stop" : "judge",
+          source: "judge",
         });
       }
 
@@ -562,12 +560,12 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
   return candidates;
 }
 
-function buildHardStopBoundaryCandidate(
+function buildBoundaryRiskCandidate(
   members: readonly Member[],
   scenario: DateScenario,
-  hardStopMemberId: string,
+  boundaryRiskMemberId: string,
 ): RevealCandidate | null {
-  const member = members.find((candidate) => candidate.id === hardStopMemberId);
+  const member = members.find((candidate) => candidate.id === boundaryRiskMemberId);
 
   if (member === undefined) {
     return null;
@@ -604,7 +602,7 @@ function buildHardStopBoundaryCandidate(
       readKind: "boundary",
       readText: boundary.toReadText(member.firstName),
       evidenceText: boundary.evidence,
-      source: "hard_stop",
+      source: "judge",
     };
   }
 
@@ -628,11 +626,6 @@ export function filterExchangeEligibleRevealCandidates(
     input.pendingEventKinds?.includes("reveal") === true && hasUsableTranscript;
 
   for (const candidate of input.candidates) {
-    if (candidate.source === "hard_stop") {
-      eligible.push(candidate);
-      continue;
-    }
-
     if (candidate.readKind === "ask") {
       if (
         input.matchFit.blockedRequestIds.length > 0 ||
@@ -646,21 +639,15 @@ export function filterExchangeEligibleRevealCandidates(
     if (candidate.readKind === "scenario_pressure") {
       const referencesEvidence = scenarioPressureMatchesExchange(candidate, exchangeText);
 
-      if (
-        referencesEvidence ||
-        hasPendingScenarioEvent ||
-        hasRevealEvent ||
-        input.matchFit.hardStop !== null
-      ) {
+      if (referencesEvidence || hasPendingScenarioEvent || hasRevealEvent) {
         eligible.push(candidate);
       }
       continue;
     }
 
     if (candidate.readKind === "pair_dynamic") {
-      const meaningfulDrift = Math.abs(input.matchFit.exchangeDateHealthDrift) >= 1;
       const referencesEvidence = pairDynamicMatchesExchange(candidate, exchangeText);
-      if (meaningfulDrift || referencesEvidence || hasRevealEvent) {
+      if (referencesEvidence || hasRevealEvent) {
         eligible.push(candidate);
       }
       continue;
@@ -668,7 +655,7 @@ export function filterExchangeEligibleRevealCandidates(
 
     if (candidate.readKind === "comfort" || candidate.readKind === "boundary") {
       const referencesEvidence = memberReadMatchesExchange(candidate, exchangeText);
-      if (referencesEvidence || hasRevealEvent || input.matchFit.hardStop !== null) {
+      if (referencesEvidence || hasRevealEvent) {
         eligible.push(candidate);
       }
       continue;
@@ -697,9 +684,7 @@ function pickRevealEventFallback(candidates: readonly RevealCandidate[]): Reveal
   ];
 
   for (const readKind of fallbackOrder) {
-    const match = candidates.find(
-      (candidate) => candidate.readKind === readKind && candidate.source !== "hard_stop",
-    );
+    const match = candidates.find((candidate) => candidate.readKind === readKind);
 
     if (match !== undefined) {
       return match;
@@ -719,31 +704,12 @@ function prioritizeAndCap(candidates: RevealCandidate[]): RevealCandidate[] {
     "profile",
   ];
   const sorted = [...candidates].sort((first, second) => {
-    if (first.source === "hard_stop" && second.source !== "hard_stop") return -1;
-    if (second.source === "hard_stop" && first.source !== "hard_stop") return 1;
     return priorityOrder.indexOf(first.readKind) - priorityOrder.indexOf(second.readKind);
   });
   return sorted.slice(0, MAX_REVEAL_PROMPT_CANDIDATES);
 }
 
 export function selectDeterministicRevealIds(input: SelectDeterministicRevealIdsInput): string[] {
-  if (input.matchFit.hardStop !== null) {
-    const hardStopCandidate = input.candidates.find(
-      (candidate) => candidate.source === "hard_stop" && candidate.readKind === "boundary",
-    );
-    const ids: string[] = [];
-    if (hardStopCandidate !== undefined) {
-      ids.push(hardStopCandidate.id);
-    }
-    const scenarioPressure = input.candidates.find(
-      (candidate) => candidate.readKind === "scenario_pressure",
-    );
-    if (scenarioPressure !== undefined) {
-      ids.push(scenarioPressure.id);
-    }
-    return ids;
-  }
-
   const dateHealthMagnitude = Math.abs(input.judgeSnapshot.dateHealthDelta);
   const maxStatMagnitude = Object.values(input.judgeSnapshot.statDeltas).reduce<number>(
     (max, value) => Math.max(max, Math.abs(value ?? 0)),
@@ -788,7 +754,6 @@ export function applyJudgeReveals({
   candidates,
   acceptedIds,
   judgeSnapshot,
-  source,
   revealedAt,
 }: ApplyJudgeRevealsInput): {
   save: GameSave;
@@ -808,12 +773,8 @@ export function applyJudgeReveals({
 
     accepted.push(candidate.id);
     const existing = save.playerKnowledge.find((record) => record.readId === candidate.id);
-    const resolvedSource: PlayerKnowledgeSource =
-      source === "hard_stop" || candidate.source === "hard_stop" ? "hard_stop" : source;
     const confidence: PlayerKnowledgeRecord["confidence"] =
-      resolvedSource === "hard_stop" || (existing !== undefined && existing.confidence === "filed")
-        ? "confirmed"
-        : "filed";
+      existing !== undefined && existing.confidence === "filed" ? "confirmed" : "filed";
 
     const record = playerKnowledgeRecordSchema.parse({
       id: `${candidate.id}:${judgeSnapshot.id}`,
@@ -823,7 +784,7 @@ export function applyJudgeReveals({
       readId: candidate.id,
       readText: candidate.readText,
       confidence,
-      source: resolvedSource,
+      source: "judge",
       dateSessionId: judgeSnapshot.dateSessionId,
       judgeSnapshotId: judgeSnapshot.id,
       evidenceText: candidate.evidenceText,

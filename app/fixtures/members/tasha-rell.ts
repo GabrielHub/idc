@@ -4,13 +4,14 @@ export const tashaRell: Member = {
   id: "tasha-rell",
   name: "Tasha Rell",
   firstName: "Tasha",
+  apparentHeightInInches: 68,
   origin: "Hoboken, New Jersey",
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, bullish",
   bio: "Tasha trades for a small prop firm and refers to her own dating life as a portfolio. She has been on a heater since Q3 2025 and is treating Cupid as a high upside asymmetric position with limited downside.",
   datingProfile:
-    "29, hoboken, day trader. high conviction long on dinner Friday, 7 p.m., short notice flexible. Looking for a counterparty who reads my texts, picks a steakhouse, and is not afraid of a person with a 4 a.m. terminal alert. I drive a Lexus. It is leased. I will not lie about that.",
+    "high conviction long on dinner Friday after market close, seeking a counterparty who reads texts and respects a 4am terminal alert. Looking for someone who picks a steakhouse and is not afraid of a person with leverage. I drive a Lexus. It is leased. I will not lie about that.",
   relationshipNeeds: [
     "Someone who matches her energy without trying to short her",
     "A date with a clear time, place, and exit ramp",

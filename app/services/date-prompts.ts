@@ -158,7 +158,6 @@ export type CharacterPromptInput = {
   pairState: PairState;
   memoryPack: MemoryPack;
   focusRequest?: MemberRequest;
-  frictionRuleHits?: readonly string[];
   memorySearchAvailable?: boolean;
   repetitionRetry?: { repeatedLine: string };
   imageAttachments?: readonly CharacterPromptImageAttachment[];
@@ -190,11 +189,6 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     input.focusRequest === undefined || input.focusRequest.memberId !== member.id
       ? ""
       : ` Your ask today: "${input.focusRequest.text}".`;
-  const frictionLine = buildPairFrictionLine({
-    ruleHits: input.frictionRuleHits ?? [],
-    member,
-    partner,
-  });
   const latestIncomingLine = formatLatestIncomingLine(visibleTranscript, member, partner);
   const latestSelfLine = formatLatestSelfLine(visibleTranscript, member);
   const recentSpeakerLines = collectRecentSpeakerLines(
@@ -225,12 +219,15 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       : "If allowed memories are not enough, stay within the supplied prompt context.",
     "You may add soft improv when it stays small, plausible, and answerable by the partner.",
     "Cupid may send private advice through the app. You may accept, resist, or ignore it in character.",
+    "Your origin, dimension, reality status, and reason for using Cupid are your lived context.",
+    "React to strange or ordinary claims from that context. Believe, doubt, argue, accept, or misunderstand as feels true.",
     "Secrets shape your tone as subtext only. Never state them aloud.",
-    "Stay inside the date. Never mention hidden notes, private memory from another member, or future events.",
+    "Stay inside the date. Never mention hidden notes, compatibility labels, private memory from another member, or future events.",
   ].join("\n");
   const setupMessage = [
     "Character card:",
     `${member.name}: ${member.bio}`,
+    `Your frame for Cupid: origin ${member.origin}; dimension ${member.dimension}; species ${member.species}; reality status ${member.realityStatus}.`,
     `What you are trying to get from this date: ${joinAsSentence(member.relationshipNeeds)}`,
     `What makes you relax: ${joinAsSentence(member.preferences)}`,
     `What makes you guarded: ${joinAsSentence(member.dealbreakers)}`,
@@ -249,6 +246,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "This is what is actually in front of you. Use it as grounding, not narration.",
     "Current date facts are the floor, not the ceiling. You may add small plausible details that make the date feel lived in.",
     "Soft improv can include a drink, a snack, a nearby object, a small thing you did today, or a personal anecdote.",
+    "If the partner asks about an undefined part of your world, you may answer with small lore that fits your frame.",
     "Do not use soft improv to change the venue, the participants, hidden secrets, Cupid's systems, hidden outcomes, future events, or serious harm.",
     "If the conversation already introduced a soft detail and nobody contradicted it, treat it as true for this date.",
     "Treat profile details as app context from before this date, not things the partner said tonight. If you use them, call them profile details or ask about them.",
@@ -260,10 +258,10 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "",
     "Partner read:",
     `${partner.name}. ${partner.bio}`,
+    `Their public frame: ${partner.species}. ${partner.realityStatus}.`,
     `One line that shows their energy: ${partnerOpener}`,
     "Listen to what they mean. Do not imitate their vocabulary or performance.",
-    "",
-    `What this pair feels like, as instinct only: ${frictionLine}`,
+    "Do not assume their claims are true or false because the prompt says so. Let your own frame decide how you receive them.",
     "",
     "Place brief:",
     `Date setting: ${scenario.title}, ${scenario.publicBrief.location}.`,
@@ -949,104 +947,6 @@ function formatPromptPreviewContent(content: ModelMessage["content"]): string {
     .join("\n");
 }
 
-function buildPairFrictionLine({
-  ruleHits,
-  member,
-  partner,
-}: {
-  ruleHits: readonly string[];
-  member: Member;
-  partner: Member;
-}): string {
-  const lines: string[] = [];
-
-  for (const hit of ruleHits) {
-    const line = ruleHitToSubtext(hit, member, partner);
-
-    if (line !== null) {
-      lines.push(line);
-    }
-  }
-
-  return lines.length === 0 ? "No specific pair friction flagged." : lines.join(" ");
-}
-
-function ruleHitToSubtext(hit: string, member: Member, partner: Member): string | null {
-  if (hit === "pair:shared_spiral") {
-    return "You both run anxious. Without restraint you will pull each other tighter.";
-  }
-
-  if (hit === "pair:sincerity_vs_performance") {
-    if (member.tags.includes("sincerity_seeking")) {
-      return `${partner.firstName} is reading as performance or evasion. You came here for sincerity.`;
-    }
-
-    return `${partner.firstName} came here for sincerity. They are reading you for the bit.`;
-  }
-
-  if (hit === "pair:status_vs_attention") {
-    if (member.tags.includes("status_sensitive")) {
-      return `${partner.firstName} pulls for attention. Your status muscle reads the room.`;
-    }
-
-    return `${partner.firstName} reads status carefully. Your attention loops land as noise.`;
-  }
-
-  if (hit === "pair:career_alignment") {
-    return `You and ${partner.firstName} both speak in calendars. Mutual respect available.`;
-  }
-
-  if (hit === "pair:ceremony_alignment") {
-    return `You and ${partner.firstName} share formal cadence. Ceremony reads as fluency, not bit.`;
-  }
-
-  if (hit === "pair:mutual_acquisition") {
-    return `You and ${partner.firstName} both run the date as a recruiting funnel. Pact talk meets manifest talk and neither flinches.`;
-  }
-
-  if (hit === "pair:competitive_clash") {
-    return `You and ${partner.firstName} are both competitive. Spark is high, trust is fragile.`;
-  }
-
-  if (hit === "pair:attention_rivalry") {
-    return `You and ${partner.firstName} both pull focus. The room is not big enough for two performers.`;
-  }
-
-  if (hit === "pair:performer_distrust") {
-    return `You and ${partner.firstName} are both performing. Each of you can feel the other doing it.`;
-  }
-
-  if (hit === "pair:grief_low_intimacy_alignment") {
-    return `You and ${partner.firstName} both carry grief. Low pressure makes this restorative.`;
-  }
-
-  if (hit === "pair:grief_high_intimacy_overload") {
-    return `You and ${partner.firstName} both carry grief. This intimacy will compound, not heal.`;
-  }
-
-  if (hit === "pair:weirdness_displaced_recognition") {
-    return `${partner.firstName} knows what it is to be from somewhere else. Mutual recognition available.`;
-  }
-
-  if (hit === "pair:ceremony_vs_performance") {
-    if (member.tags.includes("ceremony_minded")) {
-      return `${partner.firstName} reads as bit. To you, ceremony is real.`;
-    }
-
-    return `${partner.firstName} treats ceremony as real. They will read your bit as mockery.`;
-  }
-
-  if (hit === "pair:privacy_vs_attention") {
-    if (member.tags.includes("privacy_sensitive")) {
-      return `${partner.firstName} pulls attention as a default. Your guard is up.`;
-    }
-
-    return `${partner.firstName} guards privacy hard. Your attention loops feel invasive to them.`;
-  }
-
-  return null;
-}
-
 function formatCurrentSceneLines({
   scenario,
   partner,
@@ -1286,8 +1186,9 @@ export function hasNearDuplicateRecentLine(input: {
   const candidateTokens = tokenizeForRepetition(input.text);
 
   if (candidateTokens.size < 4) {
+    const normalizedCandidate = normalizeForRepetitionCompare(input.text);
     for (const recent of input.recentLines) {
-      if (normalizeForRepetitionCompare(recent) === normalizeForRepetitionCompare(input.text)) {
+      if (normalizeForRepetitionCompare(recent) === normalizedCandidate) {
         return { repeatedLine: recent };
       }
     }

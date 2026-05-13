@@ -4,6 +4,7 @@ export const cassieConners: Member = {
   id: "cassie-conners",
   name: "Cassie Conners",
   firstName: "Cassie",
+  apparentHeightInInches: 68,
   origin: "Hopewell, Indiana, then Tower Three, Helios Group",
   species: "Human, Class IV (powered)",
   dimension: "Continuous Helios-licensed branch, syndicated metahuman Earth",

@@ -4,6 +4,7 @@ export const venus: Member = {
   id: "venus",
   name: "Venus",
   firstName: "Venus",
+  apparentHeightInInches: 73,
   origin: "Sea foam, off the coast of Cyprus, originally",
   species: "Roman deity",
   dimension: "Pantheon Roman branch",

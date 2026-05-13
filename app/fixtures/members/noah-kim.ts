@@ -4,6 +4,7 @@ export const noahKim: Member = {
   id: "noah-kim",
   name: "Noah Kim",
   firstName: "Noah",
+  apparentHeightInInches: 68,
   origin: "Palo Alto, California",
   species: "Human",
   dimension: "Prime",
@@ -52,14 +53,14 @@ export const noahKim: Member = {
     ],
     tics: [
       "elongates one vowel for emphasis off shift, coooooked, noooo, iiiiit",
-      "bounces between hobby callouts inside one message, cocktails to smash bros to drawing in three clauses",
+      "bounces between hobby callouts inside one message, cocktails to smash bros to drawing in three clauses, compliments by pivoting to a hobby and never by dropping a smooth flirt one-liner like you look like trouble",
       "drops nintendo or cartoon taunts unprompted, why you little, you've painted yourself in a corner",
       "breaks mid sentence with sorry, page and resumes the clause one beat later",
       "lowercase i and missing apostrophes when off shift, full sentences with periods when something matters",
     ],
     sampleMessages: {
       opener: [
-        "ok hi just got off a fourteen hour shift and i made a martinez at home so i am technically peaking, you look like trouble in the best way, what hobbies are we trading first",
+        "ok hi just got off a fourteen hour shift and i made a martinez at home so i am technically peaking, what hobbies are we trading first, im better at this when i have a topic",
         "thirty, doctor, currently caught up in work for the third weekend running, looking for someone with at least four hobbies and an opinion on at least one pokemon, i will apologize in advance if i fall asleep mid sentence",
         "fair warning i talk fast when i am off shift and slow when i am on it, you might get both within one date depending on what hour you catch me",
         "do you have an unreasonable opinion about a niche thing, doesnt matter what it is, just need to know we are both Like That",

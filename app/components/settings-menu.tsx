@@ -5,6 +5,12 @@ import { SAVE_SCHEMA_VERSION, type GameConfig } from "../domain/game";
 import { APP_VERSION } from "../platform/release-identity";
 import { isTauriRuntime } from "../platform/runtime";
 import { openTauriLogFolder, openTauriSaveFolder } from "../platform/tauri-log-folder";
+import {
+  checkForDesktopUpdate,
+  installPendingDesktopUpdate,
+  type DesktopUpdateCheckResult,
+} from "../platform/tauri-updater";
+import { errorToMessage } from "../services/utils";
 import type { AiSetupStatus } from "./ai-setup-panel";
 import { MenuButton } from "./dashboard-atoms";
 import { useSfx } from "./sfx-provider";
@@ -24,6 +30,46 @@ export type DiagnosticsSnapshot = {
     checkedAt: string | null;
   };
 };
+
+type UpdateMenuState =
+  | {
+      status: "idle";
+      message: string;
+    }
+  | {
+      status: "checking";
+      message: string;
+    }
+  | {
+      status: "current";
+      message: string;
+    }
+  | {
+      status: "unsupported";
+      message: string;
+    }
+  | {
+      status: "available";
+      version: string;
+      notes: string;
+      date: string | null;
+    }
+  | {
+      status: "installing";
+      version: string;
+      downloadedBytes: number;
+      totalBytes: number | null;
+    }
+  | {
+      status: "error";
+      message: string;
+    };
+
+const INITIAL_UPDATE_STATE: UpdateMenuState = {
+  status: "idle",
+  message: "Check GitHub Releases for a signed desktop build.",
+};
+const LAUNCH_UPDATE_CHECK_DELAY_MS = 1500;
 
 export function buildDiagnosticsSnapshot(input: {
   config: GameConfig | null;
@@ -98,9 +144,11 @@ export function SettingsMenu({
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [isShowingDiagnostics, setIsShowingDiagnostics] = useState(false);
   const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
+  const [updateState, setUpdateState] = useState<UpdateMenuState>(INITIAL_UPDATE_STATE);
   const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled, volume, setVolume, play } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const launchUpdateCheckStartedRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -108,6 +156,23 @@ export function SettingsMenu({
     }
     setIsConfirmingReset(false);
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isTauriRuntime() || launchUpdateCheckStartedRef.current) {
+      return;
+    }
+
+    launchUpdateCheckStartedRef.current = true;
+    let mounted = true;
+    const timer = window.setTimeout(() => {
+      void requestUpdateCheck({ silentFailure: true, mounted: () => mounted });
+    }, LAUNCH_UPDATE_CHECK_DELAY_MS);
+
+    return () => {
+      mounted = false;
+      window.clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     if (!isOpen) {
@@ -188,6 +253,91 @@ export function SettingsMenu({
     window.setTimeout(() => setDiagnosticsCopied(false), 1500);
   }
 
+  async function requestUpdateCheck({
+    silentFailure,
+    mounted = () => true,
+  }: {
+    silentFailure: boolean;
+    mounted?: () => boolean;
+  }) {
+    if (!silentFailure) {
+      setUpdateState({
+        status: "checking",
+        message: "Checking the release desk.",
+      });
+    }
+
+    try {
+      const result = await checkForDesktopUpdate();
+
+      if (!mounted()) {
+        return;
+      }
+
+      setUpdateStateForCheckResult(result);
+    } catch (error) {
+      if (!mounted() || silentFailure) {
+        return;
+      }
+
+      setUpdateState({
+        status: "error",
+        message: errorToMessage(error) || "Update check failed.",
+      });
+    }
+  }
+
+  function setUpdateStateForCheckResult(result: DesktopUpdateCheckResult) {
+    if (result.status === "available") {
+      setUpdateState({
+        status: "available",
+        version: result.version,
+        notes: result.notes,
+        date: result.date,
+      });
+      return;
+    }
+
+    setUpdateState({
+      status: result.status,
+      message: result.message,
+    });
+  }
+
+  async function handleCheckForUpdate() {
+    await requestUpdateCheck({ silentFailure: false });
+  }
+
+  async function handleInstallUpdate() {
+    if (updateState.status !== "available") {
+      return;
+    }
+
+    const version = updateState.version;
+    setUpdateState({
+      status: "installing",
+      version,
+      downloadedBytes: 0,
+      totalBytes: null,
+    });
+
+    try {
+      await installPendingDesktopUpdate((progress) => {
+        setUpdateState({
+          status: "installing",
+          version,
+          downloadedBytes: progress.downloadedBytes,
+          totalBytes: progress.totalBytes,
+        });
+      });
+    } catch (error) {
+      setUpdateState({
+        status: "error",
+        message: errorToMessage(error) || "Update install failed.",
+      });
+    }
+  }
+
   function handleToggleSfx() {
     setSfxEnabled(!sfxEnabled);
   }
@@ -212,6 +362,10 @@ export function SettingsMenu({
   }
 
   const volumePercent = Math.round(volume * 100);
+  const hasAvailableUpdate = updateState.status === "available";
+  const settingsLabel = hasAvailableUpdate
+    ? `Settings. Update v${updateState.version} available.`
+    : "Settings";
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -220,12 +374,17 @@ export function SettingsMenu({
         data-sfx="menu"
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label="Settings"
-        title="Settings"
+        aria-label={settingsLabel}
+        title={settingsLabel}
         onClick={() => setIsOpen((open) => !open)}
-        className="flex cursor-pointer items-center justify-center rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-muted transition hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink"
+        className="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-muted transition hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink"
       >
         <SettingsIcon />
+        {hasAvailableUpdate ? (
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
+            Update
+          </span>
+        ) : null}
       </button>
       <AnimatePresence>
         {isOpen ? (
@@ -318,6 +477,13 @@ export function SettingsMenu({
                     >
                       Show log folder
                     </MenuButton>
+                    <div className="mx-2 my-1 h-px bg-aura-hairline" />
+                    <DesktopUpdateBlock
+                      state={updateState}
+                      disabled={isActionPending}
+                      onCheck={() => void handleCheckForUpdate()}
+                      onInstall={() => void handleInstallUpdate()}
+                    />
                   </>
                 ) : null}
                 <MenuButton
@@ -418,6 +584,100 @@ function DiagnosticsBlock({
       ) : null}
     </div>
   );
+}
+
+function DesktopUpdateBlock({
+  state,
+  disabled,
+  onCheck,
+  onInstall,
+}: {
+  state: UpdateMenuState;
+  disabled: boolean;
+  onCheck: () => void;
+  onInstall: () => void;
+}) {
+  const busy = state.status === "checking" || state.status === "installing";
+  const canInstall = state.status === "available" && !disabled && !busy;
+  const statusLabel = updateStatusLabel(state);
+  const message = updateStatusMessage(state);
+
+  return (
+    <div className="px-1 py-1.5">
+      <div className="flex items-center justify-between gap-2 px-2">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+          Updates
+        </p>
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint">
+          {statusLabel}
+        </span>
+      </div>
+      <p className="px-2 pt-1 text-xs leading-snug text-aura-muted">{message}</p>
+      {state.status === "available" && state.notes.trim().length > 0 ? (
+        <p className="mt-1 line-clamp-2 px-2 text-xs leading-snug text-aura-faint">{state.notes}</p>
+      ) : null}
+      <div className="mt-1">
+        <MenuButton disabled={disabled || busy} onClick={onCheck}>
+          {state.status === "checking" ? "Checking" : "Check for update"}
+        </MenuButton>
+        {state.status === "available" ? (
+          <MenuButton disabled={!canInstall} onClick={onInstall}>
+            Install v{state.version}
+          </MenuButton>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function updateStatusLabel(state: UpdateMenuState): string {
+  switch (state.status) {
+    case "idle":
+      return "manual";
+    case "checking":
+      return "checking";
+    case "current":
+      return "current";
+    case "unsupported":
+      return "desktop";
+    case "available":
+      return `v${state.version}`;
+    case "installing":
+      return "installing";
+    case "error":
+      return "blocked";
+  }
+}
+
+function updateStatusMessage(state: UpdateMenuState): string {
+  switch (state.status) {
+    case "available": {
+      const dateLabel =
+        state.date === null ? "" : ` Published ${new Date(state.date).toLocaleDateString()}.`;
+      return `Signed update v${state.version} is ready.${dateLabel}`;
+    }
+    case "installing":
+      return `Installing v${state.version}. ${formatUpdateProgress(state)}`;
+    default:
+      return state.message;
+  }
+}
+
+function formatUpdateProgress(state: Extract<UpdateMenuState, { status: "installing" }>): string {
+  if (state.totalBytes === null || state.totalBytes <= 0) {
+    return `${formatBytes(state.downloadedBytes)} received.`;
+  }
+
+  const percent = Math.min(100, Math.round((state.downloadedBytes / state.totalBytes) * 100));
+  return `${percent}% received.`;
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024 * 1024) {
+    return `${Math.max(0, Math.round(bytes / 1024))} KB`;
+  }
+
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function DiagnosticsRow({ label, value }: { label: string; value: string }) {

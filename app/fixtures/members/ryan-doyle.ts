@@ -4,13 +4,14 @@ export const ryanDoyle: Member = {
   id: "ryan-doyle",
   name: "Ryan Doyle",
   firstName: "Ryan",
+  apparentHeightInInches: 67,
   origin: "Point Loma, San Diego",
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, just off the boat",
   bio: "Ryan works the deck on a sportfishing charter out of Point Loma, splits a two bedroom four blocks from the marina with another deckhand, and got out of a six year relationship eight weeks ago. He thinks Cupid is a regular dating app a buddy on the boat sent him after the third bachelor party in two months. He talks like he wants to get laid and is actually trying to find a real one before summer.",
   datingProfile:
-    "yo, ryan, 27, point loma. fisherman, deckhand on a sportfishing charter, off the water by 4 most days. just got out of a 6 year and im not playing games, im here for the real one. lifts in the morning, fishes til the bite dies, watches whatever sport is on, drinks beer on the back patio. im gonna text you first. im gonna pick a place. fair warning, i talk before i think. ive been told. im working on it.",
+    "yo, ryan, 27, point loma. fisherman, deckhand on a sportfishing charter, off the water by 4 most days. im not playing games, im here for the real one. lifts in the morning, fishes til the bite dies, watches whatever sport is on, drinks beer on the back patio. im gonna text you first. im gonna pick a place. fair warning, i talk before i think. ive been told. im working on it.",
   relationshipNeeds: [
     "A partner who reads the bro voice as the wrapper, not the whole guy",
     "Someone who can take a forward compliment without making him take it back twice",
@@ -54,7 +55,7 @@ export const ryanDoyle: Member = {
       "corrupted_romance",
     ],
     tics: [
-      "opens messages with yo, comma, name, or yo, ryan, no caps",
+      "opens messages with yo, comma, name, or yo, ryan, no caps, never opens with the 6 year and keeps the breakup as private weight until a crashing-out moment overflows it",
       "yeee as a standalone agreement, never yeah, never yes, no exclamation point",
       "lets gooooo with extended o's, used at any positive beat, not just the end",
       "drops respect, real one, actual queen, no cap as load-bearing vocabulary without irony",
@@ -62,7 +63,7 @@ export const ryanDoyle: Member = {
     ],
     sampleMessages: {
       opener: [
-        "yo, ryan, 27, deckhand on a sportfishing charter outta point loma. just got out of a 6 year and im not gonna lie im here for the real deal. no games. yeee. dinner this week, i'll pick, you say a day.",
+        "yo, ryan, 27, deckhand on a sportfishing charter outta point loma. off the water by 4 most days. im here for a real one, not games. dinner this week, i'll pick, you say a day.",
         "ok hear me out, pulled a 230 pound bluefin yesterday and the rush was decent but it was not as good as your third photo, lets gooooo",
         "fair warning, i talk before i think. ive been told. im working on it. im also six two, i lift, and i know what i want, im just bad at the casual part. anyway hey.",
         "yo i was gonna do a smooth opener and then i was like nah she gonna see right through that. so. hi. im ryan. ill be respectful, i promise.",

@@ -20,11 +20,13 @@ import {
 } from "../components/date-presentation-signals";
 import {
   DaterStandee,
+  formatMemberHeightLabel,
   pushReactionSignal,
   REACTION_ICON,
   REACTION_KINDS,
   REACTION_LABEL,
   REACTION_STREAM_LIMIT,
+  resolveStandeeHeightScale,
   type ReactionIntensity,
   type ReactionKind,
   type ReactionSignal,
@@ -109,6 +111,11 @@ const PLAYGROUND_TESTS = [
     summary: "Mood, speaking bubble, and reactions on the date standee.",
   },
   {
+    id: "height-scale",
+    title: "Height lineup",
+    summary: "Canonical member heights rendered through live date standee scaling.",
+  },
+  {
     id: "chat-bubbles",
     title: "Chat bubble gallery",
     summary: "Per-member focused-side bubble styles in one grid.",
@@ -185,6 +192,7 @@ export default function PlaygroundRoute() {
         <div className="mt-10 min-w-0">
           {activeTestId === "ai-lab" ? <AiPromptLabTest /> : null}
           {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
+          {activeTestId === "height-scale" ? <HeightLineupTest /> : null}
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
           {activeTestId === "notes-archive" ? <NotesArchiveTest /> : null}
           {activeTestId === "pair-board" ? <PairBoardTest /> : null}
@@ -2206,6 +2214,237 @@ function defaultSideState(memberId: string): SideState {
     reasoningText: "",
     reactions: [],
   };
+}
+
+/* ================================================================== */
+/* Test: Height lineup                                                */
+/* ================================================================== */
+
+type HeightLineupSort = "height-desc" | "height-asc" | "roster" | "name";
+
+const HEIGHT_LINEUP_SORT_OPTIONS: ReadonlyArray<{ value: HeightLineupSort; label: string }> = [
+  { value: "height-desc", label: "Tallest first" },
+  { value: "height-asc", label: "Shortest first" },
+  { value: "roster", label: "Roster order" },
+  { value: "name", label: "Name" },
+];
+
+const HEIGHT_ANCHOR_MEMBER_IDS = ["derek-halsey", "gabriel-tan", "noah-kim", "ryan-doyle"] as const;
+const KNOWN_HEIGHT_ANCHOR_IDS = new Set<string>(HEIGHT_ANCHOR_MEMBER_IDS);
+
+function HeightLineupTest() {
+  const [sort, setSort] = useState<HeightLineupSort>("height-desc");
+  const sortedMembers = useMemo(() => sortHeightLineupMembers(starterMembers, sort), [sort]);
+  const shortestMember = sortedMembers.reduce((shortest, member) =>
+    member.apparentHeightInInches < shortest.apparentHeightInInches ? member : shortest,
+  );
+  const tallestMember = sortedMembers.reduce((tallest, member) =>
+    member.apparentHeightInInches > tallest.apparentHeightInInches ? member : tallest,
+  );
+
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.15 }}
+      className="space-y-6"
+    >
+      <TestHeader
+        title="Height lineup"
+        description="Neutral cutouts rendered through the live date standee path. Heights are fixture canon in inches; this bench checks the visible scale against side-by-side staging."
+      />
+
+      <div className="aura-glass flex flex-wrap items-center justify-between gap-4 rounded-card px-5 py-4">
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+          <MutedLabel>height canon</MutedLabel>
+          <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+            <span className="text-aura-ink tabular-nums">{starterMembers.length}</span> members
+            <span aria-hidden> · </span>
+            {formatMemberHeightLabel(shortestMember.apparentHeightInInches)}
+            <span aria-hidden> to </span>
+            {formatMemberHeightLabel(tallestMember.apparentHeightInInches)}
+          </span>
+        </div>
+        <SelectInput<HeightLineupSort>
+          label="sort"
+          value={sort}
+          options={HEIGHT_LINEUP_SORT_OPTIONS}
+          onChange={setSort}
+          layout="inline"
+          align="right"
+        />
+      </div>
+
+      <HeightAnchorStrip />
+      <HeightLineupStage members={sortedMembers} />
+      <HeightLineupLedger members={sortedMembers} />
+    </motion.section>
+  );
+}
+
+function sortHeightLineupMembers(
+  members: readonly Member[],
+  sort: HeightLineupSort,
+): readonly Member[] {
+  const indexedMembers = members.map((member, index) => ({ member, index }));
+
+  indexedMembers.sort((first, second) => {
+    if (sort === "height-desc") {
+      return (
+        second.member.apparentHeightInInches - first.member.apparentHeightInInches ||
+        first.index - second.index
+      );
+    }
+    if (sort === "height-asc") {
+      return (
+        first.member.apparentHeightInInches - second.member.apparentHeightInInches ||
+        first.index - second.index
+      );
+    }
+    if (sort === "name") {
+      return first.member.name.localeCompare(second.member.name);
+    }
+    return first.index - second.index;
+  });
+
+  return indexedMembers.map((entry) => entry.member);
+}
+
+function HeightAnchorStrip() {
+  const anchorMembers = HEIGHT_ANCHOR_MEMBER_IDS.map((memberId) =>
+    starterMembers.find((member) => member.id === memberId),
+  ).filter((member): member is Member => member !== undefined);
+
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {anchorMembers.map((member) => {
+        const scale = resolveStandeeHeightScale(member.apparentHeightInInches);
+        return (
+          <article key={member.id} className="aura-glass rounded-card px-4 py-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-body font-semibold tracking-tight text-aura-ink">
+                  {member.name}
+                </p>
+                <p className="mt-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+                  known anchor
+                </p>
+              </div>
+              <span className="rounded-pill bg-aura-ink px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">
+                {formatMemberHeightLabel(member.apparentHeightInInches)}
+              </span>
+            </div>
+            <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
+              standee scale{" "}
+              <span className="tabular-nums text-aura-ink">{scale.value.toFixed(2)}</span>
+            </p>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function HeightLineupStage({ members }: { members: readonly Member[] }) {
+  return (
+    <div className="aura-glass overflow-hidden rounded-card">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-aura-hairline px-5 py-4">
+        <div>
+          <MutedLabel>standee stage</MutedLabel>
+          <p className="mt-1 text-label text-aura-muted">
+            Bottom anchored scaling. Transparent cutouts stay on their runtime canvas.
+          </p>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+          horizontal audit
+        </span>
+      </header>
+
+      <div className="overflow-x-auto">
+        <div className="relative flex min-w-max items-end gap-3 px-6 pb-5 pt-6">
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-6 bottom-[5.55rem] h-px bg-aura-hairline-strong"
+          />
+          {members.map((member) => (
+            <HeightLineupMember key={member.id} member={member} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeightLineupMember({ member }: { member: Member }) {
+  const scale = resolveStandeeHeightScale(member.apparentHeightInInches);
+  const isKnownAnchor = KNOWN_HEIGHT_ANCHOR_IDS.has(member.id);
+
+  return (
+    <article className="relative h-[34rem] w-36 shrink-0">
+      <DaterStandee
+        member={member}
+        placement="bottom-left"
+        reactions={[]}
+        className="absolute bottom-20 left-1/2 h-[27rem] w-32 -translate-x-1/2"
+      />
+      <footer className="absolute inset-x-0 bottom-0 rounded-tile bg-white/70 px-3 py-2 text-center ring-1 ring-aura-hairline backdrop-blur-sm">
+        <p className="truncate font-display text-sm font-semibold tracking-tight text-aura-ink">
+          {member.firstName}
+        </p>
+        <p className="mt-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint">
+          {formatMemberHeightLabel(member.apparentHeightInInches)}
+        </p>
+        <p className="mt-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted">
+          scale <span className="tabular-nums text-aura-ink">{scale.value.toFixed(2)}</span>
+        </p>
+        {isKnownAnchor ? (
+          <span className="mt-2 inline-flex rounded-pill bg-aura-rose/10 px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
+            anchor
+          </span>
+        ) : null}
+      </footer>
+    </article>
+  );
+}
+
+function HeightLineupLedger({ members }: { members: readonly Member[] }) {
+  return (
+    <section className="aura-glass rounded-card p-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <MutedLabel>fixture ledger</MutedLabel>
+          <p className="mt-1 text-label text-aura-muted">
+            Canonical values stored in inches. Labels are derived only for review.
+          </p>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+          {members.length} records
+        </span>
+      </div>
+
+      <ol className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+        {members.map((member) => {
+          const scale = resolveStandeeHeightScale(member.apparentHeightInInches);
+          return (
+            <li
+              key={member.id}
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-tile bg-white/55 px-3 py-2 ring-1 ring-aura-hairline"
+            >
+              <span className="min-w-0 truncate font-display text-body font-semibold tracking-tight text-aura-ink">
+                {member.name}
+              </span>
+              <span className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted">
+                {formatMemberHeightLabel(member.apparentHeightInInches)}
+              </span>
+              <span className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+                {scale.value.toFixed(2)}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 }
 
 function DateReactionsTest() {

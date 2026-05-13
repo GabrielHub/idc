@@ -50,6 +50,51 @@ export const REACTION_LABEL: Record<ReactionKind, string> = {
 
 export const REACTION_STREAM_LIMIT = 4;
 
+export type StandeeHeightScale = {
+  className: string;
+  value: number;
+};
+
+type StandeeHeightScaleBucket = StandeeHeightScale & {
+  maxHeightInInches: number;
+};
+
+const STANDEE_HEIGHT_SCALE_BUCKETS: readonly StandeeHeightScaleBucket[] = [
+  { maxHeightInInches: 56, className: "scale-[0.84]", value: 0.84 },
+  { maxHeightInInches: 60, className: "scale-[0.9]", value: 0.9 },
+  { maxHeightInInches: 63, className: "scale-[0.94]", value: 0.94 },
+  { maxHeightInInches: 65, className: "scale-[0.96]", value: 0.96 },
+  { maxHeightInInches: 67, className: "scale-[0.99]", value: 0.99 },
+  { maxHeightInInches: 68, className: "scale-100", value: 1 },
+  { maxHeightInInches: 70, className: "scale-[1.03]", value: 1.03 },
+  { maxHeightInInches: 72, className: "scale-[1.05]", value: 1.05 },
+  { maxHeightInInches: 74, className: "scale-[1.08]", value: 1.08 },
+  { maxHeightInInches: 75, className: "scale-110", value: 1.1 },
+  { maxHeightInInches: 76, className: "scale-[1.13]", value: 1.13 },
+  { maxHeightInInches: 79, className: "scale-[1.15]", value: 1.15 },
+  { maxHeightInInches: Number.POSITIVE_INFINITY, className: "scale-[1.18]", value: 1.18 },
+];
+
+export function resolveStandeeHeightScale(heightInInches: number): StandeeHeightScale {
+  const bucket =
+    STANDEE_HEIGHT_SCALE_BUCKETS.find(
+      (candidate) => heightInInches <= candidate.maxHeightInInches,
+    ) ?? STANDEE_HEIGHT_SCALE_BUCKETS[STANDEE_HEIGHT_SCALE_BUCKETS.length - 1];
+
+  return {
+    className: bucket.className,
+    value: bucket.value,
+  };
+}
+
+export function formatMemberHeightLabel(heightInInches: number): string {
+  const normalizedHeight = Math.max(0, Math.round(heightInInches));
+  const feet = Math.floor(normalizedHeight / 12);
+  const inches = normalizedHeight % 12;
+
+  return `${feet} ft ${inches} in`;
+}
+
 export function pushReactionSignal(
   current: readonly ReactionSignal[],
   next: ReactionSignal,
@@ -121,6 +166,7 @@ export function DaterStandee({
   className?: string;
 }) {
   const isFocus = placement === "bottom-left";
+  const heightScale = resolveStandeeHeightScale(member.apparentHeightInInches);
   const baseGlow = isFocus
     ? "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(244,63,94,0.3)_0%,rgba(217,70,239,0.09)_42%,transparent_74%)]"
     : "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(167,139,250,0.26)_0%,rgba(217,70,239,0.08)_42%,transparent_74%)]";
@@ -133,7 +179,9 @@ export function DaterStandee({
       <span aria-hidden className={baseGlow} />
       <MoodAmbientGlow mood={mood} />
       <div className={`relative size-full ${shadowClass}`}>
-        <div className="absolute inset-x-0 bottom-0 aspect-[887/1774]">
+        <div
+          className={`absolute inset-x-0 bottom-0 aspect-[887/1774] origin-bottom ${heightScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+        >
           <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
           <SpeakingBubble
             speaking={speaking}

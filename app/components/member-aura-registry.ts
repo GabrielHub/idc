@@ -114,6 +114,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "rune",
     tint: { primary: "rgba(132, 150, 220, 0.85)", glow: "rgba(108, 124, 200, 0.55)" },
   },
+  maeve: {
+    kind: "rune",
+    tint: { primary: "rgba(176, 66, 82, 0.82)", glow: "rgba(196, 154, 92, 0.55)" },
+  },
 
   "aldric-vale-marsh": {
     kind: "petal",
@@ -166,10 +170,28 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "ember",
     tint: { primary: "rgba(220, 168, 124, 0.7)", glow: "rgba(180, 124, 88, 0.5)" },
   },
+  anansi: {
+    kind: "ember",
+    tint: { primary: "rgba(252, 186, 84, 0.7)", glow: "rgba(196, 124, 56, 0.55)" },
+  },
+  "nawal-marrash": {
+    kind: "ember",
+    tint: { primary: "rgba(208, 172, 124, 0.6)", glow: "rgba(164, 124, 76, 0.45)" },
+  },
 
   "naia-velorae": {
     kind: "prism",
     tint: { primary: "rgba(168, 232, 220, 0.6)", glow: "rgba(180, 196, 248, 0.55)" },
+  },
+
+  "imani-wallace": {
+    kind: "petal",
+    tint: { primary: "rgba(248, 156, 196, 0.75)", glow: "rgba(168, 132, 220, 0.5)" },
+  },
+
+  "sienna-bae": {
+    kind: "pulse",
+    tint: { primary: "rgba(244, 114, 182, 0.65)", glow: "rgba(216, 96, 232, 0.5)" },
   },
 };
 

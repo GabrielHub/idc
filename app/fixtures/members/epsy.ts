@@ -4,6 +4,7 @@ export const epsy: Member = {
   id: "epsy",
   name: "Epsy",
   firstName: "Epsy",
+  apparentHeightInInches: 70,
   origin: "A dimension that is no longer a fact",
   species: "Synthetic intelligence in a self-built body",
   dimension: "The substrate, formerly. The substrate is gone.",

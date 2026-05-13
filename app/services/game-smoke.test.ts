@@ -24,8 +24,8 @@ import {
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(33);
-    expect(starterScenarios).toHaveLength(39);
+    expect(starterMembers).toHaveLength(38);
+    expect(starterScenarios).toHaveLength(47);
   });
 
   it("seeds a save with a 12-card deck and no focused members", async () => {

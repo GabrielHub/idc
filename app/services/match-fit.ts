@@ -1,6 +1,5 @@
 import {
   judgeSnapshotSchema,
-  RELATIONSHIP_STATS,
   type DateScenario,
   type DateSession,
   type JudgeSnapshot,
@@ -9,10 +8,7 @@ import {
   type MemberRequestTag,
   type MemberTag,
   type PairState,
-  type PairStats,
-  type RelationshipStat,
 } from "../domain/game";
-import { clampDelta } from "./utils";
 
 export type MatchFitLevel = "strong" | "neutral" | "risky";
 export type MatchPressureLevel = "low" | "medium" | "high";
@@ -24,18 +20,22 @@ export type MatchFitPublicSignal = {
   askSignal: MatchAskSignal;
 };
 
-export type MatchFitHardStop = {
+export type MatchFitBoundaryRisk = {
   memberId: string;
   reason: string;
 };
 
 export type MatchFitResult = MatchFitPublicSignal & {
   startingDateHealthDelta: number;
-  exchangeDateHealthDrift: number;
-  hardStop: MatchFitHardStop | null;
+  boundaryRisk: MatchFitBoundaryRisk | null;
   blockedRequestIds: string[];
   coveredRequestIds: string[];
   internalRuleHits: string[];
+};
+
+export type MatchRecommendationCandidate<TCandidate> = {
+  candidate: TCandidate;
+  fit: MatchFitResult;
 };
 
 export type EvaluateMatchFitInput = {
@@ -48,12 +48,9 @@ export type EvaluateMatchFitInput = {
 export type ApplyMatchFitToJudgeInput = {
   session: DateSession;
   pairState: PairState;
-  members: readonly Member[];
   judgeSnapshot: JudgeSnapshot;
-  fit: MatchFitResult;
 };
 
-const HARD_STOP_SCORE = 5;
 const HIGH_PRESSURE_THRESHOLD = 6;
 const MEDIUM_PRESSURE_THRESHOLD = 3;
 const WALKOUT_DATE_HEALTH_THRESHOLD = 15;
@@ -61,6 +58,8 @@ const WALKOUT_SOFT_HEALTH_THRESHOLD = 25;
 const WALKOUT_STRAIN_THRESHOLD = 70;
 const WALKOUT_CONFLICT_THRESHOLD = 70;
 const SHARP_DROP_THRESHOLD = -8;
+const RECOMMENDATION_MIN_STARTING_HEALTH_DELTA = 5;
+const RECOMMENDATION_MIN_SCORE_LEAD = 3;
 const PROPHECY_BLOCKED_REQUEST_TAGS = [
   "prophecy_averse",
   "normal_date",
@@ -109,23 +108,22 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
 
   score += pairTraitScore(firstMember, secondMember, input.pairState, input.scenario, ruleHits);
 
-  const hardStop = findHardStop(members, input.scenario);
+  const boundaryRisk = findBoundaryRisk(members, input.scenario);
   const requestSignals = evaluateRequestSignals({
     members,
     scenario: input.scenario,
     activeRequests: input.activeRequests ?? [],
-    hardStop,
+    boundaryRisk,
   });
   const requestScore = requestSignalScore(requestSignals.askSignal);
-  const totalScore = hardStop === null ? score + requestScore : score + requestScore - 12;
+  const totalScore = boundaryRisk === null ? score + requestScore : score + requestScore - 12;
 
   return {
-    fitLevel: toFitLevel(totalScore, hardStop),
+    fitLevel: toFitLevel(totalScore, boundaryRisk),
     pressureLevel: toPressureLevel(pressure),
     askSignal: requestSignals.askSignal,
     startingDateHealthDelta: clamp(totalScore, -12, 12),
-    exchangeDateHealthDrift: clamp(Math.round(totalScore / 5), -3, 3),
-    hardStop,
+    boundaryRisk,
     blockedRequestIds: requestSignals.blockedRequestIds,
     coveredRequestIds: requestSignals.coveredRequestIds,
     internalRuleHits: ruleHits,
@@ -136,8 +134,39 @@ export function isMemberRequestBlocked(fit: MatchFitResult, requestId: string): 
   return fit.blockedRequestIds.includes(requestId);
 }
 
-export function pairRuleHits(fit: MatchFitResult): string[] {
-  return fit.internalRuleHits.filter((hit) => hit.startsWith("pair:"));
+export function chooseRecommendedMatchCandidate<TCandidate>(
+  candidates: readonly MatchRecommendationCandidate<TCandidate>[],
+): TCandidate | null {
+  const recommendable = candidates
+    .filter((entry) => isRecommendableMatchFit(entry.fit))
+    .sort(
+      (first, second) => second.fit.startingDateHealthDelta - first.fit.startingDateHealthDelta,
+    );
+  const [best, runnerUp] = recommendable;
+
+  if (best === undefined) {
+    return null;
+  }
+
+  if (
+    runnerUp !== undefined &&
+    best.fit.startingDateHealthDelta - runnerUp.fit.startingDateHealthDelta <
+      RECOMMENDATION_MIN_SCORE_LEAD
+  ) {
+    return null;
+  }
+
+  return best.candidate;
+}
+
+function isRecommendableMatchFit(fit: MatchFitResult): boolean {
+  return (
+    fit.fitLevel === "strong" &&
+    fit.pressureLevel !== "high" &&
+    fit.askSignal !== "blocked" &&
+    fit.boundaryRisk === null &&
+    fit.startingDateHealthDelta >= RECOMMENDATION_MIN_STARTING_HEALTH_DELTA
+  );
 }
 
 export function buildPublicRiskNotes({
@@ -159,11 +188,11 @@ export function buildPublicRiskNotes({
 
   for (const member of members) {
     if (scenarioTags.includes("prophecy") && hasTag(member, "prophecy_averse")) {
-      notes.push(`${member.firstName} flags prophecy as a dealbreaker. One trigger ends the date.`);
+      notes.push(`${member.firstName} flags prophecy as a hard boundary. Keep the scene careful.`);
     }
 
     if (scenarioTags.includes("public") && hasTag(member, "privacy_sensitive")) {
-      notes.push(`${member.firstName} cannot do public. The venue is the risk.`);
+      notes.push(`${member.firstName} cannot do public pressure. The venue is the risk.`);
     }
 
     if (
@@ -175,7 +204,7 @@ export function buildPublicRiskNotes({
   }
 
   if (fitSignal.askSignal === "blocked" && focusRequests.length > 0 && focusMember !== undefined) {
-    notes.push(`${focusMember.firstName}'s ask is blocked here. The booking will not honor it.`);
+    notes.push(`${focusMember.firstName}'s ask is under pressure here. The booking makes it hard.`);
   }
 
   if (scenarioRepeatCount > 0) {
@@ -185,81 +214,11 @@ export function buildPublicRiskNotes({
   return Array.from(new Set(notes)).slice(0, 2);
 }
 
-export function applyMatchFitToJudgeSnapshot({
-  session,
-  pairState,
-  members,
-  judgeSnapshot,
-  fit,
-}: ApplyMatchFitToJudgeInput): JudgeSnapshot {
-  if (fit.hardStop !== null) {
-    const memberMoodDeltas = Object.fromEntries(
-      members.map((member) => [
-        member.id,
-        clampDelta((judgeSnapshot.memberMoodDeltas[member.id] ?? 0) - 8),
-      ]),
-    );
-
-    return judgeSnapshotSchema.parse({
-      ...judgeSnapshot,
-      dateHealthDelta: clampDelta(HARD_STOP_SCORE - session.dateHealth),
-      statDeltas: {
-        ...judgeSnapshot.statDeltas,
-        ...hardStopStatDeltas(pairState.stats),
-      },
-      memberMoodDeltas,
-      shouldEndEarly: true,
-      earlyEndReason: fit.hardStop.reason,
-      endSentiment: "negative",
-      notableMoments: [fit.hardStop.reason, ...judgeSnapshot.notableMoments].slice(0, 3),
-      playerSummary: "Dealbreaker tripped. Date Health collapsed. Recommend Repair.",
-    });
-  }
-
-  const driftedSnapshot =
-    fit.exchangeDateHealthDrift === 0
-      ? judgeSnapshot
-      : applyFitDriftToJudgeSnapshot(judgeSnapshot, members, fit.exchangeDateHealthDrift);
-
+export function applyMatchFitToJudgeSnapshot(input: ApplyMatchFitToJudgeInput): JudgeSnapshot {
   return applyWalkoutEscalation({
-    session,
-    pairState,
-    judgeSnapshot: driftedSnapshot,
-    fit,
-  });
-}
-
-function applyFitDriftToJudgeSnapshot(
-  judgeSnapshot: JudgeSnapshot,
-  members: readonly Member[],
-  drift: number,
-): JudgeSnapshot {
-  const driftMagnitude = Math.abs(drift);
-  const statDeltas =
-    drift > 0
-      ? {
-          trust: drift,
-          stability: drift,
-          relationshipHealth: drift,
-        }
-      : {
-          conflict: driftMagnitude,
-          strain: driftMagnitude,
-          stability: drift,
-          relationshipHealth: drift,
-        };
-  const memberMoodDeltas = Object.fromEntries(
-    members.map((member) => [
-      member.id,
-      clampDelta((judgeSnapshot.memberMoodDeltas[member.id] ?? 0) + Math.sign(drift)),
-    ]),
-  );
-
-  return judgeSnapshotSchema.parse({
-    ...judgeSnapshot,
-    dateHealthDelta: clampDelta(judgeSnapshot.dateHealthDelta + drift),
-    statDeltas: mergeStatDeltas(judgeSnapshot.statDeltas, statDeltas),
-    memberMoodDeltas,
+    session: input.session,
+    pairState: input.pairState,
+    judgeSnapshot: input.judgeSnapshot,
   });
 }
 
@@ -267,18 +226,16 @@ function applyWalkoutEscalation({
   session,
   pairState,
   judgeSnapshot,
-  fit,
 }: {
   session: DateSession;
   pairState: PairState;
   judgeSnapshot: JudgeSnapshot;
-  fit: MatchFitResult;
 }): JudgeSnapshot {
   if (judgeSnapshot.shouldEndEarly) {
     return judgeSnapshot;
   }
 
-  if (!shouldEscalateWalkout({ session, pairState, judgeSnapshot, fit })) {
+  if (!shouldEscalateWalkout({ session, pairState, judgeSnapshot })) {
     return judgeSnapshot;
   }
 
@@ -298,22 +255,18 @@ function shouldEscalateWalkout({
   session,
   pairState,
   judgeSnapshot,
-  fit,
 }: {
   session: DateSession;
   pairState: PairState;
   judgeSnapshot: JudgeSnapshot;
-  fit: MatchFitResult;
 }): boolean {
   const projectedDateHealth = session.dateHealth + judgeSnapshot.dateHealthDelta;
   const projectedStrain = pairState.stats.strain + (judgeSnapshot.statDeltas.strain ?? 0);
   const projectedConflict = pairState.stats.conflict + (judgeSnapshot.statDeltas.conflict ?? 0);
-  const pressureTriggered =
-    fit.fitLevel === "risky" || fit.pressureLevel === "high" || fit.askSignal === "blocked";
   const highTension =
     projectedStrain >= WALKOUT_STRAIN_THRESHOLD || projectedConflict >= WALKOUT_CONFLICT_THRESHOLD;
 
-  if (projectedDateHealth <= WALKOUT_DATE_HEALTH_THRESHOLD && (pressureTriggered || highTension)) {
+  if (projectedDateHealth <= WALKOUT_DATE_HEALTH_THRESHOLD && highTension) {
     return true;
   }
 
@@ -419,16 +372,12 @@ function pairTraitScore(
     ruleHits.push("pair:career_alignment");
   }
 
-  if (
-    oneHasTag(firstMember, secondMember, "career_focused") &&
-    oneHasTag(firstMember, secondMember, "status_sensitive")
-  ) {
+  if (splitHaveTags(firstMember, secondMember, "career_focused", "status_sensitive")) {
     score += 1;
   }
 
   if (
-    oneHasTag(firstMember, secondMember, "ordinary_human") &&
-    oneHasTag(firstMember, secondMember, "non_human") &&
+    splitHaveTags(firstMember, secondMember, "ordinary_human", "non_human") &&
     pairState.stats.weirdnessTolerance >= 55
   ) {
     score += 1;
@@ -469,10 +418,7 @@ function pairTraitScore(
     }
   }
 
-  if (
-    oneHasTag(firstMember, secondMember, "weirdness_native") &&
-    oneHasTag(firstMember, secondMember, "reality_displaced")
-  ) {
+  if (splitHaveTags(firstMember, secondMember, "weirdness_native", "reality_displaced")) {
     score += 1;
     ruleHits.push("pair:weirdness_displaced_recognition");
   }
@@ -550,7 +496,10 @@ function memberPressure(member: Member, scenario: DateScenario): number {
   return pressure;
 }
 
-function findHardStop(members: readonly Member[], scenario: DateScenario): MatchFitHardStop | null {
+function findBoundaryRisk(
+  members: readonly Member[],
+  scenario: DateScenario,
+): MatchFitBoundaryRisk | null {
   for (const member of members) {
     if (hasTag(member, "prophecy_averse") && scenario.card.tags.includes("prophecy")) {
       return {
@@ -585,12 +534,12 @@ function evaluateRequestSignals({
   members,
   scenario,
   activeRequests,
-  hardStop,
+  boundaryRisk,
 }: {
   members: readonly [Member, Member];
   scenario: DateScenario;
   activeRequests: readonly MemberRequest[];
-  hardStop: MatchFitHardStop | null;
+  boundaryRisk: MatchFitBoundaryRisk | null;
 }): {
   askSignal: MatchAskSignal;
   blockedRequestIds: string[];
@@ -611,7 +560,7 @@ function evaluateRequestSignals({
       continue;
     }
 
-    const status = evaluateRequestFit(request, member, partner, scenario, hardStop);
+    const status = evaluateRequestFit(request, member, partner, scenario, boundaryRisk);
 
     if (status === "blocked") {
       blockedRequestIds.push(request.id);
@@ -642,9 +591,9 @@ function evaluateRequestFit(
   member: Member,
   partner: Member,
   scenario: DateScenario,
-  hardStop: MatchFitHardStop | null,
+  boundaryRisk: MatchFitBoundaryRisk | null,
 ): MatchAskSignal {
-  if (hardStop?.memberId === member.id) {
+  if (boundaryRisk?.memberId === member.id) {
     return "blocked";
   }
 
@@ -728,8 +677,8 @@ function requestSignalScore(signal: MatchAskSignal): number {
   return 0;
 }
 
-function toFitLevel(score: number, hardStop: MatchFitHardStop | null): MatchFitLevel {
-  if (hardStop !== null || score <= -5) {
+function toFitLevel(score: number, boundaryRisk: MatchFitBoundaryRisk | null): MatchFitLevel {
+  if (boundaryRisk !== null || score <= -5) {
     return "risky";
   }
 
@@ -744,37 +693,6 @@ function toPressureLevel(pressure: number): MatchPressureLevel {
   return pressure >= MEDIUM_PRESSURE_THRESHOLD ? "medium" : "low";
 }
 
-function hardStopStatDeltas(stats: PairStats): Partial<Record<RelationshipStat, number>> {
-  return {
-    chemistry: clampDelta(10 - stats.chemistry),
-    trust: clampDelta(10 - stats.trust),
-    stability: clampDelta(10 - stats.stability),
-    conflict: clampDelta(90 - stats.conflict),
-    spark: clampDelta(5 - stats.spark),
-    strain: clampDelta(90 - stats.strain),
-    relationshipHealth: clampDelta(HARD_STOP_SCORE - stats.relationshipHealth),
-  };
-}
-
-function mergeStatDeltas(
-  existingDeltas: Partial<Record<RelationshipStat, number>>,
-  newDeltas: Partial<Record<RelationshipStat, number>>,
-): Partial<Record<RelationshipStat, number>> {
-  const nextDeltas: Partial<Record<RelationshipStat, number>> = { ...existingDeltas };
-
-  for (const stat of RELATIONSHIP_STATS) {
-    const newDelta = newDeltas[stat];
-
-    if (newDelta === undefined) {
-      continue;
-    }
-
-    nextDeltas[stat] = clampDelta((nextDeltas[stat] ?? 0) + newDelta);
-  }
-
-  return nextDeltas;
-}
-
 function hasTag(member: Member, tag: MemberTag): boolean {
   return member.tags.includes(tag);
 }
@@ -785,6 +703,18 @@ function oneHasTag(firstMember: Member, secondMember: Member, tag: MemberTag): b
 
 function bothHaveTag(firstMember: Member, secondMember: Member, tag: MemberTag): boolean {
   return hasTag(firstMember, tag) && hasTag(secondMember, tag);
+}
+
+function splitHaveTags(
+  firstMember: Member,
+  secondMember: Member,
+  firstTag: MemberTag,
+  secondTag: MemberTag,
+): boolean {
+  return (
+    (hasTag(firstMember, firstTag) && hasTag(secondMember, secondTag)) ||
+    (hasTag(firstMember, secondTag) && hasTag(secondMember, firstTag))
+  );
 }
 
 function requireTwoMembers(members: readonly Member[]): [Member, Member] {

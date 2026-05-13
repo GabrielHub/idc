@@ -4,14 +4,17 @@ import type { Member } from "../domain/game";
 export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "jenna-pike",
   "vhool",
+  "sienna-bae",
   "kade-sumner",
   "mr-whiskers",
   "opal-sunday",
   "venus",
+  "anansi",
   "gideon-glass",
   "meridian-vale",
   "aldric-vale-marsh",
   "sana-karim",
+  "imani-wallace",
   "epsy",
   "marcus-pellish",
   "cassie-conners",
@@ -31,10 +34,12 @@ export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "reaver",
   "derek-halsey",
   "cha-yusung",
+  "nawal-marrash",
   "tasha-rell",
   "idris-mahari",
   "toby-wenz",
   "brady-strait",
+  "maeve",
 ];
 
 type CuratedMember = Pick<Member, "id" | "firstName">;

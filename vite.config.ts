@@ -17,6 +17,7 @@ const packageJson = JSON.parse(readFileSync(resolve(process.cwd(), "package.json
   version: string;
 };
 const APP_VERSION = packageJson.version;
+const CHUNK_TARGET_BYTES = 420 * 1024;
 
 export default defineConfig({
   plugins: [
@@ -31,6 +32,57 @@ export default defineConfig({
   },
   resolve: {
     tsconfigPaths: true,
+  },
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          minSize: 32 * 1024,
+          groups: [
+            {
+              name: "react-vendor",
+              test: /node_modules[\\/](?:@react-router|react|react-dom|react-router)[\\/]/,
+              priority: 50,
+            },
+            {
+              name: "motion-vendor",
+              test: /node_modules[\\/]motion[\\/]/,
+              priority: 40,
+            },
+            {
+              name: "ai-vendor",
+              test: /node_modules[\\/](?:@ai-sdk|ai|ai-sdk-ollama|zod)[\\/]/,
+              priority: 30,
+              maxSize: CHUNK_TARGET_BYTES,
+            },
+            {
+              name: "game-domain",
+              test: /[\\/]app[\\/]domain[\\/]/,
+              priority: 25,
+              minSize: 0,
+            },
+            {
+              name: "fixture-data",
+              test: /[\\/]app[\\/]fixtures[\\/]/,
+              priority: 20,
+              maxSize: CHUNK_TARGET_BYTES,
+            },
+            {
+              name: "game-services",
+              test: /[\\/]app[\\/]services[\\/]/,
+              priority: 10,
+              maxSize: CHUNK_TARGET_BYTES,
+            },
+            {
+              name: "dashboard-ui",
+              test: /[\\/]app[\\/]components[\\/]/,
+              priority: 5,
+              maxSize: CHUNK_TARGET_BYTES,
+            },
+          ],
+        },
+      },
+    },
   },
   test: {
     environment: "node",

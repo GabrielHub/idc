@@ -4,6 +4,7 @@ export const reaver: Member = {
   id: "reaver",
   name: "Reaver",
   firstName: "Reaver",
+  apparentHeightInInches: 74,
   origin: "The 13th Recovery Column, Vorek-Zai theatre",
   species: "Human",
   dimension: "Grimdark interplanetary-war branch, Vorek-Zai stripping economy",

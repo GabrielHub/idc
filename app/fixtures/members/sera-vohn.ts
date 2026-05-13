@@ -4,6 +4,7 @@ export const seraVohn: Member = {
   id: "sera-vohn",
   name: "Sera Vohn",
   firstName: "Sera",
+  apparentHeightInInches: 71,
   origin: "Lower Manhattan, Sublayer C, the year twenty eighty seven",
   species: "Human",
   dimension: "Consumer cyberpunk branch, NYC late twenty first century",

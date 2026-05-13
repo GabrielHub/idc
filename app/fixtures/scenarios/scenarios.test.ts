@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { starterMembers } from "../members";
 import { starterScenarios } from "./index";
 
 const OFFSTAGE_SPEAKER_PATTERNS = [
@@ -39,6 +40,11 @@ const REVEAL_BIOGRAPHY_DRIFT_PATTERNS = [
   /\bspecific summer\b/i,
 ];
 
+type ScenarioNameReference = {
+  scenarioId: string;
+  referencedName: string;
+};
+
 function eventHasOffstageCue(eventText: string): boolean {
   const mentionsRole = OFFSTAGE_SPEAKER_ROLE_PATTERN.test(eventText);
   const hasUtterance = ENVIRONMENTAL_UTTERANCE_PATTERNS.some((pattern) => pattern.test(eventText));
@@ -47,9 +53,60 @@ function eventHasOffstageCue(eventText: string): boolean {
   return mentionsRole || hasUtterance || hasSpeechVerb;
 }
 
+function scenarioDesignText(scenario: (typeof starterScenarios)[number]): string {
+  return [
+    scenario.id,
+    scenario.title,
+    scenario.card.summary,
+    ...scenario.card.idealFor,
+    ...scenario.card.badFor,
+    scenario.publicBrief.location,
+    scenario.publicBrief.premise,
+    scenario.publicBrief.openingSituation,
+    scenario.publicBrief.whatBothCharactersKnow,
+    scenario.director.tone,
+    ...scenario.director.rules,
+    ...scenario.director.earlyEndTriggers,
+    scenario.director.repeatBehavior,
+    ...scenario.judgeRubric.successSignals,
+    ...scenario.judgeRubric.failureSignals,
+    ...scenario.director.events.flatMap((event) => [
+      event.id,
+      event.title,
+      event.event,
+      event.characterVisibleText,
+      event.directorInstruction,
+    ]),
+  ].join("\n");
+}
+
+function containsName(text: string, name: string): boolean {
+  const escaped = name.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&");
+  const pattern = new RegExp(`(^|[^A-Za-z0-9])${escaped}($|[^A-Za-z0-9])`);
+
+  return pattern.test(text);
+}
+
 describe("scenario fixtures", () => {
-  it("ships exactly 39 starter scenarios", () => {
-    expect(starterScenarios).toHaveLength(39);
+  it("ships exactly 47 starter scenarios", () => {
+    expect(starterScenarios).toHaveLength(47);
+  });
+
+  it("does not point scenario designs at specific members", () => {
+    const memberNames = starterMembers.flatMap((member) => [member.name, member.firstName]);
+    const violations: ScenarioNameReference[] = [];
+
+    for (const scenario of starterScenarios) {
+      const text = scenarioDesignText(scenario);
+
+      for (const name of memberNames) {
+        if (containsName(text, name)) {
+          violations.push({ scenarioId: scenario.id, referencedName: name });
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
   });
 
   // Per-kind event counts are enforced by dateScenarioSchema at fixture parse time

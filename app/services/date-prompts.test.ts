@@ -1091,6 +1091,8 @@ describe("character prompt repetition guard", () => {
     expect(packet.prompt).toContain("Vhool's last 3 lines, do not echo verbatim:");
     expect(packet.prompt).toContain("Vhool counted the brass receipts on the saucer.");
     expect(packet.prompt).toContain("Vhool offered to share the saucer with the receipts.");
+    expect(packet.prompt).not.toContain("What this pair feels like");
+    expect(packet.prompt).not.toContain("No specific pair friction flagged");
     expect(packet.prompt).not.toContain("Retry guard:");
   });
 

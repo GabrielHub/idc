@@ -51,10 +51,14 @@
 ## Documentation
 
 - Code, tests, fixtures, and assets are the source of truth for implemented product behavior.
-- `docs/world/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
-- `docs/world/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
-- `docs/world/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
-- Future world docs should own remaining concerns: lore, naming, and content feel.
+- `docs/product/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
+- `docs/product/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
+- `docs/product/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
+- `docs/product/gameplay-traits.md` owns hidden tags, player knowledge, filed reads, match fit, closures, and chemistry pressure.
+- `docs/workflows/add-member.md` owns the repeatable checklist for adding a new member.
+- `docs/workflows/add-date-scenario.md` owns the repeatable checklist for adding a new date scenario.
+- `docs/workflows/visual-asset-iteration.md` owns independent member portrait, portrait variant, and scenario background generation.
+- Future product docs should own remaining concerns: lore, naming, and content feel.
 
 ## Copy Style
 
@@ -72,7 +76,7 @@
 - Runtime AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
 - Generate v1 member portraits against a white background.
-- Follow the webtoon/manhua portrait direction in `docs/world/image-style.md`.
+- Follow the webtoon/manhua portrait direction in `docs/product/image-style.md`.
 - Use `scripts/portraits/remove_background.py` with `bria-rmbg` for approved portrait cutouts.
 - Tool-assisted background removal is a final post-approval asset step for cutout images. Do not use it for full backdrops or unique portrait cards.
 
@@ -85,8 +89,8 @@
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
 - Minimum font size is `text-xs` or 12px. Never use smaller arbitrary text.
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
-- Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/world/visual-design.md`.
-- Preserve the Aura design language described in `app/app.css` and `docs/world/visual-design.md`.
+- Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/product/visual-design.md`.
+- Preserve the Aura design language described in `app/app.css` and `docs/product/visual-design.md`.
 - Do not create a marketing landing page for the playable game shell.
 
 ## Verification

@@ -24,11 +24,11 @@ describe("member roster order", () => {
     expect(orderedIds.slice(0, 7)).toEqual([
       "jenna-pike",
       "vhool",
+      "sienna-bae",
       "kade-sumner",
       "mr-whiskers",
       "opal-sunday",
       "venus",
-      "gideon-glass",
     ]);
   });
 

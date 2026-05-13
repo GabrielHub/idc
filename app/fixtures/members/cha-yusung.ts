@@ -4,6 +4,7 @@ export const chaYusung: Member = {
   id: "cha-yusung",
   name: "Cha Yusung",
   firstName: "Yusung",
+  apparentHeightInInches: 73,
   origin: "Seoul, post-Gate, year following the Second Gate",
   species: "Human",
   dimension: "Continuous Awakened branch, post-Gate Seoul lineage",

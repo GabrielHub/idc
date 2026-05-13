@@ -4,6 +4,7 @@ export const tobyWenz: Member = {
   id: "toby-wenz",
   name: "Toby Wenz",
   firstName: "Toby",
+  apparentHeightInInches: 70,
   origin: "Findlay, Ohio",
   species: "Human",
   dimension: "Prime",

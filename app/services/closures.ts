@@ -48,7 +48,7 @@ export type ClosureReadinessInput = {
   members: readonly ClosureReadinessMember[];
 };
 
-/** Hard rule for closure readiness. See docs/world/gameplay-traits.md "Case closures and win conditions". */
+/** Hard rule for closure readiness. See docs/product/gameplay-traits.md "Case closures and win conditions". */
 export function evaluateClosureReadiness({
   pairState,
   outcome,

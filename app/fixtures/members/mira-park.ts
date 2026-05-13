@@ -4,6 +4,7 @@ export const miraPark: Member = {
   id: "mira-park",
   name: "Mira Park",
   firstName: "Mira",
+  apparentHeightInInches: 69,
   origin: "Hayes Valley, San Francisco",
   species: "Human",
   dimension: "Prime",
