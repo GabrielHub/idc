@@ -4,7 +4,7 @@ export const decimusMariusTullio: Member = {
   id: "decimus-marius-tullio",
   name: "Decimus Marius Tullio",
   firstName: "Decimus",
-  characterHeightInInches: 72,
+  characterHeightInInches: 68,
   standeeRenderHeightInInches: 72,
   origin: "Mediolanum, Provincia Italia",
   species: "Human",

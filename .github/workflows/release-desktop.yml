@@ -168,7 +168,9 @@ jobs:
 
       - name: Build signed desktop package
         shell: pwsh
-        run: vp run tauri:build
+        run: |
+          vp run build:desktop
+          vp exec tauri build --ci --config '{ "build": { "beforeBuildCommand": "" } }'
 
       - name: Prepare release assets
         id: assets
@@ -193,8 +195,20 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  IDC_${version}_x64-setup.exe" | Set-Content -LiteralPath $checksum -Encoding ascii
 
-          $versionTags = @(git tag --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
-          $previousTag = $versionTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
+          $releaseListJson = (gh release list --repo $env:GITHUB_REPOSITORY --limit 50 --json tagName,isDraft) -join "`n"
+          $publishedTags = @()
+          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($releaseListJson)) {
+            $publishedTags = @(($releaseListJson | ConvertFrom-Json) | Where-Object {
+              -not $_.isDraft -and $_.tagName -match '^v\d+\.\d+\.\d+$'
+            } | ForEach-Object { $_.tagName })
+          }
+
+          $previousTag = $publishedTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($previousTag)) {
+            $versionTags = @(git tag --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
+            $previousTag = $versionTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
+          }
+
           if ([string]::IsNullOrWhiteSpace($previousTag)) {
             $changeRange = $env:RELEASE_TAG
             $changeIntro = "Changes in this release:"
