@@ -12,12 +12,51 @@ import {
   advanceDateExchangeWithLocalAi,
   advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAi,
+  sanitizeCharacterText,
   type LocalAiDateRuntime,
   type LocalAiDateStreamEvent,
 } from "./ai-date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
+
+describe("AI date text sanitation", () => {
+  it("removes bare action narration while keeping spoken text", () => {
+    expect(
+      sanitizeCharacterText(
+        "laughs once, quiet. you know, that is the most normal offer in months.",
+        "Jenna Pike",
+      ),
+    ).toBe("you know, that is the most normal offer in months.");
+    expect(
+      sanitizeCharacterText(
+        "I release the tablet. The screen now asks for tonight's winner, no omen attached.",
+        "Bai Wenshu of the Falling Plum Sect",
+      ),
+    ).toBe("The screen now asks for tonight's winner, no omen attached.");
+    expect(
+      sanitizeCharacterText(
+        "I am pressing the tablet now. Thy laugh earns a mark in my private count.",
+        "Bai Wenshu of the Falling Plum Sect",
+      ),
+    ).toBe("Thy laugh earns a mark in my private count.");
+  });
+
+  it("keeps first-person spoken admissions", () => {
+    expect(sanitizeCharacterText("I am glad you accept both uses.", "Vhool")).toBe(
+      "I am glad you accept both uses.",
+    );
+  });
+
+  it("removes unmatched double quotes without touching balanced quoted phrases", () => {
+    expect(
+      sanitizeCharacterText('Torn" by Natalie Imbruglia. It is not a destiny.', "Opal Sunday"),
+    ).toBe("Torn by Natalie Imbruglia. It is not a destiny.");
+    expect(sanitizeCharacterText('The texts say "hold frame".', "Bai Wenshu")).toBe(
+      'The texts say "hold frame".',
+    );
+  });
+});
 
 describe("AI date engine orchestration", () => {
   it("runs character, judge, summarizer, embedding, and deterministic memory retrieval", async () => {
@@ -474,6 +513,136 @@ describe("AI date engine orchestration", () => {
     expect(result.warningMessages.join(" ")).toContain(
       "Structured memory output failed, but the date was filed.",
     );
+  });
+
+  it("lets a validated AI judge snapshot end a date before the turn limit", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-early-end-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 8,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let generatedTurns = 0;
+    let summarized = false;
+    const generatedLines = [
+      "Jenna asks why the top receipt knows her locker number.",
+      "Vhool folds the corner and asks whether paper can consent.",
+      "Jenna pushes the cup away and names the question as too close.",
+      "Vhool admits the loop answered before either of them spoke.",
+      "Jenna says the table can keep its prophecy and stands up.",
+      "Vhool lets the chair scrape back without making a joke.",
+    ];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        generatedTurns += 1;
+        const line = generatedLines[generatedTurns - 1];
+
+        return {
+          text: line ?? `Receipt exit line ${generatedTurns}.`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: -10,
+          statDeltas: {
+            conflict: 4,
+            strain: 5,
+            relationshipHealth: -7,
+          },
+          memberMoodDeltas: {
+            "jenna-pike": -4,
+            vhool: -3,
+          },
+          shouldEndEarly: true,
+          earlyEndReason: "Jenna stopped after the receipt loop got personal.",
+          endSentiment: "negative",
+          notableMoments: ["Jenna stopped answering after the receipt got personal."],
+          playerSummary: "Cupid stopped the receipt loop before it ate the table.",
+          memoryCandidates: [],
+          usedEvidenceIds: [],
+        }),
+      summarizeDateMemories: async () => {
+        summarized = true;
+
+        return [
+          memoryCandidateSchema.parse({
+            scope: "pair",
+            visibility: "public",
+            subjectIds: ["jenna-pike", "vhool"],
+            pairId: started.session.pairId,
+            scenarioId: started.session.scenarioId,
+            dateSessionId: started.session.id,
+            text: "The top receipt got personal, Jenna stopped answering, and Vhool let the coffee date end.",
+            tags: ["date_summary", "early_end"],
+            importance: 4,
+          }),
+        ];
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const firstAdvance = await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 2,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const secondAdvance = await advanceDateExchangeWithLocalAi(firstAdvance.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 2,
+      runtime,
+      config: firstAdvance.save.config,
+      now: new Date("2026-05-05T12:03:00.000Z"),
+    });
+    const result = await advanceDateExchangeWithLocalAi(secondAdvance.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 2,
+      runtime,
+      config: secondAdvance.save.config,
+      now: new Date("2026-05-05T12:04:00.000Z"),
+    });
+
+    expect(result.session.status).toBe("ended_early");
+    expect(result.session.currentTurn).toBe(6);
+    expect(result.session.turnLimit).toBe(8);
+    expect(result.session.playbackState).toBe("ended");
+    expect(result.session.endSentiment).toBe("negative");
+    expect(result.session.finalReport?.outcome).toBe("early_end");
+    expect(result.session.finalReport?.recommendedFollowUp).toBe("repair");
+    expect(result.session.judgeSnapshots[0]?.shouldEndEarly).toBe(true);
+    expect(result.session.judgeSnapshots[0]?.earlyEndReason).toContain("Jenna stopped");
+    expect(generatedTurns).toBe(6);
+    expect(summarized).toBe(true);
   });
 
   it("blocks the date update when required AI callbacks fail", async () => {
@@ -1511,6 +1680,208 @@ describe("AI date engine orchestration", () => {
     expect(result.session.transcript.at(-1)?.text).toBe(correctedLine);
     expect(result.warningMessages.join(" ")).toContain(
       "Cupid asked Jenna Pike to rewrite a near duplicate line",
+    );
+  });
+
+  it("retries a blank performer line before committing the turn", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-empty-line-retry-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 4,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const performerCalls: {
+      promptIncludesRetryGuard: boolean;
+      messagesIncludeRetryGuard: boolean;
+    }[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => {
+        const messageText =
+          packet.messages
+            ?.map((message) =>
+              typeof message.content === "string"
+                ? message.content
+                : message.content.map((part) => (part.type === "text" ? part.text : "")).join("\n"),
+            )
+            .join("\n") ?? "";
+
+        performerCalls.push({
+          promptIncludesRetryGuard: packet.prompt.includes("no usable spoken line"),
+          messagesIncludeRetryGuard: messageText.includes("no usable spoken line"),
+        });
+
+        return {
+          text:
+            performerCalls.length === 1
+              ? ""
+              : "Jenna asks whether the inventory soup has a normal spoon policy.",
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run before the exchange boundary");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await advanceDateExchangeWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(performerCalls).toEqual([
+      { promptIncludesRetryGuard: false, messagesIncludeRetryGuard: false },
+      { promptIncludesRetryGuard: true, messagesIncludeRetryGuard: true },
+    ]);
+    expect(result.session.transcript.at(-1)?.text).toBe(
+      "Jenna asks whether the inventory soup has a normal spoon policy.",
+    );
+    expect(result.warningMessages.join(" ")).toContain(
+      "Cupid asked Jenna Pike to retry an empty AI line",
+    );
+  });
+
+  it("retries a repeated approval phrase before committing the turn", async () => {
+    const repository = new LocalGameRepository(
+      new MemorySaveStore(),
+      "ai-repeated-approval-retry-test",
+    );
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 6,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const priorJennaLine = "i respect the soup planning, honestly.";
+    const sessionWithHistory = {
+      ...started.session,
+      currentTurn: 2,
+      transcript: [
+        ...started.session.transcript,
+        dateMessageSchema.parse({
+          id: `${started.session.id}-msg-1`,
+          dateSessionId: started.session.id,
+          kind: "character",
+          speakerId: "jenna-pike",
+          turnIndex: 1,
+          sequenceIndex: 1,
+          text: priorJennaLine,
+          createdAt: "2026-05-05T12:01:30.000Z",
+        }),
+        dateMessageSchema.parse({
+          id: `${started.session.id}-msg-2`,
+          dateSessionId: started.session.id,
+          kind: "character",
+          speakerId: "vhool",
+          turnIndex: 2,
+          sequenceIndex: 2,
+          text: "Vhool offers a jar of soup that behaves itself.",
+          createdAt: "2026-05-05T12:01:45.000Z",
+        }),
+      ],
+    };
+    const saveWithHistory = {
+      ...started.save,
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === sessionWithHistory.id ? sessionWithHistory : session,
+      ),
+    };
+    const performerCalls: { promptIncludesRhythmRetry: boolean }[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => {
+        performerCalls.push({
+          promptIncludesRhythmRetry: packet.prompt.includes("Rhythm retry:"),
+        });
+
+        return {
+          text:
+            performerCalls.length === 1
+              ? "i respect the jar strategy, that is pretty solid."
+              : "the jar strategy is strange, but warm soup is doing real work here.",
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run before the exchange boundary");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run before completion");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(saveWithHistory);
+
+    const result = await advanceDateExchangeWithLocalAi(saveWithHistory, repository, {
+      dateSessionId: started.session.id,
+      turnCount: 1,
+      runtime,
+      config: saveWithHistory.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    expect(performerCalls).toEqual([
+      { promptIncludesRhythmRetry: false },
+      { promptIncludesRhythmRetry: true },
+    ]);
+    expect(result.session.transcript.at(-1)?.text).toBe(
+      "the jar strategy is strange, but warm soup is doing real work here.",
+    );
+    expect(result.warningMessages.join(" ")).toContain(
+      "Cupid asked Jenna Pike to rewrite a repeated approval phrase",
     );
   });
 

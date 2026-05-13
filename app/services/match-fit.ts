@@ -53,11 +53,12 @@ export type ApplyMatchFitToJudgeInput = {
 
 const HIGH_PRESSURE_THRESHOLD = 6;
 const MEDIUM_PRESSURE_THRESHOLD = 3;
-const WALKOUT_DATE_HEALTH_THRESHOLD = 15;
-const WALKOUT_SOFT_HEALTH_THRESHOLD = 25;
-const WALKOUT_STRAIN_THRESHOLD = 70;
-const WALKOUT_CONFLICT_THRESHOLD = 70;
-const SHARP_DROP_THRESHOLD = -8;
+const WALKOUT_DATE_HEALTH_THRESHOLD = 25;
+const WALKOUT_SOFT_HEALTH_THRESHOLD = 40;
+const WALKOUT_STRAIN_THRESHOLD = 60;
+const WALKOUT_CONFLICT_THRESHOLD = 60;
+const WALKOUT_EXCHANGE_TENSION_DELTA = 4;
+const SHARP_DROP_THRESHOLD = -6;
 const RECOMMENDATION_MIN_STARTING_HEALTH_DELTA = 5;
 const RECOMMENDATION_MIN_SCORE_LEAD = 3;
 const PROPHECY_BLOCKED_REQUEST_TAGS = [
@@ -265,15 +266,19 @@ function shouldEscalateWalkout({
   const projectedConflict = pairState.stats.conflict + (judgeSnapshot.statDeltas.conflict ?? 0);
   const highTension =
     projectedStrain >= WALKOUT_STRAIN_THRESHOLD || projectedConflict >= WALKOUT_CONFLICT_THRESHOLD;
+  const exchangeTension =
+    (judgeSnapshot.statDeltas.strain ?? 0) >= WALKOUT_EXCHANGE_TENSION_DELTA ||
+    (judgeSnapshot.statDeltas.conflict ?? 0) >= WALKOUT_EXCHANGE_TENSION_DELTA;
+  const activeTension = highTension || exchangeTension;
 
-  if (projectedDateHealth <= WALKOUT_DATE_HEALTH_THRESHOLD && highTension) {
+  if (projectedDateHealth <= WALKOUT_DATE_HEALTH_THRESHOLD && activeTension) {
     return true;
   }
 
   return (
     projectedDateHealth <= WALKOUT_SOFT_HEALTH_THRESHOLD &&
     judgeSnapshot.dateHealthDelta <= SHARP_DROP_THRESHOLD &&
-    highTension
+    activeTension
   );
 }
 

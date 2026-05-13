@@ -56,7 +56,7 @@ export const kadeSumner: Member = {
       "starts messages with no but or no because",
       "drops babe and bestie as punctuation",
       "refers to himself in third person as kade",
-      "name drops his comment section like it is a roommate",
+      "uses content-studio specifics instead of generic approval",
       "ends thoughts with an emoji read aloud, e.g. crying emoji crying emoji",
     ],
     sampleMessages: {

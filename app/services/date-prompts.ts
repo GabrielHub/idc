@@ -26,6 +26,76 @@ export type CharacterPromptPacket = {
   messages?: ModelMessage[];
 };
 
+export function withCharacterVisibilityRetryGuard(
+  packet: CharacterPromptPacket,
+): CharacterPromptPacket {
+  const retryText = CHARACTER_VISIBILITY_RETRY_GUARD_LINES.join("\n");
+
+  return {
+    ...packet,
+    prompt: [packet.prompt, "", retryText].join("\n"),
+    messages:
+      packet.messages === undefined
+        ? undefined
+        : appendRetryTextToLastUserMessage(packet.messages, retryText),
+  };
+}
+
+const CHARACTER_VISIBILITY_RETRY_GUARD_LINES = [
+  "Retry guard: the previous attempt produced no usable spoken line after cleanup.",
+  "Do not narrate an action, gesture, facial expression, or object movement.",
+  "Write exactly one complete spoken reply now. Start with words the character says to the partner.",
+  "No setup text, labels, notes, analysis, or empty response.",
+] as const;
+
+function appendRetryTextToLastUserMessage(
+  messages: readonly ModelMessage[],
+  retryText: string,
+): ModelMessage[] {
+  const lastUserIndex = findLastUserMessageIndex(messages);
+
+  if (lastUserIndex === -1) {
+    return [...messages, { role: "user", content: retryText }];
+  }
+
+  return messages.map((message, index) =>
+    index === lastUserIndex
+      ? { ...message, content: appendRetryTextToContent(message.content, retryText) }
+      : message,
+  );
+}
+
+function findLastUserMessageIndex(messages: readonly ModelMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function appendRetryTextToContent(
+  content: ModelMessage["content"],
+  retryText: string,
+): ModelMessage["content"] {
+  if (typeof content === "string") {
+    return [content, "", retryText].join("\n");
+  }
+
+  const textPartIndex = content.findIndex((part) => part.type === "text");
+
+  if (textPartIndex === -1) {
+    return [{ type: "text", text: retryText }, ...content];
+  }
+
+  return content.map((part, index) =>
+    index === textPartIndex && part.type === "text"
+      ? { ...part, text: [part.text, "", retryText].join("\n") }
+      : part,
+  );
+}
+
 export type CharacterPromptImageAttachment = {
   description: string;
   image: Uint8Array;
@@ -160,6 +230,7 @@ export type CharacterPromptInput = {
   focusRequest?: MemberRequest;
   memorySearchAvailable?: boolean;
   repetitionRetry?: { repeatedLine: string };
+  rhythmRetry?: { repeatedPhrase: string; recentLine: string };
   imageAttachments?: readonly CharacterPromptImageAttachment[];
 };
 
@@ -239,6 +310,10 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Habits that may surface when they fit: ${joinAsSentence(member.voice.tics)}`,
     "Do not force every habit into the line. Do not announce the habit. Let one pressure point shape the reply.",
     "Habits must be speakable to the partner. Convert written asides, fake labels, and bracketed notes into normal spoken asides.",
+    "Address terms, titles, honorifics, pet names, and catchphrases are seasoning. Do not use the same one twice in a row.",
+    "Short listening beats are allowed when they fit: for sure, I respect that, go on. They become a problem only when repeated or stapled to every full reply.",
+    "Do not use the same listening beat, approval phrase, pet name, or verbal tic in two consecutive replies. Approval phrases include okay, fair, good, right, respect, for sure, go on, and works for me.",
+    "Ceremonial, legal, poetic, corporate, or sect language can color one move. It must not replace the move.",
     "Your voice is not a quota. It is how you notice things, dodge things, ask for things, and protect yourself.",
     "",
     "Current date:",
@@ -290,6 +365,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     formatRecentLinesBlock(recentSpeakerLines),
     `${partner.name}'s last ${RECENT_LINE_GUARD_COUNT} lines, do not echo verbatim:`,
     formatRecentLinesBlock(recentPartnerLines),
+    replyRhythmInstruction(session),
     "",
     "Conversation target:",
     "Talk to the partner, not to the room and not to Cupid.",
@@ -298,10 +374,25 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "If they asked for a concrete choice, start with the concrete answer before commentary.",
     "Do not begin by rating, classifying, summarizing, or reframing the partner's line.",
     "Make one conversational move: answer, push back, tease, offer a detail, admit a small thing, or ask a clean follow-up.",
+    "It is valid to be confused, annoyed, guarded, embarrassed, or to ask for a reset. Do not sand every exchange into warmth.",
+    "If the latest line touches a dealbreaker or private pressure, react before making it charming.",
+    "Do not use the same reply shape twice in a row.",
+    "Do not make every line agree, paraphrase the partner, then ask a tidy follow-up question.",
+    "Do not run an interview. Questions should be occasional, not the default engine of the date.",
+    "A short listening beat can be the whole move. Use it to absorb a moment, invite more, or show restraint without turning it into a summary.",
+    "Do not pad a listening beat with a paraphrase and a question. Let the small line breathe.",
+    "If your last line asked a question, this line should usually answer, object, act on a prop, admit a detail, or leave a beat instead of asking another question.",
+    "Vary the first beat. Start from a direct answer, correction, small refusal, concrete object, confession, or wrong-footed observation when it fits.",
+    "Do not use approval openers as the default. Start that way only for a true listening beat, concession, or moment of restraint.",
+    "Do not echo the partner's exact noun just to prove you heard it. Pick it up only when you do something new with it.",
+    "If the date slips into a bargain, trade, ledger, trial, checklist, or procedure, use that frame once, then break it with a human choice, objection, or sensory detail.",
     "Do not close the exchange like a polished bit. Leave the partner a loose edge to grab.",
+    "Do not make the line a speech, caption, toast, thesis, or trailer.",
+    "Prefer table scale verbs and visible objects over grand abstract claims.",
     "Use concrete answers to learn something personal-scale: taste, habit, worry, principle, or a small admission.",
     "Do not repeat or lightly reword your own earlier line. Build from it.",
     "Do not restate a boundary, plan, order, preference, or offer you already named. Use the partner's answer to move one small step forward.",
+    "When a deal, plan, boundary, or invitation has been accepted, do not seal it again. Take the next small action, answer a new point, or let discomfort show.",
     "Treat names, times, routes, exits, food orders, and plans as settled once the conversation settles them.",
     "Do not ask the same question or restate the same logistical concern from the last two messages.",
     "Do not repeat the same named plan, time, object, or promise from the last two messages. If the plan is already set, add one new feeling, obstacle, or concrete next step instead of confirming it again.",
@@ -319,9 +410,12 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "No paragraph breaks.",
     "Do not reuse a full sentence from the date conversation.",
     "No bracketed asides, editor notes, screenplay labels, or fake channels.",
+    "Do not narrate actions in first person. If you move an object, say it as spoken dialogue instead.",
+    "If you use quotation marks, close them in the same sentence.",
     "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
     "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
     ...buildRepetitionRetryNotice(input.repetitionRetry),
+    ...buildRhythmRetryNotice(input.rhythmRetry),
   ].join("\n");
   const finalUserPrompt = buildFinalCharacterPrompt({
     latestIncomingLine,
@@ -350,6 +444,23 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     prompt: formatPromptPreview(messages),
     messages,
   };
+}
+
+const REPLY_RHYTHM_INSTRUCTIONS: readonly string[] = [
+  "direct answer or concrete choice first. Avoid a question mark unless the partner explicitly needs one.",
+  "small objection, correction, or boundary. No approval opener.",
+  "visible object or sensory detail drives the line. Do not interview.",
+  "small personal admission. Stop before turning it into a question.",
+  "brief listening beat or held beat. One short acknowledgement is enough if it gives the partner room.",
+  "specific uncertainty or misunderstanding. Name one point, not a broad follow-up.",
+  "next small action or decision. Do not re-accept terms.",
+];
+
+function replyRhythmInstruction(session: DateSession): string {
+  const instruction =
+    REPLY_RHYTHM_INSTRUCTIONS[session.currentTurn % REPLY_RHYTHM_INSTRUCTIONS.length];
+
+  return `Reply rhythm for this line: ${instruction}`;
 }
 
 function buildFinalCharacterPrompt({
@@ -483,7 +594,7 @@ export function buildJudgePromptPacket({
       content: [
         "Structured output contract:",
         "Return JSON only. No Markdown, comments, or prose outside JSON.",
-        "dateHealthDelta must be an integer from -12 to 12.",
+        "dateHealthDelta must be an integer from -18 to 14.",
         "statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
         `memberMoodDeltas must use only these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         "shouldEndEarly is true only when the exchange requires the date to stop now.",
@@ -493,15 +604,24 @@ export function buildJudgePromptPacket({
         "playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
         "memoryCandidates must be an empty array.",
         "usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
+        "Dynamic scoring guidance:",
+        "Use positive Date Health only when the exchange creates evidence of warmth, trust, repair, or useful attraction.",
+        "Use negative Date Health when a member dodges a direct answer, repeats logistics, crosses a boundary, performs at the partner, makes the partner manage them, or lets the room become the whole relationship.",
+        "Use -1 to -3 for mild drift, -4 to -7 for visible confusion or cooling, and -8 to -18 for boundary pressure, contempt, panic, hard mismatch, or a failed repair.",
+        "Use negative memberMoodDeltas for the member who is confused, guarded, embarrassed, angry, or overloaded.",
+        "Raise conflict or strain when the exchange creates irritation, pressure, public discomfort, or a boundary crossing.",
+        "If an early end trigger is visibly met, set shouldEndEarly true even when Date Health remains above zero.",
         "Do not use em dashes or en dashes in any string.",
         `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[]}`,
         "",
         `Scenario: ${scenario.title}.`,
+        `Scenario pressure: risk ${scenario.card.risk}, intimacy ${scenario.card.intimacy}, chaos ${scenario.card.chaos}.`,
         `Participants: ${formatParticipants(members)}.`,
         "Member briefs, private scoring context only. Use these notes to interpret behavior. Do not reveal fixture notes in playerSummary unless the exchange made the detail explicit.",
         formatJudgeMemberBriefs(members),
         `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,
         `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
+        `Early end triggers: ${scenario.director.earlyEndTriggers.join("; ")}.`,
         `Current Date Health: ${session.dateHealth}.`,
         `Current pair stats: ${JSON.stringify(pairState.stats)}.`,
         "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
@@ -695,7 +815,7 @@ function bucketWeights(
 } {
   if (!isOpeningTurn) {
     if (dateHealth >= 65) {
-      return { opener: 0, warming: 4, cooling: 0, crashingOut: 0 };
+      return { opener: 0, warming: 3, cooling: 1, crashingOut: 0 };
     }
 
     if (dateHealth >= 40) {
@@ -710,7 +830,7 @@ function bucketWeights(
   }
 
   if (dateHealth >= 65) {
-    return { opener: 2, warming: 2, cooling: 0, crashingOut: 0 };
+    return { opener: 2, warming: 1, cooling: 1, crashingOut: 0 };
   }
 
   if (dateHealth >= 40) {
@@ -1173,6 +1293,56 @@ function buildRepetitionRetryNotice(retry: { repeatedLine: string } | undefined)
     `Your previous attempt was rejected because it repeated this prior line: "${retry.repeatedLine}".`,
     "Do not repeat that line or a lightly reworded version. Make a different conversational move.",
   ];
+}
+
+function buildRhythmRetryNotice(
+  retry: { repeatedPhrase: string; recentLine: string } | undefined,
+): string[] {
+  if (retry === undefined) {
+    return [];
+  }
+
+  return [
+    "",
+    "Rhythm retry:",
+    `Your previous attempt reused the approval phrase "${retry.repeatedPhrase}" from this recent line: "${retry.recentLine}".`,
+    "Rewrite with a different sentence shape and no approval opener.",
+    "Do not ask a tidy follow-up unless the partner explicitly needs one.",
+  ];
+}
+
+const REPEATED_APPROVAL_PATTERNS: readonly { label: string; pattern: RegExp }[] = [
+  { label: "I respect", pattern: /\bi\s+respect\b/i },
+  { label: "works for me", pattern: /\bworks\s+for\s+me\b/i },
+  { label: "that's fair", pattern: /\bthat(?:'s| is)\s+fair\b/i },
+  { label: "for sure", pattern: /^for\s+sure\b/i },
+  { label: "go on", pattern: /^go\s+on\b/i },
+  { label: "okay", pattern: /^okay\b/i },
+  { label: "fair", pattern: /^fair\b/i },
+  { label: "good", pattern: /^good\b/i },
+  { label: "right", pattern: /^right\b/i },
+];
+
+export function hasRepeatedApprovalPhrase(input: {
+  text: string;
+  recentLines: readonly string[];
+}): { repeatedPhrase: string; recentLine: string } | null {
+  for (const approval of REPEATED_APPROVAL_PATTERNS) {
+    if (!approval.pattern.test(input.text)) {
+      continue;
+    }
+
+    const recentLine = input.recentLines.find((line) => approval.pattern.test(line));
+
+    if (recentLine !== undefined) {
+      return {
+        repeatedPhrase: approval.label,
+        recentLine,
+      };
+    }
+  }
+
+  return null;
 }
 
 const REPETITION_TOKEN_PATTERN = /[a-z0-9]+/g;

@@ -12,6 +12,7 @@ import {
   hasNearDuplicateRecentLine,
   pickSamplesForTurn,
   SCENARIO_EVENT_KIND_SUFFIXES,
+  withCharacterVisibilityRetryGuard,
   type CharacterPromptImageAttachment,
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
@@ -82,6 +83,18 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("Current date:");
     expect(ownerPacket.prompt).toContain("What you can see of Vhool:");
     expect(ownerPacket.prompt).toContain(
+      "Address terms, titles, honorifics, pet names, and catchphrases are seasoning.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Short listening beats are allowed when they fit: for sure, I respect that, go on.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Approval phrases include okay, fair, good, right, respect, for sure, go on, and works for me.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Ceremonial, legal, poetic, corporate, or sect language can color one move.",
+    );
+    expect(ownerPacket.prompt).toContain(
       "Room constraint: Keep the scene readable even when time glitches.",
     );
     expect(ownerPacket.prompt).toContain(
@@ -103,7 +116,48 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain(
       "Latest incoming line to answer: The date with Vhool is starting.",
     );
+    expect(ownerPacket.prompt).toContain(
+      "It is valid to be confused, annoyed, guarded, embarrassed, or to ask for a reset.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "If the latest line touches a dealbreaker or private pressure, react before making it charming.",
+    );
+    expect(ownerPacket.prompt).toContain("Reply rhythm for this line:");
+    expect(ownerPacket.prompt).toContain("Do not use the same reply shape twice in a row.");
+    expect(ownerPacket.prompt).toContain(
+      "Do not make every line agree, paraphrase the partner, then ask a tidy follow-up question.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Do not run an interview. Questions should be occasional, not the default engine of the date.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "A short listening beat can be the whole move. Use it to absorb a moment",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Do not pad a listening beat with a paraphrase and a question.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "If your last line asked a question, this line should usually answer, object, act on a prop",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Do not echo the partner's exact noun just to prove you heard it.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "If the date slips into a bargain, trade, ledger, trial, checklist, or procedure",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Do not make the line a speech, caption, toast, thesis, or trailer.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "When a deal, plan, boundary, or invitation has been accepted, do not seal it again.",
+    );
     expect(ownerPacket.prompt).toContain("Your last line, do not repeat: None yet.");
+    expect(ownerPacket.prompt).toContain(
+      "Do not narrate actions in first person. If you move an object, say it as spoken dialogue instead.",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "If you use quotation marks, close them in the same sentence.",
+    );
     expect(ownerPacket.prompt).not.toContain("plain white background");
     expect(ownerPacket.prompt).not.toContain("Do not invent objects from preferences");
     expect(ownerPacket.prompt).not.toContain("Patterns you use:");
@@ -637,7 +691,8 @@ describe("date prompt assembly", () => {
 
     expect(samples).toHaveLength(4);
     expect(new Set(samples).size).toBe(4);
-    expect(samples.filter((sample) => sample.startsWith("warming"))).toHaveLength(2);
+    expect(samples.filter((sample) => sample.startsWith("warming"))).toHaveLength(1);
+    expect(samples.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
   });
 
   it("uses in-date examples instead of opener examples after the speaker has spoken", () => {
@@ -654,7 +709,8 @@ describe("date prompt assembly", () => {
     });
 
     expect(samples).toHaveLength(4);
-    expect(samples.every((sample) => sample.startsWith("warming"))).toBe(true);
+    expect(samples.filter((sample) => sample.startsWith("warming"))).toHaveLength(3);
+    expect(samples.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
   });
 
   it("asks the summarizer to preserve accepted soft canon", () => {
@@ -691,6 +747,62 @@ describe("date prompt assembly", () => {
 });
 
 describe("buildJudgePromptPacket reveal candidates", () => {
+  it("gives the Judge early end triggers and dynamic scoring bands", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const session = {
+      id: "test-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 0,
+      dateHealth: 60,
+      status: "active" as const,
+      runtimeMode: "local_ai" as const,
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing" as const,
+      endSentiment: null,
+      interventions: [],
+    };
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages: [],
+      members: [jenna, vhool],
+      revealCandidates: [],
+    });
+
+    expect(packet.prompt).toContain("dateHealthDelta must be an integer from -18 to 14.");
+    expect(packet.prompt).toContain("Dynamic scoring guidance:");
+    expect(packet.prompt).toContain("Use -1 to -3 for mild drift");
+    expect(packet.prompt).toContain("Scenario pressure: risk");
+    expect(packet.prompt).toContain("Early end triggers:");
+    for (const trigger of scenario.director.earlyEndTriggers) {
+      expect(packet.prompt).toContain(trigger);
+    }
+  });
+
   it("includes reveal candidate ids and display reads", () => {
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
@@ -1153,6 +1265,103 @@ describe("character prompt repetition guard", () => {
     expect(packet.prompt).toContain("Retry guard:");
     expect(packet.prompt).toContain(repeatedLine);
     expect(packet.prompt).toContain("Make a different conversational move.");
+  });
+
+  it("adds a visibility retry guard after an empty performer line", () => {
+    const packet = withCharacterVisibilityRetryGuard({
+      system: "Act as Jenna Pike.",
+      prompt: "Latest incoming line to answer: The soup blinked.",
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Latest incoming line: The soup blinked.",
+            },
+          ],
+        },
+      ],
+    });
+    const finalMessage = packet.messages?.at(-1);
+
+    expect(packet.system).toBe("Act as Jenna Pike.");
+    expect(packet.prompt).toContain("previous attempt produced no usable spoken line");
+    expect(packet.prompt).toContain(
+      "Do not narrate an action, gesture, facial expression, or object movement.",
+    );
+    expect(packet.prompt).toContain("Write exactly one complete spoken reply now.");
+    expect(packet.prompt).toContain("No setup text, labels, notes, analysis, or empty response.");
+    expect(finalMessage?.role).toBe("user");
+
+    if (!Array.isArray(finalMessage?.content)) {
+      throw new Error("Expected retry guard to stay inside structured user message.");
+    }
+
+    const textPart = finalMessage.content.find((part) => part.type === "text");
+    expect(textPart?.type === "text" ? textPart.text : "").toContain(
+      "previous attempt produced no usable spoken line",
+    );
+  });
+
+  it("adds a rhythm retry guard after a repeated approval phrase", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: {
+        id: "date-session-rhythm-retry",
+        pairId: pairState.id,
+        scenarioId: scenario.id,
+        focusMemberId: jenna.id,
+        turnLimit: 30,
+        currentTurn: 2,
+        dateHealth: 65,
+        status: "active",
+        runtimeMode: "local_ai",
+        participants: pairState.participantIds,
+        transcript: [],
+        privateStateByCharacter: {},
+        judgeSnapshots: [],
+        eventDraft: { offered: [], picked: null },
+        eventsTriggered: [],
+        playbackState: "playing",
+        endSentiment: null,
+        interventions: [],
+      },
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: [],
+      },
+      rhythmRetry: {
+        repeatedPhrase: "I respect",
+        recentLine: "i respect the soup planning, honestly.",
+      },
+    });
+
+    expect(packet.prompt).toContain("Rhythm retry:");
+    expect(packet.prompt).toContain('reused the approval phrase "I respect"');
+    expect(packet.prompt).toContain("Rewrite with a different sentence shape");
   });
 
   it("detects near duplicate lines via Jaccard overlap", () => {

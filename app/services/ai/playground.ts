@@ -15,7 +15,11 @@ import {
 } from "../../domain/game";
 import { memberRequests, starterMembers, starterScenarios } from "../../fixtures";
 import { EmptyPerformerMessageError, sanitizeCharacterText } from "../ai-date-engine";
-import { buildCharacterPromptPacket, type CharacterPromptPacket } from "../date-prompts";
+import {
+  buildCharacterPromptPacket,
+  withCharacterVisibilityRetryGuard,
+  type CharacterPromptPacket,
+} from "../date-prompts";
 import { createSeedGameSave, makePairId } from "../game-seed";
 import { evaluateMatchFit } from "../match-fit";
 import { escapeRegex } from "../utils";
@@ -126,12 +130,18 @@ export type PlaygroundDefaults = {
   };
 };
 
-export type MemberChatGenerationRuntime = {
+export type DatePlaygroundGenerationRuntime = {
   generateCharacterTurn(input: {
     packet: CharacterPromptPacket;
     config?: Partial<AiRuntimeConfig>;
     options?: AiGenerationOptions;
   }): Promise<GeneratedTextResult>;
+};
+
+export type MemberChatGenerationRuntime = DatePlaygroundGenerationRuntime;
+
+const MODEL_SERVICE_DATE_PLAYGROUND_RUNTIME: DatePlaygroundGenerationRuntime = {
+  generateCharacterTurn,
 };
 
 const MODEL_SERVICE_MEMBER_CHAT_RUNTIME: MemberChatGenerationRuntime = {
@@ -148,7 +158,7 @@ export const DEFAULT_DATE_PLAYGROUND_SETTINGS = {
   topP: 0.95,
   topK: 64,
   numCtx: 16384,
-  maxOutputTokens: 160,
+  maxOutputTokens: 512,
   memberId: "jenna-pike",
   partnerId: "vhool",
   scenarioId: "temporal-coffee-shop",
@@ -203,6 +213,7 @@ export async function loadPlaygroundDefaults(): Promise<PlaygroundDefaults> {
 
 export async function runPlaygroundDateConversation(
   input: DatePlaygroundInput,
+  runtime: DatePlaygroundGenerationRuntime = MODEL_SERVICE_DATE_PLAYGROUND_RUNTIME,
 ): Promise<PlaygroundResult> {
   const startedAt = performance.now();
   const preview = buildDatePlaygroundPrompt(input);
@@ -227,6 +238,7 @@ export async function runPlaygroundDateConversation(
   const run = await runPlaygroundConversation({
     ...preview,
     input,
+    runtime,
   });
   const elapsedMs = Math.round(performance.now() - startedAt);
   const promptCharacters = run.promptCharacters;
@@ -597,8 +609,69 @@ function latestMemberChatTesterText(input: MemberChatPlaygroundInput): string {
   return "";
 }
 
+const DATE_PLAYGROUND_EMPTY_RETRY_MIN_TOKENS = 512;
+
+function packetCharacterCount(packet: CharacterPromptPacket): number {
+  return packet.system.length + packet.prompt.length;
+}
+
+async function generatePlaygroundCharacterTurn({
+  packet,
+  input,
+  speaker,
+  runtime,
+}: {
+  packet: CharacterPromptPacket;
+  input: DatePlaygroundInput;
+  speaker: Member;
+  runtime: DatePlaygroundGenerationRuntime;
+}): Promise<{
+  result: GeneratedTextResult;
+  text: string;
+  packet: CharacterPromptPacket;
+  promptCharactersConsumed: number;
+}> {
+  const result = await runtime.generateCharacterTurn({
+    packet,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput(input),
+  });
+  const initialPacketCharacters = packetCharacterCount(packet);
+
+  try {
+    return {
+      result,
+      text: sanitizeCharacterText(result.text, speaker.name),
+      packet,
+      promptCharactersConsumed: initialPacketCharacters,
+    };
+  } catch (error) {
+    if (!isEmptyPerformerMessage(error)) {
+      throw error;
+    }
+  }
+
+  const retryPacket = withCharacterVisibilityRetryGuard(packet);
+  const retryResult = await runtime.generateCharacterTurn({
+    packet: retryPacket,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput({
+      ...input,
+      maxOutputTokens: Math.max(input.maxOutputTokens, DATE_PLAYGROUND_EMPTY_RETRY_MIN_TOKENS),
+    }),
+  });
+
+  return {
+    result: retryResult,
+    text: sanitizeCharacterText(retryResult.text, speaker.name),
+    packet: retryPacket,
+    promptCharactersConsumed: initialPacketCharacters + packetCharacterCount(retryPacket),
+  };
+}
+
 async function runPlaygroundConversation({
   input,
+  runtime,
   member,
   partner,
   scenario,
@@ -609,6 +682,7 @@ async function runPlaygroundConversation({
   dateHealth,
 }: {
   input: DatePlaygroundInput;
+  runtime: DatePlaygroundGenerationRuntime;
   member: Member;
   partner: Member;
   scenario: DateScenario;
@@ -678,13 +752,15 @@ async function runPlaygroundConversation({
       }),
       input,
     );
-    promptCharacters += packet.system.length + packet.prompt.length;
-    const result = await generateCharacterTurn({
+    const generated = await generatePlaygroundCharacterTurn({
       packet,
-      config: runtimeConfigFromPlaygroundInput(input),
-      options: generationOptionsFromInput(input),
+      input,
+      speaker,
+      runtime,
     });
-    const text = sanitizeCharacterText(result.text, speaker.name);
+    promptCharacters += generated.promptCharactersConsumed;
+    const result = generated.result;
+    const text = generated.text;
     currentTurn += 1;
     transcript.push(
       dateMessageSchema.parse({
@@ -698,7 +774,7 @@ async function runPlaygroundConversation({
         createdAt: "2026-05-05T12:00:00.000Z",
       }),
     );
-    lastPacket = packet;
+    lastPacket = generated.packet;
     model = result.model;
     providerMode = result.providerMode;
     turns.push({

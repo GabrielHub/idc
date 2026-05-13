@@ -212,4 +212,71 @@ describe("applyMatchFitToJudgeSnapshot", () => {
     expect(result.memberMoodDeltas).toEqual(judgeSnapshot.memberMoodDeltas);
     expect(result.shouldEndEarly).toBe(false);
   });
+
+  it("escalates a sharp negative exchange with visible tension into an early end", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const jenna = findMember(save, "jenna-pike");
+    const vhool = findMember(save, "vhool");
+    const scenario = findScenario("temporal-coffee-shop");
+    const pairState = save.pairStates.find((state) => state.id === makePairId(jenna.id, vhool.id));
+
+    if (pairState === undefined) {
+      throw new Error("Expected Jenna and Vhool pair state.");
+    }
+
+    const session = dateSessionSchema.parse({
+      id: "test-negative-exchange",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 24,
+      currentTurn: 6,
+      dateHealth: 48,
+      status: "active",
+      runtimeMode: "local_ai",
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing",
+      endSentiment: null,
+      interventions: [],
+    });
+    const judgeSnapshot = judgeSnapshotSchema.parse({
+      id: "judge-sharp-negative",
+      dateSessionId: session.id,
+      exchangeIndex: 0,
+      dateHealthDelta: -10,
+      statDeltas: {
+        conflict: 4,
+        strain: 5,
+        relationshipHealth: -7,
+      },
+      memberMoodDeltas: {
+        [jenna.id]: -4,
+        [vhool.id]: -3,
+      },
+      shouldEndEarly: false,
+      endSentiment: null,
+      notableMoments: ["The receipt got personal and Jenna stopped answering."],
+      playerSummary: "Cupid filed the receipt as hostile.",
+      memoryCandidates: [],
+      usedEvidenceIds: [],
+    });
+
+    const result = applyMatchFitToJudgeSnapshot({
+      session,
+      pairState,
+      judgeSnapshot,
+    });
+
+    expect(result.dateHealthDelta).toBe(-10);
+    expect(result.statDeltas).toEqual(judgeSnapshot.statDeltas);
+    expect(result.memberMoodDeltas).toEqual(judgeSnapshot.memberMoodDeltas);
+    expect(result.shouldEndEarly).toBe(true);
+    expect(result.earlyEndReason).toBe("Member boundary crossed walkout threshold.");
+    expect(result.endSentiment).toBe("negative");
+    expect(result.notableMoments[0]).toBe("Member boundary crossed walkout threshold.");
+  });
 });

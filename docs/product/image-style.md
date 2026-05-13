@@ -29,6 +29,8 @@ Each member gets two neutral baseline images:
 
 The avatar and full-body must be visibly different poses while preserving the same character design (hair, face, eyes, color palette, outfit). The avatar is generated as a follow-up to the full-body so the full-body acts as the character anchor.
 
+Approved exception: Junie Marrow's neutral avatar keeps Otis in the opaque background and is still referenced through the runtime avatar path. Treat it as approved avatar art, not as a failed cutout, unless visual direction changes.
+
 Optional date-surface variants are full-body portraits only. Avatars stay neutral.
 
 Supported variant file names:

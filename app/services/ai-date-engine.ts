@@ -63,7 +63,9 @@ import {
   cleanMemberFacingText,
   collectRecentSpeakerLines,
   hasNearDuplicateRecentLine,
+  hasRepeatedApprovalPhrase,
   RECENT_LINE_GUARD_COUNT,
+  withCharacterVisibilityRetryGuard,
   type CharacterPromptImageAttachment,
   type CharacterPromptPacket,
   type JudgePromptPacket,
@@ -617,8 +619,10 @@ async function createLocalAiCharacterMessage({
 
     async function runAttempt(
       repetitionRetry: { repeatedLine: string } | undefined,
+      rhythmRetry: { repeatedPhrase: string; recentLine: string } | undefined,
+      visibilityRetry: boolean,
     ): Promise<{ text: string; generation: GeneratedTextResult }> {
-      const packet = buildCharacterPromptPacket({
+      const basePacket = buildCharacterPromptPacket({
         member: speaker,
         partner,
         scenario,
@@ -627,8 +631,10 @@ async function createLocalAiCharacterMessage({
         memoryPack: promptInputs.memoryPack,
         focusRequest,
         repetitionRetry,
+        rhythmRetry,
         imageAttachments: promptInputs.imageAttachments,
       });
+      const packet = visibilityRetry ? withCharacterVisibilityRetryGuard(basePacket) : basePacket;
       const generation =
         emit === undefined
           ? await runtime.generateCharacterTurn({ packet, config, tools })
@@ -647,7 +653,26 @@ async function createLocalAiCharacterMessage({
       return { text: sanitizeCharacterText(generation.text, speaker.name), generation };
     }
 
-    let attempt = await runAttempt(undefined);
+    async function runVisibleAttempt(
+      repetitionRetry: { repeatedLine: string } | undefined,
+      rhythmRetry: { repeatedPhrase: string; recentLine: string } | undefined,
+    ): Promise<{ text: string; generation: GeneratedTextResult }> {
+      try {
+        return await runAttempt(repetitionRetry, rhythmRetry, false);
+      } catch (error) {
+        if (!(error instanceof EmptyPerformerMessageError)) {
+          throw error;
+        }
+
+        warningMessages.push(
+          `Cupid asked ${speaker.name} to retry an empty AI line before filing the turn.`,
+        );
+
+        return runAttempt(repetitionRetry, rhythmRetry, true);
+      }
+    }
+
+    let attempt = await runVisibleAttempt(undefined, undefined);
     const initialRepeat = hasNearDuplicateRecentLine({
       text: attempt.text,
       recentLines: recentSpeakerLines,
@@ -657,7 +682,7 @@ async function createLocalAiCharacterMessage({
       warningMessages.push(
         `Cupid asked ${speaker.name} to rewrite a near duplicate line before filing the turn.`,
       );
-      const retry = await runAttempt(initialRepeat);
+      const retry = await runVisibleAttempt(initialRepeat, undefined);
       const stillRepeats = hasNearDuplicateRecentLine({
         text: retry.text,
         recentLines: recentSpeakerLines,
@@ -668,6 +693,30 @@ async function createLocalAiCharacterMessage({
       } else {
         warningMessages.push(
           `${speaker.name} stayed on the same line after the rewrite. Cupid filed the turn anyway.`,
+        );
+      }
+    }
+
+    const repeatedApproval = hasRepeatedApprovalPhrase({
+      text: attempt.text,
+      recentLines: recentSpeakerLines,
+    });
+
+    if (repeatedApproval !== null) {
+      warningMessages.push(
+        `Cupid asked ${speaker.name} to rewrite a repeated approval phrase before filing the turn.`,
+      );
+      const retry = await runVisibleAttempt(undefined, repeatedApproval);
+      const stillRepeats = hasRepeatedApprovalPhrase({
+        text: retry.text,
+        recentLines: recentSpeakerLines,
+      });
+
+      if (stillRepeats === null) {
+        attempt = retry;
+      } else {
+        warningMessages.push(
+          `${speaker.name} reused the same approval phrase after the rewrite. Cupid filed the turn anyway.`,
         );
       }
     }
@@ -1581,7 +1630,8 @@ export function sanitizeCharacterText(text: string, speakerName: string): string
     .replace(/^["']|["']$/g, "")
     .replace(speakerLabelPattern(speakerName), "")
     .trim();
-  const memberFacingText = cleanMemberFacingText(trimmedText).trim();
+  const spokenText = stripPerformerActionNarration(stripUnbalancedDoubleQuotes(trimmedText));
+  const memberFacingText = cleanMemberFacingText(spokenText).trim();
 
   if (memberFacingText.length === 0) {
     throw new EmptyPerformerMessageError();
@@ -1592,6 +1642,84 @@ export function sanitizeCharacterText(text: string, speakerName: string): string
   }
 
   return `${memberFacingText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
+}
+
+function stripUnbalancedDoubleQuotes(text: string): string {
+  const quoteCount = text.match(/"/g)?.length ?? 0;
+
+  if (quoteCount % 2 === 0) {
+    return text;
+  }
+
+  return text.replace(/"/g, "");
+}
+
+const BARE_ACTION_VERBS = [
+  "laughs",
+  "smiles",
+  "nods",
+  "shrugs",
+  "pauses",
+  "sighs",
+  "looks",
+  "glances",
+  "leans",
+  "blinks",
+  "winces",
+  "grimaces",
+  "breathes",
+  "swallows",
+] as const;
+
+const FIRST_PERSON_ACTION_VERBS: readonly { base: string; ing: string }[] = [
+  { base: "slide", ing: "sliding" },
+  { base: "release", ing: "releasing" },
+  { base: "press", ing: "pressing" },
+  { base: "tap", ing: "tapping" },
+  { base: "push", ing: "pushing" },
+  { base: "set", ing: "setting" },
+  { base: "hand", ing: "handing" },
+  { base: "pass", ing: "passing" },
+  { base: "open", ing: "opening" },
+  { base: "close", ing: "closing" },
+  { base: "lift", ing: "lifting" },
+  { base: "lower", ing: "lowering" },
+  { base: "pull", ing: "pulling" },
+  { base: "place", ing: "placing" },
+  { base: "pick", ing: "picking" },
+  { base: "reach", ing: "reaching" },
+  { base: "move", ing: "moving" },
+  { base: "turn", ing: "turning" },
+  { base: "scroll", ing: "scrolling" },
+  { base: "type", ing: "typing" },
+  { base: "enter", ing: "entering" },
+];
+
+const ACTION_NARRATION_PATTERN = new RegExp(
+  `^(?:(?:${BARE_ACTION_VERBS.join("|")})|I\\s+(?:(?:${FIRST_PERSON_ACTION_VERBS.map(
+    (verb) => verb.base,
+  ).join("|")})|(?:am|will be)\\s+(?:${FIRST_PERSON_ACTION_VERBS.map((verb) => verb.ing).join(
+    "|",
+  )})))\\b`,
+  "i",
+);
+
+function stripPerformerActionNarration(text: string): string {
+  const sentenceMatches = text.match(/[^.!?]+[.!?]*\s*/g) ?? [text];
+  const keptSentences = sentenceMatches.filter((sentence) => {
+    const normalizedSentence = sentence.trim();
+
+    if (normalizedSentence.length === 0) {
+      return false;
+    }
+
+    return !ACTION_NARRATION_PATTERN.test(normalizedSentence);
+  });
+
+  return keptSentences
+    .join("")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
 
 const FORBIDDEN_DASH_PATTERN = /[\u2014\u2013]/;

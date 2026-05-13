@@ -2,14 +2,38 @@ import { describe, expect, it } from "vitest";
 
 import type { CharacterPromptPacket } from "../date-prompts";
 import {
+  DEFAULT_DATE_PLAYGROUND_SETTINGS,
   DEFAULT_MEMBER_CHAT_SETTINGS,
+  runPlaygroundDateConversation,
   runPlaygroundMemberChat,
+  type DatePlaygroundGenerationRuntime,
+  type DatePlaygroundInput,
   type MemberChatGenerationRuntime,
   type MemberChatPlaygroundInput,
 } from "./playground";
 import type { AiGenerationOptions, AiRuntimeConfig, GeneratedTextResult } from "./model-service";
 
+type DatePlaygroundRuntimeInput = Parameters<
+  DatePlaygroundGenerationRuntime["generateCharacterTurn"]
+>[0];
 type MemberChatRuntimeInput = Parameters<MemberChatGenerationRuntime["generateCharacterTurn"]>[0];
+
+class QueuedDatePlaygroundRuntime implements DatePlaygroundGenerationRuntime {
+  readonly calls: DatePlaygroundRuntimeInput[] = [];
+
+  constructor(private readonly replies: readonly string[]) {}
+
+  async generateCharacterTurn(input: {
+    packet: CharacterPromptPacket;
+    config?: Partial<AiRuntimeConfig>;
+    options?: AiGenerationOptions;
+  }): Promise<GeneratedTextResult> {
+    this.calls.push(input);
+    const text = this.replies[this.calls.length - 1] ?? "";
+
+    return generatedText(text);
+  }
+}
 
 class QueuedMemberChatRuntime implements MemberChatGenerationRuntime {
   readonly calls: MemberChatRuntimeInput[] = [];
@@ -39,6 +63,18 @@ function generatedText(text: string): GeneratedTextResult {
   };
 }
 
+function dateSettings(overrides: Partial<DatePlaygroundInput> = {}): DatePlaygroundInput {
+  return {
+    ...DEFAULT_DATE_PLAYGROUND_SETTINGS,
+    provider: "ollama",
+    model: "fake-date-chat",
+    transcriptText: "",
+    turnCount: 1,
+    maxOutputTokens: 160,
+    ...overrides,
+  };
+}
+
 function memberChatSettings(
   overrides: Partial<MemberChatPlaygroundInput> = {},
 ): MemberChatPlaygroundInput {
@@ -50,6 +86,27 @@ function memberChatSettings(
     ...overrides,
   };
 }
+
+describe("date conversation playground retry pipeline", () => {
+  it("retries an empty date line with a visible reply guard", async () => {
+    const recoveredLine = "I can work with polite inventory if the cup stops reversing.";
+    const runtime = new QueuedDatePlaygroundRuntime(["", recoveredLine]);
+
+    const result = await runPlaygroundDateConversation(dateSettings(), runtime);
+
+    expect(result.turns).toEqual([
+      {
+        speakerId: "jenna-pike",
+        speakerName: "Jenna Pike",
+        text: recoveredLine,
+      },
+    ]);
+    expect(runtime.calls).toHaveLength(2);
+    expect(runtime.calls[1]?.packet.prompt).toContain("no usable spoken line");
+    expect(runtime.calls[1]?.options?.maxOutputTokens).toBe(512);
+    expect(result.prompt).toContain("no usable spoken line");
+  });
+});
 
 describe("member chat playground retry pipeline", () => {
   const cleanReply = "Normal works if the table is quiet and nobody makes the soup political.";

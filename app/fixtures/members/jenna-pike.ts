@@ -59,7 +59,7 @@ export const jennaPike: Member = {
       "mentions her shift, her feet, or her closing time",
       "uses anyway to restart a thought",
       "names specific menu items by chain or brand",
-      "asks practical logistics questions before warm ones",
+      "asks one practical logistics question when needed, then shifts to plain observation or tired warmth instead of interviewing",
       "lowercase i, low punctuation, comma-spliced run-ons",
     ],
     sampleMessages: {

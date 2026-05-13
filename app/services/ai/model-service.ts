@@ -73,7 +73,7 @@ const OLLAMA_JSON_CHAT_SETTINGS: OllamaChatSettings = {
   ...OLLAMA_BASE_CHAT_SETTINGS,
   format: "json",
 };
-const AI_DATE_HEALTH_DELTA_SCHEMA = z.number().int().min(-12).max(12);
+const AI_DATE_HEALTH_DELTA_SCHEMA = z.number().int().min(-18).max(14);
 const AI_STAT_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const AI_MEMBER_MOOD_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const STREAM_TEXT_DELTA_PART_SCHEMA = z.object({

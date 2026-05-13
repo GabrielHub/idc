@@ -105,6 +105,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "fieldmote",
     tint: { primary: "rgba(220, 188, 140, 0.6)", glow: "rgba(196, 162, 116, 0.4)" },
   },
+  "junie-marrow": {
+    kind: "fieldmote",
+    tint: { primary: "rgba(176, 200, 152, 0.6)", glow: "rgba(196, 168, 96, 0.42)" },
+  },
 
   vhool: {
     kind: "rune",
@@ -192,6 +196,11 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
   "sienna-bae": {
     kind: "pulse",
     tint: { primary: "rgba(244, 114, 182, 0.65)", glow: "rgba(216, 96, 232, 0.5)" },
+  },
+
+  anubis: {
+    kind: "pulse",
+    tint: { primary: "rgba(212, 165, 116, 0.6)", glow: "rgba(164, 113, 72, 0.5)" },
   },
 };
 

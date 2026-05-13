@@ -2,6 +2,7 @@ import { memberSchema } from "../../domain/game";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
 import { alexYoon } from "./alex-yoon";
 import { anansi } from "./anansi";
+import { anubis } from "./anubis";
 import { baiWenshu } from "./bai-wenshu";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
@@ -17,6 +18,7 @@ import { gideonGlass } from "./gideon-glass";
 import { idrisMahari } from "./idris-mahari";
 import { imaniWallace } from "./imani-wallace";
 import { jennaPike } from "./jenna-pike";
+import { junieMarrow } from "./junie-marrow";
 import { kadeSumner } from "./kade-sumner";
 import { maeve } from "./maeve";
 import { marcusPellish } from "./marcus-pellish";
@@ -40,7 +42,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(38)
+  .length(40)
   .parse([
     jennaPike,
     meridianVale,
@@ -80,12 +82,15 @@ export const starterMembers = memberSchema
     imaniWallace,
     siennaBae,
     maeve,
+    junieMarrow,
+    anubis,
   ]);
 
 export {
   aldricValeMarsh,
   alexYoon,
   anansi,
+  anubis,
   baiWenshu,
   bradyStrait,
   calvinHewes,
@@ -101,6 +106,7 @@ export {
   idrisMahari,
   imaniWallace,
   jennaPike,
+  junieMarrow,
   kadeSumner,
   maeve,
   marcusPellish,

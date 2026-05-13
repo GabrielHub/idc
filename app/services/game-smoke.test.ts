@@ -24,7 +24,7 @@ import {
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(38);
+    expect(starterMembers).toHaveLength(40);
     expect(starterScenarios).toHaveLength(47);
   });
 
