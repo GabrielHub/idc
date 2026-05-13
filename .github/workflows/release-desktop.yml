@@ -23,9 +23,74 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preflight:
+    name: Preflight release
+    runs-on: windows-latest
+
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Configure Git line endings
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag must look like v0.2.1. Got: $env:RELEASE_TAG"
+          }
+
+          $package = Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json
+          $expectedTag = "v$($package.version)"
+          if ($env:RELEASE_TAG -ne $expectedTag) {
+            throw "Release tag $env:RELEASE_TAG does not match package.json version $($package.version). Expected $expectedTag."
+          }
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Vite Plus
+        shell: pwsh
+        run: npm install -g vite-plus
+
+      - name: Install dependencies
+        shell: pwsh
+        run: vp install
+
+      - name: Check formatting, lint, and types
+        shell: pwsh
+        run: vp check
+
+      - name: Run tests
+        shell: pwsh
+        run: vp test
+
+      - name: Build browser app
+        shell: pwsh
+        run: vp build
+
   windows:
     name: Build and publish Windows
     runs-on: windows-latest
+    needs: preflight
     environment: desktop-release
 
     env:
@@ -38,10 +103,17 @@ jobs:
       IDC_COPYRIGHT_CONFIRMED: "Copyright (c) 2026 IDC team"
 
     steps:
+      - name: Configure Git line endings
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
       - name: Checkout release ref
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
 
       - name: Validate release tag
         shell: pwsh
@@ -121,7 +193,26 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  IDC_${version}_x64-setup.exe" | Set-Content -LiteralPath $checksum -Encoding ascii
 
+          $versionTags = @(git tag --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
+          $previousTag = $versionTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
+          if ([string]::IsNullOrWhiteSpace($previousTag)) {
+            $changeRange = $env:RELEASE_TAG
+            $changeIntro = "Changes in this release:"
+          } else {
+            $changeRange = "$previousTag..$env:RELEASE_TAG"
+            $changeIntro = "Changes since $previousTag:"
+          }
+
+          $commitLines = @(git log $changeRange --pretty=format:"- %s (%h)")
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to build release changelog from $changeRange."
+          }
+          if ($commitLines.Count -eq 0) {
+            $commitLines = @("- Release package refresh.")
+          }
+
           $env:IDC_RELEASE_TAG = $env:RELEASE_TAG
+          $env:IDC_UPDATER_NOTES = "IDC $env:RELEASE_TAG test alpha"
           vp run updater:manifest
 
           if (-not (Test-Path -LiteralPath $manifest)) {
@@ -134,6 +225,16 @@ jobs:
             "Windows installer: IDC_${version}_x64-setup.exe",
             "",
             "SHA256: $hash",
+            "",
+            "## Changelog",
+            "",
+            $changeIntro,
+            ""
+          )
+          $notes += $commitLines
+          $notes += @(
+            "",
+            "## Install notes",
             "",
             "This is an unsigned private alpha. Windows may show SmartScreen. Choose More info, then Run anyway if you trust this release.",
             "",

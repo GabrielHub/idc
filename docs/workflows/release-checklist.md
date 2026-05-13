@@ -18,17 +18,11 @@ The updater private key signs each release. Do not regenerate it for normal rele
 
 ## Automated GitHub release
 
-The default release path is `.github/workflows/release-desktop.yml`. It runs on pushed `v*` tags or by manual dispatch with a tag. The workflow builds the Windows desktop package, signs updater artifacts using GitHub secrets, creates or updates the versioned prerelease, uploads the player README, checksum, signature, and `latest.json`, then updates the fixed `desktop-alpha` updater channel.
+The default release path is `.github/workflows/release-desktop.yml`. It runs on pushed `v*` tags or by manual dispatch with a tag. The workflow builds the Windows desktop package, signs updater artifacts using GitHub environment secrets, creates or updates the versioned prerelease, uploads the player README, checksum, signature, and `latest.json`, then updates the fixed `desktop-alpha` updater channel.
 
-One-time repository setup:
+The `desktop-release` environment and updater signing secret are already configured for this repo. Do not generate a new updater key for normal releases.
 
-1. Create a GitHub Environment named `desktop-release`.
-2. Add required reviewers to `desktop-release` so a human approves runs that can read the signing key.
-3. Add environment secret `TAURI_SIGNING_PRIVATE_KEY` containing the contents of the Tauri updater private key file.
-4. If the key has a password, add environment secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
-5. In repository Settings, Actions, General, set Workflow permissions to read and write.
-
-The private key must match the public key in `src-tauri/tauri.conf.json`. Do not generate a new updater key for normal releases.
+The workflow starts with a no-secret preflight job that runs `vp check`, `vp test`, and `vp build` before requesting approval for the signing environment. It creates release notes with the installer name, SHA256 checksum, a changelog from commits since the previous version tag, and player install notes. For extra hand-written notes, use manual dispatch and fill the `release_notes` input, or edit the GitHub release after the workflow finishes.
 
 Normal release flow:
 
@@ -47,7 +41,17 @@ Normal release flow:
 
    `src-tauri/Cargo.lock` is refreshed by the Rust build after the `Cargo.toml` version changes.
 
-3. Commit the release prep and push it.
+3. Run local preflight.
+
+   ```powershell
+   vp check
+   vp test
+   vp build
+   ```
+
+   Fix failures before tagging. The workflow repeats these checks before it can access signing secrets.
+
+4. Commit the release prep and push it.
 
    ```powershell
    $version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
@@ -58,16 +62,16 @@ Normal release flow:
 
    Stage only files that actually changed for the release. Include workflow or support docs only when they changed. Do not stage ignored artifacts under `src-tauri/target/`.
 
-4. Create and push the version tag.
+5. Create and push the version tag.
 
    ```powershell
    git tag -a "v${version}" -m "IDC v${version} test release"
    git push origin "v${version}"
    ```
 
-5. Open GitHub Actions, approve the `desktop-release` environment job, and wait for it to finish.
+6. Open GitHub Actions. If the preflight job passes, approve the `desktop-release` environment job and wait for it to finish.
 
-6. Verify the versioned prerelease and the `desktop-alpha` release exist. The workflow already checks the uploaded README, checksum, signature, and updater manifest, but GitHub should show the assets before you share the release link.
+7. Verify the versioned prerelease and the `desktop-alpha` release exist. The workflow already checks the uploaded README, checksum, signature, and updater manifest, but GitHub should show the assets before you share the release link.
 
 ## Manual fallback
 
