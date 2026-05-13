@@ -168,7 +168,8 @@ function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): 
   return (
     savedMember.name === fixtureMember.name &&
     savedMember.firstName === fixtureMember.firstName &&
-    savedMember.apparentHeightInInches === fixtureMember.apparentHeightInInches &&
+    savedMember.characterHeightInInches === fixtureMember.characterHeightInInches &&
+    savedMember.standeeRenderHeightInInches === fixtureMember.standeeRenderHeightInInches &&
     savedMember.origin === fixtureMember.origin &&
     savedMember.species === fixtureMember.species &&
     savedMember.dimension === fixtureMember.dimension &&

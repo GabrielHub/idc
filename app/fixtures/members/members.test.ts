@@ -21,10 +21,11 @@ type PortraitAssetReference = {
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
 const MEMBER_NAME_ALLOWLIST: ReadonlySet<string> = new Set(["bai-wenshu::Meridian"]);
 const KNOWN_HEIGHTS_IN_INCHES: Readonly<Record<string, number>> = {
+  "alex-yoon": 73,
   "derek-halsey": 76,
   "gabriel-tan": 69,
-  "noah-kim": 68,
-  "ryan-doyle": 67,
+  "noah-kim": 69,
+  "ryan-doyle": 69,
 };
 
 function memberDesignText(member: Member): string {
@@ -73,24 +74,34 @@ function containsName(text: string, name: string): boolean {
 }
 
 describe("member fixtures", () => {
-  it("stores canonical apparent heights in inches", () => {
+  it("stores canonical character and standee render heights in inches", () => {
     const problems: string[] = [];
 
     for (const member of starterMembers) {
-      if (!Number.isInteger(member.apparentHeightInInches)) {
-        problems.push(`${member.id} height is not an integer`);
+      if (!Number.isInteger(member.characterHeightInInches)) {
+        problems.push(`${member.id} characterHeightInInches is not an integer`);
       }
 
-      if (member.apparentHeightInInches < 48 || member.apparentHeightInInches > 84) {
+      if (!Number.isInteger(member.standeeRenderHeightInInches)) {
+        problems.push(`${member.id} standeeRenderHeightInInches is not an integer`);
+      }
+
+      if (member.characterHeightInInches < 24 || member.characterHeightInInches > 108) {
         problems.push(
-          `${member.id} height ${member.apparentHeightInInches} is outside lineup bounds`,
+          `${member.id} characterHeightInInches ${member.characterHeightInInches} is outside member bounds`,
+        );
+      }
+
+      if (member.standeeRenderHeightInInches < 48 || member.standeeRenderHeightInInches > 84) {
+        problems.push(
+          `${member.id} standeeRenderHeightInInches ${member.standeeRenderHeightInInches} is outside lineup bounds`,
         );
       }
 
       const knownHeight = KNOWN_HEIGHTS_IN_INCHES[member.id];
-      if (knownHeight !== undefined && member.apparentHeightInInches !== knownHeight) {
+      if (knownHeight !== undefined && member.standeeRenderHeightInInches !== knownHeight) {
         problems.push(
-          `${member.id} height ${member.apparentHeightInInches} should be ${knownHeight}`,
+          `${member.id} standeeRenderHeightInInches ${member.standeeRenderHeightInInches} should be ${knownHeight}`,
         );
       }
     }

@@ -26,6 +26,7 @@ Code, tests, fixtures, and assets are the source of truth for implemented behavi
 ## Support Docs
 
 - `support/desktop-install-guide.md`: player install flow, provider setup, update behavior, save paths, logs, and caveats.
+- `support/release-readme.md`: short player-facing install notes for GitHub release assets.
 
 ## Ownership Rules
 

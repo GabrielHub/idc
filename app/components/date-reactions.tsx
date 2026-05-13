@@ -60,19 +60,38 @@ type StandeeHeightScaleBucket = StandeeHeightScale & {
 };
 
 const STANDEE_HEIGHT_SCALE_BUCKETS: readonly StandeeHeightScaleBucket[] = [
-  { maxHeightInInches: 56, className: "scale-[0.84]", value: 0.84 },
-  { maxHeightInInches: 60, className: "scale-[0.9]", value: 0.9 },
-  { maxHeightInInches: 63, className: "scale-[0.94]", value: 0.94 },
+  { maxHeightInInches: 53, className: "scale-[0.78]", value: 0.78 },
+  { maxHeightInInches: 54, className: "scale-[0.79]", value: 0.79 },
+  { maxHeightInInches: 55, className: "scale-[0.81]", value: 0.81 },
+  { maxHeightInInches: 56, className: "scale-[0.82]", value: 0.82 },
+  { maxHeightInInches: 57, className: "scale-[0.84]", value: 0.84 },
+  { maxHeightInInches: 58, className: "scale-[0.85]", value: 0.85 },
+  { maxHeightInInches: 59, className: "scale-[0.87]", value: 0.87 },
+  { maxHeightInInches: 60, className: "scale-[0.88]", value: 0.88 },
+  { maxHeightInInches: 61, className: "scale-[0.9]", value: 0.9 },
+  { maxHeightInInches: 62, className: "scale-[0.91]", value: 0.91 },
+  { maxHeightInInches: 63, className: "scale-[0.93]", value: 0.93 },
+  { maxHeightInInches: 64, className: "scale-[0.94]", value: 0.94 },
   { maxHeightInInches: 65, className: "scale-[0.96]", value: 0.96 },
+  { maxHeightInInches: 66, className: "scale-[0.97]", value: 0.97 },
   { maxHeightInInches: 67, className: "scale-[0.99]", value: 0.99 },
   { maxHeightInInches: 68, className: "scale-100", value: 1 },
+  { maxHeightInInches: 69, className: "scale-[1.01]", value: 1.01 },
   { maxHeightInInches: 70, className: "scale-[1.03]", value: 1.03 },
-  { maxHeightInInches: 72, className: "scale-[1.05]", value: 1.05 },
-  { maxHeightInInches: 74, className: "scale-[1.08]", value: 1.08 },
+  { maxHeightInInches: 71, className: "scale-[1.04]", value: 1.04 },
+  { maxHeightInInches: 72, className: "scale-[1.06]", value: 1.06 },
+  { maxHeightInInches: 73, className: "scale-[1.07]", value: 1.07 },
+  { maxHeightInInches: 74, className: "scale-[1.09]", value: 1.09 },
   { maxHeightInInches: 75, className: "scale-110", value: 1.1 },
-  { maxHeightInInches: 76, className: "scale-[1.13]", value: 1.13 },
-  { maxHeightInInches: 79, className: "scale-[1.15]", value: 1.15 },
-  { maxHeightInInches: Number.POSITIVE_INFINITY, className: "scale-[1.18]", value: 1.18 },
+  { maxHeightInInches: 76, className: "scale-[1.12]", value: 1.12 },
+  { maxHeightInInches: 77, className: "scale-[1.13]", value: 1.13 },
+  { maxHeightInInches: 78, className: "scale-[1.15]", value: 1.15 },
+  { maxHeightInInches: 79, className: "scale-[1.16]", value: 1.16 },
+  { maxHeightInInches: 80, className: "scale-[1.18]", value: 1.18 },
+  { maxHeightInInches: 81, className: "scale-[1.19]", value: 1.19 },
+  { maxHeightInInches: 82, className: "scale-[1.21]", value: 1.21 },
+  { maxHeightInInches: 83, className: "scale-[1.22]", value: 1.22 },
+  { maxHeightInInches: Number.POSITIVE_INFINITY, className: "scale-[1.24]", value: 1.24 },
 ];
 
 export function resolveStandeeHeightScale(heightInInches: number): StandeeHeightScale {
@@ -93,6 +112,14 @@ export function formatMemberHeightLabel(heightInInches: number): string {
   const inches = normalizedHeight % 12;
 
   return `${feet} ft ${inches} in`;
+}
+
+export function formatMemberHeightShort(heightInInches: number): string {
+  const normalizedHeight = Math.max(0, Math.round(heightInInches));
+  const feet = Math.floor(normalizedHeight / 12);
+  const inches = normalizedHeight % 12;
+
+  return `${feet}'${inches}`;
 }
 
 export function pushReactionSignal(
@@ -166,7 +193,7 @@ export function DaterStandee({
   className?: string;
 }) {
   const isFocus = placement === "bottom-left";
-  const heightScale = resolveStandeeHeightScale(member.apparentHeightInInches);
+  const heightScale = resolveStandeeHeightScale(member.standeeRenderHeightInInches);
   const baseGlow = isFocus
     ? "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(244,63,94,0.3)_0%,rgba(217,70,239,0.09)_42%,transparent_74%)]"
     : "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(167,139,250,0.26)_0%,rgba(217,70,239,0.08)_42%,transparent_74%)]";

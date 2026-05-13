@@ -1,0 +1,241 @@
+name: Release desktop
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release, for example v0.2.1"
+        required: true
+        type: string
+      release_notes:
+        description: "Optional extra release notes"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Build and publish Windows
+    runs-on: windows-latest
+    environment: desktop-release
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      REQUESTED_RELEASE_NOTES: ${{ github.event_name == 'workflow_dispatch' && inputs.release_notes || '' }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+      IDC_RELEASE_PREFLIGHT: "1"
+      IDC_COPYRIGHT_CONFIRMED: "Copyright (c) 2026 IDC team"
+
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+
+      - name: Validate release tag
+        shell: pwsh
+        run: |
+          if ($env:RELEASE_TAG -notmatch '^v\d+\.\d+\.\d+$') {
+            throw "Release tag must look like v0.2.1. Got: $env:RELEASE_TAG"
+          }
+
+          $package = Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json
+          $expectedTag = "v$($package.version)"
+          if ($env:RELEASE_TAG -ne $expectedTag) {
+            throw "Release tag $env:RELEASE_TAG does not match package.json version $($package.version). Expected $expectedTag."
+          }
+
+      - name: Prepare updater signing key
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw "Missing GitHub secret TAURI_SIGNING_PRIVATE_KEY."
+          }
+
+          $keyPath = Join-Path $env:RUNNER_TEMP "idc-updater.key"
+          [System.IO.File]::WriteAllText($keyPath, $env:TAURI_SIGNING_PRIVATE_KEY)
+          "TAURI_SIGNING_PRIVATE_KEY=$keyPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "pnpm"
+
+      - name: Install Vite Plus
+        shell: pwsh
+        run: npm install -g vite-plus
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install dependencies
+        shell: pwsh
+        run: vp install
+
+      - name: Build signed desktop package
+        shell: pwsh
+        run: vp run tauri:build
+
+      - name: Prepare release assets
+        id: assets
+        shell: pwsh
+        run: |
+          $package = Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json
+          $version = $package.version
+          $bundleDir = "src-tauri\target\release\bundle\nsis"
+          $installer = Join-Path $bundleDir "IDC_${version}_x64-setup.exe"
+          $signature = "${installer}.sig"
+          $checksum = "${installer}.sha256"
+          $manifest = Join-Path $bundleDir "latest.json"
+          $releaseNotes = Join-Path $bundleDir "release-notes-$($env:RELEASE_TAG).md"
+          $playerReadme = "docs\support\release-readme.md"
+
+          foreach ($path in @($installer, $signature, $playerReadme)) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Missing release artifact: $path"
+            }
+          }
+
+          $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  IDC_${version}_x64-setup.exe" | Set-Content -LiteralPath $checksum -Encoding ascii
+
+          $env:IDC_RELEASE_TAG = $env:RELEASE_TAG
+          vp run updater:manifest
+
+          if (-not (Test-Path -LiteralPath $manifest)) {
+            throw "Missing updater manifest: $manifest"
+          }
+
+          $notes = @(
+            "# IDC $env:RELEASE_TAG test alpha",
+            "",
+            "Windows installer: IDC_${version}_x64-setup.exe",
+            "",
+            "SHA256: $hash",
+            "",
+            "This is an unsigned private alpha. Windows may show SmartScreen. Choose More info, then Run anyway if you trust this release.",
+            "",
+            "IDC needs either local Ollama or Vercel AI Gateway before you can book dates.",
+            "",
+            "Install notes are attached as release-readme.md."
+          )
+
+          if (-not [string]::IsNullOrWhiteSpace($env:REQUESTED_RELEASE_NOTES)) {
+            $notes += @("", "## Notes", "", $env:REQUESTED_RELEASE_NOTES.Trim())
+          }
+
+          $notes | Set-Content -LiteralPath $releaseNotes -Encoding utf8
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "signature=$signature" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "checksum=$checksum" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "manifest=$manifest" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "release_notes=$releaseNotes" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "player_readme=$playerReadme" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Publish versioned prerelease
+        shell: pwsh
+        env:
+          INSTALLER: ${{ steps.assets.outputs.installer }}
+          SIGNATURE: ${{ steps.assets.outputs.signature }}
+          CHECKSUM: ${{ steps.assets.outputs.checksum }}
+          MANIFEST: ${{ steps.assets.outputs.manifest }}
+          RELEASE_NOTES: ${{ steps.assets.outputs.release_notes }}
+          PLAYER_README: ${{ steps.assets.outputs.player_readme }}
+        run: |
+          $repo = $env:GITHUB_REPOSITORY
+          $tag = $env:RELEASE_TAG
+          $title = "IDC $tag test alpha"
+          $assets = @(
+            $env:INSTALLER,
+            $env:PLAYER_README,
+            $env:CHECKSUM,
+            $env:SIGNATURE,
+            $env:MANIFEST
+          )
+
+          gh release view $tag --repo $repo *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag $assets --repo $repo --title $title --notes-file $env:RELEASE_NOTES --prerelease
+          } else {
+            gh release edit $tag --repo $repo --title $title --notes-file $env:RELEASE_NOTES --prerelease
+            gh release upload $tag $assets --repo $repo --clobber
+          }
+
+      - name: Publish updater channel
+        shell: pwsh
+        env:
+          MANIFEST: ${{ steps.assets.outputs.manifest }}
+        run: |
+          $repo = $env:GITHUB_REPOSITORY
+          gh release view "desktop-alpha" --repo $repo *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create "desktop-alpha" $env:MANIFEST `
+              --repo $repo `
+              --title "IDC desktop alpha update channel" `
+              --notes "Updater metadata for the current desktop alpha." `
+              --prerelease
+          } else {
+            gh release upload "desktop-alpha" $env:MANIFEST --repo $repo --clobber
+          }
+
+      - name: Verify published release
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+        run: |
+          $repo = $env:GITHUB_REPOSITORY
+          $dir = Join-Path $env:RUNNER_TEMP "idc-release-check"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+
+          gh release view $env:RELEASE_TAG --repo $repo
+          gh release view "desktop-alpha" --repo $repo
+          gh release download $env:RELEASE_TAG --repo $repo --pattern "release-readme.md" --dir $dir --clobber
+          gh release download $env:RELEASE_TAG --repo $repo --pattern "*.sha256" --dir $dir --clobber
+          gh release download $env:RELEASE_TAG --repo $repo --pattern "*.sig" --dir $dir --clobber
+          gh release download "desktop-alpha" --repo $repo --pattern "latest.json" --dir $dir --clobber
+
+          $downloadedReadme = Join-Path $dir "release-readme.md"
+          $downloadedChecksum = Join-Path $dir "IDC_$($env:VERSION)_x64-setup.exe.sha256"
+          $downloadedManifest = Join-Path $dir "latest.json"
+
+          foreach ($path in @($downloadedReadme, $downloadedChecksum, $downloadedManifest)) {
+            if (-not (Test-Path -LiteralPath $path)) {
+              throw "Published release is missing: $path"
+            }
+          }
+
+          $latest = Get-Content -Raw -LiteralPath $downloadedManifest | ConvertFrom-Json
+          $windowsUpdate = $latest.platforms.'windows-x86_64'
+          if ($latest.version -ne $env:VERSION) {
+            throw "latest.json version $($latest.version) does not match $env:VERSION"
+          }
+          if ($windowsUpdate.url -notlike "*releases/download/$env:RELEASE_TAG/IDC_$($env:VERSION)_x64-setup.exe") {
+            throw "latest.json points at the wrong installer: $($windowsUpdate.url)"
+          }
+          if ([string]::IsNullOrWhiteSpace($windowsUpdate.signature)) {
+            throw "latest.json is missing the Windows signature"
+          }

@@ -103,7 +103,9 @@ A Vite plugin fails the build if portrait source files land under `public/assets
 
 ## Releases
 
-`vp run tauri:build` is the release gate for desktop packaging because it includes `vp check`, type generation, TypeScript, tests, desktop bundle verification, and Tauri packaging. Release builds need `TAURI_SIGNING_PRIVATE_KEY` set to the updater private key path or contents so the updater artifacts are signed.
+`.github/workflows/release-desktop.yml` is the normal desktop release path. It runs from pushed `v*` tags or manual dispatch, builds the Windows installer, signs updater artifacts from GitHub secrets, creates the versioned prerelease, uploads the player README and package assets, and refreshes the `desktop-alpha` updater channel.
+
+`vp run tauri:build` remains the local release gate for desktop packaging because it includes `vp check`, type generation, TypeScript, tests, desktop bundle verification, and Tauri packaging. Local release builds need `TAURI_SIGNING_PRIVATE_KEY` set to the updater private key path or contents so the updater artifacts are signed.
 
 Desktop updates use Tauri's signed static JSON updater pattern. The app checks:
 
@@ -123,6 +125,7 @@ Do not regenerate the updater private key for normal releases. Installed apps tr
 
 - [Docs index](docs/README.md): documentation map and ownership rules.
 - [Desktop install guide](docs/support/desktop-install-guide.md): private alpha install flow, provider setup, save locations, caveats.
+- [Release README](docs/support/release-readme.md): short install notes for player-facing GitHub release assets.
 - [Release checklist](docs/workflows/release-checklist.md): friend-share prerelease flow.
 - [Add member workflow](docs/workflows/add-member.md): content checklist for one new member.
 - [Add date scenario workflow](docs/workflows/add-date-scenario.md): content checklist for one new date scenario.

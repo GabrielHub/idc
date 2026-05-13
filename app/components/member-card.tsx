@@ -4,7 +4,8 @@ import { type ReactNode, type Ref, useEffect, useMemo } from "react";
 import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { hashSeedUint32 } from "../services/utils";
-import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass, Tooltip } from "./dashboard-atoms";
+import { formatMemberHeightShort } from "./date-reactions";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
 
@@ -142,7 +143,7 @@ export function MemberCard({
       className="list-none"
     >
       <div
-        className={`group relative isolate rounded-card transition-transform duration-300 ${
+        className={`group/card relative isolate rounded-card transition-transform duration-300 ${
           state === "focused"
             ? "p-[2px] bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet shadow-cta"
             : "p-px"
@@ -152,7 +153,7 @@ export function MemberCard({
         {state === "default" ? (
           <span
             aria-hidden
-            className="pointer-events-none absolute -inset-3 rounded-[36px] bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)] opacity-0 blur-2xl transition-opacity duration-[600ms] ease-out group-hover:opacity-55"
+            className="pointer-events-none absolute -inset-3 rounded-[36px] bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)] opacity-0 blur-2xl transition-opacity duration-[600ms] ease-out group-hover/card:opacity-55"
           />
         ) : null}
         <article
@@ -178,7 +179,7 @@ export function MemberCard({
             </div>
           ) : null}
 
-          <div className="absolute inset-0 z-0 transition-transform duration-[700ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-[1.06]">
+          <div className="absolute inset-0 z-0 transition-transform duration-[700ms] ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover/card:scale-[1.06]">
             <Portrait member={member} variant="standee-bottom" asset="portrait" />
           </div>
 
@@ -293,13 +294,16 @@ function InfoOverlay({
                   {STATE_PILL_LABEL[state]}
                 </p>
               </div>
-              {hideSealedSummary ? null : (
-                <SealedSummaryChip
-                  sealedCount={sealedCount}
-                  knownCount={knownCount}
-                  revealAllDetails={revealAllDetails}
-                />
-              )}
+              <div className="flex shrink-0 flex-col items-end gap-1.5">
+                <HeightChip heightInInches={member.characterHeightInInches} />
+                {hideSealedSummary ? null : (
+                  <SealedSummaryChip
+                    sealedCount={sealedCount}
+                    knownCount={knownCount}
+                    revealAllDetails={revealAllDetails}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -354,7 +358,7 @@ function CompactMemberCard({
       className="list-none"
     >
       <div
-        className={`group relative h-full rounded-2xl transition-[transform,box-shadow] duration-300 ${
+        className={`relative h-full rounded-2xl transition-[transform,box-shadow] duration-300 ${
           state === "focused"
             ? "p-[2px] bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet shadow-cta"
             : ""
@@ -377,9 +381,10 @@ function CompactMemberCard({
             <Portrait member={member} variant="row" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
-                <h3 className="truncate font-display text-base font-semibold tracking-tight">
+                <h3 className="min-w-0 truncate font-display text-base font-semibold tracking-tight">
                   {member.firstName}
                 </h3>
+                <HeightChip heightInInches={member.characterHeightInInches} />
                 {state === "closed" || state === "quit" ? (
                   <span className="rounded-pill bg-aura-cream-soft px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint">
                     {state === "closed" ? "closed" : "quit"}
@@ -415,6 +420,16 @@ function FileNumberChip({ file }: { file: string }) {
     <span className="pointer-events-none rounded-pill bg-white/70 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-ink/70 ring-1 ring-white/55 backdrop-blur-sm">
       {file}
     </span>
+  );
+}
+
+function HeightChip({ heightInInches }: { heightInInches: number }) {
+  return (
+    <Tooltip message="with shoes" placement="bottom-end">
+      <span className="pointer-events-auto cursor-help rounded-pill bg-white/85 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline">
+        {formatMemberHeightShort(heightInInches)}
+      </span>
+    </Tooltip>
   );
 }
 
@@ -694,9 +709,12 @@ export function MemberDetailsModal({
               <h2 className="mt-1.5 font-display text-2xl font-semibold leading-tight tracking-tight text-aura-ink">
                 {member.firstName}
               </h2>
-              <p className="mt-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-                {statusLabel}
-              </p>
+              <div className="mt-1 flex items-center justify-center gap-2">
+                <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+                  {statusLabel}
+                </p>
+                <HeightChip heightInInches={member.characterHeightInInches} />
+              </div>
             </div>
           </aside>
 
@@ -711,9 +729,12 @@ export function MemberDetailsModal({
                   <h2 className="mt-1 font-display text-xl font-semibold leading-tight tracking-tight">
                     {member.firstName}
                   </h2>
-                  <p className="mt-0.5 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-                    {statusLabel}
-                  </p>
+                  <div className="mt-0.5 flex items-center gap-2">
+                    <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+                      {statusLabel}
+                    </p>
+                    <HeightChip heightInInches={member.characterHeightInInches} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -727,9 +748,12 @@ export function MemberDetailsModal({
                 <h2 className="mt-1 font-display text-xl font-semibold leading-tight tracking-tight text-aura-ink">
                   {member.firstName}
                 </h2>
-                <p className="mt-0.5 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-                  {statusLabel}
-                </p>
+                <div className="mt-0.5 flex items-center gap-2">
+                  <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+                    {statusLabel}
+                  </p>
+                  <HeightChip heightInInches={member.characterHeightInInches} />
+                </div>
               </div>
             </div>
 

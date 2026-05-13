@@ -10,11 +10,68 @@ Installed desktop builds check a fixed public GitHub release asset:
 https://github.com/GabrielHub/idc/releases/download/desktop-alpha/latest.json
 ```
 
-Each versioned prerelease, for example `v0.1.5`, owns the installable artifacts: the NSIS installer, `.sha256`, `.sig`, and a copy of `latest.json`. The `desktop-alpha` release is the update channel. It should only contain the current `latest.json`, which points to the installer on the versioned prerelease.
+Each versioned prerelease, for example `v0.1.5`, owns the installable artifacts: the NSIS installer, player README, `.sha256`, `.sig`, and a copy of `latest.json`. The `desktop-alpha` release is the update channel. It should only contain the current `latest.json`, which points to the installer on the versioned prerelease.
 
 The app checks for updates once after launch and exposes a manual Settings, Updates check. A discovered update shows an Update badge on the settings button. Installation remains user-initiated.
 
 The updater private key signs each release. Do not regenerate it for normal releases. Installed apps trust the public key already checked into `src-tauri/tauri.conf.json`, so a lost private key means those installs cannot receive future updates.
+
+## Automated GitHub release
+
+The default release path is `.github/workflows/release-desktop.yml`. It runs on pushed `v*` tags or by manual dispatch with a tag. The workflow builds the Windows desktop package, signs updater artifacts using GitHub secrets, creates or updates the versioned prerelease, uploads the player README, checksum, signature, and `latest.json`, then updates the fixed `desktop-alpha` updater channel.
+
+One-time repository setup:
+
+1. Create a GitHub Environment named `desktop-release`.
+2. Add required reviewers to `desktop-release` so a human approves runs that can read the signing key.
+3. Add environment secret `TAURI_SIGNING_PRIVATE_KEY` containing the contents of the Tauri updater private key file.
+4. If the key has a password, add environment secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`.
+5. In repository Settings, Actions, General, set Workflow permissions to read and write.
+
+The private key must match the public key in `src-tauri/tauri.conf.json`. Do not generate a new updater key for normal releases.
+
+Normal release flow:
+
+1. Start clean and fetch tags.
+
+   ```powershell
+   git status --short --branch
+   git fetch --tags origin
+   ```
+
+2. Pick the next version. For a test release, bump the patch version unless there is a reason to change minor. Update all release identity files together:
+   - `package.json`
+   - `src-tauri/Cargo.toml`
+   - `src-tauri/tauri.conf.json`
+   - the Tauri window title in `src-tauri/tauri.conf.json`
+
+   `src-tauri/Cargo.lock` is refreshed by the Rust build after the `Cargo.toml` version changes.
+
+3. Commit the release prep and push it.
+
+   ```powershell
+   $version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
+   git add package.json src-tauri\Cargo.toml src-tauri\Cargo.lock src-tauri\tauri.conf.json
+   git commit -m "Prepare v${version} test release"
+   git push origin main
+   ```
+
+   Stage only files that actually changed for the release. Include workflow or support docs only when they changed. Do not stage ignored artifacts under `src-tauri/target/`.
+
+4. Create and push the version tag.
+
+   ```powershell
+   git tag -a "v${version}" -m "IDC v${version} test release"
+   git push origin "v${version}"
+   ```
+
+5. Open GitHub Actions, approve the `desktop-release` environment job, and wait for it to finish.
+
+6. Verify the versioned prerelease and the `desktop-alpha` release exist. The workflow already checks the uploaded README, checksum, signature, and updater manifest, but GitHub should show the assets before you share the release link.
+
+## Manual fallback
+
+Use this only when GitHub Actions is unavailable or you need to debug packaging locally.
 
 1. Start clean and fetch tags.
 
@@ -105,11 +162,12 @@ The updater private key signs each release. Do not regenerate it for normal rele
 
    Stage only files that actually changed for the release. Include release tooling files only when they changed. Do not stage ignored artifacts under `src-tauri/target/`.
 
-8. Create the GitHub prerelease and upload the installer, checksum, signature, and manifest.
+8. Create the GitHub prerelease and upload the installer, player README, checksum, signature, and manifest.
 
    ```powershell
    $notes = "src-tauri\target\release\bundle\nsis\release-notes-v${version}.md"
-   gh release create "v${version}" $installer $checksum $signature $manifest `
+   $playerReadme = "docs\support\release-readme.md"
+   gh release create "v${version}" $installer $playerReadme $checksum $signature $manifest `
      --repo GabrielHub/idc `
      --title "IDC v${version} test alpha" `
      --notes-file $notes `
@@ -148,12 +206,17 @@ gh release view "v${version}" --repo GabrielHub/idc
 gh release view "desktop-alpha" --repo GabrielHub/idc
 $dir = Join-Path $env:TEMP "idc-cupid-v${version}-release-check"
 New-Item -ItemType Directory -Force -Path $dir | Out-Null
+gh release download "v${version}" --repo GabrielHub/idc --pattern "release-readme.md" --dir $dir --clobber
 gh release download "v${version}" --repo GabrielHub/idc --pattern "*.sha256" --dir $dir --clobber
 gh release download "v${version}" --repo GabrielHub/idc --pattern "*.sig" --dir $dir --clobber
 gh release download "desktop-alpha" --repo GabrielHub/idc --pattern "latest.json" --dir $dir --clobber
 
 $downloadedChecksum = Join-Path $dir "IDC_${version}_x64-setup.exe.sha256"
+$downloadedPlayerReadme = Join-Path $dir "release-readme.md"
 $downloadedManifest = Join-Path $dir "latest.json"
+if (-not (Test-Path -LiteralPath $downloadedPlayerReadme)) {
+  throw "Missing player README asset"
+}
 Get-Content -LiteralPath $downloadedChecksum
 Get-Content -LiteralPath $downloadedManifest
 
@@ -170,7 +233,7 @@ if ([string]::IsNullOrWhiteSpace($windowsUpdate.signature)) {
 }
 ```
 
-The release is ready to share when GitHub shows `prerelease: true`, the installer asset, the `.sha256` asset, the `.sig` asset, and the checksum file matches the notes. The in-app updater is ready when the `desktop-alpha` release has `latest.json` pointing at the new versioned installer URL.
+The release is ready to share when GitHub shows `prerelease: true`, the installer asset, the player README asset, the `.sha256` asset, the `.sig` asset, and the checksum file matches the notes. The in-app updater is ready when the `desktop-alpha` release has `latest.json` pointing at the new versioned installer URL.
 
 ## Desktop bundle layout
 

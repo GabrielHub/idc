@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 6;
+export const SAVE_SCHEMA_VERSION = 7;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -220,7 +220,8 @@ export const memberSchema = z
     id: memberIdSchema,
     name: z.string().min(1),
     firstName: z.string().min(1),
-    apparentHeightInInches: z.number().int().min(24).max(108).default(66),
+    characterHeightInInches: z.number().int().min(24).max(108).default(66),
+    standeeRenderHeightInInches: z.number().int().min(24).max(108).default(66),
     origin: z.string().min(1),
     species: z.string().min(1),
     dimension: z.string().min(1),

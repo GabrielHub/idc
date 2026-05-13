@@ -26,7 +26,9 @@ This workflow is the content pass. Complete the member's nonvisual game content 
 Add `app/fixtures/members/<member-id>.ts` with a `Member` object that satisfies `memberSchema`:
 
 - Identity fields: `id`, `name`, `firstName`, `origin`, `species`, `dimension`, `realityStatus`.
-- Height: `apparentHeightInInches`, stored as an integer in inches. Keep shipping roster heights inside the lineup bounds enforced by `members.test.ts`.
+- Height: two fields, both integers in inches.
+  - `characterHeightInInches`: the canonical character height shown on labels and in the dossier. Set this to how tall the character actually is.
+  - `standeeRenderHeightInInches`: the standee scale-bucket input. Tune this (together with the per-member SRC in the playground height lineup) until the rendered standee reads at the right height against neighbors and the 6 ft guide. Keep this inside the lineup bounds enforced by `members.test.ts`.
 - Core prose: `bio`, `datingProfile`, `relationshipNeeds`, `preferences`, `dealbreakers`, `secrets`.
 - Hidden tags: 3 to 5 tags from `memberTagSchema`, with exactly one identity tag: `ordinary_human` or `non_human`.
 - Voice: `register`, `patternsUsed`, `patternsRefused`, `tics`, and `sampleMessages`.
