@@ -214,7 +214,7 @@ jobs:
             $changeIntro = "Changes in this release:"
           } else {
             $changeRange = "$previousTag..$env:RELEASE_TAG"
-            $changeIntro = "Changes since $previousTag:"
+            $changeIntro = "Changes since ${previousTag}:"
           }
 
           $commitLines = @(git log $changeRange --pretty=format:"- %s (%h)")
