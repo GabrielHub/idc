@@ -13,7 +13,6 @@
 - Use Vite Plus first: `vp install`, `vp dev`, `vp check`, `vp test`, `vp build`, and `vp preview`.
 - Use package scripts only where there is no `vp` equivalent.
 - Run project scripts through Vite Plus when possible, for example `vp run portrait:cutout`.
-- Playwright browser testing is the primary development and validation surface for UI and gameplay flows.
 
 ## Architecture
 
@@ -27,9 +26,6 @@
 - Runtime AI providers may perform characters, judge exchanges, summarize memories, and phrase content within app prompts, schemas, memory visibility rules, numeric bounds, and deterministic context selection.
 - Validated LLM outputs may influence gameplay state, including Date Health, pair stats, member mood, early endings, memories, and final reports. Game services apply, clamp, overlay, reject, and persist those outputs.
 - Deterministic systems still choose the date frame, eligible context, match fit overlays, hard stops, and persistence boundaries.
-- LLM outputs must be validated before they affect state.
-- Vector retrieval and scoped memory tool calls are context selection tools, not sources of truth.
-- Memory visibility rules must be enforced in application code before prompt assembly or tool result return.
 - Never use `any` or `as any`. Keep types explicit and narrow. Prefer inline interfaces and types unless reused.
 
 ## Playwright Testing
@@ -42,7 +38,9 @@
 - Do not run concurrent Playwright sessions or parallel Playwright agents unless the user explicitly asks for that coordination and the active owner releases the browser first.
 - Set every Playwright browser context or page viewport to `1920x1080` before testing, interacting with UI, or taking screenshots.
 - Always close the Playwright session when finished so other agents can open their own.
-- Store Playwright artifacts under `playwright/`, never in the repo root.
+- Closing a session means explicitly closing the page, context, browser, or MCP-backed Browser session with the available close command before the final response. Do not treat navigation away, a failed test, a stopped dev server, or the end of a turn as cleanup.
+- After using Playwright MCP or the Browser plugin, verify that the session was closed. If a session cannot be closed through tool APIs, report the leaked `@playwright/mcp` process IDs instead of silently leaving them running.
+- Store Playwright artifacts under `playwright/`
 - Put screenshots in `playwright/screenshots/`.
 - Put logs and network captures in `playwright/logs/`.
 - Put traces and other browser artifacts in `playwright/artifacts/`.
@@ -75,7 +73,6 @@
 - Do not substitute two hyphens for a dash.
 - Avoid AI-slop patterns: "delve", "in essence", "moreover", "it is worth noting", "navigating", "tapestry", "intricate", "myriad", "plethora", "unleash", "leverage" or "harness" used as verbs, "elevate", filler uses of "robust", hedging stacks like "perhaps could potentially", and "not just X but also Y" constructions.
 - User-facing copy should follow IDC's tone: workplace comedy under supernatural pressure. Professional, slightly dry, and frequently absurd.
-- Death and serious-injury copy is never funny.
 - Write in active voice. Cut adverbs that do not change meaning. Trust the reader.
 
 ## AI And Assets
@@ -84,8 +81,8 @@
 - Deterministic fixture paths exist for service tests and smoke coverage, not as a player-facing substitute for the required AI provider.
 - Runtime AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
-- Generate v1 member portraits against a white background.
-- Follow the webtoon/manhua portrait direction in `docs/product/image-style.md`.
+- Generate member portraits against a white background.
+- Follow the webtoon/manhwa portrait direction in `docs/product/image-style.md`.
 - Use `scripts/portraits/remove_background.py` with `bria-rmbg` for approved portrait cutouts.
 - Tool-assisted background removal is a final post-approval asset step for cutout images. Do not use it for full backdrops or unique portrait cards.
 
@@ -100,7 +97,7 @@
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
 - Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/product/visual-design.md`.
 - Preserve the Aura design language described in `app/app.css` and `docs/product/visual-design.md`.
-- Do not create a marketing landing page for the playable game shell.
+- Always check if a component or pattern already exists, reuse components when we can. If you find duplicate components, create a shared one and replace the duplicates
 
 ## Verification
 
