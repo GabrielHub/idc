@@ -48,8 +48,14 @@ import {
   buildRevealCandidates,
   filterExchangeEligibleRevealCandidates,
   selectDeterministicRevealIds,
+  visibleReadsForPair,
 } from "./player-knowledge";
-import { applyJudgePairMemoryEffects } from "./pair-memory";
+import {
+  applyCompletedDatePairMemoryEffects,
+  applyFollowUpPairMemoryEffects,
+  applyJudgePairMemoryEffects,
+} from "./pair-memory";
+import { derivePairTrajectory } from "./pair-trajectory";
 import {
   CLIENT_LOSS_LIMIT_BASE,
   CLOSURE_THRESHOLD,
@@ -104,6 +110,7 @@ export const MAX_NUDGES_PER_DATE = 3;
 export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
 export const EVENT_DRAFT_OFFERED = EVENT_DRAFT_OFFERED_PER_KIND * SCENARIO_EVENT_KINDS.length;
 export const EVENT_DRAFT_PICKED = 3;
+export const CLOSURE_NEAR_MISS_TAG = "closure_near_miss";
 export { CLIENT_LOSS_LIMIT_BASE, CLOSURE_THRESHOLD, clientLossLimit };
 
 export type OutcomeStateDeltas = {
@@ -190,6 +197,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     scenario,
     pairState,
     activeRequests,
+    knownPairReads: visibleReadsForPair(save, pairState.id),
   });
   const participants: [string, string] = [firstMember.id, secondMember.id];
   const sessionNumber = activeShift.dateSlotsUsed + 1;
@@ -217,7 +225,10 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
       ];
     }),
   );
-  const eventDraft = drawScenarioEventOffer(scenario);
+  const eventDraft = drawScenarioEventOffer(scenario, Math.random, {
+    pairState,
+    completedSessions: save.dateSessions,
+  });
   const draftIsTrivial = eventDraft.offered.length <= EVENT_DRAFT_PICKED;
   const initialEventDraft: EventDraft = draftIsTrivial
     ? { offered: eventDraft.offered, picked: [...eventDraft.offered] }
@@ -421,9 +432,15 @@ export function formatCupidInterventionText(text: string): string {
   return `Cupid suggests: ${text}`;
 }
 
+export type DrawScenarioEventContext = {
+  pairState?: PairState;
+  completedSessions?: readonly DateSession[];
+};
+
 export function drawScenarioEventOffer(
   scenario: DateScenario,
   randomFn: () => number = Math.random,
+  context: DrawScenarioEventContext = {},
 ): EventDraft {
   const buckets = new Map<ScenarioEventKind, ScenarioEvent[]>();
 
@@ -436,11 +453,12 @@ export function drawScenarioEventOffer(
   for (const kind of SCENARIO_EVENT_KINDS) {
     const bucket = buckets.get(kind) ?? [];
     shuffleInPlace(bucket, randomFn);
+    const rankedBucket = rankScenarioEventBucket(bucket, kind, context);
 
-    const targetCount = Math.min(EVENT_DRAFT_OFFERED_PER_KIND, bucket.length);
+    const targetCount = Math.min(EVENT_DRAFT_OFFERED_PER_KIND, rankedBucket.length);
 
     for (let index = 0; index < targetCount; index += 1) {
-      const event = bucket[index];
+      const event = rankedBucket[index];
 
       if (event !== undefined) {
         offered.push(event.id);
@@ -452,6 +470,74 @@ export function drawScenarioEventOffer(
     offered,
     picked: null,
   };
+}
+
+function rankScenarioEventBucket(
+  bucket: readonly ScenarioEvent[],
+  kind: ScenarioEventKind,
+  context: DrawScenarioEventContext,
+): ScenarioEvent[] {
+  if (context.pairState === undefined) {
+    return [...bucket];
+  }
+
+  const trajectory = derivePairTrajectory({
+    pairState: context.pairState,
+    completedSessions: context.completedSessions ?? [],
+  });
+  const openLoopCount = context.pairState.openLoops.filter((loop) => loop.status === "open").length;
+
+  return [...bucket]
+    .map((event, index) => ({
+      event,
+      index,
+      score: scoreScenarioEventForPair(event, kind, trajectory.state, openLoopCount),
+    }))
+    .sort((left, right) => right.score - left.score || left.index - right.index)
+    .map((entry) => entry.event);
+}
+
+function scoreScenarioEventForPair(
+  event: ScenarioEvent,
+  kind: ScenarioEventKind,
+  trajectoryState: ReturnType<typeof derivePairTrajectory>["state"],
+  openLoopCount: number,
+): number {
+  const text = [event.title, event.event, event.characterVisibleText, event.directorInstruction]
+    .join(" ")
+    .toLowerCase();
+  let score = 0;
+
+  if (trajectoryState === "brittle") {
+    if (kind === "ambient") score += 2;
+    if (hasEventKeyword(text, ["quiet", "small", "care", "repair", "offer", "calm"])) score += 3;
+    if (hasEventKeyword(text, ["pressure", "public", "loud", "deadline", "trap"])) score -= 3;
+  }
+
+  if (trajectoryState === "stuck" || openLoopCount > 0) {
+    if (hasEventKeyword(text, ["choice", "question", "plan", "return", "again", "offer"])) {
+      score += 3;
+    }
+    if (hasEventKeyword(text, ["unfinished", "almost", "answer", "asks"])) score += 2;
+  }
+
+  if (trajectoryState === "closure_runway") {
+    if (kind === "reveal") score += 1;
+    if (hasEventKeyword(text, ["future", "together", "leave", "next", "home", "return"])) {
+      score += 4;
+    }
+    if (hasEventKeyword(text, ["panic", "pressure", "public"])) score -= 2;
+  }
+
+  if (trajectoryState === "recovering") {
+    if (hasEventKeyword(text, ["repair", "offer", "care", "quiet", "small"])) score += 2;
+  }
+
+  return score;
+}
+
+function hasEventKeyword(text: string, keywords: readonly string[]): boolean {
+  return keywords.some((keyword) => text.includes(keyword));
 }
 
 export type PickScenarioEventsInput = {
@@ -677,6 +763,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     scenario,
     pairState,
     activeRequests: focusRequest === undefined ? [] : [focusRequest],
+    knownPairReads: visibleReadsForPair(save, pairState.id),
   });
   const judgeSnapshotBeforeReveals = applyMatchFitToJudgeSnapshot({
     session,
@@ -763,33 +850,56 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     completedSession.finalReport === undefined
       ? updatedPairState
       : markPairDateComplete(updatedPairState, completedSession);
-  const finalMemories =
+  const completedPairMemoryResult =
     completedSession.finalReport === undefined
+      ? { pairState: finalPairState, memories: [] }
+      : applyCompletedDatePairMemoryEffects({
+          pairState: finalPairState,
+          session: completedSession,
+          timestamp,
+        });
+  const dateMemoryRecords =
+    completedSession.finalReport === undefined
+      ? []
+      : createDateMemoryRecords(
+          completedSession,
+          members,
+          scenario,
+          timestamp,
+          completedPairMemoryResult.pairState,
+        );
+  const finalSession = linkFinalReportMemoryRecords(
+    completedSession,
+    dateMemoryRecords.map((memory) => memory.id),
+  );
+  const finalMemories =
+    finalSession.finalReport === undefined
       ? [...save.memories, ...pairMemoryResult.memories]
       : [
           ...save.memories,
           ...pairMemoryResult.memories,
-          ...createDateMemoryRecords(completedSession, members, scenario, timestamp),
+          ...completedPairMemoryResult.memories,
+          ...dateMemoryRecords,
         ];
   const finalMembers =
-    completedSession.finalReport === undefined
+    finalSession.finalReport === undefined
       ? updatedMembers
       : applyDateFinalReportToMembers(
           updatedMembers,
-          completedSession,
+          finalSession,
           getActiveShift(save).shiftNumber,
         );
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
-    pairStates: replaceById(save.pairStates, finalPairState),
-    dateSessions: replaceById(save.dateSessions, completedSession),
+    pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
+    dateSessions: replaceById(save.dateSessions, finalSession),
     memories: finalMemories,
     playerKnowledge: revealResult.save.playerKnowledge,
     updatedAt: timestamp,
   });
 
-  return { save: nextSave, session: completedSession };
+  return { save: nextSave, session: finalSession };
 }
 
 export function completeDateSession(
@@ -822,6 +932,7 @@ export function completeDateSession(
 }
 
 export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateEngineResult {
+  const timestamp = new Date().toISOString();
   const session = requireDateSession(save, input.dateSessionId);
 
   if (session.finalReport === undefined) {
@@ -834,10 +945,17 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
 
   const pairState = requirePairState(save, session.pairId);
   const effects = resolveFollowUpEffects(pairState, session, input.action);
-  const updatedPairState = {
+  const pairStateWithStats = {
     ...pairState,
     stats: pairStatsSchema.parse(adjustStats(pairState.stats, effects.statDeltas)),
   };
+  const pairMemoryResult = applyFollowUpPairMemoryEffects({
+    pairState: pairStateWithStats,
+    session,
+    action: input.action,
+    timestamp,
+  });
+  const updatedPairState = pairMemoryResult.pairState;
   const updatedSession = dateSessionSchema.parse({
     ...session,
     finalReport: dateFinalReportSchema.parse({
@@ -851,7 +969,8 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
     members: updatedMembers,
     pairStates: replaceById(save.pairStates, updatedPairState),
     dateSessions: replaceById(save.dateSessions, updatedSession),
-    updatedAt: new Date().toISOString(),
+    memories: [...save.memories, ...pairMemoryResult.memories],
+    updatedAt: timestamp,
   });
 
   return { save: nextSave, session: updatedSession };
@@ -1378,13 +1497,21 @@ export function finalizeDateSession({
     completedDateCount,
     members,
   });
+  const closureNearMiss = shouldFileClosureNearMiss({
+    pairState,
+    outcome,
+    completedDateCount,
+    members,
+  });
   const report: DateFinalReport = dateFinalReportSchema.parse({
     id: `final-${session.id}`,
     dateSessionId: session.id,
     completedAt,
     outcome,
     summary: `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}. ${finalReportStatusLine(session, outcome)}`,
-    statSummary: finalReportCaseSummary(outcome),
+    statSummary: closureNearMiss
+      ? closureNearMissCaseSummary(pairState)
+      : finalReportCaseSummary(outcome),
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
       `memory-${session.id}-pair`,
@@ -1400,6 +1527,43 @@ export function finalizeDateSession({
     finalReport: report,
     playbackState: "ended",
   });
+}
+
+export function linkFinalReportMemoryRecords(
+  session: DateSession,
+  memoryRecordIds: readonly string[],
+): DateSession {
+  if (session.finalReport === undefined || memoryRecordIds.length === 0) {
+    return session;
+  }
+
+  const mergedIds = mergeMemoryRecordIds(session.finalReport.memoryRecordIds, memoryRecordIds);
+  if (mergedIds.length === session.finalReport.memoryRecordIds.length) {
+    return session;
+  }
+
+  const finalReport: DateFinalReport = dateFinalReportSchema.parse({
+    ...session.finalReport,
+    memoryRecordIds: mergedIds,
+  });
+
+  return dateSessionSchema.parse({
+    ...session,
+    finalReport,
+  });
+}
+
+function mergeMemoryRecordIds(currentIds: readonly string[], nextIds: readonly string[]): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const id of [...currentIds, ...nextIds]) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    merged.push(id);
+  }
+
+  return merged;
 }
 
 export function resolveEndedDateSentiment(
@@ -1418,6 +1582,7 @@ export function createDateMemoryRecords(
   members: Member[],
   scenario: DateScenario,
   createdAt: string,
+  pairState?: PairState,
 ): MemoryRecord[] {
   const records = [
     {
@@ -1462,7 +1627,7 @@ export function createDateMemoryRecords(
     },
   ];
 
-  return records.map((record) => {
+  const parsedRecords = records.map((record) => {
     const embedding = createDeterministicEmbedding(record.text);
 
     return memoryRecordSchema.parse({
@@ -1472,6 +1637,18 @@ export function createDateMemoryRecords(
       embeddingDimensions: embedding.length,
     });
   });
+
+  const closureNearMiss =
+    pairState === undefined
+      ? null
+      : createClosureNearMissMemoryRecord({
+          session,
+          pairState,
+          members,
+          createdAt,
+        });
+
+  return closureNearMiss === null ? parsedRecords : [...parsedRecords, closureNearMiss];
 }
 
 export function applyJudgeToPairState(
@@ -2240,6 +2417,131 @@ function finalReportStatusLine(session: DateSession, outcome: DateFinalReport["o
   return "Cupid filed the result as mixed and left the pen uncapped.";
 }
 
+export function shouldFileClosureNearMiss({
+  pairState,
+  outcome,
+  completedDateCount,
+  members,
+}: {
+  pairState: PairState;
+  outcome: DateFinalReport["outcome"];
+  completedDateCount: number;
+  members: readonly Member[];
+}): boolean {
+  if (outcome === "bad_fit" || outcome === "early_end") {
+    return false;
+  }
+
+  if (completedDateCount < CLOSURE_THRESHOLD.minCompletedDates) {
+    return false;
+  }
+
+  const membersById = new Map(members.map((member) => [member.id, member] as const));
+  for (const participantId of pairState.participantIds) {
+    const member = membersById.get(participantId);
+    if (member === undefined || member.state.status !== "active") {
+      return false;
+    }
+  }
+
+  const { stats } = pairState;
+  const nearStats =
+    stats.chemistry >= CLOSURE_THRESHOLD.chemistry - 6 &&
+    stats.trust >= CLOSURE_THRESHOLD.trust - 6 &&
+    stats.relationshipHealth >= CLOSURE_THRESHOLD.relationshipHealth - 6;
+  if (!nearStats) {
+    return false;
+  }
+
+  if (
+    evaluateClosureReadiness({
+      pairState,
+      outcome,
+      completedDateCount,
+      members,
+    })
+  ) {
+    return false;
+  }
+
+  const hasBrokenAgreement = pairState.agreements.some(
+    (agreement) => agreement.status === "broken",
+  );
+  const hasOpenLoop = pairState.openLoops.some((loop) => loop.status === "open");
+
+  return (
+    stats.strain > CLOSURE_THRESHOLD.strainMax ||
+    stats.conflict > CLOSURE_THRESHOLD.conflictMax ||
+    hasBrokenAgreement ||
+    hasOpenLoop
+  );
+}
+
+export function createClosureNearMissMemoryRecord({
+  session,
+  pairState,
+  members,
+  createdAt,
+}: {
+  session: DateSession;
+  pairState: PairState;
+  members: readonly Member[];
+  createdAt: string;
+}): MemoryRecord | null {
+  const outcome = session.finalReport?.outcome;
+  if (outcome === undefined) {
+    return null;
+  }
+
+  const completedDateCount = pairState.completedDateIds.includes(session.id)
+    ? pairState.completedDateIds.length
+    : pairState.completedDateIds.length + 1;
+  if (!shouldFileClosureNearMiss({ pairState, outcome, completedDateCount, members })) {
+    return null;
+  }
+
+  const [first, second] = members;
+  if (first === undefined || second === undefined) {
+    return null;
+  }
+
+  const text = `${first.firstName} and ${second.firstName} nearly cleared closure. Cupid kept the file open for pressure cleanup.`;
+  const embedding = createDeterministicEmbedding(text);
+
+  return memoryRecordSchema.parse({
+    id: `memory-${session.id}-${CLOSURE_NEAR_MISS_TAG}`,
+    scope: "pair",
+    visibility: "public",
+    subjectIds: session.participants,
+    pairId: session.pairId,
+    scenarioId: session.scenarioId,
+    dateSessionId: session.id,
+    text,
+    tags: [CLOSURE_NEAR_MISS_TAG, "date_summary"],
+    importance: 4,
+    createdAt,
+    embedding,
+    embeddingModel: DETERMINISTIC_EMBEDDING_MODEL,
+    embeddingDimensions: embedding.length,
+  });
+}
+
+function closureNearMissCaseSummary(pairState: PairState): string {
+  const blockers: string[] = [];
+
+  if (pairState.stats.strain > CLOSURE_THRESHOLD.strainMax) blockers.push("strain");
+  if (pairState.stats.conflict > CLOSURE_THRESHOLD.conflictMax) blockers.push("conflict");
+  if (pairState.agreements.some((agreement) => agreement.status === "broken")) {
+    blockers.push("a broken agreement");
+  }
+  if (pairState.openLoops.some((loop) => loop.status === "open")) {
+    blockers.push("an unresolved item");
+  }
+
+  const blockerText = blockers.length === 0 ? "file pressure" : joinPlainList(blockers.slice(0, 2));
+  return `Case read: the pair nearly cleared closure, but ${blockerText} kept the file open.`;
+}
+
 function finalReportCaseSummary(outcome: DateFinalReport["outcome"]): string {
   if (outcome === "second_date") {
     return "Case read: the pair left with enough mutual signal for a second booking.";
@@ -2258,6 +2560,13 @@ function finalReportCaseSummary(outcome: DateFinalReport["outcome"]): string {
   }
 
   return "Case read: the pair produced useful notes but needs a cautious follow-up.";
+}
+
+function joinPlainList(items: readonly string[]): string {
+  const [first, second] = items;
+  if (first === undefined) return "";
+  if (second === undefined) return first;
+  return `${first} and ${second}`;
 }
 
 function formatOutcomeForMemory(outcome: DateFinalReport["outcome"] | undefined): string {

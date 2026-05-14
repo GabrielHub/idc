@@ -18,6 +18,7 @@ import {
   isInterventionActiveForMember,
   lastTriggeredEvent,
 } from "./date-engine";
+import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
 import { derivePairTrajectory } from "./pair-trajectory";
 import type { RevealCandidate } from "./player-knowledge";
 
@@ -290,6 +291,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   });
   const memorySearchAvailable = input.memorySearchAvailable ?? true;
   const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
+  const pairSpotlight = selectPairSpotlightItem(pairState);
 
   const system = [
     `You are ${member.name}.`,
@@ -302,15 +304,17 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       : "If allowed memories are not enough, stay within the supplied prompt context.",
     "You may add soft improv when it stays small, plausible, and answerable by the partner.",
     "Cupid may send private advice through the app. You may accept, resist, or ignore it in character.",
-    "Your origin, dimension, reality status, and reason for using Cupid are your lived context.",
+    "Your origin, species, dimension, reality status, and reason for using Cupid are private performance context.",
     "React to strange or ordinary claims from that context. Believe, doubt, argue, accept, or misunderstand as feels true.",
+    "Do not recite internal labels or biography as case-file facts.",
     "Secrets shape your tone as subtext only. Never state them aloud.",
     "Stay inside the date. Never mention hidden notes, compatibility labels, private memory from another member, or future events.",
   ].join("\n");
   const setupMessage = [
     "Character card:",
     `${member.name}: ${member.bio}`,
-    `Your frame for Cupid: origin ${member.origin}; dimension ${member.dimension}; species ${member.species}; reality status ${member.realityStatus}.`,
+    `Private frame for performance: origin ${member.origin}; dimension ${member.dimension}; species ${member.species}; reality status ${member.realityStatus}.`,
+    "This private frame is grounding, not dialogue copy.",
     `What you are trying to get from this date: ${joinAsSentence(member.relationshipNeeds)}`,
     `What makes you relax: ${joinAsSentence(member.preferences)}`,
     `What makes you guarded: ${joinAsSentence(member.dealbreakers)}`,
@@ -343,12 +347,13 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Reference lines:",
     formatBulletList(samples),
     "Reference lines show what you sound like at full flavor when nothing else is pulling on you. They are not lines to imitate, complete, or stitch together. A reply that ignores them and just answers the partner is fine.",
-    "Do not copy opener scaffolds after your first message. Do not repeat titles, job labels, species labels, or app premise unless the latest line directly asks.",
+    "Do not copy opener scaffolds after your first message. Do not repeat titles, job labels, internal species labels, or app premise. If the latest line asks, answer in ordinary speech without field labels.",
     "These are voice examples only. Their objects, meals, venues, schedules, and claims are not automatically true here.",
     "",
-    "Partner read:",
+    "Partner context, private performance only:",
     `${partner.name}. ${partner.bio}`,
-    `Their public frame: ${partner.species}. ${partner.realityStatus}.`,
+    `Their internal frame: species ${partner.species}; reality status ${partner.realityStatus}.`,
+    "Do not recite the partner's internal frame, biography, species, origin, dimension, or reality status as case-file facts.",
     `One line that shows their energy: ${partnerOpener}`,
     "Listen to what they mean. Do not imitate their vocabulary or performance.",
     "Do not assume their claims are true or false because the prompt says so. Let your own frame decide how you receive them.",
@@ -372,6 +377,8 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Active pair agreements: ${formatActiveAgreements(pairState)}`,
     `Unresolved pair items: ${formatOpenLoops(pairState)}`,
     `Pair file guidance: ${pairTrajectory.performerGuidance} Use as subtext only.`,
+    `Pair file subtext: ${formatPairTrajectorySubnotes(pairTrajectory.subnotes)}`,
+    `Pair spotlight: ${formatPairSpotlight(pairSpotlight)}`,
     memorySearchAvailable
       ? "Memory search: available for missing self, pair, or place history. Use returned memories only as allowed context."
       : "Memory search: not available in this prompt run.",
@@ -417,7 +424,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Use room events as something happening around you, not as the whole subject.",
     "You may introduce one grounded soft detail if it gives the partner something to react to.",
     "When the partner introduces a soft detail, either accept it, question it in character, or redirect naturally. Do not ignore it.",
-    "Keep your own register. Do not absorb the partner's jargon, job voice, title, or species voice.",
+    "Keep your own register. Do not absorb the partner's jargon, job voice, title, or internal identity label.",
     "Avoid verdicts about the whole date, compatibility, connection, spark, standards, metrics, or baselines unless the partner directly asked.",
     "Use one concrete noun from the partner or venue when possible.",
     "",
@@ -608,6 +615,7 @@ export function buildJudgePromptPacket({
   const candidates = revealCandidates ?? [];
   const candidateLines = formatRevealCandidatesForPrompt(candidates);
   const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
+  const pairSpotlight = selectPairSpotlightItem(pairState);
   const messages: ModelMessage[] = [
     {
       role: "user",
@@ -648,6 +656,7 @@ export function buildJudgePromptPacket({
         `Scenario pressure: risk ${scenario.card.risk}, intimacy ${scenario.card.intimacy}, chaos ${scenario.card.chaos}.`,
         `Participants: ${formatParticipants(members)}.`,
         "Member briefs, private scoring context only. Use these notes to interpret behavior. Do not reveal fixture notes in playerSummary unless the exchange made the detail explicit.",
+        "Do not expose species, origin, dimension, reality status, bio, or exact member state as case-file labels in playerSummary or notableMoments.",
         formatJudgeMemberBriefs(members),
         `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,
         `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
@@ -657,6 +666,8 @@ export function buildJudgePromptPacket({
         `Active pair agreements: ${formatActiveAgreementIds(pairState)}.`,
         `Open pair loops: ${formatOpenLoopIds(pairState)}.`,
         `Pair file guidance: ${pairTrajectory.judgeGuidance}`,
+        `Pair file subtext: ${formatPairTrajectorySubnotes(pairTrajectory.subnotes)}`,
+        `Pair spotlight: ${formatPairSpotlight(pairSpotlight)}`,
         "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
         ...candidateLines,
       ].join("\n"),
@@ -1127,10 +1138,15 @@ function formatCurrentSceneLines({
 }
 
 function formatVisiblePartnerRead(partner: Member): string {
-  const publicProfile = truncateForPrompt(partner.datingProfile);
-  const visibleIdentity = `${partner.species}. ${partner.realityStatus}.`;
+  const publicProfile = truncateForPrompt(firstSentenceForPrompt(partner.datingProfile));
 
-  return `${visibleIdentity} Profile signal: ${publicProfile}`;
+  return `Profile signal: ${publicProfile}`;
+}
+
+function firstSentenceForPrompt(text: string): string {
+  const trimmed = text.trim();
+  const match = trimmed.match(/[^.!?]+[.!?]+(\s|$)/u);
+  return match?.[0].trim() ?? trimmed;
 }
 
 function formatBulletList(items: readonly string[]): string {
@@ -1208,6 +1224,22 @@ function formatOpenLoopIds(pairState: PairState): string {
     .slice(0, 5)
     .map((loop) => `${loop.id}: ${loop.text}`)
     .join("; ");
+}
+
+function formatPairTrajectorySubnotes(subnotes: readonly string[]): string {
+  if (subnotes.length === 0) {
+    return "No extra pair subtext.";
+  }
+
+  return subnotes.slice(0, 4).join(" ");
+}
+
+function formatPairSpotlight(spotlightItem: PairSpotlightItem | null): string {
+  if (spotlightItem === null) {
+    return "No single pair item is being emphasized.";
+  }
+
+  return `${spotlightItem.guidance} Use as subtext only.`;
 }
 
 function formatParticipants(members: Member[]): string {

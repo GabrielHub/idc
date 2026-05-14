@@ -55,18 +55,13 @@ export const sections: DocSectionEntry[] = [
             label: "Gated until earned",
             tier: "gated",
             items: [
-              <span key="ids">
-                <DocCode>species</DocCode>, <DocCode>origin</DocCode>, <DocCode>dimension</DocCode>,
-                <DocCode>realityStatus</DocCode>, and <DocCode>bio</DocCode>.
-              </span>,
               <span key="profile">
                 Full <DocCode>datingProfile</DocCode>.
               </span>,
               <span key="prefs">
-                <DocCode>relationshipNeeds</DocCode>, <DocCode>preferences</DocCode>, and{" "}
-                <DocCode>dealbreakers</DocCode>.
+                Player-safe filed reads derived from <DocCode>relationshipNeeds</DocCode>,{" "}
+                <DocCode>preferences</DocCode>, and <DocCode>dealbreakers</DocCode>.
               </span>,
-              "Exact Mood, Openness, Burnout, and retention.",
             ],
           },
           {
@@ -74,6 +69,11 @@ export const sections: DocSectionEntry[] = [
             label: "Never player-facing",
             tier: "hidden",
             items: [
+              <span key="ids">
+                <DocCode>species</DocCode>, <DocCode>origin</DocCode>, <DocCode>dimension</DocCode>,
+                <DocCode>realityStatus</DocCode>, and <DocCode>bio</DocCode>.
+              </span>,
+              "Exact Mood, Openness, Burnout, and retention stay out of case files until product policy decides whether qualitative reads are useful.",
               <span key="secrets">
                 <DocCode>secrets</DocCode>, <DocCode>tags</DocCode>, <DocCode>voice</DocCode>, model
                 prompts, raw rule hits, fixture indexes, exact stat deltas, and prompt-only labels.
@@ -89,9 +89,10 @@ export const sections: DocSectionEntry[] = [
     title: "Dev preview",
     body: (
       <DocCallout variant="info">
-        Dev builds may expose a settings toggle for visual QA of fully unveiled member files. That
-        preview may show gated member information and exact member state, but it must not file
-        reads, mutate saves, or surface never player-facing fields.
+        Dev builds may expose a settings toggle for visual QA of case intel. That preview may show
+        the full <DocCode>datingProfile</DocCode>, <DocCode>relationshipNeeds</DocCode>,{" "}
+        <DocCode>preferences</DocCode>, and <DocCode>dealbreakers</DocCode>, but it must not file
+        reads, mutate saves, expose exact member state, or surface never player-facing fields.
       </DocCallout>
     ),
   },

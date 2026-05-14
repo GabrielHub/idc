@@ -136,6 +136,10 @@ export const sections: DocSectionEntry[] = [
           <Strong>Install</Strong> when you are ready. Your local saves should stay in place when
           updating.
         </P>
+        <P>
+          After an update, IDC opens a <Strong>What's new</Strong> modal with the current patch
+          notes and a few recent versions. You can reopen it from Settings.
+        </P>
         <DocCallout variant="warn">
           If update install fails, download the newest installer from the release page and run it.
         </DocCallout>

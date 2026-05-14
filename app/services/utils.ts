@@ -1,9 +1,13 @@
+export function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
 export function clampScore(value: number): number {
-  return Math.min(100, Math.max(0, value));
+  return clamp(value, 0, 100);
 }
 
 export function clampDelta(value: number): number {
-  return Math.min(100, Math.max(-100, value));
+  return clamp(value, -100, 100);
 }
 
 export function replaceById<TItem extends { id: string }>(items: TItem[], item: TItem): TItem[] {

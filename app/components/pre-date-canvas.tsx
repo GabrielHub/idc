@@ -31,6 +31,7 @@ import {
   moveSuggestedMemberFirst,
   sortMembersByCuratedRosterOrder,
 } from "../services/member-roster-order";
+import { visibleReadsForPair } from "../services/player-knowledge";
 import { isMemberInCooldown } from "../services/shift-planning";
 import { GhostButton, Hairline, pad2, Portrait, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import {
@@ -247,6 +248,7 @@ export function PreDateCanvas({
           scenario,
           pairState,
           activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
+          knownPairReads: visibleReadsForPair(save, pairState.id),
         });
         candidates.push({ candidate, fit });
       } catch {
@@ -259,6 +261,7 @@ export function PreDateCanvas({
     activeFocusRequest,
     candidatePartners,
     fallbackScenario,
+    save,
     selectedScenario,
     pairStateById,
   ]);

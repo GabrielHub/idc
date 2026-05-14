@@ -11,7 +11,7 @@ import {
   type PairState,
   type PairStats,
 } from "../domain/game";
-import { memberRequests } from "../fixtures";
+import { memberRequests, starterScenarios } from "../fixtures";
 import {
   CLIENT_LOSS_LIMIT_BASE,
   CLOSURE_RETENTION_BUMP,
@@ -30,7 +30,13 @@ import {
   validateClosureSummary,
   type ClosureReadinessMember,
 } from "./closures";
-import { isCampaignLost } from "./date-engine";
+import {
+  CLOSURE_NEAR_MISS_TAG,
+  createClosureNearMissMemoryRecord,
+  finalizeDateSession,
+  isCampaignLost,
+  linkFinalReportMemoryRecords,
+} from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 
 const FIRST_MEMBER_ID = "jenna-pike";
@@ -287,6 +293,53 @@ describe("evaluateClosureReadiness", () => {
     ).toBe(false);
   });
 
+  it("rejects broken agreements and open loops as closure blockers", () => {
+    expect(
+      evaluateClosureReadiness({
+        pairState: {
+          stats: buildPairStats(),
+          completedDateIds: ["a", "b"],
+          participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
+          agreements: [
+            {
+              id: "agreement-broken",
+              text: "No public archive questions.",
+              status: "broken",
+              createdAt: "2026-05-05T11:00:00.000Z",
+              resolvedAt: "2026-05-05T12:00:00.000Z",
+            },
+          ],
+          openLoops: [],
+        },
+        outcome: "second_date",
+        completedDateCount: 3,
+        members: baseMembers,
+      }),
+    ).toBe(false);
+
+    expect(
+      evaluateClosureReadiness({
+        pairState: {
+          stats: buildPairStats(),
+          completedDateIds: ["a", "b"],
+          participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
+          agreements: [],
+          openLoops: [
+            {
+              id: "loop-open",
+              text: "Whether the next booking survives daylight.",
+              status: "open",
+              createdAt: "2026-05-05T11:00:00.000Z",
+            },
+          ],
+        },
+        outcome: "second_date",
+        completedDateCount: 3,
+        members: baseMembers,
+      }),
+    ).toBe(false);
+  });
+
   it("rejects when a participant record is missing", () => {
     expect(
       evaluateClosureReadiness({
@@ -300,6 +353,68 @@ describe("evaluateClosureReadiness", () => {
         members: [{ id: FIRST_MEMBER_ID, state: { status: "active" } }],
       }),
     ).toBe(false);
+  });
+});
+
+describe("closure near miss", () => {
+  it("files player-safe copy and memory without readyToClose", () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const first = seed.members.find((member) => member.id === FIRST_MEMBER_ID);
+    const second = seed.members.find((member) => member.id === SECOND_MEMBER_ID);
+    const scenario = starterScenarios.find((candidate) => candidate.id === "park-loop-with-a-dog");
+
+    if (first === undefined || second === undefined || scenario === undefined) {
+      throw new Error("Expected closure near miss fixtures.");
+    }
+
+    const pairState = buildPairState({
+      participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
+      stats: buildPairStats(),
+      completedDateIds: ["date-1", "date-2"],
+    });
+    const blockedPairState: PairState = {
+      ...pairState,
+      openLoops: [
+        {
+          id: "loop-open",
+          text: "Whether the next booking survives daylight.",
+          status: "open",
+          sourceDateSessionId: "date-2",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    };
+    const session = buildDateSession({
+      sessionId: "date-3",
+      pairId: blockedPairState.id,
+      participants: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
+    });
+    const completed = finalizeDateSession({
+      session,
+      pairState: blockedPairState,
+      members: [first, second],
+      scenario,
+      completedAt: "2026-05-05T12:30:00.000Z",
+    });
+    const memory = createClosureNearMissMemoryRecord({
+      session: completed,
+      pairState: {
+        ...blockedPairState,
+        completedDateIds: [...blockedPairState.completedDateIds, completed.id],
+      },
+      members: [first, second],
+      createdAt: "2026-05-05T12:30:00.000Z",
+    });
+
+    expect(completed.finalReport?.readyToClose).toBe(false);
+    expect(completed.finalReport?.statSummary).toContain("nearly cleared closure");
+    expect(memory?.tags).toContain(CLOSURE_NEAR_MISS_TAG);
+    if (memory === null) {
+      throw new Error("Expected closure near miss memory.");
+    }
+    expect(
+      linkFinalReportMemoryRecords(completed, [memory.id]).finalReport?.memoryRecordIds,
+    ).toContain(memory.id);
   });
 });
 

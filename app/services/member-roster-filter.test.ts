@@ -21,6 +21,15 @@ describe("member roster search", () => {
     );
     expect(matchesSearch(member, "lakers", { revealAllMemberDetails: true })).toBe(true);
   });
+
+  it("keeps internal member fields out of search even in dev preview", () => {
+    const member = requireMember("jenna-pike");
+
+    expect(matchesSearch(member, "East Rainfield", { revealAllMemberDetails: true })).toBe(false);
+    expect(
+      matchesSearch(member, "Ordinary, pending review", { revealAllMemberDetails: true }),
+    ).toBe(false);
+  });
 });
 
 function requireMember(memberId: string): Member {

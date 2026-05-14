@@ -40,7 +40,8 @@ export type ClosureReadinessMember = Pick<Member, "id"> & {
 };
 
 export type ClosureReadinessInput = {
-  pairState: Pick<PairState, "stats" | "completedDateIds" | "participantIds">;
+  pairState: Pick<PairState, "stats" | "completedDateIds" | "participantIds"> &
+    Partial<Pick<PairState, "agreements" | "openLoops">>;
   outcome: DateFinalReport["outcome"];
   completedDateCount: number;
   members: readonly ClosureReadinessMember[];
@@ -67,6 +68,12 @@ export function evaluateClosureReadiness({
   if (stats.relationshipHealth < CLOSURE_THRESHOLD.relationshipHealth) return false;
   if (stats.strain > CLOSURE_THRESHOLD.strainMax) return false;
   if (stats.conflict > CLOSURE_THRESHOLD.conflictMax) return false;
+  if (pairState.agreements?.some((agreement) => agreement.status === "broken") === true) {
+    return false;
+  }
+  if (pairState.openLoops?.some((loop) => loop.status === "open") === true) {
+    return false;
+  }
 
   const membersById = new Map(members.map((member) => [member.id, member] as const));
   for (const participantId of pairState.participantIds) {

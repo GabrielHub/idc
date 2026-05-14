@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dateSessionSchema, judgeSnapshotSchema } from "../domain/game";
+import { dateSessionSchema, judgeSnapshotSchema, type PlayerKnowledgeRecord } from "../domain/game";
 import { memberRequests, starterScenarios } from "../fixtures";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import {
@@ -195,6 +195,64 @@ describe("evaluateMatchFit", () => {
     expect(fit.internalRuleHits).toContain("anansi:long_story_room");
     expect(fit.internalRuleHits).toContain("pair:anansi_mei_story_craft");
     expect(fit.internalRuleHits).toContain("request:anansi_story_partner_covered");
+  });
+
+  it("uses pair memory and earned reads as conservative hidden booking pressure", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const anansi = findMember(save, "anansi");
+    const mei = findMember(save, "mei-sato");
+    const scenario = findScenario("hotel-bar-last-call");
+    const pairState = {
+      ...findPairState(save, anansi.id, mei.id),
+      agreements: [
+        {
+          id: "agreement-honored",
+          text: "Call the small lie once and let the story finish.",
+          status: "honored" as const,
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+          resolvedAt: "2026-05-05T12:00:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-open-1",
+          text: "Whether Anansi lets Mei call the next small lie.",
+          status: "open" as const,
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+        {
+          id: "loop-open-2",
+          text: "Whether Mei lets the story finish twice.",
+          status: "open" as const,
+          sourceDateSessionId: "date-session-2",
+          createdAt: "2026-05-05T11:20:00.000Z",
+        },
+      ],
+    };
+    const warmRead: PlayerKnowledgeRecord = {
+      id: "read-warm",
+      subjectKind: "pair",
+      subjectId: pairState.id,
+      readKind: "pair_dynamic",
+      readId: `pair:${pairState.id}:dynamic:weirdness-recognition`,
+      readText: "Weirdness and displacement recognize each other across the table.",
+      confidence: "filed",
+      source: "judge",
+      revealedAt: SEED_DATE.toISOString(),
+    };
+
+    const fit = evaluateMatchFit({
+      members: [anansi, mei],
+      scenario,
+      pairState,
+      knownPairReads: [warmRead],
+    });
+
+    expect(fit.internalRuleHits).toContain("pair:honored_agreement_momentum");
+    expect(fit.internalRuleHits).toContain("pair:open_loop_crowding");
+    expect(fit.internalRuleHits).toContain("pair:known_warm_dynamic");
   });
 
   it("blocks Nawal's closed Office ask when the room and partner reopen that frame", () => {

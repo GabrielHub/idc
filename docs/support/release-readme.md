@@ -39,6 +39,8 @@ The app does not include a no-AI date mode.
 
 IDC checks for updates after launch. If an update appears in Settings, choose **Install** when you are ready. Your local saves should stay in place when updating.
 
+After an update, IDC opens a **What's new** modal with the current patch notes and a few recent versions. You can reopen it from Settings.
+
 If update install fails, download the newest installer from the release page and run it.
 
 ## Getting help

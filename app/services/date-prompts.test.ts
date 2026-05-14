@@ -256,6 +256,10 @@ describe("date prompt assembly", () => {
       "Unresolved pair items: Whether Vhool can return the receipt without ceremony.",
     );
     expect(packet.prompt).toContain("Pair file guidance:");
+    expect(packet.prompt).toContain("Pair file subtext:");
+    expect(packet.prompt).toContain(
+      "Pair spotlight: Give this unresolved item a chance to move: Whether Vhool can return the receipt without ceremony.",
+    );
     expect(packet.prompt).not.toContain("Archive the soup receipt.");
     expect(packet.prompt).not.toContain("Whether the spoon was haunted.");
     expect(packet.prompt).not.toContain("archived-session");

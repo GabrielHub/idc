@@ -120,4 +120,50 @@ describe("scenario event draft", () => {
       }),
     ).toThrow();
   });
+
+  it("preserves offer counts while ranking events with pair context", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const pairState = save.pairStates[0];
+
+    if (scenario === undefined || pairState === undefined) {
+      throw new Error("Expected temporal coffee shop and a seed pair state.");
+    }
+
+    const stuckPairState = {
+      ...pairState,
+      openLoops: [
+        {
+          id: "loop-choice",
+          text: "Whether Vhool can answer one question without auditing the cup.",
+          status: "open" as const,
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "loop-plan",
+          text: "Whether Jenna names a plan before the loop resets.",
+          status: "open" as const,
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+    };
+    const draft = drawScenarioEventOffer(scenario, () => 0.42, { pairState: stuckPairState });
+    const eventKindById = new Map(
+      scenario.director.events.map((event) => [event.id, event.kind] as const),
+    );
+    const counts = zeroCountsByKind();
+
+    for (const offeredId of draft.offered) {
+      const kind = eventKindById.get(offeredId);
+      if (kind === undefined) throw new Error(`Unknown event ${offeredId}.`);
+      counts[kind] += 1;
+    }
+
+    expect(draft.offered).toHaveLength(EVENT_DRAFT_OFFERED);
+    for (const kind of SCENARIO_EVENT_KINDS) {
+      expect(counts[kind]).toBe(EVENT_DRAFT_OFFERED_PER_KIND);
+    }
+  });
 });

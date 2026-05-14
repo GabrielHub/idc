@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { SAVE_SCHEMA_VERSION, SCENARIO_DECK_SIZE } from "../domain/game";
+import {
+  dateSessionSchema,
+  gameSaveSchema,
+  pairStateSchema,
+  SAVE_SCHEMA_VERSION,
+  SCENARIO_DECK_SIZE,
+} from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { LocalGameRepository } from "../repositories/local-game-repository";
 import { MemorySaveStore } from "../repositories/memory-save-store";
@@ -8,6 +14,7 @@ import {
   advanceDateExchange,
   applyFollowUpAction,
   CLIENT_LOSS_LIMIT_BASE,
+  CLOSURE_NEAR_MISS_TAG,
   completeShift,
   isCampaignLost,
   isMemberRetained,
@@ -112,6 +119,75 @@ describe("IDC playable smoke path", () => {
     expect(isMemberInCooldown(firstMember, currentShift.shiftNumber)).toBe(true);
     expect(isMemberInCooldown(firstMember, currentShift.shiftNumber + 1)).toBe(true);
     expect(isMemberInCooldown(firstMember, currentShift.shiftNumber + 2)).toBe(false);
+  });
+
+  it("links closure near miss memories from completed date reports", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInHand(
+      withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+        firstMemberId,
+        secondMemberId,
+      ]),
+      scenarioId,
+    );
+    const started = startAndDraftDateSession(setupSave, {
+      focusMemberId: firstMemberId,
+      firstMemberId,
+      secondMemberId,
+      scenarioId,
+    });
+    const pairState = started.save.pairStates.find((pair) => pair.id === started.session.pairId);
+
+    if (pairState === undefined) {
+      throw new Error("Expected started pair state.");
+    }
+
+    const nearMissPairState = pairStateSchema.parse({
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        chemistry: 92,
+        trust: 92,
+        relationshipHealth: 92,
+        strain: 42,
+        conflict: 18,
+      },
+      completedDateIds: ["prior-date-1", "prior-date-2"],
+      openLoops: [
+        {
+          id: "loop-closure-blocker",
+          text: "Whether anyone can leave the room without making it a policy memo.",
+          status: "open",
+          sourceDateSessionId: "prior-date-2",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+    const shortSession = dateSessionSchema.parse({
+      ...started.session,
+      turnLimit: 2,
+    });
+    const readySave = gameSaveSchema.parse({
+      ...started.save,
+      pairStates: started.save.pairStates.map((pair) =>
+        pair.id === nearMissPairState.id ? nearMissPairState : pair,
+      ),
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === shortSession.id ? shortSession : session,
+      ),
+    });
+
+    const result = advanceDateExchange(readySave, { dateSessionId: shortSession.id });
+    const nearMissMemory = result.save.memories.find(
+      (memory) =>
+        memory.dateSessionId === shortSession.id && memory.tags.includes(CLOSURE_NEAR_MISS_TAG),
+    );
+
+    expect(result.session.status).not.toBe("active");
+    expect(nearMissMemory).toBeDefined();
+    expect(result.session.finalReport?.memoryRecordIds).toContain(nearMissMemory?.id);
   });
 
   it("flips member status to quit when retention drops to zero", () => {

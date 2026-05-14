@@ -1,7 +1,7 @@
 import { Children, Fragment, isValidElement, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
-export type DocGroupId = "product" | "gameplay" | "workflows" | "support";
+export type DocGroupId = "roadmap" | "product" | "gameplay" | "workflows" | "support";
 
 export interface DocMeta {
   slug: string;
@@ -137,6 +137,14 @@ export function DocPath({ children }: { children: ReactNode }) {
 
 export const DocCode = DocPath;
 
+const REDACTED_DOC_PATH_PREFIX = "/docs/workflows";
+const SHOULD_REDACT_WORKFLOW_LINKS = import.meta.env.MODE === "desktop";
+
+function isRedactedDocTarget(to: string): boolean {
+  const path = to.split("#")[0]?.split("?")[0] ?? to;
+  return path === REDACTED_DOC_PATH_PREFIX || path.startsWith(`${REDACTED_DOC_PATH_PREFIX}/`);
+}
+
 export function DocKbd({ children }: { children: ReactNode }) {
   return (
     <kbd className="inline-flex items-center rounded-[0.4rem] border border-aura-hairline bg-white/85 px-1.5 py-[0.08em] font-mono text-micro text-aura-ink shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
@@ -149,6 +157,22 @@ export function DocLink({ to, children }: { to: string; children: ReactNode }) {
   const isExternal = /^(https?:|mailto:)/i.test(to);
   const className =
     "cursor-pointer text-aura-rose underline decoration-rose-400/45 underline-offset-[4px] transition hover:text-aura-fuchsia hover:decoration-aura-fuchsia";
+
+  if (SHOULD_REDACT_WORKFLOW_LINKS && isRedactedDocTarget(to)) {
+    return (
+      <span
+        role="link"
+        aria-disabled="true"
+        title="Workflow link redacted"
+        className="inline-flex cursor-not-allowed items-baseline gap-1 text-aura-faint"
+      >
+        <span className="line-through decoration-aura-rose/55 decoration-2">{children}</span>
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-rose">
+          [REDACTED]
+        </span>
+      </span>
+    );
+  }
 
   if (isExternal) {
     return (

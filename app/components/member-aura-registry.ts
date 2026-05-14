@@ -4,8 +4,8 @@ type MemberId = Member["id"];
 
 /**
  * Per-member ambient aura, used behind the standee on focused cards and inside
- * the member modal. Categorized by species/dimension so members read at a
- * glance: mundane Earth humans get soft godrays, eldritch get floating runes,
+ * the member modal. Categorized by internal fixture context so members read at
+ * a glance: mundane Earth humans get soft godrays, eldritch get floating runes,
  * tech-displaced get pixel rain, etc. Tints carry the per-member personality.
  */
 

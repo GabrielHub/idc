@@ -1,6 +1,8 @@
 import {
   memoryRecordSchema,
   pairStateSchema,
+  type DateSession,
+  type FollowUpAction,
   type JudgeSnapshot,
   type MemoryRecord,
   type OpenLoop,
@@ -18,10 +20,20 @@ export const OPEN_LOOP_TAG = "open_loop";
 export const OPEN_LOOP_RESOLVED_TAG = "open_loop_resolved";
 export const OPEN_LOOP_DROPPED_TAG = "open_loop_dropped";
 
+const FOLLOW_UP_TAG = "follow_up";
 const MAX_AGREEMENT_CANDIDATES_PER_JUDGE = 2;
 const MAX_AGREEMENT_UPDATES_PER_JUDGE = 3;
 const MAX_OPEN_LOOP_CANDIDATES_PER_JUDGE = 2;
 const MAX_OPEN_LOOP_UPDATES_PER_JUDGE = 3;
+const COMPLETED_DATES_TO_HONOR_AGREEMENT = 2;
+
+export type PairSpotlightItem = {
+  kind: "agreement" | "open_loop";
+  id: string;
+  text: string;
+  guidance: string;
+  priority: number;
+};
 
 export type ApplyJudgePairMemoryEffectsInput = {
   pairState: PairState;
@@ -29,16 +41,29 @@ export type ApplyJudgePairMemoryEffectsInput = {
   timestamp: string;
 };
 
-export type ApplyJudgePairMemoryEffectsResult = {
+export type PairMemoryEffectsResult = {
   pairState: PairState;
   memories: MemoryRecord[];
+};
+
+export type ApplyCompletedDatePairMemoryEffectsInput = {
+  pairState: PairState;
+  session: DateSession;
+  timestamp: string;
+};
+
+export type ApplyFollowUpPairMemoryEffectsInput = {
+  pairState: PairState;
+  session: DateSession;
+  action: FollowUpAction;
+  timestamp: string;
 };
 
 export function applyJudgePairMemoryEffects({
   pairState,
   judgeSnapshot,
   timestamp,
-}: ApplyJudgePairMemoryEffectsInput): ApplyJudgePairMemoryEffectsResult {
+}: ApplyJudgePairMemoryEffectsInput): PairMemoryEffectsResult {
   let agreements = pairState.agreements;
   let openLoops = pairState.openLoops;
   const memories: MemoryRecord[] = [];
@@ -64,7 +89,7 @@ export function applyJudgePairMemoryEffects({
         text: formatAgreementMemoryText(updated, update.note),
         tags: agreementTagsForStatus(updated.status),
         importance: updated.status === "broken" ? 5 : 4,
-        judgeSnapshot,
+        dateSessionId: judgeSnapshot.dateSessionId,
         timestamp,
       }),
     );
@@ -95,7 +120,7 @@ export function applyJudgePairMemoryEffects({
         text: formatAgreementMemoryText(agreement),
         tags: agreementTagsForStatus(agreement.status),
         importance: 3,
-        judgeSnapshot,
+        dateSessionId: judgeSnapshot.dateSessionId,
         timestamp,
       }),
     );
@@ -118,7 +143,7 @@ export function applyJudgePairMemoryEffects({
         text: formatOpenLoopMemoryText(updated, update.note),
         tags: openLoopTagsForStatus(updated.status),
         importance: updated.status === "resolved" ? 4 : 3,
-        judgeSnapshot,
+        dateSessionId: judgeSnapshot.dateSessionId,
         timestamp,
       }),
     );
@@ -149,7 +174,7 @@ export function applyJudgePairMemoryEffects({
         text: formatOpenLoopMemoryText(openLoop),
         tags: openLoopTagsForStatus(openLoop.status),
         importance: 3,
-        judgeSnapshot,
+        dateSessionId: judgeSnapshot.dateSessionId,
         timestamp,
       }),
     );
@@ -163,13 +188,244 @@ export function applyJudgePairMemoryEffects({
   return { pairState: nextPairState, memories };
 }
 
+export function applyCompletedDatePairMemoryEffects({
+  pairState,
+  session,
+  timestamp,
+}: ApplyCompletedDatePairMemoryEffectsInput): PairMemoryEffectsResult {
+  if (session.status !== "completed") {
+    return { pairState, memories: [] };
+  }
+
+  let agreements = pairState.agreements;
+  const memories: MemoryRecord[] = [];
+
+  for (const agreement of pairState.agreements) {
+    if (agreement.status !== "active") continue;
+
+    const laterCompletedDates = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
+    if (laterCompletedDates < COMPLETED_DATES_TO_HONOR_AGREEMENT) continue;
+
+    const honored: PairAgreement = {
+      ...agreement,
+      status: "honored",
+      resolvedAt: timestamp,
+    };
+    agreements = agreements.map((entry) => (entry.id === agreement.id ? honored : entry));
+    memories.push(
+      buildPairMemory({
+        id: `${honored.id}-honored-${session.id}`,
+        pairState,
+        text: formatAgreementMemoryText(honored, "The pair kept it across later dates."),
+        tags: agreementTagsForStatus(honored.status),
+        importance: 4,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  if (memories.length === 0) {
+    return { pairState, memories };
+  }
+
+  return {
+    pairState: pairStateSchema.parse({ ...pairState, agreements }),
+    memories,
+  };
+}
+
+export function applyFollowUpPairMemoryEffects({
+  pairState,
+  session,
+  action,
+  timestamp,
+}: ApplyFollowUpPairMemoryEffectsInput): PairMemoryEffectsResult {
+  let agreements = pairState.agreements;
+  let openLoops = pairState.openLoops;
+  const memories: MemoryRecord[] = [];
+  const outcome = session.finalReport?.outcome;
+  const activeAgreements = agreements.filter((agreement) => agreement.status === "active");
+  const brokenAgreements = agreements.filter((agreement) => agreement.status === "broken");
+  const activeOpenLoops = openLoops.filter((loop) => loop.status === "open");
+  const boundaryPressure =
+    session.status === "ended_early" ||
+    session.judgeSnapshots.at(-1)?.shouldEndEarly === true ||
+    session.judgeSnapshots.some((snapshot) =>
+      snapshot.usedEvidenceIds.some((id) => id.includes(":boundary:")),
+    );
+
+  function pushAgreementFollowUp(text: string, memoText: string, importance: number): void {
+    const created = createFollowUpAgreement({
+      pairState,
+      agreements,
+      session,
+      action,
+      timestamp,
+      text,
+    });
+    if (created === null) return;
+    agreements = [...agreements, created];
+    memories.push(
+      buildPairMemory({
+        id: created.id,
+        pairState,
+        text: formatAgreementMemoryText(created, memoText),
+        tags: [...agreementTagsForStatus(created.status), FOLLOW_UP_TAG],
+        importance,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  function pushOpenLoopFollowUp(text: string, memoText: string, importance: number): void {
+    const created = createFollowUpOpenLoop({
+      pairState,
+      openLoops,
+      session,
+      action,
+      timestamp,
+      text,
+    });
+    if (created === null) return;
+    openLoops = [...openLoops, created];
+    memories.push(
+      buildPairMemory({
+        id: created.id,
+        pairState,
+        text: formatOpenLoopMemoryText(created, memoText),
+        tags: [...openLoopTagsForStatus(created.status), FOLLOW_UP_TAG],
+        importance,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  if (action === "repair") {
+    if (brokenAgreements.length > 0 || boundaryPressure) {
+      pushAgreementFollowUp(
+        "Repair stays slow before another booking.",
+        "Follow-up filed repair pressure.",
+        4,
+      );
+    }
+  } else if (action === "cool_down") {
+    if (
+      activeOpenLoops.length > 0 ||
+      pairState.stats.strain >= 60 ||
+      pairState.stats.conflict >= 60 ||
+      outcome === "cool_down" ||
+      outcome === "early_end"
+    ) {
+      pushOpenLoopFollowUp(
+        "Whether time away lets the pair return without reopening the same pressure.",
+        "Follow-up filed cooling space.",
+        3,
+      );
+    }
+  } else if (action === "encourage") {
+    if (outcome === "second_date") {
+      pushOpenLoopFollowUp(
+        "Whether the pair follows through on the next booking without overexplaining it.",
+        "Follow-up filed next-booking momentum.",
+        3,
+      );
+    }
+  } else {
+    for (const agreement of activeAgreements) {
+      const retired: PairAgreement = {
+        ...agreement,
+        status: "retired",
+        resolvedAt: timestamp,
+      };
+      agreements = agreements.map((entry) => (entry.id === agreement.id ? retired : entry));
+      memories.push(
+        buildPairMemory({
+          id: `${retired.id}-retired-${session.id}`,
+          pairState,
+          text: formatAgreementMemoryText(retired, "Cupid closed the romantic lane."),
+          tags: [...agreementTagsForStatus(retired.status), FOLLOW_UP_TAG],
+          importance: 3,
+          dateSessionId: session.id,
+          timestamp,
+        }),
+      );
+    }
+
+    for (const openLoop of activeOpenLoops) {
+      const dropped: OpenLoop = {
+        ...openLoop,
+        status: "dropped",
+        resolvedAt: timestamp,
+      };
+      openLoops = openLoops.map((entry) => (entry.id === openLoop.id ? dropped : entry));
+      memories.push(
+        buildPairMemory({
+          id: `${dropped.id}-dropped-${session.id}`,
+          pairState,
+          text: formatOpenLoopMemoryText(dropped, "Cupid closed the romantic lane."),
+          tags: [...openLoopTagsForStatus(dropped.status), FOLLOW_UP_TAG],
+          importance: 3,
+          dateSessionId: session.id,
+          timestamp,
+        }),
+      );
+    }
+  }
+
+  if (memories.length === 0) {
+    return { pairState, memories };
+  }
+
+  return {
+    pairState: pairStateSchema.parse({ ...pairState, agreements, openLoops }),
+    memories,
+  };
+}
+
+export function selectPairSpotlightItem(pairState: PairState): PairSpotlightItem | null {
+  const candidates: PairSpotlightItem[] = [];
+
+  for (const agreement of pairState.agreements) {
+    if (agreement.status !== "active") continue;
+    const age = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
+    candidates.push({
+      kind: "agreement",
+      id: agreement.id,
+      text: agreement.text,
+      guidance: `Keep this active agreement present as table stakes: ${agreement.text}`,
+      priority: 60 + age * 10,
+    });
+  }
+
+  const openLoops = pairState.openLoops.filter((loop) => loop.status === "open");
+  for (const loop of openLoops) {
+    const age = completedDatesAfterSource(pairState, loop.sourceDateSessionId);
+    candidates.push({
+      kind: "open_loop",
+      id: loop.id,
+      text: loop.text,
+      guidance: `Give this unresolved item a chance to move: ${loop.text}`,
+      priority: 70 + age * 12 + (openLoops.length >= 2 ? 8 : 0),
+    });
+  }
+
+  return (
+    candidates.sort(
+      (first, second) => second.priority - first.priority || first.id.localeCompare(second.id),
+    )[0] ?? null
+  );
+}
+
 function buildPairMemory({
   id,
   pairState,
   text,
   tags,
   importance,
-  judgeSnapshot,
+  dateSessionId,
   timestamp,
 }: {
   id: string;
@@ -177,7 +433,7 @@ function buildPairMemory({
   text: string;
   tags: string[];
   importance: number;
-  judgeSnapshot: JudgeSnapshot;
+  dateSessionId: string;
   timestamp: string;
 }): MemoryRecord {
   const embedding = createDeterministicEmbedding(text);
@@ -188,7 +444,7 @@ function buildPairMemory({
     visibility: "public",
     subjectIds: pairState.participantIds,
     pairId: pairState.id,
-    dateSessionId: judgeSnapshot.dateSessionId,
+    dateSessionId,
     text,
     tags,
     importance,
@@ -197,6 +453,80 @@ function buildPairMemory({
     embeddingModel: DETERMINISTIC_EMBEDDING_MODEL,
     embeddingDimensions: embedding.length,
   });
+}
+
+function createFollowUpAgreement({
+  pairState,
+  agreements,
+  session,
+  action,
+  timestamp,
+  text,
+}: {
+  pairState: PairState;
+  agreements: readonly PairAgreement[];
+  session: DateSession;
+  action: FollowUpAction;
+  timestamp: string;
+  text: string;
+}): PairAgreement | null {
+  const key = textKey(text);
+  if (agreements.some((agreement) => textKey(agreement.text) === key)) {
+    return null;
+  }
+
+  return {
+    id: `agreement-${pairState.id}-follow-up-${session.id}-${action}`,
+    text,
+    status: "active",
+    sourceDateSessionId: session.id,
+    createdAt: timestamp,
+  };
+}
+
+function createFollowUpOpenLoop({
+  pairState,
+  openLoops,
+  session,
+  action,
+  timestamp,
+  text,
+}: {
+  pairState: PairState;
+  openLoops: readonly OpenLoop[];
+  session: DateSession;
+  action: FollowUpAction;
+  timestamp: string;
+  text: string;
+}): OpenLoop | null {
+  const key = textKey(text);
+  if (openLoops.some((loop) => textKey(loop.text) === key)) {
+    return null;
+  }
+
+  return {
+    id: `open-loop-${pairState.id}-follow-up-${session.id}-${action}`,
+    text,
+    status: "open",
+    sourceDateSessionId: session.id,
+    createdAt: timestamp,
+  };
+}
+
+function completedDatesAfterSource(
+  pairState: PairState,
+  sourceDateSessionId: string | undefined,
+): number {
+  if (sourceDateSessionId === undefined) {
+    return 0;
+  }
+
+  const sourceIndex = pairState.completedDateIds.indexOf(sourceDateSessionId);
+  if (sourceIndex === -1) {
+    return 0;
+  }
+
+  return Math.max(0, pairState.completedDateIds.length - sourceIndex - 1);
 }
 
 function cleanCandidateText(text: string): string {

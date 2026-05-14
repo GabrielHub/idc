@@ -7,6 +7,7 @@ import {
   type DateSession,
   type PairState,
 } from "../domain/game";
+import { selectPairSpotlightItem } from "./pair-memory";
 import { derivePairTrajectory } from "./pair-trajectory";
 
 function buildPairState(overrides: Partial<PairState> = {}): PairState {
@@ -112,23 +113,24 @@ describe("pair trajectory", () => {
   });
 
   it("detects repeated mismatch as stuck", () => {
+    const pairState = buildPairState({
+      openLoops: [
+        {
+          id: "loop-1",
+          text: "Whether Jenna can trust the menu.",
+          status: "open",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "loop-2",
+          text: "Whether Vhool can stop auditing the coffee.",
+          status: "open",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+      ],
+    });
     const trajectory = derivePairTrajectory({
-      pairState: buildPairState({
-        openLoops: [
-          {
-            id: "loop-1",
-            text: "Whether Jenna can trust the menu.",
-            status: "open",
-            createdAt: "2026-05-05T11:00:00.000Z",
-          },
-          {
-            id: "loop-2",
-            text: "Whether Vhool can stop auditing the coffee.",
-            status: "open",
-            createdAt: "2026-05-05T11:10:00.000Z",
-          },
-        ],
-      }),
+      pairState,
       completedSessions: [
         buildSession({ id: "date-session-1", dateHealthDelta: 1 }),
         buildSession({ id: "date-session-2", dateHealthDelta: -1 }),
@@ -136,6 +138,8 @@ describe("pair trajectory", () => {
     });
 
     expect(trajectory.state).toBe("stuck");
+    expect(selectPairSpotlightItem(pairState)?.kind).toBe("open_loop");
+    expect(trajectory.subnotes.some((note) => note.includes("unresolved"))).toBe(true);
   });
 
   it("detects early end damage as brittle", () => {
@@ -166,5 +170,27 @@ describe("pair trajectory", () => {
     });
 
     expect(trajectory.state).toBe("closure_runway");
+    expect(trajectory.subnotes).toEqual([]);
+  });
+
+  it("adds hidden subnotes for warm low-trust files", () => {
+    const trajectory = derivePairTrajectory({
+      pairState: buildPairState({
+        stats: {
+          chemistry: 70,
+          trust: 48,
+          stability: 62,
+          conflict: 18,
+          weirdnessTolerance: 55,
+          spark: 78,
+          strain: 22,
+          relationshipHealth: 64,
+        },
+      }),
+    });
+
+    expect(trajectory.subnotes).toContain(
+      "Warmth is outrunning trust. Reward concrete follow-through over charm.",
+    );
   });
 });

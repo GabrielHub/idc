@@ -79,11 +79,12 @@ export const sections: DocSectionEntry[] = [
         <P>
           The workflow starts with a no-secret preflight job that runs <DocCode>vp check</DocCode>,{" "}
           <DocCode>vp test</DocCode>, and <DocCode>vp build</DocCode> before requesting approval for
-          the signing environment. It creates release notes with the installer name, SHA256
-          checksum, a changelog from commits since the previous version tag, and player install
-          notes. For extra hand-written notes, use manual dispatch and fill the{" "}
-          <DocCode>release_notes</DocCode> input, or edit the GitHub release after the workflow
-          finishes.
+          the signing environment. It renders public release notes from{" "}
+          <DocCode>app/fixtures/release-notes.json</DocCode>, adds the installer name, SHA256
+          checksum, and player install notes, then uses the same catalog entry for the updater
+          manifest notes. The workflow fails if the release version is missing from the catalog. For
+          extra operator notes, use manual dispatch and fill the <DocCode>release_notes</DocCode>{" "}
+          input.
         </P>
         <DocSubsection id="normal-release-flow" title="Normal release flow">
           <DocSteps
@@ -102,6 +103,11 @@ git fetch --tags origin`}</DocCodeBlock>
                 <DocCode>src-tauri/Cargo.lock</DocCode> is refreshed by the Rust build after the{" "}
                 <DocCode>Cargo.toml</DocCode> version changes.
               </span>,
+              <span key="public-notes">
+                Add a player-facing entry to <DocCode>app/fixtures/release-notes.json</DocCode>.
+                Keep it short, useful, and free of commit-log chores. The current version plus the
+                previous couple entries show in the in-app What's new modal after an update.
+              </span>,
               <span key="preflight">
                 Run local preflight.
                 <DocCodeBlock language="powershell">{`vp check
@@ -113,11 +119,12 @@ vp build`}</DocCodeBlock>
               <span key="commit">
                 Commit the release prep and push it.
                 <DocCodeBlock language="powershell">{`$version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
-git add package.json src-tauri\\Cargo.toml src-tauri\\Cargo.lock src-tauri\\tauri.conf.json
+git add package.json src-tauri\\Cargo.toml src-tauri\\Cargo.lock src-tauri\\tauri.conf.json app\\fixtures\\release-notes.json
 git commit -m "Prepare v\${version} test release"
 git push origin main`}</DocCodeBlock>
-                Stage only files that actually changed for the release. Include workflow or support
-                docs only when they changed. Do not stage ignored artifacts under{" "}
+                Stage only files that actually changed for the release, including{" "}
+                <DocCode>app/fixtures/release-notes.json</DocCode>. Include workflow or support docs
+                only when they changed. Do not stage ignored artifacts under{" "}
                 <DocCode>src-tauri/target/</DocCode>.
               </span>,
               <span key="tag">
@@ -201,16 +208,20 @@ $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInv
 vp run updater:manifest`}</DocCodeBlock>
             </span>,
             <span key="notes">
-              Write release notes. Keep them short and include the unsigned Windows build warning,
-              AI provider requirement, checksum, update behavior for alpha saves and Gateway key
-              storage, that in-app updates are signed and served through the{" "}
-              <DocCode>desktop-alpha</DocCode> updater channel, playtest bug report guidance (use
-              Save bug report on crash screens and attach the generated JSON file), and a link back
-              to <DocLink to="/docs/support/desktop-install-guide">Desktop install guide</DocLink>.
+              Add or update the public catalog entry, then render release notes from the catalog.
+              <DocCodeBlock language="powershell">{`vp node scripts/render-release-notes.mjs \`
+  --format github \`
+  --version $version \`
+  --tag "v$version" \`
+  --installer "IDC_$($version)_x64-setup.exe" \`
+  --sha256 $hash \`
+  --output "src-tauri\\target\\release\\bundle\\nsis\\release-notes-v$version.md"`}</DocCodeBlock>
+              The renderer adds the unsigned Windows build warning, AI provider requirement, SHA256
+              checksum, and <DocCode>release-readme.md</DocCode> attachment note.
             </span>,
             <span key="tag">
               Commit, tag, and push.
-              <DocCodeBlock language="powershell">{`git add package.json src-tauri\\Cargo.toml src-tauri\\Cargo.lock src-tauri\\tauri.conf.json
+              <DocCodeBlock language="powershell">{`git add package.json src-tauri\\Cargo.toml src-tauri\\Cargo.lock src-tauri\\tauri.conf.json app\\fixtures\\release-notes.json
 git commit -m "Prepare v\${version} test release"
 git tag -a "v\${version}" -m "IDC v\${version} test release"
 git push origin main "v\${version}"`}</DocCodeBlock>

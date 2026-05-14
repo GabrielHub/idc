@@ -10,6 +10,7 @@ import {
   type GameSave,
 } from "../domain/game";
 import { memberRequests, starterScenarios } from "../fixtures";
+import { APP_VERSION } from "../platform/release-identity";
 import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
@@ -71,8 +72,17 @@ import { OnboardingScreen } from "./onboarding-screen";
 import { PreDateCanvas } from "./pre-date-canvas";
 import { RosterCanvas } from "./roster-canvas";
 import { buildDiagnosticsSnapshot, MutedIndicator, SettingsMenu } from "./settings-menu";
+import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx } from "./sfx-provider";
 import { SoftWinCutscene } from "./soft-win-cutscene";
+import {
+  getReleaseNoteByVersion,
+  hasReleaseNotesEligibleSaveProgress,
+  listReleaseNotesForModal,
+  readStoredReleaseNotesVersion,
+  shouldOpenReleaseNotes,
+  writeStoredReleaseNotesVersion,
+} from "../services/release-notes";
 
 const AUTOPLAY_TICK_DELAY_MS = 480;
 const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
@@ -115,8 +125,10 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const [gatewayApiKey, setGatewayApiKey] = useState("");
   const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [isDateJudgePending, setIsDateJudgePending] = useState(false);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
@@ -131,7 +143,16 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
   const lastErrorMessageRef = useRef<string | null>(null);
+  const releaseNotesCheckCompleteRef = useRef(false);
   const isActionPending = pendingAction !== null;
+  const releaseNotesForModal = useMemo(
+    () => listReleaseNotesForModal({ currentVersion: APP_VERSION }),
+    [],
+  );
+  const hasReleaseNotesForCurrentVersion = useMemo(
+    () => getReleaseNoteByVersion(APP_VERSION) !== undefined,
+    [],
+  );
   const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
   const aiStatusConfigRef = useRef<GameConfig | null>(null);
   const aiStatusConfig = save?.config;
@@ -297,6 +318,29 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
     [save?.config, localAiStatus],
   );
+  useEffect(() => {
+    if (
+      releaseNotesCheckCompleteRef.current ||
+      save === null ||
+      !hasReleaseNotesForCurrentVersion
+    ) {
+      return;
+    }
+    releaseNotesCheckCompleteRef.current = true;
+
+    const lastSeenVersion = readStoredReleaseNotesVersion();
+    const shouldOpen = shouldOpenReleaseNotes({
+      currentVersion: APP_VERSION,
+      lastSeenVersion,
+      hasExistingSaveProgress: hasReleaseNotesEligibleSaveProgress(save),
+    });
+
+    if (shouldOpen) {
+      setIsReleaseNotesOpen(true);
+    } else {
+      writeStoredReleaseNotesVersion(APP_VERSION);
+    }
+  }, [hasReleaseNotesForCurrentVersion, save]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
@@ -379,6 +423,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     if (isActionPending) return;
     setPendingAction(kind);
     setErrorMessage(null);
+    setNoticeMessage(null);
     void (async () => {
       try {
         await run();
@@ -444,7 +489,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         await persist(result.save);
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
-          setErrorMessage(result.warningMessages[0] ?? null);
+          setNoticeMessage(result.warningMessages[0] ?? null);
         }
       } catch (error) {
         if (error instanceof DateStreamAbortedError) {
@@ -813,6 +858,15 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     writeStoredDevMemberDetailsPreview(next);
   }
 
+  function handleOpenReleaseNotes() {
+    setIsReleaseNotesOpen(true);
+  }
+
+  function handleCloseReleaseNotes() {
+    setIsReleaseNotesOpen(false);
+    writeStoredReleaseNotesVersion(APP_VERSION);
+  }
+
   if (save === null) {
     return <DashboardLoading />;
   }
@@ -874,6 +928,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             onImportSave={handleImportSave}
             onCopyDiagnostics={handleCopyDiagnostics}
             onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+            onOpenReleaseNotes={handleOpenReleaseNotes}
           />
         </div>
       </header>
@@ -1022,7 +1077,17 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       </AnimatePresence>
 
       <AnimatePresence>
-        {softWinDue ? (
+        {isReleaseNotesOpen && releaseNotesForModal.length > 0 ? (
+          <ReleaseNotesModal
+            notes={releaseNotesForModal}
+            initialVersion={APP_VERSION}
+            onClose={handleCloseReleaseNotes}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {softWinDue && !isReleaseNotesOpen ? (
           <SoftWinCutscene
             save={save}
             isActionPending={isActionPending}
@@ -1033,6 +1098,9 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
       {errorMessage !== null ? (
         <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
+      ) : null}
+      {errorMessage === null && noticeMessage !== null ? (
+        <ErrorBanner message={noticeMessage} onDismiss={() => setNoticeMessage(null)} />
       ) : null}
     </div>
   );

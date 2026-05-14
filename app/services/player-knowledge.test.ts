@@ -167,6 +167,22 @@ describe("buildVisibleMemberProfile", () => {
     for (const need of member.relationshipNeeds) {
       expect(blockJson.includes(need)).toBe(false);
     }
+
+    for (const preference of member.preferences) {
+      expect(blockJson.includes(preference)).toBe(false);
+    }
+
+    const neverVisibleValues = [
+      member.species,
+      member.origin,
+      member.dimension,
+      member.realityStatus,
+      member.bio,
+    ];
+
+    for (const value of neverVisibleValues) {
+      expect(JSON.stringify(profile).includes(value)).toBe(false);
+    }
   });
 
   it("supports dev preview without filing player reads", () => {
@@ -182,6 +198,14 @@ describe("buildVisibleMemberProfile", () => {
     );
     expect(previewProfile.redactedBlocks).toHaveLength(0);
     expect(previewProfile.revealedReads).toHaveLength(0);
+  });
+
+  it("tracks preferences as a separate sealed intel block", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "opal-sunday");
+    const profile = buildVisibleMemberProfile(member, []);
+
+    expect(profile.redactedBlocks.map((block) => block.label)).toContain("Preferences");
   });
 });
 

@@ -1,0 +1,150 @@
+[
+  {
+    "version": "0.2.6",
+    "date": "2026-05-14",
+    "headline": "The release candidate survives its own inspection.",
+    "summary": "This test alpha adds player-facing release notes, an active roadmap board, stronger pair memory follow-through, and the regression fixes found during a full AI date playthrough.",
+    "sections": [
+      {
+        "title": "Changelog",
+        "items": [
+          "The app now shows a What's new modal for eligible saves after updates, with a Settings entry to reopen recent release notes.",
+          "Roadmap docs now include an active work board for temporary implementation plans and agent handoffs.",
+          "Pair memory, follow-up handling, and closure checks preserve more context for repeat bookings and case management."
+        ]
+      },
+      {
+        "title": "Fixes",
+        "items": [
+          "Docs routes no longer crash when roadmap pages load through the shared docs registry.",
+          "Live-date autoplay keeps advancing after nonfatal AI retry notices instead of appearing to roll while no new beat is scheduled.",
+          "Release workflow, updater notes, and player install copy now use the checked-in release catalog for cleaner desktop handoffs."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.5",
+    "date": "2026-05-13",
+    "headline": "Pair memory starts doing the paperwork.",
+    "summary": "Dates now leave more useful history behind, the roster and scenario pool are bigger, and the UI has better height discipline for the people standing in it.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Pair memory now tracks agreements, open loops, and hidden relationship trajectory across repeat dates.",
+          "Eight new date scenarios join the library, including Cable Car Across Biomes, Hephaestus Forge, Long Afternoon Pool Bar, and Moonglass Kiln After Hours.",
+          "The roster grows to 40 members with Junie Marrow and Anubis added to the agency intake stack.",
+          "Product docs now live inside the app shell, so the field manual is closer to the machinery it keeps judging."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Standee portraits now ground from visible feet, with character height canon documented for future lineup work.",
+          "AI date voice, output cleanup, and judge scoring received tighter guardrails.",
+          "Agent workflow instructions were updated so future changes have less room to invent policy with a clipboard."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.4",
+    "date": "2026-05-12",
+    "headline": "Release machinery stops narrating its own wrench drawer.",
+    "summary": "This maintenance build fixed the GitHub release changelog range so new releases compare against the right prior version.",
+    "sections": [
+      {
+        "title": "Fixes",
+        "items": [
+          "GitHub release changelog generation now finds the previous version tag more reliably.",
+          "Release notes stopped pulling the wrong history window when the desktop channel tag was nearby."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.3",
+    "date": "2026-05-12",
+    "headline": "Desktop packaging gets a second adult in the room.",
+    "summary": "This maintenance build repaired the automated Windows packaging path used by the desktop release workflow.",
+    "sections": [
+      {
+        "title": "Fixes",
+        "items": [
+          "The desktop release workflow now packages the signed Windows installer through the intended build path.",
+          "Release assets are uploaded with the installer, checksum, signature, player README, and updater manifest together."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.2",
+    "date": "2026-05-12",
+    "headline": "Preflight got stricter, which is rude but useful.",
+    "summary": "This maintenance build fixed the automated release preflight so bad release candidates fail before signing starts.",
+    "sections": [
+      {
+        "title": "Fixes",
+        "items": [
+          "The GitHub Action now runs the expected checks before requesting the signing environment.",
+          "Release validation blocks mismatched tags and package versions before the desktop build spends its afternoon."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.1",
+    "date": "2026-05-12",
+    "headline": "The lineup learned the difference between height and render height.",
+    "summary": "Character height canon was split from source-scale render height so portraits can be judged without making every tall person a layout incident.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Member fixtures now separate character height from standee render height.",
+          "The height lineup workflow was rebuilt for reviewing portrait scale consistently."
+        ]
+      },
+      {
+        "title": "Authoring notes",
+        "items": [
+          "Future portrait work should fix source geometry or the shared source-scale registry, not one-off UI scale at call sites."
+        ]
+      }
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-05-12",
+    "headline": "The updater arrives, holding a signed clipboard.",
+    "summary": "Feature release. Adds in-app desktop updates, expands the roster and scenario library, and moves the product docs into the app shell.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Installed desktop builds can now check the desktop-alpha update channel and install signed updates from Settings.",
+          "The roster grows to 38 members, with five new profiles and a larger pair matrix.",
+          "The scenario library grows to 47 dates, adding Bank Heist 1920s Escape Room, Build-a-Bear Empty Mall, Cable Car Across Biomes, Colosseum Box Four, Empty Room Many Windows, Hephaestus Forge, Long Afternoon Pool Bar, and Moonglass Kiln After Hours.",
+          "Match-fit scoring was refactored for cleaner tag merging, clearer overlay rules, and stronger boundary-risk handling.",
+          "A top-level renderer error boundary now shows a recovery prompt instead of a blank screen."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Settings now hosts updater controls alongside diagnostics and the dev-only member files toggle.",
+          "Splash screen roster count and starter stats match the larger roster.",
+          "Installer hooks and Tauri capabilities were tightened for updater-enabled desktop builds."
+        ]
+      },
+      {
+        "title": "Save behavior",
+        "items": [
+          "No save schema change. Existing alpha saves should stay in place when updating.",
+          "Gateway keys stay in the desktop key file instead of the save file."
+        ]
+      }
+    ]
+  }
+]

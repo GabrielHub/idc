@@ -8,8 +8,10 @@ import {
   type MemberRequestTag,
   type MemberTag,
   type PairState,
+  type PlayerKnowledgeRecord,
 } from "../domain/game";
 import { makePairId } from "./game-seed";
+import { clamp } from "./utils";
 
 export type MatchFitLevel = "strong" | "neutral" | "risky";
 export type MatchPressureLevel = "low" | "medium" | "high";
@@ -44,6 +46,7 @@ export type EvaluateMatchFitInput = {
   scenario: DateScenario;
   pairState: PairState;
   activeRequests?: readonly MemberRequest[];
+  knownPairReads?: readonly PlayerKnowledgeRecord[];
 };
 
 export type ApplyMatchFitToJudgeInput = {
@@ -93,6 +96,25 @@ const CAREER_COVERED_REQUEST_TAGS = [
   "decisiveness",
 ] satisfies readonly MemberRequestTag[];
 const STRUCTURE_REQUEST_TAG = "structure" satisfies MemberRequestTag;
+const WARM_PAIR_READ_SUFFIXES = new Set<string>([
+  "dynamic:career-alignment",
+  "dynamic:ceremony-alignment",
+  "dynamic:mutual-acquisition",
+  "dynamic:grief-low-intimacy-alignment",
+  "dynamic:weirdness-recognition",
+]);
+const FRICTION_PAIR_READ_SUFFIXES = new Set<string>([
+  "dynamic:sincerity-vs-performance",
+  "dynamic:status-vs-attention",
+  "dynamic:shared-spiral",
+  "dynamic:competitive-clash",
+  "dynamic:attention-rivalry",
+  "dynamic:performer-distrust",
+  "dynamic:grief-high-intimacy-overload",
+  "dynamic:ceremony-vs-performance",
+  "dynamic:privacy-vs-attention",
+  "dynamic:repeat-room",
+]);
 
 type AuthoredMemberScenarioRule = {
   memberId: string;
@@ -608,6 +630,12 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
   const authoredPairScoreResult = authoredPairScore(firstMember, secondMember, ruleHits);
   score += authoredPairScoreResult.scoreDelta;
   pressure += authoredPairScoreResult.pressureDelta;
+  const pairMemoryScoreResult = pairMemoryScore(input.pairState, ruleHits);
+  score += pairMemoryScoreResult.scoreDelta;
+  pressure += pairMemoryScoreResult.pressureDelta;
+  const knownReadScoreResult = knownPairReadScore(input.knownPairReads ?? [], ruleHits);
+  score += knownReadScoreResult.scoreDelta;
+  pressure += knownReadScoreResult.pressureDelta;
 
   const boundaryRisk = findBoundaryRisk(members, input.scenario);
   const requestSignals = evaluateRequestSignals({
@@ -993,6 +1021,90 @@ function pairHistoryScore(
   return -3;
 }
 
+function pairMemoryScore(pairState: PairState, ruleHits: string[]): AuthoredScore {
+  let scoreDelta = 0;
+  let pressureDelta = 0;
+  const activeAgreementCount = pairState.agreements.filter(
+    (agreement) => agreement.status === "active",
+  ).length;
+  const honoredAgreementCount = pairState.agreements.filter(
+    (agreement) => agreement.status === "honored",
+  ).length;
+  const brokenAgreementCount = pairState.agreements.filter(
+    (agreement) => agreement.status === "broken",
+  ).length;
+  const openLoopCount = pairState.openLoops.filter((loop) => loop.status === "open").length;
+  const resolvedLoopCount = pairState.openLoops.filter((loop) => loop.status === "resolved").length;
+
+  if (activeAgreementCount > 0) {
+    scoreDelta += Math.min(2, activeAgreementCount);
+    ruleHits.push("pair:active_agreement_table_stakes");
+  }
+
+  if (honoredAgreementCount > 0) {
+    scoreDelta += Math.min(4, honoredAgreementCount * 2);
+    ruleHits.push("pair:honored_agreement_momentum");
+  }
+
+  if (brokenAgreementCount > 0) {
+    scoreDelta -= Math.min(6, brokenAgreementCount * 3);
+    pressureDelta += Math.min(4, brokenAgreementCount * 2);
+    ruleHits.push("pair:broken_agreement_pressure");
+  }
+
+  if (openLoopCount >= 2) {
+    scoreDelta -= Math.min(4, openLoopCount);
+    pressureDelta += 1;
+    ruleHits.push("pair:open_loop_crowding");
+  }
+
+  if (resolvedLoopCount > 0) {
+    scoreDelta += Math.min(3, resolvedLoopCount);
+    ruleHits.push("pair:resolved_loop_momentum");
+  }
+
+  return { scoreDelta, pressureDelta };
+}
+
+function knownPairReadScore(
+  knownPairReads: readonly PlayerKnowledgeRecord[],
+  ruleHits: string[],
+): AuthoredScore {
+  let scoreDelta = 0;
+  let pressureDelta = 0;
+  const readIds = new Set(
+    knownPairReads
+      .filter((record) => record.readKind === "pair_dynamic")
+      .map((record) => record.readId),
+  );
+
+  for (const readId of readIds) {
+    if (hasReadSuffix(readId, WARM_PAIR_READ_SUFFIXES)) {
+      scoreDelta += 2;
+      ruleHits.push("pair:known_warm_dynamic");
+    } else if (hasReadSuffix(readId, FRICTION_PAIR_READ_SUFFIXES)) {
+      scoreDelta -= 2;
+      pressureDelta += 1;
+      ruleHits.push("pair:known_friction_dynamic");
+    }
+  }
+
+  return {
+    scoreDelta: clamp(scoreDelta, -4, 4),
+    pressureDelta: clamp(pressureDelta, 0, 3),
+  };
+}
+
+function hasReadSuffix(readId: string, suffixes: ReadonlySet<string>): boolean {
+  for (const suffix of suffixes) {
+    if (readId.endsWith(suffix)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 function basePressure(scenario: DateScenario): number {
   const riskPressure = scenario.card.risk === "high" ? 3 : scenario.card.risk === "medium" ? 2 : 1;
   const intimacyPressure =
@@ -1322,8 +1434,4 @@ function requireTwoMembers(members: readonly Member[]): [Member, Member] {
   }
 
   return [firstMember, secondMember];
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value));
 }

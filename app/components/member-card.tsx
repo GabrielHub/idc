@@ -4,7 +4,7 @@ import { type ReactNode, type Ref, useEffect, useMemo } from "react";
 import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { hashSeedUint32 } from "../services/utils";
-import { CupidMark, EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
+import { CupidMark, EASE_OUT_QUART, Eyebrow, Portrait } from "./dashboard-atoms";
 import { formatMemberHeightShort } from "./date-reactions";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
@@ -663,6 +663,7 @@ export function MemberDetailsModal({
       >
         <motion.div
           key="member-details-modal-card"
+          layout
           initial={{ opacity: 0, scale: 0.96, y: 12 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: 8 }}
@@ -876,10 +877,10 @@ function MemberIntelBoard({
   const profileContinuation = profile.publicFragments.slice(1);
   const profileBlock = findRedactedBlock(profile, "profile:remainder");
   const needsBlock = findRedactedBlock(profile, "needs:sealed");
+  const preferencesBlock = findRedactedBlock(profile, "preferences:sealed");
   const boundaryBlock = findRedactedBlock(profile, "dealbreakers:sealed");
-  const needsReads = profile.revealedReads.filter(
-    (read) => read.readKind === "comfort" || read.readKind === "ask",
-  );
+  const needsReads = profile.revealedReads.filter((read) => read.readKind === "ask");
+  const preferenceReads = profile.revealedReads.filter((read) => read.readKind === "comfort");
   const boundaryReads = profile.revealedReads.filter((read) => read.readKind === "boundary");
 
   return (
@@ -892,33 +893,7 @@ function MemberIntelBoard({
       </div>
 
       <div className="mt-3 overflow-hidden rounded-2xl bg-aura-hairline ring-1 ring-aura-hairline">
-        <div className="grid gap-px lg:grid-cols-2 xl:grid-cols-3">
-          <IntelCell title="identity">
-            {revealAllDetails ? (
-              <dl className="mt-3 space-y-2 text-label">
-                <UnveiledRow label="species" value={member.species} />
-                <UnveiledRow label="origin" value={member.origin} />
-                <UnveiledRow label="dimension" value={member.dimension} />
-                <UnveiledRow label="reality" value={member.realityStatus} />
-              </dl>
-            ) : (
-              <SealedLines lineCount={4} />
-            )}
-          </IntelCell>
-
-          <IntelCell title="current state">
-            {revealAllDetails ? (
-              <div className="mt-3 grid gap-2">
-                <StateMeter label="Mood" value={member.state.mood} />
-                <StateMeter label="Openness" value={member.state.openness} />
-                <StateMeter label="Burnout" value={member.state.burnout} />
-                <StateMeter label="Retention" value={member.state.retention} />
-              </div>
-            ) : (
-              <SealedLines lineCount={4} />
-            )}
-          </IntelCell>
-
+        <div className="grid gap-px lg:grid-cols-2 xl:grid-cols-4">
           <IntelCell title="profile continues">
             {profileContinuation.length > 0 ? (
               <div className="mt-2 space-y-1.5 text-label leading-snug text-aura-ink/85">
@@ -931,14 +906,6 @@ function MemberIntelBoard({
             ) : (
               <p className="mt-2 text-label text-aura-muted">No extra profile read filed.</p>
             )}
-            {revealAllDetails ? (
-              <div className="mt-3 border-t border-aura-hairline pt-3">
-                <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
-                  bio
-                </p>
-                <p className="mt-2 text-label leading-snug text-aura-ink/85">{member.bio}</p>
-              </div>
-            ) : null}
           </IntelCell>
 
           <IntelCell title="looking for">
@@ -954,8 +921,10 @@ function MemberIntelBoard({
           <IntelCell title="preferences">
             {revealAllDetails ? (
               <IntelList items={member.preferences} emptyText="No soft reads filed." />
+            ) : preferenceReads.length > 0 ? (
+              <FiledReadSummary reads={preferenceReads} />
             ) : (
-              <SealedLines lineCount={3} />
+              <SealedLines lineCount={lineCountFor(preferencesBlock, 3)} />
             )}
           </IntelCell>
 
@@ -1001,29 +970,6 @@ function IntelCell({
       </p>
       {children}
     </article>
-  );
-}
-
-function UnveiledRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[5.75rem_1fr] gap-2">
-      <dt className="font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/65">{label}</dt>
-      <dd className="text-aura-ink/85">{value}</dd>
-    </div>
-  );
-}
-
-function StateMeter({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3 font-mono text-micro uppercase tracking-[0.2em]">
-        <span className="text-aura-rose/65">{label}</span>
-        <span className="tabular-nums text-aura-ink">{value}</span>
-      </div>
-      <div className="mt-1 h-1.5 overflow-hidden rounded-pill bg-aura-hairline">
-        <div className={`h-full rounded-pill bg-aura-rose ${scoreWidthClass(value)}`} />
-      </div>
-    </div>
   );
 }
 

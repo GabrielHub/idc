@@ -13,6 +13,7 @@ export type PairTrajectory = {
   state: PairTrajectoryState;
   performerGuidance: string;
   judgeGuidance: string;
+  subnotes: string[];
 };
 
 export function derivePairTrajectory({
@@ -51,13 +52,23 @@ export function derivePairTrajectory({
     (session) => session.finalReport?.outcome === "second_date",
   );
   const hasRecentEarlyEnd = recentSessions.some((session) => session.status === "ended_early");
+  const subnotes = buildTrajectorySubnotes({
+    pairState,
+    openLoopCount: openLoops.length,
+    brokenAgreementCount: brokenAgreements.length,
+    totalDateHealthDelta,
+    hasRecentEarlyEnd,
+  });
 
   if (isClosureRunway(pairState, recentSessions.length, hasRecentSecondDate)) {
-    return trajectory(
-      "closure_runway",
-      "The file is close to leaving together. Give concrete future intent room to surface without forcing ceremony.",
-      "Watch for a clean future-facing yes, honored agreements, and low-strain specificity.",
-    );
+    return {
+      state: "closure_runway",
+      performerGuidance:
+        "The file is close to leaving together. Give concrete future intent room to surface without forcing ceremony.",
+      judgeGuidance:
+        "Watch for a clean future-facing yes, honored agreements, and low-strain specificity.",
+      subnotes,
+    };
   }
 
   if (
@@ -66,61 +77,120 @@ export function derivePairTrajectory({
     brokenAgreements.length > 0 ||
     hasRecentEarlyEnd
   ) {
-    return trajectory(
-      "brittle",
-      "The file is fragile. Respect active agreements and do not make the unresolved item carry the whole date.",
-      "Score repeat breaches, public pressure, or ignored boundaries sharply. Reward specific repair.",
-    );
+    return {
+      state: "brittle",
+      performerGuidance:
+        "The file is fragile. Respect active agreements and do not make the unresolved item carry the whole date.",
+      judgeGuidance:
+        "Score repeat breaches, public pressure, or ignored boundaries sharply. Reward specific repair.",
+      subnotes,
+    };
   }
 
   if (hasRecentRepair || resolvedLoops.length > 0) {
-    return trajectory(
-      "recovering",
-      "The pair has repair material on file. Let follow-through matter more than fresh charm.",
-      "Reward concrete follow-through on prior repair. Penalize cosmetic apology without changed behavior.",
-    );
+    return {
+      state: "recovering",
+      performerGuidance:
+        "The pair has repair material on file. Let follow-through matter more than fresh charm.",
+      judgeGuidance:
+        "Reward concrete follow-through on prior repair. Penalize cosmetic apology without changed behavior.",
+      subnotes,
+    };
   }
 
   if (
     openLoops.length >= 2 ||
     (recentSessions.length >= 2 && Math.abs(totalDateHealthDelta) <= 2)
   ) {
-    return trajectory(
-      "stuck",
-      "The file is circling. Pick up one unresolved item or make one clean choice instead of reopening logistics.",
-      "Reward movement on an unresolved item. Penalize repeating the same plan, dodge, or question.",
-    );
+    return {
+      state: "stuck",
+      performerGuidance:
+        "The file is circling. Pick up one unresolved item or make one clean choice instead of reopening logistics.",
+      judgeGuidance:
+        "Reward movement on an unresolved item. Penalize repeating the same plan, dodge, or question.",
+      subnotes,
+    };
   }
 
   if (totalDateHealthDelta >= 6 || pairState.stats.relationshipHealth >= 65) {
-    return trajectory(
-      "warming",
-      "The file has usable warmth. Let interest become specific without smoothing over active agreements.",
-      "Reward specific warmth, clean listening, and agreement follow-through.",
-    );
+    return {
+      state: "warming",
+      performerGuidance:
+        "The file has usable warmth. Let interest become specific without smoothing over active agreements.",
+      judgeGuidance: "Reward specific warmth, clean listening, and agreement follow-through.",
+      subnotes,
+    };
   }
 
   if (activeAgreements.length > 0 || openLoops.length > 0) {
-    return trajectory(
-      "steady",
-      "The file has prior commitments. Keep them present as table stakes, not as a speech topic.",
-      "Treat honored agreements and useful loop movement as stronger evidence than generic rapport.",
+    return {
+      state: "steady",
+      performerGuidance:
+        "The file has prior commitments. Keep them present as table stakes, not as a speech topic.",
+      judgeGuidance:
+        "Treat honored agreements and useful loop movement as stronger evidence than generic rapport.",
+      subnotes,
+    };
+  }
+
+  return {
+    state: "steady",
+    performerGuidance: "No special pair trajectory is filed. Judge the exchange on concrete moves.",
+    judgeGuidance: "Use the exchange evidence, not expected chemistry.",
+    subnotes,
+  };
+}
+
+function buildTrajectorySubnotes({
+  pairState,
+  openLoopCount,
+  brokenAgreementCount,
+  totalDateHealthDelta,
+  hasRecentEarlyEnd,
+}: {
+  pairState: PairState;
+  openLoopCount: number;
+  brokenAgreementCount: number;
+  totalDateHealthDelta: number;
+  hasRecentEarlyEnd: boolean;
+}): string[] {
+  const notes: string[] = [];
+
+  if (pairState.stats.spark >= 70 && pairState.stats.trust < 55) {
+    notes.push("Warmth is outrunning trust. Reward concrete follow-through over charm.");
+  }
+
+  if (brokenAgreementCount > 0) {
+    notes.push(
+      "A broken agreement is still shaping the file. Repair needs action, not apology copy.",
     );
   }
 
-  return trajectory(
-    "steady",
-    "No special pair trajectory is filed. Judge the exchange on concrete moves.",
-    "Use the exchange evidence, not expected chemistry.",
-  );
-}
+  if (openLoopCount >= 2) {
+    notes.push(
+      "Several unresolved items are open. One useful answer matters more than new material.",
+    );
+  }
 
-function trajectory(
-  state: PairTrajectoryState,
-  performerGuidance: string,
-  judgeGuidance: string,
-): PairTrajectory {
-  return { state, performerGuidance, judgeGuidance };
+  if (pairState.stats.strain > CLOSURE_THRESHOLD.strainMax) {
+    notes.push("Closure pressure is blocked by strain. Let calm specificity count.");
+  }
+
+  if (pairState.stats.conflict > CLOSURE_THRESHOLD.conflictMax) {
+    notes.push("Closure pressure is blocked by conflict. Reward a clean choice that lowers heat.");
+  }
+
+  if (hasRecentEarlyEnd) {
+    notes.push("The last hard stop still echoes. Do not treat a smooth opener as full repair.");
+  }
+
+  if (totalDateHealthDelta <= -6) {
+    notes.push(
+      "Recent judge movement is cooling. Look for changed behavior before granting momentum.",
+    );
+  }
+
+  return notes.slice(0, 4);
 }
 
 function isClosureRunway(

@@ -175,15 +175,24 @@ export function buildVisibleMemberProfile(
     });
   }
 
-  const hasNeedsRead =
-    revealAll ||
-    memberKnowledge.some((record) => record.readKind === "comfort" || record.readKind === "ask");
+  const hasNeedsRead = revealAll || memberKnowledge.some((record) => record.readKind === "ask");
 
   if (!hasNeedsRead) {
     redactedBlocks.push({
       id: `member:${member.id}:needs:sealed`,
       label: "Looking for",
       lineCount: Math.max(member.relationshipNeeds.length, 1),
+    });
+  }
+
+  const hasPreferenceRead =
+    revealAll || memberKnowledge.some((record) => record.readKind === "comfort");
+
+  if (!hasPreferenceRead && member.preferences.length > 0) {
+    redactedBlocks.push({
+      id: `member:${member.id}:preferences:sealed`,
+      label: "Preferences",
+      lineCount: Math.min(member.preferences.length, 4),
     });
   }
 

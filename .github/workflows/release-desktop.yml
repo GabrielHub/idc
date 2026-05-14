@@ -195,73 +195,29 @@ jobs:
           $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
           "$hash  IDC_${version}_x64-setup.exe" | Set-Content -LiteralPath $checksum -Encoding ascii
 
-          $releaseListJson = (gh release list --repo $env:GITHUB_REPOSITORY --limit 50 --json tagName,isDraft) -join "`n"
-          $publishedTags = @()
-          if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($releaseListJson)) {
-            $publishedTags = @(($releaseListJson | ConvertFrom-Json) | Where-Object {
-              -not $_.isDraft -and $_.tagName -match '^v\d+\.\d+\.\d+$'
-            } | ForEach-Object { $_.tagName })
-          }
-
-          $previousTag = $publishedTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
-          if ([string]::IsNullOrWhiteSpace($previousTag)) {
-            $versionTags = @(git tag --sort=-v:refname | Where-Object { $_ -match '^v\d+\.\d+\.\d+$' })
-            $previousTag = $versionTags | Where-Object { $_ -ne $env:RELEASE_TAG } | Select-Object -First 1
-          }
-
-          if ([string]::IsNullOrWhiteSpace($previousTag)) {
-            $changeRange = $env:RELEASE_TAG
-            $changeIntro = "Changes in this release:"
-          } else {
-            $changeRange = "$previousTag..$env:RELEASE_TAG"
-            $changeIntro = "Changes since ${previousTag}:"
-          }
-
-          $commitLines = @(git log $changeRange --pretty=format:"- %s (%h)")
-          if ($LASTEXITCODE -ne 0) {
-            throw "Failed to build release changelog from $changeRange."
-          }
-          if ($commitLines.Count -eq 0) {
-            $commitLines = @("- Release package refresh.")
-          }
-
           $env:IDC_RELEASE_TAG = $env:RELEASE_TAG
-          $env:IDC_UPDATER_NOTES = "IDC $env:RELEASE_TAG test alpha"
+          $updaterNotes = (vp node scripts/render-release-notes.mjs --format updater --version $version) -join "`n"
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($updaterNotes)) {
+            throw "Failed to render updater release notes for $version."
+          }
+          $env:IDC_UPDATER_NOTES = $updaterNotes
           vp run updater:manifest
 
           if (-not (Test-Path -LiteralPath $manifest)) {
             throw "Missing updater manifest: $manifest"
           }
 
-          $notes = @(
-            "# IDC $env:RELEASE_TAG test alpha",
-            "",
-            "Windows installer: IDC_${version}_x64-setup.exe",
-            "",
-            "SHA256: $hash",
-            "",
-            "## Changelog",
-            "",
-            $changeIntro,
-            ""
-          )
-          $notes += $commitLines
-          $notes += @(
-            "",
-            "## Install notes",
-            "",
-            "This is an unsigned private alpha. Windows may show SmartScreen. Choose More info, then Run anyway if you trust this release.",
-            "",
-            "IDC needs either local Ollama or Vercel AI Gateway before you can book dates.",
-            "",
-            "Install notes are attached as release-readme.md."
-          )
-
-          if (-not [string]::IsNullOrWhiteSpace($env:REQUESTED_RELEASE_NOTES)) {
-            $notes += @("", "## Notes", "", $env:REQUESTED_RELEASE_NOTES.Trim())
+          $env:IDC_RELEASE_EXTRA_NOTES = $env:REQUESTED_RELEASE_NOTES
+          vp node scripts/render-release-notes.mjs `
+            --format github `
+            --version $version `
+            --tag $env:RELEASE_TAG `
+            --installer "IDC_${version}_x64-setup.exe" `
+            --sha256 $hash `
+            --output $releaseNotes
+          if ($LASTEXITCODE -ne 0) {
+            throw "Failed to render GitHub release notes for $version."
           }
-
-          $notes | Set-Content -LiteralPath $releaseNotes -Encoding utf8
 
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
           "installer=$installer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8

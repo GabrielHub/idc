@@ -1,18 +1,23 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dateSessionSchema,
   judgeSnapshotSchema,
   pairStateSchema,
+  type DateSession,
   type JudgeSnapshot,
   type PairState,
 } from "../domain/game";
 import {
   AGREEMENT_BROKEN_TAG,
+  applyCompletedDatePairMemoryEffects,
+  applyFollowUpPairMemoryEffects,
   applyJudgePairMemoryEffects,
   OPEN_LOOP_DROPPED_TAG,
   OPEN_LOOP_RESOLVED_TAG,
   OPEN_LOOP_TAG,
   PAIR_AGREEMENT_TAG,
+  selectPairSpotlightItem,
 } from "./pair-memory";
 
 const NOW = "2026-05-05T12:10:00.000Z";
@@ -57,6 +62,40 @@ function buildJudgeSnapshot(overrides: Partial<JudgeSnapshot> = {}): JudgeSnapsh
     agreementUpdates: [],
     openLoopCandidates: [],
     openLoopUpdates: [],
+    ...overrides,
+  });
+}
+
+function buildDateSession(overrides: Partial<DateSession> = {}): DateSession {
+  return dateSessionSchema.parse({
+    id: "date-session-3",
+    pairId: "pair-jenna-pike-vhool",
+    scenarioId: "temporal-coffee-shop",
+    turnLimit: 24,
+    currentTurn: 24,
+    dateHealth: 70,
+    status: "completed",
+    runtimeMode: "local_ai",
+    participants: ["jenna-pike", "vhool"],
+    transcript: [],
+    privateStateByCharacter: {},
+    judgeSnapshots: [],
+    eventDraft: { offered: [], picked: [] },
+    eventsTriggered: [],
+    playbackState: "ended",
+    endSentiment: null,
+    interventions: [],
+    finalReport: {
+      id: "final-date-session-3",
+      dateSessionId: "date-session-3",
+      completedAt: NOW,
+      outcome: "second_date",
+      summary: "Cupid filed a completed date.",
+      statSummary: "Case read: pair memory test.",
+      recommendedFollowUp: "encourage",
+      memoryRecordIds: [],
+      readyToClose: false,
+    },
     ...overrides,
   });
 }
@@ -207,5 +246,120 @@ describe("pair memory effects", () => {
     );
     expect(result.memories).toHaveLength(1);
     expect(result.memories[0]?.tags).toContain(OPEN_LOOP_DROPPED_TAG);
+  });
+
+  it("honors active agreements after two later completed dates", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          sourceJudgeSnapshotId: "judge-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession(),
+      timestamp: NOW,
+    });
+
+    expect(result.pairState.agreements[0]?.status).toBe("honored");
+    expect(result.pairState.agreements[0]?.resolvedAt).toBe(NOW);
+    expect(result.memories).toHaveLength(1);
+    expect(result.memories[0]?.tags).toContain(PAIR_AGREEMENT_TAG);
+    expect(result.memories[0]?.text).toContain("Agreement honored");
+  });
+
+  it("prioritizes older open loops for spotlight without mutating state", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-active",
+          text: "Keep the receipt off the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-2",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-old",
+          text: "Whether Vhool can leave without auditing the receipt.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+      ],
+    });
+
+    const spotlight = selectPairSpotlightItem(pairState);
+
+    expect(spotlight).toMatchObject({
+      kind: "open_loop",
+      id: "loop-old",
+    });
+    expect(pairState.openLoops[0]?.status).toBe("open");
+  });
+
+  it("applies follow-up pair memory effects without new schema fields", () => {
+    const pairState = buildPairState({
+      agreements: [
+        {
+          id: "agreement-broken",
+          text: "No public archive questions.",
+          status: "broken",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+          resolvedAt: "2026-05-05T12:00:00.000Z",
+        },
+        {
+          id: "agreement-active",
+          text: "Keep the receipt off the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-open",
+          text: "Whether Ryan can repair by walking Calvin out.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:15:00.000Z",
+        },
+      ],
+    });
+
+    const repaired = applyFollowUpPairMemoryEffects({
+      pairState,
+      session: buildDateSession({ status: "ended_early" }),
+      action: "repair",
+      timestamp: NOW,
+    });
+    const markedBadFit = applyFollowUpPairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        finalReport: { ...buildDateSession().finalReport!, outcome: "bad_fit" },
+      }),
+      action: "mark_bad_fit",
+      timestamp: NOW,
+    });
+
+    expect(
+      repaired.pairState.agreements.some((agreement) => agreement.text.includes("Repair")),
+    ).toBe(true);
+    expect(repaired.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
+    expect(
+      markedBadFit.pairState.agreements.find((entry) => entry.id === "agreement-active")?.status,
+    ).toBe("retired");
+    expect(markedBadFit.pairState.openLoops[0]?.status).toBe("dropped");
   });
 });

@@ -41,7 +41,7 @@ export const sections: DocSectionEntry[] = [
               id: "inputs",
               kind: "input",
               label: "Pair + scenario + asks",
-              detail: "Member tags, request tags, scenario tags, pair history",
+              detail: "Member tags, request tags, scenario tags, pair history, earned reads",
             },
             {
               id: "score",
@@ -76,6 +76,7 @@ export const sections: DocSectionEntry[] = [
             "Private rule hits for tests and debugging.",
             "A starting Date Health delta.",
             "Boundary risk candidates for prompt context and player knowledge.",
+            "Small hidden adjustments from pair agreements, open loops, resolved loops, and earned pair_dynamic reads.",
           ]}
         />
         <DocCallout variant="info">

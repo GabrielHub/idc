@@ -38,12 +38,14 @@ import {
   applyJudgeToMembers,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
+  createClosureNearMissMemoryRecord,
   collectPendingEventKinds,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
   isAtJudgeBoundary,
   latestJudgedExchangeIndex,
+  linkFinalReportMemoryRecords,
   markPairDateComplete,
   messagesSinceLastJudge,
   requireDateSession,
@@ -72,12 +74,13 @@ import {
   type SummarizerPromptPacket,
 } from "./date-prompts";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
-import { applyJudgePairMemoryEffects } from "./pair-memory";
+import { applyCompletedDatePairMemoryEffects, applyJudgePairMemoryEffects } from "./pair-memory";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
   filterExchangeEligibleRevealCandidates,
   validateUsedEvidenceIds,
+  visibleReadsForPair,
   type RevealCandidate,
 } from "./player-knowledge";
 import { clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
@@ -273,6 +276,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     scenario,
     pairState,
     activeRequests: focusRequest === undefined ? [] : [focusRequest],
+    knownPairReads: visibleReadsForPair(save, pairState.id),
   });
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
@@ -462,6 +466,14 @@ async function advanceDateExchangeWithLocalAiInternal(
     completedSession.finalReport === undefined
       ? updatedPairState
       : markPairDateComplete(updatedPairState, completedSession);
+  const completedPairMemoryResult =
+    completedSession.finalReport === undefined
+      ? { pairState: finalPairState, memories: [] }
+      : applyCompletedDatePairMemoryEffects({
+          pairState: finalPairState,
+          session: completedSession,
+          timestamp,
+        });
   const finalMembers =
     completedSession.finalReport === undefined
       ? updatedMembers
@@ -473,9 +485,14 @@ async function advanceDateExchangeWithLocalAiInternal(
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
-    pairStates: replaceById(save.pairStates, finalPairState),
+    pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
     dateSessions: replaceById(save.dateSessions, completedSession),
-    memories: [...save.memories, ...pairMemoryResult.memories, ...completion.memories],
+    memories: [
+      ...save.memories,
+      ...pairMemoryResult.memories,
+      ...completedPairMemoryResult.memories,
+      ...completion.memories,
+    ],
     playerKnowledge: revealResult.save.playerKnowledge,
     updatedAt: timestamp,
   });
@@ -1239,8 +1256,24 @@ async function createLocalAiFinalSession({
       completedAt,
       memoryRecordIds: memories.map((memory) => memory.id),
     });
+    const closureNearMissMemory = createClosureNearMissMemoryRecord({
+      session: completedSession,
+      pairState,
+      members,
+      createdAt: completedAt,
+    });
+    const memoriesWithClosureNearMiss =
+      closureNearMissMemory === null ? memories : [...memories, closureNearMissMemory];
+    const linkedSession = linkFinalReportMemoryRecords(
+      completedSession,
+      memoriesWithClosureNearMiss.map((memory) => memory.id),
+    );
 
-    return { session: completedSession, memories, warningMessages: [] };
+    return {
+      session: linkedSession,
+      memories: memoriesWithClosureNearMiss,
+      warningMessages: [],
+    };
   } catch {
     const fallbackMemoryId = `memory-${session.id}-ai-fallback`;
     const completedSession = finalizeDateSession({
@@ -1258,10 +1291,22 @@ async function createLocalAiFinalSession({
       scenario,
       createdAt: completedAt,
     });
+    const closureNearMissMemory = createClosureNearMissMemoryRecord({
+      session: completedSession,
+      pairState,
+      members,
+      createdAt: completedAt,
+    });
+    const memories =
+      closureNearMissMemory === null ? [fallbackMemory] : [fallbackMemory, closureNearMissMemory];
+    const linkedSession = linkFinalReportMemoryRecords(
+      completedSession,
+      memories.map((memory) => memory.id),
+    );
 
     return {
-      session: completedSession,
-      memories: [fallbackMemory],
+      session: linkedSession,
+      memories,
       warningMessages: [
         "AI memory filing used a deterministic fallback case note. Structured memory output failed, but the date was filed.",
       ],

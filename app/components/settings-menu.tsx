@@ -128,6 +128,7 @@ export function SettingsMenu({
   onImportSave,
   onCopyDiagnostics,
   onDevRevealAllMemberDetailsChange,
+  onOpenReleaseNotes,
 }: {
   isActionPending: boolean;
   diagnostics: DiagnosticsSnapshot;
@@ -140,6 +141,7 @@ export function SettingsMenu({
   onImportSave: (file: File) => void;
   onCopyDiagnostics: () => Promise<boolean>;
   onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
+  onOpenReleaseNotes: () => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
@@ -220,6 +222,11 @@ export function SettingsMenu({
   function handleOpenAiSetup() {
     setIsOpen(false);
     onOpenAiSetup();
+  }
+
+  function handleOpenReleaseNotes() {
+    setIsOpen(false);
+    onOpenReleaseNotes();
   }
 
   function handleExportSaveClick() {
@@ -434,6 +441,7 @@ export function SettingsMenu({
                 <MenuLink to="/docs" onClick={() => setIsOpen(false)}>
                   Field manual
                 </MenuLink>
+                <MenuButton onClick={handleOpenReleaseNotes}>What's new</MenuButton>
                 <MenuButton
                   role="menuitemcheckbox"
                   ariaChecked={sfxEnabled}
@@ -455,12 +463,10 @@ export function SettingsMenu({
                         sfx="toggle"
                         onClick={handleToggleDevMemberDetails}
                       >
-                        {devRevealAllMemberDetails
-                          ? "Member files unveiled"
-                          : "Member files sealed"}
+                        {devRevealAllMemberDetails ? "Case intel previewed" : "Case intel sealed"}
                       </MenuButton>
                       <p className="px-2 pb-1 text-xs leading-snug text-aura-muted">
-                        Shows earned-file member details without filing reads.
+                        Shows needs, preferences, and dealbreakers without filing reads.
                       </p>
                     </div>
                   </>

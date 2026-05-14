@@ -119,9 +119,10 @@ export const sections: DocSectionEntry[] = [
           The dashboard starts with sealed case files. Roster cards, dossier panels, and the splash
           riffle may show names, portraits, focused asks, public profile fragments, and sealed
           section hints. They must not show gated member fields, exact Mood, Openness, Burnout,
-          retention, species, origin, reality status, full profiles, relationship needs,
-          preferences, dealbreakers, raw scenario tags, or numeric pair stats before those facts are
-          represented by filed reads.
+          retention, full profiles, relationship needs, preferences, dealbreakers, raw scenario
+          tags, or numeric pair stats before those facts are represented by filed reads or an
+          explicit dev preview. Species, origin, dimension, reality status, and bio are internal
+          context fields and do not render as player-facing case labels.
         </P>
         <P>
           Use visible redaction treatments, sealed labels, and filed-read lists instead of hiding
@@ -356,14 +357,13 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Every member declares an ambient aura keyed off their species and dimension of origin,
-          registered in <DocCode>app/components/member-aura-registry.ts</DocCode>. The aura renders
-          behind and around the standee on focused MemberCards (state <DocCode>focused</DocCode>{" "}
-          only) and inside the modal for active members. It does not render on default candidate
-          cards, compact cards, closed or quit overlays, the disabled "caseload full" state, or
-          anywhere reduced-motion is set. The component is{" "}
-          <DocCode>app/components/member-aura.tsx</DocCode>. Card density picks fewer particles,
-          modal density picks more.
+          Every member declares an ambient aura keyed off internal fixture context, registered in{" "}
+          <DocCode>app/components/member-aura-registry.ts</DocCode>. The aura renders behind and
+          around the standee on focused MemberCards (state <DocCode>focused</DocCode> only) and
+          inside the modal for active members. It does not render on default candidate cards,
+          compact cards, closed or quit overlays, the disabled "caseload full" state, or anywhere
+          reduced-motion is set. The component is <DocCode>app/components/member-aura.tsx</DocCode>.
+          Card density picks fewer particles, modal density picks more.
         </P>
         <DocCallout variant="info">
           To see auras animate live, focus a member in the Roster room of the playable shell or open
@@ -467,11 +467,11 @@ export const sections: DocSectionEntry[] = [
           <DocList
             items={[
               <span key="species">
-                Read the new member's <DocCode>species</DocCode> and <DocCode>dimension</DocCode>{" "}
-                first. If their archetype matches an existing kind, register them under that kind
-                and pick a tint that contrasts the modal background. The tint is{" "}
-                <DocCode>{`{ primary, glow }`}</DocCode> where <DocCode>primary</DocCode> is the
-                bright particle color and <DocCode>glow</DocCode> is the secondary halo/shadow.
+                Read the new member's internal fixture context first. If their archetype matches an
+                existing kind, register them under that kind and pick a tint that contrasts the
+                modal background. The tint is <DocCode>{`{ primary, glow }`}</DocCode> where{" "}
+                <DocCode>primary</DocCode> is the bright particle color and <DocCode>glow</DocCode>{" "}
+                is the secondary halo/shadow.
               </span>,
               <span key="default">
                 Default mundane Earth humans to <DocCode>godray</DocCode>. Prime-adjacent humans

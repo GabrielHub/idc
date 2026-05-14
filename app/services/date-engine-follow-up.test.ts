@@ -3,11 +3,13 @@ import { describe, expect, it } from "vitest";
 import {
   dateSessionSchema,
   followUpActionSchema,
+  gameSaveSchema,
   pairStateSchema,
   type DateFinalReport,
   type FollowUpAction,
 } from "../domain/game";
-import { previewFollowUpEffects } from "./date-engine";
+import { applyFollowUpAction, previewFollowUpEffects } from "./date-engine";
+import { createSeedGameSave } from "./game-seed";
 
 const OUTCOMES: readonly DateFinalReport["outcome"][] = [
   "second_date",
@@ -109,5 +111,31 @@ describe("outcome aware follow-up preview", () => {
     expect(() => previewFollowUpEffects(buildPairState(), buildSession(), "repair")).toThrow(
       "Follow-up actions require a completed date report.",
     );
+  });
+
+  it("persists follow-up pair memory effects through the save path", () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const pairState = buildPairState();
+    const session = buildSession("early_end");
+    const save = gameSaveSchema.parse({
+      ...seed,
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== pairState.id),
+        pairState,
+      ],
+      dateSessions: [...seed.dateSessions, session],
+    });
+
+    const result = applyFollowUpAction(save, {
+      dateSessionId: session.id,
+      action: "repair",
+    });
+    const updatedPair = result.save.pairStates.find((candidate) => candidate.id === pairState.id);
+
+    expect(updatedPair?.agreements.some((agreement) => agreement.text.includes("Repair"))).toBe(
+      true,
+    );
+    expect(result.save.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
+    expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
   });
 });

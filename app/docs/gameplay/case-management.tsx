@@ -194,6 +194,7 @@ export const sections: DocSectionEntry[] = [
                 <DocCode>second_date</DocCode> gate ties closure to a good date moment so a pair
                 cannot close from a cool-down or repair-shaped report even if stats are still high.
               </span>,
+              "No broken agreements and no open loops. A near-ready pair with unresolved pressure stays open and files a closure near-miss note instead.",
             ]}
           />
         </DocSubsection>

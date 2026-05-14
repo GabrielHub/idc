@@ -73,6 +73,12 @@ export const sections: DocSectionEntry[] = [
           vague public labels. <DocCode>redFlags</DocCode> mixed member behavior with things members
           reject.
         </DocCallout>
+        <DocCallout variant="warn" title="Internal context fields">
+          <DocCode>species</DocCode>, <DocCode>origin</DocCode>, <DocCode>dimension</DocCode>,{" "}
+          <DocCode>realityStatus</DocCode>, and <DocCode>bio</DocCode> are authoring, prompt,
+          fixture, and asset context. They are not player-facing case file fields. Use public
+          profile copy and filed reads for player surfaces.
+        </DocCallout>
       </>
     ),
   },
@@ -142,10 +148,11 @@ export const sections: DocSectionEntry[] = [
     body: (
       <P>
         Member <DocCode>retention</DocCode> is an internal quit-risk score used by deterministic
-        services. It must not be exposed in player-facing UI as HP, health, or an exact meter.
-        Player surfaces may show closed-file state or qualitative risk copy when needed, while
-        services keep the numeric value for consequences. See{" "}
-        <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for the full
+        services. It must not be exposed in player-facing UI as HP, health, or an exact meter. The
+        broader player-facing policy for Mood, Openness, Burnout, and retention is still unsettled,
+        so case files should not show exact values. Player surfaces may show closed-file state or
+        qualitative risk copy when needed, while services keep the numeric value for consequences.
+        See <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for the full
         visibility tier.
       </P>
     ),

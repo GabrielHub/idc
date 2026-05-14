@@ -23,8 +23,16 @@ import {
 import { getActiveShift } from "../services/game-seed";
 import { errorToMessage } from "../services/utils";
 import { buildVisibleMemberProfile } from "../services/player-knowledge";
+import {
+  listReleaseNotesForModal,
+  readStoredReleaseNotesVersion,
+  writeStoredReleaseNotesVersion,
+} from "../services/release-notes";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { CupidMark, EASE_OUT_QUART, LiveDot, Portrait, Tooltip, pad2 } from "./dashboard-atoms";
+import { ReleaseNotesModal } from "./release-notes-modal";
+import { StampMark } from "./stamp-mark";
+import { WhatsNewUpdatePill } from "./whats-new-update-pill";
 
 const MARQUEE_LINES = [
   "// reality bridge stable",
@@ -170,6 +178,33 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
   const [aiStatus, setAiStatus] = useState<AiSetupStatus>(INITIAL_AI_STATUS);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
   const [stampActive, setStampActive] = useState(false);
+  const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
+  const [hasUnreadReleaseNotes, setHasUnreadReleaseNotes] = useState(false);
+
+  const releaseNotesForModal = useMemo(
+    () => listReleaseNotesForModal({ currentVersion: APP_VERSION }),
+    [],
+  );
+
+  useEffect(() => {
+    if (releaseNotesForModal.length === 0) {
+      return;
+    }
+    const lastSeen = readStoredReleaseNotesVersion();
+    if (lastSeen === null || lastSeen !== APP_VERSION) {
+      setHasUnreadReleaseNotes(true);
+    }
+  }, [releaseNotesForModal.length]);
+
+  function handleOpenReleaseNotes() {
+    setIsReleaseNotesOpen(true);
+  }
+
+  function handleCloseReleaseNotes() {
+    setIsReleaseNotesOpen(false);
+    writeStoredReleaseNotesVersion(APP_VERSION);
+    setHasUnreadReleaseNotes(false);
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -372,7 +407,11 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     >
       <AmbientBackdrop />
 
-      <TopBar />
+      <TopBar
+        canOpenReleaseNotes={releaseNotesForModal.length > 0}
+        hasUnreadReleaseNotes={hasUnreadReleaseNotes}
+        onOpenReleaseNotes={handleOpenReleaseNotes}
+      />
 
       <main className="relative z-10 mx-auto flex min-h-screen max-w-6xl flex-col px-6 pb-40 pt-32 lg:px-10 lg:pb-44 lg:pt-36">
         <div className="grid flex-1 items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
@@ -414,6 +453,16 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
           onClose={() => setAiPanelOpen(false)}
         />
       ) : null}
+
+      <AnimatePresence>
+        {isReleaseNotesOpen && releaseNotesForModal.length > 0 ? (
+          <ReleaseNotesModal
+            notes={releaseNotesForModal}
+            initialVersion={APP_VERSION}
+            onClose={handleCloseReleaseNotes}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }
@@ -513,10 +562,18 @@ function AmbientBackdrop() {
 /* Top bar                                                            */
 /* ================================================================== */
 
-function TopBar() {
+function TopBar({
+  canOpenReleaseNotes,
+  hasUnreadReleaseNotes,
+  onOpenReleaseNotes,
+}: {
+  canOpenReleaseNotes: boolean;
+  hasUnreadReleaseNotes: boolean;
+  onOpenReleaseNotes: () => void;
+}) {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-30">
-      <div className="flex w-full items-center justify-between gap-3 px-4 pt-4 lg:px-8 lg:pt-6">
+      <div className="relative flex w-full items-center justify-between gap-3 px-4 pt-4 lg:px-8 lg:pt-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -536,6 +593,20 @@ function TopBar() {
             sub-basement 4
           </span>
         </motion.div>
+
+        {canOpenReleaseNotes ? (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.02 }}
+            className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 lg:top-6"
+          >
+            <WhatsNewUpdatePill
+              hasUnreadNotes={hasUnreadReleaseNotes}
+              onOpenReleaseNotes={onOpenReleaseNotes}
+            />
+          </motion.div>
+        ) : null}
 
         <div className="flex items-center gap-2">
           <DocsPill />
@@ -1711,15 +1782,9 @@ function StampImpact() {
       className="pointer-events-none fixed inset-0 z-40 grid place-items-center"
       aria-hidden
     >
-      <div className="splash-stamp-impact relative">
-        <div className="rounded-md border-[10px] border-aura-rose/80 px-10 py-4 font-mono text-display-md font-bold uppercase tracking-[0.42em] text-aura-rose shadow-cta">
-          Clocked in
-        </div>
-        <div
-          aria-hidden
-          className="absolute -inset-3 -z-10 rounded-[20px] bg-aura-mesh-rose/45 blur-2xl"
-        />
-      </div>
+      <StampMark animated size="lg">
+        Clocked in
+      </StampMark>
     </motion.div>
   );
 }

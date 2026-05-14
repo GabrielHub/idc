@@ -324,6 +324,35 @@ function DocsSidebarItem({
   active: boolean;
 }) {
   const href = doc.slug ? `/docs/${doc.slug}` : "/docs";
+  const isRedacted = doc.visibility === "redacted";
+
+  if (isRedacted) {
+    return (
+      <li className="relative">
+        {active ? (
+          <span aria-hidden className="aura-doc-rail absolute -left-3 top-1.5 bottom-1.5 w-[2px]" />
+        ) : null}
+        <div
+          role="link"
+          aria-disabled="true"
+          title="Workflow file redacted"
+          className={`group flex cursor-not-allowed items-baseline gap-0 rounded-tile px-2 py-1.5 transition ${
+            active ? "text-aura-ink" : "text-aura-faint"
+          }`}
+        >
+          <span
+            className={`min-w-0 truncate text-label leading-snug ${active ? "font-semibold" : ""}`}
+          >
+            {doc.title}
+          </span>
+          <span aria-hidden className="aura-doc-leader" />
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-rose">
+            [REDACTED]
+          </span>
+        </div>
+      </li>
+    );
+  }
 
   return (
     <li className="relative">

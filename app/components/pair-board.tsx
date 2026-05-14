@@ -881,7 +881,7 @@ function NodeTooltip({
         {node.member.firstName}
       </p>
       <p className="mt-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
-        {node.member.species.toLowerCase()}
+        member file
       </p>
       <div className="mt-2 flex items-center gap-2">
         <span
@@ -1115,7 +1115,7 @@ function NodeDetailBody({
         </span>
         <div className="min-w-0 flex-1">
           <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-            {member.species}
+            member file
           </p>
           <p className="mt-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
             {pad2(incident.length)}{" "}

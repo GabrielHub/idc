@@ -10,6 +10,8 @@ export interface DocTocEntry {
   level: 2 | 3;
 }
 
+export type DocVisibility = "public" | "redacted";
+
 export interface DocEntry {
   slug: string;
   group: DocGroupId;
@@ -17,6 +19,7 @@ export interface DocEntry {
   description: string;
   toc: DocTocEntry[];
   Component: ComponentType;
+  visibility: DocVisibility;
 }
 
 export interface DocGroup {
@@ -26,36 +29,100 @@ export interface DocGroup {
   docs: DocEntry[];
 }
 
-interface DocModule {
+export interface DocModule {
   meta: DocMeta;
   sections: DocSectionEntry[];
   default: ComponentType;
+  plan?: unknown;
 }
 
-const RAW_DOCS = import.meta.glob<DocModule>("../docs/**/*.tsx", { eager: true });
+interface RedactedDocDefinition {
+  slug: string;
+  group: "workflows";
+  title: string;
+  description: string;
+  order: number;
+}
+
+const SHOULD_REDACT_WORKFLOWS = import.meta.env.MODE === "desktop";
+
+const ALL_RAW_DOCS: Record<string, DocModule> = import.meta.glob<DocModule>("../docs/**/*.tsx", {
+  eager: true,
+});
+
+export function listRawDocModules(): readonly DocModule[] {
+  return Object.values(ALL_RAW_DOCS);
+}
+
+const RAW_DOCS: Record<string, DocModule> = SHOULD_REDACT_WORKFLOWS
+  ? Object.fromEntries(
+      Object.entries(ALL_RAW_DOCS).filter(([path]) => !path.includes("/docs/workflows/")),
+    )
+  : ALL_RAW_DOCS;
+
+const REDACTED_WORKFLOW_DOCS: RedactedDocDefinition[] = [
+  {
+    slug: "workflows/add-member",
+    group: "workflows",
+    title: "Add a member",
+    description:
+      "Internal workflow checklist. The public manual records that it exists, then refuses to photocopy it.",
+    order: 0,
+  },
+  {
+    slug: "workflows/add-date-scenario",
+    group: "workflows",
+    title: "Add a date scenario",
+    description:
+      "Internal workflow checklist. The public manual records that it exists, then refuses to photocopy it.",
+    order: 1,
+  },
+  {
+    slug: "workflows/visual-asset-iteration",
+    group: "workflows",
+    title: "Visual asset iteration",
+    description:
+      "Internal workflow checklist. The public manual records that it exists, then refuses to photocopy it.",
+    order: 2,
+  },
+  {
+    slug: "workflows/release-checklist",
+    group: "workflows",
+    title: "Friend-share release checklist",
+    description:
+      "Internal workflow checklist. The public manual records that it exists, then refuses to photocopy it.",
+    order: 3,
+  },
+];
 
 const GROUP_META: Record<DocGroupId, { label: string; blurb: string; order: number }> = {
+  roadmap: {
+    label: "Roadmap",
+    blurb:
+      "Temporary implementation plans, active drafts, blockers, and closeout rules for agent handoffs.",
+    order: 0,
+  },
   product: {
     label: "Product",
     blurb:
       "Durable contracts for shipped voice, visual language, image style, and character canon.",
-    order: 0,
+    order: 1,
   },
   gameplay: {
     label: "Gameplay",
     blurb:
       "Member fields, player knowledge, match fit, pair memory, case management, and roster chemistry.",
-    order: 1,
+    order: 2,
   },
   workflows: {
     label: "Workflows",
     blurb: "Repeatable checklists for content, asset, and release work.",
-    order: 2,
+    order: 3,
   },
   support: {
     label: "Support",
     blurb: "Player and operator install, update, and troubleshooting guides.",
-    order: 3,
+    order: 4,
   },
 };
 
@@ -81,6 +148,21 @@ function buildEntry(module: DocModule): DocEntry {
     description: module.meta.description,
     toc,
     Component: module.default,
+    visibility: "public",
+  };
+}
+
+const RedactedDocStub: ComponentType = () => null;
+
+function buildRedactedEntry(definition: RedactedDocDefinition): DocEntry {
+  return {
+    slug: definition.slug,
+    group: definition.group,
+    title: definition.title,
+    description: definition.description,
+    toc: [],
+    Component: RedactedDocStub,
+    visibility: "redacted",
   };
 }
 
@@ -99,10 +181,17 @@ for (const module of Object.values(RAW_DOCS)) {
     ORDER_BY_SLUG.set(module.meta.slug, module.meta.order);
   }
 }
+if (SHOULD_REDACT_WORKFLOWS) {
+  for (const definition of REDACTED_WORKFLOW_DOCS) {
+    ORDER_BY_SLUG.set(definition.slug, definition.order);
+  }
+}
 
-const ALL_DOCS: DocEntry[] = Object.values(RAW_DOCS)
-  .map(buildEntry)
-  .sort((a, b) => compareDocs(a, b, ORDER_BY_SLUG));
+const DOCS_FOR_MODE = SHOULD_REDACT_WORKFLOWS
+  ? Object.values(RAW_DOCS).map(buildEntry).concat(REDACTED_WORKFLOW_DOCS.map(buildRedactedEntry))
+  : Object.values(RAW_DOCS).map(buildEntry);
+
+const ALL_DOCS: DocEntry[] = DOCS_FOR_MODE.sort((a, b) => compareDocs(a, b, ORDER_BY_SLUG));
 
 const GROUPS: DocGroup[] = GROUP_ORDER.map((id) => ({
   id,

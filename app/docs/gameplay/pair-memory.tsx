@@ -87,6 +87,11 @@ export const sections: DocSectionEntry[] = [
           Active loops can appear in prompt context as unresolved pair items. Resolved and dropped
           loops stay in canonical history but do not drive prompt pressure.
         </P>
+        <P>
+          Open loops are not auto-dropped for age. Older unresolved loops become stronger hidden
+          spotlight candidates so the next date has a chance to move one existing item before the
+          file invents new pressure.
+        </P>
       </>
     ),
   },
@@ -138,6 +143,11 @@ export const sections: DocSectionEntry[] = [
           Prompts may use only the guidance text as subtext. Do not show trajectory labels,
           formulas, raw deltas, or rule hits to the player.
         </DocCallout>
+        <P>
+          Each date may also receive one hidden pair spotlight item, either an active agreement or
+          an open loop. The spotlight does not add controls. It tells performer and judge prompts
+          which existing pair item deserves pressure before new material is created.
+        </P>
       </>
     ),
   },
@@ -149,7 +159,8 @@ export const sections: DocSectionEntry[] = [
         Follow-up buttons stay unchanged. The resolver is outcome-aware: effects depend on the final
         outcome, recent judge pressure, boundary reads, agreement or loop status, and current pair
         stats. Follow-up actions remain one-time per final report. They may move pair stats and
-        member state, but the UI should continue to present them as normal case actions rather than
+        member state, create repair agreements, create return-later loops, retire agreements, or
+        drop open loops. The UI should continue to present them as normal case actions rather than
         new systems.
       </P>
     ),
