@@ -10,6 +10,7 @@ export const hephaestusForge: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "high",
+    cost: 23,
     idealFor: [
       "members who can hold a commission and not weaponize it",
       "members who can decline an offer of unsupervised power",

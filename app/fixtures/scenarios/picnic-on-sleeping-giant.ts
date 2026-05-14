@@ -10,6 +10,7 @@ export const picnicOnSleepingGiant: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 25,
     idealFor: [
       "members who can sit on a living thing without making it the topic",
       "members who can pay a small respect without performing it",

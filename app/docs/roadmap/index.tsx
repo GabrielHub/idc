@@ -27,8 +27,8 @@ export const meta: DocMeta = {
 export const lede = (
   <>
     The shared work board for humans and agents. Plans live here only while scoped work is being
-    drafted, implemented, blocked, or closed. Each active card is a checked-in TSX work order with
-    concrete file references, acceptance criteria, and verification.
+    drafted, marked ready, implemented, reviewed, blocked, or closed. Each active card is a
+    checked-in TSX work order with concrete file references, acceptance criteria, and verification.
   </>
 );
 
@@ -39,7 +39,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Plans are grouped into five working lanes. Counts update when a plan changes status. An
+          Plans are grouped into seven working lanes. Counts update when a plan changes status. An
           empty board is healthy: it means there is no active implementation handoff to preserve.
         </P>
         <RoadmapStatusStrip />
@@ -52,8 +52,8 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Grouped by status, sorted by most recent touch. In flight and blocked sit at the top
-          because they are where attention is owed. Shipped and shelved are short-lived closeout
+          Grouped by status, sorted by most recent touch. Review, in flight, and blocked sit at the
+          top because they are where attention is owed. Shipped and shelved are short-lived closeout
           lanes, not archives.
         </P>
         <RoadmapBoard />
@@ -72,13 +72,15 @@ export const sections: DocSectionEntry[] = [
         <RoadmapStatusLegend />
         <DocCallout variant="info" title="Promotion rules">
           <P>
-            A drafting plan promotes to <Strong>in flight</Strong> when the first task is started
-            and its checklist is realistic. In flight promotes to <Strong>shipped</Strong> when
-            every acceptance criterion is met and the change is merged. Switch to{" "}
-            <Strong>blocked</Strong> when work cannot continue without an external decision or
-            unblock, and write the reason on the plan header. <Strong>Shelved</Strong> means the
-            team decided not to ship it for now; copy any durable reason to the right doc or issue,
-            then delete the plan.
+            A drafting plan promotes to <Strong>ready</Strong> when scope, acceptance, and checklist
+            are concrete enough to execute. Do not start implementation from drafting. Ready
+            promotes to <Strong>in flight</Strong> when code work starts. In flight promotes to{" "}
+            <Strong>review</Strong> when implementation is ready for audit or verification. Review
+            promotes to <Strong>shipped</Strong> when every acceptance criterion is met and durable
+            context has moved to canonical docs. Switch to <Strong>blocked</Strong> when work cannot
+            continue without an external decision or unblock, and write the reason on the plan
+            header. <Strong>Shelved</Strong> means the team decided not to ship it for now; copy any
+            durable reason to the right doc or issue, then delete the plan.
           </P>
         </DocCallout>
       </>
@@ -137,11 +139,19 @@ export const sections: DocSectionEntry[] = [
           items={[
             <span key="open">
               A new plan starts as <Strong>drafting</Strong>. Capture context and open questions
-              first; tasks can be loose until the plan is in flight.
+              first. Do not begin implementation from this lane.
+            </span>,
+            <span key="ready">
+              When scope, acceptance, and checklist are executable, mark the plan{" "}
+              <Strong>ready</Strong> and update the touched date.
             </span>,
             <span key="promote">
-              When the first task gets a real owner and start date, flip the plan to{" "}
-              <Strong>in flight</Strong> and update the touched date.
+              When implementation starts, flip the plan to <Strong>in flight</Strong>. Keep the
+              checklist, done count, and touched date current as tasks land.
+            </span>,
+            <span key="review">
+              When implementation is ready for audit, verification, or defect repair, mark{" "}
+              <Strong>review</Strong> and record any remaining gaps in the plan body.
             </span>,
             <span key="block">
               If something stalls, mark <Strong>blocked</Strong> and write the unblock reason on the

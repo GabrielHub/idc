@@ -10,6 +10,7 @@ export const aquariumOfCryptids: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "low",
+    cost: 19,
     idealFor: [
       "members who can pass a still tank without performing a reaction",
       "members who let a partner stop in front of one tank for as long as the partner needs",

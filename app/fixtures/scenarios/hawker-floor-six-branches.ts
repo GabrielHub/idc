@@ -10,6 +10,7 @@ export const hawkerFloorSixBranches: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "high",
+    cost: 9,
     idealFor: [
       "members who can pick a stall on their own and bring food back",
       "members who can sit under a fan and eat six things",

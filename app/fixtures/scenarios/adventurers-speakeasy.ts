@@ -10,6 +10,7 @@ export const adventurersSpeakeasy: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "low",
+    cost: 18,
     idealFor: [
       "members who order a drink without making the order a personality",
       "members who can sit by a fireplace without monologuing",

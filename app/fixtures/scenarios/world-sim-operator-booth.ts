@@ -10,6 +10,7 @@ export const worldSimOperatorBooth: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "high",
+    cost: 21,
     idealFor: [
       "members who can hold power and not use it",
       "members who treat strangers as real even when they are small",

@@ -1392,7 +1392,7 @@ function EmptyTerminalGrid() {
         <FeaturedStat label="shift date" value="pending" sub="one per shift" />
       </dl>
       <p className="border-t border-aura-hairline pt-3 text-label text-aura-muted">
-        Punch in to seed the roster, draw date plans, and have HR run a prophecy check on your
+        Punch in to seed the roster, prep the Date Book, and have HR run a prophecy check on your
         behalf.
       </p>
     </div>

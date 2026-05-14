@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 
 import type { DateScenario } from "../domain/game";
+import type { ScenarioRoomRead } from "../services/match-fit";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 
 export const RISK_DOT_TONE = {
@@ -34,7 +35,25 @@ const AXIS_FULL_LABEL = {
   chaos: "Chaos",
 } as const;
 
-export type ScenarioCardState = "default" | "selected" | "disabled" | "retired";
+const ROOM_READ_LABEL: Record<ScenarioRoomRead, string> = {
+  steady: "Steady",
+  promising: "Promising",
+  volatile: "Volatile",
+};
+
+const ROOM_READ_TONE: Record<ScenarioRoomRead, string> = {
+  steady: "bg-sky-100 text-sky-800",
+  promising: "bg-emerald-100 text-emerald-800",
+  volatile: "bg-aura-rose/15 text-aura-rose",
+};
+
+const ROOM_READ_TOOLTIP: Record<ScenarioRoomRead, string> = {
+  steady: "This room reads steady for the committed pair. A workmanlike booking.",
+  promising: "This room reads promising for the committed pair. Strong booking texture.",
+  volatile: "This room reads volatile for the committed pair. Booking is a real risk.",
+};
+
+export type ScenarioCardState = "default" | "selected" | "disabled";
 export type ScenarioCardSize = "tile" | "compact" | "full";
 
 export type ScenarioCardProps = {
@@ -42,8 +61,9 @@ export type ScenarioCardProps = {
   state?: ScenarioCardState;
   size?: ScenarioCardSize;
   inHand?: boolean;
-  availableOnShift?: number | null;
-  currentShift?: number;
+  effectiveCost?: number;
+  showCost?: boolean;
+  roomRead?: ScenarioRoomRead;
   onClick?: () => void;
   onExpand?: () => void;
   layoutId?: string;
@@ -54,14 +74,14 @@ export function ScenarioCard({
   state = "default",
   size = "full",
   inHand = false,
-  availableOnShift,
-  currentShift,
+  effectiveCost,
+  showCost = true,
+  roomRead,
   onClick,
   onExpand,
   layoutId,
 }: ScenarioCardProps) {
-  const isRetired = state === "retired";
-  const isDisabled = state === "disabled" || isRetired;
+  const isDisabled = state === "disabled";
   const isSelected = state === "selected";
   const interactive = !isDisabled && onClick !== undefined;
   const isTile = size === "tile";
@@ -98,11 +118,7 @@ export function ScenarioCard({
       >
         <span className="sr-only">Select {scenario.title}</span>
       </button>
-      <CardArtLayer
-        scenarioId={scenario.id}
-        dimmed={isRetired || state === "disabled"}
-        isTile={isTile}
-      />
+      <CardArtLayer scenarioId={scenario.id} dimmed={state === "disabled"} isTile={isTile} />
       <CardEdgeFrame
         selected={isSelected}
         inHand={inHand}
@@ -114,7 +130,10 @@ export function ScenarioCard({
           isTile ? "px-2 pt-2" : isCompact ? "px-2.5 pt-2.5" : "px-3 pt-3"
         }`}
       >
-        <RiskBadge risk={scenario.card.risk} isTile={isTile} />
+        <div className="flex items-center gap-1.5">
+          <RiskBadge risk={scenario.card.risk} isTile={isTile} />
+          {roomRead === undefined ? null : <RoomReadPip read={roomRead} isTile={isTile} />}
+        </div>
         <div className="flex items-center justify-end gap-1.5">
           <CornerStatus selected={isSelected} inHand={inHand} isTile={isTile} />
           {onExpand !== undefined ? (
@@ -124,29 +143,73 @@ export function ScenarioCard({
       </header>
 
       {isTile ? (
-        <TileNamePlate title={scenario.title} />
+        <TileNamePlate
+          title={scenario.title}
+          cost={effectiveCost ?? scenario.card.cost}
+          baseCost={scenario.card.cost}
+          showCost={showCost}
+        />
       ) : isCompact ? (
-        <CompactNamePlate scenario={scenario} />
+        <CompactNamePlate
+          scenario={scenario}
+          cost={effectiveCost ?? scenario.card.cost}
+          showCost={showCost}
+        />
       ) : (
         <FullNamePlate
           scenario={scenario}
-          retiredFootnote={
-            isRetired && availableOnShift !== null && availableOnShift !== undefined
-              ? formatRetiredFootnote(availableOnShift, currentShift)
-              : null
-          }
+          cost={effectiveCost ?? scenario.card.cost}
+          showCost={showCost}
         />
       )}
     </motion.article>
   );
 }
 
+function RoomReadPip({ read, isTile }: { read: ScenarioRoomRead; isTile: boolean }) {
+  const padding = isTile ? "px-1.5 py-0.5" : "px-2 py-0.5";
+  return (
+    <span
+      title={ROOM_READ_TOOLTIP[read]}
+      aria-label={`Room Read: ${ROOM_READ_LABEL[read]}. ${ROOM_READ_TOOLTIP[read]}`}
+      className={`inline-flex items-center gap-1 rounded-full font-mono text-micro font-semibold uppercase tracking-[0.18em] ${ROOM_READ_TONE[read]} ${padding}`}
+    >
+      <span aria-hidden className="size-1.5 rounded-full bg-current opacity-70" />
+      {ROOM_READ_LABEL[read]}
+    </span>
+  );
+}
+
+function CostChip({ cost, baseCost, isTile }: { cost: number; baseCost: number; isTile: boolean }) {
+  const discounted = baseCost > cost;
+  const padding = isTile ? "px-1 py-0.5" : "px-1.5 py-0.5";
+  return (
+    <span
+      title={
+        discounted
+          ? `Authored cost ${baseCost}, effective cost ${cost} after active discount.`
+          : `Authored cost ${cost} budget points.`
+      }
+      className={`inline-flex items-center gap-1 rounded-pill border border-aura-hairline bg-white/85 font-mono uppercase tracking-[0.18em] text-aura-ink ${padding}`}
+    >
+      <span aria-hidden className="text-aura-faint">
+        $
+      </span>
+      {discounted ? (
+        <span className="flex items-baseline gap-1">
+          <span className="text-aura-faint line-through">{baseCost}</span>
+          <span className="font-semibold text-aura-rose">{cost}</span>
+        </span>
+      ) : (
+        <span className="font-semibold">{cost}</span>
+      )}
+    </span>
+  );
+}
+
 function shellShadowClass(state: ScenarioCardState, inHand: boolean, isTile: boolean): string {
   if (state === "selected") {
     return "shadow-[0_30px_60px_-22px_rgba(244,63,94,0.5),0_0_0_2px_rgba(244,63,94,0.55),inset_0_1px_0_0_rgba(255,255,255,0.9)]";
-  }
-  if (state === "retired") {
-    return "shadow-quiet opacity-65 saturate-[0.45]";
   }
   if (state === "disabled") {
     return "shadow-quiet opacity-55";
@@ -318,17 +381,40 @@ function ScenarioExpandGlyph() {
   );
 }
 
-function TileNamePlate({ title }: { title: string }) {
+function TileNamePlate({
+  title,
+  cost,
+  baseCost,
+  showCost,
+}: {
+  title: string;
+  cost: number;
+  baseCost: number;
+  showCost: boolean;
+}) {
   return (
     <div className="relative z-20 mt-auto px-2.5 pb-2.5 pt-1">
       <h3 className="pr-7 font-display text-[13px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
         {title}
       </h3>
+      {showCost ? (
+        <div className="mt-1 flex justify-end">
+          <CostChip cost={cost} baseCost={baseCost} isTile={true} />
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function CompactNamePlate({ scenario }: { scenario: DateScenario }) {
+function CompactNamePlate({
+  scenario,
+  cost,
+  showCost,
+}: {
+  scenario: DateScenario;
+  cost: number;
+  showCost: boolean;
+}) {
   return (
     <div className="relative z-20 flex flex-1 flex-col gap-1 px-3 pb-3 pt-1">
       <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted line-clamp-1">
@@ -338,8 +424,9 @@ function CompactNamePlate({ scenario }: { scenario: DateScenario }) {
         {scenario.title}
       </h3>
       <p className="text-xs leading-[1.4] text-aura-muted line-clamp-2">{scenario.card.summary}</p>
-      <div className="mt-auto pt-1">
+      <div className="mt-auto flex items-end justify-between gap-2 pt-1">
         <MeterRow card={scenario.card} />
+        {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}
       </div>
     </div>
   );
@@ -347,10 +434,12 @@ function CompactNamePlate({ scenario }: { scenario: DateScenario }) {
 
 function FullNamePlate({
   scenario,
-  retiredFootnote,
+  cost,
+  showCost,
 }: {
   scenario: DateScenario;
-  retiredFootnote: string | null;
+  cost: number;
+  showCost: boolean;
 }) {
   return (
     <div className="relative z-20 flex flex-1 flex-col gap-1.5 px-3.5 pb-3.5 pt-1.5">
@@ -361,14 +450,10 @@ function FullNamePlate({
         {scenario.title}
       </h3>
       <p className="text-xs leading-[1.45] text-aura-muted line-clamp-3">{scenario.card.summary}</p>
-      <div className="mt-auto">
+      <div className="mt-auto flex items-end justify-between gap-2">
         <MeterRow card={scenario.card} />
+        {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}
       </div>
-      {retiredFootnote !== null ? (
-        <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-          {retiredFootnote}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -406,13 +491,4 @@ function MeterRow({
       ))}
     </div>
   );
-}
-
-function formatRetiredFootnote(availableOnShift: number, currentShift?: number): string {
-  const base = `retired · returns shift ${availableOnShift}`;
-  if (currentShift === undefined) return base;
-  const lockedShiftsAfterCurrent = Math.max(0, availableOnShift - currentShift - 1);
-  if (lockedShiftsAfterCurrent === 0) return `${base} · current only`;
-  if (lockedShiftsAfterCurrent === 1) return `${base} · 1 locked`;
-  return `${base} · ${lockedShiftsAfterCurrent} locked`;
 }

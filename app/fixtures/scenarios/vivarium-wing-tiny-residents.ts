@@ -10,6 +10,7 @@ export const vivariumWingTinyResidents: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "medium",
+    cost: 14,
     idealFor: [
       "members who can witness without comment",
       "members who treat a small life as a real life without footnotes",

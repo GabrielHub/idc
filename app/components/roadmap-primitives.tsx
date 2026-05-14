@@ -24,6 +24,14 @@ const STATUS_TONE: Record<
     rail: "from-violet-400 to-violet-300",
     glow: "shadow-[0_18px_42px_-26px_rgba(167,139,250,0.55)]",
   },
+  ready: {
+    dot: "bg-sky-400",
+    ring: "ring-sky-300/55",
+    text: "text-sky-700",
+    chip: "bg-sky-50/85 border-sky-300/55",
+    rail: "from-sky-400 to-cyan-300",
+    glow: "shadow-[0_18px_42px_-26px_rgba(14,165,233,0.5)]",
+  },
   "in-flight": {
     dot: "bg-aura-rose",
     ring: "ring-rose-300/55",
@@ -31,6 +39,14 @@ const STATUS_TONE: Record<
     chip: "bg-rose-50/85 border-rose-300/55",
     rail: "from-aura-rose to-aura-fuchsia",
     glow: "shadow-[0_22px_50px_-24px_rgba(244,63,94,0.55)]",
+  },
+  review: {
+    dot: "bg-fuchsia-500",
+    ring: "ring-fuchsia-300/55",
+    text: "text-fuchsia-700",
+    chip: "bg-fuchsia-50/85 border-fuchsia-300/55",
+    rail: "from-fuchsia-500 to-pink-300",
+    glow: "shadow-[0_22px_50px_-24px_rgba(217,70,239,0.5)]",
   },
   blocked: {
     dot: "bg-amber-500",
@@ -549,7 +565,9 @@ export function RoadmapStatusStrip() {
   const counts = useMemo(() => {
     const map: Record<RoadmapPlanStatus, number> = {
       drafting: 0,
+      ready: 0,
       "in-flight": 0,
+      review: 0,
       blocked: 0,
       shipped: 0,
       shelved: 0,
@@ -559,7 +577,7 @@ export function RoadmapStatusStrip() {
   }, [plans]);
 
   return (
-    <div className="my-3 grid grid-cols-2 gap-3 md:grid-cols-5">
+    <div className="my-3 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
       {STATUS_ORDER.map((status) => {
         const tone = STATUS_TONE[status];
         const count = counts[status];
@@ -719,7 +737,9 @@ function RoadmapBoardCard({ plan, indexLabel }: { plan: RoadmapPlan; indexLabel:
 
 const STATUS_DEFINITION: Record<RoadmapPlanStatus, string> = {
   drafting: "Scoped, not started. Open questions still live in the body.",
+  ready: "Scoped, accepted, and waiting for implementation to begin.",
   "in-flight": "Active work. An agent or human is making progress this week.",
+  review: "Implementation landed. Audit, verification, or defect repair is active.",
   blocked: "Cannot move without an external unblock. Reason listed on the plan.",
   shipped: "Acceptance criteria met. Use briefly during closeout, then delete the plan.",
   shelved: "Closed without shipping. Move durable context elsewhere, then delete the plan.",

@@ -1,4 +1,5 @@
 import { gameSaveSchema, shiftStateSchema, type GameSave, type Member } from "../domain/game";
+import { applyMemberQuitBudgetCut } from "./budget";
 import { selectFeaturedMemberRequestIds } from "./shift-planning";
 import { clampScore } from "./utils";
 
@@ -62,6 +63,13 @@ export function removeFocusCase(save: GameSave, memberId: string): GameSave {
   };
 }
 
+function activeShiftNumber(save: GameSave): number {
+  const activeShift =
+    save.shifts.find((shift) => shift.id === save.activeShiftId) ??
+    save.shifts[save.shifts.length - 1];
+  return activeShift?.shiftNumber ?? 1;
+}
+
 export function swapFocusCase(save: GameSave, oldId: string, newId: string): GameSave {
   if (!save.focusedMemberIds.includes(oldId)) {
     throw new Error(`Member ${oldId} is not a current focus case.`);
@@ -104,7 +112,12 @@ export function swapFocusCase(save: GameSave, oldId: string, newId: string): Gam
     };
   });
 
-  return { ...save, focusedMemberIds: updatedFocus, members: updatedMembers };
+  const nextSave: GameSave = { ...save, focusedMemberIds: updatedFocus, members: updatedMembers };
+  return applyMemberQuitBudgetCut({
+    previousSave: save,
+    nextSave,
+    shift: activeShiftNumber(save),
+  });
 }
 
 export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): GameSave {
@@ -157,7 +170,12 @@ export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): 
     };
   });
 
-  return { ...save, focusedMemberIds: uniqueIds, members: updatedMembers };
+  const nextSave: GameSave = { ...save, focusedMemberIds: uniqueIds, members: updatedMembers };
+  return applyMemberQuitBudgetCut({
+    previousSave: save,
+    nextSave,
+    shift: activeShiftNumber(save),
+  });
 }
 
 export function previewReselectDrops(save: GameSave, nextIds: readonly string[]): Member[] {

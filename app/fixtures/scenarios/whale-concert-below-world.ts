@@ -10,6 +10,7 @@ export const whaleConcertBelowWorld: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "medium",
+    cost: 27,
     idealFor: [
       "members who can sit with awe without narrating it",
       "members who let live music be a shared event, not a backdrop to a pitch",

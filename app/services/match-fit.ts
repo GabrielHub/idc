@@ -41,6 +41,26 @@ export type MatchRecommendationCandidate<TCandidate> = {
   fit: MatchFitResult;
 };
 
+export type ScenarioRoomRead = "steady" | "promising" | "volatile";
+
+export type ScenarioFreePairSignalInput = {
+  members: readonly [Member, Member];
+  pairState: PairState;
+  activeRequests?: readonly MemberRequest[];
+  knownPairReads?: readonly PlayerKnowledgeRecord[];
+};
+
+export type ScenarioFreePairSignal = {
+  score: number;
+  pressureLoad: number;
+  blockedRequestIds: string[];
+};
+
+export type ScenarioFreeRecommendationCandidate<TCandidate> = {
+  candidate: TCandidate;
+  signal: ScenarioFreePairSignal;
+};
+
 export type EvaluateMatchFitInput = {
   members: readonly Member[];
   scenario: DateScenario;
@@ -662,6 +682,156 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
 
 export function isMemberRequestBlocked(fit: MatchFitResult, requestId: string): boolean {
   return fit.blockedRequestIds.includes(requestId);
+}
+
+/**
+ * Scenario-free partner signal. Used by recommendation paths that have no
+ * locked scenario yet (the new pair-first booking flow). Sums authored pair
+ * rules, pair memory pressure, known dynamic reads, and member tag interplay
+ * without consulting any scenario card.
+ */
+export function evaluateScenarioFreePairSignal(
+  input: ScenarioFreePairSignalInput,
+): ScenarioFreePairSignal {
+  const [first, second] = input.members;
+  const ruleHits: string[] = [];
+  let score = 0;
+  let pressureLoad = 0;
+
+  score += scenarioFreeMemberPairScore(first, second, ruleHits);
+
+  const authoredPairScoreResult = authoredPairScore(first, second, ruleHits);
+  score += authoredPairScoreResult.scoreDelta;
+  pressureLoad += authoredPairScoreResult.pressureDelta;
+
+  const memoryResult = pairMemoryScore(input.pairState, ruleHits);
+  score += memoryResult.scoreDelta;
+  pressureLoad += memoryResult.pressureDelta;
+
+  const knownReadResult = knownPairReadScore(input.knownPairReads ?? [], ruleHits);
+  score += knownReadResult.scoreDelta;
+  pressureLoad += knownReadResult.pressureDelta;
+
+  const blockedRequestIds = scenarioFreeBlockedRequests({
+    pair: [first, second],
+    activeRequests: input.activeRequests ?? [],
+  });
+
+  return { score, pressureLoad, blockedRequestIds };
+}
+
+function scenarioFreeMemberPairScore(first: Member, second: Member, ruleHits: string[]): number {
+  let score = 0;
+
+  if (bothHaveTag(first, second, "career_focused")) {
+    score += 3;
+    ruleHits.push("scenario_free:career_alignment");
+  }
+  if (bothHaveTag(first, second, "ceremony_minded")) {
+    score += 2;
+    ruleHits.push("scenario_free:ceremony_alignment");
+  }
+  if (bothHaveTag(first, second, "acquisitive")) {
+    score += 1;
+    ruleHits.push("scenario_free:mutual_acquisition");
+  }
+  if (splitHaveTags(first, second, "ordinary_human", "non_human")) {
+    score += 1;
+    ruleHits.push("scenario_free:cross_reality_curiosity");
+  }
+  if (splitHaveTags(first, second, "weirdness_native", "reality_displaced")) {
+    score += 1;
+    ruleHits.push("scenario_free:weirdness_recognition");
+  }
+  if (bothHaveTag(first, second, "anxious_spiral")) {
+    score -= 2;
+    ruleHits.push("scenario_free:shared_spiral");
+  }
+  if (bothHaveTag(first, second, "attention_seeking")) {
+    score -= 2;
+    ruleHits.push("scenario_free:attention_rivalry");
+  }
+  if (bothHaveTag(first, second, "competitive")) {
+    score -= 1;
+    ruleHits.push("scenario_free:competitive_clash");
+  }
+  if (oneHasTag(first, second, "sincerity_seeking")) {
+    const other = hasTag(first, "sincerity_seeking") ? second : first;
+    if (hasTag(other, "performative") || hasTag(other, "avoidant")) {
+      score -= 2;
+      ruleHits.push("scenario_free:sincerity_vs_performance");
+    }
+  }
+  if (oneHasTag(first, second, "privacy_sensitive")) {
+    const other = hasTag(first, "privacy_sensitive") ? second : first;
+    if (hasTag(other, "attention_seeking")) {
+      score -= 2;
+      ruleHits.push("scenario_free:privacy_vs_attention");
+    }
+  }
+  return score;
+}
+
+function scenarioFreeBlockedRequests({
+  pair,
+  activeRequests,
+}: {
+  pair: readonly [Member, Member];
+  activeRequests: readonly MemberRequest[];
+}): string[] {
+  const memberIds = new Set(pair.map((m) => m.id));
+  const relevant = activeRequests.filter((request) => memberIds.has(request.memberId));
+  const blocked: string[] = [];
+  for (const request of relevant) {
+    const member = pair.find((candidate) => candidate.id === request.memberId);
+    const partner = pair.find((candidate) => candidate.id !== request.memberId);
+    if (member === undefined || partner === undefined) continue;
+    for (const rule of AUTHORED_REQUEST_RULES) {
+      if (rule.status !== "blocked") continue;
+      if (!rule.requestIds.includes(request.id)) continue;
+      if (rule.partnerIds !== undefined && !rule.partnerIds.includes(partner.id)) continue;
+      // Scenario gates only apply once a scenario is locked. Skip rules that
+      // require a specific scenario id here.
+      if (rule.scenarioIds !== undefined) continue;
+      blocked.push(request.id);
+      break;
+    }
+  }
+  return blocked;
+}
+
+export function chooseScenarioFreeRecommendation<TCandidate>(
+  candidates: readonly ScenarioFreeRecommendationCandidate<TCandidate>[],
+): TCandidate | null {
+  const recommendable = candidates
+    .filter((entry) => entry.signal.blockedRequestIds.length === 0)
+    .sort((first, second) => second.signal.score - first.signal.score);
+  const [best, runnerUp] = recommendable;
+
+  if (best === undefined || best.signal.score < 5) {
+    return null;
+  }
+
+  if (runnerUp !== undefined && best.signal.score - runnerUp.signal.score < 3) {
+    return null;
+  }
+
+  return best.candidate;
+}
+
+/**
+ * Collapses a full match-fit evaluation into a player-safe booking texture
+ * (the Room Read pip). Hides raw fit level, pressure, ask signals, boundary
+ * risks, rule hits, and request ids.
+ */
+export function scenarioRoomReadFromMatchFit(fit: MatchFitResult): ScenarioRoomRead {
+  if (fit.boundaryRisk !== null || fit.askSignal === "blocked" || fit.fitLevel === "risky") {
+    return "volatile";
+  }
+  if (fit.fitLevel === "strong" && fit.pressureLevel !== "high") {
+    return "promising";
+  }
+  return "steady";
 }
 
 export function chooseRecommendedMatchCandidate<TCandidate>(

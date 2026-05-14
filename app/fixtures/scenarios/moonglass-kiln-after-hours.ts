@@ -10,6 +10,7 @@ export const moonglassKilnAfterHours: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "medium",
+    cost: 14,
     idealFor: [
       "members who can make a small thing for the partner and let the partner have it",
       "members who can fail at a craft in front of the partner",

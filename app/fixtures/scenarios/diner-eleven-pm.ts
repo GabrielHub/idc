@@ -10,6 +10,7 @@ export const dinerElevenPm: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 7,
     idealFor: [
       "members who close service jobs and recognize the carafe",
       "members whose overnight schedules put them in their right window",

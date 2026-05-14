@@ -605,7 +605,7 @@ venus: {
               def: (
                 <>
                   The primary room. Setup happens inside this room and has three states. (1)
-                  Planning: a three-step booking flow (date plan, focus case, partner) rendered by{" "}
+                  Planning: a three-step booking flow (focus case, partner, date plan) rendered by{" "}
                   <DocCode>app/components/pre-date-canvas.tsx</DocCode>. Sticky bottom dock carries
                   the Begin date CTA. (2) Active date: the live date UI takes the canvas full-bleed,
                   floating nav hides. (3) Wrap: FinalReportPanel stays mounted, the header back
@@ -619,7 +619,7 @@ venus: {
             },
             {
               term: "Date Book",
-              def: "A workbench, not a list. The left column shows the active deck as a 4×3 grid of compact tile scenario cards with Roman numeral slot labels. The right column shows the library as a filtered, internally scrolling tile grid with search, risk filter, sort dropdown, and retired toggle. Clicking any card opens an oversized inspector modal. Swap is inspector-first.",
+              def: "A workbench, not a list. The left column shows the active budgeted deck as compact tile scenario cards with Roman numeral slot labels. The right column shows the unlocked library as a filtered, internally scrolling tile grid with search, risk filter, and sort dropdown. Clicking any card opens an oversized inspector modal. Add and drop actions are inspector-first, and the whole editor is read-only during an active booking.",
             },
             { term: "Files", def: "Notes archive ported into the canvas treatment." },
           ]}
@@ -673,14 +673,25 @@ venus: {
             ]}
           />
           <P>
-            Card states are <DocCode>default</DocCode>, <DocCode>selected</DocCode>,{" "}
-            <DocCode>disabled</DocCode>, and <DocCode>retired</DocCode>. Selected adds a rose ring,
-            intensified shadow, and a <Strong>PICKED</Strong> badge in the top-right. Retired
-            desaturates the card. An orthogonal <DocCode>inHand</DocCode> prop marks today's draw
-            with a rose-tinted ring, rose top highlight, and a <Strong>TODAY</Strong> glass chip in
-            the top-right. When both <DocCode>inHand</DocCode> and <DocCode>selected</DocCode>{" "}
-            apply, <Strong>PICKED</Strong> takes precedence in the corner. The card never shows raw
-            scenario tags, exact pressure, or stat math.
+            Card states are <DocCode>default</DocCode>, <DocCode>selected</DocCode>, and{" "}
+            <DocCode>disabled</DocCode>. Selected adds a rose ring, intensified shadow, and a{" "}
+            <Strong>PICKED</Strong> badge in the top-right. Disabled desaturates the card. An
+            orthogonal <DocCode>inHand</DocCode> prop marks today's draw with a rose-tinted ring,
+            rose top highlight, and a <Strong>TODAY</Strong> glass chip in the top-right. When both{" "}
+            <DocCode>inHand</DocCode> and <DocCode>selected</DocCode> apply, <Strong>PICKED</Strong>{" "}
+            takes precedence in the corner. The card never shows raw scenario tags, exact pressure,
+            or stat math.
+          </P>
+          <P>
+            Two budget-aware affordances also sit on the card. The footer carries a small monospace
+            cost chip (<DocCode>cost</DocCode> is an authored allocation value, so it is
+            player-facing). When a budget period discount applies, the chip shows the base cost
+            struck through next to the discounted effective cost. After pair commit, the date-plan
+            cards may render a single Room Read aggregate pip beside the risk badge:{" "}
+            <DocCode>steady</DocCode>, <DocCode>promising</DocCode>, or <DocCode>volatile</DocCode>.
+            Tooltip and aria copy describe booking texture, never hidden causes (fit level,
+            pressure, ask, boundary risk, tags, rule hits, request ids). See{" "}
+            <DocLink to="/docs/gameplay/match-fit">Match fit</DocLink> for the source rules.
           </P>
         </DocSubsection>
       </>

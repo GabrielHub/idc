@@ -10,6 +10,7 @@ export const dinosaurBbqAllYouCanEat: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "medium",
+    cost: 13,
     idealFor: [
       "members who flip without making flipping a job title",
       "members who let the partner have the better cut",

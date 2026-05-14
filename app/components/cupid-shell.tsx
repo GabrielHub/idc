@@ -9,7 +9,7 @@ import {
   type GameConfig,
   type GameSave,
 } from "../domain/game";
-import { memberRequests, starterScenarios } from "../fixtures";
+import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { APP_VERSION } from "../platform/release-identity";
 import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import { tryBackupSave } from "../repositories/backup-save";
@@ -35,14 +35,23 @@ import {
   addCupidIntervention,
   applyFollowUpAction,
   canAddCupidIntervention,
+  clearActiveBooking,
+  commitDateBooking,
   completeShift,
   pickScenarioEvents,
-  startDateSession,
+  startDateSessionFromBooking,
   startNextShift,
   togglePlayback,
   triggerScenarioEvent,
 } from "../services/date-engine";
-import { pickLibraryCard as deckPickLibraryCard, swapCard as deckSwapCard } from "../services/deck";
+import {
+  addCardToDeck,
+  createDraftedScenarioDeck,
+  deckIsRepairBlocked,
+  removeCardFromDeck,
+  STARTER_CATALOG_IDS,
+} from "../services/deck";
+import { computeEffectiveCosts, rotateBudgetPeriod } from "../services/budget";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
   addFocusCase as focusAddCase,
@@ -308,6 +317,10 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             .filter((scenario): scenario is DateScenario => scenario !== undefined),
     [activeShift],
   );
+  const deckRepairBlocked = useMemo(
+    () => (save === null ? false : deckIsRepairBlocked(save, starterScenarios)),
+    [save],
+  );
   const dateAmbientActive = activeSession?.status === "active";
   const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
   const screenKey =
@@ -435,32 +448,42 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     })();
   }
 
-  async function handleStartDate(input: {
-    focusMemberId: string;
-    partnerMemberId: string;
-    scenarioId: string;
-  }) {
+  async function handleCommitPair(input: { focusMemberId: string; partnerMemberId: string }) {
     if (save === null) return;
     tryAction("startDate", async () => {
       if (!save.config.aiSetupComplete) {
         setIsAiSetupOpen(true);
-        throw new Error("AI setup is required before Cupid books a date.");
+        throw new Error("AI setup is required before Cupid commits a pair.");
       }
       const status = await refreshLocalAiStatus();
       if (status.status !== "ready") {
         throw new Error(status.message);
       }
-      const result = startDateSession(save, {
-        focusMemberId: input.focusMemberId,
-        firstMemberId: input.focusMemberId,
-        secondMemberId: input.partnerMemberId,
-        scenarioId: input.scenarioId,
-      });
+      const result = commitDateBooking(save, input);
+      await persist(result.save);
+    });
+  }
+
+  async function handleStartDate(input: { scenarioId: string }) {
+    if (save === null) return;
+    tryAction("startDate", async () => {
+      const status = await refreshLocalAiStatus();
+      if (status.status !== "ready") {
+        throw new Error(status.message);
+      }
+      const result = startDateSessionFromBooking(save, input);
       await persist(result.save);
       setActiveDateSessionId(result.session.id);
       setInterventionText("");
       setInterventionTargetMemberId("");
       setCurrentRoom("livedate");
+    });
+  }
+
+  async function handleCancelBooking() {
+    if (save === null) return;
+    tryAction("startDate", async () => {
+      await persist(clearActiveBooking(save));
     });
   }
 
@@ -671,10 +694,49 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleConfirmOnboarding(memberIds: string[]) {
+  async function handleConfirmOnboarding(payload: {
+    focusedMemberIds: string[];
+    scenarioDeckCardIds: string[];
+  }) {
     if (save === null) return;
     tryAction("focusCase", async () => {
-      await persist(syncActiveShiftFocusCases(focusSelectInitial(save, memberIds)));
+      const draftedDeck = createDraftedScenarioDeck({
+        cardIds: payload.scenarioDeckCardIds,
+        catalog: starterScenarios,
+        catalogIds: STARTER_CATALOG_IDS,
+        budgetCap: save.budgetCap,
+        effectiveCosts: computeEffectiveCosts(starterScenarios, []),
+      });
+      const withDeck: GameSave = {
+        ...save,
+        scenarioDeck: draftedDeck,
+        shifts: save.shifts.map((shift) =>
+          shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
+        ),
+      };
+      const withFocus = syncActiveShiftFocusCases(
+        focusSelectInitial(withDeck, payload.focusedMemberIds),
+      );
+      const requestsById = new Map(memberRequests.map((request) => [request.id, request] as const));
+      const focusedMemberRequests = withFocus.focusedMemberIds
+        .map((memberId) => withFocus.members.find((member) => member.id === memberId))
+        .map((member) =>
+          member?.state.currentRequestId === undefined
+            ? undefined
+            : requestsById.get(member.state.currentRequestId),
+        )
+        .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
+      const activeShift = getActiveShift(withFocus);
+      const activeCompanyGoalIds = new Set(activeShift.companyGoalIds);
+      const withBudgetPeriod = rotateBudgetPeriod({
+        save: withFocus,
+        shiftNumber: 1,
+        scenarios: starterScenarios,
+        focusedMemberRequests,
+        recentClosurePairTags: [],
+        activeCompanyGoals: companyGoals.filter((goal) => activeCompanyGoalIds.has(goal.id)),
+      });
+      await persist(withBudgetPeriod);
       setCurrentRoom("livedate");
     });
   }
@@ -707,18 +769,22 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handlePickLibrary(libraryCardId: string) {
+  async function handleAddDeckCard(libraryCardId: string) {
     if (save === null) return;
     tryAction("deck", async () => {
-      const next = deckPickLibraryCard(save, libraryCardId);
+      const next = addCardToDeck({
+        save,
+        scenarios: starterScenarios,
+        cardId: libraryCardId,
+      });
       await persist(next);
     });
   }
 
-  async function handleSwap(deckCardId: string, libraryCardId: string) {
-    if (save === null || activeShift === null) return;
+  async function handleRemoveDeckCard(deckCardId: string) {
+    if (save === null) return;
     tryAction("deck", async () => {
-      const next = deckSwapCard(save, deckCardId, libraryCardId, activeShift.shiftNumber);
+      const next = removeCardFromDeck(save, deckCardId);
       await persist(next);
     });
   }
@@ -878,7 +944,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   if (needsInitialFocusCases) {
     return (
       <div className="min-h-screen w-full">
-        <OnboardingScreen members={save.members} onConfirm={handleConfirmOnboarding} />
+        <OnboardingScreen
+          members={save.members}
+          scenarios={starterScenarios}
+          onConfirm={handleConfirmOnboarding}
+        />
         {errorMessage !== null ? (
           <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
         ) : null}
@@ -989,14 +1059,16 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                 closingPairId={closingPairId}
                 closureError={closureError}
                 revealAllMemberDetails={revealAllMemberDetails}
+                deckRepairBlocked={deckRepairBlocked}
+                onCommitPair={handleCommitPair}
                 onStartDate={handleStartDate}
+                onCancelBooking={handleCancelBooking}
                 onConfirmClosure={handleConfirmClosure}
                 onDismissClosureError={handleDismissClosureError}
                 onOpenDateBook={() => setCurrentRoom("datebook")}
                 onOpenRoster={() => setCurrentRoom("roster")}
                 onCloseShift={handleEndShift}
                 onStartNextShift={handleStartNextShift}
-                onResolveLibraryPick={() => setCurrentRoom("datebook")}
               />
             )
           ) : null}
@@ -1005,11 +1077,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             <DateBookCanvas
               save={save}
               currentShift={activeShift.shiftNumber}
-              drawnScenarioIds={activeShift.drawnScenarioIds}
               scenarios={starterScenarios}
               isActionPending={isActionPending}
-              onPickLibrary={handlePickLibrary}
-              onSwap={handleSwap}
+              bookingLocked={activeShift.activeBooking !== undefined}
+              onAddToDeck={handleAddDeckCard}
+              onRemoveFromDeck={handleRemoveDeckCard}
               onBack={() => setCurrentRoom("livedate")}
             />
           ) : null}

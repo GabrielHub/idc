@@ -6,7 +6,6 @@ import {
   DocPage,
   DocPipeline,
   P,
-  Strong,
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
@@ -104,30 +103,48 @@ export const sections: DocSectionEntry[] = [
     id: "pre-date-brief-boundary",
     title: "Pre-date brief boundary",
     body: (
-      <P>
-        The pre-date brief does not show exact fit, pressure, ask, blocked ask copy, named member
-        boundary risks, raw scenario tags, or numeric pair stat meters. Pair visibility comes from
-        prior public notes, filed <DocCode>pair_dynamic</DocCode> reads, outcome labels, and
-        nonnumeric follow-up intent copy. Spark, Strain, Relationship Health, tag names, numeric
-        deltas, and exact rule hits stay hidden. See{" "}
-        <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for the full
-        visibility tier.
-      </P>
+      <>
+        <P>
+          The pre-date brief does not show exact fit, pressure, ask, blocked ask copy, named member
+          boundary risks, raw scenario tags, or numeric pair stat meters. Pair visibility comes from
+          prior public notes, filed <DocCode>pair_dynamic</DocCode> reads, outcome labels, and
+          nonnumeric follow-up intent copy. Spark, Strain, Relationship Health, tag names, numeric
+          deltas, and exact rule hits stay hidden. See{" "}
+          <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for the full
+          visibility tier.
+        </P>
+        <P>
+          One exception applies after pair commit: scenario cards in the drawn hand may show a
+          single player-safe <DocCode>Room Read</DocCode> aggregate per card with one of three
+          values: <DocCode>steady</DocCode>, <DocCode>promising</DocCode>, or{" "}
+          <DocCode>volatile</DocCode>. The aggregate is computed from{" "}
+          <DocCode>evaluateMatchFit</DocCode> and collapses fit level, pressure, ask signals,
+          boundary risk, raw tags, request ids, and numeric deltas into a booking-warning chip. The
+          raw inputs stay hidden in tooltips, aria labels, and DOM text. The aggregate is a booking
+          warning, not a verdict.
+        </P>
+      </>
     ),
   },
   {
     id: "partner-recommendation-badge",
     title: "Partner recommendation badge",
     body: (
-      <P>
-        The partner recommendation badge is a conservative booking nudge. It appears only when the
-        top eligible partner is <Strong>strong</Strong>, <Strong>not high pressure</Strong>,{" "}
-        <Strong>not blocked against the active ask</Strong>,{" "}
-        <Strong>not carrying boundary risk</Strong>, and{" "}
-        <Strong>ahead of the next recommendable candidate by a meaningful margin</Strong>. If the
-        current room produces a tie, a weak top score, or only least-bad options, the UI should show
-        no recommendation and let the player choose.
-      </P>
+      <>
+        <P>
+          The partner recommendation badge is scenario-free. It runs before any scenario is locked
+          and uses runtime pair data only: authored pair rules, pair memory pressure, agreements,
+          open loops, request blocks tied to the partner, and known dynamic reads. It must not
+          consult the selected scenario, a fallback scenario, the Pair Board graph, or the roster
+          chemistry authoring matrix.
+        </P>
+        <P>
+          The badge appears only when the top candidate clears a meaningful score, has no
+          partner-tied blocked requests, and is ahead of the runner-up by a meaningful margin. If
+          the room produces a tie, a weak top score, or only least-bad options, the UI should show
+          no recommendation and let the player choose.
+        </P>
+      </>
     ),
   },
   {

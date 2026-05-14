@@ -10,6 +10,7 @@ export const colosseumBoxFour: DateScenario = {
     risk: "high",
     intimacy: "high",
     chaos: "high",
+    cost: 25,
     idealFor: [
       "members who can witness serious harm without performing a reaction",
       "members who can offer steadiness without speaking for the partner",

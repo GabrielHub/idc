@@ -10,6 +10,7 @@ export const groceryRunOneDinner: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 5,
     idealFor: [
       "members who treat a printed recipe as a love language",
       "members with a vehicle and a bench seat made for the trip home",

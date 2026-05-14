@@ -10,6 +10,7 @@ export const bankHeist1920sEscapeRoom: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "high",
+    cost: 21,
     idealFor: [
       "members who can run a clock with a partner without renegotiating it",
       "members who can pick the booked prize and leave the cash",

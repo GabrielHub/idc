@@ -10,6 +10,7 @@ export const potteryStudioDropIn: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 9,
     idealFor: [
       "members who relax when their hands have a slab and their voice can rest",
       "members whose warm steady voice handles a thumb dent without comment",

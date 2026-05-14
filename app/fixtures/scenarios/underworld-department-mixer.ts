@@ -10,6 +10,7 @@ export const underworldDepartmentMixer: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
+    cost: 22,
     idealFor: [
       "members who relax around a confirmed name tag and a reservation",
       "members whose pitch voice fits a high-top",

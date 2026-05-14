@@ -10,6 +10,7 @@ export const impossibleLostAndFound: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "high",
+    cost: 15,
     idealFor: [
       "members who treat a future bin as a kindness, not a command",
       "members who can name the bin a Bargain and read its terms aloud",

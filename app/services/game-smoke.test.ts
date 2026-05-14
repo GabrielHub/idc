@@ -5,9 +5,8 @@ import {
   gameSaveSchema,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
-  SCENARIO_DECK_SIZE,
 } from "../domain/game";
-import { starterMembers, starterScenarios } from "../fixtures";
+import { memberRequests, starterMembers, starterScenarios } from "../fixtures";
 import { LocalGameRepository } from "../repositories/local-game-repository";
 import { MemorySaveStore } from "../repositories/memory-save-store";
 import {
@@ -15,16 +14,20 @@ import {
   applyFollowUpAction,
   CLIENT_LOSS_LIMIT_BASE,
   CLOSURE_NEAR_MISS_TAG,
+  clearActiveBooking,
+  commitDateBooking,
   completeShift,
   isCampaignLost,
   isMemberRetained,
+  startDateSessionFromBooking,
   startNextShift,
 } from "./date-engine";
 import { isMemberInCooldown } from "./shift-planning";
 import { canBeFocusCase, selectInitialFocusCases } from "./focus-cases";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { activeBudgetDiscountOffers, MEMBER_QUIT_BUDGET_CUT, rotateBudgetPeriod } from "./budget";
 import {
-  ensureScenarioInHand,
+  ensureScenarioInDeck,
   startAndDraftDateSession,
   withFeaturedMembers,
 } from "./test-helpers";
@@ -35,7 +38,7 @@ describe("IDC playable smoke path", () => {
     expect(starterScenarios).toHaveLength(55);
   });
 
-  it("seeds a save with a 12-card deck and no focused members", async () => {
+  it("seeds a save with the pre-onboarding fallback deck and no drawn hand", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), undefined, [], {
       writeDebounceMs: 0,
     });
@@ -43,14 +46,12 @@ describe("IDC playable smoke path", () => {
 
     expect(save.version).toBe(SAVE_SCHEMA_VERSION);
     expect(save.config.shiftDateSlots).toBe(1);
-    expect(save.scenarioDeck.cardIds).toHaveLength(SCENARIO_DECK_SIZE);
-    expect(new Set(save.scenarioDeck.cardIds).size).toBe(SCENARIO_DECK_SIZE);
+    expect(save.scenarioDeck.cardIds.length).toBeGreaterThanOrEqual(6);
     expect(save.focusedMemberIds).toEqual([]);
     expect(save.shifts[0]?.featuredMemberIds).toEqual([]);
-    expect(save.shifts[0]?.drawnScenarioIds).toHaveLength(3);
-    for (const cardId of save.shifts[0]?.drawnScenarioIds ?? []) {
-      expect(save.scenarioDeck.cardIds).toContain(cardId);
-    }
+    // Drawn hand is empty until the player commits a booking.
+    expect(save.shifts[0]?.drawnScenarioIds).toEqual([]);
+    expect(save.shifts[0]?.activeBooking).toBeUndefined();
   });
 
   it("rejects legacy save keys so alpha saves start fresh", async () => {
@@ -73,12 +74,118 @@ describe("IDC playable smoke path", () => {
     expect(next.focusedMemberIds).toEqual(candidates);
   });
 
-  it("runs a complete date that puts both members in cooldown next shift", () => {
+  it("commitDateBooking writes an active booking and draws three scenarios", () => {
     const baseSave = createSeedGameSave();
     const firstMemberId = "jenna-pike";
     const secondMemberId = "sana-karim";
     const scenarioId = "park-loop-with-a-dog";
-    const setupSave = ensureScenarioInHand(
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(baseSave, [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+
+    const { save, booking } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+    });
+
+    expect(booking.drawnScenarioIds).toHaveLength(3);
+    expect(booking.status).toBe("scenario_selection");
+    expect(booking.deckSnapshot.cardIds).toEqual(setupSave.scenarioDeck.cardIds);
+    expect(booking.deckSnapshot.budgetCap).toBe(setupSave.budgetCap);
+
+    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+    expect(activeShift?.activeBooking?.id).toBe(booking.id);
+    expect(activeShift?.dateSlotsUsed).toBe(1);
+    expect(activeShift?.drawnScenarioIds).toEqual([...booking.drawnScenarioIds]);
+  });
+
+  it("clearActiveBooking cancels the reserved slot and drawn hand before a session starts", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+    const { save: committedSave } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+    });
+
+    const clearedSave = clearActiveBooking(committedSave);
+    const activeShift = clearedSave.shifts.find((shift) => shift.id === clearedSave.activeShiftId);
+
+    expect(activeShift?.activeBooking).toBeUndefined();
+    expect(activeShift?.dateSlotsUsed).toBe(0);
+    expect(activeShift?.drawnScenarioIds).toEqual([]);
+  });
+
+  it("clearActiveBooking rejects an active date session", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+    const { save: committedSave, booking } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+    });
+    const firstDrawnScenarioId = booking.drawnScenarioIds[0];
+
+    if (firstDrawnScenarioId === undefined) {
+      throw new Error("Expected booking to draw at least one scenario.");
+    }
+
+    const { save: activeSessionSave } = startDateSessionFromBooking(committedSave, {
+      scenarioId: firstDrawnScenarioId,
+    });
+
+    expect(() => clearActiveBooking(activeSessionSave)).toThrow(/active date session/);
+  });
+
+  it("running a date does not mutate the active deck", () => {
+    const baseSave = createSeedGameSave();
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(baseSave, [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+
+    const beforeDeckIds = [...setupSave.scenarioDeck.cardIds];
+    const { save: saveAfterStart, session } = startAndDraftDateSession(setupSave, {
+      focusMemberId: firstMemberId,
+      firstMemberId,
+      secondMemberId,
+      scenarioId,
+    });
+
+    expect(saveAfterStart.scenarioDeck.cardIds).toEqual(beforeDeckIds);
+
+    let next = advanceDateExchange(saveAfterStart, { dateSessionId: session.id });
+    let safety = 50;
+    while (next.session.status === "active" && safety > 0) {
+      next = advanceDateExchange(next.save, { dateSessionId: session.id });
+      safety -= 1;
+    }
+
+    // Deck stays intact after the date completes. The active booking is
+    // cleared so the next shift can book again.
+    expect(next.save.scenarioDeck.cardIds).toEqual(beforeDeckIds);
+    const finalShift = next.save.shifts.find((shift) => shift.id === next.save.activeShiftId);
+    expect(finalShift?.activeBooking).toBeUndefined();
+  });
+
+  it("puts both members in cooldown after a completed date", () => {
+    const baseSave = createSeedGameSave();
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
       withFeaturedMembers(baseSave, [firstMemberId, secondMemberId]),
       scenarioId,
     );
@@ -89,9 +196,6 @@ describe("IDC playable smoke path", () => {
       secondMemberId,
       scenarioId,
     });
-
-    expect(saveAfterStart.scenarioDeck.pendingLibraryPick).toBeDefined();
-    expect(saveAfterStart.scenarioDeck.cardIds).toHaveLength(SCENARIO_DECK_SIZE - 1);
 
     let next = advanceDateExchange(saveAfterStart, { dateSessionId: session.id });
     let safety = 50;
@@ -121,11 +225,73 @@ describe("IDC playable smoke path", () => {
     expect(isMemberInCooldown(firstMember, currentShift.shiftNumber + 2)).toBe(false);
   });
 
+  it("records a budget cut when date completion makes a member quit", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+    const started = startAndDraftDateSession(setupSave, {
+      focusMemberId: firstMemberId,
+      firstMemberId,
+      secondMemberId,
+      scenarioId,
+    });
+    const pairState = started.save.pairStates.find((pair) => pair.id === started.session.pairId);
+
+    if (pairState === undefined) {
+      throw new Error("Expected started pair state.");
+    }
+
+    const weakPair = pairStateSchema.parse({
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        chemistry: 20,
+        trust: 20,
+        relationshipHealth: 20,
+        conflict: 75,
+      },
+    });
+    const shortSession = dateSessionSchema.parse({
+      ...started.session,
+      turnLimit: 2,
+    });
+    const fragileSave = gameSaveSchema.parse({
+      ...started.save,
+      members: started.save.members.map((member) =>
+        member.id === firstMemberId
+          ? { ...member, state: { ...member.state, retention: 5 } }
+          : member,
+      ),
+      pairStates: started.save.pairStates.map((pair) =>
+        pair.id === weakPair.id ? weakPair : pair,
+      ),
+      dateSessions: started.save.dateSessions.map((session) =>
+        session.id === shortSession.id ? shortSession : session,
+      ),
+    });
+
+    const result = advanceDateExchange(fragileSave, { dateSessionId: shortSession.id });
+    const updatedMember = result.save.members.find((member) => member.id === firstMemberId);
+
+    expect(result.session.finalReport?.outcome).toBe("bad_fit");
+    expect(updatedMember?.state.status).toBe("quit");
+    expect(result.save.budgetCap).toBe(fragileSave.budgetCap + MEMBER_QUIT_BUDGET_CUT);
+    expect(
+      result.save.budgetHistory.some((entry) =>
+        entry.reasons.some((reason) => reason.kind === "member_quit"),
+      ),
+    ).toBe(true);
+  });
+
   it("links closure near miss memories from completed date reports", () => {
     const firstMemberId = "jenna-pike";
     const secondMemberId = "sana-karim";
     const scenarioId = "park-loop-with-a-dog";
-    const setupSave = ensureScenarioInHand(
+    const setupSave = ensureScenarioInDeck(
       withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
         firstMemberId,
         secondMemberId,
@@ -277,7 +443,7 @@ describe("IDC playable smoke path", () => {
     expect(quitMembers.every((member) => !isMemberRetained(member))).toBe(true);
   });
 
-  it("opens the next shift using focused members and draws a new hand", () => {
+  it("opens the next shift using focused members and an empty hand", () => {
     const baseSave = createSeedGameSave();
     const focused = baseSave.members
       .filter(canBeFocusCase)
@@ -300,49 +466,37 @@ describe("IDC playable smoke path", () => {
 
     expect(result.shift.shiftNumber).toBe(2);
     expect(result.shift.featuredMemberIds).toEqual(focused);
-    expect(result.shift.drawnScenarioIds).toHaveLength(3);
-
-    for (const cardId of result.shift.drawnScenarioIds) {
-      expect(result.save.scenarioDeck.cardIds).toContain(cardId);
-    }
+    // The new flow does not pre-draw a hand. The hand is drawn when the player
+    // commits a pair.
+    expect(result.shift.drawnScenarioIds).toEqual([]);
   });
 
-  it("rejects bookings while a library pick is pending", () => {
+  it("generates first-period discounts from selected onboarding focus cases", () => {
     const baseSave = createSeedGameSave();
-    const firstMemberId = "jenna-pike";
-    const secondMemberId = "sana-karim";
-    const scenarioId = "park-loop-with-a-dog";
-    const setupSave = ensureScenarioInHand(
-      withFeaturedMembers(baseSave, [firstMemberId, secondMemberId]),
-      scenarioId,
-    );
-    const afterStart = startAndDraftDateSession(setupSave, {
-      focusMemberId: firstMemberId,
-      firstMemberId,
-      secondMemberId,
-      scenarioId,
+    const focusedMemberIds = ["jenna-pike", "sana-karim", "alex-yoon", "calvin-hewes"];
+    const withFocus = selectInitialFocusCases(baseSave, focusedMemberIds);
+    const requestsById = new Map(memberRequests.map((request) => [request.id, request] as const));
+    const focusedRequests = withFocus.focusedMemberIds
+      .map((memberId) => withFocus.members.find((member) => member.id === memberId))
+      .map((member) =>
+        member?.state.currentRequestId === undefined
+          ? undefined
+          : requestsById.get(member.state.currentRequestId),
+      )
+      .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
+
+    const withBudgetPeriod = rotateBudgetPeriod({
+      save: withFocus,
+      shiftNumber: 1,
+      scenarios: starterScenarios,
+      focusedMemberRequests: focusedRequests,
+      recentClosurePairTags: [],
+      activeCompanyGoals: [],
     });
+    const activeOffers = activeBudgetDiscountOffers(withBudgetPeriod);
 
-    const pending = afterStart.save.scenarioDeck.pendingLibraryPick;
-    expect(pending).toBeDefined();
-
-    // Reset slot so we can try a second booking
-    const reset = {
-      ...afterStart.save,
-      shifts: afterStart.save.shifts.map((shift) =>
-        shift.id === afterStart.save.activeShiftId ? { ...shift, dateSlotsUsed: 0 } : shift,
-      ),
-      dateSessions: afterStart.save.dateSessions.filter((s) => s.id !== afterStart.session.id),
-    };
-
-    expect(() =>
-      startAndDraftDateSession(reset, {
-        focusMemberId: firstMemberId,
-        firstMemberId,
-        secondMemberId,
-        scenarioId: reset.scenarioDeck.cardIds[0] ?? "park-loop-with-a-dog",
-      }),
-    ).toThrow();
+    expect(activeOffers.some((offer) => offer.kind === "request")).toBe(true);
+    expect(activeOffers.flatMap((offer) => offer.scenarioTagIds).length).toBeGreaterThan(0);
   });
 });
 
@@ -359,5 +513,21 @@ describe("completeShift", () => {
     expect(report.completedDates).toBe(0);
     const closedShift = nextSave.shifts.find((shift) => shift.id === nextSave.activeShiftId);
     expect(closedShift?.status).toBe("completed");
+  });
+
+  it("rejects filing while a booking is committed", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const scenarioId = "park-loop-with-a-dog";
+    const setupSave = ensureScenarioInDeck(
+      withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]),
+      scenarioId,
+    );
+    const { save } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+    });
+
+    expect(() => completeShift(save)).toThrow(/active booking/);
   });
 });

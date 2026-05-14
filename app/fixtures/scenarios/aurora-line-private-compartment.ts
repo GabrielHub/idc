@@ -10,6 +10,7 @@ export const auroraLinePrivateCompartment: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "low",
+    cost: 30,
     idealFor: [
       "members who can sit close in a sealed room without filling the air",
       "members who can let a long quiet stretch ride the rails",

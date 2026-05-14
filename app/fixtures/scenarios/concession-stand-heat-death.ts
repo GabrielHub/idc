@@ -10,6 +10,7 @@ export const concessionStandHeatDeath: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "low",
+    cost: 10,
     idealFor: [
       "members who can hold a small night without reaching for meaning",
       "members who treat a fryer that still works as a small gift",

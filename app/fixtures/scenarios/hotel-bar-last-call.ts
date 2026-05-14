@@ -10,6 +10,7 @@ export const hotelBarLastCall: DateScenario = {
     risk: "low",
     intimacy: "high",
     chaos: "low",
+    cost: 12,
     idealFor: [
       "members whose stoic clipped voice fits a closed piano and a brass rail",
       "members who already live in old rooms and recognize the room's quiet",

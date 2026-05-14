@@ -9,6 +9,7 @@ export const dmvNumberTicket: DateScenario = {
     risk: "low",
     intimacy: "low",
     chaos: "low",
+    cost: 4,
     idealFor: [
       "members whose trade work has filled out enough forms to relax in a queue",
       "members whose stoic clipped voice fits a paper smell and a printer cycle",

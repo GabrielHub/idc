@@ -10,6 +10,7 @@ export const capitalShipWarDinner: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "medium",
+    cost: 25,
     idealFor: [
       "members who can hold a serious view without making it about themselves",
       "members who treat a meal under hard conditions with care",

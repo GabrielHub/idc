@@ -9,6 +9,7 @@ export const museumExhibitMixup: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "medium",
+    cost: 16,
     idealFor: [
       "members who can absorb a pointed label for the partner",
       "members whose patience holds when a room studies them",

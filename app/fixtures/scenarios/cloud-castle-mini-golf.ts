@@ -10,6 +10,7 @@ export const cloudCastleMiniGolf: DateScenario = {
     risk: "low",
     intimacy: "low",
     chaos: "low",
+    cost: 22,
     idealFor: [
       "members who keep score honestly without making it a thing",
       "members who can lose a small game without sulking",

@@ -10,6 +10,7 @@ export const chainRestaurantTuesday: DateScenario = {
     risk: "low",
     intimacy: "low",
     chaos: "low",
+    cost: 6,
     idealFor: [
       "members who close service jobs and find a booth restful by default",
       "members whose tired dry voice fits a breadstick basket",

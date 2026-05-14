@@ -10,6 +10,7 @@ export const wetMarketThreeSeas: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
+    cost: 18,
     idealFor: [
       "members who can run a small errand at the pace of the partner",
       "members who can pick up a knife without being asked",

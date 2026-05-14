@@ -15,6 +15,7 @@ import {
   type PortraitMood,
   type ScenarioEvent,
   type ScenarioEventKind,
+  type ShiftReport,
   type ShiftState,
 } from "../domain/game";
 import {
@@ -3594,6 +3595,14 @@ export function ShiftReportPanel({
           ))}
         </ul>
 
+        {report.budgetReview === undefined ? null : (
+          <BudgetReviewBlock review={report.budgetReview} />
+        )}
+
+        {report.deckCoverage.length === 0 ? null : (
+          <DeckCoverageBlock coverage={report.deckCoverage} members={members} />
+        )}
+
         {report.hrNote === undefined ? null : (
           <div className="mt-8 rounded-card border border-aura-hairline bg-white/45 p-5">
             <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
@@ -3613,6 +3622,90 @@ export function ShiftReportPanel({
         </div>
       </motion.div>
     </motion.aside>
+  );
+}
+
+function BudgetReviewBlock({ review }: { review: NonNullable<ShiftReport["budgetReview"]> }) {
+  const direction =
+    review.newCap > review.previousCap
+      ? { tone: "text-emerald-700", arrow: "▲" }
+      : review.newCap < review.previousCap
+        ? { tone: "text-aura-rose", arrow: "▼" }
+        : { tone: "text-aura-faint", arrow: "·" };
+  const sortedReasons = [...review.reasons].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
+  return (
+    <div className="aura-glass mt-8 rounded-card p-5">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+          // performance review
+        </p>
+        <p
+          className={`font-mono text-micro font-semibold uppercase tracking-[0.18em] ${direction.tone}`}
+        >
+          {direction.arrow} new cap {review.newCap} (was {review.previousCap})
+        </p>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {sortedReasons.map((reason, index) => (
+          <li
+            key={`${reason.kind}-${index}`}
+            className="flex items-baseline justify-between gap-3 text-sm"
+          >
+            <span className="text-aura-ink">{reason.label}</span>
+            <span
+              className={`font-mono text-micro font-semibold uppercase tracking-[0.18em] ${
+                reason.delta > 0
+                  ? "text-emerald-700"
+                  : reason.delta < 0
+                    ? "text-aura-rose"
+                    : "text-aura-faint"
+              }`}
+            >
+              {reason.delta > 0 ? `+${reason.delta}` : `${reason.delta}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function DeckCoverageBlock({
+  coverage,
+  members,
+}: {
+  coverage: ShiftReport["deckCoverage"];
+  members: Member[];
+}) {
+  const memberById = new Map(members.map((member) => [member.id, member] as const));
+  return (
+    <div className="aura-glass mt-4 rounded-card p-5">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        // deck coverage
+      </p>
+      <ul className="mt-3 space-y-2">
+        {coverage.map((entry) => {
+          const member = memberById.get(entry.focusMemberId);
+          const tone =
+            entry.status === "served"
+              ? "text-emerald-700"
+              : entry.status === "missed"
+                ? "text-aura-rose"
+                : "text-aura-faint";
+          return (
+            <li
+              key={entry.focusMemberId}
+              className="flex items-baseline justify-between gap-3 text-sm"
+            >
+              <span className="text-aura-ink">{member?.firstName ?? entry.focusMemberId}</span>
+              <span className={`font-mono text-micro uppercase tracking-[0.18em] ${tone}`}>
+                {entry.status} · {entry.label}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
   );
 }
 

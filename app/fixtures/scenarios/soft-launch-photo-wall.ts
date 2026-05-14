@@ -10,6 +10,7 @@ export const softLaunchPhotoWall: DateScenario = {
     risk: "high",
     intimacy: "low",
     chaos: "high",
+    cost: 22,
     idealFor: [
       "members whose work runs on captions and a posted cadence",
       "members who can pose under three ring lights and still toast themselves first",

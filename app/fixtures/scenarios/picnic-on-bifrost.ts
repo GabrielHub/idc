@@ -10,6 +10,7 @@ export const picnicOnBifrost: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 28,
     idealFor: [
       "members who can sit on a sacred road without making it the topic",
       "members who can let a long quiet ride a cosmic surface",

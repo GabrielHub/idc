@@ -17,10 +17,10 @@ import { getActiveShift } from "./game-seed";
 /**
  * Starts a date session and immediately drafts the first three offered events
  * so tests can run against a paused, post-draft session. Scenarios outside the
- * drawn hand are injected before booking so test fixtures stay terse.
+ * deck are injected before booking so test fixtures stay terse.
  */
 export function startAndDraftDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
-  const ready = ensureScenarioInHand(save, input.scenarioId);
+  const ready = ensureScenarioInDeck(save, input.scenarioId);
   const started = startDateSession(ready, input);
 
   if (started.session.playbackState !== "drafting") {
@@ -65,9 +65,8 @@ export function buildFeaturedMemberIds(
 }
 
 /**
- * Updates focus cases, the active shift's featuredMemberIds, and ensures the
- * required scenarios are in the deck/hand for tests that need a known set of
- * focused members.
+ * Updates focus cases and the active shift's featuredMemberIds. Tests that need
+ * a known focus list call this before booking a date.
  */
 export function withFeaturedMembers(save: GameSave, requiredMemberIds: string[]): GameSave {
   const activeShift = getActiveShift(save);
@@ -85,46 +84,32 @@ export function withFeaturedMembers(save: GameSave, requiredMemberIds: string[])
 }
 
 /**
- * Ensures a scenarioId is in the active shift's drawn hand and the deck. Useful
- * for tests that pre-seed a specific scenario for the date booking path.
+ * Ensures a scenarioId is in the active deck. The booking flow draws the hand
+ * from the deck at commit time, so tests just need the card present.
  */
-export function ensureScenarioInHand(save: GameSave, scenarioId: string): GameSave {
-  const activeShift = getActiveShift(save);
-
-  const drawn = activeShift.drawnScenarioIds.includes(scenarioId)
-    ? activeShift.drawnScenarioIds
-    : [...activeShift.drawnScenarioIds, scenarioId];
-
+export function ensureScenarioInDeck(save: GameSave, scenarioId: string): GameSave {
   let cardIds: string[];
   if (save.scenarioDeck.cardIds.includes(scenarioId)) {
     cardIds = [...save.scenarioDeck.cardIds];
+  } else if (save.scenarioDeck.cardIds.length === 0) {
+    cardIds = [scenarioId];
   } else {
-    const drawnSet = new Set(drawn);
-    const replaceableIndex = save.scenarioDeck.cardIds.findIndex((id) => !drawnSet.has(id));
-    if (replaceableIndex === -1) {
-      throw new Error(
-        `Cannot inject ${scenarioId}: every deck slot is already pinned by the drawn hand.`,
-      );
-    }
-    cardIds = save.scenarioDeck.cardIds.map((id, index) =>
-      index === replaceableIndex ? scenarioId : id,
-    );
+    cardIds = [...save.scenarioDeck.cardIds];
+    cardIds[cardIds.length - 1] = scenarioId;
   }
 
-  const updatedShift = shiftStateSchema.parse({
-    ...activeShift,
-    drawnScenarioIds: drawn,
-  });
-
-  const updatedDeck = scenarioDeckSchema.parse({
-    cardIds,
-    pendingLibraryPick: save.scenarioDeck.pendingLibraryPick,
-    retiredCards: save.scenarioDeck.retiredCards,
-  });
+  const updatedDeck = scenarioDeckSchema.parse({ cardIds });
 
   return gameSaveSchema.parse({
     ...save,
     scenarioDeck: updatedDeck,
-    shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
   });
+}
+
+/**
+ * Back-compat name. The new booking flow no longer separates the drawn hand
+ * from the deck; ensureScenarioInDeck is now the only call.
+ */
+export function ensureScenarioInHand(save: GameSave, scenarioId: string): GameSave {
+  return ensureScenarioInDeck(save, scenarioId);
 }

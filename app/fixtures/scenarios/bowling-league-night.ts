@@ -10,6 +10,7 @@ export const bowlingLeagueNight: DateScenario = {
     risk: "medium",
     intimacy: "low",
     chaos: "medium",
+    cost: 8,
     idealFor: [
       "members whose competitive streak likes a scoreboard with stakes",
       "members who can lose a frame and stay friendly",

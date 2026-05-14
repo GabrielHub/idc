@@ -10,6 +10,7 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
+    cost: 13,
     idealFor: [
       "members who live by Vow and read a stamp as a real Bargain",
       "members whose oath voice fits a counter at 11:43 p.m.",

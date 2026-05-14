@@ -8,6 +8,7 @@ import {
   type MemoryRecord,
   type PairState,
 } from "../domain/game";
+import { applyClosureBudgetBump, applyMemberQuitBudgetCut } from "./budget";
 import { syncActiveShiftFocusCases } from "./focus-cases";
 import { clampScore } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
@@ -264,12 +265,26 @@ export function closePair({ save, pairId, summary, now = new Date() }: ClosurePa
     (memberId) => !participantIds.has(memberId),
   );
 
+  const activeShiftNumber =
+    save.shifts.find((shift) => shift.id === save.activeShiftId)?.shiftNumber ?? 1;
+  const withBudgetBump = applyClosureBudgetBump(
+    {
+      ...save,
+      members: updatedMembers,
+      memories: [...save.memories, closureMemory],
+      focusedMemberIds,
+      closureCount: save.closureCount + 1,
+      updatedAt: timestamp,
+    },
+    activeShiftNumber,
+  );
+  const withQuitCutCheck = applyMemberQuitBudgetCut({
+    previousSave: save,
+    nextSave: withBudgetBump,
+    shift: activeShiftNumber,
+  });
   const closedSave = gameSaveSchema.parse({
-    ...save,
-    members: updatedMembers,
-    memories: [...save.memories, closureMemory],
-    focusedMemberIds,
-    closureCount: save.closureCount + 1,
+    ...withQuitCutCheck,
     updatedAt: timestamp,
   });
 

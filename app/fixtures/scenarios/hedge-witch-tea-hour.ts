@@ -10,6 +10,7 @@ export const hedgeWitchTeaHour: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 12,
     idealFor: [
       "members who can pour for the partner without making it a gesture",
       "members who can pick a labeled teapot and stand by it",

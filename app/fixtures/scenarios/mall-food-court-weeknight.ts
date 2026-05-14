@@ -9,6 +9,7 @@ export const mallFoodCourtWeeknight: DateScenario = {
     risk: "low",
     intimacy: "low",
     chaos: "low",
+    cost: 5,
     idealFor: [
       "members who can read a tray and an exit at the same time",
       "members whose dry deadpan handles a Sbarro with no drama",

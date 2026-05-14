@@ -9,6 +9,7 @@ export const parkLoopWithADog: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 6,
     idealFor: [
       "members who already love dogs and treat their names as a love language",
       "members who can sit on a bench without project managing the geese",

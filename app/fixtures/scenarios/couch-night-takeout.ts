@@ -9,6 +9,7 @@ export const couchNightTakeout: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 5,
     idealFor: [
       "members who want a couch and ten quiet minutes more than dinner",
       "members whose late shifts make a TV and a takeout container feel like care",

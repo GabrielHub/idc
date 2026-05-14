@@ -10,6 +10,7 @@ export const emptyRoomManyWindows: DateScenario = {
     risk: "low",
     intimacy: "high",
     chaos: "low",
+    cost: 8,
     idealFor: [
       "members who can sit with a view without making it a topic",
       "members who let attention be the conversation",

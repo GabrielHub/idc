@@ -1,4 +1,5 @@
 import {
+  activeDateBookingSchema,
   dateFinalReportSchema,
   dateSessionSchema,
   gameSaveSchema,
@@ -8,11 +9,13 @@ import {
   RELATIONSHIP_STATS,
   shiftReportSchema,
   shiftStateSchema,
+  type ActiveDateBooking,
   type CompanyGoal,
   type CupidIntervention,
   type DateFinalReport,
   type DateMessage,
   type DateScenario,
+  type DeckCoverageEntry,
   type EndSentiment,
   type DateSession,
   type EventDraft,
@@ -31,6 +34,7 @@ import {
   type ScenarioEvent,
   type ScenarioEventKind,
   SCENARIO_EVENT_KINDS,
+  type ScenarioTag,
   type ShiftGoalResult,
   type ShiftReport,
   type ShiftState,
@@ -42,7 +46,11 @@ import {
   makePairId,
   normalizeStarterScenarioId,
 } from "./game-seed";
-import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import {
+  applyMatchFitToJudgeSnapshot,
+  evaluateMatchFit,
+  scenarioRoomReadFromMatchFit,
+} from "./match-fit";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
@@ -62,7 +70,17 @@ import {
   clientLossLimit,
   evaluateClosureReadiness,
 } from "./closures";
-import { drawHand, markCardPlayed, pruneExpiredRetirements } from "./deck";
+import {
+  activeBudgetDiscountOffers,
+  applyBudgetChange,
+  applyMemberQuitBudgetCut,
+  buildPerformanceReviewReasons,
+  computeEffectiveCosts,
+  deriveDeckBudgetStatus,
+  rotateBudgetPeriod,
+  shouldRunPerformanceReview,
+} from "./budget";
+import { drawHandForBooking } from "./deck";
 import {
   isMemberInCooldown,
   pickNextMemberRequestId,
@@ -71,6 +89,8 @@ import {
 } from "./shift-planning";
 import { clampDelta, clampScore, pushIntoBucket, replaceById, shuffleInPlace } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
+
+export { PERFORMANCE_REVIEW_INTERVAL } from "./budget";
 
 export type StartDateInput = {
   focusMemberId: string;
@@ -127,8 +147,22 @@ const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDelta
   early_end: { retention: -18, mood: -9, burnout: 8 },
 };
 
-export function startDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
-  if (input.firstMemberId === input.secondMemberId) {
+export type CommitDateBookingInput = {
+  focusMemberId: string;
+  partnerMemberId: string;
+  now?: Date;
+};
+
+export type CommitDateBookingResult = {
+  save: GameSave;
+  booking: ActiveDateBooking;
+};
+
+export function commitDateBooking(
+  save: GameSave,
+  input: CommitDateBookingInput,
+): CommitDateBookingResult {
+  if (input.focusMemberId === input.partnerMemberId) {
     throw new Error("Cupid requires two different members for a match.");
   }
 
@@ -140,6 +174,10 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     throw new Error("No active shift is available.");
   }
 
+  if (activeShift.activeBooking !== undefined) {
+    throw new Error("This shift already has a committed booking.");
+  }
+
   if (hasActiveDateInShift(save, activeShift.shiftNumber)) {
     throw new Error("Resolve the active date before assigning another match.");
   }
@@ -148,32 +186,15 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     throw new Error("This shift's date is already booked.");
   }
 
-  if (save.scenarioDeck.pendingLibraryPick !== undefined) {
-    throw new Error("Resolve the pending library pick before booking.");
-  }
-
-  if (!activeShift.drawnScenarioIds.includes(input.scenarioId)) {
-    throw new Error("That scenario is not in today's drawn hand.");
-  }
-
-  if (!save.scenarioDeck.cardIds.includes(input.scenarioId)) {
-    throw new Error("That scenario is no longer in the active deck.");
-  }
-
-  const firstMember = requireMember(save, input.firstMemberId);
-  const secondMember = requireMember(save, input.secondMemberId);
   const focusMember = requireMember(save, input.focusMemberId);
+  const partnerMember = requireMember(save, input.partnerMemberId);
 
   if (isCampaignLost(save)) {
     throw new Error("Cupid has lost too many clients to book another date.");
   }
 
-  if (firstMember.state.status !== "active" || secondMember.state.status !== "active") {
+  if (focusMember.state.status !== "active" || partnerMember.state.status !== "active") {
     throw new Error("Cupid cannot book closed or quit members.");
-  }
-
-  if (focusMember.id !== firstMember.id && focusMember.id !== secondMember.id) {
-    throw new Error("The focused member must be one of the date participants.");
   }
 
   if (!save.focusedMemberIds.includes(focusMember.id)) {
@@ -181,27 +202,142 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   }
 
   if (
-    isMemberInCooldown(firstMember, activeShift.shiftNumber) ||
-    isMemberInCooldown(secondMember, activeShift.shiftNumber)
+    isMemberInCooldown(focusMember, activeShift.shiftNumber) ||
+    isMemberInCooldown(partnerMember, activeShift.shiftNumber)
   ) {
     throw new Error("One of the members is still in cooldown from a recent date.");
   }
 
+  const offers = activeBudgetDiscountOffers(save);
+  const effectiveCosts = computeEffectiveCosts(starterScenarios, offers);
+  const status = deriveDeckBudgetStatus({
+    cardIds: save.scenarioDeck.cardIds,
+    effectiveCosts,
+    budgetCap: save.budgetCap,
+  });
+
+  if (status.status !== "within_budget") {
+    throw new Error(
+      status.status === "over_budget"
+        ? "Date book is over budget. Drop cards before booking."
+        : "Date book is not at a legal size. Adjust the deck before booking.",
+    );
+  }
+
+  const pairId = makePairId(focusMember.id, partnerMember.id);
+  const drawnIds = drawHandForBooking({
+    deck: save.scenarioDeck,
+    shiftNumber: activeShift.shiftNumber,
+    pairId,
+  });
+
+  if (drawnIds.length < 3) {
+    throw new Error("Cupid could not draw three scenarios from the active deck.");
+  }
+
+  const drawnTuple: [string, string, string] = [drawnIds[0], drawnIds[1], drawnIds[2]];
+  const bookingId = `booking-${activeShift.shiftNumber}-${pairId}`;
+  const participantTuple: [string, string] = [focusMember.id, partnerMember.id];
+  const booking = activeDateBookingSchema.parse({
+    id: bookingId,
+    status: "scenario_selection",
+    shiftNumber: activeShift.shiftNumber,
+    focusMemberId: focusMember.id,
+    participantIds: participantTuple,
+    pairId,
+    deckSnapshot: {
+      cardIds: [...save.scenarioDeck.cardIds],
+      budgetCap: save.budgetCap,
+      budgetPeriodId: save.budgetPeriodId,
+      effectiveCosts,
+      discountOfferIds: offers.map((offer) => offer.id),
+    },
+    drawnScenarioIds: drawnTuple,
+    committedAt: timestamp,
+  });
+
+  const updatedShift = shiftStateSchema.parse({
+    ...activeShift,
+    drawnScenarioIds: drawnTuple,
+    activeBooking: booking,
+    dateSlotsUsed: activeShift.dateSlotsUsed + 1,
+  });
+
+  const nextSave = gameSaveSchema.parse({
+    ...save,
+    shifts: replaceById(save.shifts, updatedShift),
+    updatedAt: timestamp,
+  });
+
+  return { save: nextSave, booking };
+}
+
+export function clearActiveBooking(save: GameSave): GameSave {
+  const activeShift = getActiveShift(save);
+  const booking = activeShift.activeBooking;
+  if (booking === undefined) {
+    return save;
+  }
+  if (booking.status === "session_active") {
+    throw new Error("Resolve the active date session before clearing the booking.");
+  }
+  const { activeBooking: _booking, ...rest } = activeShift;
+  const updatedShift = shiftStateSchema.parse({
+    ...rest,
+    dateSlotsUsed: Math.max(0, activeShift.dateSlotsUsed - 1),
+    drawnScenarioIds: [],
+  });
+  return gameSaveSchema.parse({
+    ...save,
+    shifts: replaceById(save.shifts, updatedShift),
+  });
+}
+
+export type StartDateSessionFromBookingInput = {
+  scenarioId: string;
+  now?: Date;
+};
+
+export function startDateSessionFromBooking(
+  save: GameSave,
+  input: StartDateSessionFromBookingInput,
+): DateEngineResult {
+  const activeShift = getActiveShift(save);
+  const booking = activeShift.activeBooking;
+
+  if (booking === undefined) {
+    throw new Error("Cupid has no committed booking on this shift.");
+  }
+
+  if (booking.status === "session_active") {
+    throw new Error("This booking is already running a date session.");
+  }
+
+  if (!booking.drawnScenarioIds.includes(input.scenarioId)) {
+    throw new Error("That scenario is not in today's drawn hand.");
+  }
+
+  const now = input.now ?? new Date();
+  const timestamp = now.toISOString();
   const scenario = requireScenario(input.scenarioId);
-  const pairId = makePairId(firstMember.id, secondMember.id);
-  const pairState = requirePairState(save, pairId);
+  const focusMember = requireMember(save, booking.focusMemberId);
+  const otherMemberId = booking.participantIds.find((id) => id !== booking.focusMemberId);
+  if (otherMemberId === undefined) {
+    throw new Error("Booking participant data is invalid.");
+  }
+  const otherMember = requireMember(save, otherMemberId);
+  const pairState = requirePairState(save, booking.pairId);
   const focusRequest = findFocusRequest(activeShift, focusMember.id);
   const activeRequests = focusRequest === undefined ? [] : [focusRequest];
   const matchFit = evaluateMatchFit({
-    members: [firstMember, secondMember],
+    members: [focusMember, otherMember],
     scenario,
     pairState,
     activeRequests,
     knownPairReads: visibleReadsForPair(save, pairState.id),
   });
-  const participants: [string, string] = [firstMember.id, secondMember.id];
-  const sessionNumber = activeShift.dateSlotsUsed + 1;
-  const sessionId = `${shiftSessionPrefix(activeShift.shiftNumber)}${sessionNumber}-${pairId}-${scenario.id}`;
+  const participants: [string, string] = [focusMember.id, otherMember.id];
+  const sessionId = `${shiftSessionPrefix(activeShift.shiftNumber)}${activeShift.dateSlotsUsed}-${booking.pairId}-${scenario.id}`;
   const openingMessage: DateMessage = {
     id: `${sessionId}-msg-0`,
     dateSessionId: sessionId,
@@ -213,8 +349,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   };
   const privateStateByCharacter = Object.fromEntries(
     participants.map((memberId) => {
-      const member = memberId === firstMember.id ? firstMember : secondMember;
-
+      const member = memberId === focusMember.id ? focusMember : otherMember;
       return [
         memberId,
         {
@@ -236,7 +371,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
   const initialPlaybackState: PlaybackState = draftIsTrivial ? "paused" : "drafting";
   const session = dateSessionSchema.parse({
     id: sessionId,
-    pairId,
+    pairId: booking.pairId,
     scenarioId: scenario.id,
     focusMemberId: focusMember.id,
     focusRequestId: focusRequest?.id,
@@ -255,19 +390,79 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     endSentiment: null,
     interventions: [],
   });
+  const updatedBooking = activeDateBookingSchema.parse({
+    ...booking,
+    status: "session_active",
+    dateSessionId: sessionId,
+  });
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
-    dateSlotsUsed: activeShift.dateSlotsUsed + 1,
+    activeBooking: updatedBooking,
   });
-  const saveWithPlayedCard = markCardPlayed(save, scenario.id, activeShift.shiftNumber);
+
   const nextSave = gameSaveSchema.parse({
-    ...saveWithPlayedCard,
-    dateSessions: [...saveWithPlayedCard.dateSessions, session],
-    shifts: replaceById(saveWithPlayedCard.shifts, updatedShift),
+    ...save,
+    dateSessions: [...save.dateSessions, session],
+    shifts: replaceById(save.shifts, updatedShift),
     updatedAt: timestamp,
   });
 
   return { save: nextSave, session };
+}
+
+/**
+ * Compatibility wrapper for the previous one-shot flow. Internally commits the
+ * booking and starts the session. The booking is committed, the deterministic
+ * draw is overridden so the requested scenario lands in the hand for the
+ * caller (tests usually want a known scenario), and then the session starts.
+ */
+export function startDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
+  const committed = commitDateBooking(save, {
+    focusMemberId: input.focusMemberId,
+    partnerMemberId:
+      input.firstMemberId === input.focusMemberId ? input.secondMemberId : input.firstMemberId,
+    now: input.now,
+  });
+  const activeShift = getActiveShift(committed.save);
+  const booking = activeShift.activeBooking;
+  if (booking === undefined) {
+    throw new Error("Booking unexpectedly missing after commit.");
+  }
+  if (!booking.drawnScenarioIds.includes(input.scenarioId)) {
+    // Test-only callers may need a specific scenario in the drawn hand. Pin
+    // the requested scenario at slot 0 and pad the rest from the booking's
+    // existing draw so the hand is still three cards.
+    const padding = booking.drawnScenarioIds.filter((id) => id !== input.scenarioId);
+    const adjustedDraw: [string, string, string] = [
+      input.scenarioId,
+      padding[0] ?? booking.drawnScenarioIds[1] ?? booking.drawnScenarioIds[0],
+      padding[1] ?? booking.drawnScenarioIds[2] ?? booking.drawnScenarioIds[0],
+    ];
+    if (!booking.deckSnapshot.cardIds.includes(input.scenarioId)) {
+      throw new Error("Requested scenario is not in the active deck.");
+    }
+    const updatedBooking = activeDateBookingSchema.parse({
+      ...booking,
+      drawnScenarioIds: adjustedDraw,
+    });
+    const updatedShift = shiftStateSchema.parse({
+      ...activeShift,
+      drawnScenarioIds: adjustedDraw,
+      activeBooking: updatedBooking,
+    });
+    const adjustedSave = gameSaveSchema.parse({
+      ...committed.save,
+      shifts: replaceById(committed.save.shifts, updatedShift),
+    });
+    return startDateSessionFromBooking(adjustedSave, {
+      scenarioId: input.scenarioId,
+      now: input.now,
+    });
+  }
+  return startDateSessionFromBooking(committed.save, {
+    scenarioId: input.scenarioId,
+    now: input.now,
+  });
 }
 
 export function canAddCupidIntervention(session: DateSession): boolean {
@@ -889,17 +1084,42 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           finalSession,
           getActiveShift(save).shiftNumber,
         );
-  const nextSave = gameSaveSchema.parse({
+  const shiftsAfterCompletion =
+    finalSession.finalReport === undefined
+      ? save.shifts
+      : clearActiveBookingForShift(save.shifts, save.activeShiftId);
+  const saveWithCompletedDate = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
     pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
     dateSessions: replaceById(save.dateSessions, finalSession),
     memories: finalMemories,
     playerKnowledge: revealResult.save.playerKnowledge,
+    shifts: shiftsAfterCompletion,
     updatedAt: timestamp,
   });
+  const nextSave = gameSaveSchema.parse(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave: saveWithCompletedDate,
+      shift: getActiveShift(save).shiftNumber,
+    }),
+  );
 
   return { save: nextSave, session: finalSession };
+}
+
+function clearActiveBookingForShift(
+  shifts: readonly ShiftState[],
+  activeShiftId: string,
+): ShiftState[] {
+  return shifts.map((shift) => {
+    if (shift.id !== activeShiftId || shift.activeBooking === undefined) {
+      return shift;
+    }
+    const { activeBooking: _booking, ...rest } = shift;
+    return shiftStateSchema.parse(rest);
+  });
 }
 
 export function completeDateSession(
@@ -964,7 +1184,7 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
     }),
   });
   const updatedMembers = applyFollowUpToMembers(save.members, session, effects.memberDeltas);
-  const nextSave = gameSaveSchema.parse({
+  const saveWithFollowUp = gameSaveSchema.parse({
     ...save,
     members: updatedMembers,
     pairStates: replaceById(save.pairStates, updatedPairState),
@@ -972,6 +1192,13 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
     memories: [...save.memories, ...pairMemoryResult.memories],
     updatedAt: timestamp,
   });
+  const nextSave = gameSaveSchema.parse(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave: saveWithFollowUp,
+      shift: getActiveShift(save).shiftNumber,
+    }),
+  );
 
   return { save: nextSave, session: updatedSession };
 }
@@ -985,6 +1212,10 @@ export function completeShift(
   const shiftDateSessions = save.dateSessions.filter((session) =>
     sessionBelongsToShift(session, activeShift.shiftNumber),
   );
+
+  if (activeShift.activeBooking !== undefined) {
+    throw new Error("Resolve or cancel the active booking before filing the shift.");
+  }
 
   if (shiftDateSessions.some((session) => session.status === "active")) {
     throw new Error("Resolve active dates before ending the shift.");
@@ -1000,6 +1231,36 @@ export function completeShift(
     memberMoodAdjustments: buildIgnoredRequestMoodAdjustments(ignoredRequests),
   });
   const goalResults = activeShift.companyGoalIds.map((goalId) => scoreGoal(goalId, goalMetrics));
+  const deckCoverage = buildDeckCoverage({ save, shift: activeShift });
+  const penalizedMembers = applyIgnoredRequestPenalties(save.members, ignoredRequests);
+  const updatedMembers = rotateMemberRequestsForShift(
+    penalizedMembers,
+    activeShift,
+    completedDates,
+  );
+  const saveAfterMembers: GameSave = {
+    ...save,
+    members: updatedMembers,
+  };
+  const saveAfterQuitCuts = applyMemberQuitBudgetCut({
+    previousSave: save,
+    nextSave: saveAfterMembers,
+    shift: activeShift.shiftNumber,
+  });
+
+  let saveWithBudgetReview = saveAfterQuitCuts;
+  let budgetReviewForReport: ShiftReport["budgetReview"] | undefined;
+  if (
+    shouldRunPerformanceReview({
+      save: saveAfterQuitCuts,
+      shiftNumber: activeShift.shiftNumber,
+    })
+  ) {
+    const reviewResult = runPerformanceReview(saveAfterQuitCuts, activeShift.shiftNumber);
+    saveWithBudgetReview = reviewResult.save;
+    budgetReviewForReport = reviewResult.review;
+  }
+
   const report = shiftReportSchema.parse({
     id: `report-${activeShift.id}`,
     shiftId: activeShift.id,
@@ -1021,27 +1282,245 @@ export function completeShift(
       ignoredRequests,
       members: save.members,
     }),
+    budgetReview: budgetReviewForReport,
+    deckCoverage,
   });
+  const { activeBooking: _activeBooking, ...shiftWithoutBooking } = activeShift;
   const updatedShift = shiftStateSchema.parse({
-    ...activeShift,
+    ...shiftWithoutBooking,
     status: "completed",
     completedAt: timestamp,
     report,
   });
-  const penalizedMembers = applyIgnoredRequestPenalties(save.members, ignoredRequests);
-  const updatedMembers = rotateMemberRequestsForShift(
-    penalizedMembers,
-    activeShift,
-    completedDates,
-  );
   const nextSave = gameSaveSchema.parse({
-    ...save,
-    members: updatedMembers,
-    shifts: replaceById(save.shifts, updatedShift),
+    ...saveWithBudgetReview,
+    shifts: replaceById(saveWithBudgetReview.shifts, updatedShift),
     updatedAt: timestamp,
   });
 
   return { save: nextSave, report };
+}
+
+function runPerformanceReview(
+  save: GameSave,
+  shiftNumber: number,
+): { save: GameSave; review: NonNullable<ShiftReport["budgetReview"]> } {
+  const windowStart = save.lastBudgetReviewShift;
+  const closuresSinceLastReview = countClosuresInWindow(save, windowStart);
+  const quitsSinceLastReview = countQuitEventsInWindow(save, windowStart);
+  const averageActiveRetention = averageRetention(save.members);
+  const { averageHealth, averageFriction } = pairStatsAverages(save.pairStates);
+  const requestFulfillmentRate = recentRequestFulfillmentRate(save, windowStart);
+
+  const reasons = buildPerformanceReviewReasons({
+    save,
+    shiftNumber,
+    closuresSinceLastReview,
+    quitsSinceLastReview,
+    averageActiveRetention,
+    averagePairHealth: averageHealth,
+    averagePairFriction: averageFriction,
+    requestFulfillmentRate,
+  });
+
+  const { newCap, review } = applyBudgetChange({
+    previousCap: save.budgetCap,
+    reasons,
+    shift: shiftNumber,
+  });
+
+  const focusedRequests = save.focusedMemberIds
+    .map((memberId) => findCurrentRequestForMember(save.members, memberId))
+    .filter((request): request is MemberRequest => request !== undefined);
+  const recentClosureTags = collectRecentClosurePairTags(save, windowStart);
+  const reviewShift = save.shifts.find((shift) => shift.shiftNumber === shiftNumber);
+  const activeCompanyGoalIds = new Set(reviewShift?.companyGoalIds ?? []);
+  const activeCompanyGoals = companyGoals.filter((goal) => activeCompanyGoalIds.has(goal.id));
+
+  const withRotatedPeriod = rotateBudgetPeriod({
+    save: {
+      ...save,
+      budgetCap: newCap,
+      budgetHistory: [...save.budgetHistory, review],
+      lastBudgetReviewShift: shiftNumber,
+    },
+    shiftNumber,
+    scenarios: starterScenarios,
+    focusedMemberRequests: focusedRequests,
+    recentClosurePairTags: recentClosureTags,
+    activeCompanyGoals,
+  });
+
+  return { save: withRotatedPeriod, review };
+}
+
+function countClosuresInWindow(save: GameSave, windowStart: number): number {
+  return save.budgetHistory.filter(
+    (entry) =>
+      entry.shift > windowStart && entry.reasons.some((reason) => reason.kind === "closure"),
+  ).length;
+}
+
+function countQuitEventsInWindow(save: GameSave, windowStart: number): number {
+  let count = 0;
+  for (const entry of save.budgetHistory) {
+    if (entry.shift <= windowStart) continue;
+    for (const reason of entry.reasons) {
+      if (reason.kind === "member_quit") count += 1;
+    }
+  }
+  return count;
+}
+
+function averageRetention(members: readonly Member[]): number {
+  const active = members.filter((member) => member.state.status === "active");
+  if (active.length === 0) return 0;
+  const total = active.reduce((sum, member) => sum + member.state.retention, 0);
+  return total / active.length;
+}
+
+function pairStatsAverages(pairStates: readonly PairState[]): {
+  averageHealth: number;
+  averageFriction: number;
+} {
+  if (pairStates.length === 0) {
+    return { averageHealth: 0, averageFriction: 0 };
+  }
+  let healthSum = 0;
+  let frictionSum = 0;
+  for (const pair of pairStates) {
+    healthSum += pair.stats.relationshipHealth;
+    frictionSum += pair.stats.strain;
+  }
+  return {
+    averageHealth: healthSum / pairStates.length,
+    averageFriction: frictionSum / pairStates.length,
+  };
+}
+
+function recentRequestFulfillmentRate(save: GameSave, windowStart: number): number {
+  let asked = 0;
+  let fulfilled = 0;
+  for (const shift of save.shifts) {
+    if (shift.shiftNumber <= windowStart || shift.report === undefined) continue;
+    asked += shift.memberRequestIds.length;
+    const ignored = shift.report.ignoredRequestIds.length;
+    fulfilled += Math.max(0, shift.memberRequestIds.length - ignored);
+  }
+  if (asked === 0) return 1;
+  return fulfilled / asked;
+}
+
+function findCurrentRequestForMember(
+  members: readonly Member[],
+  memberId: string,
+): MemberRequest | undefined {
+  const member = members.find((candidate) => candidate.id === memberId);
+  if (member === undefined) return undefined;
+  if (member.state.currentRequestId === undefined) return undefined;
+  return memberRequests.find((request) => request.id === member.state.currentRequestId);
+}
+
+function collectRecentClosurePairTags(save: GameSave, windowStart: number): ScenarioTag[] {
+  const tags: ScenarioTag[] = [];
+  for (const session of save.dateSessions) {
+    if (session.finalReport === undefined) continue;
+    const matched = save.shifts.find((shift) => sessionBelongsToShift(session, shift.shiftNumber));
+    if (matched === undefined || matched.shiftNumber <= windowStart) continue;
+    const scenario = starterScenarios.find((candidate) => candidate.id === session.scenarioId);
+    if (scenario === undefined) continue;
+    for (const tag of scenario.card.tags) {
+      if (!tags.includes(tag)) tags.push(tag);
+    }
+  }
+  return tags.slice(0, 3);
+}
+
+function buildDeckCoverage({
+  save,
+  shift,
+}: {
+  save: GameSave;
+  shift: ShiftState;
+}): DeckCoverageEntry[] {
+  if (shift.featuredMemberIds.length === 0) {
+    return [];
+  }
+
+  const drawnScenarios = shift.drawnScenarioIds
+    .map((id) => starterScenarios.find((scenario) => scenario.id === id))
+    .filter((scenario): scenario is DateScenario => scenario !== undefined);
+
+  if (drawnScenarios.length === 0) {
+    return shift.featuredMemberIds.map((memberId) => ({
+      focusMemberId: memberId,
+      status: "no_draw" as const,
+      label: "No hand drawn this shift",
+    }));
+  }
+
+  return shift.featuredMemberIds.map((memberId) => {
+    const member = save.members.find((candidate) => candidate.id === memberId);
+    if (member === undefined) {
+      return {
+        focusMemberId: memberId,
+        status: "no_draw" as const,
+        label: "Member missing from save",
+      };
+    }
+    const eligiblePartners = save.members.filter(
+      (candidate) => candidate.id !== memberId && candidate.state.status === "active",
+    );
+    let promisingForMember = false;
+    let bookedForMember = false;
+    for (const session of save.dateSessions) {
+      if (!sessionBelongsToShift(session, shift.shiftNumber)) continue;
+      if (session.focusMemberId === memberId) {
+        bookedForMember = true;
+        break;
+      }
+    }
+    for (const scenario of drawnScenarios) {
+      for (const partner of eligiblePartners) {
+        const pairState = save.pairStates.find(
+          (candidate) => candidate.id === makePairId(member.id, partner.id),
+        );
+        if (pairState === undefined) continue;
+        try {
+          const fit = evaluateMatchFit({
+            members: [member, partner],
+            scenario,
+            pairState,
+            activeRequests: [],
+            knownPairReads: visibleReadsForPair(save, pairState.id),
+          });
+          if (scenarioRoomReadFromMatchFit(fit) === "promising") {
+            promisingForMember = true;
+            break;
+          }
+        } catch {
+          continue;
+        }
+      }
+      if (promisingForMember) break;
+    }
+    const status = bookedForMember
+      ? ("served" as const)
+      : promisingForMember
+        ? ("served" as const)
+        : ("missed" as const);
+    const label =
+      status === "served"
+        ? bookedForMember
+          ? "Booked tonight"
+          : "Hand covered the case"
+        : "No promising card for this case";
+    return {
+      focusMemberId: memberId,
+      status,
+      label,
+    };
+  });
 }
 
 export function buildShiftGoalMetrics({
@@ -1231,7 +1710,7 @@ export type StartNextShiftOptions = {
 export function startNextShift(
   save: GameSave,
   now = new Date(),
-  options: StartNextShiftOptions = {},
+  _options: StartNextShiftOptions = {},
 ): { save: GameSave; shift: ShiftState } {
   const activeShift = getActiveShift(save);
 
@@ -1241,8 +1720,6 @@ export function startNextShift(
 
   const timestamp = now.toISOString();
   const nextShiftNumber = Math.max(...save.shifts.map((shift) => shift.shiftNumber)) + 1;
-  const prunedDeck = pruneExpiredRetirements(save.scenarioDeck, nextShiftNumber);
-  const drawnScenarioIds = drawHand(prunedDeck, nextShiftNumber, options.random);
   const membersById = new Map(save.members.map((member) => [member.id, member] as const));
   const featuredMemberIds = save.focusedMemberIds.filter((memberId) => {
     const member = membersById.get(memberId);
@@ -1265,14 +1742,13 @@ export function startNextShift(
     dateSlotsTotal: save.config.shiftDateSlots,
     dateSlotsUsed: 0,
     featuredMemberIds,
-    drawnScenarioIds,
+    drawnScenarioIds: [],
     companyGoalIds,
     memberRequestIds,
     startedAt: timestamp,
   });
   const nextSave = gameSaveSchema.parse({
     ...save,
-    scenarioDeck: prunedDeck,
     shifts: [...save.shifts, nextShift],
     activeShiftId: nextShift.id,
     updatedAt: timestamp,

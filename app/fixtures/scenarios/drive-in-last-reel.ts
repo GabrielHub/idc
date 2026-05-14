@@ -10,6 +10,7 @@ export const driveInLastReel: DateScenario = {
     risk: "high",
     intimacy: "high",
     chaos: "medium",
+    cost: 9,
     idealFor: [
       "members who can grieve a planet without making the date about it",
       "members who treat shared silence as a kind of company",

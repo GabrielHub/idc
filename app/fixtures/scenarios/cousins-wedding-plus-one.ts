@@ -10,6 +10,7 @@ export const cousinsWeddingPlusOne: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "medium",
+    cost: 20,
     idealFor: [
       "members who can hold a stranger's reception like a counterparty meeting",
       "members who will be kind to a relative they do not know without performing",

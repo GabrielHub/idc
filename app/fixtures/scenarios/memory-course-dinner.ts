@@ -10,6 +10,7 @@ export const memoryCourseDinner: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "medium",
+    cost: 18,
     idealFor: [
       "members whose grounded warmth handles a memory plate without spectacle",
       "members who can let a careful question land at their own pace",

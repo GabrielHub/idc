@@ -10,6 +10,7 @@ export const cableCarAcrossBiomes: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 16,
     idealFor: [
       "members who can share a small moving room without filling it",
       "members who let a view shift without narrating it",

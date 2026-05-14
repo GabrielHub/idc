@@ -9,6 +9,7 @@ export const temporalCoffeeShop: DateScenario = {
     risk: "medium",
     intimacy: "low",
     chaos: "medium",
+    cost: 14,
     idealFor: [
       "members whose work has trained them to outwait procedure",
       "members who can name a glitch without trying to fix it",

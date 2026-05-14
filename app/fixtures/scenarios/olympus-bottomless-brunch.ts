@@ -10,6 +10,7 @@ export const olympusBottomlessBrunch: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
+    cost: 26,
     idealFor: [
       "members who can pace a bottomless drink without making a thing of it",
       "members who handle a confession that slipped out without weaponizing it",

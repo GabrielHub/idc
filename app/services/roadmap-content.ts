@@ -1,6 +1,13 @@
 import { listRawDocModules } from "./docs-content";
 
-export type RoadmapPlanStatus = "drafting" | "in-flight" | "blocked" | "shipped" | "shelved";
+export type RoadmapPlanStatus =
+  | "drafting"
+  | "ready"
+  | "in-flight"
+  | "review"
+  | "blocked"
+  | "shipped"
+  | "shelved";
 
 export interface RoadmapPlanMeta {
   status: RoadmapPlanStatus;
@@ -25,8 +32,10 @@ export interface RoadmapPlan {
 }
 
 export const STATUS_ORDER: RoadmapPlanStatus[] = [
+  "review",
   "in-flight",
   "blocked",
+  "ready",
   "drafting",
   "shipped",
   "shelved",
@@ -34,7 +43,9 @@ export const STATUS_ORDER: RoadmapPlanStatus[] = [
 
 export const STATUS_LABEL: Record<RoadmapPlanStatus, string> = {
   drafting: "drafting",
+  ready: "ready",
   "in-flight": "in flight",
+  review: "review",
   blocked: "blocked",
   shipped: "shipped",
   shelved: "shelved",
@@ -78,7 +89,9 @@ export function listRoadmapPlans(): RoadmapPlan[] {
 export function countByStatus(): Record<RoadmapPlanStatus, number> {
   const counts: Record<RoadmapPlanStatus, number> = {
     drafting: 0,
+    ready: 0,
     "in-flight": 0,
+    review: 0,
     blocked: 0,
     shipped: 0,
     shelved: 0,
@@ -92,7 +105,9 @@ export function countByStatus(): Record<RoadmapPlanStatus, number> {
 export function plansByStatus(): Record<RoadmapPlanStatus, RoadmapPlan[]> {
   const groups: Record<RoadmapPlanStatus, RoadmapPlan[]> = {
     drafting: [],
+    ready: [],
     "in-flight": [],
+    review: [],
     blocked: [],
     shipped: [],
     shelved: [],

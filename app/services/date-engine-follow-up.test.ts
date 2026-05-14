@@ -9,6 +9,7 @@ import {
   type FollowUpAction,
 } from "../domain/game";
 import { applyFollowUpAction, previewFollowUpEffects } from "./date-engine";
+import { MEMBER_QUIT_BUDGET_CUT } from "./budget";
 import { createSeedGameSave } from "./game-seed";
 
 const OUTCOMES: readonly DateFinalReport["outcome"][] = [
@@ -137,5 +138,38 @@ describe("outcome aware follow-up preview", () => {
     );
     expect(result.save.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
     expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
+  });
+
+  it("records a budget cut when follow-up makes a member quit", () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const pairState = buildPairState();
+    const session = buildSession("second_date");
+    const save = gameSaveSchema.parse({
+      ...seed,
+      members: seed.members.map((member) =>
+        member.id === "jenna-pike"
+          ? { ...member, state: { ...member.state, retention: 3 } }
+          : member,
+      ),
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== pairState.id),
+        pairState,
+      ],
+      dateSessions: [...seed.dateSessions, session],
+    });
+
+    const result = applyFollowUpAction(save, {
+      dateSessionId: session.id,
+      action: "mark_bad_fit",
+    });
+    const updatedMember = result.save.members.find((member) => member.id === "jenna-pike");
+
+    expect(updatedMember?.state.status).toBe("quit");
+    expect(result.save.budgetCap).toBe(save.budgetCap + MEMBER_QUIT_BUDGET_CUT);
+    expect(
+      result.save.budgetHistory.some((entry) =>
+        entry.reasons.some((reason) => reason.kind === "member_quit"),
+      ),
+    ).toBe(true);
   });
 });

@@ -10,6 +10,7 @@ export const prophecyKaraoke: DateScenario = {
     risk: "high",
     intimacy: "medium",
     chaos: "high",
+    cost: 17,
     idealFor: [
       "members who can file a bad prediction and keep their seat",
       "members who break a machine's framing with one literal answer",

@@ -50,6 +50,10 @@
 
 - Code, tests, fixtures, and assets are the source of truth for implemented product behavior.
 - Documentation is authored as TSX under `app/docs/` and rendered at `/docs` in the dev shell. Read the TSX file directly when you need a doc as canonical context.
+- Roadmap plans must be drafted in `app/docs/roadmap/*.tsx`, not as Markdown chat plans.
+- Before implementing from a roadmap plan, read its TSX file and verify `plan.status`. Do not begin implementation while it is `drafting`; promote a scoped plan to `ready`, then move it to `in-flight` when code work starts.
+- Keep roadmap plans current as work proceeds: set completed tasks' `defaultDone`, update `plan.done`, bump `plan.touched`, and move status to `review` when implementation is ready for audit or verification.
+- Use `blocked` with `blockedReason` when work cannot continue, `shipped` only after acceptance and verification pass, and `shelved` only when the plan is intentionally abandoned.
 - `app/docs/product/visual-design.tsx` owns Aura interface direction, Tailwind tokens, chat bubble schema, member auras, canvas layout, and scenario card system.
 - `app/docs/product/image-style.tsx` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
 - `app/docs/product/voice.tsx` owns voice, tone, prose mechanics, comedic engines, member voice fingerprints, event kinds, and closure summary voice.

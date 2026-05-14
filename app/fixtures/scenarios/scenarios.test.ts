@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { STARTER_BUDGET_CAP } from "../../domain/game";
+import { STARTER_CATALOG_IDS } from "../../services/deck";
 import { starterMembers } from "../members";
 import { starterScenarios } from "./index";
 
@@ -137,6 +139,47 @@ describe("scenario fixtures", () => {
     }
 
     expect(violations).toEqual([]);
+  });
+
+  it("authors a cost between 1 and 50 on every scenario", () => {
+    const violations: Array<{ id: string; cost: number | undefined }> = [];
+
+    for (const scenario of starterScenarios) {
+      const cost = scenario.card.cost;
+      if (typeof cost !== "number" || !Number.isInteger(cost) || cost < 1 || cost > 50) {
+        violations.push({ id: scenario.id, cost });
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it("keeps the starter catalog draftable inside the starter budget cap", () => {
+    const starterCatalog = new Set(STARTER_CATALOG_IDS);
+    const starterCards = starterScenarios.filter((scenario) => starterCatalog.has(scenario.id));
+
+    expect(starterCards.length).toBe(STARTER_CATALOG_IDS.length);
+
+    const sortedByCost = [...starterCards].sort((a, b) => a.card.cost - b.card.cost);
+    let spend = 0;
+    let drafted = 0;
+
+    for (const scenario of sortedByCost) {
+      if (drafted >= 12) break;
+      if (spend + scenario.card.cost > STARTER_BUDGET_CAP) continue;
+      spend += scenario.card.cost;
+      drafted += 1;
+    }
+
+    expect(drafted).toBeGreaterThanOrEqual(10);
+    expect(spend).toBeLessThanOrEqual(STARTER_BUDGET_CAP);
+  });
+
+  it("keeps cost distribution close to the authored median", () => {
+    const costs = starterScenarios.map((scenario) => scenario.card.cost).sort((a, b) => a - b);
+    const median = costs[Math.floor(costs.length / 2)] ?? 0;
+    expect(median).toBeGreaterThanOrEqual(10);
+    expect(median).toBeLessThanOrEqual(18);
   });
 
   it("does not hard-code new biography inside reveal visible text", () => {

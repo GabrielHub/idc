@@ -10,6 +10,7 @@ export const openHouseSunday: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 7,
     idealFor: [
       "members who will check a deck rail and a back door without making it a stunt",
       "members who can stand on a stranger's deck without project managing the future",

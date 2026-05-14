@@ -10,6 +10,7 @@ export const moonPicnic: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 18,
     idealFor: [
       "members who can sit in a long quiet without filling it",
       "members who treat the view as a place, not a backdrop",

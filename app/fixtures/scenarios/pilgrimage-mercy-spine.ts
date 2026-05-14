@@ -10,6 +10,7 @@ export const pilgrimageMercySpine: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "low",
+    cost: 24,
     idealFor: [
       "members who can want the same thing on purpose",
       "members who treat a wish form as a real document",

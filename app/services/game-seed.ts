@@ -3,9 +3,9 @@ import {
   gameSaveSchema,
   memberSchema,
   SAVE_SCHEMA_VERSION,
-  SCENARIO_DECK_SIZE,
   scenarioDeckSchema,
   shiftStateSchema,
+  STARTER_BUDGET_CAP,
   type DateSession,
   type GameConfig,
   type GameSave,
@@ -17,7 +17,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
-import { createInitialScenarioDeck, drawHand } from "./deck";
+import { createInitialScenarioDeck } from "./deck";
 import {
   hydrateFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
@@ -45,7 +45,6 @@ export function createSeedGameSave(
   const pairStates = createSeedPairStates(members);
   const scenarioDeck = createInitialScenarioDeck(starterScenarios);
   const focusedMemberIds: string[] = [];
-  const drawnScenarioIds = drawHand(scenarioDeck, 1, options.random);
   const activeShift: ShiftState = {
     id: "shift-1",
     shiftNumber: 1,
@@ -53,7 +52,7 @@ export function createSeedGameSave(
     dateSlotsTotal: config.shiftDateSlots,
     dateSlotsUsed: 0,
     featuredMemberIds: focusedMemberIds,
-    drawnScenarioIds,
+    drawnScenarioIds: [],
     companyGoalIds: selectShiftCompanyGoalIds({
       members,
       shiftNumber: 1,
@@ -81,6 +80,24 @@ export function createSeedGameSave(
     scenarioDeck,
     closureCount: 0,
     softWinSeen: false,
+    budgetCap: STARTER_BUDGET_CAP,
+    budgetPeriodId: "budget-period-shift-0",
+    budgetDiscountOffers: [],
+    budgetHistory: [
+      {
+        shift: 0,
+        previousCap: STARTER_BUDGET_CAP,
+        newCap: STARTER_BUDGET_CAP,
+        reasons: [
+          {
+            kind: "starter",
+            label: "Starter cap",
+            delta: 0,
+          },
+        ],
+      },
+    ],
+    lastBudgetReviewShift: 0,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
@@ -284,33 +301,9 @@ function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
     cardIds.push(normalized);
   }
 
-  const retiredById = new Map<string, number>();
-  for (const entry of scenarioDeck.retiredCards) {
-    const normalized = normalizeStarterScenarioId(entry.cardId);
-    if (!knownScenarioIds.has(normalized)) continue;
-    if (seen.has(normalized)) continue;
-    const existing = retiredById.get(normalized);
-    if (existing === undefined || existing < entry.availableOnShift) {
-      retiredById.set(normalized, entry.availableOnShift);
-    }
+  if (cardIds.length !== scenarioDeck.cardIds.length) {
+    return scenarioDeckSchema.parse({ cardIds });
   }
-
-  const retiredCards = Array.from(retiredById.entries()).map(([cardId, availableOnShift]) => ({
-    cardId,
-    availableOnShift,
-  }));
-  const pendingLibraryPick = scenarioDeck.pendingLibraryPick;
-  const expectedSize =
-    pendingLibraryPick === undefined ? SCENARIO_DECK_SIZE : SCENARIO_DECK_SIZE - 1;
-
-  if (cardIds.length === expectedSize) {
-    return scenarioDeckSchema.parse({
-      cardIds,
-      pendingLibraryPick,
-      retiredCards,
-    });
-  }
-
   return scenarioDeck;
 }
 
@@ -545,7 +538,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened the office with a 40 member roster and a 12 card deck.",
+      text: "Cupid has opened the office with a 40 member roster and a budgeted Date Book.",
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

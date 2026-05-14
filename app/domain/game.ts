@@ -305,6 +305,7 @@ export const dateScenarioSchema = z.object({
     risk: riskLevelSchema,
     intimacy: riskLevelSchema,
     chaos: riskLevelSchema,
+    cost: z.number().int().min(1).max(50),
     idealFor: z.array(z.string().min(1)),
     badFor: z.array(z.string().min(1)),
   }),
@@ -649,24 +650,12 @@ export const dateSessionSchema = z.object({
   finalReport: dateFinalReportSchema.optional(),
 });
 
-export const SCENARIO_DECK_SIZE = 12;
-export const SCENARIO_DECK_RETIREMENT_SHIFTS = 3;
-
-export const pendingLibraryPickSchema = z.object({
-  playedCardId: scenarioIdSchema,
-  playedAtShift: z.number().int().min(1),
-});
-
-export const retiredScenarioCardSchema = z.object({
-  cardId: scenarioIdSchema,
-  availableOnShift: z.number().int().min(1),
-});
+export const DECK_SIZE_MIN = 6;
+export const DECK_SIZE_MAX = 12;
 
 export const scenarioDeckSchema = z
   .object({
     cardIds: z.array(scenarioIdSchema),
-    pendingLibraryPick: pendingLibraryPickSchema.optional(),
-    retiredCards: z.array(retiredScenarioCardSchema).default([]),
   })
   .superRefine((deck, context) => {
     const uniqueCardIds = new Set(deck.cardIds);
@@ -678,20 +667,67 @@ export const scenarioDeckSchema = z
         path: ["cardIds"],
       });
     }
-
-    const expectedSize =
-      deck.pendingLibraryPick === undefined ? SCENARIO_DECK_SIZE : SCENARIO_DECK_SIZE - 1;
-
-    if (deck.cardIds.length !== expectedSize) {
-      context.addIssue({
-        code: "custom",
-        message: `Scenario deck must hold ${expectedSize} cards when ${
-          deck.pendingLibraryPick === undefined ? "no pick is pending" : "a pick is pending"
-        }.`,
-        path: ["cardIds"],
-      });
-    }
   });
+
+export const budgetReasonKindSchema = z.enum([
+  "starter",
+  "closure",
+  "member_quit",
+  "performance_closures",
+  "performance_quits",
+  "performance_retention",
+  "performance_pair_health",
+  "performance_pair_friction",
+  "performance_request_fulfillment",
+]);
+
+export const budgetReasonSchema = z.object({
+  kind: budgetReasonKindSchema,
+  label: z.string().min(1),
+  delta: z.number().int(),
+});
+
+export const budgetReviewSchema = z.object({
+  shift: z.number().int().min(0),
+  previousCap: z.number().int().min(0),
+  newCap: z.number().int().min(0),
+  reasons: z.array(budgetReasonSchema),
+});
+
+export const budgetDiscountOfferKindSchema = z.enum(["request", "closure", "company_goal"]);
+
+export const budgetDiscountOfferSchema = z.object({
+  id: z.string().min(1),
+  budgetPeriodId: z.string().min(1),
+  kind: budgetDiscountOfferKindSchema,
+  label: z.string().min(1),
+  scenarioTagIds: z.array(scenarioTagSchema),
+  scenarioIds: z.array(scenarioIdSchema),
+  percentOff: z.union([z.literal(15), z.literal(30), z.literal(50)]),
+  startsAtShift: z.number().int().min(0),
+  expiresAtReviewShift: z.number().int().min(0),
+});
+
+export const activeDateBookingStatusSchema = z.enum(["scenario_selection", "session_active"]);
+
+export const activeDateBookingSchema = z.object({
+  id: z.string().min(1),
+  status: activeDateBookingStatusSchema,
+  shiftNumber: z.number().int().min(1),
+  focusMemberId: memberIdSchema,
+  participantIds: z.tuple([memberIdSchema, memberIdSchema]),
+  pairId: pairIdSchema,
+  deckSnapshot: z.object({
+    cardIds: z.array(scenarioIdSchema),
+    budgetCap: z.number().int().min(0),
+    budgetPeriodId: z.string().min(1),
+    effectiveCosts: z.record(scenarioIdSchema, z.number().int().min(0)),
+    discountOfferIds: z.array(z.string().min(1)),
+  }),
+  drawnScenarioIds: z.tuple([scenarioIdSchema, scenarioIdSchema, scenarioIdSchema]),
+  committedAt: z.string().min(1),
+  dateSessionId: dateSessionIdSchema.optional(),
+});
 
 export const goalScoreStatusSchema = z.enum(["met", "missed"]);
 
@@ -701,6 +737,14 @@ export const shiftGoalResultSchema = z.object({
   progress: z.number().int(),
   target: z.number().int(),
   summary: z.string().min(1),
+});
+
+export const deckCoverageStatusSchema = z.enum(["served", "missed", "no_draw"]);
+
+export const deckCoverageEntrySchema = z.object({
+  focusMemberId: memberIdSchema,
+  status: deckCoverageStatusSchema,
+  label: z.string().min(1),
 });
 
 export const shiftReportSchema = z.object({
@@ -716,6 +760,8 @@ export const shiftReportSchema = z.object({
   offeredScenarioIds: z.array(scenarioIdSchema),
   summary: z.string().min(1),
   hrNote: z.string().min(1).optional(),
+  budgetReview: budgetReviewSchema.optional(),
+  deckCoverage: z.array(deckCoverageEntrySchema).default([]),
 });
 
 export const shiftStateSchema = z.object({
@@ -731,6 +777,7 @@ export const shiftStateSchema = z.object({
   startedAt: z.string().min(1),
   completedAt: z.string().min(1).optional(),
   report: shiftReportSchema.optional(),
+  activeBooking: activeDateBookingSchema.optional(),
 });
 
 export const aiProviderSchema = z.enum(["ollama", "gateway"]);
@@ -808,6 +855,10 @@ export const gameConfigSchema = z.preprocess(
   }),
 );
 
+export const STARTER_BUDGET_CAP = 120;
+export const MIN_BUDGET_CAP = 60;
+export const MAX_BUDGET_CAP = 240;
+
 export const gameSaveSchema = z.object({
   version: z.literal(SAVE_SCHEMA_VERSION),
   config: gameConfigSchema,
@@ -822,6 +873,11 @@ export const gameSaveSchema = z.object({
   scenarioDeck: scenarioDeckSchema,
   closureCount: z.number().int().min(0).default(0),
   softWinSeen: z.boolean().default(false),
+  budgetCap: z.number().int().min(0).default(STARTER_BUDGET_CAP),
+  budgetPeriodId: z.string().min(1).default("budget-period-shift-0"),
+  budgetDiscountOffers: z.array(budgetDiscountOfferSchema).default([]),
+  budgetHistory: z.array(budgetReviewSchema).default([]),
+  lastBudgetReviewShift: z.number().int().min(0).default(0),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -884,8 +940,15 @@ export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
 export type ScenarioDeck = z.infer<typeof scenarioDeckSchema>;
-export type PendingLibraryPick = z.infer<typeof pendingLibraryPickSchema>;
-export type RetiredScenarioCard = z.infer<typeof retiredScenarioCardSchema>;
+export type BudgetReasonKind = z.infer<typeof budgetReasonKindSchema>;
+export type BudgetReason = z.infer<typeof budgetReasonSchema>;
+export type BudgetReview = z.infer<typeof budgetReviewSchema>;
+export type BudgetDiscountOfferKind = z.infer<typeof budgetDiscountOfferKindSchema>;
+export type BudgetDiscountOffer = z.infer<typeof budgetDiscountOfferSchema>;
+export type ActiveDateBookingStatus = z.infer<typeof activeDateBookingStatusSchema>;
+export type ActiveDateBooking = z.infer<typeof activeDateBookingSchema>;
+export type DeckCoverageStatus = z.infer<typeof deckCoverageStatusSchema>;
+export type DeckCoverageEntry = z.infer<typeof deckCoverageEntrySchema>;
 export type MemberLifecycleStatus = z.infer<typeof memberLifecycleStatusSchema>;
 export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
 export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;

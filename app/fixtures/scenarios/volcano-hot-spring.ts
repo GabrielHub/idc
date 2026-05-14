@@ -10,6 +10,7 @@ export const volcanoHotSpring: DateScenario = {
     risk: "low",
     intimacy: "high",
     chaos: "low",
+    cost: 21,
     idealFor: [
       "members who can be in a small pool with a partner without performing",
       "members who treat heat tolerance as a personal pace, not a contest",

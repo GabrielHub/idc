@@ -10,6 +10,7 @@ export const listeningBoothAfterClose: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 11,
     idealFor: [
       "members who have spent decades on one piece and know the silence",
       "members whose grief is a fact they can sit beside without performing",

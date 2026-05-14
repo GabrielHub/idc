@@ -10,6 +10,7 @@ export const longAfternoonPoolBar: DateScenario = {
     risk: "low",
     intimacy: "high",
     chaos: "low",
+    cost: 12,
     idealFor: [
       "members who can take comfort without converting it into a deal",
       "members who can sit at a low pool without performing",

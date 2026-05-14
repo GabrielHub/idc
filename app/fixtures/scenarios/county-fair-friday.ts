@@ -10,6 +10,7 @@ export const countyFairFriday: DateScenario = {
     risk: "medium",
     intimacy: "medium",
     chaos: "medium",
+    cost: 11,
     idealFor: [
       "members whose warm steady voice handles funnel cake without an edge",
       "members whose tired patience fits a picnic bench and a placard",

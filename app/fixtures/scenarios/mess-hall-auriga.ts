@@ -10,6 +10,7 @@ export const messHallAuriga: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 19,
     idealFor: [
       "members who can be interesting without spectacle",
       "members who treat a cafeteria as a real venue",

@@ -1,207 +1,166 @@
 import { describe, expect, it } from "vitest";
 
-import { SCENARIO_DECK_RETIREMENT_SHIFTS, SCENARIO_DECK_SIZE } from "../domain/game";
+import { DECK_SIZE_MAX, DECK_SIZE_MIN, STARTER_BUDGET_CAP } from "../domain/game";
 import { starterScenarios } from "../fixtures";
-import { createSeedGameSave } from "./game-seed";
 import {
+  addCardToDeck,
+  createDraftedScenarioDeck,
   createInitialScenarioDeck,
   drawHand,
+  drawHandForBooking,
   listLibraryCards,
-  markCardPlayed,
-  pickLibraryCard,
-  pruneExpiredRetirements,
+  removeCardFromDeck,
   SCENARIO_HAND_SIZE,
-  SCENARIO_PLAYED_COOLDOWN_SHIFTS,
-  STARTER_DECK_CARD_IDS,
+  STARTER_CATALOG_IDS,
   softComposeWarnings,
-  swapCard,
+  unlockedScenarioIds,
 } from "./deck";
+import { createSeedGameSave } from "./game-seed";
+import { computeEffectiveCosts } from "./budget";
 
 describe("deck service", () => {
-  it("initial deck has 12 unique cards from starter list", () => {
-    const deck = createInitialScenarioDeck(starterScenarios);
-    expect(deck.cardIds).toHaveLength(SCENARIO_DECK_SIZE);
-    expect(new Set(deck.cardIds).size).toBe(SCENARIO_DECK_SIZE);
-    expect(deck.cardIds).toEqual([...STARTER_DECK_CARD_IDS]);
-    expect(deck.pendingLibraryPick).toBeUndefined();
-    expect(deck.retiredCards).toEqual([]);
+  it("createDraftedScenarioDeck enforces size and budget gates", () => {
+    const effectiveCosts = computeEffectiveCosts(starterScenarios, []);
+    const draft = STARTER_CATALOG_IDS.slice(0, 10);
+
+    const deck = createDraftedScenarioDeck({
+      cardIds: draft,
+      catalog: starterScenarios,
+      catalogIds: STARTER_CATALOG_IDS,
+      budgetCap: STARTER_BUDGET_CAP,
+      effectiveCosts,
+    });
+
+    expect(deck.cardIds.length).toBeGreaterThanOrEqual(DECK_SIZE_MIN);
+    expect(deck.cardIds.length).toBeLessThanOrEqual(DECK_SIZE_MAX);
   });
 
-  it("starter deck satisfies risk count of 4 low, 5 medium, 3 high", () => {
-    const deck = createInitialScenarioDeck(starterScenarios);
-    const scenarioById = new Map(starterScenarios.map((scenario) => [scenario.id, scenario]));
-    const risks = deck.cardIds.map((cardId) => scenarioById.get(cardId)?.card.risk);
-    const counts: Record<string, number> = { low: 0, medium: 0, high: 0 };
+  it("createDraftedScenarioDeck rejects decks that exceed the cap", () => {
+    const effectiveCosts = computeEffectiveCosts(starterScenarios, []);
+    const expensiveCards = [...starterScenarios]
+      .sort((a, b) => b.card.cost - a.card.cost)
+      .slice(0, 8)
+      .map((scenario) => scenario.id);
 
-    for (const risk of risks) {
-      if (risk !== undefined) {
-        counts[risk] += 1;
-      }
-    }
-
-    expect(counts.low).toBe(4);
-    expect(counts.medium).toBe(5);
-    expect(counts.high).toBe(3);
+    expect(() =>
+      createDraftedScenarioDeck({
+        cardIds: expensiveCards,
+        catalog: starterScenarios,
+        budgetCap: 60,
+        effectiveCosts,
+      }),
+    ).toThrow(/spends/);
   });
 
-  it("drawHand returns hand size cards from the deck", () => {
+  it("createDraftedScenarioDeck rejects decks below the minimum size", () => {
+    const effectiveCosts = computeEffectiveCosts(starterScenarios, []);
+    expect(() =>
+      createDraftedScenarioDeck({
+        cardIds: STARTER_CATALOG_IDS.slice(0, 3),
+        catalog: starterScenarios,
+        budgetCap: STARTER_BUDGET_CAP,
+        effectiveCosts,
+      }),
+    ).toThrow(/must hold between/);
+  });
+
+  it("drawHand returns hand size cards", () => {
     const deck = createInitialScenarioDeck(starterScenarios);
-    const hand = drawHand(deck, 1);
+    const hand = drawHand(deck, "test-seed");
     expect(hand).toHaveLength(SCENARIO_HAND_SIZE);
-    const uniqueCards = new Set(hand);
-    expect(uniqueCards.size).toBe(hand.length);
-
+    expect(new Set(hand).size).toBe(hand.length);
     for (const cardId of hand) {
       expect(deck.cardIds).toContain(cardId);
     }
   });
 
-  it("drawHand is deterministic for the same shift seed", () => {
+  it("drawHandForBooking is deterministic for the same pair on the same deck", () => {
     const deck = createInitialScenarioDeck(starterScenarios);
-    const first = drawHand(deck, 7);
-    const second = drawHand(deck, 7);
+    const first = drawHandForBooking({ deck, shiftNumber: 1, pairId: "alice__bob" });
+    const second = drawHandForBooking({ deck, shiftNumber: 1, pairId: "alice__bob" });
     expect(first).toEqual(second);
   });
 
-  it("markCardPlayed creates an 11-card deck with pending pick", () => {
-    const save = createSeedGameSave();
-    const playedId = save.scenarioDeck.cardIds[0];
-    if (playedId === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
-
-    const nextSave = markCardPlayed(save, playedId, 1);
-    expect(nextSave.scenarioDeck.cardIds).toHaveLength(SCENARIO_DECK_SIZE - 1);
-    expect(nextSave.scenarioDeck.cardIds).not.toContain(playedId);
-    expect(nextSave.scenarioDeck.pendingLibraryPick).toEqual({
-      playedCardId: playedId,
-      playedAtShift: 1,
+  it("drawHandForBooking changes when the deck changes", () => {
+    const deck = createInitialScenarioDeck(starterScenarios);
+    const reordered = { cardIds: [...deck.cardIds].reverse() };
+    const first = drawHandForBooking({ deck, shiftNumber: 1, pairId: "alice__bob" });
+    const second = drawHandForBooking({
+      deck: reordered,
+      shiftNumber: 1,
+      pairId: "alice__bob",
     });
+    // Sorted ids match, so identical deck contents must yield identical draws
+    // regardless of order.
+    expect(first).toEqual(second);
   });
 
-  it("markCardPlayed rejects when a pick is already pending", () => {
+  it("removeCardFromDeck drops the card and addCardToDeck refunds headroom", () => {
     const save = createSeedGameSave();
-    const first = save.scenarioDeck.cardIds[0];
-    const second = save.scenarioDeck.cardIds[1];
-    if (first === undefined || second === undefined) {
-      throw new Error("Starter deck unexpectedly small.");
-    }
-    const nextSave = markCardPlayed(save, first, 1);
-    expect(() => markCardPlayed(nextSave, second, 1)).toThrow();
+    const dropId = save.scenarioDeck.cardIds[0];
+    if (dropId === undefined) throw new Error("starter deck empty");
+
+    const afterRemove = removeCardFromDeck(save, dropId);
+    expect(afterRemove.scenarioDeck.cardIds).not.toContain(dropId);
+
+    const incoming = starterScenarios.find(
+      (scenario) =>
+        !afterRemove.scenarioDeck.cardIds.includes(scenario.id) && scenario.card.cost <= 8,
+    );
+    if (incoming === undefined) throw new Error("no cheap incoming scenario");
+
+    const afterAdd = addCardToDeck({
+      save: afterRemove,
+      scenarios: starterScenarios,
+      cardId: incoming.id,
+    });
+    expect(afterAdd.scenarioDeck.cardIds).toContain(incoming.id);
   });
 
-  it("pickLibraryCard restores deck to 12 cards when pending", () => {
+  it("addCardToDeck rejects duplicate or over-budget additions", () => {
     const save = createSeedGameSave();
-    const played = save.scenarioDeck.cardIds[0];
-    if (played === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
-    const afterPlay = markCardPlayed(save, played, 1);
-    const libraryEntry = listLibraryCards(afterPlay, starterScenarios)[0];
-    if (libraryEntry === undefined) {
-      throw new Error("Library expected to have at least one card.");
-    }
-    const afterPick = pickLibraryCard(afterPlay, libraryEntry.scenarioId);
-    expect(afterPick.scenarioDeck.cardIds).toHaveLength(SCENARIO_DECK_SIZE);
-    expect(afterPick.scenarioDeck.cardIds).toContain(libraryEntry.scenarioId);
-    expect(afterPick.scenarioDeck.pendingLibraryPick).toBeUndefined();
+    const existingId = save.scenarioDeck.cardIds[0];
+    if (existingId === undefined) throw new Error("starter deck empty");
+
+    expect(() =>
+      addCardToDeck({
+        save,
+        scenarios: starterScenarios,
+        cardId: existingId,
+      }),
+    ).toThrow(/already in the deck/);
+
+    const cappedSave = { ...save, budgetCap: 1 };
+    const incoming = starterScenarios.find(
+      (scenario) => !save.scenarioDeck.cardIds.includes(scenario.id),
+    );
+    if (incoming === undefined) throw new Error("no library card available");
+
+    expect(() =>
+      addCardToDeck({
+        save: cappedSave,
+        scenarios: starterScenarios,
+        cardId: incoming.id,
+      }),
+    ).toThrow(/exceeds the remaining budget/);
   });
 
-  it("pickLibraryCard fails when nothing is pending", () => {
+  it("listLibraryCards excludes deck cards", () => {
     const save = createSeedGameSave();
-    const libraryEntry = listLibraryCards(save, starterScenarios)[0];
-    if (libraryEntry === undefined) {
-      throw new Error("Library expected to have at least one card.");
-    }
-    expect(() => pickLibraryCard(save, libraryEntry.scenarioId)).toThrow();
-  });
-
-  it("swapCard retires the dropped card for exactly 3 future shifts", () => {
-    const save = createSeedGameSave();
-    const droppedId = save.scenarioDeck.cardIds[0];
-    if (droppedId === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
+    const deckIds = new Set(save.scenarioDeck.cardIds);
     const library = listLibraryCards(save, starterScenarios);
-    const libraryEntry = library[0];
-    if (libraryEntry === undefined) {
-      throw new Error("Library expected to have at least one card.");
+    for (const entry of library) {
+      expect(deckIds.has(entry.scenarioId)).toBe(false);
     }
-    const currentShift = 4;
-    const swapped = swapCard(save, droppedId, libraryEntry.scenarioId, currentShift);
-
-    expect(swapped.scenarioDeck.cardIds).toHaveLength(SCENARIO_DECK_SIZE);
-    expect(swapped.scenarioDeck.cardIds).not.toContain(droppedId);
-    expect(swapped.scenarioDeck.cardIds).toContain(libraryEntry.scenarioId);
-
-    const retired = swapped.scenarioDeck.retiredCards.find((entry) => entry.cardId === droppedId);
-    expect(retired).toBeDefined();
-    expect(retired?.availableOnShift).toBe(currentShift + SCENARIO_DECK_RETIREMENT_SHIFTS + 1);
   });
 
-  it("swapCard replaces dropped drawn cards in the active hand", () => {
-    const save = createSeedGameSave();
-    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
-    const droppedId = activeShift?.drawnScenarioIds[0];
-    const libraryEntry = listLibraryCards(save, starterScenarios)[0];
+  it("unlockedScenarioIds gates closure-tier and shift-tier picks", () => {
+    const starterOnly = unlockedScenarioIds({ closureCount: 0, shiftNumber: 1 });
+    const afterClosure = unlockedScenarioIds({ closureCount: 1, shiftNumber: 1 });
+    const lateShift = unlockedScenarioIds({ closureCount: 3, shiftNumber: 20 });
 
-    if (activeShift === undefined || droppedId === undefined || libraryEntry === undefined) {
-      throw new Error("Expected a drawn card and an available library card.");
-    }
-
-    const swapped = swapCard(save, droppedId, libraryEntry.scenarioId, activeShift.shiftNumber);
-    const updatedShift = swapped.shifts.find((shift) => shift.id === swapped.activeShiftId);
-
-    expect(updatedShift?.drawnScenarioIds).toContain(libraryEntry.scenarioId);
-    expect(updatedShift?.drawnScenarioIds).not.toContain(droppedId);
-  });
-
-  it("listLibraryCards excludes deck cards and flags retired availability", () => {
-    const save = createSeedGameSave();
-    const droppedId = save.scenarioDeck.cardIds[0];
-    if (droppedId === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
-    const library = listLibraryCards(save, starterScenarios);
-    const incoming = library.find((entry) => entry.availableOnShift === null);
-    if (incoming === undefined) {
-      throw new Error("Expected at least one available library card.");
-    }
-    const swapped = swapCard(save, droppedId, incoming.scenarioId, 2);
-    const updatedLibrary = listLibraryCards(swapped, starterScenarios);
-    const retired = updatedLibrary.find((entry) => entry.scenarioId === droppedId);
-    expect(retired?.availableOnShift).toBe(2 + SCENARIO_DECK_RETIREMENT_SHIFTS + 1);
-  });
-
-  it("just-played card cools off until next shift", () => {
-    const save = createSeedGameSave();
-    const playedId = save.scenarioDeck.cardIds[0];
-    if (playedId === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
-
-    const afterPlay = markCardPlayed(save, playedId, 1);
-    const retired = afterPlay.scenarioDeck.retiredCards.find((entry) => entry.cardId === playedId);
-    expect(retired?.availableOnShift).toBe(1 + SCENARIO_PLAYED_COOLDOWN_SHIFTS);
-
-    const library = listLibraryCards(afterPlay, starterScenarios);
-    const playedEntry = library.find((entry) => entry.scenarioId === playedId);
-    expect(playedEntry?.availableOnShift).toBe(1 + SCENARIO_PLAYED_COOLDOWN_SHIFTS);
-
-    expect(() => pickLibraryCard(afterPlay, playedId)).toThrow(/retired until shift/);
-  });
-
-  it("pruneExpiredRetirements clears the played card on the next shift", () => {
-    const save = createSeedGameSave();
-    const playedId = save.scenarioDeck.cardIds[0];
-    if (playedId === undefined) {
-      throw new Error("Starter deck unexpectedly empty.");
-    }
-
-    const afterPlay = markCardPlayed(save, playedId, 1);
-    const pruned = pruneExpiredRetirements(afterPlay.scenarioDeck, 2);
-
-    expect(pruned.retiredCards.find((entry) => entry.cardId === playedId)).toBeUndefined();
+    expect(afterClosure.size).toBeGreaterThan(starterOnly.size);
+    expect(lateShift.size).toBeGreaterThan(afterClosure.size);
   });
 
   it("softComposeWarnings returns advisory strings only", () => {

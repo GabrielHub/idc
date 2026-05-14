@@ -49,8 +49,8 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="danger" title="No stale backlog">
           <P>
             Do not use roadmap plans as a wishlist, idea parking lot, changelog, or postmortem. If
-            no one is preparing, doing, blocked on, or closing the work, do not leave a plan on the
-            board.
+            no one is preparing, readying, doing, reviewing, blocked on, or closing the work, do not
+            leave a plan on the board.
           </P>
         </DocCallout>
         <DocList
@@ -84,6 +84,14 @@ export const sections: DocSectionEntry[] = [
           <DocCode>plan.touched</DocCode>, and change <DocCode>plan.status</DocCode> when the lane
           changes.
         </P>
+        <DocCallout variant="danger" title="No draft implementation">
+          <P>
+            Do not start implementation from a <Strong>drafting</Strong> plan. Promote a scoped plan
+            to <Strong>ready</Strong>, then move it to <Strong>in flight</Strong> when code work
+            starts. Move it to <Strong>review</Strong> when implementation is ready for audit,
+            verification, or defect repair.
+          </P>
+        </DocCallout>
         <DocCallout variant="info" title="Count progress by source">
           <P>
             <DocCode>plan.tasks</DocCode> and <DocCode>plan.done</DocCode> count every checkbox in
@@ -228,7 +236,7 @@ export const plan: RoadmapPlanMeta = {
           lines={[
             { kind: "context", text: "export const plan: RoadmapPlanMeta = {" },
             { kind: "remove", text: '  status: "drafting",' },
-            { kind: "add", text: '  status: "in-flight",' },
+            { kind: "add", text: '  status: "ready",' },
             { kind: "add", text: '  touched: "2026-05-14",' },
             { kind: "context", text: "};" },
           ]}
@@ -296,9 +304,17 @@ export const plan: RoadmapPlanMeta = {
               <Strong>Drafting</Strong>: scope is being formed. Open questions are allowed. Tasks
               may be rough, but they need enough evidence for a reviewer to judge the plan.
             </span>,
+            <span key="ready">
+              <Strong>Ready</Strong>: scope, acceptance, and checklist are executable.
+              Implementation has not started yet.
+            </span>,
             <span key="in-flight">
               <Strong>In flight</Strong>: implementation has started. Tasks should be concrete,
               source-tracked, and kept current as code lands.
+            </span>,
+            <span key="review">
+              <Strong>Review</Strong>: implementation has landed and the plan is under audit,
+              verification, or defect repair. Keep remaining gaps in the plan body.
             </span>,
             <span key="blocked">
               <Strong>Blocked</Strong>: work cannot continue without an external decision, missing
@@ -332,7 +348,8 @@ export const plan: RoadmapPlanMeta = {
             "Run the commands required by the plan, usually vp check, plus vp test and vp build when behavior, saves, systems, fixtures, integration, or user workflows changed.",
             "Move durable decisions, rules, and workflow changes into the owning product, gameplay, workflow, or support doc.",
             "Delete the plan file and remove dependency links to it once the work is shipped or shelved.",
-            "If verification cannot finish, keep the plan blocked with exact command output and the next unblock action.",
+            "If implementation needs audit or verification, keep the plan in review with exact remaining gaps.",
+            "If work cannot continue, keep the plan blocked with exact command output and the next unblock action.",
           ]}
         />
         <DocCodeBlock language="powershell">{`vp check

@@ -10,6 +10,7 @@ export const hardwareStoreOneProject: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 6,
     idealFor: [
       "members whose trade work has them name the aisle on instinct",
       "members who relax around a finishable task",

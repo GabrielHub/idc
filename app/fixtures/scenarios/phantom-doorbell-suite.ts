@@ -10,6 +10,7 @@ export const phantomDoorbellSuite: DateScenario = {
     risk: "high",
     intimacy: "high",
     chaos: "high",
+    cost: 18,
     idealFor: [
       "members who let unexplained sound stay unexplained",
       "members who can hold a thread when the room raises its voice",

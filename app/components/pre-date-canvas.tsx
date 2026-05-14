@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { type Ref, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
+  ActiveDateBooking,
   CompanyGoal,
   DateScenario,
   GameSave,
@@ -10,6 +11,7 @@ import type {
   PairState,
   ShiftState,
 } from "../domain/game";
+import { activeBudgetDiscountOffers, computeEffectiveCosts } from "../services/budget";
 import { clientLossLimit, type ReadyClosurePair } from "../services/closures";
 import {
   buildGoalProgressSnapshots,
@@ -22,9 +24,12 @@ import {
 } from "../services/date-engine";
 import { companyGoals } from "../fixtures";
 import {
-  chooseRecommendedMatchCandidate,
+  chooseScenarioFreeRecommendation,
   evaluateMatchFit,
-  type MatchRecommendationCandidate,
+  evaluateScenarioFreePairSignal,
+  scenarioRoomReadFromMatchFit,
+  type ScenarioFreeRecommendationCandidate,
+  type ScenarioRoomRead,
 } from "../services/match-fit";
 import { makePairId } from "../services/game-seed";
 import {
@@ -61,18 +66,16 @@ export type PreDateCanvasProps = {
   closingPairId: string | null;
   closureError: { pairId: string; message: string } | null;
   revealAllMemberDetails: boolean;
-  onStartDate: (input: {
-    focusMemberId: string;
-    partnerMemberId: string;
-    scenarioId: string;
-  }) => void;
+  deckRepairBlocked: boolean;
+  onCommitPair: (input: { focusMemberId: string; partnerMemberId: string }) => void;
+  onStartDate: (input: { scenarioId: string }) => void;
+  onCancelBooking: () => void;
   onConfirmClosure: (pairId: string) => void;
   onDismissClosureError: () => void;
   onOpenDateBook: () => void;
   onOpenRoster: () => void;
   onCloseShift: () => void;
   onStartNextShift: () => void;
-  onResolveLibraryPick: () => void;
 };
 
 export function PreDateCanvas({
@@ -88,14 +91,16 @@ export function PreDateCanvas({
   closingPairId,
   closureError,
   revealAllMemberDetails,
+  deckRepairBlocked,
+  onCommitPair,
   onStartDate,
+  onCancelBooking,
   onConfirmClosure,
   onDismissClosureError,
   onOpenDateBook,
   onOpenRoster,
   onCloseShift,
   onStartNextShift,
-  onResolveLibraryPick,
 }: PreDateCanvasProps) {
   const focusedIds = useMemo(
     () => new Set(focusedMembers.map((member) => member.id)),
@@ -120,14 +125,25 @@ export function PreDateCanvas({
     [focusedMembers, shift.shiftNumber],
   );
 
-  const [activeFocusId, setActiveFocusId] = useState<string | null>(eligibleFocus[0]?.id ?? null);
-  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const activeBooking = shift.activeBooking ?? null;
+  const isCommitted = activeBooking !== null;
+
+  const [activeFocusId, setActiveFocusId] = useState<string | null>(
+    activeBooking?.focusMemberId ?? eligibleFocus[0]?.id ?? null,
+  );
+  const [partnerId, setPartnerId] = useState<string | null>(() => {
+    if (activeBooking !== null) {
+      const partner = activeBooking.participantIds.find((id) => id !== activeBooking.focusMemberId);
+      return partner ?? null;
+    }
+    return null;
+  });
   const [scenarioId, setScenarioId] = useState<string | null>(drawnScenarios[0]?.id ?? null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
-  const dateSectionRef = useRef<HTMLElement | null>(null);
   const focusSectionRef = useRef<HTMLElement | null>(null);
   const partnerSectionRef = useRef<HTMLElement | null>(null);
+  const dateSectionRef = useRef<HTMLElement | null>(null);
   const selectedDateCardRef = useRef<HTMLDivElement | null>(null);
   const selectedFocusCardRef = useRef<HTMLLIElement | null>(null);
   const selectedPartnerCardRef = useRef<HTMLLIElement | null>(null);
@@ -143,11 +159,17 @@ export function PreDateCanvas({
   };
 
   useEffect(() => {
+    if (activeBooking !== null) {
+      setActiveFocusId(activeBooking.focusMemberId);
+      const partner = activeBooking.participantIds.find((id) => id !== activeBooking.focusMemberId);
+      setPartnerId(partner ?? null);
+      return;
+    }
     if (activeFocusId !== null && eligibleFocus.some((member) => member.id === activeFocusId)) {
       return;
     }
     setActiveFocusId(eligibleFocus[0]?.id ?? null);
-  }, [activeFocusId, eligibleFocus]);
+  }, [activeBooking, activeFocusId, eligibleFocus]);
 
   useEffect(() => {
     if (scenarioId !== null && drawnScenarios.some((scenario) => scenario.id === scenarioId)) {
@@ -163,6 +185,13 @@ export function PreDateCanvas({
 
   const candidatePartners = useMemo(() => {
     if (activeFocus === null) return [];
+    if (activeBooking !== null) {
+      const partnerIdFromBooking = activeBooking.participantIds.find(
+        (id) => id !== activeBooking.focusMemberId,
+      );
+      const partner = save.members.find((member) => member.id === partnerIdFromBooking);
+      return partner === undefined ? [] : [partner];
+    }
     return sortMembersByCuratedRosterOrder(
       save.members.filter(
         (member) =>
@@ -171,15 +200,16 @@ export function PreDateCanvas({
           !isMemberInCooldown(member, shift.shiftNumber),
       ),
     );
-  }, [save.members, activeFocus, shift.shiftNumber]);
+  }, [save.members, activeFocus, shift.shiftNumber, activeBooking]);
 
   useEffect(() => {
+    if (activeBooking !== null) return;
     if (partnerId === null) return;
     const stillEligible = candidatePartners.some((member) => member.id === partnerId);
     if (!stillEligible) {
       setPartnerId(null);
     }
-  }, [candidatePartners, partnerId]);
+  }, [candidatePartners, partnerId, activeBooking]);
 
   const selectedScenario = useMemo(
     () => drawnScenarios.find((scenario) => scenario.id === scenarioId) ?? null,
@@ -194,7 +224,6 @@ export function PreDateCanvas({
     () => new Map(pairStates.map((state) => [state.id, state])),
     [pairStates],
   );
-  const fallbackScenario = drawnScenarios[0] ?? null;
   const activeFocusRequest = useMemo(() => {
     if (activeFocus === null) return undefined;
 
@@ -235,36 +264,25 @@ export function PreDateCanvas({
   }, [save.dateSessions, save.members, shift, shiftGoals]);
 
   const suggestedPartner = useMemo(() => {
-    if (activeFocus === null) return null;
-    const scenario = selectedScenario ?? fallbackScenario;
-    if (scenario === null) return null;
-    const candidates: MatchRecommendationCandidate<Member>[] = [];
+    if (activeFocus === null || activeBooking !== null) return null;
+    const candidates: ScenarioFreeRecommendationCandidate<Member>[] = [];
     for (const candidate of candidatePartners) {
       const pairState = pairStateById.get(makePairId(activeFocus.id, candidate.id));
       if (pairState === undefined) continue;
       try {
-        const fit = evaluateMatchFit({
+        const signal = evaluateScenarioFreePairSignal({
           members: [activeFocus, candidate],
-          scenario,
           pairState,
           activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
           knownPairReads: visibleReadsForPair(save, pairState.id),
         });
-        candidates.push({ candidate, fit });
+        candidates.push({ candidate, signal });
       } catch {
         continue;
       }
     }
-    return chooseRecommendedMatchCandidate(candidates);
-  }, [
-    activeFocus,
-    activeFocusRequest,
-    candidatePartners,
-    fallbackScenario,
-    save,
-    selectedScenario,
-    pairStateById,
-  ]);
+    return chooseScenarioFreeRecommendation(candidates);
+  }, [activeFocus, activeFocusRequest, candidatePartners, save, pairStateById, activeBooking]);
 
   const orderedCandidatePartners = useMemo(
     () => moveSuggestedMemberFirst(candidatePartners, suggestedPartner?.id ?? null),
@@ -279,21 +297,61 @@ export function PreDateCanvas({
     [partnerId, suggestedPartner, save.members],
   );
 
+  const offers = useMemo(() => activeBudgetDiscountOffers(save), [save]);
+  const effectiveCostsByScenarioId = useMemo(
+    () => computeEffectiveCosts(drawnScenarios, offers),
+    [drawnScenarios, offers],
+  );
+
+  const roomReadByScenarioId = useMemo(() => {
+    if (activeBooking === null) {
+      return new Map<string, ScenarioRoomRead>();
+    }
+    const pairState = pairStateById.get(activeBooking.pairId);
+    const focus = save.members.find((member) => member.id === activeBooking.focusMemberId);
+    const partner = save.members.find(
+      (member) =>
+        member.id !== activeBooking.focusMemberId &&
+        activeBooking.participantIds.includes(member.id),
+    );
+    if (pairState === undefined || focus === undefined || partner === undefined) {
+      return new Map<string, ScenarioRoomRead>();
+    }
+    const map = new Map<string, ScenarioRoomRead>();
+    for (const scenario of drawnScenarios) {
+      try {
+        const fit = evaluateMatchFit({
+          members: [focus, partner],
+          scenario,
+          pairState,
+          activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
+          knownPairReads: visibleReadsForPair(save, pairState.id),
+        });
+        map.set(scenario.id, scenarioRoomReadFromMatchFit(fit));
+      } catch {
+        continue;
+      }
+    }
+    return map;
+  }, [activeBooking, pairStateById, save, drawnScenarios, activeFocusRequest]);
+
   const shiftClosed = shift.status === "completed";
   const shiftDateAvailable = shift.dateSlotsUsed < shift.dateSlotsTotal;
-  const pendingLibraryPick = save.scenarioDeck.pendingLibraryPick;
 
-  const canStart =
+  const canCommit =
     aiReady &&
     !isActionPending &&
+    !isCommitted &&
     !shiftClosed &&
-    pendingLibraryPick === undefined &&
+    !deckRepairBlocked &&
     shiftDateAvailable &&
     activeFocus !== null &&
     effectivePartner !== null &&
-    selectedScenario !== null &&
     activeFocus.state.status === "active" &&
     effectivePartner.state.status === "active";
+
+  const canStart =
+    aiReady && !isActionPending && isCommitted && !shiftClosed && selectedScenario !== null;
 
   const openMember = useMemo(
     () => save.members.find((member) => member.id === openMemberId) ?? null,
@@ -312,6 +370,7 @@ export function PreDateCanvas({
         lossLimit={lossLimit}
         closureCount={save.closureCount}
         shiftClosed={shiftClosed}
+        activeBookingLocked={isCommitted}
         isActionPending={isActionPending}
         onCloseShift={onCloseShift}
         onStartNextShift={onStartNextShift}
@@ -336,21 +395,11 @@ export function PreDateCanvas({
         />
       ) : null}
 
+      {deckRepairBlocked && !isCommitted ? (
+        <DeckRepairCallout onOpenDateBook={onOpenDateBook} />
+      ) : null}
+
       <Hairline className="mt-2" />
-
-      <ScenarioStep
-        sectionRef={dateSectionRef}
-        selectedCardRef={selectedDateCardRef}
-        drawnScenarios={drawnScenarios}
-        selectedId={selectedScenario?.id ?? null}
-        pendingLibraryPick={pendingLibraryPick}
-        onSelect={setScenarioId}
-        onExpand={setOpenScenarioId}
-        onOpenDateBook={onOpenDateBook}
-        onResolveLibraryPick={onResolveLibraryPick}
-      />
-
-      <Hairline className="mt-12" />
 
       <FocusStep
         sectionRef={focusSectionRef}
@@ -361,6 +410,7 @@ export function PreDateCanvas({
         shiftNumber={shift.shiftNumber}
         requestForMember={requestForMember}
         revealAllMemberDetails={revealAllMemberDetails}
+        locked={isCommitted}
         onSelect={setActiveFocusId}
         onOpenRoster={onOpenRoster}
         onExpand={(id) => setOpenMemberId(id)}
@@ -377,18 +427,36 @@ export function PreDateCanvas({
         suggestedPartnerId={suggestedPartner?.id ?? null}
         playerKnowledge={save.playerKnowledge}
         revealAllMemberDetails={revealAllMemberDetails}
+        locked={isCommitted}
         onOpenRoster={onOpenRoster}
         onSelect={(id) => setPartnerId(id)}
         onExpand={(id) => setOpenMemberId(id)}
+      />
+
+      <Hairline className="mt-12" />
+
+      <ScenarioStep
+        sectionRef={dateSectionRef}
+        selectedCardRef={selectedDateCardRef}
+        drawnScenarios={drawnScenarios}
+        selectedId={selectedScenario?.id ?? null}
+        committed={isCommitted}
+        effectiveCostsByScenarioId={effectiveCostsByScenarioId}
+        roomReadByScenarioId={roomReadByScenarioId}
+        onSelect={setScenarioId}
+        onExpand={setOpenScenarioId}
+        onOpenDateBook={onOpenDateBook}
       />
 
       <BeginDateDock
         focus={activeFocus}
         partner={effectivePartner}
         scenario={selectedScenario}
+        canCommit={canCommit}
         canStart={canStart}
+        isCommitted={isCommitted}
         aiReady={aiReady}
-        pendingLibraryPick={pendingLibraryPick}
+        deckRepairBlocked={deckRepairBlocked}
         shiftDateAvailable={shiftDateAvailable}
         shiftClosed={shiftClosed}
         onScrollTo={(step) => {
@@ -399,15 +467,20 @@ export function PreDateCanvas({
           };
           scrollCardIntoView(target[step]());
         }}
-        onStart={() => {
-          if (activeFocus !== null && effectivePartner !== null && selectedScenario !== null) {
-            onStartDate({
+        onCommit={() => {
+          if (activeFocus !== null && effectivePartner !== null && !isCommitted) {
+            onCommitPair({
               focusMemberId: activeFocus.id,
               partnerMemberId: effectivePartner.id,
-              scenarioId: selectedScenario.id,
             });
           }
         }}
+        onStart={() => {
+          if (selectedScenario !== null && isCommitted) {
+            onStartDate({ scenarioId: selectedScenario.id });
+          }
+        }}
+        onCancel={onCancelBooking}
       />
 
       {openMember === null ? null : (
@@ -436,6 +509,23 @@ export function PreDateCanvas({
 
 function scrollCardIntoView(target: HTMLElement | null) {
   target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+}
+
+function DeckRepairCallout({ onOpenDateBook }: { onOpenDateBook: () => void }) {
+  return (
+    <div className="mt-6 rounded-card border border-amber-300/70 bg-amber-50/80 p-4 text-amber-900">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+        // date book over budget
+      </p>
+      <div className="mt-1.5 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm">
+          A budget cut put the deck above the cap. Drop cards in the Date Book before committing a
+          new pair.
+        </p>
+        <GhostButton onClick={onOpenDateBook}>Open the date book →</GhostButton>
+      </div>
+    </div>
+  );
 }
 
 function ShiftBriefDock({
@@ -664,6 +754,7 @@ function PreDateHeader({
   lossLimit,
   closureCount,
   shiftClosed,
+  activeBookingLocked,
   isActionPending,
   onCloseShift,
   onStartNextShift,
@@ -676,6 +767,7 @@ function PreDateHeader({
   lossLimit: number;
   closureCount: number;
   shiftClosed: boolean;
+  activeBookingLocked: boolean;
   isActionPending: boolean;
   onCloseShift: () => void;
   onStartNextShift: () => void;
@@ -698,14 +790,20 @@ function PreDateHeader({
             Tonight's date
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-aura-muted">
-            Pick a focus case, pick their partner, pick the room. Cupid only recommends a partner
-            when one booking clearly stands out.
+            Pick a focus case, pick their partner, commit, then read the room. Cupid drafts the
+            scenarios from your Date Book.
           </p>
         </div>
         <div className="flex flex-col items-end gap-3">
           <div className="flex items-center gap-3 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
             <span>
-              {shiftClosed ? "shift closed" : shiftDateAvailable ? "date open" : "date booked"}
+              {shiftClosed
+                ? "shift closed"
+                : activeBookingLocked
+                  ? "booking committed"
+                  : shiftDateAvailable
+                    ? "date open"
+                    : "date booked"}
             </span>
             <span aria-hidden>•</span>
             <span>
@@ -723,6 +821,13 @@ function PreDateHeader({
             <PrimaryButton onClick={onStartNextShift} disabled={isActionPending}>
               Open next shift →
             </PrimaryButton>
+          ) : activeBookingLocked ? (
+            <Tooltip
+              message="Start or cancel the committed booking before filing this shift."
+              placement="bottom-end"
+            >
+              <GhostButton disabled>Resolve booking first</GhostButton>
+            </Tooltip>
           ) : shiftDateAvailable ? (
             <Tooltip
               message="End this shift without booking a date. Cupid files the day, applies any ignored request fallout, and lets you open the next shift."
@@ -786,6 +891,7 @@ function FocusStep({
   shiftNumber,
   requestForMember,
   revealAllMemberDetails,
+  locked,
   onSelect,
   onOpenRoster,
   onExpand,
@@ -798,6 +904,7 @@ function FocusStep({
   shiftNumber: number;
   requestForMember: (member: Member) => MemberRequest | undefined;
   revealAllMemberDetails: boolean;
+  locked: boolean;
   onSelect: (id: string) => void;
   onOpenRoster: () => void;
   onExpand: (id: string) => void;
@@ -805,10 +912,14 @@ function FocusStep({
   return (
     <section ref={sectionRef} className="mt-10">
       <StepHeader
-        index={2}
-        eyebrow="// step.02.focus"
-        title="Focus case"
-        hint="Pick which case you're working tonight. Cooldowns and closed files cannot be picked."
+        index={1}
+        eyebrow="// step.01.focus"
+        title={locked ? "Focus case (locked)" : "Focus case"}
+        hint={
+          locked
+            ? "Pair is committed. Resolve or cancel the booking to reassign focus."
+            : "Pick which case you're working tonight. Cooldowns and closed files cannot be picked."
+        }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
       <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -837,15 +948,16 @@ function FocusStep({
               cardRef={isActive ? selectedCardRef : undefined}
               statusPill={buildFocusPill(member, isInCooldown)}
               askPreview={askPreview}
-              disabled={member.state.status !== "active" || isInCooldown}
+              disabled={locked || member.state.status !== "active" || isInCooldown}
               onClick={() => {
+                if (locked) return;
                 if (member.state.status === "active" && !isInCooldown) onSelect(member.id);
               }}
               onExpand={() => onExpand(member.id)}
             />
           );
         })}
-        {focusedMembers.length < 4 ? (
+        {!locked && focusedMembers.length < 4 ? (
           <li className="list-none">
             <button
               type="button"
@@ -871,6 +983,7 @@ function PartnerStep({
   suggestedPartnerId,
   playerKnowledge,
   revealAllMemberDetails,
+  locked,
   onOpenRoster,
   onSelect,
   onExpand,
@@ -883,6 +996,7 @@ function PartnerStep({
   suggestedPartnerId: string | null;
   playerKnowledge: GameSave["playerKnowledge"];
   revealAllMemberDetails: boolean;
+  locked: boolean;
   onOpenRoster: () => void;
   onSelect: (id: string) => void;
   onExpand: (id: string) => void;
@@ -891,8 +1005,8 @@ function PartnerStep({
     return (
       <section ref={sectionRef} className="mt-10">
         <StepHeader
-          index={3}
-          eyebrow="// step.03.partner"
+          index={2}
+          eyebrow="// step.02.partner"
           title="Partner"
           hint="Pick a focus case first."
         />
@@ -904,8 +1018,8 @@ function PartnerStep({
     return (
       <section ref={sectionRef} className="mt-10">
         <StepHeader
-          index={3}
-          eyebrow="// step.03.partner"
+          index={2}
+          eyebrow="// step.02.partner"
           title={`Partner for ${activeFocus.firstName}`}
           hint="No eligible partners on file. Open the roster to add a focus case or wait out a cooldown."
           rightSlot={<GhostButton onClick={onOpenRoster}>Open roster</GhostButton>}
@@ -919,13 +1033,19 @@ function PartnerStep({
   return (
     <section ref={sectionRef} className="mt-10">
       <StepHeader
-        index={3}
-        eyebrow="// step.03.partner"
-        title={`Partner for ${activeFocus.firstName}`}
+        index={2}
+        eyebrow="// step.02.partner"
+        title={
+          locked
+            ? `Partner for ${activeFocus.firstName} (locked)`
+            : `Partner for ${activeFocus.firstName}`
+        }
         hint={
-          suggestedPartnerId === null
-            ? "No clear recommendation on file. Pick any active member."
-            : "Cupid found one clear booking recommendation. Tap any active member to override."
+          locked
+            ? "Pair is committed. The Date Book and partner are locked until the date resolves."
+            : suggestedPartnerId === null
+              ? "No clear recommendation on file. Pick any active member."
+              : "Cupid found one clear booking recommendation. Tap any active member to override."
         }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
@@ -953,7 +1073,11 @@ function PartnerStep({
               index={index}
               cardRef={isPicked ? selectedCardRef : undefined}
               statusPill={statusPill}
-              onClick={() => onSelect(member.id)}
+              disabled={locked}
+              onClick={() => {
+                if (locked) return;
+                onSelect(member.id);
+              }}
               onExpand={() => onExpand(member.id)}
             />
           );
@@ -971,41 +1095,44 @@ function ScenarioStep({
   selectedCardRef,
   drawnScenarios,
   selectedId,
-  pendingLibraryPick,
+  committed,
+  effectiveCostsByScenarioId,
+  roomReadByScenarioId,
   onSelect,
   onExpand,
   onOpenDateBook,
-  onResolveLibraryPick,
 }: {
   sectionRef: Ref<HTMLElement>;
   selectedCardRef: Ref<HTMLDivElement>;
   drawnScenarios: DateScenario[];
   selectedId: string | null;
-  pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
+  committed: boolean;
+  effectiveCostsByScenarioId: Record<string, number>;
+  roomReadByScenarioId: ReadonlyMap<string, ScenarioRoomRead>;
   onSelect: (id: string) => void;
   onExpand: (id: string) => void;
   onOpenDateBook: () => void;
-  onResolveLibraryPick: () => void;
 }) {
   return (
     <section ref={sectionRef} className="mt-10">
       <StepHeader
-        index={1}
-        eyebrow="// step.01.date"
-        title="Date plan"
-        hint="Three cards drawn for tonight. Open the date book to swap or pick from the library."
-        rightSlot={
-          <>
-            {pendingLibraryPick !== undefined ? (
-              <GhostButton onClick={onResolveLibraryPick}>Resolve library pick →</GhostButton>
-            ) : null}
-            <GhostButton onClick={onOpenDateBook}>Open the date book</GhostButton>
-          </>
+        index={3}
+        eyebrow="// step.03.date"
+        title={committed ? "Date plan" : "Date plan (locked until commit)"}
+        hint={
+          committed
+            ? "Three cards drawn from your Date Book for this pair. Pick one to start the date."
+            : "Commit the pair to draw three cards. Adjust the Date Book first if needed."
         }
+        rightSlot={<GhostButton onClick={onOpenDateBook}>Open the date book</GhostButton>}
       />
-      {drawnScenarios.length === 0 ? (
+      {!committed ? (
         <p className="text-sm text-aura-muted">
-          No drawn hand yet. Open the date book to draw three for tonight.
+          Commit a focus and partner to draw three scenarios for this pair.
+        </p>
+      ) : drawnScenarios.length === 0 ? (
+        <p className="text-sm text-aura-muted">
+          No drawn hand yet. Cupid is waiting for the booking to settle.
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -1019,6 +1146,8 @@ function ScenarioStep({
                 scenario={scenario}
                 size="compact"
                 state={selectedId === scenario.id ? "selected" : "default"}
+                effectiveCost={effectiveCostsByScenarioId[scenario.id] ?? scenario.card.cost}
+                roomRead={roomReadByScenarioId.get(scenario.id)}
                 onClick={() => onSelect(scenario.id)}
                 onExpand={() => onExpand(scenario.id)}
               />
@@ -1034,38 +1163,46 @@ function BeginDateDock({
   focus,
   partner,
   scenario,
+  canCommit,
   canStart,
+  isCommitted,
   aiReady,
-  pendingLibraryPick,
+  deckRepairBlocked,
   shiftDateAvailable,
   shiftClosed,
   onScrollTo,
+  onCommit,
   onStart,
+  onCancel,
 }: {
   focus: Member | null;
   partner: Member | null;
   scenario: DateScenario | null;
+  canCommit: boolean;
   canStart: boolean;
+  isCommitted: boolean;
   aiReady: boolean;
-  pendingLibraryPick: GameSave["scenarioDeck"]["pendingLibraryPick"];
+  deckRepairBlocked: boolean;
   shiftDateAvailable: boolean;
   shiftClosed: boolean;
   onScrollTo: (step: BookingStep) => void;
+  onCommit: () => void;
   onStart: () => void;
+  onCancel: () => void;
 }) {
   const status = !aiReady
     ? "ai not ready"
     : shiftClosed
       ? "shift filed, open the next one to book"
-      : !shiftDateAvailable
-        ? "this shift's date is already booked"
-        : pendingLibraryPick !== undefined
-          ? "resolve the pending library pick first"
+      : deckRepairBlocked && !isCommitted
+        ? "date book is over budget, open it to repair"
+        : !shiftDateAvailable && !isCommitted
+          ? "this shift's date is already booked"
           : focus === null
             ? "pick a focus case"
             : partner === null
               ? "pick a partner"
-              : scenario === null
+              : isCommitted && scenario === null
                 ? "pick a date plan"
                 : null;
 
@@ -1079,9 +1216,23 @@ function BeginDateDock({
               {status}
             </span>
           ) : null}
-          <PrimaryButton onClick={onStart} disabled={!canStart}>
-            Begin date →
-          </PrimaryButton>
+          {isCommitted ? (
+            <>
+              <GhostButton onClick={onCancel}>Cancel booking</GhostButton>
+              <PrimaryButton onClick={onStart} disabled={!canStart}>
+                Begin date →
+              </PrimaryButton>
+            </>
+          ) : (
+            <Tooltip
+              message="Committing the pair starts the live date process. The hand is drawn, the Date Book locks, and you cannot switch members until the date resolves."
+              placement="top-center"
+            >
+              <PrimaryButton onClick={onCommit} disabled={!canCommit}>
+                Commit pair →
+              </PrimaryButton>
+            </Tooltip>
+          )}
         </div>
       </div>
     </div>
@@ -1292,3 +1443,5 @@ function ClosureCallout({
     </section>
   );
 }
+
+export type _ActiveDateBookingTypeAlias = ActiveDateBooking;

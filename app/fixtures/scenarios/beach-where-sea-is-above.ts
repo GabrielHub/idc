@@ -10,6 +10,7 @@ export const beachWhereSeaIsAbove: DateScenario = {
     risk: "low",
     intimacy: "medium",
     chaos: "low",
+    cost: 23,
     idealFor: [
       "members who can look up without making it a topic",
       "members who can sit a long quiet on a chair",

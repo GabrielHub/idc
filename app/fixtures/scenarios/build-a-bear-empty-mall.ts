@@ -10,6 +10,7 @@ export const buildABearEmptyMall: DateScenario = {
     risk: "medium",
     intimacy: "high",
     chaos: "medium",
+    cost: 10,
     idealFor: [
       "members who can build a small thing with a partner and not run it",
       "members who can name a thing together without making it a debate",

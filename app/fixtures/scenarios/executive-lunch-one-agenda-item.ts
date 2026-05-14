@@ -10,6 +10,7 @@ export const executiveLunchOneAgendaItem: DateScenario = {
     risk: "low",
     intimacy: "low",
     chaos: "low",
+    cost: 10,
     idealFor: [
       "members whose business lunch register fits a printed agenda card",
       "members whose negotiation pitch voice belongs at a meeting that is not a meeting",

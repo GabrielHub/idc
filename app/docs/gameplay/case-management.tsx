@@ -77,13 +77,13 @@ export const sections: DocSectionEntry[] = [
     title: "Deck and draws",
     body: (
       <P>
-        The deck is a save-owned 12-card library, not a shift-owned hand. Each shift draws 3 cards
-        into <DocCode>shift.drawnScenarioIds</DocCode> deterministically from the shift number.
-        Playing a card opens a pending library slot; the player resolves the slot from the date
-        book. Voluntary swaps retire the dropped card for 3 shifts. The just-played card itself goes
-        on a one-shift cooldown (<DocCode>SCENARIO_PLAYED_COOLDOWN_SHIFTS</DocCode>) so the player
-        cannot immediately re-add it through the pending slot. See the deck service in{" "}
-        <DocCode>app/services/deck.ts</DocCode>.
+        The deck is a save-owned budget allocation of 6 to 12 cards, not a shift-owned hand. A shift
+        starts without a hand. When the player commits a focus case and partner, Cupid stores an
+        active booking on the shift, snapshots the current deck budget, reserves the shift date
+        slot, and draws 3 cards into <DocCode>shift.drawnScenarioIds</DocCode>. Playing a card does
+        not remove it from the deck or open a replacement slot. Date Book edits add or drop cards
+        against the current budget cap and are locked while an active booking or date session
+        exists. See the deck service in <DocCode>app/services/deck.ts</DocCode>.
       </P>
     ),
   },
