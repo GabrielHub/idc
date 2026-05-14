@@ -1,6 +1,12 @@
 import { isTauri } from "@tauri-apps/api/core";
 
-import { DEFAULT_GATEWAY_BASE_URL, DEFAULT_OLLAMA_BASE_URL, type GameConfig } from "../domain/game";
+import {
+  DEFAULT_GATEWAY_BASE_URL,
+  DEFAULT_OLLAMA_BASE_URL,
+  gameConfigSchema,
+  type AiProvider,
+  type GameConfig,
+} from "../domain/game";
 
 export type RuntimePlatform = "tauri" | "browser";
 
@@ -27,6 +33,22 @@ export function isTauriRuntime(): boolean {
 
 export function areAiProviderBaseUrlsLockedForRuntime(): boolean {
   return isTauriRuntime();
+}
+
+export function defaultAiProviderForPlatform(platform: RuntimePlatform): AiProvider {
+  return platform === "tauri" ? "gateway" : "ollama";
+}
+
+export function createDefaultGameConfigForPlatform(platform: RuntimePlatform): GameConfig {
+  const config = gameConfigSchema.parse({
+    aiProvider: defaultAiProviderForPlatform(platform),
+  });
+
+  return platform === "tauri" ? lockAiProviderBaseUrlsForDesktop(config) : config;
+}
+
+export function createDefaultGameConfigForRuntime(): GameConfig {
+  return createDefaultGameConfigForPlatform(detectRuntimePlatform());
 }
 
 export function lockAiProviderBaseUrlsForRuntime(config: GameConfig): GameConfig {

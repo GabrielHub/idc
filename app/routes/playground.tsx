@@ -32,6 +32,7 @@ import {
   type ReactionSignal,
 } from "../components/date-reactions";
 import { resolveStandeeFooting } from "../components/standee-footing";
+import { resolveStandeeSourceScale } from "../components/standee-source-scale";
 import {
   HOUSE_BUBBLE_LEFT_CLASS,
   HOUSE_BUBBLE_NAME_CLASS,
@@ -80,15 +81,20 @@ import {
 } from "../services/ai/model-catalog";
 import {
   DEFAULT_DATE_PLAYGROUND_SETTINGS,
+  DEFAULT_FEATURE_BENCH_SETTINGS,
   DEFAULT_MEMBER_CHAT_SETTINGS as DEFAULT_MEMBER_CHAT_PLAYGROUND_SETTINGS,
   loadPlaygroundDefaults,
   runPlaygroundDateConversation,
+  runPlaygroundFeatureBench,
   runPlaygroundMemberChat,
   type DatePlaygroundInput,
+  type FeatureBenchPlaygroundInput,
+  type FeatureBenchPlaygroundMode,
   type MemberChatPlaygroundInput,
   type PlaygroundResult,
   type PromptPreviewPayload,
 } from "../services/ai/playground";
+import type { PlaygroundSeedPack } from "../services/ai/playground-seeds";
 import { errorToMessage } from "../services/utils";
 
 const REACTION_TINT: Record<ReactionKind, string> = {
@@ -135,7 +141,7 @@ const PLAYGROUND_TESTS = [
 
 type PlaygroundTestId = (typeof PLAYGROUND_TESTS)[number]["id"];
 
-type AiPlaygroundMode = "dateConversation" | "memberChat";
+type AiPlaygroundMode = "dateConversation" | "memberChat" | FeatureBenchPlaygroundMode;
 
 type AiPromptPreviewPayload = PromptPreviewPayload;
 
@@ -160,12 +166,20 @@ type AiPlaygroundResult = PlaygroundResult;
 
 type AiDatePlaygroundSettings = Omit<DatePlaygroundInput, "action">;
 type AiMemberChatSettings = Omit<MemberChatPlaygroundInput, "action">;
+type AiFeatureBenchSettings = Omit<FeatureBenchPlaygroundInput, "action">;
+type AiActivePlaygroundSettings =
+  | AiDatePlaygroundSettings
+  | AiMemberChatSettings
+  | AiFeatureBenchSettings;
 
 const DEFAULT_AI_SETTINGS: AiDatePlaygroundSettings = toDateSettings(
   DEFAULT_DATE_PLAYGROUND_SETTINGS,
 );
 const DEFAULT_MEMBER_CHAT_SETTINGS: AiMemberChatSettings = toMemberChatSettings(
   DEFAULT_MEMBER_CHAT_PLAYGROUND_SETTINGS,
+);
+const DEFAULT_FEATURE_BENCH_PLAYGROUND_SETTINGS: AiFeatureBenchSettings = toFeatureBenchSettings(
+  DEFAULT_FEATURE_BENCH_SETTINGS,
 );
 
 export function meta() {
@@ -937,7 +951,7 @@ function buildPreviewMemories(): MemoryRecord[] {
 /* Test: Pair board                                                   */
 /* ================================================================== */
 
-type PairBoardPreviewState = "dense" | "sparse" | "single-hub" | "ghost-only" | "empty";
+type PairBoardPreviewState = "dense" | "sparse" | "single-hub" | "unfiled" | "empty";
 
 const PAIR_BOARD_PREVIEW_STATES: {
   id: PairBoardPreviewState;
@@ -960,8 +974,8 @@ const PAIR_BOARD_PREVIEW_STATES: {
     hint: "One central member connected to several spokes",
   },
   {
-    id: "ghost-only",
-    label: "ghost only",
+    id: "unfiled",
+    label: "unfiled states",
     hint: "Pair states exist but no notes filed yet",
   },
   {
@@ -1065,8 +1079,8 @@ function buildPairBoardPreviewDataset(state: PairBoardPreviewState): PairBoardPr
     return buildSparseDataset();
   }
 
-  if (state === "ghost-only") {
-    return buildGhostOnlyDataset();
+  if (state === "unfiled") {
+    return buildUnfiledDataset();
   }
 
   return buildDenseDataset();
@@ -1233,7 +1247,7 @@ function buildSingleHubDataset(): PairBoardPreviewDataset {
   return { members, pairStates, memories };
 }
 
-function buildGhostOnlyDataset(): PairBoardPreviewDataset {
+function buildUnfiledDataset(): PairBoardPreviewDataset {
   const couples: { a: Member; b: Member; health: number }[] = [
     { a: jennaPike, b: vhool, health: 60 },
     { a: meiSato, b: bradyStrait, health: 60 },
@@ -1451,6 +1465,8 @@ function buildBoardPairState(a: Member, b: Member, health: number): PairState {
     },
     completedDateIds: [],
     scenarioUseCounts: {},
+    agreements: [],
+    openLoops: [],
   };
 }
 
@@ -1488,20 +1504,40 @@ function AiPromptLabTest() {
   const [memberChatSettings, setMemberChatSettings] = useState<AiMemberChatSettings>(
     DEFAULT_MEMBER_CHAT_SETTINGS,
   );
+  const [featureBenchSettings, setFeatureBenchSettings] = useState<AiFeatureBenchSettings>(
+    DEFAULT_FEATURE_BENCH_PLAYGROUND_SETTINGS,
+  );
+  const [seedPacks, setSeedPacks] = useState<readonly PlaygroundSeedPack[]>([]);
   const [models, setModels] = useState<OllamaModelSummary[]>([]);
   const [result, setResult] = useState<AiPlaygroundResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
-  const activeSettings = mode === "dateConversation" ? dateSettings : memberChatSettings;
-  const selectedMember = starterMembers.find((member) => member.id === activeSettings.memberId);
+  const activeSettings = activeSettingsForMode({
+    mode,
+    dateSettings,
+    memberChatSettings,
+    featureBenchSettings,
+  });
+  const selectedSeed = seedPacks.find((seed) => seed.id === featureBenchSettings.seedId);
+  const selectedMemberId =
+    mode === "dateConversation"
+      ? dateSettings.memberId
+      : mode === "memberChat"
+        ? memberChatSettings.memberId
+        : selectedSeed?.memberId;
+  const selectedMember = starterMembers.find((member) => member.id === selectedMemberId);
   const selectedPartner =
     mode === "dateConversation"
       ? starterMembers.find((member) => member.id === dateSettings.partnerId)
-      : undefined;
+      : mode === "memberChat"
+        ? undefined
+        : starterMembers.find((member) => member.id === selectedSeed?.partnerId);
   const selectedScenario =
     mode === "dateConversation"
       ? starterScenarios.find((scenario) => scenario.id === dateSettings.scenarioId)
-      : undefined;
+      : mode === "memberChat"
+        ? undefined
+        : starterScenarios.find((scenario) => scenario.id === selectedSeed?.scenarioId);
   const partnerOptions = useMemo(
     () => starterMembers.filter((member) => member.id !== dateSettings.memberId),
     [dateSettings.memberId],
@@ -1528,6 +1564,8 @@ function AiPromptLabTest() {
         setModels(payload.models);
         setDateSettings(toDateSettings(payload.defaults));
         setMemberChatSettings(toMemberChatSettings(payload.memberChatDefaults));
+        setFeatureBenchSettings(toFeatureBenchSettings(payload.featureBenchDefaults));
+        setSeedPacks(payload.seedPacks);
         setResult(previewToResult(payload.previews.dateConversation, "dateConversation"));
       } catch {
         if (isMounted) {
@@ -1587,6 +1625,16 @@ function AiPromptLabTest() {
     }));
   }
 
+  function setFeatureBenchSetting<TKey extends keyof AiFeatureBenchSettings>(
+    key: TKey,
+    value: AiFeatureBenchSettings[TKey],
+  ) {
+    setFeatureBenchSettings((current) => ({
+      ...current,
+      [key]: value,
+    }));
+  }
+
   function setBaseSetting<TKey extends keyof AiBasePlaygroundSettings>(
     key: TKey,
     value: AiBasePlaygroundSettings[TKey],
@@ -1599,9 +1647,36 @@ function AiPromptLabTest() {
       return;
     }
 
-    setMemberChatSettings((current) => ({
+    if (mode === "memberChat") {
+      setMemberChatSettings((current) => ({
+        ...current,
+        [key]: value,
+      }));
+      return;
+    }
+
+    setFeatureBenchSettings((current) => ({
       ...current,
       [key]: value,
+    }));
+  }
+
+  function selectMode(nextMode: AiPlaygroundMode) {
+    setMode(nextMode);
+
+    if (isFeatureBenchMode(nextMode)) {
+      setFeatureBenchSettings((current) => ({
+        ...current,
+        mode: nextMode,
+      }));
+    }
+  }
+
+  function selectFeatureBenchMode(nextMode: FeatureBenchPlaygroundMode) {
+    setMode(nextMode);
+    setFeatureBenchSettings((current) => ({
+      ...current,
+      mode: nextMode,
     }));
   }
 
@@ -1622,7 +1697,15 @@ function AiPromptLabTest() {
       return;
     }
 
-    setMemberChatSettings((current) => ({
+    if (mode === "memberChat") {
+      setMemberChatSettings((current) => ({
+        ...current,
+        ...nextBase,
+      }));
+      return;
+    }
+
+    setFeatureBenchSettings((current) => ({
       ...current,
       ...nextBase,
     }));
@@ -1679,23 +1762,28 @@ function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt bench"
-        description="Run a date prompt or chat one-on-one with a single member. Prompt previews refresh as you type so the route is easier to review."
+        description="Run performer, extractor, judge, follow-up, and private chat prompts against the same local prompt contracts."
       />
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
         <RunSheet
           mode={mode}
-          onMode={setMode}
+          onMode={selectMode}
+          onFeatureMode={selectFeatureBenchMode}
           isRunning={isRunning}
           onRun={runPrompt}
           activeSettings={activeSettings}
           dateSettings={dateSettings}
+          memberChatSettings={memberChatSettings}
+          featureBenchSettings={featureBenchSettings}
+          seedPacks={seedPacks}
           modelOptions={modelOptions}
           partnerOptions={partnerOptions}
           onSelectProvider={selectProvider}
           onBase={setBaseSetting}
           onDate={setDateSetting}
           onMemberChat={setMemberChatSetting}
+          onFeatureBench={setFeatureBenchSetting}
         />
 
         <section className="min-w-0 space-y-6">
@@ -1703,7 +1791,7 @@ function AiPromptLabTest() {
             memberName={selectedMember?.name ?? "Member"}
             partnerName={selectedPartner?.name ?? "You"}
             scenarioTitle={
-              mode === "dateConversation" ? (selectedScenario?.title ?? "Scenario") : "Private chat"
+              mode === "memberChat" ? "Private chat" : (selectedScenario?.title ?? "Scenario")
             }
             result={result}
             error={error}
@@ -1724,13 +1812,15 @@ function AiPromptLabTest() {
                 onChange={(value) => setDateSetting("memoryText", value)}
               />
             </div>
-          ) : (
+          ) : mode === "memberChat" ? (
             <MemberChatPanel
               settings={memberChatSettings}
               result={result}
               onMessage={(value) => setMemberChatSetting("testerMessage", value)}
               onClear={() => setMemberChatSetting("chatMessages", [])}
             />
+          ) : (
+            <FeatureSeedPanel seed={selectedSeed} mode={mode} />
           )}
 
           <div className="grid gap-4 lg:grid-cols-2">
@@ -1762,23 +1852,32 @@ function AiPromptLabTest() {
 function RunSheet({
   mode,
   onMode,
+  onFeatureMode,
   isRunning,
   onRun,
   activeSettings,
   dateSettings,
+  memberChatSettings,
+  featureBenchSettings,
+  seedPacks,
   modelOptions,
   partnerOptions,
   onSelectProvider,
   onBase,
   onDate,
   onMemberChat,
+  onFeatureBench,
 }: {
   mode: AiPlaygroundMode;
   onMode: (mode: AiPlaygroundMode) => void;
+  onFeatureMode: (mode: FeatureBenchPlaygroundMode) => void;
   isRunning: boolean;
   onRun: () => void;
-  activeSettings: AiDatePlaygroundSettings | AiMemberChatSettings;
+  activeSettings: AiActivePlaygroundSettings;
   dateSettings: AiDatePlaygroundSettings;
+  memberChatSettings: AiMemberChatSettings;
+  featureBenchSettings: AiFeatureBenchSettings;
+  seedPacks: readonly PlaygroundSeedPack[];
   modelOptions: OllamaModelSummary[];
   partnerOptions: Member[];
   onSelectProvider: (provider: AiProvider) => void;
@@ -1794,6 +1893,10 @@ function RunSheet({
     key: TKey,
     value: AiMemberChatSettings[TKey],
   ) => void;
+  onFeatureBench: <TKey extends keyof AiFeatureBenchSettings>(
+    key: TKey,
+    value: AiFeatureBenchSettings[TKey],
+  ) => void;
 }) {
   const reasoningOptions =
     activeSettings.provider === "gateway"
@@ -1806,7 +1909,7 @@ function RunSheet({
         <div>
           <MutedLabel>run sheet</MutedLabel>
           <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-            {mode === "dateConversation" ? "Date sim" : "Member chat"}
+            {playgroundModeLabel(mode)}
           </h3>
         </div>
         <button
@@ -1822,7 +1925,20 @@ function RunSheet({
       <div className="mt-5 space-y-5">
         <RunSheetSection label="bench mode">
           <div className="flex flex-wrap gap-2">
-            <ModeButton label="Date sim" value="dateConversation" mode={mode} onSelect={onMode} />
+            <ModeButton label="Performer" value="dateConversation" mode={mode} onSelect={onMode} />
+            <ModeButton
+              label="Extractor"
+              value="extractorBench"
+              mode={mode}
+              onSelect={onFeatureMode}
+            />
+            <ModeButton label="Judge" value="judgeBench" mode={mode} onSelect={onFeatureMode} />
+            <ModeButton
+              label="Follow-up"
+              value="followUpBench"
+              mode={mode}
+              onSelect={onFeatureMode}
+            />
             <ModeButton label="Member chat" value="memberChat" mode={mode} onSelect={onMode} />
           </div>
         </RunSheetSection>
@@ -1861,21 +1977,17 @@ function RunSheet({
         </RunSheetSection>
 
         <RunSheetSection label="subjects">
-          <SelectInput
-            label="member"
-            value={activeSettings.memberId}
-            options={starterMembers.map((member) => ({
-              value: member.id,
-              label: member.name,
-            }))}
-            onChange={(value) =>
-              mode === "dateConversation"
-                ? onDate("memberId", value)
-                : selectMemberChatSubject(value, onMemberChat)
-            }
-          />
           {mode === "dateConversation" ? (
             <>
+              <SelectInput
+                label="member"
+                value={dateSettings.memberId}
+                options={starterMembers.map((member) => ({
+                  value: member.id,
+                  label: member.name,
+                }))}
+                onChange={(value) => onDate("memberId", value)}
+              />
               <SelectInput
                 label="partner"
                 value={dateSettings.partnerId}
@@ -1895,7 +2007,27 @@ function RunSheet({
                 onChange={(value) => onDate("scenarioId", value)}
               />
             </>
-          ) : null}
+          ) : mode === "memberChat" ? (
+            <SelectInput
+              label="member"
+              value={memberChatSettings.memberId}
+              options={starterMembers.map((member) => ({
+                value: member.id,
+                label: member.name,
+              }))}
+              onChange={(value) => selectMemberChatSubject(value, onMemberChat)}
+            />
+          ) : (
+            <SelectInput
+              label="seed pack"
+              value={featureBenchSettings.seedId}
+              options={seedPacks.map((seed) => ({
+                value: seed.id,
+                label: seed.title,
+              }))}
+              onChange={(value) => onFeatureBench("seedId", value)}
+            />
+          )}
         </RunSheetSection>
 
         <RunSheetSection label="limits">
@@ -1911,7 +2043,7 @@ function RunSheet({
             label="output tokens"
             value={activeSettings.maxOutputTokens}
             min={24}
-            max={512}
+            max={mode === "memberChat" ? 512 : 1024}
             step={8}
             onChange={(value) => onBase("maxOutputTokens", value)}
           />
@@ -2002,6 +2134,40 @@ function selectMemberChatSubject(
   onMemberChat("chatMessages", []);
 }
 
+function activeSettingsForMode({
+  mode,
+  dateSettings,
+  memberChatSettings,
+  featureBenchSettings,
+}: {
+  mode: AiPlaygroundMode;
+  dateSettings: AiDatePlaygroundSettings;
+  memberChatSettings: AiMemberChatSettings;
+  featureBenchSettings: AiFeatureBenchSettings;
+}): AiActivePlaygroundSettings {
+  if (mode === "dateConversation") {
+    return dateSettings;
+  }
+
+  if (mode === "memberChat") {
+    return memberChatSettings;
+  }
+
+  return featureBenchSettings;
+}
+
+function isFeatureBenchMode(mode: AiPlaygroundMode): mode is FeatureBenchPlaygroundMode {
+  return mode === "extractorBench" || mode === "judgeBench" || mode === "followUpBench";
+}
+
+function playgroundModeLabel(mode: AiPlaygroundMode): string {
+  if (mode === "dateConversation") return "Performer";
+  if (mode === "memberChat") return "Member chat";
+  if (mode === "judgeBench") return "Judge";
+  if (mode === "followUpBench") return "Follow-up";
+  return "Extractor";
+}
+
 function RunSheetSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <section className="space-y-3 border-t border-aura-hairline pt-5 first:border-t-0 first:pt-0">
@@ -2011,16 +2177,16 @@ function RunSheetSection({ label, children }: { label: string; children: React.R
   );
 }
 
-function ModeButton({
+function ModeButton<TMode extends AiPlaygroundMode>({
   label,
   value,
   mode,
   onSelect,
 }: {
   label: string;
-  value: AiPlaygroundMode;
+  value: TMode;
   mode: AiPlaygroundMode;
-  onSelect: (mode: AiPlaygroundMode) => void;
+  onSelect: (mode: TMode) => void;
 }) {
   const isActive = value === mode;
 
@@ -2062,6 +2228,96 @@ function CurrentAskToggle({
         checked={checked}
         onChange={(event) => onChange(event.currentTarget.checked)}
         className="size-4 cursor-pointer accent-aura-rose"
+      />
+    </label>
+  );
+}
+
+function FeatureSeedPanel({
+  seed,
+  mode,
+}: {
+  seed: PlaygroundSeedPack | undefined;
+  mode: FeatureBenchPlaygroundMode;
+}) {
+  if (seed === undefined) {
+    return (
+      <div className="aura-glass rounded-card p-5">
+        <MutedLabel>seed pack</MutedLabel>
+        <p className="mt-3 text-label text-aura-muted">No seed pack is loaded for this bench.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <section className="aura-glass rounded-card p-5">
+        <MutedLabel>seed pack</MutedLabel>
+        <h3 className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+          {seed.title}
+        </h3>
+        <p className="mt-2 text-label leading-relaxed text-aura-muted">{seed.notes}</p>
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <MetricPill label="bench" value={playgroundModeLabel(mode)} />
+          <MetricPill label="schema" value={seed.seedSchemaVersion.toString()} />
+          <MetricPill label="pressure" value={seed.expected.judgePressure} />
+          <MetricPill label="outcome" value={seed.expected.outcome} />
+        </div>
+      </section>
+
+      <section className="aura-glass rounded-card p-5">
+        <MutedLabel>expected memory</MutedLabel>
+        <ExpectedSeedList label="agreements" values={seed.expected.agreements} />
+        <ExpectedSeedList label="open loops" values={seed.expected.openLoops} />
+        <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <MetricPill label="follow-up" value={seed.expected.followUpAction} />
+          <MetricPill label="turns" value={seed.turnCount.toString()} />
+        </div>
+      </section>
+
+      <FeatureSeedField label="seed transcript" value={seed.transcriptText} />
+      <FeatureSeedField label="pair memories" value={seed.memoryText} />
+    </div>
+  );
+}
+
+function ExpectedSeedList({ label, values }: { label: string; values: readonly string[] }) {
+  return (
+    <div className="mt-4 first:mt-0">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        {label}
+      </span>
+      {values.length === 0 ? (
+        <p className="mt-2 rounded-tile border border-dashed border-aura-hairline-strong bg-white/45 px-3 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          none filed
+        </p>
+      ) : (
+        <ul className="mt-2 space-y-2">
+          {values.map((value, index) => (
+            <li
+              key={`${label}-${index}`}
+              className="rounded-tile border border-aura-hairline bg-white/60 px-3 py-2 text-label leading-relaxed text-aura-muted"
+            >
+              {value}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function FeatureSeedField({ label, value }: { label: string; value: string }) {
+  return (
+    <label className="aura-glass block rounded-card p-5">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        {label}
+      </span>
+      <textarea
+        readOnly
+        value={value}
+        rows={8}
+        className="mt-3 block w-full resize-y rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 font-mono text-xs leading-5 text-aura-muted outline-none"
       />
     </label>
   );
@@ -2286,40 +2542,6 @@ const HEIGHT_LINEUP_Z_CLASSES = [
 const HEIGHT_LINEUP_BACKGROUND_MEMBER_IDS = new Set<string>(["junie-marrow"]);
 const HEIGHT_LINEUP_BACKGROUND_Z_CLASS = "z-0";
 
-type HeightLineupPortraitScale = {
-  className: string;
-  value: number;
-};
-
-const DEFAULT_HEIGHT_LINEUP_PORTRAIT_SCALE: HeightLineupPortraitScale = {
-  className: "scale-100",
-  value: 1,
-};
-
-const HEIGHT_LINEUP_PORTRAIT_SCALE_BY_MEMBER_ID: Readonly<
-  Partial<Record<string, HeightLineupPortraitScale>>
-> = {
-  "aldric-vale-marsh": { className: "scale-[1.26]", value: 1.26 },
-  anubis: { className: "scale-[1.05]", value: 1.05 },
-  "brady-strait": { className: "scale-[0.94]", value: 0.94 },
-  "cassie-conners": { className: "scale-[1.09]", value: 1.09 },
-  "decimus-marius-tullio": { className: "scale-[1.03]", value: 1.03 },
-  epsy: { className: "scale-[1.05]", value: 1.05 },
-  "imani-wallace": { className: "scale-[0.93]", value: 0.93 },
-  "junie-marrow": { className: "scale-[2.35]", value: 2.35 },
-  "marcus-pellish": { className: "scale-[1.04]", value: 1.04 },
-  maeve: { className: "scale-[1.24]", value: 1.24 },
-  "meridian-vale": { className: "scale-[0.96]", value: 0.96 },
-  "mr-whiskers": { className: "scale-[1.26]", value: 1.26 },
-  "ryan-doyle": { className: "scale-[1.06]", value: 1.06 },
-  "sana-karim": { className: "scale-[1.05]", value: 1.05 },
-  "sienna-bae": { className: "scale-[1.15]", value: 1.15 },
-  "toby-wenz": { className: "scale-[0.87]", value: 0.87 },
-  venus: { className: "scale-[1.02]", value: 1.02 },
-  vhool: { className: "scale-[1.09]", value: 1.09 },
-  "cha-yusung": { className: "scale-[1.13]", value: 1.13 },
-};
-
 function HeightLineupTest() {
   const [sort, setSort] = useState<HeightLineupSort>("visible-desc");
   const [showHeightGuide, setShowHeightGuide] = useState(true);
@@ -2434,17 +2656,11 @@ function sortHeightLineupMembers(
   return indexedMembers.map((entry) => entry.member);
 }
 
-function resolveHeightLineupPortraitScale(member: Member): HeightLineupPortraitScale {
-  return (
-    HEIGHT_LINEUP_PORTRAIT_SCALE_BY_MEMBER_ID[member.id] ?? DEFAULT_HEIGHT_LINEUP_PORTRAIT_SCALE
-  );
-}
-
 function resolveHeightLineupVisibleHeight(member: Member): number {
   const heightScale = resolveStandeeHeightScale(member.standeeRenderHeightInInches).value;
-  const portraitScale = resolveHeightLineupPortraitScale(member).value;
+  const sourceScale = resolveStandeeSourceScale(member.id).value;
   const footing = resolveStandeeFooting(member.portraits.neutral.portrait.cutoutPath);
-  return footing.renderedVisibleHeightRatio * heightScale * portraitScale;
+  return footing.renderedVisibleHeightRatio * heightScale * sourceScale;
 }
 
 function buildHeightLineupZClassByMemberId(
@@ -2481,7 +2697,7 @@ function HeightAnchorStrip({ onSelect }: { onSelect: (memberId: string) => void 
     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
       {anchorMembers.map((member) => {
         const scale = resolveStandeeHeightScale(member.standeeRenderHeightInInches);
-        const portraitScale = resolveHeightLineupPortraitScale(member);
+        const sourceScale = resolveStandeeSourceScale(member.id);
         return (
           <button
             key={member.id}
@@ -2506,8 +2722,7 @@ function HeightAnchorStrip({ onSelect }: { onSelect: (memberId: string) => void 
             <span className="mt-2 block whitespace-nowrap font-mono text-micro uppercase tracking-[0.18em] text-aura-muted">
               h scale <span className="tabular-nums text-aura-ink">{scale.value.toFixed(2)}</span>
               <span aria-hidden> · </span>
-              src{" "}
-              <span className="tabular-nums text-aura-ink">{portraitScale.value.toFixed(2)}</span>
+              src <span className="tabular-nums text-aura-ink">{sourceScale.value.toFixed(2)}</span>
             </span>
           </button>
         );
@@ -2576,7 +2791,7 @@ function HeightLineupStage({
 
 function HeightLineupMember({ member, zClass }: { member: Member; zClass: string }) {
   const scale = resolveStandeeHeightScale(member.standeeRenderHeightInInches);
-  const portraitScale = resolveHeightLineupPortraitScale(member);
+  const sourceScale = resolveStandeeSourceScale(member.id);
   const isKnownAnchor = KNOWN_HEIGHT_ANCHOR_IDS.has(member.id);
 
   return (
@@ -2593,7 +2808,7 @@ function HeightLineupMember({ member, zClass }: { member: Member; zClass: string
         member={member}
         placement="bottom-left"
         reactions={[]}
-        className={`absolute bottom-20 left-1/2 h-96 w-48 -translate-x-1/2 origin-bottom ${portraitScale.className}`}
+        className="absolute bottom-20 left-1/2 h-96 w-48 -translate-x-1/2 origin-bottom"
       />
       <footer className="absolute bottom-1 left-1/2 w-[6.75rem] -translate-x-1/2 rounded-tile bg-white/70 px-2 py-1 text-center ring-1 ring-aura-hairline backdrop-blur-sm">
         <p className="truncate font-display text-xs font-semibold leading-tight tracking-tight text-aura-ink">
@@ -2606,7 +2821,7 @@ function HeightLineupMember({ member, zClass }: { member: Member; zClass: string
           <span>h</span>
           <span className="tabular-nums text-aura-ink">{scale.value.toFixed(2)}</span>
           <span>src</span>
-          <span className="tabular-nums text-aura-ink">{portraitScale.value.toFixed(2)}</span>
+          <span className="tabular-nums text-aura-ink">{sourceScale.value.toFixed(2)}</span>
         </div>
       </footer>
     </article>
@@ -2821,16 +3036,28 @@ function AiOutputPanel({
 }) {
   const outputMode = result?.mode ?? mode;
   const isMemberChat = outputMode === "memberChat";
-  const emptyLabel = isMemberChat ? "// no reply on file" : "// no transcript on file";
+  const isFeatureBench = isFeatureBenchMode(outputMode);
+  const emptyLabel = isMemberChat
+    ? "// no reply on file"
+    : isFeatureBench
+      ? "// no bench output on file"
+      : "// no transcript on file";
   const emptyText = isMemberChat
     ? "Run the bench to file the first member reply. Prompts update as you change settings."
-    : "Run the bench to file the first transcript. Prompts update as you change settings.";
+    : isFeatureBench
+      ? "Run the bench to file a prompt result. Prompts update as you change settings."
+      : "Run the bench to file the first transcript. Prompts update as you change settings.";
+  const outputLabel = isMemberChat
+    ? "generated reply"
+    : isFeatureBench
+      ? "generated bench output"
+      : "generated transcript";
 
   return (
     <div className="space-y-4">
       <div className="aura-glass rounded-card p-5">
         <div className="flex items-baseline justify-between gap-3">
-          <MutedLabel>{isMemberChat ? "generated reply" : "generated transcript"}</MutedLabel>
+          <MutedLabel>{outputLabel}</MutedLabel>
           {result === null || result.turns.length === 0 ? (
             <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
               idle
@@ -3177,8 +3404,6 @@ function BubbleStage({
           member={leftMember}
           placement="bottom-left"
           mood={leftSide.mood}
-          speaking={leftSide.speaking}
-          reasoningText={leftSide.reasoningText}
           reactions={leftSide.reactions}
           className="absolute bottom-0 left-6 h-full w-48 lg:left-16 lg:w-64"
         />
@@ -3186,8 +3411,6 @@ function BubbleStage({
           member={rightMember}
           placement="bottom-right"
           mood={rightSide.mood}
-          speaking={rightSide.speaking}
-          reasoningText={rightSide.reasoningText}
           reactions={rightSide.reactions}
           className="absolute bottom-0 right-6 h-full w-48 lg:right-16 lg:w-64"
         />
@@ -3667,7 +3890,8 @@ function IntensityControl({
 async function postPlayground(
   settings:
     | (AiDatePlaygroundSettings & { action: "generate" | "preview" })
-    | (AiMemberChatSettings & { action: "generate" | "preview" }),
+    | (AiMemberChatSettings & { action: "generate" | "preview" })
+    | (AiFeatureBenchSettings & { action: "generate" | "preview" }),
   signal?: AbortSignal,
 ): Promise<AiPlaygroundResult> {
   if (signal?.aborted === true) {
@@ -3678,7 +3902,11 @@ async function postPlayground(
     return runPlaygroundMemberChat(settings);
   }
 
-  return runPlaygroundDateConversation(settings);
+  if (settings.mode === "dateConversation") {
+    return runPlaygroundDateConversation(settings);
+  }
+
+  return runPlaygroundFeatureBench(settings);
 }
 
 function toDateSettings(input: DatePlaygroundInput): AiDatePlaygroundSettings {
@@ -3687,6 +3915,11 @@ function toDateSettings(input: DatePlaygroundInput): AiDatePlaygroundSettings {
 }
 
 function toMemberChatSettings(input: MemberChatPlaygroundInput): AiMemberChatSettings {
+  const { action: _action, ...rest } = input;
+  return rest;
+}
+
+function toFeatureBenchSettings(input: FeatureBenchPlaygroundInput): AiFeatureBenchSettings {
   const { action: _action, ...rest } = input;
   return rest;
 }

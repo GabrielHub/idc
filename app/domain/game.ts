@@ -126,7 +126,7 @@ const hexColorSchema = z
   .regex(/^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/, "expected #RRGGBB or #RRGGBBAA");
 
 // Per-member chat bubble style for the focused dater. Authoring guide and axis
-// reference live in docs/product/visual-design.md under "Per-Member Chat Bubbles".
+// reference live in app/docs/product/visual-design.tsx under "Per-member chat bubbles".
 export const memberChatBubbleBackgroundSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("solid"),
@@ -421,12 +421,38 @@ export const pairStatsSchema = z.object({
   relationshipHealth: scoreSchema,
 });
 
+export const pairAgreementStatusSchema = z.enum(["active", "honored", "broken", "retired"]);
+
+export const pairAgreementSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(8).max(220),
+  status: pairAgreementStatusSchema.default("active"),
+  sourceDateSessionId: dateSessionIdSchema.optional(),
+  sourceJudgeSnapshotId: z.string().min(1).optional(),
+  createdAt: z.string().min(1),
+  resolvedAt: z.string().min(1).optional(),
+});
+
+export const openLoopStatusSchema = z.enum(["open", "resolved", "dropped"]);
+
+export const openLoopSchema = z.object({
+  id: z.string().min(1),
+  text: z.string().min(8).max(220),
+  status: openLoopStatusSchema.default("open"),
+  sourceDateSessionId: dateSessionIdSchema.optional(),
+  sourceJudgeSnapshotId: z.string().min(1).optional(),
+  createdAt: z.string().min(1),
+  resolvedAt: z.string().min(1).optional(),
+});
+
 export const pairStateSchema = z.object({
   id: pairIdSchema,
   participantIds: z.tuple([memberIdSchema, memberIdSchema]),
   stats: pairStatsSchema,
   completedDateIds: z.array(dateSessionIdSchema),
   scenarioUseCounts: z.record(scenarioIdSchema, z.number().int().min(0)),
+  agreements: z.array(pairAgreementSchema).default([]),
+  openLoops: z.array(openLoopSchema).default([]),
 });
 
 export const dateMessageKindSchema = z.enum(["character", "scenario", "cupid", "system"]);
@@ -512,6 +538,26 @@ export const memoryCandidateSchema = memoryRecordSchema.omit({
   embeddingDimensions: true,
 });
 
+export const judgeAgreementCandidateSchema = z.object({
+  text: z.string().min(8).max(220),
+});
+
+export const judgeAgreementUpdateSchema = z.object({
+  agreementId: z.string().min(1),
+  status: pairAgreementStatusSchema.exclude(["active"]),
+  note: z.string().min(1).max(220).optional(),
+});
+
+export const judgeOpenLoopCandidateSchema = z.object({
+  text: z.string().min(8).max(220),
+});
+
+export const judgeOpenLoopUpdateSchema = z.object({
+  openLoopId: z.string().min(1),
+  status: openLoopStatusSchema.exclude(["open"]),
+  note: z.string().min(1).max(220).optional(),
+});
+
 export const judgeSnapshotSchema = z.object({
   id: z.string().min(1),
   dateSessionId: dateSessionIdSchema,
@@ -526,6 +572,10 @@ export const judgeSnapshotSchema = z.object({
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),
   usedEvidenceIds: z.array(z.string().min(1)).max(3).default([]),
+  agreementCandidates: z.array(judgeAgreementCandidateSchema).max(2).default([]),
+  agreementUpdates: z.array(judgeAgreementUpdateSchema).max(3).default([]),
+  openLoopCandidates: z.array(judgeOpenLoopCandidateSchema).max(2).default([]),
+  openLoopUpdates: z.array(judgeOpenLoopUpdateSchema).max(3).default([]),
 });
 
 export const playerKnowledgeSubjectKindSchema = z.enum(["member", "pair", "scenario"]);
@@ -810,6 +860,10 @@ export type CompanyGoal = z.infer<typeof companyGoalSchema>;
 export type MemberRequestTag = z.infer<typeof memberRequestTagSchema>;
 export type MemberRequest = z.infer<typeof memberRequestSchema>;
 export type PairStats = z.infer<typeof pairStatsSchema>;
+export type PairAgreementStatus = z.infer<typeof pairAgreementStatusSchema>;
+export type PairAgreement = z.infer<typeof pairAgreementSchema>;
+export type OpenLoopStatus = z.infer<typeof openLoopStatusSchema>;
+export type OpenLoop = z.infer<typeof openLoopSchema>;
 export type PairState = z.infer<typeof pairStateSchema>;
 export type DateMessageKind = z.infer<typeof dateMessageKindSchema>;
 export type DateMessage = z.infer<typeof dateMessageSchema>;
@@ -820,6 +874,10 @@ export type MemoryVisibility = z.infer<typeof memoryVisibilitySchema>;
 export type MemoryRecord = z.infer<typeof memoryRecordSchema>;
 export type MemoryCandidate = z.infer<typeof memoryCandidateSchema>;
 export type JudgeSnapshot = z.infer<typeof judgeSnapshotSchema>;
+export type JudgeAgreementCandidate = z.infer<typeof judgeAgreementCandidateSchema>;
+export type JudgeAgreementUpdate = z.infer<typeof judgeAgreementUpdateSchema>;
+export type JudgeOpenLoopCandidate = z.infer<typeof judgeOpenLoopCandidateSchema>;
+export type JudgeOpenLoopUpdate = z.infer<typeof judgeOpenLoopUpdateSchema>;
 export type DateSessionStatus = z.infer<typeof dateSessionStatusSchema>;
 export type DateRuntimeMode = z.infer<typeof dateRuntimeModeSchema>;
 export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;

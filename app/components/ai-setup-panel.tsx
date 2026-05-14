@@ -286,7 +286,13 @@ export function AiSetupPanel({
 
     setIsVerifying(true);
     try {
-      await onCheck(draftConfig, draftGatewayKey);
+      await onCheck(
+        lockAiProviderBaseUrlsForRuntime({
+          ...draftConfig,
+          aiProvider: activeProvider,
+        }),
+        draftGatewayKey,
+      );
     } finally {
       setIsVerifying(false);
     }
@@ -333,7 +339,12 @@ export function AiSetupPanel({
           <ChromeButton onClick={onClose}>Close</ChromeButton>
         </header>
 
-        <ProviderRouter activeProvider={activeProvider} onSelect={selectProvider} />
+        <ProviderRouter
+          activeProvider={activeProvider}
+          defaultProvider={isProviderUrlLocked ? "gateway" : "ollama"}
+          defaultLabel={isProviderUrlLocked ? "desktop default" : "web default"}
+          onSelect={selectProvider}
+        />
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
           <div className="min-w-0 space-y-6">
@@ -354,8 +365,15 @@ export function AiSetupPanel({
                 gatewayApiKey={draftGatewayKey}
                 reasoningDisabled={gatewayReasoningDisabled}
                 isUrlLocked={isProviderUrlLocked}
+                isSaving={isSaving}
+                isVerifying={isVerifying}
+                busy={busy}
+                saveError={saveError}
+                saveHint={saveHint}
                 onConfig={updateDraft}
                 onGatewayApiKey={setDraftGatewayKey}
+                onSaveAndCheck={saveAndCheck}
+                onVerify={verifyOnly}
               />
             )}
           </div>
@@ -372,33 +390,22 @@ export function AiSetupPanel({
           </aside>
         </div>
 
-        {saveError === null ? null : (
-          <p className="mt-6 rounded-tile border border-aura-rose/30 bg-rose-50/75 px-3 py-2 text-label leading-relaxed text-aura-rose">
-            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
-              save failed ::
-            </span>{" "}
-            {saveError}
-          </p>
-        )}
-        {saveError === null && saveHint !== null ? (
-          <p className="mt-6 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
-            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
-              pending ::
-            </span>{" "}
-            {saveHint}
-          </p>
+        {activeProvider === "ollama" ? (
+          <SetupFeedback className="mt-6" saveError={saveError} saveHint={saveHint} />
         ) : null}
 
         <footer className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-aura-hairline pt-5">
           <p className="max-w-2xl text-label leading-relaxed text-aura-muted">{footerCopy}</p>
-          <div className="flex flex-wrap gap-2">
-            <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
-              {isVerifying ? "Verifying" : "Verify"}
-            </GhostButton>
-            <PrimaryButton disabled={busy} onClick={saveAndCheck}>
-              {isSaving ? "Verifying" : "Save and verify"}
-            </PrimaryButton>
-          </div>
+          {activeProvider === "ollama" ? (
+            <div className="flex flex-wrap gap-2">
+              <GhostButton disabled={busy} onClick={() => void verifyOnly()}>
+                {isVerifying ? "Verifying" : "Verify"}
+              </GhostButton>
+              <PrimaryButton disabled={busy} onClick={saveAndCheck}>
+                {isSaving ? "Verifying" : "Save and verify"}
+              </PrimaryButton>
+            </div>
+          ) : null}
         </footer>
       </motion.section>
     </motion.div>,
@@ -412,27 +419,39 @@ export function AiSetupPanel({
 
 function ProviderRouter({
   activeProvider,
+  defaultProvider,
+  defaultLabel,
   onSelect,
 }: {
   activeProvider: AiProvider;
+  defaultProvider: AiProvider;
+  defaultLabel: string;
   onSelect: (provider: AiProvider) => void;
 }) {
-  const selectedRoute = PROVIDER_INFO[activeProvider].route.toLowerCase();
+  const selectedProvider = PROVIDER_INFO[activeProvider];
 
   return (
-    <div className="mt-6 space-y-3">
-      <div className="flex items-baseline justify-between gap-3">
+    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-card border border-aura-hairline bg-white/35 p-2">
+      <div className="px-2 py-1">
         <MutedLabel>routing slip</MutedLabel>
-        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          {selectedRoute} selected
-        </span>
+        <p className="mt-1 text-label leading-relaxed text-aura-muted">
+          Current desk:{" "}
+          <span className="font-semibold text-aura-ink">{selectedProvider.label}</span>
+        </p>
       </div>
-      <div className="grid gap-3 lg:grid-cols-2">
+      <div className="flex flex-wrap gap-2">
         {(Object.keys(PROVIDER_INFO) as AiProvider[]).map((provider) => (
           <ProviderCard
             key={provider}
             provider={provider}
             isActive={provider === activeProvider}
+            badge={
+              provider === activeProvider
+                ? "active"
+                : provider === defaultProvider
+                  ? defaultLabel
+                  : "option"
+            }
             onSelect={onSelect}
           />
         ))}
@@ -444,54 +463,34 @@ function ProviderRouter({
 function ProviderCard({
   provider,
   isActive,
+  badge,
   onSelect,
 }: {
   provider: AiProvider;
   isActive: boolean;
+  badge: string;
   onSelect: (provider: AiProvider) => void;
 }) {
   const info = PROVIDER_INFO[provider];
   const surface = isActive
-    ? "aura-glass-ink border-transparent"
-    : "aura-glass hover:-translate-y-0.5";
+    ? "border-aura-rose/45 bg-aura-rose/15 text-aura-ink shadow-quiet ring-1 ring-aura-rose/25"
+    : "bg-aura-card text-aura-muted hover:bg-aura-veil hover:text-aura-ink";
 
   return (
     <button
       type="button"
       aria-pressed={isActive}
       onClick={() => onSelect(provider)}
-      className={`group block cursor-pointer rounded-card p-4 text-left transition ${surface}`}
+      className={`group flex cursor-pointer items-center gap-3 rounded-pill border border-aura-hairline px-4 py-2 text-left transition ${surface}`}
     >
-      <div className="flex items-baseline justify-between gap-3">
-        <span
-          className={`font-mono text-micro font-semibold uppercase tracking-[0.28em] ${
-            isActive ? "text-white/70" : "text-aura-faint"
-          }`}
-        >
-          {info.route}
-        </span>
-        <span
-          className={`font-mono text-micro font-semibold uppercase tracking-[0.24em] ${
-            isActive ? "text-aura-rose" : "text-aura-faint"
-          }`}
-        >
-          {isActive ? "active" : "idle"}
-        </span>
-      </div>
-      <p
-        className={`mt-2.5 font-display text-display-sm font-semibold tracking-tight ${
-          isActive ? "text-white" : "text-aura-ink"
+      <span className="font-display text-body font-semibold tracking-tight">{info.label}</span>
+      <span
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
+          isActive ? "text-aura-rose" : "text-aura-faint"
         }`}
       >
-        {info.label}
-      </p>
-      <p
-        className={`mt-1.5 text-label leading-relaxed ${
-          isActive ? "text-white/72" : "text-aura-muted"
-        }`}
-      >
-        {info.tagline}
-      </p>
+        {badge}
+      </span>
     </button>
   );
 }
@@ -632,15 +631,29 @@ function GatewaySetupTab({
   gatewayApiKey,
   reasoningDisabled,
   isUrlLocked,
+  isSaving,
+  isVerifying,
+  busy,
+  saveError,
+  saveHint,
   onConfig,
   onGatewayApiKey,
+  onSaveAndCheck,
+  onVerify,
 }: {
   config: GameConfig;
   gatewayApiKey: string;
   reasoningDisabled: boolean;
   isUrlLocked: boolean;
+  isSaving: boolean;
+  isVerifying: boolean;
+  busy: boolean;
+  saveError: string | null;
+  saveHint: string | null;
   onConfig: (config: Partial<GameConfig>) => void;
   onGatewayApiKey: (value: string) => void;
+  onSaveAndCheck: () => void;
+  onVerify: () => void;
 }) {
   const endpointDescription = isUrlLocked
     ? `Desktop uses the fixed Vercel AI Gateway endpoint: ${DEFAULT_GATEWAY_BASE_URL}.`
@@ -651,65 +664,104 @@ function GatewaySetupTab({
     : BROWSER_GATEWAY_KEY_STORAGE;
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
-      <FormSection label="endpoint" description={endpointDescription}>
-        <div className="grid gap-4 md:grid-cols-2">
+    <div className="space-y-5">
+      <section className="rounded-card border border-aura-rose/25 bg-white/70 p-5 shadow-cta ring-1 ring-white/60">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-2xl space-y-2">
+            <MutedLabel>api key intake</MutedLabel>
+            <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+              Paste the Vercel AI Gateway key
+            </h3>
+            <p className="text-body leading-relaxed text-aura-muted">
+              Use the key from Vercel. Cupid saves it, then checks that date simulation can reach
+              Gateway.
+            </p>
+          </div>
+          <span className="rounded-pill bg-aura-ink px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">
+            cloud desk
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+          <TextInput
+            label="api key"
+            type="password"
+            value={gatewayApiKey}
+            placeholder={keyPlaceholder}
+            prominence="primary"
+            onChange={onGatewayApiKey}
+          />
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            <GhostButton disabled={busy} onClick={onVerify}>
+              {isVerifying ? "Verifying" : "Verify saved key"}
+            </GhostButton>
+            <PrimaryButton disabled={busy} onClick={onSaveAndCheck}>
+              {isSaving ? "Verifying" : "Save and verify"}
+            </PrimaryButton>
+          </div>
+        </div>
+
+        <p className="mt-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
+          Saving a blank key removes the stored key. Cupid will not book dates until this desk
+          verifies.
+        </p>
+        <SetupFeedback className="mt-3" saveError={saveError} saveHint={saveHint} />
+      </section>
+
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
+        <FormSection label="gateway url" description={endpointDescription}>
           <TextInput
             label="gateway url"
             value={config.gatewayBaseURL}
             disabled={isUrlLocked}
             onChange={(value) => onConfig({ gatewayBaseURL: value })}
           />
-          <TextInput
-            label="api key"
-            type="password"
-            value={gatewayApiKey}
-            placeholder={keyPlaceholder}
-            onChange={onGatewayApiKey}
+        </FormSection>
+
+        <FormSection
+          label="model"
+          description="Pick a chat model. Gateway forwards each date request to that provider, and reasoning only applies where the provider accepts it."
+        >
+          <SelectInput
+            label="chat model"
+            value={config.chatModel}
+            options={GATEWAY_CHAT_MODELS.map((model) => ({ value: model.id, label: model.label }))}
+            onChange={(value) => {
+              const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
+              onConfig({
+                chatModel: value,
+                embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
+                reasoningLevel: selectedModel?.recommendedReasoningLevel ?? "off",
+              });
+            }}
           />
-        </div>
-        <p className="mt-3 rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <SelectInput
+              label="reasoning"
+              value={config.reasoningLevel}
+              disabled={reasoningDisabled}
+              options={GATEWAY_REASONING_LEVEL_OPTIONS}
+              onChange={(value) => onConfig({ reasoningLevel: value })}
+            />
+            <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
+          </div>
+        </FormSection>
+      </div>
+
+      <div className="grid gap-3 lg:grid-cols-2">
+        <p className="rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
           <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
             data flow ::
           </span>{" "}
           {GATEWAY_CLOUD_FLOW} Use this route only if you accept that date data leaves the machine.
         </p>
-        <p className="mt-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
+        <p className="rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
           <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
             key storage ::
           </span>{" "}
           {storageTrustCopy}
         </p>
-      </FormSection>
-
-      <FormSection
-        label="model"
-        description="Pick a chat model. Gateway forwards each date request to that provider, and reasoning only applies where the provider accepts it."
-      >
-        <SelectInput
-          label="chat model"
-          value={config.chatModel}
-          options={GATEWAY_CHAT_MODELS.map((model) => ({ value: model.id, label: model.label }))}
-          onChange={(value) => {
-            const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
-            onConfig({
-              chatModel: value,
-              embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
-              reasoningLevel: selectedModel?.recommendedReasoningLevel ?? "off",
-            });
-          }}
-        />
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
-          <SelectInput
-            label="reasoning"
-            value={config.reasoningLevel}
-            disabled={reasoningDisabled}
-            options={GATEWAY_REASONING_LEVEL_OPTIONS}
-            onChange={(value) => onConfig({ reasoningLevel: value })}
-          />
-          <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
-        </div>
-      </FormSection>
+      </div>
     </div>
   );
 }
@@ -864,6 +916,44 @@ function FormSection({
   );
 }
 
+function SetupFeedback({
+  saveError,
+  saveHint,
+  className = "",
+}: {
+  saveError: string | null;
+  saveHint: string | null;
+  className?: string;
+}) {
+  if (saveError !== null) {
+    return (
+      <p
+        className={`rounded-tile border border-aura-rose/30 bg-rose-50/75 px-3 py-2 text-label leading-relaxed text-aura-rose ${className}`}
+      >
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em]">
+          save failed ::
+        </span>{" "}
+        {saveError}
+      </p>
+    );
+  }
+
+  if (saveHint !== null) {
+    return (
+      <p
+        className={`rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink ${className}`}
+      >
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+          pending ::
+        </span>{" "}
+        {saveHint}
+      </p>
+    );
+  }
+
+  return null;
+}
+
 /* ================================================================== */
 /* Field controls                                                     */
 /* ================================================================== */
@@ -874,6 +964,7 @@ function TextInput({
   type = "text",
   placeholder,
   disabled = false,
+  prominence = "normal",
   onChange,
 }: {
   label: string;
@@ -881,15 +972,20 @@ function TextInput({
   type?: "password" | "text";
   placeholder?: string;
   disabled?: boolean;
+  prominence?: "normal" | "primary";
   onChange: (value: string) => void;
 }) {
   const disabledClass = disabled ? "cursor-not-allowed opacity-60" : "focus:border-aura-rose";
+  const labelClass =
+    prominence === "primary"
+      ? "text-aura-rose tracking-[0.26em]"
+      : "text-aura-faint tracking-[0.24em]";
+  const inputClass =
+    prominence === "primary" ? "px-4 py-4 text-body font-semibold" : "px-3 py-2.5 text-label";
 
   return (
     <label className="block">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-        {label}
-      </span>
+      <span className={`font-mono text-micro font-semibold uppercase ${labelClass}`}>{label}</span>
       <input
         type={type}
         value={value}
@@ -897,7 +993,7 @@ function TextInput({
         disabled={disabled}
         readOnly={disabled}
         onChange={(event) => onChange(event.currentTarget.value)}
-        className={`mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 px-3 py-2.5 font-mono text-label text-aura-ink outline-none transition placeholder:text-aura-faint ${disabledClass}`}
+        className={`mt-2 block w-full rounded-tile border border-aura-hairline bg-white/65 font-mono text-aura-ink outline-none transition placeholder:text-aura-faint ${inputClass} ${disabledClass}`}
       />
     </label>
   );

@@ -1,5 +1,7 @@
 const DEFAULT_EMBEDDING_DIMENSIONS = 64;
 
+export const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
+
 export function createDeterministicEmbedding(
   text: string,
   dimensions = DEFAULT_EMBEDDING_DIMENSIONS,

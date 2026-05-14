@@ -10,7 +10,7 @@ import {
 } from "../domain/game";
 import { syncActiveShiftFocusCases } from "./focus-cases";
 import { clampScore } from "./utils";
-import { createDeterministicEmbedding } from "./vector-memory";
+import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export const CLIENT_LOSS_LIMIT_BASE = 3;
 export const SOFT_WIN_THRESHOLD = 5;
@@ -18,8 +18,6 @@ export const CLOSURE_RETENTION_BUMP = 5;
 export const PAIR_CLOSURE_TAG = "pair_closure";
 export const CLOSURE_SUMMARY_MAX_LENGTH = 360;
 export const CLOSURE_SUMMARY_MIN_LENGTH = 24;
-
-const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 
 export const CLOSURE_THRESHOLD = {
   chemistry: 75,
@@ -48,7 +46,7 @@ export type ClosureReadinessInput = {
   members: readonly ClosureReadinessMember[];
 };
 
-/** Hard rule for closure readiness. See docs/product/gameplay-traits.md "Case closures and win conditions". */
+/** Hard rule for closure readiness. See app/docs/gameplay/case-management.tsx "Case closures" and "Win conditions". */
 export function evaluateClosureReadiness({
   pairState,
   outcome,

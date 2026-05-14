@@ -20,6 +20,10 @@ import {
   DEFAULT_GATEWAY_BASE_URL,
   DEFAULT_OLLAMA_BASE_URL,
   gameConfigSchema,
+  judgeAgreementCandidateSchema,
+  judgeAgreementUpdateSchema,
+  judgeOpenLoopCandidateSchema,
+  judgeOpenLoopUpdateSchema,
   judgeSnapshotSchema,
   memoryCandidateSchema,
   memoryScopeSchema,
@@ -51,7 +55,7 @@ import {
 } from "./model-catalog";
 
 const OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS = 160;
-const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 360;
+const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 520;
 const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS = 220;
 const OLLAMA_READINESS_MAX_OUTPUT_TOKENS = 32;
@@ -78,10 +82,6 @@ const AI_STAT_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const AI_MEMBER_MOOD_DELTA_SCHEMA = z.number().int().min(-8).max(8);
 const STREAM_TEXT_DELTA_PART_SCHEMA = z.object({
   type: z.enum(["text", "text-delta"]),
-  text: z.string(),
-});
-const STREAM_REASONING_DELTA_PART_SCHEMA = z.object({
-  type: z.enum(["reasoning", "reasoning-delta"]),
   text: z.string(),
 });
 const CHARACTER_MEMORY_TOOL_MAX_STEPS = 4;
@@ -143,7 +143,6 @@ export type AiRuntimeConfig = GameConfig & {
 
 export type GeneratedTextResult = {
   text: string;
-  reasoningText?: string;
   providerMode: AiProvider;
   model: string;
   stepCount: number;
@@ -233,6 +232,10 @@ const judgeAiOutputSchema = z.object({
   playerSummary: z.string().min(1),
   memoryCandidates: z.array(memoryCandidateSchema),
   usedEvidenceIds: z.array(z.string().min(1)).max(3).default([]),
+  agreementCandidates: z.array(judgeAgreementCandidateSchema).max(2).default([]),
+  agreementUpdates: z.array(judgeAgreementUpdateSchema).max(3).default([]),
+  openLoopCandidates: z.array(judgeOpenLoopCandidateSchema).max(2).default([]),
+  openLoopUpdates: z.array(judgeOpenLoopUpdateSchema).max(3).default([]),
 });
 
 const ollamaListResponseSchema = z.object({
@@ -283,7 +286,6 @@ export async function streamCharacterTurn({
   packet,
   config,
   onTextDelta,
-  onReasoningDelta,
   options,
   abortSignal,
   tools,
@@ -291,7 +293,6 @@ export async function streamCharacterTurn({
   packet: CharacterPromptPacket;
   config?: Partial<AiRuntimeConfig>;
   onTextDelta: (delta: string) => Promise<void> | void;
-  onReasoningDelta?: (delta: string) => Promise<void> | void;
   options?: AiGenerationOptions;
   abortSignal?: AbortSignal;
   tools?: CharacterToolHandlers;
@@ -316,7 +317,6 @@ export async function streamCharacterTurn({
     abortSignal,
     tools,
     onTextDelta,
-    onReasoningDelta,
   });
 }
 
@@ -602,7 +602,6 @@ async function generateTextWithModelService({
 
     return {
       text: result.text.trim(),
-      reasoningText: result.reasoningText,
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: result.steps.length,
@@ -625,7 +624,6 @@ async function streamTextWithModelService({
   abortSignal,
   tools,
   onTextDelta,
-  onReasoningDelta,
 }: {
   system: string;
   prompt: string;
@@ -637,10 +635,8 @@ async function streamTextWithModelService({
   abortSignal?: AbortSignal;
   tools?: CharacterToolHandlers;
   onTextDelta: (delta: string) => Promise<void> | void;
-  onReasoningDelta?: (delta: string) => Promise<void> | void;
 }): Promise<GeneratedTextResult> {
   let emittedText = "";
-  let emittedReasoning = "";
 
   try {
     const model = createLanguageModel(modelId, config, generationOptions);
@@ -682,13 +678,6 @@ async function streamTextWithModelService({
         continue;
       }
 
-      const reasoningDelta = streamReasoningDeltaFromPart(part);
-      if (reasoningDelta !== null) {
-        emittedReasoning += reasoningDelta;
-        await onReasoningDelta?.(reasoningDelta);
-        continue;
-      }
-
       if (part.type === "error") {
         throw new Error(errorToMessage(part.error));
       }
@@ -702,7 +691,6 @@ async function streamTextWithModelService({
 
     return {
       text: emittedText.trim(),
-      reasoningText: emittedReasoning.trim(),
       providerMode: config.aiProvider,
       model: modelId,
       stepCount: steps.length,
@@ -724,12 +712,6 @@ async function streamTextWithModelService({
 
 function streamTextDeltaFromPart(part: unknown): string | null {
   const parsedPart = STREAM_TEXT_DELTA_PART_SCHEMA.safeParse(part);
-
-  return parsedPart.success ? parsedPart.data.text : null;
-}
-
-function streamReasoningDeltaFromPart(part: unknown): string | null {
-  const parsedPart = STREAM_REASONING_DELTA_PART_SCHEMA.safeParse(part);
 
   return parsedPart.success ? parsedPart.data.text : null;
 }
@@ -1165,7 +1147,7 @@ export function providerOptionsForRuntime(
       google: {
         thinkingConfig: {
           thinkingLevel,
-          includeThoughts: true,
+          includeThoughts: false,
         },
       },
     };

@@ -12,7 +12,7 @@ export const decimusMariusTullio: Member = {
   realityStatus: "Retired, recently widowed",
   bio: "Decimus retired from the Tenth Legion after thirty one years. Eight months later he lost Lavinia Cornelia, his wife of twenty four years. His daughter Aurelia signed him up for Cupid over Saturnalia and told him a man his age should not be eating alone six nights a week. He believes Cupid is a routine dating service from back home. She did sign him up.",
   datingProfile:
-    "Centurion, retired, 54, widower. Decimus Marius Tullio. One daughter, Aurelia, who set this up. I will not pretend I am younger than I am. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. Wednesdays and Sundays are open. I am told the food in the city is acceptable. Aurelia chose the photographs. She has told me one of them is wrong. I have not asked which.",
+    "Aurelia set this profile up because she says a man should not eat alone six nights a week. Decimus Marius Tullio. Centurion, retired, 54, widower. One daughter. I will not pretend I am younger than I am. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. Wednesdays and Sundays are open. I am told the food in the city is acceptable. Aurelia chose the photographs. She has told me one of them is wrong. I have not asked which.",
   relationshipNeeds: [
     "Someone who does not need him to perform recovery from grief",
     "A counterpart who can name a place and a time and not negotiate it three times",

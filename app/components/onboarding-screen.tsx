@@ -2,11 +2,21 @@ import { useMemo, useState } from "react";
 
 import type { Member, PlayerKnowledgeRecord } from "../domain/game";
 import { FOCUS_CASE_LIMIT } from "../services/focus-cases";
-import { sortMembersByCuratedRosterOrder } from "../services/member-roster-order";
-import { buildVisibleMemberProfile } from "../services/player-knowledge";
+import {
+  applyMemberRosterFilters,
+  DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+  type MemberRosterFilterState,
+} from "../services/member-roster-filter";
 import { AmbientMesh } from "./ambient-mesh";
 import { GhostButton, PrimaryButton } from "./dashboard-atoms";
-import { MemberCard, MemberDetailsModal, type MemberCardState } from "./member-card";
+import {
+  MemberCard,
+  MemberDetailsModal,
+  PendingMemberCard,
+  rosterGridFillerClasses,
+  type MemberCardState,
+} from "./member-card";
+import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
 
 export type OnboardingScreenProps = {
   members: Member[];
@@ -15,28 +25,22 @@ export type OnboardingScreenProps = {
 
 export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [filterState, setFilterState] = useState<MemberRosterFilterState>(
+    DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+  );
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
 
   const playerKnowledge = useMemo<PlayerKnowledgeRecord[]>(() => [], []);
 
   const eligibleMembers = useMemo(
-    () =>
-      sortMembersByCuratedRosterOrder(members.filter((member) => member.state.status === "active")),
+    () => members.filter((member) => member.state.status === "active"),
     [members],
   );
 
-  const filtered = useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (query.length === 0) return eligibleMembers;
-    return eligibleMembers.filter((member) => {
-      const profile = buildVisibleMemberProfile(member, []);
-      const haystack = [member.firstName, member.name, ...profile.publicFragments]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(query);
-    });
-  }, [eligibleMembers, searchQuery]);
+  const filtered = useMemo(
+    () => applyMemberRosterFilters(eligibleMembers, filterState),
+    [eligibleMembers, filterState],
+  );
 
   function toggle(memberId: string) {
     setSelectedIds((current) => {
@@ -83,28 +87,12 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
         </header>
 
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div className="aura-glass flex items-center gap-2.5 rounded-pill px-4 py-2">
-            <SearchIcon />
-            <input
-              type="text"
-              placeholder="Search the roster"
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              className="w-64 bg-transparent text-sm text-aura-ink placeholder:text-aura-faint focus:outline-none"
-            />
-          </div>
+          <RosterFilterBar filterState={filterState} onChange={setFilterState} />
           <SelectionTally selectedCount={selectedIds.length} />
         </div>
 
         {filtered.length === 0 ? (
-          <div className="rounded-card border border-aura-hairline bg-white/70 px-8 py-16 text-center shadow-quiet">
-            <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-faint">
-              // no matches
-            </p>
-            <p className="mt-3 text-body text-aura-muted">
-              No members match {`"${searchQuery}"`}. Try another name.
-            </p>
-          </div>
+          <RosterFilterEmptyState />
         ) : (
           <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {filtered.map((member, index) => {
@@ -125,6 +113,9 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
                 />
               );
             })}
+            {rosterGridFillerClasses(filtered.length).map((fillerClass, fillerIndex) => (
+              <PendingMemberCard key={`pending-${fillerIndex}`} className={fillerClass} />
+            ))}
           </ul>
         )}
 
@@ -168,22 +159,6 @@ export function OnboardingScreen({ members, onConfirm }: OnboardingScreenProps) 
         />
       )}
     </div>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="size-4 text-aura-faint"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      aria-hidden
-    >
-      <circle cx="7" cy="7" r="4.5" />
-      <path d="M10.5 10.5 L13.5 13.5" strokeLinecap="round" />
-    </svg>
   );
 }
 

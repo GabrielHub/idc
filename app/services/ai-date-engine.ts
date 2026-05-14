@@ -72,6 +72,7 @@ import {
   type SummarizerPromptPacket,
 } from "./date-prompts";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import { applyJudgePairMemoryEffects } from "./pair-memory";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
@@ -80,7 +81,7 @@ import {
   type RevealCandidate,
 } from "./player-knowledge";
 import { clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
-import { createDeterministicEmbedding } from "./vector-memory";
+import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
   generateCharacterTurn(input: {
@@ -94,7 +95,6 @@ export type LocalAiDateRuntime = {
     tools?: CharacterToolHandlers;
     abortSignal?: AbortSignal;
     onTextDelta: (delta: string) => Promise<void> | void;
-    onReasoningDelta?: (delta: string) => Promise<void> | void;
   }): Promise<GeneratedTextResult>;
   judgeDateExchange(input: {
     packet: JudgePromptPacket;
@@ -122,13 +122,6 @@ export type LocalAiDateStreamEvent =
     }
   | {
       type: "characterDelta";
-      speakerId: string;
-      sequenceIndex: number;
-      turnIndex: number;
-      textDelta: string;
-    }
-  | {
-      type: "characterReasoningDelta";
       speakerId: string;
       sequenceIndex: number;
       turnIndex: number;
@@ -207,12 +200,11 @@ const gatewayImageInputSupportCache = new Map<string, boolean>();
 const defaultLocalAiDateRuntime: LocalAiDateRuntime = {
   generateCharacterTurn: ({ packet, config, tools }) =>
     generateCharacterTurn({ packet, config, tools }),
-  streamCharacterTurn: ({ packet, config, tools, abortSignal, onTextDelta, onReasoningDelta }) =>
+  streamCharacterTurn: ({ packet, config, tools, abortSignal, onTextDelta }) =>
     streamCharacterTurnWithLocalAi({
       packet,
       config,
       onTextDelta,
-      onReasoningDelta,
       abortSignal,
       tools,
     }),
@@ -410,7 +402,13 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     judgeSnapshot: judgeSnapshotWithReveals,
   });
-  const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
+  const judgedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
+  const pairMemoryResult = applyJudgePairMemoryEffects({
+    pairState: judgedPairState,
+    judgeSnapshot,
+    timestamp,
+  });
+  const updatedPairState = pairMemoryResult.pairState;
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
   const nextDateHealth = clampScore(session.dateHealth + judgeSnapshot.dateHealthDelta);
   const isEndingEarly = nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly;
@@ -477,7 +475,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     members: finalMembers,
     pairStates: replaceById(save.pairStates, finalPairState),
     dateSessions: replaceById(save.dateSessions, completedSession),
-    memories: [...save.memories, ...completion.memories],
+    memories: [...save.memories, ...pairMemoryResult.memories, ...completion.memories],
     playerKnowledge: revealResult.save.playerKnowledge,
     updatedAt: timestamp,
   });
@@ -785,24 +783,11 @@ async function prepareCharacterPromptInputs({
   imageAttachments: CharacterPromptImageAttachment[];
 }> {
   const memoryQuery = buildMemoryQuery(session, speaker, partner, scenario);
-  const queryEmbedding = await createRuntimeQueryEmbedding({
-    runtime,
-    config,
-    query: memoryQuery,
-  });
-  const [memoryPack, imageAttachments] = await Promise.all([
-    retrieveRelevantMemories(repository, {
-      characterId: speaker.id,
-      partnerId: partner.id,
-      pairId: session.pairId,
-      scenarioId: session.scenarioId,
-      dateSessionId: session.id,
-      session,
+  const [queryEmbedding, imageAttachments] = await Promise.all([
+    createRuntimeQueryEmbedding({
+      runtime,
+      config,
       query: memoryQuery,
-      queryEmbedding: queryEmbedding.embedding,
-      queryEmbeddingModel: queryEmbedding.model,
-      queryEmbeddingDimensions: queryEmbedding.dimensions,
-      limit: DEFAULT_MEMORY_LIMIT,
     }),
     loadFirstTurnImageAttachments({
       config,
@@ -811,6 +796,19 @@ async function prepareCharacterPromptInputs({
       scenario,
     }),
   ]);
+  const memoryPack = await retrieveRelevantMemories(repository, {
+    characterId: speaker.id,
+    partnerId: partner.id,
+    pairId: session.pairId,
+    scenarioId: session.scenarioId,
+    dateSessionId: session.id,
+    session,
+    query: memoryQuery,
+    queryEmbedding: queryEmbedding.embedding,
+    queryEmbeddingModel: queryEmbedding.model,
+    queryEmbeddingDimensions: queryEmbedding.dimensions,
+    limit: DEFAULT_MEMORY_LIMIT,
+  });
 
   return { memoryPack, imageAttachments };
 }
@@ -1151,21 +1149,6 @@ async function streamCharacterMessage({
         textDelta,
       });
     },
-    onReasoningDelta: async (delta) => {
-      const textDelta = stripForbiddenPunctuation(delta);
-
-      if (textDelta.length === 0) {
-        return;
-      }
-
-      await emit({
-        type: "characterReasoningDelta",
-        speakerId: speaker.id,
-        sequenceIndex,
-        turnIndex,
-        textDelta,
-      });
-    },
   });
 }
 
@@ -1322,7 +1305,7 @@ function createLocalAiFallbackMemoryRecord({
     importance: 3,
     createdAt,
     embedding,
-    embeddingModel: "deterministic-local",
+    embeddingModel: DETERMINISTIC_EMBEDDING_MODEL,
     embeddingDimensions: embedding.length,
   });
 }

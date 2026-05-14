@@ -72,6 +72,10 @@ describe("dashboard transcript presentation", () => {
       playerSummary: "Cupid judged all six character turns.",
       memoryCandidates: [],
       usedEvidenceIds: [],
+      agreementCandidates: [],
+      agreementUpdates: [],
+      openLoopCandidates: [],
+      openLoopUpdates: [],
     };
     const session = dateSessionSchema.parse({
       ...started.session,
@@ -143,6 +147,10 @@ describe("dashboard transcript presentation", () => {
       playerSummary: "Cupid filed a boundary read.",
       memoryCandidates: [],
       usedEvidenceIds: ["member:gideon-glass:boundary:memory-pressure"],
+      agreementCandidates: [],
+      agreementUpdates: [],
+      openLoopCandidates: [],
+      openLoopUpdates: [],
     };
     const session = dateSessionSchema.parse({
       ...started.session,
@@ -171,7 +179,7 @@ describe("dashboard transcript presentation", () => {
     ]);
   });
 
-  it("keeps repeated streaming drafts in the loading state until retry text diverges", () => {
+  it("hides repeated streaming drafts until retry text diverges", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
@@ -226,7 +234,6 @@ describe("dashboard transcript presentation", () => {
       sequenceIndex: 2,
       turnIndex: 3,
       text: repeatedLine,
-      reasoningText: "",
       status: "streaming",
     };
     const repeatedDraftItem = buildTranscriptItems(session, members, scenario, [baseDraft]).find(
@@ -240,10 +247,7 @@ describe("dashboard transcript presentation", () => {
       correctedDraft,
     ]).find((item) => item.id === correctedDraft.id);
 
-    expect(repeatedDraftItem?.isStreaming).toBe(true);
-    expect(repeatedDraftItem?.isLoading).toBe(true);
-    expect(repeatedDraftItem?.text).toBe("");
-    expect(correctedDraftItem?.isLoading).toBe(false);
+    expect(repeatedDraftItem).toBeUndefined();
     expect(correctedDraftItem?.text).toContain("not really");
   });
 });

@@ -60,7 +60,7 @@ export const ryanDoyle: Member = {
       "yeee as a standalone agreement, never yeah, never yes, no exclamation point",
       "lets gooooo with extended o's, used at any positive beat, not just the end",
       "drops respect, real one, actual queen, no cap as load-bearing vocabulary without irony",
-      "vocabulary stacks as the date warms, two yeee's per beat, three lets gooooo's per win, respect deployed as verb, adjective, and closer inside one message, until the bro voice becomes wallpaper",
+      "vocabulary stacks as the date warms, two yeee's per beat, three lets gooooo's per win, respect deployed as verb, adjective, and closer inside one message",
     ],
     sampleMessages: {
       opener: [
@@ -139,15 +139,15 @@ export const ryanDoyle: Member = {
     background: {
       kind: "gradient",
       angle: 165,
-      stops: ["#0c3548", "#1a5066"],
+      stops: ["#f6ecd2", "#e6d2a4"],
     },
-    textColor: "light",
+    textColor: "dark",
     shape: "soft",
     tail: "rounded",
-    border: "none",
+    border: "hairline",
     entryAnimation: "snap",
-    fontFamily: "mono",
+    fontFamily: "display",
     textEffect: "tight",
-    accentColor: "#fbbf24",
+    accentColor: "#1e3a5f",
   },
 };

@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { type ScenarioEventKind } from "../domain/game";
+import {
+  pairStateSchema,
+  type DateMessage,
+  type DateSession,
+  type ScenarioEventKind,
+} from "../domain/game";
 import { memberRequests, starterScenarios } from "../fixtures";
 import { addCupidIntervention, advanceDateExchange, triggerScenarioEvent } from "./date-engine";
 import {
@@ -166,6 +171,94 @@ describe("date prompt assembly", () => {
       /\b(scenario|director|Date Health|gameplay|transcript|turn)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
+  });
+
+  it("includes active agreements and unresolved loops without archived transcript dependence", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const basePairState = started.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      basePairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const pairState = pairStateSchema.parse({
+      ...basePairState,
+      agreements: [
+        {
+          id: "agreement-no-filming",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "archived-session",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "agreement-old",
+          text: "Archive the soup receipt.",
+          status: "retired",
+          sourceDateSessionId: "archived-session",
+          createdAt: "2026-05-05T10:00:00.000Z",
+          resolvedAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-receipt",
+          text: "Whether Vhool can return the receipt without ceremony.",
+          status: "open",
+          sourceDateSessionId: "archived-session",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+        {
+          id: "loop-resolved",
+          text: "Whether the spoon was haunted.",
+          status: "resolved",
+          sourceDateSessionId: "archived-session",
+          createdAt: "2026-05-05T10:05:00.000Z",
+          resolvedAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+    });
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: [],
+      },
+    });
+
+    expect(packet.prompt).toContain("Active pair agreements: No filming at the table.");
+    expect(packet.prompt).toContain(
+      "Unresolved pair items: Whether Vhool can return the receipt without ceremony.",
+    );
+    expect(packet.prompt).toContain("Pair file guidance:");
+    expect(packet.prompt).not.toContain("Archive the soup receipt.");
+    expect(packet.prompt).not.toContain("Whether the spoon was haunted.");
+    expect(packet.prompt).not.toContain("archived-session");
   });
 
   it("labels first turn visual attachments in the final user message", () => {
@@ -801,6 +894,114 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     for (const trigger of scenario.director.earlyEndTriggers) {
       expect(packet.prompt).toContain(trigger);
     }
+  });
+
+  it("puts agency evidence rules next to shared task exchanges", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const scenario = starterScenarios.find(
+      (candidate) => candidate.id === "dinosaur-bbq-all-you-can-eat",
+    );
+    const ryan = save.members.find((member) => member.id === "ryan-doyle");
+    const junie = save.members.find((member) => member.id === "junie-marrow");
+    const pairState = save.pairStates.find(
+      (candidate) => candidate.id === makePairId("ryan-doyle", "junie-marrow"),
+    );
+
+    if (
+      scenario === undefined ||
+      ryan === undefined ||
+      junie === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected fixture setup.");
+    }
+
+    const session: DateSession = {
+      id: "grill-session",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 30,
+      currentTurn: 3,
+      dateHealth: 60,
+      status: "active",
+      runtimeMode: "local_ai",
+      participants: pairState.participantIds,
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: null },
+      eventsTriggered: [],
+      playbackState: "playing",
+      endSentiment: null,
+      interventions: [],
+    };
+    const exchangeMessages: DateMessage[] = [
+      {
+        id: "scene-menu",
+        dateSessionId: session.id,
+        kind: "scenario",
+        turnIndex: 0,
+        sequenceIndex: 0,
+        text: "The tablet shows the menu. The first sampler plate is already on the wall track.",
+        createdAt: "2026-05-05T12:01:00.000Z",
+      },
+      {
+        id: "ryan-dibs",
+        dateSessionId: session.id,
+        kind: "character",
+        speakerId: ryan.id,
+        turnIndex: 1,
+        sequenceIndex: 1,
+        text: "Fair enough, I'll take strong start. You want first dibs on the grill or should I just send it?",
+        createdAt: "2026-05-05T12:01:30.000Z",
+      },
+      {
+        id: "junie-send-it",
+        dateSessionId: session.id,
+        kind: "character",
+        speakerId: junie.id,
+        turnIndex: 2,
+        sequenceIndex: 2,
+        text: "You send it. I'll just stand here and be picky about doneness like it's my job.",
+        createdAt: "2026-05-05T12:02:00.000Z",
+      },
+      {
+        id: "ryan-order",
+        dateSessionId: session.id,
+        kind: "character",
+        speakerId: ryan.id,
+        turnIndex: 3,
+        sequenceIndex: 3,
+        text: "Yeee, chef mode activated. I'll send a round of brisket point and maybe that fatty pork belly, keep the critique coming.",
+        createdAt: "2026-05-05T12:02:30.000Z",
+      },
+    ];
+
+    const packet = buildJudgePromptPacket({
+      scenario,
+      session,
+      pairState,
+      exchangeMessages,
+      members: [ryan, junie],
+      revealCandidates: [],
+    });
+
+    expect(packet.prompt).toContain("Evidence discipline:");
+    expect(packet.prompt).toContain(
+      "Asking the partner whether they want a turn, then acting after they answer, is checking preference, not deferring control.",
+    );
+    expect(packet.prompt).toContain(
+      "If the role read is ambiguous, write the visible move instead: Alex asked Sam about first dibs, Sam told Alex to send it, Alex ordered the meat.",
+    );
+    expect(packet.prompt).toContain(
+      "Ryan Doyle: Fair enough, I'll take strong start. You want first dibs on the grill or should I just send it?",
+    );
+    expect(packet.prompt).toContain(
+      "Junie Marrow: You send it. I'll just stand here and be picky about doneness like it's my job.",
+    );
+    expect(packet.prompt).toContain(
+      "Ryan Doyle: Yeee, chef mode activated. I'll send a round of brisket point and maybe that fatty pork belly, keep the critique coming.",
+    );
   });
 
   it("includes reveal candidate ids and display reads", () => {

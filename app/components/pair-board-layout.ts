@@ -35,11 +35,10 @@ export type PairBoardEdge = {
   b: string;
   noteCount: number;
   topImportance: 1 | 2 | 3 | 4 | 5;
-  latestNote: MemoryRecord | undefined;
+  latestNote: MemoryRecord;
   latestNoteAt: number;
   health: number;
   curvature: number;
-  isGhost: boolean;
 };
 
 export type PairBoardNodeNoteSummary = {
@@ -48,9 +47,7 @@ export type PairBoardNodeNoteSummary = {
 };
 
 export type PairBoardGraphMeta = {
-  totalPairs: number;
   filedPairs: number;
-  ghostPairs: number;
   isolatedMembers: Member[];
 };
 
@@ -66,7 +63,6 @@ export type PairBoardGraph = {
 };
 
 export type DerivePairGraphOptions = {
-  showGhostPairs: boolean;
   minDegree: number;
 };
 
@@ -97,20 +93,14 @@ export function derivePairGraph(
 
   const allEdges: PairBoardEdge[] = [];
   let filedPairCount = 0;
-  let ghostPairCount = 0;
 
   for (const pair of pairStates) {
     const [a, b] = pair.participantIds;
     if (memberById.get(a) === undefined || memberById.get(b) === undefined) continue;
 
     const filedNotes = filedNotesByPair.get(pair.id) ?? [];
-    const isFiled = filedNotes.length > 0;
-    if (isFiled) {
-      filedPairCount += 1;
-    } else {
-      ghostPairCount += 1;
-      if (!options.showGhostPairs) continue;
-    }
+    if (filedNotes.length === 0) continue;
+    filedPairCount += 1;
 
     const sortedByDate = [...filedNotes].sort((left, right) => {
       const lt = Date.parse(left.createdAt);
@@ -118,7 +108,8 @@ export function derivePairGraph(
       return rt - lt;
     });
     const latestNote = sortedByDate[0];
-    const latestNoteAt = latestNote === undefined ? 0 : Date.parse(latestNote.createdAt);
+    if (latestNote === undefined) continue;
+    const latestNoteAt = Date.parse(latestNote.createdAt);
     const topImportance = clampImportance(
       filedNotes.reduce<number>((acc, note) => Math.max(acc, note.importance), 1),
     );
@@ -133,7 +124,6 @@ export function derivePairGraph(
       latestNoteAt,
       health: pair.stats.relationshipHealth,
       curvature: deterministicCurvature(pair.id),
-      isGhost: !isFiled,
     });
   }
 
@@ -194,9 +184,7 @@ export function derivePairGraph(
     incidentEdgesByNode,
     nodeNoteSummaryByNode,
     meta: {
-      totalPairs: pairStates.length,
       filedPairs: filedPairCount,
-      ghostPairs: ghostPairCount,
       isolatedMembers,
     },
   };
@@ -424,12 +412,10 @@ function clampImportance(value: number): 1 | 2 | 3 | 4 | 5 {
 }
 
 export function edgeStrokeWidth(edge: PairBoardEdge): number {
-  if (edge.isGhost) return 1;
   return 1.5 + edge.topImportance * 0.55;
 }
 
 export function edgeBaseOpacity(edge: PairBoardEdge): number {
-  if (edge.isGhost) return 0.18;
   const healthShare = Math.max(0, Math.min(1, edge.health / 100));
   return 0.34 + healthShare * 0.5;
 }

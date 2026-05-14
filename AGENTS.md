@@ -51,14 +51,23 @@
 ## Documentation
 
 - Code, tests, fixtures, and assets are the source of truth for implemented product behavior.
-- `docs/product/visual-design.md` owns frontend design and theme (Aura interface direction and Tailwind tokens).
-- `docs/product/image-style.md` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
-- `docs/product/voice.md` owns voice, tone, prose mechanics, comedic engine, and member voice fingerprints.
-- `docs/product/gameplay-traits.md` owns hidden tags, player knowledge, filed reads, match fit, closures, and chemistry pressure.
-- `docs/workflows/add-member.md` owns the repeatable checklist for adding a new member.
-- `docs/workflows/add-date-scenario.md` owns the repeatable checklist for adding a new date scenario.
-- `docs/workflows/visual-asset-iteration.md` owns independent member portrait, portrait variant, and scenario background generation.
-- Future product docs should own remaining concerns: lore, naming, and content feel.
+- Documentation is authored as TSX under `app/docs/` and rendered at `/docs` in the dev shell. Read the TSX file directly when you need a doc as canonical context.
+- `app/docs/product/visual-design.tsx` owns Aura interface direction, Tailwind tokens, chat bubble schema, member auras, canvas layout, and scenario card system.
+- `app/docs/product/image-style.tsx` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
+- `app/docs/product/voice.tsx` owns voice, tone, prose mechanics, comedic engines, member voice fingerprints, event kinds, and closure summary voice.
+- `app/docs/product/character-heights.tsx` owns member height canon, source-scale normalization, and the playground Height lineup workflow.
+- `app/docs/gameplay/member-fields-and-tags.tsx` owns member fixture fields, hidden tag taxonomy, request tags, and authoring requirements.
+- `app/docs/gameplay/player-knowledge.tsx` owns public/gated/never visibility tiers, filed reads, and retention secrecy.
+- `app/docs/gameplay/match-fit.tsx` owns deterministic booking pressure, badge rules, and boundary risk.
+- `app/docs/gameplay/pair-memory.tsx` owns pair state, agreements, open loops, and the hidden trajectory service.
+- `app/docs/gameplay/case-management.tsx` owns focus cases, shift cadence, deck draws, closures, and win conditions.
+- `app/docs/gameplay/roster-chemistry.tsx` owns warm clusters, friction zones, the four-anchor authoring pass, and the per-pair matrix.
+- `app/docs/workflows/add-member.tsx` owns the repeatable checklist for adding a new member.
+- `app/docs/workflows/add-date-scenario.tsx` owns the repeatable checklist for adding a new date scenario.
+- `app/docs/workflows/visual-asset-iteration.tsx` owns independent member portrait, portrait variant, and scenario background generation.
+- `app/docs/workflows/release-checklist.tsx` owns the friend-share desktop prerelease procedure.
+- `app/docs/support/desktop-install-guide.tsx` and `app/docs/support/release-readme.tsx` own player and operator install copy.
+- Doc primitives live in `app/components/doc-primitives.tsx`; the registry and routes live in `app/services/docs-content.ts`, `app/routes/docs.tsx`, and `app/routes/docs.$.tsx`.
 
 ## Copy Style
 

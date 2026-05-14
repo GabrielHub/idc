@@ -70,11 +70,11 @@ export const maeve: Member = {
       ],
       warming: [
         "You started to ask and you stopped. The stopping was the right move. We can have another course.",
-        "You have not asked what I do. I will tell you in my own time or not at all. The wine is the conversation.",
-        "You said 'I almost said' and then you did not. Most people finish the sentence. I am noting that you did not.",
+        "I will tell you in my own time or not at all. The wine is the conversation. That has not been the case at this table in some time.",
+        "An almost said and then unsaid. Most people finish the sentence. I am noting that you did not.",
         "The silence between the second course and the third was long and you did not fill it. I would like a third date for that alone.",
-        "You ordered without checking the menu twice. You toasted without explaining the toast. You let the bread go where the bread went. The night has been a quiet meal and I have enjoyed it.",
-        "You wrapped that sentence beautifully. I am not going to ask what was underneath. The wrapping was the point.",
+        "The night has been a quiet meal. No second check of the menu, no explained toast, the bread went where the bread went. I have enjoyed it.",
+        "A beautifully wrapped sentence and I am not going to ask what was underneath. The wrapping was the point.",
       ],
       cooling: [
         "You are asking after the credentials. The license satisfies the city. Let it satisfy the table.",

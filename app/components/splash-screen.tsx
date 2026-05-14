@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import {
@@ -538,6 +538,7 @@ function TopBar() {
         </motion.div>
 
         <div className="flex items-center gap-2">
+          <DocsPill />
           {import.meta.env.MODE === "desktop" ? null : <PlaygroundPill />}
           <ClockPill />
         </div>
@@ -546,20 +547,30 @@ function TopBar() {
   );
 }
 
-function PlaygroundPill() {
+function NavPill({
+  to,
+  label,
+  icon,
+  delay,
+}: {
+  to: string;
+  label: string;
+  icon: ReactNode;
+  delay: number;
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.04 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay }}
       className="pointer-events-auto"
     >
       <Link
-        to="/playground"
+        to={to}
         className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-4 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose"
       >
-        <PlaygroundIcon />
-        <span>playground</span>
+        {icon}
+        <span>{label}</span>
         <span
           aria-hidden
           className="hidden translate-x-0 text-aura-faint transition group-hover:translate-x-0.5 group-hover:text-aura-rose lg:inline"
@@ -569,6 +580,49 @@ function PlaygroundPill() {
       </Link>
     </motion.div>
   );
+}
+
+function DocsPill() {
+  return <NavPill to="/docs" label="docs" icon={<DocsIcon />} delay={0.03} />;
+}
+
+function DocsIcon() {
+  return (
+    <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
+      <rect x="3" y="2.5" width="9" height="11" rx="1.2" stroke="currentColor" strokeWidth="1.3" />
+      <line
+        x1="5.3"
+        y1="5.6"
+        x2="9.7"
+        y2="5.6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="5.3"
+        y1="8.1"
+        x2="9.7"
+        y2="8.1"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+      <line
+        x1="5.3"
+        y1="10.6"
+        x2="8"
+        y2="10.6"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function PlaygroundPill() {
+  return <NavPill to="/playground" label="playground" icon={<PlaygroundIcon />} delay={0.04} />;
 }
 
 function PlaygroundIcon() {

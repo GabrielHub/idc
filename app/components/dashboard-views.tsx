@@ -46,13 +46,14 @@ import {
   type ReactionKind,
   type ReactionSignal,
 } from "./date-reactions";
-import { isMemberSpeaking, selectPortraitMood } from "./date-presentation-signals";
+import { selectPortraitMood } from "./date-presentation-signals";
 import {
   HOUSE_BUBBLE_LEFT_CLASS,
   HOUSE_BUBBLE_NAME_CLASS,
   resolveMemberChatBubbleStyle,
 } from "./member-chat-bubble-style";
 import { PairBoard } from "./pair-board";
+import { PairMemoryInspector } from "./pair-memory-inspector";
 import { ScenarioBackdropLayer } from "./scenario-backdrop";
 import type { SfxCue } from "./sfx-provider";
 
@@ -185,6 +186,7 @@ export type DateProps = {
   session: DateSession;
   scenario: DateScenario | undefined;
   members: Member[];
+  pairState: PairState | undefined;
   playerKnowledge: PlayerKnowledgeRecord[];
   interventionText: string;
   interventionTargetMemberId: string;
@@ -192,6 +194,7 @@ export type DateProps = {
   canIntervene: boolean;
   isActionPending: boolean;
   pendingDateAction: PendingDateAction | null;
+  isJudgePending: boolean;
   queuedPlaybackIntent: PlaybackIntent | null;
   streamingDrafts: StreamingDraftMessage[];
   onInterventionTextChange: (text: string) => void;
@@ -213,7 +216,6 @@ export type StreamingDraftMessage = {
   sequenceIndex: number;
   turnIndex: number;
   text: string;
-  reasoningText: string;
   status: "streaming" | "done";
 };
 
@@ -221,6 +223,7 @@ export function DateView({
   session,
   scenario,
   members,
+  pairState,
   playerKnowledge,
   interventionText,
   interventionTargetMemberId,
@@ -228,6 +231,7 @@ export function DateView({
   canIntervene,
   isActionPending,
   pendingDateAction,
+  isJudgePending,
   queuedPlaybackIntent,
   streamingDrafts,
   onInterventionTextChange,
@@ -278,9 +282,6 @@ export function DateView({
     leftMember === undefined ? "neutral" : selectPortraitMood(leftMember.id, latestJudge);
   const rightMood =
     rightMember === undefined ? "neutral" : selectPortraitMood(rightMember.id, latestJudge);
-  const leftSpeaking = leftMember !== undefined && isMemberSpeaking(leftMember.id, streamingDrafts);
-  const rightSpeaking =
-    rightMember !== undefined && isMemberSpeaking(rightMember.id, streamingDrafts);
   const playbackUiState = resolveDatePlaybackUiState({
     playbackState: session.playbackState,
     pendingDateAction,
@@ -296,9 +297,6 @@ export function DateView({
           rightMember={rightMember}
           leftMood={leftMood}
           rightMood={rightMood}
-          leftSpeaking={leftSpeaking}
-          rightSpeaking={rightSpeaking}
-          listening={pendingDateAction === "advanceExchange"}
           reactions={reactionSignals}
         />
       ) : null}
@@ -310,6 +308,10 @@ export function DateView({
         transition={{ duration: 0.35, ease: EASE_OUT_QUART }}
         className="relative w-full"
       >
+        <div
+          aria-hidden
+          className="pointer-events-none fixed inset-0 z-[1] bg-[radial-gradient(ellipse_50rem_46rem_at_50%_44%,rgba(255,253,249,0.72)_0%,rgba(255,253,249,0.48)_30%,rgba(255,253,249,0.22)_60%,rgba(255,253,249,0)_88%)]"
+        />
         <DateHeader
           scenario={scenario}
           session={session}
@@ -335,6 +337,7 @@ export function DateView({
               session={session}
               leftMemberId={leftMember?.id}
               pendingDateAction={pendingDateAction}
+              isJudgePending={isJudgePending}
               playbackUiState={playbackUiState}
             />
           )}
@@ -372,6 +375,8 @@ export function DateView({
             onFollowUp={onFollowUp}
           />
         )}
+
+        <PairMemoryInspector pairState={pairState} members={members} />
       </motion.div>
     </>
   );
@@ -457,7 +462,7 @@ function DateHeader({
         <div className="hidden grid-cols-[0fr] transition-[grid-template-columns] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:grid-cols-[1fr] lg:grid">
           <div className="flex min-w-0 items-center gap-3 overflow-hidden lg:gap-4">
             <span aria-hidden className="ml-1 h-3 w-px shrink-0 bg-aura-hairline" />
-            <p className="whitespace-nowrap font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+            <p className="whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-[0.24em] text-black">
               {detailLine}
             </p>
           </div>
@@ -483,7 +488,6 @@ type TranscriptItem = {
   targetName?: string;
   isDraft?: boolean;
   isStreaming?: boolean;
-  isLoading?: boolean;
 };
 
 function DateStandeeFrame({
@@ -491,18 +495,12 @@ function DateStandeeFrame({
   rightMember,
   leftMood,
   rightMood,
-  leftSpeaking,
-  rightSpeaking,
-  listening,
   reactions,
 }: {
   leftMember: Member;
   rightMember: Member;
   leftMood: PortraitMood;
   rightMood: PortraitMood;
-  leftSpeaking: boolean;
-  rightSpeaking: boolean;
-  listening: boolean;
   reactions: ReactionSignal[];
 }) {
   return (
@@ -514,8 +512,6 @@ function DateStandeeFrame({
         member={leftMember}
         placement="bottom-left"
         mood={leftMood}
-        speaking={leftSpeaking}
-        listening={listening && !rightSpeaking}
         reactions={reactions.filter((reaction) => reaction.side === "left")}
         className="absolute bottom-0 left-0 h-[92vh] w-72 2xl:w-96"
       />
@@ -523,8 +519,6 @@ function DateStandeeFrame({
         member={rightMember}
         placement="bottom-right"
         mood={rightMood}
-        speaking={rightSpeaking}
-        listening={listening && !leftSpeaking}
         reactions={reactions.filter((reaction) => reaction.side === "right")}
         className="absolute bottom-0 right-0 h-[92vh] w-72 2xl:w-96"
       />
@@ -543,12 +537,14 @@ function ChatStream({
   session,
   leftMemberId,
   pendingDateAction,
+  isJudgePending,
   playbackUiState,
 }: {
   items: TranscriptItem[];
   session: DateSession;
   leftMemberId: string | undefined;
   pendingDateAction: PendingDateAction | null;
+  isJudgePending: boolean;
   playbackUiState: DatePlaybackUiState;
 }) {
   const listRef = useRef<HTMLOListElement | null>(null);
@@ -595,6 +591,7 @@ function ChatStream({
     session.status === "active" ? (
       <DateStatusCue
         pendingDateAction={pendingDateAction}
+        isJudgePending={isJudgePending}
         pauseRequested={playbackUiState.pauseRequested}
       />
     ) : null;
@@ -767,13 +764,7 @@ function ChatBubble({
     : isLeft
       ? "bg-white/85"
       : "bg-aura-rose/70";
-  const loadingDotColor = customBubble
-    ? customBubble.caretClass
-    : isLeft
-      ? "bg-white"
-      : "bg-aura-rose";
-  const isLoading = item.isLoading === true;
-  const isStreamingText = item.isStreaming === true && !isLoading;
+  const isStreamingText = item.isStreaming === true;
   const draftClass = item.isDraft === true ? "opacity-95" : "";
 
   return (
@@ -788,47 +779,17 @@ function ChatBubble({
         ) : null}
         <div className={`${bubbleClass} ${draftClass}`} style={bubbleStyle}>
           <p className={`text-body leading-relaxed ${textColorClass}`}>
-            {isLoading ? (
-              <ChatLoadingDots dotClass={loadingDotColor} />
-            ) : (
-              <>
-                {item.text}
-                {isStreamingText ? (
-                  <span
-                    aria-hidden
-                    className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
-                  />
-                ) : null}
-              </>
-            )}
+            {item.text}
+            {isStreamingText ? (
+              <span
+                aria-hidden
+                className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
+              />
+            ) : null}
           </p>
         </div>
       </div>
     </motion.li>
-  );
-}
-
-const CHAT_LOADING_DOT_DELAY_CLASSES = [
-  "[animation-delay:0ms]",
-  "[animation-delay:180ms]",
-  "[animation-delay:360ms]",
-] as const;
-
-function ChatLoadingDots({ dotClass }: { dotClass: string }) {
-  return (
-    <span
-      role="status"
-      aria-label="Loading message"
-      className="inline-flex h-6 items-center gap-1.5"
-    >
-      {CHAT_LOADING_DOT_DELAY_CLASSES.map((animationClass) => (
-        <span
-          key={animationClass}
-          aria-hidden
-          className={`aura-typing-dot size-1.5 rounded-full ${dotClass} ${animationClass}`}
-        />
-      ))}
-    </span>
   );
 }
 
@@ -882,27 +843,39 @@ function CupidPin({ item, animation }: { item: TranscriptItem; animation: ChatSt
 }
 
 function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
+  const reveals = item.reveals ?? [];
+  const hasReveals = reveals.length > 0;
+
   return (
-    <motion.li {...animation} className="flex justify-center">
-      <div className="max-w-md rounded-tile bg-emerald-50/80 px-3.5 py-2 ring-1 ring-emerald-500/20">
-        <p className="text-center font-mono text-micro font-semibold uppercase tracking-[0.24em] text-emerald-700">
-          {item.label}
-        </p>
-        <p className="mt-0.5 text-center text-label leading-snug text-emerald-900/80">
-          {item.text}
-        </p>
-        {item.reveals === undefined || item.reveals.length === 0 ? null : (
-          <ul className="mt-2 space-y-1.5 border-t border-emerald-500/15 pt-2">
-            {item.reveals.map((read) => (
-              <li key={read.id} className="text-left">
-                <p className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-emerald-700">
+    <motion.li {...animation} className="!my-5 flex justify-center">
+      <div className="aura-glass relative w-full rounded-card px-5 pt-3.5 pb-3.5">
+        <div className="flex items-center gap-2.5">
+          <span
+            aria-hidden
+            className="grid size-5 shrink-0 place-items-center rounded-full bg-aura-ink/[0.08] font-serif text-sm font-semibold italic leading-none text-aura-ink/60"
+          >
+            §
+          </span>
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.3em] text-aura-ink/70">
+            // {item.label}
+          </span>
+          <span aria-hidden className="h-px flex-1 bg-aura-hairline" />
+        </div>
+
+        <p className="mt-2.5 text-label leading-relaxed text-aura-ink/85">{item.text}</p>
+
+        {hasReveals ? (
+          <ul className="mt-3 space-y-2 border-t border-aura-hairline pt-2.5">
+            {reveals.map((read) => (
+              <li key={read.id}>
+                <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
                   {readKindLabel(read)}
                 </p>
-                <p className="text-label leading-snug text-emerald-950/80">{read.readText}</p>
+                <p className="mt-0.5 text-label leading-snug text-aura-ink/80">{read.readText}</p>
               </li>
             ))}
           </ul>
-        )}
+        ) : null}
       </div>
     </motion.li>
   );
@@ -932,11 +905,22 @@ function readKindLabel(read: PlayerKnowledgeRecord): string {
 
 function DateStatusCue({
   pendingDateAction,
+  isJudgePending,
   pauseRequested,
 }: {
   pendingDateAction: PendingDateAction | null;
+  isJudgePending: boolean;
   pauseRequested: boolean;
 }) {
+  if (pauseRequested) {
+    return (
+      <CupidStatusPill
+        label="Pause filed"
+        leading={<span aria-hidden className="size-1.5 rounded-full bg-aura-amber" />}
+      />
+    );
+  }
+
   if (pendingDateAction === null) {
     return (
       <CupidStatusPill
@@ -946,13 +930,8 @@ function DateStatusCue({
     );
   }
 
-  if (pauseRequested) {
-    return (
-      <CupidStatusPill
-        label="Pause filed"
-        leading={<span aria-hidden className="size-1.5 rounded-full bg-aura-amber" />}
-      />
-    );
+  if (!isJudgePending) {
+    return null;
   }
 
   return (
@@ -1165,9 +1144,9 @@ function FollowUpActionButton({
 }
 
 const SCENARIO_EVENT_KIND_CHIP_CLASS: Record<ScenarioEventKind, string> = {
-  ambient: "bg-aura-violet/12 text-aura-violet ring-1 ring-aura-violet/30",
-  provocation: "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/35",
-  reveal: "bg-aura-emerald/15 text-aura-emerald ring-1 ring-aura-emerald/35",
+  ambient: "bg-aura-violet/12 text-black ring-1 ring-aura-violet/30",
+  provocation: "bg-aura-rose/15 text-black ring-1 ring-aura-rose/35",
+  reveal: "bg-aura-emerald/15 text-black ring-1 ring-aura-emerald/35",
 };
 
 const SCENARIO_EVENT_KIND_COLUMN_ORDER: readonly ScenarioEventKind[] = [
@@ -1252,10 +1231,10 @@ function DraftScreen({
     >
       <div className="space-y-3 text-center">
         <Eyebrow>// scene draft</Eyebrow>
-        <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink lg:text-display-lg">
+        <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-black lg:text-display-lg">
           Pick three <span className="aura-accent text-aura-rose">scene cards</span>
         </h2>
-        <p className="mx-auto max-w-xl text-label text-aura-muted">
+        <p className="mx-auto max-w-xl text-label text-black">
           Cupid deals two of each scene kind for {scenario.title}. Pick any three to drop into the
           date.
         </p>
@@ -1269,17 +1248,23 @@ function DraftScreen({
           return (
             <section key={kind} className="flex flex-col gap-3">
               <header className="flex items-baseline justify-between gap-3 px-1">
-                <span
-                  data-event-kind={kind}
-                  className={`rounded-full px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] ${chipClass}`}
+                <Tooltip
+                  message={meta.blurb}
+                  placement="bottom-start"
+                  messageClassName="text-black"
                 >
-                  {meta.label}
-                </span>
-                <span className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+                  <span
+                    tabIndex={0}
+                    data-event-kind={kind}
+                    className={`cursor-help rounded-full px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/40 ${chipClass}`}
+                  >
+                    {meta.label}
+                  </span>
+                </Tooltip>
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-black">
                   {items.length} dealt
                 </span>
               </header>
-              <p className="px-1 text-label leading-relaxed text-aura-muted">{meta.blurb}</p>
               <ol className="flex flex-col gap-3">
                 {items.map(({ event, sceneIndex }, indexInColumn) => {
                   const pickIndex = picks.indexOf(event.id);
@@ -1295,29 +1280,38 @@ function DraftScreen({
                         delay: 0.08 + columnIndex * 0.06 + indexInColumn * 0.04,
                       }}
                     >
-                      <button
-                        type="button"
-                        data-sfx="click"
-                        aria-pressed={selected}
-                        disabled={isActionPending}
-                        onClick={() => togglePick(event.id)}
-                        className={`aura-glass-lift flex h-full w-full flex-col gap-3 rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                          selected
-                            ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
-                            : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
-                        }`}
+                      <Tooltip
+                        message={meta.blurb}
+                        placement="top-center"
+                        className="w-full"
+                        messageClassName="text-black"
                       >
-                        <div className="flex items-center justify-between gap-3">
-                          <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
-                            // scene {pad2(sceneIndex + 1)}
-                          </span>
-                          <DraftPickPip selected={selected} pickIndex={pickIndex} />
-                        </div>
-                        <h3 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
-                          {event.title}
-                        </h3>
-                        <p className="text-label leading-relaxed text-aura-muted">{event.event}</p>
-                      </button>
+                        <button
+                          type="button"
+                          data-sfx="click"
+                          aria-pressed={selected}
+                          disabled={isActionPending}
+                          onClick={() => togglePick(event.id)}
+                          className={`aura-glass-lift flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                            selected
+                              ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
+                              : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-black">
+                              // scene {pad2(sceneIndex + 1)}
+                            </span>
+                            <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                          </div>
+                          <h3 className="line-clamp-2 font-display text-display-sm font-semibold leading-tight text-black">
+                            {event.title}
+                          </h3>
+                          <p className="line-clamp-2 text-label leading-relaxed text-black">
+                            {event.event}
+                          </p>
+                        </button>
+                      </Tooltip>
                     </motion.li>
                   );
                 })}
@@ -1328,13 +1322,13 @@ function DraftScreen({
       </div>
 
       <div className="mt-9 flex flex-col items-center gap-3">
-        <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint">
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-black">
           {picks.length} of {targetCount} drafted
         </span>
         <PrimaryButton disabled={!canLockIn || isActionPending} onClick={() => onPickEvents(picks)}>
           {canLockIn ? "Lock the lineup" : `Pick ${targetCount - picks.length} more to begin`}
         </PrimaryButton>
-        <p className="max-w-sm text-center text-label text-aura-faint">
+        <p className="max-w-sm text-center text-label text-black">
           You can drop these three scenes anytime the date is paused. Cupid never auto-fires them.
         </p>
       </div>
@@ -1347,9 +1341,9 @@ function DraftPickPip({ selected, pickIndex }: { selected: boolean; pickIndex: n
     return (
       <span
         aria-hidden
-        className="grid size-5 place-items-center rounded-full border border-dashed border-aura-faint/60 text-aura-faint"
+        className="grid size-5 place-items-center rounded-full border border-dashed border-black/50 text-black"
       >
-        <span className="size-1.5 rounded-full bg-aura-faint/40" />
+        <span className="size-1.5 rounded-full bg-black/45" />
       </span>
     );
   }
@@ -1458,6 +1452,7 @@ function DateFooter({
     picks.some((eventId) => !session.eventsTriggered.includes(eventId));
 
   const [composerOpen, setComposerOpen] = useState(false);
+  const [sceneConfirmId, setSceneConfirmId] = useState<string | null>(null);
 
   // Auto-close the composer if conditions change out from under it.
   useEffect(() => {
@@ -1465,6 +1460,21 @@ function DateFooter({
       setComposerOpen(false);
     }
   }, [composerOpen, nudgeButtonEnabled]);
+
+  // Auto-close the scene preview if drops get disabled or the scene already fired.
+  useEffect(() => {
+    if (sceneConfirmId === null) return;
+    if (!dropsEnabled || session.eventsTriggered.includes(sceneConfirmId)) {
+      setSceneConfirmId(null);
+    }
+  }, [sceneConfirmId, dropsEnabled, session.eventsTriggered]);
+
+  const pendingSceneEvent = useMemo(() => {
+    if (sceneConfirmId === null || scenario === undefined) return undefined;
+    return findScenarioEventById(scenario, sceneConfirmId);
+  }, [sceneConfirmId, scenario]);
+
+  const pendingScenePickIndex = sceneConfirmId === null ? -1 : picks.indexOf(sceneConfirmId);
 
   const openComposer = () => {
     if (!nudgeButtonEnabled) return;
@@ -1474,6 +1484,18 @@ function DateFooter({
   const fileNudge = () => {
     onIntervene();
     setComposerOpen(false);
+  };
+
+  const openSceneConfirm = (eventId: string) => {
+    if (!dropsEnabled) return;
+    if (session.eventsTriggered.includes(eventId)) return;
+    setSceneConfirmId(eventId);
+  };
+  const closeSceneConfirm = () => setSceneConfirmId(null);
+  const confirmSceneDrop = () => {
+    if (sceneConfirmId === null) return;
+    onTriggerEvent(sceneConfirmId);
+    setSceneConfirmId(null);
   };
 
   // Space bar toggles playback when no input is focused. Director's instinct beats clicking.
@@ -1523,7 +1545,7 @@ function DateFooter({
               eventsTriggered={session.eventsTriggered}
               scenario={scenario}
               dropsEnabled={dropsEnabled}
-              onTriggerEvent={onTriggerEvent}
+              onTriggerEvent={openSceneConfirm}
             />
             <span aria-hidden className="flex-1" />
             <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
@@ -1565,6 +1587,16 @@ function DateFooter({
             onRecipientChange={onInterventionTargetChange}
             onFile={fileNudge}
             onClose={closeComposer}
+          />
+        ) : null}
+        {pendingSceneEvent !== undefined ? (
+          <SceneConfirmModal
+            key="scene-confirm-modal"
+            event={pendingSceneEvent}
+            pickIndex={pendingScenePickIndex}
+            canDrop={dropsEnabled}
+            onConfirm={confirmSceneDrop}
+            onClose={closeSceneConfirm}
           />
         ) : null}
       </AnimatePresence>
@@ -1806,7 +1838,7 @@ function ScenesGauge({
           const ariaLabel = dropped
             ? `${title} dropped.`
             : interactive
-              ? `Drop scene: ${title}. Click to trigger now.`
+              ? `Preview scene: ${title}.`
               : `${title}. Pause and stop streaming to drop.`;
           return (
             <button
@@ -1819,6 +1851,7 @@ function ScenesGauge({
                 onTriggerEvent(eventId);
               }}
               aria-label={ariaLabel}
+              title={title}
               className={`grid size-5 cursor-pointer place-items-center rounded transition disabled:cursor-not-allowed ${
                 dropped
                   ? "text-aura-emerald/80"
@@ -1940,7 +1973,7 @@ function NudgeComposerModal({
         role="dialog"
         aria-modal="true"
         aria-label={`Whisper a nudge to ${recipientName}`}
-        className="aura-glass-strong relative w-full max-w-xl overflow-hidden rounded-card"
+        className="aura-glass-strong relative w-full max-w-5xl overflow-hidden rounded-card"
       >
         <ModalCloseButton onClose={onClose} label="Close nudge composer" sfx="dismiss" />
         <div className="relative flex flex-col gap-6 px-7 py-7 lg:px-9 lg:py-8">
@@ -1965,9 +1998,10 @@ function NudgeComposerModal({
               disabled={!swapEnabled}
               aria-label={`Whisper recipient: ${recipientName}. ${swapEnabled ? "Click to swap." : ""}`}
               title={swapEnabled ? "Swap recipient" : undefined}
-              className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-aura-rose px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-aura-rose py-1.5 pr-4 pl-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet transition hover:bg-aura-rose/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {recipientName}
+              {recipient !== null ? <Portrait member={recipient} variant="chip" /> : null}
+              <span>{recipientName}</span>
               {swapEnabled ? (
                 <svg viewBox="0 0 12 12" className="size-2.5" aria-hidden>
                   <path
@@ -2053,13 +2087,13 @@ function NudgeComposerModal({
           </section>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-aura-hairline bg-white/40 px-7 py-4 lg:px-9 lg:py-5">
-          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-aura-hairline bg-white/40 px-7 py-4 lg:flex-nowrap lg:px-9 lg:py-5">
+          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint lg:whitespace-nowrap">
             <span className="text-aura-muted">Enter</span> to file ·{" "}
             <span className="text-aura-muted">Shift+Enter</span> for line break ·{" "}
             <span className="text-aura-muted">Esc</span> to close
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-3">
             <GhostButton onClick={onClose}>Cancel</GhostButton>
             <button
               type="button"
@@ -2114,6 +2148,137 @@ function NudgeSlotMeter({ remaining, total }: { remaining: number; total: number
         {message}
       </span>
     </span>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Director's slate: scene drop confirmation modal                    */
+/* ------------------------------------------------------------------ */
+
+function SceneConfirmModal({
+  event,
+  pickIndex,
+  canDrop,
+  onConfirm,
+  onClose,
+}: {
+  event: ScenarioEvent;
+  pickIndex: number;
+  canDrop: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function handleKey(keyEvent: KeyboardEvent) {
+      if (keyEvent.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (keyEvent.key === "Enter" && canDrop) {
+        const target = keyEvent.target as HTMLElement | null;
+        if (
+          target?.tagName === "INPUT" ||
+          target?.tagName === "TEXTAREA" ||
+          target?.isContentEditable === true
+        ) {
+          return;
+        }
+        keyEvent.preventDefault();
+        onConfirm();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, onConfirm, canDrop]);
+
+  const meta = SCENARIO_EVENT_KIND_COLUMN_META[event.kind];
+  const chipClass = SCENARIO_EVENT_KIND_CHIP_CLASS[event.kind];
+  const slotLabel = pickIndex >= 0 ? `scene ${pad2(pickIndex + 1)} of 03` : "scene preview";
+
+  return (
+    <motion.aside
+      key="scene-confirm-backdrop"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
+      onClick={onClose}
+      className="fixed inset-0 z-40 grid place-items-center bg-aura-bg/55 px-4 py-10 backdrop-blur-xl"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 14 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 8 }}
+        transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+        onClick={(clickEvent) => clickEvent.stopPropagation()}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Drop scene: ${event.title}`}
+        className="aura-glass-strong relative w-full max-w-2xl overflow-hidden rounded-card"
+      >
+        <ModalCloseButton onClose={onClose} label="Close scene preview" sfx="dismiss" />
+        <div className="relative flex flex-col gap-6 px-7 py-7 lg:px-9 lg:py-8">
+          <header className="flex flex-col gap-3">
+            <Eyebrow>{`// ${slotLabel}`}</Eyebrow>
+            <div className="flex flex-wrap items-center gap-3">
+              <span
+                className={`rounded-full px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.28em] ${chipClass}`}
+              >
+                {meta.label}
+              </span>
+              <span className="text-label text-aura-muted">{meta.blurb}</span>
+            </div>
+            <h2 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink lg:text-display-md">
+              {event.title}
+            </h2>
+          </header>
+
+          <section className="flex flex-col gap-2">
+            <Eyebrow>{"// the beat"}</Eyebrow>
+            <p className="text-body leading-relaxed text-aura-ink">{event.event}</p>
+          </section>
+
+          <section className="flex flex-col gap-2">
+            <Eyebrow>{"// what they see"}</Eyebrow>
+            <p className="text-body leading-relaxed text-aura-ink/85">
+              {event.characterVisibleText}
+            </p>
+          </section>
+
+          {!canDrop ? (
+            <p
+              role="status"
+              className="rounded-chip border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-amber"
+            >
+              Pause the date to drop this scene.
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-aura-hairline bg-white/40 px-7 py-4 lg:flex-nowrap lg:px-9 lg:py-5">
+          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint lg:whitespace-nowrap">
+            <span className="text-aura-muted">Enter</span> to drop ·{" "}
+            <span className="text-aura-muted">Esc</span> to close
+          </p>
+          <div className="flex shrink-0 items-center gap-3">
+            <GhostButton onClick={onClose}>Cancel</GhostButton>
+            <button
+              type="button"
+              data-sfx="primary"
+              onClick={onConfirm}
+              disabled={!canDrop}
+              aria-label={`Drop scene ${event.title}`}
+              className="aura-cta inline-flex cursor-pointer items-center gap-2 rounded-pill bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-5 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0"
+            >
+              <span>Drop scene</span>
+              <svg viewBox="0 0 12 12" className="size-3.5" aria-hidden>
+                <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.aside>
   );
 }
 
@@ -3528,22 +3693,27 @@ export function buildTranscriptItems(
   );
   const draftItems: TranscriptItem[] = streamingDrafts
     .filter((draft) => !committedSequenceIndexes.has(draft.sequenceIndex))
-    .map((draft) => {
+    .flatMap((draft) => {
       const member = memberById.get(draft.speakerId);
       const visibleText = visibleStreamingDraftText(session, draft);
       const isStreaming = draft.status === "streaming";
 
-      return {
-        id: draft.id,
-        order: draft.sequenceIndex * 10,
-        label: member?.firstName ?? draft.speakerName,
-        tone: "member",
-        text: visibleText,
-        member,
-        isDraft: true,
-        isStreaming,
-        isLoading: isStreaming && visibleText.trim().length === 0,
-      };
+      if (visibleText.trim().length === 0) {
+        return [];
+      }
+
+      return [
+        {
+          id: draft.id,
+          order: draft.sequenceIndex * 10,
+          label: member?.firstName ?? draft.speakerName,
+          tone: "member",
+          text: visibleText,
+          member,
+          isDraft: true,
+          isStreaming,
+        },
+      ];
     });
 
   return [...messageItems, ...draftItems, ...judgeItems].sort(

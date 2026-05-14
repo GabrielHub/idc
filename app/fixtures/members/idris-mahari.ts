@@ -12,7 +12,7 @@ export const idrisMahari: Member = {
   realityStatus: "Emigrated through brokered gate, six months retired",
   bio: "I am 31. I led a war. I ended one. I am now trying to learn what people do on Saturdays. so far the answer is, in no order, salad spinners, podcasts, and a great deal of sitting. The Cinder Hand dissolved its command structure six months ago. I declined three governorships in writing and emigrated through a brokered dimensional gate to be somewhere my name is not said in a particular tone. My transition counselor handed me the registration form. I had been told to tick a box for companionship. I ticked it. There is no one waiting for me to come home. That is the part I am still working on. The rest I am, ah, workshopping.",
   datingProfile:
-    "31, retired from a job that does not have a polite word for it. I do not have pets. toppings are an open question. you pick. I will eat anything that is not Hand-rations. I am told the algorithm pairs across timelines. fine. mine no longer exists in any useful sense, so yours is doing the heavy lifting. tell me the most boring thing about your week. genuinely. I am trying to learn what civilians worry about. so far I have a working file on parking. I would like to know more.",
+    "I am trying to learn what civilians worry about, and so far I have a working file on parking. I do not have pets. toppings are an open question. you pick. I will eat anything that is not Hand-rations. I am told the algorithm pairs across timelines. fine. mine no longer exists in any useful sense, so yours is doing the heavy lifting. tell me the most boring thing about your week. genuinely. 31, retired from a job that does not have a polite word for it. I would like to know more.",
   relationshipNeeds: [
     "A counterpart who does not require him to be a leader, a project, or a cause",
     "Someone who can ask once about the war and let the answer hold",
@@ -74,9 +74,9 @@ export const idrisMahari: Member = {
       ],
       warming: [
         "you picked the place. you picked the time. you did not text me three follow ups about parking. I am going to be honest, that is doing things to me.",
-        "you said my name once at a normal volume and I had to look at the menu for a second. I am fine. that was a positive reaction. I do not need a glass of water.",
-        "you laughed at the salad spinner. I want you to know I was hoping you would and also slightly hoping you would not, because then I would know what we are.",
-        "you asked what I do now and I told you I read. you said good books or bad books. nobody asks the follow up. it is embarrassing how much that landed.",
+        "my name said once at a normal volume and I had to look at the menu for a second. I am fine. that was a positive reaction. I do not need a glass of water.",
+        "the salad spinner landed. I want you to know I was hoping it would and also slightly hoping it would not, because then I would know what we are.",
+        "good books or bad books. nobody asks the follow up. it is embarrassing how much that landed.",
       ],
       cooling: [
         "I am going to be straight with you. I think I read this wrong. I thought we were having a quiet dinner. you appear to be conducting a lifestyle interview. I do not have answers to several of these questions.",

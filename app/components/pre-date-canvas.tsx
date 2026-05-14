@@ -32,10 +32,12 @@ import {
   sortMembersByCuratedRosterOrder,
 } from "../services/member-roster-order";
 import { isMemberInCooldown } from "../services/shift-planning";
-import { GhostButton, Hairline, pad2, Portrait, PrimaryButton } from "./dashboard-atoms";
+import { GhostButton, Hairline, pad2, Portrait, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import {
   MemberCard,
   MemberDetailsModal,
+  PendingMemberCard,
+  rosterGridFillerClasses,
   type MemberCardPill,
   type MemberCardState,
 } from "./member-card";
@@ -460,14 +462,13 @@ function ShiftBriefDock({
     activeFocus === null
       ? "No focus case"
       : activeFocusRequest === undefined
-        ? `${activeFocus.firstName}: no active ask`
-        : `${activeFocus.firstName}: ${activeFocusRequest.text}`;
+        ? `${activeFocus.firstName} has no active ask on file.`
+        : activeFocusRequest.text;
 
   return (
-    <div className="mt-5 flex justify-end">
+    <div className="mt-5 flex justify-end xl:fixed xl:right-6 xl:top-20 xl:z-40 xl:mt-0 xl:block xl:w-96">
       <motion.aside
-        layout
-        className="aura-glass-strong w-full max-w-[34rem] overflow-hidden rounded-card shadow-aura-soft"
+        className="aura-glass w-full max-w-[34rem] overflow-hidden rounded-card shadow-aura-soft xl:max-w-none"
         aria-label="Shift brief"
       >
         <div className="flex items-center gap-2 px-3 py-2.5">
@@ -544,7 +545,7 @@ function ShiftBriefDock({
                       </span>
                     ) : null}
                   </div>
-                  <p className="mt-1 line-clamp-3 text-label leading-snug text-aura-ink">
+                  <p className="mt-1 whitespace-normal break-words text-label leading-snug text-aura-ink">
                     {requestSummary}
                   </p>
                 </div>
@@ -558,24 +559,27 @@ function ShiftBriefDock({
 }
 
 function ShiftGoalItem({ goal, progress }: { goal: CompanyGoal; progress: GoalProgressSnapshot }) {
+  const showStatus = progress.status !== "open";
+
   return (
-    <li
-      className="min-w-0 rounded-chip px-2 py-1.5 transition hover:bg-white/45"
-      title={goal.description}
-    >
+    <li className="min-w-0 rounded-chip px-2 py-1.5" title={goal.description}>
       <div className="flex items-center justify-between gap-3">
         <span className="truncate font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
           {progress.label}
         </span>
-        <span
-          className={`shrink-0 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ${goalStatusClass(
-            progress.status,
-          )}`}
-        >
-          {progress.status}
-        </span>
+        {showStatus ? (
+          <span
+            className={`shrink-0 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ${goalStatusClass(
+              progress.status,
+            )}`}
+          >
+            {progress.status}
+          </span>
+        ) : null}
       </div>
-      <p className="mt-1 line-clamp-1 text-sm font-semibold text-aura-ink">{goal.title}</p>
+      <p className="mt-1 whitespace-normal break-words text-sm font-semibold leading-snug text-aura-ink">
+        {goal.title}
+      </p>
     </li>
   );
 }
@@ -717,9 +721,14 @@ function PreDateHeader({
               Open next shift →
             </PrimaryButton>
           ) : shiftDateAvailable ? (
-            <GhostButton onClick={onCloseShift} disabled={isActionPending}>
-              File the shift
-            </GhostButton>
+            <Tooltip
+              message="End this shift without booking a date. Cupid files the day, applies any ignored request fallout, and lets you open the next shift."
+              placement="bottom-end"
+            >
+              <GhostButton onClick={onCloseShift} disabled={isActionPending}>
+                File the shift
+              </GhostButton>
+            </Tooltip>
           ) : (
             <PrimaryButton onClick={onCloseShift} disabled={isActionPending}>
               Close the shift →
@@ -946,6 +955,9 @@ function PartnerStep({
             />
           );
         })}
+        {rosterGridFillerClasses(candidatePartners.length).map((fillerClass, fillerIndex) => (
+          <PendingMemberCard key={`pending-${fillerIndex}`} className={fillerClass} />
+        ))}
       </ul>
     </section>
   );

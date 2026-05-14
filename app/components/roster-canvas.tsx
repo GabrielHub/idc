@@ -6,14 +6,23 @@ import {
   FOCUS_CASE_LIMIT,
   FOCUS_SWAP_RETENTION_PENALTY,
 } from "../services/focus-cases";
+import {
+  applyMemberRosterFilters,
+  DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+  isMemberRosterFilterActive,
+  type MemberRosterFilterState,
+} from "../services/member-roster-filter";
 import { sortMembersForRoster } from "../services/member-roster-order";
 import { GhostButton, Hairline, PrimaryButton } from "./dashboard-atoms";
 import {
   MemberCard,
   MemberDetailsModal,
+  PendingMemberCard,
+  rosterGridFillerClasses,
   type MemberCardState,
   type MemberDetailsAction,
 } from "./member-card";
+import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
 
 type FocusSwapDraft =
   | { kind: "drop-source"; focusedMemberId: string }
@@ -47,12 +56,24 @@ export function RosterCanvas({
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [swapDraft, setSwapDraft] = useState<FocusSwapDraft | null>(null);
   const [reselectDraft, setReselectDraft] = useState<readonly string[] | null>(null);
+  const [filterState, setFilterState] = useState<MemberRosterFilterState>(
+    DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+  );
 
   const focusedSet = useMemo(() => new Set(focusedMemberIds), [focusedMemberIds]);
   const orderedMembers = useMemo(
-    () => sortMembersForRoster(members, focusedMemberIds),
-    [members, focusedMemberIds],
+    () =>
+      applyMemberRosterFilters(members, filterState, {
+        baseSort: (entries) => sortMembersForRoster(entries, focusedMemberIds),
+        playerKnowledge,
+        revealAllMemberDetails,
+      }),
+    [members, filterState, focusedMemberIds, playerKnowledge, revealAllMemberDetails],
   );
+  const filterActive = isMemberRosterFilterActive(filterState);
+  const resultLabel = filterActive
+    ? `${orderedMembers.length} of ${members.length}`
+    : `${members.length} cases`;
   const openMember = useMemo(
     () => members.find((member) => member.id === openMemberId) ?? null,
     [members, openMemberId],
@@ -257,23 +278,41 @@ export function RosterCanvas({
         </div>
       ) : null}
 
-      <ul className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {orderedMembers.map((member, index) => (
-          <MemberCard
-            key={member.id}
-            member={member}
-            state={cardStateFor(member)}
-            density="standard"
-            playerKnowledge={playerKnowledge}
-            revealAllDetails={revealAllMemberDetails}
-            priorityIndex={priorityIndexFor(member)}
-            index={index}
-            disabled={isActionPending}
-            onClick={() => handleMemberClick(member)}
-            onExpand={() => setOpenMemberId(member.id)}
-          />
-        ))}
-      </ul>
+      <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+        <RosterFilterBar
+          filterState={filterState}
+          onChange={setFilterState}
+          showStatus
+          resultLabel={resultLabel}
+        />
+      </div>
+
+      {orderedMembers.length === 0 ? (
+        <div className="mt-8">
+          <RosterFilterEmptyState />
+        </div>
+      ) : (
+        <ul className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {orderedMembers.map((member, index) => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              state={cardStateFor(member)}
+              density="standard"
+              playerKnowledge={playerKnowledge}
+              revealAllDetails={revealAllMemberDetails}
+              priorityIndex={priorityIndexFor(member)}
+              index={index}
+              disabled={isActionPending}
+              onClick={() => handleMemberClick(member)}
+              onExpand={() => setOpenMemberId(member.id)}
+            />
+          ))}
+          {rosterGridFillerClasses(orderedMembers.length).map((fillerClass, fillerIndex) => (
+            <PendingMemberCard key={`pending-${fillerIndex}`} className={fillerClass} />
+          ))}
+        </ul>
+      )}
 
       {openMember === null ? null : (
         <MemberDetailsModal

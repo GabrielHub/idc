@@ -12,7 +12,7 @@ export const seraVohn: Member = {
   realityStatus: "Stranded between contracts",
   bio: "Sera was an Intimacy Auditor at Vantage Match in 2087 NYC, where she compliance-reviewed corporate marriages for breach. She fell through a thin spot in the Vantage server room mid-audit and arrived in 2026 with eleven months of accrued PTO and no network to ping. She believes Cupid is a primitive consumer-tier competitor she can professionally evaluate while she finds her way back. She is not entirely wrong.",
   datingProfile:
-    "Intimacy Auditor, Vantage Match, between contracts. Offering: clean Term language, week-three cohabitation review on standard schedule, a partner who closes a tab when asked. Note that I am six floors taller than my photo registers. The augment cuff at my left wrist is decorative locally. Halcyon allergies in row two are accurate. Confirm a Term and we proceed.",
+    "Intimacy Auditor, Vantage Match, between contracts. Offering: clean Term language, week three cohabitation review on standard schedule, a partner who closes a tab when asked. Note that I am six floors taller than my photo registers. The augment cuff at my left wrist is decorative locally. Halcyon allergies in row two are accurate. Confirm a Term and we proceed.",
   relationshipNeeds: [
     "A counterparty who confirms a Term once and does not amend it past the second course",
     "Someone who treats her contract language as the love language it is",
@@ -80,10 +80,10 @@ export const seraVohn: Member = {
         "I have penciled in a week-three cohabitation review. This is not a joke. This is Standard. Renewal is at your discretion. I would like to be clear that I am rooting for Renewal.",
       ],
       cooling: [
-        "You are renegotiating the venue past the second course. The Term was fixed. I am asking once.",
-        "You called my audit voice a bit. The audit voice is not a bit. It is the voice. Please adjust your reception.",
-        "You asked where home is in a tone that suggested you did not believe me. I am not interested in defending the timeline. The Term covers dinner, not credentials.",
-        "You brought a recording-shaped device into the Term review. I do not consent. I will not ask twice.",
+        "The Term was fixed and you are renegotiating it past the second course. I am asking once.",
+        "The audit voice is not a bit. It is the voice. Please adjust your reception.",
+        "I am not interested in defending the timeline. The Term covers dinner, not credentials. Drop the where-is-home question.",
+        "A recording-shaped device has appeared at the Term review. I do not consent. I will not ask twice.",
       ],
       crashingOut: [
         "Breach. The Term is rescinded. I have eleven months left on a Vantage clause that prevents emotional renegotiation in public, and you have triggered it. I am leaving the table.",

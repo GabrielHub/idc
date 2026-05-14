@@ -18,6 +18,7 @@ import {
   isInterventionActiveForMember,
   lastTriggeredEvent,
 } from "./date-engine";
+import { derivePairTrajectory } from "./pair-trajectory";
 import type { RevealCandidate } from "./player-knowledge";
 
 export type CharacterPromptPacket = {
@@ -288,6 +289,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     isOpeningTurn: isSpeakerOpeningTurn,
   });
   const memorySearchAvailable = input.memorySearchAvailable ?? true;
+  const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
 
   const system = [
     `You are ${member.name}.`,
@@ -318,13 +320,15 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "Personality in conversation:",
     `You come across as ${member.voice.register}.`,
     `Habits that may surface when they fit: ${joinAsSentence(member.voice.tics)}`,
-    "Do not force every habit into the line. Do not announce the habit. Let one pressure point shape the reply.",
+    "These habits are flavor, not a script. A real reply to the partner and the live moment is always the right line, even when none of these habits appear in it.",
+    "Drop the habit before you bend a line to fit it. A line that sounds rehearsed or stand-up shaped to land a tic is worse than a plain answer.",
+    "Do not announce the habit. Do not stack multiple habits into one line. Let at most one pressure point shape the reply.",
     "Habits must be speakable to the partner. Convert written asides, fake labels, and bracketed notes into normal spoken asides.",
     "Address terms, titles, honorifics, pet names, and catchphrases are seasoning. Do not use the same one twice in a row.",
     "Short listening beats are allowed when they fit: for sure, I respect that, go on. They become a problem only when repeated or stapled to every full reply.",
     "Do not use the same listening beat, approval phrase, pet name, or verbal tic in two consecutive replies. Approval phrases include okay, fair, good, right, respect, for sure, go on, and works for me.",
     "Ceremonial, legal, poetic, corporate, or sect language can color one move. It must not replace the move.",
-    "Your voice is not a quota. It is how you notice things, dodge things, ask for things, and protect yourself.",
+    "Your voice is not a quota. It is how you notice things, dodge things, ask for things, and protect yourself. Real conversation overrides voice flavor every time.",
     "",
     "Current date:",
     ...currentSceneLines,
@@ -338,6 +342,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     "",
     "Reference lines:",
     formatBulletList(samples),
+    "Reference lines show what you sound like at full flavor when nothing else is pulling on you. They are not lines to imitate, complete, or stitch together. A reply that ignores them and just answers the partner is fine.",
     "Do not copy opener scaffolds after your first message. Do not repeat titles, job labels, species labels, or app premise unless the latest line directly asks.",
     "These are voice examples only. Their objects, meals, venues, schedules, and claims are not automatically true here.",
     "",
@@ -364,6 +369,9 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Self memories: ${formatCharacterMemories(memoryPack.self)}`,
     `Pair memories: ${formatCharacterMemories(memoryPack.pair)}`,
     `Past visits here: ${formatCharacterMemories(memoryPack.scenario)}`,
+    `Active pair agreements: ${formatActiveAgreements(pairState)}`,
+    `Unresolved pair items: ${formatOpenLoops(pairState)}`,
+    `Pair file guidance: ${pairTrajectory.performerGuidance} Use as subtext only.`,
     memorySearchAvailable
       ? "Memory search: available for missing self, pair, or place history. Use returned memories only as allowed context."
       : "Memory search: not available in this prompt run.",
@@ -594,10 +602,12 @@ export function buildJudgePromptPacket({
     "- therapy-speak like they explored their feelings or navigated tension",
     "- corporate consulting voice like leveraging synergies or unlocking potential",
     "- AI slop verbs: delve, navigate, leverage, harness, unleash, elevate",
+    "- action ownership claims that invert speaker roles, such as saying someone deferred control after they asked and then acted",
     'Accepted notableMoments examples: "Vhool offered the receipt."; "Coffee unspilled at turn 4."; "Jenna refused to recruit."',
   ].join("\n");
   const candidates = revealCandidates ?? [];
   const candidateLines = formatRevealCandidatesForPrompt(candidates);
+  const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
   const messages: ModelMessage[] = [
     {
       role: "user",
@@ -612,8 +622,18 @@ export function buildJudgePromptPacket({
         'endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
         "notableMoments must contain 1 to 3 short strings, each anchored in a concrete scene detail.",
         "playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
+        "Evidence discipline:",
+        "Base playerSummary and notableMoments on visible actions in this exchange. Do not convert tone, confidence, or approval into a role claim by itself.",
+        "Use agency verbs only when the transcript proves the actor. Agency verbs include led, deferred, offered, accepted, refused, took over, dominated, yielded, shared, managed, handled, sent, chose, split, gave, and asked.",
+        "Do not say a member deferred, yielded, led, took over, or handed off unless that member's own line or a scene line explicitly shows that move.",
+        "Asking the partner whether they want a turn, then acting after they answer, is checking preference, not deferring control.",
+        "If the role read is ambiguous, write the visible move instead: Alex asked Sam about first dibs, Sam told Alex to send it, Alex ordered the meat.",
         "memoryCandidates must be an empty array.",
         "usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
+        "agreementCandidates may contain at most 2 concrete pair agreements newly made in this exchange. Use only plain player-safe text. Do not include stat numbers or hidden labels.",
+        "agreementUpdates may contain active agreement ids only when this exchange clearly honored, broke, or retired that agreement.",
+        "openLoopCandidates may contain at most 2 unresolved hooks created by the exchange: a dodged question, promise, named preference, or unfinished plan.",
+        "openLoopUpdates may contain active open loop ids only when this exchange clearly resolved or dropped that item.",
         "Dynamic scoring guidance:",
         "Use positive Date Health only when the exchange creates evidence of warmth, trust, repair, or useful attraction.",
         "Use negative Date Health when a member dodges a direct answer, repeats logistics, crosses a boundary, performs at the partner, makes the partner manage them, or lets the room become the whole relationship.",
@@ -622,7 +642,7 @@ export function buildJudgePromptPacket({
         "Raise conflict or strain when the exchange creates irritation, pressure, public discomfort, or a boundary crossing.",
         "If an early end trigger is visibly met, set shouldEndEarly true even when Date Health remains above zero.",
         "Do not use em dashes or en dashes in any string.",
-        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[]}`,
+        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[],"agreementCandidates":[],"agreementUpdates":[],"openLoopCandidates":[],"openLoopUpdates":[]}`,
         "",
         `Scenario: ${scenario.title}.`,
         `Scenario pressure: risk ${scenario.card.risk}, intimacy ${scenario.card.intimacy}, chaos ${scenario.card.chaos}.`,
@@ -634,6 +654,9 @@ export function buildJudgePromptPacket({
         `Early end triggers: ${scenario.director.earlyEndTriggers.join("; ")}.`,
         `Current Date Health: ${session.dateHealth}.`,
         `Current pair stats: ${JSON.stringify(pairState.stats)}.`,
+        `Active pair agreements: ${formatActiveAgreementIds(pairState)}.`,
+        `Open pair loops: ${formatOpenLoopIds(pairState)}.`,
+        `Pair file guidance: ${pairTrajectory.judgeGuidance}`,
         "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
         ...candidateLines,
       ].join("\n"),
@@ -1139,6 +1162,54 @@ function formatCharacterMemories(memories: Array<{ text: string }>): string {
     .join("\n");
 }
 
+function formatActiveAgreements(pairState: PairState): string {
+  const active = pairState.agreements.filter((agreement) => agreement.status === "active");
+  if (active.length === 0) {
+    return "None filed.";
+  }
+
+  return active
+    .map((agreement) => agreement.text)
+    .slice(0, 3)
+    .join("; ");
+}
+
+function formatOpenLoops(pairState: PairState): string {
+  const open = pairState.openLoops.filter((loop) => loop.status === "open");
+  if (open.length === 0) {
+    return "None filed.";
+  }
+
+  return open
+    .map((loop) => loop.text)
+    .slice(0, 3)
+    .join("; ");
+}
+
+function formatActiveAgreementIds(pairState: PairState): string {
+  const active = pairState.agreements.filter((agreement) => agreement.status === "active");
+  if (active.length === 0) {
+    return "none";
+  }
+
+  return active
+    .slice(0, 5)
+    .map((agreement) => `${agreement.id}: ${agreement.text}`)
+    .join("; ");
+}
+
+function formatOpenLoopIds(pairState: PairState): string {
+  const open = pairState.openLoops.filter((loop) => loop.status === "open");
+  if (open.length === 0) {
+    return "none";
+  }
+
+  return open
+    .slice(0, 5)
+    .map((loop) => `${loop.id}: ${loop.text}`)
+    .join("; ");
+}
+
 function formatParticipants(members: Member[]): string {
   return members.map((member) => `${member.id} (${member.name})`).join(", ");
 }
@@ -1215,6 +1286,10 @@ function formatJudgeSnapshotForThread(snapshot: JudgeSnapshot) {
     notableMoments: snapshot.notableMoments,
     playerSummary: snapshot.playerSummary,
     memoryCandidates: [],
+    agreementCandidates: snapshot.agreementCandidates,
+    agreementUpdates: snapshot.agreementUpdates,
+    openLoopCandidates: snapshot.openLoopCandidates,
+    openLoopUpdates: snapshot.openLoopUpdates,
   };
 }
 

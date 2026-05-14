@@ -48,6 +48,7 @@ export function Hairline({ className = "" }: { className?: string }) {
 /* ------------------------------------------------------------------ */
 
 type PortraitVariant =
+  | "chip"
   | "thumb"
   | "row"
   | "card"
@@ -57,6 +58,7 @@ type PortraitVariant =
   | "standee-bottom";
 
 const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
+  chip: "size-7 rounded-full border border-white/85 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
   thumb:
     "size-12 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
   row: "size-16 rounded-full border border-white/80 bg-gradient-to-br from-rose-100 via-fuchsia-50 to-violet-100",
@@ -70,6 +72,7 @@ const PORTRAIT_FRAME: Record<PortraitVariant, string> = {
 };
 
 const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
+  chip: "size-full object-cover object-top",
   thumb: "size-full object-cover object-top",
   row: "size-full object-cover object-top",
   card: "size-full object-cover object-top",
@@ -80,6 +83,7 @@ const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
 };
 
 const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
+  chip: "font-display text-xs font-bold text-aura-rose",
   thumb: "font-display text-base font-bold text-aura-rose",
   row: "font-display text-lg font-bold text-aura-rose",
   card: "font-display text-2xl font-bold text-aura-rose",
@@ -97,6 +101,7 @@ const PORTRAIT_FADE_CLASS =
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
 
 const AVATAR_SIZES_FOR_VARIANT: Record<PortraitVariant, string | undefined> = {
+  chip: "28px",
   thumb: "48px",
   row: "64px",
   card: "96px",
@@ -682,11 +687,13 @@ export function Tooltip({
   placement = "bottom-start",
   children,
   className = "",
+  messageClassName = "text-aura-muted",
 }: {
   message: React.ReactNode;
   placement?: TooltipPlacement;
   children: React.ReactNode;
   className?: string;
+  messageClassName?: string;
 }) {
   const placementClass = TOOLTIP_PLACEMENT[placement];
 
@@ -697,7 +704,9 @@ export function Tooltip({
         role="tooltip"
         className={`pointer-events-none absolute z-30 w-max max-w-xs rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100 ${placementClass.position} ${placementClass.rest} ${placementClass.active}`}
       >
-        <span className="aura-accent block text-label leading-snug text-aura-muted">{message}</span>
+        <span className={`aura-accent block text-label leading-snug ${messageClassName}`}>
+          {message}
+        </span>
       </span>
     </span>
   );

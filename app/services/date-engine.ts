@@ -49,6 +49,7 @@ import {
   filterExchangeEligibleRevealCandidates,
   selectDeterministicRevealIds,
 } from "./player-knowledge";
+import { applyJudgePairMemoryEffects } from "./pair-memory";
 import {
   CLIENT_LOSS_LIMIT_BASE,
   CLOSURE_THRESHOLD,
@@ -63,7 +64,7 @@ import {
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
 import { clampDelta, clampScore, pushIntoBucket, replaceById, shuffleInPlace } from "./utils";
-import { createDeterministicEmbedding } from "./vector-memory";
+import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export type StartDateInput = {
   focusMemberId: string;
@@ -103,10 +104,9 @@ export const MAX_NUDGES_PER_DATE = 3;
 export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
 export const EVENT_DRAFT_OFFERED = EVENT_DRAFT_OFFERED_PER_KIND * SCENARIO_EVENT_KINDS.length;
 export const EVENT_DRAFT_PICKED = 3;
-const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
 export { CLIENT_LOSS_LIMIT_BASE, CLOSURE_THRESHOLD, clientLossLimit };
 
-type OutcomeStateDeltas = {
+export type OutcomeStateDeltas = {
   retention: number;
   mood: number;
   burnout: number;
@@ -118,13 +118,6 @@ const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDelta
   cool_down: { retention: -7, mood: -4, burnout: 4 },
   bad_fit: { retention: -14, mood: -7, burnout: 6 },
   early_end: { retention: -18, mood: -9, burnout: 8 },
-};
-
-const FOLLOW_UP_DELTAS: Record<FollowUpAction, OutcomeStateDeltas> = {
-  encourage: { retention: 2, mood: 2, burnout: -1 },
-  cool_down: { retention: 4, mood: 1, burnout: -2 },
-  repair: { retention: 8, mood: 3, burnout: -3 },
-  mark_bad_fit: { retention: 5, mood: 1, burnout: -1 },
 };
 
 export function startDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
@@ -719,7 +712,13 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     ...judgeSnapshotBeforeReveals,
     usedEvidenceIds: deterministicAcceptedIds,
   });
-  const updatedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
+  const judgedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
+  const pairMemoryResult = applyJudgePairMemoryEffects({
+    pairState: judgedPairState,
+    judgeSnapshot,
+    timestamp,
+  });
+  const updatedPairState = pairMemoryResult.pairState;
   const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
   const nextDateHealth = clampScore(session.dateHealth + judgeSnapshot.dateHealthDelta);
   const isEndingEarly = nextDateHealth <= 0 || judgeSnapshot.shouldEndEarly;
@@ -766,9 +765,10 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
       : markPairDateComplete(updatedPairState, completedSession);
   const finalMemories =
     completedSession.finalReport === undefined
-      ? save.memories
+      ? [...save.memories, ...pairMemoryResult.memories]
       : [
           ...save.memories,
+          ...pairMemoryResult.memories,
           ...createDateMemoryRecords(completedSession, members, scenario, timestamp),
         ];
   const finalMembers =
@@ -833,9 +833,10 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
   }
 
   const pairState = requirePairState(save, session.pairId);
+  const effects = resolveFollowUpEffects(pairState, session, input.action);
   const updatedPairState = {
     ...pairState,
-    stats: pairStatsSchema.parse(applyFollowUpToStats(pairState.stats, input.action)),
+    stats: pairStatsSchema.parse(adjustStats(pairState.stats, effects.statDeltas)),
   };
   const updatedSession = dateSessionSchema.parse({
     ...session,
@@ -844,7 +845,7 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
       appliedFollowUp: input.action,
     }),
   });
-  const updatedMembers = applyFollowUpToMembers(save.members, session, input.action);
+  const updatedMembers = applyFollowUpToMembers(save.members, session, effects.memberDeltas);
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: updatedMembers,
@@ -1537,10 +1538,10 @@ export function applyDateFinalReportToMembers(
 function applyFollowUpToMembers(
   members: Member[],
   session: DateSession,
-  action: FollowUpAction,
+  deltas: OutcomeStateDeltas,
 ): Member[] {
   return applyStateDeltasToMembers(members, session.participants, {
-    ...FOLLOW_UP_DELTAS[action],
+    ...deltas,
     recentDateResult: "Follow-up filed. Client file stabilized.",
   });
 }
@@ -1695,38 +1696,131 @@ function finalOutcomeMemberResult(outcome: DateFinalReport["outcome"]): string {
   return "Mixed date filed. Client file under review.";
 }
 
-type PrimaryStatDeltas = Partial<
+export type PrimaryStatDeltas = Partial<
   Record<Exclude<RelationshipStat, "relationshipHealth" | "strain">, number>
 >;
 
-function applyFollowUpToStats(stats: PairStats, action: FollowUpAction): PairStats {
+export type FollowUpEffectPreview = {
+  action: FollowUpAction;
+  outcome: DateFinalReport["outcome"];
+  statDeltas: PrimaryStatDeltas;
+  memberDeltas: OutcomeStateDeltas;
+  nextStats: PairStats;
+  reasons: string[];
+};
+
+export function previewFollowUpEffects(
+  pairState: PairState,
+  session: DateSession,
+  action: FollowUpAction,
+): FollowUpEffectPreview {
+  const effects = resolveFollowUpEffects(pairState, session, action);
+
+  return {
+    action,
+    outcome: requireFinalOutcome(session),
+    statDeltas: effects.statDeltas,
+    memberDeltas: effects.memberDeltas,
+    nextStats: adjustStats(pairState.stats, effects.statDeltas),
+    reasons: effects.reasons,
+  };
+}
+
+function resolveFollowUpEffects(
+  pairState: PairState,
+  session: DateSession,
+  action: FollowUpAction,
+): {
+  statDeltas: PrimaryStatDeltas;
+  memberDeltas: OutcomeStateDeltas;
+  reasons: string[];
+} {
+  const outcome = requireFinalOutcome(session);
+  const lastJudge = session.judgeSnapshots.at(-1);
+  const highStrain =
+    pairState.stats.strain >= 60 ||
+    pairState.stats.conflict >= 60 ||
+    (lastJudge?.statDeltas.strain ?? 0) >= 4 ||
+    (lastJudge?.statDeltas.conflict ?? 0) >= 4;
+  const boundaryPressure =
+    session.status === "ended_early" ||
+    lastJudge?.shouldEndEarly === true ||
+    lastJudge?.usedEvidenceIds.some((id) => id.includes(":boundary:")) === true;
+  const brokenAgreementCount = pairState.agreements.filter(
+    (agreement) => agreement.status === "broken",
+  ).length;
+  const openLoopCount = pairState.openLoops.filter((loop) => loop.status === "open").length;
+  const reasons: string[] = [`outcome:${outcome}`];
+
   if (action === "encourage") {
-    return adjustStats(stats, {
-      chemistry: 6,
-      trust: 3,
-      spark: 6,
-    });
+    const positive = outcome === "second_date";
+    if (positive) reasons.push("warm file");
+    else reasons.push("encourage against caution");
+
+    return {
+      statDeltas: positive
+        ? { chemistry: 7, trust: 4, stability: 1, spark: 7 }
+        : { chemistry: 2, trust: 1, conflict: 2, spark: 3 },
+      memberDeltas: positive
+        ? { retention: 3, mood: 3, burnout: -2 }
+        : { retention: -2, mood: -1, burnout: 2 },
+      reasons,
+    };
   }
 
   if (action === "cool_down") {
-    return adjustStats(stats, { chemistry: -3, stability: 3, conflict: -4, spark: -3 });
+    if (highStrain) reasons.push("strain relief");
+    if (openLoopCount > 0) reasons.push("unresolved item left open");
+
+    return {
+      statDeltas: highStrain
+        ? { chemistry: -2, stability: 7, conflict: -8, spark: -4 }
+        : { chemistry: -3, stability: 4, conflict: -5, spark: -3 },
+      memberDeltas: highStrain
+        ? { retention: 5, mood: 2, burnout: -4 }
+        : { retention: 4, mood: 1, burnout: -2 },
+      reasons,
+    };
   }
 
   if (action === "repair") {
-    return adjustStats(stats, {
-      trust: 7,
-      stability: 4,
-      conflict: -6,
-    });
+    if (boundaryPressure) reasons.push("boundary repair");
+    if (brokenAgreementCount > 0) reasons.push("agreement repair");
+
+    return {
+      statDeltas:
+        boundaryPressure || brokenAgreementCount > 0
+          ? { trust: 10, stability: 5, conflict: -9, spark: 1 }
+          : { trust: 7, stability: 4, conflict: -6 },
+      memberDeltas:
+        boundaryPressure || brokenAgreementCount > 0
+          ? { retention: 10, mood: 4, burnout: -4 }
+          : { retention: 8, mood: 3, burnout: -3 },
+      reasons,
+    };
   }
 
-  return adjustStats(stats, {
-    chemistry: -6,
-    trust: -2,
-    stability: 2,
-    conflict: 3,
-    spark: -8,
-  });
+  const protective = outcome === "bad_fit" || outcome === "early_end" || highStrain;
+  if (protective) reasons.push("protective bad fit filing");
+  else reasons.push("premature bad fit filing");
+
+  return {
+    statDeltas: protective
+      ? { chemistry: -8, trust: -1, stability: 5, conflict: -3, spark: -10 }
+      : { chemistry: -6, trust: -3, stability: 1, conflict: 4, spark: -8 },
+    memberDeltas: protective
+      ? { retention: 7, mood: 1, burnout: -2 }
+      : { retention: -3, mood: -2, burnout: 2 },
+    reasons,
+  };
+}
+
+function requireFinalOutcome(session: DateSession): DateFinalReport["outcome"] {
+  const outcome = session.finalReport?.outcome;
+  if (outcome === undefined) {
+    throw new Error("Follow-up actions require a completed date report.");
+  }
+  return outcome;
 }
 
 function adjustStats(stats: PairStats, deltas: PrimaryStatDeltas): PairStats {

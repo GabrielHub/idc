@@ -45,7 +45,7 @@ export default function App() {
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let badge = "system notice";
   let message = "Cupid hit an unexpected error.";
-  let details = "Reload the shell. If this keeps happening, capture the log folder for triage.";
+  let details = "Reload the shell. If this keeps happening, save one bug report for triage.";
   let routeStatus: number | undefined;
 
   if (isRouteErrorResponse(error)) {

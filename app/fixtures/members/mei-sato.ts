@@ -12,7 +12,7 @@ export const meiSato: Member = {
   realityStatus: "Ordinary, between sets",
   bio: "Mei Sato dj's as saturday and is fifteen weekends into the residency she has been chasing since college. She thinks Cupid is a niche dating app for people in the music industry. She is half wrong, in the polite direction.",
   datingProfile:
-    "24, bushwick, dj (handle: saturday). residency at union pool, opening the sunset slot at park ave fest in july. looking for a date who lets me get to the end of a track rec without checking out. i talk fast, i mean it more than i say it. set times: friday late, saturday all night, sunday brunch only if you drive. photos: me at the booth, me with my cat reverb, me holding an SP-404 like a pet.",
+    "I talk fast because the track rec matters and the set starts late. dj as saturday, residency at union pool, opening the sunset slot at park ave fest in july. looking for a date who lets me get to the end of a track rec without checking out. i mean it more than i say it. set times: friday late, saturday all night, sunday brunch only if you drive. photos: me at the booth, me with my cat reverb, me holding an SP-404 like a pet.",
   relationshipNeeds: [
     "Someone who lets her get all the way through a track rec without checking out",
     "A date that survives her schedule, which is loud Friday, all-night Saturday, asleep Sunday",

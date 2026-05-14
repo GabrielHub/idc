@@ -12,7 +12,7 @@ export const marcusPellish: Member = {
   realityStatus: "Ordinary, divorced eight years",
   bio: "Marcus runs an HVAC route across north central Ohio and has three grown kids and a granddaughter on the way. He thinks Cupid is a normal dating app his daughter signed him up for over Easter. She did.",
   datingProfile:
-    "52, divorced, three grown kids, one grandbaby on the way (her name is going to be Wren). hi, marcus. i fix furnaces. i can do dinner Wednesday or Sunday. i drive a 2014 F-150 with a bench seat and a heated wheel. profile photo is my dog Buster, the second one is also my dog Buster, my daughter Tara picked them both.",
+    "my daughter Tara picked the photos, both dogs are Buster, and I can do dinner Wednesday or Sunday. hi, marcus. i fix furnaces. 52, divorced, three grown kids, one grandbaby on the way, her name is going to be Wren. i drive a 2014 F-150 with a bench seat and a heated wheel.",
   relationshipNeeds: [
     "Someone who lets him be a fully formed adult instead of a project",
     "A date that does not require him to pretend he is younger than he is",

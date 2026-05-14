@@ -3,8 +3,6 @@ import { describe, expect, it } from "vitest";
 import { memberSchema, type JudgeSnapshot, type Member, type PortraitAsset } from "../domain/game";
 import { starterMembers } from "../fixtures";
 import {
-  isMemberSpeaking,
-  memberStreamingReasoningText,
   readyPortraitMoodPaths,
   selectDominantMood,
   selectPortraitAsset,
@@ -122,45 +120,6 @@ describe("date presentation signals", () => {
     expect(selectDominantMood("confused", "neutral")).toBe("confused");
   });
 
-  it("only treats active streaming drafts as speaking", () => {
-    expect(
-      isMemberSpeaking(LEFT_MEMBER_ID, [
-        {
-          speakerId: LEFT_MEMBER_ID,
-          status: "done",
-        },
-        {
-          speakerId: RIGHT_MEMBER_ID,
-          status: "streaming",
-        },
-      ]),
-    ).toBe(false);
-
-    expect(
-      isMemberSpeaking(LEFT_MEMBER_ID, [
-        {
-          speakerId: LEFT_MEMBER_ID,
-          status: "streaming",
-        },
-      ]),
-    ).toBe(true);
-
-    expect(
-      memberStreamingReasoningText(LEFT_MEMBER_ID, [
-        {
-          speakerId: LEFT_MEMBER_ID,
-          status: "done",
-          reasoningText: "archived thought",
-        },
-        {
-          speakerId: LEFT_MEMBER_ID,
-          status: "streaming",
-          reasoningText: "active thought",
-        },
-      ]),
-    ).toBe("active thought");
-  });
-
   it("resolves partial portrait variants with neutral fallback", () => {
     const baseMember = requireStarterMember("vhool");
     const flirtyPortrait = makePortraitAsset("flirty");
@@ -220,6 +179,10 @@ function makeJudgeSnapshot({
     playerSummary: "Cupid filed the exchange.",
     memoryCandidates: [],
     usedEvidenceIds: [],
+    agreementCandidates: [],
+    agreementUpdates: [],
+    openLoopCandidates: [],
+    openLoopUpdates: [],
   };
 }
 

@@ -2,7 +2,7 @@ import { motion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import type { DateScenario } from "../domain/game";
-import { EASE_OUT_QUART, GhostButton, PrimaryButton } from "./dashboard-atoms";
+import { EASE_OUT_QUART } from "./dashboard-atoms";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 import { RISK_DOT_TONE, RISK_SHORT, RISK_TEXT_TONE } from "./scenario-card";
 
@@ -55,7 +55,7 @@ export function ScenarioDetailsModal({
         role="dialog"
         aria-modal="true"
         aria-label={`${scenario.title} scenario detail`}
-        className="relative isolate flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-card shadow-[0_50px_120px_-30px_rgba(15,23,42,0.6)] ring-1 ring-white/50"
+        className="relative isolate flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-card bg-white/15 shadow-[0_50px_120px_-30px_rgba(15,23,42,0.6)] ring-1 ring-white/60 backdrop-blur-2xl"
       >
         <ScenarioDetailBackdrop scenarioId={scenario.id} />
 
@@ -64,36 +64,38 @@ export function ScenarioDetailsModal({
           data-sfx="click"
           onClick={onClose}
           aria-label="Close scenario detail"
-          className="absolute right-6 top-6 z-30 grid size-10 cursor-pointer place-items-center rounded-full bg-white/90 text-aura-ink shadow-quiet ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-rose"
+          className="absolute right-6 top-6 z-30 grid size-10 cursor-pointer place-items-center rounded-full border border-white/35 bg-white/20 text-aura-ink/75 shadow-none transition hover:bg-white/40 hover:text-aura-rose"
         >
           ✕
         </button>
 
         <div className="relative z-10 flex min-h-0 flex-col">
-          <header className="px-12 pt-12 md:px-16 md:pt-14">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-              {eyebrow}
-            </p>
-            <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-aura-ink md:text-[2.75rem]">
-              {scenario.title}
-            </h2>
-            <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-              {scenario.publicBrief.location}
-            </p>
+          <header className="px-4 pt-4 md:px-6 md:pt-6">
+            <div className="aura-glass-strong rounded-[28px] px-6 py-5 pr-16 shadow-[0_24px_70px_-34px_rgba(15,23,42,0.42)] md:px-10 md:py-7 md:pr-20">
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+                {eyebrow}
+              </p>
+              <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] text-aura-ink md:text-[2.75rem]">
+                {scenario.title}
+              </h2>
+              <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                {scenario.publicBrief.location}
+              </p>
 
-            <div className="mt-5 flex flex-wrap items-center gap-2">
-              <VibeChip label="Risk" tone={scenario.card.risk} />
-              <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
-              <VibeChip label="Chaos" tone={scenario.card.chaos} />
-              {statusLabel === undefined ? null : (
-                <span className="inline-flex items-center gap-1.5 rounded-pill border border-amber-400/70 bg-amber-50/90 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-amber-800">
-                  {statusLabel}
-                </span>
-              )}
+              <div className="mt-5 flex flex-wrap items-center gap-2">
+                <VibeChip label="Risk" tone={scenario.card.risk} />
+                <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
+                <VibeChip label="Chaos" tone={scenario.card.chaos} />
+                {statusLabel === undefined ? null : (
+                  <span className="aura-glass-strong inline-flex items-center gap-1.5 rounded-pill border border-amber-400/70 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-amber-800">
+                    {statusLabel}
+                  </span>
+                )}
+              </div>
             </div>
           </header>
 
-          <div className="flex-1 overflow-y-auto px-12 pb-10 pt-8 md:px-16">
+          <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 md:px-6">
             <div className="grid gap-5 md:grid-cols-[1.25fr_0.95fr]">
               <div className="space-y-5">
                 <section className={glassSectionClass("px-5 py-5 md:px-6 md:py-6")}>
@@ -132,13 +134,19 @@ export function ScenarioDetailsModal({
             </div>
           </div>
 
-          <footer className="relative flex flex-wrap items-center justify-end gap-3 bg-gradient-to-t from-white/85 via-white/55 to-transparent px-12 pb-7 pt-10 md:px-16">
-            <GhostButton onClick={onClose}>Close</GhostButton>
-            {primaryAction === undefined ? null : (
-              <PrimaryButton onClick={primaryAction.onClick} disabled={primaryAction.disabled}>
-                {primaryAction.label}
-              </PrimaryButton>
-            )}
+          <footer className="relative px-4 pb-5 pt-1 md:px-6 md:pb-6">
+            <div className="flex flex-wrap items-center justify-end gap-3 rounded-[28px] border border-white/50 bg-white/30 px-4 py-3 shadow-none backdrop-blur-2xl md:px-6">
+              <FlatButton onClick={onClose}>Close</FlatButton>
+              {primaryAction === undefined ? null : (
+                <FlatButton
+                  variant="primary"
+                  onClick={primaryAction.onClick}
+                  disabled={primaryAction.disabled}
+                >
+                  {primaryAction.label}
+                </FlatButton>
+              )}
+            </div>
           </footer>
         </div>
       </motion.div>
@@ -234,6 +242,35 @@ function SignalList({
         <BulletList items={items} tone={tone} />
       </div>
     </section>
+  );
+}
+
+function FlatButton({
+  children,
+  onClick,
+  disabled,
+  variant = "quiet",
+}: {
+  children: ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: "quiet" | "primary";
+}) {
+  const toneClass =
+    variant === "primary"
+      ? "border-aura-rose/12 bg-aura-rose/8 text-aura-rose/80 hover:bg-aura-rose/14 hover:text-aura-rose"
+      : "border-transparent bg-white/10 text-aura-muted/80 hover:bg-white/25 hover:text-aura-ink";
+
+  return (
+    <button
+      type="button"
+      data-sfx={variant === "primary" ? "primary" : "click"}
+      onClick={onClick}
+      disabled={disabled}
+      className={`cursor-pointer rounded-pill border px-5 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] shadow-none transition disabled:cursor-not-allowed disabled:opacity-40 ${toneClass}`}
+    >
+      {children}
+    </button>
   );
 }
 

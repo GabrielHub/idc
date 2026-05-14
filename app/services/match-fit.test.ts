@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { dateSessionSchema, judgeSnapshotSchema } from "../domain/game";
-import { starterScenarios } from "../fixtures";
+import { memberRequests, starterScenarios } from "../fixtures";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import {
   applyMatchFitToJudgeSnapshot,
@@ -30,6 +30,32 @@ function findScenario(scenarioId: string) {
   }
 
   return scenario;
+}
+
+function findRequest(requestId: string) {
+  const request = memberRequests.find((candidate) => candidate.id === requestId);
+
+  if (request === undefined) {
+    throw new Error(`Expected request ${requestId}.`);
+  }
+
+  return request;
+}
+
+function findPairState(
+  save: ReturnType<typeof createSeedGameSave>,
+  firstMemberId: string,
+  secondMemberId: string,
+) {
+  const pairState = save.pairStates.find(
+    (state) => state.id === makePairId(firstMemberId, secondMemberId),
+  );
+
+  if (pairState === undefined) {
+    throw new Error(`Expected ${firstMemberId} and ${secondMemberId} pair state.`);
+  }
+
+  return pairState;
 }
 
 function makeFit({
@@ -97,6 +123,126 @@ describe("evaluateMatchFit", () => {
     });
 
     expect(fit.internalRuleHits).toContain("pair:weirdness_displaced_recognition");
+  });
+
+  it("covers Imani and Sienna's bright fandom asks without generic performer blocking", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const imani = findMember(save, "imani-wallace");
+    const sienna = findMember(save, "sienna-bae");
+    const scenario = findScenario("diner-eleven-pm");
+    const pairState = findPairState(save, imani.id, sienna.id);
+    const request = findRequest("request-imani-show-recommendation");
+
+    const fit = evaluateMatchFit({
+      members: [imani, sienna],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.fitLevel).toBe("strong");
+    expect(fit.askSignal).toBe("covered");
+    expect(fit.coveredRequestIds).toContain(request.id);
+    expect(fit.blockedRequestIds).not.toContain(request.id);
+    expect(fit.internalRuleHits).toContain("imani:shift_hour_real_place");
+    expect(fit.internalRuleHits).toContain("sienna:post_rehearsal_late_booth");
+    expect(fit.internalRuleHits).toContain("pair:imani_sienna_bright_fan_overlap");
+    expect(fit.internalRuleHits).toContain("request:imani_sincere_followup_covered");
+  });
+
+  it("blocks Sienna's label-sensitive ask at the photo wall with Kade", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const sienna = findMember(save, "sienna-bae");
+    const kade = findMember(save, "kade-sumner");
+    const scenario = findScenario("soft-launch-photo-wall");
+    const pairState = findPairState(save, sienna.id, kade.id);
+    const request = findRequest("request-sienna-work-is-work");
+
+    const fit = evaluateMatchFit({
+      members: [sienna, kade],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.fitLevel).toBe("risky");
+    expect(fit.pressureLevel).toBe("high");
+    expect(fit.askSignal).toBe("blocked");
+    expect(fit.blockedRequestIds).toContain(request.id);
+    expect(fit.internalRuleHits).toContain("sienna:label_clause_camera_pressure");
+    expect(fit.internalRuleHits).toContain("pair:sienna_kade_label_clause");
+    expect(fit.internalRuleHits).toContain("request:soft_launch_camera_blocks_target_asks");
+  });
+
+  it("keeps Anansi and Mei's story craft visible over generic sincerity friction", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const anansi = findMember(save, "anansi");
+    const mei = findMember(save, "mei-sato");
+    const scenario = findScenario("hotel-bar-last-call");
+    const pairState = findPairState(save, anansi.id, mei.id);
+    const request = findRequest("request-anansi-call-the-lie");
+
+    const fit = evaluateMatchFit({
+      members: [anansi, mei],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.fitLevel).toBe("strong");
+    expect(fit.askSignal).toBe("covered");
+    expect(fit.coveredRequestIds).toContain(request.id);
+    expect(fit.internalRuleHits).toContain("anansi:long_story_room");
+    expect(fit.internalRuleHits).toContain("pair:anansi_mei_story_craft");
+    expect(fit.internalRuleHits).toContain("request:anansi_story_partner_covered");
+  });
+
+  it("blocks Nawal's closed Office ask when the room and partner reopen that frame", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const nawal = findMember(save, "nawal-marrash");
+    const wenshu = findMember(save, "bai-wenshu");
+    const scenario = findScenario("underworld-department-mixer");
+    const pairState = findPairState(save, nawal.id, wenshu.id);
+    const request = findRequest("request-nawal-office-closed");
+
+    const fit = evaluateMatchFit({
+      members: [nawal, wenshu],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.fitLevel).toBe("risky");
+    expect(fit.pressureLevel).toBe("high");
+    expect(fit.askSignal).toBe("blocked");
+    expect(fit.blockedRequestIds).toContain(request.id);
+    expect(fit.internalRuleHits).toContain("nawal:office_reopened_room");
+    expect(fit.internalRuleHits).toContain("pair:nawal_wenshu_cosmic_vocabulary");
+    expect(fit.internalRuleHits).toContain("request:nawal_office_reopened_by_room");
+  });
+
+  it("blocks Maeve's no-trade ask when the room forces unsaid items and Toby spirals", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const maeve = findMember(save, "maeve");
+    const toby = findMember(save, "toby-wenz");
+    const scenario = findScenario("memory-course-dinner");
+    const pairState = findPairState(save, maeve.id, toby.id);
+    const request = findRequest("request-maeve-no-trade-disclosures");
+
+    const fit = evaluateMatchFit({
+      members: [maeve, toby],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.fitLevel).toBe("risky");
+    expect(fit.pressureLevel).toBe("high");
+    expect(fit.askSignal).toBe("blocked");
+    expect(fit.blockedRequestIds).toContain(request.id);
+    expect(fit.internalRuleHits).toContain("maeve:forced_unsaid_receipt");
+    expect(fit.internalRuleHits).toContain("pair:maeve_toby_disclosure_spiral");
+    expect(fit.internalRuleHits).toContain("request:maeve_unsaid_receipt_forces_trade");
   });
 });
 

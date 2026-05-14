@@ -28,8 +28,9 @@ export const SCENARIO_BACKDROP_PARTICLE_STYLES: readonly ScenarioBackdropParticl
 ];
 
 const SCENARIO_BACKDROP_MANIFEST_PATH = "/assets/scenarios/manifest.json";
-const POINTER_DAMPENING = 0.07;
-const POINTER_RANGE_PCT = 1.6;
+const POINTER_LERP_FACTOR = 0.045;
+const POINTER_SHIFT_PCT = 0.12;
+const POINTER_TILT_DEG = 1.15;
 const PARTICLE_COUNT = 16;
 
 let scenarioBackdropIdCache: ReadonlySet<string> | null = null;
@@ -246,14 +247,20 @@ function ScenarioBackdropImage({
     let raf = 0;
 
     const handleMove = (event: MouseEvent) => {
-      target.x = (event.clientX / window.innerWidth - 0.5) * -POINTER_RANGE_PCT;
-      target.y = (event.clientY / window.innerHeight - 0.5) * -POINTER_RANGE_PCT;
+      target.x = (event.clientX / window.innerWidth - 0.5) * 2;
+      target.y = (event.clientY / window.innerHeight - 0.5) * 2;
     };
 
     const tick = () => {
-      current.x += (target.x - current.x) * POINTER_DAMPENING;
-      current.y += (target.y - current.y) * POINTER_DAMPENING;
-      node.style.transform = `translate3d(${current.x.toFixed(4)}%, ${current.y.toFixed(4)}%, 0)`;
+      current.x += (target.x - current.x) * POINTER_LERP_FACTOR;
+      current.y += (target.y - current.y) * POINTER_LERP_FACTOR;
+
+      const shiftX = current.x * -POINTER_SHIFT_PCT;
+      const shiftY = current.y * -POINTER_SHIFT_PCT;
+      const tiltX = current.y * POINTER_TILT_DEG;
+      const tiltY = current.x * -POINTER_TILT_DEG;
+
+      node.style.transform = `perspective(1400px) translate3d(${shiftX.toFixed(4)}%, ${shiftY.toFixed(4)}%, 0) rotateX(${tiltX.toFixed(4)}deg) rotateY(${tiltY.toFixed(4)}deg) scale(1.012)`;
       raf = window.requestAnimationFrame(tick);
     };
 
@@ -284,16 +291,16 @@ function ScenarioBackdropImage({
         animate={
           driftActive
             ? {
-                scale: [1, 1.012, 1.008, 1.014, 1],
-                x: ["0%", "0.4%", "-0.1%", "-0.4%", "0%"],
-                y: ["0%", "-0.3%", "0.2%", "-0.2%", "0%"],
+                scale: [1, 1.004, 1.003, 1.005, 1],
+                x: ["0%", "0.12%", "-0.03%", "-0.12%", "0%"],
+                y: ["0%", "-0.08%", "0.06%", "-0.06%", "0%"],
               }
             : { scale: 1, x: "0%", y: "0%" }
         }
         transition={
           driftActive
             ? {
-                duration: 22,
+                duration: 30,
                 ease: "easeInOut",
                 repeat: Number.POSITIVE_INFINITY,
                 repeatType: "loop",
@@ -301,7 +308,10 @@ function ScenarioBackdropImage({
             : { duration: 0.4, ease: "easeOut" }
         }
       >
-        <div ref={pointerLayerRef} className="absolute inset-0">
+        <div
+          ref={pointerLayerRef}
+          className={`absolute inset-0 origin-center ${pointerActive ? "will-change-transform" : ""}`}
+        >
           <img
             alt=""
             src={src}

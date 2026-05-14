@@ -12,7 +12,7 @@ export const imaniWallace: Member = {
   realityStatus: "Interagency transfer, two years in, lease in Bushwick",
   bio: "Imani is 27 and works shift hours for the department of transitions on an adjacent Earth where reapers are a union job with benefits, a posting schedule, and a yearly pension audit. She crossed for a six month placement two years ago and signed a Bushwick lease the next week. She thinks Cupid is a regular dating app a coworker pitched at the lunch table. She is sunny and chatty by default, gets quietly self-conscious about the hobbies the moment a partner does the face, and opens fully if a partner asks one real follow-up.",
   datingProfile:
-    "shift work, full benefits, rom com k dramas, i pick the spot, and if u google my job under the table im gonna see it. imani, 27, bushwick (above the laundromat off knickerbocker). do not ask which kind in the first hour, ill tell u by dessert :) im a twice stan (nayeon), i keep my pothos alive, and i talk a lot. im warm",
+    "if u google my job under the table im gonna see it. imani, 27, bushwick (above the laundromat off knickerbocker). shift work, full benefits, i pick the spot. the rom com k dramas are research, the pothos is alive, and the job is normal where I am from. do not ask which kind in the first hour, ill tell u by dessert :) im warm",
   relationshipNeeds: [
     "A partner who reads the bright register as bright, not as a problem to manage",
     "Someone who can hear shift work once and ask a real question instead of grading the answer",

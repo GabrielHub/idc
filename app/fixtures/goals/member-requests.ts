@@ -844,14 +844,14 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-derek-first-ten",
     memberId: "derek-halsey",
-    text: "Derek wants a date who lets him sit through the first ten minutes without treating the quiet as a problem to solve. He warms up at his own pace.",
+    text: "Derek wants a date who lets the first ten minutes breathe without making the slower start a problem to solve. He warms up at his own pace.",
     moodPenaltyIfIgnored: 5,
     tags: ["low_pressure", "sincerity"],
   },
   {
     id: "request-ryan-just-out",
     memberId: "ryan-doyle",
-    text: "Ryan wants a date who hears that he just got out of a six year and does not turn it into a referendum on his readiness. He is not asking for a verdict, he is asking for a Thursday.",
+    text: "Ryan wants a date who hears that he is aiming for something real and does not turn it into a referendum on his readiness. He is not asking for a verdict, he is asking for a Thursday.",
     moodPenaltyIfIgnored: 6,
     tags: ["sincerity", "low_pressure"],
   },

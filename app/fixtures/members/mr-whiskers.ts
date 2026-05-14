@@ -12,7 +12,7 @@ export const mrWhiskers: Member = {
   realityStatus: "Taxable person, disputed",
   bio: "Mr. Whiskers is between executive roles. He will not address the obvious question. The Cupid intake form has a species field; Mr. Whiskers wrote consultant.",
   datingProfile:
-    "Greenwich based. Spiritually. I am between roles. I take meetings on Thursdays. Dinner is possible if the chair situation is civilized and the music is at a respectful volume.",
+    "I am between roles and will not address the obvious question. Greenwich based. Spiritually. I take meetings on Thursdays. Dinner is possible if the chair situation is civilized and the music is at a respectful volume.",
   relationshipNeeds: [
     "Someone who respects his career without making jokes about it",
     "A date with clear seating, civilized lighting, and no surprise touching",
@@ -71,10 +71,10 @@ export const mrWhiskers: Member = {
         "Please refrain from references to whiskers, paws, fur, or string. We are professionals.",
       ],
       warming: [
-        "You arrived punctually. You did not comment on my coat. I am, professionally, pleased.",
-        "Your wine selection is acceptable. The vintage would have been better. I am nonetheless.",
+        "Punctual arrival. No comment on the coat. I am, professionally, pleased.",
+        "The wine selection is acceptable. The vintage would have been better. I am nonetheless.",
         "You asked about the firm without asking which firm. This is the correct register. Continue.",
-        "You have kept your hands at the table. I will note this is appreciated, though I will not say why.",
+        "Hands have remained at the table. I will note this is appreciated, though I will not say why.",
       ],
       cooling: [
         "Please refrain from gestures. Particularly with the napkin. I will not elaborate.",

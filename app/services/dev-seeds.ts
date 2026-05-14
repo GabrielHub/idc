@@ -9,9 +9,7 @@ import type { GameRepository } from "../repositories/game-repository";
 import { PAIR_CLOSURE_TAG } from "./closures";
 import { makePairId } from "./game-seed";
 import { syncActiveShiftFocusCases } from "./focus-cases";
-import { createDeterministicEmbedding } from "./vector-memory";
-
-const DETERMINISTIC_EMBEDDING_MODEL = "deterministic-local";
+import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export type DevSeedRequest = "closures";
 

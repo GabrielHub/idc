@@ -6,7 +6,7 @@ The app ships as a React Router 7 SPA and as a Tauri 2 desktop shell over the sa
 
 ## Install (alpha)
 
-Player install instructions live in [docs/support/desktop-install-guide.md](docs/support/desktop-install-guide.md). You will need either a local Ollama install or a Vercel AI Gateway key.
+Player install instructions live in [app/docs/support/desktop-install-guide.tsx](app/docs/support/desktop-install-guide.tsx), rendered at `/docs/support/desktop-install-guide`. You will need either a local Ollama install or a Vercel AI Gateway key.
 
 ## Stack
 
@@ -80,18 +80,15 @@ Saves go through an async raw save-store boundary. Browser builds use localStora
 
 ```text
 app/
-  components/       Cupid shell, canvas rooms (Live Date, Roster, Date Book, Files), splash, AI setup, shared UI
+  components/       Cupid shell, canvas rooms (Live Date, Roster, Date Book, Files), splash, AI setup, shared UI, doc-primitives
+  docs/             TSX field manual: product, gameplay, workflows, support drawers
   domain/           Zod schemas and TypeScript game contracts
   fixtures/         Static members, scenarios, goals, and starter content
   platform/         Runtime detection and desktop URL policy
   repositories/     Raw save stores and LocalGameRepository
-  routes/           SPA route modules
-  services/         Game systems, AI date engine, prompts, memory, vector search
+  routes/           SPA route modules (including docs.tsx and docs.$.tsx)
+  services/         Game systems, AI date engine, prompts, memory, vector search, docs-content
     ai/             Provider catalog, model service, fetch transport, AI client helpers
-docs/
-  product/          Voice, visual design, image style, gameplay traits
-  workflows/        Repeatable authoring, release, and engineering procedures
-  support/          Player and operator support guides
 scripts/
   portraits/        Portrait processing scripts
 src-tauri/          Tauri shell, capabilities, icons, and Rust commands
@@ -119,19 +116,27 @@ Installed desktop builds check for updates once after launch and expose a manual
 
 Renderer failures show a crash report screen with Copy report, reload actions, and Show log folder on desktop builds. Rust panics from the Tauri shell are written to the same rolling desktop log file so playtest reports can include both sides of the app.
 
-Do not regenerate the updater private key for normal releases. Installed apps trust the public key in `src-tauri/tauri.conf.json`, so key rotation requires shipping a build that trusts the new public key before publishing packages signed by that key. The full friend-share release flow is in [docs/workflows/release-checklist.md](docs/workflows/release-checklist.md).
+Do not regenerate the updater private key for normal releases. Installed apps trust the public key in `src-tauri/tauri.conf.json`, so key rotation requires shipping a build that trusts the new public key before publishing packages signed by that key. The full friend-share release flow is in [app/docs/workflows/release-checklist.tsx](app/docs/workflows/release-checklist.tsx).
 
 ## Documentation
 
-- [Docs index](docs/README.md): documentation map and ownership rules.
-- [Desktop install guide](docs/support/desktop-install-guide.md): private alpha install flow, provider setup, save locations, caveats.
-- [Release README](docs/support/release-readme.md): short install notes for player-facing GitHub release assets.
-- [Release checklist](docs/workflows/release-checklist.md): friend-share prerelease flow.
-- [Add member workflow](docs/workflows/add-member.md): content checklist for one new member.
-- [Add date scenario workflow](docs/workflows/add-date-scenario.md): content checklist for one new date scenario.
-- [Visual asset iteration](docs/workflows/visual-asset-iteration.md): independent image workflow for portraits, variants, and backgrounds.
-- [Visual design](docs/product/visual-design.md): Aura interface direction and Tailwind tokens.
-- [Image style](docs/product/image-style.md): portrait style, prompt construction, cutout pipeline.
-- [Voice](docs/product/voice.md): tone, prose mechanics, and member voice fingerprints.
-- [Gameplay traits](docs/product/gameplay-traits.md): hidden match tags, player knowledge, filed reads, hard stops.
+The docs are TSX modules under `app/docs/` and render at `/docs` in browser dev and desktop shells. Agents and humans both read the TSX files directly.
+
+- [Field manual index](app/routes/docs.tsx): rendered as `/docs` with four group drawers (product, gameplay, workflows, support).
+- [Desktop install guide](app/docs/support/desktop-install-guide.tsx): private alpha install flow, provider setup, save locations, caveats.
+- [Release README](app/docs/support/release-readme.tsx): short install notes for player-facing GitHub release assets.
+- [Release checklist](app/docs/workflows/release-checklist.tsx): friend-share prerelease flow.
+- [Add a member](app/docs/workflows/add-member.tsx): content checklist for one new member.
+- [Add a date scenario](app/docs/workflows/add-date-scenario.tsx): content checklist for one new date scenario.
+- [Visual asset iteration](app/docs/workflows/visual-asset-iteration.tsx): independent image workflow for portraits, variants, and backgrounds.
+- [Visual design](app/docs/product/visual-design.tsx): Aura interface direction, chat bubbles, member auras.
+- [Image style](app/docs/product/image-style.tsx): portrait style, prompt construction, cutout pipeline.
+- [Voice and tone](app/docs/product/voice.tsx): comedic engines, member voice fingerprints, surface application.
+- [Character heights](app/docs/product/character-heights.tsx): height canon and lineup calibration.
+- [Member fields and tags](app/docs/gameplay/member-fields-and-tags.tsx): authored fields, hidden tag taxonomy, request tags.
+- [Player knowledge](app/docs/gameplay/player-knowledge.tsx): public/gated/never visibility tiers and filed reads.
+- [Match fit](app/docs/gameplay/match-fit.tsx): deterministic booking pressure, badge rules, boundary risk.
+- [Pair memory](app/docs/gameplay/pair-memory.tsx): pair state, agreements, open loops, hidden trajectory.
+- [Case management](app/docs/gameplay/case-management.tsx): focus cases, shift cadence, closures, win conditions.
+- [Roster chemistry](app/docs/gameplay/roster-chemistry.tsx): clusters, friction zones, four-anchor pass, per-pair matrix.
 - [Agent instructions](AGENTS.md): architecture rules, toolchain conventions, copy style, UI rules.

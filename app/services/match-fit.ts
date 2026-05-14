@@ -9,6 +9,7 @@ import {
   type MemberTag,
   type PairState,
 } from "../domain/game";
+import { makePairId } from "./game-seed";
 
 export type MatchFitLevel = "strong" | "neutral" | "risky";
 export type MatchPressureLevel = "low" | "medium" | "high";
@@ -93,6 +94,502 @@ const CAREER_COVERED_REQUEST_TAGS = [
 ] satisfies readonly MemberRequestTag[];
 const STRUCTURE_REQUEST_TAG = "structure" satisfies MemberRequestTag;
 
+type AuthoredMemberScenarioRule = {
+  memberId: string;
+  scenarioIds: readonly string[];
+  scoreDelta: number;
+  pressureDelta: number;
+  ruleHit: string;
+};
+
+type AuthoredPairRule = {
+  memberIds: readonly [string, string];
+  scoreDelta: number;
+  pressureDelta: number;
+  ruleHit: string;
+};
+
+type AuthoredRequestRule = {
+  requestIds: readonly string[];
+  status: Exclude<MatchAskSignal, "none">;
+  ruleHit: string;
+  partnerIds?: readonly string[];
+  scenarioIds?: readonly string[];
+};
+
+type AuthoredScore = {
+  scoreDelta: number;
+  pressureDelta: number;
+};
+
+const AUTHORED_MEMBER_SCENARIO_RULES: readonly AuthoredMemberScenarioRule[] = [
+  {
+    memberId: "anansi",
+    scenarioIds: ["hotel-bar-last-call", "diner-eleven-pm", "adventurers-speakeasy"],
+    scoreDelta: 3,
+    pressureDelta: 0,
+    ruleHit: "anansi:long_story_room",
+  },
+  {
+    memberId: "anansi",
+    scenarioIds: ["soft-launch-photo-wall"],
+    scoreDelta: -7,
+    pressureDelta: 3,
+    ruleHit: "anansi:filming_story_pressure",
+  },
+  {
+    memberId: "nawal-marrash",
+    scenarioIds: [
+      "chain-restaurant-tuesday",
+      "dmv-number-ticket",
+      "executive-lunch-one-agenda-item",
+    ],
+    scoreDelta: 3,
+    pressureDelta: 0,
+    ruleHit: "nawal:confirmed_low_followup_room",
+  },
+  {
+    memberId: "nawal-marrash",
+    scenarioIds: ["underworld-department-mixer"],
+    scoreDelta: -3,
+    pressureDelta: 2,
+    ruleHit: "nawal:office_reopened_room",
+  },
+  {
+    memberId: "nawal-marrash",
+    scenarioIds: ["memory-course-dinner"],
+    scoreDelta: -2,
+    pressureDelta: 2,
+    ruleHit: "nawal:caseload_memory_pressure",
+  },
+  {
+    memberId: "imani-wallace",
+    scenarioIds: ["diner-eleven-pm", "grocery-run-one-dinner"],
+    scoreDelta: 3,
+    pressureDelta: 0,
+    ruleHit: "imani:shift_hour_real_place",
+  },
+  {
+    memberId: "imani-wallace",
+    scenarioIds: ["listening-booth-after-close"],
+    scoreDelta: 2,
+    pressureDelta: 0,
+    ruleHit: "imani:music_followup_room",
+  },
+  {
+    memberId: "imani-wallace",
+    scenarioIds: ["soft-launch-photo-wall"],
+    scoreDelta: -7,
+    pressureDelta: 3,
+    ruleHit: "imani:filmed_job_pressure",
+  },
+  {
+    memberId: "sienna-bae",
+    scenarioIds: ["diner-eleven-pm"],
+    scoreDelta: 3,
+    pressureDelta: 0,
+    ruleHit: "sienna:post_rehearsal_late_booth",
+  },
+  {
+    memberId: "sienna-bae",
+    scenarioIds: ["soft-launch-photo-wall"],
+    scoreDelta: -9,
+    pressureDelta: 4,
+    ruleHit: "sienna:label_clause_camera_pressure",
+  },
+  {
+    memberId: "sienna-bae",
+    scenarioIds: ["cousins-wedding-plus-one"],
+    scoreDelta: -5,
+    pressureDelta: 3,
+    ruleHit: "sienna:public_photo_call_pressure",
+  },
+  {
+    memberId: "sienna-bae",
+    scenarioIds: ["hotel-bar-last-call", "listening-booth-after-close"],
+    scoreDelta: -3,
+    pressureDelta: 2,
+    ruleHit: "sienna:silence_anxiety_room",
+  },
+  {
+    memberId: "maeve",
+    scenarioIds: ["hotel-bar-last-call", "empty-room-many-windows", "long-afternoon-pool-bar"],
+    scoreDelta: 4,
+    pressureDelta: 0,
+    ruleHit: "maeve:long_silence_room",
+  },
+  {
+    memberId: "maeve",
+    scenarioIds: ["memory-course-dinner"],
+    scoreDelta: -6,
+    pressureDelta: 3,
+    ruleHit: "maeve:forced_unsaid_receipt",
+  },
+  {
+    memberId: "maeve",
+    scenarioIds: ["chain-restaurant-tuesday"],
+    scoreDelta: -3,
+    pressureDelta: 1,
+    ruleHit: "maeve:ninety_minute_turnover",
+  },
+  {
+    memberId: "maeve",
+    scenarioIds: ["soft-launch-photo-wall"],
+    scoreDelta: -8,
+    pressureDelta: 4,
+    ruleHit: "maeve:camera_consent_pressure",
+  },
+];
+
+const AUTHORED_PAIR_RULES: readonly AuthoredPairRule[] = [
+  {
+    memberIds: ["anansi", "mei-sato"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:anansi_mei_story_craft",
+  },
+  {
+    memberIds: ["anansi", "naia-velorae"],
+    scoreDelta: 4,
+    pressureDelta: 0,
+    ruleHit: "pair:anansi_naia_no_count",
+  },
+  {
+    memberIds: ["anansi", "sana-karim"],
+    scoreDelta: -6,
+    pressureDelta: 2,
+    ruleHit: "pair:anansi_sana_lie_evasion",
+  },
+  {
+    memberIds: ["aldric-vale-marsh", "anansi"],
+    scoreDelta: -6,
+    pressureDelta: 2,
+    ruleHit: "pair:anansi_aldric_blasphemy_read",
+  },
+  {
+    memberIds: ["anansi", "kade-sumner"],
+    scoreDelta: -7,
+    pressureDelta: 2,
+    ruleHit: "pair:anansi_kade_filmed_punchline",
+  },
+  {
+    memberIds: ["cha-yusung", "nawal-marrash"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:nawal_cha_ex_professional_silence",
+  },
+  {
+    memberIds: ["naia-velorae", "nawal-marrash"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:nawal_naia_plain_answer",
+  },
+  {
+    memberIds: ["imani-wallace", "nawal-marrash"],
+    scoreDelta: 4,
+    pressureDelta: 0,
+    ruleHit: "pair:imani_nawal_post_career_silence",
+  },
+  {
+    memberIds: ["maeve", "nawal-marrash"],
+    scoreDelta: 4,
+    pressureDelta: 0,
+    ruleHit: "pair:maeve_nawal_closed_questions",
+  },
+  {
+    memberIds: ["nawal-marrash", "venus"],
+    scoreDelta: -6,
+    pressureDelta: 2,
+    ruleHit: "pair:nawal_venus_compliment_economy",
+  },
+  {
+    memberIds: ["bai-wenshu", "nawal-marrash"],
+    scoreDelta: -7,
+    pressureDelta: 2,
+    ruleHit: "pair:nawal_wenshu_cosmic_vocabulary",
+  },
+  {
+    memberIds: ["brady-strait", "nawal-marrash"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:nawal_brady_bit_collapse",
+  },
+  {
+    memberIds: ["imani-wallace", "mei-sato"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:imani_mei_rapid_sincere",
+  },
+  {
+    memberIds: ["imani-wallace", "sienna-bae"],
+    scoreDelta: 5,
+    pressureDelta: 1,
+    ruleHit: "pair:imani_sienna_bright_fan_overlap",
+  },
+  {
+    memberIds: ["imani-wallace", "kade-sumner"],
+    scoreDelta: -8,
+    pressureDelta: 3,
+    ruleHit: "pair:imani_kade_filming_reaper",
+  },
+  {
+    memberIds: ["gabriel-tan", "imani-wallace"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:imani_gabriel_deadpan_cold",
+  },
+  {
+    memberIds: ["cha-yusung", "imani-wallace"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:imani_cha_wrong_category",
+  },
+  {
+    memberIds: ["bai-wenshu", "imani-wallace"],
+    scoreDelta: -7,
+    pressureDelta: 2,
+    ruleHit: "pair:imani_wenshu_kind_decline",
+  },
+  {
+    memberIds: ["naia-velorae", "sienna-bae"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:sienna_naia_unscored_compliments",
+  },
+  {
+    memberIds: ["mei-sato", "sienna-bae"],
+    scoreDelta: 5,
+    pressureDelta: 0,
+    ruleHit: "pair:sienna_mei_working_craft",
+  },
+  {
+    memberIds: ["kade-sumner", "sienna-bae"],
+    scoreDelta: -8,
+    pressureDelta: 3,
+    ruleHit: "pair:sienna_kade_label_clause",
+  },
+  {
+    memberIds: ["mira-park", "sienna-bae"],
+    scoreDelta: -6,
+    pressureDelta: 2,
+    ruleHit: "pair:sienna_mira_brand_pitch",
+  },
+  {
+    memberIds: ["sera-vohn", "sienna-bae"],
+    scoreDelta: -6,
+    pressureDelta: 2,
+    ruleHit: "pair:sienna_sera_terms_panic",
+  },
+  {
+    memberIds: ["gabriel-tan", "sienna-bae"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:sienna_gabriel_deadpan_silence",
+  },
+  {
+    memberIds: ["gabriel-tan", "maeve"],
+    scoreDelta: 3,
+    pressureDelta: 0,
+    ruleHit: "pair:maeve_gabriel_silence_capacity",
+  },
+  {
+    memberIds: ["kade-sumner", "maeve"],
+    scoreDelta: -8,
+    pressureDelta: 3,
+    ruleHit: "pair:maeve_kade_filming_table",
+  },
+  {
+    memberIds: ["maeve", "toby-wenz"],
+    scoreDelta: -7,
+    pressureDelta: 2,
+    ruleHit: "pair:maeve_toby_disclosure_spiral",
+  },
+  {
+    memberIds: ["maeve", "mira-park"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:maeve_mira_audit_pitch",
+  },
+  {
+    memberIds: ["bai-wenshu", "maeve"],
+    scoreDelta: -5,
+    pressureDelta: 2,
+    ruleHit: "pair:maeve_wenshu_cosmic_frame",
+  },
+];
+
+const AUTHORED_REQUEST_RULES: readonly AuthoredRequestRule[] = [
+  {
+    requestIds: [
+      "request-anansi-call-the-lie",
+      "request-anansi-story-as-story",
+      "request-imani-show-recommendation",
+      "request-imani-shift-work",
+      "request-imani-twice-respected",
+      "request-sienna-pick-one-venue",
+      "request-sienna-no-real-name-hunt",
+      "request-sienna-work-is-work",
+      "request-maeve-question-stays-closed",
+      "request-maeve-no-trade-disclosures",
+    ],
+    scenarioIds: ["soft-launch-photo-wall"],
+    status: "blocked",
+    ruleHit: "request:soft_launch_camera_blocks_target_asks",
+  },
+  {
+    requestIds: [
+      "request-sienna-pick-one-venue",
+      "request-sienna-no-real-name-hunt",
+      "request-sienna-work-is-work",
+    ],
+    scenarioIds: ["cousins-wedding-plus-one"],
+    status: "blocked",
+    ruleHit: "request:sienna_wedding_photo_pressure",
+  },
+  {
+    requestIds: ["request-nawal-office-closed", "request-nawal-no-wishes"],
+    scenarioIds: ["underworld-department-mixer"],
+    status: "blocked",
+    ruleHit: "request:nawal_office_reopened_by_room",
+  },
+  {
+    requestIds: ["request-maeve-question-stays-closed", "request-maeve-no-trade-disclosures"],
+    scenarioIds: ["memory-course-dinner"],
+    status: "blocked",
+    ruleHit: "request:maeve_unsaid_receipt_forces_trade",
+  },
+  {
+    requestIds: ["request-anansi-call-the-lie", "request-anansi-story-as-story"],
+    partnerIds: ["sana-karim", "aldric-vale-marsh", "cha-yusung", "opal-sunday", "kade-sumner"],
+    status: "blocked",
+    ruleHit: "request:anansi_lie_recovery_partner_blocked",
+  },
+  {
+    requestIds: ["request-nawal-office-closed", "request-nawal-no-wishes"],
+    partnerIds: ["bai-wenshu", "brady-strait", "reaver", "venus"],
+    status: "blocked",
+    ruleHit: "request:nawal_closed_office_partner_blocked",
+  },
+  {
+    requestIds: ["request-imani-show-recommendation", "request-imani-twice-respected"],
+    partnerIds: ["brady-strait", "gabriel-tan", "kade-sumner", "cha-yusung", "bai-wenshu"],
+    status: "blocked",
+    ruleHit: "request:imani_bright_hobby_partner_blocked",
+  },
+  {
+    requestIds: ["request-imani-shift-work"],
+    partnerIds: ["kade-sumner"],
+    status: "blocked",
+    ruleHit: "request:imani_shift_work_phone_blocked",
+  },
+  {
+    requestIds: ["request-sienna-pick-one-venue"],
+    partnerIds: ["kade-sumner", "mira-park", "sera-vohn"],
+    status: "blocked",
+    ruleHit: "request:sienna_short_list_partner_blocked",
+  },
+  {
+    requestIds: ["request-sienna-hold-the-silence"],
+    partnerIds: ["cha-yusung", "gabriel-tan", "sera-vohn"],
+    status: "blocked",
+    ruleHit: "request:sienna_silence_partner_blocked",
+  },
+  {
+    requestIds: ["request-sienna-no-real-name-hunt"],
+    partnerIds: ["kade-sumner", "mira-park"],
+    status: "blocked",
+    ruleHit: "request:sienna_name_hunt_partner_blocked",
+  },
+  {
+    requestIds: ["request-sienna-work-is-work"],
+    partnerIds: ["kade-sumner", "mira-park"],
+    status: "blocked",
+    ruleHit: "request:sienna_work_respect_partner_blocked",
+  },
+  {
+    requestIds: ["request-maeve-question-stays-closed"],
+    partnerIds: ["bai-wenshu"],
+    status: "blocked",
+    ruleHit: "request:maeve_question_partner_blocked",
+  },
+  {
+    requestIds: ["request-maeve-no-trade-disclosures"],
+    partnerIds: ["bai-wenshu", "mira-park", "toby-wenz"],
+    status: "blocked",
+    ruleHit: "request:maeve_trade_disclosure_partner_blocked",
+  },
+  {
+    requestIds: ["request-maeve-silence-holds"],
+    partnerIds: ["toby-wenz"],
+    status: "blocked",
+    ruleHit: "request:maeve_silence_partner_blocked",
+  },
+  {
+    requestIds: ["request-maeve-license-satisfies"],
+    partnerIds: ["mira-park"],
+    status: "blocked",
+    ruleHit: "request:maeve_license_audit_partner_blocked",
+  },
+  {
+    requestIds: ["request-anansi-call-the-lie", "request-anansi-story-as-story"],
+    partnerIds: ["brady-strait", "mei-sato", "naia-velorae", "vhool"],
+    status: "covered",
+    ruleHit: "request:anansi_story_partner_covered",
+  },
+  {
+    requestIds: [
+      "request-nawal-pick-the-venue",
+      "request-nawal-office-closed",
+      "request-nawal-no-wishes",
+      "request-nawal-quiet-thursday",
+    ],
+    partnerIds: [
+      "cha-yusung",
+      "decimus-marius-tullio",
+      "imani-wallace",
+      "junie-marrow",
+      "maeve",
+      "naia-velorae",
+      "sana-karim",
+    ],
+    status: "covered",
+    ruleHit: "request:nawal_plain_partner_covered",
+  },
+  {
+    requestIds: [
+      "request-imani-show-recommendation",
+      "request-imani-shift-work",
+      "request-imani-twice-respected",
+      "request-imani-pick-a-place",
+    ],
+    partnerIds: ["aldric-vale-marsh", "mei-sato", "naia-velorae", "nawal-marrash", "sienna-bae"],
+    status: "covered",
+    ruleHit: "request:imani_sincere_followup_covered",
+  },
+  {
+    requestIds: [
+      "request-sienna-pick-one-venue",
+      "request-sienna-hold-the-silence",
+      "request-sienna-no-real-name-hunt",
+      "request-sienna-work-is-work",
+    ],
+    partnerIds: ["alex-yoon", "imani-wallace", "mei-sato", "naia-velorae"],
+    status: "covered",
+    ruleHit: "request:sienna_short_list_partner_covered",
+  },
+  {
+    requestIds: [
+      "request-maeve-question-stays-closed",
+      "request-maeve-no-trade-disclosures",
+      "request-maeve-silence-holds",
+      "request-maeve-license-satisfies",
+    ],
+    partnerIds: ["gabriel-tan", "nawal-marrash"],
+    status: "covered",
+    ruleHit: "request:maeve_closed_question_partner_covered",
+  },
+];
+
 export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
   const [firstMember, secondMember] = requireTwoMembers(input.members);
   const members: [Member, Member] = [firstMember, secondMember];
@@ -108,6 +605,9 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
   }
 
   score += pairTraitScore(firstMember, secondMember, input.pairState, input.scenario, ruleHits);
+  const authoredPairScoreResult = authoredPairScore(firstMember, secondMember, ruleHits);
+  score += authoredPairScoreResult.scoreDelta;
+  pressure += authoredPairScoreResult.pressureDelta;
 
   const boundaryRisk = findBoundaryRisk(members, input.scenario);
   const requestSignals = evaluateRequestSignals({
@@ -115,6 +615,7 @@ export function evaluateMatchFit(input: EvaluateMatchFitInput): MatchFitResult {
     scenario: input.scenario,
     activeRequests: input.activeRequests ?? [],
     boundaryRisk,
+    ruleHits,
   });
   const requestScore = requestSignalScore(requestSignals.askSignal);
   const totalScore = boundaryRisk === null ? score + requestScore : score + requestScore - 12;
@@ -337,6 +838,10 @@ function memberScenarioScore(member: Member, scenario: DateScenario, ruleHits: s
     score -= 2;
   }
 
+  const authored = authoredMemberScenarioContribution(member, scenario);
+  score += authored.scoreDelta;
+  ruleHits.push(...authored.ruleHits);
+
   return score;
 }
 
@@ -449,6 +954,30 @@ function pairTraitScore(
   return score;
 }
 
+function authoredPairScore(
+  firstMember: Member,
+  secondMember: Member,
+  ruleHits: string[],
+): AuthoredScore {
+  let scoreDelta = 0;
+  let pressureDelta = 0;
+
+  for (const rule of AUTHORED_PAIR_RULES) {
+    if (
+      makePairId(rule.memberIds[0], rule.memberIds[1]) !==
+      makePairId(firstMember.id, secondMember.id)
+    ) {
+      continue;
+    }
+
+    scoreDelta += rule.scoreDelta;
+    pressureDelta += rule.pressureDelta;
+    ruleHits.push(rule.ruleHit);
+  }
+
+  return { scoreDelta, pressureDelta };
+}
+
 function pairHistoryScore(
   pairState: PairState,
   scenario: DateScenario,
@@ -498,6 +1027,8 @@ function memberPressure(member: Member, scenario: DateScenario): number {
     pressure += 2;
   }
 
+  pressure += authoredMemberScenarioContribution(member, scenario).pressureDelta;
+
   return pressure;
 }
 
@@ -540,11 +1071,13 @@ function evaluateRequestSignals({
   scenario,
   activeRequests,
   boundaryRisk,
+  ruleHits,
 }: {
   members: readonly [Member, Member];
   scenario: DateScenario;
   activeRequests: readonly MemberRequest[];
   boundaryRisk: MatchFitBoundaryRisk | null;
+  ruleHits: string[];
 }): {
   askSignal: MatchAskSignal;
   blockedRequestIds: string[];
@@ -565,7 +1098,7 @@ function evaluateRequestSignals({
       continue;
     }
 
-    const status = evaluateRequestFit(request, member, partner, scenario, boundaryRisk);
+    const status = evaluateRequestFit(request, member, partner, scenario, boundaryRisk, ruleHits);
 
     if (status === "blocked") {
       blockedRequestIds.push(request.id);
@@ -597,9 +1130,15 @@ function evaluateRequestFit(
   partner: Member,
   scenario: DateScenario,
   boundaryRisk: MatchFitBoundaryRisk | null,
+  ruleHits: string[],
 ): MatchAskSignal {
   if (boundaryRisk?.memberId === member.id) {
     return "blocked";
+  }
+
+  const authoredStatus = evaluateAuthoredRequestFit(request, partner, scenario, ruleHits);
+  if (authoredStatus !== null) {
+    return authoredStatus;
   }
 
   const requestTags = new Set<MemberRequestTag>(request.tags);
@@ -661,6 +1200,59 @@ function evaluateRequestFit(
   }
 
   return "uncertain";
+}
+
+type AuthoredMemberScenarioContribution = {
+  scoreDelta: number;
+  pressureDelta: number;
+  ruleHits: readonly string[];
+};
+
+function authoredMemberScenarioContribution(
+  member: Member,
+  scenario: DateScenario,
+): AuthoredMemberScenarioContribution {
+  let scoreDelta = 0;
+  let pressureDelta = 0;
+  const ruleHits: string[] = [];
+
+  for (const rule of AUTHORED_MEMBER_SCENARIO_RULES) {
+    if (rule.memberId !== member.id || !rule.scenarioIds.includes(scenario.id)) {
+      continue;
+    }
+
+    scoreDelta += rule.scoreDelta;
+    pressureDelta += rule.pressureDelta;
+    ruleHits.push(rule.ruleHit);
+  }
+
+  return { scoreDelta, pressureDelta, ruleHits };
+}
+
+function evaluateAuthoredRequestFit(
+  request: MemberRequest,
+  partner: Member,
+  scenario: DateScenario,
+  ruleHits: string[],
+): MatchAskSignal | null {
+  for (const rule of AUTHORED_REQUEST_RULES) {
+    if (!rule.requestIds.includes(request.id)) {
+      continue;
+    }
+
+    if (rule.partnerIds !== undefined && !rule.partnerIds.includes(partner.id)) {
+      continue;
+    }
+
+    if (rule.scenarioIds !== undefined && !rule.scenarioIds.includes(scenario.id)) {
+      continue;
+    }
+
+    ruleHits.push(rule.ruleHit);
+    return rule.status;
+  }
+
+  return null;
 }
 
 function requestHasAnyTag(

@@ -60,7 +60,7 @@ describe("AI model service", () => {
     expect(ollamaThinkForReasoningLevel("xhigh")).toBe("high");
   });
 
-  it("uses native Gateway provider options for provider reasoning", () => {
+  it("uses native Gateway provider options without returning Google thought summaries", () => {
     const gatewayConfig = gameConfigSchema.parse({
       aiProvider: "gateway",
       reasoningLevel: "high",
@@ -70,7 +70,7 @@ describe("AI model service", () => {
       google: {
         thinkingConfig: {
           thinkingLevel: "high",
-          includeThoughts: true,
+          includeThoughts: false,
         },
       },
     });
@@ -127,7 +127,7 @@ describe("AI model service", () => {
       google: {
         thinkingConfig: {
           thinkingLevel: "low",
-          includeThoughts: true,
+          includeThoughts: false,
         },
       },
     });

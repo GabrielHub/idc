@@ -65,7 +65,6 @@ import {
   type PlaybackIntent,
   type StreamingDraftMessage,
 } from "./dashboard-views";
-import { GhostButton } from "./dashboard-atoms";
 import { DateBookCanvas } from "./date-book-canvas";
 import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";
@@ -119,6 +118,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
+  const [isDateJudgePending, setIsDateJudgePending] = useState(false);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
   const [closingPairId, setClosingPairId] = useState<string | null>(null);
   const [closureError, setClosureError] = useState<{ pairId: string; message: string } | null>(
@@ -271,6 +271,13 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         : starterScenarios.find((scenario) => scenario.id === activeSession.scenarioId),
     [activeSession],
   );
+  const activePairState = useMemo(
+    () =>
+      save === null || activeSession === null
+        ? undefined
+        : save.pairStates.find((pair) => pair.id === activeSession.pairId),
+    [save, activeSession],
+  );
   const drawnScenarios = useMemo(
     () =>
       activeShift === null
@@ -417,6 +424,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     const sessionId = activeSession.id;
     tryAction("advanceExchange", async () => {
       setStreamingDrafts([]);
+      setIsDateJudgePending(false);
       stopAfterCurrentTurnRef.current = false;
       const controller = new AbortController();
       dateAbortControllerRef.current = controller;
@@ -452,11 +460,21 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         dateAbortControllerRef.current = null;
         stopAfterCurrentTurnRef.current = false;
         setStreamingDrafts([]);
+        setIsDateJudgePending(false);
       }
     });
   }
 
   function applyStreamEvent(event: LocalAiDateStreamEvent) {
+    if (event.type === "judgeStart") {
+      setIsDateJudgePending(true);
+      return;
+    }
+
+    if (event.type === "characterStart") {
+      setIsDateJudgePending(false);
+    }
+
     setStreamingDrafts((current) => {
       if (event.type === "characterStart") {
         const withoutPrior = current.filter((draft) => draft.sequenceIndex !== event.sequenceIndex);
@@ -469,16 +487,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             sequenceIndex: event.sequenceIndex,
             turnIndex: event.turnIndex,
             text: "",
-            reasoningText: "",
             status: "streaming",
           },
         ];
       }
-      if (
-        event.type !== "characterDelta" &&
-        event.type !== "characterReasoningDelta" &&
-        event.type !== "characterDone"
-      ) {
+      if (event.type !== "characterDelta" && event.type !== "characterDone") {
         return current;
       }
       const matchIndex = current.findIndex((draft) => draft.sequenceIndex === event.sequenceIndex);
@@ -488,8 +501,6 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       let updated: StreamingDraftMessage;
       if (event.type === "characterDelta") {
         updated = { ...target, text: target.text + event.textDelta };
-      } else if (event.type === "characterReasoningDelta") {
-        updated = { ...target, reasoningText: target.reasoningText + event.textDelta };
       } else if (event.type === "characterDone") {
         updated = { ...target, text: event.text, status: "done" };
       } else {
@@ -833,11 +844,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             type="button"
             onClick={onPunchOut}
             data-sfx="click"
-            className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/30"
+            className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
           >
             ← Punch out
           </button>
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black">
             shift {String(activeShift?.shiftNumber ?? 1).padStart(2, "0")} / {currentRoom}
           </span>
         </div>
@@ -847,7 +858,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             type="button"
             onClick={() => setIsAiSetupOpen(true)}
             data-sfx="click"
-            className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/30"
+            className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
           >
             ai · {aiStatusLabel}
           </button>
@@ -870,9 +881,9 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       <AnimatePresence mode="wait">
         <motion.main
           key={currentRoom}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
         >
           {currentRoom === "livedate" && activeShift !== null ? (
@@ -882,6 +893,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                   session={activeSession}
                   scenario={activeDateScenario}
                   members={save.members}
+                  pairState={activePairState}
                   playerKnowledge={save.playerKnowledge}
                   interventionText={interventionText}
                   interventionTargetMemberId={interventionTargetMemberId}
@@ -893,6 +905,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                   canIntervene={canAddCupidIntervention(activeSession)}
                   isActionPending={isActionPending}
                   pendingDateAction={pendingAction === "advanceExchange" ? "advanceExchange" : null}
+                  isJudgePending={isDateJudgePending}
                   queuedPlaybackIntent={queuedPlaybackIntent}
                   streamingDrafts={streamingDrafts}
                   onInterventionTextChange={setInterventionText}
@@ -1039,8 +1052,15 @@ function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () =>
   return (
     <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-6 pt-4">
       <div className="aura-glass-strong flex items-center gap-3 rounded-pill px-4 py-2 shadow-aura-soft">
-        <p className="text-sm text-aura-ink">{message}</p>
-        <GhostButton onClick={onDismiss}>Dismiss</GhostButton>
+        <p className="text-sm text-black">{message}</p>
+        <button
+          type="button"
+          data-sfx="click"
+          onClick={onDismiss}
+          className="cursor-pointer rounded-pill px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:bg-white/65 hover:text-aura-rose"
+        >
+          Dismiss
+        </button>
       </div>
     </div>
   );

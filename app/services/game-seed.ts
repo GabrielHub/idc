@@ -7,6 +7,7 @@ import {
   scenarioDeckSchema,
   shiftStateSchema,
   type DateSession,
+  type GameConfig,
   type GameSave,
   type Member,
   type MemoryRecord,
@@ -30,6 +31,7 @@ const SCENARIO_ID_REPLACEMENTS: Record<string, string> = {
 };
 
 export type CreateSeedGameSaveOptions = {
+  config?: GameConfig;
   random?: () => number;
 };
 
@@ -38,7 +40,7 @@ export function createSeedGameSave(
   options: CreateSeedGameSaveOptions = {},
 ): GameSave {
   const timestamp = now.toISOString();
-  const config = gameConfigSchema.parse({});
+  const config = gameConfigSchema.parse(options.config ?? {});
   const members = STARTER_FIXTURE_MEMBERS;
   const pairStates = createSeedPairStates(members);
   const scenarioDeck = createInitialScenarioDeck(starterScenarios);
@@ -388,6 +390,8 @@ function createSeedPairStates(members: Member[]): PairState[] {
         stats: createInitialPairStats(first, second),
         completedDateIds: [],
         scenarioUseCounts: { ...entry.scenarioUseCounts },
+        agreements: [],
+        openLoops: [],
       };
     });
   }
@@ -410,6 +414,8 @@ function createSeedPairStates(members: Member[]): PairState[] {
         stats: createInitialPairStats(first, second),
         completedDateIds: [],
         scenarioUseCounts,
+        agreements: [],
+        openLoops: [],
       });
     }
   }

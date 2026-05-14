@@ -66,6 +66,8 @@ function buildPairState({
     stats,
     completedDateIds,
     scenarioUseCounts: allScenarioUseCounts,
+    agreements: [],
+    openLoops: [],
   };
 }
 

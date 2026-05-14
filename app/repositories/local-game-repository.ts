@@ -19,6 +19,7 @@ import {
   type ScenarioDeck,
   type ShiftState,
 } from "../domain/game";
+import { createDefaultGameConfigForRuntime } from "../platform/runtime";
 import {
   createSeedGameSave,
   getActiveShift,
@@ -52,19 +53,19 @@ export async function readGameConfigFromStore(
   const raw = await store.read(saveKey);
 
   if (raw === null) {
-    return gameConfigSchema.parse({});
+    return createDefaultGameConfigForRuntime();
   }
 
   try {
     const parsed: unknown = JSON.parse(raw);
 
     if (typeof parsed !== "object" || parsed === null || !("config" in parsed)) {
-      return gameConfigSchema.parse({});
+      return createDefaultGameConfigForRuntime();
     }
 
     return gameConfigSchema.parse(parsed.config);
   } catch {
-    return gameConfigSchema.parse({});
+    return createDefaultGameConfigForRuntime();
   }
 }
 
@@ -152,7 +153,7 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async resetGame(now = new Date()): Promise<GameSave> {
-    const save = createSeedGameSave(now);
+    const save = createSeedGameSave(now, { config: createDefaultGameConfigForRuntime() });
     this.cancelScheduledWrite();
     await this.settleWriteInFlight();
     await this.deleteTranscriptArchivesForSaveKey(this.saveKey);

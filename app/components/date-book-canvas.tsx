@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { DateScenario, GameSave } from "../domain/game";
 import { SCENARIO_DECK_RETIREMENT_SHIFTS } from "../domain/game";
 import { listLibraryCards, softComposeWarnings } from "../services/deck";
-import { EASE_OUT_QUART, GhostButton } from "./dashboard-atoms";
+import { EASE_OUT_QUART, GhostButton, Tooltip } from "./dashboard-atoms";
 import { ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal, type ScenarioDetailsAction } from "./scenario-details-modal";
 
@@ -73,6 +73,16 @@ const RISK_DOT = {
   low: "bg-emerald-500",
   medium: "bg-amber-500",
   high: "bg-aura-rose",
+} as const;
+
+const DECK_STAT_TOOLTIPS = {
+  slots: "Active date plans on the bench. Cupid can hold 12 at a time.",
+  risk: "Chance the setup strains the pair. Dots count low, medium, and high risk plans.",
+  intimacy:
+    "How close the setup asks the pair to get. Dots count low, medium, and high intimacy plans.",
+  chaos: "How weird the room gets. Dots count low, medium, and high chaos plans.",
+  pressure:
+    "Counts plans marked low pressure or high pressure. Low gives breathing room. High puts requests or boundaries under heat.",
 } as const;
 
 export function DateBookCanvas({
@@ -365,14 +375,24 @@ function DateBookHeader({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <DeckStatPill label="Slots" value={`${deckTotal} / 12`} tone="ink" />
-        <AxisPill label="Risk" counts={composition.risk} />
-        <AxisPill label="Intim" counts={composition.intimacy} />
-        <AxisPill label="Chaos" counts={composition.chaos} />
+        <DeckStatPill
+          label="Slots"
+          value={`${deckTotal} / 12`}
+          tone="ink"
+          tooltip={DECK_STAT_TOOLTIPS.slots}
+        />
+        <AxisPill label="Risk" counts={composition.risk} tooltip={DECK_STAT_TOOLTIPS.risk} />
+        <AxisPill
+          label="Intim"
+          counts={composition.intimacy}
+          tooltip={DECK_STAT_TOOLTIPS.intimacy}
+        />
+        <AxisPill label="Chaos" counts={composition.chaos} tooltip={DECK_STAT_TOOLTIPS.chaos} />
         <DeckStatPill
           label="Pressure"
           value={`${composition.lowPressure} low · ${composition.highPressure} high`}
           tone="ink"
+          tooltip={DECK_STAT_TOOLTIPS.pressure}
         />
         {warnings.map((warning) => (
           <DeckStatPill key={warning} label="Heads up" value={warning} tone="amber" />
@@ -386,41 +406,69 @@ function DeckStatPill({
   label,
   value,
   tone,
+  tooltip,
 }: {
   label: string;
   value: string;
   tone: "ink" | "amber";
+  tooltip?: string;
 }) {
   const toneClass =
     tone === "amber"
       ? "border-amber-300/60 bg-amber-50/80 text-amber-800"
       : "border-aura-hairline bg-white/70 text-aura-ink";
-  return (
+  const focusClass =
+    tooltip === undefined
+      ? ""
+      : "cursor-help outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/45";
+  const pill = (
     <span
-      className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] ${toneClass}`}
+      tabIndex={tooltip === undefined ? undefined : 0}
+      aria-label={tooltip === undefined ? undefined : `${label}: ${value}. ${tooltip}`}
+      className={`inline-flex items-center gap-2 rounded-pill border px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] ${toneClass} ${focusClass}`}
     >
       <span className="text-aura-faint">{label}</span>
       <span className="font-semibold">{value}</span>
     </span>
+  );
+
+  if (tooltip === undefined) {
+    return pill;
+  }
+
+  return (
+    <Tooltip message={tooltip} placement="bottom-start">
+      {pill}
+    </Tooltip>
   );
 }
 
 function AxisPill({
   label,
   counts,
+  tooltip,
 }: {
   label: string;
   counts: { low: number; medium: number; high: number };
+  tooltip: string;
 }) {
+  const countSummary = `${counts.low} low, ${counts.medium} medium, ${counts.high} high`;
+
   return (
-    <span className="inline-flex items-center gap-2 rounded-pill border border-aura-hairline bg-white/70 px-3 py-1 font-mono text-micro uppercase tracking-[0.22em]">
-      <span className="text-aura-faint">{label}</span>
-      <span className="flex items-center gap-1.5">
-        <CountPip count={counts.low} tone="low" />
-        <CountPip count={counts.medium} tone="medium" />
-        <CountPip count={counts.high} tone="high" />
+    <Tooltip message={tooltip} placement="bottom-start">
+      <span
+        tabIndex={0}
+        aria-label={`${label}: ${countSummary}. ${tooltip}`}
+        className="inline-flex cursor-help items-center gap-2 rounded-pill border border-aura-hairline bg-white/70 px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/45"
+      >
+        <span className="text-aura-faint">{label}</span>
+        <span className="flex items-center gap-1.5">
+          <CountPip count={counts.low} tone="low" />
+          <CountPip count={counts.medium} tone="medium" />
+          <CountPip count={counts.high} tone="high" />
+        </span>
       </span>
-    </span>
+    </Tooltip>
   );
 }
 

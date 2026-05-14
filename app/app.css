@@ -1123,3 +1123,225 @@ body::-webkit-scrollbar {
     animation: none;
   }
 }
+
+/* ========================================================================
+   AURA docs chrome
+   Sidebar rail and dot-leader shared by the docs shell. Content typography is
+   owned by the primitive components in app/components/doc-primitives.tsx; this
+   file only carries chrome that needs CSS variables.
+   ======================================================================== */
+
+/* Sidebar dot-leader between doc title and trailing chip. */
+.aura-doc-leader {
+  flex: 1;
+  border-bottom: 1px dotted rgba(15, 23, 42, 0.16);
+  align-self: end;
+  margin: 0 0.55rem 0.42rem;
+  min-width: 0.6rem;
+}
+
+/* Vertical rail on the active sidebar entry, also reusable on TOC items. */
+.aura-doc-rail {
+  background: linear-gradient(180deg, var(--color-aura-rose), var(--color-aura-fuchsia));
+  border-radius: 9999px;
+}
+
+/* ========================================================================
+   AURA docs dark mode: Lamplight
+   The editorial paper after hours, under a single warm lamp. Aura tokens
+   re-bind to a warm umber base with cream ink, not a cold navy inversion,
+   so the docs read as a dim continuation of the light cream theme rather
+   than a different product. Scoped to [data-theme="dark"] on the docs
+   shell so nothing leaks outside.
+
+   Pure white overlays become warm cream tints (rgba(237, 226, 207, x))
+   so cards feel like vellum, not blue glass. Mesh blobs stay in the
+   ember/plum/amber family. Pastel callouts dim down to inked stains.
+   ======================================================================== */
+
+[data-theme="dark"] {
+  --color-aura-bg: #231d18;
+  --color-aura-paper: #2c241e;
+  --color-aura-ink: #ede2cf;
+  --color-aura-muted: #b6a890;
+  --color-aura-faint: #7d715e;
+  --color-aura-rose: #fb7185;
+  --color-aura-fuchsia: #f0abfc;
+  --color-aura-violet: #c4b5fd;
+  --color-aura-amber: #fbbf24;
+  --color-aura-emerald: #6ee7b7;
+  --color-aura-card: rgba(237, 226, 207, 0.05);
+  --color-aura-veil: rgba(35, 29, 24, 0.82);
+  --color-aura-hairline: rgba(237, 226, 207, 0.1);
+  --color-aura-hairline-strong: rgba(237, 226, 207, 0.2);
+  --color-aura-mesh-rose: #3d2126;
+  --color-aura-mesh-violet: #2b1f31;
+  --color-aura-mesh-amber: #3d2c17;
+  --color-aura-mesh-sky: #1f2a31;
+
+  /* Shadow tokens. Light mode used a violet glow on white; on warm dim
+     we want a deep ember underglow so cards lift but the room stays warm. */
+  --shadow-card: 0 30px 80px -30px rgba(10, 4, 0, 0.6), inset 0 1px 0 0 rgba(237, 226, 207, 0.08);
+  --shadow-quiet: 0 1px 0 0 rgba(0, 0, 0, 0.4), 0 12px 30px -18px rgba(251, 113, 133, 0.22);
+
+  background-color: var(--color-aura-bg);
+  color: var(--color-aura-ink);
+  color-scheme: dark;
+}
+
+/* White surface fills used by cards, panels, and tiles. Map to a warm
+   cream wash so panels read as vellum under the lamp, not blue-tinted
+   glass. Match-whole-token selectors so hover:bg-white/X variants do not
+   fire outside hover. */
+[data-theme="dark"]
+  :where(
+    [class~="bg-white/35"],
+    [class~="bg-white/40"],
+    [class~="bg-white/55"],
+    [class~="bg-white/70"],
+    [class~="bg-white/72"],
+    [class~="bg-white/76"],
+    [class~="bg-white/80"],
+    [class~="bg-white/82"],
+    [class~="bg-white/85"],
+    [class~="bg-white/88"],
+    [class~="bg-white/95"]
+  ) {
+  background-color: rgba(237, 226, 207, 0.05);
+}
+
+[data-theme="dark"] .hover\:bg-white\/40:hover {
+  background-color: rgba(237, 226, 207, 0.09);
+}
+
+/* White gradient stops, re-tinted to warm cream highlights on dim. */
+[data-theme="dark"] :where([class*="from-white/"]) {
+  --tw-gradient-from: rgba(237, 226, 207, 0.06);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="to-white/"]) {
+  --tw-gradient-to: rgba(237, 226, 207, 0.025);
+  --tw-gradient-stops: var(--tw-gradient-from, transparent), var(--tw-gradient-to);
+}
+
+/* Pastel gradient stops, softened so callouts read as inked stains on
+   warm paper rather than glowing tiles. */
+[data-theme="dark"] :where([class*="from-rose-50/"]) {
+  --tw-gradient-from: rgba(251, 113, 133, 0.14);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="from-rose-100/"]) {
+  --tw-gradient-from: rgba(251, 113, 133, 0.2);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="from-amber-50/"]) {
+  --tw-gradient-from: rgba(251, 191, 36, 0.13);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="from-violet-50/"]) {
+  --tw-gradient-from: rgba(196, 181, 253, 0.13);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="from-emerald-50/"]) {
+  --tw-gradient-from: rgba(110, 231, 183, 0.12);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+[data-theme="dark"] :where([class*="from-sky-50/"]) {
+  --tw-gradient-from: rgba(125, 211, 252, 0.11);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
+}
+
+/* Solid pastel chip fills. Toned down from the previous values; on the
+   warmer base they read as badges rather than fluorescent buttons. */
+[data-theme="dark"] .bg-rose-100 {
+  background-color: rgba(251, 113, 133, 0.18);
+}
+[data-theme="dark"] .bg-amber-100 {
+  background-color: rgba(251, 191, 36, 0.18);
+}
+[data-theme="dark"] .bg-violet-100 {
+  background-color: rgba(196, 181, 253, 0.18);
+}
+[data-theme="dark"] .bg-emerald-100 {
+  background-color: rgba(110, 231, 183, 0.18);
+}
+[data-theme="dark"] .bg-sky-100 {
+  background-color: rgba(125, 211, 252, 0.16);
+}
+
+[data-theme="dark"] .text-rose-700 {
+  color: #fda4af;
+}
+[data-theme="dark"] .text-amber-700,
+[data-theme="dark"] .text-amber-800 {
+  color: #fcd34d;
+}
+[data-theme="dark"] .text-violet-700 {
+  color: #c4b5fd;
+}
+[data-theme="dark"] .text-emerald-700,
+[data-theme="dark"] .text-emerald-800 {
+  color: #6ee7b7;
+}
+[data-theme="dark"] .text-sky-700 {
+  color: #7dd3fc;
+}
+
+/* Table head tint, dialed back from the previous rose flash. */
+[data-theme="dark"] .bg-rose-500\/\[0\.06\] {
+  background-color: rgba(251, 113, 133, 0.1);
+}
+
+/* Glass surfaces: warm cream wash, ember underglow for the lift shadow.
+   The inset highlight goes from white (light mode) to a faint cream
+   gleam so chrome reads as candle-lit, not refrigerator-lit. */
+[data-theme="dark"] .aura-glass {
+  background-image: linear-gradient(
+    180deg,
+    rgba(237, 226, 207, 0.06) 0%,
+    rgba(237, 226, 207, 0.025) 100%
+  );
+  border-color: rgba(237, 226, 207, 0.1);
+  box-shadow:
+    inset 0 1px 0 0 rgba(237, 226, 207, 0.08),
+    0 1px 2px 0 rgba(0, 0, 0, 0.4),
+    0 14px 38px -10px rgba(20, 10, 6, 0.6);
+}
+[data-theme="dark"] .aura-glass-strong {
+  background-image: linear-gradient(
+    180deg,
+    rgba(237, 226, 207, 0.09) 0%,
+    rgba(237, 226, 207, 0.035) 100%
+  );
+  border-color: rgba(237, 226, 207, 0.12);
+  box-shadow:
+    inset 0 1px 0 0 rgba(237, 226, 207, 0.1),
+    0 4px 14px -4px rgba(0, 0, 0, 0.5),
+    0 28px 70px -18px rgba(20, 10, 6, 0.7);
+}
+[data-theme="dark"] .aura-glass-lift:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(237, 226, 207, 0.1),
+    0 4px 14px -4px rgba(0, 0, 0, 0.55),
+    0 32px 80px -18px rgba(40, 20, 14, 0.7);
+}
+
+/* Sidebar dot-leader uses warm cream dots, not cold white. */
+[data-theme="dark"] .aura-doc-leader {
+  border-bottom-color: rgba(237, 226, 207, 0.2);
+}
+
+/* Dot grid (faint texture under editorial moments). Inverts to cream dots. */
+[data-theme="dark"] .aura-dot-grid {
+  background-image: radial-gradient(rgba(237, 226, 207, 0.07) 1px, transparent 1px);
+}
+
+/* Scrollbar inside the docs scope. The global scrollbar is tuned for
+   the cream theme; here we keep the thumb subtle on warm dim so it
+   doesn't draw the eye while reading. */
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background-color: rgba(237, 226, 207, 0.14);
+}
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(251, 113, 133, 0.32);
+}

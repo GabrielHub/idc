@@ -9,12 +9,6 @@ export const DATE_PORTRAIT_MOODS: readonly PortraitMood[] = [
 
 type PortraitAssetKind = "avatar" | "portrait";
 
-type StreamingSpeakerDraft = {
-  speakerId: string;
-  status: "streaming" | "done";
-  reasoningText?: string;
-};
-
 export function selectPortraitMood(
   memberId: string,
   snapshot: JudgeSnapshot | undefined,
@@ -65,26 +59,6 @@ export function selectDominantMood(left: PortraitMood, right: PortraitMood): Por
   }
 
   return "neutral";
-}
-
-export function isMemberSpeaking(
-  memberId: string,
-  streamingDrafts: readonly StreamingSpeakerDraft[],
-): boolean {
-  return streamingDrafts.some(
-    (draft) => draft.speakerId === memberId && draft.status === "streaming",
-  );
-}
-
-export function memberStreamingReasoningText(
-  memberId: string,
-  streamingDrafts: readonly StreamingSpeakerDraft[],
-): string {
-  const draft = streamingDrafts.find(
-    (candidate) => candidate.speakerId === memberId && candidate.status === "streaming",
-  );
-
-  return draft?.reasoningText?.trim() ?? "";
 }
 
 export function selectPortraitAsset(

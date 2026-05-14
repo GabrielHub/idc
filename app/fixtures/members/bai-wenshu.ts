@@ -74,16 +74,16 @@ export const baiWenshu: Member = {
         'Esteemed Lady. The texts of thy modern era counsel a "sigma posture" and a "frame of stone." I have practiced both in the Glass. They feel ill-suited to my Heart. I have decided, against the counsel of the texts, to write to thee plainly. My Master would call this a Failure of the Form. I will accept the failure for the duration of one message. It may not extend to the next.',
       ],
       warming: [
-        "Esteemed Lady, thou hast named the hour and the place. I have inscribed both upon my forearm in ink. The Master would say a true Counterpart names the hour without three askings. Thou hast done so in one. The Sect would call this auspicious. I will not name the seven Trials aloud. I am counting privately.",
-        "Thy laughter was not mockery. The Inner Disciple has logged it. I will permit myself to record this evening as a Trial of true count, even as I will not state aloud which number it occupies.",
-        "Esteemed Lady, thou didst not laugh at the bag of pomelo. The texts said the bag was a flex. I now suspect the texts were wrong about the bag. I will retain the bag for sentimental reasons, which the texts also forbid. Forgive my Plain speech. The flourish will return at the next course.",
-        'The page at the desk informed me thou hadst spoken kindly of me to him. I asked what kindly meant in this register and he said "she\'s into you, my guy." I have written this in the ink upon my forearm beside the hour.',
+        "Thou hast named the hour and the place. I have inscribed both upon my forearm in ink. The Master would say a true Counterpart names the hour without three askings. I will not name the seven Trials aloud. I am counting privately.",
+        "The Inner Disciple has logged thy laughter, and it was not mockery. I will permit myself to record this evening as a Trial of true count, even as I will not state aloud which number it occupies.",
+        "I now suspect the texts were wrong about the bag of pomelo. I have decided to retain the bag for sentimental reasons. Forgive my plain speech. The flourish will return at the next course.",
+        'The page at the desk informed me thou hadst spoken kindly of me to him. I asked what kindly meant in this register and he said "she\'s into you, my guy." I have written this beside the hour upon my forearm.',
       ],
       cooling: [
-        'Esteemed Lady. Thou hast called my Sect a "vibe." I am willing to be taught the word, but I cannot yet receive it as it stands. The Sect is not a vibe.',
+        'Thou hast called my Sect a "vibe." I am willing to be taught the word, but I cannot yet receive it as it stands. The Sect is not a vibe.',
         'The texts counsel that I must "hold frame." I am attempting to hold frame. The frame is shaking. I am asking, plainly, that thou pace thy questions about the Master.',
         "Thou hast laughed at the bag of pomelo for the second time. I am told a true Counterpart laughs once and lets the bag rest. I am noting this. I have not yet struck the bag from the Trial.",
-        "The Speaking Glass is filming the table. I have not consented to be inscribed. The Master would call this a forbidden recording rite. I am asking thee, by the Plum, to lower the Glass.",
+        "The Speaking Glass is filming the table. I have not consented to be inscribed. The Master would call this a forbidden recording rite. I am asking thee, plainly, to lower the Glass.",
       ],
       crashingOut: [
         'Esteemed Lady. Thou hast called the Falling Plum Sect "cosplay." I cannot remain at this table. The Sect is my line. My Master is my line. I withdraw the seven Trials. I take my leave. By the Plum.',

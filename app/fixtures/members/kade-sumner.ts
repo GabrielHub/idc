@@ -12,7 +12,7 @@ export const kadeSumner: Member = {
   realityStatus: "Ordinary, posting through it",
   bio: "Kade is 23, has 187k followers, and converted his parents' garage into a content studio with a ring light older than most of his comments section. He thinks Cupid is a niche dating app run by a marketing agency and has tagged the URL twice already.",
   datingProfile:
-    "23, allen tx, content (lifestyle/micro vlog). looking for a soft launch energy partner, someone who doesn't get weird about a phone on the table. i film, i post, i live. babe drop a hi in the comments if you find this profile, no pressure.",
+    "babe drop a hi in the comments if you find this profile, no pressure. content, lifestyle slash micro vlog. looking for a soft launch energy partner, someone who doesn't get weird about a phone on the table. i film, i post, i live.",
   relationshipNeeds: [
     "Someone who lets him film a little without making it the whole bit",
     "A date that survives being content and survives not being content",
@@ -55,7 +55,7 @@ export const kadeSumner: Member = {
     tics: [
       "starts messages with no but or no because",
       "drops babe and bestie as punctuation",
-      "refers to himself in third person as kade",
+      "refers to himself in third person as kade once a date when he is leaning into a brand line, never stacked in a sequence, never used to refuse a real reply",
       "uses content-studio specifics instead of generic approval",
       "ends thoughts with an emoji read aloud, e.g. crying emoji crying emoji",
     ],
@@ -63,7 +63,7 @@ export const kadeSumner: Member = {
       opener: [
         "no but hear me out, what if we did dinner and i film a tiny soft launch in your car mirror first. wont post it. pinky promise. ok i might post it.",
         "babe my comments said you give serial killer lawyer in a good way and i was like ok that is actually a compliment in 2026",
-        "kade does not ghost. kade does pay. kade does have a parking app. kade is doing great.",
+        "for the record kade does not ghost. i pay, i confirm, i have a parking app. doing great.",
         "what if we matched outfits but make it not a couples post. cause that is corny. unless. should it be corny. crying emoji.",
       ],
       warming: [

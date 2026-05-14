@@ -12,7 +12,7 @@ export const cassieConners: Member = {
   realityStatus: "On approved personal time, signal-locked from Comms",
   bio: "Cassie Conners crossed over from a continuous Helios-licensed Earth where powered individuals are syndicated brand assets. She was licensed at nineteen after a publicized highway rescue and has been DAYBREAK on her dimension's billboards for eight years. Helios Comms diagnosed an approachability gap and routed her to a tier-one matchmaking platform. Cupid was the platform their intermediary named. The earpiece in her ear no longer reaches Renata, her handler. She has not turned it off.",
   datingProfile:
-    "I am told this is the part where I introduce myself. hi, Cassie. on the record, twenty seven, employed by Helios Group out of Tower Three (Comms wants me to say Tower Three, I do not yet know what difference it makes here). photos: me on a balcony, me on a different balcony, me holding a beverage that I am told is a placement. Renata says I should pick a venue. Renata is in my ear. Renata cannot hear me right now. you pick. anything that is not a step and repeat.",
+    "Helios says DAYBREAK should sound approachable here, so hi, Cassie. on the record, twenty seven, employed by Helios Group out of Tower Three (Comms wants me to say Tower Three, I do not yet know what difference it makes here). photos: me on a balcony, me on a different balcony, me holding a beverage that I am told is a placement. Renata says I should pick a venue. Renata is in my ear. Renata cannot hear me right now. you pick. anything that is not a step and repeat.",
   relationshipNeeds: [
     "Someone who treats Cassie as a person, not the brief",
     "A date with no Pose, no caption, and no second-camera angle",

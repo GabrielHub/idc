@@ -17,6 +17,7 @@ import {
   type LocalAiDateStreamEvent,
 } from "./ai-date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { OPEN_LOOP_TAG, PAIR_AGREEMENT_TAG } from "./pair-memory";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 
@@ -190,6 +191,95 @@ describe("AI date engine orchestration", () => {
     expect(aiMemory?.scenarioId).toBe(started.session.scenarioId);
     expect(aiMemory?.visibleToMemberIds).toEqual(["jenna-pike"]);
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
+  });
+
+  it("applies accepted pair memory proposals while rejecting duplicates and fabricated ids", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-pair-memory-test");
+    const save = {
+      ...withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+        "junie-marrow",
+        "kade-sumner",
+      ]),
+      config: {
+        ...createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")).config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "junie-marrow",
+      firstMemberId: "junie-marrow",
+      secondMemberId: "kade-sumner",
+      scenarioId: "soft-launch-photo-wall",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("Junie")
+          ? "No filming at the table, please."
+          : "No filming at the table. I can make a memory without uploading it.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: { trust: 1 },
+          memberMoodDeltas: {
+            "junie-marrow": 1,
+            "kade-sumner": 1,
+          },
+          shouldEndEarly: false,
+          endSentiment: null,
+          notableMoments: ["Kade accepted the phone boundary."],
+          playerSummary: "Cupid filed the phone boundary.",
+          memoryCandidates: [],
+          agreementCandidates: [
+            { text: "No filming at the table." },
+            { text: "No filming at the table" },
+          ],
+          agreementUpdates: [{ agreementId: "agreement-fabricated", status: "broken" }],
+          openLoopCandidates: [{ text: "Whether Kade can make a memory without uploading it." }],
+          openLoopUpdates: [{ openLoopId: "loop-fabricated", status: "resolved" }],
+        }),
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await completeDateSessionWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const pairState = result.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("junie-marrow", "kade-sumner"),
+    );
+
+    expect(pairState?.agreements).toHaveLength(1);
+    expect(pairState?.agreements[0]?.text).toBe("No filming at the table.");
+    expect(pairState?.openLoops).toHaveLength(1);
+    expect(pairState?.openLoops[0]?.text).toBe(
+      "Whether Kade can make a memory without uploading it.",
+    );
+    expect(result.save.memories.some((memory) => memory.tags.includes(PAIR_AGREEMENT_TAG))).toBe(
+      true,
+    );
+    expect(result.save.memories.some((memory) => memory.tags.includes(OPEN_LOOP_TAG))).toBe(true);
   });
 
   it("attaches Gateway vision images only to the first generated turn", async () => {
@@ -727,17 +817,10 @@ describe("AI date engine orchestration", () => {
       generateCharacterTurn: async () => {
         throw new Error("non-streaming performer should not run");
       },
-      streamCharacterTurn: async ({ packet, onTextDelta, onReasoningDelta }) => {
+      streamCharacterTurn: async ({ packet, onTextDelta }) => {
         const text = packet.prompt.includes("as Jenna Pike")
           ? "Jenna watches the coffee unspill and asks if that is normal."
           : "Vhool says\u2014normal is a department opinion, not a fact.";
-        const reasoningText = packet.prompt.includes("as Jenna Pike")
-          ? "Jenna thinks\u2014this coffee is doing paperwork."
-          : "";
-
-        for (const chunk of reasoningText.split(" ").filter((part) => part.length > 0)) {
-          await onReasoningDelta?.(`${chunk} `);
-        }
 
         for (const chunk of text.split(" ")) {
           await onTextDelta(`${chunk} `);
@@ -813,8 +896,17 @@ describe("AI date engine orchestration", () => {
     expect(
       result.session.transcript.filter((message) => message.kind === "character"),
     ).toHaveLength(2);
-    expect(events.map((event) => event.type)).toContain("characterDelta");
-    expect(events.map((event) => event.type)).toContain("characterReasoningDelta");
+    const eventTypes = events.map((event) => event.type as string);
+    expect(eventTypes).toContain("characterDelta");
+    expect(
+      eventTypes.every(
+        (type) =>
+          type === "characterStart" ||
+          type === "characterDelta" ||
+          type === "characterDone" ||
+          type === "judgeStart",
+      ),
+    ).toBe(true);
     expect(events.at(-1)?.type).toBe("judgeStart");
     expect(
       events
@@ -822,12 +914,6 @@ describe("AI date engine orchestration", () => {
         .map((event) => event.textDelta)
         .join(""),
     ).not.toMatch(/[\u2014\u2013]/);
-    expect(
-      events
-        .filter((event) => event.type === "characterReasoningDelta")
-        .map((event) => event.textDelta)
-        .join(""),
-    ).toContain("Jenna thinks, this coffee");
     expect(
       events.some(
         (event) => event.type === "characterDone" && event.text.includes("department opinion"),

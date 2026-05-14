@@ -2,6 +2,7 @@ import {
   DEFAULT_GATEWAY_EMBEDDING_MODEL,
   DEFAULT_OLLAMA_EMBEDDING_MODEL,
   dateMessageSchema,
+  dateFinalReportSchema,
   dateSessionSchema,
   memoryRecordSchema,
   pairStateSchema,
@@ -16,13 +17,16 @@ import {
 import { memberRequests, starterMembers, starterScenarios } from "../../fixtures";
 import { EmptyPerformerMessageError, sanitizeCharacterText } from "../ai-date-engine";
 import {
+  buildJudgePromptPacket,
   buildCharacterPromptPacket,
   withCharacterVisibilityRetryGuard,
   type CharacterPromptPacket,
 } from "../date-prompts";
-import { createSeedGameSave, makePairId } from "../game-seed";
+import { createSeedGameSave, makePairId, sortMemberIds } from "../game-seed";
 import { evaluateMatchFit } from "../match-fit";
+import { derivePairTrajectory } from "../pair-trajectory";
 import { escapeRegex } from "../utils";
+import { previewFollowUpEffects } from "../date-engine";
 import {
   modelDefaultsForProvider,
   recommendedOllamaChatModels,
@@ -35,9 +39,15 @@ import {
   type AiRuntimeConfig,
   type GeneratedTextResult,
 } from "./model-service";
+import {
+  findPlaygroundSeedPack,
+  PLAYGROUND_SEED_PACKS,
+  type PlaygroundSeedPack,
+} from "./playground-seeds";
 
 export type PlaygroundAction = "generate" | "preview";
-export type PlaygroundMode = "dateConversation" | "memberChat";
+export type FeatureBenchPlaygroundMode = "extractorBench" | "judgeBench" | "followUpBench";
+export type PlaygroundMode = "dateConversation" | "memberChat" | FeatureBenchPlaygroundMode;
 export type PlaygroundChatMessage = {
   role: "tester" | "member";
   text: string;
@@ -60,6 +70,11 @@ type BasePlaygroundInput = {
   promptOverride: string;
 };
 
+type AnyPlaygroundInput =
+  | DatePlaygroundInput
+  | MemberChatPlaygroundInput
+  | FeatureBenchPlaygroundInput;
+
 export type DatePlaygroundInput = BasePlaygroundInput & {
   mode: "dateConversation";
   memberId: string;
@@ -79,6 +94,11 @@ export type MemberChatPlaygroundInput = BasePlaygroundInput & {
   memberId: string;
   testerMessage: string;
   chatMessages: PlaygroundChatMessage[];
+};
+
+export type FeatureBenchPlaygroundInput = BasePlaygroundInput & {
+  mode: FeatureBenchPlaygroundMode;
+  seedId: string;
 };
 
 export type PlaygroundGeneratedTurn = {
@@ -105,7 +125,7 @@ export type PromptPreviewPayload = {
 };
 
 export type PlaygroundResult = {
-  mode: "dateConversation" | "memberChat";
+  mode: PlaygroundMode;
   text: string;
   turns: PlaygroundGeneratedTurn[];
   chatMessages?: PlaygroundChatMessage[];
@@ -115,6 +135,7 @@ export type PlaygroundResult = {
   promptCharacters: number;
   approximatePromptTokens: number;
   matchFit?: ReturnType<typeof evaluateMatchFit>;
+  seed?: PlaygroundSeedPack;
   system: string;
   prompt: string;
   preview: PromptPreviewPayload;
@@ -124,9 +145,14 @@ export type PlaygroundDefaults = {
   models: OllamaModelSummary[];
   defaults: DatePlaygroundInput;
   memberChatDefaults: MemberChatPlaygroundInput;
+  featureBenchDefaults: FeatureBenchPlaygroundInput;
+  seedPacks: readonly PlaygroundSeedPack[];
   previews: {
     dateConversation: PromptPreviewPayload;
     memberChat: PromptPreviewPayload;
+    extractorBench: PromptPreviewPayload;
+    judgeBench: PromptPreviewPayload;
+    followUpBench: PromptPreviewPayload;
   };
 };
 
@@ -139,12 +165,17 @@ export type DatePlaygroundGenerationRuntime = {
 };
 
 export type MemberChatGenerationRuntime = DatePlaygroundGenerationRuntime;
+export type FeatureBenchGenerationRuntime = DatePlaygroundGenerationRuntime;
 
 const MODEL_SERVICE_DATE_PLAYGROUND_RUNTIME: DatePlaygroundGenerationRuntime = {
   generateCharacterTurn,
 };
 
 const MODEL_SERVICE_MEMBER_CHAT_RUNTIME: MemberChatGenerationRuntime = {
+  generateCharacterTurn,
+};
+
+const MODEL_SERVICE_FEATURE_BENCH_RUNTIME: FeatureBenchGenerationRuntime = {
   generateCharacterTurn,
 };
 
@@ -194,19 +225,55 @@ export const DEFAULT_MEMBER_CHAT_SETTINGS = {
   promptOverride: "",
 } satisfies MemberChatPlaygroundInput;
 
+export const DEFAULT_FEATURE_BENCH_SETTINGS = {
+  mode: "extractorBench",
+  action: "generate",
+  provider: "ollama",
+  model: "gemma4:26b",
+  reasoningLevel: "off",
+  temperature: 0.6,
+  topP: 0.9,
+  topK: 40,
+  numCtx: 16384,
+  maxOutputTokens: 520,
+  seedId: PLAYGROUND_SEED_PACKS[0]?.id ?? "agreement-no-filming",
+  systemOverride: "",
+  promptOverride: "",
+} satisfies FeatureBenchPlaygroundInput;
+
 export async function loadPlaygroundDefaults(): Promise<PlaygroundDefaults> {
   const inventory = await listOllamaModelInventory();
   const models = recommendedOllamaChatModels(inventory.models);
   const datePrompt = buildDatePlaygroundPrompt(DEFAULT_DATE_PLAYGROUND_SETTINGS);
   const memberPrompt = buildMemberChatPrompt(DEFAULT_MEMBER_CHAT_SETTINGS);
+  const extractorPrompt = buildFeatureBenchPrompt(DEFAULT_FEATURE_BENCH_SETTINGS);
+  const judgePrompt = buildFeatureBenchPrompt({
+    ...DEFAULT_FEATURE_BENCH_SETTINGS,
+    mode: "judgeBench",
+  });
+  const followUpPrompt = buildFeatureBenchPrompt({
+    ...DEFAULT_FEATURE_BENCH_SETTINGS,
+    mode: "followUpBench",
+  });
 
   return {
     models,
     defaults: DEFAULT_DATE_PLAYGROUND_SETTINGS,
     memberChatDefaults: DEFAULT_MEMBER_CHAT_SETTINGS,
+    featureBenchDefaults: DEFAULT_FEATURE_BENCH_SETTINGS,
+    seedPacks: PLAYGROUND_SEED_PACKS,
     previews: {
       dateConversation: toPromptPreview(datePrompt.packet, DEFAULT_DATE_PLAYGROUND_SETTINGS),
       memberChat: toPromptPreview(memberPrompt.packet, DEFAULT_MEMBER_CHAT_SETTINGS),
+      extractorBench: toPromptPreview(extractorPrompt.packet, DEFAULT_FEATURE_BENCH_SETTINGS),
+      judgeBench: toPromptPreview(judgePrompt.packet, {
+        ...DEFAULT_FEATURE_BENCH_SETTINGS,
+        mode: "judgeBench",
+      }),
+      followUpBench: toPromptPreview(followUpPrompt.packet, {
+        ...DEFAULT_FEATURE_BENCH_SETTINGS,
+        mode: "followUpBench",
+      }),
     },
   };
 }
@@ -312,6 +379,62 @@ export async function runPlaygroundMemberChat(
     system: prompt.packet.system,
     prompt: prompt.packet.prompt,
     preview: toPromptPreview(prompt.packet, input),
+  };
+}
+
+export async function runPlaygroundFeatureBench(
+  input: FeatureBenchPlaygroundInput,
+  runtime: FeatureBenchGenerationRuntime = MODEL_SERVICE_FEATURE_BENCH_RUNTIME,
+): Promise<PlaygroundResult> {
+  const startedAt = performance.now();
+  const bench = buildFeatureBenchPrompt(input);
+
+  if (input.action === "preview") {
+    return {
+      mode: input.mode,
+      text: "",
+      turns: [],
+      model: input.model,
+      providerMode: input.provider,
+      elapsedMs: 0,
+      promptCharacters: bench.promptCharacters,
+      approximatePromptTokens: Math.ceil(bench.promptCharacters / 4),
+      matchFit: bench.matchFit,
+      seed: bench.seed,
+      system: bench.packet.system,
+      prompt: bench.packet.prompt,
+      preview: toPromptPreview(bench.packet, input),
+    };
+  }
+
+  const generation = await runtime.generateCharacterTurn({
+    packet: bench.packet,
+    config: runtimeConfigFromPlaygroundInput(input),
+    options: generationOptionsFromInput(input),
+  });
+  const elapsedMs = Math.round(performance.now() - startedAt);
+  const text = generation.text.trim();
+
+  return {
+    mode: input.mode,
+    text,
+    turns: [
+      {
+        speakerId: input.mode,
+        speakerName: featureBenchLabel(input.mode),
+        text,
+      },
+    ],
+    model: generation.model,
+    providerMode: generation.providerMode,
+    elapsedMs,
+    promptCharacters: bench.promptCharacters,
+    approximatePromptTokens: Math.ceil(bench.promptCharacters / 4),
+    matchFit: bench.matchFit,
+    seed: bench.seed,
+    system: bench.packet.system,
+    prompt: bench.packet.prompt,
+    preview: toPromptPreview(bench.packet, input),
   };
 }
 
@@ -905,6 +1028,230 @@ function buildDatePlaygroundPrompt(input: DatePlaygroundInput) {
   };
 }
 
+function buildFeatureBenchPrompt(input: FeatureBenchPlaygroundInput): {
+  seed: PlaygroundSeedPack;
+  packet: CharacterPromptPacket;
+  promptCharacters: number;
+  matchFit: ReturnType<typeof evaluateMatchFit>;
+} {
+  const seed = findPlaygroundSeedPack(input.seedId);
+  const context = buildSeedContext(seed);
+  const packet = applyPlaygroundOverrides(featurePacketForMode(input.mode, seed, context), input);
+
+  return {
+    seed,
+    packet,
+    promptCharacters: packet.system.length + packet.prompt.length,
+    matchFit: context.matchFit,
+  };
+}
+
+function buildSeedContext(seed: PlaygroundSeedPack) {
+  const member = requireMember(seed.memberId);
+  const partner = requireMember(seed.partnerId);
+  const scenario = starterScenarios.find((candidate) => candidate.id === seed.scenarioId);
+
+  if (scenario === undefined) {
+    throw new Error(`Scenario not found: ${seed.scenarioId}`);
+  }
+
+  const participantIds = sortMemberIds(member.id, partner.id);
+  const pairId = makePairId(member.id, partner.id);
+  const transcript = buildTranscriptMessages({
+    text: seed.transcriptText,
+    member,
+    partner,
+    dateSessionId: "playground-ai-session",
+  });
+  const pairMemories = buildMemoryRecords(seed.memoryText, pairId, scenario.id, participantIds);
+  const pairState = pairStateSchema.parse({
+    id: pairId,
+    participantIds,
+    stats: {
+      chemistry: Math.max(0, Math.min(100, seed.spark + 2)),
+      trust: 55,
+      stability: Math.max(0, Math.min(100, 100 - seed.strain)),
+      conflict: seed.strain,
+      weirdnessTolerance: member.species === partner.species ? 45 : 62,
+      spark: seed.spark,
+      strain: seed.strain,
+      relationshipHealth: Math.round((seed.dateHealth + seed.spark + (100 - seed.strain)) / 3),
+    },
+    completedDateIds: seed.expected.outcome === "second_date" ? ["seed-prior-date-1"] : [],
+    scenarioUseCounts: { [scenario.id]: seed.expected.judgePressure === "high" ? 1 : 0 },
+    agreements: seed.expected.agreements.map((text, index) => ({
+      id: `agreement-seed-${seed.id}-${index + 1}`,
+      text,
+      status: "active",
+      sourceDateSessionId: "seed-prior-date-1",
+      sourceJudgeSnapshotId: `judge-seed-${index + 1}`,
+      createdAt: "2026-05-05T12:00:00.000Z",
+    })),
+    openLoops: seed.expected.openLoops.map((text, index) => ({
+      id: `open-loop-seed-${seed.id}-${index + 1}`,
+      text,
+      status: "open",
+      sourceDateSessionId: "seed-prior-date-1",
+      sourceJudgeSnapshotId: `judge-seed-${index + 1}`,
+      createdAt: "2026-05-05T12:00:00.000Z",
+    })),
+  });
+  const session = buildPlaygroundSession({
+    input: {
+      ...DEFAULT_DATE_PLAYGROUND_SETTINGS,
+      memberId: member.id,
+      partnerId: partner.id,
+      scenarioId: scenario.id,
+      dateHealth: seed.dateHealth,
+      spark: seed.spark,
+      strain: seed.strain,
+      transcriptText: seed.transcriptText,
+      memoryText: seed.memoryText,
+      includeCurrentAsk: seed.includeCurrentAsk,
+      turnCount: seed.turnCount,
+    },
+    pairState,
+    participantIds,
+    transcript,
+    currentTurn: transcript.filter((message) => message.kind === "character").length,
+    speaker: member,
+    member,
+    partner,
+    dateHealth: seed.dateHealth,
+  });
+  const finalReport = dateFinalReportSchema.parse({
+    id: `final-playground-${seed.id}`,
+    dateSessionId: session.id,
+    completedAt: "2026-05-05T12:30:00.000Z",
+    outcome: seed.expected.outcome,
+    summary: `${member.firstName} and ${partner.firstName} filed a playground case.`,
+    statSummary: "Case read: playground seed for tuning.",
+    recommendedFollowUp: seed.expected.followUpAction,
+    memoryRecordIds: [],
+    readyToClose: false,
+  });
+  const completedSession = dateSessionSchema.parse({
+    ...session,
+    status: seed.expected.outcome === "early_end" ? "ended_early" : "completed",
+    finalReport,
+  });
+  const activeRequests = seed.includeCurrentAsk
+    ? [member, partner]
+        .map((candidate) =>
+          candidate.state.currentRequestId === undefined
+            ? undefined
+            : memberRequests.find((request) => request.id === candidate.state.currentRequestId),
+        )
+        .filter((request) => request !== undefined)
+    : [];
+  const matchFit = evaluateMatchFit({
+    members: [member, partner],
+    scenario,
+    pairState,
+    activeRequests,
+  });
+
+  return {
+    member,
+    partner,
+    scenario,
+    pairState,
+    transcript,
+    pairMemories,
+    session,
+    completedSession,
+    matchFit,
+  };
+}
+
+function featurePacketForMode(
+  mode: FeatureBenchPlaygroundMode,
+  seed: PlaygroundSeedPack,
+  context: ReturnType<typeof buildSeedContext>,
+): CharacterPromptPacket {
+  if (mode === "judgeBench") {
+    return buildJudgePromptPacket({
+      scenario: context.scenario,
+      session: context.session,
+      pairState: context.pairState,
+      exchangeMessages: context.transcript,
+      members: [context.member, context.partner],
+      revealCandidates: [],
+    });
+  }
+
+  if (mode === "followUpBench") {
+    const preview = previewFollowUpEffects(
+      context.pairState,
+      context.completedSession,
+      seed.expected.followUpAction,
+    );
+    const trajectory = derivePairTrajectory({
+      pairState: context.pairState,
+      currentSession: context.completedSession,
+      completedSessions: [context.completedSession],
+    });
+
+    return {
+      system: [
+        "You are testing IDC follow-up consequences.",
+        "Explain whether the recommended follow-up matches the case data.",
+        "Return concise JSON only. Do not include hidden stat labels in player copy.",
+      ].join("\n"),
+      prompt: [
+        `Seed: ${seed.title}.`,
+        `Pair: ${context.member.name} and ${context.partner.name}.`,
+        `Outcome: ${seed.expected.outcome}. Follow-up: ${seed.expected.followUpAction}.`,
+        `Active agreements: ${formatSeedAgreements(context.pairState)}.`,
+        `Open loops: ${formatSeedOpenLoops(context.pairState)}.`,
+        `Trajectory guidance: ${trajectory.judgeGuidance}`,
+        `Computed preview: ${JSON.stringify(preview)}`,
+        `Seed notes: ${seed.notes}`,
+        'Return JSON shape: {"fit":"good|bad","reason":"short note","tuningNotes":["short note"]}.',
+      ].join("\n"),
+    };
+  }
+
+  return {
+    system: [
+      "You are the IDC pair memory extractor.",
+      "Read a date transcript and propose bounded pair agreements and open loops.",
+      "Return JSON only. Do not score the date, reveal hidden tags, or include exact stats.",
+    ].join("\n"),
+    prompt: [
+      `Seed: ${seed.title}.`,
+      `Pair: ${context.member.name} and ${context.partner.name}.`,
+      `Scenario: ${context.scenario.title}.`,
+      `Existing pair memories: ${context.pairMemories.map((memory) => memory.text).join(" ") || "None."}`,
+      `Transcript:\n${seed.transcriptText}`,
+      `Expected tuning target: ${JSON.stringify(seed.expected)}`,
+      'Return JSON shape: {"agreementCandidates":[{"text":"short agreement"}],"openLoopCandidates":[{"text":"short unresolved hook"}],"notes":["short tuning note"]}.',
+    ].join("\n"),
+  };
+}
+
+function featureBenchLabel(mode: FeatureBenchPlaygroundMode): string {
+  if (mode === "judgeBench") return "Judge Bench";
+  if (mode === "followUpBench") return "Follow-up Bench";
+  return "Extractor Bench";
+}
+
+function formatSeedAgreements(pairState: PairState): string {
+  const activeAgreements = pairState.agreements
+    .filter((agreement) => agreement.status === "active")
+    .map((agreement) => agreement.text);
+
+  return activeAgreements.length > 0 ? activeAgreements.join(" | ") : "None";
+}
+
+function formatSeedOpenLoops(pairState: PairState): string {
+  const activeLoops = pairState.openLoops
+    .filter((loop) => loop.status === "open")
+    .map((loop) => loop.text);
+
+  return activeLoops.length > 0 ? activeLoops.join(" | ") : "None";
+}
+
 function buildPlaygroundSession({
   input,
   pairState,
@@ -1008,9 +1355,10 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     `Dealbreakers: ${member.dealbreakers.join("; ")}`,
     `Interdimensional framing: ${memberRealityFrame(member)}`,
     `Voice register: ${member.voice.register}`,
-    `Voice moves that fit: ${formatVoicePatterns(member.voice.patternsUsed)}`,
-    `Voice moves to avoid: ${formatVoicePatterns(member.voice.patternsRefused)}`,
-    `Voice tics: ${member.voice.tics.join("; ")}`,
+    `Comedic flavors that can color a reply when natural: ${formatVoicePatterns(member.voice.patternsUsed)}`,
+    `Moves that would not come out of this character's mouth: ${formatVoicePatterns(member.voice.patternsRefused)}`,
+    `Voice tics that may surface when they fit: ${member.voice.tics.join("; ")}`,
+    "Voice fields are flavor, not a script. Answer the latest message as the character would naturally answer it. If a flavor or tic fits the natural reply, let it color the line; if it would force the line to sound rehearsed, drop it.",
     "Reference lines, rhythm only. Do not copy their facts unless the current chat earns them:",
     formatMemberChatSamples(member),
     "",
@@ -1100,9 +1448,7 @@ function applyPlaygroundOverrides<TPacket extends CharacterPromptPacket>(
   };
 }
 
-function runtimeConfigFromPlaygroundInput(
-  input: DatePlaygroundInput | MemberChatPlaygroundInput,
-): Partial<AiRuntimeConfig> {
+function runtimeConfigFromPlaygroundInput(input: AnyPlaygroundInput): Partial<AiRuntimeConfig> {
   return {
     aiProvider: input.provider,
     chatModel: input.model,
@@ -1119,7 +1465,7 @@ function runtimeConfigFromPlaygroundInput(
   };
 }
 
-function generationOptionsFromInput(input: DatePlaygroundInput | MemberChatPlaygroundInput) {
+function generationOptionsFromInput(input: AnyPlaygroundInput) {
   return {
     temperature: input.temperature,
     topP: input.topP,
@@ -1131,7 +1477,7 @@ function generationOptionsFromInput(input: DatePlaygroundInput | MemberChatPlayg
 
 function toPromptPreview(
   packet: CharacterPromptPacket,
-  input: DatePlaygroundInput | MemberChatPlaygroundInput,
+  input: AnyPlaygroundInput,
 ): PromptPreviewPayload {
   return {
     system: packet.system,

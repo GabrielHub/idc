@@ -64,9 +64,9 @@ export const sanaKarim: Member = {
     sampleMessages: {
       opener: [
         "I am 28. My back hurts. The laminator at school has been broken since October. These are not connected and yet they are.",
-        "I have summers off. I do not have summers off. Both are true. We do not have to discuss it.",
+        "Hi. The summers-off thing is the first question I get asked and the answer is unsatisfying for both of us, so let me skip past it. I am free Saturday.",
         "Yes I am free Saturday. Please choose the place. If you make me choose I will choose poorly and we will both eat at a Panera.",
-        "In year one I had a Mason. In year two I had a Mason. In year three I have a Mason. They are not the same Mason. They are the same problem.",
+        "There is a kid in my class named Mason. Year one was a different Mason. Same problem.",
       ],
       warming: [
         "You showed up. You picked a place. You did not ask how teaching is going. I want to be clear that this is working.",

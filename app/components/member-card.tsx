@@ -4,7 +4,7 @@ import { type ReactNode, type Ref, useEffect, useMemo } from "react";
 import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { hashSeedUint32 } from "../services/utils";
-import { EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
+import { CupidMark, EASE_OUT_QUART, Eyebrow, Portrait, scoreWidthClass } from "./dashboard-atoms";
 import { formatMemberHeightShort } from "./date-reactions";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
@@ -283,6 +283,15 @@ function InfoOverlay({
   if (state === "closed" || state === "quit") return null;
   return (
     <div className="pointer-events-none absolute inset-x-3 bottom-3 z-20">
+      {hideSealedSummary ? null : (
+        <div className="mb-2 flex justify-end">
+          <SealedSummaryChip
+            sealedCount={sealedCount}
+            knownCount={knownCount}
+            revealAllDetails={revealAllDetails}
+          />
+        </div>
+      )}
       <div className="aura-glass-strong rounded-2xl px-3.5 py-3 shadow-[0_18px_50px_-18px_rgba(15,23,42,0.32)]">
         <div className="flex items-start gap-3">
           <span className="relative -mt-7 inline-flex shrink-0 rounded-full ring-2 ring-white/85 shadow-[0_10px_24px_-12px_rgba(15,23,42,0.45)]">
@@ -298,16 +307,7 @@ function InfoOverlay({
                   {STATE_PILL_LABEL[state]}
                 </p>
               </div>
-              <div className="flex shrink-0 flex-col items-end gap-1.5">
-                <HeightChip heightInInches={member.characterHeightInInches} />
-                {hideSealedSummary ? null : (
-                  <SealedSummaryChip
-                    sealedCount={sealedCount}
-                    knownCount={knownCount}
-                    revealAllDetails={revealAllDetails}
-                  />
-                )}
-              </div>
+              <HeightChip heightInInches={member.characterHeightInInches} />
             </div>
           </div>
         </div>
@@ -454,7 +454,7 @@ function SealedSummaryChip({
 }) {
   if (revealAllDetails) {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-aura-rose/10 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose ring-1 ring-aura-rose/20">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-aura-rose/15 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose shadow-[0_8px_22px_-12px_rgba(244,63,94,0.55)] ring-1 ring-aura-rose/25 backdrop-blur-md">
         <span aria-hidden className="size-1.5 rounded-full bg-aura-rose" />
         unveiled
       </span>
@@ -465,13 +465,13 @@ function SealedSummaryChip({
   const showKnown = knownCount > 0;
   if (!showSealed && !showKnown) {
     return (
-      <span className="shrink-0 rounded-pill bg-white/65 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint ring-1 ring-aura-hairline">
+      <span className="shrink-0 rounded-pill bg-white/55 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint shadow-[0_8px_22px_-12px_rgba(15,23,42,0.4)] ring-1 ring-white/55 backdrop-blur-md">
         new
       </span>
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-white/85 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted ring-1 ring-aura-hairline">
+    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-pill bg-white/65 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-muted shadow-[0_8px_22px_-12px_rgba(15,23,42,0.45)] ring-1 ring-white/55 backdrop-blur-md">
       <span aria-hidden className="size-1.5 rounded-full bg-aura-rose" />
       {showKnown ? `${knownCount} read${knownCount === 1 ? "" : "s"}` : `${sealedCount} sealed`}
     </span>
@@ -1126,4 +1126,68 @@ function readKindLabel(
     return confidence === "confirmed" ? "confirmed room read" : "filed room read";
   }
   return confidence === "confirmed" ? `confirmed ${readKind}` : `filed ${readKind}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* Pending member slot                                                 */
+/*   Decorative ghost card rendered after the real roster to fill any  */
+/*   trailing gap in the responsive 1/2/3/4-col grid. Matches the      */
+/*   MemberCard footprint (rounded-card, aspect-[3/4], list-none li).  */
+/* ------------------------------------------------------------------ */
+
+export function PendingMemberCard({ className = "" }: { className?: string }) {
+  return (
+    <li className={`list-none ${className}`} aria-hidden>
+      <div className="relative h-full p-px">
+        <article className="relative flex aspect-[3/4] flex-col items-center justify-center overflow-hidden rounded-card border border-dashed border-aura-hairline-strong/60 bg-white/45 shadow-quiet">
+          <div aria-hidden className="aura-dot-grid absolute inset-0 opacity-35" />
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(244,63,94,0.07)_0%,transparent_62%)]"
+          />
+          <span className="pointer-events-none absolute left-3 top-3 rounded-pill bg-white/55 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint ring-1 ring-aura-hairline">
+            F-PENDING
+          </span>
+          <CupidMark className="relative size-20 opacity-30" />
+          <span className="relative mt-5 font-mono text-micro uppercase tracking-[0.32em] text-aura-rose/55">
+            Pending
+          </span>
+        </article>
+      </div>
+    </li>
+  );
+}
+
+/* Visibility class per (showSm, showLg, showXl) tuple. Keys are literal
+   so Tailwind's JIT picks up every breakpoint variant used below. */
+const FILLER_VISIBILITY_CLASS = {
+  "1,1,1": "hidden sm:block",
+  "1,1,0": "hidden sm:block xl:hidden",
+  "1,0,1": "hidden sm:block lg:hidden xl:block",
+  "1,0,0": "hidden sm:block lg:hidden",
+  "0,1,1": "hidden lg:block",
+  "0,1,0": "hidden lg:block xl:hidden",
+  "0,0,1": "hidden xl:block",
+} as const;
+
+/* Returns one class string per filler slot needed to round out the
+   roster grid. The grid uses 1/2/3/4 cols at base/sm/lg/xl; each filler
+   is shown only at the breakpoints where the trailing row has a gap. */
+export function rosterGridFillerClasses(memberCount: number): readonly string[] {
+  if (memberCount <= 0) return [];
+  const holes = {
+    sm: (2 - (memberCount % 2)) % 2,
+    lg: (3 - (memberCount % 3)) % 3,
+    xl: (4 - (memberCount % 4)) % 4,
+  };
+  const fillerCount = Math.max(holes.sm, holes.lg, holes.xl);
+  const result: string[] = [];
+  for (let i = 0; i < fillerCount; i++) {
+    const sm = i < holes.sm ? "1" : "0";
+    const lg = i < holes.lg ? "1" : "0";
+    const xl = i < holes.xl ? "1" : "0";
+    const key = `${sm},${lg},${xl}` as keyof typeof FILLER_VISIBILITY_CLASS;
+    result.push(FILLER_VISIBILITY_CLASS[key]);
+  }
+  return result;
 }

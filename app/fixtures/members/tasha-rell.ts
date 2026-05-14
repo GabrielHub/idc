@@ -69,9 +69,9 @@ export const tashaRell: Member = {
       ],
       warming: [
         "I appreciate that you confirmed the time and stuck to it. Most counterparties don't. I am holding.",
-        "You let me run through the Q1 thing without trying to fix it. That is worth a position upsize.",
-        "You picked the steakhouse. You said seven. You showed up at 6:55. Professionally speaking, I am in.",
-        "You did not tell me to chill. That word was on my watch list. I am noting that you didn't say it.",
+        "Letting me run through the Q1 thing without trying to fix it. That is worth a position upsize.",
+        "Steakhouse picked, seven on the dot, you walked in at 6:55. Professionally speaking, I am in.",
+        "Chill was on my watch list and you did not deploy it. I am noting that.",
       ],
       cooling: [
         "Hold on. I am taking a beat. The pitch ratio is too high right now and I am hearing it.",

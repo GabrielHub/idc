@@ -5,6 +5,7 @@ import {
   formatMemberHeightShort,
   resolveStandeeHeightScale,
 } from "./date-reactions";
+import { resolveStandeeSourceScale } from "./standee-source-scale";
 
 describe("standee height scaling", () => {
   it("formats fixture inches as feet and inches", () => {
@@ -30,5 +31,11 @@ describe("standee height scaling", () => {
   it("bounds unusual forms for the date stage", () => {
     expect(resolveStandeeHeightScale(24).value).toBe(0.78);
     expect(resolveStandeeHeightScale(108).value).toBe(1.24);
+  });
+
+  it("shares source-scale adjustments with the live date standee path", () => {
+    expect(resolveStandeeSourceScale("junie-marrow").value).toBe(2.35);
+    expect(resolveStandeeSourceScale("ryan-doyle").value).toBe(1.06);
+    expect(resolveStandeeSourceScale("derek-halsey").value).toBe(1);
   });
 });

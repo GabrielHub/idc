@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router";
 
 import { SAVE_SCHEMA_VERSION, type GameConfig } from "../domain/game";
 import { APP_VERSION } from "../platform/release-identity";
@@ -430,6 +431,9 @@ export function SettingsMenu({
                 <MenuButton onClick={handleOpenAiSetup} disabled={isActionPending}>
                   AI setup
                 </MenuButton>
+                <MenuLink to="/docs" onClick={() => setIsOpen(false)}>
+                  Field manual
+                </MenuLink>
                 <MenuButton
                   role="menuitemcheckbox"
                   ariaChecked={sfxEnabled}
@@ -521,6 +525,28 @@ export function SettingsMenu({
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+function MenuLink({
+  to,
+  onClick,
+  children,
+}: {
+  to: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      to={to}
+      role="menuitem"
+      data-sfx="menu"
+      onClick={onClick}
+      className="block w-full cursor-pointer rounded-chip px-3 py-2 text-left font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:bg-white/55 hover:text-aura-ink"
+    >
+      {children}
+    </Link>
   );
 }
 

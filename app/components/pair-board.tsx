@@ -82,7 +82,6 @@ export function PairBoard({
   shiftCount,
 }: PairBoardProps) {
   const reduceMotion = useReducedMotion() ?? false;
-  const [showGhostPairs, setShowGhostPairs] = useState(false);
   const [minDegree, setMinDegree] = useState(1);
   const [selection, setSelection] = useState<PairBoardSelection>({ kind: "none" });
   const [hover, setHover] = useState<FieldHover>({ kind: "none" });
@@ -97,8 +96,8 @@ export function PairBoard({
   );
 
   const graph = useMemo(
-    () => derivePairGraph(members, pairStates, memories, { showGhostPairs, minDegree }),
-    [members, pairStates, memories, showGhostPairs, minDegree],
+    () => derivePairGraph(members, pairStates, memories, { minDegree }),
+    [members, pairStates, memories, minDegree],
   );
 
   const adjacency = useMemo(() => buildAdjacency(graph.edges), [graph.edges]);
@@ -133,8 +132,6 @@ export function PairBoard({
       <PairBoardLegend
         graph={graph}
         shiftCount={shiftCount}
-        showGhostPairs={showGhostPairs}
-        onToggleGhostPairs={() => setShowGhostPairs((current) => !current)}
         minDegree={minDegree}
         onMinDegreeChange={setMinDegree}
       />
@@ -149,11 +146,7 @@ export function PairBoard({
         <PairBoardBackdrop reduceMotion={reduceMotion} />
 
         {isEmpty ? (
-          <PairBoardEmpty
-            showGhostPairs={showGhostPairs}
-            ghostPairCount={graph.meta.ghostPairs}
-            onShowGhost={() => setShowGhostPairs(true)}
-          />
+          <PairBoardEmpty />
         ) : (
           <PairBoardField
             graph={graph}
@@ -235,15 +228,11 @@ function useElementSize(ref: React.RefObject<HTMLElement | null>): ElementSize {
 function PairBoardLegend({
   graph,
   shiftCount,
-  showGhostPairs,
-  onToggleGhostPairs,
   minDegree,
   onMinDegreeChange,
 }: {
   graph: PairBoardGraph;
   shiftCount: number;
-  showGhostPairs: boolean;
-  onToggleGhostPairs: () => void;
   minDegree: number;
   onMinDegreeChange: (next: number) => void;
 }) {
@@ -261,29 +250,8 @@ function PairBoardLegend({
       <div className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2">
         <LegendStat label="nodes" value={graph.nodes.length} accent="rose" />
         <LegendStat label="filed" value={graph.meta.filedPairs} accent="fuchsia" />
-        <LegendStat label="ghost" value={graph.meta.ghostPairs} accent="violet" muted />
 
         <DegreeFilter value={minDegree} onChange={onMinDegreeChange} />
-
-        <button
-          type="button"
-          data-sfx="click"
-          aria-pressed={showGhostPairs}
-          onClick={onToggleGhostPairs}
-          className={`group inline-flex cursor-pointer items-center gap-2 rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ring-1 transition ${
-            showGhostPairs
-              ? "bg-aura-violet/15 text-aura-ink ring-aura-violet/40"
-              : "bg-white/55 text-aura-muted ring-aura-hairline hover:text-aura-ink"
-          }`}
-        >
-          <span
-            aria-hidden
-            className={`inline-block size-2 rounded-full transition ${
-              showGhostPairs ? "bg-aura-violet" : "bg-aura-hairline-strong"
-            }`}
-          />
-          ghost pairs
-        </button>
       </div>
     </div>
   );
@@ -573,7 +541,7 @@ function PairEdgeBack({ entry }: { entry: ResolvedEdge }) {
       strokeWidth={width}
       strokeLinecap="round"
       pointerEvents="none"
-      opacity={edge.isGhost ? 0.3 : 0.6}
+      opacity={0.6}
     />
   );
 }
@@ -605,8 +573,6 @@ function PairEdge({
 
   const strokeWidth = baseWidth * emphasis.widthMul;
   const opacity = baseOpacity * emphasis.opacityMul;
-
-  const dashAttr = edge.isGhost ? "4 6" : undefined;
 
   const isActive = emphasis.isActive;
   const showBead = isActive && !reduceMotion;
@@ -643,7 +609,6 @@ function PairEdge({
         stroke={`url(#pair-edge-grad-${edge.pairId})`}
         strokeWidth={strokeWidth}
         strokeLinecap="round"
-        strokeDasharray={dashAttr}
         animate={{ opacity, strokeWidth }}
         transition={{ duration: 0.22, ease: EASE_OUT_QUART }}
         pointerEvents="none"
@@ -968,9 +933,9 @@ function EdgeTooltip({
   const memberB = memberById.get(edge.b);
   if (memberA === undefined || memberB === undefined) return null;
   const recency = describeRecency(edge.latestNoteAt, now);
-  const lead = edge.latestNote === undefined ? null : splitLead(edge.latestNote.text).lead;
+  const lead = splitLead(edge.latestNote.text).lead;
   const scenario =
-    edge.latestNote?.scenarioId === undefined
+    edge.latestNote.scenarioId === undefined
       ? undefined
       : scenarioById.get(edge.latestNote.scenarioId);
 
@@ -1006,15 +971,9 @@ function EdgeTooltip({
           </p>
         </div>
       </div>
-      {lead === null ? (
-        <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          ghost pair · no notes filed
-        </p>
-      ) : (
-        <p className="aura-accent mt-3 line-clamp-2 text-body leading-snug text-aura-ink/90">
-          {lead}
-        </p>
-      )}
+      <p className="aura-accent mt-3 line-clamp-2 text-body leading-snug text-aura-ink/90">
+        {lead}
+      </p>
       {scenario === undefined ? null : (
         <p className="mt-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
           {scenario.title}
@@ -1253,7 +1212,7 @@ function EdgeDetailBody({
 
       {notes.length === 0 ? (
         <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-          Ghost pair. Nothing filed yet.
+          No filed notes yet.
         </p>
       ) : (
         <NoteThread notes={notes} scenarioById={scenarioById} />
@@ -1412,15 +1371,7 @@ function NoteThread({
 /* Empty + isolated members                                           */
 /* ================================================================== */
 
-function PairBoardEmpty({
-  showGhostPairs,
-  ghostPairCount,
-  onShowGhost,
-}: {
-  showGhostPairs: boolean;
-  ghostPairCount: number;
-  onShowGhost: () => void;
-}) {
+function PairBoardEmpty() {
   return (
     <div className="absolute inset-0 grid place-items-center">
       <div className="aura-glass-strong relative max-w-md space-y-3 rounded-card px-6 py-7 text-center ring-1 ring-aura-hairline">
@@ -1433,16 +1384,6 @@ function PairBoardEmpty({
         <p className="text-body leading-relaxed text-aura-muted">
           Cupid files a pair note when a date wraps. The board fills in as connections form.
         </p>
-        {!showGhostPairs && ghostPairCount > 0 ? (
-          <button
-            type="button"
-            data-sfx="click"
-            onClick={onShowGhost}
-            className="cursor-pointer rounded-pill bg-aura-ink px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-quiet"
-          >
-            show {pad2(ghostPairCount)} unfiled pairs
-          </button>
-        ) : null}
       </div>
     </div>
   );
