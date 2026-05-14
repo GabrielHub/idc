@@ -1,0 +1,13 @@
+# Python asset tooling dependencies.
+#
+# Dependabot's pip dependency graph job expects a supported manifest name in this
+# directory. Keep the actual package pins here, and let portraits.txt include
+# this file so the existing portrait install command keeps working.
+
+# CPU background removal for character portraits.
+# GPU users can install rembg[gpu,cli] manually if their CUDA/onnxruntime stack supports it.
+rembg[cpu,cli]>=2.0.75,<3
+
+# Pillow handles avatar resizing for srcset variants. rembg already pulls Pillow,
+# but listing it explicitly keeps `resize_avatars.py` runnable on its own.
+Pillow>=10.0,<12

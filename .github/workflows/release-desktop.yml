@@ -196,7 +196,7 @@ jobs:
           "$hash  IDC_${version}_x64-setup.exe" | Set-Content -LiteralPath $checksum -Encoding ascii
 
           $env:IDC_RELEASE_TAG = $env:RELEASE_TAG
-          $updaterNotes = (vp node scripts/render-release-notes.mjs --format updater --version $version) -join "`n"
+          $updaterNotes = (node scripts/render-release-notes.mjs --format updater --version $version) -join "`n"
           if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($updaterNotes)) {
             throw "Failed to render updater release notes for $version."
           }
@@ -208,7 +208,7 @@ jobs:
           }
 
           $env:IDC_RELEASE_EXTRA_NOTES = $env:REQUESTED_RELEASE_NOTES
-          vp node scripts/render-release-notes.mjs `
+          node scripts/render-release-notes.mjs `
             --format github `
             --version $version `
             --tag $env:RELEASE_TAG `

@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.2.7",
+    "date": "2026-05-14",
+    "headline": "The release courier found the right elevator.",
+    "summary": "This maintenance test alpha retries the desktop release after fixing the Windows packaging workflow and the Python dependency graph manifest.",
+    "sections": [
+      {
+        "title": "Fixes",
+        "items": [
+          "Desktop release packaging now renders updater and GitHub release notes with the runner Node runtime, avoiding the missing Vite Plus node subcommand in Actions.",
+          "The Tauri desktop build verifier uses the same direct Node command for local package builds.",
+          "Python portrait tooling now exposes a standard pip requirements manifest so GitHub's dependency graph job can read it."
+        ]
+      },
+      {
+        "title": "Included from v0.2.6",
+        "items": [
+          "Docs routes load through the shared registry, and live-date autoplay keeps advancing after nonfatal AI retry notices."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.2.6",
     "date": "2026-05-14",
     "headline": "The release candidate survives its own inspection.",

@@ -191,7 +191,7 @@ vp run tauri signer generate --ci -w "$env:USERPROFILE\\.tauri\\idc-updater.key"
               Run the stricter release preflight.
               <DocCodeBlock language="powershell">{`$env:IDC_RELEASE_PREFLIGHT = "1"
 $env:IDC_COPYRIGHT_CONFIRMED = "Copyright (c) 2026 IDC team"
-vp node scripts/verify-desktop-build.mjs`}</DocCodeBlock>
+node scripts/verify-desktop-build.mjs`}</DocCodeBlock>
             </span>,
             <span key="checksum">
               Create a SHA256 checksum and updater manifest. GitHub normalizes asset names by
@@ -209,7 +209,7 @@ vp run updater:manifest`}</DocCodeBlock>
             </span>,
             <span key="notes">
               Add or update the public catalog entry, then render release notes from the catalog.
-              <DocCodeBlock language="powershell">{`vp node scripts/render-release-notes.mjs \`
+              <DocCodeBlock language="powershell">{`node scripts/render-release-notes.mjs \`
   --format github \`
   --version $version \`
   --tag "v$version" \`

@@ -18,6 +18,7 @@ describe("release notes", () => {
 
   it("sorts notes by semantic version descending", () => {
     expect(SORTED_RELEASE_NOTES.map((note) => note.version)).toEqual([
+      "0.2.7",
       "0.2.6",
       "0.2.5",
       "0.2.4",
@@ -26,19 +27,19 @@ describe("release notes", () => {
       "0.2.1",
       "0.2.0",
     ]);
-    expect(compareReleaseVersions("0.2.6", "0.2.5")).toBeGreaterThan(0);
+    expect(compareReleaseVersions("0.2.7", "0.2.6")).toBeGreaterThan(0);
   });
 
   it("returns current and previous notes for the modal", () => {
     expect(
-      listReleaseNotesForModal({ currentVersion: "v0.2.6" }).map((note) => note.version),
-    ).toEqual(["0.2.6", "0.2.5", "0.2.4"]);
+      listReleaseNotesForModal({ currentVersion: "v0.2.7" }).map((note) => note.version),
+    ).toEqual(["0.2.7", "0.2.6", "0.2.5"]);
   });
 
   it("opens on first launch only when an existing save has progress", () => {
     expect(
       shouldOpenReleaseNotes({
-        currentVersion: "0.2.6",
+        currentVersion: "0.2.7",
         lastSeenVersion: null,
         hasExistingSaveProgress: false,
       }),
@@ -46,7 +47,7 @@ describe("release notes", () => {
 
     expect(
       shouldOpenReleaseNotes({
-        currentVersion: "0.2.6",
+        currentVersion: "0.2.7",
         lastSeenVersion: null,
         hasExistingSaveProgress: true,
       }),
@@ -56,7 +57,7 @@ describe("release notes", () => {
   it("opens when the stored version is older than the current version", () => {
     expect(
       shouldOpenReleaseNotes({
-        currentVersion: "0.2.6",
+        currentVersion: "0.2.7",
         lastSeenVersion: "0.2.5",
         hasExistingSaveProgress: false,
       }),
@@ -64,8 +65,8 @@ describe("release notes", () => {
 
     expect(
       shouldOpenReleaseNotes({
-        currentVersion: "v0.2.6",
-        lastSeenVersion: "0.2.6",
+        currentVersion: "v0.2.7",
+        lastSeenVersion: "0.2.7",
         hasExistingSaveProgress: true,
       }),
     ).toBe(false);

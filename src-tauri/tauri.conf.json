@@ -1,19 +1,19 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "IDC",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "identifier": "dev.idc.cupid",
   "build": {
     "frontendDist": "../build/client",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "vp dev",
-    "beforeBuildCommand": "vp exec react-router build --mode desktop && vp node scripts/verify-desktop-build.mjs"
+    "beforeBuildCommand": "vp exec react-router build --mode desktop && node scripts/verify-desktop-build.mjs"
   },
   "app": {
     "windows": [
       {
         "label": "main",
-        "title": "IDC v0.2.6 (test alpha)",
+        "title": "IDC v0.2.7 (test alpha)",
         "width": 1440,
         "height": 900,
         "minWidth": 1100,
