@@ -37,6 +37,14 @@ export const sections: DocSectionEntry[] = [
     title: "Contract",
     body: (
       <>
+        <DocCallout variant="warn" title="Companion catalog">
+          <P>
+            The verbatim copy for every coach mark lives in{" "}
+            <DocLink to="/docs/product/tutorial-steps">Tutorial steps</DocLink>. Any time you add,
+            remove, rename, or rewrite a step, update that page in the same change. This doc owns
+            the contract; that doc owns the strings.
+          </P>
+        </DocCallout>
         <P>
           Tutorial behavior follows the same boundary rules as the rest of the app. App-owned save
           state is authoritative. Surfaces decide when a step is relevant. Game services still own
@@ -235,6 +243,11 @@ export const sections: DocSectionEntry[] = [
           "Gate the step from current UI state. Required steps should not stack. Lazy steps should wait while a required step is active.",
           "Complete the step in the same handler as the player action, or in an effect only when the state has already moved past the lesson.",
           "Write copy in Cupid's corporate register. Keep it procedural, dry, and specific. Avoid hidden stat names and never-visible fixture fields.",
+          <span key="catalog">
+            Add the new step to <DocLink to="/docs/product/tutorial-steps">Tutorial steps</DocLink>{" "}
+            in the same change. Place it in the phase that matches when the player will hit it, and
+            include the verbatim title, body, trigger, and completes-on copy.
+          </span>,
           <span key="verify">
             Run <DocCode>vp check</DocCode>. Run <DocCode>vp test</DocCode> and{" "}
             <DocCode>vp build</DocCode> for gameplay, save, integration, or user-flow changes.
@@ -259,6 +272,11 @@ export const sections: DocSectionEntry[] = [
             "Keep lazy support marks quiet while required path marks are active.",
             "If a flow no longer exists, remove its step id only with a save migration decision. Completed saves may still contain the old id.",
             "Update this page when adding a primitive, changing completion semantics, or moving a step to a new surface.",
+            <span key="catalog">
+              Update <DocLink to="/docs/product/tutorial-steps">Tutorial steps</DocLink> whenever a
+              step is added, removed, renamed, rewritten, or relocated. The catalog is the page copy
+              reviewers iterate against; drift between this doc and that one is a real bug.
+            </span>,
           ]}
         />
       </>

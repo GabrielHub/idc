@@ -2317,7 +2317,7 @@ function FeatureSeedField({ label, value }: { label: string; value: string }) {
         readOnly
         value={value}
         rows={8}
-        className="mt-3 block w-full resize-y rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 font-mono text-xs leading-5 text-aura-muted outline-none"
+        className="mt-3 block w-full resize-y rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 font-mono text-sm leading-5 text-aura-muted outline-none"
       />
     </label>
   );
@@ -2811,7 +2811,7 @@ function HeightLineupMember({ member, zClass }: { member: Member; zClass: string
         className="absolute bottom-20 left-1/2 h-96 w-48 -translate-x-1/2 origin-bottom"
       />
       <footer className="absolute bottom-1 left-1/2 w-[6.75rem] -translate-x-1/2 rounded-tile bg-white/70 px-2 py-1 text-center ring-1 ring-aura-hairline backdrop-blur-sm">
-        <p className="truncate font-display text-xs font-semibold leading-tight tracking-tight text-aura-ink">
+        <p className="truncate font-display text-sm font-semibold leading-tight tracking-tight text-aura-ink">
           {member.firstName}
         </p>
         <p className="mt-0.5 whitespace-nowrap font-mono text-micro uppercase leading-tight tracking-[0.08em] text-aura-faint">
@@ -3129,7 +3129,7 @@ function PromptPreview({ title, value }: { title: string; value: string }) {
         readOnly
         value={value}
         rows={14}
-        className="mt-2 block w-full resize-y rounded-card border border-aura-hairline bg-white/55 px-4 py-3 font-mono text-xs leading-5 text-aura-muted outline-none"
+        className="mt-2 block w-full resize-y rounded-card border border-aura-hairline bg-white/55 px-4 py-3 font-mono text-sm leading-5 text-aura-muted outline-none"
       />
     </label>
   );

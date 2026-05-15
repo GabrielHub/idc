@@ -861,8 +861,10 @@ export const MAX_BUDGET_CAP = 240;
 
 export const tutorialStepIdSchema = z.enum([
   "onboarding.focus.pick",
+  "onboarding.focus.expand",
   "onboarding.focus.start",
   "onboarding.deck.pick",
+  "onboarding.deck.expand",
   "onboarding.deck.start",
   "planning.focus",
   "planning.partner",
@@ -882,6 +884,8 @@ export const tutorialStepIdSchema = z.enum([
   "lazy.cooldown-block",
   "lazy.closure-ready",
   "lazy.files.first-agreement",
+  "member.file.first-open",
+  "scenario.file.first-open",
 ]);
 
 export const TUTORIAL_STEP_IDS = tutorialStepIdSchema.options;

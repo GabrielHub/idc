@@ -85,7 +85,7 @@ export function RoadmapStatusPill({
   const padding = size === "sm" ? "px-1.5 py-[0.05rem]" : "px-2 py-0.5";
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill border bg-white/82 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone.chip} ${tone.text} ${padding}`}
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-pill border bg-white/82 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone.chip} ${tone.text} ${padding}`}
     >
       <span aria-hidden className={`size-1.5 rounded-full ${tone.dot}`} />
       {STATUS_LABEL[status]}

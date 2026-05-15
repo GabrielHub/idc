@@ -339,6 +339,8 @@ export function RosterCanvas({
           playerKnowledge={playerKnowledge}
           revealAllDetails={revealAllMemberDetails}
           isFocused={isReselecting ? draftSet.has(openMember.id) : focusedSet.has(openMember.id)}
+          save={save}
+          onTutorialUpdate={onTutorialUpdate}
           onClose={() => setOpenMemberId(null)}
           primaryAction={
             isReselecting
@@ -399,7 +401,6 @@ export function RosterCanvas({
         <TutorialCoachMark
           target={rosterAnchorRef}
           placement="bottom"
-          eyebrow="// swap.penalty"
           title="Swapping costs retention"
           body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, but also paperwork. Pick the next member to seal the swap.`}
           primaryLabel="Got it"

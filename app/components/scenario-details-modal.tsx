@@ -1,10 +1,12 @@
 import { motion } from "motion/react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import type { DateScenario } from "../domain/game";
+import type { DateScenario, GameSave } from "../domain/game";
+import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 import { RISK_DOT_TONE, RISK_SHORT, RISK_TEXT_TONE } from "./scenario-card";
+import { TutorialCoachMark } from "./tutorial";
 
 export type ScenarioDetailsAction = {
   label: string;
@@ -17,6 +19,8 @@ export type ScenarioDetailsModalProps = {
   eyebrow: string;
   statusLabel?: string;
   primaryAction?: ScenarioDetailsAction;
+  save?: GameSave;
+  onTutorialUpdate?: (next: GameSave) => void;
   onClose: () => void;
 };
 
@@ -25,8 +29,20 @@ export function ScenarioDetailsModal({
   eyebrow,
   statusLabel,
   primaryAction,
+  save,
+  onTutorialUpdate,
   onClose,
 }: ScenarioDetailsModalProps) {
+  const tutorialUpdate = onTutorialUpdate ?? noopTutorialUpdate;
+  const briefSectionRef = useRef<HTMLElement | null>(null);
+  const [modalReady, setModalReady] = useState(false);
+  const firstOpenStep = useTutorialStep(
+    save ?? null,
+    "scenario.file.first-open",
+    save !== undefined,
+    tutorialUpdate,
+  );
+
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
@@ -52,6 +68,7 @@ export function ScenarioDetailsModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.97, y: 8 }}
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+        onAnimationComplete={() => setModalReady(true)}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
@@ -72,7 +89,7 @@ export function ScenarioDetailsModal({
 
         <div className="relative z-10 flex min-h-0 flex-col">
           <header className="px-4 pt-4 md:px-6 md:pt-6">
-            <div className="aura-glass-strong rounded-[28px] px-6 py-5 pr-16 shadow-[0_24px_70px_-34px_rgba(15,23,42,0.42)] md:px-10 md:py-7 md:pr-20">
+            <div className="aura-glass rounded-card border-0 px-6 py-5 pr-16 md:px-10 md:py-7 md:pr-20">
               <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
                 {eyebrow}
               </p>
@@ -99,7 +116,10 @@ export function ScenarioDetailsModal({
           <div className="flex-1 overflow-y-auto px-4 pb-5 pt-5 md:px-6">
             <div className="grid gap-5 md:grid-cols-[1.25fr_0.95fr]">
               <div className="space-y-5">
-                <section className={glassSectionClass("px-5 py-5 md:px-6 md:py-6")}>
+                <section
+                  ref={briefSectionRef}
+                  className={glassSectionClass("px-5 py-5 md:px-6 md:py-6")}
+                >
                   <p className="font-display text-lead font-medium leading-relaxed text-aura-ink">
                     {scenario.publicBrief.premise}
                   </p>
@@ -135,22 +155,35 @@ export function ScenarioDetailsModal({
             </div>
           </div>
 
-          <footer className="relative px-4 pb-5 pt-1 md:px-6 md:pb-6">
-            <div className="flex flex-wrap items-center justify-end gap-3 rounded-[28px] border border-white/50 bg-white/30 px-4 py-3 shadow-none backdrop-blur-2xl md:px-6">
-              <FlatButton onClick={onClose}>Close</FlatButton>
-              {primaryAction === undefined ? null : (
-                <FlatButton
-                  variant="primary"
-                  onClick={primaryAction.onClick}
-                  disabled={primaryAction.disabled}
-                >
-                  {primaryAction.label}
-                </FlatButton>
-              )}
-            </div>
+          <footer className="relative flex flex-wrap items-center justify-end gap-3 px-4 pb-5 pt-1 md:px-6 md:pb-6">
+            <FlatButton onClick={onClose}>Close</FlatButton>
+            {primaryAction === undefined ? null : (
+              <FlatButton
+                variant="primary"
+                onClick={primaryAction.onClick}
+                disabled={primaryAction.disabled}
+              >
+                {primaryAction.label}
+              </FlatButton>
+            )}
           </footer>
         </div>
       </motion.div>
+
+      {firstOpenStep.active && modalReady ? (
+        <div onClick={(event) => event.stopPropagation()}>
+          <TutorialCoachMark
+            target={briefSectionRef}
+            placement="top"
+            title="Read the room before you book it"
+            body="Every scenario brief lays out the premise, the rules of the room, and what the judge will reward or punish. Skim it so Cupid can match members to the right vibe."
+            primaryLabel="Got it"
+            onPrimary={firstOpenStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={firstOpenStep.dismiss}
+          />
+        </div>
+      ) : null}
     </motion.div>
   );
 }
@@ -172,7 +205,7 @@ function ScenarioDetailBackdrop({ scenarioId }: { scenarioId: string }) {
           className="absolute inset-0 size-full scale-105 object-cover object-center blur-[6px] saturate-[1.3] contrast-[1.05]"
         />
       )}
-      <span className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,253,249,0.42)_0%,rgba(255,253,249,0.3)_50%,rgba(255,253,249,0.5)_100%)]" />
+      <span className="absolute inset-0 bg-[rgba(255,253,249,0.82)]" />
     </div>
   );
 }
@@ -276,10 +309,7 @@ function FlatButton({
 }
 
 function glassSectionClass(className = ""): string {
-  return [
-    "aura-glass-strong rounded-[24px] px-5 py-4 text-aura-ink shadow-[0_18px_48px_-28px_rgba(15,23,42,0.34)]",
-    className,
-  ]
+  return ["aura-glass rounded-card border-0 px-5 py-4 text-aura-ink", className]
     .filter(Boolean)
     .join(" ");
 }

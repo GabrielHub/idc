@@ -1,13 +1,15 @@
 import { AnimatePresence, motion } from "motion/react";
-import { type ReactNode, type Ref, useEffect, useMemo } from "react";
+import { type ReactNode, type Ref, useEffect, useMemo, useRef, useState } from "react";
 
-import type { Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
+import type { GameSave, Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
+import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
 import { hashSeedUint32 } from "../services/utils";
 import { CupidMark, EASE_OUT_QUART, Eyebrow, Portrait } from "./dashboard-atoms";
 import { formatMemberHeightShort } from "./date-reactions";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
+import { TutorialCoachMark } from "./tutorial";
 
 export type MemberCardState = "default" | "focused" | "selected" | "disabled" | "closed" | "quit";
 
@@ -33,6 +35,7 @@ export type MemberCardProps = {
   index?: number;
   disabled?: boolean;
   cardRef?: Ref<HTMLLIElement>;
+  expandButtonRef?: Ref<HTMLButtonElement>;
   onClick?: () => void;
   onExpand?: () => void;
 };
@@ -101,6 +104,7 @@ export function MemberCard({
   index = 0,
   disabled = false,
   cardRef,
+  expandButtonRef,
   onClick,
   onExpand,
 }: MemberCardProps) {
@@ -121,6 +125,7 @@ export function MemberCard({
     return (
       <CompactMemberCard
         cardRef={cardRef}
+        expandButtonRef={expandButtonRef}
         member={member}
         state={state}
         index={index}
@@ -198,7 +203,11 @@ export function MemberCard({
             {onExpand === undefined ? (
               <span aria-hidden />
             ) : (
-              <ExpandButton onExpand={onExpand} memberFirstName={member.firstName} />
+              <ExpandButton
+                onExpand={onExpand}
+                memberFirstName={member.firstName}
+                buttonRef={expandButtonRef}
+              />
             )}
           </div>
 
@@ -207,7 +216,7 @@ export function MemberCard({
           ) : null}
 
           {state === "disabled" ? (
-            <div className="pointer-events-none absolute inset-x-0 top-12 z-20 grid place-items-center">
+            <div className="pointer-events-none absolute inset-x-0 top-12 z-20 grid place-items-center opacity-0 transition-opacity duration-200 group-hover/card:opacity-100">
               <span className="rounded-pill bg-aura-ink/80 px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] text-white shadow-quiet backdrop-blur-sm">
                 Caseload full
               </span>
@@ -312,7 +321,7 @@ function InfoOverlay({
           </div>
         </div>
         {askPreview === undefined && blurb !== undefined ? (
-          <p className="mt-2 line-clamp-2 text-xs leading-snug text-aura-muted">{blurb}</p>
+          <p className="mt-2 line-clamp-2 text-sm leading-snug text-aura-muted">{blurb}</p>
         ) : null}
         {askPreview !== undefined ? (
           <p className="mt-2 line-clamp-2 aura-accent text-label leading-snug text-aura-ink/80">
@@ -331,6 +340,7 @@ function InfoOverlay({
 
 function CompactMemberCard({
   cardRef,
+  expandButtonRef,
   member,
   state,
   index,
@@ -341,6 +351,7 @@ function CompactMemberCard({
   onExpand,
 }: {
   cardRef?: Ref<HTMLLIElement>;
+  expandButtonRef?: Ref<HTMLButtonElement>;
   member: Member;
   state: MemberCardState;
   index: number;
@@ -409,7 +420,11 @@ function CompactMemberCard({
               {onExpand === undefined ? (
                 <span aria-hidden />
               ) : (
-                <ExpandButton onExpand={onExpand} memberFirstName={member.firstName} />
+                <ExpandButton
+                  onExpand={onExpand}
+                  memberFirstName={member.firstName}
+                  buttonRef={expandButtonRef}
+                />
               )}
             </div>
           ) : null}
@@ -491,12 +506,15 @@ function Pill({ pill }: { pill: MemberCardPill }) {
 function ExpandButton({
   onExpand,
   memberFirstName,
+  buttonRef,
 }: {
   onExpand: () => void;
   memberFirstName: string;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={(event) => {
         event.stopPropagation();
@@ -593,6 +611,8 @@ export type MemberDetailsModalProps = {
   primaryAction?: MemberDetailsAction;
   secondaryAction?: MemberDetailsAction;
   isFocused?: boolean;
+  save?: GameSave;
+  onTutorialUpdate?: (next: GameSave) => void;
   onClose: () => void;
 };
 
@@ -604,8 +624,19 @@ export function MemberDetailsModal({
   primaryAction,
   secondaryAction,
   isFocused = false,
+  save,
+  onTutorialUpdate,
   onClose,
 }: MemberDetailsModalProps) {
+  const tutorialUpdate = onTutorialUpdate ?? noopTutorialUpdate;
+  const intelBoardRef = useRef<HTMLElement | null>(null);
+  const [modalReady, setModalReady] = useState(false);
+  const firstOpenStep = useTutorialStep(
+    save ?? null,
+    "member.file.first-open",
+    save !== undefined,
+    tutorialUpdate,
+  );
   const profile = useMemo(
     () =>
       buildVisibleMemberProfile(member, playerKnowledge, {
@@ -668,6 +699,7 @@ export function MemberDetailsModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: 8 }}
           transition={{ duration: 0.36, ease: EASE_OUT_QUART }}
+          onAnimationComplete={() => setModalReady(true)}
           onClick={(event) => event.stopPropagation()}
           role="dialog"
           aria-modal="true"
@@ -777,6 +809,7 @@ export function MemberDetailsModal({
                 member={member}
                 profile={profile}
                 revealAllDetails={revealAllDetails}
+                sectionRef={intelBoardRef}
               />
 
               <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
@@ -858,6 +891,21 @@ export function MemberDetailsModal({
             )}
           </div>
         </motion.div>
+
+        {firstOpenStep.active && modalReady ? (
+          <div onClick={(event) => event.stopPropagation()}>
+            <TutorialCoachMark
+              target={intelBoardRef}
+              placement="top"
+              title="Files start mostly sealed"
+              body="Public profile is what they wrote. Everything else unseals over time as Cupid files reads from dates you run."
+              primaryLabel="Got it"
+              onPrimary={firstOpenStep.complete}
+              dismissLabel="Skip tour"
+              onDismiss={firstOpenStep.dismiss}
+            />
+          </div>
+        ) : null}
       </motion.div>
     </AnimatePresence>
   );
@@ -869,10 +917,12 @@ function MemberIntelBoard({
   member,
   profile,
   revealAllDetails,
+  sectionRef,
 }: {
   member: Member;
   profile: VisibleMemberProfile;
   revealAllDetails: boolean;
+  sectionRef?: Ref<HTMLElement>;
 }) {
   const profileContinuation = profile.publicFragments.slice(1);
   const profileBlock = findRedactedBlock(profile, "profile:remainder");
@@ -884,7 +934,7 @@ function MemberIntelBoard({
   const boundaryReads = profile.revealedReads.filter((read) => read.readKind === "boundary");
 
   return (
-    <section className="mt-4">
+    <section ref={sectionRef} className="mt-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <Eyebrow>{revealAllDetails ? "// dev.unveiled" : "// case intel"}</Eyebrow>
         <span className="rounded-pill bg-aura-rose/5 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/70 ring-1 ring-aura-rose/20">

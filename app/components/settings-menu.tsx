@@ -475,7 +475,7 @@ export function SettingsMenu({
                       >
                         {devRevealAllMemberDetails ? "Case intel previewed" : "Case intel sealed"}
                       </MenuButton>
-                      <p className="px-2 pb-1 text-xs leading-snug text-aura-muted">
+                      <p className="px-2 pb-1 text-sm leading-snug text-aura-muted">
                         Shows needs, preferences, and dealbreakers without filing reads.
                       </p>
                     </div>
@@ -654,9 +654,9 @@ function DesktopUpdateBlock({
           {statusLabel}
         </span>
       </div>
-      <p className="px-2 pt-1 text-xs leading-snug text-aura-muted">{message}</p>
+      <p className="px-2 pt-1 text-sm leading-snug text-aura-muted">{message}</p>
       {state.status === "available" && state.notes.trim().length > 0 ? (
-        <p className="mt-1 line-clamp-2 px-2 text-xs leading-snug text-aura-faint">{state.notes}</p>
+        <p className="mt-1 line-clamp-2 px-2 text-sm leading-snug text-aura-faint">{state.notes}</p>
       ) : null}
       <div className="mt-1">
         <MenuButton disabled={disabled || busy} onClick={onCheck}>

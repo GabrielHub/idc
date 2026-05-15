@@ -418,11 +418,10 @@ export function DateView({
 
       {judgeNoteStep.active && judgeNoteAnchor !== null ? (
         <>
-          <TutorialSpotlight target={judgeNoteAnchor} onDismiss={judgeNoteStep.dismiss} />
+          <TutorialSpotlight target={judgeNoteAnchor} />
           <TutorialCoachMark
             target={judgeNoteAnchor}
             placement="top"
-            eyebrow="// six and counting"
             title="Six turns, one snapshot"
             body="The Judge reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second."
             primaryLabel="Got it"
@@ -1077,11 +1076,10 @@ function FinalReportFooter({
 
       {followUpStep.active ? (
         <>
-          <TutorialSpotlight target={followUpSectionRef} onDismiss={followUpStep.dismiss} />
+          <TutorialSpotlight target={followUpSectionRef} />
           <TutorialCoachMark
             target={followUpSectionRef}
             placement="top"
-            eyebrow="// follow-up"
             title="File one follow-up"
             body="Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance."
             dismissLabel="Skip tour"
@@ -1440,11 +1438,10 @@ function DraftScreen({
 
       {draftStep.active ? (
         <>
-          <TutorialSpotlight target={firstSceneCardRef} onDismiss={draftStep.dismiss} />
+          <TutorialSpotlight target={firstSceneCardRef} />
           <TutorialCoachMark
             target={firstSceneCardRef}
             placement="right"
-            eyebrow="// scene.draft"
             title="Draft three scenes"
             body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never auto-fires them."
             dismissLabel="Skip tour"
@@ -1471,7 +1468,7 @@ function DraftPickPip({ selected, pickIndex }: { selected: boolean; pickIndex: n
   return (
     <span
       aria-hidden
-      className="grid size-5 place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet font-mono text-xs font-semibold leading-none text-white shadow-cta"
+      className="grid size-5 place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet font-mono text-sm font-semibold leading-none text-white shadow-cta"
     >
       {pickIndex + 1}
     </span>
@@ -1757,11 +1754,10 @@ function DateFooter({
 
       {footerHealthStep.active ? (
         <>
-          <TutorialSpotlight target={statusGaugesRef} onDismiss={footerHealthStep.dismiss} />
+          <TutorialSpotlight target={statusGaugesRef} />
           <TutorialCoachMark
             target={statusGaugesRef}
             placement="top"
-            eyebrow="// the gauges"
             title="Health, Turn, Judge, Nudges"
             body="Health is the date. Turn counts toward the wrap. Judge fires every sixth. Nudges are your three whispers. Scenes appear once you draft them."
             stepIndex={0}
@@ -1780,7 +1776,6 @@ function DateFooter({
           <TutorialCoachMark
             target={transportClusterRef}
             placement="top"
-            eyebrow="// transport"
             title="Run the date"
             body="Tap play for autoplay, or advance one beat at a time. Pause whenever you want to whisper a nudge or drop a scene. Space toggles play."
             stepIndex={1}
@@ -1797,7 +1792,6 @@ function DateFooter({
           <TutorialCoachMark
             target={nudgeButtonRef}
             placement="top"
-            eyebrow="// nudges // 03 left"
             title="One nudge, one whisper"
             body="Pause the date, pick one member, write one sentence. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact."
             primaryLabel="Open composer"

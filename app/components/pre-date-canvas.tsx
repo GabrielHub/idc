@@ -77,6 +77,7 @@ export type PreDateCanvasProps = {
   onDismissClosureError: () => void;
   onOpenDateBook: () => void;
   onOpenRoster: () => void;
+  onOpenAiSetup: () => void;
   onCloseShift: () => void;
   onStartNextShift: () => void;
 };
@@ -103,6 +104,7 @@ export function PreDateCanvas({
   onDismissClosureError,
   onOpenDateBook,
   onOpenRoster,
+  onOpenAiSetup,
   onCloseShift,
   onStartNextShift,
 }: PreDateCanvasProps) {
@@ -548,6 +550,7 @@ export function PreDateCanvas({
         shiftClosed={shiftClosed}
         commitButtonRef={commitCtaRef}
         beginButtonRef={beginCtaRef}
+        onOpenAiSetup={onOpenAiSetup}
         onScrollTo={(step) => {
           const target: Record<BookingStep, () => HTMLElement | null> = {
             focus: () => selectedFocusCardRef.current ?? focusSectionRef.current,
@@ -581,6 +584,8 @@ export function PreDateCanvas({
           request={openMemberRequest}
           isFocused={focusedMembers.some((focus) => focus.id === openMember.id)}
           revealAllDetails={revealAllMemberDetails}
+          save={save}
+          onTutorialUpdate={onTutorialUpdate}
           onClose={() => setOpenMemberId(null)}
         />
       )}
@@ -590,6 +595,8 @@ export function PreDateCanvas({
           <ScenarioDetailsModal
             scenario={openScenario}
             eyebrow="// date plan"
+            save={save}
+            onTutorialUpdate={onTutorialUpdate}
             onClose={() => setOpenScenarioId(null)}
           />
         )}
@@ -599,13 +606,10 @@ export function PreDateCanvas({
         <TutorialCoachMark
           target={[selectedFocusCardRef, focusSectionRef]}
           placement="right"
-          eyebrow="// step.01 // focus"
           title="Pick a focus case"
-          body="Tonight runs on one focus case and one different partner. Confirm the case Cupid opened, or pick another from your four."
+          body="Tonight runs on one focus case and one different partner. Tap the case Cupid opened to confirm it, or pick another from your four."
           stepIndex={0}
           stepCount={3}
-          primaryLabel="Got it"
-          onPrimary={planningFocusStep.complete}
           dismissLabel="Skip tour"
           onDismiss={planningFocusStep.dismiss}
         />
@@ -613,20 +617,14 @@ export function PreDateCanvas({
 
       {planningPartnerStep.active ? (
         <>
-          <TutorialSpotlight
-            target={[selectedPartnerCardRef, partnerSectionRef]}
-            onDismiss={planningPartnerStep.dismiss}
-          />
+          <TutorialSpotlight target={[selectedPartnerCardRef, partnerSectionRef]} />
           <TutorialCoachMark
             target={[selectedPartnerCardRef, partnerSectionRef]}
             placement="right"
-            eyebrow="// step.02 // partner"
             title="Pick one partner"
-            body="Tonight needs two different members. Cupid may recommend one. You may overrule the machine, which is why the machine keeps minutes."
+            body="Tonight needs two different members. Tap a partner card to lock the choice. Cupid may recommend one, and you may overrule the machine."
             stepIndex={1}
             stepCount={3}
-            primaryLabel="Got it"
-            onPrimary={planningPartnerStep.complete}
             dismissLabel="Skip tour"
             onDismiss={planningPartnerStep.dismiss}
           />
@@ -639,7 +637,6 @@ export function PreDateCanvas({
           <TutorialCoachMark
             target={commitCtaRef}
             placement="top"
-            eyebrow="// commit"
             title="Commit the pair"
             body="Commit locks the two members, reserves this shift's date, snapshots the Date Book, and draws three scenario cards. Procurement hates surprises."
             stepIndex={2}
@@ -652,14 +649,10 @@ export function PreDateCanvas({
 
       {planningScenarioStep.active ? (
         <>
-          <TutorialSpotlight
-            target={[selectedDateCardRef, dateSectionRef]}
-            onDismiss={planningScenarioStep.dismiss}
-          />
+          <TutorialSpotlight target={[selectedDateCardRef, dateSectionRef]} />
           <TutorialCoachMark
             target={[selectedDateCardRef, dateSectionRef]}
             placement="top"
-            eyebrow="// hand.drawn"
             title="Pick one room"
             body="These three came from your Date Book. Room Read is a warning, not a verdict. The Judge still waits for transcript evidence."
             dismissLabel="Skip tour"
@@ -674,7 +667,6 @@ export function PreDateCanvas({
           <TutorialCoachMark
             target={beginCtaRef}
             placement="top"
-            eyebrow="// begin"
             title="Begin the date"
             body="Cupid opens the room. Once the date starts, the deck is locked and the pair stays committed until the file resolves."
             primaryLabel="Begin"
@@ -696,7 +688,6 @@ export function PreDateCanvas({
           <TutorialCoachMark
             target={fileShiftCtaRef}
             placement="bottom"
-            eyebrow="// shift.close"
             title="File the shift"
             body="One shift, one date. File it when the date is settled. Cupid will score goals, rotate pressure, and pretend this was a normal evening."
             dismissLabel="Skip tour"
@@ -709,7 +700,6 @@ export function PreDateCanvas({
         <TutorialCoachMark
           target={closureCalloutRef}
           placement="bottom"
-          eyebrow="// closure.ready"
           title="Closure is permanent"
           body="A pair is ready to delete the app. Close their case to free two focus slots, raise the client cap by one, and file a permanent pair memory. There is no rebooking after closure."
           primaryLabel="Got it"
@@ -723,7 +713,6 @@ export function PreDateCanvas({
         <TutorialCoachMark
           target={focusSectionRef}
           placement="right"
-          eyebrow="// cooldown.block"
           title="One of these is in cooldown"
           body="A focus card greys out when the member needs space after their last date. Cooldowns end on the next shift. The roster shows their status."
           primaryLabel="Got it"
@@ -1113,7 +1102,7 @@ function StepHeader({
           <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-aura-ink">
             {title}
           </h2>
-          <p className="mt-1 max-w-xl text-xs text-aura-muted">{hint}</p>
+          <p className="mt-1 max-w-xl text-sm text-aura-muted">{hint}</p>
         </div>
       </div>
       {rightSlot === undefined ? null : <div className="flex items-center gap-2">{rightSlot}</div>}
@@ -1415,6 +1404,7 @@ function BeginDateDock({
   onCommit,
   onStart,
   onCancel,
+  onOpenAiSetup,
 }: {
   focus: Member | null;
   partner: Member | null;
@@ -1432,21 +1422,22 @@ function BeginDateDock({
   onCommit: () => void;
   onStart: () => void;
   onCancel: () => void;
+  onOpenAiSetup: () => void;
 }) {
-  const status = !aiReady
-    ? "ai not ready"
-    : shiftClosed
-      ? "shift filed, open the next one to book"
-      : deckRepairBlocked && !isCommitted
-        ? "date book is over budget, open it to repair"
-        : !shiftDateAvailable && !isCommitted
-          ? "this shift's date is already booked"
-          : focus === null
-            ? "pick a focus case"
-            : partner === null
-              ? "pick a partner"
-              : isCommitted && scenario === null
-                ? "pick a date plan"
+  const status = shiftClosed
+    ? "shift filed, open the next one to book"
+    : deckRepairBlocked && !isCommitted
+      ? "date book is over budget, open it to repair"
+      : !shiftDateAvailable && !isCommitted
+        ? "this shift's date is already booked"
+        : focus === null
+          ? "pick a focus case"
+          : partner === null
+            ? "pick a partner"
+            : isCommitted && scenario === null
+              ? "pick a date plan"
+              : !aiReady
+                ? "ai not ready · set it up to book"
                 : null;
 
   return (
@@ -1459,12 +1450,18 @@ function BeginDateDock({
               {status}
             </span>
           ) : null}
-          {isCommitted ? (
+          {!aiReady && !isCommitted ? (
+            <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+          ) : isCommitted ? (
             <>
               <GhostButton onClick={onCancel}>Cancel booking</GhostButton>
-              <PrimaryButton buttonRef={beginButtonRef} onClick={onStart} disabled={!canStart}>
-                Begin date →
-              </PrimaryButton>
+              {!aiReady ? (
+                <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+              ) : (
+                <PrimaryButton buttonRef={beginButtonRef} onClick={onStart} disabled={!canStart}>
+                  Begin date →
+                </PrimaryButton>
+              )}
             </>
           ) : (
             <Tooltip
@@ -1651,7 +1648,7 @@ function ClosureCallout({
                 <h2 className="font-display text-lg font-semibold tracking-tight text-aura-ink">
                   {first.firstName} and {second.firstName} are ready to delete the app.
                 </h2>
-                <p className="mt-1 text-xs text-aura-muted">
+                <p className="mt-1 text-sm text-aura-muted">
                   Close their case to file a pair memory, free their focus slots, and raise the
                   client cap by one.
                 </p>
@@ -1666,7 +1663,7 @@ function ClosureCallout({
               </PrimaryButton>
             </div>
             {errorForEntry !== null ? (
-              <div className="basis-full rounded-2xl border border-aura-rose/30 bg-aura-rose/5 px-4 py-2 text-xs text-aura-rose">
+              <div className="basis-full rounded-2xl border border-aura-rose/30 bg-aura-rose/5 px-4 py-2 text-sm text-aura-rose">
                 <div className="flex items-center justify-between gap-2">
                   <span>{errorForEntry}</span>
                   <button

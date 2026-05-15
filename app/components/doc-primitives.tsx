@@ -1,6 +1,8 @@
 import { Children, Fragment, isValidElement, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
+import { SegmentedControl } from "./form-primitives";
+
 export type DocGroupId = "roadmap" | "product" | "gameplay" | "workflows" | "support";
 
 export interface DocMeta {
@@ -97,18 +99,33 @@ function DocHeading({
       : "font-display text-lead font-semibold leading-tight";
   const spacingClass =
     level === 2 ? (first ? "pt-0 mt-2" : "mt-12 border-t border-aura-hairline pt-6") : "mt-8 mb-1";
+  const iconSize = level === 2 ? "size-4" : "size-3.5";
 
   return (
     <Tag
       id={id}
-      className={`group flex items-baseline gap-2 text-aura-ink scroll-mt-28 ${sizeClass} ${spacingClass}`}
+      className={`group flex items-center gap-2 text-aura-ink scroll-mt-28 ${sizeClass} ${spacingClass}`}
     >
       <a
         href={`#${id}`}
         aria-label={`Link to ${id}`}
-        className="font-mono text-micro font-normal text-aura-faint opacity-0 -translate-x-1 transition group-hover:opacity-100 group-hover:translate-x-0 hover:text-aura-rose focus-visible:opacity-100 focus-visible:translate-x-0"
+        className="inline-flex shrink-0 cursor-pointer items-center text-aura-faint/70 transition hover:text-aura-rose focus-visible:text-aura-rose"
       >
-        #
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={iconSize}
+          aria-hidden
+        >
+          <line x1="4" y1="9" x2="20" y2="9" />
+          <line x1="4" y1="15" x2="20" y2="15" />
+          <line x1="10" y1="3" x2="8" y2="21" />
+          <line x1="16" y1="3" x2="14" y2="21" />
+        </svg>
       </a>
       <span>{children}</span>
     </Tag>
@@ -129,7 +146,7 @@ export function Em({ children }: { children: ReactNode }) {
 
 export function DocPath({ children }: { children: ReactNode }) {
   return (
-    <code className="rounded-[0.4rem] border border-aura-hairline bg-gradient-to-b from-white/95 to-rose-100/40 px-1.5 py-[0.08em] font-mono text-micro text-aura-ink">
+    <code className="aura-doc-chip rounded-md border border-aura-hairline bg-aura-card px-1.5 py-[0.08em] font-mono text-sm text-aura-ink">
       {children}
     </code>
   );
@@ -147,7 +164,7 @@ function isRedactedDocTarget(to: string): boolean {
 
 export function DocKbd({ children }: { children: ReactNode }) {
   return (
-    <kbd className="inline-flex items-center rounded-[0.4rem] border border-aura-hairline bg-white/85 px-1.5 py-[0.08em] font-mono text-micro text-aura-ink shadow-[0_1px_0_0_rgba(15,23,42,0.08)]">
+    <kbd className="aura-doc-chip inline-flex items-center rounded-md border border-aura-hairline bg-aura-card px-1.5 py-[0.08em] font-mono text-sm text-aura-ink">
       {children}
     </kbd>
   );
@@ -244,15 +261,195 @@ function pad2(n: number): string {
   return n.toString().padStart(2, "0");
 }
 
+/* ========================================================================
+   Shared toned primitives. One palette and three building blocks (Chip,
+   BulletList, DocFigure) that the higher-level doc components compose
+   instead of redeclaring the same tone maps, chip pills, bullet lists,
+   and figure wrappers inline.
+   ======================================================================== */
+
+export type ToneName =
+  | "rose"
+  | "violet"
+  | "amber"
+  | "emerald"
+  | "sky"
+  | "fuchsia"
+  | "slate"
+  | "neutral";
+
+interface ToneStyle {
+  chip: string;
+  ring: string;
+  dot: string;
+  accent: string;
+}
+
+const TONE: Record<ToneName, ToneStyle> = {
+  rose: {
+    chip: "bg-rose-100 text-rose-700",
+    ring: "ring-aura-rose/55",
+    dot: "bg-aura-rose/65",
+    accent: "text-aura-rose",
+  },
+  violet: {
+    chip: "bg-violet-100 text-violet-700",
+    ring: "ring-violet-300/60",
+    dot: "bg-violet-400/70",
+    accent: "text-violet-700",
+  },
+  amber: {
+    chip: "bg-amber-100 text-amber-800",
+    ring: "ring-amber-300/60",
+    dot: "bg-amber-400/70",
+    accent: "text-amber-700",
+  },
+  emerald: {
+    chip: "bg-emerald-100 text-emerald-700",
+    ring: "ring-emerald-300/55",
+    dot: "bg-emerald-400/70",
+    accent: "text-emerald-700",
+  },
+  sky: {
+    chip: "bg-sky-100 text-sky-700",
+    ring: "ring-sky-300/55",
+    dot: "bg-sky-400/70",
+    accent: "text-sky-700",
+  },
+  fuchsia: {
+    chip: "bg-fuchsia-100 text-fuchsia-700",
+    ring: "ring-fuchsia-300/55",
+    dot: "bg-fuchsia-400/70",
+    accent: "text-fuchsia-700",
+  },
+  slate: {
+    chip: "bg-slate-100 text-slate-700",
+    ring: "ring-slate-400/55",
+    dot: "bg-slate-400/70",
+    accent: "text-slate-700",
+  },
+  neutral: {
+    chip: "bg-aura-card text-aura-muted",
+    ring: "ring-aura-hairline",
+    dot: "bg-aura-muted/65",
+    accent: "text-aura-muted",
+  },
+};
+
+export function getToneRing(tone: ToneName): string {
+  return TONE[tone].ring;
+}
+
+export function getToneDot(tone: ToneName): string {
+  return TONE[tone].dot;
+}
+
+export function Chip({
+  tone = "rose",
+  size = "default",
+  dot = false,
+  dotClassName,
+  onClick,
+  title,
+  children,
+}: {
+  tone?: ToneName;
+  size?: "default" | "tight";
+  dot?: boolean;
+  dotClassName?: string;
+  onClick?: () => void;
+  title?: string;
+  children: ReactNode;
+}) {
+  const padding =
+    size === "tight" ? "px-1.5 py-[0.05rem] tracking-[0.18em]" : "px-2 py-0.5 tracking-[0.22em]";
+  const base = `inline-flex w-fit items-center gap-1.5 rounded-pill font-mono text-micro font-semibold uppercase ${padding} ${TONE[tone].chip}`;
+  const inner = (
+    <>
+      {dot ? (
+        <span
+          aria-hidden
+          className={`size-1.5 shrink-0 rounded-full ${dotClassName ?? "bg-current opacity-70"}`}
+        />
+      ) : null}
+      {children}
+    </>
+  );
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        title={title}
+        className={`${base} cursor-pointer transition hover:brightness-110`}
+      >
+        {inner}
+      </button>
+    );
+  }
+  return (
+    <span className={base} title={title}>
+      {inner}
+    </span>
+  );
+}
+
+export function BulletList({
+  items,
+  tone = "rose",
+  gap = "default",
+}: {
+  items: ReactNode[];
+  tone?: ToneName;
+  gap?: "tight" | "default";
+}) {
+  const gapClass = gap === "tight" ? "gap-1" : "gap-1.5";
+  return (
+    <ul className={`flex flex-col ${gapClass} text-label leading-snug text-aura-ink/86`}>
+      {items.map((item, idx) => (
+        <li key={idx} className="flex items-start gap-2">
+          <span aria-hidden className={`mt-1.5 size-1 shrink-0 rounded-full ${TONE[tone].dot}`} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function DocFigure({
+  title,
+  children,
+  surface = "soft",
+}: {
+  title?: ReactNode;
+  children: ReactNode;
+  surface?: "soft" | "plain";
+}) {
+  const surfaceClass =
+    surface === "plain"
+      ? ""
+      : "rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/55 p-5";
+  return (
+    <figure className={`my-3 ${surfaceClass}`}>
+      {title ? (
+        <figcaption className="mb-3 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
+          // {title}
+        </figcaption>
+      ) : null}
+      {children}
+    </figure>
+  );
+}
+
 export function DocDefList({ items }: { items: Array<{ term: ReactNode; def: ReactNode }> }) {
   return (
     <dl className="my-2 flex flex-col gap-2.5">
       {items.map((item, index) => (
         <div
           key={index}
-          className="grid grid-cols-[minmax(11rem,16rem)_1fr] gap-x-5 gap-y-1 border-l-2 border-aura-hairline pl-4 transition hover:border-aura-rose/40"
+          className="grid grid-cols-[minmax(11rem,20rem)_1fr] gap-x-5 gap-y-1 border-l-2 border-aura-hairline pl-4 transition hover:border-aura-rose/40"
         >
-          <dt className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
+          <dt className="break-words font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
             {item.term}
           </dt>
           <dd className="text-body leading-[1.65] text-aura-ink/86">{item.def}</dd>
@@ -269,32 +466,32 @@ const CALLOUT_STYLES: Record<
   { bg: string; border: string; chip: string; label: string }
 > = {
   note: {
-    bg: "from-rose-50/70 to-white/40",
+    bg: "bg-aura-rose/[0.05]",
     border: "border-aura-hairline",
     chip: "text-aura-rose",
     label: "note",
   },
   warn: {
-    bg: "from-amber-50/85 to-white/45",
-    border: "border-amber-200/70",
+    bg: "bg-amber-500/[0.09]",
+    border: "border-amber-500/20",
     chip: "text-amber-700",
     label: "watch",
   },
   danger: {
-    bg: "from-rose-100/80 to-rose-50/40",
-    border: "border-rose-300/70",
+    bg: "bg-rose-500/[0.09]",
+    border: "border-rose-500/25",
     chip: "text-rose-700",
     label: "do not",
   },
   info: {
-    bg: "from-violet-50/75 to-white/45",
-    border: "border-violet-200/60",
+    bg: "bg-violet-500/[0.08]",
+    border: "border-violet-500/20",
     chip: "text-violet-700",
     label: "context",
   },
   ok: {
-    bg: "from-emerald-50/70 to-white/45",
-    border: "border-emerald-200/60",
+    bg: "bg-emerald-500/[0.08]",
+    border: "border-emerald-500/22",
     chip: "text-emerald-700",
     label: "ok shape",
   },
@@ -312,9 +509,7 @@ export function DocCallout({
   const style = CALLOUT_STYLES[variant];
 
   return (
-    <aside
-      className={`my-2 rounded-tile border ${style.border} bg-gradient-to-br ${style.bg} px-5 py-4`}
-    >
+    <aside className={`my-2 rounded-tile border ${style.border} ${style.bg} px-5 py-4`}>
       <div
         className={`mb-1.5 flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] ${style.chip}`}
       >
@@ -400,13 +595,13 @@ export function DocTable({ headers, rows }: { headers: ReactNode[]; rows: ReactN
 
 export type PipelineStepKind = "input" | "process" | "service" | "guard" | "data" | "output";
 
-const STEP_TONE: Record<PipelineStepKind, { ring: string; chip: string; label: string }> = {
-  input: { ring: "ring-violet-300/60", chip: "bg-violet-100 text-violet-700", label: "input" },
-  process: { ring: "ring-aura-rose/50", chip: "bg-rose-100 text-rose-700", label: "process" },
-  service: { ring: "ring-aura-rose/60", chip: "bg-rose-100 text-rose-700", label: "service" },
-  guard: { ring: "ring-amber-300/60", chip: "bg-amber-100 text-amber-800", label: "guard" },
-  data: { ring: "ring-sky-300/55", chip: "bg-sky-100 text-sky-700", label: "data" },
-  output: { ring: "ring-emerald-300/55", chip: "bg-emerald-100 text-emerald-700", label: "output" },
+const STEP_TONE: Record<PipelineStepKind, { tone: ToneName; label: string }> = {
+  input: { tone: "violet", label: "input" },
+  process: { tone: "rose", label: "process" },
+  service: { tone: "rose", label: "service" },
+  guard: { tone: "amber", label: "guard" },
+  data: { tone: "sky", label: "data" },
+  output: { tone: "emerald", label: "output" },
 };
 
 export interface PipelineStep {
@@ -418,15 +613,10 @@ export interface PipelineStep {
 
 export function DocPipeline({ steps, title }: { steps: PipelineStep[]; title?: string }) {
   return (
-    <figure className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/60 p-5 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.32)]">
-      {title ? (
-        <figcaption className="mb-4 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // {title}
-        </figcaption>
-      ) : null}
+    <DocFigure title={title}>
       <ol className="flex flex-col gap-3 md:flex-row md:items-stretch md:gap-0">
         {steps.map((step, index) => {
-          const tone = STEP_TONE[step.kind];
+          const { tone, label } = STEP_TONE[step.kind];
           const isLast = index === steps.length - 1;
           return (
             <li
@@ -434,13 +624,9 @@ export function DocPipeline({ steps, title }: { steps: PipelineStep[]; title?: s
               className="relative flex flex-1 flex-col gap-2 md:items-center md:px-2"
             >
               <div
-                className={`flex h-full flex-col gap-2 rounded-tile bg-white/72 px-4 py-3 ring-1 ring-inset ${tone.ring} backdrop-blur`}
+                className={`flex h-full flex-col gap-2 rounded-tile bg-white/72 px-4 py-3 ring-1 ring-inset ${getToneRing(tone)} backdrop-blur`}
               >
-                <span
-                  className={`inline-flex w-fit items-center rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone.chip}`}
-                >
-                  {tone.label}
-                </span>
+                <Chip tone={tone}>{label}</Chip>
                 <p className="font-display text-label font-semibold leading-tight text-aura-ink">
                   {step.label}
                 </p>
@@ -462,7 +648,7 @@ export function DocPipeline({ steps, title }: { steps: PipelineStep[]; title?: s
           );
         })}
       </ol>
-    </figure>
+    </DocFigure>
   );
 }
 
@@ -502,12 +688,7 @@ export function DocFlowchart({
   const lookup = new Map(nodes.map((node) => [node.id, node]));
 
   return (
-    <figure className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/55 p-5 shadow-[0_18px_42px_-32px_rgba(15,23,42,0.32)]">
-      {title ? (
-        <figcaption className="mb-4 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // {title}
-        </figcaption>
-      ) : null}
+    <DocFigure title={title}>
       <div className="relative w-full" style={{ aspectRatio: `${cols} / ${resolvedRows * 0.55}` }}>
         <svg
           viewBox="0 0 100 100"
@@ -573,7 +754,7 @@ export function DocFlowchart({
           })}
         </svg>
         {nodes.map((node) => {
-          const tone = STEP_TONE[node.kind];
+          const { tone, label } = STEP_TONE[node.kind];
           return (
             <div
               key={node.id}
@@ -585,13 +766,11 @@ export function DocFlowchart({
               }}
             >
               <div
-                className={`flex flex-col gap-1 rounded-tile border border-aura-hairline bg-white/88 px-3 py-2 ring-1 ring-inset ${tone.ring} shadow-[0_8px_24px_-18px_rgba(15,23,42,0.4)] backdrop-blur`}
+                className={`flex flex-col gap-1 rounded-tile border border-aura-hairline bg-white/88 px-3 py-2 ring-1 ring-inset ${getToneRing(tone)} shadow-[0_8px_24px_-18px_rgba(15,23,42,0.4)] backdrop-blur`}
               >
-                <span
-                  className={`inline-flex w-fit items-center rounded-pill px-1.5 py-[0.05rem] font-mono text-micro font-semibold uppercase tracking-[0.18em] ${tone.chip}`}
-                >
-                  {tone.label}
-                </span>
+                <Chip tone={tone} size="tight">
+                  {label}
+                </Chip>
                 <p className="font-display text-label font-semibold leading-tight text-aura-ink">
                   {node.label}
                 </p>
@@ -605,7 +784,7 @@ export function DocFlowchart({
           );
         })}
       </div>
-    </figure>
+    </DocFigure>
   );
 }
 
@@ -617,15 +796,10 @@ export function DocLayerStack({
   title?: string;
 }) {
   return (
-    <figure className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/55 p-5">
-      {title ? (
-        <figcaption className="mb-3 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // {title}
-        </figcaption>
-      ) : null}
+    <DocFigure title={title}>
       <div className="grid grid-cols-1 gap-2 md:grid-cols-[12rem_1fr]">
         {layers.map((layer) => {
-          const tone =
+          const stripeTone =
             layer.tone === "ai"
               ? "border-l-violet-300 from-violet-50/55"
               : layer.tone === "ui"
@@ -634,39 +808,27 @@ export function DocLayerStack({
           return (
             <Fragment key={layer.id}>
               <div
-                className={`flex items-center gap-3 border-l-4 ${tone} bg-gradient-to-r to-transparent px-4 py-3`}
+                className={`flex items-center gap-3 border-l-4 ${stripeTone} bg-gradient-to-r to-transparent px-4 py-3`}
               >
                 <p className="font-display text-label font-semibold text-aura-ink">{layer.label}</p>
               </div>
-              <ul className="flex flex-col gap-1 px-4 py-3 text-label text-aura-ink/86">
-                {layer.owns.map((line, index) => (
-                  <li key={index} className="flex items-start gap-2 leading-snug">
-                    <span
-                      aria-hidden
-                      className="mt-1.5 size-1 shrink-0 rounded-full bg-aura-rose/65"
-                    />
-                    <span>{line}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="px-4 py-3">
+                <BulletList items={layer.owns} tone="rose" gap="tight" />
+              </div>
             </Fragment>
           );
         })}
       </div>
-    </figure>
+    </DocFigure>
   );
 }
 
 export type CompareTone = "positive" | "negative" | "neutral";
 
-const COMPARE_TONE: Record<CompareTone, { ring: string; chip: string; label: string }> = {
-  positive: {
-    ring: "ring-emerald-200/70",
-    chip: "bg-emerald-100 text-emerald-700",
-    label: "good shape",
-  },
-  negative: { ring: "ring-rose-300/70", chip: "bg-rose-100 text-rose-700", label: "wrong shape" },
-  neutral: { ring: "ring-aura-hairline", chip: "bg-aura-card text-aura-muted", label: "note" },
+const COMPARE_TONE: Record<CompareTone, { tone: ToneName; label: string }> = {
+  positive: { tone: "emerald", label: "good shape" },
+  negative: { tone: "rose", label: "wrong shape" },
+  neutral: { tone: "neutral", label: "note" },
 };
 
 export function DocCompareGrid({
@@ -677,97 +839,60 @@ export function DocCompareGrid({
   title?: string;
 }) {
   return (
-    <figure className="my-3 flex flex-col gap-3">
-      {title ? (
-        <figcaption className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // {title}
-        </figcaption>
-      ) : null}
+    <DocFigure title={title} surface="plain">
       <div
         className={`grid gap-3`}
         style={{ gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))` }}
       >
         {columns.map((column, index) => {
-          const tone = COMPARE_TONE[column.tone];
+          const { tone, label } = COMPARE_TONE[column.tone];
           return (
             <div
               key={index}
-              className={`flex flex-col gap-3 rounded-card bg-white/72 p-4 ring-1 ring-inset ${tone.ring}`}
+              className={`flex flex-col gap-3 rounded-card bg-white/72 p-4 ring-1 ring-inset ${getToneRing(tone)}`}
             >
               <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone.chip}`}
-                >
-                  {tone.label}
-                </span>
+                <Chip tone={tone}>{label}</Chip>
                 <p className="font-display text-label font-semibold text-aura-ink">
                   {column.heading}
                 </p>
               </div>
-              <ul className="flex flex-col gap-1.5 text-label leading-snug text-aura-ink/86">
-                {column.items.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span
-                      aria-hidden
-                      className="mt-1.5 size-1 shrink-0 rounded-full bg-aura-rose/65"
-                    />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
+              <BulletList items={column.items} tone="rose" />
             </div>
           );
         })}
       </div>
-    </figure>
+    </DocFigure>
   );
 }
 
 export type VisibilityTier = "public" | "gated" | "hidden";
+
+const TIER_TONE: Record<VisibilityTier, { tone: ToneName; label: string }> = {
+  public: { tone: "emerald", label: "public" },
+  gated: { tone: "amber", label: "gated" },
+  hidden: { tone: "rose", label: "never visible" },
+};
 
 export function DocVisibilityTiers({
   tiers,
 }: {
   tiers: Array<{ id: string; label: string; tier: VisibilityTier; items: ReactNode[] }>;
 }) {
-  const tierTone: Record<VisibilityTier, { chip: string; ring: string; label: string }> = {
-    public: {
-      chip: "bg-emerald-100 text-emerald-700",
-      ring: "ring-emerald-200/70",
-      label: "public",
-    },
-    gated: { chip: "bg-amber-100 text-amber-700", ring: "ring-amber-200/70", label: "gated" },
-    hidden: { chip: "bg-rose-100 text-rose-700", ring: "ring-rose-300/70", label: "never visible" },
-  };
-
   return (
     <div className="my-3 grid grid-cols-1 gap-3 md:grid-cols-3">
       {tiers.map((tier) => {
-        const tone = tierTone[tier.tier];
+        const { tone, label } = TIER_TONE[tier.tier];
         return (
           <div
             key={tier.id}
-            className={`flex flex-col gap-3 rounded-card bg-white/76 p-4 ring-1 ring-inset ${tone.ring}`}
+            className={`flex flex-col gap-3 rounded-card bg-white/76 p-4 ring-1 ring-inset ${getToneRing(tone)}`}
           >
             <div className="flex items-center justify-between">
               <p className="font-display text-label font-semibold text-aura-ink">{tier.label}</p>
-              <span
-                className={`inline-flex items-center rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tone.chip}`}
-              >
-                {tone.label}
-              </span>
+              <Chip tone={tone}>{label}</Chip>
             </div>
-            <ul className="flex flex-col gap-1.5 text-label leading-snug text-aura-ink/86">
-              {tier.items.map((item, idx) => (
-                <li key={idx} className="flex items-start gap-2">
-                  <span
-                    aria-hidden
-                    className="mt-1.5 size-1 shrink-0 rounded-full bg-aura-rose/65"
-                  />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+            <BulletList items={tier.items} tone="rose" />
           </div>
         );
       })}
@@ -801,24 +926,14 @@ export function DocFingerprint({
         <h4 className="font-display text-lead font-semibold leading-tight text-aura-ink">{name}</h4>
         <p className="font-serif text-label italic leading-snug text-aura-muted">{premise}</p>
       </header>
-      <dl className="grid grid-cols-1 gap-3 md:grid-cols-[8rem_1fr]">
-        <dt className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
-          register
-        </dt>
-        <dd className="text-label text-aura-ink/86">{register}</dd>
-        <dt className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
-          uses
-        </dt>
-        <dd className="text-label text-aura-ink/86">{patternsUsed.join(", ")}</dd>
-        <dt className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
-          refuses
-        </dt>
-        <dd className="text-label text-aura-ink/86">{patternsRefused.join(", ")}</dd>
-        <dt className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
-          tics
-        </dt>
-        <dd className="text-label text-aura-ink/86">{tics.join(", ")}</dd>
-      </dl>
+      <DocDefList
+        items={[
+          { term: "register", def: register },
+          { term: "uses", def: patternsUsed.join(", ") },
+          { term: "refuses", def: patternsRefused.join(", ") },
+          { term: "tics", def: tics.join(", ") },
+        ]}
+      />
       <DocQuote attribution="opener">{sampleOpener}</DocQuote>
     </article>
   );
@@ -850,11 +965,11 @@ interface PatternAccentTone {
 
 const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
   rose: {
-    bubble: "bg-gradient-to-br from-rose-100/85 to-rose-50/35",
-    bubbleBorder: "border-rose-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(244,63,94,0.5)]",
-    canonTag: "text-rose-600 border-rose-300/75 bg-rose-50/90",
-    flavorPill: "text-rose-700 border-rose-300/70 bg-rose-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-rose-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(244,63,94,0.35)]",
+    canonTag: "text-rose-600 border-rose-300/60 bg-rose-50/90",
+    flavorPill: "text-rose-700 border-rose-300/50 bg-white/70",
     fpLabel: "text-rose-600",
     threadBorder: "border-rose-300/55",
     threadLead: "bg-rose-300/70",
@@ -862,11 +977,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-rose-600 hover:border-rose-300/60",
   },
   violet: {
-    bubble: "bg-gradient-to-br from-violet-100/80 to-violet-50/35",
-    bubbleBorder: "border-violet-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(167,139,250,0.5)]",
-    canonTag: "text-violet-700 border-violet-300/70 bg-violet-50/90",
-    flavorPill: "text-violet-700 border-violet-300/70 bg-violet-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-violet-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(167,139,250,0.35)]",
+    canonTag: "text-violet-700 border-violet-300/55 bg-violet-50/90",
+    flavorPill: "text-violet-700 border-violet-300/50 bg-white/70",
     fpLabel: "text-violet-700",
     threadBorder: "border-violet-300/55",
     threadLead: "bg-violet-300/70",
@@ -874,11 +989,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-violet-700 hover:border-violet-300/60",
   },
   amber: {
-    bubble: "bg-gradient-to-br from-amber-100/80 to-amber-50/35",
-    bubbleBorder: "border-amber-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(245,158,11,0.45)]",
-    canonTag: "text-amber-700 border-amber-300/70 bg-amber-50/90",
-    flavorPill: "text-amber-800 border-amber-300/70 bg-amber-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-amber-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(245,158,11,0.32)]",
+    canonTag: "text-amber-700 border-amber-300/55 bg-amber-50/90",
+    flavorPill: "text-amber-800 border-amber-300/50 bg-white/70",
     fpLabel: "text-amber-700",
     threadBorder: "border-amber-300/55",
     threadLead: "bg-amber-300/70",
@@ -886,11 +1001,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-amber-700 hover:border-amber-300/60",
   },
   emerald: {
-    bubble: "bg-gradient-to-br from-emerald-100/80 to-emerald-50/35",
-    bubbleBorder: "border-emerald-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(16,185,129,0.45)]",
-    canonTag: "text-emerald-700 border-emerald-300/70 bg-emerald-50/90",
-    flavorPill: "text-emerald-800 border-emerald-300/70 bg-emerald-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-emerald-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(16,185,129,0.32)]",
+    canonTag: "text-emerald-700 border-emerald-300/55 bg-emerald-50/90",
+    flavorPill: "text-emerald-800 border-emerald-300/50 bg-white/70",
     fpLabel: "text-emerald-700",
     threadBorder: "border-emerald-300/55",
     threadLead: "bg-emerald-300/70",
@@ -898,11 +1013,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-emerald-700 hover:border-emerald-300/60",
   },
   sky: {
-    bubble: "bg-gradient-to-br from-sky-100/80 to-sky-50/35",
-    bubbleBorder: "border-sky-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(56,189,248,0.45)]",
-    canonTag: "text-sky-700 border-sky-300/70 bg-sky-50/90",
-    flavorPill: "text-sky-700 border-sky-300/70 bg-sky-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-sky-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(56,189,248,0.32)]",
+    canonTag: "text-sky-700 border-sky-300/55 bg-sky-50/90",
+    flavorPill: "text-sky-700 border-sky-300/50 bg-white/70",
     fpLabel: "text-sky-700",
     threadBorder: "border-sky-300/55",
     threadLead: "bg-sky-300/70",
@@ -910,11 +1025,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-sky-700 hover:border-sky-300/60",
   },
   fuchsia: {
-    bubble: "bg-gradient-to-br from-fuchsia-100/80 to-fuchsia-50/35",
-    bubbleBorder: "border-fuchsia-200/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(217,70,239,0.5)]",
-    canonTag: "text-fuchsia-700 border-fuchsia-300/70 bg-fuchsia-50/90",
-    flavorPill: "text-fuchsia-700 border-fuchsia-300/70 bg-fuchsia-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-fuchsia-300/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(217,70,239,0.35)]",
+    canonTag: "text-fuchsia-700 border-fuchsia-300/55 bg-fuchsia-50/90",
+    flavorPill: "text-fuchsia-700 border-fuchsia-300/50 bg-white/70",
     fpLabel: "text-fuchsia-700",
     threadBorder: "border-fuchsia-300/55",
     threadLead: "bg-fuchsia-300/70",
@@ -922,11 +1037,11 @@ const PATTERN_ACCENT: Record<PatternAccent, PatternAccentTone> = {
     indexHover: "hover:text-fuchsia-700 hover:border-fuchsia-300/60",
   },
   slate: {
-    bubble: "bg-gradient-to-br from-slate-200/80 to-slate-50/40",
-    bubbleBorder: "border-slate-300/65",
-    bubbleShadow: "shadow-[0_22px_52px_-26px_rgba(71,85,105,0.45)]",
-    canonTag: "text-slate-700 border-slate-400/70 bg-slate-50/90",
-    flavorPill: "text-slate-700 border-slate-400/70 bg-slate-100/75",
+    bubble: "bg-white/55 backdrop-blur-xl backdrop-saturate-150",
+    bubbleBorder: "border-slate-400/35",
+    bubbleShadow: "shadow-[0_16px_48px_-24px_rgba(71,85,105,0.32)]",
+    canonTag: "text-slate-700 border-slate-400/55 bg-slate-50/90",
+    flavorPill: "text-slate-700 border-slate-400/50 bg-white/70",
     fpLabel: "text-slate-700",
     threadBorder: "border-slate-400/55",
     threadLead: "bg-slate-400/70",
@@ -945,24 +1060,15 @@ export function DocPatternGrid({ patterns }: { patterns: DocPattern[] }) {
         <span className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
           // {pad2(total)} specimens · canonical sample first, references follow
         </span>
-        <div className="inline-flex items-center gap-1 rounded-pill border border-aura-hairline bg-white/70 p-1">
-          {(["full", "compact"] as const).map((mode) => {
-            const active = density === mode;
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setDensity(mode)}
-                aria-pressed={active}
-                className={`cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
-                  active ? "bg-aura-ink text-white" : "text-aura-muted hover:text-aura-ink"
-                }`}
-              >
-                {mode}
-              </button>
-            );
-          })}
-        </div>
+        <SegmentedControl
+          ariaLabel="Specimen density"
+          options={[
+            { value: "full", label: "full" },
+            { value: "compact", label: "compact" },
+          ]}
+          value={density}
+          onChange={setDensity}
+        />
       </div>
 
       <nav
@@ -1030,7 +1136,6 @@ function PatternSpecimen({
 }) {
   const accent = PATTERN_ACCENT[pattern.accent ?? "rose"];
   const [canonical, ...references] = pattern.examples;
-  const canonicalRotation = flipped ? "rotate-[0.35deg]" : "-rotate-[0.35deg]";
   const canonicalRadius = flipped ? "rounded-[26px_26px_8px_26px]" : "rounded-[26px_26px_26px_8px]";
 
   return (
@@ -1089,7 +1194,7 @@ function PatternSpecimen({
       <div className={`flex flex-col gap-5 ${flipped ? "lg:order-1" : ""}`}>
         <blockquote
           data-role="canonical"
-          className={`relative max-w-[38rem] border px-7 py-7 ${canonicalRadius} ${accent.bubble} ${accent.bubbleBorder} ${accent.bubbleShadow} ${canonicalRotation} transition-transform duration-300 hover:translate-y-[-2px] hover:rotate-0`}
+          className={`relative max-w-[38rem] border px-7 py-7 ${canonicalRadius} ${accent.bubble} ${accent.bubbleBorder} ${accent.bubbleShadow} transition-transform duration-300 hover:-translate-y-[2px]`}
         >
           <span
             className={`absolute -top-2.5 right-6 inline-flex items-center rounded-pill border bg-aura-paper px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.32em] ${accent.canonTag}`}
@@ -1099,7 +1204,7 @@ function PatternSpecimen({
           <p className="font-serif text-display-sm font-light italic leading-[1.4] tracking-tight text-aura-ink">
             {canonical}
           </p>
-          <p className="mt-3 text-right font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          <p className="mt-3 text-right font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
             delivered · sample 01
           </p>
         </blockquote>
@@ -1248,16 +1353,15 @@ export function DocChemistryMatrix({
       <figcaption className="flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
         // roster chemistry matrix
         {focusMember ? (
-          <button
-            type="button"
+          <Chip
+            tone="neutral"
             onClick={() => {
               setFocusMember(null);
               setSelected(null);
             }}
-            className="ml-2 cursor-pointer rounded-pill border border-aura-hairline px-2 py-0.5 font-mono text-micro uppercase tracking-[0.2em] text-aura-muted hover:text-aura-rose"
           >
             reset
-          </button>
+          </Chip>
         ) : null}
       </figcaption>
 
@@ -1412,7 +1516,7 @@ function ChemistryDetail({
   const tone = CHEMISTRY_TONE[pair.kind];
 
   return (
-    <article className="rounded-card border border-aura-hairline bg-gradient-to-br from-white/85 to-rose-50/45 px-5 py-4">
+    <article className="rounded-card border border-aura-hairline bg-white/72 px-5 py-4">
       <header className="mb-2 flex flex-wrap items-center gap-2">
         <p className="font-display text-lead font-semibold text-aura-ink">
           {a} <span className="text-aura-faint">×</span> {b}
@@ -1473,27 +1577,14 @@ export function DocStateMachine({
   title?: string;
 }) {
   return (
-    <figure className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/55 p-5">
-      {title ? (
-        <figcaption className="mb-3 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // {title}
-        </figcaption>
-      ) : null}
+    <DocFigure title={title}>
       <div className="flex flex-wrap items-center justify-center gap-3">
         {states.map((state, index) => {
-          const tone =
-            state.tone === "terminal"
-              ? "bg-emerald-100 text-emerald-800 ring-emerald-300/60"
-              : state.tone === "warn"
-                ? "bg-amber-100 text-amber-800 ring-amber-300/60"
-                : "bg-white/82 text-aura-ink ring-aura-hairline";
+          const tone: ToneName =
+            state.tone === "terminal" ? "emerald" : state.tone === "warn" ? "amber" : "neutral";
           return (
             <Fragment key={state.id}>
-              <span
-                className={`inline-flex items-center rounded-pill px-3 py-1 font-mono text-micro uppercase tracking-[0.18em] ring-1 ring-inset ${tone}`}
-              >
-                {state.label}
-              </span>
+              <Chip tone={tone}>{state.label}</Chip>
               {index < states.length - 1 ? (
                 <span aria-hidden className="font-mono text-display-xs text-aura-faint">
                   →
@@ -1517,7 +1608,7 @@ export function DocStateMachine({
           ))}
         </ul>
       ) : null}
-    </figure>
+    </DocFigure>
   );
 }
 

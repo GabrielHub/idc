@@ -1,10 +1,8 @@
 import { useMemo, useRef, useState } from "react";
 
 import type { GameSave, Member, OpenLoop, PairAgreement, PairState } from "../domain/game";
-import { useTutorialStep } from "../services/tutorial";
+import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
 import { TutorialCoachMark } from "./tutorial";
-
-function noopTutorialUpdate() {}
 
 export type PairMemoryTimelineEntryKind =
   | "agreement_filed"
@@ -245,7 +243,6 @@ export function PairMemoryInspector({
         <TutorialCoachMark
           target={asideRef}
           placement="left"
-          eyebrow="// pair.file"
           title="Agreements and open loops"
           body="The Judge files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read."
           primaryLabel="Got it"

@@ -11,6 +11,8 @@ export function readTutorialState(save: GameSave | null | undefined): TutorialSt
   return save?.tutorial ?? DEFAULT_TUTORIAL_STATE;
 }
 
+export function noopTutorialUpdate(): void {}
+
 export function isStepComplete(state: TutorialState, id: TutorialStepId): boolean {
   return state.completedStepIds.includes(id);
 }

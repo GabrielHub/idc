@@ -65,6 +65,7 @@ export type ScenarioCardProps = {
   showCost?: boolean;
   roomRead?: ScenarioRoomRead;
   cardRef?: Ref<HTMLElement>;
+  expandButtonRef?: Ref<HTMLButtonElement>;
   onClick?: () => void;
   onExpand?: () => void;
   layoutId?: string;
@@ -79,6 +80,7 @@ export function ScenarioCard({
   showCost = true,
   roomRead,
   cardRef,
+  expandButtonRef,
   onClick,
   onExpand,
   layoutId,
@@ -140,7 +142,11 @@ export function ScenarioCard({
         <div className="flex items-center justify-end gap-1.5">
           <CornerStatus selected={isSelected} inHand={inHand} isTile={isTile} />
           {onExpand !== undefined ? (
-            <ScenarioExpandButton scenarioTitle={scenario.title} onExpand={onExpand} />
+            <ScenarioExpandButton
+              scenarioTitle={scenario.title}
+              onExpand={onExpand}
+              buttonRef={expandButtonRef}
+            />
           ) : null}
         </div>
       </header>
@@ -348,12 +354,15 @@ function CornerStatus({
 function ScenarioExpandButton({
   scenarioTitle,
   onExpand,
+  buttonRef,
 }: {
   scenarioTitle: string;
   onExpand: () => void;
+  buttonRef?: Ref<HTMLButtonElement>;
 }) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       onClick={(event) => {
         event.stopPropagation();
@@ -397,11 +406,11 @@ function TileNamePlate({
 }) {
   return (
     <div className="relative z-20 mt-auto px-2.5 pb-2.5 pt-1">
-      <h3 className="pr-7 font-display text-[13px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
+      <h3 className="max-w-[70%] font-serif text-[17px] font-semibold italic uppercase leading-[1.05] tracking-[0.01em] text-aura-ink line-clamp-3 [text-shadow:0_1px_2px_rgba(255,253,249,0.95),0_0_14px_rgba(255,253,249,0.85),0_0_28px_rgba(255,253,249,0.55)]">
         {title}
       </h3>
       {showCost ? (
-        <div className="mt-1 flex justify-end">
+        <div className="mt-1.5 flex justify-end">
           <CostChip cost={cost} baseCost={baseCost} isTile={true} />
         </div>
       ) : null}
@@ -423,10 +432,10 @@ function CompactNamePlate({
       <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted line-clamp-1">
         {scenario.publicBrief.location}
       </p>
-      <h3 className="font-display text-[15px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-1">
+      <h3 className="max-w-[70%] font-serif text-[20px] font-semibold italic uppercase leading-[1.05] tracking-[0.01em] text-aura-ink line-clamp-2 [text-shadow:0_1px_2px_rgba(255,253,249,0.95),0_0_16px_rgba(255,253,249,0.85),0_0_32px_rgba(255,253,249,0.55)]">
         {scenario.title}
       </h3>
-      <p className="text-xs leading-[1.4] text-aura-muted line-clamp-2">{scenario.card.summary}</p>
+      <p className="text-sm leading-[1.4] text-aura-muted line-clamp-2">{scenario.card.summary}</p>
       <div className="mt-auto flex items-end justify-between gap-2 pt-1">
         <MeterRow card={scenario.card} />
         {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}
@@ -449,10 +458,10 @@ function FullNamePlate({
       <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-muted line-clamp-1">
         {scenario.publicBrief.location}
       </p>
-      <h3 className="font-display text-[17px] font-semibold leading-[1.15] tracking-tight text-aura-ink line-clamp-2">
+      <h3 className="max-w-[70%] font-serif text-[24px] font-semibold italic uppercase leading-[1.02] tracking-[0.01em] text-aura-ink line-clamp-3 [text-shadow:0_1px_2px_rgba(255,253,249,0.95),0_0_18px_rgba(255,253,249,0.85),0_0_38px_rgba(255,253,249,0.55)]">
         {scenario.title}
       </h3>
-      <p className="text-xs leading-[1.45] text-aura-muted line-clamp-3">{scenario.card.summary}</p>
+      <p className="text-sm leading-[1.45] text-aura-muted line-clamp-3">{scenario.card.summary}</p>
       <div className="mt-auto flex items-end justify-between gap-2">
         <MeterRow card={scenario.card} />
         {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type Dispatch, type SetStateAction } from "react";
+import { useLayoutEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 
 export type TargetRect = {
   top: number;
@@ -68,13 +68,29 @@ function setIfChanged(
 
 export function useTargetRect(target: TutorialTarget): TargetRect | null {
   const [rect, setRect] = useState<TargetRect | null>(() => readRect(target));
+  const targetRef = useRef(target);
+  targetRef.current = target;
+  // Re-run the effect only when the underlying observed element changes. Inline
+  // array targets create a new array per render, so depending on `target`
+  // directly would re-register listeners and the rAF loop on every render.
+  const resolvedElement = observeElement(target);
 
   useLayoutEffect(() => {
     let observer: ResizeObserver | null = null;
     let observedElement: HTMLElement | null = null;
-    function update() {
-      setIfChanged(setRect, readRect(target));
-      const element = observeElement(target);
+    let rafId: number | null = null;
+    let lastRect: TargetRect | null = null;
+
+    function applyRect(next: TargetRect | null) {
+      if (rectsMatch(lastRect, next)) return;
+      lastRect = next;
+      setIfChanged(setRect, next);
+    }
+
+    function sync() {
+      const currentTarget = targetRef.current;
+      applyRect(readRect(currentTarget));
+      const element = observeElement(currentTarget);
       if (element === observedElement) return;
       observer?.disconnect();
       observedElement = element;
@@ -82,20 +98,29 @@ export function useTargetRect(target: TutorialTarget): TargetRect | null {
         observer = null;
         return;
       }
-      observer = new ResizeObserver(update);
+      observer = new ResizeObserver(sync);
       observer.observe(element);
     }
 
-    update();
-    window.addEventListener("scroll", update, { passive: true, capture: true });
-    window.addEventListener("resize", update);
+    function pollFrame() {
+      applyRect(readRect(targetRef.current));
+      rafId = requestAnimationFrame(pollFrame);
+    }
+
+    sync();
+    // rAF polling catches position changes that ResizeObserver misses, like
+    // CSS hover transforms on the tutorial target.
+    rafId = requestAnimationFrame(pollFrame);
+    window.addEventListener("scroll", sync, { passive: true, capture: true });
+    window.addEventListener("resize", sync);
 
     return () => {
       observer?.disconnect();
-      window.removeEventListener("scroll", update, { capture: true });
-      window.removeEventListener("resize", update);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      window.removeEventListener("scroll", sync, { capture: true });
+      window.removeEventListener("resize", sync);
     };
-  });
+  }, [resolvedElement]);
 
   return rect;
 }

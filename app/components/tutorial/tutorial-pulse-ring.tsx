@@ -57,15 +57,17 @@ export function TutorialPulseRing({
   const styles = TONE_STYLES[tone];
 
   return (
-    <div
+    <motion.div
       aria-hidden
       className="pointer-events-none fixed z-40"
-      style={{
+      initial={false}
+      animate={{
         top: ring.top,
         left: ring.left,
         width: ring.width,
         height: ring.height,
       }}
+      transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
     >
       <motion.span
         className="absolute inset-0"
@@ -126,7 +128,7 @@ export function TutorialPulseRing({
       />
 
       <CornerBrackets tone={styles.ink} />
-    </div>
+    </motion.div>
   );
 }
 

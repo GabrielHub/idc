@@ -57,6 +57,9 @@
 - `app/docs/product/visual-design.tsx` owns Aura interface direction, Tailwind tokens, chat bubble schema, member auras, canvas layout, and scenario card system.
 - `app/docs/product/image-style.tsx` owns image asset style, portrait generation prompts, the cutout pipeline, and asset acceptance checks.
 - `app/docs/product/voice.tsx` owns voice, tone, prose mechanics, comedic engines, member voice fingerprints, event kinds, and closure summary voice.
+- `app/docs/product/tutorial-system.tsx` owns first-run orientation, lazy coach marks, tutorial state, and tutorial primitive contracts.
+- `app/docs/product/tutorial-steps.tsx` owns the verbatim tutorial coach mark catalog and copy review surface.
+- `app/docs/product/manager-quips.tsx` owns the manager standee, voiced quip catalog, and rules for adding new manager lines.
 - `app/docs/product/character-heights.tsx` owns member height canon, source-scale normalization, and the playground Height lineup workflow.
 - `app/docs/gameplay/member-fields-and-tags.tsx` owns member fixture fields, hidden tag taxonomy, request tags, and authoring requirements.
 - `app/docs/gameplay/player-knowledge.tsx` owns public/gated/never visibility tiers, filed reads, and retention secrecy.
@@ -97,7 +100,7 @@
 - Avoid new global CSS classes unless the change needs shared base styling across multiple components.
 - Enabled clickable UI elements must include `cursor-pointer`.
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
-- Minimum font size is `text-xs` or 12px. Never use smaller arbitrary text.
+- Minimum font size is `text-sm` or 14px. Never use smaller arbitrary text. Custom tokens below 14px (`text-micro`, `text-label`, the old `text-xs`) are deprecated for new work and are being remediated app-wide.
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
 - Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/product/visual-design.md`.
 - Preserve the Aura design language described in `app/app.css` and `docs/product/visual-design.md`.

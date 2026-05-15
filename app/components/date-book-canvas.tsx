@@ -289,6 +289,8 @@ export function DateBookCanvas({
                 : { ok: false, reason: "duplicate" }
             }
             canRemove={inspector.kind === "deck" && !bookingLocked && !isActionPending}
+            save={save}
+            onTutorialUpdate={onTutorialUpdate}
             onClose={() => setInspector(null)}
             onConfirmAdd={handleConfirmAdd}
             onConfirmRemove={handleConfirmRemove}
@@ -306,7 +308,6 @@ export function DateBookCanvas({
         <TutorialCoachMark
           target={headerAnchorRef}
           placement="bottom"
-          eyebrow="// datebook.repair"
           title="The Date Book is over budget"
           body="A budget cut put the deck above the cap. Drop cards from the deck below until the cap covers the spend. Cupid can not commit a new pair until the file is clean."
           primaryLabel="Got it"
@@ -320,7 +321,6 @@ export function DateBookCanvas({
         <TutorialCoachMark
           target={headerAnchorRef}
           placement="bottom"
-          eyebrow="// datebook.locked"
           title="Date Book is locked"
           body="A pair is committed, so the deck is frozen until the date resolves. Cancel the booking from Live Date to edit, or finish the date first."
           primaryLabel="Got it"
@@ -727,10 +727,10 @@ function LibraryFilters({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <div className="relative flex-1">
+        <div className="group relative flex-1">
           <span
             aria-hidden
-            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint"
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-focus-within:-rotate-6 group-focus-within:scale-125"
           >
             ⌕
           </span>
@@ -822,6 +822,8 @@ function InspectorModal({
   isActionPending,
   canAdd,
   canRemove,
+  save,
+  onTutorialUpdate,
   onClose,
   onConfirmAdd,
   onConfirmRemove,
@@ -833,6 +835,8 @@ function InspectorModal({
   isActionPending: boolean;
   canAdd: { ok: true } | { ok: false; reason: string };
   canRemove: boolean;
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onClose: () => void;
   onConfirmAdd: (cardId: string) => void;
   onConfirmRemove: (cardId: string) => void;
@@ -877,6 +881,8 @@ function InspectorModal({
       eyebrow={eyebrow}
       statusLabel={footnote}
       primaryAction={primaryAction}
+      save={save}
+      onTutorialUpdate={onTutorialUpdate}
       onClose={onClose}
     />
   );

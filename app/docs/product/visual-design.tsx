@@ -1,8 +1,12 @@
+import { useState } from "react";
+
 import {
+  Chip,
   DocCallout,
   DocCode,
   DocCodeBlock,
   DocDefList,
+  DocFigure,
   DocLink,
   DocList,
   DocPage,
@@ -12,6 +16,15 @@ import {
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
+import {
+  ChevronLinkRow,
+  RadioRow,
+  SectionHeader,
+  SegmentedControl,
+  SettingsList,
+  SettingsRow,
+  Toggle,
+} from "../../components/form-primitives";
 import {
   HOUSE_BUBBLE_LEFT_CLASS,
   HOUSE_BUBBLE_NAME_CLASS,
@@ -103,10 +116,43 @@ export const sections: DocSectionEntry[] = [
           <DocCode>font-display</DocCode>.
         </P>
         <P>
+          Type scale floor is 14px. Both <DocCode>text-micro</DocCode> and{" "}
+          <DocCode>text-label</DocCode> resolve to <DocCode>0.875rem</DocCode> (14px); they are kept
+          as semantic aliases (chip eyebrow vs body caption) rather than separate sizes. Do not
+          introduce text below 14px. The Tailwind default <DocCode>text-xs</DocCode> (12px) is
+          off-limits for app UI.
+        </P>
+        <P>
           Portrait cutouts sit inside Aura surfaces; the dashboard provides the frame and the cutout
           provides character. See <DocLink to="/docs/product/image-style">Image style</DocLink> for
           portrait style and UI placement guidance.
         </P>
+      </>
+    ),
+  },
+  {
+    id: "component-library",
+    title: "Component library",
+    body: (
+      <>
+        <P>
+          Reusable interface primitives live in two files. Doc-only primitives (
+          <DocCode>DocFigure</DocCode>, <DocCode>Chip</DocCode>, <DocCode>BulletList</DocCode>,{" "}
+          <DocCode>DocPipeline</DocCode>, etc.) ship from{" "}
+          <DocCode>app/components/doc-primitives.tsx</DocCode>. Form and control primitives (
+          <DocCode>Toggle</DocCode>, <DocCode>SettingsList</DocCode>, <DocCode>SettingsRow</DocCode>
+          , <DocCode>RadioRow</DocCode>, <DocCode>SegmentedControl</DocCode>,{" "}
+          <DocCode>ChevronLinkRow</DocCode>, <DocCode>SectionHeader</DocCode>) ship from{" "}
+          <DocCode>app/components/form-primitives.tsx</DocCode>. Reach for these before writing a
+          new inline control. They read as cream paper in light mode and TIDAL-style raised tiles in
+          dark mode without any per-component theme wiring.
+        </P>
+        <DocCallout variant="note">
+          When in doubt, grep <DocCode>doc-primitives.tsx</DocCode> and{" "}
+          <DocCode>form-primitives.tsx</DocCode> first. If a one-off chip, card, or row repeats more
+          than twice, lift it into one of these files instead of fanning out a third copy.
+        </DocCallout>
+        <PrimitivesShowcase />
       </>
     ),
   },
@@ -817,6 +863,144 @@ function formatBubbleConfigComment(bubble: ChatBubbleConfig): string {
   ];
 
   return lines.filter((line): line is string => line !== null).join("\n");
+}
+
+type AudioQuality = "low" | "high" | "max";
+type SettingsTab = "general" | "account" | "about";
+
+function PrimitivesShowcase() {
+  const [normalizeVolume, setNormalizeVolume] = useState(true);
+  const [explicitContent, setExplicitContent] = useState(true);
+  const [audioMetadata, setAudioMetadata] = useState(false);
+  const [autoplay, setAutoplay] = useState(true);
+  const [quality, setQuality] = useState<AudioQuality>("max");
+  const [tab, setTab] = useState<SettingsTab>("general");
+
+  return (
+    <div className="my-4 flex flex-col gap-8">
+      <DocFigure title="chips" surface="plain">
+        <div className="flex flex-wrap items-center gap-2">
+          <Chip tone="rose">rose</Chip>
+          <Chip tone="violet">violet</Chip>
+          <Chip tone="amber">amber</Chip>
+          <Chip tone="emerald">emerald</Chip>
+          <Chip tone="sky">sky</Chip>
+          <Chip tone="fuchsia">fuchsia</Chip>
+          <Chip tone="slate">slate</Chip>
+          <Chip tone="neutral">neutral</Chip>
+          <Chip tone="rose" dot>
+            with dot
+          </Chip>
+          <Chip tone="emerald" size="tight">
+            tight
+          </Chip>
+        </div>
+      </DocFigure>
+
+      <DocFigure title="segmented control" surface="plain">
+        <div className="flex flex-wrap items-center gap-6">
+          <SegmentedControl
+            ariaLabel="Settings tabs"
+            variant="underline"
+            options={[
+              { value: "general", label: "General" },
+              { value: "account", label: "Account" },
+              { value: "about", label: "About" },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+          <SegmentedControl
+            ariaLabel="Density"
+            options={[
+              { value: "full", label: "full" },
+              { value: "compact", label: "compact" },
+            ]}
+            value="full"
+            onChange={() => {}}
+          />
+        </div>
+      </DocFigure>
+
+      <DocFigure title="settings rows" surface="plain">
+        <SectionHeader eyebrow="// audio quality">Audio quality</SectionHeader>
+        <SettingsList>
+          <RadioRow
+            name="quality"
+            value="low"
+            selected={quality}
+            onSelect={setQuality}
+            title="Low"
+            description="Balance audio quality and data consumption"
+            trailing={<Chip tone="neutral">320 kbps</Chip>}
+          />
+          <RadioRow
+            name="quality"
+            value="high"
+            selected={quality}
+            onSelect={setQuality}
+            title="High"
+            description="16-bit, 44.1 kHz"
+          />
+          <RadioRow
+            name="quality"
+            value="max"
+            selected={quality}
+            onSelect={setQuality}
+            title="Max"
+            description="Up to 24-bit, 192 kHz"
+          />
+        </SettingsList>
+
+        <SectionHeader eyebrow="// playback">Playback</SectionHeader>
+        <SettingsList>
+          <SettingsRow
+            title="Normalize volume"
+            description="Set the same volume level for all tracks."
+            control={
+              <Toggle
+                checked={normalizeVolume}
+                onChange={setNormalizeVolume}
+                label="Normalize volume"
+              />
+            }
+          />
+          <SettingsRow
+            title="Autoplay"
+            description="Play similar songs after the last track in your queue ends."
+            control={<Toggle checked={autoplay} onChange={setAutoplay} label="Autoplay" />}
+          />
+          <SettingsRow
+            title="Explicit content"
+            description="Allow or restrict explicit content labeled with the E tag."
+            control={
+              <Toggle
+                checked={explicitContent}
+                onChange={setExplicitContent}
+                label="Explicit content"
+              />
+            }
+          />
+          <ChevronLinkRow
+            to="/docs/product/visual-design#component-library"
+            title="Blocked"
+            description="View and edit your blocked content."
+          />
+        </SettingsList>
+
+        <SectionHeader eyebrow="// display">Display</SectionHeader>
+        <SettingsList>
+          <SettingsRow
+            title="Audio metadata"
+            description="Show additional fields (e.g. BPM) in track lists."
+            control={
+              <Toggle checked={audioMetadata} onChange={setAudioMetadata} label="Audio metadata" />
+            }
+          />
+        </SettingsList>
+      </DocFigure>
+    </div>
+  );
 }
 
 export default function VisualDesignDoc() {

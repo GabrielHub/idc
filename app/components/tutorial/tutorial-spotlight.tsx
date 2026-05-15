@@ -9,7 +9,6 @@ export type TutorialSpotlightProps = {
   padding?: number;
   radius?: number;
   scrimOpacity?: number;
-  onDismiss?: () => void;
 };
 
 export function TutorialSpotlight({
@@ -17,7 +16,6 @@ export function TutorialSpotlight({
   padding = 14,
   radius = 20,
   scrimOpacity = 0.6,
-  onDismiss,
 }: TutorialSpotlightProps) {
   const rect = useTargetRect(target);
   const maskId = useId();
@@ -29,7 +27,7 @@ export function TutorialSpotlight({
   const hole = expandRect(rect, padding);
   const lampCx = hole.left + hole.width / 2;
   const lampCy = hole.top + hole.height / 2;
-  const lampR = Math.max(hole.width, hole.height) * 3.8;
+  const lampR = Math.max(hole.width, hole.height) * 1.5;
 
   return (
     <motion.div
@@ -136,16 +134,14 @@ export function TutorialSpotlight({
           borderRadius: radius + 1,
           boxShadow: [
             "0 0 0 1px rgba(255, 255, 255, 0.68)",
-            "0 0 22px 4px rgba(254, 215, 170, 0.45)",
-            "0 0 36px 8px rgba(244, 63, 94, 0.34)",
-            "0 0 96px 14px rgba(167, 139, 250, 0.22)",
+            "0 0 14px 2px rgba(254, 215, 170, 0.42)",
+            "0 0 22px 3px rgba(244, 63, 94, 0.3)",
+            "0 0 44px 4px rgba(167, 139, 250, 0.18)",
           ].join(", "),
         }}
       />
 
       <CornerCrops hole={hole} />
-
-      {onDismiss === undefined ? null : <DismissRims hole={hole} onDismiss={onDismiss} />}
     </motion.div>
   );
 }
@@ -244,30 +240,6 @@ function CornerCrops({ hole }: { hole: TargetRect }) {
           aria-hidden
           className="pointer-events-none absolute"
           style={line.style}
-        />
-      ))}
-    </>
-  );
-}
-
-function DismissRims({ hole, onDismiss }: { hole: TargetRect; onDismiss: () => void }) {
-  const rims: Array<React.CSSProperties> = [
-    { top: 0, left: 0, right: 0, height: Math.max(hole.top, 0) },
-    { top: hole.top + hole.height, left: 0, right: 0, bottom: 0 },
-    { top: hole.top, left: 0, width: Math.max(hole.left, 0), height: hole.height },
-    { top: hole.top, left: hole.left + hole.width, right: 0, height: hole.height },
-  ];
-
-  return (
-    <>
-      {rims.map((style, index) => (
-        <button
-          key={index}
-          type="button"
-          aria-label="Dismiss tutorial"
-          onClick={onDismiss}
-          className="pointer-events-auto absolute cursor-pointer bg-transparent"
-          style={style}
         />
       ))}
     </>

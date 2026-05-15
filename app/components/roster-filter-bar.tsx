@@ -30,7 +30,7 @@ export function RosterFilterBar({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <label className="aura-glass flex cursor-text items-center gap-2.5 rounded-pill px-4 py-2">
+      <label className="group aura-glass flex cursor-text items-center gap-2.5 rounded-pill px-4 py-2">
         <SearchIcon />
         <input
           type="text"
@@ -93,7 +93,7 @@ function SearchIcon() {
   return (
     <svg
       viewBox="0 0 16 16"
-      className="size-4 text-aura-faint"
+      className="size-4 text-aura-faint transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-focus-within:-rotate-6 group-focus-within:scale-110"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.6"

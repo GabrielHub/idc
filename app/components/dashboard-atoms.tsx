@@ -83,13 +83,13 @@ const PORTRAIT_IMAGE: Record<PortraitVariant, string> = {
 };
 
 const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
-  chip: "font-display text-xs font-bold text-aura-rose",
+  chip: "font-display text-sm font-bold text-aura-rose",
   thumb: "font-display text-base font-bold text-aura-rose",
   row: "font-display text-lg font-bold text-aura-rose",
   card: "font-display text-2xl font-bold text-aura-rose",
   stage: "font-display text-4xl font-bold text-aura-rose",
   hero: "font-display text-5xl font-bold text-aura-rose",
-  transcript: "font-display text-xs font-bold text-aura-rose",
+  transcript: "font-display text-sm font-bold text-aura-rose",
   "standee-bottom": "font-display text-display-xl font-bold text-aura-rose/30",
 };
 
@@ -725,8 +725,9 @@ export function Tooltip({
 
 /* ------------------------------------------------------------------ */
 /* Cupid brand mark                                                   */
-/*   Mirrors public/favicon.svg: rose to fuchsia to violet gradient,  */
-/*   white heart pierced by an arrow at -22 degrees.                  */
+/*   Mirrors public/favicon.svg: aura gradient tile, scattered motes, */
+/*   white heart with a rose dater dot and violet partner dot inside  */
+/*   around a cream pair-fit spark.                                   */
 /* ------------------------------------------------------------------ */
 
 export function CupidMark({
@@ -737,7 +738,9 @@ export function CupidMark({
   className?: string;
 }) {
   const gradientId = `cupid-mark-${variant}`;
-  const glowId = `cupid-mark-glow-${variant}`;
+  const highlightId = `cupid-mark-highlight-${variant}`;
+  const heartFillId = `cupid-mark-heart-${variant}`;
+  const coreId = `cupid-mark-core-${variant}`;
 
   if (variant === "tile") {
     return (
@@ -755,23 +758,53 @@ export function CupidMark({
             <stop offset="0.55" stopColor="#d946ef" />
             <stop offset="1" stopColor="#a78bfa" />
           </linearGradient>
-          <radialGradient id={glowId} cx="22" cy="20" r="36" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="#ffffff" stopOpacity="0.35" />
+          <radialGradient id={highlightId} cx="20" cy="16" r="42" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#ffffff" stopOpacity="0.42" />
             <stop offset="1" stopColor="#ffffff" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient
+            id={heartFillId}
+            x1="14"
+            y1="13"
+            x2="50"
+            y2="51"
+            gradientUnits="userSpaceOnUse"
+          >
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#fff1f4" />
+          </linearGradient>
+          <radialGradient id={coreId} cx="32" cy="29.5" r="9" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stopColor="#fff7e6" />
+            <stop offset="0.55" stopColor="#fde68a" stopOpacity="0.7" />
+            <stop offset="1" stopColor="#fde68a" stopOpacity="0" />
           </radialGradient>
         </defs>
         <rect width="64" height="64" rx="14" fill={`url(#${gradientId})`} />
-        <rect width="64" height="64" rx="14" fill={`url(#${glowId})`} />
-        <g transform="rotate(-22 32 32)">
-          <rect x="3" y="30.4" width="58" height="3.2" rx="1.6" fill="#ffffff" />
-          <polygon points="3,32 11,27 11,37" fill="#ffffff" />
-          <polygon points="9,32 16,28.5 16,35.5" fill="#ffffff" />
-          <polygon points="61,32 51,26 51,38" fill="#ffffff" />
+        <rect width="64" height="64" rx="14" fill={`url(#${highlightId})`} />
+        <g fill="#ffffff">
+          <circle cx="12" cy="20" r="1.1" opacity="0.85" />
+          <circle cx="52" cy="14" r="0.9" opacity="0.7" />
+          <circle cx="53" cy="47" r="1.0" opacity="0.8" />
+          <circle cx="33" cy="9" r="0.7" opacity="0.55" />
+          <circle cx="56" cy="31" r="0.7" opacity="0.65" />
+          <circle cx="7" cy="33" r="0.7" opacity="0.55" />
+        </g>
+        <circle cx="10" cy="46" r="0.9" fill="#fef3c7" opacity="0.85" />
+        <g>
+          <circle cx="8" cy="14" r="0.6" fill="#ffffff" opacity="0.35" />
+          <circle cx="13" cy="9" r="0.7" fill="#ffffff" opacity="0.55" />
+          <circle cx="19" cy="6.5" r="0.85" fill="#ffffff" opacity="0.7" />
+          <circle cx="25.5" cy="6" r="1.0" fill="#ffffff" opacity="0.85" />
         </g>
         <path
-          d="M32 51.2 C32 51.2 10.5 38.5 10.5 24.4 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.4 C53.5 38.5 32 51.2 32 51.2 Z"
-          fill="#ffffff"
+          d="M32 51 C32 51 10.5 38.2 10.5 24.3 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.3 C53.5 38.2 32 51 32 51 Z"
+          fill={`url(#${heartFillId})`}
         />
+        <ellipse cx="32" cy="29.5" rx="9.5" ry="7" fill={`url(#${coreId})`} opacity="0.95" />
+        <circle cx="27.4" cy="29.5" r="1.7" fill="#f43f5e" />
+        <circle cx="36.6" cy="29.5" r="1.7" fill="#a78bfa" />
+        <circle cx="32" cy="29.5" r="1.05" fill="#ffffff" />
+        <circle cx="32" cy="29.5" r="0.5" fill="#fef9c3" />
       </svg>
     );
   }
@@ -791,16 +824,19 @@ export function CupidMark({
           <stop offset="0.55" stopColor="#d946ef" />
           <stop offset="1" stopColor="#a78bfa" />
         </linearGradient>
+        <radialGradient id={coreId} cx="32" cy="29.5" r="9" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stopColor="#f59e0b" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#f59e0b" stopOpacity="0" />
+        </radialGradient>
       </defs>
-      <g transform="rotate(-22 32 32)">
-        <rect x="6" y="30.4" width="52" height="2.6" rx="1.3" fill={`url(#${gradientId})`} />
-        <polygon points="6,32 13,28 13,36" fill={`url(#${gradientId})`} />
-        <polygon points="58,32 50,27 50,37" fill={`url(#${gradientId})`} />
-      </g>
       <path
-        d="M32 51.2 C32 51.2 10.5 38.5 10.5 24.4 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.4 C53.5 38.5 32 51.2 32 51.2 Z"
+        d="M32 51 C32 51 10.5 38.2 10.5 24.3 C10.5 17.7 15.9 12.6 22.4 12.6 C26.5 12.6 30 14.7 32 18.2 C34 14.7 37.5 12.6 41.6 12.6 C48.1 12.6 53.5 17.7 53.5 24.3 C53.5 38.2 32 51 32 51 Z"
         fill={`url(#${gradientId})`}
       />
+      <ellipse cx="32" cy="29.5" rx="9.5" ry="7" fill={`url(#${coreId})`} />
+      <circle cx="27.4" cy="29.5" r="1.8" fill="#f43f5e" />
+      <circle cx="36.6" cy="29.5" r="1.8" fill="#a78bfa" />
+      <circle cx="32" cy="29.5" r="1.1" fill="#fff7e6" />
     </svg>
   );
 }

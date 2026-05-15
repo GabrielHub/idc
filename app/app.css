@@ -28,12 +28,13 @@
     serif;
   --font-eldritch: "Cinzel Decorative", "Cinzel", ui-serif, Georgia, serif;
 
-  /* Type scale. Micro and label live small only because they are uppercase
-     and tracked. Display tiers earn the big numbers. */
-  --text-micro: 0.75rem;
-  --text-micro--line-height: 1rem;
-  --text-label: 0.8125rem;
-  --text-label--line-height: 1.125rem;
+  /* Type scale. Floor is 14px (0.875rem). Micro and label kept as semantic
+     aliases (chip eyebrow vs body caption) but bumped to the readable floor.
+     Display tiers earn the big numbers. */
+  --text-micro: 0.875rem;
+  --text-micro--line-height: 1.15rem;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.25rem;
   --text-body: 0.9375rem;
   --text-body--line-height: 1.5rem;
   --text-lead: 1.0625rem;
@@ -1174,9 +1175,9 @@ body::-webkit-scrollbar {
   --color-aura-veil: rgba(35, 29, 24, 0.82);
   --color-aura-hairline: rgba(237, 226, 207, 0.1);
   --color-aura-hairline-strong: rgba(237, 226, 207, 0.2);
-  --color-aura-mesh-rose: #3d2126;
-  --color-aura-mesh-violet: #2b1f31;
-  --color-aura-mesh-amber: #3d2c17;
+  --color-aura-mesh-rose: #5e2a35;
+  --color-aura-mesh-violet: #3a2855;
+  --color-aura-mesh-amber: #5a3a18;
   --color-aura-mesh-sky: #1f2a31;
 
   /* Shadow tokens. Light mode used a violet glow on white; on warm dim
@@ -1189,15 +1190,21 @@ body::-webkit-scrollbar {
   color-scheme: dark;
 }
 
-/* White surface fills used by cards, panels, and tiles. Map to a warm
-   cream wash so panels read as vellum under the lamp, not blue-tinted
-   glass. Match-whole-token selectors so hover:bg-white/X variants do not
-   fire outside hover. */
+/* White surface fills used by cards, panels, and tiles. Map to a flat
+   warm cream wash so tiles read as solid raised TIDAL surfaces, not
+   gradient-tinted glass. The hairline border (inherited from the card's
+   own border-aura-hairline) defines the edge. No top gleam, no bottom
+   shadow, no gradient: flat fill is the entire point of the TIDAL look.
+   Match-whole-token selectors so hover:bg-white/X variants do not fire
+   outside hover. */
 [data-theme="dark"]
   :where(
     [class~="bg-white/35"],
     [class~="bg-white/40"],
+    [class~="bg-white/45"],
     [class~="bg-white/55"],
+    [class~="bg-white/60"],
+    [class~="bg-white/65"],
     [class~="bg-white/70"],
     [class~="bg-white/72"],
     [class~="bg-white/76"],
@@ -1208,10 +1215,14 @@ body::-webkit-scrollbar {
     [class~="bg-white/95"]
   ) {
   background-color: rgba(237, 226, 207, 0.05);
+  background-image: none;
+  box-shadow: none;
 }
 
 [data-theme="dark"] .hover\:bg-white\/40:hover {
   background-color: rgba(237, 226, 207, 0.09);
+  background-image: none;
+  box-shadow: none;
 }
 
 /* White gradient stops, re-tinted to warm cream highlights on dim. */
@@ -1251,22 +1262,28 @@ body::-webkit-scrollbar {
   --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent);
 }
 
-/* Solid pastel chip fills. Toned down from the previous values; on the
-   warmer base they read as badges rather than fluorescent buttons. */
+/* Solid pastel chip fills. Read as solid raised pills with a matching
+   accent hairline, copying the TIDAL chip language. The inset box-shadow
+   serves as a colored border without fighting the chip's own border-radius. */
 [data-theme="dark"] .bg-rose-100 {
-  background-color: rgba(251, 113, 133, 0.18);
+  background-color: rgba(251, 113, 133, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.28);
 }
 [data-theme="dark"] .bg-amber-100 {
-  background-color: rgba(251, 191, 36, 0.18);
+  background-color: rgba(251, 191, 36, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.28);
 }
 [data-theme="dark"] .bg-violet-100 {
-  background-color: rgba(196, 181, 253, 0.18);
+  background-color: rgba(196, 181, 253, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(196, 181, 253, 0.28);
 }
 [data-theme="dark"] .bg-emerald-100 {
-  background-color: rgba(110, 231, 183, 0.18);
+  background-color: rgba(110, 231, 183, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(110, 231, 183, 0.28);
 }
 [data-theme="dark"] .bg-sky-100 {
-  background-color: rgba(125, 211, 252, 0.16);
+  background-color: rgba(125, 211, 252, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(125, 211, 252, 0.26);
 }
 
 [data-theme="dark"] .text-rose-700 {
@@ -1286,49 +1303,84 @@ body::-webkit-scrollbar {
 [data-theme="dark"] .text-sky-700 {
   color: #7dd3fc;
 }
-
-/* Table head tint, dialed back from the previous rose flash. */
-[data-theme="dark"] .bg-rose-500\/\[0\.06\] {
-  background-color: rgba(251, 113, 133, 0.1);
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-700 {
+  color: #cbd5e1;
+}
+[data-theme="dark"] .bg-slate-100 {
+  background-color: rgba(203, 213, 225, 0.14);
+}
+[data-theme="dark"] :where([class*="bg-slate-100/"]) {
+  background-color: rgba(203, 213, 225, 0.14);
 }
 
-/* Glass surfaces: warm cream wash, ember underglow for the lift shadow.
-   The inset highlight goes from white (light mode) to a faint cream
-   gleam so chrome reads as candle-lit, not refrigerator-lit. */
+/* Table head tint, dialed up to read as a TIDAL-style cleanly-tinted stripe
+   over the raised tile surface. */
+[data-theme="dark"] .bg-rose-500\/\[0\.06\] {
+  background-color: rgba(251, 113, 133, 0.14);
+}
+
+/* DocCallout panel backgrounds. Each callout uses a distinct Tailwind
+   tinted bg (rose / amber / violet / emerald / rose-500). On warm dim
+   these are barely visible without dark-mode help; punch them ~40% denser
+   and add a colored hairline so the panel reads as a tinted raised tile,
+   matching the TIDAL chip language above. */
+[data-theme="dark"] .bg-aura-rose\/\[0\.05\] {
+  background-color: rgba(251, 113, 133, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(251, 113, 133, 0.2);
+}
+[data-theme="dark"] .bg-amber-500\/\[0\.09\] {
+  background-color: rgba(245, 158, 11, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.24);
+}
+[data-theme="dark"] .bg-rose-500\/\[0\.09\] {
+  background-color: rgba(244, 63, 94, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(244, 63, 94, 0.26);
+}
+[data-theme="dark"] .bg-violet-500\/\[0\.08\] {
+  background-color: rgba(167, 139, 250, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(167, 139, 250, 0.24);
+}
+[data-theme="dark"] .bg-emerald-500\/\[0\.08\] {
+  background-color: rgba(16, 185, 129, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.24);
+}
+
+/* Glass surfaces: TIDAL-style flat raised tile on warm dim. No gradient,
+   no top inset gleam, no bottom shadow. A hairline border defines the
+   edge and the flat warm cream fill defines the surface. Backdrop-blur
+   stays high so the ambient mesh shows through and the surface reads as
+   frosted glass over color. */
 [data-theme="dark"] .aura-glass {
-  background-image: linear-gradient(
-    180deg,
-    rgba(237, 226, 207, 0.06) 0%,
-    rgba(237, 226, 207, 0.025) 100%
-  );
-  border-color: rgba(237, 226, 207, 0.1);
-  box-shadow:
-    inset 0 1px 0 0 rgba(237, 226, 207, 0.08),
-    0 1px 2px 0 rgba(0, 0, 0, 0.4),
-    0 14px 38px -10px rgba(20, 10, 6, 0.6);
+  background-color: rgba(237, 226, 207, 0.05);
+  background-image: none;
+  border-color: rgba(237, 226, 207, 0.08);
+  box-shadow: none;
 }
 [data-theme="dark"] .aura-glass-strong {
-  background-image: linear-gradient(
-    180deg,
-    rgba(237, 226, 207, 0.09) 0%,
-    rgba(237, 226, 207, 0.035) 100%
-  );
-  border-color: rgba(237, 226, 207, 0.12);
-  box-shadow:
-    inset 0 1px 0 0 rgba(237, 226, 207, 0.1),
-    0 4px 14px -4px rgba(0, 0, 0, 0.5),
-    0 28px 70px -18px rgba(20, 10, 6, 0.7);
+  background-color: rgba(237, 226, 207, 0.07);
+  background-image: none;
+  border-color: rgba(237, 226, 207, 0.1);
+  box-shadow: none;
 }
 [data-theme="dark"] .aura-glass-lift:hover {
-  box-shadow:
-    inset 0 1px 0 0 rgba(237, 226, 207, 0.1),
-    0 4px 14px -4px rgba(0, 0, 0, 0.55),
-    0 32px 80px -18px rgba(40, 20, 14, 0.7);
+  background-color: rgba(237, 226, 207, 0.09);
+  background-image: none;
+  box-shadow: none;
 }
 
 /* Sidebar dot-leader uses warm cream dots, not cold white. */
 [data-theme="dark"] .aura-doc-leader {
   border-bottom-color: rgba(237, 226, 207, 0.2);
+}
+
+/* Inline code and kbd chips. The default bg-aura-card token is 5% cream on
+   warm dim, so the ambient mesh bleeds through and reads as a 3D gradient.
+   Flatten with a solid wash and a faint cream hairline for a TIDAL-style
+   raised inline chip. */
+[data-theme="dark"] .aura-doc-chip {
+  background-color: rgba(237, 226, 207, 0.1);
+  border-color: rgba(237, 226, 207, 0.08);
 }
 
 /* Dot grid (faint texture under editorial moments). Inverts to cream dots. */
@@ -1344,4 +1396,31 @@ body::-webkit-scrollbar {
 }
 [data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   background-color: rgba(251, 113, 133, 0.32);
+}
+
+/* Editorial card surfaces. Light mode uses `bg-gradient-to-br from-white
+   to-rose/aura-bg` to give cards quiet depth on cream paper. On warm dim
+   the same direction reads as a 3D illusion, and the rose stop steals
+   contrast from body copy. Flatten every Tailwind gradient utility in
+   the dark docs scope to the same flat cream fill that powers the
+   bg-white/X tile recipe above, so editorial cards and white-tinted
+   tiles share a single flat raised-tile language. Backdrop-blur stays
+   on so the ambient mesh bleeds through and shows off the frosted-glass
+   effect. */
+[data-theme="dark"]
+  :where(
+    .bg-gradient-to-br,
+    .bg-gradient-to-bl,
+    .bg-gradient-to-tr,
+    .bg-gradient-to-tl,
+    .bg-gradient-to-b,
+    .bg-gradient-to-t,
+    .bg-gradient-to-r,
+    .bg-gradient-to-l
+  ) {
+  background-color: rgba(237, 226, 207, 0.05);
+  background-image: none;
+  box-shadow: none;
+  backdrop-filter: blur(20px) saturate(1.1);
+  -webkit-backdrop-filter: blur(20px) saturate(1.1);
 }

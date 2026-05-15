@@ -61,7 +61,7 @@ export function DocsShell({ activeSlug, activeTitle, toc, children }: DocsShellP
   };
 
   return (
-    <div data-theme={theme} className="relative min-h-screen bg-aura-bg text-aura-ink">
+    <div data-theme={theme} className="relative isolate min-h-screen bg-aura-bg text-aura-ink">
       <AmbientMesh />
       <DocsHeader segments={segments} theme={theme} onToggleTheme={toggleTheme} />
       <div className="mx-auto flex w-full max-w-[110rem] gap-12 px-6 pt-10 pb-24 lg:px-12">
@@ -241,8 +241,11 @@ function DocsSidebar({ activeSlug }: { activeSlug: string }) {
         <p className="mb-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
           // filter
         </p>
-        <div className="aura-glass flex items-center gap-3 rounded-pill px-4 py-2">
-          <span aria-hidden className="font-mono text-micro text-aura-faint">
+        <div className="group aura-glass flex items-center gap-3 rounded-pill px-4 py-2">
+          <span
+            aria-hidden
+            className="font-mono text-micro text-aura-faint transition-transform duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-focus-within:-rotate-6 group-focus-within:scale-125"
+          >
             ⌕
           </span>
           <input
