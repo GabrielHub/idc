@@ -1,6 +1,16 @@
 import type { DateMessage, DateSession, MemoryRecord } from "../domain/game";
-import type { GameRepository, MemorySearchFilters } from "../repositories/game-repository";
-import { createDeterministicEmbedding } from "./vector-memory";
+import type {
+  GameRepository,
+  MemorySearchFilters,
+  MemorySearchResult,
+} from "../repositories/game-repository";
+import {
+  matchesListFilter,
+  matchesSingleFilter,
+  matchesSubjectFilter,
+  matchesTags,
+} from "./memory-filters";
+import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export type MemoryRetrievalInput = {
   characterId: string;
@@ -43,6 +53,9 @@ export type SearchCupidMemoryResult = {
   tags: string[];
 };
 
+const VECTOR_SCORE_FLOOR = 0.05;
+const LEXICAL_SCORE_FLOOR = 0.12;
+
 export async function retrieveRelevantMemories(
   repository: GameRepository,
   input: MemoryRetrievalInput,
@@ -60,7 +73,10 @@ export async function retrieveRelevantMemories(
   const [self, pair, scenario, dateSession] = await Promise.all([
     searchVisibleMemories(
       repository,
-      queryEmbedding,
+      {
+        query: input.query,
+        queryEmbedding,
+      },
       input.characterId,
       {
         ...embeddingFilters,
@@ -73,7 +89,10 @@ export async function retrieveRelevantMemories(
     ),
     searchVisibleMemories(
       repository,
-      queryEmbedding,
+      {
+        query: input.query,
+        queryEmbedding,
+      },
       input.characterId,
       {
         ...embeddingFilters,
@@ -86,12 +105,14 @@ export async function retrieveRelevantMemories(
     ),
     searchVisibleMemories(
       repository,
-      queryEmbedding,
+      {
+        query: input.query,
+        queryEmbedding,
+      },
       input.characterId,
       {
         ...embeddingFilters,
         scenarioId: input.scenarioId,
-        pairId: input.pairId,
         scopes: ["scenario"],
         visibilities: ["public", "member_private"],
         viewer,
@@ -118,7 +139,13 @@ export async function searchCupidMemory(
   const results = (
     await Promise.all(
       buildToolFilters(input).map((filters) =>
-        repository.searchMemoriesByVector(queryEmbedding, filters, boundedLimit),
+        searchMemoryResults(repository, {
+          query: input.query,
+          queryEmbedding,
+          filters,
+          characterId: input.characterId,
+          limit: boundedLimit,
+        }),
       ),
     )
   )
@@ -145,21 +172,27 @@ export async function searchCupidMemory(
       text: truncateMemoryText(result.memory.text),
       score: Number(result.score.toFixed(4)),
       scope: result.memory.scope,
-      tags: result.memory.tags,
+      tags: [],
     }));
 }
 
 async function searchVisibleMemories(
   repository: GameRepository,
-  queryEmbedding: number[],
+  query: {
+    query: string;
+    queryEmbedding: number[];
+  },
   characterId: string,
   filters: MemorySearchFilters,
   limit: number,
 ): Promise<MemoryRecord[]> {
-  const results = await repository.searchMemoriesByVector(queryEmbedding, filters, limit);
-  return results
-    .filter((result) => canCharacterSeeMemory(result.memory, characterId))
-    .map((result) => result.memory);
+  const results = await searchMemoryResults(repository, {
+    ...query,
+    characterId,
+    filters,
+    limit,
+  });
+  return results.map((result) => result.memory);
 }
 
 function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] {
@@ -194,7 +227,6 @@ function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] 
     filters.push({
       ...baseFilters,
       scenarioId: input.scenarioId,
-      pairId: input.pairId,
       scopes: ["scenario"],
     });
   }
@@ -210,6 +242,138 @@ function embeddingCompatibilityFilters(input: {
     embeddingModel: input.queryEmbeddingModel,
     embeddingDimensions: input.queryEmbeddingDimensions,
   };
+}
+
+async function searchMemoryResults(
+  repository: GameRepository,
+  input: {
+    query: string;
+    queryEmbedding: number[];
+    filters: MemorySearchFilters;
+    characterId: string;
+    limit: number;
+  },
+): Promise<MemorySearchResult[]> {
+  const results = new Map<string, MemorySearchResult>();
+
+  function addResult(result: MemorySearchResult): void {
+    if (!canCharacterSeeMemory(result.memory, input.characterId)) {
+      return;
+    }
+
+    if (result.score < VECTOR_SCORE_FLOOR) {
+      return;
+    }
+
+    const existing = results.get(result.memory.id);
+    if (existing === undefined || result.score > existing.score) {
+      results.set(result.memory.id, result);
+    }
+  }
+
+  const deterministicEmbedding = createDeterministicEmbedding(input.query);
+  const deterministicFilters: MemorySearchFilters = {
+    ...input.filters,
+    embeddingModel: DETERMINISTIC_EMBEDDING_MODEL,
+    embeddingDimensions: deterministicEmbedding.length,
+  };
+  const [primaryResults, deterministicResults] = await Promise.all([
+    repository.searchMemoriesByVector(input.queryEmbedding, input.filters, input.limit),
+    repository.searchMemoriesByVector(deterministicEmbedding, deterministicFilters, input.limit),
+  ]);
+  for (const result of primaryResults) {
+    addResult(result);
+  }
+  for (const result of deterministicResults) {
+    addResult({ ...result, score: result.score - 0.01 });
+  }
+
+  if (results.size < input.limit) {
+    const lexicalResults = await searchMemoriesByLexicalFallback(repository, input);
+    for (const result of lexicalResults) {
+      const existing = results.get(result.memory.id);
+      if (existing === undefined || result.score > existing.score) {
+        results.set(result.memory.id, result);
+      }
+    }
+  }
+
+  return [...results.values()]
+    .sort(
+      (first, second) =>
+        second.score - first.score || first.memory.id.localeCompare(second.memory.id),
+    )
+    .slice(0, input.limit);
+}
+
+async function searchMemoriesByLexicalFallback(
+  repository: GameRepository,
+  input: {
+    query: string;
+    filters: MemorySearchFilters;
+    characterId: string;
+    limit: number;
+  },
+): Promise<MemorySearchResult[]> {
+  const queryTokens = tokenizeForLexicalSearch(input.query);
+  if (queryTokens.length === 0) {
+    return [];
+  }
+
+  const memories = await repository.listMemories();
+  return memories
+    .filter((memory) => matchesMemoryFiltersIgnoringEmbedding(memory, input.filters))
+    .filter((memory) => canCharacterSeeMemory(memory, input.characterId))
+    .map((memory) => ({
+      memory,
+      score: lexicalMemoryScore(memory, queryTokens),
+    }))
+    .filter((result) => result.score >= LEXICAL_SCORE_FLOOR)
+    .sort(
+      (first, second) =>
+        second.score - first.score || first.memory.id.localeCompare(second.memory.id),
+    )
+    .slice(0, input.limit);
+}
+
+function matchesMemoryFiltersIgnoringEmbedding(
+  memory: MemoryRecord,
+  filters: MemorySearchFilters,
+): boolean {
+  return (
+    matchesSubjectFilter(memory, filters.subjectIds) &&
+    matchesSingleFilter(memory.pairId, filters.pairId) &&
+    matchesSingleFilter(memory.scenarioId, filters.scenarioId) &&
+    matchesSingleFilter(memory.dateSessionId, filters.dateSessionId) &&
+    matchesListFilter(memory.scope, filters.scopes) &&
+    matchesListFilter(memory.visibility, filters.visibilities) &&
+    matchesTags(memory.tags, filters.tags)
+  );
+}
+
+function lexicalMemoryScore(memory: MemoryRecord, queryTokens: readonly string[]): number {
+  const memoryTokens = new Set(tokenizeForLexicalSearch(memory.text));
+  if (memoryTokens.size === 0) {
+    return 0;
+  }
+
+  let hits = 0;
+  for (const token of queryTokens) {
+    if (memoryTokens.has(token)) {
+      hits += 1;
+    }
+  }
+
+  if (hits === 0) {
+    return 0;
+  }
+
+  const coverage = hits / queryTokens.length;
+  return coverage * (1 + memory.importance / 10);
+}
+
+function tokenizeForLexicalSearch(text: string): string[] {
+  return Array.from(new Set(text.toLowerCase().match(/[a-z0-9_]{3,}/g) ?? []));
 }
 
 function canCharacterSeeMemory(memory: MemoryRecord, characterId: string): boolean {

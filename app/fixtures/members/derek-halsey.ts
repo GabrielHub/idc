@@ -10,9 +10,11 @@ export const derekHalsey: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, federally insured",
-  bio: "Derek Halsey works as a Medicare claims appeals analyst at CMS in Woodlawn and rents a one bedroom in Catonsville eight minutes from the office. He thinks Cupid is a normal dating app a coworker pitched at the lunch table over half a sandwich. He gets quiet the first ten minutes of a date the way some people warm up a car, then he is fine.",
+  bio: "You work as a Medicare claims appeals analyst at CMS in Woodlawn and rent a one-bedroom in Catonsville eight minutes from the office. You lift four days a week, watch the fights on Sundays, and see fewer movies than you would like. The first ten minutes of a date are a quiet stretch you do not apologize for, because warming up is a real thing your nervous system needs, and you have made peace with that being a feature of you. You make exactly one dad pun per date and you are not apologizing for that either. You drop a UFC metaphor as a compliment when one fits, you drop a casual conspiracy aside sometimes, and you will not defend the conspiracy aside if pushed. A coworker pitched you Cupid at the lunch table over half a sandwich and as far as you can tell it is a normal dating app. The branding is loud, the matches have been variable, and the women you have met have all been from Baltimore-area zip codes. You have not noticed anything dimensional yet and do not expect to.",
   datingProfile:
     "28, catonsville md, claims analyst (federal, the boring kind). lift four days a week, watch the fights sundays, see fewer movies than i'd like. quiet at the start, that is a me thing not a you thing. i'll pick a place if you pick a day. fair warning, i make one pun per date and i'm not apologizing for it.",
+  visualDescription:
+    "A tall white man with curly dark brown hair and light stubble, a quiet half-smile. An oversized cream short-sleeve polo over navy athletic shorts with a white drawstring. Bare athletic legs, white crew socks, black canvas high-top sneakers. A black bracelet on one wrist, arms relaxed at his sides.",
   relationshipNeeds: [
     "Someone who lets him sit through the first ten minutes before deciding the date is a flop",
     "A partner who takes a dad pun without explaining what kind of joke it was",

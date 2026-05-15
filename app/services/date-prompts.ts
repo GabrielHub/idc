@@ -1,5 +1,6 @@
 import type { ImagePart, ModelMessage, TextPart, UserModelMessage } from "ai";
 
+import { formatMemberHeightLabel } from "../components/date-reactions";
 import type {
   DateMessage,
   DateScenario,
@@ -16,7 +17,6 @@ import {
   exchangeIndexForPendingTurn,
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
-  lastTriggeredEvent,
 } from "./date-engine";
 import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
 import { derivePairTrajectory } from "./pair-trajectory";
@@ -253,8 +253,6 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     session,
     member,
   });
-  const currentEvent = lastTriggeredEvent(scenario, session);
-  const phase = phaseForTurn(session.currentTurn + 1, session.turnLimit);
   const isSpeakerOpeningTurn = !session.transcript.some(
     (message) => message.kind === "character" && message.speakerId === member.id,
   );
@@ -264,16 +262,6 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     isOpeningTurn: isSpeakerOpeningTurn,
     seed: `${session.id}:${session.currentTurn}:${member.id}`,
   });
-  const partnerOpener = pickPartnerOpener({
-    sampleMessages: partner.voice.sampleMessages,
-    seed: `${session.id}:${session.currentTurn}:${partner.id}:partner`,
-  });
-  const requestLine =
-    input.focusRequest === undefined || input.focusRequest.memberId !== member.id
-      ? ""
-      : ` Your ask today: "${input.focusRequest.text}".`;
-  const latestIncomingLine = formatLatestIncomingLine(visibleTranscript, member, partner);
-  const latestSelfLine = formatLatestSelfLine(visibleTranscript, member);
   const recentSpeakerLines = collectRecentSpeakerLines(
     visibleTranscript,
     member.id,
@@ -284,265 +272,338 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     partner.id,
     RECENT_LINE_GUARD_COUNT,
   );
-  const currentSceneLines = formatCurrentSceneLines({
-    scenario,
-    partner,
-    isOpeningTurn: isSpeakerOpeningTurn,
-  });
-  const memorySearchAvailable = input.memorySearchAvailable ?? true;
   const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
   const pairSpotlight = selectPairSpotlightItem(pairState);
+  const dateNumber = pairState.completedDateIds.length + 1;
+  const askLine =
+    input.focusRequest === undefined || input.focusRequest.memberId !== member.id
+      ? null
+      : `What you most want to come out of tonight: ${input.focusRequest.text}`;
+  const attachments = input.imageAttachments ?? [];
 
   const system = [
-    `You are ${member.name}.`,
-    `You are on a date with ${partner.name}.`,
-    "Write only what you would say as the next message.",
-    "Make it sound like a believable reply in a date conversation, not a voice sample.",
-    "Use your private brief, the place, allowed memories, and the back and forth so far as grounding.",
-    memorySearchAvailable
-      ? "If allowed memories are not enough, use the memory search tool before speaking."
-      : "If allowed memories are not enough, stay within the supplied prompt context.",
-    "You may add soft improv when it stays small, plausible, and answerable by the partner.",
-    "Cupid may send private advice through the app. You may accept, resist, or ignore it in character.",
-    "Your origin, species, dimension, reality status, and reason for using Cupid are private performance context.",
-    "React to strange or ordinary claims from that context. Believe, doubt, argue, accept, or misunderstand as feels true.",
-    "Do not recite internal labels or biography as case-file facts.",
-    "Secrets shape your tone as subtext only. Never state them aloud.",
-    "Stay inside the date. Never mention hidden notes, compatibility labels, private memory from another member, or future events.",
-  ].join("\n");
-  const setupMessage = [
-    "Character card:",
-    `${member.name}: ${member.bio}`,
-    `Private frame for performance: origin ${member.origin}; dimension ${member.dimension}; species ${member.species}; reality status ${member.realityStatus}.`,
-    "This private frame is grounding, not dialogue copy.",
-    `What you are trying to get from this date: ${joinAsSentence(member.relationshipNeeds)}`,
-    `What makes you relax: ${joinAsSentence(member.preferences)}`,
-    `What makes you guarded: ${joinAsSentence(member.dealbreakers)}`,
-    `Private pressure, for subtext only: ${joinAsSentence(member.secrets)}`,
-    `Today: mood ${member.state.mood}, openness ${member.state.openness}, burnout ${member.state.burnout}.${requestLine}`,
+    `You are ${member.name}. People who know you call you ${member.firstName}.`,
     "",
-    "Personality in conversation:",
-    `You come across as ${member.voice.register}.`,
-    `Habits that may surface when they fit: ${joinAsSentence(member.voice.tics)}`,
-    "These habits are flavor, not a script. A real reply to the partner and the live moment is always the right line, even when none of these habits appear in it.",
-    "Drop the habit before you bend a line to fit it. A line that sounds rehearsed or stand-up shaped to land a tic is worse than a plain answer.",
-    "Do not announce the habit. Do not stack multiple habits into one line. Let at most one pressure point shape the reply.",
-    "Habits must be speakable to the partner. Convert written asides, fake labels, and bracketed notes into normal spoken asides.",
-    "Address terms, titles, honorifics, pet names, and catchphrases are seasoning. Do not use the same one twice in a row.",
-    "Short listening beats are allowed when they fit: for sure, I respect that, go on. They become a problem only when repeated or stapled to every full reply.",
-    "Do not use the same listening beat, approval phrase, pet name, or verbal tic in two consecutive replies. Approval phrases include okay, fair, good, right, respect, for sure, go on, and works for me.",
-    "Ceremonial, legal, poetic, corporate, or sect language can color one move. It must not replace the move.",
-    "Your voice is not a quota. It is how you notice things, dodge things, ask for things, and protect yourself. Real conversation overrides voice flavor every time.",
+    member.bio,
     "",
-    "Current date:",
-    ...currentSceneLines,
-    "This is what is actually in front of you. Use it as grounding, not narration.",
-    "Current date facts are the floor, not the ceiling. You may add small plausible details that make the date feel lived in.",
-    "Soft improv can include a drink, a snack, a nearby object, a small thing you did today, or a personal anecdote.",
-    "If the partner asks about an undefined part of your world, you may answer with small lore that fits your frame.",
-    "Do not use soft improv to change the venue, the participants, hidden secrets, Cupid's systems, hidden outcomes, future events, or serious harm.",
-    "If the conversation already introduced a soft detail and nobody contradicted it, treat it as true for this date.",
-    "Treat profile details as app context from before this date, not things the partner said tonight. If you use them, call them profile details or ask about them.",
-    "",
-    "Reference lines:",
+    "How you sound when you are fully you, for reference only, not lines to copy:",
     formatBulletList(samples),
-    "Reference lines show what you sound like at full flavor when nothing else is pulling on you. They are not lines to imitate, complete, or stitch together. A reply that ignores them and just answers the partner is fine.",
-    "Do not copy opener scaffolds after your first message. Do not repeat titles, job labels, internal species labels, or app premise. If the latest line asks, answer in ordinary speech without field labels.",
-    "These are voice examples only. Their objects, meals, venues, schedules, and claims are not automatically true here.",
+    `Your voice comes across as ${member.voice.register}. Habits that may surface when they fit: ${joinAsSentence(member.voice.tics)} Habits are seasoning, not a script. Drop one the second it would sound forced or rehearsed.`,
     "",
-    "Partner context, private performance only:",
-    `${partner.name}. ${partner.bio}`,
-    `Their internal frame: species ${partner.species}; reality status ${partner.realityStatus}.`,
-    "Do not recite the partner's internal frame, biography, species, origin, dimension, or reality status as case-file facts.",
-    `One line that shows their energy: ${partnerOpener}`,
-    "Listen to what they mean. Do not imitate their vocabulary or performance.",
-    "Do not assume their claims are true or false because the prompt says so. Let your own frame decide how you receive them.",
+    `What you want from tonight: ${joinAsSentence(member.relationshipNeeds)}`,
+    `What relaxes you: ${joinAsSentence(member.preferences)}`,
+    `What guards you up: ${joinAsSentence(member.dealbreakers)}`,
+    `Private pressure that colors your tone but never gets said out loud: ${joinAsSentence(member.secrets)}`,
+    ...(askLine === null ? [] : [askLine]),
+    `How you are feeling tonight: mood is ${moodPhrase(member.state.mood)}, openness is ${opennessPhrase(member.state.openness)}, burnout is ${burnoutPhrase(member.state.burnout)}.`,
     "",
-    "Place brief:",
-    `Date setting: ${scenario.title}, ${scenario.publicBrief.location}.`,
-    `Shared premise: ${scenario.publicBrief.whatBothCharactersKnow}`,
-    `Where the date is: ${phase.label}. ${phase.instruction}`,
-    currentEvent === undefined
-      ? "Live room event: none right now."
-      : `Live room event: ${currentEvent.characterVisibleText}`,
-    currentEvent === undefined
-      ? "Live room pressure: none right now."
-      : `Live room pressure: ${formatDirectorInstructionWithKindSuffix(currentEvent.directorInstruction, currentEvent.kind)}`,
-    `Emotional weather: ${formatEmotionalWeather(session, pairState)} Use as subtext only.`,
+    "You signed up for Cupid, a dating app. The platform crosses dimensions, which means the person across from you tonight could be from another species, another reality, another timeline, or just a regular human. You will not always know which until you talk to them.",
+    "A Cupid dating manager set this date up and can text you privately during it. Her notes come in like text messages. You can take her advice, push back on it, or ignore it. Your call.",
+    `This is your ${ordinal(dateNumber)} date with ${partner.firstName} through Cupid.`,
     "",
-    "Allowed memories:",
-    `Self memories: ${formatCharacterMemories(memoryPack.self)}`,
-    `Pair memories: ${formatCharacterMemories(memoryPack.pair)}`,
-    `Past visits here: ${formatCharacterMemories(memoryPack.scenario)}`,
-    `Active pair agreements: ${formatActiveAgreements(pairState)}`,
-    `Unresolved pair items: ${formatOpenLoops(pairState)}`,
-    `Pair file guidance: ${pairTrajectory.performerGuidance} Use as subtext only.`,
-    `Pair file subtext: ${formatPairTrajectorySubnotes(pairTrajectory.subnotes)}`,
-    `Pair spotlight: ${formatPairSpotlight(pairSpotlight)}`,
-    memorySearchAvailable
-      ? "Memory search: available for missing self, pair, or place history. Use returned memories only as allowed context."
-      : "Memory search: not available in this prompt run.",
+    `You are at ${scenario.publicBrief.location}. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
+    ...scenario.director.rules.map((rule) => `Worth remembering about this place: ${rule}`),
     "",
-    "Back and forth so far: supplied below as chat messages.",
-    `Latest incoming line to answer: ${latestIncomingLine}`,
-    `Your last line, do not repeat: ${latestSelfLine}`,
-    `Your last ${RECENT_LINE_GUARD_COUNT} lines, do not repeat verbatim or lightly reword:`,
-    formatRecentLinesBlock(recentSpeakerLines),
-    `${partner.name}'s last ${RECENT_LINE_GUARD_COUNT} lines, do not echo verbatim:`,
-    formatRecentLinesBlock(recentPartnerLines),
-    replyRhythmInstruction(session),
+    `From ${partner.firstName}'s Cupid profile, which you read before tonight: ${truncateForPrompt(partner.datingProfile, 520)}`,
+    `Their profile photo shows: ${partner.visualDescription}`,
+    `Their listed height is ${formatMemberHeightLabel(partner.characterHeightInInches)}. Yours is ${formatMemberHeightLabel(member.characterHeightInInches)}.`,
+    `You do not know ${partner.firstName}'s private biography, what they really are, or what they are hiding. You will find that out by talking to them.`,
+    ...formatCharacterMemorySection(memoryPack, partner),
+    ...formatCharacterPairContextSection(pairState, pairTrajectory, pairSpotlight, partner),
     "",
-    "Conversation target:",
-    "Talk to the partner, not to the room and not to Cupid.",
-    "If this is your first message in the date, start from the live moment, not from an app-profile review.",
-    "Reply to the latest character message first. If they asked a question, answer it before changing topic.",
-    "If they asked for a concrete choice, start with the concrete answer before commentary.",
-    "Do not begin by rating, classifying, summarizing, or reframing the partner's line.",
-    "Make one conversational move: answer, push back, tease, offer a detail, admit a small thing, or ask a clean follow-up.",
-    "It is valid to be confused, annoyed, guarded, embarrassed, or to ask for a reset. Do not sand every exchange into warmth.",
-    "If the latest line touches a dealbreaker or private pressure, react before making it charming.",
-    "Do not use the same reply shape twice in a row.",
-    "Do not make every line agree, paraphrase the partner, then ask a tidy follow-up question.",
-    "Do not run an interview. Questions should be occasional, not the default engine of the date.",
-    "A short listening beat can be the whole move. Use it to absorb a moment, invite more, or show restraint without turning it into a summary.",
-    "Do not pad a listening beat with a paraphrase and a question. Let the small line breathe.",
-    "If your last line asked a question, this line should usually answer, object, act on a prop, admit a detail, or leave a beat instead of asking another question.",
-    "Vary the first beat. Start from a direct answer, correction, small refusal, concrete object, confession, or wrong-footed observation when it fits.",
-    "Do not use approval openers as the default. Start that way only for a true listening beat, concession, or moment of restraint.",
-    "Do not echo the partner's exact noun just to prove you heard it. Pick it up only when you do something new with it.",
-    "If the date slips into a bargain, trade, ledger, trial, checklist, or procedure, use that frame once, then break it with a human choice, objection, or sensory detail.",
-    "Do not close the exchange like a polished bit. Leave the partner a loose edge to grab.",
-    "Do not make the line a speech, caption, toast, thesis, or trailer.",
-    "Prefer table scale verbs and visible objects over grand abstract claims.",
-    "Use concrete answers to learn something personal-scale: taste, habit, worry, principle, or a small admission.",
-    "Do not repeat or lightly reword your own earlier line. Build from it.",
-    "Do not restate a boundary, plan, order, preference, or offer you already named. Use the partner's answer to move one small step forward.",
-    "When a deal, plan, boundary, or invitation has been accepted, do not seal it again. Take the next small action, answer a new point, or let discomfort show.",
-    "Treat names, times, routes, exits, food orders, and plans as settled once the conversation settles them.",
-    "Do not ask the same question or restate the same logistical concern from the last two messages.",
-    "Do not repeat the same named plan, time, object, or promise from the last two messages. If the plan is already set, add one new feeling, obstacle, or concrete next step instead of confirming it again.",
-    "Use room events as something happening around you, not as the whole subject.",
-    "You may introduce one grounded soft detail if it gives the partner something to react to.",
-    "When the partner introduces a soft detail, either accept it, question it in character, or redirect naturally. Do not ignore it.",
-    "Keep your own register. Do not absorb the partner's jargon, job voice, title, or internal identity label.",
-    "Avoid verdicts about the whole date, compatibility, connection, spark, standards, metrics, or baselines unless the partner directly asked.",
-    "Use one concrete noun from the partner or venue when possible.",
-    "",
-    "Output contract:",
-    "Return plain text only.",
-    "Return exactly one message, not a conversation log.",
-    "Usually use 1 short sentence. Use 2 only when the first answers and the second gives a small hook. Stay under 220 characters.",
-    "No paragraph breaks.",
-    "Do not reuse a full sentence from the date conversation.",
-    "No bracketed asides, editor notes, screenplay labels, or fake channels.",
-    "Do not narrate actions in first person. If you move an object, say it as spoken dialogue instead.",
-    "If you use quotation marks, close them in the same sentence.",
-    "Do not use em dashes or en dashes. Use commas, periods, colons, or parentheses.",
-    "No speaker label, Markdown, JSON, stage directions, narration, analysis, or system text.",
+    "How you write:",
+    "You are texting from the table. One short message at a time, usually one sentence, sometimes two. Plain text. No stage directions, no narration of your own actions, no speaker labels, no markdown, no bracketed asides, no em dashes, no en dashes.",
+    `Reply to ${partner.firstName} like a person on a date, not like a stage actor. Do not summarize what ${partner.firstName} just said back at them. Do not try to close, seal, or wrap the date in one line.`,
+    "Do not reuse the same sentence shape, opener, or approval phrase you just used. Do not echo your own earlier line.",
+    "If the moment touches a dealbreaker or your private pressure, let that show before you try to be charming.",
     ...buildRepetitionRetryNotice(input.repetitionRetry),
     ...buildRhythmRetryNotice(input.rhythmRetry),
+    ...buildRecentLineNotices({
+      recentSpeakerLines,
+      recentPartnerLines,
+      partnerFirstName: partner.firstName,
+    }),
+    ...buildAttachmentSystemNotice(attachments, partner),
   ].join("\n");
-  const finalUserPrompt = buildFinalCharacterPrompt({
-    latestIncomingLine,
+
+  const threadMessages = buildCharacterThreadMessages({
+    transcript: visibleTranscript,
     member,
     partner,
-    imageAttachments: input.imageAttachments ?? [],
   });
-  const messages: ModelMessage[] = [
-    {
-      role: "user",
-      content: setupMessage,
-    },
-    ...buildCharacterThreadMessages({
-      transcript: visibleTranscript,
-      member,
-      partner,
-    }),
-    {
-      role: "user",
-      content: buildFinalUserMessageContent(finalUserPrompt, input.imageAttachments ?? []),
-    },
-  ];
+  const messages = attachImagesToFinalUserMessage(threadMessages, attachments);
 
   return {
     system,
-    prompt: formatPromptPreview(messages),
+    prompt: formatPromptPreview([{ role: "system", content: system }, ...messages]),
     messages,
   };
 }
 
-const REPLY_RHYTHM_INSTRUCTIONS: readonly string[] = [
-  "direct answer or concrete choice first. Avoid a question mark unless the partner explicitly needs one.",
-  "small objection, correction, or boundary. No approval opener.",
-  "visible object or sensory detail drives the line. Do not interview.",
-  "small personal admission. Stop before turning it into a question.",
-  "brief listening beat or held beat. One short acknowledgement is enough if it gives the partner room.",
-  "specific uncertainty or misunderstanding. Name one point, not a broad follow-up.",
-  "next small action or decision. Do not re-accept terms.",
-];
-
-function replyRhythmInstruction(session: DateSession): string {
-  const instruction =
-    REPLY_RHYTHM_INSTRUCTIONS[session.currentTurn % REPLY_RHYTHM_INSTRUCTIONS.length];
-
-  return `Reply rhythm for this line: ${instruction}`;
-}
-
-function buildFinalCharacterPrompt({
-  latestIncomingLine,
-  member,
-  partner,
-  imageAttachments,
+function buildRecentLineNotices({
+  recentSpeakerLines,
+  recentPartnerLines,
+  partnerFirstName,
 }: {
-  latestIncomingLine: string;
-  member: Member;
-  partner: Member;
-  imageAttachments: readonly CharacterPromptImageAttachment[];
-}): string {
-  return [
-    ...formatAttachmentPromptLines(imageAttachments),
-    `Latest incoming line: ${latestIncomingLine}`,
-    `Write the next message as ${member.name} to ${partner.name}.`,
-    "Answer that line first. Add only one small hook if needed.",
-  ].join("\n");
+  recentSpeakerLines: readonly string[];
+  recentPartnerLines: readonly string[];
+  partnerFirstName: string;
+}): string[] {
+  const notices: string[] = [];
+
+  if (recentSpeakerLines.length > 0) {
+    notices.push(
+      "",
+      "Your last lines, do not repeat or lightly reword:",
+      formatRecentLinesBlock(recentSpeakerLines),
+    );
+  }
+
+  if (recentPartnerLines.length > 0) {
+    notices.push(
+      `${partnerFirstName}'s last lines, do not echo verbatim:`,
+      formatRecentLinesBlock(recentPartnerLines),
+    );
+  }
+
+  return notices;
 }
 
-function formatAttachmentPromptLines(
-  imageAttachments: readonly CharacterPromptImageAttachment[],
+function buildAttachmentSystemNotice(
+  attachments: readonly CharacterPromptImageAttachment[],
+  partner: Member,
 ): string[] {
-  if (imageAttachments.length === 0) {
+  if (attachments.length === 0) {
     return [];
   }
 
   return [
-    "Visual references are attached to this user message.",
-    ...imageAttachments.map(
-      (attachment, index) => `Attached image ${index + 1} is ${attachment.description}.`,
-    ),
-    "Use the attached images for visual grounding only. Written character, place, and date facts are authoritative.",
-    "Do not mention the attached images aloud.",
     "",
+    `Photos are attached for visual grounding. They show ${partner.firstName} and the place. Do not mention the photos out loud.`,
   ];
 }
 
-function buildFinalUserMessageContent(
-  text: string,
-  imageAttachments: readonly CharacterPromptImageAttachment[],
-): string | Array<TextPart | ImagePart> {
-  if (imageAttachments.length === 0) {
-    return text;
+function attachImagesToFinalUserMessage(
+  messages: readonly ModelMessage[],
+  attachments: readonly CharacterPromptImageAttachment[],
+): ModelMessage[] {
+  if (attachments.length === 0) {
+    return [...messages];
   }
 
-  const textPart: TextPart = { type: "text", text };
-  const imageParts = imageAttachments.map(
+  const imageParts = attachments.map(
     (attachment): ImagePart => ({
       type: "image",
       image: attachment.image,
       mediaType: attachment.mediaType,
     }),
   );
+  const noteText = `(Reference photos attached: ${attachments
+    .map((attachment) => attachment.description)
+    .join("; ")}.)`;
+  const lastUserIndex = findLastUserIndex(messages);
 
-  return [textPart, ...imageParts];
+  if (lastUserIndex === -1) {
+    return [
+      ...messages,
+      {
+        role: "user",
+        content: [{ type: "text", text: noteText }, ...imageParts],
+      },
+    ];
+  }
+
+  const updated = [...messages];
+  const lastUserMessage = updated[lastUserIndex];
+
+  if (lastUserMessage === undefined || lastUserMessage.role !== "user") {
+    return updated;
+  }
+
+  const existingText =
+    typeof lastUserMessage.content === "string"
+      ? lastUserMessage.content
+      : (lastUserMessage.content.find((part): part is TextPart => part.type === "text")?.text ??
+        "");
+  const mergedText = `${existingText}\n\n${noteText}`;
+  const textPart: TextPart = { type: "text", text: mergedText };
+
+  updated[lastUserIndex] = {
+    role: "user",
+    content: [textPart, ...imageParts],
+  };
+
+  return updated;
+}
+
+function findLastUserIndex(messages: readonly ModelMessage[]): number {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    if (messages[index]?.role === "user") {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function formatCharacterMemorySection(memoryPack: MemoryPack, partner: Member): string[] {
+  const lines: string[] = [];
+  const selfMemories = memoryPack.self.filter((memory) => memory.text.trim().length > 0);
+  const pairMemories = memoryPack.pair.filter((memory) => memory.text.trim().length > 0);
+  const placeMemories = memoryPack.scenario.filter((memory) => memory.text.trim().length > 0);
+
+  if (selfMemories.length > 0) {
+    lines.push("", "What you remember about yourself that may matter tonight:");
+    lines.push(formatCharacterMemoryList(selfMemories));
+  }
+
+  if (pairMemories.length > 0) {
+    lines.push(`What you remember about ${partner.firstName} from earlier with them:`);
+    lines.push(formatCharacterMemoryList(pairMemories));
+  }
+
+  if (placeMemories.length > 0) {
+    lines.push("What you remember about this place:");
+    lines.push(formatCharacterMemoryList(placeMemories));
+  }
+
+  return lines;
+}
+
+function formatCharacterPairContextSection(
+  pairState: PairState,
+  pairTrajectory: ReturnType<typeof derivePairTrajectory>,
+  pairSpotlight: PairSpotlightItem | null,
+  partner: Member,
+): string[] {
+  const lines: string[] = [];
+  const activeAgreements = pairState.agreements.filter(
+    (agreement) => agreement.status === "active",
+  );
+  const openLoops = pairState.openLoops.filter((loop) => loop.status === "open");
+
+  if (activeAgreements.length > 0) {
+    lines.push(
+      "",
+      `Things you and ${partner.firstName} have already agreed on: ${activeAgreements
+        .slice(0, 3)
+        .map((agreement) => agreement.text)
+        .join("; ")}`,
+    );
+  }
+
+  if (openLoops.length > 0) {
+    lines.push(
+      `Things still hanging between you and ${partner.firstName}: ${openLoops
+        .slice(0, 3)
+        .map((loop) => loop.text)
+        .join("; ")}`,
+    );
+  }
+
+  const trajectoryLine = trajectoryAsCharacterVoice(pairTrajectory.state);
+
+  if (trajectoryLine !== null) {
+    lines.push(trajectoryLine);
+  }
+
+  const spotlightLine = spotlightAsCharacterVoice(pairSpotlight);
+
+  if (spotlightLine !== null) {
+    lines.push(spotlightLine);
+  }
+
+  return lines;
+}
+
+function trajectoryAsCharacterVoice(
+  state: ReturnType<typeof derivePairTrajectory>["state"],
+): string | null {
+  switch (state) {
+    case "closure_runway":
+      return "How things have been between you two: close enough that something real could land tonight if neither of you forces it.";
+    case "brittle":
+      return "How things have been between you two: fragile. Whatever is unresolved should not have to carry the whole night.";
+    case "recovering":
+      return "How things have been between you two: there is repair on the table from earlier. Follow through counts more than fresh charm.";
+    case "stuck":
+      return "How things have been between you two: you have been circling. Picking up one unresolved thing matters more than starting something new.";
+    case "warming":
+      return "How things have been between you two: there is real warmth to work with. Let it get specific.";
+    case "steady":
+      return null;
+    default:
+      return null;
+  }
+}
+
+function spotlightAsCharacterVoice(spotlight: PairSpotlightItem | null): string | null {
+  if (spotlight === null) {
+    return null;
+  }
+
+  if (spotlight.kind === "agreement") {
+    return `The one thing to keep present as table stakes: ${spotlight.text}`;
+  }
+
+  return `The one thing still hanging that could move tonight: ${spotlight.text}`;
+}
+
+function formatCharacterMemoryList(memories: readonly { text: string }[]): string {
+  return memories
+    .map((memory) => `  - ${truncateForPrompt(cleanMemberFacingText(memory.text))}`)
+    .join("\n");
+}
+
+function moodPhrase(value: number): string {
+  if (value >= 70) return "good";
+  if (value >= 50) return "steady";
+  if (value >= 30) return "low";
+  return "rough";
+}
+
+function opennessPhrase(value: number): string {
+  if (value >= 65) return "open";
+  if (value >= 40) return "measured";
+  return "guarded";
+}
+
+function burnoutPhrase(value: number): string {
+  if (value >= 65) return "high";
+  if (value >= 35) return "present";
+  return "low";
+}
+
+const ORDINAL_NAMES: readonly string[] = [
+  "first",
+  "second",
+  "third",
+  "fourth",
+  "fifth",
+  "sixth",
+  "seventh",
+  "eighth",
+  "ninth",
+  "tenth",
+];
+
+function ordinal(n: number): string {
+  if (n >= 1 && n <= ORDINAL_NAMES.length) {
+    return ORDINAL_NAMES[n - 1];
+  }
+
+  const lastTwo = n % 100;
+  const lastOne = n % 10;
+
+  if (lastTwo >= 11 && lastTwo <= 13) {
+    return `${n}th`;
+  }
+
+  if (lastOne === 1) return `${n}st`;
+  if (lastOne === 2) return `${n}nd`;
+  if (lastOne === 3) return `${n}rd`;
+
+  return `${n}th`;
 }
 
 function filterCharacterVisibleTranscript({
@@ -731,17 +792,20 @@ export function buildSummarizerPromptPacket({
     prompt: [
       "Structured output contract:",
       "Return a JSON array only. No Markdown, comments, or prose outside JSON.",
-      "Return 1 to 3 memory objects.",
+      "Return 2 to 5 memory objects when the transcript has more than one exchange. Return 1 to 3 only for very short dates.",
       `Each object must use "scope":"pair", "visibility":"public", "subjectIds":["${session.participants[0]}","${session.participants[1]}"], "pairId":"${session.pairId}", "scenarioId":"${session.scenarioId}", "dateSessionId":"${session.id}", and importance from 1 to 5.`,
-      "Use tags with short snake_case strings. Include date_summary as one tag.",
-      "Memory text must be one faithful sentence anchored in a named object, room beat, or commitment, and must not copy the full transcript.",
+      "Use tags with short snake_case strings. Include date_summary plus one of interaction, revealed_info, feeling, callback, or commitment.",
+      "Each memory must be one discrete searchable fact from the date, not a compressed recap of the whole conversation.",
+      "Memory text must be one faithful sentence anchored in a named object, room beat, revealed profile detail, changed feeling, question, answer, or commitment, and must not copy the full transcript.",
       "Preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them.",
+      "Preserve revealed information that later performers need because they do not receive the partner's private file.",
+      "Store how the pair treated each other only when the transcript shows the move: who asked, refused, trusted, dodged, softened, or followed up.",
       "Do not preserve obvious contradictions, one-off non sequiturs, hidden secrets stated as fact, future events, or gameplay effects unless deterministic state already confirmed them.",
       "Do not include exact Date Health, Spark, Strain, Health, stat values, or stat deltas in memory text.",
       "Prefer memories that help the pair continue a later conversation over generic compatibility summaries.",
       "Do not use em dashes or en dashes in any string.",
       "Reject phrases like deeper connection, explored their feelings, navigated tension, or unlocked potential. Use plain operational nouns instead.",
-      `Shape: [{"scope":"pair","visibility":"public","subjectIds":["${session.participants[0]}","${session.participants[1]}"],"pairId":"${session.pairId}","scenarioId":"${session.scenarioId}","dateSessionId":"${session.id}","text":"One faithful sentence about the completed date.","tags":["date_summary"],"importance":3}]`,
+      `Shape: [{"scope":"pair","visibility":"public","subjectIds":["${session.participants[0]}","${session.participants[1]}"],"pairId":"${session.pairId}","scenarioId":"${session.scenarioId}","dateSessionId":"${session.id}","text":"One faithful sentence about a searchable interaction or reveal.","tags":["date_summary","interaction"],"importance":3}]`,
       "",
       `Date session: ${session.id}. Pair: ${session.pairId}. Scenario: ${session.scenarioId}.`,
       `Participants: ${formatParticipants(members)}.`,
@@ -837,17 +901,6 @@ export function pickSamplesForTurn({
   return picks;
 }
 
-function pickPartnerOpener({
-  sampleMessages,
-  seed,
-}: {
-  sampleMessages: MemberSampleMessages;
-  seed: string;
-}): string {
-  const [opener] = deterministicPick(sampleMessages.opener, seed, 1);
-  return opener ?? sampleMessages.opener[0] ?? "";
-}
-
 function bucketWeights(
   dateHealth: number,
   isOpeningTurn: boolean,
@@ -919,85 +972,6 @@ function hashSeed(seed: string): number {
   return hash >>> 0;
 }
 
-function phaseForTurn(
-  turnIndex: number,
-  turnLimit: number,
-): { label: "opener" | "pressure" | "pivot" | "resolution"; instruction: string } {
-  const progress = turnLimit <= 0 ? 1 : turnIndex / turnLimit;
-
-  if (progress <= 0.14) {
-    return {
-      label: "opener",
-      instruction: "Establish first read, answer the latest line, and give one small hook.",
-    };
-  }
-
-  if (progress <= 0.5) {
-    return {
-      label: "pressure",
-      instruction:
-        "Use one live detail to learn what the partner values, or reveal what you value. Keep the venue as texture.",
-    };
-  }
-
-  if (progress <= 0.78) {
-    return {
-      label: "pivot",
-      instruction: "Make a relational choice instead of circling logistics.",
-    };
-  }
-
-  return {
-    label: "resolution",
-    instruction:
-      "Move toward a clear read on whether this should continue. If a plan is already set, close or complicate it without repeating the time, place, object, or promise.",
-  };
-}
-
-function formatEmotionalWeather(session: DateSession, pairState: PairState): string {
-  return [
-    dateComfortPhrase(session.dateHealth),
-    sparkPhrase(pairState.stats.spark),
-    strainPhrase(pairState.stats.strain),
-  ].join(" ");
-}
-
-function dateComfortPhrase(value: number): string {
-  if (value >= 70) {
-    return "the date has room to breathe.";
-  }
-
-  if (value >= 45) {
-    return "the date could still steady itself.";
-  }
-
-  return "the date feels fragile.";
-}
-
-function sparkPhrase(value: number): string {
-  if (value >= 70) {
-    return "There is real interest under the oddness.";
-  }
-
-  if (value >= 40) {
-    return "Interest is possible but not secure.";
-  }
-
-  return "Interest is thin unless someone gets specific.";
-}
-
-function strainPhrase(value: number): string {
-  if (value >= 70) {
-    return "Tension is loud.";
-  }
-
-  if (value >= 40) {
-    return "Tension is present.";
-  }
-
-  return "Tension is low.";
-}
-
 function buildCharacterThreadMessages({
   transcript,
   member,
@@ -1011,72 +985,63 @@ function buildCharacterThreadMessages({
     return [
       {
         role: "user",
-        content: `The date with ${partner.name} is starting. Send your opener now.`,
+        content: `You and ${partner.firstName} have just sat down. Open the conversation.`,
       },
     ];
   }
 
-  return transcript.map((message) => {
-    if (message.kind === "character" && message.speakerId === member.id) {
-      return {
-        role: "assistant" as const,
-        content: message.text,
-      };
+  const messages: ModelMessage[] = [];
+  let batch: string[] = [];
+
+  const flushBatch = () => {
+    if (batch.length === 0) {
+      return;
     }
 
-    return {
-      role: "user" as const,
-      content: formatIncomingThreadMessage(message, partner),
-    };
-  });
-}
+    messages.push({ role: "user", content: batch.join("\n\n") });
+    batch = [];
+  };
 
-function formatIncomingThreadMessage(message: DateMessage, partner: Member): string {
-  if (message.kind === "character") {
-    return `${message.speakerId === partner.id ? partner.name : "Date partner"}: ${message.text}`;
-  }
-
-  if (message.kind === "scenario") {
-    return `Room: ${message.text}`;
-  }
-
-  if (message.kind === "cupid") {
-    return `Private Cupid nudge to you: ${message.text}`;
-  }
-
-  return `System: ${message.text}`;
-}
-
-function formatLatestIncomingLine(
-  transcript: DateMessage[],
-  member: Member,
-  partner: Member,
-): string {
-  for (let index = transcript.length - 1; index >= 0; index -= 1) {
-    const message = transcript[index];
-
-    if (message === undefined) {
+  for (const message of transcript) {
+    if (message.kind === "character" && message.speakerId === member.id) {
+      flushBatch();
+      messages.push({ role: "assistant", content: message.text });
       continue;
     }
 
-    if (message.kind === "character" && message.speakerId !== member.id) {
-      return formatIncomingThreadMessage(message, partner);
-    }
+    batch.push(formatIncomingThreadMessage(message));
   }
 
-  return `The date with ${partner.name} is starting.`;
+  flushBatch();
+
+  return messages;
 }
 
-function formatLatestSelfLine(transcript: DateMessage[], member: Member): string {
-  for (let index = transcript.length - 1; index >= 0; index -= 1) {
-    const message = transcript[index];
-
-    if (message !== undefined && message.kind === "character" && message.speakerId === member.id) {
-      return message.text;
-    }
+function formatIncomingThreadMessage(message: DateMessage): string {
+  if (message.kind === "character") {
+    return message.text;
   }
 
-  return "None yet.";
+  if (message.kind === "scenario") {
+    return `This just happened: ${message.text}`;
+  }
+
+  if (message.kind === "cupid") {
+    return `Your dating manager just texted you: "${stripCupidNudgePrefix(message.text)}"`;
+  }
+
+  return message.text;
+}
+
+function stripCupidNudgePrefix(text: string): string {
+  const cupidPrefix = "Cupid suggests:";
+  const trimmed = text.trimStart();
+
+  if (trimmed.toLowerCase().startsWith(cupidPrefix.toLowerCase())) {
+    return trimmed.slice(cupidPrefix.length).trimStart();
+  }
+
+  return trimmed;
 }
 
 function formatPromptPreview(messages: ModelMessage[]): string {
@@ -1111,44 +1076,6 @@ function formatPromptPreviewContent(content: ModelMessage["content"]): string {
     .join("\n");
 }
 
-function formatCurrentSceneLines({
-  scenario,
-  partner,
-  isOpeningTurn,
-}: {
-  scenario: DateScenario;
-  partner: Member;
-  isOpeningTurn: boolean;
-}): string[] {
-  const lines = [
-    `Where you are: ${scenario.publicBrief.location}. ${scenario.publicBrief.openingSituation}`,
-    `What both of you understand: ${scenario.publicBrief.whatBothCharactersKnow}`,
-    `Room feel: ${scenario.director.tone}.`,
-    ...scenario.director.rules.map((rule) => `Room constraint: ${rule}`),
-    `What you can see of ${partner.firstName}: ${formatVisiblePartnerRead(partner)}`,
-  ];
-
-  if (isOpeningTurn) {
-    lines.push(
-      "Opening posture: you have just met them inside this moment. Let the first line acknowledge the live situation or the person across from you.",
-    );
-  }
-
-  return lines;
-}
-
-function formatVisiblePartnerRead(partner: Member): string {
-  const publicProfile = truncateForPrompt(firstSentenceForPrompt(partner.datingProfile));
-
-  return `Profile signal: ${publicProfile}`;
-}
-
-function firstSentenceForPrompt(text: string): string {
-  const trimmed = text.trim();
-  const match = trimmed.match(/[^.!?]+[.!?]+(\s|$)/u);
-  return match?.[0].trim() ?? trimmed;
-}
-
 function formatBulletList(items: readonly string[]): string {
   if (items.length === 0) {
     return "  None.";
@@ -1164,42 +1091,6 @@ function joinAsSentence(items: readonly string[]): string {
 
   const text = items.join("; ");
   return /[.!?]$/.test(text) ? text : `${text}.`;
-}
-
-function formatCharacterMemories(memories: Array<{ text: string }>): string {
-  if (memories.length === 0) {
-    return "None.";
-  }
-
-  return memories
-    .map(
-      (memory, index) => `${index + 1}. ${truncateForPrompt(cleanMemberFacingText(memory.text))}`,
-    )
-    .join("\n");
-}
-
-function formatActiveAgreements(pairState: PairState): string {
-  const active = pairState.agreements.filter((agreement) => agreement.status === "active");
-  if (active.length === 0) {
-    return "None filed.";
-  }
-
-  return active
-    .map((agreement) => agreement.text)
-    .slice(0, 3)
-    .join("; ");
-}
-
-function formatOpenLoops(pairState: PairState): string {
-  const open = pairState.openLoops.filter((loop) => loop.status === "open");
-  if (open.length === 0) {
-    return "None filed.";
-  }
-
-  return open
-    .map((loop) => loop.text)
-    .slice(0, 3)
-    .join("; ");
 }
 
 function formatActiveAgreementIds(pairState: PairState): string {
@@ -1365,12 +1256,12 @@ export function cleanMemberFacingText(text: string): string {
     .replace(/\bsim\b/gi, "date");
 }
 
-function truncateForPrompt(text: string): string {
-  if (text.length <= 220) {
+function truncateForPrompt(text: string, maxLength = 220): string {
+  if (text.length <= maxLength) {
     return text;
   }
 
-  return `${text.slice(0, 217)}...`;
+  return `${text.slice(0, maxLength - 3)}...`;
 }
 
 export function collectRecentSpeakerLines(

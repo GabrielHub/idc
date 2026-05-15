@@ -10,9 +10,11 @@ export const vhool: Member = {
   species: "Eldritch god",
   dimension: "Subbasement infinity",
   realityStatus: "Legally present through a filing error",
-  bio: "Vhool joined Cupid while searching for kindred and has been told several times that a dating pool is not a recruitment funnel. They keep filling out the form anyway.",
+  bio: "You joined Cupid while searching for kindred and you have been told several times that a dating pool is not a recruitment funnel. You keep filling out the form anyway. The platform crosses; you would not have noticed it otherwise, given that your home register sits below the floor of most. You are sincere. You have been told the sincerity is the problem and you have not figured out how to be sincere with less of it. You make great soup. The tremor last Thursday was unrelated and has been Filed. You are looking for one, possibly two, kindred willing to share an Apartment, a Pact, and the slow Devouring of small grievances. You apologize after any sentence that could be read as a threat, because the second reading is, in fact, threat-shaped, and you would prefer the first reading hold. You capitalize ordinary nouns as Concepts when you mean them. You have been practicing the word maybe alone in your apartment. You have not used it yet. You are afraid no one would choose you without awe involved. You are willing to be told otherwise. You are willing to be told a lot of things. The maybe is the work.",
   datingProfile:
     "Seeking one, possibly two, kindred to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. The tremor last Thursday was unrelated and has been Filed.",
+  visualDescription:
+    "A tall slender pale figure with very long flowing dark purple hair past mid-back, smaller tendrils curling up and away from the head. Scattered small violet stars throughout the hair. Sharp angular features and a faint smile. Layered black and deep magenta robes with hanging sashes. A long sash dotted with purple star ornaments falls from the chest to the knees. A vertical bright magenta panel hangs from one shoulder. Decorative chains across the torso. Black gloves on both hands, clasped at the chest. Slim black trousers and pointed black boots with gold-trimmed toes.",
   relationshipNeeds: [
     "Someone who hears cosmic language as loneliness, not threat",
     "Gentle correction when recruitment vocabulary enters the date",

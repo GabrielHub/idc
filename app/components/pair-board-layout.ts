@@ -146,12 +146,14 @@ export function derivePairGraph(
       if (degree >= minDegreeThreshold) visibleMemberIds.add(memberId);
     }
     visibleEdges = allEdges.filter(
-      (edge) => visibleMemberIds.has(edge.a) || visibleMemberIds.has(edge.b),
+      (edge) => visibleMemberIds.has(edge.a) && visibleMemberIds.has(edge.b),
     );
     visibleDegree = new Map<string, number>();
-    for (const edge of visibleEdges) {
-      visibleDegree.set(edge.a, (visibleDegree.get(edge.a) ?? 0) + 1);
-      visibleDegree.set(edge.b, (visibleDegree.get(edge.b) ?? 0) + 1);
+    for (const memberId of visibleMemberIds) {
+      const degree = degreeByMember.get(memberId);
+      if (degree !== undefined) {
+        visibleDegree.set(memberId, degree);
+      }
     }
   } else {
     visibleEdges = allEdges;

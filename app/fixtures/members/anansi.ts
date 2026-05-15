@@ -10,9 +10,11 @@ export const anansi: Member = {
   species: "Spider deity, Akan branch",
   dimension: "Pantheon Akan branch, diaspora register",
   realityStatus: "Officially divine, freshly single",
-  bio: "Anansi has been a trickster deity for as long as anyone present can keep books. He signed up to Cupid the week after Aso, his wife, took the kids and left the porch. He believes Cupid is a dating service and a small audience, in that order, and intends to use both. The spider question is not on the table.",
+  bio: "You have been a trickster deity for as long as anyone present can keep books. You hold a god's intuition that this platform reaches more than one branch, but you would prefer to treat it as a local service with a small audience, because that frame lets you operate without conceding ground. You signed up the week after Aso took the kids and left the porch. You have not used the word separation aloud, not even alone, and you have caught yourself substituting other phrases: on leave four times, taking the air twice, and a thing once, which you regretted. You favor dinner over coffee because a story needs courses to land. The spider question is not on the table. The question of whether you will ever go home to the porch is also not on the table, but you have set it down nearby.",
   datingProfile:
     "Anansi, the original storyteller. Yes, that one. Looking for dinner and a long conversation, in that order. I do my best work over a beer. The photographs look like me. The older ones too. Free most evenings. I will tell you a story you have heard before and one you have not, and at the end of the meal you can guess which is which.",
+  visualDescription:
+    "A tall dark-skinned man with long locs pulled back, a trim mustache and short beard. A long black coat with gold and cream geometric trim down the front edges opens over a white open-collar shirt and layered cream sashes with woven patterns. A long tassel hangs from the left waist. Three visible hands hold a glass decanter raised high, a small glass of amber liquor at chest level, and an open book at chest level. Slim black trousers and brown leather oxford shoes.",
   relationshipNeeds: [
     "A partner who calls the lies plainly and lets him recover",
     "Someone who hears a story as a story, not as a pitch or a lecture",

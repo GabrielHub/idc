@@ -198,6 +198,7 @@ function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): 
     savedMember.realityStatus === fixtureMember.realityStatus &&
     savedMember.bio === fixtureMember.bio &&
     savedMember.datingProfile === fixtureMember.datingProfile &&
+    savedMember.visualDescription === fixtureMember.visualDescription &&
     arraysShallowEqual(savedMember.tags, fixtureMember.tags) &&
     arraysShallowEqual(savedMember.preferences, fixtureMember.preferences) &&
     arraysShallowEqual(savedMember.dealbreakers, fixtureMember.dealbreakers) &&

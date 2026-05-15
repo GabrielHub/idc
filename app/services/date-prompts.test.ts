@@ -82,93 +82,40 @@ describe("date prompt assembly", () => {
       focusRequest: request,
     });
 
-    expect(ownerPacket.prompt).toContain(`Your ask today: "${request.text}".`);
-    expect(ownerPacket.prompt).toContain("Character card:");
-    expect(ownerPacket.prompt).toContain("Personality in conversation:");
-    expect(ownerPacket.prompt).toContain("Current date:");
-    expect(ownerPacket.prompt).toContain("What you can see of Vhool:");
     expect(ownerPacket.prompt).toContain(
-      "Address terms, titles, honorifics, pet names, and catchphrases are seasoning.",
+      `What you most want to come out of tonight: ${request.text}`,
+    );
+    expect(ownerPacket.prompt).toContain("You are Jenna Pike. People who know you call you Jenna.");
+    expect(ownerPacket.prompt).toContain(
+      "You signed up for Cupid, a dating app. The platform crosses dimensions,",
     );
     expect(ownerPacket.prompt).toContain(
-      "Short listening beats are allowed when they fit: for sure, I respect that, go on.",
+      "A Cupid dating manager set this date up and can text you privately during it.",
+    );
+    expect(ownerPacket.prompt).toContain("This is your first date with Vhool through Cupid.");
+    expect(ownerPacket.prompt).toContain(
+      "Worth remembering about this place: Keep the scene readable even when time glitches.",
     );
     expect(ownerPacket.prompt).toContain(
-      "Approval phrases include okay, fair, good, right, respect, for sure, go on, and works for me.",
+      "Worth remembering about this place: Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
+    );
+    expect(ownerPacket.prompt).toContain("How you write:");
+    expect(ownerPacket.prompt).toContain(
+      "You are texting from the table. One short message at a time",
     );
     expect(ownerPacket.prompt).toContain(
-      "Ceremonial, legal, poetic, corporate, or sect language can color one move.",
+      `Reply to Vhool like a person on a date, not like a stage actor.`,
     );
-    expect(ownerPacket.prompt).toContain(
-      "Room constraint: Keep the scene readable even when time glitches.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Room constraint: Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
-    );
-    expect(ownerPacket.prompt).toContain("Current date facts are the floor, not the ceiling.");
-    expect(ownerPacket.prompt).toContain(
-      "Treat profile details as app context from before this date",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Soft improv can include a drink, a snack, a nearby object",
-    );
-    expect(ownerPacket.prompt).toContain("These are voice examples only.");
-    expect(ownerPacket.prompt).toContain(
-      "If this is your first message in the date, start from the live moment",
-    );
-    expect(ownerPacket.prompt).toContain("Where the date is: opener.");
-    expect(ownerPacket.prompt).toContain("Live room event:");
-    expect(ownerPacket.prompt).toContain(
-      "Latest incoming line to answer: The date with Vhool is starting.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "It is valid to be confused, annoyed, guarded, embarrassed, or to ask for a reset.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "If the latest line touches a dealbreaker or private pressure, react before making it charming.",
-    );
-    expect(ownerPacket.prompt).toContain("Reply rhythm for this line:");
-    expect(ownerPacket.prompt).toContain("Do not use the same reply shape twice in a row.");
-    expect(ownerPacket.prompt).toContain(
-      "Do not make every line agree, paraphrase the partner, then ask a tidy follow-up question.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Do not run an interview. Questions should be occasional, not the default engine of the date.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "A short listening beat can be the whole move. Use it to absorb a moment",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Do not pad a listening beat with a paraphrase and a question.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "If your last line asked a question, this line should usually answer, object, act on a prop",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Do not echo the partner's exact noun just to prove you heard it.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "If the date slips into a bargain, trade, ledger, trial, checklist, or procedure",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "Do not make the line a speech, caption, toast, thesis, or trailer.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "When a deal, plan, boundary, or invitation has been accepted, do not seal it again.",
-    );
-    expect(ownerPacket.prompt).toContain("Your last line, do not repeat: None yet.");
-    expect(ownerPacket.prompt).toContain(
-      "Do not narrate actions in first person. If you move an object, say it as spoken dialogue instead.",
-    );
-    expect(ownerPacket.prompt).toContain(
-      "If you use quotation marks, close them in the same sentence.",
-    );
+    expect(ownerPacket.prompt).not.toContain("Character card:");
+    expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
+    expect(ownerPacket.prompt).not.toContain("Output contract:");
+    expect(ownerPacket.prompt).not.toContain("Conversation target:");
+    expect(ownerPacket.prompt).not.toContain("Reply rhythm for this line:");
+    expect(ownerPacket.prompt).not.toContain("Latest incoming line to answer:");
+    expect(ownerPacket.prompt).not.toContain("Live room event:");
     expect(ownerPacket.prompt).not.toContain("plain white background");
-    expect(ownerPacket.prompt).not.toContain("Do not invent objects from preferences");
-    expect(ownerPacket.prompt).not.toContain("Patterns you use:");
-    expect(ownerPacket.prompt).not.toContain("Patterns they use:");
     expect(`${ownerPacket.system}\n${ownerPacket.prompt}`).not.toMatch(
-      /\b(scenario|director|Date Health|gameplay|transcript|turn)\b/i,
+      /\b(Date Health|gameplay|transcript)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
   });
@@ -251,18 +198,20 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain("Active pair agreements: No filming at the table.");
     expect(packet.prompt).toContain(
-      "Unresolved pair items: Whether Vhool can return the receipt without ceremony.",
+      "Things you and Vhool have already agreed on: No filming at the table.",
     );
-    expect(packet.prompt).toContain("Pair file guidance:");
-    expect(packet.prompt).toContain("Pair file subtext:");
     expect(packet.prompt).toContain(
-      "Pair spotlight: Give this unresolved item a chance to move: Whether Vhool can return the receipt without ceremony.",
+      "Things still hanging between you and Vhool: Whether Vhool can return the receipt without ceremony.",
+    );
+    expect(packet.prompt).toContain(
+      "The one thing still hanging that could move tonight: Whether Vhool can return the receipt without ceremony.",
     );
     expect(packet.prompt).not.toContain("Archive the soup receipt.");
     expect(packet.prompt).not.toContain("Whether the spoon was haunted.");
     expect(packet.prompt).not.toContain("archived-session");
+    expect(packet.prompt).not.toContain("Pair file guidance:");
+    expect(packet.prompt).not.toContain("Pair file subtext:");
   });
 
   it("labels first turn visual attachments in the final user message", () => {
@@ -299,7 +248,7 @@ describe("date prompt assembly", () => {
         mediaType: "image/png",
       },
       {
-        description: "Cart Before The Horse, the date scenario background",
+        description: "Cart Before The Horse, the date backdrop",
         image: new Uint8Array([4, 5, 6]),
         mediaType: "image/webp",
       },
@@ -319,10 +268,9 @@ describe("date prompt assembly", () => {
       imageAttachments,
     });
 
-    expect(packet.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
-    expect(packet.prompt).toContain(
-      "Attached image 2 is Cart Before The Horse, the date scenario background.",
-    );
+    expect(packet.prompt).toContain("Photos are attached for visual grounding.");
+    expect(packet.prompt).toContain("Vhool's full-body date portrait");
+    expect(packet.prompt).toContain("Cart Before The Horse, the date backdrop");
     expect(packet.prompt).toContain("[attached image: image/png]");
     expect(packet.prompt).toContain("[attached image: image/webp]");
     expect(packet.prompt).not.toContain("1,2,3");
@@ -339,9 +287,64 @@ describe("date prompt assembly", () => {
       throw new Error("Expected attachment labels in a text part.");
     }
 
-    expect(textPart.text).toContain("Attached image 1 is Vhool's full-body date portrait.");
+    expect(textPart.text).toContain("Vhool's full-body date portrait");
+    expect(textPart.text).toContain("Cart Before The Horse, the date backdrop");
     expect(firstImage?.type).toBe("image");
     expect(secondImage?.type).toBe("image");
+  });
+
+  it("gives performers the partner dating profile without private partner facts", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = started.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    });
+
+    expect(packet.prompt).toContain(vhool.datingProfile);
+    expect(packet.prompt).toContain(vhool.visualDescription);
+    expect(packet.prompt).toContain(
+      `Their listed height is ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in. Yours is 5 ft 0 in.`,
+    );
+    expect(packet.prompt).not.toContain(vhool.bio);
+    expect(packet.prompt).not.toContain(vhool.species);
+    expect(packet.prompt).not.toContain(vhool.origin);
+    expect(packet.prompt).not.toContain(vhool.dimension);
+    expect(packet.prompt).not.toContain(vhool.realityStatus);
+    expect(packet.prompt).toContain(jenna.bio);
   });
 
   it("does not keep feeding opener samples after a speaker has joined the date", () => {
@@ -412,17 +415,16 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain(
-      "Latest incoming line to answer: Vhool: What must be perfect on this menu?",
-    );
-    expect(packet.prompt).toContain(
-      "Your last line, do not repeat: I am choosing the table. The mirror knows why.",
-    );
-    expect(packet.prompt).toContain("Do not copy opener scaffolds after your first message.");
-    expect(packet.prompt).toContain("Do not reuse a full sentence from the date conversation.");
-    expect(packet.prompt).toContain("Do not repeat the same named plan, time, object, or promise");
+    expect(packet.prompt).toContain("What must be perfect on this menu?");
+    expect(packet.prompt).toContain("I am choosing the table. The mirror knows why.");
     expect(packet.prompt).not.toContain(
       "As the goddess of love I am uniquely qualified to assess your profile.",
+    );
+
+    const threadAssistantMessages =
+      packet.messages?.filter((message) => message.role === "assistant") ?? [];
+    expect(threadAssistantMessages.map((message) => message.content)).toContain(
+      "I am choosing the table. The mirror knows why.",
     );
   });
 
@@ -480,14 +482,11 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain(`Live room event: ${event.characterVisibleText}`);
-    expect(packet.prompt).toContain(
-      `Live room pressure: ${formatDirectorInstructionWithKindSuffix(
-        event.directorInstruction,
-        event.kind,
-      )}`,
-    );
-    expect(packet.prompt).toContain(SCENARIO_EVENT_KIND_SUFFIXES[event.kind]);
+    expect(packet.prompt).toContain(`This just happened: ${event.characterVisibleText}`);
+    expect(packet.prompt).not.toContain(event.directorInstruction);
+    expect(packet.prompt).not.toContain(SCENARIO_EVENT_KIND_SUFFIXES[event.kind]);
+    expect(packet.prompt).not.toContain("Live room event:");
+    expect(packet.prompt).not.toContain("Live room pressure:");
   });
 
   it("keeps scenario and Cupid notes out of the latest line to answer", () => {
@@ -576,13 +575,124 @@ describe("date prompt assembly", () => {
       },
     });
 
+    expect(packet.prompt).toContain("Would a polite inventory accept soup?");
     expect(packet.prompt).toContain(
-      "Latest incoming line to answer: Vhool: Would a polite inventory accept soup?",
+      "This just happened: The espresso machine makes a legal argument.",
     );
-    expect(packet.prompt).not.toContain(
-      "Latest incoming line to answer: Room: The espresso machine makes a legal argument.",
+    expect(packet.prompt).not.toContain("Latest incoming line to answer:");
+    expect(packet.prompt).not.toContain("Room: The espresso machine makes a legal argument.");
+    expect(packet.prompt).not.toContain("Private Cupid nudge");
+
+    const finalMessage = packet.messages?.at(-1);
+    if (finalMessage?.role !== "user" || typeof finalMessage.content !== "string") {
+      throw new Error("Expected the final user message to carry batched text.");
+    }
+
+    expect(finalMessage.content).toContain("Would a polite inventory accept soup?");
+    expect(finalMessage.content).toContain(
+      "This just happened: The espresso machine makes a legal argument.",
     );
-    expect(packet.prompt).not.toContain("Latest incoming line to answer: Private Cupid nudge");
+
+    const userMessageCount = (packet.messages ?? []).filter(
+      (message) => message.role === "user",
+    ).length;
+    const assistantMessageCount = (packet.messages ?? []).filter(
+      (message) => message.role === "assistant",
+    ).length;
+    expect(userMessageCount).toBe(2);
+    expect(assistantMessageCount).toBe(1);
+  });
+
+  it("batches a scene event and a fresh Cupid nudge with the partner's reply into one user message", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = started.save.pairStates.find(
+      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const nudged = addCupidIntervention(started.save, {
+      dateSessionId: started.session.id,
+      targetMemberId: jenna.id,
+      text: "Ask about the receipt without recruiting anyone.",
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    const sessionWithLeadIn = {
+      ...nudged.session,
+      currentTurn: 2,
+      transcript: [
+        ...nudged.session.transcript,
+        {
+          id: `${nudged.session.id}-msg-scene`,
+          dateSessionId: nudged.session.id,
+          kind: "scenario" as const,
+          turnIndex: 2,
+          sequenceIndex: nudged.session.transcript.length,
+          text: "The espresso machine makes a legal argument.",
+          createdAt: "2026-05-05T12:03:00.000Z",
+        },
+        {
+          id: `${nudged.session.id}-msg-vhool`,
+          dateSessionId: nudged.session.id,
+          kind: "character" as const,
+          speakerId: vhool.id,
+          turnIndex: 2,
+          sequenceIndex: nudged.session.transcript.length + 1,
+          text: "Would a polite inventory accept soup?",
+          createdAt: "2026-05-05T12:04:00.000Z",
+        },
+      ],
+    };
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: sessionWithLeadIn,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: sessionWithLeadIn.transcript,
+      },
+    });
+
+    const finalMessage = packet.messages?.at(-1);
+    if (finalMessage?.role !== "user" || typeof finalMessage.content !== "string") {
+      throw new Error("Expected the final user message to carry batched text.");
+    }
+
+    expect(finalMessage.content).toContain(
+      `Your dating manager just texted you: "Ask about the receipt without recruiting anyone."`,
+    );
+    expect(finalMessage.content).toContain(
+      "This just happened: The espresso machine makes a legal argument.",
+    );
+    expect(finalMessage.content).toContain("Would a polite inventory accept soup?");
+
+    const userMessages = (packet.messages ?? []).filter((message) => message.role === "user");
+    expect(userMessages).toHaveLength(1);
   });
 
   it("shows targeted Cupid nudges only to the targeted performer", () => {
@@ -645,8 +755,10 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(vhoolPacket.prompt).toContain("Cupid suggests");
-    expect(vhoolPacket.prompt).toContain("Ask about the receipt without recruiting anyone.");
+    expect(vhoolPacket.prompt).toContain(
+      `Your dating manager just texted you: "Ask about the receipt without recruiting anyone."`,
+    );
+    expect(vhoolPacket.prompt).not.toContain("Cupid suggests");
     expect(jennaPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
 
     const answeredSession = {
@@ -691,7 +803,7 @@ describe("date prompt assembly", () => {
     });
 
     expect(expiredPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
-    expect(expiredPacket.prompt).not.toContain("Private Cupid nudge");
+    expect(expiredPacket.prompt).not.toContain("Your dating manager just texted you:");
   });
 
   it("keeps old Cupid nudges out of later performer prompts", () => {
@@ -1402,14 +1514,12 @@ describe("character prompt repetition guard", () => {
       },
     });
 
-    expect(packet.prompt).toContain("Your last 3 lines, do not repeat verbatim or lightly reword:");
+    expect(packet.prompt).toContain("Your last lines, do not repeat or lightly reword:");
     expect(packet.prompt).toContain("Jenna brought up the lemon tart at the back booth.");
     expect(packet.prompt).toContain("Jenna mentioned the rain pinging the window.");
-    expect(packet.prompt).toContain("Vhool's last 3 lines, do not echo verbatim:");
+    expect(packet.prompt).toContain("Vhool's last lines, do not echo verbatim:");
     expect(packet.prompt).toContain("Vhool counted the brass receipts on the saucer.");
     expect(packet.prompt).toContain("Vhool offered to share the saucer with the receipts.");
-    expect(packet.prompt).not.toContain("What this pair feels like");
-    expect(packet.prompt).not.toContain("No specific pair friction flagged");
     expect(packet.prompt).not.toContain("Retry guard:");
   });
 

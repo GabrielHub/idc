@@ -10,9 +10,11 @@ export const calvinHewes: Member = {
   species: "Cryptid (denied)",
   dimension: "Prime, regional",
   realityStatus: "Filed as human, footnoted by Reddit",
-  bio: "Calvin Hewes manages employee dispute resolution at a regional health insurance company in West Virginia. He has retained counsel regarding a 2019 trail cam incident he is not at liberty to discuss. He selected this cover name forty seven years ago and stands by it.",
+  bio: "You manage employee dispute resolution at a regional health insurance company in West Virginia. You have retained counsel regarding a 2019 trail cam incident and you are not at liberty to discuss it. You selected the cover name Calvin Hewes forty-seven years ago and you stand by it. The wings are folded, always, under the cut of the suit, which you have tailored at considerable expense by a man in Charleston who has not asked a question in eight years. Your venues are picked by criteria: low ceilings, no overhead camera infrastructure, a parking lot covered by foliage, a side entrance the staff do not narrate. You think of Cupid as a private platform with a discretion clause buried somewhere. You have not made an effort to confirm whether that read is accurate; what matters is whether you can keep a venue, an hour, and a lighting arrangement on terms you set. You have always been six foot two on the paperwork. You have always been Calvin. You have not yet decided what it would mean to be chosen, in this cover, by someone who does not know.",
   datingProfile:
     "Mid forties, for real. Mediation professional. Looking for a partner who values discretion, civilized lighting, and a venue without overhead camera infrastructure. I am six foot two on paper. I have always been six foot two. Available weekends following completed mediation calendars. Going forward.",
+  visualDescription:
+    "A tall figure with a furred moth head, feathered antennae, and two large glowing red eyes. A fitted black double-breasted suit over a white dress shirt and red tie, a small red pocket square at the chest. Black trousers, polished black formal shoes. Hands clasped at the waist. Two large dark wings spread behind him, patterned with pale eye-spots like a moth's, half open.",
   relationshipNeeds: [
     "Someone who treats his discretion as a feature, not a puzzle",
     "A date with predictable lighting and a parking lot covered by foliage",

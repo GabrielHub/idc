@@ -20,6 +20,7 @@ import { createSeedGameSave, makePairId } from "./game-seed";
 import { OPEN_LOOP_TAG, PAIR_AGREEMENT_TAG } from "./pair-memory";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
+import type { CharacterPromptPacket } from "./date-prompts";
 
 describe("AI date text sanitation", () => {
   it("removes bare action narration while keeping spoken text", () => {
@@ -189,7 +190,8 @@ describe("AI date engine orchestration", () => {
     expect(aiMemory?.embeddingModel).toBe("fake-embedding");
     expect(aiMemory?.pairId).toBe(started.session.pairId);
     expect(aiMemory?.scenarioId).toBe(started.session.scenarioId);
-    expect(aiMemory?.visibleToMemberIds).toEqual(["jenna-pike"]);
+    expect(aiMemory?.visibility).toBe("public");
+    expect(aiMemory?.visibleToMemberIds).toBeUndefined();
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
     const completedShift = result.save.shifts.find(
       (shift) => shift.id === result.save.activeShiftId,
@@ -286,7 +288,7 @@ describe("AI date engine orchestration", () => {
     expect(result.save.memories.some((memory) => memory.tags.includes(OPEN_LOOP_TAG))).toBe(true);
   });
 
-  it("attaches Gateway vision images only to the first generated turn", async () => {
+  it("attaches vision images to image-capable first generated turns", async () => {
     vi.stubGlobal("window", {
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -391,17 +393,180 @@ describe("AI date engine orchestration", () => {
 
       expect(result.session.currentTurn).toBe(2);
       expect(packets).toHaveLength(2);
-      expect(packets[0]?.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
-      expect(packets[0]?.prompt).toContain(
-        "Attached image 2 is Cart Before The Horse, the date scenario background.",
-      );
-      expect(packets[1]?.prompt).not.toContain("Attached image 1 is");
+      expect(packets[0]?.prompt).toContain("Vhool's full-body date portrait");
+      expect(packets[0]?.prompt).toContain("Cart Before The Horse, the date backdrop");
+      expect(packets[1]?.prompt).not.toContain("Vhool's full-body date portrait");
 
       const firstFinalMessage = packets[0]?.messages?.at(-1);
       const secondFinalMessage = packets[1]?.messages?.at(-1);
 
       expect(Array.isArray(firstFinalMessage?.content)).toBe(true);
       expect(typeof secondFinalMessage?.content).toBe("string");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("allows local character models to receive first-turn images", async () => {
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = input.toString();
+
+        if (url.endsWith("/assets/scenarios/manifest.json")) {
+          return Response.json({ backgrounds: ["temporal-coffee-shop"] });
+        }
+
+        if (
+          url.endsWith("/assets/portraits/vhool/portrait.png") ||
+          url.endsWith("/assets/scenarios/temporal-coffee-shop/background.webp")
+        ) {
+          return new Response(new Uint8Array([1, 2, 3]), { status: 200 });
+        }
+
+        return new Response(null, { status: 404 });
+      }),
+    );
+
+    try {
+      const repository = new LocalGameRepository(new MemorySaveStore(), "ai-local-vision-test");
+      const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+        "jenna-pike",
+      ]);
+      const started = startAndDraftDateSession(save, {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "vhool",
+        scenarioId: "temporal-coffee-shop",
+        now: new Date("2026-05-05T12:01:00.000Z"),
+      });
+      const packets: CharacterPromptPacket[] = [];
+      const runtime: LocalAiDateRuntime = {
+        generateCharacterTurn: async ({ packet }) => {
+          packets.push(packet);
+
+          return {
+            text: "Jenna notices the room and asks Vhool about the receipt.",
+            providerMode: "ollama",
+            model: "fake-local",
+            stepCount: 1,
+            toolCallCount: 0,
+            toolResultCount: 0,
+          };
+        },
+        judgeDateExchange: async () => {
+          throw new Error("judge should not run after one local vision turn");
+        },
+        summarizeDateMemories: async () => [],
+        embedMemoryText: async ({ text }) => {
+          const embedding = createDeterministicEmbedding(text);
+
+          return {
+            embedding,
+            model: "fake-embedding",
+            dimensions: embedding.length,
+          };
+        },
+      };
+      await repository.saveGame(started.save);
+
+      await advanceDateExchangeWithLocalAi(started.save, repository, {
+        dateSessionId: started.session.id,
+        turnCount: 1,
+        runtime,
+        config: {
+          ...started.save.config,
+          aiProvider: "ollama",
+          chatModel: "gemma4:e4b",
+        },
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      });
+
+      const firstPacket = packets[0];
+      const finalMessage = firstPacket?.messages?.at(-1);
+
+      expect(firstPacket?.prompt).toContain("Vhool's full-body date portrait");
+      expect(Array.isArray(finalMessage?.content)).toBe(true);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("does not attach first-turn images to non-image local models", async () => {
+    vi.stubGlobal("window", {
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("image fetch should not run for this model");
+      }),
+    );
+
+    try {
+      const repository = new LocalGameRepository(new MemorySaveStore(), "ai-local-text-only-test");
+      const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+        "jenna-pike",
+      ]);
+      const started = startAndDraftDateSession(save, {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "vhool",
+        scenarioId: "temporal-coffee-shop",
+        now: new Date("2026-05-05T12:01:00.000Z"),
+      });
+      const packets: CharacterPromptPacket[] = [];
+      const runtime: LocalAiDateRuntime = {
+        generateCharacterTurn: async ({ packet }) => {
+          packets.push(packet);
+
+          return {
+            text: "Jenna asks Vhool whether the receipt is decorative or legally alive.",
+            providerMode: "ollama",
+            model: "fake-local",
+            stepCount: 1,
+            toolCallCount: 0,
+            toolResultCount: 0,
+          };
+        },
+        judgeDateExchange: async () => {
+          throw new Error("judge should not run after one local text turn");
+        },
+        summarizeDateMemories: async () => [],
+        embedMemoryText: async ({ text }) => {
+          const embedding = createDeterministicEmbedding(text);
+
+          return {
+            embedding,
+            model: "fake-embedding",
+            dimensions: embedding.length,
+          };
+        },
+      };
+      await repository.saveGame(started.save);
+
+      await advanceDateExchangeWithLocalAi(started.save, repository, {
+        dateSessionId: started.session.id,
+        turnCount: 1,
+        runtime,
+        config: {
+          ...started.save.config,
+          aiProvider: "ollama",
+          chatModel: "qwen3.5:9b",
+        },
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      });
+
+      const firstPacket = packets[0];
+      const finalMessage = firstPacket?.messages?.at(-1);
+
+      expect(firstPacket?.prompt).not.toContain("Reference photos attached:");
+      expect(Array.isArray(finalMessage?.content)).toBe(false);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -459,6 +624,7 @@ describe("AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
     const toolMemoryIds: string[] = [];
+    const toolMemoryTags: string[][] = [];
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ tools }) => {
         if (tools === undefined) {
@@ -471,6 +637,7 @@ describe("AI date engine orchestration", () => {
           limit: 3,
         });
         toolMemoryIds.push(...result.memories.map((memory) => memory.id));
+        toolMemoryTags.push(...result.memories.map((memory) => memory.tags));
 
         return {
           text: "Jenna remembers the brass receipt and asks whether Vhool kept it on purpose.",
@@ -509,6 +676,7 @@ describe("AI date engine orchestration", () => {
 
     expect(toolMemoryIds).toContain("memory-tool-visible-receipt");
     expect(toolMemoryIds).not.toContain("memory-tool-hidden-surprise");
+    expect(toolMemoryTags.every((tags) => tags.length === 0)).toBe(true);
     expect(result.aiTelemetry.characterToolCallCount).toBe(1);
     expect(result.aiTelemetry.characterToolResultCount).toBe(1);
     expect(result.session.currentTurn).toBe(1);
@@ -536,7 +704,7 @@ describe("AI date engine orchestration", () => {
     });
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ packet }) => ({
-        text: packet.prompt.includes("as Jenna Pike")
+        text: packet.prompt.includes("You are Jenna Pike")
           ? "Jenna asks one grounded coffee question."
           : "Vhool answers the coffee question without recruiting anyone.",
         providerMode: "ollama",
@@ -822,7 +990,7 @@ describe("AI date engine orchestration", () => {
         throw new Error("non-streaming performer should not run");
       },
       streamCharacterTurn: async ({ packet, onTextDelta }) => {
-        const text = packet.prompt.includes("as Jenna Pike")
+        const text = packet.prompt.includes("You are Jenna Pike")
           ? "Jenna watches the coffee unspill and asks if that is normal."
           : "Vhool says\u2014normal is a department opinion, not a fact.";
 
@@ -1080,7 +1248,7 @@ describe("AI date engine orchestration", () => {
           };
         }
 
-        if (!packet.prompt.includes("as Vhool")) {
+        if (!packet.prompt.includes("You are Vhool")) {
           throw new Error("expected the second performer call to be Vhool");
         }
 
@@ -1142,7 +1310,7 @@ describe("AI date engine orchestration", () => {
     const retryRuntime: LocalAiDateRuntime = {
       ...runtime,
       streamCharacterTurn: async ({ packet, onTextDelta }) => {
-        const text = packet.prompt.includes("as Jenna Pike")
+        const text = packet.prompt.includes("You are Jenna Pike")
           ? "Jenna asks the calm receipt question on retry."
           : "Vhool answers the receipt on retry.";
 
@@ -1696,7 +1864,7 @@ describe("AI date engine orchestration", () => {
     const performerCalls: { promptIncludesRetryGuard: boolean; recentLinesPresent: boolean }[] = [];
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ packet }) => {
-        const isJennaPrompt = packet.prompt.includes("as Jenna Pike");
+        const isJennaPrompt = packet.prompt.includes("You are Jenna Pike");
 
         if (!isJennaPrompt) {
           return {
@@ -1996,7 +2164,7 @@ describe("AI date engine orchestration", () => {
     });
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ packet }) => ({
-        text: packet.prompt.includes("as Jenna Pike")
+        text: packet.prompt.includes("You are Jenna Pike")
           ? "Jenna asks a grounded coffee question."
           : "Vhool answers without recruiting anyone.",
         providerMode: "ollama",
@@ -2094,7 +2262,7 @@ describe("AI date engine orchestration", () => {
     const promptSeenByJudge: string[] = [];
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ packet }) => ({
-        text: packet.prompt.includes("as Jenna Pike")
+        text: packet.prompt.includes("You are Jenna Pike")
           ? "Jenna asks a grounded coffee question."
           : "Vhool answers without recruiting anyone.",
         providerMode: "ollama",

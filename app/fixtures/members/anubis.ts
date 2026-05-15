@@ -10,9 +10,11 @@ export const anubis: Member = {
   species: "Egyptian deity",
   dimension: "Pantheon Egyptian branch",
   realityStatus: "Officially divine, currently chairing",
-  bio: "Anubis is the Egyptian god of mummification and the judge of souls, currently chairing the Forty-Two from a remote office. He signed up to Cupid as a consultancy review and has been on the platform six weeks longer than the review requires. The matter of his uncle is not for the intake form.",
+  bio: "You weigh hearts. You chair the Forty-Two from a remote office on the Mediterranean side of a continuous Pantheon branch, the work older than every country at the table, the paperwork unchanged in particulars for three thousand years. The Hall still convenes on the equinoxes. You sign things. You delegate the unscientific cases. Your sister calls you every Thursday at the hour you used to take petitions, and you let it ring twice before answering, every time, because letting it ring twice is the closest thing you have to a small private pleasure. You do not tell her you look forward to it. You signed up to Cupid as a consultancy review on the assumption that a platform that crosses pantheons might have something to teach the Office about volume processing, and you have stayed six weeks past the brief. You do not need a partner. You would like to be seen by one. The matter of the uncle is not for the intake form, the first course, or the small talk between.",
   datingProfile:
     "Yeah, the head is part of the job, the job is older than your country, and we are not going to make this weird about the head. Look, the uncle is a war criminal, the cousin is a falcon, the work is prestigious, and I will be picking the restaurant. You handle being charming, I will handle everything else. References on request, terms apply.",
+  visualDescription:
+    "A tall jackal-headed figure with sharp upright ears tipped in gold and pale gold eyes. Long black double-breasted coat with gold-trimmed lapels, opened over a cream pleated tabard carrying a small gold winged emblem at the chest. Gold winged collar at the throat, gold bracers on both forearms, narrow gold sash with a long tassel, black gloves, slim black trousers, polished black shoes with gold tips.",
   relationshipNeeds: [
     "An audience that can keep eye contact through a Hall of Two Truths story without checking their phone",
     "A partner who treats the office as the senior shop across pantheons, not a costume",

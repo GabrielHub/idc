@@ -28,6 +28,7 @@ React 19, React Router 7, TypeScript, Tailwind v4, Zod, AI SDK with `ai-sdk-olla
 
 ```bash
 vp install
+vp config
 vp dev
 ```
 
@@ -40,10 +41,12 @@ If your local Ollama rejects the dev origin, configure Ollama CORS for `http://l
 | Command                          | Purpose                                                        |
 | -------------------------------- | -------------------------------------------------------------- |
 | `vp install`                     | Install dependencies. Run after pulling changes.               |
+| `vp config`                      | Install Vite Plus Git hooks for this clone.                    |
 | `vp dev`                         | Start the browser SPA dev server at `http://localhost:5173/`.  |
 | `vp check`                       | Format, lint, and type check.                                  |
 | `vp test`                        | Run Vitest.                                                    |
 | `vp build`                       | Build the browser SPA.                                         |
+| `vp run verify`                  | Run the local gate used by pre-commit: check, test, and build. |
 | `vp preview`                     | Preview the latest browser production build.                   |
 | `vp run build:desktop`           | Build the desktop-mode SPA bundle and run the verifier.        |
 | `vp run tauri:dev`               | Open the Tauri desktop shell for local development.            |
@@ -52,7 +55,7 @@ If your local Ollama rejects the dev origin, configure Ollama CORS for `http://l
 | `vp run portrait:cutout`         | Run portrait background removal.                               |
 | `vp run portrait:resize-avatars` | Normalize portrait avatar crops.                               |
 
-Use `vp` first. Run other project scripts through `vp run` when there is no dedicated `vp` command.
+Use `vp` first. Run other project scripts through `vp run` when there is no dedicated `vp` command. Add future project workflows as Vite Plus tasks in `vite.config.ts` unless they are package lifecycle commands or need to stay as package manager scripts.
 
 Playwright is the primary UI regression surface. Assume the dev server is already running at `http://localhost:5173/`. Store screenshots in `playwright/screenshots/`, logs in `playwright/logs/`, and traces in `playwright/artifacts/`.
 

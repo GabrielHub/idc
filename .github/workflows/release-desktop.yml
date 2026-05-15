@@ -56,40 +56,23 @@ jobs:
             throw "Release tag $env:RELEASE_TAG does not match package.json version $($package.version). Expected $expectedTag."
           }
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Vite Plus
+        uses: voidzero-dev/setup-vp@v1
         with:
-          run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: Validate release readiness
-        shell: pwsh
-        run: node scripts/verify-release-readiness.mjs --tag $env:RELEASE_TAG
-
-      - name: Install Vite Plus
-        shell: pwsh
-        run: npm install -g vite-plus
+          node-version: "24"
+          cache: true
 
       - name: Install dependencies
         shell: pwsh
         run: vp install
 
-      - name: Check formatting, lint, and types
+      - name: Validate release readiness
         shell: pwsh
-        run: vp check
+        run: vp run release:check --tag $env:RELEASE_TAG
 
-      - name: Run tests
+      - name: Run local verification gate
         shell: pwsh
-        run: vp test
-
-      - name: Build browser app
-        shell: pwsh
-        run: vp build
+        run: vp run verify
 
   windows:
     name: Build and publish Windows
@@ -143,20 +126,11 @@ jobs:
           [System.IO.File]::WriteAllText($keyPath, $env:TAURI_SIGNING_PRIVATE_KEY)
           "TAURI_SIGNING_PRIVATE_KEY=$keyPath" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+      - name: Setup Vite Plus
+        uses: voidzero-dev/setup-vp@v1
         with:
-          run_install: false
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "pnpm"
-
-      - name: Install Vite Plus
-        shell: pwsh
-        run: npm install -g vite-plus
+          node-version: "24"
+          cache: true
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

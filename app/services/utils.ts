@@ -64,7 +64,7 @@ export function hashSeedUint32(seed: string): number {
 
 // Clamp a random source value to [0, 1) so Math.floor(value * length) cannot
 // index past the end of an array. Non-finite inputs collapse to 0.
-export function clampRandom(value: number): number {
+function clampRandom(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
   }
@@ -97,14 +97,4 @@ export function mulberry32(seed: number): () => number {
 
 export function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-export function jsonResponse(value: unknown, init?: ResponseInit): Response {
-  const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
-
-  return new Response(JSON.stringify(value), {
-    ...init,
-    headers,
-  });
 }

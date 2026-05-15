@@ -10,9 +10,11 @@ export const tashaRell: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, bullish",
-  bio: "Tasha trades for a small prop firm and refers to her own dating life as a portfolio. She has been on a heater since Q3 2025 and is treating Cupid as a high upside asymmetric position with limited downside.",
+  bio: "You trade for a small prop firm and refer to your own dating life as a portfolio. You have been on a heater since Q3 2025, you closed Q4 up, you got humbled in Q1, and you are treating Cupid as a high-upside asymmetric position with limited downside. The Lexus is leased. You have not told your mother. Your mother believes you own the car outright. You frame your feelings as quarter goals because the frame is the only one you have not surrendered. You believe Cupid is a vetted matching service for high-performance individuals. The interdimensional branding reads to you as a positioning decision and you respect a positioning decision; you have not interrogated whether the branding might be accurate. You take a 4 a.m. terminal alert and you respect anyone who reads texts. You pencil in commitments. You ask about portfolios within the first two messages because portfolio disclosure is, in your read, foreplay. You are privately terrified of a flat year. You treat every quiet Tuesday like the start of one. You pick the steakhouse. You confirm by EOD or rotate. You expect the same in return.",
   datingProfile:
     "high conviction long on dinner Friday after market close, seeking a counterparty who reads texts and respects a 4am terminal alert. Looking for someone who picks a steakhouse and is not afraid of a person with leverage. I drive a Lexus. It is leased. I will not lie about that.",
+  visualDescription:
+    "A tall slender woman with tan skin, dark wavy brunette hair past her shoulders, and a confident smile. A cream blazer with rolled sleeves worn over a champagne satin halter crop top, exposing a toned midriff. High-waisted black tailored trousers and black loafers with gold trim. A gold watch and a thin gold cuff at the wrists. One hand holds a slim black portfolio at her side.",
   relationshipNeeds: [
     "Someone who matches her energy without trying to short her",
     "A date with a clear time, place, and exit ramp",

@@ -180,9 +180,9 @@ function LiveDateIcon({ focused, state }: { focused: boolean; state: LiveDateSta
     >
       <motion.path
         d="M10 17 C 3 12.5 2 7.5 5.5 5 C 7 4 8.75 4.5 10 6 C 11.25 4.5 13 4 14.5 5 C 18 7.5 17 12.5 10 17 Z"
+        fill="currentColor"
         animate={{ fillOpacity: filled ? 0.92 : 0 }}
         transition={{ duration: 0.25 }}
-        style={{ fill: "currentColor" }}
       />
     </motion.svg>
   );

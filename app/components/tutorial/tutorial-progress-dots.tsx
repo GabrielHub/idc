@@ -76,8 +76,7 @@ export function TutorialProgressDots({ count, active, onSelect }: TutorialProgre
                   aria-label={`Step ${index + 1}`}
                   data-sfx="click"
                   onClick={() => onSelect?.(index)}
-                  className="cursor-pointer rounded-full"
-                  style={{ background: "transparent", padding: 0, border: 0 }}
+                  className="cursor-pointer rounded-full border-0 bg-transparent p-0"
                 >
                   {node}
                 </button>

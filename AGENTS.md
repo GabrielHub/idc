@@ -100,7 +100,7 @@
 - Avoid new global CSS classes unless the change needs shared base styling across multiple components.
 - Enabled clickable UI elements must include `cursor-pointer`.
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
-- Minimum font size is `text-sm` or 14px. Never use smaller arbitrary text. Custom tokens below 14px (`text-micro`, `text-label`, the old `text-xs`) are deprecated for new work and are being remediated app-wide.
+- Minimum font size is `text-sm` or 14px. Never use smaller arbitrary text. The Tailwind default `text-xs` (12px) is off-limits. Custom tokens `text-micro` and `text-label` resolve to 14px and are kept as semantic aliases (chip eyebrow vs body caption).
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
 - Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/product/visual-design.md`.
 - Preserve the Aura design language described in `app/app.css` and `docs/product/visual-design.md`.

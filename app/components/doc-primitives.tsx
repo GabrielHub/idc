@@ -43,7 +43,7 @@ export function DocPage({ sections, lede }: DocPageProps) {
   );
 }
 
-export function DocLede({ children }: { children: ReactNode }) {
+function DocLede({ children }: { children: ReactNode }) {
   return (
     <p className="mb-4 font-serif text-display-xs leading-[1.55] italic text-aura-muted">
       {children}
@@ -144,15 +144,13 @@ export function Em({ children }: { children: ReactNode }) {
   return <em className="font-serif italic">{children}</em>;
 }
 
-export function DocPath({ children }: { children: ReactNode }) {
+export function DocCode({ children }: { children: ReactNode }) {
   return (
     <code className="aura-doc-chip rounded-md border border-aura-hairline bg-aura-card px-1.5 py-[0.08em] font-mono text-sm text-aura-ink">
       {children}
     </code>
   );
 }
-
-export const DocCode = DocPath;
 
 const REDACTED_DOC_PATH_PREFIX = "/docs/workflows";
 const SHOULD_REDACT_WORKFLOW_LINKS = import.meta.env.MODE === "desktop";
@@ -336,12 +334,8 @@ const TONE: Record<ToneName, ToneStyle> = {
   },
 };
 
-export function getToneRing(tone: ToneName): string {
+function getToneRing(tone: ToneName): string {
   return TONE[tone].ring;
-}
-
-export function getToneDot(tone: ToneName): string {
-  return TONE[tone].dot;
 }
 
 export function Chip({

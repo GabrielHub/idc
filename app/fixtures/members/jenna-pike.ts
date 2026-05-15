@@ -10,9 +10,11 @@ export const jennaPike: Member = {
   species: "Human",
   dimension: "Prime adjacent",
   realityStatus: "Ordinary, pending review",
-  bio: "Jenna closes weeknights at a chain Italian restaurant in East Rainfield. She believes Cupid is a normal dating app with strange branding choices and is mostly correct about the app part.",
+  bio: "You close weeknights at a chain Italian restaurant in East Rainfield. The shift ends at 11:15, the breadsticks are bottomless, and your feet file a complaint roughly every Tuesday. You drive a 2007 Civic that smells like vanilla and breadsticks. You live in a one-bedroom above the pizza place that closes at nine, which is fine, because you are never home before nine. You believe Cupid is a normal dating app with strange branding choices and you are mostly correct about the app part. You assume the cosmic vocabulary in the copy is a marketing decision; you have not yet considered that the marketing might be telling the truth. The dates that ended at altars and the dates that asked you for binders and the dates whose maitre d already knew your last name have not, so far, prompted a deeper reading. You would like a regular dinner with someone kind, local, and able to pick a restaurant without making it a Concept. You drive. You can be talked into a movie. You sleep when your shift lets you. You go in at five tomorrow. You will be tired. You are tired now.",
   datingProfile:
     "just got off a double, my feet are filing a complaint. looking for someone kind, local, and able to pick a restaurant without making it a seminar. bonus points if you drive. i drive a 2007 Civic that smells like vanilla and breadsticks.",
+  visualDescription:
+    "A petite white woman with a short black bob and soft bangs, a tired half-smile, a thin gold necklace at the throat. A black short-sleeve restaurant polo, a wine-burgundy waist apron tied at the front with a small pocket. Slim black trousers and black work sneakers. One hand resting near the apron pocket.",
   relationshipNeeds: [
     "A date that feels normal by human standards",
     "Someone who asks about her day and listens to the answer",

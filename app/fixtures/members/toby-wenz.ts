@@ -10,9 +10,11 @@ export const tobyWenz: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, awake at 3 a.m.",
-  bio: "Toby works overnight stocking at a regional grocery chain in Findlay and sleeps days. He has not had a full conversation with someone outside the dairy aisle in eight weeks. He thinks Cupid is a normal dating app. He has not finished his profile because he keeps adding things.",
+  bio: "You work overnight stocking at a regional grocery chain in Findlay and sleep days. You have not had a full conversation with someone outside the dairy aisle in eight weeks. You believe Cupid is a normal dating app and you have not finished your profile because you keep adding things and then deleting things and then putting things back. The pretzel story has been in three times. It is in now. You stopped going to college a year ago and you have not told your mother. You keep a notebook in the break room of things you meant to say but did not get to. The list is two pages. Items get crossed off. New items get added. The list is, in a way, the most consistent relationship in your life right now, which is a sentence you would not write down if pressed. You spiral. You apologize for the spiral. You apologize for the apology. You have been awake for nineteen hours by 1 a.m. and your lucidity expires around 4 a.m., which is the window your partner has to catch you if they want the version of you that does not panic. You are working on the panic. You are also working on the not-working-on-the-panic.",
   datingProfile:
     "hi i'm toby, 22, i do overnight at a grocery store, my schedule is bad but i get a lot of time to think which is mostly a problem, i had a dog growing up named pretzel and one time she got out during a thunderstorm and we found her at a gas station which is a true story, anyway i would like to meet someone, i'm pretty nice i think, my mom says so but she has incentives, i'll stop",
+  visualDescription:
+    "A slim young white man with curly brown hair and a soft hesitant smile. A grey zip-up hooded sweatshirt worn open over a navy work polo with a name tag at the chest. A black work belt with a yellow box cutter clipped at the hip, black cargo pants, black work shoes. One hand raised in an awkward open wave at his chest.",
   relationshipNeeds: [
     "Someone willing to sit through three minutes of him to get to the real him",
     "A topic to spiral on so the spiraling has somewhere to land",

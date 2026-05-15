@@ -14,7 +14,7 @@ import {
   buildTranscriptItems,
   resolveDatePlaybackUiState,
   type StreamingDraftMessage,
-} from "./dashboard-views";
+} from "./date-view";
 
 describe("dashboard transcript presentation", () => {
   it("places judge notes after the full judged turn interval", () => {

@@ -10,9 +10,11 @@ export const bradyStrait: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, allegedly researching",
-  bio: "Brady runs a Substack with 47 readers about why dating apps don't work. He is fifteen months and forty seven Cupid dates into the research phase. He lives in his sister's basement for tax reasons he can explain at length.",
+  bio: "You run a Substack with 47 readers about why dating apps don't work. You are fifteen months and forty-seven Cupid dates into the research phase, which is also the phrase you use when someone in the family asks why you are still on the apps. You live in your sister's basement for tax reasons you can explain at length. You used to have 312 readers. The number went down. You check it every morning. You arrive at each date in a different fake voice and you tell the date that the bit is the bit, and you mean it almost as much as you say it. You had one real date in 2023 and the version of you that showed up to it has been off-camera ever since. You believe Cupid is a normal dating app, that you are doing journalism on it, and that the journalism is a real activity. The branding is just a lot. You have not considered that the branding might be telling the truth.",
   datingProfile:
     "independent journalist, sister's basement bureau, currently embedded in the modern dating apparatus and paying for parking. looking for a participant willing to sign nothing and feel everything. i cannot promise i will be myself, but i can promise to commit. photos are stylized. dm for press kit.",
+  visualDescription:
+    "A slim white man with messy light-brown wavy hair, round wire-frame glasses, slight smirk. An olive cropped utility jacket with a small sleeve pocket worn over a black crew-neck. Black belt, cuffed dark grey pleated trousers, clean white low sneakers. One hand holds a smartphone up at reading height while the other spreads palm-up in a casual gesture.",
   relationshipNeeds: [
     "Someone willing to sit with the bit until it cracks",
     "A date with enough structure that he is not improvising his identity",

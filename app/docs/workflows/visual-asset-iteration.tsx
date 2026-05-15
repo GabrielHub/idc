@@ -79,6 +79,13 @@ export const sections: DocSectionEntry[] = [
           "Inspect the candidate. Check canvas ratio, complete head-to-feet framing, white background, character scale, outfit, face readability, visual hook, and fit with Aura.",
           "Give adjustment recommendations. Keep the next prompt to one or two controlled changes.",
           "Repeat until the neutral full-body portrait is approved.",
+          <span key="visual-description">
+            After approval, write <DocCode>visualDescription</DocCode> into the member fixture from
+            the approved neutral portrait. Keep it visual, public, and roleplay-safe: body read,
+            hair, outfit, posture, visible accessories, and supernatural visual hook only. Do not
+            infer private biography, secrets, species labels, hidden tags, mood stats, or future
+            outcomes from the image.
+          </span>,
           "Generate the avatar only after the neutral full-body portrait is approved. Attach the approved neutral full-body portrait as the character reference.",
           "Inspect the avatar. Check face match, in-character perspective, small-card readability, white background, and absence of redesign. Selfie angles and picture taken of the member framing are allowed when they fit the member.",
           "Give adjustment recommendations and iterate until approved.",
@@ -179,6 +186,12 @@ export const sections: DocSectionEntry[] = [
         <DocCodeBlock language="powershell">{`vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite
 vp run portrait:resize-avatars
 vp run portrait:standee-footing`}</DocCodeBlock>
+        <P>
+          After the neutral portrait is locked, update the member fixture{" "}
+          <DocCode>visualDescription</DocCode>. This field is runtime prompt context for models
+          without image input. It is canonical visual description, not an image prompt and not
+          initial member lore.
+        </P>
         <P>Approved scenario source backgrounds go under:</P>
         <DocCodeBlock>{`assets-source/scenarios/<scenario-id>/background.png`}</DocCodeBlock>
         <P>Approved scenario runtime backgrounds go under:</P>

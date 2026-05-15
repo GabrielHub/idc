@@ -10,9 +10,11 @@ export const eleanorAsh: Member = {
   species: "Fae",
   dimension: "Hawthorn march, lower fold",
   realityStatus: "In glamour, evading betrothal",
-  bio: "Eleanor Ash fled an arranged betrothal at Lower Hawthorn and walks Prime under a glamour. The geas that binds her cannot be broken, so she cannot lie outright. She uses Cupid because the Bargain mechanics are familiar. She rotates seven use names by week and will not speak her true name aloud to strangers.",
+  bio: "You fled an arranged betrothal at Lower Hawthorn two centuries ago and you walk Prime under a glamour. The geas that binds your line cannot be broken, so you cannot lie outright, and you have spent two centuries learning to tell exact truths in a register that does not invite follow-up. You use Cupid because the Bargain mechanics translate cleanly from your home register; an hour confirmed and held is a Bargain, a Favor returned is a Favor, and the platform does not require small talk in the foyer. You rotate seven use names by week, and you will not speak your true name aloud to strangers; this is not coy, it is structural. You like wine valleys older than the country at the table. You like a maitre d who has been at the same room for two decades. You are not at risk of being asked which Court you belong to, because no one is asking; this is, on the whole, a relief and also the source of a private quiet. You keep a ledger of small kindnesses you cannot repay. The ledger has gotten longer this year than the last, which you have noted and not acted on.",
   datingProfile:
     "I will not lie to you, so let us begin in good faith. I am taller than mortal record permits. I am two centuries into an arranged engagement and I am not interested in honoring it. I keep my Vows. I keep the Favors I am owed. I dress for my own benefit. I am open to the Bargain of dinner.",
+  visualDescription:
+    "A tall pale woman with long silver-white wavy hair pulled back around a delicate branch-shaped hairpin, calm grey eyes. A floor-length sage-green gown with sheer high-collar bodice and long sheer sleeves, covered in fine botanical embroidery. The gown's front is split to show cream slim trousers and pointed cream ankle boots. One hand lifts a long thin smoking pipe with a faint trail of smoke. The other hand rests at the waist of the dress.",
   relationshipNeeds: [
     "A counterparty who treats her literal answers as offers, not threats",
     "Someone who understands a Vow given is a Vow kept and asks accordingly",

@@ -30,7 +30,7 @@ import {
   streamCharacterTurn as streamCharacterTurnWithLocalAi,
   summarizeDateMemories,
 } from "./ai/model-service";
-import { gatewayImageInputSupported } from "./ai/model-catalog";
+import { gatewayImageInputSupported, ollamaImageInputSupported } from "./ai/model-catalog";
 
 export { DateStreamAbortedError } from "./ai/model-service";
 import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
@@ -847,15 +847,11 @@ async function loadFirstTurnImageAttachments({
   partner: Member;
   scenario: DateScenario;
 }): Promise<CharacterPromptImageAttachment[]> {
-  if (
-    config.aiProvider !== "gateway" ||
-    typeof config.chatModel !== "string" ||
-    session.currentTurn !== 0
-  ) {
+  if (typeof config.chatModel !== "string" || session.currentTurn !== 0) {
     return [];
   }
 
-  if (!(await gatewayModelSupportsImageInput(config))) {
+  if (!(await runtimeModelSupportsImageInput(config))) {
     return [];
   }
 
@@ -865,6 +861,18 @@ async function loadFirstTurnImageAttachments({
   ]);
 
   return [partnerPortrait, scenarioBackground].filter(isCharacterPromptImageAttachment);
+}
+
+async function runtimeModelSupportsImageInput(config: Partial<AiRuntimeConfig>): Promise<boolean> {
+  if (config.aiProvider === "ollama") {
+    return typeof config.chatModel === "string" && ollamaImageInputSupported(config.chatModel);
+  }
+
+  if (config.aiProvider === "gateway") {
+    return gatewayModelSupportsImageInput(config);
+  }
+
+  return false;
 }
 
 async function gatewayModelSupportsImageInput(config: Partial<AiRuntimeConfig>): Promise<boolean> {
@@ -999,7 +1007,7 @@ async function loadScenarioBackgroundAttachment(
   return fetchImageAttachment({
     path: `/assets/scenarios/${scenario.id}/background.webp`,
     mediaType: "image/webp",
-    description: `${scenario.title}, the date scenario background`,
+    description: `${scenario.title}, the date backdrop`,
   });
 }
 
@@ -1401,8 +1409,11 @@ async function createLocalAiMemoryRecords({
       config,
     });
     const scenario = requireScenario(session.scenarioId);
+    const transcriptTokens = buildTranscriptGroundingTokens(session);
     const normalizedCandidates = candidates
-      .map((candidate) => normalizeMemoryCandidate(candidate, session, { scenario, members }))
+      .map((candidate) =>
+        normalizeMemoryCandidate(candidate, session, { scenario, members, transcriptTokens }),
+      )
       .slice(0, 6);
 
     if (normalizedCandidates.length === 0) {
@@ -1434,33 +1445,35 @@ async function createLocalAiMemoryRecords({
 function normalizeMemoryCandidate(
   candidate: MemoryCandidate,
   session: DateSession,
-  context: { scenario: DateScenario; members: readonly Member[] },
+  context: {
+    scenario: DateScenario;
+    members: readonly Member[];
+    transcriptTokens: ReadonlySet<string>;
+  },
 ): MemoryCandidate {
   const participantIds = new Set(session.participants);
   const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
   const fallbackSubjectIds = subjectIds.length === 0 ? [...session.participants] : subjectIds;
-  const visibleToMemberIds =
-    candidate.visibility === "member_private"
-      ? normalizeVisibleMemberIds(candidate.visibleToMemberIds, fallbackSubjectIds, [
-          ...session.participants,
-        ])
-      : undefined;
   const cleanedText = normalizeMemoryText(candidate.text);
   const memoryCheck = checkCupidCorporateCopy(cleanedText, { maxLength: 320 });
-  const memoryText = memoryCheck.ok
+  const memoryTextIsUsable =
+    memoryCheck.ok && memoryTextIsGroundedInTranscript(cleanedText, context.transcriptTokens);
+  const memoryText = memoryTextIsUsable
     ? cleanedText
     : buildDeterministicMemoryText({
         scenario: context.scenario,
         members: context.members,
       });
   const tags = Array.from(
-    new Set([...candidate.tags, "ai_summary", ...(memoryCheck.ok ? [] : ["fallback_summary"])]),
+    new Set([...candidate.tags, "ai_summary", ...(memoryTextIsUsable ? [] : ["fallback_summary"])]),
   ).slice(0, 8);
 
   return memoryCandidateSchema.parse({
     ...candidate,
+    scope: "pair",
+    visibility: "public",
     subjectIds: fallbackSubjectIds,
-    visibleToMemberIds,
+    visibleToMemberIds: undefined,
     pairId: session.pairId,
     scenarioId: session.scenarioId,
     dateSessionId: session.id,
@@ -1468,6 +1481,63 @@ function normalizeMemoryCandidate(
     tags,
     importance: Math.min(5, Math.max(1, candidate.importance)),
   });
+}
+
+const GROUNDING_STOP_WORDS = new Set([
+  "about",
+  "after",
+  "again",
+  "and",
+  "before",
+  "because",
+  "both",
+  "cupid",
+  "date",
+  "during",
+  "each",
+  "from",
+  "into",
+  "that",
+  "their",
+  "them",
+  "they",
+  "this",
+  "through",
+  "with",
+]);
+
+const GROUNDED_TOKEN_OVERLAP_MIN = 2;
+
+function buildTranscriptGroundingTokens(session: DateSession): ReadonlySet<string> {
+  const transcriptText = session.transcript.map((message) => message.text).join(" ");
+
+  return new Set(tokenizeGroundingText(transcriptText));
+}
+
+function memoryTextIsGroundedInTranscript(
+  text: string,
+  transcriptTokens: ReadonlySet<string>,
+): boolean {
+  if (transcriptTokens.size === 0) {
+    return true;
+  }
+
+  const textTokens = tokenizeGroundingText(text);
+  let sharedTokens = 0;
+
+  for (const token of textTokens) {
+    if (transcriptTokens.has(token)) {
+      sharedTokens += 1;
+    }
+  }
+
+  return sharedTokens >= GROUNDED_TOKEN_OVERLAP_MIN;
+}
+
+function tokenizeGroundingText(text: string): string[] {
+  return Array.from(new Set(text.toLowerCase().match(/[a-z0-9_]{4,}/g) ?? [])).filter(
+    (token) => !GROUNDING_STOP_WORDS.has(token),
+  );
 }
 
 export function buildDeterministicMemoryText({
@@ -1484,21 +1554,6 @@ export function buildDeterministicMemoryText({
   }
 
   return `${first.firstName} and ${second.firstName} sat through ${scenario.title}. Cupid filed the moves without further notes.`;
-}
-
-function normalizeVisibleMemberIds(
-  visibleToMemberIds: string[] | undefined,
-  fallbackSubjectIds: string[],
-  allowedMemberIds: string[],
-): string[] {
-  if (visibleToMemberIds === undefined || visibleToMemberIds.length === 0) {
-    return fallbackSubjectIds;
-  }
-
-  const allowedSet = new Set(allowedMemberIds);
-  const filteredIds = visibleToMemberIds.filter((memberId) => allowedSet.has(memberId));
-
-  return filteredIds.length === 0 ? fallbackSubjectIds : filteredIds;
 }
 
 function sanitizeJudgeSnapshot(

@@ -48,6 +48,26 @@ describe("derivePairGraph", () => {
       BOARD_MEMBERS.map((member) => member.id).sort(),
     );
   });
+
+  it("keeps one-pair spokes off the board when filtering for hubs", () => {
+    const firstPair = buildPairState(jennaPike, vhool);
+    const secondPair = buildPairState(jennaPike, bradyStrait);
+
+    const graph = derivePairGraph(
+      BOARD_MEMBERS,
+      [firstPair, secondPair],
+      [buildPairMemory(firstPair), buildPairMemory(secondPair)],
+      { minDegree: 2 },
+    );
+
+    expect(graph.nodes.map((node) => node.member.id)).toEqual([jennaPike.id]);
+    expect(graph.nodes[0]?.degree).toBe(2);
+    expect(graph.edges).toHaveLength(0);
+    expect(graph.meta.filedPairs).toBe(2);
+    expect(graph.meta.isolatedMembers.map((member) => member.id).sort()).toEqual(
+      [vhool.id, bradyStrait.id].sort(),
+    );
+  });
 });
 
 function buildPairState(first: Member, second: Member): PairState {

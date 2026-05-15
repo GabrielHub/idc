@@ -48,6 +48,8 @@ const GATEWAY_IMAGE_INPUT_MODEL_IDS = new Set([
   "moonshotai/kimi-k2.5",
 ]);
 
+const OLLAMA_IMAGE_INPUT_MODEL_PREFIXES = ["gemma4"] as const;
+
 export const OLLAMA_REASONING_LEVEL_OPTIONS: AiReasoningLevelOption[] = [
   { value: "off", label: "Off" },
   { value: "low", label: "Low" },
@@ -125,27 +127,6 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     recommendedReasoningLevel: "off",
     reasoningSupported: true,
   },
-  {
-    id: "qwen3.5:4b",
-    label: "Qwen 3.5 4B",
-    provider: "ollama",
-    recommendedReasoningLevel: "off",
-    reasoningSupported: true,
-  },
-  {
-    id: "qwen3.5:9b",
-    label: "Qwen 3.5 9B",
-    provider: "ollama",
-    recommendedReasoningLevel: "off",
-    reasoningSupported: true,
-  },
-  {
-    id: "qwen3.5:27b",
-    label: "Qwen 3.5 27B",
-    provider: "ollama",
-    recommendedReasoningLevel: "off",
-    reasoningSupported: true,
-  },
 ];
 
 export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
@@ -154,7 +135,7 @@ export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
     label: "Compact cards",
     vram: "8GB",
     examples: "RTX 2070, RTX 3070, laptop 4060",
-    modelIds: ["gemma4:e2b", "qwen3.5:4b"],
+    modelIds: ["gemma4:e2b"],
   },
   {
     id: "rtx-3080-10gb",
@@ -168,14 +149,14 @@ export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
     label: "12GB cards",
     vram: "12GB",
     examples: "RTX 3060 12GB, RTX 4070",
-    modelIds: ["qwen3.5:9b", "gemma4:e4b"],
+    modelIds: ["gemma4:e4b"],
   },
   {
     id: "large-24gb",
     label: "Large cards",
     vram: "24GB plus",
     examples: "RTX 3090, RTX 4090",
-    modelIds: ["gemma4:26b", "qwen3.5:27b"],
+    modelIds: ["gemma4:26b"],
   },
 ];
 
@@ -222,6 +203,12 @@ export function gatewayImageInputSupported(modelId: string): boolean {
   return GATEWAY_IMAGE_INPUT_MODEL_IDS.has(modelId);
 }
 
+export function ollamaImageInputSupported(modelId: string): boolean {
+  const normalized = normalizeOllamaModelName(modelId);
+
+  return OLLAMA_IMAGE_INPUT_MODEL_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
 export function isGatewayChatModel(modelId: string): boolean {
   return GATEWAY_CHAT_MODELS.some((model) => model.id === modelId);
 }
@@ -229,7 +216,7 @@ export function isGatewayChatModel(modelId: string): boolean {
 export function isRecommendedOllamaChatModel(modelId: string): boolean {
   const normalized = normalizeOllamaModelName(modelId);
 
-  return normalized.startsWith("gemma4") || normalized.startsWith("qwen3.5");
+  return normalized.startsWith("gemma4");
 }
 
 export function isRecommendedOllamaEmbeddingModel(modelId: string): boolean {

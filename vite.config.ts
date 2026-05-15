@@ -3,7 +3,7 @@ import { relative, resolve } from "node:path";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
 import type { Plugin } from "vite";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vite-plus";
 
 const PUBLIC_PORTRAIT_SOURCE_DIR = "public/assets/portraits/source";
 const FORBIDDEN_DESKTOP_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
@@ -20,6 +20,17 @@ const APP_VERSION = packageJson.version;
 const CHUNK_TARGET_BYTES = 420 * 1024;
 
 export default defineConfig({
+  run: {
+    tasks: {
+      verify: {
+        command: "vp check && vp test && vp build",
+        input: [{ auto: true }, "!build/**", "!node_modules/.vite/task-cache/**"],
+      },
+    },
+  },
+  staged: {
+    "*": () => "vp run verify",
+  },
   plugins: [
     forbidPublicPortraitSources(),
     tailwindcss(),
@@ -86,6 +97,15 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    exclude: [
+      ...configDefaults.exclude,
+      "**/.claude/**",
+      "**/.expect/**",
+      "**/.playwright-mcp/**",
+      "**/.react-router/**",
+      "**/build/**",
+    ],
+    setupFiles: ["./app/test/llm-network-guard.ts"],
     server: {
       deps: {
         inline: ["ai", "@opentelemetry/api"],

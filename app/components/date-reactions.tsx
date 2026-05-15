@@ -259,7 +259,7 @@ function MoodAmbientGlow({ mood }: { mood: PortraitMood }) {
   );
 }
 
-export function ReactionStream({
+function ReactionStream({
   reactions,
   placement,
 }: {

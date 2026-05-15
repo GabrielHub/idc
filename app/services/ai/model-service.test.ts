@@ -15,7 +15,6 @@ describe("AI model service", () => {
       {
         models: [
           { name: "gemma4:e4b", size: 4 },
-          { name: "qwen3.5:9b", size: 9 },
           { name: "llama3.3:70b", size: 70 },
           { name: "embeddinggemma:latest" },
         ],
@@ -26,18 +25,18 @@ describe("AI model service", () => {
     );
 
     expect(inventory.models.find((model) => model.name === "gemma4:e4b")?.running).toBe(true);
-    expect(inventory.chatModels.map((model) => model.name)).toEqual(["gemma4:e4b", "qwen3.5:9b"]);
+    expect(inventory.chatModels.map((model) => model.name)).toEqual(["gemma4:e4b"]);
     expect(inventory.embeddingModels.map((model) => model.name)).toEqual(["embeddinggemma:latest"]);
     expect(inventory.runningModels.map((model) => model.name)).toEqual(["gemma4:e4b"]);
   });
 
   it("uses running models when tags fail", () => {
     const inventory = parseOllamaModelInventory(null, {
-      models: [{ name: "qwen3.5:9b" }, { name: "llama3.3:70b" }],
+      models: [{ name: "gemma4:e4b" }, { name: "llama3.3:70b" }],
     });
 
-    expect(inventory.models.map((model) => model.name)).toEqual(["llama3.3:70b", "qwen3.5:9b"]);
-    expect(inventory.chatModels.map((model) => model.name)).toEqual(["qwen3.5:9b"]);
+    expect(inventory.models.map((model) => model.name)).toEqual(["gemma4:e4b", "llama3.3:70b"]);
+    expect(inventory.chatModels.map((model) => model.name)).toEqual(["gemma4:e4b"]);
   });
 
   it("leaves Gateway output unbounded unless a caller sets an explicit cap", () => {

@@ -12,6 +12,7 @@ import {
   isRecommendedOllamaEmbeddingModel,
   modelDefaultsForProvider,
   normalizeOllamaModelName,
+  ollamaImageInputSupported,
   recommendedOllamaChatModels,
 } from "./model-catalog";
 
@@ -73,6 +74,12 @@ describe("AI model catalog", () => {
     expect(gatewayImageInputSupported("moonshotai/kimi-k2.5")).toBe(true);
   });
 
+  it("marks supported Ollama image input models", () => {
+    expect(ollamaImageInputSupported("gemma4:e4b")).toBe(true);
+    expect(ollamaImageInputSupported("gemma4:e4b:latest")).toBe(true);
+    expect(ollamaImageInputSupported("qwen3.5:9b")).toBe(false);
+  });
+
   it("exposes provider-specific reasoning option lists", () => {
     expect(OLLAMA_REASONING_LEVEL_OPTIONS.map((option) => option.value)).toEqual([
       "off",
@@ -91,7 +98,7 @@ describe("AI model catalog", () => {
     ]);
   });
 
-  it("filters Ollama recommendations to Gemma and Qwen only", () => {
+  it("filters Ollama recommendations to Gemma only", () => {
     const filtered = recommendedOllamaChatModels([
       { name: "llama3.3:70b" },
       { name: "embeddinggemma" },
@@ -99,8 +106,9 @@ describe("AI model catalog", () => {
       { name: "qwen3.5:9b" },
     ]);
 
-    expect(filtered.map((model) => model.name)).toEqual(["gemma4:e4b", "qwen3.5:9b"]);
+    expect(filtered.map((model) => model.name)).toEqual(["gemma4:e4b"]);
     expect(isRecommendedOllamaChatModel("llama3.3:70b")).toBe(false);
+    expect(isRecommendedOllamaChatModel("qwen3.5:9b")).toBe(false);
   });
 
   it("treats Ollama latest tags as the base model for recommendations", () => {
@@ -114,9 +122,9 @@ describe("AI model catalog", () => {
     ).toEqual(["gemma4:e2b", "gemma4:e4b"]);
     expect(
       GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "balanced-12gb")?.modelIds,
-    ).toEqual(["qwen3.5:9b", "gemma4:e4b"]);
+    ).toEqual(["gemma4:e4b"]);
     expect(
       GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "large-24gb")?.modelIds,
-    ).toEqual(["gemma4:26b", "qwen3.5:27b"]);
+    ).toEqual(["gemma4:26b"]);
   });
 });

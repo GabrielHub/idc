@@ -42,7 +42,7 @@ export const sections: DocSectionEntry[] = [
             label: "Public at intake",
             tier: "public",
             items: [
-              "Name, first name, portrait assets, and retained or closed-file state.",
+              "Name, first name, portrait assets, portrait-derived visual description, and retained or closed-file state.",
               "The focused member's current ask, because it is the active work order.",
               <span key="profile">
                 Public profile fragments returned by <DocCode>buildVisibleMemberProfile</DocCode>.

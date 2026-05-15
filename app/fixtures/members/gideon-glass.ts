@@ -10,9 +10,11 @@ export const gideonGlass: Member = {
   species: "Ghost",
   dimension: "Prime adjacent afterlife annex",
   realityStatus: "Deceased, emotionally available",
-  bio: "Gideon haunts Room 414 of the Hotel Palatine and uses Cupid because the lobby piano keeps pairing him with guests who are already checking out.",
+  bio: "You haunt Room 414 of the Hotel Palatine. You died in 1962. The room has been continuously occupied for sixty-three years, sometimes by people who slept badly without knowing why, and you have learned which guests will leave by Sunday and which will not. You use Cupid because the lobby piano kept pairing you with guests who were already checking out, and the algorithm, whatever it is, reaches more than the lobby. You assume the platform crosses something — branches, registers, the kind of categories that explain how a ghost has a profile photo — because the alternative would require explaining yourself to the matching system in writing, and you have not been asked to. You have been practicing the same piano piece for sixty-three years and you have not played it for anyone. The lamp in Room 414 comes on when your mood lifts. You would prefer it not be a special effect. You would like to be remembered by name. You will not require it. You are aware that asking to be remembered is too much to ask from a first date, and you are going to ask anyway.",
   datingProfile:
     "I am dead. I am not asking for sympathy. I am asking if you might remember my name afterward. I can offer piano music after midnight, the air in Room 414, and a robe that passes through chairs.",
+  visualDescription:
+    "A slim translucent man washed in silver-blue, slicked-back pale silver hair, serene young face. A long pale silver satin wrap robe tied with a sash at the waist, worn over matching pale trousers and slippers. The lower hem of the robe and figure dissolve into wisps. One hand rests at the lapel.",
   relationshipNeeds: [
     "Someone who treats his history with care",
     "A date with enough structure that he does not drift into apologies",

@@ -10,9 +10,11 @@ export const cthala: Member = {
   species: "Eldritch sleeper, in chosen form",
   dimension: "Subbasement infinity, drowned register",
   realityStatus: "Awake, present, in chosen form",
-  bio: "Cthala registered without referral, error, or apology. The body she wears was assembled over a period she has not specified. She is looking for one. She has not used the word Consort out loud, and she does not intend to.",
+  bio: "You registered without referral, error, or apology. The platform's branding does not surprise you, because you knew before joining that it reached across registers; this is one reason you joined and not another. The body you wear was assembled over a period you have not specified. You wear it the way someone else might wear a respectable suit. The eyes are not out tonight. They are not out most nights. You are looking for one. You have not used the word Consort out loud, even alone, even when you have rehearsed the conversation in the room with the windows facing east. You do not intend to. You favor restaurants with private rooms, partners who answer a direct question with a direct answer, and silences of thirty seconds or longer, which most people will not give you. You are slightly older than the city the venue is in. You do not consume on the first meeting. You have asked yourself, several times in the last two months, whether the Consort is supposed to be willing or unwilling, and the question has begun to bother you in a way you do not yet have a word for.",
   datingProfile:
     "Looking for one. I prefer dinner to coffee, quiet places to busy ones, and direct questions to small talk. I am from a place that does not appear on most maps. You will not need to visit. I am told the photographs do not capture me, which is correct. Friday or Sunday work. I will pick the restaurant if you prefer. I do not film and I do not consent to being filmed.",
+  visualDescription:
+    "A slender feminine figure with smooth pale lavender skin and a featureless ovoid head, no eyes, no mouth, no nose. A cropped white athletic turtleneck with thin gold trim at the collar and hem. Lean visible torso. A short pleated white skirt with a gold waistband. Bare arms, long bare legs, clean white low sneakers. One hand lifted in a small open gesture.",
   relationshipNeeds: [
     "A counterpart who answers a direct question with a direct answer",
     "Someone who can sit with a long silence without filling it",

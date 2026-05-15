@@ -791,6 +791,10 @@ vp run portrait:cutout --input assets-source/portraits --output public/assets/po
             "The avatar preserves the full-body's facial features, hair, color palette, and outfit while showing a visibly different pose.",
             "Expression variants preserve the approved neutral identity anchors. Default changes are expression, posture, and controlled body language, but approved variants may exchange props, use support surfaces, shift perspective, or alter mutable supernatural features when documented and readable.",
             "Both images match the member fixture details.",
+            <span key="visual-description">
+              The member fixture <DocCode>visualDescription</DocCode> matches the approved neutral
+              portrait and stays public, visual, and free of inferred private lore.
+            </span>,
             "Neither image fights the Aura interface palette.",
           ]}
         />

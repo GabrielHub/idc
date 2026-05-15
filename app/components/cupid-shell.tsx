@@ -89,15 +89,14 @@ import {
 } from "../fixtures/manager-quips";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { AmbientMesh } from "./ambient-mesh";
+import { DashboardLoading, ShiftReportPanel } from "./dashboard-views";
 import {
-  DashboardLoading,
   DateView,
-  NotesView,
-  ShiftReportPanel,
   type PendingDateAction,
   type PlaybackIntent,
   type StreamingDraftMessage,
-} from "./dashboard-views";
+} from "./date-view";
+import { NotesView } from "./notes-view";
 import { DateBookCanvas } from "./date-book-canvas";
 import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";

@@ -147,7 +147,8 @@ export const sections: DocSectionEntry[] = [
             <span key="prose">
               <Strong>Core prose:</Strong> <DocCode>bio</DocCode>, <DocCode>datingProfile</DocCode>,{" "}
               <DocCode>relationshipNeeds</DocCode>, <DocCode>preferences</DocCode>,{" "}
-              <DocCode>dealbreakers</DocCode>, <DocCode>secrets</DocCode>.
+              <DocCode>dealbreakers</DocCode>, <DocCode>secrets</DocCode>. Do not fill{" "}
+              <DocCode>visualDescription</DocCode> in this initial content pass.
             </span>,
             <span key="tags">
               <Strong>Hidden tags:</Strong> 3 to 5 tags from <DocCode>memberTagSchema</DocCode>,
@@ -167,7 +168,9 @@ export const sections: DocSectionEntry[] = [
             </span>,
             <span key="portrait">
               <Strong>Portrait references</Strong> only after approved files exist. Do not generate
-              images in this pass. Do not set <DocCode>portraitAsset.prompt</DocCode>.
+              images in this pass. Do not set <DocCode>portraitAsset.prompt</DocCode>.{" "}
+              <DocCode>visualDescription</DocCode> is added only after the neutral portrait is
+              approved in the visual asset workflow.
             </span>,
             <span key="bubble">
               Optional presentation such as <DocCode>chatBubble</DocCode> only when approved visual
@@ -234,6 +237,7 @@ export const sections: DocSectionEntry[] = [
             member fixture. <DocCode>members.test.ts</DocCode> checks this.
           </span>,
           "Keep player knowledge boundaries intact. Public profile fragments can hint. Hidden fields, secrets, tags, exact state values, prompts, and raw scoring rules stay hidden.",
+          "Do not invent visual canon before a portrait exists. Runtime visual descriptions come from approved neutral portrait art, not from the initial member-writing agent.",
           "Every hidden tag must be supported by authored prose. If the prose does not prove the tag, change the prose or remove the tag.",
           "Do not add a member field unless code or UI reads it.",
         ]}

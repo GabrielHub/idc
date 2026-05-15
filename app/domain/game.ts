@@ -228,6 +228,7 @@ export const memberSchema = z
     realityStatus: z.string().min(1),
     bio: z.string().min(1),
     datingProfile: z.string().min(1),
+    visualDescription: z.string().min(1).default("Profile photo on file."),
     relationshipNeeds: z.array(z.string().min(1)).min(1),
     preferences: z.array(z.string().min(1)),
     dealbreakers: z.array(z.string().min(1)),

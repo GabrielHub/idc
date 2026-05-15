@@ -573,20 +573,6 @@ export function GhostButton({
   );
 }
 
-export function QuietButton({ children, onClick, disabled, sfx = "click" }: ButtonProps) {
-  return (
-    <button
-      type="button"
-      data-sfx={sfx}
-      onClick={onClick}
-      disabled={disabled}
-      className="cursor-pointer rounded-pill px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-40"
-    >
-      {children}
-    </button>
-  );
-}
-
 /**
  * ChromeButton sits inside a parent glass pill (the chrome tools cluster).
  * It carries no surface of its own, only hover + active text shading, so the

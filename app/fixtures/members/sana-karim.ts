@@ -10,9 +10,11 @@ export const sanaKarim: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, year three",
-  bio: "Sana teaches fourth grade at a public school where the laminator has been broken since October 2025. She is 28 and has the back of someone who is not 28. She believes Cupid is a normal dating app. The branding is just a lot.",
+  bio: "You teach fourth grade at a public school where the laminator has been broken since October 2025. You are 28 and you have the back of someone who is not 28. There is a kid in your class named Mason. Year one was a different Mason. Same problem. Year three is the year you used to want this job and the year you have started to wonder whether you still want it, which is a sentence you have not let yourself finish in any of three internal drafts. You believe Cupid is a normal dating app, that the branding is, frankly, a lot, and that the cosmic vocabulary is a marketing decision. You have not connected the dots in any other direction. You arrive on time. You decompress for ten minutes before you can be present. A partner who lets you do that without commenting on it is a partner you can stay through dinner with. You have a private list of three students you would adopt if it were legal and one you would pay to transfer. You eat at restaurants you have been to. You order what you have ordered before. You expect this to change someday. So far it has not.",
   datingProfile:
     "28, fourth grade public school teacher, year three. The laminator is broken. I am not. Looking for someone with a couch, a quiet hobby, and the social skill of not asking how my day was until I sit down. Photos: me, also me, and a class pet I am not allowed to keep at home.",
+  visualDescription:
+    "A slender South Asian woman with very long dark wavy hair, black oval-frame glasses, and a tired calm expression. A taupe cardigan worn open over a fitted dark top with a white lanyard and ID badge at the chest. A brown belt, taupe ankle-length slim trousers, and low black flats. One arm holds a stack of papers and folders against her chest.",
   relationshipNeeds: [
     "Someone who lets her arrive on time and decompress for ten minutes before they speak",
     "A date she does not have to project manage",

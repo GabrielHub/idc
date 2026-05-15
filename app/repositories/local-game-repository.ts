@@ -25,6 +25,12 @@ import {
   getActiveShift,
   hydrateFixtureOwnedMemberData,
 } from "../services/game-seed";
+import {
+  matchesListFilter,
+  matchesSingleFilter,
+  matchesSubjectFilter,
+  matchesTags,
+} from "../services/memory-filters";
 import { pushIntoBucket, replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, MemorySearchFilters } from "./game-repository";
@@ -742,33 +748,6 @@ function matchesViewer(memory: MemoryRecord, viewer: MemorySearchFilters["viewer
   return (memory.visibleToMemberIds ?? memory.subjectIds).includes(viewer.memberId);
 }
 
-function matchesSubjectFilter(memory: MemoryRecord, subjectIds: string[] | undefined): boolean {
-  if (subjectIds === undefined || subjectIds.length === 0) {
-    return true;
-  }
-
-  return subjectIds.some((subjectId) => memory.subjectIds.includes(subjectId));
-}
-
-function matchesSingleFilter(value: string | undefined, filter: string | undefined): boolean {
-  return filter === undefined || value === filter;
-}
-
 function matchesNumberFilter(value: number | undefined, filter: number | undefined): boolean {
   return filter === undefined || value === filter;
-}
-
-function matchesListFilter<TValue extends string>(
-  value: TValue,
-  filter: TValue[] | undefined,
-): boolean {
-  return filter === undefined || filter.length === 0 || filter.includes(value);
-}
-
-function matchesTags(memoryTags: string[], filterTags: string[] | undefined): boolean {
-  if (filterTags === undefined || filterTags.length === 0) {
-    return true;
-  }
-
-  return filterTags.every((tag) => memoryTags.includes(tag));
 }

@@ -32,6 +32,7 @@ function memberDesignText(member: Member): string {
   return [
     member.bio,
     member.datingProfile,
+    member.visualDescription,
     ...member.relationshipNeeds,
     ...member.preferences,
     ...member.dealbreakers,

@@ -8,7 +8,6 @@ import {
   canAddToDeck,
   computeEffectiveCosts,
   deriveDeckBudgetStatus,
-  isOfferApplicableToScenario,
 } from "../services/budget";
 import {
   deckIsRepairBlocked,
@@ -17,7 +16,7 @@ import {
   unlockedScenarioIds,
 } from "../services/deck";
 import { useTutorialStep } from "../services/tutorial";
-import { EASE_OUT_QUART, GhostButton, Tooltip } from "./dashboard-atoms";
+import { GhostButton, Tooltip } from "./dashboard-atoms";
 import { RISK_DOT_TONE, RISK_TEXT_TONE, ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal, type ScenarioDetailsAction } from "./scenario-details-modal";
 import { TutorialCoachMark } from "./tutorial";
@@ -887,5 +886,3 @@ function InspectorModal({
     />
   );
 }
-
-export const __INTERNAL = { isOfferApplicableToScenario, EASE_OUT_QUART };
