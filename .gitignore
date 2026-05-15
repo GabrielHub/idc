@@ -47,6 +47,9 @@ Thumbs.db
 /output/
 *.log
 
+# Date quality audit reports
+/audit/
+
 # Tauri
 /src-tauri/target/
 /src-tauri/gen/schemas/

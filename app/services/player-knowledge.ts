@@ -10,7 +10,6 @@ import {
   type PairState,
   type PlayerKnowledgeReadKind,
   type PlayerKnowledgeRecord,
-  type ScenarioEventKind,
   type ScenarioTag,
 } from "../domain/game";
 import { type MatchFitResult } from "./match-fit";
@@ -36,16 +35,11 @@ export type BuildRevealCandidatesInput = {
 
 export type FilterExchangeEligibleInput = {
   candidates: readonly RevealCandidate[];
-  matchFit: MatchFitResult;
   exchangeMessages: readonly DateMessage[];
-  triggeredEventIds: readonly string[];
-  focusRequest?: MemberRequest;
-  pendingEventKinds?: readonly ScenarioEventKind[];
 };
 
 export type SelectDeterministicRevealIdsInput = {
   candidates: readonly RevealCandidate[];
-  matchFit: MatchFitResult;
   judgeSnapshot: JudgeSnapshot;
 };
 
@@ -265,22 +259,26 @@ const MEMBER_BOUNDARY_READS: Partial<
   prophecy_averse: {
     readId: "boundary:destiny-pressure",
     toReadText: (firstName) => `${firstName} resists destiny pressure.`,
-    evidence: "The room or exchange applied fate, prophecy, or chosen-one framing.",
+    evidence:
+      "Look for foretold-this-pair language, named destiny, chosen-one beats, or prophecy used to schedule the date.",
   },
   privacy_sensitive: {
     readId: "boundary:public-exposure",
     toReadText: (firstName) => `${firstName} pulls back when the room becomes a stage.`,
-    evidence: "The room or exchange placed public attention on the pair.",
+    evidence:
+      "Look for named audience or crowd, filming or posting, performing for onlookers, or the room being treated as a public event.",
   },
   grief_sensitive: {
     readId: "boundary:forced-recovery",
     toReadText: (firstName) => `${firstName} flinches when the room pushes recovery on a schedule.`,
-    evidence: "The room or exchange applied recovery, closure, or healing pressure.",
+    evidence:
+      "Look for closure or healing framed as a deliverable, prescribed grief steps, or recovery as the point of the date.",
   },
   memory_sensitive: {
     readId: "boundary:memory-pressure",
     toReadText: (firstName) => `${firstName} guards how their past gets handled.`,
-    evidence: "The room or exchange leaned on memory or the past as the topic.",
+    evidence:
+      "Look for the partner pressing on a named past event, requests to revisit or explain a memory, or memory used to corner the member.",
   },
 };
 
@@ -290,40 +288,46 @@ const MEMBER_COMFORT_READS: Partial<
   needs_low_pressure: {
     readId: "comfort:low-pressure",
     toReadText: (firstName) => `${firstName} relaxes when the room takes pressure off.`,
-    evidence: "The room or exchange kept the pressure low.",
+    evidence:
+      "Look for the pair settling into a slower pace, named low-stakes choices, or relief beats that read as pressure dropping.",
   },
   needs_clear_plan: {
     readId: "comfort:clear-plan",
     toReadText: (firstName) => `${firstName} settles when the plan stays clear.`,
-    evidence: "The room or exchange held to a plan instead of dissolving it.",
+    evidence:
+      "Look for the pair sticking to a named plan, confirming an order or itinerary, or refusing to dissolve the agenda.",
   },
   career_focused: {
     readId: "comfort:career-context",
     toReadText: (firstName) =>
       `${firstName} engages when the room makes work part of the conversation.`,
-    evidence: "The room or exchange treated career as legitimate dating territory.",
+    evidence:
+      "Look for the partner asking about work as work, a concrete career detail landing, or career framing treated as legitimate.",
   },
   weirdness_native: {
     readId: "comfort:weirdness-tolerance",
     toReadText: (firstName) => `${firstName} treats the strange parts of the room as normal.`,
-    evidence: "The room or exchange leaned into chaos or weirdness.",
+    evidence:
+      "Look for the member meeting a cosmic, ritual, or portal beat without flinching while the partner treats it as ordinary.",
   },
   ceremony_minded: {
     readId: "comfort:ceremony",
     toReadText: (firstName) => `${firstName} responds to ritual and structure in the room.`,
-    evidence: "The room or exchange offered ceremony or named structure.",
+    evidence:
+      "Look for a named ritual, toast, vow, or formal beat that the member meets with seriousness instead of irony.",
   },
   sincerity_seeking: {
     readId: "comfort:sincerity",
     toReadText: (firstName) => `${firstName} responds to plain sincerity from a partner.`,
-    evidence: "The exchange let plain sincerity land instead of routing through performance.",
+    evidence:
+      "Look for the partner dropping a bit or performance and the member softening on the next move.",
   },
   acquisitive: {
     readId: "comfort:transactional-register",
     toReadText: (firstName) =>
       `${firstName} settles when the room treats relationships as something to acquire.`,
     evidence:
-      "The room or exchange let transactional, contractual, or recruiting language land plainly.",
+      "Look for contract, terms, equity, recruiting, or portfolio vocabulary landing without the partner pushing back.",
   },
 };
 
@@ -333,37 +337,41 @@ const SCENARIO_PRESSURE_READS: Partial<
   public: {
     readId: "pressure:public-attention",
     readText: "This room turns public attention into the main hazard.",
-    evidence: "The scenario stages the date in front of an audience or public space.",
+    evidence:
+      "Look for an audience, crowd, filming, or posting beat reshaping how the pair behaves.",
   },
   prophecy: {
     readId: "pressure:prophecy-framing",
     readText: "This room applies fate framing to whoever shows up.",
-    evidence: "The scenario reads chosen-one or prophecy framing onto the pair.",
+    evidence: "Look for the room invoking destiny, prophecy, or chosen-one framing on the pair.",
   },
   memory: {
     readId: "pressure:memory-recovery",
     readText: "This room presses on memory in a way that asks for recovery.",
-    evidence: "The scenario builds the date around memory, recovery, or the past.",
+    evidence:
+      "Look for the room demanding the pair revisit a named memory, or framing recovery as the deliverable.",
   },
   high_pressure: {
     readId: "pressure:high-pressure",
     readText: "This room runs hot. Pressure is the point.",
-    evidence: "The scenario keeps the pressure dial high through the date.",
+    evidence:
+      "Look for a named deadline, escalating stakes, or scene beats that crank intensity rather than ease it.",
   },
   haunted: {
     readId: "pressure:haunted-business",
     readText: "This room treats unfinished business as the floor plan.",
-    evidence: "The scenario foregrounds the pair's unfinished history.",
+    evidence:
+      "Look for the room surfacing the pair's prior breach, return, or unsettled business as the scene driver.",
   },
   temporal: {
     readId: "pressure:temporal-shift",
     readText: "This room rewrites time on whoever is in it.",
-    evidence: "The scenario applies time loops, replays, or temporal jumps.",
+    evidence: "Look for a time loop, replay, rewind, or temporal jump landing in the exchange.",
   },
   cosmic: {
     readId: "pressure:cosmic-scale",
     readText: "This room stages the date at cosmic scale.",
-    evidence: "The scenario opens onto cosmic stakes or scale.",
+    evidence: "Look for cosmic stakes, scale beats, or vast framing arriving in the scene.",
   },
 };
 
@@ -371,77 +379,87 @@ const PAIR_DYNAMIC_READS: Record<string, { readId: string; readText: string; evi
   "pair:sincerity_vs_performance": {
     readId: "dynamic:sincerity-vs-performance",
     readText: "Sincerity and performance pull against each other in this pair.",
-    evidence: "Sincerity from one member runs into performance or avoidance from the other.",
+    evidence:
+      "Look for one member offering a plain truth and the other reaching for a bit or deflection.",
   },
   "pair:status_vs_attention": {
     readId: "dynamic:status-vs-attention",
     readText: "Status and attention compete for the same room.",
-    evidence: "One member protects status while the other angles for attention.",
+    evidence:
+      "Look for one member guarding standing or reputation while the other steers the room toward eyes on them.",
   },
   "pair:shared_spiral": {
     readId: "dynamic:shared-spiral",
     readText: "Both members spiral when stress lands at once.",
-    evidence: "Both members carry an anxious spiral pattern.",
+    evidence:
+      "Look for both members escalating worry, second-guessing, or panic in the same exchange.",
   },
   "pair:career_alignment": {
     readId: "dynamic:career-alignment",
     readText: "Career focus aligns the pair when the room makes room for it.",
-    evidence: "Both members hold career as central.",
+    evidence:
+      "Look for both members trading concrete work detail and treating career as legitimate dating ground.",
   },
   "pair:ceremony_alignment": {
     readId: "dynamic:ceremony-alignment",
     readText: "Both members lean into ritual together.",
-    evidence: "Both members hold ceremony as a shared anchor.",
+    evidence:
+      "Look for both members meeting a named ritual, toast, or formal beat with shared seriousness.",
   },
   "pair:mutual_acquisition": {
     readId: "dynamic:mutual-acquisition",
     readText: "Both members treat the table as a recruitment funnel.",
-    evidence: "Both members run on transactional or contractual relationship vocabulary.",
+    evidence:
+      "Look for both members trading contract, terms, equity, or recruiting vocabulary as the love language.",
   },
   "pair:competitive_clash": {
     readId: "dynamic:competitive-clash",
     readText: "Competitive instincts make the room sharper than the rubric expects.",
-    evidence: "Both members carry a competitive streak.",
+    evidence: "Look for both members keeping score, racing, or one-upping inside the exchange.",
   },
   "pair:attention_rivalry": {
     readId: "dynamic:attention-rivalry",
     readText: "Both members want the spotlight at the same time.",
-    evidence: "Both members angle for attention as the default move.",
+    evidence: "Look for both members angling for the audience or interrupting to take the floor.",
   },
   "pair:performer_distrust": {
     readId: "dynamic:performer-distrust",
     readText: "Performance reads as masking to both members.",
-    evidence: "Both members run a performative register and recognize it in the other.",
+    evidence: "Look for both members calling out a bit, performance, or mask in the other's move.",
   },
   "pair:grief_high_intimacy_overload": {
     readId: "dynamic:grief-high-intimacy-overload",
     readText: "Shared grief plus high intimacy overwhelms the room.",
-    evidence: "Both members carry grief sensitivity and the scenario forces intimacy.",
+    evidence:
+      "Look for both members hitting a loss or healing beat in an already-intimate room and going quiet or shutting down.",
   },
   "pair:grief_low_intimacy_alignment": {
     readId: "dynamic:grief-low-intimacy-alignment",
     readText: "Shared grief fits a quieter setting.",
-    evidence: "Both members carry grief sensitivity in a low-intimacy room.",
+    evidence:
+      "Look for both members trading a quiet acknowledgment of loss without the room pushing for resolution.",
   },
   "pair:weirdness_displaced_recognition": {
     readId: "dynamic:weirdness-recognition",
     readText: "Weirdness and displacement recognize each other across the table.",
-    evidence: "One member is at home in the strange while the other is freshly displaced.",
+    evidence:
+      "Look for one member naming the strange parts of the room as ordinary while the other registers displacement.",
   },
   "pair:ceremony_vs_performance": {
     readId: "dynamic:ceremony-vs-performance",
     readText: "Ceremony and performance read past each other.",
-    evidence: "One member holds ritual seriously while the other treats it as material.",
+    evidence:
+      "Look for one member holding a ritual or vow seriously while the other treats it as material for a bit.",
   },
   "pair:privacy_vs_attention": {
     readId: "dynamic:privacy-vs-attention",
     readText: "Privacy and attention pull in opposite directions.",
-    evidence: "One member needs the room small while the other needs it visible.",
+    evidence: "Look for one member shrinking the room while the other invites the audience in.",
   },
   "pair:repeat_scenario": {
     readId: "dynamic:repeat-room",
     readText: "This pair has worked this room before.",
-    evidence: "The pair has booked this scenario at least once already.",
+    evidence: "Look for the pair referencing the prior booking, the last time, or the same room.",
   },
 };
 
@@ -456,17 +474,6 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
     candidates.push(candidate);
   };
   const scenarioTags = new Set<ScenarioTag>(input.scenario.card.tags);
-
-  if (input.matchFit.boundaryRisk !== null) {
-    const boundaryRiskCandidate = buildBoundaryRiskCandidate(
-      input.members,
-      input.scenario,
-      input.matchFit.boundaryRisk.memberId,
-    );
-    if (boundaryRiskCandidate !== null) {
-      pushCandidate(boundaryRiskCandidate);
-    }
-  }
 
   for (const member of input.members) {
     for (const tag of member.tags) {
@@ -507,23 +514,25 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
 
     if (requestMember !== undefined) {
       if (input.matchFit.blockedRequestIds.includes(input.focusRequest.id)) {
+        const block = describeAskBlock(requestMember, input.scenario, input.matchFit);
         pushCandidate({
           id: `member:${requestMember.id}:ask-blocked:${input.focusRequest.id}`,
           subjectKind: "member",
           subjectId: requestMember.id,
           readKind: "ask",
-          readText: `${requestMember.firstName}'s current ask is blocked in this room.`,
-          evidenceText: "The room cannot honor the focused ask in its current shape.",
+          readText: block.readText,
+          evidenceText: block.evidence,
           source: "judge",
         });
       } else if (input.matchFit.coveredRequestIds.includes(input.focusRequest.id)) {
+        const cover = describeAskCover(requestMember, input.scenario);
         pushCandidate({
           id: `member:${requestMember.id}:ask-covered:${input.focusRequest.id}`,
           subjectKind: "member",
           subjectId: requestMember.id,
           readKind: "ask",
-          readText: `${requestMember.firstName}'s current ask fits this room.`,
-          evidenceText: "The room covers the focused ask without strain.",
+          readText: cover.readText,
+          evidenceText: cover.evidence,
           source: "judge",
         });
       }
@@ -569,53 +578,89 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
   return candidates;
 }
 
-function buildBoundaryRiskCandidate(
-  members: readonly Member[],
+function describeAskBlock(
+  member: Member,
   scenario: DateScenario,
-  boundaryRiskMemberId: string,
-): RevealCandidate | null {
-  const member = members.find((candidate) => candidate.id === boundaryRiskMemberId);
+  matchFit: BuildRevealCandidatesInput["matchFit"],
+): { readText: string; evidence: string } {
+  const firstName = member.firstName;
 
-  if (member === undefined) {
-    return null;
+  if (matchFit.boundaryRisk?.memberId === member.id) {
+    return {
+      readText: `${firstName}'s ask cannot land while the room presses on a dealbreaker.`,
+      evidence:
+        "Look for the partner or scenario forcing the named dealbreaker into the ask itself.",
+    };
   }
 
   const scenarioTags = new Set<ScenarioTag>(scenario.card.tags);
 
-  const orderedTags: MemberTag[] = [
-    "prophecy_averse",
-    "privacy_sensitive",
-    "grief_sensitive",
-    "memory_sensitive",
-  ];
-
-  for (const tag of orderedTags) {
-    if (!member.tags.includes(tag)) {
-      continue;
-    }
-
-    const boundary = MEMBER_BOUNDARY_READS[tag];
-
-    if (boundary === undefined) {
-      continue;
-    }
-
-    if (!scenarioTagPressuresBoundary(tag, scenarioTags)) {
-      continue;
-    }
-
+  if (scenarioTags.has("prophecy")) {
     return {
-      id: `member:${member.id}:${boundary.readId}`,
-      subjectKind: "member",
-      subjectId: member.id,
-      readKind: "boundary",
-      readText: boundary.toReadText(member.firstName),
-      evidenceText: boundary.evidence,
-      source: "judge",
+      readText: `${firstName}'s ask gets overwritten by destiny framing in this room.`,
+      evidence: "Look for prophecy or chosen-one framing reshaping the focused ask.",
     };
   }
 
-  return null;
+  if (scenarioTags.has("public")) {
+    return {
+      readText: `${firstName}'s ask cannot land while the room is a stage.`,
+      evidence: "Look for public attention or filming reshaping the focused ask into performance.",
+    };
+  }
+
+  if (scenarioTags.has("high_pressure") || scenario.card.risk === "high") {
+    return {
+      readText: `${firstName}'s ask cannot survive this room's pressure level.`,
+      evidence: "Look for stakes or pace pushing past what the focused ask can carry.",
+    };
+  }
+
+  if (scenarioTags.has("memory") && scenario.card.intimacy === "high") {
+    return {
+      readText: `${firstName}'s ask runs into the room's memory pressure.`,
+      evidence: "Look for the room pulling the ask back into a named past event.",
+    };
+  }
+
+  return {
+    readText: `${firstName}'s ask does not fit this room as scheduled.`,
+    evidence: "Look for the room reshaping or refusing the focused ask within the exchange.",
+  };
+}
+
+function describeAskCover(
+  member: Member,
+  scenario: DateScenario,
+): { readText: string; evidence: string } {
+  const firstName = member.firstName;
+  const scenarioTags = new Set<ScenarioTag>(scenario.card.tags);
+
+  if (scenarioTags.has("low_pressure")) {
+    return {
+      readText: `${firstName}'s ask fits this room's quieter pressure.`,
+      evidence: "Look for the room's low-pressure shape giving the ask room to land plainly.",
+    };
+  }
+
+  if (scenarioTags.has("career")) {
+    return {
+      readText: `${firstName}'s ask lands inside the room's career framing.`,
+      evidence: "Look for career context covering the focused ask without strain.",
+    };
+  }
+
+  if (scenarioTags.has("domestic")) {
+    return {
+      readText: `${firstName}'s ask fits this room's domestic register.`,
+      evidence: "Look for a low-key home or routine beat making the ask easy to honor.",
+    };
+  }
+
+  return {
+    readText: `${firstName}'s ask fits this room without strain.`,
+    evidence: "Look for the room honoring the focused ask plainly in the exchange.",
+  };
 }
 
 export function filterExchangeEligibleRevealCandidates(
@@ -628,92 +673,54 @@ export function filterExchangeEligibleRevealCandidates(
   const hasPendingScenarioEvent = input.exchangeMessages.some(
     (message) => message.kind === "scenario",
   );
-  const hasUsableTranscript = input.exchangeMessages.some(
-    (message) => message.kind === "character" && message.text.trim().length > 0,
-  );
-  const hasRevealEvent =
-    input.pendingEventKinds?.includes("reveal") === true && hasUsableTranscript;
 
   for (const candidate of input.candidates) {
     if (candidate.readKind === "ask") {
-      if (
-        input.matchFit.blockedRequestIds.length > 0 ||
-        input.matchFit.coveredRequestIds.length > 0
-      ) {
-        eligible.push(candidate);
-      }
+      eligible.push(candidate);
       continue;
     }
 
     if (candidate.readKind === "scenario_pressure") {
       const referencesEvidence = scenarioPressureMatchesExchange(candidate, exchangeText);
 
-      if (referencesEvidence || hasPendingScenarioEvent || hasRevealEvent) {
+      if (referencesEvidence || hasPendingScenarioEvent) {
         eligible.push(candidate);
       }
       continue;
     }
 
     if (candidate.readKind === "pair_dynamic") {
-      const referencesEvidence = pairDynamicMatchesExchange(candidate, exchangeText);
-      if (referencesEvidence || hasRevealEvent) {
+      if (pairDynamicMatchesExchange(candidate, exchangeText)) {
         eligible.push(candidate);
       }
       continue;
     }
 
     if (candidate.readKind === "comfort" || candidate.readKind === "boundary") {
-      const referencesEvidence = memberReadMatchesExchange(candidate, exchangeText);
-      if (referencesEvidence || hasRevealEvent) {
+      if (memberReadMatchesExchange(candidate, exchangeText)) {
         eligible.push(candidate);
       }
       continue;
     }
   }
 
-  // When a reveal-kind scenario event lands in the exchange and the transcript
-  // gives us usable evidence, surface at least one safe, nonnumeric candidate
-  // so the date does not produce zero filed reads from an explicit reveal beat.
-  if (hasRevealEvent && eligible.length === 0) {
-    const safeFallback = pickRevealEventFallback(input.candidates);
-    if (safeFallback !== null) {
-      eligible.push(safeFallback);
-    }
-  }
-
   return prioritizeAndCap(eligible);
 }
 
-function pickRevealEventFallback(candidates: readonly RevealCandidate[]): RevealCandidate | null {
-  const fallbackOrder: PlayerKnowledgeReadKind[] = [
-    "scenario_pressure",
-    "pair_dynamic",
-    "comfort",
-    "boundary",
-  ];
-
-  for (const readKind of fallbackOrder) {
-    const match = candidates.find((candidate) => candidate.readKind === readKind);
-
-    if (match !== undefined) {
-      return match;
-    }
-  }
-
-  return null;
-}
+const REVEAL_PRIORITY_ORDER: readonly PlayerKnowledgeReadKind[] = [
+  "ask",
+  "pair_dynamic",
+  "scenario_pressure",
+  "comfort",
+  "boundary",
+  "profile",
+];
 
 function prioritizeAndCap(candidates: RevealCandidate[]): RevealCandidate[] {
-  const priorityOrder: PlayerKnowledgeReadKind[] = [
-    "boundary",
-    "ask",
-    "pair_dynamic",
-    "scenario_pressure",
-    "comfort",
-    "profile",
-  ];
   const sorted = [...candidates].sort((first, second) => {
-    return priorityOrder.indexOf(first.readKind) - priorityOrder.indexOf(second.readKind);
+    return (
+      REVEAL_PRIORITY_ORDER.indexOf(first.readKind) - REVEAL_PRIORITY_ORDER.indexOf(second.readKind)
+    );
   });
   return sorted.slice(0, MAX_REVEAL_PROMPT_CANDIDATES);
 }
@@ -742,17 +749,10 @@ export function selectDeterministicRevealIds(input: SelectDeterministicRevealIds
       ? MAX_DETERMINISTIC_REVEALS_HIGH_DELTA
       : MAX_DETERMINISTIC_REVEALS_PER_PASS;
 
-  const priorityOrder: PlayerKnowledgeReadKind[] = [
-    "ask",
-    "pair_dynamic",
-    "scenario_pressure",
-    "comfort",
-    "boundary",
-    "profile",
-  ];
   const sorted = [...input.candidates].sort(
     (first, second) =>
-      priorityOrder.indexOf(first.readKind) - priorityOrder.indexOf(second.readKind),
+      REVEAL_PRIORITY_ORDER.indexOf(first.readKind) -
+      REVEAL_PRIORITY_ORDER.indexOf(second.readKind),
   );
 
   return sorted.slice(0, limit).map((candidate) => candidate.id);
@@ -890,13 +890,13 @@ function scenarioPressureMatchesExchange(
 }
 
 const SCENARIO_PRESSURE_KEYWORDS: Record<string, string[]> = {
-  "public-attention": ["audience", "public", "stage", "watching", "filming", "posted"],
-  "prophecy-framing": ["prophecy", "destiny", "chosen", "fate", "foretold"],
-  "memory-recovery": ["memory", "remember", "forgot", "remind", "recovery"],
-  "high-pressure": ["pressure", "stakes", "urgent", "deadline"],
-  "haunted-business": ["unfinished", "haunted", "again", "before"],
-  "temporal-shift": ["time", "loop", "again", "rewind", "earlier"],
-  "cosmic-scale": ["cosmic", "stars", "scale", "vast"],
+  "public-attention": ["audience", "crowd", "stage", "filming", "filmed", "posted", "spectator"],
+  "prophecy-framing": ["prophecy", "destiny", "chosen one", "foretold", "fated"],
+  "memory-recovery": ["closure", "recovery", "heal", "healing", "grief"],
+  "high-pressure": ["high pressure", "stakes", "deadline", "urgent"],
+  "haunted-business": ["unfinished", "haunted", "last time we", "same room"],
+  "temporal-shift": ["time loop", "rewind", "replay", "reset the day", "yesterday again"],
+  "cosmic-scale": ["cosmic", "constellation", "galaxy", "vast"],
 };
 
 function pairDynamicMatchesExchange(candidate: RevealCandidate, exchangeText: string): boolean {
@@ -908,20 +908,20 @@ function pairDynamicMatchesExchange(candidate: RevealCandidate, exchangeText: st
 }
 
 const PAIR_DYNAMIC_KEYWORDS: Record<string, string[]> = {
-  "sincerity-vs-performance": ["sincere", "honest", "real", "bit", "perform", "performance"],
-  "status-vs-attention": ["status", "attention", "watching", "important"],
-  "shared-spiral": ["spiral", "anxious", "panic", "worry"],
-  "career-alignment": ["work", "career", "meeting", "calendar", "client"],
-  "ceremony-alignment": ["ceremony", "ritual", "formal", "vow", "promise"],
-  "competitive-clash": ["win", "compete", "better", "score"],
-  "attention-rivalry": ["attention", "spotlight", "watching", "filming"],
-  "performer-distrust": ["bit", "perform", "performance", "mask"],
-  "grief-high-intimacy-overload": ["grief", "loss", "memory", "heal", "recovery"],
-  "grief-low-intimacy-alignment": ["quiet", "grief", "loss", "memory"],
-  "weirdness-recognition": ["weird", "strange", "elsewhere", "home", "normal"],
-  "ceremony-vs-performance": ["ceremony", "ritual", "bit", "perform", "mock"],
-  "privacy-vs-attention": ["private", "privacy", "attention", "watching", "filming"],
-  "repeat-room": ["again", "before", "same room", "last time"],
+  "sincerity-vs-performance": ["sincerely", "honestly", "doing a bit", "performing", "performance"],
+  "status-vs-attention": ["status", "reputation", "spotlight", "look important"],
+  "shared-spiral": ["spiraling", "spiral", "panicking", "freaking out"],
+  "career-alignment": ["career", "shift", "client", "deadline", "promotion", "quarter"],
+  "ceremony-alignment": ["ceremony", "ritual", "vow", "toast", "blessing"],
+  "competitive-clash": ["winning", "compete", "keep score", "beat you"],
+  "attention-rivalry": ["spotlight", "filming", "everyone's looking", "audience"],
+  "performer-distrust": ["doing a bit", "performance", "mask", "pretending"],
+  "grief-high-intimacy-overload": ["grief", "loss", "mourning", "funeral"],
+  "grief-low-intimacy-alignment": ["grief", "loss", "mourning", "quietly"],
+  "weirdness-recognition": ["cosmic", "portal", "dimension", "elsewhere", "from elsewhere"],
+  "ceremony-vs-performance": ["ceremony", "ritual", "doing a bit", "mock"],
+  "privacy-vs-attention": ["private", "privacy", "filming", "audience"],
+  "repeat-room": ["last time we", "same room", "we did this before", "we were here"],
 };
 
 function memberReadMatchesExchange(candidate: RevealCandidate, exchangeText: string): boolean {
@@ -938,41 +938,32 @@ function memberReadMatchesExchange(candidate: RevealCandidate, exchangeText: str
 }
 
 const MEMBER_READ_KEYWORDS: Record<string, string[]> = {
-  "boundary:destiny-pressure": [
-    "prophecy",
-    "destiny",
-    "chosen",
-    "fate",
-    "foretold",
-    "omen",
-    "sign",
-  ],
+  "boundary:destiny-pressure": ["prophecy", "destiny", "chosen one", "foretold", "fated", "omen"],
   "boundary:public-exposure": [
     "audience",
-    "public",
-    "stage",
-    "watching",
-    "filming",
-    "posted",
     "crowd",
+    "stage",
+    "filming",
+    "filmed",
+    "posted",
+    "spectator",
   ],
-  "boundary:forced-recovery": ["recover", "recovery", "closure", "heal", "healing", "grief"],
-  "boundary:memory-pressure": ["memory", "remember", "forgot", "past", "history"],
-  "comfort:low-pressure": ["quiet", "calm", "low pressure", "easy", "simple", "normal"],
-  "comfort:clear-plan": ["plan", "schedule", "reservation", "time", "route", "order"],
-  "comfort:career-context": ["work", "career", "job", "client", "meeting", "shift"],
-  "comfort:weirdness-tolerance": ["weird", "strange", "odd", "cosmic", "ritual", "portal"],
-  "comfort:ceremony": ["ceremony", "ritual", "formal", "vow", "promise", "toast"],
-  "comfort:sincerity": ["sincere", "honest", "real", "plain", "mean it"],
+  "boundary:forced-recovery": ["closure", "recovery", "heal", "healing", "moved on"],
+  "boundary:memory-pressure": ["that memory", "what you remembered", "back then", "your past"],
+  "comfort:low-pressure": ["low pressure", "no rush", "take it easy", "slow down"],
+  "comfort:clear-plan": ["the plan", "stick to", "reservation", "itinerary", "agenda"],
+  "comfort:career-context": ["career", "shift", "client", "promotion", "quarter", "the job"],
+  "comfort:weirdness-tolerance": ["cosmic", "portal", "dimension", "ritual", "the weirdness"],
+  "comfort:ceremony": ["ceremony", "ritual", "vow", "toast", "blessing"],
+  "comfort:sincerity": ["sincerely", "honestly", "plainly", "mean it", "for real"],
   "comfort:transactional-register": [
     "deal",
     "terms",
     "contract",
-    "trade",
     "equity",
     "portfolio",
-    "asset",
     "liquidity",
+    "recruiting",
   ],
 };
 

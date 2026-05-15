@@ -12,6 +12,7 @@ import {
   advanceDateExchangeWithLocalAi,
   advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAi,
+  DateStreamAbortedError,
   sanitizeCharacterText,
   type LocalAiDateRuntime,
   type LocalAiDateStreamEvent,
@@ -1076,6 +1077,8 @@ describe("AI date engine orchestration", () => {
           type === "characterStart" ||
           type === "characterDelta" ||
           type === "characterDone" ||
+          type === "characterFailed" ||
+          type === "characterCanceled" ||
           type === "judgeStart",
       ),
     ).toBe(true);
@@ -1204,6 +1207,87 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.currentTurn).toBe(1);
   });
 
+  it("clears the streamed draft event when the player cancels mid turn", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-cancel-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        throw new Error("non-streaming performer should not run");
+      },
+      streamCharacterTurn: async ({ onTextDelta }) => {
+        await onTextDelta("Jenna starts a line the player cancels.");
+        const abortError = new Error("operation aborted");
+        abortError.name = "AbortError";
+        throw abortError;
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run after a canceled stream");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run after a canceled stream");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    const events: LocalAiDateStreamEvent[] = [];
+    await repository.saveGame(started.save);
+
+    await expect(
+      advanceDateExchangeWithLocalAiStream(
+        started.save,
+        repository,
+        {
+          dateSessionId: started.session.id,
+          runtime,
+          config: started.save.config,
+          now: new Date("2026-05-05T12:02:00.000Z"),
+        },
+        (event) => {
+          events.push(event);
+        },
+      ),
+    ).rejects.toThrow(DateStreamAbortedError);
+
+    expect(events.map((event) => event.type)).toEqual([
+      "characterStart",
+      "characterDelta",
+      "characterCanceled",
+    ]);
+
+    const loadedSave = await repository.loadGame();
+    const loadedSession = loadedSave?.dateSessions.find(
+      (session) => session.id === started.session.id,
+    );
+
+    expect(loadedSession?.currentTurn).toBe(0);
+    expect(
+      loadedSession?.transcript.filter((message) => message.kind === "character"),
+    ).toHaveLength(0);
+  });
+
   it("rejects the streamed exchange and preserves the prior commit when the second speaker fails", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-second-fail");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -1292,6 +1376,7 @@ describe("AI date engine orchestration", () => {
 
     expect(streamCallCount).toBe(2);
     expect(events.filter((event) => event.type === "characterStart")).toHaveLength(2);
+    expect(events.some((event) => event.type === "characterFailed")).toBe(true);
     expect(events.some((event) => event.type === "judgeStart")).toBe(false);
 
     const loadedSave = await repository.loadGame();

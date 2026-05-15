@@ -173,7 +173,9 @@ function FinalReportReadsSection({ reads }: { reads: readonly PlayerKnowledgeRec
     <section className="flex min-w-0 flex-col gap-2">
       <Eyebrow>// filed reads</Eyebrow>
       {reads.length === 0 ? (
-        <p className="text-label text-aura-muted">No new reads filed from this date.</p>
+        <p className="text-label text-aura-muted">
+          Cupid filed the exchange. Nothing new on this pair yet.
+        </p>
       ) : (
         <ul className="flex max-h-32 flex-col gap-1.5 overflow-y-auto pr-1">
           {reads.map((read) => (

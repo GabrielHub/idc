@@ -11,14 +11,17 @@ import {
   type PairAgreementStatus,
   type PairState,
 } from "../domain/game";
+import { scrubPlayerSafeCopy } from "./player-safe-copy";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export const PAIR_AGREEMENT_TAG = "pair_agreement";
 export const AGREEMENT_HONORED_TAG = "agreement_honored";
 export const AGREEMENT_BROKEN_TAG = "agreement_broken";
+export const AGREEMENT_RETIRED_TAG = "agreement_retired";
 export const OPEN_LOOP_TAG = "open_loop";
 export const OPEN_LOOP_RESOLVED_TAG = "open_loop_resolved";
 export const OPEN_LOOP_DROPPED_TAG = "open_loop_dropped";
+export const PAIR_AGED_OUT_TAG = "pair_aged_out";
 
 const FOLLOW_UP_TAG = "follow_up";
 const MAX_AGREEMENT_CANDIDATES_PER_JUDGE = 2;
@@ -26,6 +29,10 @@ const MAX_AGREEMENT_UPDATES_PER_JUDGE = 3;
 const MAX_OPEN_LOOP_CANDIDATES_PER_JUDGE = 2;
 const MAX_OPEN_LOOP_UPDATES_PER_JUDGE = 3;
 const COMPLETED_DATES_TO_HONOR_AGREEMENT = 2;
+export const AGREEMENT_AGE_CUTOFF = 4;
+export const OPEN_LOOP_AGE_CUTOFF = 4;
+export const MAX_ACTIVE_AGREEMENTS = 6;
+export const MAX_ACTIVE_OPEN_LOOPS = 6;
 
 export type PairSpotlightItem = {
   kind: "agreement" | "open_loop";
@@ -198,9 +205,10 @@ export function applyCompletedDatePairMemoryEffects({
   }
 
   let agreements = pairState.agreements;
+  let openLoops = pairState.openLoops;
   const memories: MemoryRecord[] = [];
 
-  for (const agreement of pairState.agreements) {
+  for (const agreement of agreements) {
     if (agreement.status !== "active") continue;
 
     const laterCompletedDates = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
@@ -225,12 +233,122 @@ export function applyCompletedDatePairMemoryEffects({
     );
   }
 
+  for (const agreement of agreements) {
+    if (agreement.status !== "active") continue;
+    const age = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
+    if (age < AGREEMENT_AGE_CUTOFF) continue;
+
+    const retired: PairAgreement = {
+      ...agreement,
+      status: "retired",
+      resolvedAt: timestamp,
+    };
+    agreements = agreements.map((entry) => (entry.id === agreement.id ? retired : entry));
+    memories.push(
+      buildPairMemory({
+        id: `${retired.id}-aged-${session.id}`,
+        pairState,
+        text: formatAgreementMemoryText(retired, "It aged out without resolution."),
+        tags: [...agreementTagsForStatus(retired.status), PAIR_AGED_OUT_TAG],
+        importance: 3,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  for (const openLoop of openLoops) {
+    if (openLoop.status !== "open") continue;
+    const age = completedDatesAfterSource(pairState, openLoop.sourceDateSessionId);
+    if (age < OPEN_LOOP_AGE_CUTOFF) continue;
+
+    const dropped: OpenLoop = {
+      ...openLoop,
+      status: "dropped",
+      resolvedAt: timestamp,
+    };
+    openLoops = openLoops.map((entry) => (entry.id === openLoop.id ? dropped : entry));
+    memories.push(
+      buildPairMemory({
+        id: `${dropped.id}-aged-${session.id}`,
+        pairState,
+        text: formatOpenLoopMemoryText(dropped, "It aged out without resolution."),
+        tags: [...openLoopTagsForStatus(dropped.status), PAIR_AGED_OUT_TAG],
+        importance: 3,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  const activeAgreementCount = agreements.filter((entry) => entry.status === "active").length;
+  if (activeAgreementCount > MAX_ACTIVE_AGREEMENTS) {
+    const surplus = activeAgreementCount - MAX_ACTIVE_AGREEMENTS;
+    const youngestFirst = [...agreements]
+      .filter((entry) => entry.status === "active")
+      .sort(
+        (first, second) =>
+          completedDatesAfterSource(pairState, first.sourceDateSessionId) -
+            completedDatesAfterSource(pairState, second.sourceDateSessionId) ||
+          second.id.localeCompare(first.id),
+      );
+    const overflow = youngestFirst.slice(0, surplus);
+    const overflowIds = new Set(overflow.map((entry) => entry.id));
+    agreements = agreements.map((entry) => {
+      if (!overflowIds.has(entry.id)) return entry;
+      const retired: PairAgreement = { ...entry, status: "retired", resolvedAt: timestamp };
+      memories.push(
+        buildPairMemory({
+          id: `${retired.id}-overflow-${session.id}`,
+          pairState,
+          text: formatAgreementMemoryText(retired, "The pair file already held older agreements."),
+          tags: [...agreementTagsForStatus(retired.status), PAIR_AGED_OUT_TAG],
+          importance: 2,
+          dateSessionId: session.id,
+          timestamp,
+        }),
+      );
+      return retired;
+    });
+  }
+
+  const activeOpenLoopCount = openLoops.filter((entry) => entry.status === "open").length;
+  if (activeOpenLoopCount > MAX_ACTIVE_OPEN_LOOPS) {
+    const surplus = activeOpenLoopCount - MAX_ACTIVE_OPEN_LOOPS;
+    const youngestFirst = [...openLoops]
+      .filter((entry) => entry.status === "open")
+      .sort(
+        (first, second) =>
+          completedDatesAfterSource(pairState, first.sourceDateSessionId) -
+            completedDatesAfterSource(pairState, second.sourceDateSessionId) ||
+          second.id.localeCompare(first.id),
+      );
+    const overflow = youngestFirst.slice(0, surplus);
+    const overflowIds = new Set(overflow.map((entry) => entry.id));
+    openLoops = openLoops.map((entry) => {
+      if (!overflowIds.has(entry.id)) return entry;
+      const dropped: OpenLoop = { ...entry, status: "dropped", resolvedAt: timestamp };
+      memories.push(
+        buildPairMemory({
+          id: `${dropped.id}-overflow-${session.id}`,
+          pairState,
+          text: formatOpenLoopMemoryText(dropped, "The pair file already held older loops."),
+          tags: [...openLoopTagsForStatus(dropped.status), PAIR_AGED_OUT_TAG],
+          importance: 2,
+          dateSessionId: session.id,
+          timestamp,
+        }),
+      );
+      return dropped;
+    });
+  }
+
   if (memories.length === 0) {
     return { pairState, memories };
   }
 
   return {
-    pairState: pairStateSchema.parse({ ...pairState, agreements }),
+    pairState: pairStateSchema.parse({ ...pairState, agreements, openLoops }),
     memories,
   };
 }
@@ -391,24 +509,26 @@ export function selectPairSpotlightItem(pairState: PairState): PairSpotlightItem
   for (const agreement of pairState.agreements) {
     if (agreement.status !== "active") continue;
     const age = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
+    const finalChance = age >= AGREEMENT_AGE_CUTOFF - 1 ? 30 : 0;
     candidates.push({
       kind: "agreement",
       id: agreement.id,
       text: agreement.text,
       guidance: `Keep this active agreement present as table stakes: ${agreement.text}`,
-      priority: 60 + age * 10,
+      priority: 60 + age * 10 + finalChance,
     });
   }
 
   const openLoops = pairState.openLoops.filter((loop) => loop.status === "open");
   for (const loop of openLoops) {
     const age = completedDatesAfterSource(pairState, loop.sourceDateSessionId);
+    const finalChance = age >= OPEN_LOOP_AGE_CUTOFF - 1 ? 30 : 0;
     candidates.push({
       kind: "open_loop",
       id: loop.id,
       text: loop.text,
       guidance: `Give this unresolved item a chance to move: ${loop.text}`,
-      priority: 70 + age * 12 + (openLoops.length >= 2 ? 8 : 0),
+      priority: 70 + age * 12 + (openLoops.length >= 2 ? 8 : 0) + finalChance,
     });
   }
 
@@ -417,6 +537,31 @@ export function selectPairSpotlightItem(pairState: PairState): PairSpotlightItem
       (first, second) => second.priority - first.priority || first.id.localeCompare(second.id),
     )[0] ?? null
   );
+}
+
+export function rankActiveAgreements(pairState: PairState): PairAgreement[] {
+  return pairState.agreements
+    .filter((agreement) => agreement.status === "active")
+    .map((agreement) => ({
+      agreement,
+      age: completedDatesAfterSource(pairState, agreement.sourceDateSessionId),
+    }))
+    .sort(
+      (first, second) =>
+        second.age - first.age || first.agreement.id.localeCompare(second.agreement.id),
+    )
+    .map((entry) => entry.agreement);
+}
+
+export function rankActiveOpenLoops(pairState: PairState): OpenLoop[] {
+  return pairState.openLoops
+    .filter((loop) => loop.status === "open")
+    .map((loop) => ({
+      loop,
+      age: completedDatesAfterSource(pairState, loop.sourceDateSessionId),
+    }))
+    .sort((first, second) => second.age - first.age || first.loop.id.localeCompare(second.loop.id))
+    .map((entry) => entry.loop);
 }
 
 function buildPairMemory({
@@ -530,11 +675,7 @@ function completedDatesAfterSource(
 }
 
 function cleanCandidateText(text: string): string {
-  return text
-    .replace(/[\u2013\u2014]/gu, ",")
-    .replace(/\s+/gu, " ")
-    .trim()
-    .slice(0, 220);
+  return scrubPlayerSafeCopy(text).slice(0, 220);
 }
 
 function textKey(text: string): string {
@@ -547,7 +688,7 @@ function textKey(text: string): string {
 function agreementTagsForStatus(status: PairAgreementStatus): string[] {
   if (status === "honored") return [PAIR_AGREEMENT_TAG, AGREEMENT_HONORED_TAG];
   if (status === "broken") return [PAIR_AGREEMENT_TAG, AGREEMENT_BROKEN_TAG];
-  if (status === "retired") return [PAIR_AGREEMENT_TAG, "agreement_retired"];
+  if (status === "retired") return [PAIR_AGREEMENT_TAG, AGREEMENT_RETIRED_TAG];
   return [PAIR_AGREEMENT_TAG];
 }
 

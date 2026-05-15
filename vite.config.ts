@@ -26,6 +26,9 @@ export default defineConfig({
         command: "vp check && vp test && vp build",
         input: [{ auto: true }, "!build/**", "!node_modules/.vite/task-cache/**"],
       },
+      "audit:dates": {
+        command: "node scripts/audit-dates.mjs",
+      },
     },
   },
   staged: {

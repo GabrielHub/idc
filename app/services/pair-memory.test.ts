@@ -10,13 +10,19 @@ import {
 } from "../domain/game";
 import {
   AGREEMENT_BROKEN_TAG,
+  AGREEMENT_RETIRED_TAG,
   applyCompletedDatePairMemoryEffects,
   applyFollowUpPairMemoryEffects,
   applyJudgePairMemoryEffects,
+  MAX_ACTIVE_AGREEMENTS,
+  MAX_ACTIVE_OPEN_LOOPS,
   OPEN_LOOP_DROPPED_TAG,
   OPEN_LOOP_RESOLVED_TAG,
   OPEN_LOOP_TAG,
+  PAIR_AGED_OUT_TAG,
   PAIR_AGREEMENT_TAG,
+  rankActiveAgreements,
+  rankActiveOpenLoops,
   selectPairSpotlightItem,
 } from "./pair-memory";
 
@@ -361,5 +367,183 @@ describe("pair memory effects", () => {
       markedBadFit.pairState.agreements.find((entry) => entry.id === "agreement-active")?.status,
     ).toBe("retired");
     expect(markedBadFit.pairState.openLoops[0]?.status).toBe("dropped");
+  });
+
+  it("drops open loops that aged past the cutoff on date completion", () => {
+    const pairState = buildPairState({
+      completedDateIds: [
+        "date-session-1",
+        "date-session-2",
+        "date-session-3",
+        "date-session-4",
+        "date-session-5",
+      ],
+      openLoops: [
+        {
+          id: "loop-old",
+          text: "Whether the morning rule survives the workweek.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "loop-fresh",
+          text: "Whether Vhool ever explains the receipt drawer.",
+          status: "open",
+          sourceDateSessionId: "date-session-4",
+          createdAt: "2026-05-05T11:30:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({ id: "date-session-5" }),
+      timestamp: NOW,
+    });
+
+    const oldLoop = result.pairState.openLoops.find((entry) => entry.id === "loop-old");
+    const freshLoop = result.pairState.openLoops.find((entry) => entry.id === "loop-fresh");
+    expect(oldLoop?.status).toBe("dropped");
+    expect(oldLoop?.resolvedAt).toBe(NOW);
+    expect(freshLoop?.status).toBe("open");
+    const agedMemory = result.memories.find((memory) => memory.tags.includes(PAIR_AGED_OUT_TAG));
+    expect(agedMemory?.tags).toContain(OPEN_LOOP_DROPPED_TAG);
+    expect(agedMemory?.text).toContain("aged out");
+  });
+
+  it("retires the youngest active loops when the soft cap is exceeded", () => {
+    const completedDateIds = ["date-session-1", "date-session-2"];
+    const openLoops = Array.from({ length: MAX_ACTIVE_OPEN_LOOPS + 2 }, (_, index) => ({
+      id: `loop-${index}`,
+      text: `Whether question ${index} survives daylight talk.`,
+      status: "open" as const,
+      sourceDateSessionId: index < 2 ? "date-session-1" : "date-session-2",
+      createdAt: `2026-05-05T11:${String(index).padStart(2, "0")}:00.000Z`,
+    }));
+    const pairState = buildPairState({ completedDateIds, openLoops });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({ id: "date-session-2" }),
+      timestamp: NOW,
+    });
+
+    const stillOpen = result.pairState.openLoops.filter((entry) => entry.status === "open");
+    expect(stillOpen).toHaveLength(MAX_ACTIVE_OPEN_LOOPS);
+    expect(stillOpen.map((entry) => entry.id)).toContain("loop-0");
+    expect(stillOpen.map((entry) => entry.id)).toContain("loop-1");
+    const droppedIds = result.pairState.openLoops
+      .filter((entry) => entry.status === "dropped")
+      .map((entry) => entry.id);
+    expect(droppedIds).toHaveLength(2);
+    for (const droppedId of droppedIds) {
+      expect(["loop-0", "loop-1"].includes(droppedId)).toBe(false);
+    }
+  });
+
+  it("retires the youngest active agreements when the soft cap is exceeded", () => {
+    const completedDateIds = ["date-session-1", "date-session-2", "date-session-3"];
+    const agreements = Array.from({ length: MAX_ACTIVE_AGREEMENTS + 2 }, (_, index) => ({
+      id: `agreement-${index}`,
+      text: `Hold to commitment ${index} between dates.`,
+      status: "active" as const,
+      sourceDateSessionId: index === 0 ? "date-session-1" : "date-session-3",
+      createdAt: `2026-05-05T11:${String(index).padStart(2, "0")}:00.000Z`,
+    }));
+    const pairState = buildPairState({ completedDateIds, agreements });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({ id: "date-session-3" }),
+      timestamp: NOW,
+    });
+
+    const oldest = result.pairState.agreements.find((entry) => entry.id === "agreement-0");
+    expect(oldest?.status).toBe("honored");
+    const remainingActive = result.pairState.agreements.filter(
+      (entry) => entry.status === "active",
+    );
+    expect(remainingActive).toHaveLength(MAX_ACTIVE_AGREEMENTS);
+    const retired = result.pairState.agreements.filter((entry) => entry.status === "retired");
+    expect(retired).toHaveLength(1);
+    expect(retired[0]?.id).not.toBe("agreement-0");
+    expect(retired[0]?.id).toBe(`agreement-${MAX_ACTIVE_AGREEMENTS + 1}`);
+    expect(
+      result.memories.some(
+        (memory) =>
+          memory.tags.includes(AGREEMENT_RETIRED_TAG) && memory.tags.includes(PAIR_AGED_OUT_TAG),
+      ),
+    ).toBe(true);
+  });
+
+  it("ranks active items by age so older threads land in the prompt slice", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-young",
+          text: "Stay off the receipt drawer.",
+          status: "active",
+          sourceDateSessionId: "date-session-3",
+          createdAt: "2026-05-05T11:30:00.000Z",
+        },
+        {
+          id: "agreement-old",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-young",
+          text: "Whether the receipt drawer ever opens again.",
+          status: "open",
+          sourceDateSessionId: "date-session-3",
+          createdAt: "2026-05-05T11:30:00.000Z",
+        },
+        {
+          id: "loop-old",
+          text: "Whether the venue choice survives daylight.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const agreements = rankActiveAgreements(pairState);
+    const loops = rankActiveOpenLoops(pairState);
+
+    expect(agreements.map((entry) => entry.id)).toStrictEqual(["agreement-old", "agreement-young"]);
+    expect(loops.map((entry) => entry.id)).toStrictEqual(["loop-old", "loop-young"]);
+  });
+
+  it("boosts spotlight priority for items one date away from aging out", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3", "date-session-4"],
+      openLoops: [
+        {
+          id: "loop-final-chance",
+          text: "Whether the brunch plan ever gets booked.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "loop-fresh",
+          text: "Whether Vhool ever explains the receipt drawer.",
+          status: "open",
+          sourceDateSessionId: "date-session-3",
+          createdAt: "2026-05-05T11:30:00.000Z",
+        },
+      ],
+    });
+
+    const spotlight = selectPairSpotlightItem(pairState);
+
+    expect(spotlight?.id).toBe("loop-final-chance");
   });
 });

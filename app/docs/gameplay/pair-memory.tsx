@@ -51,7 +51,7 @@ export const sections: DocSectionEntry[] = [
           transitions={[
             { from: "active", to: "honored", label: "kept across two completed dates" },
             { from: "active", to: "broken", label: "judge filed a breach" },
-            { from: "active", to: "retired", label: "agreement no longer relevant" },
+            { from: "active", to: "retired", label: "agreement no longer relevant or aged out" },
           ]}
         />
         <P>
@@ -80,17 +80,40 @@ export const sections: DocSectionEntry[] = [
           ]}
           transitions={[
             { from: "open", to: "resolved", label: "answered or addressed" },
-            { from: "open", to: "dropped", label: "explicitly abandoned" },
+            { from: "open", to: "dropped", label: "explicitly abandoned or aged out" },
           ]}
         />
         <P>
           Active loops can appear in prompt context as unresolved pair items. Resolved and dropped
           loops stay in canonical history but do not drive prompt pressure.
         </P>
+      </>
+    ),
+  },
+  {
+    id: "continuity-hygiene",
+    title: "Continuity hygiene",
+    body: (
+      <>
         <P>
-          Open loops are not auto-dropped for age. Older unresolved loops become stronger hidden
-          spotlight candidates so the next date has a chance to move one existing item before the
-          file invents new pressure.
+          Pair context for performers and the judge is selected by rank, not insertion order.{" "}
+          <DocCode>rankActiveAgreements</DocCode> and <DocCode>rankActiveOpenLoops</DocCode> sort by
+          age (older first) before any slice so stale threads do not crowd fresh ones out of the
+          first three or five items the prompt actually sees.
+        </P>
+        <P>
+          Each completed date runs an aging pass. Active agreements that survive past the agreement
+          age cutoff without being honored, broken, or retired by the judge auto-retire with the
+          aged-out tag. Open loops past the open loop age cutoff auto-drop with the same tag. A soft
+          total cap on each list trims the youngest active items beyond the cap so the oldest
+          threads, which are closest to resolution or aging out, are preserved for one more shot.
+        </P>
+        <P>
+          The hidden spotlight gives items at age cutoff minus one a final-chance priority boost so
+          the next date has a clear opportunity to move them before they age out. Aged-out items
+          still mirror into pair memories with <DocCode>agreement_retired</DocCode> or{" "}
+          <DocCode>open_loop_dropped</DocCode> plus <DocCode>pair_aged_out</DocCode> for retrieval
+          and pair-board notes.
         </P>
       </>
     ),
@@ -146,7 +169,9 @@ export const sections: DocSectionEntry[] = [
         <P>
           Each date may also receive one hidden pair spotlight item, either an active agreement or
           an open loop. The spotlight does not add controls. It tells performer and judge prompts
-          which existing pair item deserves pressure before new material is created.
+          which existing pair item deserves pressure before new material is created. Items one date
+          away from the age cutoff receive a final-chance priority boost so they get a clear shot
+          before aging out.
         </P>
       </>
     ),

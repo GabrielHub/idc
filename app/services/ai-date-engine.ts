@@ -40,7 +40,6 @@ import {
   applyDateFinalReportToMembers,
   clearActiveBookingForShift,
   createClosureNearMissMemoryRecord,
-  collectPendingEventKinds,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
@@ -63,7 +62,6 @@ import {
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
   checkCupidCorporateCopy,
-  cleanMemberFacingText,
   collectRecentSpeakerLines,
   hasNearDuplicateRecentLine,
   hasRepeatedApprovalPhrase,
@@ -84,6 +82,11 @@ import {
   visibleReadsForPair,
   type RevealCandidate,
 } from "./player-knowledge";
+import {
+  cleanMemberFacingText,
+  scrubPlayerSafeCopy,
+  stripForbiddenPunctuation,
+} from "./player-safe-copy";
 import { clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
@@ -137,6 +140,19 @@ export type LocalAiDateStreamEvent =
       sequenceIndex: number;
       turnIndex: number;
       text: string;
+    }
+  | {
+      type: "characterFailed";
+      speakerId: string;
+      sequenceIndex: number;
+      turnIndex: number;
+      message: string;
+    }
+  | {
+      type: "characterCanceled";
+      speakerId: string;
+      sequenceIndex: number;
+      turnIndex: number;
     }
   | {
       type: "judgeStart";
@@ -370,18 +386,9 @@ async function advanceDateExchangeWithLocalAiInternal(
     focusRequest,
     matchFit,
   });
-  const pendingEventKinds = collectPendingEventKinds({
-    scenario,
-    session,
-    pendingMessages: pendingRevealMessages,
-  });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
-    matchFit,
     exchangeMessages: pendingRevealMessages,
-    triggeredEventIds: session.eventsTriggered,
-    focusRequest,
-    pendingEventKinds,
   });
   const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
@@ -1160,27 +1167,55 @@ async function streamCharacterMessage({
     turnIndex,
   });
 
-  return runtime.streamCharacterTurn({
-    packet,
-    config,
-    tools,
-    abortSignal,
-    onTextDelta: async (delta) => {
-      const textDelta = stripForbiddenPunctuation(delta);
+  try {
+    return await runtime.streamCharacterTurn({
+      packet,
+      config,
+      tools,
+      abortSignal,
+      onTextDelta: async (delta) => {
+        const textDelta = stripForbiddenPunctuation(delta);
 
-      if (textDelta.length === 0) {
-        return;
-      }
+        if (textDelta.length === 0) {
+          return;
+        }
 
+        await emit({
+          type: "characterDelta",
+          speakerId: speaker.id,
+          sequenceIndex,
+          turnIndex,
+          textDelta,
+        });
+      },
+    });
+  } catch (error) {
+    if (isDateStreamAbort(error)) {
       await emit({
-        type: "characterDelta",
+        type: "characterCanceled",
         speakerId: speaker.id,
         sequenceIndex,
         turnIndex,
-        textDelta,
       });
-    },
-  });
+      throw error instanceof DateStreamAbortedError ? error : new DateStreamAbortedError();
+    }
+
+    await emit({
+      type: "characterFailed",
+      speakerId: speaker.id,
+      sequenceIndex,
+      turnIndex,
+      message: errorToMessage(error),
+    });
+    throw error;
+  }
+}
+
+function isDateStreamAbort(error: unknown): boolean {
+  return (
+    error instanceof DateStreamAbortedError ||
+    (error instanceof Error && error.name === "AbortError")
+  );
 }
 
 async function createLocalAiJudgeSnapshot({
@@ -1454,7 +1489,7 @@ function normalizeMemoryCandidate(
   const participantIds = new Set(session.participants);
   const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
   const fallbackSubjectIds = subjectIds.length === 0 ? [...session.participants] : subjectIds;
-  const cleanedText = normalizeMemoryText(candidate.text);
+  const cleanedText = scrubPlayerSafeCopy(candidate.text);
   const memoryCheck = checkCupidCorporateCopy(cleanedText, { maxLength: 320 });
   const memoryTextIsUsable =
     memoryCheck.ok && memoryTextIsGroundedInTranscript(cleanedText, context.transcriptTokens);
@@ -1567,7 +1602,7 @@ function sanitizeJudgeSnapshot(
       participantIds.has(memberId),
     ),
   );
-  const cleanedSummary = normalizeForbiddenPunctuation(judgeSnapshot.playerSummary);
+  const cleanedSummary = scrubPlayerSafeCopy(judgeSnapshot.playerSummary);
   const summaryCheck = checkCupidCorporateCopy(cleanedSummary, { maxLength: 320 });
   const playerSummary = summaryCheck.ok
     ? cleanedSummary
@@ -1577,7 +1612,7 @@ function sanitizeJudgeSnapshot(
         judgeSnapshot,
       });
   const cleanedMoments = judgeSnapshot.notableMoments
-    .map((moment) => normalizeForbiddenPunctuation(moment))
+    .map((moment) => scrubPlayerSafeCopy(moment))
     .filter((moment) => moment.length > 0);
   const sanitizedMoments = cleanedMoments.map((moment) =>
     checkCupidCorporateCopy(moment, { maxLength: 220 }).ok
@@ -1604,7 +1639,7 @@ function sanitizeJudgeSnapshot(
     earlyEndReason:
       judgeSnapshot.earlyEndReason === undefined
         ? undefined
-        : normalizeForbiddenPunctuation(judgeSnapshot.earlyEndReason),
+        : scrubPlayerSafeCopy(judgeSnapshot.earlyEndReason),
     notableMoments,
     playerSummary,
   };
@@ -1713,7 +1748,7 @@ export class EmptyPerformerMessageError extends Error {
 }
 
 export function sanitizeCharacterText(text: string, speakerName: string): string {
-  const trimmedText = normalizeForbiddenPunctuation(text)
+  const trimmedText = stripForbiddenPunctuation(text)
     .replace(/\s+/g, " ")
     .trim()
     .replace(/^["']|["']$/g, "")
@@ -1808,33 +1843,5 @@ function stripPerformerActionNarration(text: string): string {
   return keptSentences
     .join("")
     .replace(/\s{2,}/g, " ")
-    .trim();
-}
-
-const FORBIDDEN_DASH_PATTERN = /[\u2014\u2013]/;
-
-function stripForbiddenPunctuation(text: string): string {
-  if (!FORBIDDEN_DASH_PATTERN.test(text)) {
-    return text;
-  }
-
-  return text
-    .replace(/[\u2014\u2013]/g, ", ")
-    .replace(/\s+,/g, ",")
-    .replace(/,\s+/g, ", ")
-    .replace(/\s{2,}/g, " ");
-}
-
-function normalizeForbiddenPunctuation(text: string): string {
-  return stripForbiddenPunctuation(text).trim();
-}
-
-function normalizeMemoryText(text: string): string {
-  return normalizeForbiddenPunctuation(text)
-    .replace(/\bFinal Date Health was \d+\.?/giu, "Cupid filed a nonnumeric comfort note.")
-    .replace(/\bwith Date Health delta [-+]?\d+\.?/giu, "with a filed comfort movement.")
-    .replace(/\bSpark \d+\.?\s*/giu, "")
-    .replace(/\bStrain \d+\.?\s*/giu, "")
-    .replace(/\bHealth \d+\.?\s*/giu, "")
     .trim();
 }

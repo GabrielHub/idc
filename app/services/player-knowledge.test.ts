@@ -268,7 +268,7 @@ describe("buildRevealCandidates", () => {
     expect(boundaryCandidate?.source).toBe("judge");
   });
 
-  it("blocked ask produces an ask candidate", () => {
+  it("blocked ask produces an ask candidate that names the friction", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
@@ -299,6 +299,10 @@ describe("buildRevealCandidates", () => {
     const askCandidate = candidates.find((candidate) => candidate.readKind === "ask");
     expect(askCandidate).toBeDefined();
     expect(askCandidate?.id).toContain(focusRequest.id);
+    expect(askCandidate?.readText).not.toBe(
+      `${member.firstName}'s current ask is blocked in this room.`,
+    );
+    expect(askCandidate?.readText).toMatch(/dealbreaker|destiny|stage|pressure|memory/i);
   });
 
   it("pair rule hits produce pair dynamic candidates", () => {
@@ -349,9 +353,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     });
     const eligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages: [],
-      triggeredEventIds: [],
     });
 
     expect(eligible.length).toBeLessThanOrEqual(candidates.length);
@@ -386,7 +388,6 @@ describe("filterExchangeEligibleRevealCandidates", () => {
 
     const unrelatedEligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages: [
         {
           id: "message-1",
@@ -399,11 +400,9 @@ describe("filterExchangeEligibleRevealCandidates", () => {
           createdAt: SEED_DATE.toISOString(),
         },
       ],
-      triggeredEventIds: [],
     });
     const relatedEligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages: [
         {
           id: "message-2",
@@ -416,14 +415,13 @@ describe("filterExchangeEligibleRevealCandidates", () => {
           createdAt: SEED_DATE.toISOString(),
         },
       ],
-      triggeredEventIds: [],
     });
 
     expect(unrelatedEligible.map((candidate) => candidate.id)).not.toContain(boundary.id);
     expect(relatedEligible.map((candidate) => candidate.id)).toContain(boundary.id);
   });
 
-  it("surfaces at least one safe read when a reveal-kind event triggers in the exchange", () => {
+  it("requires keyword evidence even when a scenario beat lands in the exchange", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "mei-sato");
     const partner = findMember(seed, "calvin-hewes");
@@ -442,87 +440,35 @@ describe("filterExchangeEligibleRevealCandidates", () => {
       pairState,
       matchFit,
     });
-    const exchangeMessages = [
+    const exchangeMessages: DateMessage[] = [
       {
         id: "message-1",
         dateSessionId: "test",
-        kind: "character" as const,
+        kind: "character",
         speakerId: member.id,
         turnIndex: 1,
         sequenceIndex: 1,
-        text: "Mei admits she keeps the same takeout reciept on the fridge for three weeks.",
+        text: "Mei admits she keeps the same takeout receipt on the fridge for three weeks.",
         createdAt: SEED_DATE.toISOString(),
       },
       {
         id: "message-2",
         dateSessionId: "test",
-        kind: "scenario" as const,
+        kind: "scenario",
         turnIndex: 1,
         sequenceIndex: 2,
-        text: "The room turns honest. The packaging holds a sticky note in old handwriting.",
+        text: "The packaging holds a sticky note in old handwriting.",
         createdAt: SEED_DATE.toISOString(),
       },
     ];
-
-    const withoutReveal = filterExchangeEligibleRevealCandidates({
-      candidates,
-      matchFit,
-      exchangeMessages,
-      triggeredEventIds: [],
-    });
-    const withReveal = filterExchangeEligibleRevealCandidates({
-      candidates,
-      matchFit,
-      exchangeMessages,
-      triggeredEventIds: [],
-      pendingEventKinds: ["reveal"],
-    });
-
-    expect(withReveal.length).toBeGreaterThanOrEqual(1);
-    expect(withReveal.length).toBeGreaterThanOrEqual(withoutReveal.length);
-    for (const candidate of withReveal) {
-      expect(candidate.readText).not.toMatch(/\d+/);
-    }
-  });
-
-  it("does not fabricate reveal-fallback candidates when the transcript is empty", () => {
-    const seed = createSeedGameSave(SEED_DATE);
-    const member = findMember(seed, "mei-sato");
-    const partner = findMember(seed, "calvin-hewes");
-    const scenario = findScenario("couch-night-takeout");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
-    const matchFit = evaluateMatchFit({
-      members: [member, partner],
-      scenario,
-      pairState,
-    });
-    const candidates = buildRevealCandidates({
-      members: [member, partner],
-      scenario,
-      pairState,
-      matchFit,
-    });
     const eligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
-      exchangeMessages: [
-        {
-          id: "scenario-only",
-          dateSessionId: "test",
-          kind: "scenario" as const,
-          turnIndex: 0,
-          sequenceIndex: 1,
-          text: "A scene happens without any spoken line.",
-          createdAt: SEED_DATE.toISOString(),
-        },
-      ],
-      triggeredEventIds: [],
-      pendingEventKinds: ["reveal"],
+      exchangeMessages,
     });
 
-    expect(eligible).toEqual([]);
+    for (const candidate of eligible) {
+      expect(["scenario_pressure", "ask"]).toContain(candidate.readKind);
+    }
   });
 
   it("boundary risk candidates need transcript evidence before eligibility", () => {
@@ -546,9 +492,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     });
     const eligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages: [],
-      triggeredEventIds: [],
     });
     const exchangeMessages: DateMessage[] = [
       {
@@ -556,7 +500,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
         dateSessionId: "test",
         kind: "character",
         speakerId: member.id,
-        text: "I need less prophecy pressure at this table.",
+        text: "The prophecy framing is already on the table.",
         turnIndex: 1,
         sequenceIndex: 0,
         createdAt: SEED_DATE.toISOString(),
@@ -564,9 +508,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     ];
     const eligibleWithEvidence = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages,
-      triggeredEventIds: [],
     });
 
     expect(eligible.some((candidate) => candidate.readKind === "boundary")).toBe(false);
@@ -601,7 +543,6 @@ describe("selectDeterministicRevealIds", () => {
     });
     const ids = selectDeterministicRevealIds({
       candidates,
-      matchFit,
       judgeSnapshot,
     });
 
@@ -634,7 +575,6 @@ describe("selectDeterministicRevealIds", () => {
     });
     const ids = selectDeterministicRevealIds({
       candidates,
-      matchFit,
       judgeSnapshot,
     });
 
@@ -663,9 +603,7 @@ describe("selectDeterministicRevealIds", () => {
     });
     const eligible = filterExchangeEligibleRevealCandidates({
       candidates,
-      matchFit,
       exchangeMessages: [],
-      triggeredEventIds: [],
     });
     const judgeSnapshot = makeJudgeSnapshot({
       dateSessionId: "test",
@@ -675,7 +613,6 @@ describe("selectDeterministicRevealIds", () => {
     });
     const ids = selectDeterministicRevealIds({
       candidates: eligible,
-      matchFit,
       judgeSnapshot,
     });
 

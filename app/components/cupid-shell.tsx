@@ -380,8 +380,34 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       ? `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`
       : currentRoom;
   const diagnosticsSnapshot = useMemo(
-    () => buildDiagnosticsSnapshot({ config: save?.config ?? null, localAiStatus }),
-    [save?.config, localAiStatus],
+    () =>
+      buildDiagnosticsSnapshot({
+        config: save?.config ?? null,
+        localAiStatus,
+        save,
+        currentShift: activeShift,
+        activeDateSession: activeSession,
+        currentRoom,
+        pendingAction,
+        queuedPlaybackIntent,
+        streamingDraftCount: streamingDrafts.length,
+        isJudgePending: isDateJudgePending,
+        lastErrorMessage: errorMessage,
+        noticeMessage,
+      }),
+    [
+      activeSession,
+      activeShift,
+      currentRoom,
+      errorMessage,
+      isDateJudgePending,
+      localAiStatus,
+      noticeMessage,
+      pendingAction,
+      queuedPlaybackIntent,
+      save,
+      streamingDrafts.length,
+    ],
   );
   useEffect(() => {
     if (save === null) return;
@@ -744,6 +770,14 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       setIsDateJudgePending(false);
     }
 
+    if (event.type === "characterFailed" || event.type === "characterCanceled") {
+      setIsDateJudgePending(false);
+      setStreamingDrafts((current) =>
+        current.filter((draft) => draft.sequenceIndex !== event.sequenceIndex),
+      );
+      return;
+    }
+
     setStreamingDrafts((current) => {
       if (event.type === "characterStart") {
         const withoutPrior = current.filter((draft) => draft.sequenceIndex !== event.sequenceIndex);
@@ -885,6 +919,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     tryAction("endShift", async () => {
       const { save: nextSave } = completeShift(save);
       await persist(nextSave);
+      dispatchManagerQuip({ triggerKey: "shift.ended" });
       processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }
@@ -895,6 +930,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     tryAction("nextShift", async () => {
       const { save: nextSave } = startNextShift(save);
       await persist(nextSave);
+      dispatchManagerQuip({ triggerKey: "shift.started" });
       processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }

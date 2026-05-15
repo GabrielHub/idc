@@ -2,6 +2,8 @@ export type ManagerQuipCadence = "rare" | "regular" | "episodic";
 
 export type ManagerQuipTriggerKey =
   | "onboarding.welcome"
+  | "shift.started"
+  | "shift.ended"
   | "date.started"
   | "date.ended"
   | "date.ended-early"
@@ -32,6 +34,18 @@ export const MANAGER_QUIP_TRIGGER_GROUPS: ManagerQuipTriggerGroup[] = [
     summary:
       "First load on a fresh save. Fires alongside the very first coach mark to introduce the agency.",
     cadence: "rare",
+  },
+  {
+    key: "shift.started",
+    label: "Shift started",
+    summary: "Doors open on a new shift. The manager arrives back at the desk.",
+    cadence: "regular",
+  },
+  {
+    key: "shift.ended",
+    label: "Shift ended",
+    summary: "Player punched out for the night. The lights come down.",
+    cadence: "regular",
   },
   {
     key: "date.started",
@@ -148,6 +162,75 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     status: "recorded",
   },
   {
+    id: "shift-started-01",
+    triggerKey: "shift.started",
+    text: "Coffee's brewing. The audacity of this day to start again.",
+    generationScript:
+      "[tired] Coffee's brewing. [sarcastic] The audacity of this day to start again.",
+    audio: "/assets/manager-quips/shift-started-01.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-started-02",
+    triggerKey: "shift.started",
+    text: "Doors are open. Try to remember how stairs work.",
+    generationScript: "[casual] Doors are open. [deadpan] Try to remember how stairs work.",
+    audio: "/assets/manager-quips/shift-started-02.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-started-03",
+    triggerKey: "shift.started",
+    text: "Round two. I checked my horoscope. It said betrayal.",
+    generationScript: "[casual] Round two. I checked my horoscope. [deadpan] It said betrayal.",
+    audio: "/assets/manager-quips/shift-started-03.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-started-04",
+    triggerKey: "shift.started",
+    text: "Morning. Statistically, half of these will end in tears.",
+    generationScript:
+      "[deadpan] Morning. [resigned tone] Statistically, half of these will end in tears.",
+    audio: "/assets/manager-quips/shift-started-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-ended-01",
+    triggerKey: "shift.ended",
+    text: "Clocking out. If anyone needs me, they can need me tomorrow.",
+    generationScript:
+      "[tired] Clocking out. [casual] If anyone needs me, they can need me tomorrow.",
+    audio: "/assets/manager-quips/shift-ended-01.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-ended-02",
+    triggerKey: "shift.ended",
+    text: "Lying face down on the floor. Calling that self care.",
+    generationScript: "[deadpan] Lying face down on the floor. [casual] Calling that self care.",
+    audio: "/assets/manager-quips/shift-ended-02.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-ended-03",
+    triggerKey: "shift.ended",
+    text: "Done. The members can love each other on their own time.",
+    generationScript:
+      "[resigned tone] Done. [casual] The members can love each other on their own time.",
+    audio: "/assets/manager-quips/shift-ended-03.mp3",
+    status: "draft",
+  },
+  {
+    id: "shift-ended-04",
+    triggerKey: "shift.ended",
+    text: "Bye. Don't text me. Don't email me. Don't manifest me.",
+    generationScript:
+      "[deadpan] Bye. Don't text me. Don't email me. [sarcastic] Don't manifest me.",
+    audio: "/assets/manager-quips/shift-ended-04.mp3",
+    status: "draft",
+  },
+  {
     id: "date-start-01",
     triggerKey: "date.started",
     text: "Pair's in. Try not to embarrass me.",
@@ -254,6 +337,15 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     status: "recorded",
   },
   {
+    id: "date-early-04",
+    triggerKey: "date.ended-early",
+    text: "And they bolted. We'll learn the why in the wrap-up. Or we won't.",
+    generationScript:
+      "[casual] And they bolted. [deadpan] We'll learn the why in the wrap-up. [resigned tone] Or we won't.",
+    audio: "/assets/manager-quips/date-early-04.mp3",
+    status: "draft",
+  },
+  {
     id: "bad-fit-01",
     triggerKey: "date.outcome.bad-fit",
     text: "Bad fit. Shocking, I know.",
@@ -278,6 +370,24 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     status: "recorded",
   },
   {
+    id: "bad-fit-04",
+    triggerKey: "date.outcome.bad-fit",
+    text: "I've watched paint dry with more chemistry than that. Archive it.",
+    generationScript:
+      "[deadpan] I've watched paint dry with more chemistry than that. [casual] Archive it.",
+    audio: "/assets/manager-quips/bad-fit-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "bad-fit-05",
+    triggerKey: "date.outcome.bad-fit",
+    text: "Two icebergs talking about the weather. We're done here.",
+    generationScript:
+      "[casual] Two icebergs talking about the weather. [resigned tone] We're done here.",
+    audio: "/assets/manager-quips/bad-fit-05.mp3",
+    status: "draft",
+  },
+  {
     id: "cool-down-01",
     triggerKey: "date.outcome.cool-down",
     text: "Sometimes the best move is the door.",
@@ -300,6 +410,24 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript: "[casual] Give them space. Resist the urge to poke it.",
     audio: "/assets/manager-quips/cool-down-03.mp3",
     status: "recorded",
+  },
+  {
+    id: "cool-down-04",
+    triggerKey: "date.outcome.cool-down",
+    text: "They need a nap and a snack. Toddler solutions, adult bills.",
+    generationScript:
+      "[tired] They need a nap and a snack. [deadpan] Toddler solutions, adult bills.",
+    audio: "/assets/manager-quips/cool-down-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "cool-down-05",
+    triggerKey: "date.outcome.cool-down",
+    text: "Let it cool like leftovers. Tomorrow it's a different soup.",
+    generationScript:
+      "[casual] Let it cool like leftovers. [understated] Tomorrow it's a different soup.",
+    audio: "/assets/manager-quips/cool-down-05.mp3",
+    status: "draft",
   },
   {
     id: "encourage-01",
@@ -327,6 +455,24 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     status: "recorded",
   },
   {
+    id: "encourage-04",
+    triggerKey: "date.outcome.encourage",
+    text: "Green stamp. Haven't dusted this one off in a while.",
+    generationScript:
+      "[casual] Green stamp. [light chuckle] Haven't dusted this one off in a while.",
+    audio: "/assets/manager-quips/encourage-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "encourage-05",
+    triggerKey: "date.outcome.encourage",
+    text: "Sparks. The real kind. Get them out before they second-guess it.",
+    generationScript:
+      "[casual] Sparks. [emphasized] The real kind. [deadpan] Get them out before they second-guess it.",
+    audio: "/assets/manager-quips/encourage-05.mp3",
+    status: "draft",
+  },
+  {
     id: "brittle-01",
     triggerKey: "pair.trajectory.brittle",
     text: "Brittle. Be gentle. Or don't. Your call.",
@@ -350,6 +496,24 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
       "[resigned tone] They're not okay. Soft room next, or we're writing the closure.",
     audio: "/assets/manager-quips/brittle-03.mp3",
     status: "recorded",
+  },
+  {
+    id: "brittle-04",
+    triggerKey: "pair.trajectory.brittle",
+    text: "These two are held together by lipstick and good manners.",
+    generationScript:
+      "[deadpan] These two are held together by lipstick... [understated] and good manners.",
+    audio: "/assets/manager-quips/brittle-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "brittle-05",
+    triggerKey: "pair.trajectory.brittle",
+    text: "Their bond is a Jenga tower at the bottom of the second drink.",
+    generationScript:
+      "[resigned tone] Their bond is a Jenga tower... [deadpan] at the bottom of the second drink.",
+    audio: "/assets/manager-quips/brittle-05.mp3",
+    status: "draft",
   },
   {
     id: "closure-confirmed-01",
@@ -376,6 +540,22 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     status: "recorded",
   },
   {
+    id: "closure-confirmed-04",
+    triggerKey: "pair.closure.confirmed",
+    text: "Bye-bye lovebirds. Don't text me on Christmas.",
+    generationScript: "[playfully] Bye-bye lovebirds. [deadpan] Don't text me on Christmas.",
+    audio: "/assets/manager-quips/closure-confirmed-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "closure-confirmed-05",
+    triggerKey: "pair.closure.confirmed",
+    text: "Closure. The good kind, where I get my evenings back.",
+    generationScript: "[deadpan] Closure. [casual] The good kind, where I get my evenings back.",
+    audio: "/assets/manager-quips/closure-confirmed-05.mp3",
+    status: "draft",
+  },
+  {
     id: "retention-warn-01",
     triggerKey: "member.retention.warning",
     text: "Um, they're one oxford comma from packing it in?",
@@ -398,6 +578,24 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript: "[deadpan] Twenty-five and dropping. Read the room.",
     audio: "/assets/manager-quips/retention-warn-03.mp3",
     status: "recorded",
+  },
+  {
+    id: "retention-warn-04",
+    triggerKey: "member.retention.warning",
+    text: "If their morale was a houseplant, I'd be calling poison control.",
+    generationScript:
+      "[tired] If their morale was a houseplant... [deadpan] I'd be calling poison control.",
+    audio: "/assets/manager-quips/retention-warn-04.mp3",
+    status: "draft",
+  },
+  {
+    id: "retention-warn-05",
+    triggerKey: "member.retention.warning",
+    text: "One bad room from updating their LinkedIn. Pick soft, please.",
+    generationScript:
+      "[casual] One bad room from updating their LinkedIn. [tired] Pick soft, please.",
+    audio: "/assets/manager-quips/retention-warn-05.mp3",
+    status: "draft",
   },
   {
     id: "member-quit-01",

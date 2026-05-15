@@ -18,8 +18,14 @@ import {
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
 } from "./date-engine";
-import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
+import {
+  rankActiveAgreements,
+  rankActiveOpenLoops,
+  selectPairSpotlightItem,
+  type PairSpotlightItem,
+} from "./pair-memory";
 import { derivePairTrajectory } from "./pair-trajectory";
+import { cleanMemberFacingText } from "./player-safe-copy";
 import type { RevealCandidate } from "./player-knowledge";
 
 export type CharacterPromptPacket = {
@@ -477,10 +483,8 @@ function formatCharacterPairContextSection(
   partner: Member,
 ): string[] {
   const lines: string[] = [];
-  const activeAgreements = pairState.agreements.filter(
-    (agreement) => agreement.status === "active",
-  );
-  const openLoops = pairState.openLoops.filter((loop) => loop.status === "open");
+  const activeAgreements = rankActiveAgreements(pairState);
+  const openLoops = rankActiveOpenLoops(pairState);
 
   if (activeAgreements.length > 0) {
     lines.push(
@@ -1094,7 +1098,7 @@ function joinAsSentence(items: readonly string[]): string {
 }
 
 function formatActiveAgreementIds(pairState: PairState): string {
-  const active = pairState.agreements.filter((agreement) => agreement.status === "active");
+  const active = rankActiveAgreements(pairState);
   if (active.length === 0) {
     return "none";
   }
@@ -1106,7 +1110,7 @@ function formatActiveAgreementIds(pairState: PairState): string {
 }
 
 function formatOpenLoopIds(pairState: PairState): string {
-  const open = pairState.openLoops.filter((loop) => loop.status === "open");
+  const open = rankActiveOpenLoops(pairState);
   if (open.length === 0) {
     return "none";
   }
@@ -1240,20 +1244,6 @@ function formatLabeledTranscript(messages: DateMessage[], members: Member[]): st
       return `System: ${message.text}`;
     })
     .join("\n");
-}
-
-export function cleanMemberFacingText(text: string): string {
-  return text
-    .replace(/\bscenario\b/gi, "date")
-    .replace(/\bscenarios\b/gi, "dates")
-    .replace(/\btranscript\b/gi, "conversation")
-    .replace(/\btranscripts\b/gi, "conversations")
-    .replace(/\bturn\b/gi, "message")
-    .replace(/\bturns\b/gi, "messages")
-    .replace(/\bDate Health\b/g, "comfort")
-    .replace(/\bgameplay\b/gi, "date")
-    .replace(/\bsimulation\b/gi, "date")
-    .replace(/\bsim\b/gi, "date");
 }
 
 function truncateForPrompt(text: string, maxLength = 220): string {

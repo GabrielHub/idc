@@ -338,6 +338,7 @@ export async function judgeDateExchange({
     messages: packet.messages,
     modelId: runtimeConfig.chatModel,
     config: withSecondaryContextWindow(runtimeConfig, OLLAMA_JUDGE_CONTEXT_WINDOW_TOKENS),
+    jsonRepairScope: "judge",
     ...withOptionalMaxOutputTokens(
       defaultMaxOutputTokensForProvider(runtimeConfig.aiProvider, OLLAMA_JUDGE_MAX_OUTPUT_TOKENS),
     ),
@@ -387,6 +388,7 @@ export async function summarizeDateMemories(
     prompt: packet.prompt,
     modelId: runtimeConfig.chatModel,
     config: withSecondaryContextWindow(runtimeConfig, OLLAMA_SUMMARIZER_CONTEXT_WINDOW_TOKENS),
+    jsonRepairScope: "summarizer",
     ...withOptionalMaxOutputTokens(
       defaultMaxOutputTokensForProvider(
         runtimeConfig.aiProvider,
@@ -766,6 +768,7 @@ async function generateObjectWithModelService<TSchema extends z.ZodType>(
     modelId: string;
     config: AiRuntimeConfig;
     maxOutputTokens?: number;
+    jsonRepairScope?: JsonRepairScope;
   },
 ): Promise<z.infer<TSchema>> {
   if (input.config.aiProvider === "ollama") {
@@ -811,6 +814,7 @@ async function generateArrayWithModelService<TElementSchema extends z.ZodType>(
     modelId: string;
     config: AiRuntimeConfig;
     maxOutputTokens?: number;
+    jsonRepairScope?: JsonRepairScope;
   },
 ): Promise<Array<z.infer<TElementSchema>>> {
   const arraySchema = z.array(elementSchema);
@@ -858,6 +862,7 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
     modelId: string;
     config: AiRuntimeConfig;
     maxOutputTokens?: number;
+    jsonRepairScope?: JsonRepairScope;
   },
 ): Promise<z.infer<TSchema>> {
   const callSettings = {
@@ -881,7 +886,7 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
           ...callSettings,
           messages: input.messages,
         });
-  const parsedJson = parseJsonText(result.text);
+  const parsedJson = parseScopedJsonText(result.text, input.jsonRepairScope ?? "unknown");
 
   return schema.parse(parsedJson);
 }
@@ -1299,19 +1304,60 @@ function embeddingFailureMessage(provider: AiProvider): string {
     : "Embedding generation failed. Confirm the Gateway key and embedding model.";
 }
 
-function parseJsonText(text: string): unknown {
+export type JsonRepairEvent =
+  | { kind: "direct"; scope: JsonRepairScope }
+  | { kind: "recovered"; scope: JsonRepairScope; rawText: string }
+  | { kind: "failed"; scope: JsonRepairScope; rawText: string; reason: string };
+
+export type JsonRepairScope = "judge" | "summarizer" | "unknown";
+
+let jsonRepairListener: ((event: JsonRepairEvent) => void) | undefined;
+
+/**
+ * Audit hook. Receives one event per JSON parse attempt inside the model
+ * service: direct (clean parse), recovered (needed brace extraction), or
+ * failed (brace extraction could not produce parseable text). Used by the
+ * date quality audit pack to flag JSON repair on the judge path.
+ */
+export function setJsonRepairListener(
+  listener: ((event: JsonRepairEvent) => void) | undefined,
+): void {
+  jsonRepairListener = listener;
+}
+
+function parseScopedJsonText(text: string, scope: JsonRepairScope): unknown {
   const trimmedText = text.trim();
 
   try {
-    return JSON.parse(trimmedText);
+    const value = JSON.parse(trimmedText);
+    jsonRepairListener?.({ kind: "direct", scope });
+    return value;
   } catch (error) {
     const payload = extractJsonPayload(trimmedText);
 
     if (payload === null) {
+      jsonRepairListener?.({
+        kind: "failed",
+        scope,
+        rawText: trimmedText,
+        reason: errorToMessage(error),
+      });
       throw error;
     }
 
-    return JSON.parse(payload);
+    try {
+      const value = JSON.parse(payload);
+      jsonRepairListener?.({ kind: "recovered", scope, rawText: trimmedText });
+      return value;
+    } catch (recoveryError) {
+      jsonRepairListener?.({
+        kind: "failed",
+        scope,
+        rawText: trimmedText,
+        reason: errorToMessage(recoveryError),
+      });
+      throw recoveryError;
+    }
   }
 }
 

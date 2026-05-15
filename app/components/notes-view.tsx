@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 
 import { type DateScenario, type Member, type MemoryRecord, type PairState } from "../domain/game";
 import { PAIR_CLOSURE_TAG } from "../services/closures";
+import { scrubPlayerSafeCopy } from "../services/player-safe-copy";
 import {
   EASE_OUT_QUART,
   Eyebrow,
@@ -517,7 +518,7 @@ function FeaturedNoteCard({
     memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
   const title = noteCardTitle(memory, pairMembers, scenario);
   const subhead = noteCardSubhead(memory, scenario);
-  const { lead, tail } = splitNoteLead(playerSafeMemoryText(memory.text));
+  const { lead, tail } = splitNoteLead(scrubPlayerSafeCopy(memory.text));
   const caseNumber = caseNumberFor(memory);
   const tagLabels = visibleMemoryTagLabels(memory);
 
@@ -646,7 +647,7 @@ function NoteCard({
     memory.scenarioId === undefined ? undefined : scenarioById.get(memory.scenarioId);
   const title = noteCardTitle(memory, pairMembers, scenario);
   const subhead = noteCardSubhead(memory, scenario);
-  const { lead, tail } = splitNoteLead(playerSafeMemoryText(memory.text));
+  const { lead, tail } = splitNoteLead(scrubPlayerSafeCopy(memory.text));
   const caseNumber = caseNumberFor(memory);
   const tagLabels = visibleMemoryTagLabels(memory);
 
@@ -927,15 +928,6 @@ function visibleMemoryTagLabels(memory: MemoryRecord): string[] {
   }
 
   return labels;
-}
-
-function playerSafeMemoryText(text: string): string {
-  return text
-    .replace(/\bFinal Date Health was \d+\.?/giu, "Cupid filed a nonnumeric comfort note.")
-    .replace(/\bwith Date Health delta [-+]?\d+\.?/giu, "with a filed comfort movement.")
-    .replace(/\bSpark \d+\.?\s*/giu, "")
-    .replace(/\bStrain \d+\.?\s*/giu, "")
-    .replace(/\bHealth \d+\.?\s*/giu, "");
 }
 
 function sortMemoriesNewestFirst(first: MemoryRecord, second: MemoryRecord): number {

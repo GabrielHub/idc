@@ -121,12 +121,13 @@ export const sections: DocSectionEntry[] = [
             The player's text is the player's text; we do not author it. The wrapper around it is
             corporate voice and locked: <DocCode>Cupid suggests: &lt;player text&gt;</DocCode>. Do
             not get cute with the wrapper. Cupid interventions target one member at a time. Only the
-            targeted performer receives the nudge in their prompt.
+            targeted performer sees the nudge in their thread.
           </P>
           <P>
-            If the player types something coercive ("fall in love immediately"), the characters
-            react to it as a weird Cupid nudge they can refuse, resent, or joke about. The
-            intervention is not a system instruction.
+            The Performer receives the nudge as an in-thread user message framed{" "}
+            <DocCode>Your dating manager just texted you: "&lt;player text&gt;"</DocCode>, not as a
+            system directive. The character reacts to it as a text from their dating manager. They
+            can take it, push back on it, refuse it, resent it, or joke about it.
           </P>
         </DocSubsection>
         <DocSubsection id="member-request" title="Member request">
@@ -205,17 +206,53 @@ export const sections: DocSectionEntry[] = [
     title: "Generation notes for LLMs",
     body: (
       <>
-        <P>When prompting the Character Performer, supply:</P>
+        <P>
+          The Character Performer prompt is built in <DocCode>buildCharacterPromptPacket</DocCode> (
+          <DocCode>app/services/date-prompts.ts</DocCode>) as a system message addressed to the
+          member in second person, followed by a thread of <DocCode>ModelMessage</DocCode>s. The
+          system frame casts the member as themselves on a date; the thread is the conversation as
+          they would experience it.
+        </P>
+        <P>The system message supplies:</P>
         <DocList
           items={[
+            <span key="roleplay">
+              A roleplay opener:{" "}
+              <DocCode>
+                You are {"<name>"}. People who know you call you {"<firstName>"}.
+              </DocCode>{" "}
+              The Performer is addressed in second person throughout. Gameplay language stays out of
+              the frame: no scenario, simulation, transcript, or turn vocabulary.
+            </span>,
             "A compact character card: bio, current need, what relaxes them, what makes them guarded, and private pressure as subtext.",
             "The member's conversational register and a few habits from the voice block, framed as optional pressure tells rather than required words. The performer should know that none of these need to surface in any given reply.",
-            "One to four sample lines from the member fixture, selected for the current moment. Treat samples as rhythm references, not copy targets.",
-            "A live scene frame before sample lines: location, opening situation, what both members know, room feel, and what the speaker can see of the partner.",
-            "The latest incoming line and the speaker's own last line. The performer should answer the incoming line and avoid repeating or lightly rewording its own last line.",
-            "Permission for soft improv: small objects, drinks, snacks, nearby details, same-day anecdotes, and personal habits that make the scene feel lived in.",
-            "A short reminder of the two-register rule and the comedy stops.",
-            "The current live room event and full active date conversation from deterministic session state.",
+            "One to four sample lines from the member fixture, selected for the current moment. Framed as reference for how they sound when fully themselves, not lines to copy.",
+            <span key="cupid-context">
+              The shared Cupid context block: the member signed up for a dating app whose platform
+              crosses dimensions, a Cupid dating manager set this date up and can text them
+              privately during it, and{" "}
+              <DocCode>
+                This is your {"<Nth>"} date with {"<partner>"} through Cupid.
+              </DocCode>{" "}
+              The ordinal counts completed dates in the pair plus one.
+            </span>,
+            "A live scene frame: location, what both characters know about the place, room feel from director tone, and any director rules worth remembering. Then the partner's dating profile blurb, profile photo description, both heights, and a reminder that the speaker does not know the partner's private biography.",
+            "Pair context when present: relevant self / pair / place memories, active agreements between them, and open loops still hanging, rewritten into character voice.",
+            "A short \"How you write\" block: one short message at a time, plain text, no stage directions or markdown, no echoing the partner back, no closing the date in one line. Recent-line guards list the speaker's last few lines as do-not-repeat and the partner's last few lines as do-not-echo.",
+          ]}
+        />
+        <P>The thread of messages supplies the conversation as the member experiences it:</P>
+        <DocList
+          items={[
+            "The speaker's own prior lines arrive as assistant messages, verbatim.",
+            <span key="incoming">
+              Partner replies arrive as user messages. Scene events arrive in the thread framed{" "}
+              <DocCode>This just happened: {"<event>"}</DocCode>. Cupid nudges arrive framed{" "}
+              <DocCode>Your dating manager just texted you: "{"<player text>"}"</DocCode>.
+            </span>,
+            "Everything between two of the speaker's own turns is batched into a single user message, joined by blank lines. A scene event plus a fresh Cupid nudge plus the partner's reply land together as one user message, not three.",
+            "Image attachments for visual grounding (the partner's portrait, scenario background) fold into the final user message as ImageParts with a short caption text part.",
+            "Cupid interventions sent to the other member are filtered out of this thread; only the targeted performer sees the nudge.",
           ]}
         />
         <P>
@@ -228,9 +265,8 @@ export const sections: DocSectionEntry[] = [
           Do not paste the full voice doc into prompts at runtime. Do not expose pattern taxonomy as
           a compliance checklist. Do not list the member's full patterns-used / patterns-refused
           arrays into the prompt as instructions for the model to satisfy. The prompt should
-          describe who the member is, what they want, what they are protecting, and the exact latest
-          line they need to answer. A natural reaction to that latest line beats any flavor field
-          every time.
+          describe who the member is, what they want, what they are protecting, and the conversation
+          they are inside. A natural reaction to the thread beats any flavor field every time.
         </DocCallout>
         <P>
           Sample lines are rhythm references, not automatic facts about the current date. A

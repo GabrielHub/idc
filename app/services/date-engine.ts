@@ -972,22 +972,12 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     focusRequest,
     matchFit,
   });
-  const pendingEventKinds = collectPendingEventKinds({
-    scenario,
-    session,
-    pendingMessages: pendingRevealMessages,
-  });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
-    matchFit,
     exchangeMessages: pendingRevealMessages,
-    triggeredEventIds: session.eventsTriggered,
-    focusRequest,
-    pendingEventKinds,
   });
   const deterministicAcceptedIds = selectDeterministicRevealIds({
     candidates: eligibleCandidates,
-    matchFit,
     judgeSnapshot: judgeSnapshotBeforeReveals,
   });
   const judgeSnapshot = judgeSnapshotSchema.parse({
@@ -2653,44 +2643,6 @@ export function messagesSinceLastJudge(
     .reduce((latest, message) => Math.max(latest, message.sequenceIndex), 0);
 
   return transcript.filter((message) => message.sequenceIndex > judgedSequenceCutoff);
-}
-
-/**
- * Returns the kinds of scenario events triggered in the supplied pending
- * exchange messages. The pending messages must be drawn from
- * `messagesSinceLastJudge`. We match by counting scenario messages and pulling
- * the same count from the end of `session.eventsTriggered`, which preserves
- * trigger order.
- */
-export function collectPendingEventKinds({
-  scenario,
-  session,
-  pendingMessages,
-}: {
-  scenario: DateScenario;
-  session: DateSession;
-  pendingMessages: readonly DateMessage[];
-}): ScenarioEventKind[] {
-  const pendingScenarioCount = pendingMessages.filter(
-    (message) => message.kind === "scenario",
-  ).length;
-
-  if (pendingScenarioCount === 0) {
-    return [];
-  }
-
-  const pendingEventIds = session.eventsTriggered.slice(-pendingScenarioCount);
-  const kinds: ScenarioEventKind[] = [];
-
-  for (const eventId of pendingEventIds) {
-    const event = scenario.director.events.find((candidate) => candidate.id === eventId);
-
-    if (event !== undefined) {
-      kinds.push(event.kind);
-    }
-  }
-
-  return kinds;
 }
 
 export function exchangeIndexForTurn(turnIndex: number): number {

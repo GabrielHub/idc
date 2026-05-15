@@ -4,6 +4,7 @@ import { Link } from "react-router";
 
 import { EASE_OUT_QUART, Eyebrow, MutedLabel } from "../components/dashboard-atoms";
 import { AiPromptLabTest } from "./playground/tests/ai-prompt-lab";
+import { AllMembersTest } from "./playground/tests/all-members";
 import { ChatBubbleGalleryTest } from "./playground/tests/chat-bubble-gallery";
 import { DateReactionsTest } from "./playground/tests/date-reactions";
 import { HeightLineupTest } from "./playground/tests/height-lineup";
@@ -15,6 +16,11 @@ const PLAYGROUND_TESTS = [
     id: "ai-lab",
     title: "AI prompt bench",
     summary: "Character turn prompting, one-on-one chat, model choice, sampling.",
+  },
+  {
+    id: "all-members",
+    title: "Member dossier",
+    summary: "Every field on every member, with a roster rail and avatar IDs for quick switching.",
   },
   {
     id: "date-reactions",
@@ -69,6 +75,7 @@ export default function PlaygroundRoute() {
 
         <div className="mt-10 min-w-0">
           {activeTestId === "ai-lab" ? <AiPromptLabTest /> : null}
+          {activeTestId === "all-members" ? <AllMembersTest /> : null}
           {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
           {activeTestId === "height-scale" ? <HeightLineupTest /> : null}
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
