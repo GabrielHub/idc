@@ -1,5 +1,30 @@
 [
   {
+    "version": "0.3.1",
+    "date": "2026-05-15",
+    "headline": "The manager stops waiting in the wings.",
+    "summary": "Maintenance test alpha. Wires the voiced manager check-ins into the live shell, adds a sound effects panel, brings the scenario library to 56 dates, and tightens tutorial coordination.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Manager check-in popups now play in-game next to the standee at the named beats catalogued in the manager quips doc, instead of living only in the docs preview.",
+          "A new scenario joins the library: Dim Sum and Then Some, a brunch table that runs on lazy susan momentum.",
+          "Settings gains a sound effects panel so quip chimes, button clicks, and ambient cues can be tuned independently.",
+          "Tutorial coach marks now coordinate with the manager so a required step never has to compete with a voiced popup."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Renamed Temporal Coffee Shop to Cart Before The Horse, which describes the place more honestly.",
+          "Fixed a tutorial typing regression around list targets so coach mark spotlights resolve correctly when given an array of candidate elements.",
+          "Date engine and scenario card prompts received small cleanups for steadier AI behavior across the library."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.0",
     "date": "2026-05-14",
     "headline": "Orientation begins, and the manager finally has a face.",
