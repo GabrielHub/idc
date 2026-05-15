@@ -1,5 +1,39 @@
 [
   {
+    "version": "0.3.0",
+    "date": "2026-05-14",
+    "headline": "Orientation begins, and the manager finally has a face.",
+    "summary": "Feature release. Ships an in-game tutorial, a voiced manager companion at named gameplay beats, scenario budgets that replace deck retirement, and pair-first booking in the Live Date room.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "First-time players are walked through the agency by lazy coach marks across onboarding, the dashboard, the date book, the roster, and pair memory, with a manager portrait companion replacing the old welcome modal.",
+          "Scenario booking now spends from a per-shift budget. Cards draw against pressure, intimacy, and chaos costs instead of being permanently retired, so the deck stays usable across the campaign.",
+          "Booking is pair-first inside the Live Date room: pick the focus case, pick the partner, then commit a date plan that fits the remaining budget.",
+          "A new manager check-in system reserves voiced sentences for named beats like date wraps, walkouts, brittle pair trajectories, retention warnings, and confirmed closures.",
+          "Settings adds a Reset orientation control so the tour can be replayed without wiping a save."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Standee portrait cutouts ship with cleaner matte fringes after a sweep through the cutout pipeline.",
+          "Settings and dialog controls now share a form primitive library so inputs read the same across panels.",
+          "The roadmap workflow gained ready and review lanes so planned work has somewhere to sit between drafting and shipped.",
+          "The tutorial doc moved from roadmap to product, with a separate tutorial steps catalog for copy review."
+        ]
+      },
+      {
+        "title": "Save behavior",
+        "items": [
+          "Save schema bumps from v7 to v8 to carry tutorial orientation state. Older alpha saves migrate forward on first load.",
+          "Players who already finished a tour see no replay unless they hit Reset orientation in Settings."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.2.7",
     "date": "2026-05-14",
     "headline": "The release courier found the right elevator.",
