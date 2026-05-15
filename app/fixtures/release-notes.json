@@ -1,5 +1,37 @@
 [
   {
+    "version": "0.3.2",
+    "date": "2026-05-15",
+    "headline": "The release desk gets a stamp that means something.",
+    "summary": "Maintenance test alpha. Promotes desktop release generation to the canon workflow, moves release checks before signing, and carries the player-facing changes from the unpublished v0.3.1 attempt.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Release preflight now validates version identity, public notes, rendered GitHub notes, rendered updater notes, and a temporary updater manifest before the protected signing job asks for approval.",
+          "The release workflow doc now treats friend sharing as the canonical desktop release path, with a clear gate for versioned prerelease assets and the desktop-alpha updater channel.",
+          "The release notes regression test now follows the catalog dynamically so a version bump does not require editing a hard-coded expected list."
+        ]
+      },
+      {
+        "title": "Included from v0.3.1",
+        "items": [
+          "Manager check-in popups now play in-game next to the standee at the named beats catalogued in the manager quips doc.",
+          "A new scenario joins the library: Dim Sum and Then Some, a brunch table that runs on lazy susan momentum.",
+          "Settings gains a sound effects panel so quip chimes, button clicks, and ambient cues can be tuned independently.",
+          "Tutorial coach marks now coordinate with the manager so a required step never has to compete with a voiced popup."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "The release workflow now records the v0.2.6 and v0.3.1 failure modes so future release debugging starts from the failed step instead of the nearest rumor.",
+          "Release note policy now explains how failed attempts affect the in-app What's new modal, GitHub release pages, and updater manifest notes."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.1",
     "date": "2026-05-15",
     "headline": "The manager stops waiting in the wings.",

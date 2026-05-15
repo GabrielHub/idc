@@ -1,6 +1,6 @@
 {
   "name": "idc",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Interdimensional Dating Coach desktop alpha shell.",
   "type": "module",
@@ -11,6 +11,7 @@
     "portrait:cutout": "python scripts/portraits/remove_background.py",
     "portrait:resize-avatars": "python scripts/portraits/resize_avatars.py",
     "portrait:standee-footing": "python scripts/portraits/build_standee_footing.py",
+    "release:check": "node scripts/verify-release-readiness.mjs",
     "release:notes": "node scripts/render-release-notes.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "tauri": "tauri",

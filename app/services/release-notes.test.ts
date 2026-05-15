@@ -17,25 +17,22 @@ describe("release notes", () => {
   });
 
   it("sorts notes by semantic version descending", () => {
-    expect(SORTED_RELEASE_NOTES.map((note) => note.version)).toEqual([
-      "0.3.1",
-      "0.3.0",
-      "0.2.7",
-      "0.2.6",
-      "0.2.5",
-      "0.2.4",
-      "0.2.3",
-      "0.2.2",
-      "0.2.1",
-      "0.2.0",
-    ]);
+    const versions = SORTED_RELEASE_NOTES.map((note) => note.version);
+
+    expect(versions).toEqual(
+      [...versions].sort((left, right) => compareReleaseVersions(right, left)),
+    );
+    expect(new Set(versions).size).toBe(versions.length);
+    expect(versions[0]).toBe(packageJson.version);
     expect(compareReleaseVersions("0.3.1", "0.3.0")).toBeGreaterThan(0);
   });
 
   it("returns current and previous notes for the modal", () => {
     expect(
-      listReleaseNotesForModal({ currentVersion: "v0.3.1" }).map((note) => note.version),
-    ).toEqual(["0.3.1", "0.3.0", "0.2.7"]);
+      listReleaseNotesForModal({ currentVersion: `v${packageJson.version}` }).map(
+        (note) => note.version,
+      ),
+    ).toEqual(SORTED_RELEASE_NOTES.slice(0, 3).map((note) => note.version));
   });
 
   it("opens on first launch only when an existing save has progress", () => {

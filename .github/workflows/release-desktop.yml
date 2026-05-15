@@ -67,6 +67,10 @@ jobs:
           node-version: "22"
           cache: "pnpm"
 
+      - name: Validate release readiness
+        shell: pwsh
+        run: node scripts/verify-release-readiness.mjs --tag $env:RELEASE_TAG
+
       - name: Install Vite Plus
         shell: pwsh
         run: npm install -g vite-plus

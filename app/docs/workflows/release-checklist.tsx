@@ -7,6 +7,7 @@ import {
   DocPage,
   DocSteps,
   DocSubsection,
+  DocTable,
   P,
   Strong,
   type DocMeta,
@@ -16,16 +17,16 @@ import {
 export const meta: DocMeta = {
   slug: "workflows/release-checklist",
   group: "workflows",
-  title: "Friend-share release checklist",
+  title: "Desktop release workflow",
   description:
-    "Unsigned desktop prerelease flow: automated GitHub release path plus a manual local fallback for debugging.",
+    "Canonical unsigned desktop prerelease flow: automated GitHub release path plus a manual local fallback for debugging.",
   order: 3,
 };
 
 export const lede = (
   <>
-    Use this flow for unsigned test releases that are good enough to share with friends, but still
-    clearly marked as prerelease builds.
+    Friend sharing is not a separate channel. It means making a real unsigned desktop prerelease,
+    updating the public updater channel, and then sharing the versioned release link.
   </>
 );
 
@@ -60,6 +61,97 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "canonical-release",
+    title: "Canonical release",
+    body: (
+      <>
+        <P>
+          A desktop release exists only after both public GitHub surfaces are correct: the versioned
+          prerelease has the installable assets, and <DocCode>desktop-alpha</DocCode> has the
+          current <DocCode>latest.json</DocCode> that points at that versioned installer. A passing
+          preflight, a pushed tag, or a GitHub run that is waiting on the protected environment is a
+          release attempt, not a shareable release.
+        </P>
+        <DocList
+          items={[
+            <span key="versioned">
+              Versioned prerelease: <DocCode>vX.Y.Z</DocCode> owns the installer, player README,
+              checksum, signature, updater manifest copy, and GitHub release notes.
+            </span>,
+            <span key="channel">
+              Update channel: <DocCode>desktop-alpha</DocCode> owns the current
+              <DocCode>latest.json</DocCode> used by installed apps.
+            </span>,
+            <span key="share">
+              Friend share: send the versioned prerelease link only after the workflow verification
+              step confirms both surfaces.
+            </span>,
+          ]}
+        />
+      </>
+    ),
+  },
+  {
+    id: "recent-failures",
+    title: "Recent failures",
+    body: (
+      <>
+        <P>
+          The last three failed release runs exposed separate gaps. Keep these linked here so future
+          release debugging starts from evidence instead of folklore with a clipboard.
+        </P>
+        <DocTable
+          headers={["Run", "Failure", "Earlier guard"]}
+          rows={[
+            [
+              <DocLink key="run" to="https://github.com/GabrielHub/idc/actions/runs/25849393272">
+                v0.2.6 run 25849393272
+              </DocLink>,
+              <span key="failure">
+                The signed Windows build completed, then <DocCode>Prepare release assets</DocCode>{" "}
+                failed because the workflow called <DocCode>vp node</DocCode>. Vite Plus did not
+                expose that subcommand on the runner, so updater notes never rendered and no release
+                assets were published.
+              </span>,
+              <span key="guard">
+                <DocCode>vp run release:check --tag vX.Y.Z</DocCode> renders updater notes, GitHub
+                notes, and a temporary updater manifest before signing.
+              </span>,
+            ],
+            [
+              <DocLink key="run" to="https://github.com/GabrielHub/idc/actions/runs/25906050553">
+                v0.3.1 run 25906050553
+              </DocLink>,
+              <span key="failure">
+                Preflight reached <DocCode>vp test</DocCode>, then failed because the release notes
+                sort test had a hard-coded expected version list that did not include{" "}
+                <DocCode>0.3.1</DocCode>.
+              </span>,
+              <span key="guard">
+                The test now checks descending order, uniqueness, and current package coverage
+                without requiring a manual expected list edit every release.
+              </span>,
+            ],
+            [
+              <DocLink key="run" to="https://github.com/GabrielHub/idc/actions/runs/25907119399">
+                v0.3.1 run 25907119399
+              </DocLink>,
+              <span key="failure">
+                Preflight passed, but <DocCode>Build and publish Windows</DocCode> stayed queued
+                behind the protected <DocCode>desktop-release</DocCode> environment and never ran.
+                The run ended with no versioned release assets and no updater channel update.
+              </span>,
+              <span key="guard">
+                The workflow doc now treats environment approval and final asset verification as the
+                release gate. A tag is not shareable until the Windows job finishes.
+              </span>,
+            ],
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "automated-github-release",
     title: "Automated GitHub release",
     body: (
@@ -79,12 +171,14 @@ export const sections: DocSectionEntry[] = [
         <P>
           The workflow starts with a no-secret preflight job that runs <DocCode>vp check</DocCode>,{" "}
           <DocCode>vp test</DocCode>, and <DocCode>vp build</DocCode> before requesting approval for
-          the signing environment. It renders public release notes from{" "}
+          the signing environment. Before those heavier checks, it runs{" "}
+          <DocCode>node scripts/verify-release-readiness.mjs</DocCode> to validate release identity,
+          catalog coverage, rendered GitHub notes, rendered updater notes, and temporary updater
+          manifest shape without secrets. The publish job renders public release notes from{" "}
           <DocCode>app/fixtures/release-notes.json</DocCode>, adds the installer name, SHA256
           checksum, and player install notes, then uses the same catalog entry for the updater
-          manifest notes. The workflow fails if the release version is missing from the catalog. For
-          extra operator notes, use manual dispatch and fill the <DocCode>release_notes</DocCode>{" "}
-          input.
+          manifest notes. For extra operator notes, use manual dispatch and fill the{" "}
+          <DocCode>release_notes</DocCode> input.
         </P>
         <DocSubsection id="normal-release-flow" title="Normal release flow">
           <DocSteps
@@ -110,11 +204,14 @@ git fetch --tags origin`}</DocCodeBlock>
               </span>,
               <span key="preflight">
                 Run local preflight.
-                <DocCodeBlock language="powershell">{`vp check
+                <DocCodeBlock language="powershell">{`vp install
+$version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
+vp run release:check --tag "v$version"
+vp check
 vp test
 vp build`}</DocCodeBlock>
-                Fix failures before tagging. The workflow repeats these checks before it can access
-                signing secrets.
+                Fix failures before tagging. The workflow repeats release readiness, formatting,
+                lint, type, test, and browser build checks before it can access signing secrets.
               </span>,
               <span key="commit">
                 Commit the release prep and push it.
@@ -132,7 +229,12 @@ git push origin main`}</DocCodeBlock>
                 <DocCodeBlock language="powershell">{`git tag -a "v\${version}" -m "IDC v\${version} test release"
 git push origin "v\${version}"`}</DocCodeBlock>
               </span>,
-              "Open GitHub Actions. If the preflight job passes, approve the desktop-release environment job and wait for it to finish.",
+              <span key="approve">
+                Open GitHub Actions. If the preflight job passes, approve the{" "}
+                <DocCode>desktop-release</DocCode> environment job and wait for{" "}
+                <DocCode>Build and publish Windows</DocCode> to finish. Until that job completes,
+                the tag is still an attempt and should not be shared.
+              </span>,
               <span key="verify">
                 Verify the versioned prerelease and the <DocCode>desktop-alpha</DocCode> release
                 exist. The workflow already checks the uploaded README, checksum, signature, and
@@ -145,6 +247,34 @@ git push origin "v\${version}"`}</DocCodeBlock>
       </>
     ),
     subsections: [{ id: "normal-release-flow", title: "Normal release flow" }],
+  },
+  {
+    id: "failed-release-notes",
+    title: "Failed releases and notes",
+    body: (
+      <>
+        <P>
+          Failed release attempts do not update installed apps by themselves. The in-app What's new
+          modal reads the release catalog bundled into the installed build, not GitHub Actions logs
+          and not the <DocCode>desktop-alpha</DocCode> release body. If a workflow fails before
+          publishing and the updater channel is unchanged, players do not receive that build.
+        </P>
+        <P>
+          A later successful build carries whatever entries are checked into{" "}
+          <DocCode>app/fixtures/release-notes.json</DocCode>. The modal shows the current version
+          plus the previous two catalog entries, so a failed version can appear as recent context if
+          it remains in the catalog. The GitHub release page and updater manifest render only the
+          current version entry unless that entry explicitly includes a section such as{" "}
+          <DocCode>Included from v0.2.6</DocCode>.
+        </P>
+        <DocCallout variant="info">
+          If a failed tag contained the real feature notes and no player could install it, move
+          those notes to the next successful version or add an explicit included-from section to the
+          retry entry. Do not assume a retry release automatically carries the previous GitHub
+          changelog.
+        </DocCallout>
+      </>
+    ),
   },
   {
     id: "manual-fallback",
@@ -162,10 +292,16 @@ git push origin "v\${version}"`}</DocCodeBlock>
 git fetch --tags origin`}</DocCodeBlock>
             </span>,
             "Pick the next version and update package.json, src-tauri/Cargo.toml, src-tauri/tauri.conf.json, and the Tauri window title together (same identity files as the automated flow).",
-            <span key="install">
-              Install dependencies, load the updater signing key, and build the release.
+            <span key="readiness">
+              Install dependencies and run no-secret release readiness before touching the signing
+              key.
               <DocCodeBlock language="powershell">{`vp install
-$updaterSigningKeyPath = "$env:USERPROFILE\\.tauri\\idc-updater.key"
+$version = (Get-Content -Raw -LiteralPath "package.json" | ConvertFrom-Json).version
+vp run release:check --tag "v$version"`}</DocCodeBlock>
+            </span>,
+            <span key="install">
+              Load the updater signing key and build the release.
+              <DocCodeBlock language="powershell">{`$updaterSigningKeyPath = "$env:USERPROFILE\\.tauri\\idc-updater.key"
 if (-not (Test-Path -LiteralPath $updaterSigningKeyPath)) {
   throw "Missing updater signing key: $updaterSigningKeyPath"
 }
