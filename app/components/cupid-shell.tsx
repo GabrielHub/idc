@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   gameSaveSchema,
@@ -63,6 +63,7 @@ import {
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
+import { withOrientationReset } from "../services/tutorial";
 import { errorToMessage } from "../services/utils";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { AmbientMesh } from "./ambient-mesh";
@@ -126,6 +127,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
   const { play } = useSfx();
   const [save, setSave] = useState<GameSave | null>(null);
+  const saveRef = useRef<GameSave | null>(null);
   const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
@@ -191,6 +193,10 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    saveRef.current = save;
+  }, [save]);
 
   useEffect(() => {
     let mounted = true;
@@ -359,10 +365,27 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [screenKey]);
 
-  async function persist(nextSave: GameSave) {
-    await repository.saveGame(nextSave);
-    setSave(nextSave);
+  async function persist(nextSave: GameSave, options: { preserveTutorial?: boolean } = {}) {
+    const latestTutorial = saveRef.current?.tutorial;
+    const saveToPersist =
+      options.preserveTutorial === false || latestTutorial === undefined
+        ? nextSave
+        : { ...nextSave, tutorial: latestTutorial };
+    saveRef.current = saveToPersist;
+    await repository.saveGame(saveToPersist);
+    setSave(saveToPersist);
   }
+
+  const handleTutorialUpdate = useCallback(
+    (next: GameSave) => {
+      const current = saveRef.current;
+      const merged = current === null ? next : { ...current, tutorial: next.tutorial };
+      saveRef.current = merged;
+      setSave(merged);
+      void repository.saveGame(merged);
+    },
+    [repository],
+  );
 
   async function pausePlayingSessionAfterAdvanceFailure(
     acceptedSave: GameSave,
@@ -928,6 +951,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     setIsReleaseNotesOpen(true);
   }
 
+  async function handleResetOrientation() {
+    if (save === null) return;
+    await persist(withOrientationReset(save), { preserveTutorial: false });
+  }
+
   function handleCloseReleaseNotes() {
     setIsReleaseNotesOpen(false);
     writeStoredReleaseNotesVersion(APP_VERSION);
@@ -947,6 +975,8 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         <OnboardingScreen
           members={save.members}
           scenarios={starterScenarios}
+          save={save}
+          onTutorialUpdate={handleTutorialUpdate}
           onConfirm={handleConfirmOnboarding}
         />
         {errorMessage !== null ? (
@@ -994,6 +1024,9 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
             devRevealAllMemberDetails={revealAllMemberDetails}
             onOpenAiSetup={() => setIsAiSetupOpen(true)}
             onReset={handleResetSave}
+            onResetOrientation={() => {
+              void handleResetOrientation();
+            }}
             onExportSave={handleExportSave}
             onImportSave={handleImportSave}
             onCopyDiagnostics={handleCopyDiagnostics}
@@ -1020,6 +1053,8 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                   members={save.members}
                   pairState={activePairState}
                   playerKnowledge={save.playerKnowledge}
+                  save={save}
+                  onTutorialUpdate={handleTutorialUpdate}
                   interventionText={interventionText}
                   interventionTargetMemberId={interventionTargetMemberId}
                   canAdvance={
@@ -1060,6 +1095,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                 closureError={closureError}
                 revealAllMemberDetails={revealAllMemberDetails}
                 deckRepairBlocked={deckRepairBlocked}
+                onTutorialUpdate={handleTutorialUpdate}
                 onCommitPair={handleCommitPair}
                 onStartDate={handleStartDate}
                 onCancelBooking={handleCancelBooking}
@@ -1080,6 +1116,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
               scenarios={starterScenarios}
               isActionPending={isActionPending}
               bookingLocked={activeShift.activeBooking !== undefined}
+              onTutorialUpdate={handleTutorialUpdate}
               onAddToDeck={handleAddDeckCard}
               onRemoveFromDeck={handleRemoveDeckCard}
               onBack={() => setCurrentRoom("livedate")}
@@ -1093,6 +1130,8 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
               playerKnowledge={save.playerKnowledge}
               isActionPending={isActionPending}
               revealAllMemberDetails={revealAllMemberDetails}
+              save={save}
+              onTutorialUpdate={handleTutorialUpdate}
               onAddFocus={handleAddFocus}
               onRemoveFocus={handleRemoveFocus}
               onSwapFocus={handleSwapFocus}

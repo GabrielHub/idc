@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import type { Member, OpenLoop, PairAgreement, PairState } from "../domain/game";
+import type { GameSave, Member, OpenLoop, PairAgreement, PairState } from "../domain/game";
+import { useTutorialStep } from "../services/tutorial";
+import { TutorialCoachMark } from "./tutorial";
+
+function noopTutorialUpdate() {}
 
 export type PairMemoryTimelineEntryKind =
   | "agreement_filed"
@@ -122,10 +126,35 @@ const RECENT_CHANGE_LIMIT = 8;
 export type PairMemoryInspectorProps = {
   pairState: PairState | undefined;
   members: Member[];
+  save?: GameSave;
+  onTutorialUpdate?: (next: GameSave) => void;
 };
 
-export function PairMemoryInspector({ pairState, members }: PairMemoryInspectorProps) {
+export function PairMemoryInspector({
+  pairState,
+  members,
+  save,
+  onTutorialUpdate,
+}: PairMemoryInspectorProps) {
   const [collapsed, setCollapsed] = useState(true);
+  const asideRef = useRef<HTMLElement | null>(null);
+
+  const activeAgreementsCount = useMemo(
+    () => (pairState?.agreements ?? []).filter((entry) => entry.status === "active").length,
+    [pairState?.agreements],
+  );
+  const tutorialEnabled = save !== undefined && onTutorialUpdate !== undefined;
+  const firstAgreementStep = useTutorialStep(
+    save,
+    "lazy.files.first-agreement",
+    tutorialEnabled && activeAgreementsCount > 0,
+    onTutorialUpdate ?? noopTutorialUpdate,
+  );
+
+  const memberById = useMemo(
+    () => new Map(members.map((member) => [member.id, member])),
+    [members],
+  );
 
   if (pairState === undefined) return null;
 
@@ -133,13 +162,13 @@ export function PairMemoryInspector({ pairState, members }: PairMemoryInspectorP
   const openLoops = pairState.openLoops.filter((entry) => entry.status === "open");
   const timeline = buildPairMemoryTimeline(pairState).slice(0, RECENT_CHANGE_LIMIT);
 
-  const memberById = new Map(members.map((member) => [member.id, member]));
   const pairLabel = pairState.participantIds
     .map((id) => memberById.get(id)?.firstName ?? id)
     .join(" · ");
 
   return (
     <aside
+      ref={asideRef}
       data-pair-memory-inspector
       aria-label="Pair memory inspector"
       className="aura-glass-strong pointer-events-auto fixed right-4 top-4 z-30 hidden max-h-[calc(100vh-2rem)] w-[22rem] max-w-[28vw] flex-col overflow-hidden rounded-card text-aura-ink xl:flex"
@@ -211,6 +240,20 @@ export function PairMemoryInspector({ pairState, members }: PairMemoryInspectorP
           </InspectorSection>
         </div>
       )}
+
+      {firstAgreementStep.active ? (
+        <TutorialCoachMark
+          target={asideRef}
+          placement="left"
+          eyebrow="// pair.file"
+          title="Agreements and open loops"
+          body="The Judge files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read."
+          primaryLabel="Got it"
+          onPrimary={firstAgreementStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={firstAgreementStep.dismiss}
+        />
+      ) : null}
     </aside>
   );
 }

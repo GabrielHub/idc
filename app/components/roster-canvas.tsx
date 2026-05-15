@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import type { Member, PlayerKnowledgeRecord } from "../domain/game";
+import type { GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import {
   canBeFocusCase,
   FOCUS_CASE_LIMIT,
@@ -13,6 +13,7 @@ import {
   type MemberRosterFilterState,
 } from "../services/member-roster-filter";
 import { sortMembersForRoster } from "../services/member-roster-order";
+import { useTutorialStep } from "../services/tutorial";
 import { GhostButton, Hairline, PrimaryButton } from "./dashboard-atoms";
 import {
   MemberCard,
@@ -23,6 +24,7 @@ import {
   type MemberDetailsAction,
 } from "./member-card";
 import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
+import { TutorialCoachMark } from "./tutorial";
 
 type FocusSwapDraft =
   | { kind: "drop-source"; focusedMemberId: string }
@@ -34,6 +36,8 @@ export type RosterCanvasProps = {
   playerKnowledge: PlayerKnowledgeRecord[];
   isActionPending: boolean;
   revealAllMemberDetails: boolean;
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onAddFocus: (memberId: string) => void;
   onRemoveFocus: (memberId: string) => void;
   onSwapFocus: (oldId: string, newId: string) => void;
@@ -47,6 +51,8 @@ export function RosterCanvas({
   playerKnowledge,
   isActionPending,
   revealAllMemberDetails,
+  save,
+  onTutorialUpdate,
   onAddFocus,
   onRemoveFocus,
   onSwapFocus,
@@ -58,6 +64,13 @@ export function RosterCanvas({
   const [reselectDraft, setReselectDraft] = useState<readonly string[] | null>(null);
   const [filterState, setFilterState] = useState<MemberRosterFilterState>(
     DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+  );
+  const rosterAnchorRef = useRef<HTMLDivElement | null>(null);
+  const swapPenaltyStep = useTutorialStep(
+    save,
+    "lazy.roster.swap-penalty",
+    swapDraft !== null,
+    onTutorialUpdate,
   );
 
   const focusedSet = useMemo(() => new Set(focusedMemberIds), [focusedMemberIds]);
@@ -251,7 +264,10 @@ export function RosterCanvas({
       <Hairline />
 
       {swapSourceMember !== null && !isReselecting ? (
-        <div className="mt-6 rounded-2xl border border-aura-rose/40 bg-aura-rose/5 px-4 py-3 text-sm text-aura-rose">
+        <div
+          ref={rosterAnchorRef}
+          className="mt-6 rounded-2xl border border-aura-rose/40 bg-aura-rose/5 px-4 py-3 text-sm text-aura-rose"
+        >
           Swapping out <strong>{swapSourceMember.firstName}</strong>. Pick a new active member from
           the roster. The dropped case loses {FOCUS_SWAP_RETENTION_PENALTY} retention.
           <button
@@ -265,7 +281,10 @@ export function RosterCanvas({
       ) : null}
 
       {swapIncomingMember !== null && !isReselecting ? (
-        <div className="mt-6 rounded-2xl border border-aura-rose/40 bg-aura-rose/5 px-4 py-3 text-sm text-aura-rose">
+        <div
+          ref={rosterAnchorRef}
+          className="mt-6 rounded-2xl border border-aura-rose/40 bg-aura-rose/5 px-4 py-3 text-sm text-aura-rose"
+        >
           Swapping in <strong>{swapIncomingMember.firstName}</strong>. Pick a focused case to drop.
           The dropped case loses {FOCUS_SWAP_RETENTION_PENALTY} retention.
           <button
@@ -373,6 +392,20 @@ export function RosterCanvas({
           isActionPending={isActionPending}
           onCancel={cancelReselect}
           onConfirm={confirmReselect}
+        />
+      ) : null}
+
+      {swapPenaltyStep.active ? (
+        <TutorialCoachMark
+          target={rosterAnchorRef}
+          placement="bottom"
+          eyebrow="// swap.penalty"
+          title="Swapping costs retention"
+          body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, but also paperwork. Pick the next member to seal the swap.`}
+          primaryLabel="Got it"
+          onPrimary={swapPenaltyStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={swapPenaltyStep.dismiss}
         />
       ) : null}
     </section>

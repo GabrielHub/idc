@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BudgetDiscountOffer, DateScenario, GameSave } from "../domain/game";
 import { DECK_SIZE_MAX, DECK_SIZE_MIN } from "../domain/game";
@@ -10,10 +10,17 @@ import {
   deriveDeckBudgetStatus,
   isOfferApplicableToScenario,
 } from "../services/budget";
-import { listLibraryCards, softComposeWarnings, unlockedScenarioIds } from "../services/deck";
+import {
+  deckIsRepairBlocked,
+  listLibraryCards,
+  softComposeWarnings,
+  unlockedScenarioIds,
+} from "../services/deck";
+import { useTutorialStep } from "../services/tutorial";
 import { EASE_OUT_QUART, GhostButton, Tooltip } from "./dashboard-atoms";
 import { RISK_DOT_TONE, RISK_TEXT_TONE, ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal, type ScenarioDetailsAction } from "./scenario-details-modal";
+import { TutorialCoachMark } from "./tutorial";
 
 export type DateBookCanvasProps = {
   save: GameSave;
@@ -21,6 +28,7 @@ export type DateBookCanvasProps = {
   scenarios: DateScenario[];
   isActionPending: boolean;
   bookingLocked: boolean;
+  onTutorialUpdate: (next: GameSave) => void;
   onAddToDeck: (cardId: string) => void;
   onRemoveFromDeck: (cardId: string) => void;
   onBack: () => void;
@@ -68,6 +76,7 @@ export function DateBookCanvas({
   scenarios,
   isActionPending,
   bookingLocked,
+  onTutorialUpdate,
   onAddToDeck,
   onRemoveFromDeck,
   onBack,
@@ -76,6 +85,20 @@ export function DateBookCanvas({
   const [search, setSearch] = useState("");
   const [riskFilter, setRiskFilter] = useState<RiskFilter>("any");
   const [sortMode, setSortMode] = useState<SortMode>("alpha");
+  const headerAnchorRef = useRef<HTMLDivElement | null>(null);
+  const isRepairBlocked = useMemo(() => deckIsRepairBlocked(save, scenarios), [save, scenarios]);
+  const lockedStep = useTutorialStep(
+    save,
+    "lazy.datebook.locked",
+    bookingLocked && !isRepairBlocked,
+    onTutorialUpdate,
+  );
+  const repairStep = useTutorialStep(
+    save,
+    "lazy.datebook.repair",
+    isRepairBlocked,
+    onTutorialUpdate,
+  );
 
   const scenarioById = useMemo(
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario])),
@@ -205,18 +228,20 @@ export function DateBookCanvas({
 
   return (
     <section className="relative mx-auto w-full max-w-canvas px-6 pb-16 pt-8 lg:px-12">
-      <DateBookHeader
-        composition={deckComposition}
-        budgetCap={save.budgetCap}
-        spend={budgetStatus.spend}
-        remaining={budgetStatus.remaining}
-        deckSize={save.scenarioDeck.cardIds.length}
-        status={budgetStatus.status}
-        warnings={warnings}
-        offers={offers}
-        bookingLocked={bookingLocked}
-        onBack={onBack}
-      />
+      <div ref={headerAnchorRef}>
+        <DateBookHeader
+          composition={deckComposition}
+          budgetCap={save.budgetCap}
+          spend={budgetStatus.spend}
+          remaining={budgetStatus.remaining}
+          deckSize={save.scenarioDeck.cardIds.length}
+          status={budgetStatus.status}
+          warnings={warnings}
+          offers={offers}
+          bookingLocked={bookingLocked}
+          onBack={onBack}
+        />
+      </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(360px,1fr)]">
         <DeckColumn
@@ -275,6 +300,34 @@ export function DateBookCanvas({
         <p className="mt-6 text-center font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
           filing change…
         </p>
+      ) : null}
+
+      {repairStep.active ? (
+        <TutorialCoachMark
+          target={headerAnchorRef}
+          placement="bottom"
+          eyebrow="// datebook.repair"
+          title="The Date Book is over budget"
+          body="A budget cut put the deck above the cap. Drop cards from the deck below until the cap covers the spend. Cupid can not commit a new pair until the file is clean."
+          primaryLabel="Got it"
+          onPrimary={repairStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={repairStep.dismiss}
+        />
+      ) : null}
+
+      {!repairStep.active && lockedStep.active ? (
+        <TutorialCoachMark
+          target={headerAnchorRef}
+          placement="bottom"
+          eyebrow="// datebook.locked"
+          title="Date Book is locked"
+          body="A pair is committed, so the deck is frozen until the date resolves. Cancel the booking from Live Date to edit, or finish the date first."
+          primaryLabel="Got it"
+          onPrimary={lockedStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={lockedStep.dismiss}
+        />
       ) : null}
     </section>
   );

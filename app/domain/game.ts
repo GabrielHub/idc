@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 7;
+export const SAVE_SCHEMA_VERSION = 8;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -859,6 +859,45 @@ export const STARTER_BUDGET_CAP = 120;
 export const MIN_BUDGET_CAP = 60;
 export const MAX_BUDGET_CAP = 240;
 
+export const tutorialStepIdSchema = z.enum([
+  "onboarding.focus.pick",
+  "onboarding.focus.start",
+  "onboarding.deck.pick",
+  "onboarding.deck.start",
+  "planning.focus",
+  "planning.partner",
+  "planning.commit",
+  "planning.scenario",
+  "planning.begin",
+  "date.draft-events",
+  "date.footer.health",
+  "date.footer.transport",
+  "date.judge-note",
+  "date.nudge.compose",
+  "date.followup",
+  "planning.file-shift",
+  "lazy.roster.swap-penalty",
+  "lazy.datebook.locked",
+  "lazy.datebook.repair",
+  "lazy.cooldown-block",
+  "lazy.closure-ready",
+  "lazy.files.first-agreement",
+]);
+
+export const TUTORIAL_STEP_IDS = tutorialStepIdSchema.options;
+
+export const tutorialStateSchema = z.object({
+  enabled: z.boolean().default(true),
+  completedStepIds: z.array(tutorialStepIdSchema).default([]),
+  dismissedAt: z.string().min(1).nullable().default(null),
+});
+
+export const DEFAULT_TUTORIAL_STATE: z.infer<typeof tutorialStateSchema> = {
+  enabled: true,
+  completedStepIds: [],
+  dismissedAt: null,
+};
+
 export const gameSaveSchema = z.object({
   version: z.literal(SAVE_SCHEMA_VERSION),
   config: gameConfigSchema,
@@ -878,6 +917,7 @@ export const gameSaveSchema = z.object({
   budgetDiscountOffers: z.array(budgetDiscountOfferSchema).default([]),
   budgetHistory: z.array(budgetReviewSchema).default([]),
   lastBudgetReviewShift: z.number().int().min(0).default(0),
+  tutorial: tutorialStateSchema.default(DEFAULT_TUTORIAL_STATE),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -958,6 +998,8 @@ export type AiProvider = z.infer<typeof aiProviderSchema>;
 export type AiReasoningLevel = z.infer<typeof aiReasoningLevelSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;
 export type GameSave = z.infer<typeof gameSaveSchema>;
+export type TutorialStepId = z.infer<typeof tutorialStepIdSchema>;
+export type TutorialState = z.infer<typeof tutorialStateSchema>;
 export type PlayerKnowledgeSubjectKind = z.infer<typeof playerKnowledgeSubjectKindSchema>;
 export type PlayerKnowledgeReadKind = z.infer<typeof playerKnowledgeReadKindSchema>;
 export type PlayerKnowledgeConfidence = z.infer<typeof playerKnowledgeConfidenceSchema>;

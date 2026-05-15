@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useLayoutEffect, useState, type Dispatch, type SetStateAction } from "react";
 
 export type TargetRect = {
   top: number;
@@ -7,45 +7,95 @@ export type TargetRect = {
   height: number;
 };
 
-export type TutorialTarget = HTMLElement | null | TargetRect;
+type TutorialElementRef = {
+  readonly current: HTMLElement | null;
+};
 
-function isElement(target: TutorialTarget): target is HTMLElement {
+export type TutorialSingleTarget = HTMLElement | null | TargetRect | TutorialElementRef;
+export type TutorialTarget = TutorialSingleTarget | readonly TutorialSingleTarget[];
+
+function isElement(target: TutorialSingleTarget): target is HTMLElement {
   return target !== null && typeof (target as HTMLElement).getBoundingClientRect === "function";
 }
 
+function isTargetRef(target: TutorialSingleTarget): target is TutorialElementRef {
+  return target !== null && typeof target === "object" && "current" in target;
+}
+
+function resolveTarget(target: TutorialTarget): TutorialSingleTarget {
+  if (Array.isArray(target)) {
+    for (const entry of target) {
+      const resolved = resolveTarget(entry);
+      if (resolved !== null) return resolved;
+    }
+    return null;
+  }
+  if (isTargetRef(target)) {
+    return target.current;
+  }
+  return target;
+}
+
 function readRect(target: TutorialTarget): TargetRect | null {
-  if (target === null) return null;
-  if (!isElement(target)) return target;
-  const rect = target.getBoundingClientRect();
+  const resolved = resolveTarget(target);
+  if (resolved === null) return null;
+  if (!isElement(resolved)) return resolved;
+  const rect = resolved.getBoundingClientRect();
   return { top: rect.top, left: rect.left, width: rect.width, height: rect.height };
+}
+
+function observeElement(target: TutorialTarget): HTMLElement | null {
+  const resolved = resolveTarget(target);
+  return isElement(resolved) ? resolved : null;
+}
+
+function rectsMatch(first: TargetRect | null, second: TargetRect | null): boolean {
+  if (first === null || second === null) return first === second;
+  return (
+    first.top === second.top &&
+    first.left === second.left &&
+    first.width === second.width &&
+    first.height === second.height
+  );
+}
+
+function setIfChanged(
+  setRect: Dispatch<SetStateAction<TargetRect | null>>,
+  next: TargetRect | null,
+) {
+  setRect((current) => (rectsMatch(current, next) ? current : next));
 }
 
 export function useTargetRect(target: TutorialTarget): TargetRect | null {
   const [rect, setRect] = useState<TargetRect | null>(() => readRect(target));
 
-  useEffect(() => {
-    if (!isElement(target)) {
-      setRect(target);
-      return;
-    }
-    const element = target;
-
+  useLayoutEffect(() => {
+    let observer: ResizeObserver | null = null;
+    let observedElement: HTMLElement | null = null;
     function update() {
-      setRect(readRect(element));
+      setIfChanged(setRect, readRect(target));
+      const element = observeElement(target);
+      if (element === observedElement) return;
+      observer?.disconnect();
+      observedElement = element;
+      if (element === null) {
+        observer = null;
+        return;
+      }
+      observer = new ResizeObserver(update);
+      observer.observe(element);
     }
 
     update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
     window.addEventListener("scroll", update, { passive: true, capture: true });
     window.addEventListener("resize", update);
 
     return () => {
-      observer.disconnect();
+      observer?.disconnect();
       window.removeEventListener("scroll", update, { capture: true });
       window.removeEventListener("resize", update);
     };
-  }, [target]);
+  });
 
   return rect;
 }

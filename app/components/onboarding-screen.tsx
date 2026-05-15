@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { DECK_SIZE_MAX, DECK_SIZE_MIN, STARTER_BUDGET_CAP } from "../domain/game";
-import type { DateScenario, Member, PlayerKnowledgeRecord } from "../domain/game";
+import type { DateScenario, GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import { computeEffectiveCosts, currentDeckSpend } from "../services/budget";
 import { STARTER_CATALOG_IDS } from "../services/deck";
 import { FOCUS_CASE_LIMIT } from "../services/focus-cases";
@@ -10,6 +10,7 @@ import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   type MemberRosterFilterState,
 } from "../services/member-roster-filter";
+import { useTutorialStep } from "../services/tutorial";
 import { AmbientMesh } from "./ambient-mesh";
 import { GhostButton, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import {
@@ -22,6 +23,7 @@ import {
 import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
 import { ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal } from "./scenario-details-modal";
+import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
 
 export type OnboardingPayload = {
   focusedMemberIds: string[];
@@ -31,12 +33,20 @@ export type OnboardingPayload = {
 export type OnboardingScreenProps = {
   members: Member[];
   scenarios: DateScenario[];
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onConfirm: (payload: OnboardingPayload) => void;
 };
 
 type OnboardingStep = "focus" | "deck";
 
-export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingScreenProps) {
+export function OnboardingScreen({
+  members,
+  scenarios,
+  save,
+  onTutorialUpdate,
+  onConfirm,
+}: OnboardingScreenProps) {
   const [step, setStep] = useState<OnboardingStep>("focus");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [deckIds, setDeckIds] = useState<string[]>([]);
@@ -45,8 +55,23 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
   );
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
+  const firstFocusCardRef = useRef<HTMLLIElement | null>(null);
+  const buildDateBookCtaRef = useRef<HTMLButtonElement | null>(null);
 
   const playerKnowledge = useMemo<PlayerKnowledgeRecord[]>(() => [], []);
+
+  const focusPickStep = useTutorialStep(
+    save,
+    "onboarding.focus.pick",
+    selectedIds.length === 0,
+    onTutorialUpdate,
+  );
+  const focusStartStep = useTutorialStep(
+    save,
+    "onboarding.focus.start",
+    selectedIds.length === FOCUS_CASE_LIMIT,
+    onTutorialUpdate,
+  );
 
   const eligibleMembers = useMemo(
     () => members.filter((member) => member.state.status === "active"),
@@ -59,6 +84,7 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
   );
 
   function toggleFocus(memberId: string) {
+    const willAdd = !selectedIds.includes(memberId) && selectedIds.length < FOCUS_CASE_LIMIT;
     setSelectedIds((current) => {
       if (current.includes(memberId)) {
         return current.filter((id) => id !== memberId);
@@ -68,6 +94,9 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
       }
       return [...current, memberId];
     });
+    if (willAdd && focusPickStep.active && !focusPickStep.done) {
+      focusPickStep.complete();
+    }
   }
 
   function focusStateFor(member: Member): MemberCardState {
@@ -92,6 +121,8 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
         deckIds={deckIds}
         focusedMemberIds={selectedIds}
         members={members}
+        save={save}
+        onTutorialUpdate={onTutorialUpdate}
         onChangeDeck={setDeckIds}
         onBack={() => setStep("focus")}
         onConfirm={() => {
@@ -150,6 +181,7 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
                   index={index}
                   priorityIndex={isSelected ? selectionIndex : undefined}
                   hideSealedSummary
+                  cardRef={index === 0 ? firstFocusCardRef : undefined}
                   onClick={() => toggleFocus(member.id)}
                   onExpand={() => setOpenMemberId(member.id)}
                 />
@@ -167,9 +199,13 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
               Clear
             </GhostButton>
             <PrimaryButton
+              buttonRef={buildDateBookCtaRef}
               disabled={!canAdvanceToDeck}
               onClick={() => {
                 if (canAdvanceToDeck) {
+                  if (focusStartStep.active && !focusStartStep.done) {
+                    focusStartStep.complete();
+                  }
                   setStep("deck");
                 }
               }}
@@ -180,6 +216,42 @@ export function OnboardingScreen({ members, scenarios, onConfirm }: OnboardingSc
           </div>
         </div>
       </div>
+
+      {focusPickStep.active ? (
+        <>
+          <TutorialSpotlight target={firstFocusCardRef} onDismiss={focusPickStep.dismiss} />
+          <TutorialCoachMark
+            target={firstFocusCardRef}
+            placement="right"
+            eyebrow="// shift.00 // welcome"
+            title="Cupid is hiring. You are hired."
+            body="These are members who walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
+            dismissLabel="Skip tour"
+            onDismiss={focusPickStep.dismiss}
+            portrait="portrait"
+          />
+        </>
+      ) : null}
+
+      {focusStartStep.active ? (
+        <>
+          <TutorialPulseRing target={buildDateBookCtaRef} padding={6} radius={28} />
+          <TutorialCoachMark
+            target={buildDateBookCtaRef}
+            placement="top"
+            eyebrow="// onboarding.deck"
+            title="Build the Date Book"
+            body="Four cases on file. Next, draft the Date Book. Six to twelve rooms, under budget. Cupid will draw a hand from this pool every time you commit a pair."
+            primaryLabel="Build the deck"
+            onPrimary={() => {
+              focusStartStep.complete();
+              setStep("deck");
+            }}
+            dismissLabel="Skip tour"
+            onDismiss={focusStartStep.dismiss}
+          />
+        </>
+      ) : null}
 
       {openMember === null ? null : (
         <MemberDetailsModal
@@ -209,6 +281,8 @@ function DeckDraftStep({
   deckIds,
   focusedMemberIds,
   members,
+  save,
+  onTutorialUpdate,
   onChangeDeck,
   onBack,
   onConfirm,
@@ -220,6 +294,8 @@ function DeckDraftStep({
   deckIds: string[];
   focusedMemberIds: string[];
   members: Member[];
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onChangeDeck: (next: string[]) => void;
   onBack: () => void;
   onConfirm: () => void;
@@ -250,6 +326,21 @@ function DeckDraftStep({
     [catalog],
   );
 
+  const firstScenarioCardRef = useRef<HTMLElement | null>(null);
+  const startShiftCtaRef = useRef<HTMLButtonElement | null>(null);
+  const deckPickStep = useTutorialStep(
+    save,
+    "onboarding.deck.pick",
+    deckSize === 0,
+    onTutorialUpdate,
+  );
+  const deckStartStep = useTutorialStep(
+    save,
+    "onboarding.deck.start",
+    canConfirm,
+    onTutorialUpdate,
+  );
+
   function toggleCard(scenarioId: string) {
     if (deckIdSet.has(scenarioId)) {
       onChangeDeck(deckIds.filter((id) => id !== scenarioId));
@@ -261,6 +352,9 @@ function DeckDraftStep({
     const incomingCost = effectiveCosts[scenarioId] ?? incoming.card.cost;
     if (spend + incomingCost > STARTER_BUDGET_CAP) return;
     onChangeDeck([...deckIds, scenarioId]);
+    if (deckPickStep.active && !deckPickStep.done) {
+      deckPickStep.complete();
+    }
   }
 
   return (
@@ -302,7 +396,7 @@ function DeckDraftStep({
         </div>
 
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-          {sortedCatalog.map((scenario) => {
+          {sortedCatalog.map((scenario, index) => {
             const inDeck = deckIdSet.has(scenario.id);
             const cost = effectiveCosts[scenario.id] ?? scenario.card.cost;
             const cantFit =
@@ -314,6 +408,7 @@ function DeckDraftStep({
                   size="tile"
                   state={inDeck ? "selected" : cantFit ? "disabled" : "default"}
                   effectiveCost={cost}
+                  cardRef={index === 0 ? firstScenarioCardRef : undefined}
                   onClick={() => toggleCard(scenario.id)}
                   onExpand={() => onExpandScenario(scenario.id)}
                 />
@@ -337,13 +432,59 @@ function DeckDraftStep({
               }
               placement="top-center"
             >
-              <PrimaryButton onClick={onConfirm} disabled={!canConfirm}>
+              <PrimaryButton
+                buttonRef={startShiftCtaRef}
+                onClick={() => {
+                  if (canConfirm) {
+                    if (deckStartStep.active && !deckStartStep.done) {
+                      deckStartStep.complete();
+                    }
+                    onConfirm();
+                  }
+                }}
+                disabled={!canConfirm}
+              >
                 Start the shift →
               </PrimaryButton>
             </Tooltip>
           </div>
         </div>
       </div>
+
+      {deckPickStep.active ? (
+        <>
+          <TutorialSpotlight target={firstScenarioCardRef} onDismiss={deckPickStep.dismiss} />
+          <TutorialCoachMark
+            target={firstScenarioCardRef}
+            placement="right"
+            eyebrow="// onboarding.deck"
+            title="Build the Date Book"
+            body="This is the pool Cupid draws from. Pick six to twelve rooms and stay under budget. The hand comes later, after you commit two members."
+            dismissLabel="Skip tour"
+            onDismiss={deckPickStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {deckStartStep.active ? (
+        <>
+          <TutorialPulseRing target={startShiftCtaRef} padding={6} radius={28} />
+          <TutorialCoachMark
+            target={startShiftCtaRef}
+            placement="top"
+            eyebrow="// shift.open"
+            title="Start the shift"
+            body="Deck is legal. Start the shift and Cupid opens Live Date. You will pick one focus case, one different partner, then commit. Three scenarios get drawn from this pool."
+            primaryLabel="Start the shift"
+            onPrimary={() => {
+              deckStartStep.complete();
+              onConfirm();
+            }}
+            dismissLabel="Skip tour"
+            onDismiss={deckStartStep.dismiss}
+          />
+        </>
+      ) : null}
 
       {openScenario === null ? null : (
         <ScenarioDetailsModal

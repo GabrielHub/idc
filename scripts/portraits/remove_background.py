@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+from io import BytesIO
 from pathlib import Path
 import sys
 
 
 IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+EDGE_ALPHA_CUTOFF = 8
 
 
 def parse_args() -> argparse.Namespace:
@@ -71,6 +73,72 @@ def output_path_for(input_root: Path, output_root: Path, image_path: Path) -> Pa
     return output_root / relative.with_suffix(".png")
 
 
+def estimate_background_rgb(image: "Image.Image") -> tuple[int, int, int]:
+    from PIL import ImageStat
+
+    width, height = image.size
+    sample_width = max(width // 12, 1)
+    sample_height = max(height // 12, 1)
+    boxes = [
+        (0, 0, sample_width, sample_height),
+        (width - sample_width, 0, width, sample_height),
+        (0, height - sample_height, sample_width, height),
+        (width - sample_width, height - sample_height, width, height),
+    ]
+    channels = [0.0, 0.0, 0.0]
+
+    for box in boxes:
+        mean = ImageStat.Stat(image.crop(box)).mean[:3]
+        channels = [channel + mean[index] for index, channel in enumerate(channels)]
+
+    return tuple(round(channel / len(boxes)) for channel in channels)
+
+
+def remove_matte_channel(source_channel: int, matte_channel: int, alpha: int) -> int:
+    alpha_ratio = alpha / 255
+    value = (source_channel - matte_channel * (1 - alpha_ratio)) / alpha_ratio
+    return max(0, min(255, round(value)))
+
+
+def clean_alpha_edges(source_bytes: bytes, result_bytes: bytes) -> bytes:
+    from PIL import Image
+
+    source = Image.open(BytesIO(source_bytes)).convert("RGBA")
+    cutout = Image.open(BytesIO(result_bytes)).convert("RGBA")
+
+    if source.size != cutout.size:
+        return result_bytes
+
+    matte_rgb = estimate_background_rgb(source)
+    source_pixels = source.load()
+    cutout_pixels = cutout.load()
+    width, height = cutout.size
+
+    for y in range(height):
+        for x in range(width):
+            red, green, blue, alpha = cutout_pixels[x, y]
+
+            if alpha == 255:
+                continue
+
+            source_red, source_green, source_blue, _ = source_pixels[x, y]
+
+            if alpha <= EDGE_ALPHA_CUTOFF:
+                cutout_pixels[x, y] = (source_red, source_green, source_blue, 0)
+                continue
+
+            cutout_pixels[x, y] = (
+                remove_matte_channel(source_red, matte_rgb[0], alpha),
+                remove_matte_channel(source_green, matte_rgb[1], alpha),
+                remove_matte_channel(source_blue, matte_rgb[2], alpha),
+                alpha,
+            )
+
+    output = BytesIO()
+    cutout.save(output, format="PNG")
+    return output.getvalue()
+
+
 def remove_backgrounds(args: argparse.Namespace) -> int:
     try:
         from rembg import new_session, remove
@@ -100,13 +168,14 @@ def remove_backgrounds(args: argparse.Namespace) -> int:
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
         with image_path.open("rb") as source_file:
+            source_bytes = source_file.read()
             result = remove(
-                source_file.read(),
+                source_bytes,
                 session=session,
                 force_return_bytes=True,
             )
 
-        target_path.write_bytes(result)
+        target_path.write_bytes(clean_alpha_edges(source_bytes, result))
         processed += 1
         print(f"Wrote {target_path}")
 

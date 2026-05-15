@@ -124,6 +124,7 @@ export function SettingsMenu({
   devRevealAllMemberDetails,
   onOpenAiSetup,
   onReset,
+  onResetOrientation,
   onExportSave,
   onImportSave,
   onCopyDiagnostics,
@@ -137,6 +138,7 @@ export function SettingsMenu({
   devRevealAllMemberDetails: boolean;
   onOpenAiSetup: () => void;
   onReset: () => void;
+  onResetOrientation: () => void;
   onExportSave: () => void;
   onImportSave: (file: File) => void;
   onCopyDiagnostics: () => Promise<boolean>;
@@ -222,6 +224,11 @@ export function SettingsMenu({
   function handleOpenAiSetup() {
     setIsOpen(false);
     onOpenAiSetup();
+  }
+
+  function handleResetOrientation() {
+    setIsOpen(false);
+    onResetOrientation();
   }
 
   function handleOpenReleaseNotes() {
@@ -442,6 +449,9 @@ export function SettingsMenu({
                   Field manual
                 </MenuLink>
                 <MenuButton onClick={handleOpenReleaseNotes}>What's new</MenuButton>
+                <MenuButton onClick={handleResetOrientation} disabled={isActionPending}>
+                  Reset orientation
+                </MenuButton>
                 <MenuButton
                   role="menuitemcheckbox"
                   ariaChecked={sfxEnabled}

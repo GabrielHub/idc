@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {
   type DateFinalReport,
@@ -7,6 +7,7 @@ import {
   type DateScenario,
   type DateSession,
   type FollowUpAction,
+  type GameSave,
   type JudgeSnapshot,
   type Member,
   type MemoryRecord,
@@ -29,6 +30,7 @@ import {
 import { collectRecentSpeakerLines, hasNearDuplicateRecentLine } from "../services/date-prompts";
 import { PAIR_CLOSURE_TAG } from "../services/closures";
 import { clampScore } from "../services/utils";
+import { useTutorialStep } from "../services/tutorial";
 import {
   EASE_OUT_QUART,
   Eyebrow,
@@ -57,6 +59,7 @@ import { PairBoard } from "./pair-board";
 import { PairMemoryInspector } from "./pair-memory-inspector";
 import { ScenarioBackdropLayer } from "./scenario-backdrop";
 import type { SfxCue } from "./sfx-provider";
+import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   encourage: "Encourage",
@@ -189,6 +192,8 @@ export type DateProps = {
   members: Member[];
   pairState: PairState | undefined;
   playerKnowledge: PlayerKnowledgeRecord[];
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   interventionText: string;
   interventionTargetMemberId: string;
   canAdvance: boolean;
@@ -226,6 +231,8 @@ export function DateView({
   members,
   pairState,
   playerKnowledge,
+  save,
+  onTutorialUpdate,
   interventionText,
   interventionTargetMemberId,
   canAdvance,
@@ -288,6 +295,24 @@ export function DateView({
     pendingDateAction,
     queuedPlaybackIntent,
   });
+  const draftEventsAutoStep = useTutorialStep(save, "date.draft-events", false, onTutorialUpdate);
+  useEffect(() => {
+    if (session.playbackState !== "drafting" && !draftEventsAutoStep.done) {
+      draftEventsAutoStep.complete();
+    }
+  }, [session.playbackState, draftEventsAutoStep]);
+
+  const judgeNoteGate = session.judgeSnapshots.length > 0;
+  const judgeNoteStep = useTutorialStep(save, "date.judge-note", judgeNoteGate, onTutorialUpdate);
+  const [judgeNoteAnchor, setJudgeNoteAnchor] = useState<HTMLElement | null>(null);
+  useLayoutEffect(() => {
+    if (!judgeNoteStep.active) {
+      setJudgeNoteAnchor((prev) => (prev === null ? prev : null));
+      return;
+    }
+    const found = document.querySelector<HTMLElement>("[data-judge-note-anchor]");
+    setJudgeNoteAnchor((prev) => (prev === found ? prev : found));
+  }, [judgeNoteStep.active, session.judgeSnapshots.length]);
 
   return (
     <>
@@ -330,6 +355,8 @@ export function DateView({
               scenario={scenario}
               session={session}
               isActionPending={isActionPending}
+              save={save}
+              onTutorialUpdate={onTutorialUpdate}
               onPickEvents={onPickEvents}
             />
           ) : (
@@ -357,6 +384,8 @@ export function DateView({
             pendingDateAction={pendingDateAction}
             playbackUiState={playbackUiState}
             nudgeSuggestions={nudgeSuggestions}
+            save={save}
+            onTutorialUpdate={onTutorialUpdate}
             onInterventionTextChange={onInterventionTextChange}
             onInterventionTargetChange={onInterventionTargetChange}
             onAdvance={onAdvance}
@@ -373,12 +402,36 @@ export function DateView({
             session={session}
             playerKnowledge={playerKnowledge}
             isActionPending={isActionPending}
+            save={save}
+            onTutorialUpdate={onTutorialUpdate}
             onFollowUp={onFollowUp}
           />
         )}
 
-        <PairMemoryInspector pairState={pairState} members={members} />
+        <PairMemoryInspector
+          pairState={pairState}
+          members={members}
+          save={save}
+          onTutorialUpdate={onTutorialUpdate}
+        />
       </motion.div>
+
+      {judgeNoteStep.active && judgeNoteAnchor !== null ? (
+        <>
+          <TutorialSpotlight target={judgeNoteAnchor} onDismiss={judgeNoteStep.dismiss} />
+          <TutorialCoachMark
+            target={judgeNoteAnchor}
+            placement="top"
+            eyebrow="// six and counting"
+            title="Six turns, one snapshot"
+            body="The Judge reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second."
+            primaryLabel="Got it"
+            onPrimary={judgeNoteStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={judgeNoteStep.dismiss}
+          />
+        </>
+      ) : null}
     </>
   );
 }
@@ -848,7 +901,7 @@ function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatS
   const hasReveals = reveals.length > 0;
 
   return (
-    <motion.li {...animation} className="!my-5 flex justify-center">
+    <motion.li {...animation} data-judge-note-anchor="true" className="!my-5 flex justify-center">
       <div className="aura-glass relative w-full rounded-card px-5 pt-3.5 pb-3.5">
         <div className="flex items-center gap-2.5">
           <span
@@ -972,17 +1025,28 @@ function FinalReportFooter({
   session,
   playerKnowledge,
   isActionPending,
+  save,
+  onTutorialUpdate,
   onFollowUp,
 }: {
   report: DateFinalReport;
   session: DateSession;
   playerKnowledge: PlayerKnowledgeRecord[];
   isActionPending: boolean;
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onFollowUp: (action: FollowUpAction) => void;
 }) {
   const sentimentBadge = describeEndSentiment(session);
   const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
   const filed = report.appliedFollowUp;
+  const followUpSectionRef = useRef<HTMLElement | null>(null);
+  const followUpStep = useTutorialStep(
+    save,
+    "date.followup",
+    filed === undefined,
+    onTutorialUpdate,
+  );
 
   return (
     <motion.footer
@@ -1002,10 +1066,29 @@ function FinalReportFooter({
             recommended={report.recommendedFollowUp}
             filed={filed}
             isActionPending={isActionPending}
-            onFollowUp={onFollowUp}
+            sectionRef={followUpSectionRef}
+            onFollowUp={(action) => {
+              if (followUpStep.active) followUpStep.complete();
+              onFollowUp(action);
+            }}
           />
         </div>
       </div>
+
+      {followUpStep.active ? (
+        <>
+          <TutorialSpotlight target={followUpSectionRef} onDismiss={followUpStep.dismiss} />
+          <TutorialCoachMark
+            target={followUpSectionRef}
+            placement="top"
+            eyebrow="// follow-up"
+            title="File one follow-up"
+            body="Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance."
+            dismissLabel="Skip tour"
+            onDismiss={followUpStep.dismiss}
+          />
+        </>
+      ) : null}
     </motion.footer>
   );
 }
@@ -1063,15 +1146,17 @@ function FinalReportFollowUpSection({
   recommended,
   filed,
   isActionPending,
+  sectionRef,
   onFollowUp,
 }: {
   recommended: FollowUpAction;
   filed: FollowUpAction | undefined;
   isActionPending: boolean;
+  sectionRef?: React.Ref<HTMLElement>;
   onFollowUp: (action: FollowUpAction) => void;
 }) {
   return (
-    <section className="flex min-w-0 flex-col gap-2">
+    <section ref={sectionRef} className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Eyebrow>// follow-up</Eyebrow>
         {filed === undefined ? (
@@ -1176,11 +1261,15 @@ function DraftScreen({
   scenario,
   session,
   isActionPending,
+  save,
+  onTutorialUpdate,
   onPickEvents,
 }: {
   scenario: DateScenario;
   session: DateSession;
   isActionPending: boolean;
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onPickEvents: (eventIds: string[]) => void;
 }) {
   const offered = session.eventDraft.offered;
@@ -1194,6 +1283,18 @@ function DraftScreen({
   const targetCount = Math.min(EVENT_DRAFT_PICKED, offeredEvents.length);
   const [picks, setPicks] = useState<string[]>([]);
   const canLockIn = picks.length === targetCount;
+  const firstSceneCardRef = useRef<HTMLLIElement | null>(null);
+  const draftStep = useTutorialStep(
+    save,
+    "date.draft-events",
+    offeredEvents.length > 0 && picks.length === 0,
+    onTutorialUpdate,
+  );
+  useEffect(() => {
+    if (offeredEvents.length === 0 && !draftStep.done) {
+      draftStep.complete();
+    }
+  }, [offeredEvents.length, draftStep]);
 
   const offeredEventsByKind = useMemo(() => {
     const groups: Record<ScenarioEventKind, Array<{ event: ScenarioEvent; sceneIndex: number }>> = {
@@ -1208,17 +1309,19 @@ function DraftScreen({
   }, [offeredEvents]);
 
   function togglePick(eventId: string) {
+    const willAdd = !picks.includes(eventId) && picks.length < targetCount;
     setPicks((current) => {
       if (current.includes(eventId)) {
         return current.filter((id) => id !== eventId);
       }
-
       if (current.length >= targetCount) {
         return current;
       }
-
       return [...current, eventId];
     });
+    if (willAdd && draftStep.active) {
+      draftStep.complete();
+    }
   }
 
   return (
@@ -1273,6 +1376,7 @@ function DraftScreen({
                   return (
                     <motion.li
                       key={event.id}
+                      ref={sceneIndex === 0 ? firstSceneCardRef : undefined}
                       initial={{ opacity: 0, y: 14 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{
@@ -1333,6 +1437,21 @@ function DraftScreen({
           You can drop these three scenes anytime the date is paused. Cupid never auto-fires them.
         </p>
       </div>
+
+      {draftStep.active ? (
+        <>
+          <TutorialSpotlight target={firstSceneCardRef} onDismiss={draftStep.dismiss} />
+          <TutorialCoachMark
+            target={firstSceneCardRef}
+            placement="right"
+            eyebrow="// scene.draft"
+            title="Draft three scenes"
+            body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never auto-fires them."
+            dismissLabel="Skip tour"
+            onDismiss={draftStep.dismiss}
+          />
+        </>
+      ) : null}
     </motion.section>
   );
 }
@@ -1411,6 +1530,8 @@ function DateFooter({
   pendingDateAction,
   playbackUiState,
   nudgeSuggestions,
+  save,
+  onTutorialUpdate,
   onInterventionTextChange,
   onInterventionTargetChange,
   onAdvance,
@@ -1430,6 +1551,8 @@ function DateFooter({
   pendingDateAction: PendingDateAction | null;
   playbackUiState: DatePlaybackUiState;
   nudgeSuggestions: string[];
+  save: GameSave;
+  onTutorialUpdate: (next: GameSave) => void;
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
@@ -1454,6 +1577,24 @@ function DateFooter({
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [sceneConfirmId, setSceneConfirmId] = useState<string | null>(null);
+
+  const statusGaugesRef = useRef<HTMLDivElement | null>(null);
+  const transportClusterRef = useRef<HTMLDivElement | null>(null);
+  const nudgeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const footerHealthStep = useTutorialStep(save, "date.footer.health", true, onTutorialUpdate);
+  const footerTransportStep = useTutorialStep(
+    save,
+    "date.footer.transport",
+    footerHealthStep.done && !isStreaming,
+    onTutorialUpdate,
+  );
+  const nudgeComposeStep = useTutorialStep(
+    save,
+    "date.nudge.compose",
+    nudgeButtonEnabled && nudgesUsed === 0,
+    onTutorialUpdate,
+  );
 
   // Auto-close the composer if conditions change out from under it.
   useEffect(() => {
@@ -1541,11 +1682,16 @@ function DateFooter({
               judgePasses={session.judgeSnapshots.length}
               nudgesRemaining={nudgesRemaining}
               nudgeButtonEnabled={nudgeButtonEnabled}
-              onComposeNudge={openComposer}
+              onComposeNudge={() => {
+                if (nudgeComposeStep.active) nudgeComposeStep.complete();
+                openComposer();
+              }}
               picks={picks}
               eventsTriggered={session.eventsTriggered}
               scenario={scenario}
               dropsEnabled={dropsEnabled}
+              containerRef={statusGaugesRef}
+              nudgeRef={nudgeButtonRef}
               onTriggerEvent={openSceneConfirm}
             />
             <span aria-hidden className="flex-1" />
@@ -1558,9 +1704,16 @@ function DateFooter({
               playbackBusy={playbackBusy}
               canAdvance={canAdvance}
               pendingDateAction={pendingDateAction}
-              onAdvance={onAdvance}
+              containerRef={transportClusterRef}
+              onAdvance={(count) => {
+                if (footerTransportStep.active) footerTransportStep.complete();
+                onAdvance(count);
+              }}
               onCancel={onCancel}
-              onTogglePlayback={togglePlayback}
+              onTogglePlayback={() => {
+                if (footerTransportStep.active) footerTransportStep.complete();
+                togglePlayback();
+              }}
             />
           </div>
           <div className="pointer-events-none absolute inset-x-0 bottom-full mb-2 flex translate-y-1 justify-center opacity-0 transition duration-200 ease-out peer-hover:translate-y-0 peer-hover:opacity-100 peer-focus-within:translate-y-0 peer-focus-within:opacity-100">
@@ -1601,6 +1754,62 @@ function DateFooter({
           />
         ) : null}
       </AnimatePresence>
+
+      {footerHealthStep.active ? (
+        <>
+          <TutorialSpotlight target={statusGaugesRef} onDismiss={footerHealthStep.dismiss} />
+          <TutorialCoachMark
+            target={statusGaugesRef}
+            placement="top"
+            eyebrow="// the gauges"
+            title="Health, Turn, Judge, Nudges"
+            body="Health is the date. Turn counts toward the wrap. Judge fires every sixth. Nudges are your three whispers. Scenes appear once you draft them."
+            stepIndex={0}
+            stepCount={2}
+            primaryLabel="Got it"
+            onPrimary={footerHealthStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={footerHealthStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {!footerHealthStep.active && footerTransportStep.active ? (
+        <>
+          <TutorialPulseRing target={transportClusterRef} padding={6} radius={22} />
+          <TutorialCoachMark
+            target={transportClusterRef}
+            placement="top"
+            eyebrow="// transport"
+            title="Run the date"
+            body="Tap play for autoplay, or advance one beat at a time. Pause whenever you want to whisper a nudge or drop a scene. Space toggles play."
+            stepIndex={1}
+            stepCount={2}
+            dismissLabel="Skip tour"
+            onDismiss={footerTransportStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {!footerHealthStep.active && !footerTransportStep.active && nudgeComposeStep.active ? (
+        <>
+          <TutorialPulseRing target={nudgeButtonRef} padding={6} radius={18} />
+          <TutorialCoachMark
+            target={nudgeButtonRef}
+            placement="top"
+            eyebrow="// nudges // 03 left"
+            title="One nudge, one whisper"
+            body="Pause the date, pick one member, write one sentence. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact."
+            primaryLabel="Open composer"
+            onPrimary={() => {
+              nudgeComposeStep.complete();
+              openComposer();
+            }}
+            dismissLabel="Skip tour"
+            onDismiss={nudgeComposeStep.dismiss}
+          />
+        </>
+      ) : null}
     </>
   );
 }
@@ -1621,6 +1830,8 @@ function StatusGauges({
   eventsTriggered,
   scenario,
   dropsEnabled,
+  containerRef,
+  nudgeRef,
   onTriggerEvent,
 }: {
   dateHealth: number;
@@ -1634,10 +1845,12 @@ function StatusGauges({
   eventsTriggered: string[];
   scenario: DateScenario | undefined;
   dropsEnabled: boolean;
+  containerRef?: React.Ref<HTMLDivElement>;
+  nudgeRef?: React.Ref<HTMLButtonElement>;
   onTriggerEvent: (eventId: string) => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-3 px-1 lg:gap-4 lg:px-2">
+    <div ref={containerRef} className="flex shrink-0 items-center gap-3 px-1 lg:gap-4 lg:px-2">
       <HealthGauge value={dateHealth} />
       <span aria-hidden className="hidden h-7 w-px bg-aura-hairline/70 lg:block" />
       <TurnGauge current={displayedCurrentTurn} total={turnLimit} />
@@ -1648,6 +1861,7 @@ function StatusGauges({
         remaining={nudgesRemaining}
         enabled={nudgeButtonEnabled}
         onCompose={onComposeNudge}
+        buttonRef={nudgeRef}
       />
       {picks.length > 0 ? (
         <>
@@ -1744,10 +1958,12 @@ function NudgeGauge({
   remaining,
   enabled,
   onCompose,
+  buttonRef,
 }: {
   remaining: number;
   enabled: boolean;
   onCompose: () => void;
+  buttonRef?: React.Ref<HTMLButtonElement>;
 }) {
   const total = MAX_NUDGES_PER_DATE;
   const ariaLabel = enabled
@@ -1758,6 +1974,7 @@ function NudgeGauge({
 
   return (
     <button
+      ref={buttonRef}
       type="button"
       data-sfx={enabled ? "click" : undefined}
       disabled={!enabled}
@@ -2430,6 +2647,7 @@ function TransportCluster({
   playbackBusy,
   canAdvance,
   pendingDateAction,
+  containerRef,
   onAdvance,
   onCancel,
   onTogglePlayback,
@@ -2441,6 +2659,7 @@ function TransportCluster({
   playbackBusy: boolean;
   canAdvance: boolean;
   pendingDateAction: PendingDateAction | null;
+  containerRef?: React.Ref<HTMLDivElement>;
   onAdvance: (turnCount: 1 | 2) => void;
   onCancel: () => void;
   onTogglePlayback: () => void;
@@ -2453,7 +2672,7 @@ function TransportCluster({
       ? "Pause autoplay (space)"
       : "Start autoplay (space)";
   return (
-    <div className="flex shrink-0 items-center gap-1.5">
+    <div ref={containerRef} className="flex shrink-0 items-center gap-1.5">
       {isPaused && !pauseRequested ? (
         <TransportButton
           kind="ghost"

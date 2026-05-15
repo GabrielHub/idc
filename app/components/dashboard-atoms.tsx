@@ -522,11 +522,20 @@ type ButtonProps = {
   ariaPressed?: boolean;
   full?: boolean;
   sfx?: SfxCue | "none";
+  buttonRef?: React.Ref<HTMLButtonElement>;
 };
 
-export function PrimaryButton({ children, onClick, disabled, full, sfx = "primary" }: ButtonProps) {
+export function PrimaryButton({
+  children,
+  onClick,
+  disabled,
+  full,
+  sfx = "primary",
+  buttonRef,
+}: ButtonProps) {
   return (
     <button
+      ref={buttonRef}
       type="button"
       data-sfx={sfx}
       onClick={onClick}
@@ -544,12 +553,14 @@ export function GhostButton({
   disabled,
   ariaPressed,
   sfx = "click",
+  buttonRef,
 }: ButtonProps) {
   const pressedClass = ariaPressed
     ? "aura-glass-ink border-transparent"
     : "aura-glass text-aura-muted hover:text-aura-ink";
   return (
     <button
+      ref={buttonRef}
       type="button"
       data-sfx={sfx}
       onClick={onClick}

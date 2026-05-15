@@ -38,6 +38,7 @@ import {
 } from "../services/member-roster-order";
 import { visibleReadsForPair } from "../services/player-knowledge";
 import { isMemberInCooldown } from "../services/shift-planning";
+import { useTutorialStep } from "../services/tutorial";
 import { GhostButton, Hairline, pad2, Portrait, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import {
   MemberCard,
@@ -50,6 +51,7 @@ import {
 import { scenarioBackdropPath } from "./scenario-backdrop";
 import { ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal } from "./scenario-details-modal";
+import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
 
 type BookingStep = "focus" | "partner" | "date";
 
@@ -67,6 +69,7 @@ export type PreDateCanvasProps = {
   closureError: { pairId: string; message: string } | null;
   revealAllMemberDetails: boolean;
   deckRepairBlocked: boolean;
+  onTutorialUpdate: (next: GameSave) => void;
   onCommitPair: (input: { focusMemberId: string; partnerMemberId: string }) => void;
   onStartDate: (input: { scenarioId: string }) => void;
   onCancelBooking: () => void;
@@ -92,6 +95,7 @@ export function PreDateCanvas({
   closureError,
   revealAllMemberDetails,
   deckRepairBlocked,
+  onTutorialUpdate,
   onCommitPair,
   onStartDate,
   onCancelBooking,
@@ -116,6 +120,13 @@ export function PreDateCanvas({
   const lossLimit = clientLossLimit(save);
   const quitCount = useMemo(() => getQuitMembers(save.members).length, [save.members]);
   const quitsRemaining = Math.max(0, lossLimit - quitCount);
+  const postDateReturn = useMemo(
+    () =>
+      save.dateSessions.some(
+        (session) => session.status === "completed" || session.status === "ended_early",
+      ),
+    [save.dateSessions],
+  );
   const eligibleFocus = useMemo(
     () =>
       focusedMembers.filter(
@@ -138,7 +149,7 @@ export function PreDateCanvas({
     }
     return null;
   });
-  const [scenarioId, setScenarioId] = useState<string | null>(drawnScenarios[0]?.id ?? null);
+  const [scenarioId, setScenarioId] = useState<string | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
   const focusSectionRef = useRef<HTMLElement | null>(null);
@@ -147,6 +158,9 @@ export function PreDateCanvas({
   const selectedDateCardRef = useRef<HTMLDivElement | null>(null);
   const selectedFocusCardRef = useRef<HTMLLIElement | null>(null);
   const selectedPartnerCardRef = useRef<HTMLLIElement | null>(null);
+  const commitCtaRef = useRef<HTMLButtonElement | null>(null);
+  const beginCtaRef = useRef<HTMLButtonElement | null>(null);
+  const fileShiftCtaRef = useRef<HTMLButtonElement | null>(null);
 
   const requestsById = useMemo(() => {
     const map = new Map<string, MemberRequest>();
@@ -175,7 +189,7 @@ export function PreDateCanvas({
     if (scenarioId !== null && drawnScenarios.some((scenario) => scenario.id === scenarioId)) {
       return;
     }
-    setScenarioId(drawnScenarios[0]?.id ?? null);
+    setScenarioId(null);
   }, [scenarioId, drawnScenarios]);
 
   const activeFocus = useMemo(
@@ -359,6 +373,64 @@ export function PreDateCanvas({
   );
   const openMemberRequest = openMember === null ? undefined : requestForMember(openMember);
 
+  const planningGate = !isCommitted && !shiftClosed && activeFocus !== null;
+  const partnerGate = planningGate && candidatePartners.length > 0;
+  const commitGate = canCommit;
+  const scenarioGate = isCommitted && drawnScenarios.length > 0 && selectedScenario === null;
+  const beginGate = canStart;
+  const fileShiftGate = postDateReturn && !shiftClosed && !isCommitted;
+  const closureReadyGate = focusedClosurePairs.length > 0 && !isCommitted;
+  const cooldownBlockGate =
+    !isCommitted &&
+    !shiftClosed &&
+    focusedMembers.length > 0 &&
+    eligibleFocus.length < focusedMembers.length;
+
+  const planningFocusStep = useTutorialStep(save, "planning.focus", planningGate, onTutorialUpdate);
+  const planningPartnerStep = useTutorialStep(
+    save,
+    "planning.partner",
+    partnerGate && planningFocusStep.done,
+    onTutorialUpdate,
+  );
+  const planningCommitStep = useTutorialStep(
+    save,
+    "planning.commit",
+    commitGate && planningPartnerStep.done,
+    onTutorialUpdate,
+  );
+  const planningScenarioStep = useTutorialStep(
+    save,
+    "planning.scenario",
+    scenarioGate,
+    onTutorialUpdate,
+  );
+  const planningBeginStep = useTutorialStep(
+    save,
+    "planning.begin",
+    beginGate && planningScenarioStep.done,
+    onTutorialUpdate,
+  );
+  const fileShiftStep = useTutorialStep(
+    save,
+    "planning.file-shift",
+    fileShiftGate,
+    onTutorialUpdate,
+  );
+  const closureReadyStep = useTutorialStep(
+    save,
+    "lazy.closure-ready",
+    closureReadyGate && !planningFocusStep.active && !planningPartnerStep.active,
+    onTutorialUpdate,
+  );
+  const cooldownBlockStep = useTutorialStep(
+    save,
+    "lazy.cooldown-block",
+    cooldownBlockGate && !planningFocusStep.active && !planningPartnerStep.active,
+    onTutorialUpdate,
+  );
+  const closureCalloutRef = useRef<HTMLDivElement | null>(null);
+
   return (
     <section className="relative mx-auto w-full max-w-canvas px-6 pb-44 pt-12 lg:px-12">
       <PreDateHeader
@@ -372,7 +444,11 @@ export function PreDateCanvas({
         shiftClosed={shiftClosed}
         activeBookingLocked={isCommitted}
         isActionPending={isActionPending}
-        onCloseShift={onCloseShift}
+        fileShiftButtonRef={fileShiftCtaRef}
+        onCloseShift={() => {
+          if (fileShiftStep.active) fileShiftStep.complete();
+          onCloseShift();
+        }}
         onStartNextShift={onStartNextShift}
       />
 
@@ -385,14 +461,16 @@ export function PreDateCanvas({
       />
 
       {focusedClosurePairs.length > 0 ? (
-        <ClosureCallout
-          entries={focusedClosurePairs}
-          closingPairId={closingPairId}
-          closureError={closureError}
-          isActionPending={isActionPending}
-          onConfirm={onConfirmClosure}
-          onDismissError={onDismissClosureError}
-        />
+        <div ref={closureCalloutRef}>
+          <ClosureCallout
+            entries={focusedClosurePairs}
+            closingPairId={closingPairId}
+            closureError={closureError}
+            isActionPending={isActionPending}
+            onConfirm={onConfirmClosure}
+            onDismissError={onDismissClosureError}
+          />
+        </div>
       ) : null}
 
       {deckRepairBlocked && !isCommitted ? (
@@ -411,7 +489,10 @@ export function PreDateCanvas({
         requestForMember={requestForMember}
         revealAllMemberDetails={revealAllMemberDetails}
         locked={isCommitted}
-        onSelect={setActiveFocusId}
+        onSelect={(id) => {
+          setActiveFocusId(id);
+          if (planningFocusStep.active) planningFocusStep.complete();
+        }}
         onOpenRoster={onOpenRoster}
         onExpand={(id) => setOpenMemberId(id)}
       />
@@ -429,7 +510,10 @@ export function PreDateCanvas({
         revealAllMemberDetails={revealAllMemberDetails}
         locked={isCommitted}
         onOpenRoster={onOpenRoster}
-        onSelect={(id) => setPartnerId(id)}
+        onSelect={(id) => {
+          setPartnerId(id);
+          if (planningPartnerStep.active) planningPartnerStep.complete();
+        }}
         onExpand={(id) => setOpenMemberId(id)}
       />
 
@@ -443,7 +527,10 @@ export function PreDateCanvas({
         committed={isCommitted}
         effectiveCostsByScenarioId={effectiveCostsByScenarioId}
         roomReadByScenarioId={roomReadByScenarioId}
-        onSelect={setScenarioId}
+        onSelect={(id) => {
+          setScenarioId(id);
+          if (planningScenarioStep.active) planningScenarioStep.complete();
+        }}
         onExpand={setOpenScenarioId}
         onOpenDateBook={onOpenDateBook}
       />
@@ -459,6 +546,8 @@ export function PreDateCanvas({
         deckRepairBlocked={deckRepairBlocked}
         shiftDateAvailable={shiftDateAvailable}
         shiftClosed={shiftClosed}
+        commitButtonRef={commitCtaRef}
+        beginButtonRef={beginCtaRef}
         onScrollTo={(step) => {
           const target: Record<BookingStep, () => HTMLElement | null> = {
             focus: () => selectedFocusCardRef.current ?? focusSectionRef.current,
@@ -469,6 +558,7 @@ export function PreDateCanvas({
         }}
         onCommit={() => {
           if (activeFocus !== null && effectivePartner !== null && !isCommitted) {
+            if (planningCommitStep.active) planningCommitStep.complete();
             onCommitPair({
               focusMemberId: activeFocus.id,
               partnerMemberId: effectivePartner.id,
@@ -477,6 +567,7 @@ export function PreDateCanvas({
         }}
         onStart={() => {
           if (selectedScenario !== null && isCommitted) {
+            if (planningBeginStep.active) planningBeginStep.complete();
             onStartDate({ scenarioId: selectedScenario.id });
           }
         }}
@@ -503,6 +594,144 @@ export function PreDateCanvas({
           />
         )}
       </AnimatePresence>
+
+      {planningFocusStep.active ? (
+        <TutorialCoachMark
+          target={[selectedFocusCardRef, focusSectionRef]}
+          placement="right"
+          eyebrow="// step.01 // focus"
+          title="Pick a focus case"
+          body="Tonight runs on one focus case and one different partner. Confirm the case Cupid opened, or pick another from your four."
+          stepIndex={0}
+          stepCount={3}
+          primaryLabel="Got it"
+          onPrimary={planningFocusStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={planningFocusStep.dismiss}
+        />
+      ) : null}
+
+      {planningPartnerStep.active ? (
+        <>
+          <TutorialSpotlight
+            target={[selectedPartnerCardRef, partnerSectionRef]}
+            onDismiss={planningPartnerStep.dismiss}
+          />
+          <TutorialCoachMark
+            target={[selectedPartnerCardRef, partnerSectionRef]}
+            placement="right"
+            eyebrow="// step.02 // partner"
+            title="Pick one partner"
+            body="Tonight needs two different members. Cupid may recommend one. You may overrule the machine, which is why the machine keeps minutes."
+            stepIndex={1}
+            stepCount={3}
+            primaryLabel="Got it"
+            onPrimary={planningPartnerStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={planningPartnerStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {planningCommitStep.active ? (
+        <>
+          <TutorialPulseRing target={commitCtaRef} padding={6} radius={28} />
+          <TutorialCoachMark
+            target={commitCtaRef}
+            placement="top"
+            eyebrow="// commit"
+            title="Commit the pair"
+            body="Commit locks the two members, reserves this shift's date, snapshots the Date Book, and draws three scenario cards. Procurement hates surprises."
+            stepIndex={2}
+            stepCount={3}
+            dismissLabel="Skip tour"
+            onDismiss={planningCommitStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {planningScenarioStep.active ? (
+        <>
+          <TutorialSpotlight
+            target={[selectedDateCardRef, dateSectionRef]}
+            onDismiss={planningScenarioStep.dismiss}
+          />
+          <TutorialCoachMark
+            target={[selectedDateCardRef, dateSectionRef]}
+            placement="top"
+            eyebrow="// hand.drawn"
+            title="Pick one room"
+            body="These three came from your Date Book. Room Read is a warning, not a verdict. The Judge still waits for transcript evidence."
+            dismissLabel="Skip tour"
+            onDismiss={planningScenarioStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {planningBeginStep.active ? (
+        <>
+          <TutorialPulseRing target={beginCtaRef} padding={6} radius={28} />
+          <TutorialCoachMark
+            target={beginCtaRef}
+            placement="top"
+            eyebrow="// begin"
+            title="Begin the date"
+            body="Cupid opens the room. Once the date starts, the deck is locked and the pair stays committed until the file resolves."
+            primaryLabel="Begin"
+            onPrimary={() => {
+              planningBeginStep.complete();
+              if (selectedScenario !== null && isCommitted) {
+                onStartDate({ scenarioId: selectedScenario.id });
+              }
+            }}
+            dismissLabel="Skip tour"
+            onDismiss={planningBeginStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {fileShiftStep.active ? (
+        <>
+          <TutorialPulseRing target={fileShiftCtaRef} padding={6} radius={28} />
+          <TutorialCoachMark
+            target={fileShiftCtaRef}
+            placement="bottom"
+            eyebrow="// shift.close"
+            title="File the shift"
+            body="One shift, one date. File it when the date is settled. Cupid will score goals, rotate pressure, and pretend this was a normal evening."
+            dismissLabel="Skip tour"
+            onDismiss={fileShiftStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {closureReadyStep.active ? (
+        <TutorialCoachMark
+          target={closureCalloutRef}
+          placement="bottom"
+          eyebrow="// closure.ready"
+          title="Closure is permanent"
+          body="A pair is ready to delete the app. Close their case to free two focus slots, raise the client cap by one, and file a permanent pair memory. There is no rebooking after closure."
+          primaryLabel="Got it"
+          onPrimary={closureReadyStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={closureReadyStep.dismiss}
+        />
+      ) : null}
+
+      {!closureReadyStep.active && cooldownBlockStep.active ? (
+        <TutorialCoachMark
+          target={focusSectionRef}
+          placement="right"
+          eyebrow="// cooldown.block"
+          title="One of these is in cooldown"
+          body="A focus card greys out when the member needs space after their last date. Cooldowns end on the next shift. The roster shows their status."
+          primaryLabel="Got it"
+          onPrimary={cooldownBlockStep.complete}
+          dismissLabel="Skip tour"
+          onDismiss={cooldownBlockStep.dismiss}
+        />
+      ) : null}
     </section>
   );
 }
@@ -756,6 +985,7 @@ function PreDateHeader({
   shiftClosed,
   activeBookingLocked,
   isActionPending,
+  fileShiftButtonRef,
   onCloseShift,
   onStartNextShift,
 }: {
@@ -769,6 +999,7 @@ function PreDateHeader({
   shiftClosed: boolean;
   activeBookingLocked: boolean;
   isActionPending: boolean;
+  fileShiftButtonRef?: Ref<HTMLButtonElement>;
   onCloseShift: () => void;
   onStartNextShift: () => void;
 }) {
@@ -833,12 +1064,20 @@ function PreDateHeader({
               message="End this shift without booking a date. Cupid files the day, applies any ignored request fallout, and lets you open the next shift."
               placement="bottom-end"
             >
-              <GhostButton onClick={onCloseShift} disabled={isActionPending}>
+              <GhostButton
+                buttonRef={fileShiftButtonRef}
+                onClick={onCloseShift}
+                disabled={isActionPending}
+              >
                 File the shift
               </GhostButton>
             </Tooltip>
           ) : (
-            <PrimaryButton onClick={onCloseShift} disabled={isActionPending}>
+            <PrimaryButton
+              buttonRef={fileShiftButtonRef}
+              onClick={onCloseShift}
+              disabled={isActionPending}
+            >
               Close the shift →
             </PrimaryButton>
           )}
@@ -1170,6 +1409,8 @@ function BeginDateDock({
   deckRepairBlocked,
   shiftDateAvailable,
   shiftClosed,
+  commitButtonRef,
+  beginButtonRef,
   onScrollTo,
   onCommit,
   onStart,
@@ -1185,6 +1426,8 @@ function BeginDateDock({
   deckRepairBlocked: boolean;
   shiftDateAvailable: boolean;
   shiftClosed: boolean;
+  commitButtonRef?: Ref<HTMLButtonElement>;
+  beginButtonRef?: Ref<HTMLButtonElement>;
   onScrollTo: (step: BookingStep) => void;
   onCommit: () => void;
   onStart: () => void;
@@ -1219,7 +1462,7 @@ function BeginDateDock({
           {isCommitted ? (
             <>
               <GhostButton onClick={onCancel}>Cancel booking</GhostButton>
-              <PrimaryButton onClick={onStart} disabled={!canStart}>
+              <PrimaryButton buttonRef={beginButtonRef} onClick={onStart} disabled={!canStart}>
                 Begin date →
               </PrimaryButton>
             </>
@@ -1228,7 +1471,7 @@ function BeginDateDock({
               message="Committing the pair starts the live date process. The hand is drawn, the Date Book locks, and you cannot switch members until the date resolves."
               placement="top-center"
             >
-              <PrimaryButton onClick={onCommit} disabled={!canCommit}>
+              <PrimaryButton buttonRef={commitButtonRef} onClick={onCommit} disabled={!canCommit}>
                 Commit pair →
               </PrimaryButton>
             </Tooltip>

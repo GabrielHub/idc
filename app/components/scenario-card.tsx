@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useState } from "react";
+import { type Ref, useState } from "react";
 
 import type { DateScenario } from "../domain/game";
 import type { ScenarioRoomRead } from "../services/match-fit";
@@ -64,6 +64,7 @@ export type ScenarioCardProps = {
   effectiveCost?: number;
   showCost?: boolean;
   roomRead?: ScenarioRoomRead;
+  cardRef?: Ref<HTMLElement>;
   onClick?: () => void;
   onExpand?: () => void;
   layoutId?: string;
@@ -77,6 +78,7 @@ export function ScenarioCard({
   effectiveCost,
   showCost = true,
   roomRead,
+  cardRef,
   onClick,
   onExpand,
   layoutId,
@@ -101,6 +103,7 @@ export function ScenarioCard({
 
   return (
     <motion.article
+      ref={cardRef}
       layoutId={layoutId}
       whileHover={interactive ? { y: -3, rotate: -0.5 } : undefined}
       whileTap={interactive ? { scale: 0.985 } : undefined}

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_TUTORIAL_STATE,
   gameConfigSchema,
   gameSaveSchema,
   memberSchema,
@@ -98,6 +99,7 @@ export function createSeedGameSave(
       },
     ],
     lastBudgetReviewShift: 0,
+    tutorial: DEFAULT_TUTORIAL_STATE,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
