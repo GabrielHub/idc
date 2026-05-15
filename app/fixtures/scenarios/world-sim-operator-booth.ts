@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const worldSimOperatorBooth: DateScenario = {
   id: "world-sim-operator-booth",
-  title: "World-Sim, Operator's Booth",
+  title: "Step-Away Button",
   card: {
     summary:
       "A two-seat AR booth running a real seeded world. Weather, disease, miracles, signs, and a step-away button. Creatures are real.",

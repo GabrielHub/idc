@@ -80,6 +80,7 @@ export type PreDateCanvasProps = {
   onOpenAiSetup: () => void;
   onCloseShift: () => void;
   onStartNextShift: () => void;
+  onDeckOverBudgetBlocked?: (surfaceKey: string) => void;
 };
 
 export function PreDateCanvas({
@@ -107,6 +108,7 @@ export function PreDateCanvas({
   onOpenAiSetup,
   onCloseShift,
   onStartNextShift,
+  onDeckOverBudgetBlocked,
 }: PreDateCanvasProps) {
   const focusedIds = useMemo(
     () => new Set(focusedMembers.map((member) => member.id)),
@@ -432,6 +434,18 @@ export function PreDateCanvas({
     onTutorialUpdate,
   );
   const closureCalloutRef = useRef<HTMLDivElement | null>(null);
+  const lastDeckBlockedSurfaceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (onDeckOverBudgetBlocked === undefined) return;
+    if (!deckRepairBlocked || isCommitted) {
+      lastDeckBlockedSurfaceRef.current = null;
+      return;
+    }
+    const surfaceKey = `${shift.id}-${shift.shiftNumber}`;
+    if (lastDeckBlockedSurfaceRef.current === surfaceKey) return;
+    lastDeckBlockedSurfaceRef.current = surfaceKey;
+    onDeckOverBudgetBlocked(surfaceKey);
+  }, [deckRepairBlocked, isCommitted, onDeckOverBudgetBlocked, shift.id, shift.shiftNumber]);
 
   return (
     <section className="relative mx-auto w-full max-w-canvas px-6 pb-44 pt-12 lg:px-12">

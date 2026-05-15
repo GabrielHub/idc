@@ -101,6 +101,31 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "title",
+    title: "Title",
+    body: (
+      <>
+        <P>
+          Aim for a joke first, if one fits. The strongest scenario titles are real English phrases
+          whose meaning literally describes the room. "Dim Sum and Then Some" works because the
+          idiom means "and more," and the room is dim sum and more. "Cart Before The Horse" works
+          because the cafe runs in wrong order. "Belly Of The Beast" works because you are inside a
+          leviathan. "Let Sleeping Giants Lie" works because the picnic blanket sits on one.
+        </P>
+        <P>
+          A punchline lifted from the premise is a strong fallback. "The Bear Is Real," "Consent Is
+          The Appetizer," and "Name Tag: Emotional Availability" all state the absurd flat.
+        </P>
+        <P>
+          Deadpan-concrete titles are fine when no joke fits. "Couch Night, Two Containers" and
+          "Executive Lunch, One Agenda Item" do the work by naming the room and one telling detail.
+          Do not force a pun that only rhymes. The bar is that the title should mean the room, not
+          just sound like a word in it.
+        </P>
+      </>
+    ),
+  },
+  {
     id: "fixture-requirements",
     title: "Fixture requirements",
     body: (
@@ -116,7 +141,9 @@ export const sections: DocSectionEntry[] = [
               <DocCode>id</DocCode>: stable kebab-case scenario id.
             </span>,
             <span key="title">
-              <DocCode>title</DocCode>: player-facing card title.
+              <DocCode>title</DocCode>: player-facing card title. See{" "}
+              <DocLink to="/docs/workflows/add-date-scenario#title">Title</DocLink> for the
+              funny-first principle.
             </span>,
             <span key="summary">
               <DocCode>card.summary</DocCode>: short Cupid corporate premise.

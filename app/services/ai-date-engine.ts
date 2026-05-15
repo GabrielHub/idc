@@ -38,6 +38,7 @@ import {
   applyJudgeToMembers,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
+  clearActiveBookingForShift,
   createClosureNearMissMemoryRecord,
   collectPendingEventKinds,
   exchangeIndexForTurn,
@@ -482,6 +483,10 @@ async function advanceDateExchangeWithLocalAiInternal(
           completedSession,
           getActiveShift(save).shiftNumber,
         );
+  const shiftsAfterCompletion =
+    completedSession.finalReport === undefined
+      ? save.shifts
+      : clearActiveBookingForShift(save.shifts, save.activeShiftId);
   const nextSave = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
@@ -494,6 +499,7 @@ async function advanceDateExchangeWithLocalAiInternal(
       ...completion.memories,
     ],
     playerKnowledge: revealResult.save.playerKnowledge,
+    shifts: shiftsAfterCompletion,
     updatedAt: timestamp,
   });
 

@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router";
 
 import { DocsShell, DocsToc } from "../components/docs-layout";
+import { SfxProvider } from "../components/sfx-provider";
 import { StampMark } from "../components/stamp-mark";
 import {
   getAdjacentDocs,
@@ -35,9 +36,11 @@ export default function DocsArticleRoute() {
 
   if (!doc) {
     return (
-      <DocsShell activeSlug={slug}>
-        <NotFoundPanel slug={slug} />
-      </DocsShell>
+      <SfxProvider>
+        <DocsShell activeSlug={slug}>
+          <NotFoundPanel slug={slug} />
+        </DocsShell>
+      </SfxProvider>
     );
   }
 
@@ -46,29 +49,31 @@ export default function DocsArticleRoute() {
   const isRedacted = doc.visibility === "redacted";
 
   return (
-    <DocsShell
-      activeSlug={doc.slug}
-      activeTitle={doc.title}
-      toc={isRedacted ? null : <DocsToc entries={doc.toc} />}
-    >
-      <article className="flex flex-col gap-8 pt-2">
-        <header className="flex flex-col gap-3">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-            // file.{slug.split("/").pop()?.replace(/-/g, ".") ?? slug}
-            {groupLabel ? (
-              <span className="ml-3 text-aura-faint">drawer / {groupLabel.toLowerCase()}</span>
-            ) : null}
-          </p>
-          <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
-            {doc.title}
-          </h1>
-        </header>
+    <SfxProvider>
+      <DocsShell
+        activeSlug={doc.slug}
+        activeTitle={doc.title}
+        toc={isRedacted ? null : <DocsToc entries={doc.toc} />}
+      >
+        <article className="flex flex-col gap-8 pt-2">
+          <header className="flex flex-col gap-3">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+              // file.{slug.split("/").pop()?.replace(/-/g, ".") ?? slug}
+              {groupLabel ? (
+                <span className="ml-3 text-aura-faint">drawer / {groupLabel.toLowerCase()}</span>
+              ) : null}
+            </p>
+            <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
+              {doc.title}
+            </h1>
+          </header>
 
-        {isRedacted ? <RedactedWorkflowPanel doc={doc} /> : <Component />}
+          {isRedacted ? <RedactedWorkflowPanel doc={doc} /> : <Component />}
 
-        <AdjacentNavigation slug={doc.slug} />
-      </article>
-    </DocsShell>
+          <AdjacentNavigation slug={doc.slug} />
+        </article>
+      </DocsShell>
+    </SfxProvider>
   );
 }
 

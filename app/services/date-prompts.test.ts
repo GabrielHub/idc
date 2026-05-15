@@ -299,7 +299,7 @@ describe("date prompt assembly", () => {
         mediaType: "image/png",
       },
       {
-        description: "Temporal Coffee Shop, the date scenario background",
+        description: "Cart Before The Horse, the date scenario background",
         image: new Uint8Array([4, 5, 6]),
         mediaType: "image/webp",
       },
@@ -321,7 +321,7 @@ describe("date prompt assembly", () => {
 
     expect(packet.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
     expect(packet.prompt).toContain(
-      "Attached image 2 is Temporal Coffee Shop, the date scenario background.",
+      "Attached image 2 is Cart Before The Horse, the date scenario background.",
     );
     expect(packet.prompt).toContain("[attached image: image/png]");
     expect(packet.prompt).toContain("[attached image: image/webp]");

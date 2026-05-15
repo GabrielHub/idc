@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const bankHeist1920sEscapeRoom: DateScenario = {
   id: "bank-heist-1920s-escape-room",
-  title: "1920s Bank Heist, As An Escape Room",
+  title: "The Cash Is Real",
   card: {
     summary:
       "An inter-dimensional escape room drops the pair into a real 1923 earth bank during business hours. Crack the vault by closing. A booked prize is in the back row. The cash is real.",

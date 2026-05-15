@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const impossibleLostAndFound: DateScenario = {
   id: "impossible-lost-and-found",
-  title: "Impossible Lost And Found",
+  title: "Things You Haven't Lost Yet",
   card: {
     summary:
       "A municipal lost-and-found returns objects the pair has not lost yet. The window has no clerk tonight.",

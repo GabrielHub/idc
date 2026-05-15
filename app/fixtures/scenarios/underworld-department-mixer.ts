@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const underworldDepartmentMixer: DateScenario = {
   id: "underworld-department-mixer",
-  title: "Underworld Department Mixer",
+  title: "Name Tag: Emotional Availability",
   card: {
     summary:
       "A workplace mixer in the underworld where every name tag lists emotional availability.",

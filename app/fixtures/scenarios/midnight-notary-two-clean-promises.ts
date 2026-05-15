@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const midnightNotaryTwoCleanPromises: DateScenario = {
   id: "midnight-notary-two-clean-promises",
-  title: "Midnight Notary, Two Clean Promises",
+  title: "Stamp Of Approval",
   card: {
     summary:
       "A municipal notary counter validates one boundary and one promise. Romance arrives with a stamp pad.",

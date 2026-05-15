@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const vivariumWingTinyResidents: DateScenario = {
   id: "vivarium-wing-tiny-residents",
-  title: "Vivarium Wing, Tiny Residents",
+  title: "Small World",
   card: {
     summary:
       "A museum wing of glass-walled habitats containing tiny humans, real ones, raised across generations to know nothing of the visitors.",

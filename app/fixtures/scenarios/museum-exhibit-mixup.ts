@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const museumExhibitMixup: DateScenario = {
   id: "museum-exhibit-mixup",
-  title: "Museum Exhibit Mixup",
+  title: "Now Showing: You",
   card: {
     summary: "A museum date where one member's placard appears before anyone can explain why.",
     tags: ["public", "memory", "high_pressure"],

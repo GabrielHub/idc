@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const picnicOnSleepingGiant: DateScenario = {
   id: "picnic-on-sleeping-giant",
-  title: "Picnic On The Sleeping Giant",
+  title: "Let Sleeping Giants Lie",
   card: {
     summary:
       "A picnic on a mossy hill that is the chest of a giant who lay down at the end of his age and slept rather than die. The hill rises an inch every long breath.",

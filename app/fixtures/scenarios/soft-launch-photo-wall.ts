@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const softLaunchPhotoWall: DateScenario = {
   id: "soft-launch-photo-wall",
-  title: "Soft Launch Photo Wall",
+  title: "Consent Is The Appetizer",
   card: {
     summary:
       "A brand pop-up has set the pair up at a small bistro table across from a photo wall. Consent becomes the whole appetizer.",

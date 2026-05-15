@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const memoryCourseDinner: DateScenario = {
   id: "memory-course-dinner",
-  title: "Memory Course Dinner",
+  title: "Food For Thought",
   card: {
     summary:
       "Every plate at the table evokes a childhood memory. The room is doing personnel work.",

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   gameSaveSchema,
   SAVE_SCHEMA_VERSION,
+  type DateFinalReport,
   type DateScenario,
   type FollowUpAction,
   type GameConfig,
@@ -63,8 +64,29 @@ import {
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
-import { withOrientationReset } from "../services/tutorial";
+import {
+  appendManagerQuipHistory,
+  detectFocusSwapDropOfActive,
+  detectMemberQuitTransition,
+  detectRetentionWarningDip,
+  indexMembersById,
+  pairEnteredBrittleTrajectory,
+  resolveManagerQuip,
+  shouldFireSoftWinQuip,
+  type ManagerQuipResolveResult,
+} from "../services/manager-quips";
+import {
+  TutorialActivityProvider,
+  useIsRequiredTutorialActive,
+  withOrientationReset,
+} from "../services/tutorial";
 import { errorToMessage } from "../services/utils";
+import { ManagerQuipPopup } from "./manager-quip-popup";
+import {
+  getManagerQuipById,
+  type ManagerQuip,
+  type ManagerQuipTriggerKey,
+} from "../fixtures/manager-quips";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { AmbientMesh } from "./ambient-mesh";
 import {
@@ -103,6 +125,15 @@ const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
 const DEV_MEMBER_DETAILS_STORAGE_KEY = "idc.cupid.dev.memberDetailsPreview";
 const CAN_USE_DEV_MEMBER_DETAILS_PREVIEW = import.meta.env.DEV;
 
+const OUTCOME_QUIP_TRIGGER_KEYS: Partial<
+  Record<DateFinalReport["outcome"], ManagerQuipTriggerKey>
+> = {
+  bad_fit: "date.outcome.bad-fit",
+  cool_down: "date.outcome.cool-down",
+  second_date: "date.outcome.encourage",
+  mixed: "date.outcome.encourage",
+};
+
 type CupidShellProps = {
   onPunchOut: () => void;
 };
@@ -123,9 +154,25 @@ type PendingAction =
   | "softWin"
   | "reset";
 
-export function CupidShell({ onPunchOut }: CupidShellProps) {
+export function CupidShell(props: CupidShellProps) {
+  return (
+    <TutorialActivityProvider>
+      <CupidShellInner {...props} />
+    </TutorialActivityProvider>
+  );
+}
+
+function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
   const { play } = useSfx();
+  const isTutorialBlocking = useIsRequiredTutorialActive();
+  const isTutorialBlockingRef = useRef(isTutorialBlocking);
+  useEffect(() => {
+    isTutorialBlockingRef.current = isTutorialBlocking;
+  }, [isTutorialBlocking]);
+  const [activeManagerQuip, setActiveManagerQuip] = useState<ManagerQuip | null>(null);
+  const [managerQuipPresentationKey, setManagerQuipPresentationKey] = useState(0);
+  const sessionManagerQuipIdsRef = useRef<Set<string>>(new Set());
   const [save, setSave] = useState<GameSave | null>(null);
   const saveRef = useRef<GameSave | null>(null);
   const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
@@ -338,6 +385,17 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     [save?.config, localAiStatus],
   );
   useEffect(() => {
+    if (save === null) return;
+    const caseBoardStarted =
+      save.dateSessions.length > 0 ||
+      save.shifts.some((shift) => shift.featuredMemberIds.length > 0);
+    const onboardingActive = save.focusedMemberIds.length === 0 && !caseBoardStarted;
+    if (!onboardingActive) return;
+    dispatchManagerQuip({ triggerKey: "onboarding.welcome", bypassTutorialGate: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [save]);
+
+  useEffect(() => {
     if (
       releaseNotesCheckCompleteRef.current ||
       save === null ||
@@ -367,13 +425,120 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
   async function persist(nextSave: GameSave, options: { preserveTutorial?: boolean } = {}) {
     const latestTutorial = saveRef.current?.tutorial;
-    const saveToPersist =
-      options.preserveTutorial === false || latestTutorial === undefined
-        ? nextSave
-        : { ...nextSave, tutorial: latestTutorial };
+    const latestManagerQuipHistory = saveRef.current?.managerQuipHistory;
+    const saveToPersist: GameSave = {
+      ...nextSave,
+      ...(options.preserveTutorial === false || latestTutorial === undefined
+        ? {}
+        : { tutorial: latestTutorial }),
+      ...(latestManagerQuipHistory === undefined
+        ? {}
+        : { managerQuipHistory: latestManagerQuipHistory }),
+    };
     saveRef.current = saveToPersist;
     await repository.saveGame(saveToPersist);
     setSave(saveToPersist);
+  }
+
+  function dispatchManagerQuip(input: {
+    triggerKey: ManagerQuipTriggerKey;
+    surfaceKey?: string;
+    bypassTutorialGate?: boolean;
+  }): void {
+    if (isTutorialBlockingRef.current && input.bypassTutorialGate !== true) return;
+    const currentSave = saveRef.current;
+    if (currentSave === null) return;
+    const shiftNumber = getActiveShift(currentSave).shiftNumber;
+    const result = resolveManagerQuip({
+      triggerKey: input.triggerKey,
+      history: currentSave.managerQuipHistory,
+      currentShiftNumber: shiftNumber,
+      sessionPlayedQuipIds: sessionManagerQuipIdsRef.current,
+      surfaceKey: input.surfaceKey,
+    });
+    if (result === null) return;
+    presentManagerQuip(currentSave, result, shiftNumber);
+  }
+
+  function presentManagerQuip(
+    currentSave: GameSave,
+    result: ManagerQuipResolveResult,
+    shiftNumber: number,
+  ): void {
+    const quip = getManagerQuipById(result.quipId);
+    if (quip === undefined) return;
+    const nextHistory = appendManagerQuipHistory(
+      currentSave.managerQuipHistory,
+      result.historyRecord,
+      shiftNumber,
+    );
+    const updatedSave: GameSave = { ...currentSave, managerQuipHistory: nextHistory };
+    saveRef.current = updatedSave;
+    setSave(updatedSave);
+    void repository.saveGame(updatedSave).catch((error) => {
+      console.warn("Manager quip history persist failed", error);
+    });
+    sessionManagerQuipIdsRef.current.add(result.quipId);
+    setActiveManagerQuip(quip);
+    setManagerQuipPresentationKey((prev) => prev + 1);
+  }
+
+  function processManagerQuipSaveDiff(previousSave: GameSave, nextSave: GameSave): void {
+    if (isTutorialBlockingRef.current) return;
+    const previousById = indexMembersById(previousSave.members);
+    const nextById = indexMembersById(nextSave.members);
+    const quit = detectMemberQuitTransition(previousSave, nextSave, previousById);
+    if (quit !== null) {
+      dispatchManagerQuip({ triggerKey: "member.status.quit", surfaceKey: quit });
+    }
+    const retentionDip = detectRetentionWarningDip(previousSave, nextSave, previousById);
+    if (retentionDip !== null) {
+      dispatchManagerQuip({
+        triggerKey: "member.retention.warning",
+        surfaceKey: retentionDip.memberId,
+      });
+    }
+    const swapDrop = detectFocusSwapDropOfActive(previousSave, nextSave, previousById, nextById);
+    if (swapDrop !== null) {
+      dispatchManagerQuip({ triggerKey: "focus.swap.first", surfaceKey: swapDrop });
+    }
+  }
+
+  function dispatchOutcomeQuip(report: DateFinalReport | undefined, sessionId: string): void {
+    if (report === undefined) return;
+    const triggerKey = OUTCOME_QUIP_TRIGGER_KEYS[report.outcome];
+    if (triggerKey === undefined) return;
+    dispatchManagerQuip({ triggerKey, surfaceKey: sessionId });
+  }
+
+  function dispatchBrittleTrajectoryIfChanged(
+    previousSave: GameSave,
+    nextSave: GameSave,
+    pairId: string,
+  ): void {
+    const previousPair = previousSave.pairStates.find((pair) => pair.id === pairId);
+    const nextPair = nextSave.pairStates.find((pair) => pair.id === pairId);
+    if (nextPair === undefined) return;
+    const previousCompleted = previousSave.dateSessions.filter(
+      (session) => session.finalReport !== undefined,
+    );
+    const nextCompleted = nextSave.dateSessions.filter(
+      (session) => session.finalReport !== undefined,
+    );
+    if (
+      pairEnteredBrittleTrajectory({
+        previousPairState: previousPair,
+        nextPairState: nextPair,
+        previousCompletedSessions: previousCompleted,
+        nextCompletedSessions: nextCompleted,
+      })
+    ) {
+      dispatchManagerQuip({ triggerKey: "pair.trajectory.brittle", surfaceKey: pairId });
+    }
+  }
+
+  function handleManagerQuipDismissed(): void {
+    setActiveManagerQuip(null);
   }
 
   const handleTutorialUpdate = useCallback(
@@ -496,6 +661,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
       }
       const result = startDateSessionFromBooking(save, input);
       await persist(result.save);
+      dispatchManagerQuip({ triggerKey: "date.started", surfaceKey: result.session.id });
       setActiveDateSessionId(result.session.id);
       setInterventionText("");
       setInterventionTargetMemberId("");
@@ -513,6 +679,8 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
   async function handleAdvanceExchange(turnCount: 1 | 2) {
     if (save === null || activeSession === null) return;
     const sessionId = activeSession.id;
+    const previousStatus = activeSession.status;
+    const previousSave = save;
     tryAction("advanceExchange", async () => {
       setStreamingDrafts([]);
       setIsDateJudgePending(false);
@@ -533,6 +701,17 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
           (event) => applyStreamEvent(event),
         );
         await persist(result.save);
+        const nextStatus = result.session.status;
+        if (previousStatus === "active" && nextStatus === "completed") {
+          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
+          dispatchOutcomeQuip(result.session.finalReport, sessionId);
+          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+        } else if (previousStatus === "active" && nextStatus === "ended_early") {
+          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
+          dispatchOutcomeQuip(result.session.finalReport, sessionId);
+          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+        }
+        processManagerQuipSaveDiff(previousSave, result.save);
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
           setNoticeMessage(result.warningMessages[0] ?? null);
@@ -703,17 +882,21 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
   async function handleEndShift() {
     if (save === null) return;
+    const previousSave = save;
     tryAction("endShift", async () => {
       const { save: nextSave } = completeShift(save);
       await persist(nextSave);
+      processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }
 
   async function handleStartNextShift() {
     if (save === null) return;
+    const previousSave = save;
     tryAction("nextShift", async () => {
       const { save: nextSave } = startNextShift(save);
       await persist(nextSave);
+      processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }
 
@@ -780,15 +963,21 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
 
   async function handleSwapFocus(oldId: string, newId: string) {
     if (save === null) return;
+    const previousSave = save;
     tryAction("focusCase", async () => {
-      await persist(syncActiveShiftFocusCases(focusSwapCase(save, oldId, newId)));
+      const nextSave = syncActiveShiftFocusCases(focusSwapCase(save, oldId, newId));
+      await persist(nextSave);
+      processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }
 
   async function handleReselectFocus(nextFocusIds: string[]) {
     if (save === null) return;
+    const previousSave = save;
     tryAction("focusCase", async () => {
-      await persist(syncActiveShiftFocusCases(focusReselect(save, nextFocusIds)));
+      const nextSave = syncActiveShiftFocusCases(focusReselect(save, nextFocusIds));
+      await persist(nextSave);
+      processManagerQuipSaveDiff(previousSave, nextSave);
     });
   }
 
@@ -829,6 +1018,7 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     setClosingPairId(pairId);
     setClosureError(null);
 
+    const previousSave = save;
     tryAction("closure", async () => {
       try {
         const status = await refreshLocalAiStatus();
@@ -842,6 +1032,11 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
         });
         const closed = closePair({ save, pairId, summary });
         await persist(closed);
+        dispatchManagerQuip({ triggerKey: "pair.closure.confirmed", surfaceKey: pairId });
+        if (shouldFireSoftWinQuip(closed.managerQuipHistory, closed.closureCount)) {
+          dispatchManagerQuip({ triggerKey: "campaign.closures.five" });
+        }
+        processManagerQuipSaveDiff(previousSave, closed);
         setClosingPairId(null);
       } catch (error) {
         setClosingPairId(null);
@@ -872,6 +1067,8 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
     setClosingPairId(null);
     setClosureError(null);
     setCurrentRoom("livedate");
+    sessionManagerQuipIdsRef.current = new Set();
+    setActiveManagerQuip(null);
   }
 
   async function handleResetSave() {
@@ -1120,6 +1317,12 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
                     onOpenAiSetup={() => setIsAiSetupOpen(true)}
                     onCloseShift={handleEndShift}
                     onStartNextShift={handleStartNextShift}
+                    onDeckOverBudgetBlocked={(surfaceKey) =>
+                      dispatchManagerQuip({
+                        triggerKey: "datebook.commit.over-budget",
+                        surfaceKey,
+                      })
+                    }
                   />
                 )
               ) : null}
@@ -1228,6 +1431,12 @@ export function CupidShell({ onPunchOut }: CupidShellProps) {
           {errorMessage === null && noticeMessage !== null ? (
             <ErrorBanner message={noticeMessage} onDismiss={() => setNoticeMessage(null)} />
           ) : null}
+
+          <ManagerQuipPopup
+            quip={activeManagerQuip ?? null}
+            presentationKey={managerQuipPresentationKey}
+            onDismissed={handleManagerQuipDismissed}
+          />
         </motion.div>
       )}
     </AnimatePresence>

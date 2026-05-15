@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 
 import { DocsShell } from "../components/docs-layout";
+import { SfxProvider } from "../components/sfx-provider";
 import { StampMark } from "../components/stamp-mark";
 import { listDocGroups, type DocGroup } from "../services/docs-content";
 
@@ -24,73 +25,75 @@ export function meta() {
 
 export default function DocsIndexRoute() {
   return (
-    <DocsShell activeSlug="">
-      <div className="flex flex-col gap-14 pt-2">
-        <header className="flex flex-col gap-5">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-            // {pad2(TOTAL_DOCS)} files on shelf
-          </p>
-          <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
-            <span className="block">Field manual.</span>
-            <span className="block font-serif text-display-md font-normal italic text-aura-muted">
-              <span className="text-aura-rose">/</span> the rules behind the dashboard.
-            </span>
-          </h1>
-          <p className="max-w-prose font-serif text-lead italic leading-snug text-aura-muted">
-            {HAS_REDACTED_DOCS
-              ? "The public shelf shows how the operation works. Workflow drawers stay sealed because the office put a stamp on the stamp request."
-              : "The public shelf shows how the operation works, including the workflows that keep the case files from wandering into the vents."}
-          </p>
-        </header>
+    <SfxProvider>
+      <DocsShell activeSlug="">
+        <div className="flex flex-col gap-14 pt-2">
+          <header className="flex flex-col gap-5">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+              // {pad2(TOTAL_DOCS)} files on shelf
+            </p>
+            <h1 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
+              <span className="block">Field manual.</span>
+              <span className="block font-serif text-display-md font-normal italic text-aura-muted">
+                <span className="text-aura-rose">/</span> the rules behind the dashboard.
+              </span>
+            </h1>
+            <p className="max-w-prose font-serif text-lead italic leading-snug text-aura-muted">
+              {HAS_REDACTED_DOCS
+                ? "The public shelf shows how the operation works. Workflow drawers stay sealed because the office put a stamp on the stamp request."
+                : "The public shelf shows how the operation works, including the workflows that keep the case files from wandering into the vents."}
+            </p>
+          </header>
 
-        <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {GROUPS.map((group, index) => (
-            <GroupCard key={group.id} group={group} index={index} />
-          ))}
-        </section>
+          <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {GROUPS.map((group, index) => (
+              <GroupCard key={group.id} group={group} index={index} />
+            ))}
+          </section>
 
-        <section className="flex flex-col gap-4 border-t border-aura-hairline pt-10">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
-            // ownership
-          </p>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
-              <p className="mb-1 font-display text-label font-semibold text-aura-ink">
-                Product docs
-              </p>
-              <p className="font-serif text-label italic leading-snug text-aura-muted">
-                State rules and constraints. Short implementation notes are fine when they define a
-                schema or asset contract. Ordered task checklists belong in workflows.
-              </p>
+          <section className="flex flex-col gap-4 border-t border-aura-hairline pt-10">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+              // ownership
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
+                <p className="mb-1 font-display text-label font-semibold text-aura-ink">
+                  Product docs
+                </p>
+                <p className="font-serif text-label italic leading-snug text-aura-muted">
+                  State rules and constraints. Short implementation notes are fine when they define
+                  a schema or asset contract. Ordered task checklists belong in workflows.
+                </p>
+              </div>
+              <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
+                <p className="mb-1 font-display text-label font-semibold text-aura-ink">
+                  Workflow docs
+                </p>
+                <p className="font-serif text-label italic leading-snug text-aura-muted">
+                  {HAS_REDACTED_DOCS
+                    ? "Visible on the shelf, sealed in public builds. The checklist exists. The checklist does not get to make eye contact."
+                    : "Ordered steps, required files, and validation commands. They link back to the product doc that owns the rule behind each step."}
+                </p>
+              </div>
+              <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
+                <p className="mb-1 font-display text-label font-semibold text-aura-ink">
+                  Support docs
+                </p>
+                <p className="font-serif text-label italic leading-snug text-aura-muted">
+                  Speak to the person installing or operating the app. Avoid internal implementation
+                  detail unless it affects setup, data, or troubleshooting.
+                </p>
+              </div>
             </div>
-            <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
-              <p className="mb-1 font-display text-label font-semibold text-aura-ink">
-                Workflow docs
-              </p>
-              <p className="font-serif text-label italic leading-snug text-aura-muted">
-                {HAS_REDACTED_DOCS
-                  ? "Visible on the shelf, sealed in public builds. The checklist exists. The checklist does not get to make eye contact."
-                  : "Ordered steps, required files, and validation commands. They link back to the product doc that owns the rule behind each step."}
-              </p>
-            </div>
-            <div className="rounded-card border border-aura-hairline bg-white/72 p-5">
-              <p className="mb-1 font-display text-label font-semibold text-aura-ink">
-                Support docs
-              </p>
-              <p className="font-serif text-label italic leading-snug text-aura-muted">
-                Speak to the person installing or operating the app. Avoid internal implementation
-                detail unless it affects setup, data, or troubleshooting.
-              </p>
-            </div>
-          </div>
-          <p className="max-w-prose font-serif text-label italic leading-snug text-aura-muted">
-            {HAS_REDACTED_DOCS
-              ? "Public docs cover durable product truth, gameplay rules, roadmap context, and support copy. Internal workflows are represented by sealed records only."
-              : "When a change alters a schema, fixture contract, game system, visual surface, prompt rule, or shipped asset requirement, update both the product doc that owns the rule and any workflow that depends on it."}
-          </p>
-        </section>
-      </div>
-    </DocsShell>
+            <p className="max-w-prose font-serif text-label italic leading-snug text-aura-muted">
+              {HAS_REDACTED_DOCS
+                ? "Public docs cover durable product truth, gameplay rules, roadmap context, and support copy. Internal workflows are represented by sealed records only."
+                : "When a change alters a schema, fixture contract, game system, visual surface, prompt rule, or shipped asset requirement, update both the product doc that owns the rule and any workflow that depends on it."}
+            </p>
+          </section>
+        </div>
+      </DocsShell>
+    </SfxProvider>
   );
 }
 

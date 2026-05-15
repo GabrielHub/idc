@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const hedgeWitchTeaHour: DateScenario = {
   id: "hedge-witch-tea-hour",
-  title: "The Hedge Witch's Hour",
+  title: "The Witch Is Out",
   card: {
     summary:
       "A self-serve tea hut at the edge of a fantasy forest. The witch is out foraging for the hour. Self-pouring kettle, mood-labeled teapots, a barrel of tapioca pearls grown in a tank.",

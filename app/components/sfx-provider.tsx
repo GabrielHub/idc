@@ -30,12 +30,19 @@ type SfxContextValue = {
   setVolume: (volume: number) => void;
   setDateAmbientActive: (isActive: boolean) => void;
   play: (cue: SfxCue) => void;
+  playVoiceClip: (path: string) => Promise<VoiceClipPlayback>;
+};
+
+export type VoiceClipPlayback = {
+  played: boolean;
+  durationMs: number;
 };
 
 const DATE_AMBIENT_URL = "/assets/audio/date-ambient-jazz.mp3";
 const VOLUME_STORAGE_KEY = "idc.cupid.sfx.volume";
 const DEFAULT_VOLUME = 0.6;
 const MIN_GAIN = 0.0001;
+const VOICE_CLIP_GAIN_SCALE = 0.03;
 const DATE_AMBIENT_GAIN_SCALE = 0.08;
 const DATE_AMBIENT_FADE_SECONDS = 8;
 const DATE_AMBIENT_LOOP_CROSSFADE_SECONDS = 8;
@@ -54,6 +61,31 @@ let currentMasterMuted = true;
 const noiseBufferCache = new WeakMap<AudioContext, Map<number, AudioBuffer>>();
 const masterGainCache = new WeakMap<AudioContext, GainNode>();
 const dateAmbientLoopCache = new WeakMap<AudioContext, DateAmbientLoop>();
+const voiceClipBufferCache = new Map<string, Promise<AudioBuffer | null>>();
+const VOICE_CLIP_SILENT_FALLBACK: VoiceClipPlayback = { played: false, durationMs: 0 };
+
+type VoiceClipFetch = (
+  path: string,
+  init?: RequestInit,
+) => Promise<{ ok: boolean; status: number; arrayBuffer: () => Promise<ArrayBuffer> }>;
+
+let voiceClipFetch: VoiceClipFetch | null = null;
+
+export function __setVoiceClipFetchForTests(fetcher: VoiceClipFetch | null): void {
+  voiceClipFetch = fetcher;
+  voiceClipBufferCache.clear();
+}
+
+export function __playVoiceClipForTests(path: string): Promise<VoiceClipPlayback> {
+  return playVoiceClipInternal(path);
+}
+
+export function __resetSharedAudioContextForTests(): void {
+  sharedAudioContext = null;
+  currentMasterVolume = DEFAULT_VOLUME;
+  currentMasterMuted = true;
+  voiceClipBufferCache.clear();
+}
 
 const FALLBACK_SFX_CONTEXT: SfxContextValue = {
   isEnabled: true,
@@ -62,6 +94,7 @@ const FALLBACK_SFX_CONTEXT: SfxContextValue = {
   setVolume: () => undefined,
   setDateAmbientActive: () => undefined,
   play: () => undefined,
+  playVoiceClip: () => Promise.resolve(VOICE_CLIP_SILENT_FALLBACK),
 };
 
 const SfxContext = createContext<SfxContextValue>(FALLBACK_SFX_CONTEXT);
@@ -117,6 +150,10 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     playSfxCue(cue);
   }, []);
 
+  const playVoiceClip = useCallback(async (path: string): Promise<VoiceClipPlayback> => {
+    return playVoiceClipInternal(path);
+  }, []);
+
   const setEnabled = useCallback((nextEnabled: boolean) => {
     setIsEnabledState(nextEnabled);
     isEnabledRef.current = nextEnabled;
@@ -157,8 +194,9 @@ export function SfxProvider({ children }: { children: ReactNode }) {
       setVolume,
       setDateAmbientActive,
       play,
+      playVoiceClip,
     }),
-    [isEnabled, play, setDateAmbientActive, setEnabled, setVolume, volume],
+    [isEnabled, play, playVoiceClip, setDateAmbientActive, setEnabled, setVolume, volume],
   );
 
   return <SfxContext.Provider value={value}>{children}</SfxContext.Provider>;
@@ -852,4 +890,118 @@ function getOrCreateNoiseBuffer(audioContext: AudioContext, sampleCount: number)
 
   bucket.set(sampleCount, buffer);
   return buffer;
+}
+
+async function playVoiceClipInternal(path: string): Promise<VoiceClipPlayback> {
+  if (typeof window === "undefined" || typeof path !== "string" || path.length === 0) {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+
+  const audioContext = getAudioContext();
+
+  if (audioContext === null) {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+
+  const buffer = await loadVoiceClipBuffer(audioContext, path);
+
+  if (buffer === null) {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+
+  try {
+    if (audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+  } catch {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+
+  if (audioContext.state === "closed") {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+
+  try {
+    const source = audioContext.createBufferSource();
+    const gain = audioContext.createGain();
+    const startTime = audioContext.currentTime + 0.01;
+    const endTime = startTime + buffer.duration;
+
+    source.buffer = buffer;
+    gain.gain.setValueAtTime(VOICE_CLIP_GAIN_SCALE, startTime);
+    source.connect(gain);
+    gain.connect(getMasterGain(audioContext));
+    source.start(startTime);
+    source.stop(endTime + 0.05);
+    source.addEventListener("ended", () => {
+      source.disconnect();
+      gain.disconnect();
+    });
+
+    return { played: true, durationMs: Math.round(buffer.duration * 1000) };
+  } catch {
+    return VOICE_CLIP_SILENT_FALLBACK;
+  }
+}
+
+function loadVoiceClipBuffer(
+  audioContext: AudioContext,
+  path: string,
+): Promise<AudioBuffer | null> {
+  const cached = voiceClipBufferCache.get(path);
+
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  const fetched = fetchVoiceClipBuffer(audioContext, path).then((buffer) => {
+    if (buffer === null) {
+      voiceClipBufferCache.delete(path);
+    }
+    return buffer;
+  });
+  voiceClipBufferCache.set(path, fetched);
+  return fetched;
+}
+
+async function fetchVoiceClipBuffer(
+  audioContext: AudioContext,
+  path: string,
+): Promise<AudioBuffer | null> {
+  const fetcher = voiceClipFetch ?? defaultVoiceClipFetch;
+
+  let response: { ok: boolean; status: number; arrayBuffer: () => Promise<ArrayBuffer> };
+  try {
+    response = await fetcher(path, { cache: "no-cache" });
+  } catch (error) {
+    console.warn(`Manager voice clip request failed: ${path}`, error);
+    return null;
+  }
+
+  if (!response.ok) {
+    if (response.status !== 404) {
+      console.warn(`Manager voice clip not available (${response.status}): ${path}`);
+    }
+    return null;
+  }
+
+  try {
+    const arrayBuffer = await response.arrayBuffer();
+    return await audioContext.decodeAudioData(arrayBuffer);
+  } catch (error) {
+    console.warn(`Manager voice clip decode failed: ${path}`, error);
+    return null;
+  }
+}
+
+async function defaultVoiceClipFetch(
+  path: string,
+  init?: RequestInit,
+): Promise<{ ok: boolean; status: number; arrayBuffer: () => Promise<ArrayBuffer> }> {
+  const response = await fetch(path, init);
+  return {
+    ok: response.ok,
+    status: response.status,
+    arrayBuffer: () => response.arrayBuffer(),
+  };
 }

@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const moonglassKilnAfterHours: DateScenario = {
   id: "moonglass-kiln-after-hours",
-  title: "Moonglass Kiln, After Hours",
+  title: "Breaking Up Is Hard To Do",
   card: {
     summary:
       "A two-bench glassblowing studio on Chang'e's standing concession to mortals. Each member blows one piece for the partner. Pieces that survive go home; pieces that crack do not.",

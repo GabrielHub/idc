@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const hardwareStoreOneProject: DateScenario = {
   id: "hardware-store-one-project",
-  title: "Hardware Store, Fasteners Aisle",
+  title: "Nuts And Bolts",
   card: {
     summary:
       "Saturday afternoon at a regional hardware chain. One bracket needs replacing. The aisle is the date.",

@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const hephaestusForge: DateScenario = {
   id: "hephaestus-forge",
-  title: "Hephaestus's Forge",
+  title: "The God Is Out",
   card: {
     summary:
       "The god's forge, active, with the god out. Each member commissions one item for themselves at the order desk. The forge produces. The items are real.",

@@ -14,7 +14,13 @@ type TutorialElementRef = {
 export type TutorialSingleTarget = HTMLElement | null | TargetRect | TutorialElementRef;
 export type TutorialTarget = TutorialSingleTarget | readonly TutorialSingleTarget[];
 
-function isElement(target: TutorialSingleTarget): target is HTMLElement {
+type ResolvedTarget = HTMLElement | TargetRect | null;
+
+function isTargetList(target: TutorialTarget): target is readonly TutorialSingleTarget[] {
+  return Array.isArray(target);
+}
+
+function isElement(target: ResolvedTarget): target is HTMLElement {
   return target !== null && typeof (target as HTMLElement).getBoundingClientRect === "function";
 }
 
@@ -22,8 +28,8 @@ function isTargetRef(target: TutorialSingleTarget): target is TutorialElementRef
   return target !== null && typeof target === "object" && "current" in target;
 }
 
-function resolveTarget(target: TutorialTarget): TutorialSingleTarget {
-  if (Array.isArray(target)) {
+function resolveTarget(target: TutorialTarget): ResolvedTarget {
+  if (isTargetList(target)) {
     for (const entry of target) {
       const resolved = resolveTarget(entry);
       if (resolved !== null) return resolved;

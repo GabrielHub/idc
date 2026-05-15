@@ -902,6 +902,17 @@ export const DEFAULT_TUTORIAL_STATE: z.infer<typeof tutorialStateSchema> = {
   dismissedAt: null,
 };
 
+export const managerQuipCadenceSchema = z.enum(["rare", "regular", "episodic"]);
+
+export const managerQuipHistoryRecordSchema = z.object({
+  quipId: z.string().min(1),
+  triggerKey: z.string().min(1),
+  cadence: managerQuipCadenceSchema,
+  surfaceKey: z.string().min(1).optional(),
+  shiftNumber: z.number().int().min(1),
+  firedAt: z.string().min(1),
+});
+
 export const gameSaveSchema = z.object({
   version: z.literal(SAVE_SCHEMA_VERSION),
   config: gameConfigSchema,
@@ -922,6 +933,7 @@ export const gameSaveSchema = z.object({
   budgetHistory: z.array(budgetReviewSchema).default([]),
   lastBudgetReviewShift: z.number().int().min(0).default(0),
   tutorial: tutorialStateSchema.default(DEFAULT_TUTORIAL_STATE),
+  managerQuipHistory: z.array(managerQuipHistoryRecordSchema).default([]),
   createdAt: z.string().min(1),
   updatedAt: z.string().min(1),
 });
@@ -1004,6 +1016,8 @@ export type GameConfig = z.infer<typeof gameConfigSchema>;
 export type GameSave = z.infer<typeof gameSaveSchema>;
 export type TutorialStepId = z.infer<typeof tutorialStepIdSchema>;
 export type TutorialState = z.infer<typeof tutorialStateSchema>;
+export type ManagerQuipCadence = z.infer<typeof managerQuipCadenceSchema>;
+export type ManagerQuipHistoryRecord = z.infer<typeof managerQuipHistoryRecordSchema>;
 export type PlayerKnowledgeSubjectKind = z.infer<typeof playerKnowledgeSubjectKindSchema>;
 export type PlayerKnowledgeReadKind = z.infer<typeof playerKnowledgeReadKindSchema>;
 export type PlayerKnowledgeConfidence = z.infer<typeof playerKnowledgeConfidenceSchema>;

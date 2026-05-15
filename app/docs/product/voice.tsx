@@ -247,6 +247,40 @@ export const sections: DocSectionEntry[] = [
       </>
     ),
   },
+  {
+    id: "manager-fingerprint",
+    title: "Manager fingerprint",
+    body: (
+      <>
+        <P>
+          The manager is the only character who speaks directly to the player. She is the HR manager
+          running a supernatural matchmaking agency, ten years deep, laid back, a little tired. Dry
+          wit, not punchlines. Her lines play through pre-generated ElevenLabs audio at named
+          gameplay beats and never inside the simulation itself. The shipped pass used Eleven v3,
+          Natural stability, and the Lyan voice.
+        </P>
+        <DocList
+          items={[
+            "One sentence, two at most. Five to twelve words. Three to five seconds of audio. Short fragments are fine when the delivery carries them.",
+            "Spoken register. Contractions, sentence fragments, casual filler (yeah, okay, cool). Office words still anchor her (file, log, archive, cap, books) but they sit inside conversational rhythm.",
+            "She talks to the player when sarcasm needs a target, and about the pair when commenting on the work. Pick whichever lands the line.",
+            "Future recording scripts use Eleven v3 audio tags when performance needs direction. Keep display copy clean, and put bracketed tags like [sighs], [whispers], [sarcastic], or [light chuckle] in the generation script.",
+            <span key="multi">
+              Roughly one line in ten slips into another language without warning (Chinese,
+              Spanish). Keep the meaning self-contained so non-speakers still feel the tone. Pass a{" "}
+              <DocCode>translation</DocCode> on the catalog entry so the preview and screen-reader
+              announcement render it in parentheses; ElevenLabs never reads the translation.
+            </span>,
+            "No em dashes or en dashes in audio scripts. No exclamation marks. No participation-trophy congratulation. No mean-girl cruelty toward the members.",
+          ]}
+        />
+        <P>
+          The full catalog, trigger table, and authoring workflow live in{" "}
+          <DocLink to="/docs/product/manager-quips">Manager check-in quips</DocLink>.
+        </P>
+      </>
+    ),
+  },
 ];
 
 export default function VoiceDoc() {

@@ -14,6 +14,7 @@ import {
 import { errorToMessage } from "../services/utils";
 import type { AiSetupStatus } from "./ai-setup-panel";
 import { MenuButton } from "./dashboard-atoms";
+import { SfxControls } from "./sfx-controls";
 import { useSfx } from "./sfx-provider";
 
 export type DiagnosticsSnapshot = {
@@ -150,7 +151,6 @@ export function SettingsMenu({
   const [isShowingDiagnostics, setIsShowingDiagnostics] = useState(false);
   const [diagnosticsCopied, setDiagnosticsCopied] = useState(false);
   const [updateState, setUpdateState] = useState<UpdateMenuState>(INITIAL_UPDATE_STATE);
-  const { isEnabled: sfxEnabled, setEnabled: setSfxEnabled, volume, setVolume, play } = useSfx();
   const wrapperRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const launchUpdateCheckStartedRef = useRef(false);
@@ -353,30 +353,9 @@ export function SettingsMenu({
     }
   }
 
-  function handleToggleSfx() {
-    setSfxEnabled(!sfxEnabled);
-  }
-
   function handleToggleDevMemberDetails() {
     onDevRevealAllMemberDetailsChange(!devRevealAllMemberDetails);
   }
-
-  function handleVolumeChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const next = Number(event.target.value) / 100;
-    setVolume(next);
-
-    if (next > 0 && !sfxEnabled) {
-      setSfxEnabled(true);
-    }
-  }
-
-  function handleVolumeRelease() {
-    if (sfxEnabled && volume > 0) {
-      play("click");
-    }
-  }
-
-  const volumePercent = Math.round(volume * 100);
   const hasAvailableUpdate = updateState.status === "available";
   const settingsLabel = hasAvailableUpdate
     ? `Settings. Update v${updateState.version} available.`
@@ -412,27 +391,7 @@ export function SettingsMenu({
             transition={{ duration: 0.15 }}
             className="aura-glass-strong absolute right-0 top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card"
           >
-            <div className="px-3 pb-2 pt-2.5">
-              <div className="flex items-center justify-between font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
-                <span>Volume</span>
-                <span className="tabular-nums text-aura-ink">{volumePercent}</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={volumePercent}
-                onChange={handleVolumeChange}
-                onPointerUp={handleVolumeRelease}
-                onKeyUp={handleVolumeRelease}
-                aria-label="Volume"
-                data-sfx="none"
-                className={`mt-2 block h-1 w-full cursor-pointer appearance-none rounded-pill bg-aura-hairline-strong accent-aura-rose transition-opacity ${
-                  sfxEnabled ? "opacity-100" : "opacity-50"
-                }`}
-              />
-            </div>
+            <SfxControls variant="menu" />
             <div className="mx-2 h-px bg-aura-hairline" />
             {isConfirmingReset ? (
               <ResetConfirm
@@ -451,14 +410,6 @@ export function SettingsMenu({
                 <MenuButton onClick={handleOpenReleaseNotes}>What's new</MenuButton>
                 <MenuButton onClick={handleResetOrientation} disabled={isActionPending}>
                   Reset orientation
-                </MenuButton>
-                <MenuButton
-                  role="menuitemcheckbox"
-                  ariaChecked={sfxEnabled}
-                  sfx="toggle"
-                  onClick={handleToggleSfx}
-                >
-                  {sfxEnabled ? "Mute" : "Unmute"}
                 </MenuButton>
                 {canUseDevMemberDetailsPreview ? (
                   <>

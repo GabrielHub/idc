@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const prophecyKaraoke: DateScenario = {
   id: "prophecy-karaoke",
-  title: "Prophecy Karaoke",
+  title: "The Writing's On The Wall",
   card: {
     summary:
       "A private karaoke room where the screen keeps queuing songs that imply future breakups. The machine denies liability.",

@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const longAfternoonPoolBar: DateScenario = {
   id: "long-afternoon-pool-bar",
-  title: "The Long Afternoon Pool Bar",
+  title: "The Sun Doesn't Move",
   card: {
     summary:
       "A two-person pool pavilion on a clifftop above an alien sea, future dimension on Cupid's standing concession. Self-mix bar, AR menu, no other guests. The sun does not move.",

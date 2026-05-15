@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const whaleConcertBelowWorld: DateScenario = {
   id: "whale-concert-below-world",
-  title: "Concert In The Whale Below The World",
+  title: "Belly Of The Beast",
   card: {
     summary:
       "A small set inside the rib cavity of a leviathan that surfaces beneath one continent twice a century. Twenty seats. No phones.",

@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const listeningBoothAfterClose: DateScenario = {
   id: "listening-booth-after-close",
-  title: "Listening Booth After Close",
+  title: "Mum's The Word",
   card: {
     summary:
       "A record shop listening booth after closing. The music understands the room but keeps its mouth shut.",

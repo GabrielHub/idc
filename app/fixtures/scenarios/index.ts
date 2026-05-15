@@ -15,6 +15,7 @@ import { concessionStandHeatDeath } from "./concession-stand-heat-death";
 import { couchNightTakeout } from "./couch-night-takeout";
 import { countyFairFriday } from "./county-fair-friday";
 import { cousinsWeddingPlusOne } from "./cousins-wedding-plus-one";
+import { dimSumAndThenSome } from "./dim-sum-and-then-some";
 import { dinerElevenPm } from "./diner-eleven-pm";
 import { dinosaurBbqAllYouCanEat } from "./dinosaur-bbq-all-you-can-eat";
 import { dmvNumberTicket } from "./dmv-number-ticket";
@@ -57,7 +58,7 @@ import { worldSimOperatorBooth } from "./world-sim-operator-booth";
 
 export const starterScenarios = dateScenarioSchema
   .array()
-  .length(55)
+  .length(56)
   .parse([
     temporalCoffeeShop,
     museumExhibitMixup,
@@ -114,6 +115,7 @@ export const starterScenarios = dateScenarioSchema
     auroraLinePrivateCompartment,
     picnicOnBifrost,
     hedgeWitchTeaHour,
+    dimSumAndThenSome,
   ]);
 
 export {
@@ -133,6 +135,7 @@ export {
   couchNightTakeout,
   countyFairFriday,
   cousinsWeddingPlusOne,
+  dimSumAndThenSome,
   dinerElevenPm,
   dinosaurBbqAllYouCanEat,
   dmvNumberTicket,

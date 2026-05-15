@@ -1,4 +1,13 @@
-import { useCallback } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 import {
   DEFAULT_TUTORIAL_STATE,
@@ -64,6 +73,86 @@ export type TutorialStepHandle = {
   dismiss: () => void;
 };
 
+export function isRequiredTutorialStepId(id: TutorialStepId): boolean {
+  return id.startsWith("onboarding.") || id.startsWith("planning.") || id.startsWith("date.");
+}
+
+type TutorialActivityListener = () => void;
+
+type TutorialActivityRegistry = {
+  setActive: (id: TutorialStepId, active: boolean) => void;
+  hasRequiredActive: () => boolean;
+  subscribe: (listener: TutorialActivityListener) => () => void;
+};
+
+function createTutorialActivityRegistry(): TutorialActivityRegistry {
+  const requiredActive = new Set<TutorialStepId>();
+  const listeners = new Set<TutorialActivityListener>();
+
+  function notify() {
+    for (const listener of listeners) {
+      listener();
+    }
+  }
+
+  return {
+    setActive(id, active) {
+      if (!isRequiredTutorialStepId(id)) return;
+      const had = requiredActive.has(id);
+      if (active && !had) {
+        requiredActive.add(id);
+        notify();
+      } else if (!active && had) {
+        requiredActive.delete(id);
+        notify();
+      }
+    },
+    hasRequiredActive() {
+      return requiredActive.size > 0;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
+    },
+  };
+}
+
+const FALLBACK_TUTORIAL_ACTIVITY_REGISTRY: TutorialActivityRegistry = {
+  setActive: () => undefined,
+  hasRequiredActive: () => false,
+  subscribe: () => () => undefined,
+};
+
+const TutorialActivityContext = createContext<TutorialActivityRegistry>(
+  FALLBACK_TUTORIAL_ACTIVITY_REGISTRY,
+);
+
+export function TutorialActivityProvider({ children }: { children: ReactNode }) {
+  const registry = useMemo(() => createTutorialActivityRegistry(), []);
+  return createElement(TutorialActivityContext.Provider, { value: registry }, children);
+}
+
+export function useIsRequiredTutorialActive(): boolean {
+  const registry = useContext(TutorialActivityContext);
+  return useSyncExternalStore(
+    registry.subscribe,
+    registry.hasRequiredActive,
+    registry.hasRequiredActive,
+  );
+}
+
+function useTutorialActivityRegistration(id: TutorialStepId, active: boolean): void {
+  const registry = useContext(TutorialActivityContext);
+  useEffect(() => {
+    registry.setActive(id, active);
+    return () => {
+      registry.setActive(id, false);
+    };
+  }, [registry, id, active]);
+}
+
 export function useTutorialStep(
   save: GameSave | null | undefined,
   id: TutorialStepId,
@@ -73,6 +162,8 @@ export function useTutorialStep(
   const state = readTutorialState(save);
   const done = isStepComplete(state, id);
   const active = save !== null && save !== undefined && state.enabled && gate && !done;
+
+  useTutorialActivityRegistration(id, active);
 
   const complete = useCallback(() => {
     if (!save) return;

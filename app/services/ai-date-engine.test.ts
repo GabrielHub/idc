@@ -86,7 +86,7 @@ describe("AI date engine orchestration", () => {
           tags: ["soup", "date_memory"],
           importance: 4,
           createdAt: "2026-05-05T12:00:00.000Z",
-          embedding: createDeterministicEmbedding("Jenna Vhool Temporal Coffee Shop soup"),
+          embedding: createDeterministicEmbedding("Jenna Vhool Cart Before The Horse soup"),
           embeddingModel: "deterministic-local",
           embeddingDimensions: 64,
         }),
@@ -191,6 +191,10 @@ describe("AI date engine orchestration", () => {
     expect(aiMemory?.scenarioId).toBe(started.session.scenarioId);
     expect(aiMemory?.visibleToMemberIds).toEqual(["jenna-pike"]);
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
+    const completedShift = result.save.shifts.find(
+      (shift) => shift.id === result.save.activeShiftId,
+    );
+    expect(completedShift?.activeBooking).toBeUndefined();
   });
 
   it("applies accepted pair memory proposals while rejecting duplicates and fabricated ids", async () => {
@@ -389,7 +393,7 @@ describe("AI date engine orchestration", () => {
       expect(packets).toHaveLength(2);
       expect(packets[0]?.prompt).toContain("Attached image 1 is Vhool's full-body date portrait.");
       expect(packets[0]?.prompt).toContain(
-        "Attached image 2 is Temporal Coffee Shop, the date scenario background.",
+        "Attached image 2 is Cart Before The Horse, the date scenario background.",
       );
       expect(packets[1]?.prompt).not.toContain("Attached image 1 is");
 
@@ -2056,7 +2060,7 @@ describe("AI date engine orchestration", () => {
     expect(snapshot?.playerSummary).not.toContain("leverage");
     expect(snapshot?.playerSummary).not.toContain("synergies");
     expect(snapshot?.playerSummary).toContain("Cupid filed exchange 1.");
-    expect(snapshot?.playerSummary).toContain("Temporal Coffee Shop");
+    expect(snapshot?.playerSummary).toContain("Cart Before The Horse");
     expect(snapshot?.notableMoments.join(" ")).not.toMatch(/deeper connection/i);
 
     const memory = result.save.memories.find(

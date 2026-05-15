@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const buildABearEmptyMall: DateScenario = {
   id: "build-a-bear-empty-mall",
-  title: "Build A Bear, Empty Haunted Mall",
+  title: "The Bear Is Real",
   card: {
     summary:
       "An empty mall at half-speed music. One store has its grate up. The pair builds a bear together. At the end of the booking, the bear blinks and takes one step. The bear is real and goes home.",

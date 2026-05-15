@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const adventurersSpeakeasy: DateScenario = {
   id: "adventurers-speakeasy",
-  title: "The Adventurer's Speakeasy",
+  title: "Pour One Out",
   card: {
     summary:
       "A speakeasy hidden behind the cellar door of a fantasy apothecary. Stained-glass crests of dead orders, a fireplace booth, cocktails named for dead heroes.",

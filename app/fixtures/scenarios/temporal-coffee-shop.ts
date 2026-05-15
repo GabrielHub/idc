@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const temporalCoffeeShop: DateScenario = {
   id: "temporal-coffee-shop",
-  title: "Temporal Coffee Shop",
+  title: "Cart Before The Horse",
   card: {
     summary: "Coffee in a cafe where time runs backward at the table. Drinks arrive before orders.",
     tags: ["temporal", "food", "low_pressure"],

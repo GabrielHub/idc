@@ -100,6 +100,7 @@ export function createSeedGameSave(
     ],
     lastBudgetReviewShift: 0,
     tutorial: DEFAULT_TUTORIAL_STATE,
+    managerQuipHistory: [],
     createdAt: timestamp,
     updatedAt: timestamp,
   });

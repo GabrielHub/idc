@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const concessionStandHeatDeath: DateScenario = {
   id: "concession-stand-heat-death",
-  title: "Concession Stand At The Heat Death",
+  title: "Closing Time",
   card: {
     summary:
       "A 24-hour concession stand at the actual end of time. One star left in the sky. Forty minutes before it quits.",

@@ -2,7 +2,7 @@ import type { DateScenario } from "../../domain/game";
 
 export const capitalShipWarDinner: DateScenario = {
   id: "capital-ship-war-dinner",
-  title: "Dinner Above The War",
+  title: "Dinner And A Show",
   card: {
     summary:
       "A small dining room aboard a futuristic country's airborne capital battleship. One table by a panoramic window. The country has opened civilian seating to fund the war below.",

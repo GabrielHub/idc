@@ -1109,7 +1109,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   return { save: nextSave, session: finalSession };
 }
 
-function clearActiveBookingForShift(
+export function clearActiveBookingForShift(
   shifts: readonly ShiftState[],
   activeShiftId: string,
 ): ShiftState[] {
