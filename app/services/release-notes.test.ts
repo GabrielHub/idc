@@ -18,6 +18,7 @@ describe("release notes", () => {
 
   it("sorts notes by semantic version descending", () => {
     expect(SORTED_RELEASE_NOTES.map((note) => note.version)).toEqual([
+      "0.3.1",
       "0.3.0",
       "0.2.7",
       "0.2.6",
@@ -28,13 +29,13 @@ describe("release notes", () => {
       "0.2.1",
       "0.2.0",
     ]);
-    expect(compareReleaseVersions("0.3.0", "0.2.7")).toBeGreaterThan(0);
+    expect(compareReleaseVersions("0.3.1", "0.3.0")).toBeGreaterThan(0);
   });
 
   it("returns current and previous notes for the modal", () => {
     expect(
-      listReleaseNotesForModal({ currentVersion: "v0.3.0" }).map((note) => note.version),
-    ).toEqual(["0.3.0", "0.2.7", "0.2.6"]);
+      listReleaseNotesForModal({ currentVersion: "v0.3.1" }).map((note) => note.version),
+    ).toEqual(["0.3.1", "0.3.0", "0.2.7"]);
   });
 
   it("opens on first launch only when an existing save has progress", () => {
