@@ -23,6 +23,7 @@ Thumbs.db
 
 # Agent and browser automation output
 /.claude/
+/.claude-tmp/
 /.playwright-cli/
 /.playwright-mcp/
 /playwright/
