@@ -250,6 +250,46 @@ describe("dashboard transcript presentation", () => {
     expect(repeatedDraftItem).toBeUndefined();
     expect(correctedDraftItem?.text).toContain("not really");
   });
+
+  it("keeps an empty initial draft so the bubble can show a thinking indicator", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const members = started.save.members.filter((member): member is Member =>
+      started.session.participants.includes(member.id),
+    );
+
+    if (scenario === undefined || members.length !== 2) {
+      throw new Error("Expected initial draft fixture setup.");
+    }
+
+    const pendingDraft: StreamingDraftMessage = {
+      id: "jenna-pike-2",
+      speakerId: "jenna-pike",
+      speakerName: "Jenna Pike",
+      sequenceIndex: 2,
+      turnIndex: 3,
+      text: "",
+      status: "streaming",
+    };
+    const item = buildTranscriptItems(started.session, members, scenario, [pendingDraft]).find(
+      (candidate) => candidate.id === pendingDraft.id,
+    );
+
+    expect(item).toBeDefined();
+    expect(item?.tone).toBe("member");
+    expect(item?.text).toBe("");
+    expect(item?.isStreaming).toBe(true);
+    expect(item?.isDraft).toBe(true);
+  });
 });
 
 describe("dashboard playback presentation", () => {

@@ -12,6 +12,7 @@ import {
   type GameSave,
   type Member,
   type MemoryRecord,
+  type PairProjection,
   type PairState,
   type PairStats,
   type ScenarioDeck,
@@ -43,7 +44,6 @@ export function createSeedGameSave(
   const timestamp = now.toISOString();
   const config = gameConfigSchema.parse(options.config ?? {});
   const members = STARTER_FIXTURE_MEMBERS;
-  const pairStates = createSeedPairStates(members);
   const scenarioDeck = createInitialScenarioDeck(starterScenarios);
   const focusedMemberIds: string[] = [];
   const activeShift: ShiftState = {
@@ -71,7 +71,11 @@ export function createSeedGameSave(
     version: SAVE_SCHEMA_VERSION,
     config,
     members,
-    pairStates,
+    // Fresh saves start with no persisted pair edges. Edges are materialized
+    // only when a pair earns durable history (first judge snapshot, follow-up,
+    // closure). Untouched pairs are served as projections by the relationship
+    // index, not stored.
+    pairStates: [],
     dateSessions: [],
     shifts: [activeShift],
     activeShiftId: activeShift.id,
@@ -252,46 +256,6 @@ const STARTER_MEMBERS_BY_ID = new Map(
   STARTER_FIXTURE_MEMBERS.map((member) => [member.id, member] as const),
 );
 
-const STARTER_SEED_PAIR_STRUCTURE: ReadonlyArray<{
-  id: string;
-  participantIds: [string, string];
-  scenarioUseCounts: Record<string, number>;
-}> = (() => {
-  const entries: Array<{
-    id: string;
-    participantIds: [string, string];
-    scenarioUseCounts: Record<string, number>;
-  }> = [];
-  const baseUseCounts: Record<string, number> = {};
-  for (const scenario of starterScenarios) {
-    baseUseCounts[scenario.id] = 0;
-  }
-  for (let firstIndex = 0; firstIndex < STARTER_FIXTURE_MEMBERS.length; firstIndex += 1) {
-    for (
-      let secondIndex = firstIndex + 1;
-      secondIndex < STARTER_FIXTURE_MEMBERS.length;
-      secondIndex += 1
-    ) {
-      const first = STARTER_FIXTURE_MEMBERS[firstIndex];
-      const second = STARTER_FIXTURE_MEMBERS[secondIndex];
-      const participantIds = sortMemberIds(first.id, second.id);
-      entries.push({
-        id: makePairId(first.id, second.id),
-        participantIds,
-        scenarioUseCounts: { ...baseUseCounts },
-      });
-    }
-  }
-  return entries;
-})();
-
-function isStarterRoster(members: readonly Member[]): boolean {
-  return (
-    members.length === STARTER_FIXTURE_MEMBERS.length &&
-    members.every((member) => STARTER_MEMBERS_BY_ID.has(member.id))
-  );
-}
-
 function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
   const knownScenarioIds = new Set(STARTER_SCENARIO_IDS);
   const seen = new Set<string>();
@@ -372,128 +336,75 @@ export function sortMemberIds(firstMemberId: string, secondMemberId: string): [s
     : [secondMemberId, firstMemberId];
 }
 
-function createSeedPairStates(members: Member[]): PairState[] {
-  const memberById = new Map(members.map((member) => [member.id, member]));
-  if (isStarterRoster(members)) {
-    return STARTER_SEED_PAIR_STRUCTURE.map((entry) => {
-      const first = memberById.get(entry.participantIds[0]);
-      const second = memberById.get(entry.participantIds[1]);
-      if (first === undefined || second === undefined) {
-        throw new Error("Starter pair seed lookup failed.");
-      }
-      return {
-        id: entry.id,
-        participantIds: entry.participantIds,
-        stats: createInitialPairStats(first, second),
-        completedDateIds: [],
-        scenarioUseCounts: { ...entry.scenarioUseCounts },
-        agreements: [],
-        openLoops: [],
-      };
-    });
+export function buildPairProjection(first: Member, second: Member): PairProjection {
+  const participantIds = sortMemberIds(first.id, second.id);
+  const [aId, bId] = participantIds;
+  const a = first.id === aId ? first : second;
+  const b = first.id === aId ? second : first;
+  const projection: PairProjection = {
+    id: makePairId(aId, bId),
+    participantIds,
+    stats: createInitialPairStats(a, b),
+    completedDateIds: [],
+    scenarioUseCounts: {},
+    agreements: [],
+    openLoops: [],
+    source: "projected",
+  };
+  return freezePairProjection(projection);
+}
+
+export function freezePairProjection(projection: PairProjection): PairProjection {
+  Object.freeze(projection.participantIds);
+  Object.freeze(projection.stats);
+  Object.freeze(projection.completedDateIds);
+  Object.freeze(projection.scenarioUseCounts);
+  for (const agreement of projection.agreements) {
+    Object.freeze(agreement);
   }
-
-  const pairStates: PairState[] = [];
-  for (let firstIndex = 0; firstIndex < members.length; firstIndex += 1) {
-    for (let secondIndex = firstIndex + 1; secondIndex < members.length; secondIndex += 1) {
-      const first = members[firstIndex];
-      const second = members[secondIndex];
-      const participantIds = sortMemberIds(first.id, second.id);
-      const scenarioUseCounts: Record<string, number> = {};
-
-      for (const scenario of starterScenarios) {
-        scenarioUseCounts[scenario.id] = 0;
-      }
-
-      pairStates.push({
-        id: makePairId(first.id, second.id),
-        participantIds,
-        stats: createInitialPairStats(first, second),
-        completedDateIds: [],
-        scenarioUseCounts,
-        agreements: [],
-        openLoops: [],
-      });
-    }
+  Object.freeze(projection.agreements);
+  for (const loop of projection.openLoops) {
+    Object.freeze(loop);
   }
-  return pairStates;
+  Object.freeze(projection.openLoops);
+  return Object.freeze(projection);
 }
 
 function hydratePairStates(
   savedPairStates: PairState[],
   members: Member[],
 ): { pairStates: PairState[]; dirty: boolean } {
-  if (isStarterRoster(members) && savedPairStates.length === STARTER_SEED_PAIR_STRUCTURE.length) {
-    const fastPath = hydratePairStatesStarterFast(savedPairStates);
-    if (fastPath !== null) return fastPath;
-  }
-
-  const savedPairStatesById = new Map(
-    savedPairStates.map((pairState) => [pairState.id, pairState] as const),
-  );
-  const seededPairStates = createSeedPairStates(members);
-  const seededPairStateIds = new Set(seededPairStates.map((pairState) => pairState.id));
+  const memberIds = new Set(members.map((member) => member.id));
   let dirty = false;
-  const hydratedPairStates = seededPairStates.map((seedPairState) => {
-    const savedPairState = savedPairStatesById.get(seedPairState.id);
+  const kept: PairState[] = [];
 
-    if (savedPairState === undefined) {
+  for (const pair of savedPairStates) {
+    const [a, b] = pair.participantIds;
+    if (!memberIds.has(a) || !memberIds.has(b)) {
       dirty = true;
-      return seedPairState;
+      continue;
     }
-
-    const counts = hydrateScenarioUseCounts(savedPairState.scenarioUseCounts);
-    if (counts !== savedPairState.scenarioUseCounts) dirty = true;
-    return {
-      ...seedPairState,
-      ...savedPairState,
-      participantIds: seedPairState.participantIds,
-      scenarioUseCounts: {
-        ...seedPairState.scenarioUseCounts,
-        ...counts,
-      },
-    };
-  });
-  const orphanPairStates: PairState[] = [];
-  for (const pairState of savedPairStates) {
-    if (seededPairStateIds.has(pairState.id)) continue;
-    const counts = hydrateScenarioUseCounts(pairState.scenarioUseCounts);
-    if (counts !== pairState.scenarioUseCounts) dirty = true;
-    orphanPairStates.push({
-      ...pairState,
-      scenarioUseCounts: counts,
-    });
-  }
-
-  if (savedPairStates.length !== hydratedPairStates.length + orphanPairStates.length) {
-    dirty = true;
-  }
-
-  return { pairStates: [...hydratedPairStates, ...orphanPairStates], dirty };
-}
-
-function hydratePairStatesStarterFast(
-  savedPairStates: PairState[],
-): { pairStates: PairState[]; dirty: boolean } | null {
-  const savedById = new Map(savedPairStates.map((pair) => [pair.id, pair] as const));
-  for (const entry of STARTER_SEED_PAIR_STRUCTURE) {
-    if (!savedById.has(entry.id)) return null;
-  }
-  let dirty = false;
-  const normalized = savedPairStates.map((pair) => {
     const counts = hydrateScenarioUseCounts(pair.scenarioUseCounts);
-    if (counts === pair.scenarioUseCounts) return pair;
-    dirty = true;
-    return { ...pair, scenarioUseCounts: counts };
-  });
-  return { pairStates: dirty ? normalized : savedPairStates, dirty };
+    if (counts === pair.scenarioUseCounts) {
+      kept.push(pair);
+    } else {
+      dirty = true;
+      kept.push({ ...pair, scenarioUseCounts: counts });
+    }
+  }
+
+  return { pairStates: dirty ? kept : savedPairStates, dirty };
 }
 
 function hydrateScenarioUseCounts(
   scenarioUseCounts: Record<string, number>,
 ): Record<string, number> {
   let needsRebuild = false;
-  for (const scenarioId of Object.keys(scenarioUseCounts)) {
+  for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
+    if (count === 0) {
+      needsRebuild = true;
+      break;
+    }
     if (normalizeStarterScenarioId(scenarioId) !== scenarioId) {
       needsRebuild = true;
       break;
@@ -503,6 +414,7 @@ function hydrateScenarioUseCounts(
 
   const hydratedScenarioUseCounts: Record<string, number> = {};
   for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
+    if (count === 0) continue;
     const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
     hydratedScenarioUseCounts[normalizedScenarioId] =
       (hydratedScenarioUseCounts[normalizedScenarioId] ?? 0) + count;

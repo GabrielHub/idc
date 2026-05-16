@@ -40,8 +40,7 @@ import { createSeedGameSave } from "./game-seed";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { errorToMessage, escapeRegex, isRecord } from "./utils";
 
-const CHARACTER_MESSAGE_MAX_LENGTH = 260;
-const TRUNCATION_SUFFIX = "...";
+const CHARACTER_MESSAGE_TARGET_LENGTH = 260;
 const MIN_LEAK_NGRAM_TOKENS = 3;
 const MIN_LEAK_TOKEN_LENGTH = 4;
 const MAX_LEAK_EVIDENCE_LENGTH = 200;
@@ -344,8 +343,8 @@ async function runSingleAuditCase(
   for (const overlong of overlongRaw) {
     findings.push({
       category: "overlong_turn",
-      severity: overlong.rawLength > CHARACTER_MESSAGE_MAX_LENGTH * 1.5 ? "fail" : "warn",
-      message: `AI generation produced a ${overlong.rawLength}-char line; engine cap is ${CHARACTER_MESSAGE_MAX_LENGTH}.`,
+      severity: overlong.rawLength > CHARACTER_MESSAGE_TARGET_LENGTH * 1.5 ? "fail" : "warn",
+      message: `AI generation produced a ${overlong.rawLength}-char line; target is under ${CHARACTER_MESSAGE_TARGET_LENGTH}.`,
       evidence: truncateEvidence(overlong.preview),
     });
   }
@@ -415,12 +414,12 @@ function trackRawLength(
   result: GeneratedTextResult,
   collector: { rawLength: number; preview: string }[],
 ): void {
-  if (result.text.length <= CHARACTER_MESSAGE_MAX_LENGTH) {
+  if (result.text.length <= CHARACTER_MESSAGE_TARGET_LENGTH) {
     return;
   }
   collector.push({
     rawLength: result.text.length,
-    preview: result.text.slice(0, CHARACTER_MESSAGE_MAX_LENGTH),
+    preview: result.text.slice(0, CHARACTER_MESSAGE_TARGET_LENGTH),
   });
 }
 
@@ -480,7 +479,6 @@ export function detectTranscriptFindings({
       partnerSpeakerMessages.push(message);
     }
 
-    findings.push(...detectOverlongFromTruncation(message));
     findings.push(...detectVenueMonologue(message, scenario, venueProfile));
     findings.push(...detectInfoLeak(message, partner, partnerLeakProfileForSpeaker));
   }
@@ -496,25 +494,6 @@ export function detectTranscriptFindings({
   findings.sort((a, b) => (a.turnIndex ?? 0) - (b.turnIndex ?? 0));
 
   return findings;
-}
-
-function detectOverlongFromTruncation(message: DateMessage): AuditFinding[] {
-  if (!message.text.endsWith(TRUNCATION_SUFFIX)) {
-    return [];
-  }
-  if (message.text.length < CHARACTER_MESSAGE_MAX_LENGTH - 3) {
-    return [];
-  }
-  return [
-    {
-      category: "overlong_turn",
-      severity: "warn",
-      message: `Speaker line hit the ${CHARACTER_MESSAGE_MAX_LENGTH}-char cap and was truncated by the engine.`,
-      turnIndex: message.turnIndex,
-      speakerId: message.speakerId,
-      evidence: truncateEvidence(message.text),
-    },
-  ];
 }
 
 function detectRepetitionAmongSpeakerMessages(

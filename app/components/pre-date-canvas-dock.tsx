@@ -15,7 +15,6 @@ function deriveDockStatus({
   focus,
   partner,
   scenario,
-  aiReady,
 }: {
   shiftClosed: boolean;
   deckRepairBlocked: boolean;
@@ -24,7 +23,6 @@ function deriveDockStatus({
   focus: Member | null;
   partner: Member | null;
   scenario: DateScenario | null;
-  aiReady: boolean;
 }): string | null {
   if (shiftClosed) return "shift filed, open the next one to book";
   if (deckRepairBlocked && !isCommitted) return "date book is over budget, open it to repair";
@@ -32,7 +30,6 @@ function deriveDockStatus({
   if (focus === null) return "pick a focus case";
   if (partner === null) return "pick a partner";
   if (isCommitted && scenario === null) return "pick a date plan";
-  if (!aiReady) return "ai not ready · set it up to book";
   return null;
 }
 
@@ -83,13 +80,18 @@ export function BeginDateDock({
     focus,
     partner,
     scenario,
-    aiReady,
   });
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-30 flex justify-center px-6">
       <div className="aura-glass-strong pointer-events-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-3 rounded-pill px-5 py-2.5 shadow-aura-soft">
-        <DockSummary focus={focus} partner={partner} scenario={scenario} onScrollTo={onScrollTo} />
+        <DockSummary
+          focus={focus}
+          partner={partner}
+          scenario={scenario}
+          isCommitted={isCommitted}
+          onScrollTo={onScrollTo}
+        />
         <div className="flex items-center gap-3">
           {focus !== null && partner !== null && onOpenPairFile !== undefined ? (
             <GhostButton onClick={() => onOpenPairFile(makePairId(focus.id, partner.id))}>
@@ -102,12 +104,22 @@ export function BeginDateDock({
             </span>
           ) : null}
           {!aiReady && !isCommitted ? (
-            <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+            <Tooltip
+              message="AI provider isn't connected yet. Set one up to book and run dates."
+              placement="top-center"
+            >
+              <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+            </Tooltip>
           ) : isCommitted ? (
             <>
               <GhostButton onClick={onCancel}>Cancel booking</GhostButton>
               {!aiReady ? (
-                <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+                <Tooltip
+                  message="AI provider isn't connected yet. Set one up to begin this date."
+                  placement="top-center"
+                >
+                  <PrimaryButton onClick={onOpenAiSetup}>Set up AI →</PrimaryButton>
+                </Tooltip>
               ) : (
                 <PrimaryButton buttonRef={beginButtonRef} onClick={onStart} disabled={!canStart}>
                   Begin date →
@@ -134,11 +146,13 @@ function DockSummary({
   focus,
   partner,
   scenario,
+  isCommitted,
   onScrollTo,
 }: {
   focus: Member | null;
   partner: Member | null;
   scenario: DateScenario | null;
+  isCommitted: boolean;
   onScrollTo: (step: BookingStep) => void;
 }) {
   return (
@@ -168,19 +182,23 @@ function DockSummary({
           </span>
         )}
       </DockChip>
-      <DockDivider />
-      <DockChip label="date" onClick={() => onScrollTo("date")}>
-        {scenario === null ? (
-          <span className="text-aura-faint">··</span>
-        ) : (
-          <span className="flex min-w-0 items-center gap-2">
-            <ScenarioDockAvatar scenario={scenario} />
-            <span className="truncate font-display text-sm font-semibold tracking-tight">
-              {scenario.title}
-            </span>
-          </span>
-        )}
-      </DockChip>
+      {isCommitted ? (
+        <>
+          <DockDivider />
+          <DockChip label="date" onClick={() => onScrollTo("date")}>
+            {scenario === null ? (
+              <span className="text-aura-faint">··</span>
+            ) : (
+              <span className="flex min-w-0 items-center gap-2">
+                <ScenarioDockAvatar scenario={scenario} />
+                <span className="truncate font-display text-sm font-semibold tracking-tight">
+                  {scenario.title}
+                </span>
+              </span>
+            )}
+          </DockChip>
+        </>
+      ) : null}
     </div>
   );
 }

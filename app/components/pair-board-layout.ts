@@ -12,7 +12,7 @@
  * resolution-independent and ResizeObserver-safe.
  * ==================================================================== */
 
-import type { MemoryRecord, Member, PairState } from "../domain/game";
+import type { MemoryRecord, Member, PairEdge } from "../domain/game";
 import { hashSeedUint32, pushIntoBucket } from "../services/utils";
 
 export type PairBoardPoint = {
@@ -77,7 +77,7 @@ const PI2 = Math.PI * 2;
 
 export function derivePairGraph(
   members: readonly Member[],
-  pairStates: readonly PairState[],
+  pairEdges: readonly PairEdge[],
   memories: readonly MemoryRecord[],
   options: DerivePairGraphOptions,
 ): PairBoardGraph {
@@ -94,7 +94,7 @@ export function derivePairGraph(
   const allEdges: PairBoardEdge[] = [];
   let filedPairCount = 0;
 
-  for (const pair of pairStates) {
+  for (const pair of pairEdges) {
     const [a, b] = pair.participantIds;
     if (memberById.get(a) === undefined || memberById.get(b) === undefined) continue;
 

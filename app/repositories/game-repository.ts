@@ -6,6 +6,8 @@ import type {
   MemoryRecord,
   MemoryScope,
   MemoryVisibility,
+  PairEdge,
+  PairProjection,
   PairState,
   ScenarioDeck,
   ShiftState,
@@ -55,6 +57,13 @@ export interface GameRepository {
   listPairStates(): Promise<PairState[]>;
   getPairState(pairId: string): Promise<PairState | null>;
   savePairState(pairState: PairState): Promise<void>;
+  // Intent-based relationship queries. Persisted edges live in pairStates;
+  // projected pairs are derived on demand so untouched relationships can be
+  // recommended and booked without seeding dense storage.
+  getPairProjection(pairId: string): Promise<PairProjection | null>;
+  materializePairEdge(pairId: string): Promise<PairEdge | null>;
+  listEdgesForMember(memberId: string): Promise<PairEdge[]>;
+  listClosureCandidatePairIds(): Promise<string[]>;
   listDateSessions(): Promise<DateSession[]>;
   getDateSession(dateSessionId: string): Promise<DateSession | null>;
   saveDateSession(dateSession: DateSession): Promise<void>;

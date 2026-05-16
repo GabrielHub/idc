@@ -9,6 +9,7 @@ import {
   evaluateMatchFit,
   type MatchFitResult,
 } from "./match-fit";
+import { getPairProjectionFromSave } from "./relationship-index";
 
 const SEED_DATE = new Date("2026-05-11T12:00:00.000Z");
 
@@ -47,12 +48,10 @@ function findPairState(
   firstMemberId: string,
   secondMemberId: string,
 ) {
-  const pairState = save.pairStates.find(
-    (state) => state.id === makePairId(firstMemberId, secondMemberId),
-  );
+  const pairState = getPairProjectionFromSave(save, makePairId(firstMemberId, secondMemberId));
 
   if (pairState === undefined) {
-    throw new Error(`Expected ${firstMemberId} and ${secondMemberId} pair state.`);
+    throw new Error(`Expected ${firstMemberId} and ${secondMemberId} pair projection.`);
   }
 
   return pairState;
@@ -89,7 +88,7 @@ describe("evaluateMatchFit", () => {
     const jenna = findMember(save, "jenna-pike");
     const sera = findMember(save, "sera-vohn");
     const scenario = findScenario("memory-course-dinner");
-    const pairState = save.pairStates.find((state) => state.id === makePairId(jenna.id, sera.id));
+    const pairState = getPairProjectionFromSave(save, makePairId(jenna.id, sera.id));
 
     if (pairState === undefined) {
       throw new Error("Expected Jenna and Sera pair state.");
@@ -110,7 +109,7 @@ describe("evaluateMatchFit", () => {
     const sera = findMember(save, "sera-vohn");
     const opal = findMember(save, "opal-sunday");
     const scenario = findScenario("memory-course-dinner");
-    const pairState = save.pairStates.find((state) => state.id === makePairId(sera.id, opal.id));
+    const pairState = getPairProjectionFromSave(save, makePairId(sera.id, opal.id));
 
     if (pairState === undefined) {
       throw new Error("Expected Sera and Opal pair state.");
@@ -353,7 +352,7 @@ describe("applyMatchFitToJudgeSnapshot", () => {
     const opal = findMember(save, "opal-sunday");
     const wenshu = findMember(save, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = save.pairStates.find((state) => state.id === makePairId(opal.id, wenshu.id));
+    const pairState = getPairProjectionFromSave(save, makePairId(opal.id, wenshu.id));
 
     if (pairState === undefined) {
       throw new Error("Expected Opal and Wenshu pair state.");
@@ -422,7 +421,7 @@ describe("applyMatchFitToJudgeSnapshot", () => {
     const jenna = findMember(save, "jenna-pike");
     const vhool = findMember(save, "vhool");
     const scenario = findScenario("temporal-coffee-shop");
-    const pairState = save.pairStates.find((state) => state.id === makePairId(jenna.id, vhool.id));
+    const pairState = getPairProjectionFromSave(save, makePairId(jenna.id, vhool.id));
 
     if (pairState === undefined) {
       throw new Error("Expected Jenna and Vhool pair state.");

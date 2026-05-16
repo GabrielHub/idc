@@ -41,15 +41,18 @@ import {
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import {
+  buildPairProjection,
   findMemberInSave,
   getActiveShift,
   makePairId,
   normalizeStarterScenarioId,
 } from "./game-seed";
+import { getPairProjectionFromSave, materializePairEdge } from "./relationship-index";
 import {
   applyMatchFitToJudgeSnapshot,
   evaluateMatchFit,
   scenarioRoomReadFromMatchFit,
+  type MatchFitResult,
 } from "./match-fit";
 import {
   applyJudgeReveals,
@@ -87,7 +90,14 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
-import { clampDelta, clampScore, pushIntoBucket, replaceById, shuffleInPlace } from "./utils";
+import {
+  clamp,
+  clampDelta,
+  clampScore,
+  pushIntoBucket,
+  replaceById,
+  shuffleInPlace,
+} from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export { PERFORMANCE_REVIEW_INTERVAL } from "./budget";
@@ -945,6 +955,13 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   }
 
   const exchangeIndex = exchangeIndexForTurn(currentTurn);
+  const matchFit = evaluateMatchFit({
+    members,
+    scenario,
+    pairState,
+    activeRequests: focusRequest === undefined ? [] : [focusRequest],
+    knownPairReads: visibleReadsForPair(save, pairState.id),
+  });
   const deterministicJudgeSnapshot = judgeExchangeDeterministically({
     session,
     pairState,
@@ -952,13 +969,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     scenario,
     exchangeMessages,
     exchangeIndex,
-  });
-  const matchFit = evaluateMatchFit({
-    members,
-    scenario,
-    pairState,
-    activeRequests: focusRequest === undefined ? [] : [focusRequest],
-    knownPairReads: visibleReadsForPair(save, pairState.id),
+    matchFit,
   });
   const judgeSnapshotBeforeReveals = applyMatchFitToJudgeSnapshot({
     session,
@@ -1004,6 +1015,11 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
     : session.endSentiment;
   const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
+  const privateStateByCharacter = applyJudgeToPrivateDateState(
+    session,
+    judgeSnapshot,
+    nextDateHealth,
+  );
   const baseUpdatedSession = dateSessionSchema.parse({
     ...session,
     currentTurn,
@@ -1012,6 +1028,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     endSentiment: nextEndSentiment,
     playbackState: nextPlaybackState,
     transcript,
+    privateStateByCharacter,
     judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
   });
   const revealResult = applyJudgeReveals({
@@ -1370,11 +1387,11 @@ function averageRetention(members: readonly Member[]): number {
 }
 
 function pairStatsAverages(pairStates: readonly PairState[]): {
-  averageHealth: number;
-  averageFriction: number;
+  averageHealth: number | null;
+  averageFriction: number | null;
 } {
   if (pairStates.length === 0) {
-    return { averageHealth: 0, averageFriction: 0 };
+    return { averageHealth: null, averageFriction: null };
   }
   let healthSum = 0;
   let frictionSum = 0;
@@ -1449,8 +1466,19 @@ function buildDeckCoverage({
     }));
   }
 
+  const memberById = new Map(save.members.map((member) => [member.id, member] as const));
+  const pairStateById = new Map(save.pairStates.map((edge) => [edge.id, edge] as const));
+  const activeMembers = save.members.filter((member) => member.state.status === "active");
+  const bookedFocusMemberIds = new Set<string>();
+  for (const session of save.dateSessions) {
+    if (session.focusMemberId === undefined) continue;
+    if (sessionBelongsToShift(session, shift.shiftNumber)) {
+      bookedFocusMemberIds.add(session.focusMemberId);
+    }
+  }
+
   return shift.featuredMemberIds.map((memberId) => {
-    const member = save.members.find((candidate) => candidate.id === memberId);
+    const member = memberById.get(memberId);
     if (member === undefined) {
       return {
         focusMemberId: memberId,
@@ -1458,52 +1486,40 @@ function buildDeckCoverage({
         label: "Member missing from save",
       };
     }
-    const eligiblePartners = save.members.filter(
-      (candidate) => candidate.id !== memberId && candidate.state.status === "active",
-    );
+    const bookedForMember = bookedFocusMemberIds.has(memberId);
     let promisingForMember = false;
-    let bookedForMember = false;
-    for (const session of save.dateSessions) {
-      if (!sessionBelongsToShift(session, shift.shiftNumber)) continue;
-      if (session.focusMemberId === memberId) {
-        bookedForMember = true;
-        break;
-      }
-    }
-    for (const scenario of drawnScenarios) {
-      for (const partner of eligiblePartners) {
-        const pairState = save.pairStates.find(
-          (candidate) => candidate.id === makePairId(member.id, partner.id),
-        );
-        if (pairState === undefined) continue;
-        try {
-          const fit = evaluateMatchFit({
-            members: [member, partner],
-            scenario,
-            pairState,
-            activeRequests: [],
-            knownPairReads: visibleReadsForPair(save, pairState.id),
-          });
-          if (scenarioRoomReadFromMatchFit(fit) === "promising") {
-            promisingForMember = true;
-            break;
+    if (!bookedForMember) {
+      for (const scenario of drawnScenarios) {
+        for (const partner of activeMembers) {
+          if (partner.id === memberId) continue;
+          const pairId = makePairId(member.id, partner.id);
+          const pairState =
+            pairStateById.get(pairId) ?? materializePairEdge(buildPairProjection(member, partner));
+          try {
+            const fit = evaluateMatchFit({
+              members: [member, partner],
+              scenario,
+              pairState,
+              activeRequests: [],
+              knownPairReads: visibleReadsForPair(save, pairState.id),
+            });
+            if (scenarioRoomReadFromMatchFit(fit) === "promising") {
+              promisingForMember = true;
+              break;
+            }
+          } catch {
+            continue;
           }
-        } catch {
-          continue;
         }
+        if (promisingForMember) break;
       }
-      if (promisingForMember) break;
     }
-    const status = bookedForMember
-      ? ("served" as const)
+    const status =
+      bookedForMember || promisingForMember ? ("served" as const) : ("missed" as const);
+    const label = bookedForMember
+      ? "Booked tonight"
       : promisingForMember
-        ? ("served" as const)
-        : ("missed" as const);
-    const label =
-      status === "served"
-        ? bookedForMember
-          ? "Booked tonight"
-          : "Hand covered the case"
+        ? "Hand covered the case"
         : "No promising card for this case";
     return {
       focusMemberId: memberId,
@@ -1866,6 +1882,7 @@ export function judgeExchangeDeterministically({
   scenario,
   exchangeMessages,
   exchangeIndex,
+  matchFit,
 }: {
   session: DateSession;
   pairState: PairState;
@@ -1873,6 +1890,7 @@ export function judgeExchangeDeterministically({
   scenario: DateScenario;
   exchangeMessages: DateMessage[];
   exchangeIndex: number;
+  matchFit?: MatchFitResult;
 }): JudgeSnapshot {
   const scenarioRiskPenalty =
     scenario.card.risk === "high" ? -7 : scenario.card.risk === "medium" ? -3 : 2;
@@ -1894,19 +1912,29 @@ export function judgeExchangeDeterministically({
     : 0;
   const dateHealthDelta = scenarioRiskPenalty + interventionBonus + listeningBonus + repeatPenalty;
   const shouldEndEarly = session.dateHealth + dateHealthDelta <= 0;
+  const isWarmExchange = dateHealthDelta > 0;
+  const attractionDelta = isWarmExchange
+    ? clampDelta(Math.max(1, Math.round(dateHealthDelta / 3)))
+    : 0;
   const statDeltas = {
-    chemistry: clampDelta(2 + listeningBonus),
-    trust: clampDelta(1 + interventionBonus),
+    chemistry: clampDelta(isWarmExchange ? 1 + listeningBonus : Math.min(0, dateHealthDelta)),
+    trust: clampDelta(interventionBonus > 0 ? 2 : isWarmExchange ? 1 : 0),
     stability: clampDelta(scenarioRiskPenalty > 0 ? 2 : -1),
     conflict: clampDelta(Math.abs(Math.min(scenarioRiskPenalty, 0))),
-    weirdnessTolerance: clampDelta(scenario.card.chaos === "high" ? 3 : 1),
-    spark: clampDelta(2),
+    weirdnessTolerance: clampDelta(scenario.card.chaos === "high" && isWarmExchange ? 3 : 1),
+    spark: attractionDelta,
     strain: clampDelta(Math.abs(Math.min(scenarioRiskPenalty + repeatPenalty, 0))),
     relationshipHealth: clampDelta(Math.round(dateHealthDelta / 2)),
   };
-  const memberMoodDeltas = Object.fromEntries(
-    members.map((member) => [member.id, clampDelta(Math.round(dateHealthDelta / 4))]),
-  );
+  const memberMoodDeltas = deriveDeterministicMemberMoodDeltas({
+    session,
+    members,
+    scenario,
+    exchangeMessages,
+    dateHealthDelta,
+    statDeltas,
+    matchFit,
+  });
   const memoryCandidates = [
     {
       scope: "pair",
@@ -1935,6 +1963,116 @@ export function judgeExchangeDeterministically({
     playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
     memoryCandidates,
   });
+}
+
+function deriveDeterministicMemberMoodDeltas({
+  session,
+  members,
+  scenario,
+  exchangeMessages,
+  dateHealthDelta,
+  statDeltas,
+  matchFit,
+}: {
+  session: DateSession;
+  members: readonly Member[];
+  scenario: DateScenario;
+  exchangeMessages: readonly DateMessage[];
+  dateHealthDelta: number;
+  statDeltas: JudgeSnapshot["statDeltas"];
+  matchFit: MatchFitResult | undefined;
+}): Record<string, number> {
+  const baseDelta = clampMemberMoodDelta(Math.round(dateHealthDelta / 4));
+  const sharedAttraction = Math.max(statDeltas.spark ?? 0, statDeltas.chemistry ?? 0);
+  const sharedTrouble = Math.max(
+    statDeltas.strain ?? 0,
+    statDeltas.conflict ?? 0,
+    -dateHealthDelta,
+  );
+  const memberMoodDeltas: Record<string, number> = {};
+
+  for (const member of members) {
+    let delta = baseDelta + deterministicScenarioMoodPressure(member, scenario);
+
+    if (matchFit?.boundaryRisk?.memberId === member.id) {
+      delta -= 2;
+    }
+
+    if (memberRespondedAfterIntervention(session, exchangeMessages, member.id)) {
+      delta += 2;
+    }
+
+    if (sharedAttraction >= 4 && delta >= 0) {
+      delta += 1;
+    }
+
+    if (sharedTrouble >= 4 && delta < 0) {
+      delta -= 1;
+    }
+
+    memberMoodDeltas[member.id] = clampMemberMoodDelta(delta);
+  }
+
+  return memberMoodDeltas;
+}
+
+function deterministicScenarioMoodPressure(member: Member, scenario: DateScenario): number {
+  let pressure = 0;
+  const tags = scenario.card.tags;
+
+  if (member.tags.includes("needs_low_pressure") && tags.includes("high_pressure")) {
+    pressure -= 3;
+  }
+  if (member.tags.includes("needs_low_pressure") && tags.includes("low_pressure")) {
+    pressure += 1;
+  }
+  if (member.tags.includes("needs_clear_plan") && !tags.includes("low_pressure")) {
+    pressure -= 1;
+  }
+  if (member.tags.includes("prophecy_averse") && tags.includes("prophecy")) {
+    pressure -= 4;
+  }
+  if (member.tags.includes("privacy_sensitive") && tags.includes("public")) {
+    pressure -= scenario.card.risk === "high" ? 4 : 2;
+  }
+  if (member.tags.includes("memory_sensitive") && tags.includes("memory")) {
+    pressure -= 2;
+  }
+  if (member.tags.includes("grief_sensitive") && tags.includes("memory")) {
+    pressure -= scenario.card.intimacy === "high" ? 4 : 2;
+  }
+  if (member.tags.includes("career_focused") && tags.includes("career")) {
+    pressure += 2;
+  }
+  if (
+    member.tags.includes("weirdness_native") &&
+    (tags.includes("cosmic") || tags.includes("haunted"))
+  ) {
+    pressure += 1;
+  }
+
+  return pressure;
+}
+
+function memberRespondedAfterIntervention(
+  session: DateSession,
+  exchangeMessages: readonly DateMessage[],
+  memberId: string,
+): boolean {
+  return session.interventions.some(
+    (intervention) =>
+      intervention.targetMemberId === memberId &&
+      exchangeMessages.some(
+        (message) =>
+          message.kind === "character" &&
+          message.speakerId === memberId &&
+          message.turnIndex > intervention.usedAtTurn,
+      ),
+  );
+}
+
+function clampMemberMoodDelta(value: number): number {
+  return clamp(value, -8, 8);
 }
 
 export function finalizeDateSession({
@@ -2145,6 +2283,67 @@ export function applyJudgeToMembers(members: Member[], judgeSnapshot: JudgeSnaps
           : judgeSnapshot.playerSummary,
     },
   }));
+}
+
+export function applyJudgeToPrivateDateState(
+  session: DateSession,
+  judgeSnapshot: JudgeSnapshot,
+  nextDateHealth: number,
+): DateSession["privateStateByCharacter"] {
+  const nextState: DateSession["privateStateByCharacter"] = {
+    ...session.privateStateByCharacter,
+  };
+
+  for (const memberId of session.participants) {
+    const current = session.privateStateByCharacter[memberId] ?? {
+      mood: nextDateHealth,
+      comfort: session.dateHealth,
+      intent: "trying",
+    };
+    const moodDelta = judgeSnapshot.memberMoodDeltas[memberId] ?? 0;
+    const comfortDelta = Math.round(judgeSnapshot.dateHealthDelta / 2) + Math.round(moodDelta / 2);
+
+    nextState[memberId] = {
+      mood: clampScore(current.mood + moodDelta),
+      comfort: clampScore(current.comfort + comfortDelta),
+      intent: derivePrivateDateIntent(current.intent, moodDelta, judgeSnapshot),
+    };
+  }
+
+  return nextState;
+}
+
+function derivePrivateDateIntent(
+  currentIntent: string,
+  moodDelta: number,
+  judgeSnapshot: JudgeSnapshot,
+): string {
+  const sparkDelta = judgeSnapshot.statDeltas.spark ?? 0;
+  const chemistryDelta = judgeSnapshot.statDeltas.chemistry ?? 0;
+  const strainDelta = judgeSnapshot.statDeltas.strain ?? 0;
+  const conflictDelta = judgeSnapshot.statDeltas.conflict ?? 0;
+
+  if (
+    (judgeSnapshot.shouldEndEarly && moodDelta <= 0) ||
+    moodDelta <= -4 ||
+    ((strainDelta >= 4 || conflictDelta >= 4) && moodDelta < 0)
+  ) {
+    return "protect the boundary";
+  }
+
+  if (moodDelta < 0) {
+    return "slow down and read the room";
+  }
+
+  if (moodDelta >= 3 && (sparkDelta > 0 || chemistryDelta > 0)) {
+    return "lean into the attraction";
+  }
+
+  if (moodDelta > 0) {
+    return "stay engaged";
+  }
+
+  return currentIntent.trim().length > 0 ? currentIntent : "trying";
 }
 
 type MemberStateDeltas = {
@@ -3067,13 +3266,16 @@ export function requireScenario(scenarioId: string): DateScenario {
 }
 
 export function requirePairState(save: GameSave, pairId: string): PairState {
-  const pairState = save.pairStates.find((candidate) => candidate.id === pairId);
+  const projection = getPairProjectionFromSave(save, pairId);
 
-  if (pairState === undefined) {
+  if (projection === undefined) {
     throw new Error(`Pair state not found: ${pairId}`);
   }
 
-  return pairState;
+  // Hand back a plain PairState so existing callers stay structurally
+  // identical. The first replaceById on save.pairStates materializes the
+  // projection into a persisted PairEdge.
+  return materializePairEdge(projection);
 }
 
 export function requireDateSession(save: GameSave, dateSessionId: string): DateSession {

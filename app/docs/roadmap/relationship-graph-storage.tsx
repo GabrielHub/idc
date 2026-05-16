@@ -30,13 +30,13 @@ export const meta: DocMeta = {
 };
 
 export const plan: RoadmapPlanMeta = {
-  status: "ready",
+  status: "review",
   opened: "2026-05-15",
-  touched: "2026-05-15",
+  touched: "2026-05-16",
   owner: "unassigned",
   tldr: "Ship the immediate relationship data win: sparse scenario counters, materialized pair edges, PairProjection views, and edge-indexed access without taking on platform SQL yet.",
   tasks: 8,
-  done: 0,
+  done: 8,
   tags: ["storage", "graph", "scale"],
 };
 
@@ -144,6 +144,7 @@ export const sections: DocSectionEntry[] = [
           {
             id: "read-canonical-docs",
             label: "Read canonical gameplay docs and current code before changing contracts.",
+            defaultDone: true,
             detail: (
               <P>
                 Start with <RoadmapFileRef path="app/docs/gameplay/pair-memory.tsx" />,{" "}
@@ -160,88 +161,97 @@ export const sections: DocSectionEntry[] = [
           {
             id: "schema-reset",
             label: "Break the save schema intentionally and document the alpha reset.",
+            defaultDone: true,
             detail: (
               <P>
-                Bump <DocCode>SAVE_SCHEMA_VERSION</DocCode>. Remove dense pair compatibility code.
-                Update player-facing release or support copy so v0.3.2 testers get a clear fresh
-                start message instead of a mysterious unsupported-save failure.
+                Bumped <DocCode>SAVE_SCHEMA_VERSION</DocCode> to 9 for v0.3.4. v0.3.3 saves and
+                older are rejected at load so the next launch starts a fresh save. The desktop
+                install guide and release notes call out the reset directly for testers.
               </P>
             ),
           },
           {
             id: "sparse-scenario-counts",
             label: "Make scenario use counts sparse everywhere.",
+            defaultDone: true,
             detail: (
               <P>
-                Update <RoadmapFileRef path="app/domain/game.ts" /> and seed helpers so missing
-                scenario count means zero. Remove seed code that writes zero counts for every
-                scenario on every pair.
+                <RoadmapFileRef path="app/services/game-seed.ts" /> no longer pre-fills{" "}
+                <DocCode>scenarioUseCounts</DocCode> with zeros. Hydration strips any leftover zero
+                entries from older saves and from explicit overrides, so the record only carries
+                scenario ids the pair has actually booked.
               </P>
             ),
           },
           {
             id: "projection-types",
             label: "Add PairEdge and PairProjection domain contracts.",
+            defaultDone: true,
             detail: (
               <P>
-                Keep <DocCode>PairEdge</DocCode> as the persisted mutable record. Route services
-                that can operate on untouched relationships through{" "}
-                <DocCode>PairProjection</DocCode>
-                so projected pairs are never confused with saved edges.
+                <DocCode>PairEdge</DocCode> aliases the persisted <DocCode>PairState</DocCode>{" "}
+                schema. <DocCode>PairProjection</DocCode> adds a <DocCode>source</DocCode>{" "}
+                discriminator (<DocCode>persisted</DocCode> or <DocCode>projected</DocCode>) so
+                callers know whether they are looking at a saved edge or a derived view.
               </P>
             ),
           },
           {
             id: "relationship-index",
             label: "Add an in-memory relationship graph index service.",
+            defaultDone: true,
             detail: (
               <P>
-                Create a service that builds maps by pair id, member id, materialized edge, closure
-                readiness, and recent activity. Replace repeated{" "}
-                <DocCode>save.pairStates.find</DocCode>
-                calls where the new relationship API is the right owner. Do not claim this is fixing
-                a 40 member runtime bottleneck.
+                <RoadmapFileRef path="app/services/relationship-index.ts" /> builds maps by pair id
+                and member id, tracks closure-ready pair ids from completed reports, and exposes{" "}
+                <DocCode>getPairProjection</DocCode> for callers that should accept a projected
+                pair. The localStorage repository caches the index per save snapshot.
               </P>
             ),
           },
           {
             id: "repository-intents",
             label: "Move repository callers toward intent-based relationship queries.",
+            defaultDone: true,
             detail: (
               <P>
-                Add methods such as <DocCode>getPairProjection</DocCode>,{" "}
-                <DocCode>materializePairEdge</DocCode>, <DocCode>listEdgesForMember</DocCode>, and{" "}
-                <DocCode>listClosureCandidates</DocCode>. The localStorage repository can still
-                rewrite the whole save internally, but callers should stop depending on dense array
-                ownership.
+                The <DocCode>GameRepository</DocCode> contract now offers{" "}
+                <DocCode>getPairProjection</DocCode>, <DocCode>materializePairEdge</DocCode>,{" "}
+                <DocCode>listEdgesForMember</DocCode>, and{" "}
+                <DocCode>listClosureCandidatePairIds</DocCode>. The localStorage backend serves them
+                from the cached relationship index.
               </P>
             ),
           },
           {
             id: "runtime-edge-mutations",
             label: "Move runtime pair changes onto edge-scoped mutation helpers.",
+            defaultDone: true,
             detail: (
               <P>
-                Update <RoadmapFileRef path="app/services/date-engine.ts" />,{" "}
-                <RoadmapFileRef path="app/services/ai-date-engine.ts" />, and{" "}
-                <RoadmapFileRef path="app/services/closures.ts" /> so booking, judge acceptance,
-                scenario count updates, completion, follow-up, and closure create or update one
-                materialized edge through the relationship layer. Audit{" "}
-                <RoadmapFileRef path="app/services/pair-memory.ts" /> for type fallout, but do not
-                list it as a mutation owner unless the audit proves it.
+                <DocCode>requirePairState</DocCode> now resolves through{" "}
+                <DocCode>getPairProjectionFromSave</DocCode>, so booking and the first judge
+                exchange operate on a projection. The existing <DocCode>replaceById</DocCode> writes
+                in <RoadmapFileRef path="app/services/date-engine.ts" /> and{" "}
+                <RoadmapFileRef path="app/services/ai-date-engine.ts" /> materialize the edge on
+                first mutation. Closures and follow-ups continue to land through the same write
+                path. Pre-date suggestions in{" "}
+                <RoadmapFileRef path="app/components/pre-date-canvas.tsx" /> resolve untouched pairs
+                via projection.
               </P>
             ),
           },
           {
             id: "scale-tests",
             label: "Add scale benches with deterministic synthetic rosters.",
+            defaultDone: true,
             detail: (
               <P>
-                Generate 100 and 250 member test rosters by cloning validated member fixtures with
-                deterministic id suffixes, first-name suffixes, and small state offsets. Measure
-                seed size, parse time, pair projection lookup, recommendation time, save write size,
-                and Pair Board graph derivation. Run <DocCode>vp check</DocCode>,{" "}
-                <DocCode>vp test</DocCode>, and <DocCode>vp build</DocCode> before review.
+                <RoadmapFileRef path="app/services/relationship-graph-scale.ts" /> clones starter
+                members with deterministic suffixes and state offsets. The bench in{" "}
+                <RoadmapFileRef path="app/services/relationship-graph-scale.test.ts" /> exercises
+                40, 100, and 250 member rosters across seeding, schema parse, projection lookup, and
+                Pair Board derivation.
               </P>
             ),
           },
@@ -257,10 +267,10 @@ export const sections: DocSectionEntry[] = [
       <P>
         Pair Board already avoids rendering the complete dense graph.{" "}
         <RoadmapFileRef path="app/components/pair-board-layout.ts" /> skips pairs without filed
-        public pair memories. The remaining work is to query note-bearing materialized edges from
-        the relationship index instead of scanning the full pair state array to discover them.
-        Graphology is still rejected for persistence, but it can be reconsidered later for Pair
-        Board rendering if layout complexity grows beyond the current helper functions.
+        public pair memories. The live Notes view passes note-bearing materialized edges from the
+        relationship index into Pair Board instead of handing it raw save pair ownership. Graphology
+        is still rejected for persistence, but it can be reconsidered later for Pair Board rendering
+        if layout complexity grows beyond the current helper functions.
       </P>
     ),
   },

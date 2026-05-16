@@ -211,6 +211,12 @@ export const sections: DocSectionEntry[] = [
           migrating old files.
         </P>
         <P>
+          v0.3.4 intentionally starts fresh from v0.3.3 and older saves. The relationship layer
+          moved to a sparse graph (untouched pairs are no longer stored), so older saves cannot be
+          read by the current build. The app starts a fresh save on launch and preserves the
+          previous save as a backup when it can.
+        </P>
+        <P>
           Gateway key storage lives under the same app local data root in{" "}
           <DocCode>secrets/gateway-api-key.txt</DocCode>. It is not part of the save backup path.
         </P>

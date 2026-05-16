@@ -32,6 +32,30 @@ export const lede = (
 
 export const sections: DocSectionEntry[] = [
   {
+    id: "storage-model",
+    title: "Storage model",
+    body: (
+      <>
+        <P>
+          Pairs live as a sparse social graph. <DocCode>GameSave.pairStates</DocCode> stores a{" "}
+          <DocCode>PairEdge</DocCode> only after a pair earns durable history: a judge snapshot,
+          agreement, open loop, follow-up, or closure. Untouched pairs are served as{" "}
+          <DocCode>PairProjection</DocCode> values derived from member state by{" "}
+          <DocCode>relationship-index</DocCode>. A fresh save carries zero pair edges and zero
+          scenario use counters.
+        </P>
+        <DocCallout variant="info">
+          Game services should fetch via the projection helpers or the repository intents (
+          <DocCode>getPairProjection</DocCode>, <DocCode>materializePairEdge</DocCode>,{" "}
+          <DocCode>listEdgesForMember</DocCode>) instead of scanning{" "}
+          <DocCode>save.pairStates</DocCode> directly. Materialization happens implicitly on the
+          first write through <DocCode>replaceById</DocCode>; callers do not need a separate
+          ceremony to promote a projection.
+        </DocCallout>
+      </>
+    ),
+  },
+  {
     id: "agreements",
     title: "Agreements",
     body: (

@@ -36,6 +36,7 @@ export { DateStreamAbortedError } from "./ai/model-service";
 import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
   applyJudgeToMembers,
+  applyJudgeToPrivateDateState,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
   clearActiveBookingForShift,
@@ -87,7 +88,7 @@ import {
   scrubPlayerSafeCopy,
   stripForbiddenPunctuation,
 } from "./player-safe-copy";
-import { clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
+import { clamp, clampScore, errorToMessage, escapeRegex, isRecord, replaceById } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export type LocalAiDateRuntime = {
@@ -434,6 +435,11 @@ async function advanceDateExchangeWithLocalAiInternal(
     ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
     : session.endSentiment;
   const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
+  const privateStateByCharacter = applyJudgeToPrivateDateState(
+    session,
+    judgeSnapshot,
+    nextDateHealth,
+  );
   const baseUpdatedSession = dateSessionSchema.parse({
     ...session,
     currentTurn,
@@ -442,6 +448,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     endSentiment: nextEndSentiment,
     playbackState: nextPlaybackState,
     transcript,
+    privateStateByCharacter,
     judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
   });
   const shouldFinish = nextStatus !== "active";
@@ -1596,11 +1603,9 @@ function sanitizeJudgeSnapshot(
   session: DateSession,
   context: { members: readonly Member[]; scenario: DateScenario },
 ): JudgeSnapshot {
-  const participantIds = new Set(session.participants);
-  const memberMoodDeltas = Object.fromEntries(
-    Object.entries(judgeSnapshot.memberMoodDeltas).filter(([memberId]) =>
-      participantIds.has(memberId),
-    ),
+  const memberMoodDeltas = normalizeParticipantMemberMoodDeltas(
+    judgeSnapshot.memberMoodDeltas,
+    session.participants,
   );
   const cleanedSummary = scrubPlayerSafeCopy(judgeSnapshot.playerSummary);
   const summaryCheck = checkCupidCorporateCopy(cleanedSummary, { maxLength: 320 });
@@ -1643,6 +1648,19 @@ function sanitizeJudgeSnapshot(
     notableMoments,
     playerSummary,
   };
+}
+
+function normalizeParticipantMemberMoodDeltas(
+  proposed: JudgeSnapshot["memberMoodDeltas"],
+  participantIds: readonly string[],
+): Record<string, number> {
+  const normalized: Record<string, number> = {};
+
+  for (const memberId of participantIds) {
+    normalized[memberId] = clamp(proposed[memberId] ?? 0, -8, 8);
+  }
+
+  return normalized;
 }
 
 export function buildDeterministicJudgeSummary({

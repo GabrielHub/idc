@@ -3,6 +3,7 @@ import { useMemo, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { CupidMark, EASE_OUT_QUART, LiveDot } from "../dashboard-atoms";
+import { AudioSettingsMenu } from "../settings-menu";
 import { WhatsNewUpdatePill } from "../whats-new-update-pill";
 import { formatClock, formatDate, useTickingNow } from "./shared";
 
@@ -55,6 +56,7 @@ export function TopBar({
         <div className="flex items-center gap-2">
           <DocsPill />
           {import.meta.env.MODE === "desktop" ? null : <PlaygroundPill />}
+          <SettingsPill />
           <ClockPill />
         </div>
       </div>
@@ -138,6 +140,18 @@ function DocsIcon() {
 
 function PlaygroundPill() {
   return <NavPill to="/playground" label="playground" icon={<PlaygroundIcon />} delay={0.04} />;
+}
+
+function SettingsPill() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.05 }}
+    >
+      <AudioSettingsMenu />
+    </motion.div>
+  );
 }
 
 function PlaygroundIcon() {

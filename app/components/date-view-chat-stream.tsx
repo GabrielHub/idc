@@ -6,6 +6,7 @@ import { EASE_OUT_QUART } from "./dashboard-atoms";
 import type { DatePlaybackUiState, PendingDateAction } from "./date-view-shared";
 import { readKindLabel, type TranscriptItem } from "./date-view-transcript";
 import {
+  HOUSE_BUBBLE_FONT_CLASS,
   HOUSE_BUBBLE_LEFT_CLASS,
   HOUSE_BUBBLE_NAME_CLASS,
   resolveMemberChatBubbleStyle,
@@ -235,8 +236,7 @@ function ChatBubble({
       ? `text-left ${HOUSE_BUBBLE_NAME_CLASS}`
       : "text-right text-aura-faint";
   const accentStyle = customBubble?.accentStyle;
-  const defaultRightClass =
-    "rounded-[22px] rounded-br-md bg-white/85 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md";
+  const defaultRightClass = `aura-glass rounded-[22px] rounded-br-md px-4 py-2.5 ${HOUSE_BUBBLE_FONT_CLASS}`;
   const bubbleClass = customBubble
     ? customBubble.className
     : isLeft
@@ -261,14 +261,37 @@ function ChatBubble({
           </span>
         ) : null}
         <div className={`${bubbleClass} ${item.isDraft ? "opacity-95" : ""}`} style={bubbleStyle}>
-          <p className={`text-body leading-relaxed ${textColorClass}`}>
-            {item.text}
-            {item.isStreaming ? (
+          <p className={`text-lead leading-snug ${textColorClass}`}>
+            {item.isStreaming && item.text.trim().length === 0 ? (
               <span
-                aria-hidden
-                className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
-              />
-            ) : null}
+                role="status"
+                aria-label={`${member.firstName} is thinking`}
+                className="inline-flex items-center gap-1 align-middle"
+              >
+                <span
+                  aria-hidden
+                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:0ms]`}
+                />
+                <span
+                  aria-hidden
+                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:180ms]`}
+                />
+                <span
+                  aria-hidden
+                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:360ms]`}
+                />
+              </span>
+            ) : (
+              <>
+                {item.text}
+                {item.isStreaming ? (
+                  <span
+                    aria-hidden
+                    className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
+                  />
+                ) : null}
+              </>
+            )}
           </p>
         </div>
       </div>

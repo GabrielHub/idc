@@ -12,6 +12,7 @@ const STANDEE_SOURCE_SCALE_BY_MEMBER_ID: Readonly<Partial<Record<string, Standee
   "aldric-vale-marsh": { className: "scale-[1.26]", value: 1.26 },
   anubis: { className: "scale-[1.05]", value: 1.05 },
   "brady-strait": { className: "scale-[0.94]", value: 0.94 },
+  "cassia-six": { className: "scale-[1.15]", value: 1.15 },
   "cassie-conners": { className: "scale-[1.09]", value: 1.09 },
   "decimus-marius-tullio": { className: "scale-[1.03]", value: 1.03 },
   epsy: { className: "scale-[1.05]", value: 1.05 },

@@ -171,38 +171,31 @@ export function DraftScreen({
                         delay: 0.08 + columnIndex * 0.06 + indexInColumn * 0.04,
                       }}
                     >
-                      <Tooltip
-                        message={meta.blurb}
-                        placement="top-center"
-                        className="w-full"
-                        messageClassName="text-black"
+                      <button
+                        type="button"
+                        data-sfx="click"
+                        aria-pressed={selected}
+                        disabled={isActionPending}
+                        onClick={() => togglePick(event.id)}
+                        className={`aura-glass-lift flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                          selected
+                            ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
+                            : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
+                        }`}
                       >
-                        <button
-                          type="button"
-                          data-sfx="click"
-                          aria-pressed={selected}
-                          disabled={isActionPending}
-                          onClick={() => togglePick(event.id)}
-                          className={`aura-glass-lift flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                            selected
-                              ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
-                              : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-3">
-                            <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-black">
-                              // scene {pad2(sceneIndex + 1)}
-                            </span>
-                            <DraftPickPip selected={selected} pickIndex={pickIndex} />
-                          </div>
-                          <h3 className="line-clamp-2 font-display text-display-sm font-semibold leading-tight text-black">
-                            {event.title}
-                          </h3>
-                          <p className="line-clamp-2 text-label leading-relaxed text-black">
-                            {event.event}
-                          </p>
-                        </button>
-                      </Tooltip>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-black">
+                            // scene {pad2(sceneIndex + 1)}
+                          </span>
+                          <DraftPickPip selected={selected} pickIndex={pickIndex} />
+                        </div>
+                        <h3 className="line-clamp-2 font-display text-display-sm font-semibold leading-tight text-black">
+                          {event.title}
+                        </h3>
+                        <p className="line-clamp-2 text-label leading-relaxed text-black">
+                          {event.event}
+                        </p>
+                      </button>
                     </motion.li>
                   );
                 })}

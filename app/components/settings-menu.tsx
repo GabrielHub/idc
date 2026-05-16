@@ -46,6 +46,68 @@ export function MutedIndicator() {
   );
 }
 
+export function AudioSettingsMenu({ align = "right" }: { align?: "left" | "right" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      if (wrapperRef.current === null) {
+        return;
+      }
+      if (!(event.target instanceof Node)) {
+        return;
+      }
+      if (!wrapperRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [isOpen]);
+
+  return (
+    <div ref={wrapperRef} className="pointer-events-auto relative">
+      <SettingsTriggerButton
+        isOpen={isOpen}
+        label="Settings"
+        onClick={() => setIsOpen((open) => !open)}
+      />
+      <AnimatePresence>
+        {isOpen ? (
+          <motion.div
+            key="audio-settings-menu"
+            role="menu"
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+            className={`aura-glass-strong absolute top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card ${popoverAlignmentClass}`}
+          >
+            <SfxControls variant="menu" />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 export function SettingsMenu({
   isActionPending,
   getDiagnostics,
@@ -295,23 +357,17 @@ export function SettingsMenu({
 
   return (
     <div ref={wrapperRef} className="relative">
-      <button
-        type="button"
-        data-sfx="menu"
-        aria-haspopup="menu"
-        aria-expanded={isOpen}
-        aria-label={settingsLabel}
-        title={settingsLabel}
+      <SettingsTriggerButton
+        isOpen={isOpen}
+        label={settingsLabel}
         onClick={() => setIsOpen((open) => !open)}
-        className="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-muted transition hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink"
       >
-        <SettingsIcon />
         {hasAvailableUpdate ? (
           <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
             Update
           </span>
         ) : null}
-      </button>
+      </SettingsTriggerButton>
       <AnimatePresence>
         {isOpen ? (
           <motion.div
@@ -424,6 +480,34 @@ export function SettingsMenu({
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+function SettingsTriggerButton({
+  isOpen,
+  label,
+  onClick,
+  children,
+}: {
+  isOpen: boolean;
+  label: string;
+  onClick: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      data-sfx="menu"
+      aria-haspopup="menu"
+      aria-expanded={isOpen}
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-muted transition hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink"
+    >
+      <SettingsIcon />
+      {children}
+    </button>
   );
 }
 

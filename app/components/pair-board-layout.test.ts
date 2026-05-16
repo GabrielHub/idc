@@ -14,7 +14,7 @@ import { derivePairGraph } from "./pair-board-layout";
 const BOARD_MEMBERS = [jennaPike, vhool, bradyStrait];
 
 describe("derivePairGraph", () => {
-  it("leaves unfiled pair states off the board", () => {
+  it("leaves unfiled pair edges off the board", () => {
     const filedPair = buildPairState(jennaPike, vhool);
     const unfiledPair = buildPairState(jennaPike, bradyStrait);
 
@@ -33,7 +33,7 @@ describe("derivePairGraph", () => {
     expect(graph.meta.isolatedMembers.map((member) => member.id)).toEqual([bradyStrait.id]);
   });
 
-  it("returns an empty board when pair states have no public notes", () => {
+  it("returns an empty board when pair edges have no public notes", () => {
     const graph = derivePairGraph(
       BOARD_MEMBERS,
       [buildPairState(jennaPike, vhool), buildPairState(jennaPike, bradyStrait)],
@@ -47,6 +47,18 @@ describe("derivePairGraph", () => {
     expect(graph.meta.isolatedMembers.map((member) => member.id).sort()).toEqual(
       BOARD_MEMBERS.map((member) => member.id).sort(),
     );
+  });
+
+  it("ignores pair notes without materialized edges", () => {
+    const filedPair = buildPairState(jennaPike, vhool);
+
+    const graph = derivePairGraph(BOARD_MEMBERS, [], [buildPairMemory(filedPair)], {
+      minDegree: 1,
+    });
+
+    expect(graph.edges).toHaveLength(0);
+    expect(graph.nodes).toHaveLength(0);
+    expect(graph.meta.filedPairs).toBe(0);
   });
 
   it("keeps one-pair spokes off the board when filtering for hubs", () => {

@@ -109,6 +109,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "fieldmote",
     tint: { primary: "rgba(176, 200, 152, 0.6)", glow: "rgba(196, 168, 96, 0.42)" },
   },
+  "john-pork": {
+    kind: "fieldmote",
+    tint: { primary: "rgba(204, 160, 140, 0.62)", glow: "rgba(176, 124, 100, 0.42)" },
+  },
 
   vhool: {
     kind: "rune",
@@ -168,6 +172,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
   "meridian-vale": {
     kind: "pixelrain",
     tint: { primary: "rgba(176, 196, 220, 0.75)", glow: "rgba(132, 156, 188, 0.5)" },
+  },
+  "cassia-six": {
+    kind: "pixelrain",
+    tint: { primary: "rgba(124, 196, 148, 0.78)", glow: "rgba(252, 168, 84, 0.5)" },
   },
 
   "idris-mahari": {

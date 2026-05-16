@@ -124,7 +124,7 @@ export function PairBoardTest() {
 
       <PairBoard
         members={dataset.members}
-        pairStates={dataset.pairStates}
+        pairEdges={dataset.pairStates}
         memories={dataset.memories}
         scenarios={starterScenarios}
         shiftCount={shiftCount}

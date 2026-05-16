@@ -59,6 +59,14 @@ describe("AI date text sanitation", () => {
       'The texts say "hold frame".',
     );
   });
+
+  it("caps persisted performer text to the runtime target", () => {
+    const text = `Jenna ${"keeps the table human ".repeat(20)}`;
+    const sanitized = sanitizeCharacterText(text, "Jenna Pike");
+
+    expect(sanitized).toHaveLength(260);
+    expect(sanitized.endsWith("...")).toBe(true);
+  });
 });
 
 describe("AI date engine orchestration", () => {
@@ -176,6 +184,10 @@ describe("AI date engine orchestration", () => {
     expect(result.session.status).toBe("completed");
     expect(result.session.currentTurn).toBe(2);
     expect(result.session.judgeSnapshots[0]?.endSentiment).toBeNull();
+    expect(result.session.judgeSnapshots[0]?.memberMoodDeltas).toEqual({
+      "jenna-pike": 1,
+      vhool: 1,
+    });
     expect(result.session.transcript.some((message) => message.text.startsWith("ai Jenna"))).toBe(
       true,
     );
@@ -1456,6 +1468,10 @@ describe("AI date engine orchestration", () => {
       retryResult.session.transcript.filter((message) => message.kind === "character"),
     ).toHaveLength(2);
     expect(retryResult.session.judgeSnapshots).toHaveLength(1);
+    expect(retryResult.session.judgeSnapshots[0]?.memberMoodDeltas).toEqual({
+      "jenna-pike": 0,
+      vhool: 0,
+    });
   });
 
   it("generates each local AI character turn from the previous generated turn", async () => {

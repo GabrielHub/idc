@@ -65,7 +65,7 @@ export default function PlaygroundRoute() {
   const [activeTestId, setActiveTestId] = useState<PlaygroundTestId>("ai-lab");
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-aura-bg text-aura-ink">
+    <main className="relative min-h-screen overflow-x-clip bg-aura-bg text-aura-ink">
       <AmbientMesh />
       <DotGridLayer />
       <PlaygroundTopBar />

@@ -28,10 +28,12 @@ const STATE_GAUGE_FIELDS: ReadonlyArray<{
   accent: string;
 }> = [
   { id: "mood", label: "Mood", accent: "from-aura-rose to-aura-fuchsia" },
-  { id: "openness", label: "Openness", accent: "from-aura-amber to-aura-rose" },
-  { id: "burnout", label: "Burnout", accent: "from-aura-violet to-aura-fuchsia" },
-  { id: "retention", label: "Retention", accent: "from-aura-emerald to-aura-amber" },
+  { id: "openness", label: "Open", accent: "from-aura-amber to-aura-rose" },
+  { id: "burnout", label: "Burn", accent: "from-aura-violet to-aura-fuchsia" },
+  { id: "retention", label: "Hold", accent: "from-aura-emerald to-aura-amber" },
 ];
+
+const ALPHABET_LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 function formatHeight(inches: number): string {
   const feet = Math.floor(inches / 12);
@@ -43,13 +45,16 @@ function readableTag(tag: string): string {
   return tag.replaceAll("_", " ");
 }
 
+function startLetter(member: Member): string {
+  return member.firstName.charAt(0).toUpperCase();
+}
+
 export function AllMembersTest() {
   const [selectedId, setSelectedId] = useState<string>(starterMembers[0].id);
   const [search, setSearch] = useState("");
   const [voiceGroup, setVoiceGroup] = useState<VoiceSampleGroup>("opener");
   const [mood, setMood] = useState<PortraitMood>("neutral");
-  const rosterRef = useRef<HTMLDivElement>(null);
-  const dossierScrollRef = useRef<HTMLDivElement>(null);
+  const rosterScrollRef = useRef<HTMLDivElement>(null);
 
   const sortedMembers = useMemo(
     () =>
@@ -74,26 +79,48 @@ export function AllMembersTest() {
     });
   }, [sortedMembers, search]);
 
+  const groupedMembers = useMemo(() => {
+    const groups: Array<{ letter: string; members: Member[] }> = [];
+    const seen = new Map<string, Member[]>();
+    for (const member of filteredMembers) {
+      const letter = startLetter(member);
+      const existing = seen.get(letter);
+      if (existing === undefined) {
+        const list: Member[] = [member];
+        seen.set(letter, list);
+        groups.push({ letter, members: list });
+      } else {
+        existing.push(member);
+      }
+    }
+    return groups;
+  }, [filteredMembers]);
+
+  const activeLetters = useMemo(() => {
+    return new Set(groupedMembers.map((group) => group.letter));
+  }, [groupedMembers]);
+
   const selected = useMemo(
     () => starterMembers.find((member) => member.id === selectedId) ?? starterMembers[0],
     [selectedId],
   );
 
+  const selectedIndex = useMemo(
+    () => sortedMembers.findIndex((member) => member.id === selectedId),
+    [sortedMembers, selectedId],
+  );
+
   useEffect(() => {
     setVoiceGroup("opener");
     setMood("neutral");
-    const dossierEl = dossierScrollRef.current;
-    if (dossierEl !== null) {
-      dossierEl.scrollTo({ top: 0, behavior: "smooth" });
-    }
   }, [selectedId]);
 
   useEffect(() => {
-    const roster = rosterRef.current;
-    if (roster === null) {
+    const rosterEl = rosterScrollRef.current;
+    if (rosterEl === null) {
       return;
     }
-    const row = roster.querySelector<HTMLElement>(`[data-roster-id="${selectedId}"]`);
+    const row = rosterEl.querySelector<HTMLElement>(`[data-roster-id="${selectedId}"]`);
     row?.scrollIntoView({ block: "nearest" });
   }, [selectedId]);
 
@@ -116,6 +143,20 @@ export function AllMembersTest() {
     }
   }
 
+  function handleJumpToLetter(letter: string) {
+    const rosterEl = rosterScrollRef.current;
+    if (rosterEl === null) {
+      return;
+    }
+    const section = rosterEl.querySelector<HTMLElement>(`[data-letter-section="${letter}"]`);
+    if (section === null) {
+      return;
+    }
+    section.scrollIntoView({ block: "start", behavior: "smooth" });
+  }
+
+  const currentLetter = startLetter(selected);
+
   return (
     <motion.section
       initial={{ opacity: 0, y: 12 }}
@@ -125,36 +166,44 @@ export function AllMembersTest() {
     >
       <TestHeader
         title="Member dossier"
-        description="Every field from every member fixture, in one developer-grade reading view. Use the rail to flip between files. Avatars on the left help when names go fuzzy."
+        description="Forty-two case files filed under the Aura cream wash. The spine on the left jumps the index. The rail loads a file. Riffle through the file with page scroll."
       />
 
       <div
         onKeyDown={handleArrowNavigation}
         tabIndex={-1}
-        className="grid gap-5 outline-none lg:grid-cols-[20rem_minmax(0,1fr)]"
+        className="grid gap-4 outline-none lg:grid-cols-[2.75rem_14rem_minmax(0,1fr)]"
       >
-        <RosterRail
-          rosterRef={rosterRef}
-          members={filteredMembers}
+        <AlphabetRail
+          activeLetters={activeLetters}
+          currentLetter={currentLetter}
+          onJump={handleJumpToLetter}
+        />
+        <RosterPanel
+          rosterScrollRef={rosterScrollRef}
+          groups={groupedMembers}
           totalCount={starterMembers.length}
+          shownCount={filteredMembers.length}
           search={search}
           selectedId={selectedId}
           onSearch={setSearch}
           onSelect={setSelectedId}
         />
 
-        <div
-          ref={dossierScrollRef}
-          className="max-h-[calc(100vh-12rem)] min-w-0 space-y-5 overflow-y-auto pr-1"
-        >
-          <DossierHero member={selected} mood={mood} onMoodChange={setMood} />
-          <DossierBio member={selected} />
-          <DossierTags member={selected} />
-          <DossierWantsAndBoundaries member={selected} />
-          <DossierVoice member={selected} group={voiceGroup} onGroupChange={setVoiceGroup} />
-          <DossierState member={selected} />
-          <DossierPortraitGallery member={selected} />
-          <DossierChatBubble member={selected} />
+        <div className="min-w-0 space-y-6">
+          <CoverSpread
+            member={selected}
+            mood={mood}
+            onMoodChange={setMood}
+            index={selectedIndex}
+            total={sortedMembers.length}
+          />
+          <PageMarker label="page 02" subtitle="voice and boundaries" />
+          <VoiceSpread member={selected} group={voiceGroup} onGroupChange={setVoiceGroup} />
+          <BoundariesQuad member={selected} />
+          <PageMarker label="page 03" subtitle="visuals and chat" />
+          <ContactSheet member={selected} />
+          <BubbleTest member={selected} />
         </div>
       </div>
     </motion.section>
@@ -162,36 +211,96 @@ export function AllMembersTest() {
 }
 
 /* ================================================================== */
-/* Roster rail                                                        */
+/* Alphabet spine                                                     */
 /* ================================================================== */
 
-function RosterRail({
-  rosterRef,
-  members,
+function AlphabetRail({
+  activeLetters,
+  currentLetter,
+  onJump,
+}: {
+  activeLetters: ReadonlySet<string>;
+  currentLetter: string;
+  onJump: (letter: string) => void;
+}) {
+  return (
+    <aside className="aura-glass sticky top-28 flex h-[calc(100vh-9rem)] flex-col items-center justify-between rounded-card px-1 py-3">
+      <span
+        aria-hidden
+        className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint"
+      >
+        a
+      </span>
+      <ol className="flex flex-1 flex-col items-center justify-center gap-px py-2">
+        {ALPHABET_LETTERS.map((letter) => {
+          const enabled = activeLetters.has(letter);
+          const current = enabled && letter === currentLetter;
+          const toneClass = current
+            ? "bg-aura-ink text-white shadow-[0_6px_18px_-10px_rgba(15,23,42,0.6)]"
+            : enabled
+              ? "text-aura-muted hover:text-aura-rose"
+              : "text-aura-faint/40";
+          return (
+            <li key={letter}>
+              <button
+                type="button"
+                onClick={enabled ? () => onJump(letter) : undefined}
+                disabled={!enabled}
+                aria-label={`Jump to ${letter}`}
+                aria-current={current ? "true" : undefined}
+                className={`grid size-6 place-items-center rounded-pill font-mono text-micro font-semibold uppercase tracking-[0.04em] transition ${
+                  enabled ? "cursor-pointer" : "cursor-not-allowed"
+                } ${toneClass}`}
+              >
+                {letter}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      <span
+        aria-hidden
+        className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-faint"
+      >
+        z
+      </span>
+    </aside>
+  );
+}
+
+/* ================================================================== */
+/* Roster panel                                                       */
+/* ================================================================== */
+
+function RosterPanel({
+  rosterScrollRef,
+  groups,
   totalCount,
+  shownCount,
   search,
   selectedId,
   onSearch,
   onSelect,
 }: {
-  rosterRef: React.RefObject<HTMLDivElement | null>;
-  members: readonly Member[];
+  rosterScrollRef: React.RefObject<HTMLDivElement | null>;
+  groups: ReadonlyArray<{ letter: string; members: Member[] }>;
   totalCount: number;
+  shownCount: number;
   search: string;
   selectedId: string;
   onSearch: (value: string) => void;
   onSelect: (memberId: string) => void;
 }) {
   return (
-    <aside className="aura-glass sticky top-28 flex h-[calc(100vh-9rem)] flex-col gap-3 rounded-card p-3">
-      <div className="flex items-baseline justify-between gap-3 px-2 pt-1">
-        <MutedLabel>roster</MutedLabel>
+    <aside className="aura-glass sticky top-28 flex h-[calc(100vh-9rem)] flex-col rounded-card p-3">
+      <header className="flex items-baseline justify-between gap-3 px-2 pt-1">
+        <MutedLabel>index</MutedLabel>
         <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint tabular-nums">
-          {members.length}/{totalCount}
+          {shownCount}/{totalCount}
         </span>
-      </div>
+      </header>
 
-      <label className="relative block px-1">
+      <label className="relative mt-3 block px-1">
         <span className="sr-only">Search members</span>
         <span
           aria-hidden
@@ -203,36 +312,45 @@ function RosterRail({
           type="text"
           value={search}
           onChange={(event) => onSearch(event.currentTarget.value)}
-          placeholder="filter name, species, tag"
+          placeholder="filter"
           className="block w-full rounded-pill border border-aura-hairline bg-white/65 py-2 pl-8 pr-3 font-mono text-micro uppercase tracking-[0.18em] text-aura-ink outline-none placeholder:text-aura-faint focus:border-aura-rose"
         />
       </label>
 
       <div
-        ref={rosterRef}
+        ref={rosterScrollRef}
         role="listbox"
         aria-label="Member roster"
-        className="-mr-2 flex-1 space-y-1 overflow-y-auto pr-2"
+        className="-mr-2 mt-3 flex-1 overflow-y-auto pr-2"
       >
-        {members.length === 0 ? (
-          <p className="px-3 py-6 text-center text-label text-aura-faint">
-            No members match that filter.
-          </p>
+        {shownCount === 0 ? (
+          <p className="px-3 py-6 text-center text-label text-aura-faint">No files match.</p>
         ) : (
-          members.map((member) => (
-            <RosterRow
-              key={member.id}
-              member={member}
-              selected={member.id === selectedId}
-              onSelect={() => onSelect(member.id)}
-            />
+          groups.map((group) => (
+            <section key={group.letter} data-letter-section={group.letter} className="mb-2">
+              <header className="sticky top-0 z-10 -mx-1 mb-1 bg-aura-veil/90 px-3 py-1 backdrop-blur">
+                <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+                  {group.letter}
+                </p>
+              </header>
+              <ul className="space-y-1">
+                {group.members.map((member) => (
+                  <RosterRow
+                    key={member.id}
+                    member={member}
+                    selected={member.id === selectedId}
+                    onSelect={() => onSelect(member.id)}
+                  />
+                ))}
+              </ul>
+            </section>
           ))
         )}
       </div>
 
-      <p className="px-3 pb-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-        <span className="text-aura-muted">arrow keys</span> walk the rail
-      </p>
+      <footer className="px-3 pb-1 pt-2 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+        <span className="text-aura-muted">arrows</span> walk the file
+      </footer>
     </aside>
   );
 }
@@ -247,60 +365,86 @@ function RosterRow({
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      role="option"
-      aria-selected={selected}
-      data-roster-id={member.id}
-      onClick={onSelect}
-      className={`flex w-full cursor-pointer items-center gap-3 rounded-tile px-2.5 py-2 text-left transition ${
-        selected
-          ? "aura-glass-ink shadow-[0_10px_30px_-16px_rgba(15,23,42,0.6)]"
-          : "hover:bg-white/55"
-      }`}
-    >
-      <div className={selected ? "ring-2 ring-white/70" : "ring-1 ring-white/70"}>
-        <Portrait member={member} variant="thumb" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <p
-          className={`truncate font-display text-body font-semibold tracking-tight ${
-            selected ? "text-white" : "text-aura-ink"
-          }`}
-        >
-          {member.firstName}
-        </p>
-        <p
-          className={`truncate font-mono text-micro uppercase tracking-[0.18em] ${
-            selected ? "text-white/70" : "text-aura-faint"
-          }`}
-        >
-          {member.species}
-        </p>
-      </div>
-      <span
-        className={`shrink-0 font-mono text-micro tabular-nums tracking-[0.1em] ${
-          selected ? "text-white/80" : "text-aura-muted"
+    <li>
+      <button
+        type="button"
+        role="option"
+        aria-selected={selected}
+        data-roster-id={member.id}
+        onClick={onSelect}
+        className={`flex w-full cursor-pointer items-center gap-2 rounded-tile px-1.5 py-1.5 text-left transition ${
+          selected
+            ? "aura-glass-ink shadow-[0_10px_30px_-16px_rgba(15,23,42,0.6)]"
+            : "hover:bg-white/55"
         }`}
       >
-        {formatHeight(member.characterHeightInInches)}
-      </span>
-    </button>
+        <div className={selected ? "ring-2 ring-white/70" : "ring-1 ring-white/70"}>
+          <Portrait member={member} variant="thumb" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className={`truncate font-display text-body font-semibold tracking-tight ${
+              selected ? "text-white" : "text-aura-ink"
+            }`}
+          >
+            {member.firstName}
+          </p>
+          <p
+            className={`truncate font-mono text-micro uppercase tracking-[0.18em] ${
+              selected ? "text-white/70" : "text-aura-faint"
+            }`}
+          >
+            {member.species}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 font-mono text-micro tabular-nums tracking-[0.04em] ${
+            selected ? "text-white/80" : "text-aura-muted"
+          }`}
+        >
+          {formatHeight(member.characterHeightInInches)}
+        </span>
+      </button>
+    </li>
   );
 }
 
 /* ================================================================== */
-/* Hero band                                                          */
+/* Page marker                                                        */
 /* ================================================================== */
 
-function DossierHero({
+function PageMarker({ label, subtitle }: { label: string; subtitle: string }) {
+  return (
+    <div className="flex items-center gap-3 px-1">
+      <span aria-hidden className="h-px w-8 bg-aura-hairline-strong" />
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+        // {label}
+      </span>
+      <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+        {subtitle}
+      </span>
+      <span aria-hidden className="h-px flex-1 bg-aura-hairline-strong" />
+    </div>
+  );
+}
+
+/* ================================================================== */
+/* Cover spread                                                       */
+/*   Hero + identity + state + bio + tags, in one composite panel.    */
+/* ================================================================== */
+
+function CoverSpread({
   member,
   mood,
   onMoodChange,
+  index,
+  total,
 }: {
   member: Member;
   mood: PortraitMood;
   onMoodChange: (mood: PortraitMood) => void;
+  index: number;
+  total: number;
 }) {
   const availableMoods = PORTRAIT_MOODS.filter((entry) => {
     if (entry === "neutral") {
@@ -309,208 +453,443 @@ function DossierHero({
     return member.portraits[entry] !== undefined;
   });
   const lifecycle = member.state.status;
-  const lifecycleClass =
+  const stampToneClass =
     lifecycle === "active"
-      ? "bg-aura-emerald/15 text-aura-emerald ring-aura-emerald/30"
+      ? "text-aura-emerald ring-aura-emerald/40 bg-aura-emerald/10"
       : lifecycle === "closed"
-        ? "bg-aura-faint/15 text-aura-muted ring-aura-faint/30"
-        : "bg-aura-rose/15 text-aura-rose ring-aura-rose/30";
+        ? "text-aura-faint ring-aura-faint/40 bg-aura-faint/10"
+        : "text-aura-rose ring-aura-rose/40 bg-aura-rose/10";
 
   return (
     <motion.article
-      key={`hero-${member.id}`}
+      key={`cover-${member.id}`}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
       className="aura-glass relative overflow-hidden rounded-card"
     >
       <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -left-12 size-72 rounded-full bg-aura-mesh-rose/40 blur-3xl" />
-        <div className="absolute -bottom-20 right-0 size-72 rounded-full bg-aura-mesh-violet/45 blur-3xl" />
+        <div className="absolute -top-32 -left-16 size-96 rounded-full bg-aura-mesh-rose/40 blur-3xl" />
+        <div className="absolute -bottom-24 right-0 size-96 rounded-full bg-aura-mesh-violet/45 blur-3xl" />
+        <div className="absolute inset-0 aura-dot-grid opacity-20 [mask-image:radial-gradient(ellipse_at_center,black_30%,transparent_75%)]" />
       </div>
 
-      <div className="relative grid gap-6 p-6 md:grid-cols-[14rem_minmax(0,1fr)] md:p-7">
+      <header className="relative flex flex-wrap items-center justify-between gap-3 border-b border-aura-hairline px-6 py-3">
+        <div className="flex items-center gap-3">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+            // case file
+          </span>
+          <span className="font-mono text-micro tabular-nums tracking-[0.22em] text-aura-faint">
+            no. {String(index + 1).padStart(2, "0")} of {String(total).padStart(2, "0")}
+          </span>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
+          file.{member.id}
+        </span>
+      </header>
+
+      <div className="relative grid gap-6 p-6 md:p-7 lg:grid-cols-[15rem_minmax(0,1.2fr)_minmax(0,1fr)]">
         <div className="flex flex-col items-center gap-3">
-          <div className="relative">
-            <Portrait member={member} variant="hero" asset="portrait" mood={mood} />
-          </div>
-          <div className="flex flex-wrap items-center justify-center gap-1">
-            {availableMoods.map((entry) => {
-              const active = entry === mood;
-              return (
-                <button
-                  key={entry}
-                  type="button"
-                  onClick={() => onMoodChange(entry)}
-                  className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro uppercase tracking-[0.18em] transition ${
-                    active
-                      ? "bg-aura-ink text-white"
-                      : "border border-aura-hairline bg-white/60 text-aura-muted hover:text-aura-ink"
-                  }`}
-                >
-                  {entry}
-                </button>
-              );
-            })}
-          </div>
+          <Portrait member={member} variant="hero" asset="portrait" mood={mood} priority />
+          <MoodSwatchRow available={availableMoods} active={mood} onChange={onMoodChange} />
         </div>
 
         <div className="min-w-0 space-y-4">
-          <div className="flex flex-wrap items-baseline gap-3">
-            <Eyebrow>// file.{member.id}</Eyebrow>
-            <span
-              className={`rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] ring-1 ${lifecycleClass}`}
-            >
-              {lifecycle}
-            </span>
-          </div>
-
+          <Eyebrow>// subject</Eyebrow>
           <h2 className="font-display text-display-lg font-semibold leading-[0.95] tracking-tight text-aura-ink">
             {member.firstName}
             <span className="aura-accent text-display-lg text-aura-rose">.</span>
           </h2>
-
           <p className="font-display text-body font-semibold tracking-tight text-aura-muted">
             {member.name}
           </p>
 
-          <dl className="grid gap-2 sm:grid-cols-2">
-            <IdentityRow label="Species" value={member.species} />
-            <IdentityRow label="Dimension" value={member.dimension} />
-            <IdentityRow label="Origin" value={member.origin} />
-            <IdentityRow label="Reality" value={member.realityStatus} />
-            <IdentityRow
+          <dl className="space-y-1.5">
+            <DotLeaderRow label="Species" value={member.species} />
+            <DotLeaderRow label="Dimension" value={member.dimension} />
+            <DotLeaderRow label="Origin" value={member.origin} />
+            <DotLeaderRow label="Reality" value={member.realityStatus} />
+            <DotLeaderRow
               label="Height"
               value={`${formatHeight(member.characterHeightInInches)} (${member.characterHeightInInches}")`}
             />
-            <IdentityRow
+            <DotLeaderRow
               label="Standee"
               value={`${formatHeight(member.standeeRenderHeightInInches)} (${member.standeeRenderHeightInInches}")`}
             />
           </dl>
+
+          <ul className="flex flex-wrap gap-1.5 pt-2">
+            {member.tags.map((tag) => {
+              const isIdentity = tag === "ordinary_human" || tag === "non_human";
+              return (
+                <li
+                  key={tag}
+                  className={`rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] ring-1 ${
+                    isIdentity
+                      ? "bg-aura-ink text-white ring-aura-ink"
+                      : "bg-aura-rose/10 text-aura-rose ring-aura-rose/25"
+                  }`}
+                >
+                  {readableTag(tag)}
+                </li>
+              );
+            })}
+          </ul>
         </div>
+
+        <div className="relative min-w-0 space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <Eyebrow>// state</Eyebrow>
+            <span
+              aria-hidden
+              className={`rotate-3 rounded-tile px-3 py-1 font-eldritch text-body tracking-[0.18em] ring-1 ${stampToneClass}`}
+            >
+              {lifecycle.toUpperCase()}
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            {STATE_GAUGE_FIELDS.map((field) => (
+              <MiniGauge
+                key={field.id}
+                label={field.label}
+                value={member.state[field.id]}
+                accent={field.accent}
+              />
+            ))}
+          </div>
+
+          <dl className="space-y-1.5">
+            <DotLeaderRow label="Status" value={member.state.status} />
+            <DotLeaderRow label="Request" value={member.state.currentRequestId ?? "(none)"} />
+            <DotLeaderRow
+              label="Last shift"
+              value={
+                member.state.lastDateShift === undefined
+                  ? "(none)"
+                  : `shift ${member.state.lastDateShift}`
+              }
+            />
+            <DotLeaderRow label="Result" value={member.state.recentDateResult ?? "(none)"} />
+          </dl>
+        </div>
+      </div>
+
+      <div className="relative grid gap-5 border-t border-aura-hairline bg-white/30 p-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,0.95fr)]">
+        <BioColumn label="Bio">
+          <p className="text-body leading-relaxed text-aura-ink/90">{member.bio}</p>
+        </BioColumn>
+        <BioColumn label="Dating profile" tone="violet">
+          <p className="text-body italic leading-relaxed text-aura-ink/85">
+            {member.datingProfile}
+          </p>
+        </BioColumn>
+        <BioColumn label="Visual description" tone="amber">
+          <p className="text-label leading-relaxed text-aura-muted">{member.visualDescription}</p>
+        </BioColumn>
       </div>
     </motion.article>
   );
 }
 
-function IdentityRow({ label, value }: { label: string; value: string }) {
+function DotLeaderRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-tile border border-aura-hairline bg-white/55 px-3 py-2">
-      <dt className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+    <div className="flex items-baseline gap-2">
+      <dt className="shrink-0 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
         {label}
       </dt>
-      <dd className="mt-0.5 font-display text-sm font-semibold leading-snug tracking-tight text-aura-ink">
+      <span aria-hidden className="aura-doc-leader" />
+      <dd className="min-w-0 max-w-[65%] truncate text-right font-display text-sm font-semibold tracking-tight text-aura-ink">
         {value}
       </dd>
     </div>
   );
 }
 
-/* ================================================================== */
-/* Bio + dating profile + visual description                          */
-/* ================================================================== */
-
-function DossierBio({ member }: { member: Member }) {
+function MoodSwatchRow({
+  available,
+  active,
+  onChange,
+}: {
+  available: ReadonlyArray<PortraitMood>;
+  active: PortraitMood;
+  onChange: (mood: PortraitMood) => void;
+}) {
   return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader label="// narrative" title="Bio, profile, visual" />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
-        <BodyBlock title="Bio">
-          <p className="text-body leading-relaxed text-aura-ink/90">{member.bio}</p>
-        </BodyBlock>
-        <BodyBlock title="Dating profile">
-          <p className="text-body italic leading-relaxed text-aura-ink/85">
-            {member.datingProfile}
-          </p>
-        </BodyBlock>
-        <BodyBlock title="Visual description">
-          <p className="text-body leading-relaxed text-aura-muted">{member.visualDescription}</p>
-        </BodyBlock>
+    <div className="flex flex-wrap items-center justify-center gap-1">
+      {available.map((entry) => {
+        const selected = entry === active;
+        return (
+          <button
+            key={entry}
+            type="button"
+            onClick={() => onChange(entry)}
+            className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro uppercase tracking-[0.18em] transition ${
+              selected
+                ? "bg-aura-ink text-white"
+                : "border border-aura-hairline bg-white/60 text-aura-muted hover:text-aura-ink"
+            }`}
+          >
+            {entry}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function MiniGauge({ label, value, accent }: { label: string; value: number; accent: string }) {
+  const widthClass = stateGaugeWidthClass(value);
+  return (
+    <div className="space-y-1">
+      <div className="flex items-baseline justify-between">
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+          {label}
+        </span>
+        <span className="font-mono text-body font-semibold tabular-nums tracking-tight text-aura-ink">
+          {value}
+        </span>
       </div>
+      <div className="h-1 overflow-hidden rounded-pill bg-aura-ink/5">
+        <div className={`h-full rounded-pill bg-gradient-to-r ${accent} ${widthClass}`} />
+      </div>
+    </div>
+  );
+}
+
+function BioColumn({
+  label,
+  tone = "rose",
+  children,
+}: {
+  label: string;
+  tone?: "rose" | "violet" | "amber";
+  children: React.ReactNode;
+}) {
+  const labelClass =
+    tone === "violet"
+      ? "text-aura-violet"
+      : tone === "amber"
+        ? "text-aura-amber"
+        : "text-aura-rose/85";
+  return (
+    <section>
+      <p className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${labelClass}`}>
+        {label}
+      </p>
+      <div className="mt-2">{children}</div>
     </section>
   );
 }
 
-function BodyBlock({ title, children }: { title: string; children: React.ReactNode }) {
+/* ================================================================== */
+/* Voice spread                                                       */
+/* ================================================================== */
+
+function VoiceSpread({
+  member,
+  group,
+  onGroupChange,
+}: {
+  member: Member;
+  group: VoiceSampleGroup;
+  onGroupChange: (group: VoiceSampleGroup) => void;
+}) {
+  const samples = member.voice.sampleMessages[group];
+
   return (
-    <article className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-        {title}
-      </p>
-      <div className="mt-2">{children}</div>
+    <article className="aura-glass overflow-hidden rounded-card">
+      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-aura-hairline px-6 py-4">
+        <div>
+          <Eyebrow>// voice</Eyebrow>
+          <h3 className="mt-1 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            How this file talks on the line.
+          </h3>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          register, patterns, tics, samples
+        </span>
+      </header>
+
+      <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
+        <div className="space-y-3">
+          <RegisterCard register={member.voice.register} />
+          <PatternStrip
+            title="Patterns used"
+            tone="positive"
+            patterns={member.voice.patternsUsed}
+          />
+          <PatternStrip
+            title="Patterns refused"
+            tone="negative"
+            patterns={member.voice.patternsRefused}
+          />
+          <TicsList tics={member.voice.tics} />
+        </div>
+
+        <div className="relative overflow-hidden rounded-tile border border-aura-amber/30 bg-gradient-to-b from-[#fff6cf] to-[#ffe994] shadow-quiet">
+          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-aura-amber/30 px-4 py-3">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+              Sample messages
+            </p>
+            <div className="inline-flex items-center gap-1 rounded-pill bg-aura-ink/5 p-1">
+              {VOICE_SAMPLE_GROUPS.map((entry) => {
+                const active = entry.id === group;
+                return (
+                  <button
+                    key={entry.id}
+                    type="button"
+                    onClick={() => onGroupChange(entry.id)}
+                    className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
+                      active ? "bg-aura-ink text-white" : "text-aura-muted hover:text-aura-ink"
+                    }`}
+                  >
+                    {entry.label}
+                  </button>
+                );
+              })}
+            </div>
+          </header>
+
+          <ol className="divide-y divide-aura-amber/25">
+            {samples.map((sample, sampleIndex) => (
+              <li
+                key={`${group}-${sampleIndex}`}
+                className="flex items-start gap-4 px-4 py-3 text-body italic leading-relaxed text-aura-ink/90"
+              >
+                <span
+                  aria-hidden
+                  className="mt-1 font-mono text-micro not-italic tabular-nums tracking-[0.18em] text-aura-amber/80"
+                >
+                  {String(sampleIndex + 1).padStart(2, "0")}
+                </span>
+                <span className="flex-1">{sample}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
     </article>
   );
 }
 
-/* ================================================================== */
-/* Tags                                                                */
-/* ================================================================== */
-
-function DossierTags({ member }: { member: Member }) {
+function RegisterCard({ register }: { register: string }) {
   return (
-    <section className="aura-glass rounded-card p-6 md:p-7">
-      <SectionHeader label="// gameplay tags" title="Identity and dispositions" />
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {member.tags.map((tag) => {
-          const isIdentity = tag === "ordinary_human" || tag === "non_human";
-          return (
-            <li
-              key={tag}
-              className={`rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ring-1 ${
-                isIdentity
-                  ? "bg-aura-ink text-white ring-aura-ink"
-                  : "bg-aura-rose/10 text-aura-rose ring-aura-rose/25"
-              }`}
-            >
-              {readableTag(tag)}
-            </li>
-          );
-        })}
+    <div className="rounded-tile border border-aura-hairline bg-white/60 p-4">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+        Register
+      </p>
+      <p className="mt-2 font-display text-body font-semibold tracking-tight text-aura-ink">
+        {register}
+      </p>
+    </div>
+  );
+}
+
+function PatternStrip({
+  title,
+  tone,
+  patterns,
+}: {
+  title: string;
+  tone: "positive" | "negative";
+  patterns: readonly string[];
+}) {
+  const chipClass =
+    tone === "positive"
+      ? "bg-aura-emerald/10 text-aura-emerald ring-aura-emerald/25"
+      : "bg-aura-faint/15 text-aura-muted ring-aura-hairline-strong line-through decoration-aura-rose/50";
+
+  return (
+    <div className="rounded-tile border border-aura-hairline bg-white/60 p-4">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+        {title}
+      </p>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {patterns.map((pattern) => (
+          <li
+            key={pattern}
+            className={`rounded-pill px-2.5 py-1 font-mono text-micro uppercase tracking-[0.16em] ring-1 ${chipClass}`}
+          >
+            {readableTag(pattern)}
+          </li>
+        ))}
       </ul>
-    </section>
+    </div>
+  );
+}
+
+function TicsList({ tics }: { tics: readonly string[] }) {
+  return (
+    <div className="rounded-tile border border-aura-hairline bg-white/60 p-4">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+        Tics
+      </p>
+      <ul className="mt-2 space-y-1.5">
+        {tics.map((tic) => (
+          <li
+            key={tic}
+            className="flex items-start gap-2.5 text-label leading-snug text-aura-ink/90"
+          >
+            <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-aura-fuchsia" />
+            <span>{tic}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
 /* ================================================================== */
-/* Wants & boundaries (needs/preferences/dealbreakers/secrets)         */
+/* Boundaries quad                                                    */
 /* ================================================================== */
 
-function DossierWantsAndBoundaries({ member }: { member: Member }) {
+function BoundariesQuad({ member }: { member: Member }) {
   return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader label="// wants and boundaries" title="What this file wants on file" />
-      <div className="grid gap-4 lg:grid-cols-2">
-        <ListPanel
+    <article className="aura-glass overflow-hidden rounded-card">
+      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-aura-hairline px-6 py-4">
+        <div>
+          <Eyebrow>// wants and boundaries</Eyebrow>
+          <h3 className="mt-1 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            What this file wants on file.
+          </h3>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          needs, prefs, dealbreakers, secrets
+        </span>
+      </header>
+      <div className="grid gap-3 p-6 md:grid-cols-2 xl:grid-cols-4">
+        <BoundaryPanel
           title="Looking for"
           accent="rose"
           items={member.relationshipNeeds}
           emptyText="No needs on file."
         />
-        <ListPanel
+        <BoundaryPanel
           title="Preferences"
           accent="amber"
           items={member.preferences}
           emptyText="No soft reads filed."
         />
-        <ListPanel
+        <BoundaryPanel
           title="Dealbreakers"
           accent="ink"
           items={member.dealbreakers}
           emptyText="None on file."
         />
-        <ListPanel
+        <BoundaryPanel
           title="Secrets"
           accent="violet"
           items={member.secrets}
           emptyText="No secrets on file."
         />
       </div>
-    </section>
+    </article>
   );
 }
 
-function ListPanel({
+function BoundaryPanel({
   title,
   items,
   emptyText,
@@ -547,7 +926,7 @@ function ListPanel({
           {title}
         </p>
         <span className="font-mono text-micro tabular-nums tracking-[0.18em] text-aura-faint">
-          {items.length}
+          {String(items.length).padStart(2, "0")}
         </span>
       </header>
       {items.length === 0 ? (
@@ -570,326 +949,109 @@ function ListPanel({
 }
 
 /* ================================================================== */
-/* Voice                                                              */
+/* Contact sheet                                                      */
 /* ================================================================== */
 
-function DossierVoice({
-  member,
-  group,
-  onGroupChange,
-}: {
-  member: Member;
-  group: VoiceSampleGroup;
-  onGroupChange: (group: VoiceSampleGroup) => void;
-}) {
-  const samples = member.voice.sampleMessages[group];
-
-  return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader label="// voice" title="How this file talks on the line" />
-
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
-        <div className="space-y-4">
-          <article className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-              Register
-            </p>
-            <p className="mt-2 font-display text-base font-semibold tracking-tight text-aura-ink">
-              {member.voice.register}
-            </p>
-          </article>
-
-          <PatternChips
-            title="Patterns used"
-            tone="positive"
-            patterns={member.voice.patternsUsed}
-          />
-          <PatternChips
-            title="Patterns refused"
-            tone="negative"
-            patterns={member.voice.patternsRefused}
-          />
-
-          <article className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-              Tics
-            </p>
-            <ul className="mt-2 space-y-1.5">
-              {member.voice.tics.map((tic) => (
-                <li
-                  key={tic}
-                  className="flex items-start gap-2.5 text-label leading-snug text-aura-ink/90"
-                >
-                  <span
-                    aria-hidden
-                    className="mt-2 size-1.5 shrink-0 rounded-full bg-aura-fuchsia"
-                  />
-                  <span>{tic}</span>
-                </li>
-              ))}
-            </ul>
-          </article>
-        </div>
-
-        <div className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-          <header className="flex flex-wrap items-center justify-between gap-3">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-              Sample messages
-            </p>
-            <div className="inline-flex items-center gap-1 rounded-pill bg-aura-ink/5 p-1">
-              {VOICE_SAMPLE_GROUPS.map((entry) => {
-                const active = entry.id === group;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => onGroupChange(entry.id)}
-                    className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
-                      active ? "bg-aura-ink text-white" : "text-aura-muted hover:text-aura-ink"
-                    }`}
-                  >
-                    {entry.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          <ul className="mt-4 space-y-3">
-            {samples.map((sample, index) => (
-              <li
-                key={`${group}-${index}`}
-                className="rounded-tile border border-aura-hairline bg-aura-paper px-4 py-3 text-body italic leading-relaxed text-aura-ink/90 shadow-quiet"
-              >
-                <span
-                  aria-hidden
-                  className="mr-2 font-mono text-micro not-italic tracking-[0.18em] text-aura-faint"
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                {sample}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function PatternChips({
-  title,
-  tone,
-  patterns,
-}: {
-  title: string;
-  tone: "positive" | "negative";
-  patterns: readonly string[];
-}) {
-  const baseClass =
-    tone === "positive"
-      ? "bg-aura-emerald/10 text-aura-emerald ring-aura-emerald/25"
-      : "bg-aura-faint/15 text-aura-muted ring-aura-hairline-strong line-through decoration-aura-rose/50";
-
-  return (
-    <article className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-        {title}
-      </p>
-      <ul className="mt-2 flex flex-wrap gap-1.5">
-        {patterns.map((pattern) => (
-          <li
-            key={pattern}
-            className={`rounded-pill px-2.5 py-1 font-mono text-micro uppercase tracking-[0.16em] ring-1 ${baseClass}`}
-          >
-            {readableTag(pattern)}
-          </li>
-        ))}
-      </ul>
-    </article>
-  );
-}
-
-/* ================================================================== */
-/* State                                                              */
-/* ================================================================== */
-
-function DossierState({ member }: { member: Member }) {
-  return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader label="// state" title="Live runtime values" />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {STATE_GAUGE_FIELDS.map((field) => (
-          <StateGauge
-            key={field.id}
-            label={field.label}
-            value={member.state[field.id]}
-            accent={field.accent}
-          />
-        ))}
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-2">
-        <KeyValueRow label="Status" value={member.state.status} />
-        <KeyValueRow label="Current request" value={member.state.currentRequestId ?? "(none)"} />
-        <KeyValueRow
-          label="Last shift"
-          value={
-            member.state.lastDateShift === undefined
-              ? "(none)"
-              : `shift ${member.state.lastDateShift}`
-          }
-        />
-        <KeyValueRow label="Recent date result" value={member.state.recentDateResult ?? "(none)"} />
-      </div>
-    </section>
-  );
-}
-
-function StateGauge({ label, value, accent }: { label: string; value: number; accent: string }) {
-  const clamped = Math.max(0, Math.min(100, value));
-  const widthClass = stateGaugeWidthClass(clamped);
-
-  return (
-    <article className="rounded-tile border border-aura-hairline bg-white/55 p-4">
-      <header className="flex items-baseline justify-between">
-        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-          {label}
-        </p>
-        <span className="font-mono text-base font-semibold tabular-nums text-aura-ink">
-          {value}
-        </span>
-      </header>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-pill bg-aura-ink/5">
-        <div className={`h-full rounded-pill bg-gradient-to-r ${accent} ${widthClass}`} />
-      </div>
-    </article>
-  );
-}
-
-const STATE_GAUGE_WIDTH_CLASSES = [
-  "w-0",
-  "w-[5%]",
-  "w-[10%]",
-  "w-[15%]",
-  "w-[20%]",
-  "w-[25%]",
-  "w-[30%]",
-  "w-[35%]",
-  "w-[40%]",
-  "w-[45%]",
-  "w-[50%]",
-  "w-[55%]",
-  "w-[60%]",
-  "w-[65%]",
-  "w-[70%]",
-  "w-[75%]",
-  "w-[80%]",
-  "w-[85%]",
-  "w-[90%]",
-  "w-[95%]",
-  "w-full",
-] as const;
-
-function stateGaugeWidthClass(score: number): (typeof STATE_GAUGE_WIDTH_CLASSES)[number] {
-  const index = Math.round(score / 5);
-  return STATE_GAUGE_WIDTH_CLASSES[index] ?? "w-full";
-}
-
-function KeyValueRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline gap-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2">
-      <span className="shrink-0 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-        {label}
-      </span>
-      <span className="min-w-0 flex-1 truncate font-display text-sm font-semibold tracking-tight text-aura-ink">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/* ================================================================== */
-/* Portrait gallery                                                   */
-/* ================================================================== */
-
-function DossierPortraitGallery({ member }: { member: Member }) {
-  type GalleryEntry = { mood: PortraitMood; sourcePath: string; cutoutPath: string };
-  const entries: GalleryEntry[] = [];
-  for (const mood of PORTRAIT_MOODS) {
-    if (mood === "neutral") {
-      entries.push({
-        mood,
-        sourcePath: member.portraits.neutral.portrait.sourcePath,
+function ContactSheet({ member }: { member: Member }) {
+  type Frame = {
+    key: string;
+    mood: PortraitMood;
+    label: string;
+    cutoutPath: string;
+    sourcePath: string;
+    asset: "portrait" | "avatar";
+  };
+  const frames: Frame[] = [];
+  for (const portraitMood of PORTRAIT_MOODS) {
+    if (portraitMood === "neutral") {
+      frames.push({
+        key: "neutral",
+        mood: "neutral",
+        label: "neutral",
         cutoutPath: member.portraits.neutral.portrait.cutoutPath,
+        sourcePath: member.portraits.neutral.portrait.sourcePath,
+        asset: "portrait",
       });
       continue;
     }
-    const variant = member.portraits[mood];
+    const variant = member.portraits[portraitMood];
     if (variant === undefined) {
       continue;
     }
-    entries.push({
-      mood,
-      sourcePath: variant.portrait.sourcePath,
+    frames.push({
+      key: portraitMood,
+      mood: portraitMood,
+      label: portraitMood,
       cutoutPath: variant.portrait.cutoutPath,
+      sourcePath: variant.portrait.sourcePath,
+      asset: "portrait",
     });
   }
+  frames.push({
+    key: "avatar",
+    mood: "neutral",
+    label: "avatar (chat)",
+    cutoutPath: member.portraits.neutral.avatar.cutoutPath,
+    sourcePath: member.portraits.neutral.avatar.sourcePath,
+    asset: "avatar",
+  });
+
+  const variantCount = frames.length - 1;
 
   return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader label="// portraits" title={`Mood variants (${entries.length}/4)`} />
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {entries.map((entry) => (
-          <article
-            key={entry.mood}
+    <article className="aura-glass overflow-hidden rounded-card">
+      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-aura-hairline px-6 py-4">
+        <div>
+          <Eyebrow>// contact sheet</Eyebrow>
+          <h3 className="mt-1 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            Mood variants ({variantCount}/4) and chat avatar.
+          </h3>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          {frames.length} frames
+        </span>
+      </header>
+      <div className="grid gap-3 p-6 md:grid-cols-3 xl:grid-cols-5">
+        {frames.map((frame, frameIndex) => (
+          <figure
+            key={frame.key}
             className="overflow-hidden rounded-tile border border-aura-hairline bg-white/55"
           >
-            <div className="grid h-44 place-items-center bg-gradient-to-b from-aura-mesh-rose/30 via-transparent to-aura-mesh-violet/25">
-              <Portrait member={member} variant="card" asset="portrait" mood={entry.mood} />
+            <div
+              className={`relative grid aspect-square place-items-center ${
+                frame.asset === "avatar"
+                  ? "bg-gradient-to-b from-aura-mesh-amber/35 via-transparent to-aura-mesh-rose/25"
+                  : "bg-gradient-to-b from-aura-mesh-rose/30 via-transparent to-aura-mesh-violet/25"
+              }`}
+            >
+              <span
+                aria-hidden
+                className="absolute left-3 top-3 font-mono text-micro font-semibold tabular-nums tracking-[0.04em] text-aura-faint"
+              >
+                {String(frameIndex + 1).padStart(2, "0")}
+              </span>
+              <Portrait member={member} variant="card" asset={frame.asset} mood={frame.mood} />
             </div>
-            <div className="space-y-2 border-t border-aura-hairline px-3 py-3">
+            <figcaption className="space-y-1.5 border-t border-aura-hairline px-3 py-3">
               <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-                {entry.mood}
+                {frame.label}
               </p>
-              <PathLine label="src" path={entry.sourcePath} />
-              <PathLine label="cut" path={entry.cutoutPath} />
-            </div>
-          </article>
+              <p className="break-all font-mono text-micro leading-tight tracking-[0.02em] text-aura-ink/75">
+                {frame.cutoutPath}
+              </p>
+            </figcaption>
+          </figure>
         ))}
-        <article className="overflow-hidden rounded-tile border border-aura-hairline bg-white/55">
-          <div className="grid h-44 place-items-center bg-gradient-to-b from-aura-mesh-amber/30 via-transparent to-aura-mesh-rose/20">
-            <Portrait member={member} variant="card" asset="avatar" />
-          </div>
-          <div className="space-y-2 border-t border-aura-hairline px-3 py-3">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-              avatar (chat)
-            </p>
-            <PathLine label="src" path={member.portraits.neutral.avatar.sourcePath} />
-            <PathLine label="cut" path={member.portraits.neutral.avatar.cutoutPath} />
-          </div>
-        </article>
       </div>
-    </section>
-  );
-}
-
-function PathLine({ label, path }: { label: string; path: string }) {
-  return (
-    <p className="flex items-baseline gap-2 font-mono text-micro leading-tight tracking-[0.04em]">
-      <span className="shrink-0 font-semibold uppercase tracking-[0.22em] text-aura-faint">
-        {label}
-      </span>
-      <span className="min-w-0 flex-1 break-all text-aura-ink/80">{path}</span>
-    </p>
+    </article>
   );
 }
 
 /* ================================================================== */
-/* Chat bubble                                                        */
+/* Bubble test                                                        */
 /* ================================================================== */
 
-function DossierChatBubble({ member }: { member: Member }) {
+function BubbleTest({ member }: { member: Member }) {
   const customBubble = member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
   const bubbleClass = customBubble ? customBubble.className : HOUSE_BUBBLE_LEFT_CLASS;
   const bubbleStyle = customBubble?.style;
@@ -906,13 +1068,19 @@ function DossierChatBubble({ member }: { member: Member }) {
   const axes = describeBubbleAxes(member);
 
   return (
-    <section className="aura-glass space-y-5 rounded-card p-6 md:p-7">
-      <SectionHeader
-        label="// chat bubble"
-        title={customBubble ? "Custom bubble style" : "Uses house default"}
-      />
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+    <article className="aura-glass overflow-hidden rounded-card">
+      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-aura-hairline px-6 py-4">
+        <div>
+          <Eyebrow>// bubble test</Eyebrow>
+          <h3 className="mt-1 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+            {customBubble ? "Custom bubble style." : "Uses house default."}
+          </h3>
+        </div>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          {axes.length === 0 ? "0 axes" : `${axes.length} axes on file`}
+        </span>
+      </header>
+      <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="rounded-tile border border-aura-hairline bg-aura-paper p-5 shadow-quiet">
           <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
             Preview
@@ -920,7 +1088,7 @@ function DossierChatBubble({ member }: { member: Member }) {
           <div className="mt-4 flex justify-start">
             <div className="flex max-w-[88%] flex-col items-start gap-2" style={accentStyle}>
               <span
-                className={`relative z-20 px-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-left ${nameClass}`}
+                className={`relative z-20 px-3 text-left font-mono text-micro font-semibold uppercase tracking-[0.24em] ${nameClass}`}
               >
                 {member.firstName}
               </span>
@@ -958,7 +1126,7 @@ function DossierChatBubble({ member }: { member: Member }) {
           )}
         </div>
       </div>
-    </section>
+    </article>
   );
 }
 
@@ -973,7 +1141,7 @@ function describeBubbleAxes(member: Member): ReadonlyArray<{ label: string; valu
     value:
       bubble.background.kind === "solid"
         ? `solid ${bubble.background.color}`
-        : `gradient ${bubble.background.angle}deg · ${bubble.background.stops.length} stops`,
+        : `gradient ${bubble.background.angle}deg, ${bubble.background.stops.length} stops`,
   });
   axes.push({ label: "shape", value: bubble.shape });
   axes.push({ label: "text", value: bubble.textColor });
@@ -1005,16 +1173,35 @@ function describeBubbleAxes(member: Member): ReadonlyArray<{ label: string; valu
 }
 
 /* ================================================================== */
-/* Section header helper                                              */
+/* Gauge width helpers                                                */
 /* ================================================================== */
 
-function SectionHeader({ label, title }: { label: string; title: string }) {
-  return (
-    <header className="space-y-1">
-      <Eyebrow>{label}</Eyebrow>
-      <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
-        {title}
-      </h3>
-    </header>
-  );
+const STATE_GAUGE_WIDTH_CLASSES = [
+  "w-0",
+  "w-[5%]",
+  "w-[10%]",
+  "w-[15%]",
+  "w-[20%]",
+  "w-[25%]",
+  "w-[30%]",
+  "w-[35%]",
+  "w-[40%]",
+  "w-[45%]",
+  "w-[50%]",
+  "w-[55%]",
+  "w-[60%]",
+  "w-[65%]",
+  "w-[70%]",
+  "w-[75%]",
+  "w-[80%]",
+  "w-[85%]",
+  "w-[90%]",
+  "w-[95%]",
+  "w-full",
+] as const;
+
+function stateGaugeWidthClass(score: number): (typeof STATE_GAUGE_WIDTH_CLASSES)[number] {
+  const clamped = Math.max(0, Math.min(100, score));
+  const index = Math.round(clamped / 5);
+  return STATE_GAUGE_WIDTH_CLASSES[index] ?? "w-full";
 }

@@ -5,7 +5,7 @@ import {
   type DateScenario,
   type Member,
   type MemoryRecord,
-  type PairState,
+  type PairEdge,
   type PlayerKnowledgeRecord,
   type ShiftState,
 } from "../domain/game";
@@ -31,7 +31,7 @@ import { ShiftArchive } from "./shift-archive";
 export type NotesProps = {
   memories: MemoryRecord[];
   members: Member[];
-  pairStates: PairState[];
+  pairEdges: readonly PairEdge[];
   scenarios: DateScenario[];
   shifts: ShiftState[];
   pairFocusId?: string | null;
@@ -42,7 +42,7 @@ export type NotesProps = {
 export function NotesView({
   memories,
   members,
-  pairStates,
+  pairEdges,
   scenarios,
   shifts,
   pairFocusId,
@@ -71,9 +71,9 @@ export function NotesView({
     () => new Map(members.map((member) => [member.id, member])),
     [members],
   );
-  const pairStateById = useMemo(
-    () => new Map(pairStates.map((pair) => [pair.id, pair])),
-    [pairStates],
+  const pairEdgeById = useMemo(
+    () => new Map(pairEdges.map((pair) => [pair.id, pair])),
+    [pairEdges],
   );
   const scenarioById = useMemo(
     () => new Map(scenarios.map((scenario) => [scenario.id, scenario])),
@@ -86,13 +86,13 @@ export function NotesView({
     }
     return buildPairDossier({
       pairId: pairFocusId,
-      pairState: pairStateById.get(pairFocusId),
+      pairState: pairEdgeById.get(pairFocusId),
       memberById,
       memories,
       playerKnowledge: playerKnowledge ?? [],
       readyClosurePairIds: readyClosurePairIds ?? new Set<string>(),
     });
-  }, [pairFocusId, memories, memberById, pairStateById, playerKnowledge, readyClosurePairIds]);
+  }, [pairFocusId, memories, memberById, pairEdgeById, playerKnowledge, readyClosurePairIds]);
 
   const visibleMemories = useMemo(
     () => memories.filter(isPlayerVisibleNote).sort(sortMemoriesNewestFirst),
@@ -106,11 +106,11 @@ export function NotesView({
       if (seen.has(memory.pairId)) continue;
       seen.set(memory.pairId, {
         id: memory.pairId,
-        label: pairLabel(memory.pairId, memberById, pairStateById),
+        label: pairLabel(memory.pairId, memberById, pairEdgeById),
       });
     }
     return Array.from(seen.values()).sort((a, b) => a.label.localeCompare(b.label));
-  }, [visibleMemories, memberById, pairStateById]);
+  }, [visibleMemories, memberById, pairEdgeById]);
 
   const scenarioOptions = useMemo<NotesScopeOption[]>(() => {
     const seen = new Map<string, NotesScopeOption>();
@@ -160,7 +160,7 @@ export function NotesView({
         <div className="min-w-0 xl:sticky xl:top-6">
           <PairBoard
             members={members}
-            pairStates={pairStates}
+            pairEdges={pairEdges}
             memories={memories}
             scenarios={scenarios}
             shiftCount={shiftCount}
@@ -217,7 +217,7 @@ export function NotesView({
             <NotesArchive
               memories={filteredMemories}
               memberById={memberById}
-              pairStateById={pairStateById}
+              pairStateById={pairEdgeById}
               scenarioById={scenarioById}
             />
           )}

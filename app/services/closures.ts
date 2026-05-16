@@ -10,6 +10,7 @@ import {
 } from "../domain/game";
 import { applyClosureBudgetBump, applyMemberQuitBudgetCut } from "./budget";
 import { syncActiveShiftFocusCases } from "./focus-cases";
+import { buildLatestCompletedSessionMap } from "./relationship-index";
 import { clampScore } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
@@ -157,7 +158,7 @@ export function getReadyClosurePairs(save: GameSave): ReadyClosurePair[] {
     if (latestSession === undefined) continue;
 
     const report = latestSession.finalReport;
-    if (report === undefined || report.readyToClose !== true) continue;
+    if (report.readyToClose !== true) continue;
 
     const stillReady = evaluateClosureReadiness({
       pairState,
@@ -186,23 +187,6 @@ function getClosureMemoriesByCreatedAt(save: Pick<GameSave, "memories">): Memory
       (first, second) =>
         first.createdAt.localeCompare(second.createdAt) || first.id.localeCompare(second.id),
     );
-}
-
-function buildLatestCompletedSessionMap(
-  sessions: readonly DateSession[],
-): Map<string, DateSession> {
-  const latest = new Map<string, DateSession>();
-  for (const session of sessions) {
-    if (session.finalReport === undefined) continue;
-    const existing = latest.get(session.pairId);
-    if (
-      existing === undefined ||
-      session.finalReport.completedAt > existing.finalReport!.completedAt
-    ) {
-      latest.set(session.pairId, session);
-    }
-  }
-  return latest;
 }
 
 export type ClosurePairInput = {

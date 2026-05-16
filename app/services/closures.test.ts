@@ -469,13 +469,27 @@ describe("soft-win bookkeeping", () => {
 
   it("waits until the active shift starts after the fifth closure", () => {
     const seed = createSeedGameSave(new Date("2026-05-01T09:00:00Z"));
-    const closureMemories = seed.pairStates.slice(0, SOFT_WIN_THRESHOLD).map((pairState, index) =>
+    // Sparse pairStates start empty, so synthesize SOFT_WIN_THRESHOLD pair ids
+    // from disjoint members for the closure memories this test needs.
+    const memberPairs: Array<{ pairId: string; participantIds: [string, string] }> = [];
+    for (let index = 0; index < SOFT_WIN_THRESHOLD; index += 1) {
+      const firstMember = seed.members[index * 2];
+      const secondMember = seed.members[index * 2 + 1];
+      if (firstMember === undefined || secondMember === undefined) {
+        throw new Error("Seed roster too small to build closure memories for this test.");
+      }
+      memberPairs.push({
+        pairId: makePairId(firstMember.id, secondMember.id),
+        participantIds: [firstMember.id, secondMember.id],
+      });
+    }
+    const closureMemories = memberPairs.map((pair, index) =>
       memoryRecordSchema.parse({
-        id: `memory-${pairState.id}-${PAIR_CLOSURE_TAG}-${index}`,
+        id: `memory-${pair.pairId}-${PAIR_CLOSURE_TAG}-${index}`,
         scope: "pair",
         visibility: "public",
-        subjectIds: pairState.participantIds,
-        pairId: pairState.id,
+        subjectIds: pair.participantIds,
+        pairId: pair.pairId,
         text: `Closure note ${index + 1}. The pair leaves with groceries scheduled.`,
         tags: [PAIR_CLOSURE_TAG],
         importance: 5,

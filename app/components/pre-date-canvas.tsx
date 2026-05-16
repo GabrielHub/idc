@@ -28,6 +28,7 @@ import {
   type ScenarioRoomRead,
 } from "../services/match-fit";
 import { makePairId } from "../services/game-seed";
+import { getPairProjectionFromSave } from "../services/relationship-index";
 import {
   moveSuggestedMemberFirst,
   sortMembersByCuratedRosterOrder,
@@ -235,6 +236,13 @@ export function PreDateCanvas({
     () => new Map(pairStates.map((state) => [state.id, state])),
     [pairStates],
   );
+  // Untouched pairs are not in pairStates anymore. Fall back to a projection
+  // so partner suggestions and scenario room reads keep working before the
+  // first judge materializes the edge.
+  const resolvePairState = useMemo(
+    () => (pairId: string) => pairStateById.get(pairId) ?? getPairProjectionFromSave(save, pairId),
+    [pairStateById, save],
+  );
   const activeFocusRequest = useMemo(() => {
     if (activeFocus === null) return undefined;
 
@@ -278,7 +286,7 @@ export function PreDateCanvas({
     if (activeFocus === null || activeBooking !== null) return null;
     const candidates: ScenarioFreeRecommendationCandidate<Member>[] = [];
     for (const candidate of candidatePartners) {
-      const pairState = pairStateById.get(makePairId(activeFocus.id, candidate.id));
+      const pairState = resolvePairState(makePairId(activeFocus.id, candidate.id));
       if (pairState === undefined) continue;
       try {
         const signal = evaluateScenarioFreePairSignal({
@@ -293,7 +301,7 @@ export function PreDateCanvas({
       }
     }
     return chooseScenarioFreeRecommendation(candidates);
-  }, [activeFocus, activeFocusRequest, candidatePartners, save, pairStateById, activeBooking]);
+  }, [activeFocus, activeFocusRequest, candidatePartners, save, resolvePairState, activeBooking]);
 
   const orderedCandidatePartners = useMemo(
     () => moveSuggestedMemberFirst(candidatePartners, suggestedPartner?.id ?? null),
@@ -318,7 +326,7 @@ export function PreDateCanvas({
     if (activeBooking === null) {
       return new Map<string, ScenarioRoomRead>();
     }
-    const pairState = pairStateById.get(activeBooking.pairId);
+    const pairState = resolvePairState(activeBooking.pairId);
     const focus = save.members.find((member) => member.id === activeBooking.focusMemberId);
     const partner = save.members.find(
       (member) =>
@@ -344,7 +352,7 @@ export function PreDateCanvas({
       }
     }
     return map;
-  }, [activeBooking, pairStateById, save, drawnScenarios, activeFocusRequest]);
+  }, [activeBooking, resolvePairState, save, drawnScenarios, activeFocusRequest]);
 
   const shiftClosed = shift.status === "completed";
   const shiftDateAvailable = shift.dateSlotsUsed < shift.dateSlotsTotal;

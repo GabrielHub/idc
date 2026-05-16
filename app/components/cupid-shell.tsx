@@ -64,6 +64,7 @@ import {
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
+import { buildRelationshipIndex, getPairProjectionByPairId } from "../services/relationship-index";
 import {
   appendManagerQuipHistory,
   detectFocusSwapDropOfActive,
@@ -180,7 +181,7 @@ function useCueOnMessageChange(
 
 function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
-  const { play } = useSfx();
+  const { play, setDateAmbientActive } = useSfx();
   const isTutorialBlocking = useIsRequiredTutorialActive();
   const isTutorialBlockingRef = useRef(isTutorialBlocking);
   useEffect(() => {
@@ -341,6 +342,19 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }, [repository]);
 
   const activeShift = save === null ? null : getActiveShift(save);
+  const relationshipIndex = useMemo(
+    () => (save === null ? null : buildRelationshipIndex(save)),
+    [save],
+  );
+  const needsInitialFocusCases = useMemo(() => {
+    if (save === null) return false;
+    const caseBoardStarted =
+      save.dateSessions.length > 0 ||
+      save.shifts.some((shift) => shift.featuredMemberIds.length > 0);
+    return save.focusedMemberIds.length === 0 && !caseBoardStarted;
+  }, [save]);
+  const shellScreenKey: "loading" | "onboarding" | "main" =
+    save === null ? "loading" : needsInitialFocusCases ? "onboarding" : "main";
   const focusedMembers = useMemo(() => (save === null ? [] : getFocusedMembers(save)), [save]);
   const readyClosurePairs = useMemo(
     () => (save === null ? [] : getReadyClosurePairs(save)),
@@ -384,13 +398,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         : starterScenarios.find((scenario) => scenario.id === activeSession.scenarioId),
     [activeSession],
   );
-  const activePairState = useMemo(
-    () =>
-      save === null || activeSession === null
-        ? undefined
-        : save.pairStates.find((pair) => pair.id === activeSession.pairId),
-    [save, activeSession],
-  );
+  const activePairState = useMemo(() => {
+    if (relationshipIndex === null || activeSession === null) return undefined;
+    return getPairProjectionByPairId(relationshipIndex, activeSession.pairId);
+  }, [relationshipIndex, activeSession]);
   const drawnScenarios = useMemo(
     () =>
       activeShift === null
@@ -405,6 +416,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [save],
   );
   const dateAmbientActive = activeSession?.status === "active";
+  useEffect(() => {
+    setDateAmbientActive(dateAmbientActive);
+    return () => setDateAmbientActive(false);
+  }, [dateAmbientActive, setDateAmbientActive]);
   const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
   const screenKey =
     currentRoom === "livedate"
@@ -443,15 +458,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [],
   );
   useEffect(() => {
-    if (save === null) return;
-    const caseBoardStarted =
-      save.dateSessions.length > 0 ||
-      save.shifts.some((shift) => shift.featuredMemberIds.length > 0);
-    const onboardingActive = save.focusedMemberIds.length === 0 && !caseBoardStarted;
-    if (!onboardingActive) return;
+    if (!needsInitialFocusCases) return;
     dispatchManagerQuip({ triggerKey: "onboarding.welcome", bypassTutorialGate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [save]);
+  }, [needsInitialFocusCases]);
 
   useEffect(() => {
     if (
@@ -479,7 +489,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [screenKey]);
+  }, [screenKey, shellScreenKey]);
 
   async function persist(nextSave: GameSave, options: { preserveTutorial?: boolean } = {}) {
     const latestTutorial = saveRef.current?.tutorial;
@@ -1242,289 +1252,287 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return <DashboardLoading />;
   }
 
-  const caseBoardStarted =
-    save.dateSessions.length > 0 || save.shifts.some((shift) => shift.featuredMemberIds.length > 0);
-  const needsInitialFocusCases = save.focusedMemberIds.length === 0 && !caseBoardStarted;
-
   const aiReady = localAiStatus.status === "ready" && save.config.aiSetupComplete === true;
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
-      {needsInitialFocusCases ? (
-        <motion.div
-          key="onboarding"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-          className="min-h-screen w-full"
-        >
-          <OnboardingScreen
-            members={save.members}
-            scenarios={starterScenarios}
-            save={save}
-            onTutorialUpdate={handleTutorialUpdate}
-            onConfirm={handleConfirmOnboarding}
-          />
-          {errorMessage !== null ? (
-            <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
-          ) : null}
-        </motion.div>
-      ) : (
-        <motion.div
-          key="main"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-          className="relative isolate min-h-screen w-full"
-        >
-          <AmbientMesh />
-          <header className="relative z-40 mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={onPunchOut}
-                data-sfx="click"
-                className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
-              >
-                ← Punch out
-              </button>
-              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black">
-                shift {String(activeShift?.shiftNumber ?? 1).padStart(2, "0")} / {currentRoom}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <MutedIndicator />
-              <button
-                type="button"
-                onClick={() => setIsAiSetupOpen(true)}
-                data-sfx="click"
-                className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
-              >
-                ai · {aiStatusLabel}
-              </button>
-              <SettingsMenu
-                isActionPending={isActionPending}
-                getDiagnostics={getDiagnostics}
-                canExportSave={save !== null}
-                canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
-                devRevealAllMemberDetails={revealAllMemberDetails}
-                onOpenAiSetup={() => setIsAiSetupOpen(true)}
-                onReset={handleResetSave}
-                onResetOrientation={() => {
-                  void handleResetOrientation();
-                }}
-                onExportSave={handleExportSave}
-                onImportSave={handleImportSave}
-                onCopyDiagnostics={handleCopyDiagnostics}
-                onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
-                onOpenReleaseNotes={handleOpenReleaseNotes}
-              />
-            </div>
-          </header>
+    <>
+      <AnimatePresence mode="wait" initial={false}>
+        {needsInitialFocusCases ? (
+          <motion.div
+            key="onboarding"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+            className="min-h-screen w-full"
+          >
+            <OnboardingScreen
+              members={save.members}
+              scenarios={starterScenarios}
+              save={save}
+              onTutorialUpdate={handleTutorialUpdate}
+              onConfirm={handleConfirmOnboarding}
+            />
+            {errorMessage !== null ? (
+              <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
+            ) : null}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="main"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+            className="relative isolate min-h-screen w-full"
+          >
+            <AmbientMesh />
+            <header className="relative z-40 mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={onPunchOut}
+                  data-sfx="click"
+                  className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
+                >
+                  ← Punch out
+                </button>
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black">
+                  shift {String(activeShift?.shiftNumber ?? 1).padStart(2, "0")} / {currentRoom}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <MutedIndicator />
+                <button
+                  type="button"
+                  onClick={() => setIsAiSetupOpen(true)}
+                  data-sfx="click"
+                  className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
+                >
+                  ai · {aiStatusLabel}
+                </button>
+                <SettingsMenu
+                  isActionPending={isActionPending}
+                  getDiagnostics={getDiagnostics}
+                  canExportSave={save !== null}
+                  canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                  devRevealAllMemberDetails={revealAllMemberDetails}
+                  onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                  onReset={handleResetSave}
+                  onResetOrientation={() => {
+                    void handleResetOrientation();
+                  }}
+                  onExportSave={handleExportSave}
+                  onImportSave={handleImportSave}
+                  onCopyDiagnostics={handleCopyDiagnostics}
+                  onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                  onOpenReleaseNotes={handleOpenReleaseNotes}
+                />
+              </div>
+            </header>
 
-          <AnimatePresence mode="wait">
-            <motion.main
-              key={screenKey}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
-            >
-              {currentRoom === "livedate" && activeShift !== null ? (
-                activeSession !== null ? (
-                  <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
-                    <DateView
-                      session={activeSession}
-                      scenario={activeDateScenario}
-                      members={save.members}
-                      pairState={activePairState}
-                      playerKnowledge={save.playerKnowledge}
+            <AnimatePresence mode="wait">
+              <motion.main
+                key={screenKey}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
+              >
+                {currentRoom === "livedate" && activeShift !== null ? (
+                  activeSession !== null ? (
+                    <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
+                      <DateView
+                        session={activeSession}
+                        scenario={activeDateScenario}
+                        members={save.members}
+                        pairState={activePairState}
+                        playerKnowledge={save.playerKnowledge}
+                        save={save}
+                        onTutorialUpdate={handleTutorialUpdate}
+                        interventionText={interventionText}
+                        interventionTargetMemberId={interventionTargetMemberId}
+                        canAdvance={
+                          activeSession.status === "active" &&
+                          activeSession.playbackState !== "drafting" &&
+                          activeSession.playbackState !== "ended"
+                        }
+                        canIntervene={canAddCupidIntervention(activeSession)}
+                        isActionPending={isActionPending}
+                        pendingDateAction={
+                          pendingAction === "advanceExchange" ? "advanceExchange" : null
+                        }
+                        isJudgePending={isDateJudgePending}
+                        queuedPlaybackIntent={queuedPlaybackIntent}
+                        streamingDrafts={streamingDrafts}
+                        onInterventionTextChange={setInterventionText}
+                        onInterventionTargetChange={setInterventionTargetMemberId}
+                        onAdvance={handleAdvanceExchange}
+                        onCancel={handleCancelDate}
+                        onIntervene={handleIntervention}
+                        onFollowUp={handleFollowUp}
+                        onPickEvents={handlePickEvents}
+                        onTriggerEvent={handleTriggerEvent}
+                        onTogglePlayback={handleTogglePlayback}
+                        onBack={() => setActiveDateSessionId(null)}
+                      />
+                    </div>
+                  ) : (
+                    <PreDateCanvas
                       save={save}
-                      onTutorialUpdate={handleTutorialUpdate}
-                      interventionText={interventionText}
-                      interventionTargetMemberId={interventionTargetMemberId}
-                      canAdvance={
-                        activeSession.status === "active" &&
-                        activeSession.playbackState !== "drafting" &&
-                        activeSession.playbackState !== "ended"
-                      }
-                      canIntervene={canAddCupidIntervention(activeSession)}
+                      shift={activeShift}
+                      focusedMembers={focusedMembers}
+                      drawnScenarios={drawnScenarios}
+                      memberRequests={memberRequests}
+                      pairStates={save.pairStates}
                       isActionPending={isActionPending}
-                      pendingDateAction={
-                        pendingAction === "advanceExchange" ? "advanceExchange" : null
+                      aiReady={aiReady}
+                      readyClosurePairs={readyClosurePairs}
+                      closingPairId={closingPairId}
+                      closureError={closureError}
+                      revealAllMemberDetails={revealAllMemberDetails}
+                      deckRepairBlocked={deckRepairBlocked}
+                      onTutorialUpdate={handleTutorialUpdate}
+                      onCommitPair={handleCommitPair}
+                      onStartDate={handleStartDate}
+                      onCancelBooking={handleCancelBooking}
+                      onConfirmClosure={handleConfirmClosure}
+                      onDismissClosureError={handleDismissClosureError}
+                      onOpenDateBook={() => setCurrentRoom("datebook")}
+                      onOpenRoster={() => setCurrentRoom("roster")}
+                      onOpenPairFile={handleOpenPairFile}
+                      onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                      onCloseShift={handleEndShift}
+                      onStartNextShift={handleStartNextShift}
+                      onDeckOverBudgetBlocked={(surfaceKey) =>
+                        dispatchManagerQuip({
+                          triggerKey: "datebook.commit.over-budget",
+                          surfaceKey,
+                        })
                       }
-                      isJudgePending={isDateJudgePending}
-                      queuedPlaybackIntent={queuedPlaybackIntent}
-                      streamingDrafts={streamingDrafts}
-                      onInterventionTextChange={setInterventionText}
-                      onInterventionTargetChange={setInterventionTargetMemberId}
-                      onAdvance={handleAdvanceExchange}
-                      onCancel={handleCancelDate}
-                      onIntervene={handleIntervention}
-                      onFollowUp={handleFollowUp}
-                      onPickEvents={handlePickEvents}
-                      onTriggerEvent={handleTriggerEvent}
-                      onTogglePlayback={handleTogglePlayback}
-                      onBack={() => setActiveDateSessionId(null)}
+                    />
+                  )
+                ) : null}
+
+                {currentRoom === "datebook" && activeShift !== null ? (
+                  <DateBookCanvas
+                    save={save}
+                    currentShift={activeShift.shiftNumber}
+                    scenarios={starterScenarios}
+                    isActionPending={isActionPending}
+                    bookingLocked={activeShift.activeBooking !== undefined}
+                    onTutorialUpdate={handleTutorialUpdate}
+                    onAddToDeck={handleAddDeckCard}
+                    onRemoveFromDeck={handleRemoveDeckCard}
+                    onBack={() => setCurrentRoom("livedate")}
+                  />
+                ) : null}
+
+                {currentRoom === "roster" ? (
+                  <RosterCanvas
+                    members={save.members}
+                    focusedMemberIds={save.focusedMemberIds}
+                    playerKnowledge={save.playerKnowledge}
+                    isActionPending={isActionPending}
+                    revealAllMemberDetails={revealAllMemberDetails}
+                    save={save}
+                    readyClosureMemberIds={readyClosureMemberIds}
+                    onTutorialUpdate={handleTutorialUpdate}
+                    onAddFocus={handleAddFocus}
+                    onRemoveFocus={handleRemoveFocus}
+                    onSwapFocus={handleSwapFocus}
+                    onReselectFocus={handleReselectFocus}
+                    onBack={() => setCurrentRoom("livedate")}
+                  />
+                ) : null}
+
+                {currentRoom === "files" ? (
+                  <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
+                    <NotesView
+                      memories={save.memories}
+                      members={save.members}
+                      pairEdges={relationshipIndex?.recentEdges ?? []}
+                      scenarios={starterScenarios}
+                      shifts={save.shifts}
+                      pairFocusId={filesPairFocusId}
+                      playerKnowledge={save.playerKnowledge}
+                      readyClosurePairIds={readyClosurePairIds}
                     />
                   </div>
-                ) : (
-                  <PreDateCanvas
-                    save={save}
-                    shift={activeShift}
-                    focusedMembers={focusedMembers}
-                    drawnScenarios={drawnScenarios}
-                    memberRequests={memberRequests}
-                    pairStates={save.pairStates}
-                    isActionPending={isActionPending}
-                    aiReady={aiReady}
-                    readyClosurePairs={readyClosurePairs}
-                    closingPairId={closingPairId}
-                    closureError={closureError}
-                    revealAllMemberDetails={revealAllMemberDetails}
-                    deckRepairBlocked={deckRepairBlocked}
-                    onTutorialUpdate={handleTutorialUpdate}
-                    onCommitPair={handleCommitPair}
-                    onStartDate={handleStartDate}
-                    onCancelBooking={handleCancelBooking}
-                    onConfirmClosure={handleConfirmClosure}
-                    onDismissClosureError={handleDismissClosureError}
-                    onOpenDateBook={() => setCurrentRoom("datebook")}
-                    onOpenRoster={() => setCurrentRoom("roster")}
-                    onOpenPairFile={handleOpenPairFile}
-                    onOpenAiSetup={() => setIsAiSetupOpen(true)}
-                    onCloseShift={handleEndShift}
-                    onStartNextShift={handleStartNextShift}
-                    onDeckOverBudgetBlocked={(surfaceKey) =>
-                      dispatchManagerQuip({
-                        triggerKey: "datebook.commit.over-budget",
-                        surfaceKey,
-                      })
-                    }
-                  />
-                )
-              ) : null}
+                ) : null}
+              </motion.main>
+            </AnimatePresence>
 
-              {currentRoom === "datebook" && activeShift !== null ? (
-                <DateBookCanvas
-                  save={save}
-                  currentShift={activeShift.shiftNumber}
-                  scenarios={starterScenarios}
-                  isActionPending={isActionPending}
-                  bookingLocked={activeShift.activeBooking !== undefined}
-                  onTutorialUpdate={handleTutorialUpdate}
-                  onAddToDeck={handleAddDeckCard}
-                  onRemoveFromDeck={handleRemoveDeckCard}
-                  onBack={() => setCurrentRoom("livedate")}
-                />
-              ) : null}
+            {activeShift !== null &&
+            activeShift.status === "completed" &&
+            activeShift.report !== undefined ? (
+              <ShiftReportPanel
+                shift={activeShift}
+                members={save.members}
+                isActionPending={isActionPending}
+                onOpenNextShift={handleStartNextShift}
+              />
+            ) : null}
 
-              {currentRoom === "roster" ? (
-                <RosterCanvas
-                  members={save.members}
-                  focusedMemberIds={save.focusedMemberIds}
-                  playerKnowledge={save.playerKnowledge}
-                  isActionPending={isActionPending}
-                  revealAllMemberDetails={revealAllMemberDetails}
-                  save={save}
-                  readyClosureMemberIds={readyClosureMemberIds}
-                  onTutorialUpdate={handleTutorialUpdate}
-                  onAddFocus={handleAddFocus}
-                  onRemoveFocus={handleRemoveFocus}
-                  onSwapFocus={handleSwapFocus}
-                  onReselectFocus={handleReselectFocus}
-                  onBack={() => setCurrentRoom("livedate")}
-                />
-              ) : null}
-
-              {currentRoom === "files" ? (
-                <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
-                  <NotesView
-                    memories={save.memories}
-                    members={save.members}
-                    pairStates={save.pairStates}
-                    scenarios={starterScenarios}
-                    shifts={save.shifts}
-                    pairFocusId={filesPairFocusId}
-                    playerKnowledge={save.playerKnowledge}
-                    readyClosurePairIds={readyClosurePairIds}
-                  />
-                </div>
-              ) : null}
-            </motion.main>
-          </AnimatePresence>
-
-          {activeShift !== null &&
-          activeShift.status === "completed" &&
-          activeShift.report !== undefined ? (
-            <ShiftReportPanel
-              shift={activeShift}
-              members={save.members}
-              isActionPending={isActionPending}
-              onOpenNextShift={handleStartNextShift}
+            <FloatingNavCluster
+              current={currentRoom}
+              hidden={dateAmbientActive}
+              liveDateState={liveDateState}
+              onSelect={(room) => setCurrentRoom(room)}
             />
-          ) : null}
 
-          <FloatingNavCluster
-            current={currentRoom}
-            hidden={dateAmbientActive}
-            liveDateState={liveDateState}
-            onSelect={(room) => setCurrentRoom(room)}
-          />
+            <AnimatePresence>
+              {isAiSetupOpen ? (
+                <AiSetupPanel
+                  config={save.config}
+                  gatewayApiKey={gatewayApiKey}
+                  status={localAiStatus}
+                  required={!save.config.aiSetupComplete}
+                  isActionPending={isActionPending}
+                  onClose={() => setIsAiSetupOpen(false)}
+                  onSave={handleSaveAiConfig}
+                  onCheck={handleCheckAiConfig}
+                />
+              ) : null}
+            </AnimatePresence>
 
-          <AnimatePresence>
-            {isAiSetupOpen ? (
-              <AiSetupPanel
-                config={save.config}
-                gatewayApiKey={gatewayApiKey}
-                status={localAiStatus}
-                required={!save.config.aiSetupComplete}
-                isActionPending={isActionPending}
-                onClose={() => setIsAiSetupOpen(false)}
-                onSave={handleSaveAiConfig}
-                onCheck={handleCheckAiConfig}
-              />
+            <AnimatePresence>
+              {isReleaseNotesOpen && releaseNotesForModal.length > 0 ? (
+                <ReleaseNotesModal
+                  notes={releaseNotesForModal}
+                  initialVersion={APP_VERSION}
+                  onClose={handleCloseReleaseNotes}
+                />
+              ) : null}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {softWinDue && !isReleaseNotesOpen ? (
+                <SoftWinCutscene
+                  save={save}
+                  isActionPending={isActionPending}
+                  onContinue={handleMarkSoftWinSeen}
+                />
+              ) : null}
+            </AnimatePresence>
+
+            {errorMessage !== null ? (
+              <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
             ) : null}
-          </AnimatePresence>
-
-          <AnimatePresence>
-            {isReleaseNotesOpen && releaseNotesForModal.length > 0 ? (
-              <ReleaseNotesModal
-                notes={releaseNotesForModal}
-                initialVersion={APP_VERSION}
-                onClose={handleCloseReleaseNotes}
-              />
+            {errorMessage === null && noticeMessage !== null ? (
+              <ErrorBanner message={noticeMessage} onDismiss={() => setNoticeMessage(null)} />
             ) : null}
-          </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          <AnimatePresence>
-            {softWinDue && !isReleaseNotesOpen ? (
-              <SoftWinCutscene
-                save={save}
-                isActionPending={isActionPending}
-                onContinue={handleMarkSoftWinSeen}
-              />
-            ) : null}
-          </AnimatePresence>
-
-          {errorMessage !== null ? (
-            <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
-          ) : null}
-          {errorMessage === null && noticeMessage !== null ? (
-            <ErrorBanner message={noticeMessage} onDismiss={() => setNoticeMessage(null)} />
-          ) : null}
-
-          <ManagerQuipPopup
-            quip={activeManagerQuip ?? null}
-            presentationKey={managerQuipPresentationKey}
-            onDismissed={handleManagerQuipDismissed}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+      <ManagerQuipPopup
+        quip={activeManagerQuip ?? null}
+        presentationKey={managerQuipPresentationKey}
+        onDismissed={handleManagerQuipDismissed}
+      />
+    </>
   );
 }
 

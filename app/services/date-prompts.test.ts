@@ -23,6 +23,7 @@ import {
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
 import { buildRevealCandidates } from "./player-knowledge";
+import { getPairProjectionFromSave } from "./relationship-index";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
 describe("date prompt assembly", () => {
@@ -43,9 +44,7 @@ describe("date prompt assembly", () => {
     );
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -90,7 +89,7 @@ describe("date prompt assembly", () => {
       "You signed up for Cupid, a dating app. The platform crosses dimensions,",
     );
     expect(ownerPacket.prompt).toContain(
-      "A Cupid dating manager set this date up and can text you privately during it.",
+      "A Cupid dating manager set this date up. During the date, she may send private in-app notes meant as coaching, not conversation.",
     );
     expect(ownerPacket.prompt).toContain("This is your first date with Vhool through Cupid.");
     expect(ownerPacket.prompt).toContain(
@@ -134,8 +133,9 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const basePairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    const basePairState = getPairProjectionFromSave(
+      started.save,
+      makePairId("jenna-pike", "vhool"),
     );
 
     if (
@@ -214,6 +214,61 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain("Pair file subtext:");
   });
 
+  it("feeds live per-character date state into performer prompts", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const session: DateSession = {
+      ...started.session,
+      privateStateByCharacter: {
+        ...started.session.privateStateByCharacter,
+        [jenna.id]: {
+          mood: 24,
+          comfort: 26,
+          intent: "protect the boundary",
+        },
+      },
+    };
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: [],
+      },
+    });
+
+    expect(packet.prompt).toContain("mood is rough");
+    expect(packet.prompt).toContain("comfort with this date is bad");
+    expect(packet.prompt).toContain("current intent is protect the boundary");
+  });
+
   it("labels first turn visual attachments in the final user message", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -228,9 +283,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -307,9 +360,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -361,9 +412,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const venus = started.save.members.find((member) => member.id === "venus");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("venus", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("venus", "vhool"));
 
     if (
       scenario === undefined ||
@@ -443,9 +492,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       eventId === undefined ||
@@ -503,9 +550,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -617,9 +662,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");
     const vhool = started.save.members.find((member) => member.id === "vhool");
-    const pairState = started.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -684,7 +727,7 @@ describe("date prompt assembly", () => {
     }
 
     expect(finalMessage.content).toContain(
-      `Your dating manager just texted you: "Ask about the receipt without recruiting anyone."`,
+      `Private Cupid coaching note, not spoken at the table and not a message to answer: "Ask about the receipt without recruiting anyone."`,
     );
     expect(finalMessage.content).toContain(
       "This just happened: The espresso machine makes a legal argument.",
@@ -715,9 +758,7 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = nudged.save.members.find((member) => member.id === "jenna-pike");
     const vhool = nudged.save.members.find((member) => member.id === "vhool");
-    const pairState = nudged.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(nudged.save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -756,8 +797,9 @@ describe("date prompt assembly", () => {
     });
 
     expect(vhoolPacket.prompt).toContain(
-      `Your dating manager just texted you: "Ask about the receipt without recruiting anyone."`,
+      `Private Cupid coaching note, not spoken at the table and not a message to answer: "Ask about the receipt without recruiting anyone."`,
     );
+    expect(vhoolPacket.prompt).toContain("do not answer the manager aloud");
     expect(vhoolPacket.prompt).not.toContain("Cupid suggests");
     expect(jennaPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
 
@@ -803,7 +845,7 @@ describe("date prompt assembly", () => {
     });
 
     expect(expiredPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
-    expect(expiredPacket.prompt).not.toContain("Your dating manager just texted you:");
+    expect(expiredPacket.prompt).not.toContain("Private Cupid coaching note");
   });
 
   it("keeps old Cupid nudges out of later performer prompts", () => {
@@ -836,8 +878,9 @@ describe("date prompt assembly", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = secondNudge.save.members.find((member) => member.id === "jenna-pike");
     const vhool = secondNudge.save.members.find((member) => member.id === "vhool");
-    const pairState = secondNudge.save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
+    const pairState = getPairProjectionFromSave(
+      secondNudge.save,
+      makePairId("jenna-pike", "vhool"),
     );
 
     if (
@@ -961,9 +1004,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -1019,9 +1060,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     );
     const ryan = save.members.find((member) => member.id === "ryan-doyle");
     const junie = save.members.find((member) => member.id === "junie-marrow");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("ryan-doyle", "junie-marrow"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("ryan-doyle", "junie-marrow"));
 
     if (
       scenario === undefined ||
@@ -1125,9 +1164,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
     const opal = save.members.find((member) => member.id === "opal-sunday");
     const bai = save.members.find((member) => member.id === "bai-wenshu");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("opal-sunday", "bai-wenshu"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("opal-sunday", "bai-wenshu"));
 
     if (
       scenario === undefined ||
@@ -1194,9 +1231,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -1238,6 +1273,13 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const fullPrompt = `${packet.system}\n${packet.prompt}`;
 
     expect(packet.prompt).toContain("Member briefs, private scoring context only.");
+    expect(packet.prompt).toContain(
+      "memberMoodDeltas must include exactly these member ids: jenna-pike, vhool.",
+    );
+    expect(packet.prompt).toContain("Score memberMoodDeltas independently.");
+    expect(packet.prompt).toContain(
+      "One member can be warmed while the other is angry, guarded, embarrassed, confused, or overloaded.",
+    );
     expect(packet.prompt).toContain("- jenna-pike (Jenna Pike)");
     expect(packet.prompt).toContain(
       "identity: Human; Ordinary, pending review; origin: East Rainfield, Ohio; dimension: Prime adjacent.",
@@ -1259,9 +1301,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
     const opal = save.members.find((member) => member.id === "opal-sunday");
     const bai = save.members.find((member) => member.id === "bai-wenshu");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("opal-sunday", "bai-wenshu"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("opal-sunday", "bai-wenshu"));
 
     if (
       scenario === undefined ||
@@ -1325,9 +1365,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -1422,9 +1460,7 @@ describe("character prompt repetition guard", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -1528,9 +1564,7 @@ describe("character prompt repetition guard", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||
@@ -1624,9 +1658,7 @@ describe("character prompt repetition guard", () => {
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = save.pairStates.find(
-      (candidate) => candidate.id === makePairId("jenna-pike", "vhool"),
-    );
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
 
     if (
       scenario === undefined ||

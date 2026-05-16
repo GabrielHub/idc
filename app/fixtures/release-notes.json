@@ -1,5 +1,36 @@
 [
   {
+    "version": "0.3.4",
+    "date": "2026-05-16",
+    "headline": "The case board learned not to pre-file every possible couple.",
+    "summary": "Test alpha. Moves untouched relationships into a sparse relationship graph, adds John Pork and Cassia-Six to the roster, and starts fresh from older alpha saves because the pair storage contract changed.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Fresh saves no longer store every possible pair. Cupid now projects untouched relationships when the desk needs a recommendation, then files an edge when a pair earns real history.",
+          "John Pork and Cassia-Six joined the roster with portraits, avatars, requests, voice fingerprints, bubble styles, and chemistry notes.",
+          "Live dates now track each member's private date state separately, so one person can warm while the other files a silent complaint with their own nervous system."
+        ]
+      },
+      {
+        "title": "Save reset",
+        "items": [
+          "v0.3.3 and older saves are intentionally incompatible with v0.3.4. The current build starts a fresh save and preserves the previous local save as a backup when possible.",
+          "The reset is for the relationship graph change: untouched pairs are no longer stored as dense pair records."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Cupid coaching notes now reach performers as private coaching instead of something to answer aloud at the table.",
+          "Performer lines keep the short-message runtime cap while the audit still reports raw model output when a model gets wordy.",
+          "Budget review no longer treats a fresh sparse graph as if every pair relationship had failed at zero."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.3",
     "date": "2026-05-16",
     "headline": "The manager found the rest of the soundboard.",

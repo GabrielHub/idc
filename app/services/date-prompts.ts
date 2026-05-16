@@ -281,6 +281,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
   const pairSpotlight = selectPairSpotlightItem(pairState);
   const dateNumber = pairState.completedDateIds.length + 1;
+  const characterState = resolvePromptCharacterState(member, session);
   const askLine =
     input.focusRequest === undefined || input.focusRequest.memberId !== member.id
       ? null
@@ -301,10 +302,10 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `What guards you up: ${joinAsSentence(member.dealbreakers)}`,
     `Private pressure that colors your tone but never gets said out loud: ${joinAsSentence(member.secrets)}`,
     ...(askLine === null ? [] : [askLine]),
-    `How you are feeling tonight: mood is ${moodPhrase(member.state.mood)}, openness is ${opennessPhrase(member.state.openness)}, burnout is ${burnoutPhrase(member.state.burnout)}.`,
+    `How you are feeling tonight: ${formatPromptCharacterState(characterState, member)}.`,
     "",
     "You signed up for Cupid, a dating app. The platform crosses dimensions, which means the person across from you tonight could be from another species, another reality, another timeline, or just a regular human. You will not always know which until you talk to them.",
-    "A Cupid dating manager set this date up and can text you privately during it. Her notes come in like text messages. You can take her advice, push back on it, or ignore it. Your call.",
+    "A Cupid dating manager set this date up. During the date, she may send private in-app notes meant as coaching, not conversation. You can follow the note, bend it, or ignore it. Your reply is only what you say to your date, so do not answer the manager aloud. If the note changes your behavior, make the spoken line make sense to someone who cannot read it.",
     `This is your ${ordinal(dateNumber)} date with ${partner.firstName} through Cupid.`,
     "",
     `You are at ${scenario.publicBrief.location}. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
@@ -585,6 +586,38 @@ function formatCharacterMemoryList(memories: readonly { text: string }[]): strin
     .join("\n");
 }
 
+type PromptCharacterState = {
+  mood: number;
+  comfort: number;
+  intent: string;
+};
+
+function resolvePromptCharacterState(member: Member, session: DateSession): PromptCharacterState {
+  const dateState = session.privateStateByCharacter[member.id];
+
+  if (dateState !== undefined) {
+    return dateState;
+  }
+
+  return {
+    mood: member.state.mood,
+    comfort: session.dateHealth,
+    intent: "trying",
+  };
+}
+
+function formatPromptCharacterState(state: PromptCharacterState, member: Member): string {
+  const intent = cleanMemberFacingText(state.intent).trim() || "trying";
+
+  return [
+    `mood is ${moodPhrase(state.mood)}`,
+    `openness is ${opennessPhrase(member.state.openness)}`,
+    `burnout is ${burnoutPhrase(member.state.burnout)}`,
+    `comfort with this date is ${comfortPhrase(state.comfort)}`,
+    `current intent is ${intent}`,
+  ].join(", ");
+}
+
 function moodPhrase(value: number): string {
   if (value >= 70) return "good";
   if (value >= 50) return "steady";
@@ -602,6 +635,13 @@ function burnoutPhrase(value: number): string {
   if (value >= 65) return "high";
   if (value >= 35) return "present";
   return "low";
+}
+
+function comfortPhrase(value: number): string {
+  if (value >= 70) return "comfortable";
+  if (value >= 50) return "steady";
+  if (value >= 30) return "uneasy";
+  return "bad";
 }
 
 const ORDINAL_NAMES: readonly string[] = [
@@ -715,7 +755,7 @@ export function buildJudgePromptPacket({
         "Return JSON only. No Markdown, comments, or prose outside JSON.",
         "dateHealthDelta must be an integer from -18 to 14.",
         "statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
-        `memberMoodDeltas must use only these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
+        `memberMoodDeltas must include exactly these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         "shouldEndEarly is true only when the exchange requires the date to stop now.",
         "Omit earlyEndReason unless shouldEndEarly is true.",
         'endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
@@ -737,7 +777,11 @@ export function buildJudgePromptPacket({
         "Use positive Date Health only when the exchange creates evidence of warmth, trust, repair, or useful attraction.",
         "Use negative Date Health when a member dodges a direct answer, repeats logistics, crosses a boundary, performs at the partner, makes the partner manage them, or lets the room become the whole relationship.",
         "Use -1 to -3 for mild drift, -4 to -7 for visible confusion or cooling, and -8 to -18 for boundary pressure, contempt, panic, hard mismatch, or a failed repair.",
+        "Score memberMoodDeltas independently. Date Health describes the room. Each memberMoodDelta describes that specific member's visible affect.",
+        "Do not mirror memberMoodDeltas just because Date Health, Spark, Trust, or Relationship Health moved. One member can be warmed while the other is angry, guarded, embarrassed, confused, or overloaded.",
+        "Use positive memberMoodDeltas only for the member who personally seems warmed, amused, attracted, reassured, or leaning in.",
         "Use negative memberMoodDeltas for the member who is confused, guarded, embarrassed, angry, or overloaded.",
+        "Use 0 for a member when the exchange gives no specific evidence that their affect changed.",
         "Raise conflict or strain when the exchange creates irritation, pressure, public discomfort, or a boundary crossing.",
         "If an early end trigger is visibly met, set shouldEndEarly true even when Date Health remains above zero.",
         "Do not use em dashes or en dashes in any string.",
@@ -1057,7 +1101,7 @@ function formatIncomingThreadMessage(message: DateMessage): string {
   }
 
   if (message.kind === "cupid") {
-    return `Your dating manager just texted you: "${stripCupidNudgePrefix(message.text)}"`;
+    return `Private Cupid coaching note, not spoken at the table and not a message to answer: "${stripCupidNudgePrefix(message.text)}"`;
   }
 
   return message.text;

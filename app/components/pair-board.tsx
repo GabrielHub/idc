@@ -1,7 +1,7 @@
 import { AnimatePresence, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import type { DateScenario, MemoryRecord, Member, PairState } from "../domain/game";
+import type { DateScenario, MemoryRecord, Member, PairEdge } from "../domain/game";
 import { resolveInitialPairBoardSelection } from "./notes-view-helpers";
 import { derivePairGraph, type PairBoardEdge } from "./pair-board-layout";
 import { PairBoardField } from "./pair-board-field";
@@ -26,7 +26,7 @@ const FIELD_MAX_HEIGHT = 760;
 
 export type PairBoardProps = {
   members: Member[];
-  pairStates: PairState[];
+  pairEdges: readonly PairEdge[];
   memories: MemoryRecord[];
   scenarios: DateScenario[];
   shiftCount: number;
@@ -35,7 +35,7 @@ export type PairBoardProps = {
 
 export function PairBoard({
   members,
-  pairStates,
+  pairEdges,
   memories,
   scenarios,
   shiftCount,
@@ -60,8 +60,8 @@ export function PairBoard({
   );
 
   const graph = useMemo(
-    () => derivePairGraph(members, pairStates, memories, { minDegree }),
-    [members, pairStates, memories, minDegree],
+    () => derivePairGraph(members, pairEdges, memories, { minDegree }),
+    [members, pairEdges, memories, minDegree],
   );
 
   const adjacency = useMemo(() => buildAdjacency(graph.edges), [graph.edges]);

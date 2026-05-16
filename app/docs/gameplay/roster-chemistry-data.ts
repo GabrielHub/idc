@@ -15,6 +15,7 @@ export const CHEMISTRY_MEMBERS: ChemistryMember[] = [
   { id: "decimus", label: "Decimus", cluster: "ceremony" },
   { id: "wenshu", label: "Wenshu", cluster: "ceremony" },
   { id: "anubis", label: "Anubis", cluster: "ceremony" },
+  { id: "john", label: "John", cluster: "ceremony" },
   { id: "opal", label: "Opal", cluster: "displaced" },
   { id: "meridian", label: "Meridian", cluster: "displaced" },
   { id: "sera", label: "Sera", cluster: "displaced" },
@@ -41,6 +42,7 @@ export const CHEMISTRY_MEMBERS: ChemistryMember[] = [
   { id: "anansi", label: "Anansi", cluster: "trickster" },
   { id: "sienna", label: "Sienna", cluster: "pop-sincere" },
   { id: "alex", label: "Alex", cluster: "pop-sincere" },
+  { id: "cassia", label: "Cassia", cluster: "displaced" },
 ];
 
 export const CHEMISTRY_CLUSTERS = [
@@ -53,8 +55,8 @@ export const CHEMISTRY_CLUSTERS = [
   {
     id: "ceremony",
     name: "Ceremony tribe",
-    members: ["Vhool", "Aldric", "Eleanor", "Decimus", "Wenshu", "Anubis"],
-    note: "Shared formal cadence reads as fluency. Aldric + Vhool (sacred bargain), Aldric + Decimus (soldiers), Eleanor + Decimus (cold formal pair). Anubis sits at the irreverent edge: he chairs an actual ritual office but performs it in lounge cadence.",
+    members: ["Vhool", "Aldric", "Eleanor", "Decimus", "Wenshu", "Anubis", "John"],
+    note: "Shared formal cadence reads as fluency. Aldric + Vhool (sacred bargain), Aldric + Decimus (soldiers), Eleanor + Decimus (cold formal pair). Anubis sits at the irreverent edge: he chairs an actual ritual office but performs it in lounge cadence. John holds the Republic functionary edge: committee cadence, a framed set of Commandments, and a State of the Farm address run on the same dignity as Aldric's oath.",
   },
   {
     id: "displaced",
@@ -70,8 +72,9 @@ export const CHEMISTRY_CLUSTERS = [
       "Epsy",
       "Idris",
       "Imani",
+      "Cassia",
     ],
-    note: "Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one. Sera is the only one displaced from a future. Epsy's source world is gone, and Idris left a timeline that no longer gives him a usable home. Wenshu believes his displacement is a sanctioned trial; the others know better.",
+    note: "Mutual recognition of having walked through a wrong door. Their world was normal; this one is the strange one. Sera is the only one displaced from a future. Epsy's source world is gone, and Idris left a timeline that no longer gives him a usable home. Wenshu believes his displacement is a sanctioned trial; the others know better. Cassia is the only one whose source world was a game played from outside, and the only one who believes the agency would close her if it learned her status. The agency already knows. She does not.",
   },
   {
     id: "grief",
@@ -88,8 +91,8 @@ export const CHEMISTRY_CLUSTERS = [
   {
     id: "acquisition",
     name: "Acquisition register",
-    members: ["Vhool", "Reaver", "Cthala"],
-    note: "Three different modes of treating the date as a recruitment funnel into a structure they already own (Pact / fleet / Spire). Vhool is sincere and apologetic, Reaver is mercenary and announced, Cthala is calm and undeclared. Match-fit reads pair:mutual_acquisition across all three pairings.",
+    members: ["Vhool", "Reaver", "Cthala", "John"],
+    note: "Four different modes of treating the date as a recruitment funnel into a structure they already own (Pact / fleet / Spire / Farm). Vhool is sincere and apologetic, Reaver is mercenary and announced, Cthala is calm and undeclared, John is bureaucratic and earnestly egalitarian. Match-fit reads pair:mutual_acquisition across all pairings.",
   },
   {
     id: "glamour",
@@ -122,9 +125,9 @@ export const CHEMISTRY_FRICTION_ZONES = [
   {
     id: "privacy-vs-attention",
     name: "Privacy vs attention",
-    members: ["Calvin", "Meridian", "Maeve", "Cthala"],
+    members: ["Calvin", "Meridian", "Maeve", "Cthala", "Cassia"],
     counter: ["Kade", "Brady", "Epsy"],
-    note: "Calvin vs Brady (recorder). Maeve and Meridian both punish phone-forward intimacy. Cthala against any partner who reaches for a phone. Phones on the table are a hard no for the privacy-tagged.",
+    note: "Calvin vs Brady (recorder). Maeve and Meridian both punish phone-forward intimacy. Cthala against any partner who reaches for a phone. Phones on the table are a hard no for the privacy-tagged. Cassia's dealbreaker is filming the visor and any partner who reaches for a coordinator.",
   },
   {
     id: "competitive",
@@ -137,15 +140,15 @@ export const CHEMISTRY_FRICTION_ZONES = [
     id: "prophecy-vs-ceremony",
     name: "Prophecy-averse meets ceremony",
     members: ["Opal"],
-    counter: ["Vhool", "Aldric", "Wenshu"],
-    note: "Opal has built a binder against this exact energy. Wenshu uses 'fated' in his dating profile, which is literally on her list.",
+    counter: ["Vhool", "Aldric", "Wenshu", "John"],
+    note: "Opal has built a binder against this exact energy. Wenshu uses 'fated' in his dating profile, which is literally on her list. John never says fated, but the State of the Farm cadence and the framed Commandments read as the structure she has filed against.",
   },
   {
     id: "anxious-compound",
     name: "Anxious-spiral compound",
-    members: ["Toby"],
+    members: ["Toby", "Cassia"],
     counter: ["Kade", "Opal", "Brady"],
-    note: "Two anxious people pull each other tighter.",
+    note: "Two anxious people pull each other tighter. Cassia's overstudied dating vocabulary compounds with Toby's spiral, and with any partner who performs interest in a way she reads as a flag being raised.",
   },
   {
     id: "formal-lockup",
@@ -1754,5 +1757,141 @@ export const CHEMISTRY_PAIRS: ChemistryPair[] = [
     b: "kade",
     kind: "volatile",
     note: "Different vintages, same dishonesty. Each can feel the other doing it. If one drops the cover first it warms; if neither does, the bit eats dinner alone.",
+  },
+
+  // John matrix
+  {
+    a: "john",
+    b: "decimus",
+    kind: "warm",
+    note: "Two Republic operators recognizing each other. Decimus respects offices that earn the room; John runs a State of the Farm with the same gravity Decimus carries the Tenth Legion. Different Republics, same vocabulary of civic duty. Neither lowers the dignity of their post.",
+  },
+  {
+    a: "john",
+    b: "eleanor",
+    kind: "warm",
+    note: "Committee cadence meets contractual fae. Eleanor cannot lie; John declares Commitments by the second course. Both treat dignity as a binding instrument and would rather skip dessert than negotiate the wording. Cold formal allies.",
+  },
+  {
+    a: "john",
+    b: "wenshu",
+    kind: "warm",
+    note: "Dao-talk meets Plan-talk. Both arrive in the suit and the customs, both treat their realm's ceremonial vocabulary as ordinary table conversation. Risk: John hears Romance Dao as fate-coded and tightens. Wenshu does not actually mean fated the way Opal hears it; John may need a course to clock that.",
+  },
+  {
+    a: "john",
+    b: "aldric",
+    kind: "warm",
+    note: "Knight meets Manager. Two office-bearers from different realms carrying the charge the same way. Aldric addresses him as Manager; John registers the courtesy and answers in kind. Different scriptures, identical conviction that the office is the answer.",
+  },
+  {
+    a: "john",
+    b: "mr-whiskers",
+    kind: "surprise",
+    note: "Business-class mutual courtesy in a new shape. Both refuse to address the obvious species question, both confirm Thursday in writing. The pork in front of one of them and the chair the other will not name go unnoticed by design. Whichever names the other first ends the courtesy.",
+  },
+  {
+    a: "john",
+    b: "reaver",
+    kind: "acquisition",
+    note: "Plan talk meets Manifest talk. Two structured recruiters at the same table, both refusing to lower the ask. John interviews for comrade-spouse with declared Commitments; Reaver opens with Liquidity. Match-fit fires pair:mutual_acquisition. Volatile-warm if neither asks whose contradictions are bigger.",
+  },
+  {
+    a: "john",
+    b: "vhool",
+    kind: "acquisition",
+    note: "Pact talk meets Plan talk. Both sincere about a recruitment cadence they would not call recruitment. Vhool apologizes after every implied threat; John reads the committee minutes back as a compliment. The mirror is uncomfortable for both. Volatile-warm if both stay deadpan.",
+  },
+  {
+    a: "john",
+    b: "cthala",
+    kind: "acquisition",
+    note: "Plan talk meets Consort talk. Two acquisitive operators from opposite tones: his bureaucratic-egalitarian, hers calm and chosen-form. Neither apologizes. Match-fit reads pair:mutual_acquisition. The friction is two recruiters openly at the same dinner.",
+  },
+  {
+    a: "john",
+    b: "naia",
+    kind: "surprise",
+    note: "Face-value princess takes the comrade-spouse interview at face value. She asks how the household allowance works in the Republic, listens to the answer, and offers no counter. John does not know what to do with a counterpart who registers the proposal as ordinary courtesy. Possibly his cleanest sit, possibly the date that closes when the toast goes unscored.",
+  },
+  {
+    a: "john",
+    b: "maeve",
+    kind: "friction",
+    note: "Committee cadence asks the harder thing as a deliverable. Maeve does not return harder questions and asks once that the trade stay closed. John registers the silence as missing data; Maeve registers the agenda as the question she will not answer. The meal stops being the meal.",
+  },
+  {
+    a: "john",
+    b: "mira",
+    kind: "friction",
+    note: "Committee functionary meets founder pitch. Mira files an amendment during the entree about how the Farm could ten-x with a brand layer. John's dealbreaker on amendments-during-entree fires by message three. Both close the file calmly, both convinced the other lacks intentionality.",
+  },
+  {
+    a: "john",
+    b: "opal",
+    kind: "hard-stop",
+    note: "Comrade-spouse interview with declared Commitments and a toast confirmed before the entree hits Opal's binder on the first paragraph. State of the Farm reads as fate language, the structured Plan reads as paperwork she has already escaped, and the deadpan does not soften any of it.",
+  },
+  {
+    a: "john",
+    b: "sana",
+    kind: "hard-stop",
+    note: "Sincerity tribe disengagement. Sana wants ten quiet minutes; John arrives with a printed agenda and the toast confirmed. The recruiter cadence does not register as sincerity to her, no matter how earnest the delivery.",
+  },
+
+  // Cassia anchors
+  {
+    a: "cassia",
+    b: "cha",
+    kind: "warm",
+    note: "Two combat-class displaced soldiers from different shooter dimensions, both standing in wars that ended without them. Cha never asks. Cassia is grateful for the never-asking. They share the silence and neither files it as withholding.",
+  },
+  {
+    a: "cassia",
+    b: "marcus",
+    kind: "warm",
+    note: "Sincerity tribe holding space. Marcus hears the helmet rules once and does not return to them. Cassia gets to set the disclosure down. The first date she does not have to apologize for the armor.",
+  },
+  {
+    a: "cassia",
+    b: "idris",
+    kind: "warm",
+    note: "Retired commander recognizes a soldier still at attention for a battle that is no longer happening. Idris does not flex the title. Cassia does not have to perform rank. The grief lands ambient and is not picked up.",
+  },
+  {
+    a: "cassia",
+    b: "calvin",
+    kind: "warm",
+    note: "Two refusals to be inspected. Calvin denies the strange thing about himself; Cassia is convinced she is in stealth. Neither reaches. The mutual cover is the date.",
+  },
+  {
+    a: "cassia",
+    b: "toby",
+    kind: "volatile",
+    note: "Anxious-spiral compound. Toby's overthinking meets Cassia's overstudy and both spiral wider. Either an intimate match where both feel finally seen, or a runaway loop where neither lands a sentence.",
+  },
+  {
+    a: "cassia",
+    b: "kade",
+    kind: "friction",
+    note: "Recorder versus filming-the-visor dealbreaker. Kade arrives planning to soft-launch a content angle on the helmet; Cassia reads the camera angle as the moment she has been preparing for. She offers him the bribe drawer and exfiltrates.",
+  },
+  {
+    a: "cassia",
+    b: "brady",
+    kind: "friction",
+    note: "Bit cracks against earnest oversharing. Brady performs warmth from a vintage; Cassia has rehearsed warmth from a forum thread. They recognize each other doing it and the date hollows out in real time.",
+  },
+  {
+    a: "cassia",
+    b: "mira",
+    kind: "friction",
+    note: "Founder pitch hits privacy-sensitive at the cocktail. Mira asks how Cassia is monetizing the construct angle and files an amendment about brand layer by the second course. Cassia hears coordinator and starts pricing the energy sword.",
+  },
+  {
+    a: "cassia",
+    b: "anansi",
+    kind: "friction",
+    note: "Trickster curiosity treats the helmet as a riddle. Anansi will pose the seam question three different ways, each one warm and obliging. Cassia is not a riddle. She is afraid of being one.",
   },
 ];

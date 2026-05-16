@@ -15,6 +15,8 @@ import {
   type GameSave,
   type Member,
   type MemoryRecord,
+  type PairEdge,
+  type PairProjection,
   type PairState,
   type ScenarioDeck,
   type ShiftState,
@@ -31,6 +33,14 @@ import {
   matchesSubjectFilter,
   matchesTags,
 } from "../services/memory-filters";
+import {
+  buildRelationshipIndex,
+  getPairProjectionByPairId,
+  listClosureCandidatePairIds,
+  listEdgesForMember,
+  materializePairEdge,
+  type RelationshipIndex,
+} from "../services/relationship-index";
 import { pushIntoBucket, replaceById } from "../services/utils";
 import { cosineSimilarity } from "../services/vector-memory";
 import type { GameRepository, MemorySearchFilters } from "./game-repository";
@@ -89,6 +99,7 @@ export class LocalGameRepository implements GameRepository {
 
   private cachedSave: GameSave | null = null;
   private memoryIndex: MemoryIndex | null = null;
+  private relationshipIndex: RelationshipIndex | null = null;
   private writeTimer: ReturnType<typeof setTimeout> | null = null;
   private writeInFlight: Promise<void> | null = null;
   private pendingFlush: Promise<void> | null = null;
@@ -273,9 +284,8 @@ export class LocalGameRepository implements GameRepository {
   }
 
   async getPairState(pairId: string): Promise<PairState | null> {
-    return (
-      (await this.requireGame()).pairStates.find((pairState) => pairState.id === pairId) ?? null
-    );
+    const index = this.getRelationshipIndex(await this.requireGame());
+    return index.edgesByPairId.get(pairId) ?? null;
   }
 
   async savePairState(pairState: PairState): Promise<void> {
@@ -284,6 +294,37 @@ export class LocalGameRepository implements GameRepository {
       ...save,
       pairStates: replaceById(save.pairStates, parsedPairState),
     }));
+  }
+
+  async getPairProjection(pairId: string): Promise<PairProjection | null> {
+    const index = this.getRelationshipIndex(await this.requireGame());
+    return getPairProjectionByPairId(index, pairId) ?? null;
+  }
+
+  async materializePairEdge(pairId: string): Promise<PairEdge | null> {
+    const save = await this.requireGame();
+    const index = this.getRelationshipIndex(save);
+    const persisted = index.edgesByPairId.get(pairId);
+    if (persisted !== undefined) return persisted;
+    const projection = getPairProjectionByPairId(index, pairId);
+    if (projection === undefined) return null;
+    const edge = materializePairEdge(projection);
+    const parsed = pairStateSchema.parse(edge);
+    await this.updateSave((current) => ({
+      ...current,
+      pairStates: replaceById(current.pairStates, parsed),
+    }));
+    return parsed;
+  }
+
+  async listEdgesForMember(memberId: string): Promise<PairEdge[]> {
+    const index = this.getRelationshipIndex(await this.requireGame());
+    return [...listEdgesForMember(index, memberId)];
+  }
+
+  async listClosureCandidatePairIds(): Promise<string[]> {
+    const index = this.getRelationshipIndex(await this.requireGame());
+    return [...listClosureCandidatePairIds(index)];
   }
 
   async listDateSessions(): Promise<DateSession[]> {
@@ -545,6 +586,16 @@ export class LocalGameRepository implements GameRepository {
     }
     this.memoryIndex = buildMemoryIndex(save.memories);
     return this.memoryIndex;
+  }
+
+  // -- Relationship index -------------------------------------------
+
+  private getRelationshipIndex(save: GameSave): RelationshipIndex {
+    if (this.relationshipIndex !== null && this.relationshipIndex.source === save) {
+      return this.relationshipIndex;
+    }
+    this.relationshipIndex = buildRelationshipIndex(save);
+    return this.relationshipIndex;
   }
 
   // -- Transcript archive -------------------------------------------

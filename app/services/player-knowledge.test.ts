@@ -11,6 +11,7 @@ import {
 import { starterScenarios, memberRequests } from "../fixtures";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
+import { getPairProjectionFromSave } from "./relationship-index";
 import {
   applyJudgeReveals,
   buildJudgeRevealCandidatePacket,
@@ -215,9 +216,7 @@ describe("buildRevealCandidates", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -245,9 +244,7 @@ describe("buildRevealCandidates", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -273,9 +270,7 @@ describe("buildRevealCandidates", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const focusRequest = memberRequests.find((request) => request.memberId === member.id);
 
     if (focusRequest === undefined) {
@@ -310,9 +305,7 @@ describe("buildRevealCandidates", () => {
     const meiSato = findMember(seed, "mei-sato");
     const opal = findMember(seed, "opal-sunday");
     const scenario = findScenario("listening-booth-after-close");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(meiSato.id, opal.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(meiSato.id, opal.id))!;
     const matchFit = evaluateMatchFit({
       members: [meiSato, opal],
       scenario,
@@ -337,9 +330,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     const member = findMember(seed, "mei-sato");
     const partner = findMember(seed, "calvin-hewes");
     const scenario = findScenario("couch-night-takeout");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -364,9 +355,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     const member = findMember(seed, "meridian-vale");
     const partner = findMember(seed, "jenna-pike");
     const scenario = findScenario("county-fair-friday");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -426,9 +415,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     const member = findMember(seed, "mei-sato");
     const partner = findMember(seed, "calvin-hewes");
     const scenario = findScenario("couch-night-takeout");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -476,9 +463,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -522,9 +507,7 @@ describe("selectDeterministicRevealIds", () => {
     const member = findMember(seed, "mei-sato");
     const partner = findMember(seed, "calvin-hewes");
     const scenario = findScenario("couch-night-takeout");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -554,9 +537,7 @@ describe("selectDeterministicRevealIds", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -587,9 +568,7 @@ describe("selectDeterministicRevealIds", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,
@@ -672,9 +651,7 @@ describe("applyJudgeReveals", () => {
     const member = findMember(seed, "opal-sunday");
     const partner = findMember(seed, "bai-wenshu");
     const scenario = findScenario("prophecy-karaoke");
-    const pairState = seed.pairStates.find(
-      (state) => state.id === makePairId(member.id, partner.id),
-    )!;
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
     const matchFit = evaluateMatchFit({
       members: [member, partner],
       scenario,

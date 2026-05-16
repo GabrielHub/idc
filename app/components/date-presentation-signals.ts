@@ -34,7 +34,7 @@ export function selectPortraitMood(
     return "angry";
   }
 
-  if (memberMoodDelta > 0 && (sparkDelta > 0 || chemistryDelta > 0 || relationshipDelta > 0)) {
+  if (memberMoodDelta >= 2 && (sparkDelta >= 2 || chemistryDelta >= 2 || relationshipDelta >= 4)) {
     return "flirty";
   }
 

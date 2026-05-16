@@ -23,7 +23,7 @@ export interface ResolvedMemberChatBubble {
 export const HOUSE_BUBBLE_FONT_CLASS =
   "font-[ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe_UI',Roboto,sans-serif]";
 
-export const HOUSE_BUBBLE_LEFT_CLASS = `rounded-[22px] rounded-bl-md bg-gradient-to-b from-[#34a0ff] to-[#0a84ff] px-4 py-2 shadow-[0_4px_14px_rgba(10,132,255,0.32)] ring-1 ring-white/15 ring-inset ${HOUSE_BUBBLE_FONT_CLASS}`;
+export const HOUSE_BUBBLE_LEFT_CLASS = `rounded-[22px] rounded-bl-md bg-gradient-to-b from-[#34a0ff] to-[#0a84ff] px-3.5 py-2 ${HOUSE_BUBBLE_FONT_CLASS}`;
 
 export const HOUSE_BUBBLE_NAME_CLASS = `text-[#0a84ff]/85 ${HOUSE_BUBBLE_FONT_CLASS}`;
 

@@ -9,6 +9,7 @@ import {
 } from "./closure-summary";
 import { ClosureSummaryValidationError, validateClosureSummary } from "./closures";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { getPairProjectionFromSave } from "./relationship-index";
 
 const FIRST_MEMBER_ID = "jenna-pike";
 const SECOND_MEMBER_ID = "sana-karim";
@@ -23,9 +24,9 @@ function makeReady(save: GameSave) {
     throw new Error("expected fixture members");
   }
   const pairId = makePairId(FIRST_MEMBER_ID, SECOND_MEMBER_ID);
-  const pairState = save.pairStates.find((pair) => pair.id === pairId);
+  const pairState = getPairProjectionFromSave(save, pairId);
   if (pairState === undefined) {
-    throw new Error("expected pair state");
+    throw new Error("expected pair projection");
   }
   const session = dateSessionSchema.parse({
     id: `date-1-1-${pairId}-park-loop-with-a-dog`,

@@ -3,7 +3,12 @@ import { useMemo, useState } from "react";
 
 import { EASE_OUT_QUART, MutedLabel } from "../../../components/dashboard-atoms";
 import { NotesView } from "../../../components/notes-view";
-import { type Member, type MemoryRecord, type PairState } from "../../../domain/game";
+import {
+  type Member,
+  type MemoryRecord,
+  type PairState,
+  type ShiftState,
+} from "../../../domain/game";
 import { starterMembers, starterScenarios } from "../../../fixtures";
 import {
   bradyStrait,
@@ -35,6 +40,7 @@ export function NotesArchiveTest() {
   const [shiftCount, setShiftCount] = useState(3);
 
   const dataset = useMemo(() => buildNotesPreviewDataset(previewState), [previewState]);
+  const previewShifts = useMemo(() => buildPreviewShiftPlaceholders(shiftCount), [shiftCount]);
   const activeOption =
     NOTES_PREVIEW_STATES.find((option) => option.id === previewState) ?? NOTES_PREVIEW_STATES[0];
 
@@ -93,9 +99,9 @@ export function NotesArchiveTest() {
         <NotesView
           memories={dataset.memories}
           members={dataset.members}
-          pairStates={dataset.pairStates}
+          pairEdges={dataset.pairStates}
           scenarios={dataset.scenarios}
-          shiftCount={shiftCount}
+          shifts={previewShifts}
         />
       </div>
     </motion.section>
@@ -108,6 +114,21 @@ type NotesPreviewDataset = {
   scenarios: typeof starterScenarios;
   memories: MemoryRecord[];
 };
+
+function buildPreviewShiftPlaceholders(count: number): ShiftState[] {
+  return Array.from({ length: count }, (_value, index) => ({
+    id: `preview-shift-${index + 1}`,
+    shiftNumber: index + 1,
+    status: "active" as const,
+    dateSlotsTotal: 0,
+    dateSlotsUsed: 0,
+    featuredMemberIds: [],
+    drawnScenarioIds: [],
+    companyGoalIds: [],
+    memberRequestIds: [],
+    startedAt: new Date(0).toISOString(),
+  }));
+}
 
 function buildNotesPreviewDataset(state: NotesPreviewState): NotesPreviewDataset {
   const couples: { a: Member; b: Member }[] = [

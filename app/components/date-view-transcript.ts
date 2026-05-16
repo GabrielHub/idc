@@ -98,8 +98,10 @@ export function buildTranscriptItems(
       const member = memberById.get(draft.speakerId);
       const visibleText = visibleStreamingDraftText(session, draft);
       const isStreaming = draft.status === "streaming";
+      const draftIsBlank = draft.text.trim().length === 0;
+      const echoSuppressed = !draftIsBlank && visibleText.trim().length === 0;
 
-      if (visibleText.trim().length === 0) {
+      if (echoSuppressed) {
         return [];
       }
 
@@ -218,24 +220,24 @@ export function buildReactionSignals(
   const textSignal = [latestJudge.playerSummary, ...latestJudge.notableMoments]
     .join(" ")
     .toLowerCase();
-  const sharedPositive = Math.max(dateDelta, sparkDelta, chemistryDelta, relationshipDelta);
+  const sharedAttraction = Math.max(sparkDelta, chemistryDelta, relationshipDelta);
   const sharedCare = Math.max(trustDelta, stabilityDelta);
   const sharedTrouble = Math.max(-dateDelta, strainDelta, conflictDelta);
 
   for (const participant of participants) {
     const moodDelta = latestJudge.memberMoodDeltas[participant.memberId] ?? 0;
 
-    if (sharedPositive > 0 || moodDelta > 0) {
+    if (moodDelta > 0) {
       pushReaction(
         signals,
         latestJudge,
         participant.side,
         "spark",
-        Math.max(sharedPositive, moodDelta),
+        Math.max(sharedAttraction, sharedCare, moodDelta),
       );
     }
 
-    if (sparkDelta >= 3 || chemistryDelta >= 3 || moodDelta >= 3) {
+    if (moodDelta >= 3 && (sparkDelta >= 3 || chemistryDelta >= 3 || sharedAttraction >= 4)) {
       pushReaction(
         signals,
         latestJudge,
@@ -245,7 +247,7 @@ export function buildReactionSignals(
       );
     }
 
-    if (sharedCare >= 3) {
+    if (sharedCare >= 3 && moodDelta > 0) {
       pushReaction(signals, latestJudge, participant.side, "love", sharedCare);
     }
 
@@ -257,10 +259,12 @@ export function buildReactionSignals(
       pushReaction(signals, latestJudge, participant.side, "laugh", 3);
     }
 
-    if (sharedTrouble >= 4 || latestJudge.shouldEndEarly) {
-      pushReaction(signals, latestJudge, participant.side, "anger", sharedTrouble);
-    } else if (sharedTrouble > 0) {
-      pushReaction(signals, latestJudge, participant.side, "warning", sharedTrouble);
+    const troubleValue = moodDelta < 0 ? Math.max(Math.abs(moodDelta), sharedTrouble) : 0;
+
+    if (troubleValue >= 4 || (latestJudge.shouldEndEarly && moodDelta < 0)) {
+      pushReaction(signals, latestJudge, participant.side, "anger", troubleValue);
+    } else if (troubleValue > 0) {
+      pushReaction(signals, latestJudge, participant.side, "warning", troubleValue);
     }
 
     if (moodDelta <= -3) {

@@ -211,17 +211,17 @@ describe("date quality audit detectors", () => {
     });
   });
 
-  describe("overlong turn truncation", () => {
-    it("flags a transcript message that the engine truncated to the 260-char cap", () => {
-      const overlong = `${"a".repeat(257)}...`;
-      const transcript = buildTranscript([{ speaker: JENNA, text: overlong, turnIndex: 1 }]);
+  describe("overlong turn reporting", () => {
+    it("does not infer raw model length from a saved transcript message", () => {
+      const oldCapShape = `${"a".repeat(257)}...`;
+      const transcript = buildTranscript([{ speaker: JENNA, text: oldCapShape, turnIndex: 1 }]);
 
       const findings = runDetectors(transcript);
 
-      expect(findings.some((finding) => finding.category === "overlong_turn")).toBe(true);
+      expect(findings.some((finding) => finding.category === "overlong_turn")).toBe(false);
     });
 
-    it("does not flag a line that simply ends with an ellipsis under the cap", () => {
+    it("does not flag a line that simply ends with an ellipsis under the target", () => {
       const transcript = buildTranscript([
         { speaker: JENNA, text: "I will hold the thought right there...", turnIndex: 1 },
       ]);

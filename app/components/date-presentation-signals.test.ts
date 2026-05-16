@@ -36,6 +36,21 @@ describe("date presentation signals", () => {
         LEFT_MEMBER_ID,
         makeJudgeSnapshot({
           memberMoodDeltas: {
+            [LEFT_MEMBER_ID]: 1,
+            [RIGHT_MEMBER_ID]: 0,
+          },
+          statDeltas: {
+            trust: 3,
+          },
+        }),
+      ),
+    ).toBe("neutral");
+
+    expect(
+      selectPortraitMood(
+        LEFT_MEMBER_ID,
+        makeJudgeSnapshot({
+          memberMoodDeltas: {
             [LEFT_MEMBER_ID]: -1,
             [RIGHT_MEMBER_ID]: 0,
           },

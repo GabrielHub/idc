@@ -295,8 +295,8 @@ export type BudgetReviewSignalsInput = {
   closuresSinceLastReview: number;
   quitsSinceLastReview: number;
   averageActiveRetention: number;
-  averagePairHealth: number;
-  averagePairFriction: number;
+  averagePairHealth: number | null;
+  averagePairFriction: number | null;
   requestFulfillmentRate: number;
 };
 
@@ -328,8 +328,9 @@ export function buildPerformanceReviewReasons(input: BudgetReviewSignalsInput): 
     });
   }
 
-  const healthDelta = pairHealthDeltaFromAverage(input.averagePairHealth);
-  if (healthDelta !== 0) {
+  const healthDelta =
+    input.averagePairHealth === null ? 0 : pairHealthDeltaFromAverage(input.averagePairHealth);
+  if (input.averagePairHealth !== null && healthDelta !== 0) {
     reasons.push({
       kind: "performance_pair_health",
       label: `Pair health at ${Math.round(input.averagePairHealth)}`,
@@ -337,8 +338,11 @@ export function buildPerformanceReviewReasons(input: BudgetReviewSignalsInput): 
     });
   }
 
-  const frictionDelta = pairFrictionDeltaFromAverage(input.averagePairFriction);
-  if (frictionDelta !== 0) {
+  const frictionDelta =
+    input.averagePairFriction === null
+      ? 0
+      : pairFrictionDeltaFromAverage(input.averagePairFriction);
+  if (input.averagePairFriction !== null && frictionDelta !== 0) {
     reasons.push({
       kind: "performance_pair_friction",
       label: `Pair friction at ${Math.round(input.averagePairFriction)}`,

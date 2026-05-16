@@ -6,6 +6,7 @@ import { anubis } from "./anubis";
 import { baiWenshu } from "./bai-wenshu";
 import { bradyStrait } from "./brady-strait";
 import { calvinHewes } from "./calvin-hewes";
+import { cassiaSix } from "./cassia-six";
 import { cassieConners } from "./cassie-conners";
 import { chaYusung } from "./cha-yusung";
 import { cthala } from "./cthala";
@@ -18,6 +19,7 @@ import { gideonGlass } from "./gideon-glass";
 import { idrisMahari } from "./idris-mahari";
 import { imaniWallace } from "./imani-wallace";
 import { jennaPike } from "./jenna-pike";
+import { johnPork } from "./john-pork";
 import { junieMarrow } from "./junie-marrow";
 import { kadeSumner } from "./kade-sumner";
 import { maeve } from "./maeve";
@@ -42,7 +44,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(40)
+  .length(42)
   .parse([
     jennaPike,
     meridianVale,
@@ -84,6 +86,8 @@ export const starterMembers = memberSchema
     maeve,
     junieMarrow,
     anubis,
+    johnPork,
+    cassiaSix,
   ]);
 
 export {
@@ -94,6 +98,7 @@ export {
   baiWenshu,
   bradyStrait,
   calvinHewes,
+  cassiaSix,
   cassieConners,
   chaYusung,
   cthala,
@@ -106,6 +111,7 @@ export {
   idrisMahari,
   imaniWallace,
   jennaPike,
+  johnPork,
   junieMarrow,
   kadeSumner,
   maeve,

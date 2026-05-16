@@ -25,7 +25,13 @@ import {
 import { isMemberInCooldown } from "./shift-planning";
 import { canBeFocusCase, selectInitialFocusCases } from "./focus-cases";
 import { createSeedGameSave, makePairId } from "./game-seed";
-import { activeBudgetDiscountOffers, MEMBER_QUIT_BUDGET_CUT, rotateBudgetPeriod } from "./budget";
+import { getPairProjectionFromSave } from "./relationship-index";
+import {
+  activeBudgetDiscountOffers,
+  buildPerformanceReviewReasons,
+  MEMBER_QUIT_BUDGET_CUT,
+  rotateBudgetPeriod,
+} from "./budget";
 import {
   ensureScenarioInDeck,
   startAndDraftDateSession,
@@ -34,7 +40,7 @@ import {
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(40);
+    expect(starterMembers).toHaveLength(42);
     expect(starterScenarios).toHaveLength(56);
   });
 
@@ -239,16 +245,16 @@ describe("IDC playable smoke path", () => {
       secondMemberId,
       scenarioId,
     });
-    const pairState = started.save.pairStates.find((pair) => pair.id === started.session.pairId);
+    const pairProjection = getPairProjectionFromSave(started.save, started.session.pairId);
 
-    if (pairState === undefined) {
-      throw new Error("Expected started pair state.");
+    if (pairProjection === undefined) {
+      throw new Error("Expected started pair projection.");
     }
 
     const weakPair = pairStateSchema.parse({
-      ...pairState,
+      ...pairProjection,
       stats: {
-        ...pairState.stats,
+        ...pairProjection.stats,
         chemistry: 20,
         trust: 20,
         relationshipHealth: 20,
@@ -266,9 +272,7 @@ describe("IDC playable smoke path", () => {
           ? { ...member, state: { ...member.state, retention: 5 } }
           : member,
       ),
-      pairStates: started.save.pairStates.map((pair) =>
-        pair.id === weakPair.id ? weakPair : pair,
-      ),
+      pairStates: [...started.save.pairStates.filter((pair) => pair.id !== weakPair.id), weakPair],
       dateSessions: started.save.dateSessions.map((session) =>
         session.id === shortSession.id ? shortSession : session,
       ),
@@ -304,16 +308,16 @@ describe("IDC playable smoke path", () => {
       secondMemberId,
       scenarioId,
     });
-    const pairState = started.save.pairStates.find((pair) => pair.id === started.session.pairId);
+    const pairProjection = getPairProjectionFromSave(started.save, started.session.pairId);
 
-    if (pairState === undefined) {
-      throw new Error("Expected started pair state.");
+    if (pairProjection === undefined) {
+      throw new Error("Expected started pair projection.");
     }
 
     const nearMissPairState = pairStateSchema.parse({
-      ...pairState,
+      ...pairProjection,
       stats: {
-        ...pairState.stats,
+        ...pairProjection.stats,
         chemistry: 92,
         trust: 92,
         relationshipHealth: 92,
@@ -337,9 +341,10 @@ describe("IDC playable smoke path", () => {
     });
     const readySave = gameSaveSchema.parse({
       ...started.save,
-      pairStates: started.save.pairStates.map((pair) =>
-        pair.id === nearMissPairState.id ? nearMissPairState : pair,
-      ),
+      pairStates: [
+        ...started.save.pairStates.filter((pair) => pair.id !== nearMissPairState.id),
+        nearMissPairState,
+      ],
       dateSessions: started.save.dateSessions.map((session) =>
         session.id === shortSession.id ? shortSession : session,
       ),
@@ -497,6 +502,22 @@ describe("IDC playable smoke path", () => {
 
     expect(activeOffers.some((offer) => offer.kind === "request")).toBe(true);
     expect(activeOffers.flatMap((offer) => offer.scenarioTagIds).length).toBeGreaterThan(0);
+  });
+
+  it("skips pair performance reasons when no pair edges exist yet", () => {
+    const reasons = buildPerformanceReviewReasons({
+      save: createSeedGameSave(),
+      shiftNumber: 5,
+      closuresSinceLastReview: 0,
+      quitsSinceLastReview: 0,
+      averageActiveRetention: 50,
+      averagePairHealth: null,
+      averagePairFriction: null,
+      requestFulfillmentRate: 0.5,
+    });
+
+    expect(reasons.some((reason) => reason.kind === "performance_pair_health")).toBe(false);
+    expect(reasons.some((reason) => reason.kind === "performance_pair_friction")).toBe(false);
   });
 });
 

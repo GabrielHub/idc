@@ -118,16 +118,21 @@ export const sections: DocSectionEntry[] = [
         </DocSubsection>
         <DocSubsection id="cupid-intervention" title="Cupid intervention (player-typed)">
           <P>
-            The player's text is the player's text; we do not author it. The wrapper around it is
-            corporate voice and locked: <DocCode>Cupid suggests: &lt;player text&gt;</DocCode>. Do
-            not get cute with the wrapper. Cupid interventions target one member at a time. Only the
-            targeted performer sees the nudge in their thread.
+            The player's text is the player's text; we do not author it. The saved transcript
+            wrapper around it is corporate voice and locked:{" "}
+            <DocCode>Cupid suggests: &lt;player text&gt;</DocCode>. Do not get cute with the
+            wrapper. Cupid interventions target one member at a time. Only the targeted performer
+            sees the nudge as private coaching in their thread.
           </P>
           <P>
-            The Performer receives the nudge as an in-thread user message framed{" "}
-            <DocCode>Your dating manager just texted you: "&lt;player text&gt;"</DocCode>, not as a
-            system directive. The character reacts to it as a text from their dating manager. They
-            can take it, push back on it, refuse it, resent it, or joke about it.
+            The Performer receives the nudge framed{" "}
+            <DocCode>
+              Private Cupid coaching note, not spoken at the table and not a message to answer:
+              "&lt;player text&gt;"
+            </DocCode>
+            {"."} It is not a conversation turn. The character can follow it, bend it, or ignore it,
+            but the generated reply is only what they say to their date. If the note changes
+            behavior, the spoken line must make sense to someone who cannot read it.
           </P>
         </DocSubsection>
         <DocSubsection id="member-request" title="Member request">
@@ -229,8 +234,8 @@ export const sections: DocSectionEntry[] = [
             "One to four sample lines from the member fixture, selected for the current moment. Framed as reference for how they sound when fully themselves, not lines to copy.",
             <span key="cupid-context">
               The shared Cupid context block: the member signed up for a dating app whose platform
-              crosses dimensions, a Cupid dating manager set this date up and can text them
-              privately during it, and{" "}
+              crosses dimensions, a Cupid dating manager set this date up and may send private
+              coaching notes during it, and{" "}
               <DocCode>
                 This is your {"<Nth>"} date with {"<partner>"} through Cupid.
               </DocCode>{" "}
@@ -247,10 +252,14 @@ export const sections: DocSectionEntry[] = [
             "The speaker's own prior lines arrive as assistant messages, verbatim.",
             <span key="incoming">
               Partner replies arrive as user messages. Scene events arrive in the thread framed{" "}
-              <DocCode>This just happened: {"<event>"}</DocCode>. Cupid nudges arrive framed{" "}
-              <DocCode>Your dating manager just texted you: "{"<player text>"}"</DocCode>.
+              <DocCode>This just happened: {"<event>"}</DocCode>. Cupid coaching notes arrive framed{" "}
+              <DocCode>
+                Private Cupid coaching note, not spoken at the table and not a message to answer: "
+                {"<player text>"}"
+              </DocCode>
+              {"."}
             </span>,
-            "Everything between two of the speaker's own turns is batched into a single user message, joined by blank lines. A scene event plus a fresh Cupid nudge plus the partner's reply land together as one user message, not three.",
+            "Everything between two of the speaker's own turns is batched into a single user message, joined by blank lines. A scene event plus a fresh Cupid coaching note plus the partner's reply land together as one user message, not three.",
             "Image attachments for visual grounding (the partner's portrait, scenario background) fold into the final user message as ImageParts with a short caption text part.",
             "Cupid interventions sent to the other member are filtered out of this thread; only the targeted performer sees the nudge.",
           ]}

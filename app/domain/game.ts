@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 8;
+export const SAVE_SCHEMA_VERSION = 9;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -452,10 +452,20 @@ export const pairStateSchema = z.object({
   participantIds: z.tuple([memberIdSchema, memberIdSchema]),
   stats: pairStatsSchema,
   completedDateIds: z.array(dateSessionIdSchema),
+  // Sparse: missing scenario id means zero uses for this pair.
   scenarioUseCounts: z.record(scenarioIdSchema, z.number().int().min(0)),
   agreements: z.array(pairAgreementSchema).default([]),
   openLoops: z.array(openLoopSchema).default([]),
 });
+
+// A PairEdge is a persisted PairState in GameSave.pairStates. Only pairs with
+// gameplay history (booking history, agreements, open loops, scenario use,
+// closure, follow-up, or an authored override) are stored. Untouched pairs are
+// expressed as PairProjection objects derived on demand by the relationship
+// index, never persisted.
+export const pairEdgeSchema = pairStateSchema;
+
+export const pairProjectionSourceSchema = z.enum(["persisted", "projected"]);
 
 export const dateMessageKindSchema = z.enum(["character", "scenario", "cupid", "system"]);
 
@@ -978,6 +988,9 @@ export type PairAgreement = z.infer<typeof pairAgreementSchema>;
 export type OpenLoopStatus = z.infer<typeof openLoopStatusSchema>;
 export type OpenLoop = z.infer<typeof openLoopSchema>;
 export type PairState = z.infer<typeof pairStateSchema>;
+export type PairEdge = z.infer<typeof pairEdgeSchema>;
+export type PairProjectionSource = z.infer<typeof pairProjectionSourceSchema>;
+export type PairProjection = Readonly<PairState> & { readonly source: PairProjectionSource };
 export type DateMessageKind = z.infer<typeof dateMessageKindSchema>;
 export type DateMessage = z.infer<typeof dateMessageSchema>;
 export type CharacterDateState = z.infer<typeof characterDateStateSchema>;

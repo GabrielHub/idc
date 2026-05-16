@@ -10,7 +10,8 @@ import {
   pickScenarioEvents,
   startDateSession,
 } from "./date-engine";
-import { createSeedGameSave } from "./game-seed";
+import { createSeedGameSave, makePairId } from "./game-seed";
+import { getPairProjectionFromSave } from "./relationship-index";
 import { ensureScenarioInHand, withFeaturedMembers } from "./test-helpers";
 import { mulberry32 } from "./utils";
 
@@ -124,10 +125,14 @@ describe("scenario event draft", () => {
   it("preserves offer counts while ranking events with pair context", () => {
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
-    const pairState = save.pairStates[0];
+    const [firstMember, secondMember] = save.members;
+    if (firstMember === undefined || secondMember === undefined) {
+      throw new Error("Expected a seed roster with at least two members.");
+    }
+    const pairState = getPairProjectionFromSave(save, makePairId(firstMember.id, secondMember.id));
 
     if (scenario === undefined || pairState === undefined) {
-      throw new Error("Expected temporal coffee shop and a seed pair state.");
+      throw new Error("Expected temporal coffee shop and a seed pair projection.");
     }
 
     const stuckPairState = {
