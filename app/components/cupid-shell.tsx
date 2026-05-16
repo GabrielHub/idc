@@ -228,9 +228,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [],
   );
   const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
-  const aiStatusConfigRef = useRef<GameConfig | null>(null);
   const aiStatusConfig = save?.config;
-  aiStatusConfigRef.current = aiStatusConfig ?? null;
   const aiStatusConfigKey =
     aiStatusConfig === undefined
       ? ""
@@ -310,11 +308,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }, [repository]);
 
   useEffect(() => {
-    const configSnapshot = aiStatusConfigRef.current;
-    if (configSnapshot === null || !isGatewayApiKeyLoaded) {
+    if (aiStatusConfig === undefined || !isGatewayApiKeyLoaded) {
       return;
     }
-    const configForStatus = configSnapshot;
+    const configForStatus = aiStatusConfig;
     let mounted = true;
     async function loadStatus() {
       setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
@@ -329,6 +326,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [aiStatusConfigKey, gatewayApiKey, isGatewayApiKeyLoaded]);
 
   useCueOnMessageChange(errorMessage, "alert", play);
@@ -412,35 +410,37 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     currentRoom === "livedate"
       ? `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`
       : currentRoom;
-  const diagnosticsSnapshot = useMemo(
-    () =>
-      buildDiagnosticsSnapshot({
-        config: save?.config ?? null,
-        localAiStatus,
-        save,
-        currentShift: activeShift,
-        activeDateSession: activeSession,
-        currentRoom,
-        pendingAction,
-        queuedPlaybackIntent,
-        streamingDraftCount: streamingDrafts.length,
-        isJudgePending: isDateJudgePending,
-        lastErrorMessage: errorMessage,
-        noticeMessage,
-      }),
-    [
-      activeSession,
-      activeShift,
-      currentRoom,
-      errorMessage,
-      isDateJudgePending,
-      localAiStatus,
-      noticeMessage,
-      pendingAction,
-      queuedPlaybackIntent,
-      save,
-      streamingDrafts.length,
-    ],
+  const diagnosticsInputsRef = useRef<Parameters<typeof buildDiagnosticsSnapshot>[0]>({
+    config: null,
+    localAiStatus: CHECKING_LOCAL_AI_STATUS,
+    save: null,
+    currentShift: null,
+    activeDateSession: null,
+    currentRoom: "livedate",
+    pendingAction: null,
+    queuedPlaybackIntent: null,
+    streamingDraftCount: 0,
+    isJudgePending: false,
+    lastErrorMessage: null,
+    noticeMessage: null,
+  });
+  diagnosticsInputsRef.current = {
+    config: save?.config ?? null,
+    localAiStatus,
+    save,
+    currentShift: activeShift,
+    activeDateSession: activeSession,
+    currentRoom,
+    pendingAction,
+    queuedPlaybackIntent,
+    streamingDraftCount: streamingDrafts.length,
+    isJudgePending: isDateJudgePending,
+    lastErrorMessage: errorMessage,
+    noticeMessage,
+  };
+  const getDiagnostics = useCallback(
+    () => buildDiagnosticsSnapshot(diagnosticsInputsRef.current),
+    [],
   );
   useEffect(() => {
     if (save === null) return;
@@ -1210,7 +1210,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleCopyDiagnostics(): Promise<boolean> {
     try {
-      await navigator.clipboard.writeText(JSON.stringify(diagnosticsSnapshot, null, 2));
+      await navigator.clipboard.writeText(JSON.stringify(getDiagnostics(), null, 2));
       return true;
     } catch (error) {
       setErrorMessage(`Cupid could not copy diagnostics: ${errorToMessage(error)}`);
@@ -1307,7 +1307,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
               </button>
               <SettingsMenu
                 isActionPending={isActionPending}
-                diagnostics={diagnosticsSnapshot}
+                getDiagnostics={getDiagnostics}
                 canExportSave={save !== null}
                 canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
                 devRevealAllMemberDetails={revealAllMemberDetails}

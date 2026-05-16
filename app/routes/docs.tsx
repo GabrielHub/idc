@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 
+import { pad2 } from "../components/dashboard-atoms";
 import { DocsShell } from "../components/docs-layout";
 import { SfxProvider } from "../components/sfx-provider";
 import { StampMark } from "../components/stamp-mark";
@@ -171,8 +172,4 @@ function GroupCardBody({
       </div>
     </>
   );
-}
-
-function pad2(value: number): string {
-  return value.toString().padStart(2, "0");
 }

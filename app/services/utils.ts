@@ -2,6 +2,10 @@ export function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+export function pad2(value: number): string {
+  return value.toString().padStart(2, "0");
+}
+
 export function clampScore(value: number): number {
   return clamp(value, 0, 100);
 }

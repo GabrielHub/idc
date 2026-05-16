@@ -48,7 +48,7 @@ export function MutedIndicator() {
 
 export function SettingsMenu({
   isActionPending,
-  diagnostics,
+  getDiagnostics,
   canExportSave,
   canUseDevMemberDetailsPreview,
   devRevealAllMemberDetails,
@@ -62,7 +62,7 @@ export function SettingsMenu({
   onOpenReleaseNotes,
 }: {
   isActionPending: boolean;
-  diagnostics: DiagnosticsSnapshot;
+  getDiagnostics: () => DiagnosticsSnapshot;
   canExportSave: boolean;
   canUseDevMemberDetailsPreview: boolean;
   devRevealAllMemberDetails: boolean;
@@ -408,7 +408,7 @@ export function SettingsMenu({
                 />
                 <div className="mx-2 my-1 h-px bg-aura-hairline" />
                 <DiagnosticsBlock
-                  diagnostics={diagnostics}
+                  getDiagnostics={getDiagnostics}
                   isExpanded={isShowingDiagnostics}
                   isCopied={diagnosticsCopied}
                   onToggle={() => setIsShowingDiagnostics((open) => !open)}

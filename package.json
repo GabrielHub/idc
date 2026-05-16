@@ -1,6 +1,6 @@
 {
   "name": "idc",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "Interdimensional Dating Coach desktop alpha shell.",
   "type": "module",
@@ -35,7 +35,7 @@
     "@tauri-apps/plugin-http": "~2.5.9",
     "@tauri-apps/plugin-process": "~2.3.1",
     "@tauri-apps/plugin-updater": "~2.10.1",
-    "ai": "^6.0.182",
+    "ai": "^6.0.183",
     "ai-sdk-ollama": "^3.8.4",
     "isbot": "^5.1.40",
     "motion": "^12.38.0",

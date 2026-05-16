@@ -1,19 +1,25 @@
+import { useMemo } from "react";
+
 import type { DiagnosticsSnapshot } from "./settings-diagnostics";
 
 export function DiagnosticsBlock({
-  diagnostics,
+  getDiagnostics,
   isExpanded,
   isCopied,
   onToggle,
   onCopy,
 }: {
-  diagnostics: DiagnosticsSnapshot;
+  getDiagnostics: () => DiagnosticsSnapshot;
   isExpanded: boolean;
   isCopied: boolean;
   onToggle: () => void;
   onCopy: () => void;
 }) {
-  const checkedAt = diagnostics.lastAiCheck.checkedAt;
+  const diagnostics = useMemo(
+    () => (isExpanded ? getDiagnostics() : null),
+    [isExpanded, getDiagnostics],
+  );
+  const checkedAt = diagnostics?.lastAiCheck.checkedAt ?? null;
   const checkedAtLabel = checkedAt === null ? "never" : new Date(checkedAt).toLocaleString();
 
   return (
@@ -29,7 +35,7 @@ export function DiagnosticsBlock({
         <span>Diagnostics</span>
         <span className="text-aura-faint">{isExpanded ? "−" : "+"}</span>
       </button>
-      {isExpanded ? (
+      {isExpanded && diagnostics !== null ? (
         <div className="mt-1 rounded-chip border border-aura-hairline bg-white/55 p-2.5">
           <dl className="space-y-1 font-mono text-micro uppercase tracking-[0.16em] text-aura-muted">
             <DiagnosticsRow label="build" value={diagnostics.appVersion} />

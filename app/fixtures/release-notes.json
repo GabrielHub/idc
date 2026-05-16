@@ -1,5 +1,29 @@
 [
   {
+    "version": "0.3.3",
+    "date": "2026-05-16",
+    "headline": "The manager found the rest of the soundboard.",
+    "summary": "Maintenance test alpha. Adds the latest recorded manager quips, makes quip preview playback stoppable, copies TTS scripts from the docs preview, and tightens diagnostics and AI image handling.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Manager quip coverage now records shift starts, shift endings, early exits, bad fits, cool-downs, encouragement, brittle pairs, confirmed closures, and retention warnings so the standee has fewer silent clipboard moments.",
+          "The manager quip docs preview can copy TTS generation scripts and stop active playback from either the preview controls or the catalog row.",
+          "The manager quip catalog wraps long scripts and audio paths more cleanly so the review surface stops trying to win a width contest."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Voice clip playback now returns a stop handle and tears down audio nodes when a preview is dismissed or replaced.",
+          "Settings diagnostics now build only when opened or copied, which keeps routine shell renders quieter while preserving the same exported payload.",
+          "Image attachments sent into date prompts are base64 encoded before reaching the model message, matching the provider contract after the AI SDK patch update."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.2",
     "date": "2026-05-15",
     "headline": "The release desk gets a stamp that means something.",

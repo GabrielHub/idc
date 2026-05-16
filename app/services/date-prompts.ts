@@ -400,7 +400,7 @@ function attachImagesToFinalUserMessage(
   const imageParts = attachments.map(
     (attachment): ImagePart => ({
       type: "image",
-      image: attachment.image,
+      image: encodeImageForModelMessage(attachment.image),
       mediaType: attachment.mediaType,
     }),
   );
@@ -450,6 +450,32 @@ function findLastUserIndex(messages: readonly ModelMessage[]): number {
   }
 
   return -1;
+}
+
+function encodeImageForModelMessage(image: Uint8Array): string {
+  const chunkSize = 0x8000;
+  let binary = "";
+
+  for (let offset = 0; offset < image.length; offset += chunkSize) {
+    const chunk = image.subarray(offset, offset + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  if (typeof globalThis.btoa === "function") {
+    return globalThis.btoa(binary);
+  }
+
+  const bufferCtor = (
+    globalThis as {
+      Buffer?: { from: (data: Uint8Array) => { toString: (encoding: string) => string } };
+    }
+  ).Buffer;
+
+  if (bufferCtor !== undefined) {
+    return bufferCtor.from(image).toString("base64");
+  }
+
+  throw new Error("Cannot encode image: neither btoa nor Buffer is available.");
 }
 
 function formatCharacterMemorySection(memoryPack: MemoryPack, partner: Member): string[] {

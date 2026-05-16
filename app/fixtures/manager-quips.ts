@@ -168,7 +168,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[tired] Coffee's brewing. [sarcastic] The audacity of this day to start again.",
     audio: "/assets/manager-quips/shift-started-01.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-started-02",
@@ -176,15 +176,15 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     text: "Doors are open. Try to remember how stairs work.",
     generationScript: "[casual] Doors are open. [deadpan] Try to remember how stairs work.",
     audio: "/assets/manager-quips/shift-started-02.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-started-03",
     triggerKey: "shift.started",
-    text: "Round two. I checked my horoscope. It said betrayal.",
-    generationScript: "[casual] Round two. I checked my horoscope. [deadpan] It said betrayal.",
+    text: "Another shift. I checked my horoscope. It said betrayal.",
+    generationScript: "[casual] Another shift. I checked my horoscope. [deadpan] It said betrayal.",
     audio: "/assets/manager-quips/shift-started-03.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-started-04",
@@ -193,7 +193,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[deadpan] Morning. [resigned tone] Statistically, half of these will end in tears.",
     audio: "/assets/manager-quips/shift-started-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-ended-01",
@@ -202,7 +202,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[tired] Clocking out. [casual] If anyone needs me, they can need me tomorrow.",
     audio: "/assets/manager-quips/shift-ended-01.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-ended-02",
@@ -210,7 +210,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     text: "Lying face down on the floor. Calling that self care.",
     generationScript: "[deadpan] Lying face down on the floor. [casual] Calling that self care.",
     audio: "/assets/manager-quips/shift-ended-02.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-ended-03",
@@ -219,7 +219,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[resigned tone] Done. [casual] The members can love each other on their own time.",
     audio: "/assets/manager-quips/shift-ended-03.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "shift-ended-04",
@@ -228,7 +228,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[deadpan] Bye. Don't text me. Don't email me. [sarcastic] Don't manifest me.",
     audio: "/assets/manager-quips/shift-ended-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "date-start-01",
@@ -343,7 +343,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] And they bolted. [deadpan] We'll learn the why in the wrap-up. [resigned tone] Or we won't.",
     audio: "/assets/manager-quips/date-early-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "bad-fit-01",
@@ -376,7 +376,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[deadpan] I've watched paint dry with more chemistry than that. [casual] Archive it.",
     audio: "/assets/manager-quips/bad-fit-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "bad-fit-05",
@@ -385,7 +385,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] Two icebergs talking about the weather. [resigned tone] We're done here.",
     audio: "/assets/manager-quips/bad-fit-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "cool-down-01",
@@ -418,7 +418,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[tired] They need a nap and a snack. [deadpan] Toddler solutions, adult bills.",
     audio: "/assets/manager-quips/cool-down-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "cool-down-05",
@@ -427,7 +427,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] Let it cool like leftovers. [understated] Tomorrow it's a different soup.",
     audio: "/assets/manager-quips/cool-down-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "encourage-01",
@@ -461,7 +461,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] Green stamp. [light chuckle] Haven't dusted this one off in a while.",
     audio: "/assets/manager-quips/encourage-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "encourage-05",
@@ -470,7 +470,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] Sparks. [emphasized] The real kind. [deadpan] Get them out before they second-guess it.",
     audio: "/assets/manager-quips/encourage-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "brittle-01",
@@ -504,7 +504,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[deadpan] These two are held together by lipstick... [understated] and good manners.",
     audio: "/assets/manager-quips/brittle-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "brittle-05",
@@ -513,7 +513,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[resigned tone] Their bond is a Jenga tower... [deadpan] at the bottom of the second drink.",
     audio: "/assets/manager-quips/brittle-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "closure-confirmed-01",
@@ -545,7 +545,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     text: "Bye-bye lovebirds. Don't text me on Christmas.",
     generationScript: "[playfully] Bye-bye lovebirds. [deadpan] Don't text me on Christmas.",
     audio: "/assets/manager-quips/closure-confirmed-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "closure-confirmed-05",
@@ -553,7 +553,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     text: "Closure. The good kind, where I get my evenings back.",
     generationScript: "[deadpan] Closure. [casual] The good kind, where I get my evenings back.",
     audio: "/assets/manager-quips/closure-confirmed-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "retention-warn-01",
@@ -586,7 +586,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[tired] If their morale was a houseplant... [deadpan] I'd be calling poison control.",
     audio: "/assets/manager-quips/retention-warn-04.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "retention-warn-05",
@@ -595,7 +595,7 @@ export const MANAGER_QUIP_CATALOG: ManagerQuip[] = [
     generationScript:
       "[casual] One bad room from updating their LinkedIn. [tired] Pick soft, please.",
     audio: "/assets/manager-quips/retention-warn-05.mp3",
-    status: "draft",
+    status: "recorded",
   },
   {
     id: "member-quit-01",

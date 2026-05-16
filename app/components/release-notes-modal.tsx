@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 
 import type { PublicReleaseNote } from "../domain/release-notes";
 import { normalizeReleaseVersion } from "../services/release-notes";
-import { ChromeButton, EASE_OUT_QUART, MutedLabel } from "./dashboard-atoms";
+import { ChromeButton, EASE_OUT_QUART, MutedLabel, pad2 } from "./dashboard-atoms";
 
 export function ReleaseNotesModal({
   notes,
@@ -332,10 +332,6 @@ function formatLedgerDate(value: string): string {
     month: "short",
     day: "numeric",
   });
-}
-
-function pad2(value: number): string {
-  return value.toString().padStart(2, "0");
 }
 
 function ChevronLeftIcon() {

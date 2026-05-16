@@ -183,8 +183,11 @@ describe("SFX provider playVoiceClip", () => {
     const playback = await __playVoiceClipForTests("/assets/manager-quips/missing.mp3");
     const retry = await __playVoiceClipForTests("/assets/manager-quips/missing.mp3");
 
-    expect(playback).toEqual({ played: false, durationMs: 0 });
-    expect(retry).toEqual({ played: false, durationMs: 0 });
+    expect(playback.played).toBe(false);
+    expect(playback.durationMs).toBe(0);
+    expect(typeof playback.stop).toBe("function");
+    expect(retry.played).toBe(false);
+    expect(retry.durationMs).toBe(0);
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(startedSources).toHaveLength(0);
   });
@@ -203,6 +206,7 @@ describe("SFX provider playVoiceClip", () => {
 
     expect(playback.played).toBe(true);
     expect(playback.durationMs).toBe(1500);
+    expect(typeof playback.stop).toBe("function");
     expect(replay.played).toBe(true);
     expect(replay.durationMs).toBe(1500);
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -213,6 +217,30 @@ describe("SFX provider playVoiceClip", () => {
     expect(startedSources).toHaveLength(2);
   });
 
+  it("stops the active source when the returned stop handle fires", async () => {
+    const { startedSources } = installAudioContextStub();
+    const stopSpy = vi.fn();
+    const disconnectSpy = vi.fn();
+    const fetcher = vi.fn(async () => ({
+      ok: true,
+      status: 200,
+      arrayBuffer: async () => new ArrayBuffer(64),
+    }));
+    __setVoiceClipFetchForTests(fetcher);
+
+    const playback = await __playVoiceClipForTests("/assets/manager-quips/stoppable.mp3");
+    const source = startedSources.at(-1);
+    if (source === undefined) throw new Error("Expected a started source");
+    source.stop = stopSpy;
+    source.disconnect = disconnectSpy;
+
+    playback.stop();
+    playback.stop();
+
+    expect(stopSpy).toHaveBeenCalledTimes(1);
+    expect(disconnectSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("resolves silently when fetch throws (network blocked)", async () => {
     const { startedSources } = installAudioContextStub();
     __setVoiceClipFetchForTests(async () => {
@@ -221,7 +249,9 @@ describe("SFX provider playVoiceClip", () => {
 
     const playback = await __playVoiceClipForTests("/assets/manager-quips/blocked.mp3");
 
-    expect(playback).toEqual({ played: false, durationMs: 0 });
+    expect(playback.played).toBe(false);
+    expect(playback.durationMs).toBe(0);
+    expect(typeof playback.stop).toBe("function");
     expect(startedSources).toHaveLength(0);
   });
 });

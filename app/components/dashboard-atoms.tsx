@@ -2,14 +2,13 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { Member, PortraitMood } from "../domain/game";
+import { pad2 } from "../services/utils";
 import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
-export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
+export { pad2 };
 
-export function pad2(value: number) {
-  return value.toString().padStart(2, "0");
-}
+export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
 
 /* ------------------------------------------------------------------ */
 /* Eyebrow + headline                                                 */

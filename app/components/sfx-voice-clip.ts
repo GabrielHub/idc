@@ -11,9 +11,14 @@ const VOICE_SILENCE_FLOOR = 0.001;
 export type VoiceClipPlayback = {
   played: boolean;
   durationMs: number;
+  stop: () => void;
 };
 
-export const VOICE_CLIP_SILENT_FALLBACK: VoiceClipPlayback = { played: false, durationMs: 0 };
+export const VOICE_CLIP_SILENT_FALLBACK: VoiceClipPlayback = {
+  played: false,
+  durationMs: 0,
+  stop: () => undefined,
+};
 
 type VoiceClipResponse = {
   ok: boolean;
@@ -85,12 +90,34 @@ export async function playVoiceClipInternal(path: string): Promise<VoiceClipPlay
     gain.connect(getMasterGain(audioContext));
     source.start(startTime);
     source.stop(endTime + 0.05);
-    source.addEventListener("ended", () => {
-      source.disconnect();
-      gain.disconnect();
-    });
 
-    return { played: true, durationMs: Math.round(clip.buffer.duration * 1000) };
+    let finished = false;
+    const teardown = () => {
+      if (finished) return;
+      finished = true;
+      try {
+        source.disconnect();
+      } catch {
+        // already disconnected
+      }
+      try {
+        gain.disconnect();
+      } catch {
+        // already disconnected
+      }
+    };
+    const stop = () => {
+      if (finished) return;
+      try {
+        source.stop();
+      } catch {
+        // already stopped or not yet started
+      }
+      teardown();
+    };
+    source.addEventListener("ended", teardown);
+
+    return { played: true, durationMs: Math.round(clip.buffer.duration * 1000), stop };
   } catch {
     return VOICE_CLIP_SILENT_FALLBACK;
   }

@@ -9,7 +9,7 @@ import {
   type DocTocEntry,
 } from "../services/docs-content";
 import { AmbientMesh } from "./ambient-mesh";
-import { CupidMark } from "./dashboard-atoms";
+import { CupidMark, pad2 } from "./dashboard-atoms";
 
 interface BreadcrumbSegment {
   label: string;
@@ -380,10 +380,6 @@ function DocsSidebarItem({
       </Link>
     </li>
   );
-}
-
-function pad2(value: number): string {
-  return value.toString().padStart(2, "0");
 }
 
 export function DocsToc({ entries }: { entries: DocTocEntry[] }) {

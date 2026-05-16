@@ -1,6 +1,7 @@
 import { Children, Fragment, isValidElement, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
+import { pad2 } from "../services/utils";
 import { SegmentedControl } from "./form-primitives";
 
 export type DocGroupId = "roadmap" | "product" | "gameplay" | "workflows" | "support";
@@ -253,10 +254,6 @@ export function DocSteps({ items }: { items: ReactNode[] }) {
       ))}
     </ol>
   );
-}
-
-function pad2(n: number): string {
-  return n.toString().padStart(2, "0");
 }
 
 /* ========================================================================

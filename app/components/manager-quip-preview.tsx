@@ -14,7 +14,7 @@ import {
   type ManagerStandeeSide,
 } from "./manager-standee";
 import { SfxControls } from "./sfx-controls";
-import { useSfx } from "./sfx-provider";
+import { useSfx, type VoiceClipPlayback } from "./sfx-provider";
 
 export type {
   ManagerQuip,
@@ -129,6 +129,7 @@ function useQuipPlayback() {
   const keyRef = useRef(0);
   const timeoutRef = useRef<number | null>(null);
   const lastSideRef = useRef<ManagerStandeeSide | null>(null);
+  const playbackRef = useRef<VoiceClipPlayback | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timeoutRef.current !== null) {
@@ -137,28 +138,43 @@ function useQuipPlayback() {
     }
   }, []);
 
+  const stopPlayback = useCallback(() => {
+    if (playbackRef.current !== null) {
+      playbackRef.current.stop();
+      playbackRef.current = null;
+    }
+  }, []);
+
   const play = useCallback(
     (quip: ManagerQuip) => {
+      stopPlayback();
       keyRef.current += 1;
       const key = keyRef.current;
       const side = pickNextManagerStandeeSide(lastSideRef.current);
       lastSideRef.current = side;
       setActive({ quip, key, side });
       if (quip.status === "recorded") {
-        void playVoiceClip(quip.audio);
+        void playVoiceClip(quip.audio).then((playback) => {
+          if (keyRef.current === key) {
+            playbackRef.current = playback;
+          } else {
+            playback.stop();
+          }
+        });
       }
       clearTimer();
       timeoutRef.current = window.setTimeout(() => {
         setActive((current) => (current && current.key === key ? null : current));
       }, STAGE_VISIBLE_MS);
     },
-    [clearTimer, playVoiceClip],
+    [clearTimer, playVoiceClip, stopPlayback],
   );
 
   const dismiss = useCallback(() => {
     clearTimer();
+    stopPlayback();
     setActive(null);
-  }, [clearTimer]);
+  }, [clearTimer, stopPlayback]);
 
   return { active, play, dismiss };
 }
@@ -167,6 +183,8 @@ export function ManagerQuipPreview() {
   const { active, play, dismiss } = useQuipPlayback();
   const [quipIndex, setQuipIndex] = useState(0);
   const [expanded, setExpanded] = useState(false);
+  const [previewCopied, setPreviewCopied] = useState(false);
+  const previewCopyResetRef = useRef<number | null>(null);
 
   const quip = MANAGER_QUIP_CATALOG[quipIndex];
 
@@ -197,6 +215,24 @@ export function ManagerQuipPreview() {
     [play],
   );
 
+  const handleCopyPreviewScript = useCallback(async () => {
+    const script = quip?.generationScript;
+    if (script === undefined) return;
+    try {
+      await navigator.clipboard.writeText(script);
+      setPreviewCopied(true);
+      if (previewCopyResetRef.current !== null) {
+        window.clearTimeout(previewCopyResetRef.current);
+      }
+      previewCopyResetRef.current = window.setTimeout(() => {
+        setPreviewCopied(false);
+        previewCopyResetRef.current = null;
+      }, 1800);
+    } catch {
+      setPreviewCopied(false);
+    }
+  }, [quip?.generationScript]);
+
   return (
     <figure className="my-6 flex flex-col gap-4">
       <figcaption className="flex flex-wrap items-baseline justify-between gap-3">
@@ -219,14 +255,20 @@ export function ManagerQuipPreview() {
         total={MANAGER_QUIP_CATALOG.length}
         isPlaying={active !== null}
         isExpanded={expanded}
+        isCopied={previewCopied}
         onCycle={handleCycle}
         onReplay={handleReplay}
         onStop={dismiss}
         onToggleExpand={() => setExpanded((prev) => !prev)}
+        onCopyScript={handleCopyPreviewScript}
       />
 
       {expanded ? (
-        <ManagerQuipCatalogList activeId={active?.quip.id ?? null} onPlay={handlePlayFromList} />
+        <ManagerQuipCatalogList
+          activeId={active?.quip.id ?? null}
+          onPlay={handlePlayFromList}
+          onStop={dismiss}
+        />
       ) : null}
     </figure>
   );
@@ -238,10 +280,12 @@ interface PreviewControlsProps {
   total: number;
   isPlaying: boolean;
   isExpanded: boolean;
+  isCopied: boolean;
   onCycle: (direction: 1 | -1) => void;
   onReplay: () => void;
   onStop: () => void;
   onToggleExpand: () => void;
+  onCopyScript: () => void;
 }
 
 function PreviewControls({
@@ -250,10 +294,12 @@ function PreviewControls({
   total,
   isPlaying,
   isExpanded,
+  isCopied,
   onCycle,
   onReplay,
   onStop,
   onToggleExpand,
+  onCopyScript,
 }: PreviewControlsProps) {
   const ordinal = useMemo(
     () => `${(quipIndex + 1).toString().padStart(2, "0")} / ${total.toString().padStart(2, "0")}`,
@@ -261,12 +307,12 @@ function PreviewControls({
   );
 
   return (
-    <div className="flex flex-wrap items-stretch gap-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/80 to-aura-bg/55 px-4 py-3 shadow-[0_12px_30px_-22px_rgba(244,63,94,0.22)] backdrop-blur">
+    <div className="flex flex-wrap items-start gap-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/80 to-aura-bg/55 px-4 py-3 shadow-[0_12px_30px_-22px_rgba(244,63,94,0.22)] backdrop-blur">
       <button
         type="button"
         onClick={() => onCycle(-1)}
         aria-label="Previous quip"
-        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-aura-hairline bg-white/85 text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
+        className="mt-0.5 inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-aura-hairline bg-white/85 text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
       >
         <svg
           viewBox="0 0 10 10"
@@ -282,19 +328,20 @@ function PreviewControls({
         </svg>
       </button>
 
-      <div className="flex min-w-0 flex-1 flex-col rounded-tile border border-aura-hairline bg-white/70 px-3 py-1.5">
-        <span className="truncate font-mono text-sm uppercase tracking-[0.2em] text-aura-faint">
+      <div className="flex min-w-0 flex-1 flex-col gap-1 rounded-tile border border-aura-hairline bg-white/70 px-3 py-2">
+        <span className="font-mono text-sm uppercase tracking-[0.2em] text-aura-faint">
           {ordinal} · {quip?.triggerKey ?? "untriggered"}
         </span>
-        <span className="truncate font-serif text-base italic leading-snug text-aura-ink">
+        <span className="break-words font-serif text-base italic leading-snug text-aura-ink">
           {quip?.text ?? ""}
           {quip?.translation ? (
             <span className="not-italic text-aura-muted"> ({quip.translation})</span>
           ) : null}
         </span>
         {quip?.generationScript ? (
-          <span className="truncate font-mono text-sm tracking-[0.06em] text-aura-faint">
-            tts / {quip.generationScript}
+          <span className="break-words font-mono text-sm leading-snug tracking-[0.06em] text-aura-faint">
+            <span className="text-aura-muted">tts / </span>
+            {quip.generationScript}
           </span>
         ) : null}
       </div>
@@ -303,7 +350,7 @@ function PreviewControls({
         type="button"
         onClick={() => onCycle(1)}
         aria-label="Next quip"
-        className="inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-aura-hairline bg-white/85 text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
+        className="mt-0.5 inline-flex size-8 cursor-pointer items-center justify-center rounded-full border border-aura-hairline bg-white/85 text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
       >
         <svg
           viewBox="0 0 10 10"
@@ -324,7 +371,7 @@ function PreviewControls({
         onClick={onToggleExpand}
         aria-expanded={isExpanded}
         aria-label={isExpanded ? "Hide catalog" : "Show all quips"}
-        className="inline-flex cursor-pointer items-center gap-2 rounded-pill border border-aura-hairline bg-white/85 px-3 py-1.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
+        className="mt-0.5 inline-flex cursor-pointer items-center gap-2 rounded-pill border border-aura-hairline bg-white/85 px-3 py-1.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
       >
         <ChevronGlyph direction={isExpanded ? "up" : "down"} />
         {isExpanded ? "Hide all" : `Show all ${total}`}
@@ -332,8 +379,19 @@ function PreviewControls({
 
       <button
         type="button"
+        onClick={onCopyScript}
+        disabled={quip?.generationScript === undefined}
+        aria-label="Copy current TTS script"
+        className="mt-0.5 inline-flex cursor-pointer items-center gap-2 rounded-pill border border-aura-hairline bg-white/85 px-3 py-1.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isCopied ? <CheckGlyph /> : <CopyGlyph />}
+        {isCopied ? "Copied" : "Copy tts"}
+      </button>
+
+      <button
+        type="button"
         onClick={isPlaying ? onStop : onReplay}
-        className="inline-flex cursor-pointer items-center gap-2 rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-white shadow-[0_10px_24px_-10px_rgba(244,63,94,0.52)] transition hover:brightness-110"
+        className="mt-0.5 inline-flex cursor-pointer items-center gap-2 rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] text-white shadow-[0_10px_24px_-10px_rgba(244,63,94,0.52)] transition hover:brightness-110"
       >
         {isPlaying ? <StopGlyph /> : <PlayGlyph />}
         {isPlaying ? "Stop" : "Play"}
@@ -409,7 +467,7 @@ export function ManagerQuipLibrary() {
         ) : null}
       </div>
 
-      <ManagerQuipCatalogList activeId={activeId} onPlay={play} />
+      <ManagerQuipCatalogList activeId={activeId} onPlay={play} onStop={dismiss} />
     </section>
   );
 }
@@ -417,9 +475,10 @@ export function ManagerQuipLibrary() {
 interface ManagerQuipCatalogListProps {
   activeId: string | null;
   onPlay: (quip: ManagerQuip) => void;
+  onStop: () => void;
 }
 
-function ManagerQuipCatalogList({ activeId, onPlay }: ManagerQuipCatalogListProps) {
+function ManagerQuipCatalogList({ activeId, onPlay, onStop }: ManagerQuipCatalogListProps) {
   return (
     <div className="flex flex-col gap-6">
       {MANAGER_QUIP_TRIGGER_GROUPS.map((group) => {
@@ -432,6 +491,7 @@ function ManagerQuipCatalogList({ activeId, onPlay }: ManagerQuipCatalogListProp
             quips={quips}
             activeId={activeId}
             onPlay={onPlay}
+            onStop={onStop}
           />
         );
       })}
@@ -444,6 +504,7 @@ interface TriggerGroupCardProps {
   quips: ManagerQuip[];
   activeId: string | null;
   onPlay: (quip: ManagerQuip) => void;
+  onStop: () => void;
 }
 
 const CADENCE_TONE: Record<
@@ -467,7 +528,7 @@ const CADENCE_TONE: Record<
   },
 };
 
-function TriggerGroupCard({ group, quips, activeId, onPlay }: TriggerGroupCardProps) {
+function TriggerGroupCard({ group, quips, activeId, onPlay, onStop }: TriggerGroupCardProps) {
   const tone = CADENCE_TONE[group.cadence];
   return (
     <article className="flex flex-col gap-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/85 to-aura-bg/45 p-5 shadow-[0_18px_42px_-26px_rgba(244,63,94,0.22)]">
@@ -493,7 +554,13 @@ function TriggerGroupCard({ group, quips, activeId, onPlay }: TriggerGroupCardPr
 
       <ul className="flex flex-col gap-2">
         {quips.map((quip) => (
-          <QuipRow key={quip.id} quip={quip} isActive={quip.id === activeId} onPlay={onPlay} />
+          <QuipRow
+            key={quip.id}
+            quip={quip}
+            isActive={quip.id === activeId}
+            onPlay={onPlay}
+            onStop={onStop}
+          />
         ))}
       </ul>
     </article>
@@ -504,9 +571,31 @@ interface QuipRowProps {
   quip: ManagerQuip;
   isActive: boolean;
   onPlay: (quip: ManagerQuip) => void;
+  onStop: () => void;
 }
 
-function QuipRow({ quip, isActive, onPlay }: QuipRowProps) {
+function QuipRow({ quip, isActive, onPlay, onStop }: QuipRowProps) {
+  const [copied, setCopied] = useState(false);
+  const copyResetRef = useRef<number | null>(null);
+
+  const handleCopyScript = useCallback(async () => {
+    const script = quip.generationScript;
+    if (script === undefined) return;
+    try {
+      await navigator.clipboard.writeText(script);
+      setCopied(true);
+      if (copyResetRef.current !== null) {
+        window.clearTimeout(copyResetRef.current);
+      }
+      copyResetRef.current = window.setTimeout(() => {
+        setCopied(false);
+        copyResetRef.current = null;
+      }, 1800);
+    } catch {
+      setCopied(false);
+    }
+  }, [quip.generationScript]);
+
   const statusTone =
     quip.status === "recorded"
       ? "bg-emerald-100 text-emerald-700 border-emerald-300/55"
@@ -517,13 +606,13 @@ function QuipRow({ quip, isActive, onPlay }: QuipRowProps) {
     : "border-aura-hairline bg-white/72 hover:border-aura-rose/40";
   return (
     <li
-      className={`grid grid-cols-[auto_1fr_auto] items-center gap-4 rounded-tile border px-4 py-3 transition ${rowState}`}
+      className={`grid grid-cols-[auto_1fr_auto] items-start gap-4 rounded-tile border px-4 py-3 transition ${rowState}`}
     >
       <button
         type="button"
-        onClick={() => onPlay(quip)}
-        aria-label={`Play ${quip.id}`}
-        className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-500 text-white shadow-[0_8px_18px_-8px_rgba(244,63,94,0.6)] transition hover:scale-[1.04]"
+        onClick={() => (isActive ? onStop() : onPlay(quip))}
+        aria-label={isActive ? `Stop ${quip.id}` : `Play ${quip.id}`}
+        className="mt-0.5 inline-flex size-10 cursor-pointer items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-fuchsia-500 text-white shadow-[0_8px_18px_-8px_rgba(244,63,94,0.6)] transition hover:scale-[1.04]"
       >
         {isActive ? (
           <svg viewBox="0 0 10 10" aria-hidden className="size-3.5" fill="currentColor">
@@ -537,7 +626,7 @@ function QuipRow({ quip, isActive, onPlay }: QuipRowProps) {
         )}
       </button>
 
-      <div className="flex min-w-0 flex-col gap-1">
+      <div className="flex min-w-0 flex-col gap-1.5">
         <p className="font-serif text-base italic leading-snug text-aura-ink">
           {quip.text}
           {quip.translation ? (
@@ -545,23 +634,70 @@ function QuipRow({ quip, isActive, onPlay }: QuipRowProps) {
           ) : null}
         </p>
         {quip.generationScript ? (
-          <p className="truncate font-mono text-sm tracking-[0.06em] text-aura-muted">
-            tts / {quip.generationScript}
-          </p>
+          <div className="flex items-start gap-2">
+            <p className="min-w-0 flex-1 break-words font-mono text-sm leading-snug tracking-[0.06em] text-aura-muted">
+              <span className="text-aura-faint">tts / </span>
+              {quip.generationScript}
+            </p>
+            <button
+              type="button"
+              onClick={handleCopyScript}
+              aria-label={`Copy TTS script for ${quip.id}`}
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-pill border border-aura-hairline bg-white/85 px-2.5 py-1 font-mono text-sm font-semibold uppercase tracking-[0.2em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose"
+            >
+              {copied ? <CheckGlyph /> : <CopyGlyph />}
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
         ) : null}
-        <div className="flex items-center gap-2 font-mono text-sm uppercase tracking-[0.2em] text-aura-faint">
+        <div className="flex flex-wrap items-center gap-2 font-mono text-sm uppercase tracking-[0.2em] text-aura-faint">
           <code className="rounded-tile bg-white/70 px-1.5 py-0.5 text-aura-ink">{quip.id}</code>
           <span aria-hidden>·</span>
-          <span className="truncate">{quip.audio}</span>
+          <span className="break-all">{quip.audio}</span>
         </div>
       </div>
 
       <span
-        className={`inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] ${statusTone}`}
+        className={`mt-0.5 inline-flex items-center gap-1.5 rounded-pill border px-2 py-0.5 font-mono text-sm font-semibold uppercase tracking-[0.22em] ${statusTone}`}
       >
         <span aria-hidden className={`size-1.5 rounded-full ${statusDot}`} />
         {quip.status}
       </span>
     </li>
+  );
+}
+
+function CopyGlyph() {
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      aria-hidden
+      className="size-3"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="3" y="3" width="5.5" height="5.5" rx="1" />
+      <path d="M2 6.5 V2 a0.6 0.6 0 0 1 0.6 -0.6 H6.5" />
+    </svg>
+  );
+}
+
+function CheckGlyph() {
+  return (
+    <svg
+      viewBox="0 0 10 10"
+      aria-hidden
+      className="size-3"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="2,5.5 4.2,7.5 8,3" />
+    </svg>
   );
 }
