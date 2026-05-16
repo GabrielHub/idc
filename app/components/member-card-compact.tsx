@@ -56,7 +56,7 @@ export function CompactMemberCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 8) * 0.02, duration: 0.32, ease: EASE_OUT_QUART }}
-      className="list-none"
+      className="list-none [contain-intrinsic-size:320px_96px] [content-visibility:auto]"
     >
       <div
         className={`relative h-full rounded-2xl transition-[transform,box-shadow] duration-300 ${

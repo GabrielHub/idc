@@ -1,35 +1,70 @@
 import type { Member, PlayerKnowledgeRecord } from "../domain/game";
 import { caseFileNumber } from "../components/member-card";
+import { getMemberQuitRiskStatus } from "./date-engine";
 import { sortMembersByCuratedRosterOrder } from "./member-roster-order";
 import { buildVisibleMemberProfile } from "./player-knowledge";
+import { isMemberInCooldown } from "./shift-planning";
 
 export type MemberSortKey = "default" | "name" | "tallest" | "shortest";
-export type MemberHeightBucket = "all" | "short" | "average" | "tall" | "very-tall";
+export type MemberFocusFilter = "all" | "focused" | "not-focused";
+export type MemberAvailabilityFilter = "all" | "bookable" | "cooldown";
+export type MemberAttentionFilter = "all" | "confidence-low" | "closed-file-risk";
+export type MemberClosureFilter = "all" | "ready";
 export type MemberStatusFilter = "all" | "active" | "closed" | "quit";
 
 export type MemberRosterFilterState = {
   search: string;
-  height: MemberHeightBucket;
+  focus: MemberFocusFilter;
+  availability: MemberAvailabilityFilter;
+  attention: MemberAttentionFilter;
+  closure: MemberClosureFilter;
   status: MemberStatusFilter;
   sort: MemberSortKey;
 };
 
 export const DEFAULT_MEMBER_ROSTER_FILTER_STATE: MemberRosterFilterState = {
   search: "",
-  height: "all",
+  focus: "all",
+  availability: "all",
+  attention: "all",
+  closure: "all",
   status: "all",
   sort: "default",
 };
 
-export const MEMBER_HEIGHT_BUCKET_OPTIONS: ReadonlyArray<{
-  value: MemberHeightBucket;
+export const MEMBER_FOCUS_FILTER_OPTIONS: ReadonlyArray<{
+  value: MemberFocusFilter;
   label: string;
 }> = [
-  { value: "all", label: "All heights" },
-  { value: "short", label: `Under 5'6"` },
-  { value: "average", label: `5'6" to 5'11"` },
-  { value: "tall", label: `6'0" to 6'5"` },
-  { value: "very-tall", label: `6'6" or taller` },
+  { value: "all", label: "Any focus" },
+  { value: "focused", label: "On focus" },
+  { value: "not-focused", label: "Off focus" },
+];
+
+export const MEMBER_AVAILABILITY_FILTER_OPTIONS: ReadonlyArray<{
+  value: MemberAvailabilityFilter;
+  label: string;
+}> = [
+  { value: "all", label: "Any availability" },
+  { value: "bookable", label: "Bookable this shift" },
+  { value: "cooldown", label: "On cooldown" },
+];
+
+export const MEMBER_ATTENTION_FILTER_OPTIONS: ReadonlyArray<{
+  value: MemberAttentionFilter;
+  label: string;
+}> = [
+  { value: "all", label: "Any attention" },
+  { value: "confidence-low", label: "Confidence low" },
+  { value: "closed-file-risk", label: "Closed-file risk" },
+];
+
+export const MEMBER_CLOSURE_FILTER_OPTIONS: ReadonlyArray<{
+  value: MemberClosureFilter;
+  label: string;
+}> = [
+  { value: "all", label: "Any closure" },
+  { value: "ready", label: "Ready to close" },
 ];
 
 export const MEMBER_SORT_OPTIONS: ReadonlyArray<{ value: MemberSortKey; label: string }> = [
@@ -49,19 +84,49 @@ export const MEMBER_STATUS_FILTER_OPTIONS: ReadonlyArray<{
   { value: "quit", label: "Cancelled" },
 ];
 
-type HeightRange = { min: number; max: number };
-
-const HEIGHT_BUCKET_RANGE: Record<Exclude<MemberHeightBucket, "all">, HeightRange> = {
-  short: { min: 0, max: 65 },
-  average: { min: 66, max: 71 },
-  tall: { min: 72, max: 77 },
-  "very-tall": { min: 78, max: Number.POSITIVE_INFINITY },
+export type MemberRosterFilterContext = {
+  focusedMemberIds?: readonly string[];
+  activeShiftNumber?: number;
+  readyClosureMemberIds?: ReadonlySet<string>;
 };
 
-export function matchesHeightBucket(heightInInches: number, bucket: MemberHeightBucket): boolean {
-  if (bucket === "all") return true;
-  const range = HEIGHT_BUCKET_RANGE[bucket];
-  return heightInInches >= range.min && heightInInches <= range.max;
+export function matchesFocusFilter(
+  member: Member,
+  focus: MemberFocusFilter,
+  focusedMemberIds: readonly string[] | undefined,
+): boolean {
+  if (focus === "all") return true;
+  const isFocused = focusedMemberIds?.includes(member.id) === true;
+  return focus === "focused" ? isFocused : !isFocused;
+}
+
+export function matchesAvailabilityFilter(
+  member: Member,
+  availability: MemberAvailabilityFilter,
+  activeShiftNumber: number | undefined,
+): boolean {
+  if (availability === "all") return true;
+  if (member.state.status !== "active") return false;
+  if (activeShiftNumber === undefined) return false;
+  const inCooldown = isMemberInCooldown(member, activeShiftNumber);
+  return availability === "cooldown" ? inCooldown : !inCooldown;
+}
+
+export function matchesAttentionFilter(member: Member, attention: MemberAttentionFilter): boolean {
+  if (attention === "all") return true;
+  if (member.state.status !== "active") return false;
+  const risk = getMemberQuitRiskStatus(member);
+  if (attention === "confidence-low") return risk === "client_confidence_low";
+  return risk === "closed_file_risk";
+}
+
+export function matchesClosureFilter(
+  member: Member,
+  closure: MemberClosureFilter,
+  readyClosureMemberIds: ReadonlySet<string> | undefined,
+): boolean {
+  if (closure === "all") return true;
+  return readyClosureMemberIds?.has(member.id) === true;
 }
 
 export function matchesStatusFilter(member: Member, status: MemberStatusFilter): boolean {
@@ -97,7 +162,8 @@ export function matchesSearch(
 
 type ApplyMemberFiltersOptions = {
   baseSort?: (members: Member[]) => Member[];
-} & MemberRosterSearchOptions;
+} & MemberRosterSearchOptions &
+  MemberRosterFilterContext;
 
 export function applyMemberRosterFilters(
   members: readonly Member[],
@@ -108,7 +174,10 @@ export function applyMemberRosterFilters(
   const filtered = members.filter(
     (member) =>
       matchesStatusFilter(member, filterState.status) &&
-      matchesHeightBucket(member.characterHeightInInches, filterState.height) &&
+      matchesFocusFilter(member, filterState.focus, options.focusedMemberIds) &&
+      matchesAvailabilityFilter(member, filterState.availability, options.activeShiftNumber) &&
+      matchesAttentionFilter(member, filterState.attention) &&
+      matchesClosureFilter(member, filterState.closure, options.readyClosureMemberIds) &&
       matchesSearch(member, filterState.search, options),
   );
 
@@ -135,7 +204,10 @@ export function applyMemberRosterFilters(
 export function isMemberRosterFilterActive(filterState: MemberRosterFilterState): boolean {
   return (
     filterState.search.trim().length > 0 ||
-    filterState.height !== "all" ||
+    filterState.focus !== "all" ||
+    filterState.availability !== "all" ||
+    filterState.attention !== "all" ||
+    filterState.closure !== "all" ||
     filterState.status !== "all" ||
     filterState.sort !== "default"
   );

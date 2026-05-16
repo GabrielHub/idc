@@ -1,6 +1,7 @@
 import { type Ref, useEffect, useState } from "react";
 
 import type { DateScenario, Member } from "../domain/game";
+import { makePairId } from "../services/game-seed";
 import { GhostButton, Portrait, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 
@@ -53,6 +54,7 @@ export function BeginDateDock({
   onStart,
   onCancel,
   onOpenAiSetup,
+  onOpenPairFile,
 }: {
   focus: Member | null;
   partner: Member | null;
@@ -71,6 +73,7 @@ export function BeginDateDock({
   onStart: () => void;
   onCancel: () => void;
   onOpenAiSetup: () => void;
+  onOpenPairFile?: (pairId: string) => void;
 }) {
   const status = deriveDockStatus({
     shiftClosed,
@@ -88,6 +91,11 @@ export function BeginDateDock({
       <div className="aura-glass-strong pointer-events-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-3 rounded-pill px-5 py-2.5 shadow-aura-soft">
         <DockSummary focus={focus} partner={partner} scenario={scenario} onScrollTo={onScrollTo} />
         <div className="flex items-center gap-3">
+          {focus !== null && partner !== null && onOpenPairFile !== undefined ? (
+            <GhostButton onClick={() => onOpenPairFile(makePairId(focus.id, partner.id))}>
+              Open pair file →
+            </GhostButton>
+          ) : null}
           {status !== null ? (
             <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
               {status}

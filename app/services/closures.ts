@@ -29,6 +29,10 @@ export const CLOSURE_THRESHOLD = {
   minCompletedDates: 3,
 } as const;
 
+export function isPairClosureMemory(memory: MemoryRecord): boolean {
+  return memory.scope === "pair" && memory.tags.includes(PAIR_CLOSURE_TAG);
+}
+
 const DASH_PATTERN = /[\u2013\u2014]/u;
 const CUPID_EDITORIALIZE_PATTERN =
   /\b(?:cupid|the company|the agency|the app|matchmak\w*|the office)\b/iu;
@@ -177,7 +181,7 @@ export function getReadyClosurePairs(save: GameSave): ReadyClosurePair[] {
 
 function getClosureMemoriesByCreatedAt(save: Pick<GameSave, "memories">): MemoryRecord[] {
   return save.memories
-    .filter((memory) => memory.scope === "pair" && memory.tags.includes(PAIR_CLOSURE_TAG))
+    .filter(isPairClosureMemory)
     .sort(
       (first, second) =>
         first.createdAt.localeCompare(second.createdAt) || first.id.localeCompare(second.id),

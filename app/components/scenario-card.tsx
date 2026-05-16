@@ -93,6 +93,7 @@ export function ScenarioCard({
 
   const shellClass = [
     "scenario-card relative isolate flex w-full flex-col overflow-hidden text-left",
+    "[content-visibility:auto]",
     "transition-[box-shadow,transform] duration-300 ease-out",
     isTile
       ? "aspect-[4/5] min-h-[140px] rounded-[12px]"
@@ -255,6 +256,7 @@ function CardArtLayer({
           src={scenarioBackdropPath(scenarioId)}
           alt=""
           decoding="async"
+          fetchPriority="low"
           loading="lazy"
           draggable={false}
           onError={() => setFailed(true)}

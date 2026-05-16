@@ -6,6 +6,7 @@ import {
   FOCUS_CASE_LIMIT,
   FOCUS_SWAP_RETENTION_PENALTY,
 } from "../services/focus-cases";
+import { getActiveShift } from "../services/game-seed";
 import {
   applyMemberRosterFilters,
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
@@ -37,6 +38,7 @@ export type RosterCanvasProps = {
   isActionPending: boolean;
   revealAllMemberDetails: boolean;
   save: GameSave;
+  readyClosureMemberIds: ReadonlySet<string>;
   onTutorialUpdate: (next: GameSave) => void;
   onAddFocus: (memberId: string) => void;
   onRemoveFocus: (memberId: string) => void;
@@ -52,6 +54,7 @@ export function RosterCanvas({
   isActionPending,
   revealAllMemberDetails,
   save,
+  readyClosureMemberIds,
   onTutorialUpdate,
   onAddFocus,
   onRemoveFocus,
@@ -74,14 +77,26 @@ export function RosterCanvas({
   );
 
   const focusedSet = useMemo(() => new Set(focusedMemberIds), [focusedMemberIds]);
+  const activeShiftNumber = useMemo(() => getActiveShift(save).shiftNumber, [save]);
   const orderedMembers = useMemo(
     () =>
       applyMemberRosterFilters(members, filterState, {
         baseSort: (entries) => sortMembersForRoster(entries, focusedMemberIds),
         playerKnowledge,
         revealAllMemberDetails,
+        focusedMemberIds,
+        activeShiftNumber,
+        readyClosureMemberIds,
       }),
-    [members, filterState, focusedMemberIds, playerKnowledge, revealAllMemberDetails],
+    [
+      members,
+      filterState,
+      focusedMemberIds,
+      playerKnowledge,
+      revealAllMemberDetails,
+      activeShiftNumber,
+      readyClosureMemberIds,
+    ],
   );
   const filterActive = isMemberRosterFilterActive(filterState);
   const resultLabel = filterActive
@@ -301,7 +316,7 @@ export function RosterCanvas({
         <RosterFilterBar
           filterState={filterState}
           onChange={setFilterState}
-          showStatus
+          showCaseOperations
           resultLabel={resultLabel}
         />
       </div>

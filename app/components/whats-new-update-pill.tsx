@@ -9,6 +9,8 @@ import {
 } from "../platform/tauri-updater";
 import { errorToMessage } from "../services/utils";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
+import { formatNoteTimestamp } from "./notes-format";
+import { formatBytes } from "./settings-update-state";
 
 type UpdatePillState =
   | { status: "idle" }
@@ -255,7 +257,7 @@ function UpdatePopoverBody({
           </span>
           {state.date === null ? null : (
             <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
-              filed {formatPopoverDate(state.date)}
+              filed {formatNoteTimestamp(state.date)}
             </span>
           )}
         </div>
@@ -320,27 +322,12 @@ function UpdatePopoverBody({
 /* Helpers                                                            */
 /* ================================================================== */
 
-function formatPopoverDate(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-}
-
 function formatInstallProgress(state: Extract<UpdatePillState, { status: "installing" }>): string {
   if (state.totalBytes === null || state.totalBytes <= 0) {
     return `${formatBytes(state.downloadedBytes)} received`;
   }
   const percent = Math.min(100, Math.round((state.downloadedBytes / state.totalBytes) * 100));
   return `${percent}% received :: ${formatBytes(state.downloadedBytes)} / ${formatBytes(state.totalBytes)}`;
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) {
-    return `${Math.max(0, Math.round(bytes / 1024))} KB`;
-  }
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /* ================================================================== */

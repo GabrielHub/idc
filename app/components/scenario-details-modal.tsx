@@ -199,6 +199,7 @@ function ScenarioDetailBackdrop({ scenarioId }: { scenarioId: string }) {
           src={scenarioBackdropPath(scenarioId)}
           alt=""
           decoding="async"
+          fetchPriority="high"
           loading="eager"
           draggable={false}
           onError={() => setFailed(true)}

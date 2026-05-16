@@ -104,7 +104,7 @@ import { PreDateCanvas } from "./pre-date-canvas";
 import { RosterCanvas } from "./roster-canvas";
 import { buildDiagnosticsSnapshot, MutedIndicator, SettingsMenu } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
-import { useSfx } from "./sfx-provider";
+import { useSfx, type SfxCue } from "./sfx-provider";
 import { SoftWinCutscene } from "./soft-win-cutscene";
 import {
   getReleaseNoteByVersion,
@@ -161,6 +161,23 @@ export function CupidShell(props: CupidShellProps) {
   );
 }
 
+function useCueOnMessageChange(
+  message: string | null,
+  cue: SfxCue,
+  play: (cue: SfxCue) => void,
+): void {
+  const lastMessageRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (message === null) {
+      lastMessageRef.current = null;
+      return;
+    }
+    if (lastMessageRef.current === message) return;
+    lastMessageRef.current = message;
+    play(cue);
+  }, [message, cue, play]);
+}
+
 function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
   const { play } = useSfx();
@@ -175,6 +192,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [save, setSave] = useState<GameSave | null>(null);
   const saveRef = useRef<GameSave | null>(null);
   const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
+  const [filesPairFocusId, setFilesPairFocusId] = useState<string | null>(null);
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
@@ -199,7 +217,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const localAiStatusRequestRef = useRef<Promise<AiSetupStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
-  const lastErrorMessageRef = useRef<string | null>(null);
   const releaseNotesCheckCompleteRef = useRef(false);
   const isActionPending = pendingAction !== null;
   const releaseNotesForModal = useMemo(
@@ -314,15 +331,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     };
   }, [aiStatusConfigKey, gatewayApiKey, isGatewayApiKeyLoaded]);
 
-  useEffect(() => {
-    if (errorMessage === null) {
-      lastErrorMessageRef.current = null;
-      return;
-    }
-    if (lastErrorMessageRef.current === errorMessage) return;
-    lastErrorMessageRef.current = errorMessage;
-    play("alert");
-  }, [errorMessage, play]);
+  useCueOnMessageChange(errorMessage, "alert", play);
+  useCueOnMessageChange(noticeMessage, "notice", play);
 
   useEffect(() => {
     return () => {
@@ -338,7 +348,30 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     () => (save === null ? [] : getReadyClosurePairs(save)),
     [save],
   );
+  const readyClosurePairIds = useMemo(
+    () => new Set(readyClosurePairs.map((entry) => entry.pairState.id)),
+    [readyClosurePairs],
+  );
+  const readyClosureMemberIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const ready of readyClosurePairs) {
+      ids.add(ready.participants[0].id);
+      ids.add(ready.participants[1].id);
+    }
+    return ids;
+  }, [readyClosurePairs]);
   const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
+
+  useEffect(() => {
+    if (currentRoom !== "files" && filesPairFocusId !== null) {
+      setFilesPairFocusId(null);
+    }
+  }, [currentRoom, filesPairFocusId]);
+
+  const handleOpenPairFile = useCallback((pairId: string) => {
+    setFilesPairFocusId(pairId);
+    setCurrentRoom("files");
+  }, []);
   const activeSession = useMemo(
     () =>
       save === null || activeDateSessionId === null
@@ -731,10 +764,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
           dispatchOutcomeQuip(result.session.finalReport, sessionId);
           dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+          play("report");
         } else if (previousStatus === "active" && nextStatus === "ended_early") {
           dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
           dispatchOutcomeQuip(result.session.finalReport, sessionId);
           dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+          play("report");
         }
         processManagerQuipSaveDiff(previousSave, result.save);
         setActiveDateSessionId(result.session.id);
@@ -763,6 +798,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   function applyStreamEvent(event: LocalAiDateStreamEvent) {
     if (event.type === "judgeStart") {
       setIsDateJudgePending(true);
+      play("judge");
       return;
     }
 
@@ -770,8 +806,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       setIsDateJudgePending(false);
     }
 
+    if (event.type === "characterDone") {
+      play("message");
+    }
+
     if (event.type === "characterFailed" || event.type === "characterCanceled") {
       setIsDateJudgePending(false);
+      play("abort");
       setStreamingDrafts((current) =>
         current.filter((draft) => draft.sequenceIndex !== event.sequenceIndex),
       );
@@ -829,6 +870,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       });
       await persist(result.save);
       setInterventionText("");
+      play("intervention");
     });
   }
 
@@ -851,6 +893,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         eventId,
       });
       await persist(result.save);
+      play("event");
     });
   }
 
@@ -986,6 +1029,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     tryAction("focusCase", async () => {
       await persist(syncActiveShiftFocusCases(focusAddCase(save, memberId)));
+      play("reveal");
     });
   }
 
@@ -1003,6 +1047,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       const nextSave = syncActiveShiftFocusCases(focusSwapCase(save, oldId, newId));
       await persist(nextSave);
       processManagerQuipSaveDiff(previousSave, nextSave);
+      play("reveal");
     });
   }
 
@@ -1349,6 +1394,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                     onDismissClosureError={handleDismissClosureError}
                     onOpenDateBook={() => setCurrentRoom("datebook")}
                     onOpenRoster={() => setCurrentRoom("roster")}
+                    onOpenPairFile={handleOpenPairFile}
                     onOpenAiSetup={() => setIsAiSetupOpen(true)}
                     onCloseShift={handleEndShift}
                     onStartNextShift={handleStartNextShift}
@@ -1384,6 +1430,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                   isActionPending={isActionPending}
                   revealAllMemberDetails={revealAllMemberDetails}
                   save={save}
+                  readyClosureMemberIds={readyClosureMemberIds}
                   onTutorialUpdate={handleTutorialUpdate}
                   onAddFocus={handleAddFocus}
                   onRemoveFocus={handleRemoveFocus}
@@ -1400,7 +1447,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                     members={save.members}
                     pairStates={save.pairStates}
                     scenarios={starterScenarios}
-                    shiftCount={save.shifts.length}
+                    shifts={save.shifts}
+                    pairFocusId={filesPairFocusId}
+                    playerKnowledge={save.playerKnowledge}
+                    readyClosurePairIds={readyClosurePairIds}
                   />
                 </div>
               ) : null}

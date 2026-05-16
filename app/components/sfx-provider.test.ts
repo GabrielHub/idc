@@ -3,9 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   __playVoiceClipForTests,
   __resetSharedAudioContextForTests,
-  __setVoiceClipFetchForTests,
   isSfxEnabledByDefault,
 } from "./sfx-provider";
+import {
+  __computeVoiceClipNormalizationGainForTests,
+  __setVoiceClipFetchForTests,
+} from "./sfx-voice-clip";
 
 describe("SFX provider defaults", () => {
   it("starts enabled in the desktop runtime", () => {
@@ -17,7 +20,13 @@ describe("SFX provider defaults", () => {
   });
 });
 
-type StubAudioBuffer = { duration: number };
+type StubAudioBuffer = {
+  duration: number;
+  length: number;
+  numberOfChannels: number;
+  sampleRate: number;
+  getChannelData: (channel: number) => Float32Array;
+};
 
 type StubBufferSource = {
   buffer: StubAudioBuffer | null;
@@ -29,7 +38,22 @@ type StubBufferSource = {
 };
 
 type StubGainNode = {
-  gain: { setValueAtTime: (value: number, time: number) => void };
+  gain: {
+    setValueAtTime: (value: number, time: number) => void;
+    setTargetAtTime: (value: number, time: number, constant: number) => void;
+  };
+  connect: (target: object) => void;
+  disconnect: () => void;
+};
+
+type StubAudioParam = { setValueAtTime: (value: number, time: number) => void };
+
+type StubCompressorNode = {
+  threshold: StubAudioParam;
+  knee: StubAudioParam;
+  ratio: StubAudioParam;
+  attack: StubAudioParam;
+  release: StubAudioParam;
   connect: (target: object) => void;
   disconnect: () => void;
 };
@@ -41,6 +65,7 @@ type StubAudioContext = {
   resume: () => Promise<void>;
   createGain: () => StubGainNode;
   createBufferSource: () => StubBufferSource;
+  createDynamicsCompressor: () => StubCompressorNode;
   decodeAudioData: (buffer: ArrayBuffer) => Promise<StubAudioBuffer>;
 };
 
@@ -49,13 +74,25 @@ type AudioContextStubResult = {
   decode: ReturnType<typeof vi.fn>;
 };
 
-function installAudioContextStub(): AudioContextStubResult {
+function buildSampleBuffer(amplitude: number, sampleCount = 4_800): StubAudioBuffer {
+  const data = new Float32Array(sampleCount);
+  for (let index = 0; index < sampleCount; index += 1) {
+    data[index] = amplitude;
+  }
+  return {
+    duration: 1.5,
+    length: sampleCount,
+    numberOfChannels: 1,
+    sampleRate: 48_000,
+    getChannelData: () => data,
+  };
+}
+
+function installAudioContextStub(amplitude = 0.5): AudioContextStubResult {
   const startedSources: StubBufferSource[] = [];
-  const decode = vi.fn(
-    async (_buffer: ArrayBuffer): Promise<StubAudioBuffer> => ({
-      duration: 1.5,
-    }),
-  );
+  const decode = vi.fn(async (_buffer: ArrayBuffer): Promise<StubAudioBuffer> => {
+    return buildSampleBuffer(amplitude);
+  });
 
   function buildContext(): StubAudioContext {
     return {
@@ -64,7 +101,10 @@ function installAudioContextStub(): AudioContextStubResult {
       destination: {},
       resume: async () => undefined,
       createGain: () => ({
-        gain: { setValueAtTime: () => undefined },
+        gain: {
+          setValueAtTime: () => undefined,
+          setTargetAtTime: () => undefined,
+        },
         connect: () => undefined,
         disconnect: () => undefined,
       }),
@@ -80,6 +120,15 @@ function installAudioContextStub(): AudioContextStubResult {
         startedSources.push(source);
         return source;
       },
+      createDynamicsCompressor: () => ({
+        threshold: { setValueAtTime: () => undefined },
+        knee: { setValueAtTime: () => undefined },
+        ratio: { setValueAtTime: () => undefined },
+        attack: { setValueAtTime: () => undefined },
+        release: { setValueAtTime: () => undefined },
+        connect: () => undefined,
+        disconnect: () => undefined,
+      }),
       decodeAudioData: decode,
     };
   }
@@ -174,5 +223,72 @@ describe("SFX provider playVoiceClip", () => {
 
     expect(playback).toEqual({ played: false, durationMs: 0 });
     expect(startedSources).toHaveLength(0);
+  });
+});
+
+function makeBuffer(amplitude: number, sampleCount = 4_800, channelCount = 1): AudioBuffer {
+  const channels: Float32Array[] = [];
+  for (let channel = 0; channel < channelCount; channel += 1) {
+    const data = new Float32Array(sampleCount);
+    for (let index = 0; index < sampleCount; index += 1) {
+      data[index] = amplitude;
+    }
+    channels.push(data);
+  }
+  return {
+    duration: sampleCount / 48_000,
+    length: sampleCount,
+    numberOfChannels: channelCount,
+    sampleRate: 48_000,
+    getChannelData: (channel: number) => channels[channel],
+  } as unknown as AudioBuffer;
+}
+
+describe("voice clip normalization gain", () => {
+  it("returns 1 for an empty buffer", () => {
+    const buffer = makeBuffer(0, 0);
+    expect(__computeVoiceClipNormalizationGainForTests(buffer)).toBe(1);
+  });
+
+  it("returns 1 for a fully silent buffer", () => {
+    const buffer = makeBuffer(0);
+    expect(__computeVoiceClipNormalizationGainForTests(buffer)).toBe(1);
+  });
+
+  it("attenuates a hot clip toward the target RMS", () => {
+    const hot = makeBuffer(0.9);
+    const gain = __computeVoiceClipNormalizationGainForTests(hot);
+    expect(gain).toBeLessThan(1);
+    expect(hot.getChannelData(0)[0] * gain).toBeLessThanOrEqual(0.95);
+  });
+
+  it("boosts a quiet clip toward the target RMS without exceeding the peak ceiling", () => {
+    const quiet = makeBuffer(0.05);
+    const gain = __computeVoiceClipNormalizationGainForTests(quiet);
+    expect(gain).toBeGreaterThan(1);
+    expect(quiet.getChannelData(0)[0] * gain).toBeLessThanOrEqual(0.95);
+  });
+
+  it("brings clips of differing loudness toward a common output level", () => {
+    const hot = makeBuffer(0.8);
+    const soft = makeBuffer(0.2);
+    const hotEffective =
+      hot.getChannelData(0)[0] * __computeVoiceClipNormalizationGainForTests(hot);
+    const softEffective =
+      soft.getChannelData(0)[0] * __computeVoiceClipNormalizationGainForTests(soft);
+    expect(Math.abs(hotEffective - softEffective)).toBeLessThan(0.15);
+  });
+
+  it("caps amplification on near-silent recordings", () => {
+    const whisper = makeBuffer(0.005);
+    const gain = __computeVoiceClipNormalizationGainForTests(whisper);
+    expect(gain).toBeLessThanOrEqual(8);
+  });
+
+  it("handles multi-channel buffers without crashing", () => {
+    const stereo = makeBuffer(0.4, 4_800, 2);
+    const gain = __computeVoiceClipNormalizationGainForTests(stereo);
+    expect(gain).toBeGreaterThan(0);
+    expect(Number.isFinite(gain)).toBe(true);
   });
 });

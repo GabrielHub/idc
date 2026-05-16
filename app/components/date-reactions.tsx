@@ -215,7 +215,13 @@ export function DaterStandee({
             <div
               className={`absolute inset-0 ${footing.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
             >
-              <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} />
+              <Portrait
+                member={member}
+                variant="standee-bottom"
+                asset="portrait"
+                mood={mood}
+                priority
+              />
             </div>
           </div>
         </div>

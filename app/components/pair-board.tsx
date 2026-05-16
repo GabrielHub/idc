@@ -2,6 +2,7 @@ import { AnimatePresence, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { DateScenario, MemoryRecord, Member, PairState } from "../domain/game";
+import { resolveInitialPairBoardSelection } from "./notes-view-helpers";
 import { derivePairGraph, type PairBoardEdge } from "./pair-board-layout";
 import { PairBoardField } from "./pair-board-field";
 import {
@@ -29,6 +30,7 @@ export type PairBoardProps = {
   memories: MemoryRecord[];
   scenarios: DateScenario[];
   shiftCount: number;
+  initialEdgePairId?: string | null;
 };
 
 export function PairBoard({
@@ -37,10 +39,15 @@ export function PairBoard({
   memories,
   scenarios,
   shiftCount,
+  initialEdgePairId,
 }: PairBoardProps) {
   const reduceMotion = useReducedMotion() ?? false;
   const [minDegree, setMinDegree] = useState(1);
-  const [selection, setSelection] = useState<PairBoardSelection>({ kind: "none" });
+  const [selection, setSelection] = useState<PairBoardSelection>(() =>
+    initialEdgePairId === null || initialEdgePairId === undefined
+      ? { kind: "none" }
+      : { kind: "edge", pairId: initialEdgePairId },
+  );
   const [hover, setHover] = useState<FieldHover>({ kind: "none" });
 
   const memberById = useMemo(
@@ -66,6 +73,15 @@ export function PairBoard({
       setSelection({ kind: "none" });
     }
   }, [selection, graph]);
+
+  useEffect(() => {
+    if (initialEdgePairId === null || initialEdgePairId === undefined) return;
+    const next = resolveInitialPairBoardSelection(initialEdgePairId, graph.edgeById);
+    if (next.kind !== "edge") return;
+    setSelection((current) =>
+      current.kind === "edge" && current.pairId === next.pairId ? current : next,
+    );
+  }, [initialEdgePairId, graph]);
 
   const fieldRef = useRef<HTMLDivElement>(null);
   const size = useElementSize(fieldRef);

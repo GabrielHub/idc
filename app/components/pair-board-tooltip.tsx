@@ -9,6 +9,7 @@ import {
   type PairBoardGraph,
   type PairBoardPoint,
 } from "./pair-board-layout";
+import { joinPairFirstNames } from "./notes-format";
 import { ImportanceDots, splitLead, type ElementSize, type FieldHover } from "./pair-board-shared";
 
 export function PairBoardTooltip({
@@ -172,7 +173,7 @@ function EdgeTooltip({
         </div>
         <div className="min-w-0">
           <p className="truncate font-display text-display-sm font-semibold leading-tight text-aura-ink">
-            {memberA.firstName} & {memberB.firstName}
+            {joinPairFirstNames([memberA.firstName, memberB.firstName])}
           </p>
           <p className="mt-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
             {pad2(edge.noteCount)} {edge.noteCount === 1 ? "note" : "notes"} · {recency}

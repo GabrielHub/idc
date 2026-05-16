@@ -96,7 +96,7 @@ export function MemberCard({
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 14) * 0.025, duration: 0.42, ease: EASE_OUT_QUART }}
-      className="list-none"
+      className="list-none [contain-intrinsic-size:320px_427px] [content-visibility:auto]"
     >
       <div
         className={`group/card relative isolate rounded-card transition-transform duration-300 ${

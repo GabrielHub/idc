@@ -1,9 +1,15 @@
 import { SelectInput } from "./dashboard-atoms";
 import {
-  MEMBER_HEIGHT_BUCKET_OPTIONS,
+  MEMBER_ATTENTION_FILTER_OPTIONS,
+  MEMBER_AVAILABILITY_FILTER_OPTIONS,
+  MEMBER_CLOSURE_FILTER_OPTIONS,
+  MEMBER_FOCUS_FILTER_OPTIONS,
   MEMBER_SORT_OPTIONS,
   MEMBER_STATUS_FILTER_OPTIONS,
-  type MemberHeightBucket,
+  type MemberAttentionFilter,
+  type MemberAvailabilityFilter,
+  type MemberClosureFilter,
+  type MemberFocusFilter,
   type MemberRosterFilterState,
   type MemberSortKey,
   type MemberStatusFilter,
@@ -12,7 +18,7 @@ import {
 export type RosterFilterBarProps = {
   filterState: MemberRosterFilterState;
   onChange: (next: MemberRosterFilterState) => void;
-  showStatus?: boolean;
+  showCaseOperations?: boolean;
   searchPlaceholder?: string;
   resultLabel?: string;
 };
@@ -20,7 +26,7 @@ export type RosterFilterBarProps = {
 export function RosterFilterBar({
   filterState,
   onChange,
-  showStatus = false,
+  showCaseOperations = false,
   searchPlaceholder = "Search the roster",
   resultLabel,
 }: RosterFilterBarProps) {
@@ -41,23 +47,49 @@ export function RosterFilterBar({
         />
       </label>
 
-      {showStatus ? (
-        <SelectInput<MemberStatusFilter>
-          label="Status"
-          layout="toolbar"
-          value={filterState.status}
-          options={MEMBER_STATUS_FILTER_OPTIONS}
-          onChange={(value) => patch({ status: value })}
-        />
-      ) : null}
+      {showCaseOperations ? (
+        <>
+          <SelectInput<MemberFocusFilter>
+            label="Focus"
+            layout="toolbar"
+            value={filterState.focus}
+            options={MEMBER_FOCUS_FILTER_OPTIONS}
+            onChange={(value) => patch({ focus: value })}
+          />
 
-      <SelectInput<MemberHeightBucket>
-        label="Height"
-        layout="toolbar"
-        value={filterState.height}
-        options={MEMBER_HEIGHT_BUCKET_OPTIONS}
-        onChange={(value) => patch({ height: value })}
-      />
+          <SelectInput<MemberAvailabilityFilter>
+            label="Availability"
+            layout="toolbar"
+            value={filterState.availability}
+            options={MEMBER_AVAILABILITY_FILTER_OPTIONS}
+            onChange={(value) => patch({ availability: value })}
+          />
+
+          <SelectInput<MemberAttentionFilter>
+            label="Attention"
+            layout="toolbar"
+            value={filterState.attention}
+            options={MEMBER_ATTENTION_FILTER_OPTIONS}
+            onChange={(value) => patch({ attention: value })}
+          />
+
+          <SelectInput<MemberClosureFilter>
+            label="Closure"
+            layout="toolbar"
+            value={filterState.closure}
+            options={MEMBER_CLOSURE_FILTER_OPTIONS}
+            onChange={(value) => patch({ closure: value })}
+          />
+
+          <SelectInput<MemberStatusFilter>
+            label="Status"
+            layout="toolbar"
+            value={filterState.status}
+            options={MEMBER_STATUS_FILTER_OPTIONS}
+            onChange={(value) => patch({ status: value })}
+          />
+        </>
+      ) : null}
 
       <SelectInput<MemberSortKey>
         label="Sort"

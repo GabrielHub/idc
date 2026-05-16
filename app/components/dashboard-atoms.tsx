@@ -2,11 +2,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import type { Member, PortraitMood } from "../domain/game";
-import {
-  readyPortraitMoodPaths,
-  readyPortraitPath,
-  selectPortraitAsset,
-} from "./date-presentation-signals";
+import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
 export const EASE_OUT_QUART: [number, number, number, number] = [0.2, 0.8, 0.2, 1];
@@ -93,7 +89,6 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
   "standee-bottom": "font-display text-display-xl font-bold text-aura-rose/30",
 };
 
-const STANDEE_PORTRAIT_VARIANTS = new Set<PortraitVariant>(["standee-bottom"]);
 const PORTRAIT_FADE_CLASS =
   "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 
@@ -111,33 +106,51 @@ const AVATAR_SIZES_FOR_VARIANT: Record<PortraitVariant, string | undefined> = {
   "standee-bottom": undefined,
 };
 
+const AVATAR_DIMENSIONS = { width: 512, height: 512 } as const;
+const PORTRAIT_DIMENSIONS = { width: 887, height: 1774 } as const;
+
 export function Portrait({
   member,
   variant,
   asset = "avatar",
   mood = "neutral",
+  priority = false,
 }: {
   member: Member;
   variant: PortraitVariant;
   asset?: "avatar" | "portrait";
   mood?: PortraitMood;
+  priority?: boolean;
 }) {
-  const layerPaths = useMemo(() => buildPortraitLayerPaths(member, asset), [member.id, asset]);
   const activePath = readyPortraitPath(selectPortraitAsset(member, asset, mood));
+  const imageDimensions = asset === "portrait" ? PORTRAIT_DIMENSIONS : AVATAR_DIMENSIONS;
 
   const [loadedPaths, setLoadedPaths] = useState<ReadonlySet<string>>(() => new Set());
   const [failedPaths, setFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
+  const [displayPath, setDisplayPath] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setLoadedPaths(new Set());
     setFailedPaths(new Set());
+    setDisplayPath(undefined);
   }, [member.id, asset]);
 
-  const isStandee = STANDEE_PORTRAIT_VARIANTS.has(variant);
+  useEffect(() => {
+    if (activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath)) {
+      setDisplayPath(activePath);
+    }
+  }, [activePath, failedPaths, loadedPaths]);
+
   const activeReady =
     activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath);
   const avatarSrcSet = asset === "avatar" ? buildAvatarSrcSet(activePath) : undefined;
   const avatarSizes = asset === "avatar" ? AVATAR_SIZES_FOR_VARIANT[variant] : undefined;
+  const layerPaths = useMemo(
+    () => buildVisiblePortraitLayerPaths(activePath, displayPath),
+    [activePath, displayPath],
+  );
+  const visiblePath = activeReady ? activePath : displayPath;
+  const hasVisibleImage = visiblePath !== undefined;
 
   return (
     <div
@@ -147,7 +160,7 @@ export function Portrait({
         const isActive = path === activePath;
         const loaded = loadedPaths.has(path);
         const failed = failedPaths.has(path);
-        const visible = isActive && loaded && !failed;
+        const visible = path === visiblePath && loaded && !failed;
 
         return (
           <img
@@ -166,12 +179,14 @@ export function Portrait({
             src={path}
             srcSet={isActive ? avatarSrcSet : undefined}
             sizes={isActive ? avatarSizes : undefined}
+            width={imageDimensions.width}
+            height={imageDimensions.height}
             className={`absolute inset-0 will-change-[opacity] ${PORTRAIT_FADE_CLASS} ${
               PORTRAIT_IMAGE[variant]
             } ${visible ? "opacity-100" : "opacity-0"}`}
             decoding="async"
-            fetchPriority={isStandee ? "high" : "auto"}
-            loading={isStandee ? "eager" : "lazy"}
+            fetchPriority={priority && isActive ? "high" : "auto"}
+            loading={priority && isActive ? "eager" : "lazy"}
             onLoad={() => addPath(setLoadedPaths, path)}
             onError={() => addPath(setFailedPaths, path)}
           />
@@ -181,7 +196,7 @@ export function Portrait({
         aria-hidden="true"
         className={`absolute inset-0 grid place-items-center ${PORTRAIT_FADE_CLASS} ${
           PORTRAIT_INITIALS[variant]
-        } ${activeReady ? "opacity-0" : "opacity-100"}`}
+        } ${hasVisibleImage ? "opacity-0" : "opacity-100"}`}
       >
         {initialsFor(member.firstName)}
       </span>
@@ -209,13 +224,17 @@ function buildAvatarSrcSet(activePath: string | undefined): string | undefined {
   return [...widthEntries, `${activePath} 1024w`].join(", ");
 }
 
-function buildPortraitLayerPaths(member: Member, asset: "avatar" | "portrait"): string[] {
-  if (asset === "avatar") {
-    const avatarPath = readyPortraitPath(selectPortraitAsset(member, "avatar"));
-    return avatarPath === undefined ? [] : [avatarPath];
+function buildVisiblePortraitLayerPaths(
+  activePath: string | undefined,
+  displayPath: string | undefined,
+): string[] {
+  if (activePath === undefined) {
+    return displayPath === undefined ? [] : [displayPath];
   }
-
-  return readyPortraitMoodPaths(member);
+  if (displayPath === undefined || displayPath === activePath) {
+    return [activePath];
+  }
+  return [displayPath, activePath];
 }
 
 function addPath(

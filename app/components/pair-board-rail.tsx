@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 
 import type { DateScenario, MemoryRecord, Member } from "../domain/game";
 import { EASE_OUT_QUART, pad2, Portrait } from "./dashboard-atoms";
+import { joinPairFirstNames } from "./notes-format";
 import { describeRecency, type PairBoardGraph } from "./pair-board-layout";
 import {
   FALLBACK_EDGE_COLOR_A,
@@ -395,7 +396,7 @@ function pairTitleFor(
   if (edge === undefined) return pairId;
   const a = memberById.get(edge.a)?.firstName ?? edge.a;
   const b = memberById.get(edge.b)?.firstName ?? edge.b;
-  return `${a} & ${b}`;
+  return joinPairFirstNames([a, b]) ?? pairId;
 }
 
 function sortNotesByCreatedDesc(notes: readonly MemoryRecord[]): MemoryRecord[] {

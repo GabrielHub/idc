@@ -316,6 +316,7 @@ function ScenarioBackdropImage({
             alt=""
             src={src}
             decoding="async"
+            fetchPriority="high"
             loading="eager"
             draggable={false}
             onLoad={() => setLoadState("loaded")}

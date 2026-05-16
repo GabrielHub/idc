@@ -1,9 +1,10 @@
 import { motion } from "motion/react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { GameSave, Member, MemoryRecord, PairState } from "../domain/game";
-import { PAIR_CLOSURE_TAG } from "../services/closures";
+import { isPairClosureMemory } from "../services/closures";
 import { Eyebrow, Hairline, Portrait, PrimaryButton } from "./dashboard-atoms";
+import { useSfx } from "./sfx-provider";
 
 export type SoftWinCutsceneProps = {
   save: GameSave;
@@ -18,8 +19,13 @@ type ClosureEntry = {
 };
 
 export function SoftWinCutscene({ save, isActionPending, onContinue }: SoftWinCutsceneProps) {
+  const { play } = useSfx();
   const entries = useMemo(() => collectClosureEntries(save), [save]);
   const closureCount = save.closureCount;
+
+  useEffect(() => {
+    play("triumph");
+  }, [play]);
 
   return (
     <motion.div
@@ -101,8 +107,7 @@ function collectClosureEntries(save: GameSave): ClosureEntry[] {
   const entries: ClosureEntry[] = [];
 
   for (const memory of save.memories) {
-    if (memory.scope !== "pair") continue;
-    if (!memory.tags.includes(PAIR_CLOSURE_TAG)) continue;
+    if (!isPairClosureMemory(memory)) continue;
     if (memory.pairId === undefined) continue;
     const pairState = pairStateById.get(memory.pairId);
     if (pairState === undefined) continue;

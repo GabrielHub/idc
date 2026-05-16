@@ -42,38 +42,18 @@ export function ShiftReportPanel({
         </h2>
         <p className="mt-3 text-lead text-aura-muted">{report.summary}</p>
 
-        <ul className="mt-8 space-y-3">
-          {report.goalResults.map((result) => (
-            <li key={result.goalId} className="flex items-baseline justify-between gap-4">
-              <span className="font-mono text-label uppercase tracking-[0.18em] text-aura-faint">
-                {result.summary}
-              </span>
-              <span
-                className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
-                  result.status === "met" ? "text-emerald-600" : "text-aura-rose"
-                }`}
-              >
-                {result.status}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <ShiftGoalResultsBlock results={report.goalResults} className="mt-8" />
 
         {report.budgetReview === undefined ? null : (
-          <BudgetReviewBlock review={report.budgetReview} />
+          <BudgetReviewBlock review={report.budgetReview} className="mt-8" />
         )}
 
         {report.deckCoverage.length === 0 ? null : (
-          <DeckCoverageBlock coverage={report.deckCoverage} members={members} />
+          <DeckCoverageBlock coverage={report.deckCoverage} members={members} className="mt-4" />
         )}
 
         {report.hrNote === undefined ? null : (
-          <div className="mt-8 rounded-card border border-aura-hairline bg-white/45 p-5">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-              // hr.note
-            </p>
-            <p className="mt-2 text-body text-aura-ink">{report.hrNote}</p>
-          </div>
+          <ShiftHrNoteBlock note={report.hrNote} className="mt-8" />
         )}
 
         <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
@@ -89,7 +69,54 @@ export function ShiftReportPanel({
   );
 }
 
-function BudgetReviewBlock({ review }: { review: NonNullable<ShiftReport["budgetReview"]> }) {
+export function ShiftGoalResultsBlock({
+  results,
+  className = "",
+}: {
+  results: ShiftReport["goalResults"];
+  className?: string;
+}) {
+  if (results.length === 0) {
+    return null;
+  }
+  return (
+    <ul className={`space-y-3 ${className}`.trim()}>
+      {results.map((result) => (
+        <li key={result.goalId} className="flex items-baseline justify-between gap-4">
+          <span className="font-mono text-label uppercase tracking-[0.18em] text-aura-faint">
+            {result.summary}
+          </span>
+          <span
+            className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
+              result.status === "met" ? "text-emerald-600" : "text-aura-rose"
+            }`}
+          >
+            {result.status}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+export function ShiftHrNoteBlock({ note, className = "" }: { note: string; className?: string }) {
+  return (
+    <div className={`rounded-card border border-aura-hairline bg-white/45 p-5 ${className}`.trim()}>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        // hr.note
+      </p>
+      <p className="mt-2 text-body text-aura-ink">{note}</p>
+    </div>
+  );
+}
+
+export function BudgetReviewBlock({
+  review,
+  className = "",
+}: {
+  review: NonNullable<ShiftReport["budgetReview"]>;
+  className?: string;
+}) {
   const direction =
     review.newCap > review.previousCap
       ? { tone: "text-emerald-700", arrow: "▲" }
@@ -98,7 +125,7 @@ function BudgetReviewBlock({ review }: { review: NonNullable<ShiftReport["budget
         : { tone: "text-aura-faint", arrow: "·" };
   const sortedReasons = [...review.reasons].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
   return (
-    <div className="aura-glass mt-8 rounded-card p-5">
+    <div className={`aura-glass rounded-card p-5 ${className}`.trim()}>
       <div className="flex items-baseline justify-between gap-3">
         <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
           // performance review
@@ -134,16 +161,18 @@ function BudgetReviewBlock({ review }: { review: NonNullable<ShiftReport["budget
   );
 }
 
-function DeckCoverageBlock({
+export function DeckCoverageBlock({
   coverage,
   members,
+  className = "",
 }: {
   coverage: ShiftReport["deckCoverage"];
   members: Member[];
+  className?: string;
 }) {
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   return (
-    <div className="aura-glass mt-4 rounded-card p-5">
+    <div className={`aura-glass rounded-card p-5 ${className}`.trim()}>
       <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
         // deck coverage
       </p>

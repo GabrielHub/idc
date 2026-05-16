@@ -68,6 +68,7 @@ export type PreDateCanvasProps = {
   onDismissClosureError: () => void;
   onOpenDateBook: () => void;
   onOpenRoster: () => void;
+  onOpenPairFile?: (pairId: string) => void;
   onOpenAiSetup: () => void;
   onCloseShift: () => void;
   onStartNextShift: () => void;
@@ -96,6 +97,7 @@ export function PreDateCanvas({
   onDismissClosureError,
   onOpenDateBook,
   onOpenRoster,
+  onOpenPairFile,
   onOpenAiSetup,
   onCloseShift,
   onStartNextShift,
@@ -554,6 +556,7 @@ export function PreDateCanvas({
         commitButtonRef={commitCtaRef}
         beginButtonRef={beginCtaRef}
         onOpenAiSetup={onOpenAiSetup}
+        onOpenPairFile={onOpenPairFile}
         onScrollTo={(step) => {
           const target =
             step === "focus"
