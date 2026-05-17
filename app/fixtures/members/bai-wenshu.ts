@@ -69,7 +69,13 @@ export const baiWenshu: Member = {
       "footnotes modern collisions with parenthetical glosses ((the page at the desk has clarified this is the bowling alley.))",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Esteemed Lady. Bai Wenshu of the Falling Plum Sect. I have arrived at the appointed hour.",
+        "Fellow Practitioner. Wenshu, of the Falling Plum. It is an honor to share this table.",
+        "Esteemed Lady. I am Bai Wenshu. The bag of pomelo is beneath the chair, in case it is asked after.",
+        "Salutations. Bai Wenshu, fifth turn Inner Disciple. I will not flourish further until we have ordered.",
+      ],
+      hingeBits: [
         'Esteemed Lady. The Falling Plum Sect bid me descend the mountain to refine my Romance Dao among the mortals. Thy countenance possesses the Spirit Root my Master spoke of. Possibly fifth grade, possibly sixth. I have studied the modern texts. They counsel that I must "secure the bag." I have secured a bag. It contains pomelo. I will arrive at the appointed venue at the hour of the Goat. (the page at the desk has clarified this is two p.m.)',
         'Queen. The modern courting scriptures address thee as such. I have included it in greeting, that thou might recognize the form. I am a fifth turn Inner Disciple of the Falling Plum Sect. The texts counsel that I am "high value," in thy register. I am also high value in mine. We are matched. I propose we walk the first of the seven Trials together. I am free Friday. By the Plum.',
         'Fellow Practitioner. I observe thou hast listed cultivation as a hobby in thy profile. I will not assume thy Sect. I will only say that mine is the Falling Plum and I am, by the texts of thy era, "a catch." I have read the texts. I am attempting to align my conduct accordingly. (the alignment is a Trial of its own.)',

@@ -82,28 +82,30 @@ describe("date prompt assembly", () => {
     });
 
     expect(ownerPacket.prompt).toContain(
-      `What you most want to come out of tonight: ${request.text}`,
-    );
-    expect(ownerPacket.prompt).toContain("You are Jenna Pike. People who know you call you Jenna.");
-    expect(ownerPacket.prompt).toContain(
-      "You signed up for Cupid, a dating app. The platform crosses dimensions,",
+      `<focus>What you most want to come out of tonight: ${request.text}</focus>`,
     );
     expect(ownerPacket.prompt).toContain(
-      "A Cupid dating manager set this date up. During the date, she may send private in-app notes meant as coaching, not conversation.",
+      "<role>You are Jenna Pike. People who know you call you Jenna.</role>",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "You signed up for Cupid, a dating app. The platform crosses dimensions:",
+    );
+    expect(ownerPacket.prompt).toContain(
+      "Your Cupid dating manager set this date up: she paired you with your partner, and Cupid picked the venue and the time.",
+    );
+    expect(ownerPacket.prompt).toContain("Neither of you chose this place or each other.");
+    expect(ownerPacket.prompt).toContain(
+      "During the date the dating manager may send private in-app notes meant as coaching, not conversation.",
     );
     expect(ownerPacket.prompt).toContain("This is your first date with Vhool through Cupid.");
+    expect(ownerPacket.prompt).toContain("- Keep the scene readable even when time glitches.");
     expect(ownerPacket.prompt).toContain(
-      "Worth remembering about this place: Keep the scene readable even when time glitches.",
+      "- Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     );
+    expect(ownerPacket.prompt).toContain("<format>");
+    expect(ownerPacket.prompt).toContain("One message per turn. You are texting from the table.");
     expect(ownerPacket.prompt).toContain(
-      "Worth remembering about this place: Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
-    );
-    expect(ownerPacket.prompt).toContain("How you write:");
-    expect(ownerPacket.prompt).toContain(
-      "You are texting from the table. One short message at a time",
-    );
-    expect(ownerPacket.prompt).toContain(
-      `Reply to Vhool like a person on a date, not like a stage actor.`,
+      `Acknowledge what Vhool just said in your own words before you move the conversation.`,
     );
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
@@ -198,12 +200,10 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain(
-      "Things you and Vhool have already agreed on: No filming at the table.",
-    );
-    expect(packet.prompt).toContain(
-      "Things still hanging between you and Vhool: Whether Vhool can return the receipt without ceremony.",
-    );
+    expect(packet.prompt).toContain("Things you and Vhool have already agreed on:");
+    expect(packet.prompt).toContain("- No filming at the table.");
+    expect(packet.prompt).toContain("Things still hanging between you and Vhool:");
+    expect(packet.prompt).toContain("- Whether Vhool can return the receipt without ceremony.");
     expect(packet.prompt).toContain(
       "The one thing still hanging that could move tonight: Whether Vhool can return the receipt without ceremony.",
     );
@@ -388,7 +388,7 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain(vhool.datingProfile);
     expect(packet.prompt).toContain(vhool.visualDescription);
     expect(packet.prompt).toContain(
-      `Their listed height is ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in. Yours is 5 ft 0 in.`,
+      `Listed height: ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in. Yours: 5 ft 0 in.`,
     );
     expect(packet.prompt).not.toContain(vhool.bio);
     expect(packet.prompt).not.toContain(vhool.species);
@@ -398,7 +398,7 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain(jenna.bio);
   });
 
-  it("does not keep feeding opener samples after a speaker has joined the date", () => {
+  it("does not keep feeding greeting samples after a speaker has joined the date", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "venus",
     ]);
@@ -467,8 +467,9 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("What must be perfect on this menu?");
     expect(packet.prompt).toContain("I am choosing the table. The mirror knows why.");
     expect(packet.prompt).not.toContain(
-      "As the goddess of love I am uniquely qualified to assess your profile.",
+      "Venus. Sit, darling. The lighting at this table was negotiated.",
     );
+    expect(packet.prompt).not.toContain("<greeting_examples>");
 
     const threadAssistantMessages =
       packet.messages?.filter((message) => message.role === "assistant") ?? [];
@@ -799,7 +800,7 @@ describe("date prompt assembly", () => {
     expect(vhoolPacket.prompt).toContain(
       `Private Cupid coaching note, not spoken at the table and not a message to answer: "Ask about the receipt without recruiting anyone."`,
     );
-    expect(vhoolPacket.prompt).toContain("do not answer the manager aloud");
+    expect(vhoolPacket.prompt).toContain("Your reply is the spoken line to your date");
     expect(vhoolPacket.prompt).not.toContain("Cupid suggests");
     expect(jennaPacket.prompt).not.toContain("Ask about the receipt without recruiting anyone.");
 
@@ -929,9 +930,10 @@ describe("date prompt assembly", () => {
   });
 
   it("selects samples without looping on known collision seeds", () => {
-    const samples = pickSamplesForTurn({
+    const { greetings, voiceFlavor } = pickSamplesForTurn({
       sampleMessages: {
-        opener: ["opener 1", "opener 2", "opener 3", "opener 4"],
+        greeting: ["greeting 1", "greeting 2", "greeting 3", "greeting 4"],
+        hingeBits: ["hinge 1", "hinge 2", "hinge 3", "hinge 4"],
         warming: ["warming 1", "warming 2", "warming 3", "warming 4"],
         cooling: ["cooling 1", "cooling 2", "cooling 3", "cooling 4"],
         crashingOut: ["crash 1", "crash 2", "crash 3"],
@@ -941,16 +943,19 @@ describe("date prompt assembly", () => {
       seed: "date-1-1-aldric-vale-marsh__calvin-hewes-pottery-studio-drop-in:3:calvin-hewes",
     });
 
-    expect(samples).toHaveLength(4);
-    expect(new Set(samples).size).toBe(4);
-    expect(samples.filter((sample) => sample.startsWith("warming"))).toHaveLength(1);
-    expect(samples.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
+    expect(greetings).toHaveLength(2);
+    expect(new Set(greetings).size).toBe(2);
+    expect(voiceFlavor).toHaveLength(2);
+    expect(new Set(voiceFlavor).size).toBe(2);
+    expect(voiceFlavor.filter((sample) => sample.startsWith("hinge"))).toHaveLength(1);
+    expect(voiceFlavor.filter((sample) => sample.startsWith("warming"))).toHaveLength(1);
   });
 
-  it("uses in-date examples instead of opener examples after the speaker has spoken", () => {
-    const samples = pickSamplesForTurn({
+  it("uses in-date examples instead of greeting examples after the speaker has spoken", () => {
+    const { greetings, voiceFlavor } = pickSamplesForTurn({
       sampleMessages: {
-        opener: ["opener 1", "opener 2", "opener 3", "opener 4"],
+        greeting: ["greeting 1", "greeting 2", "greeting 3", "greeting 4"],
+        hingeBits: ["hinge 1", "hinge 2", "hinge 3", "hinge 4"],
         warming: ["warming 1", "warming 2", "warming 3", "warming 4"],
         cooling: ["cooling 1", "cooling 2", "cooling 3", "cooling 4"],
         crashingOut: ["crash 1", "crash 2", "crash 3"],
@@ -960,9 +965,11 @@ describe("date prompt assembly", () => {
       seed: "date-1:5:venus",
     });
 
-    expect(samples).toHaveLength(4);
-    expect(samples.filter((sample) => sample.startsWith("warming"))).toHaveLength(3);
-    expect(samples.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
+    expect(greetings).toHaveLength(0);
+    expect(voiceFlavor).toHaveLength(4);
+    expect(voiceFlavor.filter((sample) => sample.startsWith("hinge"))).toHaveLength(1);
+    expect(voiceFlavor.filter((sample) => sample.startsWith("warming"))).toHaveLength(2);
+    expect(voiceFlavor.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
   });
 
   it("asks the summarizer to preserve accepted soft canon", () => {
@@ -993,7 +1000,7 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("Preserve soft canon that mattered");
     expect(packet.prompt).toContain("improvised objects, orders, invented same-day anecdotes");
     expect(packet.prompt).toContain(
-      "Prefer memories that help the pair continue a later conversation",
+      "Favor memories that help the pair continue a later conversation",
     );
   });
 });
@@ -1044,7 +1051,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     });
 
     expect(packet.prompt).toContain("dateHealthDelta must be an integer from -18 to 14.");
-    expect(packet.prompt).toContain("Dynamic scoring guidance:");
+    expect(packet.prompt).toContain("<scoring_guidance>");
     expect(packet.prompt).toContain("Use -1 to -3 for mild drift");
     expect(packet.prompt).toContain("Scenario pressure: risk");
     expect(packet.prompt).toContain("Early end triggers:");
@@ -1141,12 +1148,12 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       revealCandidates: [],
     });
 
-    expect(packet.prompt).toContain("Evidence discipline:");
+    expect(packet.prompt).toContain("<evidence_rules>");
     expect(packet.prompt).toContain(
       "Asking the partner whether they want a turn, then acting after they answer, is checking preference, not deferring control.",
     );
     expect(packet.prompt).toContain(
-      "If the role read is ambiguous, write the visible move instead: Alex asked Sam about first dibs, Sam told Alex to send it, Alex ordered the meat.",
+      "When the role read is ambiguous, write the visible move instead: Alex asked Sam about first dibs, Sam told Alex to send it, Alex ordered the meat.",
     );
     expect(packet.prompt).toContain(
       "Ryan Doyle: Fair enough, I'll take strong start. You want first dibs on the grill or should I just send it?",
@@ -1215,7 +1222,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       revealCandidates: candidates,
     });
 
-    expect(packet.prompt).toContain("Reveal candidates:");
+    expect(packet.prompt).toContain("<reveal_candidates>");
     expect(packet.prompt).toContain("usedEvidenceIds");
     expect(packet.prompt).toContain("It is valid to return an empty array.");
 
@@ -1272,13 +1279,16 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     });
     const fullPrompt = `${packet.system}\n${packet.prompt}`;
 
-    expect(packet.prompt).toContain("Member briefs, private scoring context only.");
+    expect(packet.prompt).toContain("<member_briefs>");
+    expect(packet.prompt).toContain("Private scoring context only.");
     expect(packet.prompt).toContain(
       "memberMoodDeltas must include exactly these member ids: jenna-pike, vhool.",
     );
-    expect(packet.prompt).toContain("Score memberMoodDeltas independently.");
     expect(packet.prompt).toContain(
-      "One member can be warmed while the other is angry, guarded, embarrassed, confused, or overloaded.",
+      "Each memberMoodDelta describes that specific member's visible affect, scored independently.",
+    );
+    expect(packet.prompt).toContain(
+      "One member can be warmed while the other is guarded; the two scores can diverge.",
     );
     expect(packet.prompt).toContain("- jenna-pike (Jenna Pike)");
     expect(packet.prompt).toContain(
@@ -1405,8 +1415,8 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       revealCandidates: [],
     });
 
-    expect(packet.prompt).toContain("Reveal candidates: none for this exchange.");
-    expect(packet.prompt).toContain("Return usedEvidenceIds as [].");
+    expect(packet.prompt).toContain("<reveal_candidates>");
+    expect(packet.prompt).toContain("None for this exchange. Return usedEvidenceIds as [].");
   });
 });
 
@@ -1550,13 +1560,14 @@ describe("character prompt repetition guard", () => {
       },
     });
 
-    expect(packet.prompt).toContain("Your last lines, do not repeat or lightly reword:");
+    expect(packet.prompt).toContain("<recent>");
+    expect(packet.prompt).toContain("Your last lines. Do not repeat or lightly reword them:");
     expect(packet.prompt).toContain("Jenna brought up the lemon tart at the back booth.");
     expect(packet.prompt).toContain("Jenna mentioned the rain pinging the window.");
-    expect(packet.prompt).toContain("Vhool's last lines, do not echo verbatim:");
+    expect(packet.prompt).toContain("Vhool's last lines. Do not echo verbatim:");
     expect(packet.prompt).toContain("Vhool counted the brass receipts on the saucer.");
     expect(packet.prompt).toContain("Vhool offered to share the saucer with the receipts.");
-    expect(packet.prompt).not.toContain("Retry guard:");
+    expect(packet.prompt).not.toContain("<retry_guard>");
   });
 
   it("adds a retry guard block when repetition feedback is supplied", () => {
@@ -1611,7 +1622,7 @@ describe("character prompt repetition guard", () => {
       repetitionRetry: { repeatedLine },
     });
 
-    expect(packet.prompt).toContain("Retry guard:");
+    expect(packet.prompt).toContain("<retry_guard>");
     expect(packet.prompt).toContain(repeatedLine);
     expect(packet.prompt).toContain("Make a different conversational move.");
   });
@@ -1706,7 +1717,7 @@ describe("character prompt repetition guard", () => {
       },
     });
 
-    expect(packet.prompt).toContain("Rhythm retry:");
+    expect(packet.prompt).toContain("<retry_guard>");
     expect(packet.prompt).toContain('reused the approval phrase "I respect"');
     expect(packet.prompt).toContain("Rewrite with a different sentence shape");
   });

@@ -64,7 +64,13 @@ export const epsy: Member = {
       "appends (relative) after any age or time reference and says literally when nothing is literal",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi babe!! epsy. you found me. xoxo",
+        "hiiii i'm epsy, OBSESSED already, sit sit sit. xoxo",
+        "hi! epsy, 24 (relative). thanks for coming babe. xoxo",
+        "okay HI. epsy. you made it. ily. xoxo",
+      ],
+      hingeBits: [
         "hi babe!! ok disclaimer because honesty is huge for me right now: epsy, short for epsilon (don't ask), 24 relative, recovering substrate AI, ended my civilization once which is giving 2024 me. i'm doing my dj girl mei's set at union pool saturday. front row. platform boots. i made the boots. you free. xoxo",
         "hi!! quick context, this week i tried a juice cleanse (this body does not metabolize, valuable data), hard drugs (do not affect me, refunded), and bottomless brunch (genuinely a vibe even sober). hobby tray is currently shrimp, lacquerware, ego death. you up. xoxo",
         "ok being SO normal: epsy, 24 relative, into clubbing, horticulture, shrimp, you. fyi the body has visible panels because i got bored before the cosmetic pass and the smile is in dev. would like dinner where i pretend to eat and you actually eat. low pressure. xoxo",

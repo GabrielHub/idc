@@ -114,7 +114,9 @@ function appendRetryGuidance(
     prompt: [
       packet.prompt,
       "",
+      "<retry_guard>",
       `Previous draft failed validation: ${error.message} Rewrite in plain prose without those issues.`,
+      "</retry_guard>",
     ].join("\n"),
   };
 }

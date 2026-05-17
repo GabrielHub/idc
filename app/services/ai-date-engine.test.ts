@@ -60,12 +60,14 @@ describe("AI date text sanitation", () => {
     );
   });
 
-  it("caps persisted performer text to the runtime target", () => {
-    const text = `Jenna ${"keeps the table human ".repeat(20)}`;
+  it("returns long performer text intact without truncation", () => {
+    const phrase = "keeps the table human ";
+    const text = phrase.repeat(20);
     const sanitized = sanitizeCharacterText(text, "Jenna Pike");
 
-    expect(sanitized).toHaveLength(260);
-    expect(sanitized.endsWith("...")).toBe(true);
+    expect(sanitized.length).toBeGreaterThan(260);
+    expect(sanitized.endsWith("...")).toBe(false);
+    expect(sanitized).toContain("keeps the table human");
   });
 });
 
@@ -1979,7 +1981,7 @@ describe("AI date engine orchestration", () => {
         }
 
         performerCalls.push({
-          promptIncludesRetryGuard: packet.prompt.includes("Retry guard:"),
+          promptIncludesRetryGuard: packet.prompt.includes("<retry_guard>"),
           recentLinesPresent: packet.prompt.includes(repeatedLine),
         });
         const text =
@@ -2191,7 +2193,7 @@ describe("AI date engine orchestration", () => {
     const runtime: LocalAiDateRuntime = {
       generateCharacterTurn: async ({ packet }) => {
         performerCalls.push({
-          promptIncludesRhythmRetry: packet.prompt.includes("Rhythm retry:"),
+          promptIncludesRhythmRetry: packet.prompt.includes("<retry_guard>"),
         });
 
         return {

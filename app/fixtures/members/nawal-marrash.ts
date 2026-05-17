@@ -65,7 +65,13 @@ export const nawalMarrash: Member = {
       "confirms times in twenty four hour by habit (eighteen hundred, twenty thirty), mentions ceramics class or Thursday tea once per date as logistics not confession",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Nawal. Pleased to meet you. The hour suits.",
+        "Hello. Nawal Marrash. Thank you for picking the venue.",
+        "Nawal. Good evening. You were on time, which I appreciate.",
+        "Hello. Nawal. Please sit. The bread is already on the way.",
+      ],
+      hingeBits: [
         "Nawal Marrash. Retired civil servant. The regular at Thursday tea mentioned this platform. I have been thinking about it for nine weeks. Wednesday afternoon is open. Pick a venue and confirm an hour. I will be on time.",
         "Hello. I will say plainly so it does not become the conversation later. I held an office that processed petitions. The Office closed a century ago. I am on a stipend. I will not be granting any wishes. I would like to have dinner.",
         "I prefer dinner to coffee. I prefer a venue picked once to a venue negotiated. I prefer eighteen hundred to twenty thirty. I would prefer this not to be the conversation. Name a place and I will be there.",

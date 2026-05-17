@@ -95,10 +95,12 @@ export const sections: DocSectionEntry[] = [
         </DocSubsection>
         <DocSubsection id="opening-message" title="Opening message">
           <P>
-            Single message. The opener can let voice flavor run, since the character has not yet had
-            to react to a real partner. It should still read like a real first message that should
-            not have been sent, not like a polished comedy bit. Members who treat Cupid as a normal
-            app open differently from members who know what Cupid is.
+            Single message. The performer pulls from the member's <DocCode>greeting</DocCode> array
+            for the actual sit-down intro: short, recognizable as a hello, name on the table, no
+            punchy hinge-style line. The <DocCode>hingeBits</DocCode> array is humor and voice
+            grounding only, never delivered verbatim. Members who treat Cupid as a normal app open
+            differently from members who know what Cupid is, but every opener still reads as a real
+            first thing someone says when they sit down across from a stranger.
           </P>
         </DocSubsection>
         <DocSubsection id="in-date-transcript" title="In-date transcript (LLM-generated)">
@@ -138,8 +140,8 @@ export const sections: DocSectionEntry[] = [
         <DocSubsection id="member-request" title="Member request">
           <P>Member voice, but compressed. One sentence. Specific ask, weird subtext.</P>
           <DocQuote>
-            "Vhool wants someone who will laugh at the same things they laugh at. They are working
-            on a list."
+            "Vhool wants someone who will laugh at the same things he laughs at. He is working on a
+            list."
           </DocQuote>
         </DocSubsection>
         <DocSubsection id="company-goal" title="Company goal">
@@ -241,9 +243,9 @@ export const sections: DocSectionEntry[] = [
               </DocCode>{" "}
               The ordinal counts completed dates in the pair plus one.
             </span>,
-            "A live scene frame: location, what both characters know about the place, room feel from director tone, and any director rules worth remembering. Then the partner's dating profile blurb, profile photo description, both heights, and a reminder that the speaker does not know the partner's private biography.",
+            "A live scene frame: location, what both characters know about the place, room feel from director tone, and any director rules worth remembering. Then the partner's dating profile blurb, profile photo description, both heights, a reminder that the speaker does not know the partner's private biography, and an explicit framing that the partner profile is background on who is across the table, not a list of topics to claim as the speaker's own.",
             "Pair context when present: relevant self / pair / place memories, active agreements between them, and open loops still hanging, rewritten into character voice.",
-            "A short \"How you write\" block: one short message at a time, plain text, no stage directions or markdown, no echoing the partner back, no closing the date in one line. Recent-line guards list the speaker's last few lines as do-not-repeat and the partner's last few lines as do-not-echo.",
+            "A short \"How you write\" block: one short message at a time, plain text, no stage directions or markdown, no echoing the partner back, no closing the date in one line. A second behavioral rule frames the date as shared work, not an interview, and tells the speaker to vary which conversational move they make so a reply does not always just answer and stop. A third rule asks the speaker to stay themselves, makes clear that anything invented about their own life becomes canon going forward, and forbids borrowing the partner's listed interests to find common ground when those topics are not in the speaker's life. Recent-line guards list the speaker's last few lines as do-not-repeat and the partner's last few lines as do-not-echo.",
           ]}
         />
         <P>The thread of messages supplies the conversation as the member experiences it:</P>

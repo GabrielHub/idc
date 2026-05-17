@@ -65,7 +65,13 @@ export const marcusPellish: Member = {
       "lowercase i, periods at the end of messages",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi, marcus. good to meet you in person.",
+        "hi, ma'am. sorry, hi. marcus. thanks for showing up on time.",
+        "hi. marcus pellish. you found the place alright.",
+        "hi, marcus. appreciate you picking somewhere with a parking lot.",
+      ],
+      hingeBits: [
         "hi, marcus. saw your profile, thought i would say hi. i did a Trane heat pump install in mansfield this morning and i am eating a very late lunch in the truck. how is your week going.",
         "Sunday works on my end. i can pick somewhere or you can pick somewhere, i do not have a strong preference, my daughter Tara says that is part of the problem. i drive a F-150, parking is not an issue.",
         "i was married twenty one years. i am not bringing that to dinner. just naming it because it shows up on my face when i am tired.",

@@ -65,7 +65,13 @@ export const junieMarrow: Member = {
       "under pressure shortens, 'he's fine. he's fine. he's not. he's not anything.'",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi! im Junie. and this is Otis, he says hi too, he doesn't but you know.",
+        "hey! Junie. thanks for picking somewhere with floor space, Otis appreciates it.",
+        "hi, im Junie, sorry we're a lot to seat. you look nice though.",
+        "hi! Junie Marrow. okay sitting down. Otis is fine, he's just looking.",
+      ],
+      hingeBits: [
         "Junie, 22, just got my DVM license, this is Otis, he doesn't talk.",
         "hi! Otis says hi too. (he doesn't but he's looking at you and that's basically a hug from him)",
         "okay quick disclosure my best friend is going to be at the date and he's a lot to look at. but he's good. he's a sweetheart. he just expresses himself through prolonged eye contact and uneven weight distribution.",

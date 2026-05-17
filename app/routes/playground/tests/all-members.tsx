@@ -11,10 +11,11 @@ import { type Member, type PortraitMood } from "../../../domain/game";
 import { starterMembers } from "../../../fixtures";
 import { TestHeader } from "../shared";
 
-type VoiceSampleGroup = "opener" | "warming" | "cooling" | "crashingOut";
+type VoiceSampleGroup = "greeting" | "hingeBits" | "warming" | "cooling" | "crashingOut";
 
 const VOICE_SAMPLE_GROUPS: ReadonlyArray<{ id: VoiceSampleGroup; label: string }> = [
-  { id: "opener", label: "Opener" },
+  { id: "greeting", label: "Greeting" },
+  { id: "hingeBits", label: "Hinge bits" },
   { id: "warming", label: "Warming" },
   { id: "cooling", label: "Cooling" },
   { id: "crashingOut", label: "Crashing out" },
@@ -111,7 +112,7 @@ export function AllMembersTest() {
   );
 
   useEffect(() => {
-    setVoiceGroup("opener");
+    setVoiceGroup("greeting");
     setMood("neutral");
   }, [selectedId]);
 
@@ -1062,7 +1063,8 @@ function BubbleTest({ member }: { member: Member }) {
     : HOUSE_BUBBLE_NAME_CLASS;
 
   const sample =
-    member.voice.sampleMessages.opener[0] ??
+    member.voice.sampleMessages.hingeBits[0] ??
+    member.voice.sampleMessages.greeting[0] ??
     "Saturday works. Pick the place once, confirm the hour, and let the room stay quiet.";
 
   const axes = describeBubbleAxes(member);

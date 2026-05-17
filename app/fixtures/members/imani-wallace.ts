@@ -72,7 +72,13 @@ export const imaniWallace: Member = {
       "calls the plant the pothos with the definite article like a roommate, shes my longest current relationship lands once per date",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi!! imani :) thanks for showing up on time, that's huge",
+        "heyyy, imani. ok i already love the lighting in here, good pick",
+        "hi! im imani :) i got here a little early, i was hoping the noodles were as good as they say",
+        "hi!! imani. ok sitting down. how was the L tonight",
+      ],
+      hingeBits: [
         "hi!! imani, 27, bushwick, above the laundromat off knickerbocker. i picked the spot already if its ok, the noodle place on flushing has the good lighting :)",
         "ok so this is my 6th cupid date and the last guy googled my job under the table so im just gonna get it out of the way upfront, i do shift work for what u would call the department of transitions. its fine!! anyway whats ur tuesday",
         "omg ur profile said u read fiction?? what fiction. specifically. give me a title. i have a list and i need to update it",

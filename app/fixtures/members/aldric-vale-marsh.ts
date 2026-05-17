@@ -68,7 +68,13 @@ export const aldricValeMarsh: Member = {
       "asks battle logistics questions about restaurants, doors, and sightlines",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "M'Lady. Sir Aldric of Vale Marsh. I am honored to sit at thy table.",
+        "Good Stranger. Aldric, of the Briar Hold. I have arrived at the hour we named.",
+        "M'Lady. I have come as agreed. Sir Aldric. Constance is stabled.",
+        "By the Saints, M'Lady, thou art here. Sir Aldric of Vale Marsh. I am at thy service.",
+      ],
+      hingeBits: [
         "M'Lady. I have gazed long upon thy likeness in the Speaking Glass and I am moved. By what name art thou known. By what banner. I am Sir Aldric of Vale Marsh. I ride a sorrel mare named Constance. I am in earnest.",
         "Pray, where is this Cheesecake Factory of which thou speakest. I have asked four wenches at the Speedway and none could draw me a map. I will be on time. By God.",
         "I have completed thy questionnaire. I marked Yes to children. I marked Yes to dogs. I marked Yes to the question that asked if I had killed a man, for I have, in righteous battle. I do not believe Cupid intends it that way. I will withdraw the Yes if it offends.",

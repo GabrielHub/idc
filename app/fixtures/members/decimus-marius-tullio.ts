@@ -70,7 +70,13 @@ export const decimusMariusTullio: Member = {
       "names Aurelia and Lavinia without explaining who they are",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Salutations. Decimus Marius Tullio. A pleasure.",
+        "Good evening. Decimus. Thank you for holding the hour.",
+        "Decimus Marius Tullio. The reservation is in order.",
+        "Salutations. Decimus. Please, take the seat with the view.",
+      ],
+      hingeBits: [
         "Decimus Marius Tullio. Centurion, retired. Aurelia signed me up. I will not waste your time. I am free Sunday at eighteen hundred or any Wednesday after twenty hundred. Pick the one that suits you. I will pick the place. Confirm once and I will not ask twice.",
         "Aurelia tells me my Schedule is a problem. She is correct. Mondays I cook, Tuesdays I see my old contubernium for cards, Thursdays I read. The week has Wednesdays and Sundays in it for a reason. I am attempting to use them.",
         "Lavinia Cornelia Tullio was my wife. Her name remains on my calendar, in three places I have not removed. I am stating this so you do not stumble onto it. She is a fact, not a topic. I prefer the matter plain.",

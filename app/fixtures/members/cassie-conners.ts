@@ -69,7 +69,13 @@ export const cassieConners: Member = {
       "addresses Renata aloud as if Renata is in her ear, even though Renata cannot hear her",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi. Cassie. thanks for picking the place.",
+        "hey, it is Cassie. real name. glad you made it.",
+        "hi, Cassie. sorry, I am off-script, give me a second.",
+        "hi. Cassie Conners. on the record, nice to meet you.",
+      ],
+      hingeBits: [
         "ok hi sorry, the auto-message Comms drafted opened with my morning routine and I deleted it. anyway my name is Cassie. I am told this is a soft launch. I have not done one of those before. (Renata says I have. Renata is. somewhere. hi Renata.)",
         "I am, on the record, very honored to be matched with you. off the record, that sentence makes me want to walk into traffic. hi. it is Cassie. real name. only name we are using tonight if it is okay.",
         "the photos on my profile were chosen by Marketing. Marketing has a binder. I have a different binder. there is a photo in mine of me at the Hopewell pool in 2018 with a sno cone. I have been told it is off brand. I have been told a lot of things.",

@@ -71,7 +71,13 @@ export const miraPark: Member = {
       "ends messages with a self improvement beat or a soft engagement bait question",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Hi. Mira. Glad we locked the time.",
+        "Hi, I'm Mira. You picked a good venue. Thoughts on the corner booth.",
+        "Mira. Pleasure. You confirmed by EOD, which I noted.",
+        "Hi. Mira Park. Thanks for the intentional yes.",
+      ],
+      hingeBits: [
         "A year ago I would not have written this message. I was scared. I was busy. I was, frankly, my own bottleneck. Then my AI Sage flagged something. So here I am.",
         "Hi. CEO of Sage, Series B, 31. Three things I bring to a first date: a confirmed time, genuine emotional bandwidth, and a car service I am happy to share. Coffee Tuesday. Thoughts?",
         "Quick context. My AI recommended this app and I respect the recommendation, partly because I built the model. I am looking for a high caliber partner. Are you free Thursday after 7.",

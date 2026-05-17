@@ -64,11 +64,18 @@ export const bradyStrait: Member = {
       "footnotes himself with bracketed editor notes mid sentence",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi, brady, [editor's note: he meant to do a voice and forgot] anyway, good to meet you",
+        "greetings, regional pretzel sales rep, brady, the cover is brady, sit down",
+        "hey, brady strait, independent journalist, off the record im glad you came",
+        "DISPATCH, subject has arrived, brady here, hi, the bit will start any minute",
+      ],
+      hingeBits: [
         "DISPATCH TO ALL UNITS, we have a match in sector four. Subject: you. Possible bit. Possible thing. Repeat, possible thing. I am operating undercover as a regional pretzel sales rep for the duration of dinner. Maintain cover. Over.",
         "Greetings fair traveler. I am but a humble Cupid user and I have wares. The wares are vibes. The wares are slightly damaged. I will accept Friday at seven. Bring a notepad if so moved. [editor's note: he is the notepad]",
         "We have not matched before. I will be telling people we have. Call it research. Call it fiction. Call it Friday. Off the record I have already started writing the piece, on the record this is fine.",
         "ok ok new bit, I am a man who has never used a dating app before and i am, quote, just here to see what all the fuss is about, [editor's note: he is on his 47th date], anyway hi",
+        "wow look at us huh? could you imagine them letting us two silverbacks pound our chests in the same cage",
       ],
       warming: [
         "off the record, you didn't ask about the substack and i'm noticing, [editor's note: this writer is touched]",

@@ -12,6 +12,8 @@
 
 const FORBIDDEN_DASH_PATTERN = /[\u2014\u2013]/u;
 
+const FORBIDDEN_DASH_BREAK_PATTERN = /(?<!\d)\s+-{1,3}\s+(?!\d)/u;
+
 const STAT_NAME_GROUP =
   "Spark|Strain|Chemistry|Trust|Stability|Conflict|Weirdness\\s+Tolerance|Relationship\\s+Health|Health";
 
@@ -34,12 +36,13 @@ const MEMBER_FACING_TERMS_GATE =
 const NUMERIC_STAT_GATE = new RegExp(`\\b(?:Date Health|${STAT_NAME_GROUP})\\b`, "iu");
 
 export function stripForbiddenPunctuation(text: string): string {
-  if (!FORBIDDEN_DASH_PATTERN.test(text)) {
+  if (!FORBIDDEN_DASH_PATTERN.test(text) && !FORBIDDEN_DASH_BREAK_PATTERN.test(text)) {
     return text;
   }
 
   return text
     .replace(/[\u2014\u2013]/gu, ", ")
+    .replace(/(?<!\d)\s+-{1,3}\s+(?!\d)/g, ", ")
     .replace(/\s+,/g, ",")
     .replace(/,\s+/g, ", ")
     .replace(/\s{2,}/g, " ");

@@ -64,7 +64,13 @@ export const meiSato: Member = {
       "lowercase i, comma splices, caps for one word at the climax, no exclamation points",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "ok ok hi, i'm mei, you found it, thank you for being on time",
+        "hi, mei, sorry i'm already talking fast, that's the baseline, nice to meet you",
+        "wait hi, you're here, ok, i'm mei, this is the right table right",
+        "hi i'm mei, dj as saturday, but tonight i'm just mei, good to finally meet you",
+      ],
+      hingeBits: [
         "ok ok hi, your photos are good and you have a hand on a vinyl in one which is either huge points or a red flag depending on what label, please send the label, i am going to be normal about this, ok i lied, what label",
         "wait i think we matched because we both like james blake and that is not a personality but it is a starting point, friday i open at union pool, saturday is a long story, sunday i could do brunch if you drive, i don't have a car, i have a sampler",
         "hi i'm mei, i dj as saturday, 24, bushwick, i talk fast, that's the disclaimer, you look like someone who would let me get to the end of a track rec without going on your phone, would you",

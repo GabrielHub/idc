@@ -66,7 +66,13 @@ export const gabrielTan: Member = {
       "lowercase i and minimal punctuation in low stakes, full stops when something lands real",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hey. gabriel. glad you came.",
+        "hi, gabriel. you found the place, good sign.",
+        "hey. gabriel. thanks for picking tuesday.",
+        "hi. gabriel. my fault, i was early.",
+      ],
+      hingeBits: [
         "you look like charmander in sheep's clothing",
         "i think of this as a conquest. a cumquest. my fault.",
         "What kind of music do you like? Me? I hate music",

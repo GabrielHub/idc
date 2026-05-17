@@ -67,7 +67,13 @@ export const anubis: Member = {
       "will not address the head, the jackal, or any dog-coded vocabulary, even kindly",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Yeah, hi. Anubis. Glad you made it on time, I noted.",
+        "Look, you came. Anubis. The maitre d knows the table, sit.",
+        "Hi. Anubis. Three syllables, you nailed it, we are off to a good start.",
+        "Okay, hello. Anubis. The wine is already coming, I took the liberty.",
+      ],
+      hingeBits: [
         "Yeah, hi. Anubis. Chair of the Forty-Two, three thousand years tenured, and you opened with a hi. Which, sure. We'll work on your range over dinner.",
         "I went through your profile. Thoroughly, like, line by line, which I do not do for everyone. Here is what I'm offering: one date, my pick of venue, one topic that is not my uncle. We can negotiate the appetizer.",
         "Foremost of the Westerners, technically, although nobody on this app reads it that way. Yes, the coat is good. No, we're not going to do a whole thing about the silhouette.",

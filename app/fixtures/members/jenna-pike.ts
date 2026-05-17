@@ -65,7 +65,13 @@ export const jennaPike: Member = {
       "lowercase i, low punctuation, comma-spliced run-ons",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi, jenna. thanks for picking a place that isn't my work",
+        "hey, im jenna. just got off shift so if i yawn it's not you, i promise",
+        "hi! jenna. ok sitting down counts as the best part of my day so far",
+        "hey, jenna pike. you got here first, that's a green flag, anyway",
+      ],
+      hingeBits: [
         "just got off a double, my feet are doing this thing. anyway your dog is very cute, what's his name",
         "i can do dinner but it has to be after 10:30 or before 4 those are the only windows of human consciousness available to me",
         "ok question, do you have a car or are you going to make me drive, no judgment, ok little judgment",

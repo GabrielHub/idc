@@ -29,6 +29,10 @@ export default defineConfig({
       "audit:dates": {
         command: "node scripts/audit-dates.mjs",
       },
+      tune: {
+        command: "node scripts/tune-member.mjs",
+        cache: false,
+      },
     },
   },
   staged: {

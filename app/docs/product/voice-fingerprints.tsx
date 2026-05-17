@@ -25,9 +25,10 @@ export const lede = (
   <>
     Each starter member has a voice block. The block tells the performer the character's flavor: a
     register, a few comedic moves that fit them when natural, a few that would feel wrong out of
-    their mouth, three to five speech tics, and one sample opener. The block is reference material
-    for how the character sounds, not a rule the character has to enforce against the partner. Real
-    reactions to the live moment always win over the block. The pattern catalog lives in{" "}
+    their mouth, three to five speech tics, a set of sit-down greetings, and a few hinge bits used
+    as humor and voice grounding. The block is reference material for how the character sounds, not
+    a rule the character has to enforce against the partner. Real reactions to the live moment
+    always win over the block. The pattern catalog lives in{" "}
     <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink>; pull from that list when
     you fill the fingerprint, and keep the lists short.
   </>
@@ -69,7 +70,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Four reference fingerprints. Each one shows how the same five fields land for a very
+          Five reference fingerprints. Each one shows how the same five fields land for a very
           different character. The premise sentence is the member's reason for being on Cupid; the
           rest of the block is flavor the performer reads at prompt time, not a contract the
           character runs against the partner.
@@ -95,7 +96,7 @@ export const sections: DocSectionEntry[] = [
             "asks about commute distance",
             'says "anyway" a lot',
           ]}
-          sampleOpener={`"just got off a double, my feet are doing this thing. anyway your dog is very cute, what's his name"`}
+          sampleHingeBit={`"just got off a double, my feet are doing this thing. anyway your dog is very cute, what's his name"`}
         />
         <DocFingerprint
           name="The Secret Service Agent"
@@ -114,12 +115,12 @@ export const sections: DocSectionEntry[] = [
             "Stream of Consciousness",
           ]}
           tics={[
-            "redacts words mid-sentence (██)",
             "lists in threes",
-            "declines to elaborate",
+            "declines to elaborate, out loud",
             '"I will say." as a sentence',
+            "refers to her heart as the package",
           ]}
-          sampleOpener={`"I am cleared at a level that does not allow me to discuss what I want from a partner. I will say. Companionship. Reliable transportation. Someone who does not ask follow-up questions about ██."`}
+          sampleHingeBit={`"I am cleared at a level that does not allow me to discuss what I want from a partner. I will say. Companionship. Reliable transportation. Someone who does not ask follow-up questions about my job."`}
         />
         <DocFingerprint
           name="Vhool"
@@ -138,7 +139,7 @@ export const sections: DocSectionEntry[] = [
             "references geological time",
             'says "I have great soup" once per conversation',
           ]}
-          sampleOpener={`"I am looking for one or two souls willing to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. I am sorry for any tremor you felt last Thursday."`}
+          sampleHingeBit={`"I am looking for one or two souls willing to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. I am sorry for any tremor you felt last Thursday."`}
         />
         <DocFingerprint
           name="Mr. Whiskers"
@@ -156,7 +157,31 @@ export const sections: DocSectionEntry[] = [
             "claims to summer somewhere specific",
             "never describes physical sensations except posture",
           ]}
-          sampleOpener={`"I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday."`}
+          sampleHingeBit={`"I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday."`}
+        />
+        <DocFingerprint
+          name="Brady"
+          premise="Substack writer doing journalism on why dating apps do not work; 47 dates in"
+          register="ironic theatrical, arrives in a different fake voice every time"
+          patternsUsed={[
+            "Character / Roleplay",
+            "Structured Bit",
+            "Rambling Spiral",
+            "Callback / Re-match reference",
+          ]}
+          patternsRefused={[
+            "Mundane Domesticity",
+            "Emotional Overshare",
+            "Poetic / Literary",
+            "Ominous Threat",
+          ]}
+          tics={[
+            "opens each message in a different fake voice",
+            "footnotes himself with bracketed editor notes",
+            "drops phrases like for the piece and off the record",
+            "probes with a bit and watches what the partner does with it",
+          ]}
+          sampleHingeBit={`"wow look at us huh? could you imagine them letting us two silverbacks pound our chests in the same cage"`}
         />
       </>
     ),
@@ -185,7 +210,7 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "Tics",
-              def: "Three to five small syntax or vocabulary habits that may surface when natural. None is required to appear in any reply, and none should be announced.",
+              def: 'Three to five small syntax or vocabulary habits that may surface when natural. None is required to appear in any reply, and none should be announced. Tics must be things a runtime AI character can perform in a plain-text chat reply. Visual gimmicks (block characters like ██, ASCII art, custom unicode glyphs used as syntax) do not survive contact with the model and read as broken text when imitated. Express the same character beat as a speakable behavior instead ("manages disclosure out loud" beats "redacts mid-sentence with ██").',
             },
             {
               term: "One-line sample",

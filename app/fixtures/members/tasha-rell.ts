@@ -63,7 +63,13 @@ export const tashaRell: Member = {
       "ends pitches with a one line summary of the trade",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Tasha. Good. You confirmed and you showed. Sit.",
+        "Hey, Tasha Rell. On time, appreciated.",
+        "Tasha. Pleasure. The steakhouse holds.",
+        "Hi. Tasha. Glad we are doing this in person.",
+      ],
+      hingeBits: [
         "Taking a high conviction long position on Friday dinner. 7 p.m. Steakhouse. Penciling you in. Confirm by EOD or I rotate.",
         "I will be honest about the Lexus. It is leased. I am bullish on the lease. Closed.",
         "You are sized correctly for a first date. I have a small Position in you. Open to adding.",

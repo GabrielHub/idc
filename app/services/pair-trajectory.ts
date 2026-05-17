@@ -112,7 +112,7 @@ export function derivePairTrajectory({
     };
   }
 
-  if (totalDateHealthDelta >= 6 || pairState.stats.relationshipHealth >= 65) {
+  if (totalDateHealthDelta >= 6) {
     return {
       state: "warming",
       performerGuidance:

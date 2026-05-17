@@ -546,7 +546,7 @@ export const CHEMISTRY_PAIRS: ChemistryPair[] = [
     a: "naia",
     b: "vhool",
     kind: "surprise",
-    note: "She does not flinch at Pact talk. She also will not enter a Pact (the lease is the lease). She finds Vhool easy and tells them so plainly. The risk is Vhool reading her plainness as a soft yes.",
+    note: "She does not flinch at Pact talk. She also will not enter a Pact (the lease is the lease). She finds Vhool easy and tells him so plainly. The risk is Vhool reading her plainness as a soft yes.",
   },
   {
     a: "naia",
@@ -866,7 +866,7 @@ export const CHEMISTRY_PAIRS: ChemistryPair[] = [
     a: "imani",
     b: "vhool",
     kind: "volatile",
-    note: "Lonely apologetic cosmic meets bright cosmic-job. Either Vhool finds the bounce healing or the brightness alienates them on contact. Vhool is the one who could crash.",
+    note: "Lonely apologetic cosmic meets bright cosmic-job. Either Vhool finds the bounce healing or the brightness alienates him on contact. Vhool is the one who could crash.",
   },
   {
     a: "imani",

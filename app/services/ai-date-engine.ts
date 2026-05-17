@@ -209,7 +209,6 @@ type LocalAiDateEngineInput = {
 };
 
 const DEFAULT_MEMORY_LIMIT = 2;
-const CHARACTER_MESSAGE_MAX_LENGTH = 260;
 const SCENARIO_BACKGROUND_MANIFEST_PATH = "/assets/scenarios/manifest.json";
 const AVATAR_PATH_SUFFIX = "/avatar.png";
 const PORTRAIT_PATH_SUFFIX = "/portrait.png";
@@ -1779,11 +1778,7 @@ export function sanitizeCharacterText(text: string, speakerName: string): string
     throw new EmptyPerformerMessageError();
   }
 
-  if (memberFacingText.length <= CHARACTER_MESSAGE_MAX_LENGTH) {
-    return memberFacingText;
-  }
-
-  return `${memberFacingText.slice(0, CHARACTER_MESSAGE_MAX_LENGTH - 3)}...`;
+  return memberFacingText;
 }
 
 function stripUnbalancedDoubleQuotes(text: string): string {

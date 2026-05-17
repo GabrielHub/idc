@@ -64,7 +64,13 @@ export const derekHalsey: Member = {
       "Bro c'mon used as gentle protest, never as aggression, no caps, no exclamation point",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hey. derek. glad you found it.",
+        "hi, derek. quiet for the first ten, just a heads up.",
+        "hey. derek halsey. nice to meet you.",
+        "hey, derek. good pick on the place.",
+      ],
+      hingeBits: [
         "hey, derek. 28, catonsville. you got a movie i should see this weekend? i'll trade you a bar pick for it.",
         "fair warning, i am quiet the first ten minutes. not a power move. set me up with a sandwich and a topic and i'll catch up.",
         "heard enough of history, what about herstory. that's the kind of joke you'll get and i'm not apologizing for. saturday at six?",

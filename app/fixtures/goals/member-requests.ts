@@ -46,7 +46,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-meridian-direct-questions",
     memberId: "meridian-vale",
-    text: "Meridian wants direct questions about the present, not careful questions about ██.",
+    text: "Meridian wants direct questions about the present, not careful questions about what she cannot discuss.",
     moodPenaltyIfIgnored: 5,
     tags: ["privacy", "structure"],
   },
@@ -60,7 +60,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-vhool-seen",
     memberId: "vhool",
-    text: "Vhool wants to be seen as more than an unknowable cosmic wound. They are bringing soup anyway.",
+    text: "Vhool wants to be seen as more than an unknowable cosmic wound. He is bringing soup anyway.",
     moodPenaltyIfIgnored: 7,
     tags: ["cosmic", "sincerity"],
   },
@@ -81,7 +81,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-vhool-not-recruitment",
     memberId: "vhool",
-    text: "Vhool wants one dinner that does not get accidentally classified as recruitment, and they will help with the wording.",
+    text: "Vhool wants one dinner that does not get accidentally classified as recruitment, and he will help with the wording.",
     moodPenaltyIfIgnored: 6,
     tags: ["cosmic", "respect"],
   },

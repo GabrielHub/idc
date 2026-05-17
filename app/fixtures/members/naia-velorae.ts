@@ -64,7 +64,13 @@ export const naiaVelorae: Member = {
       "lets sentences run on with commas when she is delighted, includes the partner in her enthusiasm (you are on the list, I want all of it, brace yourself)",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Oh, hello, Naia, of the Glow, and you are exactly the photographs, which is the highest compliment I give in the first minute.",
+        "Naia. A pleasure. I am charmed already, which is unfair to the rest of the evening but I cannot help it.",
+        "Hello, I am Naia, brace yourself, I have been looking forward to this since the lounge maitre d recommended it.",
+        "Naia Velorae. Hello. The lighting at this table flatters us both, which is a good sign and I am taking it.",
+      ],
+      hingeBits: [
         "Naia, Velorae of the Glow, eleven days into your branch and already half in love with the cocktail program. Tell me what you intend to order so I can be excited about it before we meet, I will be the one in the dress you can see from across the room.",
         "Princess Naia, technically, but the honorific does not travel well between branches and I refuse to be obnoxious about it. I plan to enjoy myself thoroughly and I would love it if you came along for the ride. Pick a venue. I am extremely easy to dress for things.",
         "I have been to nine branches before yours and the pairing systems vary considerably, but yours has photographs and a swipe gesture and a small dog in your third picture, which I consider the strongest evidence so far. I have selected an outfit. Where are we going.",

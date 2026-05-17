@@ -898,7 +898,7 @@ export function DocFingerprint({
   patternsUsed,
   patternsRefused,
   tics,
-  sampleOpener,
+  sampleHingeBit,
 }: {
   name: string;
   premise: string;
@@ -906,7 +906,7 @@ export function DocFingerprint({
   patternsUsed: string[];
   patternsRefused: string[];
   tics: string[];
-  sampleOpener: string;
+  sampleHingeBit: string;
 }) {
   return (
     <article className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-rose-50/35 p-5">
@@ -925,7 +925,7 @@ export function DocFingerprint({
           { term: "tics", def: tics.join(", ") },
         ]}
       />
-      <DocQuote attribution="opener">{sampleOpener}</DocQuote>
+      <DocQuote attribution="hinge bit">{sampleHingeBit}</DocQuote>
     </article>
   );
 }

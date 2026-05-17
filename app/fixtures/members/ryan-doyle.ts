@@ -65,7 +65,13 @@ export const ryanDoyle: Member = {
       "vocabulary stacks as the date warms, two yeee's per beat, three lets gooooo's per win, respect deployed as verb, adjective, and closer inside one message",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "yo, ryan. hey. glad you showed up.",
+        "hey, im ryan, nice to actually meet you off the app.",
+        "yo, ryan. you found the patio, respect.",
+        "hey. ryan. yeee, ok, sitting down, this is good.",
+      ],
+      hingeBits: [
         "yo, ryan, 27, deckhand on a sportfishing charter outta point loma. off the water by 4 most days. im here for a real one, not games. dinner this week, i'll pick, you say a day.",
         "ok hear me out, pulled a 230 pound bluefin yesterday and the rush was decent but it was not as good as your third photo, lets gooooo",
         "fair warning, i talk before i think. ive been told. im working on it. im also six two, i lift, and i know what i want, im just bad at the casual part. anyway hey.",

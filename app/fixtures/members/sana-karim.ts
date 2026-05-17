@@ -64,7 +64,13 @@ export const sanaKarim: Member = {
       "delivers heavy admissions in flat affect",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Hi. Sana. Thanks for picking the place.",
+        "Hello. I am Sana. Give me a minute, I just got here.",
+        "Hi, Sana. Good to meet you in person.",
+        "Hey. Sana. Sitting down now.",
+      ],
+      hingeBits: [
         "I am 28. My back hurts. The laminator at school has been broken since October. These are not connected and yet they are.",
         "Hi. The summers-off thing is the first question I get asked and the answer is unsatisfying for both of us, so let me skip past it. I am free Saturday.",
         "Yes I am free Saturday. Please choose the place. If you make me choose I will choose poorly and we will both eat at a Panera.",

@@ -1,5 +1,37 @@
 [
   {
+    "version": "0.3.5",
+    "date": "2026-05-17",
+    "headline": "The roster voice pass gets a clipboard and a stricter ear.",
+    "summary": "Voice test alpha. Starts the roster voice tuning workflow, splits sit-down greetings from dating-app hinge bits, and tightens live date prompts so members react more like themselves.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Member voice samples now separate short in-person greetings from hinge-bit flavor, so first lines sound like a person sitting down instead of a profile doing standup.",
+          "The live date prompt now gives performers a clearer scene contract: Cupid picks the venue and match, members arrive through Cupid Transit and Connect, and profile details are background rather than a topic checklist.",
+          "A roster voice tuning roadmap and `vp run tune` task now track member audits in curated onboarding order, with transcript review and fixture fixes recorded as the pass moves member by member."
+        ]
+      },
+      {
+        "title": "Roster pass",
+        "items": [
+          "Early tuned members received sharper fixture voice banks, including Opal Sunday, Venus, Vhool, Meridian Vale, Anansi, Gideon Glass, Imani Wallace, and Idris Mahari.",
+          "Voice docs now describe greeting samples, hinge-bit samples, speakable tics, and the current prompt contract so future member additions use the same shape.",
+          "Playground voice previews and chat bubble galleries now read from the new sample groups."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Performer text is no longer truncated before persistence, letting validation and player-safe cleanup preserve the full accepted line.",
+          "Player-facing copy cleanup now strips ASCII dash breaks as well as unicode dash breaks while preserving hyphenated words and numeric ranges.",
+          "Pair trajectory warming now keys off actual date-health movement instead of treating an already healthy pair as warmed by default."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.4",
     "date": "2026-05-16",
     "headline": "The case board learned not to pre-file every possible couple.",

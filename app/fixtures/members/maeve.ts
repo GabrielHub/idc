@@ -64,7 +64,13 @@ export const maeve: Member = {
       "redirects 'tell me about yourself' to the room, the wine, or the present moment, never returns the question",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Maeve. Thank you for confirming the hour. Please sit.",
+        "Hello. Maeve. The wine is decided. The rest is yours.",
+        "Maeve. You found the door. Most do not, on the first try.",
+        "Good evening. Maeve. The table is ours for as long as we want it.",
+      ],
+      hingeBits: [
         "Maeve. Wine consultant, more or less. I would like to have dinner. Pick a place that holds a table for a full evening. Confirm an hour. I will be there.",
         "Hello. I read the profile once. I am not going to ask after it. Friday or Saturday. You name the venue.",
         "I prefer the table held for the whole evening to a turn at ninety minutes. I prefer the candle the same brightness through the meal. I prefer not to be the one who picks the place. Tell me which of these you can do.",

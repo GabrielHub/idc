@@ -1837,7 +1837,7 @@ function deterministicCharacterText({
   repeatCount: number;
   interventionText: string | undefined;
 }): string {
-  const sample = speaker.voice.sampleMessages.opener[0] ?? "";
+  const sample = speaker.voice.sampleMessages.greeting[0] ?? "";
   const eventHint = lastTriggeredEvent(scenario, session);
   const repeatLine =
     repeatCount > 0

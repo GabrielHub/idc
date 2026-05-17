@@ -19,6 +19,24 @@ describe("stripForbiddenPunctuation", () => {
       "Jenna, held the room, for one beat.",
     );
   });
+
+  it("replaces ASCII double hyphen used as a break with a comma", () => {
+    expect(stripForbiddenPunctuation("so adjacent earth -- yeah, i work dispatch.")).toBe(
+      "so adjacent earth, yeah, i work dispatch.",
+    );
+  });
+
+  it("replaces space hyphen space used as a break with a comma", () => {
+    expect(stripForbiddenPunctuation("the jobs fine - benefits are great")).toBe(
+      "the jobs fine, benefits are great",
+    );
+  });
+
+  it("preserves hyphenated compounds and numeric ranges", () => {
+    expect(stripForbiddenPunctuation("a co-worker did a 3 - 4 hour shift on the L.")).toBe(
+      "a co-worker did a 3 - 4 hour shift on the L.",
+    );
+  });
 });
 
 describe("cleanMemberFacingText", () => {

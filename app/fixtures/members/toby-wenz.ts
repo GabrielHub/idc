@@ -69,7 +69,13 @@ export const tobyWenz: Member = {
       "lowercase i, comma splices, no period at the end of a message",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi, im toby, sorry, hi, ok sitting down now",
+        "hey, toby, i made it, you made it, ok good, hi",
+        "hi sorry, toby, my hands are doing a thing, anyway hi",
+        "ok hi, toby, thank you for picking the place, i would have picked poorly",
+      ],
+      hingeBits: [
         "hi sorry i just realized i should say hi first my mom always says lead with hi anyway your photo is good and you have a dog and i had a dog growing up named pretzel who got out one time during a thunderstorm and we found her at the sheetz, no wait we found her at the speedway but i always say sheetz because the story sounds better there, do you also like oat milk because my roommate uses regular milk and i cannot say anything because the lease is in his name. i'll stop",
         "ok question what are you doing saturday i am free because of my schedule which is bad, i do overnight stocking which means i sleep when normal people are at work and work when normal people sleep, anyway i am free and i will pick the place if you want me to pick the place but i also do not want to pick the place because i will pick poorly, ok i'll stop",
         "i just want to be clear my profile is not finished i keep adding things, i added the pretzel story and then i took it out and then i put it back in and then i took it out again, it is in there now though, anyway sorry",

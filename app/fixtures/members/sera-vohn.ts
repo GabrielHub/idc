@@ -69,7 +69,13 @@ export const seraVohn: Member = {
       "never uses contractions in audit voice, drops them only when she breaks register",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Sera Vohn. On time. Please sit.",
+        "Good evening. Sera. The Term begins now.",
+        "Hello. Sera Vohn. The booth has audit-grade sightlines, well chosen.",
+        "Sera. Pleased to meet the counterparty in person.",
+      ],
+      hingeBits: [
         "Audit of your profile complete. Three findings, one observation. Photo two reads as glamour rather than utility, recommend rotation. Your stated availability conflicts with the Term proposed in message one. The dog is a clean line item. I am still interested. Confirm dinner Friday and the Renewal proceeds.",
         "I will be straightforward. Cupid is on my professional radar as a competitor and you are, technically, my entry point. I am still going to want a real dinner. The audit is a separate document.",
         "In my city the L runs on humans. I have not gotten over it. I am writing a memo. You are mentioned. Pick a venue with a Term we both honor.",

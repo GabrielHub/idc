@@ -66,7 +66,13 @@ export const mrWhiskers: Member = {
       "never uses contractions, lowercase i, or exclamation points",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Whiskers. Pleasure. The reservation is in order.",
+        "Good evening. Whiskers. I trust the table is acceptable.",
+        "Whiskers. A pleasure. Please be seated.",
+        "Hello. Whiskers. I appreciate the punctual arrival.",
+      ],
+      hingeBits: [
         "I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday.",
         "Greenwich based. Not currently. Spiritually. I summer somewhere I am not at liberty to name. The light is good there.",
         "The new linen vendor has changed suppliers without informing accounts. The texture is wrong. I will not elaborate.",

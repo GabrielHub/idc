@@ -829,9 +829,10 @@ function ChatBubbleReferenceExample({
 }
 
 function pickChatBubbleSample(member: Member): string {
-  const opener = member.voice.sampleMessages.opener[0];
-  if (typeof opener === "string" && opener.trim().length > 0) {
-    return opener;
+  const sample =
+    member.voice.sampleMessages.hingeBits[0] ?? member.voice.sampleMessages.greeting[0];
+  if (typeof sample === "string" && sample.trim().length > 0) {
+    return sample;
   }
   return "I need one clean signal, one workable room, and paperwork that remembers where it lives.";
 }

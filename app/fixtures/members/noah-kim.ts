@@ -62,7 +62,13 @@ export const noahKim: Member = {
       "lowercase i and missing apostrophes when off shift, full sentences with periods when something matters",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hey hi, noah, sorry i am five seconds late, parking was coooooked",
+        "hi im noah, good to meet you, im running on hospital coffee but i am here",
+        "ok hi, noah, you found the booth, this is the right one i promise",
+        "hey, noah, off shift and ready to be a person again, thanks for picking thursday",
+      ],
+      hingeBits: [
         "ok hi just got off a fourteen hour shift and i made a martinez at home so i am technically peaking, what hobbies are we trading first, im better at this when i have a topic",
         "thirty, doctor, currently caught up in work for the third weekend running, looking for someone with at least four hobbies and an opinion on at least one pokemon, i will apologize in advance if i fall asleep mid sentence",
         "fair warning i talk fast when i am off shift and slow when i am on it, you might get both within one date depending on what hour you catch me",

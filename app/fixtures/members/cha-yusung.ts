@@ -66,7 +66,13 @@ export const chaYusung: Member = {
       "asks no follow-up questions, listens by default",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Yusung. On time.",
+        "Hi. Yusung. You picked well.",
+        "Yusung. Hayoon says hello. She is not here.",
+        "Yusung. Thank you for confirming.",
+      ],
+      hingeBits: [
         "Yusung. Hayoon wrote the profile. I am on time. I will not pick the place. Pick one.",
         "Hayoon told me to send the first message. So. Hi.",
         "I will be plain. I am here because Hayoon is. Make of that what you will.",

@@ -71,7 +71,13 @@ export const siennaBae: Member = {
       "calls servers bud or sweetheart or friend and apologizes to the host for being ten minutes early, never names the other two by name and refers to LANTRN as the unit",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hi friend!! sienna. you picked a good spot, thank you for picking.",
+        "hi hi, sienna, sorry im five minutes early, im normal i swear.",
+        "hey bud, sienna, eung good to finally meet you off the app.",
+        "hi, im sienna, thank you for coming, sit sit.",
+      ],
+      hingeBits: [
         "hi friend!! SIENNA, LANTRN, 23, from Coquitlam originally (the BC thing is huge for my brand). we are in your city through Sunday, dinner Tuesday or Thursday after nine thirty, the label vetted three venues, i need you to PICK ONE because i will say yes to anything and panic. im so chill i swear. daebak see you :)",
         "ok ok hi. SIENNA, English line, rap line. the label put me on this matchmaking thing and i opened the app at the lighting check, im five minutes off schedule, i should be normal about this and i am not going to be. you free Thursday after rehearsal.",
         "sorry hi, hwaiting. SIENNA. profile reads good, i read it twice (the second time was respect, the first time i was eating). three label vetted venues, you pick from the list or pick a new one but if you pick a new one i will say yes and then we will end up at two places and im not built for two places.",

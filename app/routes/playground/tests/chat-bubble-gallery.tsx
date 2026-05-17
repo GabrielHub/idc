@@ -15,9 +15,10 @@ const CHAT_BUBBLE_FALLBACK_SAMPLE =
   "no but seriously, send me a time, a place, and a chair that does not creak. that is the whole vibe.";
 
 function pickChatBubbleSample(member: Member): string {
-  const opener = member.voice.sampleMessages.opener[0];
-  if (typeof opener === "string" && opener.trim().length > 0) {
-    return opener;
+  const sample =
+    member.voice.sampleMessages.hingeBits[0] ?? member.voice.sampleMessages.greeting[0];
+  if (typeof sample === "string" && sample.trim().length > 0) {
+    return sample;
   }
   return CHAT_BUBBLE_FALLBACK_SAMPLE;
 }

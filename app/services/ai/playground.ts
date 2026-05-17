@@ -1422,7 +1422,8 @@ function formatVoicePatterns(patterns: readonly string[]): string {
 
 function formatMemberChatSamples(member: Member): string {
   const buckets: Array<[string, readonly string[]]> = [
-    ["opener", member.voice.sampleMessages.opener],
+    ["greeting", member.voice.sampleMessages.greeting],
+    ["hinge bit", member.voice.sampleMessages.hingeBits],
     ["warming", member.voice.sampleMessages.warming],
     ["cooling", member.voice.sampleMessages.cooling],
     ["crashing", member.voice.sampleMessages.crashingOut],

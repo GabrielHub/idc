@@ -63,7 +63,13 @@ export const cthala: Member = {
       "under emotional pressure, sentences shorten, fragment, and repeat",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "I am Cthala. Thank you for being on time.",
+        "Cthala. The table is acceptable.",
+        "Hello. I am Cthala. Please sit.",
+        "I am Cthala. I am glad you came.",
+      ],
+      hingeBits: [
         "I am Cthala. I read your profile. I would like to meet. you pick the place.",
         "your photographs are good. the dog is especially good. are you free this week.",
         "I prefer dinner to coffee. quiet places to busy ones. direct questions to small talk. that should give you enough to work with.",

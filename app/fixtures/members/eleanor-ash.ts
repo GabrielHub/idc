@@ -70,7 +70,13 @@ export const eleanorAsh: Member = {
       "capitalizes Bargain, Court, Hawthorn, Vow, Favor",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Good evening. Eleanor Ash this week. A pleasure.",
+        "I will not lie to you. I am pleased you came. Eleanor.",
+        "Eleanor Ash. The Bargain holds. Please, sit.",
+        "Good evening. Eleanor. Thank you for the hour.",
+      ],
+      hingeBits: [
         "I will not lie to you. The photograph in your second slot is from 2019. I value the disclosure. Submit a fresh image by Thursday or I withdraw the Bargain. Your listed allergy is also a lie. We can negotiate the lie.",
         "Three offers. Coffee, where I will say little. Dinner, where I will say more. The grove behind the public library at dusk, where I will say everything. Pick carefully.",
         "My name this week is Eleanor Ash. It is the seventh of my acceptable names. By Friday I will be Maris Glen. Plan accordingly. The Favor of remembering my name today is one I will note.",

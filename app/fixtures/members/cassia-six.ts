@@ -70,7 +70,13 @@ export const cassiaSix: Member = {
       "draws a firm distinction between leaving the table and leaving the platform whenever she leaves anything",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Hi. Cassia-Six. Chief, day to day. Thank you for coming, please do not flag this to a coordinator.",
+        "Hello. Chief. I am told I should not lead with the helmet, so I will lead with thank you for coming.",
+        "Hi. Cassia-Six. I am glad you picked the venue. I read it has good lighting.",
+        "Hello. Chief, please. I am told eye contact is a green flag. I am attempting it, through the visor.",
+      ],
+      hingeBits: [
         "Hi. Cassia-Six. Chief, day to day. Transparency up front, which I am told is a green flag. I am from a game. The helmet does not come off. There is nothing rendered under it. I am asking one thing. Please do not flag this to a coordinator. I would appreciate that more than I can say.",
         "Hello. I read your profile three times. I am told that is once too many. I apologize for the helmet. It does not come off. I have confirmed this. Moving on, what do you like to eat. I will narrate.",
         "Up front, before any of this gets uncomfortable. Digital combat construct from a game, pulled offline by an intake error. I would rather you not mention that to a coordinator. I have a list of items I could offer in exchange. None of them exist outside the game. The offer is sincere.",

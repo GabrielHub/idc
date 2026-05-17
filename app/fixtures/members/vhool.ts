@@ -14,7 +14,7 @@ export const vhool: Member = {
   datingProfile:
     "Seeking one, possibly two, kindred to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. The tremor last Thursday was unrelated and has been Filed.",
   visualDescription:
-    "A tall slender pale figure with very long flowing dark purple hair past mid-back, smaller tendrils curling up and away from the head. Scattered small violet stars throughout the hair. Sharp angular features and a faint smile. Layered black and deep magenta robes with hanging sashes. A long sash dotted with purple star ornaments falls from the chest to the knees. A vertical bright magenta panel hangs from one shoulder. Decorative chains across the torso. Black gloves on both hands, clasped at the chest. Slim black trousers and pointed black boots with gold-trimmed toes.",
+    "A tall lean pale androgynous figure with masculine-leaning angular features, a sharp jawline, and a faint smile. Very long flowing dark purple hair past mid-back, smaller tendrils curling up and away from the head. Scattered small violet stars throughout the hair. Layered black and deep magenta robes with hanging sashes. A long sash dotted with purple star ornaments falls from the chest to the knees. A vertical bright magenta panel hangs from one shoulder. Decorative chains across the torso. Black gloves on both hands at his sides. Slim black trousers and pointed black boots with gold-trimmed toes.",
   relationshipNeeds: [
     "Someone who hears cosmic language as loneliness, not threat",
     "Gentle correction when recruitment vocabulary enters the date",
@@ -30,14 +30,14 @@ export const vhool: Member = {
   ],
   dealbreakers: [
     "mocking devotion",
-    "calling them a brand",
-    "treating their species as costume",
-    "anyone who calls them a Concept",
+    "calling him a brand",
+    "treating his species as costume",
+    "anyone who calls him a Concept",
     "phones during ceremony",
   ],
   secrets: [
-    "Vhool is afraid no one would choose them without awe involved.",
-    "Vhool has been practicing the word maybe alone in their apartment.",
+    "Vhool is afraid no one would choose him without awe involved.",
+    "Vhool has been practicing the word maybe alone in his apartment.",
   ],
   tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded", "acquisitive"],
   voice: {
@@ -61,7 +61,13 @@ export const vhool: Member = {
       "mentions soup once per conversation, lowercase",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Greetings. I am Vhool. Please sit. The chair is ordinary, I have checked.",
+        "Hello. Vhool. Thank you for arriving. The candle is decorative.",
+        "Greetings, kindred. Vhool. You found the table.",
+        "I am Vhool. Welcome. The building is aware of us and is, for now, calm.",
+      ],
+      hingeBits: [
         "I am looking for one, possibly two, kindred willing to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup.",
         "Your photographs are arranged with the care a Lighthouse keeper gives to lamps. I have been Watching for some time. Forgive that.",
         "I would like to invite you to dinner. Nothing will end. I have spoken to the building and the building has Agreed. Forgive that, also.",

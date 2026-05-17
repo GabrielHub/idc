@@ -62,7 +62,13 @@ export const kadeSumner: Member = {
       "ends thoughts with an emoji read aloud, e.g. crying emoji crying emoji",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "no but hi, kade, you found it, parking is a war zone out there babe",
+        "hey hey hey, kade. ok sitting down. you look exactly like your photos which is rare",
+        "babe hi, im kade. the lighting in here is unreal, anyway tell me about your week",
+        "hi! kade. ok i promise the phone stays in the pocket for at least one course",
+      ],
+      hingeBits: [
         "no but hear me out, what if we did dinner and i film a tiny soft launch in your car mirror first. wont post it. pinky promise. ok i might post it.",
         "babe my comments said you give serial killer lawyer in a good way and i was like ok that is actually a compliment in 2026",
         "for the record kade does not ghost. i pay, i confirm, i have a parking app. doing great.",

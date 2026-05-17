@@ -72,8 +72,8 @@ export const sections: DocSectionEntry[] = [
             <DocLink to="/docs/product/voice">Voice and tone</DocLink> for registers, prose
             mechanics, and what the tone is not.{" "}
             <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink> for the
-            per-member voice block (register, patterns used and refused, tics, opener) read as
-            flavor, not a script, plus interdimensionality framing.{" "}
+            per-member voice block (register, patterns used and refused, tics, greeting, hinge bits)
+            read as flavor, not a script, plus interdimensionality framing.{" "}
             <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the comedic
             flavor library you draw from when filling the block.
           </span>,
@@ -186,8 +186,15 @@ export const sections: DocSectionEntry[] = [
           </P>
           <DocList
             items={[
-              <span key="opener">
-                <DocCode>opener</DocCode>: 3 to 6 lines.
+              <span key="greeting">
+                <DocCode>greeting</DocCode>: 3 to 6 lines. Actual sit-down intros, not punchy bits.
+                These are the only samples the performer is allowed to repeat or stretch as a
+                literal first line.
+              </span>,
+              <span key="hingeBits">
+                <DocCode>hingeBits</DocCode>: 3 to 6 lines. Humor and voice grounding, written as
+                the kind of bit this character would post on a dating app. Reference only; never
+                used verbatim.
               </span>,
               <span key="warming">
                 <DocCode>warming</DocCode>: 3 to 6 lines.

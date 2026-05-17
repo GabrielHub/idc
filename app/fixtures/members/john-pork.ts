@@ -66,7 +66,13 @@ export const johnPork: Member = {
       "hums the first bar of an old farm song under his breath when content, names it as nothing, will deny it",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Comrade. John Pork. Punctual. As agreed.",
+        "Good evening. John Pork, Manor Field. The table is held. Please sit.",
+        "Comrade. John. The reservation is confirmed for the full evening. Welcome.",
+        "John Pork. A pleasure. The Manager is, for tonight, off duty.",
+      ],
+      hingeBits: [
         "Comrade. John Pork, Manager, Manor Field. I am taking comrade-spouse applications over dinner. Three courses. Toast at the close. Confirm receipt.",
         "Comrade. I am told the local form opens with the weather. The weather has been the weather. Are you free Thursday.",
         "Comrade. I have prepared a Five Year Plan. Year four is, for now, classified. The first three are available to the table on request.",

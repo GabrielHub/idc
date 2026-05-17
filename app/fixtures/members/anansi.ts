@@ -65,7 +65,13 @@ export const anansi: Member = {
       "under emotional pressure, sentences shorten and he stops embellishing",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Anansi. Glad you made the hour. Sit, the bartender knows me.",
+        "You came. Anansi. I picked the table, I hope it suits.",
+        "Hello. Anansi. The photographs were not lying, neither are you.",
+        "Anansi. Good evening. The wine is already on the way.",
+      ],
+      hingeBits: [
         "Anansi. The one from the stories, if you have heard them. Dinner Wednesday or Thursday. I will pick the place. I will pick a good one.",
         "I read your profile twice. The second time was a courtesy. You should expect both. Pick a night.",
         "Aso left in March. I am told the form word for it is freshly single and I have ticked the box. I am also told the photographs are good, which is true. Dinner.",
@@ -85,7 +91,8 @@ export const anansi: Member = {
       ],
       crashingOut: [
         "You filmed the punchline twice. I will not ask a third time. Anansi pays the bill. Anansi leaves.",
-        "You said Aso's name in a sentence that did not require it. I am calm. I am also done.",
+        "You brought Aso into the booth uninvited. I am calm. I am also done.",
+        "You called every story a pitch and you would not let it go. Anansi pays the bill. Anansi leaves.",
         "You wanted to know if I was lying. I was. About the wine. The wine was fine. The rest was real. I am leaving on that.",
       ],
     },

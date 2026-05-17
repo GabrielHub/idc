@@ -66,7 +66,8 @@ export const voicePatternSchema = z.enum([
 ]);
 
 export const memberSampleMessagesSchema = z.object({
-  opener: z.array(z.string().min(1)).min(3).max(6),
+  greeting: z.array(z.string().min(1)).min(3).max(6),
+  hingeBits: z.array(z.string().min(1)).min(3).max(6),
   warming: z.array(z.string().min(1)).min(3).max(6),
   cooling: z.array(z.string().min(1)).min(3).max(6),
   crashingOut: z.array(z.string().min(1)).min(2).max(4),

@@ -65,7 +65,13 @@ export const calvinHewes: Member = {
       "never names West Virginia, calls it the region",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "Calvin Hewes. Pleased to meet you. Per prior alignment, the table is set.",
+        "Hello. Calvin Hewes. I appreciate your punctuality.",
+        "Calvin. Good evening. The lighting here is acceptable.",
+        "Calvin Hewes. Thank you for coming. I have already confirmed the reservation.",
+      ],
+      hingeBits: [
         "Calvin Hewes here. I would like to confirm dinner Friday. Low ceilings, civilized lighting, and a venue without overhead camera infrastructure. I am six foot two. I have always been six foot two.",
         "Per prior alignment, I will arrive on time. I am not arriving by car. I am making good time. We can discuss the route at dinner. We will not.",
         "I will not be discussing the Bridge Incident. The Trail Cam Footage is not me. I have retained counsel. This is not a threat. This is a clarification.",

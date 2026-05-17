@@ -75,7 +75,13 @@ export const alexYoon: Member = {
       "short declaratives stacked under a dramatic pronouncement, a sad reality, what did we do to deserve such devotion, anyway",
     ],
     sampleMessages: {
-      opener: [
+      greeting: [
+        "hey, alex, good to meet you, thanks for picking the place",
+        "yo, alex, you made it, fair warning im loud the first thirty",
+        "hey, alex, glad you said yes to a tuesday, sit down",
+        "alex, hi, you found it, the bar said theyd keep the volume reasonable",
+      ],
+      hingeBits: [
         "alex, 26, allston, social strat at an agency. lakers F1 pats in that order. yes a lakers fan in boston, im used to the questions, i can do drinks this week and pick a bar that knows when to turn the volume down. you say a night.",
         "ok hear me out, your profile is like a 7 photo set with top three energy in the answers. im taking the over. friday at 8?",
         "the king dropped 38 last night and im writing this from a booth at the brass cat because somebody in this city had to witness it. anyway hi. you free saturday?",
