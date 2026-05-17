@@ -109,17 +109,15 @@ export const sections: DocSectionEntry[] = [
               <DocLink to="/docs/gameplay/member-fields-and-tags">
                 Member fields and hidden tags
               </DocLink>
-              , and the saved memory <DocCode>feedback_voice_tuning.md</DocCode> for any contract
-              this member needs to honor.
+              , and this plan's decisions log for any contract this member needs to honor.
             </span>,
             <span key="read-prompt-eng">
               Before editing anything inside <RoadmapFileRef path="app/services/date-prompts.ts" />{" "}
-              or other LLM prompt builders, re-read the saved memory{" "}
-              <DocCode>feedback_prompt_engineering.md</DocCode> and the four official prompt
-              engineering guides linked in the References section below. Every prompt edit goes
-              through the principles in those four guides: positive framing, context-first,
-              outcome-not-process, reserve absolutes for true invariants, let the model decide
-              behavior.
+              or other LLM prompt builders, re-read the four official prompt engineering guides
+              linked in the References section below and the project prompt contracts in{" "}
+              <DocLink to="/docs/product/voice-prompts">Voice prompts</DocLink>. Every prompt edit
+              goes through these principles: positive framing, context-first, outcome-not-process,
+              reserve absolutes for true invariants, let the model decide behavior.
             </span>,
             <span key="pick-partners">
               Pick two partners from the roster for this focus member: a{" "}
@@ -130,12 +128,11 @@ export const sections: DocSectionEntry[] = [
               the date early). Justify both picks in a sentence with the fixture evidence.
             </span>,
             <span key="spawn-subagents">
-              For each pairing, spawn a fresh subagent (Agent tool, <DocCode>subagent_type</DocCode>{" "}
-              <DocCode>"claude"</DocCode>) to play the partner side. The subagent owns the tune
-              session for that pairing end to end: it runs{" "}
+              For each pairing, spawn a fresh worker subagent to play the partner side. The subagent
+              owns the tune session for that pairing end to end: it runs{" "}
               <DocCode>
-                node_modules/.bin/vp run tune -- start &lt;focus-id&gt; --partner &lt;partner-id&gt;
-                --name &lt;session-name&gt;
+                vp run tune -- start &lt;focus-id&gt; --partner &lt;partner-id&gt; --name
+                &lt;session-name&gt;
               </DocCode>
               , authors each <DocCode>say</DocCode> line (passing{" "}
               <DocCode>--session &lt;session-name&gt;</DocCode> on every command after start so
@@ -143,16 +140,17 @@ export const sections: DocSectionEntry[] = [
               <DocCode>.claude-tmp/tune/active.txt</DocCode> pointer), and returns the full
               transcript. Feed the subagent the partner's fixture content (bio, dating profile,
               register, tics, sample messages, dealbreakers, refused patterns), the focus member's
-              name, the scenario, and the rules in <DocCode>feedback_voice_tuning.md</DocCode>{" "}
-              (especially rule 5: stay strictly in the partner's voice, do not become a
-              question-machine, do not blur professions, respect tics-as-seasoning; and rule 7:
-              respect IDC venue and transit canon, neither member chose the place, Cupid did, and
-              members arrive via Cupid Transit by car-gate-flash, not by local transit). Do not let
-              the subagent improvise outside the partner's documented voice, and do not let the
-              partner's opening line credit the focus member for the venue, the time, the route, or
-              the match itself, since the opening line becomes the first thing the focus member's
-              prompt sees and a canon violation in turn one contaminates the whole transcript. For
-              crash-out audits, brief the subagent to apply{" "}
+              name, the scenario, and the partner-play rules in{" "}
+              <DocLink to="/docs/product/voice-prompts">Voice prompts</DocLink> plus this plan's
+              decisions log: stay strictly in the partner's voice, do not become a question-machine,
+              do not blur professions, respect tics-as-seasoning, and respect IDC venue and transit
+              canon. Neither member chose the place, Cupid did, and members arrive via Cupid Transit
+              by car-gate-flash, not by local transit. Do not let the subagent improvise outside the
+              partner's documented voice, and do not let the partner's opening line credit the focus
+              member for the venue, the time, the route, or the match itself, since the opening line
+              becomes the first thing the focus member's prompt sees and a canon violation in turn
+              one contaminates the whole transcript. For crash-out audits, brief the subagent to
+              apply{" "}
               <DocCode>
                 tune judge -&lt;n&gt; --note "&lt;reason&gt;" --session &lt;name&gt;
               </DocCode>{" "}
@@ -211,10 +209,11 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Mandatory reading before editing any IDC LLM prompt builder. The local memory file{" "}
-          <DocCode>feedback_prompt_engineering.md</DocCode> distills these into the project rules
-          actually applied at edit time; the source guides are listed here so the principles can be
-          re-derived from authority instead of paraphrased from memory.
+          Mandatory reading before editing any IDC LLM prompt builder. The source guides are listed
+          here so the principles can be re-derived from authority instead of paraphrased from
+          memory. The project-specific application lives in{" "}
+          <DocLink to="/docs/product/voice-prompts">Voice prompts</DocLink> and this plan's
+          decisions log.
         </P>
         <DocList
           items={[
@@ -592,7 +591,7 @@ export const sections: DocSectionEntry[] = [
           },
           {
             date: "2026-05-17",
-            title: "Promote partner-play venue canon to a memory rule and procedure clause",
+            title: "Promote partner-play venue canon to the procedure",
             outcome: "accepted",
             body: (
               <P>
@@ -601,11 +600,10 @@ export const sections: DocSectionEntry[] = [
                 picked the diner.") but the false attribution still biased the first half of the
                 date. The earlier 2026-05-16 prompt-scaffold fix made Cupid the venue picker inside{" "}
                 <RoadmapFileRef path="app/services/date-prompts.ts" />; the corresponding
-                partner-play discipline now lives as rule 7 in{" "}
-                <DocCode>feedback_voice_tuning.md</DocCode> and the spawn-subagents bullet in the
-                per-member procedure enforces it. Subagent prompts must instruct the partner-play
-                opening line to stay venue-neutral or Cupid-attributed regardless of what the
-                partner's own fixture personality says about picking restaurants.
+                partner-play discipline now lives in the spawn-subagents bullet in the per-member
+                procedure. Subagent prompts must instruct the partner-play opening line to stay
+                venue-neutral or Cupid-attributed regardless of what the partner's own fixture
+                personality says about picking restaurants.
               </P>
             ),
           },

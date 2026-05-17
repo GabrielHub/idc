@@ -192,7 +192,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Every member fixture needs a <DocCode>voice</DocCode> block with these five fields:
+          Every member fixture needs a <DocCode>voice</DocCode> block with these fields:
         </P>
         <DocDefList
           items={[
@@ -213,8 +213,8 @@ export const sections: DocSectionEntry[] = [
               def: 'Three to five small syntax or vocabulary habits that may surface when natural. None is required to appear in any reply, and none should be announced. Tics must be things a runtime AI character can perform in a plain-text chat reply. Visual gimmicks (block characters like ██, ASCII art, custom unicode glyphs used as syntax) do not survive contact with the model and read as broken text when imitated. Express the same character beat as a speakable behavior instead ("manages disclosure out loud" beats "redacts mid-sentence with ██").',
             },
             {
-              term: "One-line sample",
-              def: "An opening message that shows what this character sounds like at full flavor. A rhythm reference, not a line the character has to imitate.",
+              term: "Sample messages",
+              def: "Five buckets: greeting, hingeBits, warming, cooling, and crashingOut. Greetings are sit-down intros the first turn may quote, vary, or stretch. Hinge bits and in-date buckets are rhythm references, not lines the character has to imitate.",
             },
           ]}
         />

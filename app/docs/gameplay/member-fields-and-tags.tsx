@@ -63,7 +63,7 @@ export const sections: DocSectionEntry[] = [
             { term: "tags", def: "Hidden deterministic gameplay inputs." },
             {
               term: "voice",
-              def: "Flavor reference for the runtime AI: register, tics, a few sample lines, and short lists of comedic moves that fit or break the character. The performer reads it to know who this person sounds like, then answers the live conversation naturally. Voice is not a script the character has to enforce against the partner.",
+              def: "Flavor reference for the runtime AI: register, tics, sample buckets, and short lists of comedic moves that fit or break the character. The performer reads it to know who this person sounds like, then answers the live conversation naturally. Voice is not a script the character has to enforce against the partner.",
             },
           ]}
         />

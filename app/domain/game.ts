@@ -65,13 +65,36 @@ export const voicePatternSchema = z.enum([
   "cursed_question",
 ]);
 
-export const memberSampleMessagesSchema = z.object({
-  greeting: z.array(z.string().min(1)).min(3).max(6),
-  hingeBits: z.array(z.string().min(1)).min(3).max(6),
-  warming: z.array(z.string().min(1)).min(3).max(6),
-  cooling: z.array(z.string().min(1)).min(3).max(6),
-  crashingOut: z.array(z.string().min(1)).min(2).max(4),
+const memberSampleMessageArraySchema = z.array(z.string().min(1)).min(3).max(6);
+const memberCrashOutSampleMessageArraySchema = z.array(z.string().min(1)).min(2).max(4);
+
+const currentMemberSampleMessagesSchema = z.object({
+  greeting: memberSampleMessageArraySchema,
+  hingeBits: memberSampleMessageArraySchema,
+  warming: memberSampleMessageArraySchema,
+  cooling: memberSampleMessageArraySchema,
+  crashingOut: memberCrashOutSampleMessageArraySchema,
 });
+
+const legacyMemberSampleMessagesSchema = z
+  .object({
+    opener: memberSampleMessageArraySchema,
+    warming: memberSampleMessageArraySchema,
+    cooling: memberSampleMessageArraySchema,
+    crashingOut: memberCrashOutSampleMessageArraySchema,
+  })
+  .transform(({ opener, warming, cooling, crashingOut }) => ({
+    greeting: opener,
+    hingeBits: opener,
+    warming,
+    cooling,
+    crashingOut,
+  }));
+
+export const memberSampleMessagesSchema = z.union([
+  currentMemberSampleMessagesSchema,
+  legacyMemberSampleMessagesSchema,
+]);
 
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),

@@ -9,7 +9,7 @@
 // Run --help for the full usage.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { createServer, loadEnv } from "vite";
@@ -22,6 +22,7 @@ const ACTIVE_POINTER = resolve(TUNE_DIR, "active.txt");
 const EXIT_OK = 0;
 const EXIT_ERROR = 1;
 const EXIT_BAD_ARGS = 2;
+const SESSION_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
 
 loadDevelopmentEnv();
 
@@ -132,7 +133,29 @@ function ensureTuneDir() {
 }
 
 function sessionPath(name) {
-  return resolve(TUNE_DIR, `${name}.json`);
+  const safeName = requireSessionName(name);
+  const path = resolve(TUNE_DIR, `${safeName}.json`);
+  assertPathInsideTuneDir(path);
+  return path;
+}
+
+function requireSessionName(name) {
+  if (typeof name !== "string" || name.length === 0) {
+    throw new Error("Tune session name cannot be empty.");
+  }
+  if (!SESSION_NAME_PATTERN.test(name)) {
+    throw new Error(
+      "Tune session names may use letters, numbers, dots, underscores, and hyphens only.",
+    );
+  }
+  return name;
+}
+
+function assertPathInsideTuneDir(path) {
+  const relativePath = relative(TUNE_DIR, path);
+  if (relativePath.startsWith("..") || isAbsolute(relativePath)) {
+    throw new Error("Tune session path escaped the tune directory.");
+  }
 }
 
 function loadSession(name) {
@@ -151,7 +174,7 @@ function saveSession(name, session) {
 
 function setActiveSessionName(name) {
   ensureTuneDir();
-  writeFileSync(ACTIVE_POINTER, `${name}\n`, "utf8");
+  writeFileSync(ACTIVE_POINTER, `${requireSessionName(name)}\n`, "utf8");
 }
 
 function readActiveSessionName() {
@@ -269,6 +292,9 @@ function parseStartArgs(args) {
       "Usage: tune start <focusMemberId> [--partner <id>] [--scenario <id>] [--name <name>] [--focus-opens]",
     );
   }
+  if (args[0].startsWith("--")) {
+    throw new Error("Usage: tune start <focusMemberId> [options]");
+  }
   const result = {
     focusMemberId: args[0],
     partnerMemberId: undefined,
@@ -280,13 +306,16 @@ function parseStartArgs(args) {
     const token = args[index];
     switch (token) {
       case "--partner":
-        result.partnerMemberId = args[++index];
+        result.partnerMemberId = requireFlagValue(args, index);
+        index += 1;
         break;
       case "--scenario":
-        result.scenarioId = args[++index];
+        result.scenarioId = requireFlagValue(args, index);
+        index += 1;
         break;
       case "--name":
-        result.name = args[++index];
+        result.name = requireSessionName(requireFlagValue(args, index));
+        index += 1;
         break;
       case "--focus-opens":
         result.focusOpens = true;
@@ -592,7 +621,6 @@ function parseShowArgs(args) {
 
 async function generateAndPrint(name, sessionBeforeReply, tune, options) {
   const focus = tune.findMemberById(sessionBeforeReply.focusMemberId);
-  const partner = tune.findMemberById(sessionBeforeReply.partnerMemberId);
   const result = await tune.generateFocusMemberReply(sessionBeforeReply, {
     config: resolveRuntimeConfig(options.config ?? {}),
   });
@@ -622,9 +650,6 @@ async function generateAndPrint(name, sessionBeforeReply, tune, options) {
   for (const warning of result.warningMessages) {
     process.stdout.write(`note: ${warning}\n`);
   }
-
-  // Silence unused-partner lint while keeping it in scope for future inline previews.
-  void partner;
 }
 
 function isRuntimeConfigFlag(token) {

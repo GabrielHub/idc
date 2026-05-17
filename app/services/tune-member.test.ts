@@ -1,4 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { GeneratedTextResult } from "./ai/model-service";
+
+const modelServiceMocks = vi.hoisted(() => ({
+  generateCharacterTurn: vi.fn(),
+}));
+
+vi.mock("./ai/model-service", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./ai/model-service")>();
+  return {
+    ...actual,
+    generateCharacterTurn: modelServiceMocks.generateCharacterTurn,
+  };
+});
 
 import {
   appendCupidNote,
@@ -17,6 +31,17 @@ const SAMPLE_FOCUS_ID = "cassie-conners";
 const SAMPLE_PARTNER_ID = "alex-yoon";
 const SAMPLE_SCENARIO_ID = "diner-eleven-pm";
 
+function generatedText(text: string): GeneratedTextResult {
+  return {
+    text,
+    providerMode: "ollama",
+    model: "fake-tune-model",
+    stepCount: 1,
+    toolCallCount: 0,
+    toolResultCount: 0,
+  };
+}
+
 function newSession(overrides?: Partial<{ scenarioId: string; partnerMemberId: string }>) {
   return createTuneSession({
     focusMemberId: SAMPLE_FOCUS_ID,
@@ -25,6 +50,10 @@ function newSession(overrides?: Partial<{ scenarioId: string; partnerMemberId: s
     now: new Date("2026-05-16T12:00:00Z"),
   });
 }
+
+beforeEach(() => {
+  modelServiceMocks.generateCharacterTurn.mockReset();
+});
 
 describe("createTuneSession", () => {
   it("returns a session with defaults applied", () => {
@@ -158,6 +187,24 @@ describe("generateFocusMemberReply", () => {
 
     await expect(generateFocusMemberReply(session)).rejects.toThrow(/consecutive turns/);
   });
+
+  it("retries an empty focus reply with the visibility guard", async () => {
+    modelServiceMocks.generateCharacterTurn
+      .mockResolvedValueOnce(generatedText("smiles."))
+      .mockResolvedValueOnce(generatedText("i can answer that without narrating the chair."));
+    const session = appendPartnerLine(newSession(), "hey there");
+
+    const result = await generateFocusMemberReply(session, {
+      now: new Date("2026-05-16T12:02:00.000Z"),
+    });
+
+    expect(modelServiceMocks.generateCharacterTurn).toHaveBeenCalledTimes(2);
+    const secondCall = modelServiceMocks.generateCharacterTurn.mock.calls[1]?.[0];
+    expect(secondCall?.packet.prompt).toContain("previous attempt produced no usable spoken line");
+    expect(result.replyText).toBe("i can answer that without narrating the chair.");
+    expect(result.retried).toBe(true);
+    expect(result.retryReason).toBe("visibility");
+  });
 });
 
 describe("previewMemberTurnPacket", () => {
@@ -186,6 +233,34 @@ describe("previewMemberTurnPacket", () => {
     expect(preview.dateSession.interventions).toHaveLength(1);
     expect(preview.dateSession.interventions[0].text).toBe(nudge);
     expect(preview.packet.prompt).toContain(nudge);
+  });
+
+  it("expires a cupid note after the focus member answers it", () => {
+    const session = newSession();
+    const withPartner = appendPartnerLine(session, "what do you usually order");
+    const nudge = "redirect to her, you are talking about yourself too much";
+    const withNudge = appendCupidNote(withPartner, nudge);
+    const withFocusReply = {
+      ...withNudge,
+      messages: [
+        ...withNudge.messages,
+        {
+          kind: "character" as const,
+          speakerId: SAMPLE_FOCUS_ID,
+          text: "probably pancakes. what about you?",
+          createdAt: "2026-05-16T12:01:30.000Z",
+        },
+      ],
+    };
+    const withNextPartner = appendPartnerLine(
+      withFocusReply,
+      "coffee, usually. i panic-order it.",
+      new Date("2026-05-16T12:02:00.000Z"),
+    );
+    const preview = previewMemberTurnPacket(withNextPartner);
+
+    expect(preview.dateSession.interventions[0]?.usedAtTurn).toBe(1);
+    expect(preview.packet.prompt).not.toContain(nudge);
   });
 
   it("threads a director event as a scenario beat the member sees", () => {

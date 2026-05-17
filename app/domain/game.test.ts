@@ -43,6 +43,45 @@ describe("game domain schemas", () => {
     expect(parsedSave.pairStates.every((pairState) => pairState.openLoops.length === 0)).toBe(true);
   });
 
+  it("parses legacy member voice samples with opener", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const legacyMembers = save.members.map((member) => {
+      const {
+        greeting: _greeting,
+        hingeBits: _hingeBits,
+        ...legacySampleMessages
+      } = member.voice.sampleMessages;
+
+      return {
+        ...member,
+        voice: {
+          ...member.voice,
+          sampleMessages: {
+            opener: member.voice.sampleMessages.greeting,
+            ...legacySampleMessages,
+          },
+        },
+      };
+    });
+    const parsedSave = gameSaveSchema.parse({
+      ...save,
+      members: legacyMembers,
+    });
+    const firstMember = parsedSave.members[0];
+    const sourceMember = save.members[0];
+
+    if (firstMember === undefined || sourceMember === undefined) {
+      throw new Error("Expected seed members.");
+    }
+
+    expect(firstMember.voice.sampleMessages.greeting).toEqual(
+      sourceMember.voice.sampleMessages.greeting,
+    );
+    expect(firstMember.voice.sampleMessages.hingeBits).toEqual(
+      sourceMember.voice.sampleMessages.greeting,
+    );
+  });
+
   it("defaults judge agreement and open loop proposals", () => {
     const snapshot = judgeSnapshotSchema.parse({
       id: "judge-legacy",

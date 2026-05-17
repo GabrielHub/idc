@@ -25,7 +25,7 @@ import {
   withCharacterVisibilityRetryGuard,
   type CharacterPromptPacket,
 } from "./date-prompts";
-import { sanitizeCharacterText } from "./ai-date-engine";
+import { EmptyPerformerMessageError, sanitizeCharacterText } from "./ai-date-engine";
 import {
   generateCharacterTurn,
   type AiRuntimeConfig,
@@ -391,7 +391,8 @@ function reconstructTranscriptAndInterventions(
   let judgeCount = 0;
 
   for (const message of session.messages) {
-    const turnIndex = characterCount + 1;
+    const currentTurnIndex = characterCount;
+    const nextCharacterTurnIndex = characterCount + 1;
     const baseId = `tune-${baseSession.id}-msg-${sequenceIndex}`;
     if (message.kind === "character") {
       transcript.push(
@@ -399,7 +400,7 @@ function reconstructTranscriptAndInterventions(
           kind: "character",
           id: baseId,
           dateSessionId: baseSession.id,
-          turnIndex,
+          turnIndex: nextCharacterTurnIndex,
           sequenceIndex,
           text: message.text,
           createdAt: message.createdAt,
@@ -413,7 +414,7 @@ function reconstructTranscriptAndInterventions(
           kind: "scenario",
           id: baseId,
           dateSessionId: baseSession.id,
-          turnIndex,
+          turnIndex: currentTurnIndex,
           sequenceIndex,
           text: message.text,
           createdAt: message.createdAt,
@@ -425,7 +426,7 @@ function reconstructTranscriptAndInterventions(
           kind: "cupid",
           id: baseId,
           dateSessionId: baseSession.id,
-          turnIndex,
+          turnIndex: currentTurnIndex,
           sequenceIndex,
           text: message.text,
           createdAt: message.createdAt,
@@ -435,7 +436,7 @@ function reconstructTranscriptAndInterventions(
       interventions.push({
         id: `tune-cupid-${sequenceIndex}`,
         text: message.text,
-        usedAtTurn: turnIndex,
+        usedAtTurn: currentTurnIndex,
         targetMemberId: message.targetMemberId,
       });
     } else {
@@ -530,14 +531,43 @@ export async function generateFocusMemberReply(
   const recentSpeakerLines = collectRecentFocusLines(preview.dateSession, preview.focusMember.id);
 
   const config = options.config ?? {};
-  const firstAttempt = await runOnce({
-    packet: preview.packet,
-    config,
-    speakerName: preview.focusMember.name,
-  });
+  const runVisibleAttempt = async (
+    packet: CharacterPromptPacket,
+  ): Promise<{
+    attempt: { text: string; raw: GeneratedTextResult };
+    retriedForVisibility: boolean;
+  }> => {
+    try {
+      const attempt = await runOnce({
+        packet,
+        config,
+        speakerName: preview.focusMember.name,
+      });
+      return { attempt, retriedForVisibility: false };
+    } catch (error) {
+      if (!(error instanceof EmptyPerformerMessageError)) {
+        throw error;
+      }
+
+      warningMessages.push(
+        `${preview.focusMember.name} returned an empty line; retried with visibility guard.`,
+      );
+      const retry = await runOnce({
+        packet: withCharacterVisibilityRetryGuard(packet),
+        config,
+        speakerName: preview.focusMember.name,
+      });
+      return { attempt: retry, retriedForVisibility: true };
+    }
+  };
+
+  const firstVisibleAttempt = await runVisibleAttempt(preview.packet);
+  const firstAttempt = firstVisibleAttempt.attempt;
   let chosen = firstAttempt;
-  let retried = false;
-  let retryReason: TuneGenerationResult["retryReason"] = null;
+  let retried = firstVisibleAttempt.retriedForVisibility;
+  let retryReason: TuneGenerationResult["retryReason"] = firstVisibleAttempt.retriedForVisibility
+    ? "visibility"
+    : null;
 
   const initialNearDup = hasNearDuplicateRecentLine({
     text: firstAttempt.text,
@@ -548,14 +578,10 @@ export async function generateFocusMemberReply(
     const retryPacket = buildRetryPacket(preview.packet, {
       repetitionRetry: initialNearDup,
     });
-    const retry = await runOnce({
-      packet: retryPacket,
-      config,
-      speakerName: preview.focusMember.name,
-    });
-    chosen = retry;
+    const retry = await runVisibleAttempt(retryPacket);
+    chosen = retry.attempt;
     retried = true;
-    retryReason = "near_duplicate";
+    retryReason = retry.retriedForVisibility ? "visibility" : "near_duplicate";
   } else {
     const repeatedApproval = hasRepeatedApprovalPhrase({
       text: firstAttempt.text,
@@ -568,30 +594,11 @@ export async function generateFocusMemberReply(
       const retryPacket = buildRetryPacket(preview.packet, {
         rhythmRetry: repeatedApproval,
       });
-      const retry = await runOnce({
-        packet: retryPacket,
-        config,
-        speakerName: preview.focusMember.name,
-      });
-      chosen = retry;
+      const retry = await runVisibleAttempt(retryPacket);
+      chosen = retry.attempt;
       retried = true;
-      retryReason = "approval_phrase";
+      retryReason = retry.retriedForVisibility ? "visibility" : "approval_phrase";
     }
-  }
-
-  if (chosen.text.length === 0) {
-    warningMessages.push(
-      `${preview.focusMember.name} returned an empty line; retried with visibility guard.`,
-    );
-    const retryPacket = withCharacterVisibilityRetryGuard(preview.packet);
-    const retry = await runOnce({
-      packet: retryPacket,
-      config,
-      speakerName: preview.focusMember.name,
-    });
-    chosen = retry;
-    retried = true;
-    retryReason = "visibility";
   }
 
   const updatedSession = appendFocusMemberReply(

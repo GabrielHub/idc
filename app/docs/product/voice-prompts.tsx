@@ -224,28 +224,28 @@ export const sections: DocSectionEntry[] = [
         <DocList
           items={[
             <span key="roleplay">
-              A roleplay opener:{" "}
+              A role block:{" "}
               <DocCode>
                 You are {"<name>"}. People who know you call you {"<firstName>"}.
               </DocCode>{" "}
               The Performer is addressed in second person throughout. Gameplay language stays out of
               the frame: no scenario, simulation, transcript, or turn vocabulary.
             </span>,
-            "A compact character card: bio, current need, what relaxes them, what makes them guarded, and private pressure as subtext.",
-            "The member's conversational register and a few habits from the voice block, framed as optional pressure tells rather than required words. The performer should know that none of these need to surface in any given reply.",
-            "One to four sample lines from the member fixture, selected for the current moment. Framed as reference for how they sound when fully themselves, not lines to copy.",
+            "A task and success criteria block that asks for one spoken reply, grounded in the latest partner line and the member's voice.",
+            "Identity, personality, and state blocks: bio, relationship needs, preferences, dealbreakers, private pressure, current mood, pair memories, agreements, open loops, and pair trajectory when present.",
+            "The member's register and tics, framed as optional habits. The performer should know that none of these need to surface in any given reply.",
+            "Sample buckets selected for the current moment. Opening turns may include greeting examples as sit-down intros. Hinge bits, warming, cooling, and crashingOut samples feed voice flavor by dateHealth and are references, not lines to copy.",
             <span key="cupid-context">
-              The shared Cupid context block: the member signed up for a dating app whose platform
-              crosses dimensions, a Cupid dating manager set this date up and may send private
-              coaching notes during it, and{" "}
+              The shared scene block: the member signed up for Cupid, arrived through Cupid Transit
+              and Cupid Connect, and did not pick the partner, venue, time, or route. It also states{" "}
               <DocCode>
                 This is your {"<Nth>"} date with {"<partner>"} through Cupid.
               </DocCode>{" "}
               The ordinal counts completed dates in the pair plus one.
             </span>,
-            "A live scene frame: location, what both characters know about the place, room feel from director tone, and any director rules worth remembering. Then the partner's dating profile blurb, profile photo description, both heights, a reminder that the speaker does not know the partner's private biography, and an explicit framing that the partner profile is background on who is across the table, not a list of topics to claim as the speaker's own.",
-            "Pair context when present: relevant self / pair / place memories, active agreements between them, and open loops still hanging, rewritten into character voice.",
-            "A short \"How you write\" block: one short message at a time, plain text, no stage directions or markdown, no echoing the partner back, no closing the date in one line. A second behavioral rule frames the date as shared work, not an interview, and tells the speaker to vary which conversational move they make so a reply does not always just answer and stop. A third rule asks the speaker to stay themselves, makes clear that anything invented about their own life becomes canon going forward, and forbids borrowing the partner's listed interests to find common ground when those topics are not in the speaker's life. Recent-line guards list the speaker's last few lines as do-not-repeat and the partner's last few lines as do-not-echo.",
+            "A live venue frame: location, what both characters know, room feel, director rules, partner profile blurb, photo description, both heights, and the reminder that the partner profile is background, not a checklist to mirror.",
+            "Format, rules, and hard invariant blocks: one plain-text message, no labels or stage directions, no forbidden dash punctuation, varied sentence shape, shared conversational work, no parroting, no self-echoing, and no answering Cupid notes aloud.",
+            "Retry guards, recent-line guards, and attachment notices only when the current packet needs them.",
           ]}
         />
         <P>The thread of messages supplies the conversation as the member experiences it:</P>
