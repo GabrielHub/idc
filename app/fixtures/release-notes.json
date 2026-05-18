@@ -1,5 +1,37 @@
 [
   {
+    "version": "0.3.6",
+    "date": "2026-05-18",
+    "headline": "Player knowledge gets a privacy lock and a sharper witness list.",
+    "summary": "Voice and visibility test alpha. Gated profile details now stay out of prompts until Cupid has evidence, the tune desk is harder to trick with bad paths, and the next roster voice batch is locked.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Member fields now carry an explicit player visibility contract, with tests that pin every fixture field to public, earned, presentation, prompt-private, or never-player-facing handling.",
+          "Live date prompts now build partner profiles through the same visible-profile path as the player view, so hidden dossier details wait for filed reads before reaching the conversation.",
+          "Profile reveal candidates now require authored evidence from the transcript before Cupid files that knowledge, which keeps one private fact from getting a hallway pass because it wore a nice hat."
+        ]
+      },
+      {
+        "title": "Roster pass",
+        "items": [
+          "The voice tuning pass now locks Meridian Vale, Aldric Vale Marsh, Sana Karim, Epsy, Marcus Pellish, Cassie Conners, Calvin Hewes, and Gabriel Tan.",
+          "Sera Vohn moves into the next review seat with updated bio, register, tics, and sample-bank coverage.",
+          "The all-members playground now opens on sit-down greetings by default, matching the new sample split used by the voice review loop."
+        ]
+      },
+      {
+        "title": "Fixes and polish",
+        "items": [
+          "Legacy saves with the old opener sample field still parse by mapping it into the newer greeting and hinge-bit sample buckets.",
+          "Cupid note timing now expires from the current character count, so interventions stop lingering after the focus member answers them.",
+          "The tune CLI now rejects path traversal, missing flag values, and leading flags in session starts before any file work begins."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.5",
     "date": "2026-05-17",
     "headline": "The roster voice pass gets a clipboard and a stricter ear.",
