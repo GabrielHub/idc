@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   judgeSnapshotSchema,
+  memberSchema,
   type DateMessage,
   type GameSave,
   type JudgeSnapshot,
@@ -13,6 +14,7 @@ import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
 import { getPairProjectionFromSave } from "./relationship-index";
 import {
+  MEMBER_PLAYER_VISIBILITY_CONTRACT,
   applyJudgeReveals,
   buildJudgeRevealCandidatePacket,
   buildRevealCandidates,
@@ -20,6 +22,7 @@ import {
   filterExchangeEligibleRevealCandidates,
   isReadKnown,
   selectDeterministicRevealIds,
+  splitSentences,
   upsertPlayerKnowledge,
   validateUsedEvidenceIds,
   visibleReadsForMember,
@@ -72,7 +75,38 @@ function makeJudgeSnapshot(
   });
 }
 
+function makeCharacterMessage(speakerId: string, text: string): DateMessage {
+  return {
+    id: `message-${speakerId}-${text.length}`,
+    dateSessionId: "test",
+    kind: "character",
+    speakerId,
+    turnIndex: 1,
+    sequenceIndex: 1,
+    text,
+    createdAt: SEED_DATE.toISOString(),
+  };
+}
+
 describe("player-knowledge selectors", () => {
+  it("accounts for every member field in the player visibility contract", () => {
+    const contractFields = MEMBER_PLAYER_VISIBILITY_CONTRACT.map((entry) => entry.field).sort();
+    const schemaFields = [...memberSchema.keyof().options].sort();
+
+    expect(contractFields).toEqual(schemaFields);
+
+    const earnedFields = MEMBER_PLAYER_VISIBILITY_CONTRACT.filter(
+      (entry) => entry.tier === "earned",
+    );
+    const memberEarnedReadKinds = new Set(["profile", "ask", "comfort", "boundary"]);
+    for (const entry of earnedFields) {
+      expect(entry.readKinds?.length).toBeGreaterThan(0);
+      for (const readKind of entry.readKinds ?? []) {
+        expect(memberEarnedReadKinds.has(readKind)).toBe(true);
+      }
+    }
+  });
+
   it("returns no hidden facts on a new save", () => {
     const save = createSeedGameSave(SEED_DATE);
 
@@ -322,6 +356,122 @@ describe("buildRevealCandidates", () => {
       expect(candidates.some((candidate) => candidate.readKind === "pair_dynamic")).toBe(true);
     }
   });
+
+  it("emits a profile candidate per member with a multi-sentence profile", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "mei-sato");
+    const partner = findMember(seed, "calvin-hewes");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+
+    const profileCandidates = candidates.filter((candidate) => candidate.readKind === "profile");
+    expect(profileCandidates.map((candidate) => candidate.subjectId).sort()).toEqual(
+      [member.id, partner.id].sort(),
+    );
+    for (const candidate of profileCandidates) {
+      expect(candidate.subjectKind).toBe("member");
+      expect(candidate.id).toContain("profile:expand");
+      expect(candidate.source).toBe("judge");
+    }
+  });
+
+  it("emits fallback candidates for every sealed member dossier block", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const scenario = findScenario("couch-night-takeout");
+
+    for (const member of seed.members) {
+      const partner = seed.members.find((candidate) => candidate.id !== member.id);
+      if (partner === undefined) {
+        throw new Error("Expected a partner fixture.");
+      }
+
+      const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id));
+      if (pairState === undefined) {
+        throw new Error(`Expected pair state for ${member.id}.`);
+      }
+
+      const matchFit = evaluateMatchFit({
+        members: [member, partner],
+        scenario,
+        pairState,
+      });
+      const candidates = buildRevealCandidates({
+        members: [member, partner],
+        scenario,
+        pairState,
+        matchFit,
+      });
+      const memberReadKinds = new Set(
+        candidates
+          .filter(
+            (candidate) => candidate.subjectKind === "member" && candidate.subjectId === member.id,
+          )
+          .map((candidate) => candidate.readKind),
+      );
+
+      if (splitSentences(member.datingProfile).length > 1) {
+        expect(memberReadKinds.has("profile")).toBe(true);
+      }
+      expect(memberReadKinds.has("ask")).toBe(true);
+
+      if (member.preferences.length > 0) {
+        expect(memberReadKinds.has("comfort")).toBe(true);
+      }
+
+      if (member.dealbreakers.length > 0) {
+        expect(memberReadKinds.has("boundary")).toBe(true);
+      }
+    }
+  });
+
+  it("suppresses the profile candidate once a profile read is already filed", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "mei-sato");
+    const partner = findMember(seed, "calvin-hewes");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+      knownReads: [
+        {
+          id: `member:${member.id}:profile:expand:prior`,
+          subjectKind: "member",
+          subjectId: member.id,
+          readKind: "profile",
+          readId: `member:${member.id}:profile:expand`,
+          readText: "Profile expanded.",
+          confidence: "filed",
+          source: "judge",
+          revealedAt: SEED_DATE.toISOString(),
+        },
+      ],
+    });
+
+    const profileSubjectIds = candidates
+      .filter((candidate) => candidate.readKind === "profile")
+      .map((candidate) => candidate.subjectId);
+    expect(profileSubjectIds).not.toContain(member.id);
+    expect(profileSubjectIds).toContain(partner.id);
+  });
 });
 
 describe("filterExchangeEligibleRevealCandidates", () => {
@@ -456,6 +606,135 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     for (const candidate of eligible) {
       expect(["scenario_pressure", "ask"]).toContain(candidate.readKind);
     }
+  });
+
+  it("keeps profile candidates ineligible until profile evidence reaches the exchange", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "mei-sato");
+    const partner = findMember(seed, "calvin-hewes");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const profile = candidates.find(
+      (candidate) => candidate.subjectId === member.id && candidate.readKind === "profile",
+    );
+
+    if (profile === undefined) {
+      throw new Error("Expected profile candidate.");
+    }
+
+    const unrelated = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(member.id, "The lemonade is fine. I can work with this table."),
+      ],
+    });
+    const related = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(
+          member.id,
+          "The sunset opening is in the profile because the residency matters.",
+        ),
+      ],
+    });
+
+    expect(unrelated.map((candidate) => candidate.id)).not.toContain(profile.id);
+    expect(related.map((candidate) => candidate.id)).toContain(profile.id);
+  });
+
+  it("allows a profile reveal when the member names their own profile", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "calvin-hewes");
+    const partner = findMember(seed, "mei-sato");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const profile = candidates.find(
+      (candidate) => candidate.subjectId === member.id && candidate.readKind === "profile",
+    );
+
+    if (profile === undefined) {
+      throw new Error("Expected profile candidate.");
+    }
+
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(
+          member.id,
+          "My profile says civilized lighting for a reason. I would like the pendants left where they are.",
+        ),
+      ],
+    });
+
+    expect(eligible.map((candidate) => candidate.id)).toContain(profile.id);
+  });
+
+  it("uses authored member evidence as a fallback path for ask, comfort, and boundary reads", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "cha-yusung");
+    const partner = findMember(seed, "mei-sato");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const readIdByKind = new Map(
+      candidates
+        .filter((candidate) => candidate.subjectId === member.id)
+        .map((candidate) => [candidate.readKind, candidate.id]),
+    );
+    const askReadId = readIdByKind.get("ask");
+    const comfortReadId = readIdByKind.get("comfort");
+    const boundaryReadId = readIdByKind.get("boundary");
+
+    if (askReadId === undefined || comfortReadId === undefined || boundaryReadId === undefined) {
+      throw new Error("Expected fallback member read candidates.");
+    }
+
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(
+          member.id,
+          "Protecting is not the point. I need silence to sit, scheduled hours with no improvisation, and no performative necromancy.",
+        ),
+      ],
+    });
+    const eligibleIds = eligible.map((candidate) => candidate.id);
+
+    expect(eligibleIds).toContain(askReadId);
+    expect(eligibleIds).toContain(comfortReadId);
+    expect(eligibleIds).toContain(boundaryReadId);
   });
 
   it("boundary risk candidates need transcript evidence before eligibility", () => {

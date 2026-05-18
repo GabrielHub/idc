@@ -114,7 +114,7 @@ async function withTuneModule(action) {
   const server = await createServer({
     configFile: resolve(PROJECT_ROOT, "vite.config.ts"),
     root: PROJECT_ROOT,
-    server: { middlewareMode: true, hmr: false },
+    server: { middlewareMode: true, hmr: false, ws: false },
     appType: "custom",
     logLevel: "error",
   });

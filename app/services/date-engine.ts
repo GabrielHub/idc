@@ -982,6 +982,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     pairState,
     focusRequest,
     matchFit,
+    knownReads: save.playerKnowledge,
   });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,

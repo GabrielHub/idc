@@ -44,21 +44,39 @@ export const sections: DocSectionEntry[] = [
                   Authored profile copy. The first sentence is the public roster tagline at intake.
                   It must read like the member speaking about themself in one short sentence,
                   carrying voice, personality, and a concrete hook. Later sentences are revealed
-                  only through player knowledge.
+                  only through a filed <DocCode>profile</DocCode> read.
                 </>
               ),
             },
             {
               term: "relationshipNeeds",
-              def: "Authored reasons a member might want a specific kind of date. These are not shown in full at intake.",
+              def: (
+                <>
+                  Authored reasons a member might want a specific kind of date. These are not shown
+                  in full at intake. Player-safe <DocCode>ask</DocCode> reads are filed when a focus
+                  request or transcript evidence makes the need visible.
+                </>
+              ),
             },
             {
               term: "preferences",
-              def: "Authored soft clues for good rooms, partners, and pacing. These are not shown in full at intake.",
+              def: (
+                <>
+                  Authored soft clues for good rooms, partners, and pacing. These are not shown in
+                  full at intake. Player-safe <DocCode>comfort</DocCode> reads are filed when a
+                  comfort beat or transcript evidence makes the preference visible.
+                </>
+              ),
             },
             {
               term: "dealbreakers",
-              def: "Authored boundaries a member watches for. These are not shown in full at intake.",
+              def: (
+                <>
+                  Authored boundaries a member watches for. These are not shown in full at intake.
+                  Player-safe <DocCode>boundary</DocCode> reads are filed when risk or transcript
+                  evidence makes the boundary visible.
+                </>
+              ),
             },
             { term: "tags", def: "Hidden deterministic gameplay inputs." },
             {

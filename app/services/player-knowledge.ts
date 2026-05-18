@@ -23,7 +23,144 @@ export type RevealCandidate = {
   readText: string;
   evidenceText: string;
   source: "judge";
+  evidenceTerms?: readonly string[];
 };
+
+export type MemberFieldVisibilityTier =
+  | "public"
+  | "earned"
+  | "mixed_state"
+  | "presentation"
+  | "prompt_private"
+  | "never_player_facing";
+
+export type MemberFieldVisibilityEntry = {
+  field: keyof Member;
+  tier: MemberFieldVisibilityTier;
+  playerPath: string;
+  readKinds?: readonly PlayerKnowledgeReadKind[];
+};
+
+export const MEMBER_PLAYER_VISIBILITY_CONTRACT: readonly MemberFieldVisibilityEntry[] = [
+  {
+    field: "id",
+    tier: "public",
+    playerPath:
+      "Stable case identity. UI derives case file numbers from ids, raw ids stay plumbing.",
+  },
+  { field: "name", tier: "public", playerPath: "Roster cards, case files, and date surfaces." },
+  {
+    field: "firstName",
+    tier: "public",
+    playerPath: "Roster cards, prompts, case files, and date copy.",
+  },
+  {
+    field: "characterHeightInInches",
+    tier: "public",
+    playerPath: "Listed profile height in member dossiers and date prompts.",
+  },
+  {
+    field: "standeeRenderHeightInInches",
+    tier: "never_player_facing",
+    playerPath: "Asset normalization only. It is not dating profile canon.",
+  },
+  {
+    field: "origin",
+    tier: "never_player_facing",
+    playerPath:
+      "Internal authoring and prompt context. Player surfaces use public profile copy and reads.",
+  },
+  {
+    field: "species",
+    tier: "never_player_facing",
+    playerPath:
+      "Internal authoring and prompt context. Player surfaces use public profile copy and reads.",
+  },
+  {
+    field: "dimension",
+    tier: "never_player_facing",
+    playerPath:
+      "Internal authoring and prompt context. Player surfaces use public profile copy and reads.",
+  },
+  {
+    field: "realityStatus",
+    tier: "never_player_facing",
+    playerPath:
+      "Internal authoring and prompt context. Player surfaces use public profile copy and reads.",
+  },
+  {
+    field: "bio",
+    tier: "prompt_private",
+    playerPath:
+      "Runtime performer context only. Dates may reveal facts through transcript and memory.",
+  },
+  {
+    field: "datingProfile",
+    tier: "earned",
+    playerPath:
+      "First sentence is public. Remaining sentences unlock through a profile read with transcript evidence.",
+    readKinds: ["profile"],
+  },
+  {
+    field: "visualDescription",
+    tier: "public",
+    playerPath: "Portrait-derived description used by prompts and visual surfaces.",
+  },
+  {
+    field: "relationshipNeeds",
+    tier: "earned",
+    playerPath:
+      "Raw notes stay sealed. Player-safe ask reads file when a focus ask or need evidence matters in a date.",
+    readKinds: ["ask"],
+  },
+  {
+    field: "preferences",
+    tier: "earned",
+    playerPath:
+      "Raw notes stay sealed. Player-safe comfort reads file when a comfort beat or preference evidence matters in a date.",
+    readKinds: ["comfort"],
+  },
+  {
+    field: "dealbreakers",
+    tier: "earned",
+    playerPath:
+      "Raw notes stay sealed. Player-safe boundary reads file when a boundary risk or dealbreaker evidence matters in a date.",
+    readKinds: ["boundary"],
+  },
+  {
+    field: "secrets",
+    tier: "prompt_private",
+    playerPath: "Runtime performer pressure only. Raw secrets never render in player case files.",
+  },
+  {
+    field: "tags",
+    tier: "never_player_facing",
+    playerPath:
+      "Hidden deterministic inputs. Reads may derive player-safe consequences without exposing tag names.",
+  },
+  {
+    field: "voice",
+    tier: "prompt_private",
+    playerPath:
+      "Runtime performer style context only. Player sees the performed conversation, not the fixture field.",
+  },
+  {
+    field: "state",
+    tier: "mixed_state",
+    playerPath:
+      "Status, cooldown, current ask, and qualitative outcomes can surface. Exact mood, openness, burnout, and retention stay hidden.",
+  },
+  {
+    field: "portraits",
+    tier: "public",
+    playerPath: "Approved portrait assets render in roster, dossiers, and dates.",
+  },
+  {
+    field: "chatBubble",
+    tier: "presentation",
+    playerPath: "Visible date presentation style. It carries no player-facing case fact.",
+  },
+];
 
 export type BuildRevealCandidatesInput = {
   members: readonly Member[];
@@ -31,6 +168,7 @@ export type BuildRevealCandidatesInput = {
   pairState: PairState;
   focusRequest?: MemberRequest;
   matchFit: MatchFitResult;
+  knownReads?: readonly PlayerKnowledgeRecord[];
 };
 
 export type FilterExchangeEligibleInput = {
@@ -474,6 +612,7 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
     candidates.push(candidate);
   };
   const scenarioTags = new Set<ScenarioTag>(input.scenario.card.tags);
+  const knownReadIndex = getOrBuildIndex(input.knownReads ?? []);
 
   for (const member of input.members) {
     for (const tag of member.tags) {
@@ -575,7 +714,100 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
     }
   }
 
+  for (const member of input.members) {
+    const memberRecords = knownReadIndex.bySubject.get(`member:${member.id}`) ?? [];
+    pushMemberSurfaceFallbackCandidates({
+      member,
+      candidates,
+      pushCandidate,
+      knownReadKinds: new Set(memberRecords.map((record) => record.readKind)),
+    });
+  }
+
   return candidates;
+}
+
+function pushMemberSurfaceFallbackCandidates({
+  member,
+  candidates,
+  pushCandidate,
+  knownReadKinds,
+}: {
+  member: Member;
+  candidates: readonly RevealCandidate[];
+  pushCandidate: (candidate: RevealCandidate) => void;
+  knownReadKinds: ReadonlySet<PlayerKnowledgeReadKind>;
+}) {
+  const hasCandidate = (readKind: PlayerKnowledgeReadKind) =>
+    candidates.some(
+      (candidate) =>
+        candidate.subjectKind === "member" &&
+        candidate.subjectId === member.id &&
+        candidate.readKind === readKind,
+    );
+
+  if (
+    !knownReadKinds.has("profile") &&
+    !hasCandidate("profile") &&
+    splitSentences(member.datingProfile).length > 1
+  ) {
+    pushCandidate({
+      id: `member:${member.id}:profile:expand`,
+      subjectKind: "member",
+      subjectId: member.id,
+      readKind: "profile",
+      readText: `More of ${member.firstName}'s Cupid profile reads through in conversation.`,
+      evidenceText: `Look for ${member.firstName} volunteering a detail from their Cupid profile beyond the opening line, or expanding on a topic the profile lists in their own words.`,
+      evidenceTerms: buildMemberEvidenceTerms(
+        member,
+        splitSentences(member.datingProfile).slice(1),
+      ),
+      source: "judge",
+    });
+  }
+
+  if (!knownReadKinds.has("ask") && !hasCandidate("ask") && member.relationshipNeeds.length > 0) {
+    pushCandidate({
+      id: `member:${member.id}:ask:needs`,
+      subjectKind: "member",
+      subjectId: member.id,
+      readKind: "ask",
+      readText: `Cupid has a clearer read on what ${member.firstName} needs from the table.`,
+      evidenceText: `Look for ${member.firstName}'s dating needs becoming visible in the exchange.`,
+      evidenceTerms: buildMemberEvidenceTerms(member, member.relationshipNeeds),
+      source: "judge",
+    });
+  }
+
+  if (!knownReadKinds.has("comfort") && !hasCandidate("comfort") && member.preferences.length > 0) {
+    pushCandidate({
+      id: `member:${member.id}:comfort:preferences`,
+      subjectKind: "member",
+      subjectId: member.id,
+      readKind: "comfort",
+      readText: `Cupid has a clearer read on what helps ${member.firstName} stay engaged.`,
+      evidenceText: `Look for one of ${member.firstName}'s soft preferences becoming visible in the exchange.`,
+      evidenceTerms: buildMemberEvidenceTerms(member, member.preferences),
+      source: "judge",
+    });
+  }
+
+  if (
+    !knownReadKinds.has("boundary") &&
+    !hasCandidate("boundary") &&
+    member.dealbreakers.length > 0
+  ) {
+    pushCandidate({
+      id: `member:${member.id}:boundary:dealbreakers`,
+      subjectKind: "member",
+      subjectId: member.id,
+      readKind: "boundary",
+      readText: `Cupid has a clearer read on what makes ${member.firstName} pull back.`,
+      evidenceText: `Look for one of ${member.firstName}'s dealbreakers becoming visible in the exchange.`,
+      evidenceTerms: buildMemberEvidenceTerms(member, member.dealbreakers),
+      source: "judge",
+    });
+  }
 }
 
 function describeAskBlock(
@@ -674,9 +906,22 @@ export function filterExchangeEligibleRevealCandidates(
     (message) => message.kind === "scenario",
   );
 
+  const normalizedExchangeText = normalizeEvidenceText(exchangeText);
   for (const candidate of input.candidates) {
     if (candidate.readKind === "ask") {
-      eligible.push(candidate);
+      if (
+        candidate.evidenceTerms === undefined ||
+        memberEvidenceTermsMatchExchange(candidate, normalizedExchangeText)
+      ) {
+        eligible.push(candidate);
+      }
+      continue;
+    }
+
+    if (candidate.readKind === "profile") {
+      if (profileMatchesExchange(candidate, input.exchangeMessages, normalizedExchangeText)) {
+        eligible.push(candidate);
+      }
       continue;
     }
 
@@ -697,7 +942,10 @@ export function filterExchangeEligibleRevealCandidates(
     }
 
     if (candidate.readKind === "comfort" || candidate.readKind === "boundary") {
-      if (memberReadMatchesExchange(candidate, exchangeText)) {
+      if (
+        memberReadMatchesExchange(candidate, exchangeText) ||
+        memberEvidenceTermsMatchExchange(candidate, normalizedExchangeText)
+      ) {
         eligible.push(candidate);
       }
       continue;
@@ -749,11 +997,15 @@ export function selectDeterministicRevealIds(input: SelectDeterministicRevealIds
       ? MAX_DETERMINISTIC_REVEALS_HIGH_DELTA
       : MAX_DETERMINISTIC_REVEALS_PER_PASS;
 
-  const sorted = [...input.candidates].sort(
-    (first, second) =>
-      REVEAL_PRIORITY_ORDER.indexOf(first.readKind) -
-      REVEAL_PRIORITY_ORDER.indexOf(second.readKind),
-  );
+  // Profile reads need an LLM-proposed evidence id; the deterministic fallback never auto-files
+  // them based on date-health swings alone.
+  const sorted = [...input.candidates]
+    .filter((candidate) => candidate.readKind !== "profile")
+    .sort(
+      (first, second) =>
+        REVEAL_PRIORITY_ORDER.indexOf(first.readKind) -
+        REVEAL_PRIORITY_ORDER.indexOf(second.readKind),
+    );
 
   return sorted.slice(0, limit).map((candidate) => candidate.id);
 }
@@ -967,7 +1219,228 @@ const MEMBER_READ_KEYWORDS: Record<string, string[]> = {
   ],
 };
 
-function splitSentences(text: string): string[] {
+const PROFILE_SELF_DISCLOSURE_CUES: readonly string[] = [
+  "my profile",
+  "my cupid profile",
+  "profile says",
+  "profile reads",
+  "what i wrote",
+  "what i put",
+  "i wrote that",
+  "i put that",
+  "in my profile",
+  "on my profile",
+];
+
+const PROFILE_DIRECTED_CUES: readonly string[] = [
+  "your profile",
+  "your cupid profile",
+  "what you wrote",
+  "what you put",
+  "in your profile",
+  "on your profile",
+];
+
+function profileMatchesExchange(
+  candidate: RevealCandidate,
+  exchangeMessages: readonly DateMessage[],
+  normalizedExchangeText: string,
+): boolean {
+  if (candidate.subjectKind !== "member" || normalizedExchangeText.length === 0) {
+    return false;
+  }
+
+  const subjectLines: string[] = [];
+  const partnerLines: string[] = [];
+  for (const message of exchangeMessages) {
+    if (message.kind !== "character") {
+      continue;
+    }
+    if (message.speakerId === candidate.subjectId) {
+      subjectLines.push(message.text);
+    } else {
+      partnerLines.push(message.text);
+    }
+  }
+
+  if (subjectLines.length === 0) {
+    return false;
+  }
+
+  const subjectText = normalizeEvidenceText(subjectLines.join("\n"));
+  if (PROFILE_SELF_DISCLOSURE_CUES.some((cue) => includesEvidenceTerm(subjectText, cue))) {
+    return true;
+  }
+
+  const partnerText = normalizeEvidenceText(partnerLines.join("\n"));
+  if (PROFILE_DIRECTED_CUES.some((cue) => includesEvidenceTerm(partnerText, cue))) {
+    return true;
+  }
+
+  return memberEvidenceTermsMatchExchange(candidate, normalizedExchangeText);
+}
+
+function memberEvidenceTermsMatchExchange(
+  candidate: RevealCandidate,
+  normalizedExchangeText: string,
+): boolean {
+  if (candidate.subjectKind !== "member" || normalizedExchangeText.length === 0) {
+    return false;
+  }
+
+  const evidenceTerms = candidate.evidenceTerms ?? [];
+  if (evidenceTerms.length === 0) {
+    return false;
+  }
+
+  if (
+    evidenceTerms.some(
+      (term) => term.includes(" ") && includesEvidenceTerm(normalizedExchangeText, term),
+    )
+  ) {
+    return true;
+  }
+
+  let singleTermMatches = 0;
+  const seen = new Set<string>();
+
+  for (const term of evidenceTerms) {
+    if (term.includes(" ") || seen.has(term)) {
+      continue;
+    }
+
+    if (includesEvidenceTerm(normalizedExchangeText, term)) {
+      seen.add(term);
+      singleTermMatches += 1;
+    }
+
+    if (singleTermMatches >= MIN_SINGLE_TERM_MATCHES) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function includesEvidenceTerm(text: string, term: string): boolean {
+  return ` ${text} `.includes(` ${term} `);
+}
+
+const EVIDENCE_TERM_CAP = 48;
+const MIN_EVIDENCE_PHRASE_LENGTH = 9;
+const MIN_EVIDENCE_TOKEN_LENGTH = 6;
+const MIN_SINGLE_TERM_MATCHES = 2;
+const EVIDENCE_PHRASE_SIZES: readonly number[] = [2, 3];
+
+function buildMemberEvidenceTerms(member: Member, texts: readonly string[]): readonly string[] {
+  const blocked = new Set<string>([
+    ...COMMON_EVIDENCE_STOP_WORDS,
+    ...normalizeEvidenceText(member.name).split(" "),
+    normalizeEvidenceText(member.firstName),
+  ]);
+  const phrases = new Set<string>();
+  const singles = new Set<string>();
+
+  for (const text of texts) {
+    const tokens = normalizeEvidenceText(text)
+      .split(" ")
+      .filter((token) => isEvidenceToken(token, blocked));
+
+    for (const token of tokens) {
+      singles.add(token);
+    }
+
+    for (const size of EVIDENCE_PHRASE_SIZES) {
+      for (let index = 0; index <= tokens.length - size; index += 1) {
+        const phrase = tokens.slice(index, index + size).join(" ");
+        if (phrase.length >= MIN_EVIDENCE_PHRASE_LENGTH) {
+          phrases.add(phrase);
+        }
+      }
+    }
+  }
+
+  return [...phrases, ...singles].slice(0, EVIDENCE_TERM_CAP);
+}
+
+function isEvidenceToken(token: string, blocked: ReadonlySet<string>): boolean {
+  if (blocked.has(token)) {
+    return false;
+  }
+
+  return token.length >= MIN_EVIDENCE_TOKEN_LENGTH || /\d/u.test(token);
+}
+
+function normalizeEvidenceText(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/gu, "")
+    .replace(/[^a-z0-9' ]+/gu, " ")
+    .replace(/\s+/gu, " ")
+    .trim();
+}
+
+const COMMON_EVIDENCE_STOP_WORDS: readonly string[] = [
+  "about",
+  "across",
+  "after",
+  "again",
+  "against",
+  "almost",
+  "already",
+  "also",
+  "always",
+  "anyone",
+  "anything",
+  "around",
+  "because",
+  "before",
+  "being",
+  "between",
+  "could",
+  "cupid",
+  "date",
+  "dating",
+  "dinner",
+  "does",
+  "during",
+  "every",
+  "first",
+  "flirting",
+  "from",
+  "going",
+  "inside",
+  "instead",
+  "looking",
+  "needs",
+  "notes",
+  "partner",
+  "partners",
+  "people",
+  "person",
+  "photos",
+  "place",
+  "places",
+  "profile",
+  "really",
+  "someone",
+  "table",
+  "their",
+  "there",
+  "thing",
+  "through",
+  "tonight",
+  "treats",
+  "venue",
+  "venues",
+  "where",
+  "which",
+  "without",
+  "would",
+];
+
+export function splitSentences(text: string): string[] {
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     return [];

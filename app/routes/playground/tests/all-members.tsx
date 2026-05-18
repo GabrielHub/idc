@@ -53,7 +53,7 @@ function startLetter(member: Member): string {
 export function AllMembersTest() {
   const [selectedId, setSelectedId] = useState<string>(starterMembers[0].id);
   const [search, setSearch] = useState("");
-  const [voiceGroup, setVoiceGroup] = useState<VoiceSampleGroup>("opener");
+  const [voiceGroup, setVoiceGroup] = useState<VoiceSampleGroup>("greeting");
   const [mood, setMood] = useState<PortraitMood>("neutral");
   const rosterScrollRef = useRef<HTMLDivElement>(null);
 

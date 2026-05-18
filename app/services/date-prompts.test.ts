@@ -22,7 +22,7 @@ import {
 } from "./date-prompts";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { evaluateMatchFit } from "./match-fit";
-import { buildRevealCandidates } from "./player-knowledge";
+import { buildRevealCandidates, buildVisibleMemberProfile } from "./player-knowledge";
 import { getPairProjectionFromSave } from "./relationship-index";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
@@ -346,7 +346,7 @@ describe("date prompt assembly", () => {
     expect(secondImage?.type).toBe("image");
   });
 
-  it("gives performers the partner dating profile without private partner facts", () => {
+  it("gives performers only the player-visible partner profile and no private partner facts", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
     ]);
@@ -385,7 +385,13 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain(vhool.datingProfile);
+    const visiblePartnerProfile = buildVisibleMemberProfile(vhool, []);
+    const publicProfileText = visiblePartnerProfile.publicFragments.join(" ");
+    const hiddenProfileText = vhool.datingProfile.slice(publicProfileText.length).trim();
+    expect(publicProfileText.length).toBeGreaterThan(0);
+    expect(hiddenProfileText.length).toBeGreaterThan(0);
+    expect(packet.prompt).toContain(publicProfileText);
+    expect(packet.prompt).not.toContain(hiddenProfileText);
     expect(packet.prompt).toContain(vhool.visualDescription);
     expect(packet.prompt).toContain(
       `Listed height: ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in. Yours: 5 ft 0 in.`,
@@ -396,6 +402,62 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain(vhool.dimension);
     expect(packet.prompt).not.toContain(vhool.realityStatus);
     expect(packet.prompt).toContain(jenna.bio);
+  });
+
+  it("exposes the rest of the partner profile once a profile read is filed", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+      partnerKnowledge: [
+        {
+          id: "member:vhool:profile:expand:test-1",
+          subjectKind: "member",
+          subjectId: vhool.id,
+          readKind: "profile",
+          readId: `member:${vhool.id}:profile:expand`,
+          readText: "Profile expanded.",
+          confidence: "filed",
+          source: "judge",
+          dateSessionId: started.session.id,
+          revealedAt: "2026-05-05T12:01:00.000Z",
+        },
+      ],
+    });
+
+    expect(packet.prompt).toContain(vhool.datingProfile);
   });
 
   it("does not keep feeding greeting samples after a speaker has joined the date", () => {

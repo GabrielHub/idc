@@ -124,6 +124,74 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "member-field-paths",
+    title: "Member field paths",
+    body: (
+      <>
+        <P>
+          Every member field has to live in a named bucket: public at intake, earned through a filed
+          read, prompt-private, never player-facing, mixed state, or presentation-only. The
+          code-level map lives in <DocCode>MEMBER_PLAYER_VISIBILITY_CONTRACT</DocCode>. If a new
+          member field appears, that map and its tests must say how the player can ever see it, or
+          why they cannot.
+        </P>
+        <DocDefList
+          items={[
+            {
+              term: "datingProfile",
+              def: (
+                <>
+                  Sentence one is public. Later sentences unlock through a{" "}
+                  <DocCode>profile</DocCode> read only when the transcript references hidden profile
+                  detail, the member names their own profile, or the partner asks about the profile
+                  and the member participates in the exchange.
+                </>
+              ),
+            },
+            {
+              term: "relationshipNeeds",
+              def: (
+                <>
+                  Raw notes stay sealed. The player earns <DocCode>ask</DocCode> reads when a focus
+                  request lands or fails, or when a date makes the member's underlying needs visible
+                  in conversation.
+                </>
+              ),
+            },
+            {
+              term: "preferences",
+              def: (
+                <>
+                  Raw notes stay sealed. The player earns <DocCode>comfort</DocCode> reads when a
+                  tagged comfort beat lands, or when a concrete preference becomes visible in the
+                  exchange.
+                </>
+              ),
+            },
+            {
+              term: "dealbreakers",
+              def: (
+                <>
+                  Raw notes stay sealed. The player earns <DocCode>boundary</DocCode> reads when
+                  deterministic risk meets transcript evidence, or when a concrete dealbreaker
+                  becomes visible in the exchange.
+                </>
+              ),
+            },
+            {
+              term: "bio, secrets, voice, tags, species, origin, dimension, realityStatus",
+              def: "These fields never render as case file facts. They can shape performance, deterministic risk, art direction, or player-safe filed reads.",
+            },
+            {
+              term: "state, portraits, chatBubble",
+              def: "State has a public shell and hidden numbers. Portraits and chat bubble style are presentation surfaces, not filed knowledge.",
+            },
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "ui-and-search-boundary",
     title: "UI and search boundary",
     body: (

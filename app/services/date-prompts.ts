@@ -10,6 +10,7 @@ import type {
   MemberRequest,
   MemberSampleMessages,
   PairState,
+  PlayerKnowledgeRecord,
   ScenarioEventKind,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
@@ -26,7 +27,7 @@ import {
 } from "./pair-memory";
 import { derivePairTrajectory } from "./pair-trajectory";
 import { cleanMemberFacingText } from "./player-safe-copy";
-import type { RevealCandidate } from "./player-knowledge";
+import { buildVisibleMemberProfile, type RevealCandidate } from "./player-knowledge";
 
 export type CharacterPromptPacket = {
   system: string;
@@ -250,7 +251,17 @@ export type CharacterPromptInput = {
   repetitionRetry?: { repeatedLine: string };
   rhythmRetry?: { repeatedPhrase: string; recentLine: string };
   imageAttachments?: readonly CharacterPromptImageAttachment[];
+  partnerKnowledge?: readonly PlayerKnowledgeRecord[];
 };
+
+function formatPartnerProfileForPrompt(
+  partner: Member,
+  partnerKnowledge: readonly PlayerKnowledgeRecord[],
+): string {
+  const visible = buildVisibleMemberProfile(partner, partnerKnowledge);
+  const joined = visible.publicFragments.join(" ").trim();
+  return joined.length === 0 ? "" : truncateForPrompt(joined, 520);
+}
 
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
   const { member, partner, scenario, session, pairState, memoryPack } = input;
@@ -361,7 +372,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Venue: ${scenario.publicBrief.location}. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
     ...scenario.director.rules.map((rule) => `- ${rule}`),
     ``,
-    `Partner: ${partner.firstName}'s Cupid profile reads: ${truncateForPrompt(partner.datingProfile, 520)}`,
+    `Partner: ${partner.firstName}'s Cupid profile reads: ${formatPartnerProfileForPrompt(partner, input.partnerKnowledge ?? [])}`,
     `Photo: ${partner.visualDescription}`,
     `Listed height: ${formatMemberHeightLabel(partner.characterHeightInInches)}. Yours: ${formatMemberHeightLabel(member.characterHeightInInches)}.`,
     `You do not know ${partner.firstName}'s private biography, what they really are, or what they are hiding. You find that out by talking to them. Their profile is background on who is across the table; the topics it lists belong to them.`,
@@ -376,6 +387,8 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     ``,
     `<rules>`,
     `- Acknowledge what ${partner.firstName} just said in your own words before you move the conversation. React, build, push back, or redirect with a one-beat ack.`,
+    `- When ${partner.firstName} reveals something novel about themselves (powers, non-human nature, dimensional or temporal displacement, supernatural abilities, or anything outside ordinary contemporary reality), spend one beat reacting in your own register before you move on. Curiosity, deadpan, alarm, or dry redirect all work; the reveal lands either way.`,
+    `- If ${partner.firstName} addresses you with an honorific, pronoun, or assumption that does not fit you (a misgendered title, a misread profession, a misheard name, a wrong lifestyle assumption), let it slide once. By the second or third instance, react in your own register: a correction, a flat note, a dry redirect, or an acknowledgment that the framing does not fit.`,
     `- You can build on earlier moments too, not just the last line. Callbacks, follow-ups on dropped threads, and asides that pick up something from a few turns ago all feel like a real date.`,
     `- Vary how you start and shape each line. Open differently from the last few turns; pick a different sentence shape.`,
     `- A date is shared work, not an interview. Mix answering, volunteering an unprompted thought, asking one back, and turning the topic.`,

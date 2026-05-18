@@ -17,6 +17,7 @@ import {
   type MemoryCandidate,
   type MemoryRecord,
   type PairState,
+  type PlayerKnowledgeRecord,
 } from "../domain/game";
 import type { GameRepository } from "../repositories/game-repository";
 import {
@@ -80,6 +81,7 @@ import {
   buildRevealCandidates,
   filterExchangeEligibleRevealCandidates,
   validateUsedEvidenceIds,
+  visibleReadsForMember,
   visibleReadsForPair,
   type RevealCandidate,
 } from "./player-knowledge";
@@ -314,6 +316,7 @@ async function advanceDateExchangeWithLocalAiInternal(
       scenario,
       pairState,
       focusRequest,
+      partnerKnowledge: visibleReadsForMember(save, partner.id),
       createdAt: timestamp,
       emit,
       abortSignal: input.abortSignal,
@@ -385,6 +388,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     focusRequest,
     matchFit,
+    knownReads: save.playerKnowledge,
   });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
@@ -598,6 +602,7 @@ async function createLocalAiCharacterMessage({
   scenario,
   pairState,
   focusRequest,
+  partnerKnowledge,
   createdAt,
   emit,
   abortSignal,
@@ -611,6 +616,7 @@ async function createLocalAiCharacterMessage({
   scenario: DateScenario;
   pairState: PairState;
   focusRequest: MemberRequest | undefined;
+  partnerKnowledge: readonly PlayerKnowledgeRecord[];
   createdAt: string;
   emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void;
   abortSignal?: AbortSignal;
@@ -664,6 +670,7 @@ async function createLocalAiCharacterMessage({
         pairState,
         memoryPack: promptInputs.memoryPack,
         focusRequest,
+        partnerKnowledge,
         repetitionRetry,
         rhythmRetry,
         imageAttachments: promptInputs.imageAttachments,

@@ -35,7 +35,7 @@
     "@tauri-apps/plugin-http": "~2.5.9",
     "@tauri-apps/plugin-process": "~2.3.1",
     "@tauri-apps/plugin-updater": "~2.10.1",
-    "ai": "^6.0.183",
+    "ai": "^6.0.184",
     "ai-sdk-ollama": "^3.8.4",
     "isbot": "^5.1.40",
     "motion": "^12.38.0",
@@ -47,7 +47,7 @@
   "devDependencies": {
     "@react-router/dev": "7.14.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@tauri-apps/cli": "^2.11.1",
+    "@tauri-apps/cli": "^2.11.2",
     "@types/node": "^22.19.19",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
