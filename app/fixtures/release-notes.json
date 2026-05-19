@@ -1,5 +1,37 @@
 [
   {
+    "version": "0.3.7",
+    "date": "2026-05-18",
+    "headline": "Cupid gets a controlled exit button and a tighter privacy desk.",
+    "summary": "Gameplay and voice test alpha. Adds the cut-short transport action, tightens hidden-info leak retries, and locks the latest roster voice batch through Mira Park.",
+    "sections": [
+      {
+        "title": "What's new",
+        "items": [
+          "Operators can now cut a paused active date short after two filed reads. Cupid runs one final cut-short judgment, ends the booking, files private memories, and reports warm, loud, or mixed fallout.",
+          "Date sessions now persist why they ended, so natural wraps, Cupid early endings, and player cut-short exits produce distinct reports and memory records.",
+          "The transcript nudge flow now pushes better table fuel: share something unknown, drop a favorite song or movie, or let the partner pick the next move."
+        ]
+      },
+      {
+        "title": "Privacy guard",
+        "items": [
+          "Performer lines are now checked against private fixture text before they reach the transcript, including secrets, species, origin, private tags, and dossier labels.",
+          "Streamed character text waits for validation before display, so a rejected leak attempt no longer flashes into the live conversation.",
+          "Player knowledge tests cover stricter comfort, boundary, and partner-profile evidence paths so filed reads need actual transcript support."
+        ]
+      },
+      {
+        "title": "Roster pass",
+        "items": [
+          "The voice tuning pass locks Alex Yoon, Bai Wenshu, Anubis, and Mira Park after fixture rewrites and paired transcript checks.",
+          "Mira Park now plays as a hollow-confidence tech CEO who consults Sage at the table, using plain founder language instead of ML conference recital.",
+          "Fixture lint now rejects member claims that they picked the venue or booked the hour, keeping Cupid in charge of the calendar like the agency liability policy intended."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.6",
     "date": "2026-05-18",
     "headline": "Player knowledge gets a privacy lock and a sharper witness list.",

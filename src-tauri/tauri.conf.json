@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "IDC",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "identifier": "dev.idc.cupid",
   "build": {
     "frontendDist": "../build/client",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "IDC v0.3.6 (test alpha)",
+        "title": "IDC v0.3.7 (test alpha)",
         "width": 1440,
         "height": 900,
         "minWidth": 1100,
