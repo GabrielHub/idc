@@ -66,7 +66,7 @@ export const voicePatternSchema = z.enum([
 ]);
 
 const memberSampleMessageArraySchema = z.array(z.string().min(1)).min(3).max(6);
-const memberCrashOutSampleMessageArraySchema = z.array(z.string().min(1)).min(2).max(4);
+const memberCrashOutSampleMessageArraySchema = z.array(z.string().min(1)).min(2).max(5);
 
 const currentMemberSampleMessagesSchema = z.object({
   greeting: memberSampleMessageArraySchema,
@@ -426,6 +426,9 @@ export const memberRequestTagSchema = z.enum([
   "fae",
   "name_discretion",
   "widower",
+  "anti_deference",
+  "anti_fraud",
+  "challenge",
 ]);
 
 export const memberRequestSchema = z.object({

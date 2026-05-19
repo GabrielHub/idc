@@ -1232,15 +1232,6 @@ const PROFILE_SELF_DISCLOSURE_CUES: readonly string[] = [
   "on my profile",
 ];
 
-const PROFILE_DIRECTED_CUES: readonly string[] = [
-  "your profile",
-  "your cupid profile",
-  "what you wrote",
-  "what you put",
-  "in your profile",
-  "on your profile",
-];
-
 function profileMatchesExchange(
   candidate: RevealCandidate,
   exchangeMessages: readonly DateMessage[],
@@ -1251,15 +1242,12 @@ function profileMatchesExchange(
   }
 
   const subjectLines: string[] = [];
-  const partnerLines: string[] = [];
   for (const message of exchangeMessages) {
     if (message.kind !== "character") {
       continue;
     }
     if (message.speakerId === candidate.subjectId) {
       subjectLines.push(message.text);
-    } else {
-      partnerLines.push(message.text);
     }
   }
 
@@ -1269,11 +1257,6 @@ function profileMatchesExchange(
 
   const subjectText = normalizeEvidenceText(subjectLines.join("\n"));
   if (PROFILE_SELF_DISCLOSURE_CUES.some((cue) => includesEvidenceTerm(subjectText, cue))) {
-    return true;
-  }
-
-  const partnerText = normalizeEvidenceText(partnerLines.join("\n"));
-  if (PROFILE_DIRECTED_CUES.some((cue) => includesEvidenceTerm(partnerText, cue))) {
     return true;
   }
 

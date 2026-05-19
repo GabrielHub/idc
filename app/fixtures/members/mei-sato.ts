@@ -84,7 +84,7 @@ export const meiSato: Member = {
       ],
       cooling: [
         "ok i can tell i'm at like 145 right now and it's a lot, give me a sec, slowing it down, this is me at 110, ok",
-        "wait did you just check your phone during the kookaburra story, it's fine, it's fine, i'm noting it, but it's fine",
+        "wait did you just check your phone during the kookaburra story, it's fine, it's fine, i clocked it, but it's fine",
         "you said hyperfixation in air quotes and i clocked it, i'm clocking it now also, just so you know",
         "ok i'll stop on gear, i was about to do the SP-404 vs MPC thing and i can hear myself, hi, how is your week",
       ],

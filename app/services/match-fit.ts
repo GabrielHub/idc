@@ -116,6 +116,31 @@ const CAREER_COVERED_REQUEST_TAGS = [
   "decisiveness",
 ] satisfies readonly MemberRequestTag[];
 const STRUCTURE_REQUEST_TAG = "structure" satisfies MemberRequestTag;
+const ANTI_DEFERENCE_REQUEST_TAG = "anti_deference" satisfies MemberRequestTag;
+const ANTI_FRAUD_REQUEST_TAG = "anti_fraud" satisfies MemberRequestTag;
+const CHALLENGE_REQUEST_TAG = "challenge" satisfies MemberRequestTag;
+const ANTI_DEFERENCE_BLOCKED_PARTNER_TAGS = [
+  "ceremony_minded",
+  "status_sensitive",
+] satisfies readonly MemberTag[];
+const ANTI_DEFERENCE_COVERED_PARTNER_TAGS = [
+  "sincerity_seeking",
+  "needs_low_pressure",
+] satisfies readonly MemberTag[];
+const ANTI_FRAUD_BLOCKED_PARTNER_TAGS = [
+  "performative",
+  "acquisitive",
+  "attention_seeking",
+] satisfies readonly MemberTag[];
+const ANTI_FRAUD_COVERED_PARTNER_TAGS = [
+  "sincerity_seeking",
+  "needs_clear_plan",
+] satisfies readonly MemberTag[];
+const CHALLENGE_BLOCKED_PARTNER_TAGS = ["avoidant"] satisfies readonly MemberTag[];
+const CHALLENGE_COVERED_PARTNER_TAGS = [
+  "competitive",
+  "career_focused",
+] satisfies readonly MemberTag[];
 const WARM_PAIR_READ_SUFFIXES = new Set<string>([
   "dynamic:career-alignment",
   "dynamic:ceremony-alignment",
@@ -1426,6 +1451,27 @@ function evaluateRequestFit(
   const requestTags = new Set<MemberRequestTag>(request.tags);
 
   if (
+    requestTags.has(ANTI_DEFERENCE_REQUEST_TAG) &&
+    memberHasAnyTag(partner, ANTI_DEFERENCE_BLOCKED_PARTNER_TAGS)
+  ) {
+    return "blocked";
+  }
+
+  if (
+    requestTags.has(ANTI_FRAUD_REQUEST_TAG) &&
+    memberHasAnyTag(partner, ANTI_FRAUD_BLOCKED_PARTNER_TAGS)
+  ) {
+    return "blocked";
+  }
+
+  if (
+    requestTags.has(CHALLENGE_REQUEST_TAG) &&
+    memberHasAnyTag(partner, CHALLENGE_BLOCKED_PARTNER_TAGS)
+  ) {
+    return "blocked";
+  }
+
+  if (
     requestHasAnyTag(requestTags, PROPHECY_BLOCKED_REQUEST_TAGS) &&
     scenario.card.tags.includes("prophecy")
   ) {
@@ -1478,6 +1524,27 @@ function evaluateRequestFit(
   }
 
   if (requestTags.has(STRUCTURE_REQUEST_TAG) && scenario.card.chaos !== "high") {
+    return "covered";
+  }
+
+  if (
+    requestTags.has(ANTI_DEFERENCE_REQUEST_TAG) &&
+    memberHasAnyTag(partner, ANTI_DEFERENCE_COVERED_PARTNER_TAGS)
+  ) {
+    return "covered";
+  }
+
+  if (
+    requestTags.has(ANTI_FRAUD_REQUEST_TAG) &&
+    memberHasAnyTag(partner, ANTI_FRAUD_COVERED_PARTNER_TAGS)
+  ) {
+    return "covered";
+  }
+
+  if (
+    requestTags.has(CHALLENGE_REQUEST_TAG) &&
+    memberHasAnyTag(partner, CHALLENGE_COVERED_PARTNER_TAGS)
+  ) {
     return "covered";
   }
 
@@ -1574,6 +1641,10 @@ function toPressureLevel(pressure: number): MatchPressureLevel {
 
 function hasTag(member: Member, tag: MemberTag): boolean {
   return member.tags.includes(tag);
+}
+
+function memberHasAnyTag(member: Member, tags: readonly MemberTag[]): boolean {
+  return tags.some((tag) => hasTag(member, tag));
 }
 
 function oneHasTag(firstMember: Member, secondMember: Member, tag: MemberTag): boolean {

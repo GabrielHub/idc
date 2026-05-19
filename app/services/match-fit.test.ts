@@ -301,6 +301,82 @@ describe("evaluateMatchFit", () => {
     expect(fit.internalRuleHits).toContain("pair:maeve_toby_disclosure_spiral");
     expect(fit.internalRuleHits).toContain("request:maeve_unsaid_receipt_forces_trade");
   });
+
+  it("blocks Eleanor's anti-deference ask with ceremony-minded partners", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const eleanor = findMember(save, "eleanor-ash");
+    const aldric = findMember(save, "aldric-vale-marsh");
+    const scenario = findScenario("diner-eleven-pm");
+    const pairState = findPairState(save, eleanor.id, aldric.id);
+    const request = findRequest("request-eleanor-no-deference");
+
+    const fit = evaluateMatchFit({
+      members: [eleanor, aldric],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.askSignal).toBe("blocked");
+    expect(fit.blockedRequestIds).toContain(request.id);
+  });
+
+  it("covers Eleanor's anti-deference ask with sincere partners", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const eleanor = findMember(save, "eleanor-ash");
+    const marcus = findMember(save, "marcus-pellish");
+    const scenario = findScenario("diner-eleven-pm");
+    const pairState = findPairState(save, eleanor.id, marcus.id);
+    const request = findRequest("request-eleanor-no-deference");
+
+    const fit = evaluateMatchFit({
+      members: [eleanor, marcus],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.askSignal).toBe("covered");
+    expect(fit.coveredRequestIds).toContain(request.id);
+  });
+
+  it("blocks Eleanor's anti-fraud ask with performative partners", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const eleanor = findMember(save, "eleanor-ash");
+    const kade = findMember(save, "kade-sumner");
+    const scenario = findScenario("diner-eleven-pm");
+    const pairState = findPairState(save, eleanor.id, kade.id);
+    const request = findRequest("request-eleanor-no-court-fraud");
+
+    const fit = evaluateMatchFit({
+      members: [eleanor, kade],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.askSignal).toBe("blocked");
+    expect(fit.blockedRequestIds).toContain(request.id);
+  });
+
+  it("covers Eleanor's challenge ask with competitive partners", () => {
+    const save = createSeedGameSave(SEED_DATE);
+    const eleanor = findMember(save, "eleanor-ash");
+    const alex = findMember(save, "alex-yoon");
+    const scenario = findScenario("diner-eleven-pm");
+    const pairState = findPairState(save, eleanor.id, alex.id);
+    const request = findRequest("request-eleanor-pushes-back");
+
+    const fit = evaluateMatchFit({
+      members: [eleanor, alex],
+      scenario,
+      pairState,
+      activeRequests: [request],
+    });
+
+    expect(fit.askSignal).toBe("covered");
+    expect(fit.coveredRequestIds).toContain(request.id);
+  });
 });
 
 describe("chooseRecommendedMatchCandidate", () => {

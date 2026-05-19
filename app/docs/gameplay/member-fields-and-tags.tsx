@@ -202,7 +202,8 @@ export const sections: DocSectionEntry[] = [
                 <>
                   <DocCode>prophecy_averse</DocCode>, <DocCode>privacy</DocCode>,{" "}
                   <DocCode>discretion</DocCode>, <DocCode>name_discretion</DocCode>,{" "}
-                  <DocCode>career_fatigue</DocCode>.
+                  <DocCode>career_fatigue</DocCode>, <DocCode>anti_deference</DocCode>,{" "}
+                  <DocCode>anti_fraud</DocCode>.
                 </>
               ),
             },
@@ -212,7 +213,7 @@ export const sections: DocSectionEntry[] = [
                 <>
                   <DocCode>sincerity</DocCode>, <DocCode>career</DocCode>,{" "}
                   <DocCode>respect</DocCode>, <DocCode>decisiveness</DocCode>,{" "}
-                  <DocCode>care</DocCode>.
+                  <DocCode>care</DocCode>, <DocCode>challenge</DocCode>.
                 </>
               ),
             },

@@ -691,6 +691,87 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     expect(eligible.map((candidate) => candidate.id)).toContain(profile.id);
   });
 
+  it("does not earn a profile reveal from a generic partner profile mention", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "calvin-hewes");
+    const partner = findMember(seed, "mei-sato");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const profile = candidates.find(
+      (candidate) => candidate.subjectId === member.id && candidate.readKind === "profile",
+    );
+
+    if (profile === undefined) {
+      throw new Error("Expected profile candidate.");
+    }
+
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(
+          partner.id,
+          "Your profile seems deliberately sparse. What is missing?",
+        ),
+        makeCharacterMessage(member.id, "The lemonade is fine. The table is acceptable."),
+      ],
+    });
+
+    expect(eligible.map((candidate) => candidate.id)).not.toContain(profile.id);
+  });
+
+  it("allows a profile reveal when a partner names hidden profile detail and the member answers", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "calvin-hewes");
+    const partner = findMember(seed, "mei-sato");
+    const scenario = findScenario("couch-night-takeout");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const profile = candidates.find(
+      (candidate) => candidate.subjectId === member.id && candidate.readKind === "profile",
+    );
+
+    if (profile === undefined) {
+      throw new Error("Expected profile candidate.");
+    }
+
+    const eligible = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        makeCharacterMessage(
+          partner.id,
+          "Your profile says civilized lighting and no overhead camera infrastructure. Is that literal?",
+        ),
+        makeCharacterMessage(
+          member.id,
+          "It is operational language. I prefer the pendants exactly where they are.",
+        ),
+      ],
+    });
+
+    expect(eligible.map((candidate) => candidate.id)).toContain(profile.id);
+  });
+
   it("uses authored member evidence as a fallback path for ask, comfort, and boundary reads", () => {
     const seed = createSeedGameSave(SEED_DATE);
     const member = findMember(seed, "cha-yusung");
