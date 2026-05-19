@@ -88,7 +88,7 @@ export function DiagnosticsBlock({
             <DiagnosticsRow
               label="stream"
               value={`${diagnostics.shell.streamingDraftCount} drafts, ${
-                diagnostics.shell.isJudgePending ? "judge pending" : "judge idle"
+                diagnostics.shell.isJudgePending ? "cupid pending" : "cupid idle"
               }`}
             />
           </dl>

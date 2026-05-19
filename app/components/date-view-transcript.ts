@@ -6,7 +6,11 @@ import type {
   Member,
   PlayerKnowledgeRecord,
 } from "../domain/game";
-import { exchangeIndexForTurn, formatCupidInterventionText } from "../services/date-engine";
+import {
+  exchangeIndexForTurn,
+  formatCupidInterventionText,
+  isCutShortSystemMessage,
+} from "../services/date-engine";
 import { collectRecentSpeakerLines, hasNearDuplicateRecentLine } from "../services/date-prompts";
 import type { ReactionIntensity, ReactionKind, ReactionSignal } from "./date-reactions";
 
@@ -67,10 +71,24 @@ export function buildTranscriptItems(
     };
   });
   const lastSequenceByExchange = new Map<number, number>();
+  const latestJudge = session.judgeSnapshots.at(-1);
   for (const message of session.transcript) {
+    if (
+      isCutShortSystemMessage(message) &&
+      session.endReason === "player_cut_short" &&
+      latestJudge !== undefined
+    ) {
+      const previous = lastSequenceByExchange.get(latestJudge.exchangeIndex) ?? 0;
+      if (message.sequenceIndex > previous) {
+        lastSequenceByExchange.set(latestJudge.exchangeIndex, message.sequenceIndex);
+      }
+      continue;
+    }
+
     if (message.kind !== "character") {
       continue;
     }
+
     const exchangeIndex = exchangeIndexForTurn(message.turnIndex);
     const previous = lastSequenceByExchange.get(exchangeIndex) ?? 0;
     if (message.sequenceIndex > previous) {
@@ -83,7 +101,7 @@ export function buildTranscriptItems(
     return {
       id: `turn-judge-${snapshot.exchangeIndex}`,
       order: (lastSequenceByExchange.get(snapshot.exchangeIndex) ?? 0) * 10 + 5,
-      label: "Judge note",
+      label: "Cupid note",
       tone: "judge",
       text: snapshot.playerSummary,
       reveals,
@@ -278,9 +296,9 @@ export function buildReactionSignals(
 export function buildNudgeSuggestions(judgeSnapshots: readonly JudgeSnapshot[]): string[] {
   const latestJudge = judgeSnapshots.at(-1);
   const baseSuggestions = [
+    "Share something they don't know about you yet.",
+    "Tell them about a favorite song or movie.",
     "Ask one specific follow-up before changing topic.",
-    "Move past logistics and name one honest feeling.",
-    "Ground the room in a practical choice both people can answer.",
   ];
 
   if (latestJudge === undefined) {
@@ -302,7 +320,7 @@ export function buildNudgeSuggestions(judgeSnapshots: readonly JudgeSnapshot[]):
 
   if (sparkDelta <= 0 && trustDelta <= 0) {
     return [
-      "Ask one specific follow-up before changing topic.",
+      "Tell them about a favorite song or movie.",
       "Move past logistics and name one honest feeling.",
       "Let the partner choose the next small plan.",
     ];

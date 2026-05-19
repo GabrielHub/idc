@@ -22,6 +22,7 @@ import {
 } from "../services/ai/client";
 import {
   advanceDateExchangeWithLocalAiStream,
+  cutDateShortWithLocalAiStream,
   DateStreamAbortedError,
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
@@ -36,6 +37,7 @@ import {
   addCupidIntervention,
   applyFollowUpAction,
   canAddCupidIntervention,
+  canCutDateShort,
   clearActiveBooking,
   commitDateBooking,
   completeShift,
@@ -805,6 +807,49 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
+  async function handleCutDateShort() {
+    if (save === null || activeSession === null) return;
+    const sessionId = activeSession.id;
+    const previousStatus = activeSession.status;
+    const previousSave = save;
+    tryAction("cutShort", async () => {
+      setStreamingDrafts([]);
+      setIsDateJudgePending(false);
+      try {
+        const result = await cutDateShortWithLocalAiStream(
+          save,
+          repository,
+          {
+            dateSessionId: sessionId,
+            config: { ...save.config, gatewayApiKey: gatewayApiKey || undefined },
+          },
+          (event) => applyStreamEvent(event),
+        );
+        await persist(result.save);
+        const nextStatus = result.session.status;
+        if (previousStatus === "active" && nextStatus === "completed") {
+          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
+          dispatchOutcomeQuip(result.session.finalReport, sessionId);
+          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+          play("report");
+        } else if (previousStatus === "active" && nextStatus === "ended_early") {
+          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
+          dispatchOutcomeQuip(result.session.finalReport, sessionId);
+          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+          play("report");
+        }
+        processManagerQuipSaveDiff(previousSave, result.save);
+        setActiveDateSessionId(result.session.id);
+        if (result.warningMessages.length > 0) {
+          setNoticeMessage(result.warningMessages[0] ?? null);
+        }
+      } finally {
+        setStreamingDrafts([]);
+        setIsDateJudgePending(false);
+      }
+    });
+  }
+
   function applyStreamEvent(event: LocalAiDateStreamEvent) {
     if (event.type === "judgeStart") {
       setIsDateJudgePending(true);
@@ -1359,9 +1404,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                           activeSession.playbackState !== "ended"
                         }
                         canIntervene={canAddCupidIntervention(activeSession)}
+                        canCutShort={canCutDateShort(activeSession)}
                         isActionPending={isActionPending}
                         pendingDateAction={
-                          pendingAction === "advanceExchange" ? "advanceExchange" : null
+                          pendingAction === "advanceExchange" || pendingAction === "cutShort"
+                            ? pendingAction
+                            : null
                         }
                         isJudgePending={isDateJudgePending}
                         queuedPlaybackIntent={queuedPlaybackIntent}
@@ -1370,6 +1418,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                         onInterventionTargetChange={setInterventionTargetMemberId}
                         onAdvance={handleAdvanceExchange}
                         onCancel={handleCancelDate}
+                        onCutShort={handleCutDateShort}
                         onIntervene={handleIntervention}
                         onFollowUp={handleFollowUp}
                         onPickEvents={handlePickEvents}

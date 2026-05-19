@@ -186,7 +186,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-sana-pick-the-place",
     memberId: "sana-karim",
-    text: "Sana wants someone who picks the restaurant once, holds the time, and does not make her project manage the meal.",
+    text: "Sana wants someone who accepts the restaurant once, holds the time, and does not make her project manage the meal.",
     moodPenaltyIfIgnored: 5,
     tags: ["career_fatigue", "decisiveness"],
   },
@@ -228,7 +228,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-tasha-counterparty",
     memberId: "tasha-rell",
-    text: "Tasha wants a counterparty who picks the steakhouse, confirms by EOD, and does not flinch at a 4 a.m. terminal alert.",
+    text: "Tasha wants a counterparty who accepts the steakhouse, confirms by EOD, and does not flinch at a 4 a.m. terminal alert.",
     moodPenaltyIfIgnored: 6,
     tags: ["career_intense", "decisiveness"],
   },
@@ -487,7 +487,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-mira-eod-confirm",
     memberId: "mira-park",
-    text: "Mira wants a partner who confirms by EOD, books the venue, and does not respond to a long message with k.",
+    text: "Mira wants a partner who confirms by EOD, accepts the venue, and does not respond to a long message with k.",
     moodPenaltyIfIgnored: 6,
     tags: ["career_intense", "decisiveness"],
   },
@@ -697,7 +697,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-idris-led-to-restaurant",
     memberId: "idris-mahari",
-    text: "Idris wants someone who will pick the place, confirm the time once, and not ask him to lead anything, including the wine list.",
+    text: "Idris wants someone who will accept the place, confirm the time once, and not ask him to lead anything, including the wine list.",
     moodPenaltyIfIgnored: 5,
     tags: ["low_pressure", "decisiveness"],
   },
@@ -767,7 +767,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-naia-pick-the-venue",
     memberId: "naia-velorae",
-    text: "Naia wants a date who picks a venue with care and arrives knowing what they intend to drink. She has done her packing.",
+    text: "Naia wants a date who accepts a venue with care and arrives knowing what they intend to drink. She has done her packing.",
     moodPenaltyIfIgnored: 5,
     tags: ["sincerity", "decisiveness"],
   },
@@ -809,14 +809,14 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-gabriel-real-bar",
     memberId: "gabriel-tan",
-    text: "Gabriel wants a quiet bar with sticky tables and decent lighting, picked once, confirmed once, not workshopped over text for three days.",
+    text: "Gabriel wants a quiet bar with sticky tables and decent lighting, set once, confirmed once, not workshopped over text for three days.",
     moodPenaltyIfIgnored: 5,
     tags: ["low_pressure", "decisiveness"],
   },
   {
     id: "request-noah-pick-the-day",
     memberId: "noah-kim",
-    text: "Noah wants a date who picks a Thursday or a Sunday morning and locks it once. Anything else he will reschedule twice and feel bad about both times.",
+    text: "Noah wants a date who accepts a Thursday or a Sunday morning and locks it once. Anything else he will reschedule twice and feel bad about both times.",
     moodPenaltyIfIgnored: 5,
     tags: ["career_fatigue", "decisiveness"],
   },
@@ -872,7 +872,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-ryan-pick-a-patio",
     memberId: "ryan-doyle",
-    text: "Ryan wants a partner who lets him pick the patio bar and confirms once. He is fine being the one with the plan. He is not fine workshopping it for three days.",
+    text: "Ryan wants a partner who accepts the patio bar and confirms once. He is fine having opinions. He is not fine workshopping it for three days.",
     moodPenaltyIfIgnored: 5,
     tags: ["decisiveness", "grounded"],
   },
@@ -921,7 +921,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-alex-pick-a-place",
     memberId: "alex-yoon",
-    text: "Alex wants a partner who lets him pick the sports bar and confirms once. He is fine being the one with the plan. He is not fine workshopping the venue for three days.",
+    text: "Alex wants a partner who accepts the sports bar and confirms once. He is fine having opinions. He is not fine workshopping the venue for three days.",
     moodPenaltyIfIgnored: 5,
     tags: ["decisiveness", "grounded"],
   },
@@ -970,7 +970,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-nawal-pick-the-venue",
     memberId: "nawal-marrash",
-    text: "Nawal wants a partner who picks the venue and the hour without negotiating it. She has confirmed times since the year 1400. She does not want to confirm a third one tonight.",
+    text: "Nawal wants a partner who accepts the venue and the hour without negotiating it. She has confirmed times since the year 1400. She does not want to confirm a third one tonight.",
     moodPenaltyIfIgnored: 5,
     tags: ["decisiveness", "low_pressure"],
   },
@@ -1019,14 +1019,14 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-imani-pick-a-place",
     memberId: "imani-wallace",
-    text: "Imani wants a counterpart who picks a real Brooklyn place and confirms once. She has already done the walk past it twice.",
+    text: "Imani wants a counterpart who accepts a real Brooklyn place and confirms once. She has already done the walk past it twice.",
     moodPenaltyIfIgnored: 5,
     tags: ["decisiveness", "low_pressure"],
   },
   {
     id: "request-sienna-pick-one-venue",
     memberId: "sienna-bae",
-    text: "Sienna wants a partner who picks one of the three label vetted venues and confirms once. She will say yes to a fourth option and panic about it. Save her from herself.",
+    text: "Sienna wants a partner who accepts one label vetted venue and confirms once. She will say yes to a fourth option and panic about it. Save her from herself.",
     moodPenaltyIfIgnored: 6,
     tags: ["decisiveness", "low_pressure"],
   },
@@ -1089,7 +1089,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-junie-floor-space",
     memberId: "junie-marrow",
-    text: "Junie wants someone who picks a restaurant with floor space, not a booth, and confirms once. Otis does not fit in a booth.",
+    text: "Junie wants someone who accepts a restaurant with floor space, not a booth, and confirms once. Otis does not fit in a booth.",
     moodPenaltyIfIgnored: 5,
     tags: ["decisiveness", "structure"],
   },
@@ -1131,7 +1131,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-anubis-pick-venue",
     memberId: "anubis",
-    text: "Anubis wants to pick the venue, the wine list, and the maitre d. The partner picks one course and one topic that is not the work.",
+    text: "Anubis wants Cupid to pick a venue with a wine list and a maitre d. The partner chooses one course and one topic that is not the work.",
     moodPenaltyIfIgnored: 5,
     tags: ["deity", "decisiveness"],
   },
@@ -1180,7 +1180,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-cassia-partner-picks",
     memberId: "cassia-six",
-    text: "Cassia wants a partner who will pick the place, the time, and the topic. She is keeping a small list of decisions she did not have to make and would like to add to it.",
+    text: "Cassia wants a partner who will accept the place, the time, and the topic. She is keeping a small list of decisions she did not have to make and would like to add to it.",
     moodPenaltyIfIgnored: 5,
     tags: ["structure", "care"],
   },

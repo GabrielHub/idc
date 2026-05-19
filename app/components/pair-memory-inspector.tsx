@@ -244,7 +244,7 @@ export function PairMemoryInspector({
           target={asideRef}
           placement="left"
           title="Agreements and open loops"
-          body="The Judge files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read."
+          body="Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read."
           primaryLabel="Got it"
           onPrimary={firstAgreementStep.complete}
           dismissLabel="Skip tour"

@@ -16,7 +16,7 @@ export const meta: DocMeta = {
   group: "gameplay",
   title: "Pair memory systems",
   description:
-    "Pair state, agreements, open loops, and the hidden trajectory service. What the judge proposes, what services validate, and what the player sees.",
+    "Pair state, agreements, open loops, and the hidden trajectory service. What Cupid proposes, what services validate, and what the player sees.",
   order: 3,
 };
 
@@ -25,8 +25,8 @@ export const lede = (
     <DocCode>PairState</DocCode> owns canonical agreements and open loops. Memories mirror accepted
     pair state changes for retrieval and notes, but memories are not the source of truth. Runtime AI
     can propose agreement candidates, agreement updates, open loop candidates, and open loop updates
-    through bounded judge output. Game services validate ids, cap counts, dedupe concepts, clamp
-    text length, and ignore fabricated references before any save mutation.
+    through bounded Cupid analysis output. Game services validate ids, cap counts, dedupe concepts,
+    clamp text length, and ignore fabricated references before any save mutation.
   </>
 );
 
@@ -38,7 +38,7 @@ export const sections: DocSectionEntry[] = [
       <>
         <P>
           Pairs live as a sparse social graph. <DocCode>GameSave.pairStates</DocCode> stores a{" "}
-          <DocCode>PairEdge</DocCode> only after a pair earns durable history: a judge snapshot,
+          <DocCode>PairEdge</DocCode> only after a pair earns durable history: a Cupid snapshot,
           agreement, open loop, follow-up, or closure. Untouched pairs are served as{" "}
           <DocCode>PairProjection</DocCode> values derived from member state by{" "}
           <DocCode>relationship-index</DocCode>. A fresh save carries zero pair edges and zero
@@ -74,12 +74,12 @@ export const sections: DocSectionEntry[] = [
           ]}
           transitions={[
             { from: "active", to: "honored", label: "kept across two completed dates" },
-            { from: "active", to: "broken", label: "judge filed a breach" },
+            { from: "active", to: "broken", label: "Cupid filed a breach" },
             { from: "active", to: "retired", label: "agreement no longer relevant or aged out" },
           ]}
         />
         <P>
-          Active agreements may be fed to performer prompts as table stakes and to judge prompts as
+          Active agreements may be fed to performer prompts as table stakes and to Cupid prompts as
           ids. Player-facing copy should describe the commitment, not expose status math or hidden
           rule hits.
         </P>
@@ -120,14 +120,14 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Pair context for performers and the judge is selected by rank, not insertion order.{" "}
+          Pair context for performers and Cupid is selected by rank, not insertion order.{" "}
           <DocCode>rankActiveAgreements</DocCode> and <DocCode>rankActiveOpenLoops</DocCode> sort by
           age (older first) before any slice so stale threads do not crowd fresh ones out of the
           first three or five items the prompt actually sees.
         </P>
         <P>
           Each completed date runs an aging pass. Active agreements that survive past the agreement
-          age cutoff without being honored, broken, or retired by the judge auto-retire with the
+          age cutoff without being honored, broken, or retired by Cupid auto-retire with the
           aged-out tag. Open loops past the open loop age cutoff auto-drop with the same tag. A soft
           total cap on each list trims the youngest active items beyond the cap so the oldest
           threads, which are closest to resolution or aging out, are preserved for one more shot.
@@ -167,7 +167,7 @@ export const sections: DocSectionEntry[] = [
       <>
         <P>
           The hidden trajectory service derives qualitative prompt guidance from recent completed
-          dates, judge deltas, follow-up actions, unresolved loops, agreement status, strain,
+          dates, Cupid deltas, follow-up actions, unresolved loops, agreement status, strain,
           conflict, and closure proximity.
         </P>
         <DocDefList
@@ -192,7 +192,7 @@ export const sections: DocSectionEntry[] = [
         </DocCallout>
         <P>
           Each date may also receive one hidden pair spotlight item, either an active agreement or
-          an open loop. The spotlight does not add controls. It tells performer and judge prompts
+          an open loop. The spotlight does not add controls. It tells performer and Cupid prompts
           which existing pair item deserves pressure before new material is created. Items one date
           away from the age cutoff receive a final-chance priority boost so they get a clear shot
           before aging out.
@@ -206,7 +206,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <P>
         Follow-up buttons stay unchanged. The resolver is outcome-aware: effects depend on the final
-        outcome, recent judge pressure, boundary reads, agreement or loop status, and current pair
+        outcome, recent Cupid pressure, boundary reads, agreement or loop status, and current pair
         stats. Follow-up actions remain one-time per final report. They may move pair stats and
         member state, create repair agreements, create return-later loops, retire agreements, or
         drop open loops. The UI should continue to present them as normal case actions rather than
@@ -220,7 +220,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <P>
         The AI playground owns developer tuning benches for these systems. Performer, extractor,
-        judge, and follow-up benches may use curated seed packs with{" "}
+        Cupid analysis, and follow-up benches may use curated seed packs with{" "}
         <DocCode>saveSchemaVersion</DocCode> metadata. Seed packs are checked in after review.{" "}
         <Strong>Runtime gameplay must not generate or depend on test transcripts.</Strong>
       </P>

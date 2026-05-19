@@ -44,7 +44,10 @@ export const sections: DocSectionEntry[] = [
                   Authored profile copy. The first sentence is the public roster tagline at intake.
                   It must read like the member speaking about themself in one short sentence,
                   carrying voice, personality, and a concrete hook. Later sentences are revealed
-                  only through a filed <DocCode>profile</DocCode> read.
+                  only through a filed <DocCode>profile</DocCode> read. Profile copy must honor the
+                  Cupid blind date setup: the dating manager pairs the members, and Cupid picks the
+                  venue and time. A member may state venue preferences, schedule limits, or arrival
+                  behavior, but must not claim that either dater chose the place or hour.
                 </>
               ),
             },
@@ -237,6 +240,64 @@ export const sections: DocSectionEntry[] = [
           Avoid one-off request tags. If a new request tag is needed, add it to{" "}
           <DocCode>memberRequestTagSchema</DocCode>, update deterministic fit handling when it
           should affect scoring, and add coverage in the same change.
+        </DocCallout>
+      </>
+    ),
+  },
+  {
+    id: "bio-authoring-contract",
+    title: "Bio authoring contract: personality foreground, hobby background",
+    body: (
+      <>
+        <P>
+          A member's <DocCode>bio</DocCode> is the largest piece of voice-shaping context the
+          runtime AI reads at prompt time. Two failure modes recur if the bio is not authored to a
+          contract: (1) single-point-of-interest fixation where one hobby (a band, a team, a job, a
+          city) absorbs the whole character and every reply routes back through it, and (2)
+          directive-as-personality where bio text reads to the model as "the character must discuss
+          X" rather than "the character is Y." Both produce characters that feel scripted in
+          transcripts.
+        </P>
+        <P>The contract that addresses both failure modes:</P>
+        <DocDefList
+          items={[
+            {
+              term: "Foreground: personality state claims",
+              def: 'Lead the bio with claims that describe who the member IS at the table. Debater-first-listener-second. Loud-by-default-without-noticing-until-pointed-out-twice. Here-for-the-one-not-here-to-stretch-a-date. Mortifies-easily-recovers-quickly. Treats-strangers-as-tomorrow\'s-anecdote. These are facts about the character, not topics the character will raise. They are written as second-person assertions ("you are," "you do," "your default is") and they describe energy, posture, defenses, and operating-frame, not interests.',
+            },
+            {
+              term: "Background: palette",
+              def: "After the personality is established, the bio backgrounds palette the LLM can freestyle off of without those topics owning the character. Hobbies (Kanye discography ranking, the 2014 Lakers, 2K league with college friends, Korean cooking badly, AF1 in dead colorways). Environments (the apartment with a TV bigger than the couch, the booth at the brass cat, the kitchen mom would weep over). Reference catalogs (Ringer columns, Bill Simmons commute, Coens-Soderbergh-PTA solo theater days). Specific small artifacts (the middle school AAU jersey folded in a drawer, the in-n-out animal-style burger he brings up more than he should). The model will reach into this palette when a partner gives it room; the character will not BE the palette.",
+            },
+            {
+              term: "Sample banks: embody, do not recite",
+              def: 'Sample messages teach the model the pattern. A bank that recites trait labels ("im picky, im loud, im here for the one, ill call an early read at the half" stacked as introductory disclosure) teaches the model to recite trait labels at scale. A bank that embodies personality through action, energy, takes, and substance teaches the model to embody. Filing-trade voices (audit, deposition, brand relay, on-the-record) and brand-performing voices are the canonical exception because their characters are canonically performing; everyone else cuts self-announcement.',
+            },
+          ]}
+        />
+        <P>
+          Cross-provider prompt-engineering guidance supports this contract directly. State-claim
+          framing for character behavior is the dominant recommendation. Anthropic: "Setting a role
+          in the system prompt focuses Claude's behavior and tone for your use case. Even a single
+          sentence makes a difference." Google Gemini and Moonshot Kimi both recommend persona /
+          role framing as the primary lever. OpenAI is explicit on outcome-over-process for
+          character behavior: "Persona: &lt;one sentence&gt;" anchors behavior, and "Add detail only
+          where it changes behavior" guards against over-direction. Few-shot examples (sample banks)
+          carry the same weight as instructions: Anthropic warns to "vary enough that Claude doesn't
+          pick up unintended patterns," and Gemini notes "the model attempts to identify patterns
+          and relationships from the examples and applies them when generating a response." Recital
+          patterns in the bank are unintended patterns the model picks up.
+        </P>
+        <DocCallout variant="info" title="Test the contract in transcripts">
+          <P>
+            The visible failure mode is: open a tune session, count how many turns route through a
+            single hobby or topic; count how many sample-bank phrases the character utters near-
+            verbatim in the first three turns. Single-point-of-interest fixation shows as topic-mass
+            concentration. Self-announcement shows as bank-recital frequency. The fix is in the bio
+            (move trait claims to foreground, hobbies to background palette) and in the sample bank
+            (rewrite recital entries to embody through action). See the Alex Yoon entries in the
+            voice-tuning-pass roadmap decisions log for the precedent.
+          </P>
         </DocCallout>
       </>
     ),

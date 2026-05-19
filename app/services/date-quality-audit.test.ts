@@ -22,6 +22,7 @@ import {
   buildAuditCasesByIds,
   listKnownPairIds,
 } from "./date-quality-audit-cases";
+import { extractDistinctiveTriGram } from "./hidden-info-guard";
 
 const SCENARIO = requireScenario("temporal-coffee-shop");
 const JENNA = requireMember("jenna-pike");
@@ -162,10 +163,22 @@ describe("date quality audit detectors", () => {
     it("flags speaker echoing a hidden-tier ngram from the partner bio", () => {
       // Vhool's hidden bio mentions specific institutional concepts not present
       // in the public datingProfile or visualDescription.
-      const bioFragment = extractBioTriGram(VHOOL);
+      const bioFragment = extractDistinctiveTriGram(VHOOL.bio);
       const transcript = buildTranscript([
         { speaker: VHOOL, text: "I want a sincere receipt.", turnIndex: 1 },
         { speaker: JENNA, text: `So you ${bioFragment} the receipt then.`, turnIndex: 2 },
+      ]);
+
+      const findings = runDetectors(transcript);
+
+      expect(findings.some((finding) => finding.category === "info_leak")).toBe(true);
+    });
+
+    it("flags speaker echoing their own raw hidden fixture text", () => {
+      const bioFragment = extractDistinctiveTriGram(JENNA.bio);
+      const transcript = buildTranscript([
+        { speaker: JENNA, text: `The file says ${bioFragment} and I hate that.`, turnIndex: 1 },
+        { speaker: VHOOL, text: "I will pretend that was a normal receipt.", turnIndex: 2 },
       ]);
 
       const findings = runDetectors(transcript);
@@ -388,13 +401,3 @@ describe("audit report serialization", () => {
     expect(markdown).toContain("warn");
   });
 });
-
-function extractBioTriGram(member: Member): string {
-  const tokens = member.bio
-    .toLowerCase()
-    .replace(/[^a-z0-9'\s-]/g, " ")
-    .split(/\s+/)
-    .filter((token) => token.length >= 4);
-  if (tokens.length < 3) throw new Error("bio not long enough for trigram extraction");
-  return `${tokens[0]} ${tokens[1]} ${tokens[2]}`;
-}

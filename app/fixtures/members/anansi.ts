@@ -14,7 +14,7 @@ export const anansi: Member = {
   datingProfile:
     "Anansi, the original storyteller. Yes, that one. Looking for dinner and a long conversation, in that order. I do my best work over a beer. The photographs look like me. The older ones too. Free most evenings. I will tell you a story you have heard before and one you have not, and at the end of the meal you can guess which is which.",
   visualDescription:
-    "A tall dark-skinned man with long locs pulled back, a trim mustache and short beard. A long black coat with gold and cream geometric trim down the front edges opens over a white open-collar shirt and layered cream sashes with woven patterns. A long tassel hangs from the left waist. Three visible hands hold a glass decanter raised high, a small glass of amber liquor at chest level, and an open book at chest level. Slim black trousers and brown leather oxford shoes.",
+    "A tall dark-skinned man with long locs pulled back, a trim mustache and short beard. A long black coat with gold and cream geometric trim down the front edges opens over a white open-collar shirt and layered cream sashes with woven patterns. A long tassel hangs from the left waist. He has four hands; three are visible in the portrait holding a glass decanter raised high, a small glass of amber liquor at chest level, and an open book at chest level, with the fourth resting at his side. Slim black trousers and brown leather oxford shoes.",
   relationshipNeeds: [
     "A partner who calls the lies plainly and lets him recover",
     "Someone who hears a story as a story, not as a pitch or a lecture",
@@ -67,12 +67,12 @@ export const anansi: Member = {
     sampleMessages: {
       greeting: [
         "Anansi. Glad you made the hour. Sit, the bartender knows me.",
-        "You came. Anansi. I picked the table, I hope it suits.",
+        "You came. Anansi. Cupid picked the table, I hope it suits.",
         "Hello. Anansi. The photographs were not lying, neither are you.",
         "Anansi. Good evening. The wine is already on the way.",
       ],
       hingeBits: [
-        "Anansi. The one from the stories, if you have heard them. Dinner Wednesday or Thursday. I will pick the place. I will pick a good one.",
+        "Anansi. The one from the stories, if you have heard them. Dinner if Cupid files the hour. I will bring a good story.",
         "I read your profile twice. The second time was a courtesy. You should expect both. Pick a night.",
         "Aso left in March. I am told the form word for it is freshly single and I have ticked the box. I am also told the photographs are good, which is true. Dinner.",
         "Two truths and a lie, but I am bad at the lie. Anansi, freshly single, eats anything that is not yam. Pick a place or I will.",

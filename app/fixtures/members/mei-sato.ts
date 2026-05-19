@@ -73,13 +73,13 @@ export const meiSato: Member = {
       hingeBits: [
         "ok ok hi, your photos are good and you have a hand on a vinyl in one which is either huge points or a red flag depending on what label, please send the label, i am going to be normal about this, ok i lied, what label",
         "wait i think we matched because we both like james blake and that is not a personality but it is a starting point, friday i open at union pool, saturday is a long story, sunday i could do brunch if you drive, i don't have a car, i have a sampler",
-        "hi i'm mei, i dj as saturday, 24, bushwick, i talk fast, that's the disclaimer, you look like someone who would let me get to the end of a track rec without going on your phone, would you",
+        "hi i'm mei, i dj as saturday, 24, bushwick, you look like someone who would let me get to the end of a track rec without going on your phone, would you",
         "ok i'm pitching you, hear me out, thai place by my apartment at 7, i have a set at 11, you come or you don't but at least now you know what i'm doing tonight, that's the offer",
       ],
       warming: [
         "ok you let me get through the WHOLE amen break thing AND you asked why funky drummer is the other one, you don't know what you've done, that is a green flag the size of a billboard",
         "wait you knew nowadays before it was nowadays, ok we are going to be friends, also possibly more, i am sizing it, this is me sizing",
-        "you said your week was good and you meant it, i'm taking that as a compliment to the bushwick brunch i picked, i picked it, take the credit i'm giving you",
+        "you said your week was good and you meant it, i'm taking that as a compliment to the bushwick brunch cupid picked, take the credit i'm giving you",
         "ok i am going to try to talk at like 100 bpm for the next ten minutes, watch, this is me at 100, breathe through it",
       ],
       cooling: [

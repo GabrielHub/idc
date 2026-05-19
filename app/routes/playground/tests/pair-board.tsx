@@ -296,7 +296,7 @@ function buildSingleHubDataset(): PairBoardPreviewDataset {
       health: 44,
       importance: 2,
       scenario: "diner-eleven-pm",
-      text: "Mei and Opal logged a quiet round at Diner At Eleven. Cupid filed a fallback summary because the judge timed out.",
+      text: "Mei and Opal logged a quiet round at Diner At Eleven. Cupid filed a fallback summary because analysis timed out.",
       createdAt: "2026-05-05T03:18:00.000Z",
     },
   ];
@@ -399,7 +399,7 @@ function buildDenseMemories(): MemoryRecord[] {
       a: meiSato,
       b: bradyStrait,
       scenario: "temporal-coffee-shop",
-      text: "Mei and Brady filed a flat second exchange at Cart Before The Horse. Cupid logged a fallback filing because the AI judge timed out.",
+      text: "Mei and Brady filed a flat second exchange at Cart Before The Horse. Cupid logged a fallback filing because AI analysis timed out.",
       tags: ["fallback_summary", "medium"],
       importance: 2,
       iso: "2026-05-05T18:33:00.000Z",

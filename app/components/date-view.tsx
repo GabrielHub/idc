@@ -75,6 +75,7 @@ type DateProps = {
   interventionTargetMemberId: string;
   canAdvance: boolean;
   canIntervene: boolean;
+  canCutShort: boolean;
   isActionPending: boolean;
   pendingDateAction: PendingDateAction | null;
   isJudgePending: boolean;
@@ -84,6 +85,7 @@ type DateProps = {
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
   onCancel: () => void;
+  onCutShort: () => void;
   onIntervene: () => void;
   onFollowUp: (action: FollowUpAction) => void;
   onPickEvents: (eventIds: string[]) => void;
@@ -104,6 +106,7 @@ export function DateView({
   interventionTargetMemberId,
   canAdvance,
   canIntervene,
+  canCutShort,
   isActionPending,
   pendingDateAction,
   isJudgePending,
@@ -113,6 +116,7 @@ export function DateView({
   onInterventionTargetChange,
   onAdvance,
   onCancel,
+  onCutShort,
   onIntervene,
   onFollowUp,
   onPickEvents,
@@ -244,6 +248,7 @@ export function DateView({
             displayedCurrentTurn={displayedCurrentTurn}
             canAdvance={canAdvance}
             canIntervene={canIntervene}
+            canCutShort={canCutShort}
             pendingDateAction={pendingDateAction}
             playbackUiState={playbackUiState}
             nudgeSuggestions={nudgeSuggestions}
@@ -253,6 +258,7 @@ export function DateView({
             onInterventionTargetChange={onInterventionTargetChange}
             onAdvance={onAdvance}
             onCancel={onCancel}
+            onCutShort={onCutShort}
             onIntervene={onIntervene}
             onTriggerEvent={onTriggerEvent}
             onTogglePlayback={onTogglePlayback}
@@ -286,7 +292,7 @@ export function DateView({
             target={judgeNoteAnchor}
             placement="top"
             title="Six turns, one snapshot"
-            body="The Judge reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second."
+            body="Cupid reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second."
             primaryLabel="Got it"
             onPrimary={judgeNoteStep.complete}
             dismissLabel="Skip tour"

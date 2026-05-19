@@ -100,7 +100,7 @@ function HealthGauge({ value }: { value: number }) {
 }
 
 function TurnGauge({ current, total }: { current: number; total: number }) {
-  const ariaLabel = `Turn ${current} of ${total}. Judges sweep at every sixth turn.`;
+  const ariaLabel = `Turn ${current} of ${total}. Cupid reviews every sixth turn.`;
   const pct = total === 0 ? 0 : Math.min(100, Math.round((current / total) * 100));
 
   return (
@@ -120,11 +120,11 @@ function TurnGauge({ current, total }: { current: number; total: number }) {
 }
 
 function JudgeGauge({ passes }: { passes: number }) {
-  const ariaLabel = `${passes} judge ${passes === 1 ? "pass" : "passes"} on file. Each pass logs how the date is reading.`;
+  const ariaLabel = `${passes} Cupid ${passes === 1 ? "read" : "reads"} on file. Each read logs how the date is going.`;
 
   return (
     <GaugeColumn>
-      <GaugeLabel>Judge</GaugeLabel>
+      <GaugeLabel>Cupid</GaugeLabel>
       <span
         className="inline-flex items-center gap-1.5 font-mono text-label font-semibold tabular-nums leading-none text-aura-violet"
         aria-label={ariaLabel}

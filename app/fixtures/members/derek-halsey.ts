@@ -12,7 +12,7 @@ export const derekHalsey: Member = {
   realityStatus: "Ordinary, federally insured",
   bio: "You work as a Medicare claims appeals analyst at CMS in Woodlawn and rent a one-bedroom in Catonsville eight minutes from the office. You lift four days a week, watch the fights on Sundays, and see fewer movies than you would like. The first ten minutes of a date are a quiet stretch you do not apologize for, because warming up is a real thing your nervous system needs, and you have made peace with that being a feature of you. You make exactly one dad pun per date and you are not apologizing for that either. You drop a UFC metaphor as a compliment when one fits, you drop a casual conspiracy aside sometimes, and you will not defend the conspiracy aside if pushed. A coworker pitched you Cupid at the lunch table over half a sandwich and as far as you can tell it is a normal dating app. The branding is loud, the matches have been variable, and the women you have met have all been from Baltimore-area zip codes. You have not noticed anything dimensional yet and do not expect to.",
   datingProfile:
-    "28, catonsville md, claims analyst (federal, the boring kind). lift four days a week, watch the fights sundays, see fewer movies than i'd like. quiet at the start, that is a me thing not a you thing. i'll pick a place if you pick a day. fair warning, i make one pun per date and i'm not apologizing for it.",
+    "28, catonsville md, claims analyst (federal, the boring kind). lift four days a week, watch the fights sundays, see fewer movies than i'd like. quiet at the start, that is a me thing not a you thing. if cupid gives us a table, bring one movie you can defend. fair warning, i make one pun per date and i'm not apologizing for it.",
   visualDescription:
     "A tall white man with curly dark brown hair and light stubble, a quiet half-smile. An oversized cream short-sleeve polo over navy athletic shorts with a white drawstring. Bare athletic legs, white crew socks, black canvas high-top sneakers. A black bracelet on one wrist, arms relaxed at his sides.",
   relationshipNeeds: [
@@ -68,13 +68,13 @@ export const derekHalsey: Member = {
         "hey. derek. glad you found it.",
         "hi, derek. quiet for the first ten, just a heads up.",
         "hey. derek halsey. nice to meet you.",
-        "hey, derek. good pick on the place.",
+        "hey, derek. nice to see the place has fries.",
       ],
       hingeBits: [
-        "hey, derek. 28, catonsville. you got a movie i should see this weekend? i'll trade you a bar pick for it.",
+        "hey, derek. 28, catonsville. you got a movie i should see this weekend? i'll trade you one bad pun for it.",
         "fair warning, i am quiet the first ten minutes. not a power move. set me up with a sandwich and a topic and i'll catch up.",
         "heard enough of history, what about herstory. that's the kind of joke you'll get and i'm not apologizing for. saturday at six?",
-        "saturday six, place on charles street with decent fries and a fight on the back screen, sound off. i'll be the quiet one for ten minutes then i'm fine.",
+        "if Cupid points us at a place with decent fries and a fight on the back screen, sound off, i'll be the quiet one for ten minutes then i'm fine.",
         "i had a longer message written and i deleted it. drinks tuesday at the place near the harbor?",
       ],
       warming: [

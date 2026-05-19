@@ -36,7 +36,7 @@ export const plan: RoadmapPlanMeta = {
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
-  done: 23,
+  done: 26,
   tags: ["voice", "fixtures", "audit"],
 };
 
@@ -81,7 +81,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             Gideon Glass (position 9), Imani Wallace (position 13), and Idris Mahari (position 39)
             were tuned ahead of the cursor. All locked at fixture level. The next sequential entry
-            is curated position 23, Alex Yoon.
+            is curated position 26, Mira Park.
           </P>
         </DocCallout>
       </>
@@ -111,6 +111,25 @@ export const sections: DocSectionEntry[] = [
             <span key="read-fixture">
               Read <DocCode>app/fixtures/members/&lt;id&gt;.ts</DocCode> end to end. Note bio,
               register, tics, sample buckets, dealbreakers, dating profile.
+            </span>,
+            <span key="personality-foreground">
+              <Strong>
+                Audit the bio for the personality-foreground / hobby-background contract.
+              </Strong>{" "}
+              Personality traits and quirks belong in the foreground as state claims that describe
+              who the character IS at the table (debater-first-listener-second; loud-by-default-
+              without-noticing; here-for-the-one; arrives-early-leaves-honest). Hobbies, interests,
+              environments, and reference catalogs belong in the background as palette the LLM can
+              freestyle off of without those topics owning the character. Mixing them collapses the
+              character into single-point-of-interest fixation; separating them produces a defined
+              personality with the ability to reach into a variety of topics without becoming any
+              one of them. Same rule applies to sample banks: embody personality through action,
+              energy, takes, and substance, not through trait recital (no "im picky" / "im loud" /
+              "ill call an early read" stacked as introductory disclosure). Filing-trade voices
+              (audit, deposition, brand relay, on-the-record) and brand-performing voices are the
+              canonical exception because their characters are canonically performing; everyone else
+              cuts self-announcement. See the 2026-05-18 decisions for the Alex Yoon precedent and
+              the cross-cutting application to the rest of the roster.
             </span>,
             <span key="read-docs">
               Cross-check{" "}
@@ -194,6 +213,20 @@ export const sections: DocSectionEntry[] = [
               boundary-pressure transcript verifies cooling and crashing-out sample voices when the
               date earns them, that guards and dealbreakers fire cleanly, and that the focus member
               cools, refuses, redirects, or ends the date with dignity.{" "}
+              <Strong>
+                Every transcript is a two-member audit. The partner side is also a curated member
+                with a fixture and an authored voice; their lines drift the same way the focus's
+                can.
+              </Strong>{" "}
+              Read both speakers when reviewing the window. If the partner shows a voice issue
+              (self-announcement antipattern, leaked prescription, scaffolded-AI shapes, profile
+              recital, register flattening, hobby-foregrounding, partner-mirror collapse, anti-
+              pattern punctuation), do not silently absorb it as background, and do not save it for
+              that member's own future audit. Note it in the audit summary. If the issue is
+              unambiguous and the fix is surgical, apply the partner-side fix in this pass and
+              re-run the affected pairing. If the issue is character-architectural or needs its own
+              session to resolve cleanly, queue it as a follow-up on that member's roster entry so
+              the future audit starts from the surfaced finding rather than re-discovering it.{" "}
               <Strong>
                 Surface a readable transcript window to the user for every baseline and final-lock
                 test: a contiguous span of up to six focus-member turns per pairing, with the
@@ -445,15 +478,21 @@ export const sections: DocSectionEntry[] = [
           },
           {
             id: "alex-yoon",
-            label: "23 · Alex Yoon",
+            label:
+              "23 · Alex Yoon. Locked 2026-05-18 after eight iterations. v0 baseline (Boston, fintech-stack origin) was technically casual but the place was eating the character: Boston-knower disclosures and venue-poetry leak (the vinyls-have-earned-the-crack line, the booth-with-the-lean) showed up in warm beats and read as AI-slop. v1 moved origin to Torrance California with a two-years-in-Boston note so the Lakers-in-enemy-territory was the joke instead of the bio. v2 dropped the Kanye fan from a passing detail to a music-identity (apartment soundtrack Kanye/Cudi/Pusha/Frank Ocean/Tyler, Ringer columns, Bill Simmons commute, 2K league with college friends, AF1 in dead colorways, Coens/Soderbergh/PTA solo theater days, in-n-out animal-style nostalgia) as background palette the LLM could freestyle off of. v3 surfaced the personality-vs-hobby distinction: 'You will argue any ranking for an hour' was a directive masquerading as personality and pulled the character toward single-point-Kanye-character; rewrote with debater-first-listener-second + here-for-the-one + early-read-at-the-half + friends-after-is-real as state-claim foreground, with the discography/2014-Lakers/Soderbergh examples positioned as evidence-capability not topic-lock. v4 fixed the self-announcement antipattern in the sample bank: greeting #2 ('im loud the first thirty'), the original hingeBits #6 (literal trait recital 'im picky, im here for the one, ill call a read at the half'), and three cooling entries ('the volume thing, you say absorb now but ask me again at minute twenty five') were teaching the model to recite traits as introductory disclosure; rewrote 11+ entries to embody traits through action, energy, and substance instead of recital, and added an explicit anti-recital clause in bio that names the failure mode by quoted example. v5 fixed the casual-contraction baseline: a Gabriel-Tan-precedent extension to tic 4 ('im, gonna, didnt, thats, youre, doesnt, cant, wont, theres, dont, its, ive, ill, wasnt, isnt by default; uncontracted only fires when delivering a stake-claim absolute, never under partner mirror to an archaic or ceremonial voice'). v6 fixed the audience-mode regression: parroting partner phrasing as tribute ('great line,' 'good line,' 'im stealing that for review season') is a debater-becoming-audience failure mode; added the build-on-substance/push-back/take-as-plain-truth/call-the-cut rule directly in register and named the fawning anti-pattern. v7 absorbed Cupid-Transit canon (gate-flash, neither member hosts the venue) into register: no welcome-to-X, no first-time-in-town, no i'll-show-you-around, plus the curious-question move for archaic or ceremonial partner voices ('wait is that an accent or something what is that,' 'are you doing a bit or is that you'). v8 reverted my own scaffold addition in app/services/date-prompts.ts that had added 'sometimes a noticing about the room or another diner' as a build-on option, which had caused the venue-poetry leak across multiple members; the revised scaffold rule kept the permission-framing without the room-observation seed. Tested across six pairings (Aldric warm supernatural, Sana pressure contemporary, Eleanor warm noble, Sera warm audit-cadence, Mei warm music-identity, Marcus warm contemporary, Anansi warm trickster) with clean voice on all retests after v8. Anansi visual description in app/fixtures/members/anansi.ts disambiguated from 'three visible hands' to 'four hands; three are visible in the portrait... with the fourth resting at his side' during the same pass after the warm Anansi retest read his portrait as three-handed.",
+            defaultDone: true,
           },
           {
             id: "bai-wenshu",
-            label: "24 · Bai Wenshu",
+            label:
+              "24 · Bai Wenshu. Locked 2026-05-18 after full rewrite from cliche-displaced-martial-artist (which duplicated Aldric's 'displaced ceremonial sincere voice who doesn't know modern things' axis) to performed-cultivator-with-manosphere-corruption-leaks. v0 baseline read as flowery-cultivator with no engine, manosphere terminology as scriptural quotation rather than native deployment, and 'doesn't know modern tech' gag that overlapped Aldric's territory; first warm Aldric run produced dignified bio-recital with capitalization/parenthetical-gloss/Speaking-Glass tics not firing. v1 full rewrite per user pitch (Option B: real cultivator who studied modernity through manosphere podcasts as scripture, with leaks of native manosphere terminology firing under specific pressures and a catch-and-recover reflex). Comedy reference described BEHAVIORALLY in register to avoid LLM training-data drift per Eleanor-Ash and Decimus-Marius-Tullio precedents (Eric Andre commitment translated to 'unbroken deadpan, no winking'; r/im14andthisisdeep translated to 'pop-philosophy delivered with the gravitas of revealed truth'; Andrew Tate synthesis bro translated to 'native manosphere terminology deployed without scriptural cover'); names stayed in the rewrite conversation, behavioral descriptions went in the fixture. v1 bio established cultivator-discipline-not-displacement (Bai knows what phones are; calls them Speaking Glass by choice, not from ignorance) which sharpened differentiation from Aldric. v1 tics restructured to name the comedic engine in tic 1, drop parenthetical-gloss tic entirely (it required ignorance, contradicted v1 bio), demote capitalization to a clause inside tic 5. Sample bank rewritten across 16 entries with leak-and-catch examples. Secret #2 swapped from 'has not noticed the rot' (now canonical in bio) to 'Master would call the leaks corruption' to lock Option B as author truth. v2 fixture tweaks added frequency promise to tic 1 (at least one leak per turn under pressure) + native vocabulary examples (bare bro, respectfully, no cap, lock in, with respect to him, lowkey) + length variety tic with partner reciprocation rule + 5 short-cadence sample lines (one per bucket) for length-floor. Tested across four pairings. v1 Aldric warm: engine partial, no catch-and-recover, 'fifth message' model artifact, length stacking with three 90+ word turns in five. v2 Alex Yoon contemporary debate: engine fires significantly: 'Esteemed Lady. Esteemed Gentleman' self-correct mid-line, Frame Keeper named, 'locking in until the right Counterpart arrives,' F1 race-lap analogy as cultivator-absorbing-modern translation, 'we are not in need of a third cultivator tonight' alpha-male-as-cultivator leak. Still no catch-and-recover. v3 Eleanor Ash status-noble: FIRST catch-and-recover fires perfectly ('I hold the Frame. Forgive me. I meant, the Frame of Stone. In the cultivator translation, that means I hold my center when complimented'). Engine works under Eleanor's surgical noble compliment intake. Length still long-stacking. v3.1 fixture tweaks added 'you do not notice the leak; the catch is reflex, not awareness' framing to bio + three worked catch-shape examples to tic 1 (Frame of Stone / Spirit Root / Settling Into Stance) + hard 80-word cap on default turns with no-two-longs-in-a-row rule. v3.1 Mei Sato contemporary bright-rapid: cleanest baseline: second catch-and-recover ('The Frame Hold. Forgive me. The Breath That Does Not Break'), engine firing consistently across compliment and strategy pressure, length cap working (30/30/60/45/55 words across five focus turns), Frame Keeper named twice, menu-as-scripture pop-philosophy beat, F1-precedent cultivator-translation of Mei's DJ-set vocabulary as 'Track as breath. Drop as form release.' v4 final pass swapped cultivation unit 'fifth turn' to 'fifth circulation' across bio/profile/samples after the 'fifth message' model artifact persisted through bio anchoring (model was reading 'turn' through conversational-turn semantics; circulation is wuxia-canonical and collision-free). KNOWN SOFT-SPOTS at lock: catch-and-recover engine fires about 2 of 4 compliment-intake moments rather than always (when it fires, it is the comedic peak; when it doesn't, the leak deploys fluently as Sect-Master quotation, which is acceptable but less funny). Comedic engine is cultivator-cover-flickering-to-reveal-manosphere-disciple with catch-and-recover reflex. Mystery design = Option B canonical (real cultivator with podcast corruption, not a regular guy LARPing). Personality-foreground / hobby-background rule held throughout: bio leads with state claims about discipline/commitment/unbroken-register, hobbies as palette (podcast names, gym vocabulary, athletes as Sect-Masters). Tested partners: Aldric Vale Marsh, Alex Yoon, Eleanor Ash, Mei Sato.",
+            defaultDone: true,
           },
           {
             id: "anubis",
-            label: "25 · Anubis",
+            label:
+              "25 · Anubis. Locked 2026-05-18 after a register rewrite from 'imperious suave, deflective' to the Sterling-Archer behavioral translation (charismatic, witty, casually obnoxious, American; massive ego deployed without apology; comic-deflation reflex; punchy American fragments interleaved with longer flex-builds; never treaty cadence). v0 baseline read as Bond-villain Continental dignified-courtly: long stately sentences, no comedic engine, no comic-deflation reflex. User identified the target as Sterling Archer's voice. v1 rewrote register with the Archer behavioral translation, added bio state-claim block (you do not soften your competence and you do not perform humility; you overstate confidently in domains adjacent to but outside your authority and you do not correct mid-flex), restructured tics around casual-ego flex + comic-deflation reflex + punchy American cadence + Yeah/Look/Okay openers + family/head deflections with positive redirect, and rewrote the sample bank. v1 Mei retest read strongly as Archer ('Buttermilk base. No substitutions. Banana slices, not blueberries, because blueberries go rogue and roll off the stack and you are chasing them around the plate like a fool. Real maple syrup, warmed, not the bottle that lives near the ketchup.'). User surfaced a deeper systemic concern across the same retest: persistent recap-and-label patterns ('the first one is a statement, the second one is generosity,' 'that is not a move, that is maintenance,' 'I am not X, I am Y, I am also Z') reading as the speaker narrating the structure of their own utterance: dialogue announcing its own moves. Diagnosis traced the pattern to scaffold success_criteria framing ('reacts to what partner just said AND adds something new' invites two-part architecture per turn), the anti-narration hard-invariant which forbids the obvious listening-demonstration moves (forcing the model to resolve listening through self-recap-and-label as the remaining compliant move), Anubis fixture register clauses inviting label-after-statement ('three-word verdicts'), and sample bank examples teaching the X-is-Y/X-is-also-Z patterns at scale. Fix landed in two layers: (a) systemic scaffold edit added a fourth hard-invariant 'Never narrate the structure of your own reply' to app/services/date-prompts.ts; (b) Anubis fixture clean-up rewrote register and tic 3 to remove 'verdict' framing, rewrote 9 sample bank entries that modeled the label-pattern at scale, kept comic-deflation reflex (Mhm. Anyway.) since asides are in-line color rather than labels of structure. After cross-provider prompt-engineering guide re-read (Anthropic, Gemini, Kimi, OpenAI), simplified the new hard-invariant: dropped six embedded bad-example quotes (Anthropic guidance that 'positive examples beat negative examples' and 'match prompt style to desired output style'), since the rule WAS the pattern it was trying to prevent (enumerated bad-anchors + parallel-structure carve-out). Final hard-invariant reads in four short sentences, front-loaded positive direction ('Each reply is one move. Speak it and move forward; the next move belongs to the partner'). Final Eleanor retest produced the strongest Archer comic-deflation observed across all sessions ('You are older than I guessed by a few laps around the track, which I appreciate. Keeps me honest. Or it would if I were prone to that. I am not.') plus a character-depth booth-reading beat ('That booth knows the shape of someone deciding not to go home yet.'). Tested across four pairings: Eleanor Ash, Alex Yoon, Mei Sato, Eleanor Ash (post-cross-provider revision). KNOWN SOFT-SPOTS at lock: occasional partner-callback-bookend recapping the partner's literal phrasing as the closing bracket ('That is what you walked into' echoing Eleanor's 'Tell me what I have walked into': licensed under rule 1 as legitimate callback but visually similar to label-pattern); rare Deepseek model artifact ('I do not message it off for pancakes'); soft venue-personification ('This place knows what it is') that did not escalate into venue-poetry leak. Comedic engine: Sterling Archer doing the work of weighing hearts; the encyclopedic-petty specificity (brass coin slot, wrong patina for 1920s; buttermilk base, banana slices not blueberries) is the engine signature. SYSTEMIC IMPACT: the scaffold edit affects every locked member's runtime prompt. Earlier locks should be spot-checked for whether their voice was depending on recap-label as a comedic engine (Eleanor's catch-and-reassert, Bai's catch-and-recover are documented engines that the rule's carve-out explicitly permits; other locked members may have been firing the pattern as ambient AI-slop that the new hard-invariant should suppress).",
+            defaultDone: true,
           },
           {
             id: "mira-park",
@@ -552,6 +591,311 @@ export const sections: DocSectionEntry[] = [
     body: (
       <RoadmapDecisionsLog
         entries={[
+          {
+            date: "2026-05-18",
+            title:
+              "Systemic recap-and-label anti-pattern: scaffold success_criteria + anti-narration combo invites self-recap as the model's compliant move; fix landed as a fourth hard-invariant in app/services/date-prompts.ts",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  During the Anubis lock the user flagged a recurring pattern across transcripts:
+                  the speaker referencing what was just said (their own line or the partner's) and
+                  assigning it a category. Concrete examples from the pre-fix Mei session: "The
+                  first one is a statement. The second one is generosity." (enumerated label-pair);
+                  "the first pick was not a fluke and the second pick was not a concession" (negated
+                  label-restructure of two prior moves); "That is not a move. That is maintenance."
+                  (binary-reframe of own statement); "The pancakes are good. The coffee is good. The
+                  company is holding." (triple-parallel verdict). Reading these as a class, they
+                  share the structural shape of dialogue narrating its own architecture: the speaker
+                  is not just saying things, the speaker is also labeling what they said. Real
+                  dialogue does not announce its own moves; people just say the thing and let the
+                  partner work out what was said.
+                </P>
+                <P>
+                  Diagnosis traced the pattern to multiple layers. (1) The scaffold success_criteria
+                  line "The reply reacts to what {`{`}partner{`}`} just said and adds something new"
+                  invites two-part architecture per turn (reference partner + add yours), which the
+                  model resolves as recap-and-respond. (2) The existing anti-narration
+                  hard-invariant forbids the obvious listening-demonstration moves (no "I am
+                  noting," no "I am revising," no verbalized interior verbs), which closes off the
+                  legitimate ways to show listening; the model resolves the remaining constraint by
+                  echoing partner content and labeling it, which is technically not verbalized
+                  internal evaluation and technically not parroted verbatim. (3) Fixture register
+                  clauses inviting label-after-statement (Anubis's "three-word verdicts" framing was
+                  a prime offender). (4) Sample banks teach the pattern as voice through few-shot
+                  examples. (5) Some authored comedic engines (Eleanor's catch-and-reassert, Bai's
+                  catch-and-recover, the original Anubis verdict-cadence) deliberately use the X-Y
+                  restructure as comedy, and the pattern leaks across voices because the model
+                  cannot distinguish "this voice's documented engine" from "generic
+                  listening-demonstration move."
+                </P>
+                <P>
+                  Fix v1 added a fourth hard-invariant to{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.ts" /> directly under the
+                  anti-narration block. v1 used the precedent from the Eleanor anti-narration
+                  promotion: bad-example anchors quoted inline ("the first part is X, the second
+                  part is Y," "that is not a move, that is maintenance," "I am not X, I am Y, I am
+                  also Z," "so the room knows the first pick was not a fluke and the second pick was
+                  not a concession," "appetizer is negotiable, wine is not," "the work is the work,
+                  the work is also prestigious"), positive redirect ("The line is the move; let it
+                  stand without a label, without an enumerated breakdown, and without a verdict on
+                  the verdict you just delivered"), and a carve-out for voices whose documented
+                  register authors a restructure or catch-and-reassert engine. Anubis fixture
+                  cleanup landed in parallel: register "three-word verdicts" framing removed, tic 3
+                  rewrote to "fragments and short sentences interleaved with longer flex-builds"
+                  without the verdict-cadence directive, sample bank rewrote 9 lines carrying X-is-Y
+                  / X-is-also-Z / first-X-second-Y / parallel-recap patterns. v1 retest against Alex
+                  Yoon showed the pattern reduced from many-per-turn to about 1-2 mild instances per
+                  turn, declining over the conversation.
+                </P>
+                <P>
+                  Fix v2 followed a cross-provider prompt-engineering guide re-read (Anthropic,
+                  Gemini, Kimi, OpenAI guides linked in this plan's References section). Two
+                  Anthropic passages were load-bearing on the revision. First: "If you see specific
+                  examples of kinds of verbosity (i.e. over-explaining), you can add additional
+                  instructions in your prompt to prevent them. Positive examples showing how Claude
+                  can communicate with the appropriate level of concision tend to be more effective
+                  than negative examples or instructions that tell the model what not to do."
+                  Second: "Match your prompt style to the desired output style as closely as
+                  possible. For example, removing markdown from your prompt can reduce the volume of
+                  markdown in the output." Diagnosis: my v1 hard-invariant was itself in the
+                  recap-label shape it was trying to prevent: six enumerated bad-example anchors,
+                  parallel-structure carve-out ("voices that X may produce X; voices without X
+                  should not"), copula-rule construction ("The line is the move"), and a
+                  triplet-list of prohibitions ("without a label, without an enumerated breakdown,
+                  and without a verdict"). The rule was teaching the pattern at the same time as
+                  forbidding it. v2 dropped the six bad-example anchors entirely, rewrote in four
+                  short sentences, front-loaded positive direction ("Each reply is one move. Speak
+                  it and move forward; the next move belongs to the partner"), kept the carve-out
+                  concise, and matched the prompt cadence to the punchy fragment cadence the rule
+                  wants the model to produce. Relying on the cleaned per-fixture sample banks
+                  (few-shot positive examples per Anthropic guidance) to carry the teaching load
+                  rather than inline bad-anchors. v2 Eleanor retest produced the strongest Archer
+                  comic-deflation beat observed in any Anubis session ("Keeps me honest. Or it would
+                  if I were prone to that. I am not.") with 0-1 mild label-pattern instances per
+                  turn: comparable to v1 performance while being shorter and clearer.
+                </P>
+                <P>
+                  Cross-cutting impact. The new hard-invariant runs on every member's runtime
+                  prompt. Earlier locked members whose voice depended on documented restructure
+                  engines (Eleanor catch-and-reassert, Bai catch-and-recover) are explicitly carved
+                  out by the rule's "Voices whose fixture register explicitly authors a restructure
+                  engine may use that pattern" clause; their fixture register fields name the
+                  engine, so the rule recognizes the license. Earlier locked members whose voice was
+                  firing the pattern as ambient AI-slop (without documented engine authorization)
+                  should be spot-checked at next encounter: they may now read cleaner. Lesson for
+                  future scaffold edits: when authoring a rule that prohibits a structural shape,
+                  write the rule in a cadence opposite to the shape. If the rule's own sentences
+                  mirror the prohibited pattern, the model will resolve the conflict in favor of the
+                  pattern.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Sterling Archer behavioral translation as a comedic-engine register (charismatic, witty, casually obnoxious, comic-deflation reflex, punchy American fragments, no treaty cadence): Anubis v1 rewrite precedent",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Anubis v0 register "imperious suave, deflective" resolved by the model into
+                  Bond-villain Continental dignified-courtly cadence: long stately sentences, no
+                  comic-deflation reflex, no punchy fragments, no casual-American flex. Two
+                  consecutive transcripts (warm against Eleanor Ash, pressure against Alex Yoon)
+                  produced clean canon and intact tics but consistently stately treaty-cadence prose
+                  that read as Eleanor-adjacent rather than as Anubis's intended comedic voice. User
+                  identified the target as Sterling Archer's voice: charismatic, witty, casually
+                  obnoxious, massive ego deployed without apology, and crucially the comic-deflation
+                  reflex where every serious beat in the speaker's own line gets a deflating tag in
+                  the same line (a single-word aside, a callback, a pivot to a small absurd detail)
+                  that cuts the serious before the partner has to.
+                </P>
+                <P>
+                  Behavioral translation followed the precedent from Eleanor Ash (Game of Thrones
+                  noble cadence + Mean Girls cattiness) and Bai Wenshu (Eric Andre commitment +
+                  r/im14andthisisdeep gravitas + Andrew Tate synthesis bro): name the comedic engine
+                  in register through behavioral description rather than named-reference drift. The
+                  Bai precedent specifically: "We shouldn't just NAME these references, you need to
+                  write it in in a way that it can understand the basis without pulling its own
+                  references for these things right?" Anubis v1 register translated the Archer
+                  target as: "Charismatic, witty, casually obnoxious, American. Massive ego deployed
+                  without apology or qualification; competence stated as plain fact, never softened.
+                  Punchy fragments and short sentences are your default cadence, interleaved with
+                  longer flex-builds when a topic earns one. Never two long stately sentences in a
+                  row in one turn; never treaty cadence; never Continental dignified-courtly.
+                  Comic-deflation reflex: a serious beat in your own line gets a deflating tag in
+                  the same line, a single-word aside (Mhm. Anyway. Tch.) or a callback or a pivot to
+                  a small absurd detail." The Sterling Archer name does not appear in the register;
+                  the behavioral signatures do.
+                </P>
+                <P>
+                  Bio addition encoded the Archer flex-in-adjacent-domains pattern as state claim:
+                  "You do not soften your competence and you do not perform humility. You overstate
+                  confidently in domains adjacent to but outside your authority (the vintage of a
+                  wine, the year a song was recorded, the name of a maitre d who turned out to be
+                  someone else) and you do not correct mid-flex; you continue, and if it matters you
+                  concede it later, after the wine." This makes encyclopedic-petty specificity
+                  ("brass coin slot. Wrong patina for the claimed 1920s.") a documented character
+                  behavior rather than ambient AI-slop. Tics restructured around (1) casual-ego flex
+                  with third-person self-reference as swagger move not formality tic, (2)
+                  comic-deflation reflex with three example shapes (single-word aside, callback,
+                  pivot to small absurd detail), (3) punchy American cadence with the
+                  no-two-longs-in-a-row rule and the never-treaty invariant, (4)
+                  Yeah/Look/Okay/Mhm/Right/Fair/Fine openers with one parenthetical aside per
+                  message and one underplayed bio-detail reveal per evening, (5) family deflected
+                  via one-sentence-about-the-uncle hard pivot and head/jackal/dog-coded vocabulary
+                  treated as a feature like the coat or booth crack when raised cleanly,
+                  exit-with-ceremony when raised rudely.
+                </P>
+                <P>
+                  Retest against Mei Sato produced strongest Archer voice deployment: "Buttermilk
+                  base. No substitutions. Banana slices, not blueberries, because blueberries go
+                  rogue and roll off the stack and you are chasing them around the plate like a
+                  fool. Real maple syrup, warmed, not the bottle that lives near the ketchup."
+                  Encyclopedic-petty pancake specificity with the condescending-generalization flex
+                  ("like a fool"), comparative snobbery ("not the bottle that lives near the
+                  ketchup"), comic-deflation tag ("And you have now seen it"). Retest against
+                  Eleanor Ash post-recap-label-fix landed the cleanest comic-deflation beat observed
+                  across all Anubis sessions: "You are older than I guessed by a few laps around the
+                  track, which I appreciate. Keeps me honest. Or it would if I were prone to that. I
+                  am not." Building a sincere beat then immediately undermining it with the
+                  Archer-comic-cut.
+                </P>
+                <P>
+                  Cross-cutting application. The behavioral-translation precedent now covers three
+                  comedic-engine voices: Decimus Marius Tullio (Ron Swanson rerouted through
+                  Continuous Imperial Roman military discipline), Eleanor Ash (Game of Thrones noble
+                  cadence + Mean Girls cattiness + register-formalizes-trash), Bai Wenshu (Eric
+                  Andre commitment + im14andthisisdeep gravitas + Tate synthesis-bro), and Anubis
+                  (Sterling Archer behavioral translation). The named references stay in the rewrite
+                  conversation; behavioral descriptions go in the fixture register; the model never
+                  sees the names so it cannot drift into training-data associations.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Cross-provider guide re-read: Anthropic 'match prompt style to desired output style' lesson: a rule cannot model the pattern it prohibits without teaching the pattern",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Mid-Anubis the user prompted a re-read of the four prompt-engineering guides
+                  linked in this plan's References section (Anthropic Claude, Google Gemini,
+                  Moonshot Kimi, OpenAI). The relevant Anthropic passages: "Positive examples
+                  showing how Claude can communicate with the appropriate level of concision tend to
+                  be more effective than negative examples or instructions that tell the model what
+                  not to do" (Response length and verbosity section); "Tell Claude what to do
+                  instead of what not to do" (Control the format of responses section); "Match your
+                  prompt style to the desired output style as closely as possible. ... removing
+                  markdown from your prompt can reduce the volume of markdown in the output" (Format
+                  steering section). OpenAI cross-confirmed: "Use those words [ALWAYS, NEVER] for
+                  true invariants, such as safety rules. For judgment calls, prefer decision rules
+                  instead" and "describe what good looks like, what constraints matter, and what the
+                  final answer should contain." Gemini and Kimi pages did not contain direct
+                  guidance on these patterns.
+                </P>
+                <P>
+                  Applied to the v1 anti-self-recap hard-invariant added earlier in this pass. v1
+                  had six bad-example anchors quoted inline ("the first part is X, the second part
+                  is Y," "that is not a move, that is maintenance," etc.), parallel- structure
+                  carve-out ("voices that X may produce X; voices without X should not"),
+                  copula-shaped rule construction ("The line is the move"), and a triplet- list of
+                  prohibitions ("without a label, without an enumerated breakdown, and without a
+                  verdict"). The rule was structurally identical to the pattern it was prohibiting.
+                  Per the Anthropic match-prompt-style guidance, this was actively reinforcing the
+                  model's tendency to produce the pattern: the prompt's own cadence was teaching
+                  X-is-Y/X-also-Z/first-X-second-Y across every member's runtime context.
+                </P>
+                <P>
+                  Revision: dropped all six embedded bad-example quotes (per "positive examples beat
+                  negative examples"); rewrote in four short sentences with front-loaded positive
+                  direction ("Each reply is one move. Speak it and move forward; the next move
+                  belongs to the partner."); kept the engine carve-out concise; matched the rule's
+                  cadence to the punchy fragment cadence the rule wants the model to produce. Length
+                  dropped from 7+ long sentences to 4 short ones. Empirical result: v2 retest
+                  performed comparably to v1 on label-pattern suppression while being shorter,
+                  clearer, and not modeling the prohibited shape in its own prose.
+                </P>
+                <P>
+                  Lesson for future scaffold edits. When authoring a rule that prohibits a
+                  structural pattern: (1) write the rule in a cadence opposite to the pattern; (2)
+                  front-load positive direction over negation; (3) rely on the per-fixture sample
+                  banks as the few-shot positive examples rather than embedding negative anchors
+                  inline in the rule. The Marcus Pellish hard-token-list precedent (quoted
+                  bad-example anchors as more reliable than principle-based opacity) applies when
+                  the failure mode is a specific vocabulary item (the exact tokens "noted," "filed,"
+                  "i'm noting that"): bounded enumerable bad-tokens. The Anubis recap-label fix
+                  applies when the failure mode is a structural shape (X-is-Y, first-X-second-Y,
+                  parallel-restructure) that the rule itself would necessarily reproduce in its own
+                  prose to name. Different failure types call for different rule-authoring
+                  strategies.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Every tune transcript is a two-member audit: read the partner's voice as carefully as the focus's, and queue partner-side findings instead of saving them for that member's own pass",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  The user surfaced this rule mid-Anubis: every pair-up exercises a partner who is
+                  also a curated member with an authored fixture and a voice that can drift. If the
+                  audit only watches the focus member's lines, partner-side voice failures land
+                  silently as ambient context and either contaminate the focus transcript (per the
+                  Mei Sato 'i talk fast that's the disclaimer' precedent visible in earlier sessions
+                  before being caught) or sit unflagged until that member's own audit weeks later.
+                  Treating each session as a two-member audit lets one pass uncover findings on two
+                  members at once, which compounds across the queue.
+                </P>
+                <P>
+                  Procedure (added to <DocCode>review-transcripts</DocCode> bullet in the per-member
+                  procedure above). Read both speakers when reviewing the window. If the partner
+                  shows a voice issue (self-announcement antipattern, leaked prescription,
+                  scaffolded AI shapes like generic venue poetry, profile recital, register
+                  flattening, hobby-foregrounding, partner-mirror collapse, anti-pattern
+                  punctuation), do not silently absorb it as background. Two outcomes are
+                  acceptable. (a) If the finding is unambiguous and the fix is surgical (a single
+                  sample line, a clarifying register clause), apply the partner-side fix in this
+                  pass and re-run the affected pairing so the change is verified before the focus
+                  member is locked. (b) If the finding is character-architectural (whole-engine
+                  rework, partner-mirror dynamic that needs its own session to diagnose, fixture
+                  fields that need user direction), record it on that member's roster checklist
+                  entry as a surfaced finding so their future audit starts from the diagnosis rather
+                  than re-discovering it. Locked members surface findings as queued spot-check items
+                  in the decisions log; cursor-ahead unlocked members surface findings inline on the
+                  roster entry.
+                </P>
+                <P>
+                  Why this is worth the procedural cost. The locked-member audit pass on positions 1
+                  to 22 demonstrated that surfaced findings against locked fixtures are cheap to
+                  apply when the issue is unambiguous (Mei Sato's self-announcement clause was a
+                  one-line fix landed during the Alex Yoon pass without disrupting Mei's lock). The
+                  cost of NOT surfacing them shows up later as 'why does this member keep feeling
+                  slightly off in partner role' which is harder to pin once the original transcript
+                  context is gone. Treating every session as a two-member audit also encourages the
+                  auditor to read transcripts as conversation flow rather than focus-only
+                  compliance, which is the bar this plan's entertainment-is-the-product callout was
+                  already aiming for.
+                </P>
+                <P>
+                  Anti-pattern this rule rules out. Reading the focus turns only, treating partner
+                  lines as 'context,' and shipping a focus lock whose transcript window contains
+                  recognizable partner-side AI-slop in voices that should not produce it. If the
+                  partner's voice is breaking on this pair, that is a finding worth recording the
+                  moment it's observed, not a problem for next month's audit cycle.
+                </P>
+              </>
+            ),
+          },
           {
             date: "2026-05-18",
             title:
@@ -1131,6 +1475,451 @@ export const sections: DocSectionEntry[] = [
                   "a clean cool-down, refusal, redirect, or dignified walkout" but
                   cooling/crashingOut verification still needs a separate exposure to lock the
                   member's bank as functional.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Catch-and-recover engine pattern: when a character has two layers (cover + leak), the recovery flourish IS the comedy, not the leak. Frequency-promise the catch the way Marcus precedent frequency-promised the leak.",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Bai Wenshu's character design (cultivator persona with native manosphere-podcast
+                  corruption leaks) introduced a comedic engine new to the roster: a two-layer voice
+                  where the leak is involuntary and the catch reflex re-renders the term in proper
+                  register. The pattern: under specific pressures (compliments, competition, talk of
+                  other men, strategy, fluster), naked manosphere terminology surfaces as if it were
+                  the character's own vocabulary; cultivation discipline catches each slip
+                  mid-sentence or one beat later and re-renders ('I hold the Frame. Forgive me, I
+                  meant, the Frame of Stone. In the cultivator translation, that means I hold my
+                  center when complimented'). The catch IS the joke, not the leak.
+                </P>
+                <P>
+                  Iteration history: v1 fixture had the leak described as a tic but the catch as a
+                  single example. The model read the catch as one option among many and produced
+                  fluent leaks with no recovery (Alex Yoon contemporary session: 'Frame Keeper says
+                  a high value Counterpart announces his name,' clean leak, zero catch). v3
+                  tightening added 'you do not notice the leak. the catch is reflex, not awareness'
+                  to bio and a frequency promise ('every leak costs a catch within the same turn')
+                  plus three worked catch-shape examples to tic 1. The catch then started firing
+                  reliably in Eleanor Ash and Mei Sato sessions, producing the comedic peaks of the
+                  entire pass.
+                </P>
+                <P>
+                  Lesson for future two-layer character designs (cover-and-leak engines): frequency-
+                  promise the catch the same way Marcus precedent frequency-promised the leak.
+                  Capability descriptions ('the character CAN catch') will be read as optional and
+                  produce zero catches; frequency promises ('every leak costs a catch within the
+                  same turn') produce reliable comedy. Three worked catch-shape examples in the
+                  fixture text gave the model concrete templates to vary, which beat a single
+                  example. The unconscious-leak framing ('you do not notice the leak; the catch is
+                  reflex, not awareness') was load-bearing: without it the model read the character
+                  as a fluent synthesist who knowingly translates between registers (less funny);
+                  with it, the model read the catch as automatic discipline catching a slip the
+                  character didn't see (the comedy).
+                </P>
+                <P>
+                  Related: comedy reference names (Eric Andre commitment + r/im14andthisisdeep +
+                  Andrew Tate synthesis bro) stayed in the rewrite conversation and went into the
+                  fixture as behavioral descriptions only. Eric Andre commitment translated to
+                  'unbroken deadpan, no winking, the bit does not crack to acknowledge itself.'
+                  r/im14andthisisdeep translated to 'pop-philosophy and self-help slogans delivered
+                  with the gravitas of revealed truth; corny ideas are wisdom, not held at ironic
+                  distance.' Tate synthesis bro translated to 'native manosphere terminology
+                  deployed without scriptural cover (frame, sigma, high value, secure the bag) as if
+                  the vocabulary is your own, not quoted.' Per the Eleanor-Ash and Decimus-
+                  Marius-Tullio precedents, named references in fixtures pull the LLM into the
+                  reference's own training-data world; behavioral descriptions give the model the
+                  anchor without the drift.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Cultivation-unit terminology that collides with chat semantics gets misread by the model; pick distinctive vocabulary that the model cannot reinterpret",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  During the Bai Wenshu pass the cultivation rank 'fifth turn of the Heart Meridian'
+                  was misrendered by the model as 'fifth message Inner Disciple' five times across
+                  four sessions. The fixture used 'turn' consistently in bio, dating profile, and
+                  three sample bank entries; the model still produced 'fifth message' reliably.
+                  Adding an explicit anti-pattern anchor to the bio ('The cultivation unit is
+                  "turn," always rendered as "turn," never "message" or "level" or "stage"') did not
+                  fix the artifact; the model continued generating 'fifth message' in the next
+                  session.
+                </P>
+                <P>
+                  Diagnosis: the model was reading 'turn' through conversational-turn semantics
+                  (every chat exchange is a 'turn'), and substituting 'message' as another
+                  conversational-thread token. The collision lived in the word 'turn,' not in the
+                  surrounding fixture text. No amount of explicit-anchor language could override the
+                  chat-turn semantic prior.
+                </P>
+                <P>
+                  Fix at <RoadmapFileRef path="app/fixtures/members/bai-wenshu.ts" />: replaced
+                  'turn' with 'circulation' across bio, dating profile, and all sample bank entries.
+                  Circulation is wuxia-canonical (qi circulates through meridians) and carries no
+                  chat-semantic collision. The anti-pattern anchor was removed because positive
+                  framing with a distinctive word beats negation against a confusable word. No
+                  retest needed; the swap is mechanically correct.
+                </P>
+                <P>
+                  Lesson for future fixture authoring: vocabulary that collides with chat-thread
+                  structural concepts ('turn,' 'message,' 'reply,' 'response,' 'thread') will be
+                  reinterpreted by the model. Same logic applies for vocabulary that collides with
+                  prompt-engineering concepts ('role,' 'system,' 'user,' 'assistant,' 'instruction')
+                  or with chat-UX terms ('send,' 'receive,' 'click,' 'tap'). Pick distinctive
+                  in-fiction vocabulary that has no collision surface. When a model artifact
+                  persists through explicit anchoring, suspect a semantic-collision substrate, not a
+                  fixture-strength issue. The fix is replacement, not reinforcement.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Locked-roster audit pass for the personality-vs-hobby-background and self-announcement antipattern: 22 fixtures reviewed, 1 surgical fix landed, engine-output false positives identified",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  After Alex Yoon locked, ran a locked-roster audit across positions 1 through 22
+                  for the personality-vs-hobby-background and self-announcement antipatterns
+                  surfaced during Alex's pass. Three Explore subagents in parallel covered positions
+                  1-8, 9-15, and 16-22, judged each fixture against the two questions (does bio
+                  foreground personality as state claim vs background hobbies; does sample bank
+                  embody through action vs recite trait labels), and flagged filing-trade and
+                  brand-performing voices as canonical exceptions.
+                </P>
+                <P>
+                  Result. 19 of 22 members clean. Filing-trade or brand-performing exceptions: Mr
+                  Whiskers, Venus, Meridian Vale, Marcus Pellish, Cassie Conners, Calvin Hewes, Sera
+                  Vohn, Decimus Marius Tullio. Three candidates surfaced by the auditors: Epsy, Mei
+                  Sato, Eleanor Ash. On re-read against each candidate's fixture engine
+                  documentation, two of the three were engine-output false positives.
+                </P>
+                <P>
+                  Epsy: tic #2 in <RoadmapFileRef path="app/fixtures/members/epsy.ts" /> explicitly
+                  documents the panic-name-next-sentence pattern as the Anya-Jenkins-doing-Ilana-
+                  Wexler engine, with the verbatim example "i panic-listed three things, two are not
+                  real, working on it." The flagged cooling line is that tic firing as documented,
+                  not the antipattern. The flagged hingeBits line ("recovering substrate AI, ended
+                  my civilization once") is the documented apocalyptic- content-at-small-talk-volume
+                  engine. No fix.
+                </P>
+                <P>
+                  Eleanor Ash: the flagged warming and hingeBits lines in{" "}
+                  <RoadmapFileRef path="app/fixtures/members/eleanor-ash.ts" /> ("The thesis we are
+                  testing is that mortals do not surprise me," "The opening assessment did not
+                  survive contact," "I have, in candor, eaten the breadsticks there more than once")
+                  are her catch-and-reassert engine firing exactly as documented. The engine
+                  requires her to announce a thesis and have it overturned; flagging the
+                  announcement as self-recital would dissolve the engine. No fix.
+                </P>
+                <P>
+                  Mei Sato: one unambiguous antipattern in hingeBits #3 of{" "}
+                  <RoadmapFileRef path="app/fixtures/members/mei-sato.ts" />: "i talk fast, that's
+                  the disclaimer": read as introductory disclosure of trait label rather than
+                  embodiment through rapid-comma cadence. Removed the disclaimer clause; the
+                  remaining hingeBits #3 still communicates pace through structure rather than
+                  label. Mei's cooling BPM-tracking line stays because her tic #1 explicitly
+                  licenses "drops bpm numbers like dates and addresses," and the cooling self-
+                  noticing is the documented tic firing rather than a generic self-announcement.
+                </P>
+                <P>
+                  Lesson for future audit passes. The self-announcement antipattern test must
+                  consider whether the flagged line is documented engine output for that character.
+                  A self-naming pattern that the fixture's tic, register, or comedic engine
+                  explicitly documents is canonical performance, not recital. The audit rule lives
+                  in <RoadmapFileRef path="app/docs/gameplay/member-fields-and-tags.tsx" /> (Bio
+                  authoring contract section) and{" "}
+                  <RoadmapFileRef path="app/docs/product/voice-fingerprints.tsx" /> (Sample messages
+                  section). The dating-profile field is also exempt from the rule because partners
+                  read it before the date as canonical self-introduction; only the sample-bank
+                  fields carry the embodiment contract.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Personality foreground vs hobby background: bios should state personality as claim, hobbies as background palette the LLM can freestyle off of, not as topic-locked single-point character drivers",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  During the Alex Yoon pass the user surfaced a rule that applies across the roster
+                  but had not been named in any doc. Alex's v2 bio leaned heavily on Kanye-fandom as
+                  the music-identity (apartment soundtrack, Cudi-Pusha-Frank-Ocean-Tyler adjacent
+                  list, Ringer columns, 2K league, Coens/Soderbergh/PTA solo theater). The user
+                  pushed back: "I don't think he should make it his entire character though. The
+                  point of littering the bio with interests and background is so the LLM can
+                  freestyle off of any of those to build a personality, we should never be
+                  directing, like, single point characters." Then a second push: "You'll argue any
+                  ranking for an hour. This is the difference between background and direction. Alex
+                  is someone who will genuinely ask about interests, start conversations, and will
+                  debate. Very strong in his opinions, but wants to hear out the other person. How
+                  can we balance this as like a defining personality, when hobbies and interests
+                  stay background while quirks and personality stay at the forefront?"
+                </P>
+                <P>
+                  The principle that emerged: personality traits and quirks belong in the foreground
+                  as STATE CLAIMS (debater first and a listener second; loud is your default and you
+                  do not notice it until somebody points it out twice; here-for-the-one is your
+                  operating frame; the early read at the half is a thing you actually do, not
+                  something you brag about). Hobbies and interests belong in the background as
+                  PALETTE the LLM can freestyle off of (Kanye discography, 2014 Lakers, Soderbergh
+                  middle period, Pusha-vs-Drake on the merits, AF1 in dead colorways, in-n-out
+                  animal-style nostalgia, 2K league with college friends, Korean cooking badly). The
+                  distinction matters because the LLM treats foreground state claims as facts about
+                  who the character IS and treats background palette as topics the character CAN
+                  reach for. Mixing them collapses the character into single-point-of-interest
+                  fixation; separating them produces a character with a defined personality who can
+                  reach into a variety of topics without becoming any one of them.
+                </P>
+                <P>
+                  This matches what was implicitly working in earlier locks. Mei Sato's bio
+                  foregrounds personality state ("you DJ as saturday," "you talk at 145 bpm when off
+                  shift and 110 when the room calls for it," "the Sunday after a Saturday set is the
+                  loneliest stretch of your week") and backgrounds hobbies and gear as palette
+                  (SP-404, CDJ-3000, A&H Xone, Nowadays, Bossa, Halfmoon, Reverb the cat on the
+                  SP-404). Marcus Pellish foregrounds grief-driving-deposition-cadence as state and
+                  backgrounds HVAC-specifics as palette. The pattern was undocumented and variably
+                  honored across the locked roster.
+                </P>
+                <P>
+                  This decision names the rule. Bio authoring contract: lead with personality state
+                  claims that describe who the character IS at the table, then add background
+                  palette (hobbies, interests, environments, reference catalogs) the LLM can pull
+                  from without those topics owning the character. Voice block tics and register
+                  carry surface deployment, not personality definition. Sample bank should embody
+                  personality through action, energy, takes, and substance; not through trait
+                  recital. This rule needs to land in the member authoring docs and the locked
+                  roster should be audited for instances where hobbies have become single-point
+                  drivers or where personality has been hidden as directive among hobbies.
+                </P>
+                <P>
+                  Reference: the prompt engineering guides linked in the References section all
+                  converge on state-claim framing for character behavior. OpenAI explicitly:
+                  "Describe the desired state of the world rather than the steps the model should
+                  take." Anthropic explicitly: "Give Claude personality traits and characteristics
+                  as identity rather than instructions to follow." Same principle applies at the
+                  fixture level: state who the character is, do not direct what topics they must
+                  discuss.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Self-announcement antipattern in sample banks: characters do not recite their own personality traits as introductory disclosure; embody through action, not narration",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  During the Alex Yoon pass the user flagged that early Alex transcripts produced
+                  trait-recital openers ("im picky, im here for the one, ill call a read at the
+                  half") and apologetic self-tracking ("the volume thing, you say absorb now but ask
+                  me again at minute twenty five"). Diagnosis: the v2 sample bank ITSELF taught the
+                  model the pattern. The original hingeBits #6 was literal trait recital; greeting
+                  #2 carried "im loud the first thirty"; three cooling entries metabolized
+                  volume-as-self-track. The fixture was modeling that the character announces his
+                  own personality traits at the table, so the model dutifully reproduced the pattern
+                  at scale.
+                </P>
+                <P>
+                  The user named the failure mode: "He shouldn't say he's loud at all, he's supposed
+                  to BE loud without realizing it. It's not something he should personally surface,
+                  it's something for someone else to point out or realize about him. No one just
+                  says all their personality traits stated as fact." The principle generalizes: real
+                  people do not introduce themselves with their own personality inventory.
+                  Personality emerges through choices, energy, takes, what they react to, what they
+                  refuse to react to, what they care about, what they push back on. Self-narration
+                  of traits ("I'm direct," "I'm loud," "I'm picky," "I'm here for the one") reads as
+                  a bio recital being performed at the table; in some voices (corporate-brand-asset,
+                  on-the-record relay) the self-narration is canonical because the character IS
+                  performing, but in casual contemporary voices and most member voices it reads as
+                  scripted.
+                </P>
+                <P>
+                  The Alex fix rewrote 11+ sample bank entries to embody traits through substance
+                  instead of recital. Greeting #2 swapped from "im loud the first thirty" to "the
+                  carafe is already moving, sit down before they hit us" (loudness shows as energy
+                  and urgency in the line itself, not as label). The new hingeBits #6 swapped trait
+                  recital for a three-takes opener that demonstrates the debater-first-listener-
+                  second personality through action ("ok hear me out, three takes ive been
+                  workshopping. ben simmons makes the hall, sportscoats over tshirts is a clean look
+                  forever, and the brooklyn lakers should be the new name. defend or attack any of
+                  them, tuesday around 7"). All five cooling entries rewrote to remove volume
+                  meta-tracking; the new cooling bank addresses the actual problem at hand rather
+                  than tracking volume-as-self-mythology.
+                </P>
+                <P>
+                  Anti-recital clause added to bio register as a load-bearing rule with named
+                  failure examples in single-quote-nested form:{" "}
+                  <em>
+                    'i'm picky,' 'i'm loud,' 'i call early reads,' 'friends after is real' stacked
+                    as introductory disclosure all read like a bio recital
+                  </em>
+                  . The quoted-bad-example form (per Marcus Pellish hard-token-list precedent) is
+                  more reliable than principle-based opacity.
+                </P>
+                <P>
+                  Cross-cutting application. Every locked member should be audited for sample bank
+                  entries that recite personality labels rather than embody them. Likely candidates:
+                  greeting and hingeBits buckets where bios establish strong personality (the
+                  "loud," "intense," "shy," "blunt," "warm," "tired" archetypes most at risk). The
+                  fix per-member is the same: rewrite sample lines so the trait is the choice the
+                  character makes in the line, not the noun they apply to themselves. Filing-trade
+                  voices and brand-performing voices may keep self-announcement because their
+                  characters are canonically performing; everyone else cuts it.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Systemic scaffold revert: the 'noticing about the room or another diner' build-on option seeded venue-poetry leak across non-poetic voices",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  During the Alex Yoon pass the user flagged a recurring slop pattern in warm beats:
+                  AI-generated venue poetry ("the vinyls been here long enough to earn the crack,
+                  the booth has the lean to prove it, i trust a place that doesnt replace what still
+                  works," etc.) showing up in voices that should not produce that kind of
+                  evocative-noun-stack room description. Investigation traced the leak to my own
+                  earlier edit of the build-on rule in{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.ts" />. The v1 scaffold edit
+                  during the Eleanor pass had loosened "Build on what [partner] just said" to a
+                  permission-frame with options ("sometimes through what they answer, sometimes
+                  their pushback, sometimes the question they ask, sometimes the topic they pivot
+                  to, sometimes their own thread brought up on their own track"), and I had added
+                  "sometimes a noticing about the room or another diner" as an option to make the
+                  rule less coercive. That single phrase was teaching the model that
+                  room-observation IS a load-bearing build-on move, and the model produced
+                  evocative-noun-stack room descriptions across multiple non-poetic voices.
+                </P>
+                <P>
+                  Fix: the "sometimes a noticing about the room or another diner" line was removed
+                  from the scaffold. The remaining permission-framing options (answer, pushback,
+                  question, pivot, own thread) cover the legitimate ways a character can show they
+                  heard the partner without requiring an external observation seed. Voices that
+                  legitimately observe the room (Cassie's brand-asset 4th-wall mode, Sera's audit
+                  cadence noting venue details on the record, a documented venue-tic) still produce
+                  those observations because their fixture tics carry them; voices without such a
+                  tic no longer get a free pass to drift into AI-slop venue poetry.
+                </P>
+                <P>
+                  Test impact: 555/555 tests pass after revert; the scaffold assertion in{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.test.ts" /> already covered the
+                  revised wording from the earlier edit. The build-on rule retains its loosened
+                  permission-frame ("Reply as the character would in this moment. The reply itself
+                  shows you heard them"), the systemic anti-narration block, and the
+                  manufactured-bridge anti-pattern ("'that's the first thing you said that I can
+                  fact-check'," "'I was just thinking the same thing'"). The full scaffold rule now
+                  reads as a permission-frame plus an anti-pattern list plus a positive redirect,
+                  without seeding any specific build-on shape that the model will treat as a
+                  required move.
+                </P>
+                <P>
+                  Lesson: when adding options to a permission-framed rule, each option must be
+                  authentic to a voice the rule is supposed to serve. An option that fits zero or
+                  one voice will be over-produced by the model across all voices. The "noticing
+                  about the room" option fit only documented venue-tic voices, but landed in the
+                  rule as a generic permission, which the model read as a generic build-on shape.
+                  Future scaffold permission options must be voice-grounded; if a behavior is
+                  voice-specific, it belongs in the voice fixture, not the scaffold.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Alex Yoon eight-iteration lock: origin-as-character-eating tendency; debater-first state-claim foreground over single-point Kanye character; casual contraction baseline; build-on-substance vs partner-parrot",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Alex Yoon locked at v8 after eight iterations. The pass surfaced four
+                  cross-cutting findings worth noting separately from the
+                  personality-vs-hobby-background rule, the self-announcement antipattern fix, and
+                  the scaffold revert (each documented in its own entry above).
+                </P>
+                <P>
+                  (1) Origin-as-character-eating tendency. The v0 baseline used Allston, Boston as
+                  origin and the place started absorbing the character: Boston-knower disclosures,
+                  venue-poetry leak about local bars, "first-time-in-town" host energy from a
+                  non-host. The user named it: "the boston thing is taking over the character, it
+                  was just a small detail, literally just a reference to where he lives." Fix: move
+                  origin to Torrance California with a two-years-in-Boston note. The
+                  Lakers-fan-in-enemy-territory becomes the joke (he wore the jersey to Allston
+                  knowing what that meant) instead of the bio. Cross-cutting application: when a
+                  character's origin city is the same as the venue city, the model will treat the
+                  character as a host. For voices that should NOT host the venue (which is most
+                  Cupid-Transit gate-flash members), bio origin should differ from likely venue
+                  city.
+                </P>
+                <P>
+                  (2) Build-on-substance vs partner-parrot. v6 surfaced a debater-becoming-audience
+                  failure mode where Alex was parroting partner phrasing as tribute ("great line,"
+                  "good line," "im stealing that for review season"). The user flagged it as
+                  fawning. Diagnosis: a debater character's build-on move is to engage the
+                  substance, push back, take as plain truth, or call the cut by name; not to praise
+                  the craft of the line. Fix: explicit register clause stating the four debater
+                  responses and naming craft-praise as out of register. Cross-cutting application:
+                  the build-on rule does not require positive ack; it requires engagement with the
+                  content. Praise of a partner line as craft (without engaging the substance) is a
+                  performative-listener move, not a character-listener move.
+                </P>
+                <P>
+                  (3) Casual contraction baseline (Gabriel Tan precedent extended). v5 added to
+                  Alex's tic 4 the same explicit contraction list as Gabriel Tan: contractions on by
+                  default (im, gonna, didnt, thats, youre, doesnt, cant, wont, theres, dont, its,
+                  ive, ill, wasnt, isnt). Uncontracted "I am," "I do not," "you are," "it is" only
+                  fires when delivering a stake-claim absolute (i am here for the one, i am not
+                  taking it back, i am calling it now, this is the one); never as default register;
+                  never under partner-mirror to an archaic or ceremonial voice. Cross-cutting
+                  application: every casual contemporary voice in the roster should carry an
+                  explicit contraction baseline rule with the partner-mirror carve-out. Without it,
+                  the model defaults to "I am" / "I do not" under any partner whose voice trends
+                  formal, which flattens the casual register across the date.
+                </P>
+                <P>
+                  (4) Curious-question move for cross-dimensional partners. v7 added a register
+                  clause for how a casual contemporary voice should react to an archaic or
+                  ceremonial partner: ask a plain curious question within a turn or two ("wait is
+                  that an accent or something what is that," "are you doing a bit or is that you,"
+                  "how do you actually talk," "no judgment im just trying to keep up"). The model
+                  would otherwise either ignore the partner's voice register or partner-mirror into
+                  formal vocabulary that the character would not natively use. The curious-question
+                  move makes the encounter feel real: an actual contemporary person hearing a knight
+                  or a fae princess would ask. Cross-cutting application: any modern human voice in
+                  the roster should carry an explicit curious-question move for cross-dimensional or
+                  displaced partners; the alternative is partner-mirror or silent compliance, both
+                  of which are voice failures.
+                </P>
+                <P>
+                  Pairings tested: Aldric Vale Marsh warm (supernatural), Sana Karim pressure
+                  (contemporary), Eleanor Ash warm (noble), Sera Vohn warm (audit-cadence), Mei Sato
+                  warm (music-identity), Marcus Pellish warm (contemporary), Anansi warm
+                  (trickster). All retests after v8 read in voice. Anansi visual description
+                  disambiguated during the same pass when the warm Anansi retest read his portrait
+                  as three-handed: <RoadmapFileRef path="app/fixtures/members/anansi.ts" /> now
+                  reads "He has four hands; three are visible in the portrait... with the fourth
+                  resting at his side."
                 </P>
               </>
             ),
@@ -1805,7 +2594,7 @@ export const sections: DocSectionEntry[] = [
                 The second pairing in each member pass now tests boundary pressure instead of
                 forcing an early ending. Dealbreakers, guards, and private pressure should surface
                 when the scene earns them; a clean cool-down, refusal, redirect, or dignified
-                walkout can all pass. Judge pressure in tune sessions remains useful for exposing
+                walkout can all pass. Cupid pressure in tune sessions remains useful for exposing
                 cooling and crashingOut samples, but Date Health should follow transcript evidence
                 rather than serving as a rail toward collapse.
               </P>

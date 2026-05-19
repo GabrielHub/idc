@@ -230,7 +230,7 @@ export const sections: DocSectionEntry[] = [
             detail: (
               <P>
                 <DocCode>requirePairState</DocCode> now resolves through{" "}
-                <DocCode>getPairProjectionFromSave</DocCode>, so booking and the first judge
+                <DocCode>getPairProjectionFromSave</DocCode>, so booking and the first Cupid
                 exchange operate on a projection. The existing <DocCode>replaceById</DocCode> writes
                 in <RoadmapFileRef path="app/services/date-engine.ts" /> and{" "}
                 <RoadmapFileRef path="app/services/ai-date-engine.ts" /> materialize the edge on

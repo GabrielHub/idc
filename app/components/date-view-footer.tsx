@@ -5,12 +5,18 @@ import type { DateScenario, DateSession, GameSave, Member } from "../domain/game
 import {
   canAddCupidIntervention,
   findScenarioEventById,
+  MIN_JUDGE_READS_BEFORE_CUT_SHORT,
   MAX_NUDGES_PER_DATE,
 } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
-import { EASE_OUT_QUART } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Tooltip } from "./dashboard-atoms";
 import { StatusGauges } from "./date-view-gauges";
-import { NudgeComposerModal, SceneConfirmModal } from "./date-view-modals";
+import {
+  CutShortConfirmModal,
+  CutShortIcon,
+  NudgeComposerModal,
+  SceneConfirmModal,
+} from "./date-view-modals";
 import type { DatePlaybackUiState, PendingDateAction, PlaybackIntent } from "./date-view-shared";
 import type { SfxCue } from "./sfx-provider";
 import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
@@ -24,6 +30,7 @@ export function DateFooter({
   displayedCurrentTurn,
   canAdvance,
   canIntervene,
+  canCutShort,
   pendingDateAction,
   playbackUiState,
   nudgeSuggestions,
@@ -33,6 +40,7 @@ export function DateFooter({
   onInterventionTargetChange,
   onAdvance,
   onCancel,
+  onCutShort,
   onIntervene,
   onTriggerEvent,
   onTogglePlayback,
@@ -45,6 +53,7 @@ export function DateFooter({
   displayedCurrentTurn: number;
   canAdvance: boolean;
   canIntervene: boolean;
+  canCutShort: boolean;
   pendingDateAction: PendingDateAction | null;
   playbackUiState: DatePlaybackUiState;
   nudgeSuggestions: string[];
@@ -54,6 +63,7 @@ export function DateFooter({
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
   onCancel: () => void;
+  onCutShort: () => void;
   onIntervene: () => void;
   onTriggerEvent: (eventId: string) => void;
   onTogglePlayback: (next: PlaybackIntent) => void;
@@ -74,6 +84,7 @@ export function DateFooter({
 
   const [composerOpen, setComposerOpen] = useState(false);
   const [sceneConfirmId, setSceneConfirmId] = useState<string | null>(null);
+  const [cutShortConfirmOpen, setCutShortConfirmOpen] = useState(false);
 
   const statusGaugesRef = useRef<HTMLDivElement | null>(null);
   const transportClusterRef = useRef<HTMLDivElement | null>(null);
@@ -92,6 +103,13 @@ export function DateFooter({
     nudgeButtonEnabled && nudgesUsed === 0,
     onTutorialUpdate,
   );
+  const cutShortButtonEnabled = canCutShort && !playbackBusy && !pauseRequested;
+  const cutShortTooltip = resolveCutShortTooltip({
+    session,
+    isPaused,
+    playbackBusy,
+    pauseRequested,
+  });
 
   // Conditions can flip from parent state, so close the composer when it stops being valid.
   useEffect(() => {
@@ -107,6 +125,12 @@ export function DateFooter({
       setSceneConfirmId(null);
     }
   }, [sceneConfirmId, dropsEnabled, session.eventsTriggered]);
+
+  useEffect(() => {
+    if (cutShortConfirmOpen && !cutShortButtonEnabled) {
+      setCutShortConfirmOpen(false);
+    }
+  }, [cutShortButtonEnabled, cutShortConfirmOpen]);
 
   const pendingSceneEvent = useMemo(() => {
     if (sceneConfirmId === null || scenario === undefined) return undefined;
@@ -135,6 +159,16 @@ export function DateFooter({
     if (sceneConfirmId === null) return;
     onTriggerEvent(sceneConfirmId);
     setSceneConfirmId(null);
+  };
+  const openCutShortConfirm = () => {
+    if (!cutShortButtonEnabled) return;
+    setCutShortConfirmOpen(true);
+  };
+  const closeCutShortConfirm = () => setCutShortConfirmOpen(false);
+  const confirmCutShort = () => {
+    if (!cutShortButtonEnabled) return;
+    onCutShort();
+    setCutShortConfirmOpen(false);
   };
 
   const playbackHandlerRef = useRef<() => void>(() => undefined);
@@ -199,6 +233,8 @@ export function DateFooter({
               pauseRequested={pauseRequested}
               playbackBusy={playbackBusy}
               canAdvance={canAdvance}
+              canCutShort={cutShortButtonEnabled}
+              cutShortTooltip={cutShortTooltip}
               pendingDateAction={pendingDateAction}
               containerRef={transportClusterRef}
               onAdvance={(count) => {
@@ -206,6 +242,7 @@ export function DateFooter({
                 onAdvance(count);
               }}
               onCancel={onCancel}
+              onCutShort={openCutShortConfirm}
               onTogglePlayback={() => {
                 if (footerTransportStep.active) footerTransportStep.complete();
                 togglePlayback();
@@ -218,6 +255,7 @@ export function DateFooter({
               pauseRequested={pauseRequested}
               interventionSlotAvailable={interventionSlotAvailable}
               dropsEnabled={dropsEnabled}
+              cutShortEnabled={cutShortButtonEnabled}
               pendingDateAction={pendingDateAction}
             />
           </div>
@@ -249,6 +287,15 @@ export function DateFooter({
             onClose={closeSceneConfirm}
           />
         ) : null}
+        {cutShortConfirmOpen ? (
+          <CutShortConfirmModal
+            key="cut-short-confirm-modal"
+            participants={participants}
+            canCutShort={cutShortButtonEnabled}
+            onConfirm={confirmCutShort}
+            onClose={closeCutShortConfirm}
+          />
+        ) : null}
       </AnimatePresence>
 
       {footerHealthStep.active ? (
@@ -257,8 +304,8 @@ export function DateFooter({
           <TutorialCoachMark
             target={statusGaugesRef}
             placement="top"
-            title="Health, Turn, Judge, Nudges"
-            body="Health is the date. Turn counts toward the wrap. Judge fires every sixth. Nudges are your three whispers. Scenes appear once you draft them."
+            title="Health, Turn, Cupid, Nudges"
+            body="Health is the date. Turn counts toward the wrap. Cupid files a read every sixth. Nudges are your three whispers. Scenes appear once you draft them."
             stepIndex={0}
             stepCount={2}
             primaryLabel="Got it"
@@ -292,7 +339,7 @@ export function DateFooter({
             target={nudgeButtonRef}
             placement="top"
             title="One nudge, one whisper"
-            body="Pause the date, pick one member, write one sentence. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact."
+            body="Pause, pick one member, write one sentence. Steer where they go or ask them to share something you want to know. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact."
             primaryLabel="Open composer"
             onPrimary={() => {
               nudgeComposeStep.complete();
@@ -307,17 +354,45 @@ export function DateFooter({
   );
 }
 
+function resolveCutShortTooltip({
+  session,
+  isPaused,
+  playbackBusy,
+  pauseRequested,
+}: {
+  session: DateSession;
+  isPaused: boolean;
+  playbackBusy: boolean;
+  pauseRequested: boolean;
+}): string {
+  if (session.judgeSnapshots.length < MIN_JUDGE_READS_BEFORE_CUT_SHORT) {
+    return `Cut short unlocks after ${MIN_JUDGE_READS_BEFORE_CUT_SHORT} Cupid reads.`;
+  }
+
+  if (playbackBusy || pauseRequested) {
+    return "Cupid is already filing a beat. Wait for the clipboard to stop moving.";
+  }
+
+  if (!isPaused) {
+    return "Pause the date before cutting it short.";
+  }
+
+  return "Cut the date short. Cupid files one final read, then both members leave and enter cooldown.";
+}
+
 function DirectorSlate({
   isPaused,
   pauseRequested,
   interventionSlotAvailable,
   dropsEnabled,
+  cutShortEnabled,
   pendingDateAction,
 }: {
   isPaused: boolean;
   pauseRequested: boolean;
   interventionSlotAvailable: boolean;
   dropsEnabled: boolean;
+  cutShortEnabled: boolean;
   pendingDateAction: PendingDateAction | null;
 }) {
   if (pauseRequested) {
@@ -356,6 +431,7 @@ function DirectorSlate({
         <span className="inline-flex items-center gap-1.5">
           <SlateActionChip kind="whisper" enabled={interventionSlotAvailable} label="Whisper" />
           <SlateActionChip kind="scene" enabled={dropsEnabled} label="Drop scene" />
+          <SlateActionChip kind="cut" enabled={cutShortEnabled} label="Cut short" />
           <SlateActionChip kind="advance" enabled label="Advance beat" />
         </span>
       </div>
@@ -390,7 +466,7 @@ function SlateActionChip({
   enabled,
   label,
 }: {
-  kind: "whisper" | "scene" | "advance";
+  kind: "whisper" | "scene" | "advance" | "cut";
   enabled: boolean;
   label: string;
 }) {
@@ -398,7 +474,9 @@ function SlateActionChip({
     ? "border-aura-hairline-strong/50 bg-white/40 text-aura-faint"
     : kind === "whisper"
       ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
-      : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
+      : kind === "cut"
+        ? "border-aura-amber/40 bg-aura-amber/10 text-aura-amber"
+        : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
 
   return (
     <span
@@ -410,7 +488,7 @@ function SlateActionChip({
   );
 }
 
-function SlateChipIcon({ kind }: { kind: "whisper" | "scene" | "advance" }) {
+function SlateChipIcon({ kind }: { kind: "whisper" | "scene" | "advance" | "cut" }) {
   if (kind === "whisper") {
     return (
       <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
@@ -425,6 +503,19 @@ function SlateChipIcon({ kind }: { kind: "whisper" | "scene" | "advance" }) {
     return (
       <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
         <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
+      </svg>
+    );
+  }
+  if (kind === "cut") {
+    return (
+      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
+        <path
+          d="M2 6.2 L7.7 1.8 M2.4 2.4 L9.6 9.6 M4.3 10.2 L10 5.8"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
@@ -443,10 +534,13 @@ function TransportCluster({
   pauseRequested,
   playbackBusy,
   canAdvance,
+  canCutShort,
+  cutShortTooltip,
   pendingDateAction,
   containerRef,
   onAdvance,
   onCancel,
+  onCutShort,
   onTogglePlayback,
 }: {
   isPlaying: boolean;
@@ -455,14 +549,18 @@ function TransportCluster({
   pauseRequested: boolean;
   playbackBusy: boolean;
   canAdvance: boolean;
+  canCutShort: boolean;
+  cutShortTooltip: string;
   pendingDateAction: PendingDateAction | null;
   containerRef?: React.Ref<HTMLDivElement>;
   onAdvance: (turnCount: 1 | 2) => void;
   onCancel: () => void;
+  onCutShort: () => void;
   onTogglePlayback: () => void;
 }) {
   const advanceTip =
     pendingDateAction === "advanceExchange" ? "Streaming next beat..." : "Advance one beat";
+  const cutShortBusy = pendingDateAction === "cutShort";
   const playTip = pauseRequested
     ? "Pause filed"
     : isPlaying
@@ -471,14 +569,26 @@ function TransportCluster({
   return (
     <div ref={containerRef} className="flex shrink-0 items-center gap-1.5">
       {isPaused && !pauseRequested ? (
-        <TransportButton
-          kind="ghost"
-          disabled={!canAdvance}
-          onClick={() => onAdvance(2)}
-          ariaLabel={advanceTip}
-        >
-          <AdvanceIcon />
-        </TransportButton>
+        <>
+          <Tooltip message={cutShortTooltip} placement="top-center">
+            <TransportButton
+              kind="cut"
+              disabled={!canCutShort || cutShortBusy}
+              onClick={onCutShort}
+              ariaLabel="Cut the date short"
+            >
+              <CutShortIcon />
+            </TransportButton>
+          </Tooltip>
+          <TransportButton
+            kind="ghost"
+            disabled={!canAdvance}
+            onClick={() => onAdvance(2)}
+            ariaLabel={advanceTip}
+          >
+            <AdvanceIcon />
+          </TransportButton>
+        </>
       ) : null}
       {isPaused && isStreaming ? (
         <TransportButton kind="stop" disabled={false} onClick={onCancel} ariaLabel="Stop streaming">
@@ -497,6 +607,25 @@ function TransportCluster({
   );
 }
 
+type TransportButtonKind = "cut" | "ghost" | "ghost-active" | "primary" | "stop";
+
+const TRANSPORT_BUTTON_TONE: Record<TransportButtonKind, string> = {
+  primary:
+    "aura-cta bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet text-white shadow-cta ring-1 ring-white/40 ring-inset hover:-translate-y-px hover:shadow-cta-hover",
+  "ghost-active": "bg-white/85 text-aura-violet ring-1 ring-aura-violet/40 hover:bg-white",
+  cut: "bg-aura-amber/12 text-aura-amber ring-1 ring-aura-amber/40 hover:bg-aura-amber hover:text-white",
+  stop: "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/40 hover:bg-aura-rose hover:text-white",
+  ghost: "text-aura-muted ring-1 ring-aura-hairline hover:bg-white/55 hover:text-aura-ink",
+};
+
+const TRANSPORT_BUTTON_SFX: Record<TransportButtonKind, SfxCue> = {
+  primary: "primary",
+  cut: "dismiss",
+  stop: "dismiss",
+  ghost: "click",
+  "ghost-active": "click",
+};
+
 function TransportButton({
   kind,
   children,
@@ -504,7 +633,7 @@ function TransportButton({
   disabled,
   ariaLabel,
 }: {
-  kind: "ghost" | "ghost-active" | "primary" | "stop";
+  kind: TransportButtonKind;
   children: React.ReactNode;
   onClick: () => void;
   disabled: boolean;
@@ -512,15 +641,8 @@ function TransportButton({
 }) {
   const baseClass =
     "relative grid size-10 cursor-pointer place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40";
-  const toneClass =
-    kind === "primary"
-      ? "aura-cta bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet text-white shadow-cta ring-1 ring-white/40 ring-inset hover:-translate-y-px hover:shadow-cta-hover"
-      : kind === "ghost-active"
-        ? "bg-white/85 text-aura-violet ring-1 ring-aura-violet/40 hover:bg-white"
-        : kind === "stop"
-          ? "bg-aura-rose/15 text-aura-rose ring-1 ring-aura-rose/40 hover:bg-aura-rose hover:text-white"
-          : "text-aura-muted ring-1 ring-aura-hairline hover:bg-white/55 hover:text-aura-ink";
-  const sfxCue: SfxCue = kind === "primary" ? "primary" : kind === "stop" ? "dismiss" : "click";
+  const toneClass = TRANSPORT_BUTTON_TONE[kind];
+  const sfxCue = TRANSPORT_BUTTON_SFX[kind];
   return (
     <button
       type="button"

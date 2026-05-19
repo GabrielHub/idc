@@ -197,7 +197,7 @@ export function DateReactionsTest() {
     >
       <TestHeader
         title="Date reactions"
-        description="Drive each standee independently. Mood swaps the portrait variant, speaking floats the thought bubble, and reactions emit the same glass swarm the date scene fires on judge feedback."
+        description="Drive each standee independently. Mood swaps the portrait variant, speaking floats the thought bubble, and reactions emit the same glass swarm the date scene fires on Cupid feedback."
       />
 
       <BubbleStage
@@ -393,7 +393,7 @@ function StageScrim() {
       />
       <div className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center">
         <p className="font-mono text-micro font-semibold uppercase tracking-[0.34em] text-aura-faint/80">
-          // judge feedback preview
+          // Cupid feedback preview
         </p>
         <p className="mt-2 font-display text-display-sm font-semibold tracking-tight text-aura-faint/60">
           stage

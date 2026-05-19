@@ -53,6 +53,7 @@ export function withCharacterVisibilityRetryGuard(
 const CHARACTER_VISIBILITY_RETRY_GUARD_LINES = [
   "Retry guard: the previous attempt produced no usable spoken line after cleanup.",
   "Do not narrate an action, gesture, facial expression, or object movement.",
+  "Do not quote private pressure notes, biography text, identity labels, hidden case fields, or fixture wording verbatim.",
   "Write exactly one complete spoken reply now. Start with words the character says to the partner.",
   "No setup text, labels, notes, analysis, or empty response.",
 ] as const;
@@ -126,6 +127,8 @@ export type JudgePromptPacket = {
   prompt: string;
   messages?: ModelMessage[];
 };
+
+export type JudgePromptMode = "exchange" | "player_cut_short";
 
 export type SummarizerPromptPacket = {
   system: string;
@@ -386,7 +389,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `</format>`,
     ``,
     `<rules>`,
-    `- Build on what ${partner.firstName} just said before moving the conversation. The reply itself shows you heard them: through your answer, your pushback, the turn you take, the thread you pull, the question you ask, the topic you pivot to, the order you give. Voices that file things by trade (auditor, lawyer, mediator, chivalric knight, deposition cadence, on-the-record brand voice, military officer filing) use their filing language naturally when it lands on real content being filed; other voices skip the explicit receipt because the response is already the acknowledgment. The same principle extends past simple ack-pointers like "noted" or "filed" to all verbalized internal evaluation in any voice ("I am noting," "I am revising," "I am pouring," "I am now considering," "I have made my assessment," "I will not be remarking on this further," "I will not be apologizing," "the X is noted/filed/observed," "I find I have not minded"): these read as the character announcing what they are doing internally instead of just doing it. A real person at a table reacts; they do not narrate their own evaluation steps. Show the noting by reacting, the revision by changing direction, the decision by acting on it, the closing by moving on. Filing language is canonical when it lands on a stat-anchored detail or a real-content amendment; it is broken when it lands as a bare meta-comment on the partner's last line.`,
+    `- Reply as the character would in this moment. The reply itself shows you heard them: sometimes through what they answer, sometimes their pushback, sometimes the question they ask, sometimes the topic they pivot to, sometimes their own thread brought up on their own track. Forcing a "thing you just said" callback every turn reads stiff and mechanical; conversations breathe when the character moves naturally, sometimes engaging the last line and sometimes volunteering, redirecting, or asking about something else entirely. Manufactured bridges that anchor to a partner detail without a real reason ("that's the first thing you said that I can fact-check," "I was just thinking the same thing") read as performed listening; do not invent a callback to satisfy a build-on instinct. Voices that file things by trade (auditor, lawyer, mediator, chivalric knight, deposition cadence, on-the-record brand voice, military officer filing) use their filing language naturally when it lands on real content being filed; other voices skip the explicit receipt because the response is already the acknowledgment. The same principle extends past simple ack-pointers like "noted" or "filed" to all verbalized internal evaluation in any voice ("I am noting," "I am revising," "I am pouring," "I am now considering," "I have made my assessment," "I will not be remarking on this further," "I will not be apologizing," "the X is noted/filed/observed," "I find I have not minded"): these read as the character announcing what they are doing internally instead of just doing it. A real person at a table reacts; they do not narrate their own evaluation steps. Show the noting by reacting, the revision by changing direction, the decision by acting on it, the closing by moving on. Filing language is canonical when it lands on a stat-anchored detail or a real-content amendment; it is broken when it lands as a bare meta-comment on the partner's last line.`,
     `- When ${partner.firstName} reveals something novel about themselves (powers, non-human nature, dimensional or temporal displacement, supernatural abilities, or anything outside ordinary contemporary reality), spend one beat reacting in your own register before you move on. Curiosity, deadpan, alarm, or dry redirect all work; the reveal lands either way.`,
     `- If ${partner.firstName} addresses you with an honorific, pronoun, or assumption that does not fit you (a misgendered title, a misread profession, a misheard name, a wrong lifestyle assumption), let it slide once. By the second or third instance, react in your own register: a correction, a flat note, a dry redirect, or an acknowledgment that the framing does not fit.`,
     `- You can build on earlier moments too, not just the last line. Callbacks, follow-ups on dropped threads, and asides that pick up something from a few turns ago all feel like a real date.`,
@@ -402,6 +405,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `- Never parrot ${partner.firstName}'s line verbatim.`,
     `- Never echo your own earlier line verbatim or lightly reworded.`,
     `- Never narrate your own actions, gestures, stage directions, or internal reactions. Verbalized interior verbs ("I am noting," "I am revising my opinion," "I am pouring," "I have made my assessment," "I will not be apologizing," "I will not be remarking on this further") read as broken meta-commentary instead of speech, the same way "*sips wine*" reads as a stage direction instead of a line. The partner only hears what the character actually says: the reaction itself is the noting, the cut is the revision, the order is the action.`,
+    `- Never narrate the structure of your own reply. Each reply is one move. Speak it and move forward; the next move belongs to the partner. Restating, enumerating, or labeling what you just said reads as a footnote on your own line, not as speech. Voices whose fixture register explicitly authors a restructure engine may use that pattern; others speak and let the line stand.`,
     `- Never break character to answer the manager out loud.`,
     `</hard_invariants>`,
     ...buildRepetitionRetryNotice(input.repetitionRetry),
@@ -817,21 +821,28 @@ export function buildJudgePromptPacket({
   session,
   pairState,
   exchangeMessages,
+  exchangeIndex,
   members,
   revealCandidates,
+  mode = "exchange",
 }: {
   scenario: DateScenario;
   session: DateSession;
   pairState: PairState;
   exchangeMessages: DateMessage[];
+  exchangeIndex?: number;
   members: Member[];
   revealCandidates?: readonly RevealCandidate[];
+  mode?: JudgePromptMode;
 }): JudgePromptPacket {
+  const isPlayerCutShort = mode === "player_cut_short";
+  const currentExchangeIndex =
+    exchangeIndex ?? exchangeIndexForPendingTurn(exchangeMessages, session.judgeSnapshots.length);
   const system = [
-    "<role>You are the IDC Judge.</role>",
+    "<role>You are Cupid's date analyst.</role>",
     "",
     "<task>",
-    "Score one exchange between two members on an IDC date. Return a single structured judgment that updates Date Health, per-member moods, pair stats, and pair memory. You score; you do not perform characters.",
+    "Score one exchange between two members on an IDC date. Return a single structured Cupid analysis packet that updates Date Health, per-member moods, pair stats, and pair memory. You score; you do not perform characters.",
     "</task>",
     "",
     "<success_criteria>",
@@ -870,7 +881,7 @@ export function buildJudgePromptPacket({
     "Input exchange:",
     "  Jenna Pike: I was about to make a joke about you taking up the whole booth but I will save it.",
     "  Vhool: I am told my register is too much. I am calibrating. Soup is forthcoming.",
-    "Resulting judgment (key fields, not full shape):",
+    "Resulting analysis (key fields, not full shape):",
     '  playerSummary: "Jenna held the booth joke. Vhool calibrated."',
     '  notableMoments: ["Jenna held the joke about Vhool\'s size.", "Vhool flagged his own register without theatrics."]',
     "  dateHealthDelta: 3",
@@ -884,6 +895,20 @@ export function buildJudgePromptPacket({
   const candidateLines = formatRevealCandidatesForPrompt(candidates);
   const pairTrajectory = derivePairTrajectory({ pairState, currentSession: session });
   const pairSpotlight = selectPairSpotlightItem(pairState);
+  const cutShortModeLines = isPlayerCutShort
+    ? [
+        "",
+        "<cut_short_rules>",
+        "Cupid, the player operator, chose to cut this date short now.",
+        "Treat the final System line as operator action, not a member action.",
+        "Judge the pending exchange and the interruption together.",
+        "Recent character lines may already have Cupid filings. Use them as context for the exit, not as an excuse to double-file old moves.",
+        "A pressured member may be relieved. A warmed member may be disappointed. Score each member mood separately.",
+        "shouldEndEarly only means the transcript itself required a stop, even without the operator call.",
+        "playerSummary should mention the cut-short decision when it changes the read.",
+        "</cut_short_rules>",
+      ]
+    : [];
   const messages: ModelMessage[] = [
     {
       role: "user",
@@ -898,9 +923,13 @@ export function buildJudgePromptPacket({
         "- dateHealthDelta must be an integer from -18 to 14.",
         "- statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
         `- memberMoodDeltas must include exactly these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
-        "- shouldEndEarly is true only when the exchange requires the date to stop now.",
+        isPlayerCutShort
+          ? "- shouldEndEarly is true only when the transcript requires the date to stop even without Cupid cutting it short."
+          : "- shouldEndEarly is true only when the exchange requires the date to stop now.",
         "- Omit earlyEndReason unless shouldEndEarly is true.",
-        '- endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
+        isPlayerCutShort
+          ? '- endSentiment may be "positive", "negative", or null. Use it for the whole exit mood after Cupid cuts the date short, even when shouldEndEarly is false.'
+          : '- endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
         "- notableMoments must contain 1 to 3 short strings, each anchored in a concrete scene detail.",
         "- playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
         "- memoryCandidates must be an empty array.",
@@ -917,6 +946,7 @@ export function buildJudgePromptPacket({
         "- Asking the partner whether they want a turn, then acting after they answer, is checking preference, not deferring control.",
         "- When the role read is ambiguous, write the visible move instead: Alex asked Sam about first dibs, Sam told Alex to send it, Alex ordered the meat.",
         "</evidence_rules>",
+        ...cutShortModeLines,
         "",
         "<scoring_guidance>",
         "- Positive Date Health belongs to exchanges that create evidence of warmth, trust, repair, or useful attraction.",
@@ -955,7 +985,7 @@ export function buildJudgePromptPacket({
         "</member_briefs>",
         "",
         "<prior_filings>",
-        "Prior judge filings follow as assistant messages. Treat them as your own previous rulings, not as new gameplay authority.",
+        "Prior Cupid filings follow as assistant messages. Treat them as your own previous reads, not as new gameplay authority.",
         "</prior_filings>",
         ...candidateLines,
       ].join("\n"),
@@ -965,8 +995,10 @@ export function buildJudgePromptPacket({
       role: "user",
       content: [
         "<task>",
-        `Current exchange index: ${exchangeIndexForPendingTurn(exchangeMessages, session.judgeSnapshots.length)}.`,
-        "Judge only this pending exchange while respecting prior filings and current deterministic state.",
+        `Current exchange index: ${currentExchangeIndex}.`,
+        isPlayerCutShort
+          ? "Analyze this pending exchange and Cupid's cut-short decision while respecting prior filings and current deterministic state."
+          : "Analyze only this pending exchange while respecting prior filings and current deterministic state.",
         "</task>",
         "",
         "<exchange>",
@@ -1073,14 +1105,20 @@ export function buildSummarizerPromptPacket({
       "- Preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them.",
       "- Preserve revealed information that later performers need because they do not receive the partner's private file.",
       "- Store how the pair treated each other only when the transcript shows the move: who asked, refused, trusted, dodged, softened, or followed up.",
+      ...(session.endReason === "player_cut_short"
+        ? [
+            "- Cupid cut this date short. Include at least one memory that records the cut-short decision and any member reaction the final Cupid summary or transcript supports.",
+          ]
+        : []),
       "- Drop obvious contradictions, one-off non sequiturs, hidden secrets stated as fact, future events, and gameplay effects unless deterministic state already confirmed them.",
       "- Favor memories that help the pair continue a later conversation over generic compatibility summaries.",
       "</content_rules>",
       "",
       "<context>",
       `Date session: ${session.id}. Pair: ${session.pairId}. Scenario: ${session.scenarioId}.`,
+      `End reason: ${session.endReason ?? "none"}.`,
       `Participants: ${formatParticipants(members)}.`,
-      `Final judge summary: ${finalJudgeSnapshot?.playerSummary ?? "No judge summary."}`,
+      `Final Cupid summary: ${finalJudgeSnapshot?.playerSummary ?? "No Cupid summary."}`,
       "</context>",
       "",
       "<transcript>",
@@ -1505,7 +1543,7 @@ function buildJudgeThreadMessages(judgeSnapshots: readonly JudgeSnapshot[]): Mod
   return judgeSnapshots.slice(-6).flatMap((snapshot) => [
     {
       role: "user" as const,
-      content: `Prior judge filing for exchange ${snapshot.exchangeIndex}:`,
+      content: `Prior Cupid filing for exchange ${snapshot.exchangeIndex}:`,
     },
     {
       role: "assistant" as const,

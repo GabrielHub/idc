@@ -15,7 +15,7 @@ export const meta: DocMeta = {
   group: "gameplay",
   title: "Match fit",
   description:
-    "Deterministic booking pressure: scoring inputs, badge rules, pre-date brief boundary, judge ownership after the date starts.",
+    "Deterministic booking pressure: scoring inputs, badge rules, pre-date brief boundary, Cupid analysis ownership after the date starts.",
   order: 2,
 };
 
@@ -23,7 +23,7 @@ export const lede = (
   <>
     The match fit service scores booking pressure for a pair, a scenario, pair history, and active
     member asks. It does not decide attraction, compatibility, or whether a relationship works.
-    Runtime AI owns character reaction and the judge reads the actual exchange.
+    Runtime AI owns character reaction and Cupid reads the actual exchange.
   </>
 );
 
@@ -57,7 +57,7 @@ export const sections: DocSectionEntry[] = [
             {
               id: "judge",
               kind: "guard",
-              label: "Judge or reveal filter",
+              label: "Cupid or reveal filter",
               detail: "Needs transcript evidence",
             },
             {
@@ -82,20 +82,20 @@ export const sections: DocSectionEntry[] = [
           Use match fit as a nudge, not a verdict. It may say that an ask is hard to honor in this
           room, that a scene starts under pressure, or that a known boundary is risky. It must not
           force a pair to fail because an author expected friction. If the LLMs play a surprising
-          warm turn and the judge accepts it, app state should be able to move with that result.
+          warm turn and Cupid accepts it, app state should be able to move with that result.
         </DocCallout>
       </>
     ),
   },
   {
     id: "judge-owns-deltas",
-    title: "Judge owns deltas after the date starts",
+    title: "Cupid analysis owns deltas after the date starts",
     body: (
       <DocCallout variant="warn">
-        After the date starts, validated judge output owns Date Health deltas, pair stat deltas,
-        member mood deltas, early endings, and evidence use. Match fit must not add per-exchange
-        drift, auto-collapse Date Health, or auto-file a boundary read without transcript evidence
-        or a reveal beat.
+        After the date starts, validated Cupid analysis output owns Date Health deltas, pair stat
+        deltas, member mood deltas, early endings, and evidence use. Match fit must not add
+        per-exchange drift, auto-collapse Date Health, or auto-file a boundary read without
+        transcript evidence or a reveal beat.
       </DocCallout>
     ),
   },
@@ -164,9 +164,9 @@ export const sections: DocSectionEntry[] = [
           ]}
         />
         <DocCallout variant="ok">
-          Only the judge can end the date early after reading the exchange. If the transcript
-          supports a boundary read, the judge or deterministic reveal filter may file the
-          player-safe read. The UI shows the filed read, not the raw tag or rule hit.
+          Only Cupid can end the date early after reading the exchange. If the transcript supports a
+          boundary read, Cupid or the deterministic reveal filter may file the player-safe read. The
+          UI shows the filed read, not the raw tag or rule hit.
         </DocCallout>
       </>
     ),

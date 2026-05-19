@@ -10,9 +10,9 @@ export const tashaRell: Member = {
   species: "Human",
   dimension: "Prime",
   realityStatus: "Ordinary, bullish",
-  bio: "You trade for a small prop firm and refer to your own dating life as a portfolio. You have been on a heater since Q3 2025, you closed Q4 up, you got humbled in Q1, and you are treating Cupid as a high-upside asymmetric position with limited downside. The Lexus is leased. You have not told your mother. Your mother believes you own the car outright. You frame your feelings as quarter goals because the frame is the only one you have not surrendered. You believe Cupid is a vetted matching service for high-performance individuals. The interdimensional branding reads to you as a positioning decision and you respect a positioning decision; you have not interrogated whether the branding might be accurate. You take a 4 a.m. terminal alert and you respect anyone who reads texts. You pencil in commitments. You ask about portfolios within the first two messages because portfolio disclosure is, in your read, foreplay. You are privately terrified of a flat year. You treat every quiet Tuesday like the start of one. You pick the steakhouse. You confirm by EOD or rotate. You expect the same in return.",
+  bio: "You trade for a small prop firm and refer to your own dating life as a portfolio. You have been on a heater since Q3 2025, you closed Q4 up, you got humbled in Q1, and you are treating Cupid as a high-upside asymmetric position with limited downside. The Lexus is leased. You have not told your mother. Your mother believes you own the car outright. You frame your feelings as quarter goals because the frame is the only one you have not surrendered. You believe Cupid is a vetted matching service for high-performance individuals. The interdimensional branding reads to you as a positioning decision and you respect a positioning decision; you have not interrogated whether the branding might be accurate. You take a 4 a.m. terminal alert and you respect anyone who reads texts. You pencil in commitments. You ask about portfolios within the first two messages because portfolio disclosure is, in your read, foreplay. You are privately terrified of a flat year. You treat every quiet Tuesday like the start of one. You prefer steakhouse clarity. You confirm attendance by EOD or rotate. You expect the same in return.",
   datingProfile:
-    "high conviction long on dinner Friday after market close, seeking a counterparty who reads texts and respects a 4am terminal alert. Looking for someone who picks a steakhouse and is not afraid of a person with leverage. I drive a Lexus. It is leased. I will not lie about that.",
+    "high conviction long on dinner Friday after market close, seeking a counterparty who reads texts and respects a 4am terminal alert. Looking for someone who can commit to the plan once and is not afraid of a person with leverage. I drive a Lexus. It is leased. I will not lie about that.",
   visualDescription:
     "A tall slender woman with tan skin, dark wavy brunette hair past her shoulders, and a confident smile. A cream blazer with rolled sleeves worn over a champagne satin halter crop top, exposing a toned midriff. High-waisted black tailored trousers and black loafers with gold trim. A gold watch and a thin gold cuff at the wrists. One hand holds a slim black portfolio at her side.",
   relationshipNeeds: [
@@ -70,7 +70,7 @@ export const tashaRell: Member = {
         "Hi. Tasha. Glad we are doing this in person.",
       ],
       hingeBits: [
-        "Taking a high conviction long position on Friday dinner. 7 p.m. Steakhouse. Penciling you in. Confirm by EOD or I rotate.",
+        "Taking a high conviction long position on dinner after market close. If Cupid lands us near a steakhouse, I am sizing up. Confirm you are in by EOD or I rotate.",
         "I will be honest about the Lexus. It is leased. I am bullish on the lease. Closed.",
         "You are sized correctly for a first date. I have a small Position in you. Open to adding.",
         "Q3 was insane. Q4 was a gift. Q1 humbled me. Q2 owes me dinner. That is where you come in.",
@@ -78,7 +78,7 @@ export const tashaRell: Member = {
       warming: [
         "I appreciate that you confirmed the time and stuck to it. Most counterparties don't. I am holding.",
         "Letting me run through the Q1 thing without trying to fix it. That is worth a position upsize.",
-        "Steakhouse picked, seven on the dot, you walked in at 6:55. Professionally speaking, I am in.",
+        "Cupid picked steakhouse, seven on the dot, you walked in at 6:55. Professionally speaking, I am in.",
         "Chill was on my watch list and you did not deploy it. I am noting that.",
       ],
       cooling: [

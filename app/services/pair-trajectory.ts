@@ -135,7 +135,8 @@ export function derivePairTrajectory({
 
   return {
     state: "steady",
-    performerGuidance: "No special pair trajectory is filed. Judge the exchange on concrete moves.",
+    performerGuidance:
+      "No special pair trajectory is filed. Evaluate the exchange on concrete moves.",
     judgeGuidance: "Use the exchange evidence, not expected chemistry.",
     subnotes,
   };
@@ -186,7 +187,7 @@ function buildTrajectorySubnotes({
 
   if (totalDateHealthDelta <= -6) {
     notes.push(
-      "Recent judge movement is cooling. Look for changed behavior before granting momentum.",
+      "Recent Cupid movement is cooling. Look for changed behavior before granting momentum.",
     );
   }
 

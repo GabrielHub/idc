@@ -93,12 +93,16 @@ export const sections: DocSectionEntry[] = [
     body: (
       <P>
         Default date length is 24 character turns (<DocCode>CHARACTER_TURN_LIMIT</DocCode> in{" "}
-        <DocCode>app/services/date-engine.ts</DocCode>), which produces 4 judged exchanges at the
-        6-turn judge interval and a phase distribution of roughly 3 opener turns, 9 pressure turns,
-        6 pivot turns, and 6 resolution turns. The previous 30-turn default dragged late-game on
-        local models without adding judge filings or phase coverage; the new default keeps the same
-        judge cadence while shortening the redundant tail. The schema floor stays at 2 so test
-        fixtures can shorten dates without resetting other defaults.
+        <DocCode>app/services/date-engine.ts</DocCode>), which produces 4 Cupid-reviewed exchanges
+        at the 6-turn Cupid interval and a phase distribution of roughly 3 opener turns, 9 pressure
+        turns, 6 pivot turns, and 6 resolution turns. The previous 30-turn default dragged late-game
+        on local models without adding Cupid filings or phase coverage; the new default keeps the
+        same Cupid cadence while shortening the redundant tail. After 2 Cupid reads (
+        <DocCode>MIN_JUDGE_READS_BEFORE_CUT_SHORT</DocCode>), a paused active date can be cut short.
+        That path appends a system beat, runs one final Cupid judge pass, finalizes the report,
+        files memories, clears the booking, and stamps both members into cooldown. The final judge
+        decides whether the exit protected a bad room or bruised a warm one. The schema floor stays
+        at 2 so test fixtures can shorten dates without resetting other defaults.
       </P>
     ),
   },

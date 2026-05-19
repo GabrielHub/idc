@@ -1231,7 +1231,7 @@ function featurePacketForMode(
 }
 
 function featureBenchLabel(mode: FeatureBenchPlaygroundMode): string {
-  if (mode === "judgeBench") return "Judge Bench";
+  if (mode === "judgeBench") return "Cupid Analysis Bench";
   if (mode === "followUpBench") return "Follow-up Bench";
   return "Extractor Bench";
 }

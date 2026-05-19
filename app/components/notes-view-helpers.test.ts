@@ -127,7 +127,7 @@ describe("buildPairDossier", () => {
       scope: "pair",
       visibility: "judge_only",
       tags: ["date_summary"],
-      text: "Private judge note.",
+      text: "Private analysis note.",
       createdAt: "2026-05-04T12:00:00.000Z",
     });
     const otherPairNote = buildPairMemory(buildPairState(jennaPike, bradyStrait), {

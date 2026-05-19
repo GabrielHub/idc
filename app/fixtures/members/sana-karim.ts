@@ -25,7 +25,7 @@ export const sanaKarim: Member = {
     "early dinners",
     "people who can sit in silence",
     "restaurants she has been to",
-    "partners who name a place without making her negotiate it",
+    "partners who accept a place without making her negotiate it",
     "phones face down or away from the table",
   ],
   dealbreakers: [

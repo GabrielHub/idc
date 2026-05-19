@@ -115,10 +115,16 @@ export const sections: DocSectionEntry[] = [
         <P>
           Runtime AI can propose evidence ids only from a bounded reveal candidate packet. Game
           services validate those ids against authoritative candidates before persistence.
-          Deterministic services can offer boundary risk candidates, but the judge or reveal filter
+          Deterministic services can offer boundary risk candidates, but Cupid or the reveal filter
           must have transcript evidence or a reveal beat before a boundary read is filed.{" "}
           <DocCode>JudgeSnapshot.usedEvidenceIds</DocCode> stores only accepted ids so UI can attach
-          filed reads to the Judge note that created them.
+          filed reads to the Cupid note that created them.
+        </P>
+        <P>
+          Filed reads are shared operational knowledge. Once Cupid files a player-safe read, future
+          member prompts may receive that same read as visible context so player knowledge and
+          member behavior stay in sync. This does not open never player-facing fields. It means
+          members can react to the same filed case notes the player has earned.
         </P>
       </>
     ),
@@ -200,7 +206,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             "Use visible redaction treatments, sealed labels, and filed-read lists instead of hiding real text with opacity or placing gated text in invisible DOM.",
             "Search, filters, sort controls, tooltips, and aria labels follow the same boundary as visible UI.",
-            "The live date footer can show exact Date Health, turn count, Judge count, nudge slots, and scene slots. Final reports, notes, brief panels, and follow-up actions should use nonnumeric outcome and intent copy.",
+            "The live date footer can show exact Date Health, turn count, Cupid read count, nudge slots, and scene slots. Final reports, notes, brief panels, and follow-up actions should use nonnumeric outcome and intent copy.",
           ]}
         />
         <P>

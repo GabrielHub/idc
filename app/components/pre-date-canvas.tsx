@@ -669,7 +669,7 @@ export function PreDateCanvas({
             target={[selectedDateCardRef, dateSectionRef]}
             placement="top"
             title="Pick one room"
-            body="These three came from your Date Book. Room Read is a warning, not a verdict. The Judge still waits for transcript evidence."
+            body="These three came from your Date Book. Room Read is a warning, not a verdict. Cupid still waits for transcript evidence."
             dismissLabel="Skip tour"
             onDismiss={planningScenarioStep.dismiss}
           />

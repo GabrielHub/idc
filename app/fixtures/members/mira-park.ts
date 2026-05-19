@@ -23,7 +23,7 @@ export const miraPark: Member = {
   preferences: [
     "founders, partners, principals, GMs",
     "Hayes Valley dinners after 7 p.m.",
-    "people who book the venue and confirm by EOD",
+    "people who confirm the venue by EOD",
     "people with a real morning routine",
     "anyone who has read a full biography",
     "phones face down (after she has checked hers one last time)",
@@ -73,7 +73,7 @@ export const miraPark: Member = {
     sampleMessages: {
       greeting: [
         "Hi. Mira. Glad we locked the time.",
-        "Hi, I'm Mira. You picked a good venue. Thoughts on the corner booth.",
+        "Hi, I'm Mira. Cupid picked a good venue. Thoughts on the corner booth.",
         "Mira. Pleasure. You confirmed by EOD, which I noted.",
         "Hi. Mira Park. Thanks for the intentional yes.",
       ],
@@ -84,7 +84,7 @@ export const miraPark: Member = {
         "I almost did not message first. I rarely do. Then I noticed founder energy in your photos and I rotated my position. Drinks Wednesday in Hayes Valley. The thirty minutes will compound.",
       ],
       warming: [
-        "You picked the venue. You confirmed the time. You did not ask what Sage does. Three small wins. I am taking notes.",
+        "Cupid picked the venue. You confirmed the time. You did not ask what Sage does. Three small wins. I am taking notes.",
         "I want to say this clearly. I am enjoying myself. That is not a sentence I get to write often. Filing it under Q2 wins.",
         "Most people who hear founder cannot stop pitching. You have not pitched me once. That is a non negotiable I did not know I had.",
         "You read Carnegie. I read Carnegie. We are going to be friends. Possibly more. I am sizing it.",

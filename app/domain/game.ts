@@ -540,6 +540,12 @@ export const cupidInterventionSchema = z.object({
 
 export const endSentimentSchema = z.enum(["positive", "negative"]);
 
+export const dateSessionEndReasonSchema = z.enum([
+  "natural_wrap",
+  "judge_early_end",
+  "player_cut_short",
+]);
+
 export const playbackStateSchema = z.enum(["drafting", "paused", "playing", "ended"]);
 
 export const eventDraftSchema = z.object({
@@ -684,6 +690,7 @@ export const dateSessionSchema = z.object({
   eventsTriggered: z.array(z.string().min(1)).default([]),
   playbackState: playbackStateSchema.default("drafting"),
   endSentiment: endSentimentSchema.nullable().default(null),
+  endReason: dateSessionEndReasonSchema.nullable().default(null),
   interventions: z.array(cupidInterventionSchema).default([]),
   finalReport: dateFinalReportSchema.optional(),
 });
@@ -1005,6 +1012,7 @@ export type DateScenario = z.infer<typeof dateScenarioSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;
 export type PlaybackState = z.infer<typeof playbackStateSchema>;
 export type EndSentiment = z.infer<typeof endSentimentSchema>;
+export type DateSessionEndReason = z.infer<typeof dateSessionEndReasonSchema>;
 export type GoalMetric = z.infer<typeof goalMetricSchema>;
 export type CompanyGoal = z.infer<typeof companyGoalSchema>;
 export type MemberRequestTag = z.infer<typeof memberRequestTagSchema>;

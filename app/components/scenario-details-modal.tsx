@@ -176,7 +176,7 @@ export function ScenarioDetailsModal({
             target={briefSectionRef}
             placement="top"
             title="Read the room before you book it"
-            body="Every scenario brief lays out the premise, the rules of the room, and what the judge will reward or punish. Skim it so Cupid can match members to the right vibe."
+            body="Every scenario brief lays out the premise, the rules of the room, and what Cupid will reward or punish. Skim it so the match lands in the right mess."
             primaryLabel="Got it"
             onPrimary={firstOpenStep.complete}
             dismissLabel="Skip tour"

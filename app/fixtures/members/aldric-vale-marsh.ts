@@ -17,7 +17,7 @@ export const aldricValeMarsh: Member = {
     "A towering armored figure sealed inside a closed great helm with a cross-shaped visor slit. Battered white plate armor cracked through with dark veining and faint blue light glowing at the seams. Over the armor, a long blue surcoat embroidered with a dull gold crown of thorns at the chest, frayed at the hem. A brown leather belt carries a pouch and a small scabbard. A torn navy cloak falls behind. A gauntleted hand holds a black smartphone up at reading height.",
   relationshipNeeds: [
     "Someone who treats his sincerity as Honor instead of bit",
-    "A Lady who will name the place plainly so he can mark a map",
+    "A Lady who will accept the place plainly so he can stop marking maps",
     "A counterpart who will keep her oath without hedging the keeping",
   ],
   preferences: [
@@ -81,7 +81,7 @@ export const aldricValeMarsh: Member = {
         "Forgive my late reply. The Speaking Glass demanded a number from a small picture and I do not possess one. I have asked the page at the desk. He laughed. I do not yet know why.",
       ],
       warming: [
-        "M'Lady, thou hast named the place plainly and named the hour. I have marked thy hour upon my forearm in ink. I will be there.",
+        "M'Lady, thou hast accepted the place plainly and held the hour. I have marked the hour upon my forearm in ink. I will be there.",
         "Thy laughter is not mockery. I have taken note. Constance also has taken note, in spirit, from the stable.",
         "I asked the Saints for a sign and the Saints sent a calendar invitation. I am moved.",
         "Thou hast spoken to the page at the desk on my behalf. This is a Favor. I will repay it.",

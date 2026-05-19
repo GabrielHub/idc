@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { type Member, SCENARIO_EVENT_KINDS, SCENARIO_EVENTS_PER_KIND } from "../domain/game";
+import { memberRequests } from "./goals";
 import { MANAGER_QUIP_CATALOG, type ManagerQuipTriggerKey } from "./manager-quips";
 import { starterMembers } from "./members";
 import { starterScenarios } from "./scenarios";
@@ -38,6 +39,32 @@ const REVEAL_BIOGRAPHY_DRIFT_PATTERNS: ReadonlyArray<RegExp> = [
   /\b(his|her|their) (childhood|hometown|ex)\b/iu,
   /\b(his|her|their) (mother|father|mom|dad)\b/iu,
 ];
+
+const LOGISTICS_ACTOR_PATTERN = String.raw`\b(?:i|i'm|im|i am|i'll|ill|we|we're|you|you'll|partner|counterpart|date|someone|he|she|they)\b`;
+const LOGISTICS_ACTION_PATTERN = String.raw`\b(?:pick|picks|picked|picking|choose|chooses|chose|chosen|select|selects|selected|booked)\b`;
+const LOGISTICS_OBJECT_PATTERN = String.raw`\b(?:place|spot|restaurant|venue|bar|steakhouse|patio|time|hour|day|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b`;
+const NON_CUPID_LOGISTICS_AGENCY_PATTERNS: ReadonlyArray<RegExp> = [
+  new RegExp(
+    `${LOGISTICS_ACTOR_PATTERN}[^.!?\\n]{0,80}${LOGISTICS_ACTION_PATTERN}[^.!?\\n]{0,60}${LOGISTICS_OBJECT_PATTERN}`,
+    "iu",
+  ),
+  new RegExp(
+    `${LOGISTICS_OBJECT_PATTERN}[^.!?\\n]{0,60}${LOGISTICS_ACTOR_PATTERN}[^.!?\\n]{0,80}${LOGISTICS_ACTION_PATTERN}`,
+    "iu",
+  ),
+  new RegExp(
+    `${LOGISTICS_ACTOR_PATTERN}[^.!?\\n]{0,80}\\b(?:name|names|named)\\s+(?:a|the)?\\s*(?:place|spot|restaurant|venue|bar|steakhouse|patio|time|hour)\\b`,
+    "iu",
+  ),
+  new RegExp(
+    `${LOGISTICS_ACTOR_PATTERN}[^.!?\\n]{0,80}\\b(?:book|books)\\s+(?:a|the)?\\s*(?:place|spot|restaurant|venue|bar|steakhouse|patio)\\b`,
+    "iu",
+  ),
+];
+const CUPID_LOGISTICS_AGENCY_PATTERN = new RegExp(
+  String.raw`\bCupid\b[^.!?\n]{0,40}${LOGISTICS_ACTION_PATTERN}[^.!?\n]{0,60}${LOGISTICS_OBJECT_PATTERN}`,
+  "iu",
+);
 
 // Manager quip length ceiling. The voice doc targets five to twelve words and
 // one or two sentences; the lint caps a generous ceiling so future authors do
@@ -81,6 +108,23 @@ function countSentences(text: string): number {
     .split(/[.!?]+/u)
     .map((part) => part.trim())
     .filter((part) => part.length > 0).length;
+}
+
+function nonCupidLogisticsAgencySentences(text: string): string[] {
+  const sentences = text.split(/(?<=[.!?])\s+|\n/u);
+  const violations: string[] = [];
+
+  for (const sentence of sentences) {
+    if (CUPID_LOGISTICS_AGENCY_PATTERN.test(sentence)) {
+      continue;
+    }
+
+    if (NON_CUPID_LOGISTICS_AGENCY_PATTERNS.some((pattern) => pattern.test(sentence))) {
+      violations.push(sentence.trim());
+    }
+  }
+
+  return violations;
 }
 
 describe("fixture content lint", () => {
@@ -161,6 +205,24 @@ describe("fixture content lint", () => {
           if (pattern.test(text)) {
             violations.push(`${member.id} matches ${pattern}`);
           }
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+
+    it("does not assign Cupid date logistics to members or partners", () => {
+      const violations: string[] = [];
+
+      for (const member of starterMembers) {
+        for (const sentence of nonCupidLogisticsAgencySentences(memberContentText(member))) {
+          violations.push(`${member.id}: ${sentence}`);
+        }
+      }
+
+      for (const request of memberRequests) {
+        for (const sentence of nonCupidLogisticsAgencySentences(request.text)) {
+          violations.push(`${request.id}: ${sentence}`);
         }
       }
 

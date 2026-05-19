@@ -153,7 +153,7 @@ export function NotesView({
         eyebrow={`// notes.${pad2(shiftCount)}`}
         title="Case notes"
         meta={`${pad2(totalCount)} on file`}
-        tooltip="Public pair and scenario memories Cupid can share. Private member files and judge-only records stay sealed."
+        tooltip="Public pair and scenario memories Cupid can share. Private member files and sealed analysis records stay closed."
       />
 
       <div className="mt-8 grid items-start gap-8 xl:grid-cols-[minmax(44rem,1fr)_minmax(26rem,34rem)]">

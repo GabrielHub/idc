@@ -335,7 +335,7 @@ export function AiPromptLabTest() {
     >
       <TestHeader
         title="AI prompt bench"
-        description="Run performer, extractor, judge, follow-up, and private chat prompts against the same local prompt contracts."
+        description="Run performer, extractor, Cupid analysis, follow-up, and private chat prompts against the same local prompt contracts."
       />
 
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
@@ -505,7 +505,7 @@ function RunSheet({
               mode={mode}
               onSelect={onFeatureMode}
             />
-            <ModeButton label="Judge" value="judgeBench" mode={mode} onSelect={onFeatureMode} />
+            <ModeButton label="Cupid" value="judgeBench" mode={mode} onSelect={onFeatureMode} />
             <ModeButton
               label="Follow-up"
               value="followUpBench"
@@ -736,7 +736,7 @@ function isFeatureBenchMode(mode: AiPlaygroundMode): mode is FeatureBenchPlaygro
 function playgroundModeLabel(mode: AiPlaygroundMode): string {
   if (mode === "dateConversation") return "Performer";
   if (mode === "memberChat") return "Member chat";
-  if (mode === "judgeBench") return "Judge";
+  if (mode === "judgeBench") return "Cupid";
   if (mode === "followUpBench") return "Follow-up";
   return "Extractor";
 }

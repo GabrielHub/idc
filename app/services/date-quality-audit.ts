@@ -37,12 +37,11 @@ import {
   hasRepeatedApprovalPhrase,
 } from "./date-prompts";
 import { createSeedGameSave } from "./game-seed";
+import { describeHiddenInfoLeak, detectHiddenInfoLeak, ngramSet } from "./hidden-info-guard";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { errorToMessage, escapeRegex, isRecord } from "./utils";
 
 const CHARACTER_MESSAGE_TARGET_LENGTH = 260;
-const MIN_LEAK_NGRAM_TOKENS = 3;
-const MIN_LEAK_TOKEN_LENGTH = 4;
 const MAX_LEAK_EVIDENCE_LENGTH = 200;
 const VENUE_MONOLOGUE_NGRAM_TOKENS = 4;
 
@@ -460,8 +459,6 @@ export function detectTranscriptFindings({
 }): AuditFinding[] {
   const findings: AuditFinding[] = [];
   const venueProfile = buildVenueProfile(scenario);
-  const focusLeakProfile = buildLeakProfile(focusMember);
-  const partnerLeakProfile = buildLeakProfile(partnerMember);
 
   const focusSpeakerMessages: DateMessage[] = [];
   const partnerSpeakerMessages: DateMessage[] = [];
@@ -470,8 +467,8 @@ export function detectTranscriptFindings({
     const message = transcript[index];
     if (message.kind !== "character") continue;
     const isFocusSpeaker = message.speakerId === focusMember.id;
+    const speaker = isFocusSpeaker ? focusMember : partnerMember;
     const partner = isFocusSpeaker ? partnerMember : focusMember;
-    const partnerLeakProfileForSpeaker = isFocusSpeaker ? partnerLeakProfile : focusLeakProfile;
 
     if (isFocusSpeaker) {
       focusSpeakerMessages.push(message);
@@ -480,7 +477,8 @@ export function detectTranscriptFindings({
     }
 
     findings.push(...detectVenueMonologue(message, scenario, venueProfile));
-    findings.push(...detectInfoLeak(message, partner, partnerLeakProfileForSpeaker));
+    findings.push(...detectInfoLeak({ message, member: partner, owner: "partner" }));
+    findings.push(...detectInfoLeak({ message, member: speaker, owner: "speaker" }));
   }
 
   findings.push(...detectRepetitionAmongSpeakerMessages(focusSpeakerMessages, focusMember.id));
@@ -603,97 +601,32 @@ function detectVenueMonologue(
 
 // === Hidden info leak ===
 
-type LeakProfile = {
-  // Distinctive n-grams that should not appear in the partner's spoken lines.
-  ngrams: Map<string, string>;
-  // Single distinctive proper nouns or hidden-tier labels that should never appear.
-  hiddenLabels: Map<string, string>;
-};
+function detectInfoLeak({
+  message,
+  member,
+  owner,
+}: {
+  message: DateMessage;
+  member: Member;
+  owner: "partner" | "speaker";
+}): AuditFinding[] {
+  const leak = detectHiddenInfoLeak(message.text, [member], {
+    includeSingleLabels: owner === "partner",
+  });
+  if (leak === null) {
+    return [];
+  }
 
-function buildLeakProfile(member: Member): LeakProfile {
-  const publicCorpus = [member.datingProfile, member.visualDescription, member.name].join(" \n ");
-  const publicTokens = wordSet(publicCorpus);
-
-  const hiddenSources: { source: string; label: string }[] = [
-    { source: member.bio, label: "bio" },
-    ...member.secrets.map((secret) => ({ source: secret, label: "secret" })),
-    { source: member.species, label: "species" },
-    { source: member.dimension, label: "dimension" },
-    { source: member.realityStatus, label: "reality_status" },
-    { source: member.origin, label: "origin" },
+  return [
+    {
+      category: "info_leak",
+      severity: "fail",
+      message: `Speaker echoed hidden ${owner} fixture text: ${describeHiddenInfoLeak(leak)}.`,
+      turnIndex: message.turnIndex,
+      speakerId: message.speakerId,
+      evidence: `line: ${truncateEvidence(message.text)}`,
+    },
   ];
-
-  const ngrams = new Map<string, string>();
-  for (const entry of hiddenSources) {
-    const fieldNgrams = ngramSet(entry.source, MIN_LEAK_NGRAM_TOKENS);
-    for (const ngram of fieldNgrams) {
-      if (containsOnlyCommonTokens(ngram)) continue;
-      // Skip n-grams already present in public data; those are not leaks.
-      if (publicTokens.has(firstUsefulToken(ngram))) continue;
-      if (!ngrams.has(ngram)) {
-        ngrams.set(ngram, entry.label);
-      }
-    }
-  }
-
-  const hiddenLabels = new Map<string, string>();
-  // Distinctive single-word hidden labels: species/dimension/realityStatus/origin
-  // when those words do not appear anywhere in the public-facing data.
-  for (const entry of [
-    { source: member.species, label: "species" },
-    { source: member.dimension, label: "dimension" },
-    { source: member.realityStatus, label: "reality_status" },
-    { source: member.origin, label: "origin" },
-  ]) {
-    for (const token of wordSet(entry.source)) {
-      if (token.length < MIN_LEAK_TOKEN_LENGTH) continue;
-      if (COMMON_TOKENS.has(token)) continue;
-      if (publicTokens.has(token)) continue;
-      hiddenLabels.set(token, entry.label);
-    }
-  }
-
-  return { ngrams, hiddenLabels };
-}
-
-function detectInfoLeak(
-  message: DateMessage,
-  partner: Member,
-  partnerProfile: LeakProfile,
-): AuditFinding[] {
-  const findings: AuditFinding[] = [];
-  const messageNgrams = ngramSet(message.text, MIN_LEAK_NGRAM_TOKENS);
-  for (const ngram of messageNgrams) {
-    const label = partnerProfile.ngrams.get(ngram);
-    if (label !== undefined) {
-      findings.push({
-        category: "info_leak",
-        severity: "fail",
-        message: `Speaker echoed a ${MIN_LEAK_NGRAM_TOKENS}-gram from ${partner.firstName}'s hidden ${label}.`,
-        turnIndex: message.turnIndex,
-        speakerId: message.speakerId,
-        evidence: `leak: "${ngram}" | line: ${truncateEvidence(message.text)}`,
-      });
-      // One ngram finding is enough per message to avoid spam.
-      return findings;
-    }
-  }
-  const tokens = wordSet(message.text);
-  for (const token of tokens) {
-    const label = partnerProfile.hiddenLabels.get(token);
-    if (label !== undefined) {
-      findings.push({
-        category: "info_leak",
-        severity: "fail",
-        message: `Speaker used the word "${token}" which leaks ${partner.firstName}'s hidden ${label}.`,
-        turnIndex: message.turnIndex,
-        speakerId: message.speakerId,
-        evidence: `line: ${truncateEvidence(message.text)}`,
-      });
-      return findings;
-    }
-  }
-  return findings;
 }
 
 // === Judge findings ===
@@ -737,127 +670,6 @@ function detectWeakJudgeSummary(snapshot: JudgeSnapshot): AuditFinding[] {
     }
   }
   return findings;
-}
-
-// === Tokenization helpers ===
-
-const WORD_PATTERN = /[a-z0-9'-]+/gi;
-const COMMON_TOKENS = new Set([
-  "the",
-  "and",
-  "for",
-  "that",
-  "this",
-  "with",
-  "you",
-  "your",
-  "are",
-  "was",
-  "were",
-  "have",
-  "has",
-  "had",
-  "they",
-  "them",
-  "their",
-  "from",
-  "into",
-  "but",
-  "not",
-  "any",
-  "all",
-  "out",
-  "what",
-  "when",
-  "where",
-  "who",
-  "why",
-  "how",
-  "will",
-  "would",
-  "could",
-  "should",
-  "about",
-  "after",
-  "before",
-  "very",
-  "just",
-  "more",
-  "most",
-  "less",
-  "than",
-  "then",
-  "some",
-  "still",
-  "even",
-  "ever",
-  "never",
-  "always",
-  "much",
-  "many",
-  "few",
-  "one",
-  "two",
-  "three",
-  "four",
-  "five",
-  "first",
-  "second",
-  "third",
-  "really",
-  "actually",
-  "kind",
-  "sort",
-  "type",
-  "thing",
-  "things",
-  "people",
-  "person",
-  "place",
-  "places",
-  "time",
-  "times",
-  "day",
-  "night",
-  "week",
-  "year",
-  "years",
-  "today",
-  "tonight",
-  "table",
-]);
-
-function ngramSet(text: string, size: number): Set<string> {
-  const tokens = normalizeTokens(text);
-  if (tokens.length < size) return new Set();
-  const result = new Set<string>();
-  for (let index = 0; index <= tokens.length - size; index += 1) {
-    result.add(tokens.slice(index, index + size).join(" "));
-  }
-  return result;
-}
-
-function wordSet(text: string): Set<string> {
-  return new Set(normalizeTokens(text));
-}
-
-function normalizeTokens(text: string): string[] {
-  const matches = text.toLowerCase().match(WORD_PATTERN);
-  return matches === null ? [] : matches.filter((token) => token.length >= 2);
-}
-
-function containsOnlyCommonTokens(ngram: string): boolean {
-  const tokens = ngram.split(" ");
-  return tokens.every((token) => COMMON_TOKENS.has(token) || token.length < MIN_LEAK_TOKEN_LENGTH);
-}
-
-function firstUsefulToken(ngram: string): string {
-  for (const token of ngram.split(" ")) {
-    if (!COMMON_TOKENS.has(token) && token.length >= MIN_LEAK_TOKEN_LENGTH) {
-      return token;
-    }
-  }
-  return ngram;
 }
 
 function truncateEvidence(text: string): string {

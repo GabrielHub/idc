@@ -53,7 +53,7 @@ export const sections: DocSectionEntry[] = [
             <DocLink to="/docs/product/voice-prompts">Voice in prompts</DocLink> for event kinds, no
             continuing offstage speakers, and scenario card voice.{" "}
             <DocLink to="/docs/product/voice">Voice and tone</DocLink> for the register and prose
-            rules every scenario card and judge line must obey.
+            rules every scenario card and Cupid line must obey.
           </span>,
           <span key="match-fit">
             <DocLink to="/docs/gameplay/match-fit">Match fit</DocLink> for tag-driven booking
@@ -186,8 +186,8 @@ export const sections: DocSectionEntry[] = [
               <DocCode>director.events</DocCode>: exactly nine events.
             </span>,
             <span key="early">
-              <DocCode>director.earlyEndTriggers</DocCode>: concrete reasons the Judge may end the
-              date early.
+              <DocCode>director.earlyEndTriggers</DocCode>: concrete reasons Cupid may end the date
+              early.
             </span>,
             <span key="repeat">
               <DocCode>director.repeatBehavior</DocCode>: how repeated use should feel for the same

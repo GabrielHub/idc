@@ -381,10 +381,10 @@ export function upsertPlayerKnowledge(
       ...existing,
       confidence: upgradedConfidence,
       source: upgradedSource,
-      revealedAt: parsed.revealedAt,
-      dateSessionId: parsed.dateSessionId ?? existing.dateSessionId,
-      judgeSnapshotId: parsed.judgeSnapshotId ?? existing.judgeSnapshotId,
-      evidenceText: parsed.evidenceText ?? existing.evidenceText,
+      revealedAt: existing.revealedAt,
+      dateSessionId: existing.dateSessionId ?? parsed.dateSessionId,
+      judgeSnapshotId: existing.judgeSnapshotId ?? parsed.judgeSnapshotId,
+      evidenceText: existing.evidenceText ?? parsed.evidenceText,
     });
   }
 
@@ -604,15 +604,15 @@ const PAIR_DYNAMIC_READS: Record<string, { readId: string; readText: string; evi
 export function buildRevealCandidates(input: BuildRevealCandidatesInput): RevealCandidate[] {
   const candidates: RevealCandidate[] = [];
   const seenIds = new Set<string>();
+  const knownReadIndex = getOrBuildIndex(input.knownReads ?? []);
   const pushCandidate = (candidate: RevealCandidate) => {
-    if (seenIds.has(candidate.id)) {
+    if (seenIds.has(candidate.id) || knownReadIndex.knownReadIds.has(candidate.id)) {
       return;
     }
     seenIds.add(candidate.id);
     candidates.push(candidate);
   };
   const scenarioTags = new Set<ScenarioTag>(input.scenario.card.tags);
-  const knownReadIndex = getOrBuildIndex(input.knownReads ?? []);
 
   for (const member of input.members) {
     for (const tag of member.tags) {
@@ -902,9 +902,6 @@ export function filterExchangeEligibleRevealCandidates(
   const exchangeText = input.exchangeMessages
     .map((message) => message.text.toLowerCase())
     .join("\n");
-  const hasPendingScenarioEvent = input.exchangeMessages.some(
-    (message) => message.kind === "scenario",
-  );
 
   const normalizedExchangeText = normalizeEvidenceText(exchangeText);
   for (const candidate of input.candidates) {
@@ -928,7 +925,7 @@ export function filterExchangeEligibleRevealCandidates(
     if (candidate.readKind === "scenario_pressure") {
       const referencesEvidence = scenarioPressureMatchesExchange(candidate, exchangeText);
 
-      if (referencesEvidence || hasPendingScenarioEvent) {
+      if (referencesEvidence) {
         eligible.push(candidate);
       }
       continue;

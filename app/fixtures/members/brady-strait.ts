@@ -26,7 +26,7 @@ export const bradyStrait: Member = {
     "dates who do not have podcasts",
     "early endings he can write up before bed",
     "partners with a good poker face for the bit",
-    "decisive counterparts who pick the place",
+    "decisive counterparts who accept the place",
   ],
   dealbreakers: [
     "sincerity from the first message",

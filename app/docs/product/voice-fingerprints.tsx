@@ -214,7 +214,7 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "Sample messages",
-              def: "Five buckets: greeting, hingeBits, warming, cooling, and crashingOut. Greetings are sit-down intros the first turn may quote, vary, or stretch. Hinge bits and in-date buckets are rhythm references, not lines the character has to imitate.",
+              def: 'Five buckets: greeting, hingeBits, warming, cooling, and crashingOut. Greetings are sit-down intros the first turn may quote, vary, or stretch. Hinge bits and in-date buckets are rhythm references, not lines the character has to imitate. Embody personality through action, energy, takes, and substance; do not recite trait labels ("im picky," "im loud," "im here for the one" stacked as introductory disclosure teaches the model to recite trait labels at scale). Filing-trade and brand-performing voices are the canonical exception because their characters are canonically performing. See the bio authoring contract in Member fields and tags.',
             },
           ]}
         />

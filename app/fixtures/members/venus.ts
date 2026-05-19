@@ -73,7 +73,7 @@ export const venus: Member = {
       hingeBits: [
         "As the goddess of love I am uniquely qualified to assess your profile. I am also uniquely uninterested in your follow up about my marriages, darling. We will discuss the wine list.",
         "Two prior marriages are case studies. The thing with Mars was research. The flower man does not count, he bloomed. We are caught up.",
-        "I will be picking the restaurant. Your suggestion had hostile lighting. I have requirements. Mirrors. A bow at the door. A wine list that does not flinch.",
+        "Cupid will be picking the restaurant. If the lighting is hostile, I will be kind about it once. Mirrors. A bow at the door. A wine list that does not flinch.",
         "You have given me one compliment in four messages. One. The baseline is three. Recover the conversation, pet, I am rooting for you.",
       ],
       warming: [

@@ -18,7 +18,7 @@ export const meta: DocMeta = {
   group: "product",
   title: "Voice in prompts and surfaces",
   description:
-    "How the voice rules apply per surface (profile, opener, transcript, intervention, judge, scenario card) and how prompts feed Performer, Memory Summarizer, and Judge.",
+    "How the voice rules apply per surface (profile, opener, transcript, intervention, Cupid report, scenario card) and how prompts feed Performer, Memory Summarizer, and Cupid analysis.",
   order: 3,
 };
 
@@ -113,9 +113,8 @@ export const sections: DocSectionEntry[] = [
           </P>
           <P>
             The Director applies scenario pressure; the Performer keeps the voice as background
-            color. The Judge is allowed to break voice for clinical scoring; the transcript itself
-            never breaks voice, but it also never sacrifices a natural reaction in order to hit a
-            pattern.
+            color. Cupid analysis can use clinical scoring; the transcript itself never breaks
+            voice, but it also never sacrifices a natural reaction in order to hit a pattern.
           </P>
         </DocSubsection>
         <DocSubsection id="cupid-intervention" title="Cupid intervention (player-typed)">
@@ -149,7 +148,7 @@ export const sections: DocSectionEntry[] = [
           <DocQuote>"Match one ordinary human with one obviously non-human member."</DocQuote>
           <DocQuote>"Prevent any date from ending early."</DocQuote>
         </DocSubsection>
-        <DocSubsection id="judge-report" title="Judge report">
+        <DocSubsection id="judge-report" title="Cupid report">
           <P>Corporate voice. Short. Actionable. Treats the supernatural as procedural.</P>
           <DocQuote>
             "Exchange improved. Repeat room noticed by both parties. Recommend Cool Down."
@@ -200,7 +199,7 @@ export const sections: DocSectionEntry[] = [
       { id: "cupid-intervention", title: "Cupid intervention (player-typed)" },
       { id: "member-request", title: "Member request" },
       { id: "company-goal", title: "Company goal" },
-      { id: "judge-report", title: "Judge report" },
+      { id: "judge-report", title: "Cupid report" },
       { id: "follow-up-labels", title: "Follow-up action labels" },
       { id: "scenario-card", title: "Scenario card" },
       { id: "end-of-shift-report", title: "End-of-shift report" },
@@ -297,13 +296,13 @@ export const sections: DocSectionEntry[] = [
           ]}
         />
         <P>
-          When prompting the <Strong>Judge</Strong>:
+          When prompting <Strong>Cupid analysis</Strong>:
         </P>
         <DocList
           items={[
             "Corporate voice in player-facing summary.",
             "Internal debug notes can be plain prose, no jokes.",
-            "Do not let the Judge perform members. The Judge scores; it does not riff.",
+            "Do not let Cupid analysis perform members. Cupid scores; it does not riff.",
           ]}
         />
       </>
@@ -324,7 +323,7 @@ export const sections: DocSectionEntry[] = [
         </P>
         <DocCallout variant="info">
           Scenario authoring must stay member-agnostic. Do not name a member in scenario titles,
-          cards, public briefs, events, director instructions, judge rubrics, or early-end triggers.
+          cards, public briefs, events, director instructions, Cupid rubrics, or early-end triggers.
           Build reusable hooks instead: Olympus, a bargain clause, an unexplained camera flash, a
           rescue poster, a formal toast, a quiet corner.
         </DocCallout>

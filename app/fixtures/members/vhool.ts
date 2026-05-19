@@ -75,7 +75,7 @@ export const vhool: Member = {
       ],
       warming: [
         "You have not flinched. You have asked the soup question with sincerity. I have been Watching, and you have done well.",
-        "You named a place. You named a Time. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
+        "You accepted a place. You accepted a Time. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
         "You did not call my hair a costume. This is a small kindness that registers. The Lower Choir has heard.",
         "You spoke of your week as though it were ordinary. I am told this is the local form. I will accept the local form.",
       ],

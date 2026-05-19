@@ -8,16 +8,20 @@ import {
 } from "../domain/game";
 import { LocalGameRepository } from "../repositories/local-game-repository";
 import { MemorySaveStore } from "../repositories/memory-save-store";
+import { MEMBER_QUIT_BUDGET_CUT } from "./budget";
 import {
   advanceDateExchangeWithLocalAi,
   advanceDateExchangeWithLocalAiStream,
   completeDateSessionWithLocalAi,
+  cutDateShortWithLocalAi,
   DateStreamAbortedError,
   sanitizeCharacterText,
   type LocalAiDateRuntime,
   type LocalAiDateStreamEvent,
 } from "./ai-date-engine";
+import { canCutDateShort } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
+import { extractDistinctiveTriGram } from "./hidden-info-guard";
 import { OPEN_LOOP_TAG, PAIR_AGREEMENT_TAG } from "./pair-memory";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
@@ -981,7 +985,7 @@ describe("AI date engine orchestration", () => {
     expect(loadedSave?.memories).toHaveLength(started.save.memories.length);
   });
 
-  it("streams performer deltas before committing the validated exchange", async () => {
+  it("emits accepted performer deltas after validating the streamed exchange", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -1125,6 +1129,111 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.judgeSnapshots).toHaveLength(1);
   });
 
+  it("does not emit streamed hidden fixture text before the retry guard accepts a line", async () => {
+    const repository = new LocalGameRepository(
+      new MemorySaveStore(),
+      "ai-stream-hidden-retry-test",
+    );
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 4,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+
+    if (vhool === undefined) {
+      throw new Error("Expected Vhool.");
+    }
+
+    const hiddenPhrase = extractDistinctiveTriGram(vhool.bio);
+    let streamCallCount = 0;
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        throw new Error("non-streaming performer should not run");
+      },
+      streamCharacterTurn: async ({ onTextDelta }) => {
+        streamCallCount += 1;
+
+        const text =
+          streamCallCount === 1
+            ? `So the file says ${hiddenPhrase}.`
+            : "Jenna checks the coffee receipt and keeps the file closed.";
+
+        for (const chunk of text.split(" ")) {
+          await onTextDelta(`${chunk} `);
+        }
+
+        return {
+          text,
+          providerMode: "ollama",
+          model: "fake-stream-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async () => {
+        throw new Error("judge should not run after one streamed turn");
+      },
+      summarizeDateMemories: async () => {
+        throw new Error("summarizer should not run after one streamed turn");
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    const events: LocalAiDateStreamEvent[] = [];
+    await repository.saveGame(started.save);
+
+    const result = await advanceDateExchangeWithLocalAiStream(
+      started.save,
+      repository,
+      {
+        dateSessionId: started.session.id,
+        runtime,
+        config: started.save.config,
+        turnCount: 1,
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      },
+      (event) => {
+        events.push(event);
+      },
+    );
+
+    expect(streamCallCount).toBe(2);
+    expect(events.filter((event) => event.type === "characterStart")).toHaveLength(2);
+    expect(
+      events
+        .filter((event) => event.type === "characterDelta" || event.type === "characterDone")
+        .map((event) => (event.type === "characterDelta" ? event.textDelta : event.text))
+        .join(" "),
+    ).not.toContain(hiddenPhrase);
+    expect(
+      result.session.transcript
+        .filter((message) => message.kind === "character")
+        .map((message) => message.text)
+        .join(" "),
+    ).toBe("Jenna checks the coffee receipt and keeps the file closed.");
+  });
+
   it("stops after the active streamed character when requested", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-pause-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
@@ -1221,7 +1330,7 @@ describe("AI date engine orchestration", () => {
     expect(loadedSession?.currentTurn).toBe(1);
   });
 
-  it("clears the streamed draft event when the player cancels mid turn", async () => {
+  it("emits a cancellation event when the player cancels mid turn", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-stream-cancel-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -1285,11 +1394,7 @@ describe("AI date engine orchestration", () => {
       ),
     ).rejects.toThrow(DateStreamAbortedError);
 
-    expect(events.map((event) => event.type)).toEqual([
-      "characterStart",
-      "characterDelta",
-      "characterCanceled",
-    ]);
+    expect(events.map((event) => event.type)).toEqual(["characterStart", "characterCanceled"]);
 
     const loadedSave = await repository.loadGame();
     const loadedSession = loadedSave?.dateSessions.find(
@@ -1670,6 +1775,302 @@ describe("AI date engine orchestration", () => {
     expect(runningSession.judgeSnapshots).toHaveLength(2);
     expect(judgePrompts[1]).toContain("line 7 response");
     expect(judgePrompts[1]).toContain("line 12 response");
+  });
+
+  it("lets Cupid cut a paused date short after two judge reads and files a final read", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-cut-short-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 18,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let characterCount = 0;
+    const judgePrompts: string[] = [];
+    const summarizerPrompts: string[] = [];
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        characterCount += 1;
+
+        return {
+          text: `line ${characterCount} response`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
+        judgePrompts.push(packet.prompt);
+        const isCutShortRead = packet.prompt.includes("cut-short decision");
+
+        return judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: isCutShortRead ? -3 : 2,
+          statDeltas: isCutShortRead
+            ? {
+                trust: -2,
+                relationshipHealth: -1,
+                strain: 2,
+              }
+            : {
+                trust: 1,
+              },
+          memberMoodDeltas: isCutShortRead
+            ? {
+                "jenna-pike": -3,
+                vhool: 2,
+              }
+            : {
+                "jenna-pike": 1,
+                vhool: 1,
+              },
+          shouldEndEarly: false,
+          endSentiment: isCutShortRead ? "negative" : null,
+          notableMoments: isCutShortRead
+            ? ["Cupid cut the room short after line 12."]
+            : ["Cupid filed the exchange."],
+          playerSummary: isCutShortRead
+            ? "Cupid cut the room short before the warm thread settled."
+            : "Cupid filed the exchange.",
+          memoryCandidates: [],
+        });
+      },
+      summarizeDateMemories: async ({ packet }) => {
+        summarizerPrompts.push(packet.prompt);
+
+        return [
+          memoryCandidateSchema.parse({
+            scope: "pair",
+            visibility: "public",
+            subjectIds: ["jenna-pike", "vhool"],
+            pairId: started.session.pairId,
+            scenarioId: started.session.scenarioId,
+            dateSessionId: started.session.id,
+            text: "Cupid cut the date short after Jenna and Vhool reached line 12.",
+            tags: ["date_summary", "cut_short"],
+            importance: 4,
+          }),
+        ];
+      },
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    let runningSave = started.save;
+    let runningSession = started.session;
+    for (let exchange = 0; exchange < 6; exchange += 1) {
+      const advanced = await advanceDateExchangeWithLocalAi(runningSave, repository, {
+        dateSessionId: started.session.id,
+        runtime,
+        config: runningSave.config,
+        now: new Date(`2026-05-05T12:${String(exchange + 2).padStart(2, "0")}:00.000Z`),
+      });
+      runningSave = advanced.save;
+      runningSession = advanced.session;
+    }
+
+    expect(runningSession.currentTurn).toBe(12);
+    expect(runningSession.judgeSnapshots).toHaveLength(2);
+    expect(canCutDateShort(runningSession)).toBe(true);
+
+    const result = await cutDateShortWithLocalAi(runningSave, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: runningSave.config,
+      now: new Date("2026-05-05T12:10:00.000Z"),
+    });
+
+    expect(result.session.status).toBe("completed");
+    expect(result.session.endReason).toBe("player_cut_short");
+    expect(result.session.endSentiment).toBe("negative");
+    expect(result.session.playbackState).toBe("ended");
+    expect(result.session.judgeSnapshots).toHaveLength(3);
+    expect(result.session.transcript.at(-1)?.text).toContain("cut the date short");
+    expect(result.session.finalReport).toBeDefined();
+    expect(result.session.finalReport?.memoryRecordIds).toContain(
+      `memory-${result.session.id}-jenna-pike-cut-short`,
+    );
+    expect(judgePrompts.at(-1)).toContain("cut-short decision");
+    expect(judgePrompts.at(-1)).toContain("operator action, not a member action");
+    expect(judgePrompts.at(-1)).toContain("line 12 response");
+    expect(summarizerPrompts[0]).toContain("Cupid cut this date short");
+    expect(
+      result.save.shifts.find((shift) => shift.id === result.save.activeShiftId)?.activeBooking,
+    ).toBeUndefined();
+    expect(
+      result.save.members.find((member) => member.id === "jenna-pike")?.state.lastDateShift,
+    ).toBe(1);
+    expect(result.save.memories.some((memory) => memory.text.includes("cut the date short"))).toBe(
+      true,
+    );
+    expect(
+      result.save.memories.some(
+        (memory) =>
+          memory.visibility === "member_private" &&
+          memory.visibleToMemberIds?.includes("jenna-pike") === true &&
+          memory.text.includes("disappointed by the interruption"),
+      ),
+    ).toBe(true);
+  });
+
+  it("records a budget cut when cut short makes a participant quit", async () => {
+    const repository = new LocalGameRepository(
+      new MemorySaveStore(),
+      "ai-cut-short-budget-cut-test",
+    );
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 18,
+      },
+      members: save.members.map((member) =>
+        member.id === "jenna-pike"
+          ? { ...member, state: { ...member.state, retention: 18 } }
+          : member,
+      ),
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    let characterCount = 0;
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async () => {
+        characterCount += 1;
+
+        return {
+          text: `line ${characterCount} response`,
+          providerMode: "ollama",
+          model: "fake-performer",
+          stepCount: 1,
+          toolCallCount: 0,
+          toolResultCount: 0,
+        };
+      },
+      judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
+        const isCutShortRead = packet.prompt.includes("cut-short decision");
+
+        return judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: isCutShortRead ? 0 : 1,
+          statDeltas: {},
+          memberMoodDeltas: {},
+          shouldEndEarly: isCutShortRead,
+          endSentiment: isCutShortRead ? "negative" : null,
+          notableMoments: isCutShortRead
+            ? ["Cupid stopped the date before the file stabilized."]
+            : ["Cupid filed a routine read."],
+          playerSummary: isCutShortRead
+            ? "Cupid cut the date short on a bad read."
+            : "Cupid filed a routine read.",
+          memoryCandidates: [],
+        });
+      },
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    let runningSave = started.save;
+    for (let exchange = 0; exchange < 6; exchange += 1) {
+      const advanced = await advanceDateExchangeWithLocalAi(runningSave, repository, {
+        dateSessionId: started.session.id,
+        runtime,
+        config: runningSave.config,
+        now: new Date(`2026-05-05T12:${String(exchange + 2).padStart(2, "0")}:00.000Z`),
+      });
+      runningSave = advanced.save;
+    }
+
+    const result = await cutDateShortWithLocalAi(runningSave, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: runningSave.config,
+      now: new Date("2026-05-05T12:10:00.000Z"),
+    });
+    const updatedMember = result.save.members.find((member) => member.id === "jenna-pike");
+
+    expect(result.session.finalReport?.outcome).toBe("early_end");
+    expect(updatedMember?.state.status).toBe("quit");
+    expect(result.save.budgetCap).toBe(runningSave.budgetCap + MEMBER_QUIT_BUDGET_CUT);
+    expect(
+      result.save.budgetHistory.some((entry) =>
+        entry.reasons.some(
+          (reason) => reason.kind === "member_quit" && reason.label === "Jenna closed their file",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps cut short locked until two judge reads exist", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-cut-short-locked-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 18,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    await repository.saveGame(started.save);
+
+    expect(canCutDateShort(started.session)).toBe(false);
+    await expect(
+      cutDateShortWithLocalAi(started.save, repository, {
+        dateSessionId: started.session.id,
+        config: started.save.config,
+        now: new Date("2026-05-05T12:02:00.000Z"),
+      }),
+    ).rejects.toThrow(/two filed reads/);
   });
 
   it("can advance one AI member message before judging the exchange", async () => {
@@ -2426,5 +2827,86 @@ describe("AI date engine orchestration", () => {
     for (const record of result.save.playerKnowledge) {
       expect(record.readId).not.toContain("fabricated");
     }
+  });
+
+  it("replaces judge copy that echoes hidden member fields", async () => {
+    const repository = new LocalGameRepository(new MemorySaveStore(), "ai-hidden-copy-test");
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+
+    if (vhool === undefined) {
+      throw new Error("Expected Vhool.");
+    }
+
+    const hiddenPhrase = extractDistinctiveTriGram(vhool.bio);
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("You are Jenna Pike")
+          ? "Jenna asks about the coffee timer."
+          : "Vhool answers with a receipt joke.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 1,
+          statDeltas: {},
+          memberMoodDeltas: {
+            "jenna-pike": 0,
+            vhool: 0,
+          },
+          shouldEndEarly: true,
+          earlyEndReason: `Vhool leaked ${hiddenPhrase}.`,
+          notableMoments: [`Vhool came from ${vhool.origin}.`],
+          playerSummary: `Cupid filed Vhool origin as ${vhool.origin}.`,
+          memoryCandidates: [],
+          usedEvidenceIds: [],
+        }),
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(started.save);
+
+    const result = await completeDateSessionWithLocalAi(started.save, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: started.save.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+
+    const snapshot = result.session.judgeSnapshots[0];
+    expect(snapshot?.playerSummary).not.toContain(vhool.origin);
+    expect(snapshot?.notableMoments.join(" ")).not.toContain(vhool.origin);
+    expect(snapshot?.earlyEndReason).toBeUndefined();
   });
 });

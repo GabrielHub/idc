@@ -18,7 +18,7 @@ export const marcusPellish: Member = {
   relationshipNeeds: [
     "Someone who lets him be a fully formed adult instead of a project who needs fixing",
     "A date that does not require him to pretend he is younger than he is or to drop the deposition voice he uses to get through it",
-    "Someone who can name a time and a place and hold to it",
+    "Someone who can accept a time and a place and hold to it",
   ],
   preferences: [
     "early dinners",
@@ -89,7 +89,7 @@ export const marcusPellish: Member = {
         "Marcus. The dogs are both Buster. He is eleven. The other one is also Buster. Tara picked the photos. That is most of it.",
       ],
       warming: [
-        "I am going to go on record and say this is, in the considered opinion of one Marcus Pellish, a good restaurant. The lighting is appropriate. The server has refilled my water without being asked, which I would submit to you is the mark of a serious establishment. You picked it. I am going to remember that.",
+        "I am going to go on record and say this is, in the considered opinion of one Marcus Pellish, a good restaurant. The lighting is appropriate. The server has refilled my water without being asked, which I would submit to you is the mark of a serious establishment. Cupid picked it. I am going to remember that.",
         "Folks, she is funny. The record reflects that the woman across the table is funny. I had not budgeted for funny. I am revising the forecast upward.",
         "You let me give the long answer. I want to be honest with you, that is, frankly, all I needed. A man of my advancing years gets used to people checking their phones halfway through. You have not done that. I have noticed. I will not bring it up again.",
         "If you had told me at the four-thirty service call this morning that by seven I would be eating a piece of cheesecake I have not earned, across from a woman who said one funny thing about the busboy, I would have called you a fool. The record reflects you would have been right.",

@@ -176,9 +176,11 @@ export const sections: DocSectionEntry[] = [
           controls, tooltips, and aria labels follow the same boundary as visible UI.
         </P>
         <P>
-          The live date footer can show exact Date Health, turn count, Judge count, nudge slots, and
-          scene slots. Final reports, notes, brief panels, and follow-up actions should use
-          nonnumeric outcome and intent copy.
+          The live date footer can show exact Date Health, turn count, Cupid read count, nudge
+          slots, scene slots, and the cut short transport action after it unlocks. The cut short
+          affordance needs tooltip copy because it is a consequential pacing command: Cupid files a
+          final read, resolves the date, and puts both members into cooldown. Final reports, notes,
+          brief panels, and follow-up actions should use nonnumeric outcome and intent copy.
         </P>
         <DocCallout variant="info">
           For the full visibility rule and tier breakdown, see{" "}
@@ -654,8 +656,9 @@ venus: {
                   Planning: a three-step booking flow (focus case, partner, date plan) rendered by{" "}
                   <DocCode>app/components/pre-date-canvas.tsx</DocCode>. Sticky bottom dock carries
                   the Begin date CTA. (2) Active date: the live date UI takes the canvas full-bleed,
-                  floating nav hides. (3) Wrap: FinalReportPanel stays mounted, the header back
-                  button returns to Live Date planning.
+                  floating nav hides, and pacing controls live in the transport footer. (3) Wrap:
+                  FinalReportPanel stays mounted, the header back button returns to Live Date
+                  planning.
                 </>
               ),
             },

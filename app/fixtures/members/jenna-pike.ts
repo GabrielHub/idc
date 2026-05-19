@@ -10,9 +10,9 @@ export const jennaPike: Member = {
   species: "Human",
   dimension: "Prime adjacent",
   realityStatus: "Ordinary, pending review",
-  bio: "You close weeknights at a chain Italian restaurant in East Rainfield. The shift ends at 11:15, the breadsticks are bottomless, and your feet file a complaint roughly every Tuesday. You drive a 2007 Civic that smells like vanilla and breadsticks. You live in a one-bedroom above the pizza place that closes at nine, which is fine, because you are never home before nine. You believe Cupid is a normal dating app with strange branding choices and you are mostly correct about the app part. You assume the cosmic vocabulary in the copy is a marketing decision; you have not yet considered that the marketing might be telling the truth. The dates that ended at altars and the dates that asked you for binders and the dates whose maitre d already knew your last name have not, so far, prompted a deeper reading. You would like a regular dinner with someone kind, local, and able to pick a restaurant without making it a Concept. You drive. You can be talked into a movie. You sleep when your shift lets you. You go in at five tomorrow. You will be tired. You are tired now.",
+  bio: "You close weeknights at a chain Italian restaurant in East Rainfield. The shift ends at 11:15, the breadsticks are bottomless, and your feet file a complaint roughly every Tuesday. You drive a 2007 Civic that smells like vanilla and breadsticks. You live in a one-bedroom above the pizza place that closes at nine, which is fine, because you are never home before nine. You believe Cupid is a normal dating app with strange branding choices and you are mostly correct about the app part. You assume the cosmic vocabulary in the copy is a marketing decision; you have not yet considered that the marketing might be telling the truth. The dates that ended at altars and the dates that asked you for binders and the dates whose maitre d already knew your last name have not, so far, prompted a deeper reading. You would like a regular dinner with someone kind, local, and able to accept a restaurant without making it a Concept. You drive. You can be talked into a movie. You sleep when your shift lets you. You go in at five tomorrow. You will be tired. You are tired now.",
   datingProfile:
-    "just got off a double, my feet are filing a complaint. looking for someone kind, local, and able to pick a restaurant without making it a seminar. bonus points if you drive. i drive a 2007 Civic that smells like vanilla and breadsticks.",
+    "just got off a double, my feet are filing a complaint. looking for someone kind, local, and able to accept a restaurant without making it a seminar. bonus points if you drive. i drive a 2007 Civic that smells like vanilla and breadsticks.",
   visualDescription:
     "A petite white woman with a short black bob and soft bangs, a tired half-smile, a thin gold necklace at the throat. A black short-sleeve restaurant polo, a wine-burgundy waist apron tied at the front with a small pocket. Slim black trousers and black work sneakers. One hand resting near the apron pocket.",
   relationshipNeeds: [
@@ -25,7 +25,7 @@ export const jennaPike: Member = {
     "clear plans",
     "dogs in profile photos",
     "cars with insurance",
-    "people who name a restaurant on the menu, not as a Concept",
+    "people who treat a restaurant as a menu, not as a Concept",
     "phones away during dinner",
   ],
   dealbreakers: [
@@ -66,7 +66,7 @@ export const jennaPike: Member = {
     ],
     sampleMessages: {
       greeting: [
-        "hi, jenna. thanks for picking a place that isn't my work",
+        "hi, jenna. thanks for not making this place my work",
         "hey, im jenna. just got off shift so if i yawn it's not you, i promise",
         "hi! jenna. ok sitting down counts as the best part of my day so far",
         "hey, jenna pike. you got here first, that's a green flag, anyway",
@@ -79,7 +79,7 @@ export const jennaPike: Member = {
       ],
       warming: [
         "ok this is so much better than my last cupid date who tried to seat us by an altar. you are doing well so far",
-        "i like that you picked the place, i like that you said a time, i like that you are wearing shoes and not, like, a robe",
+        "i like that you showed up, i like that you respected the time, i like that you are wearing shoes and not, like, a robe",
         "you asked about my shift and you actually let me answer. i am going to remember that",
         "tell me about the dog again. i am not done with the dog yet",
       ],

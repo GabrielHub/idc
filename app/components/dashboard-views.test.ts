@@ -17,7 +17,7 @@ import {
 } from "./date-view";
 
 describe("dashboard transcript presentation", () => {
-  it("places judge notes after the full judged turn interval", () => {
+  it("places Cupid notes after the full reviewed turn interval", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "gideon-glass",
     ]);
@@ -69,7 +69,7 @@ describe("dashboard transcript presentation", () => {
       shouldEndEarly: false,
       endSentiment: null,
       notableMoments: ["Cupid saw a useful exchange."],
-      playerSummary: "Cupid judged all six character turns.",
+      playerSummary: "Cupid reviewed all six character turns.",
       memoryCandidates: [],
       usedEvidenceIds: [],
       agreementCandidates: [],
@@ -88,11 +88,12 @@ describe("dashboard transcript presentation", () => {
     const sixthTurnIndex = items.findIndex((item) => item.text === "Character line 6.");
 
     expect(judgeIndex).toBeGreaterThan(sixthTurnIndex);
-    expect(items.at(judgeIndex)?.text).toBe("Cupid judged all six character turns.");
+    expect(items.at(judgeIndex)?.label).toBe("Cupid note");
+    expect(items.at(judgeIndex)?.text).toBe("Cupid reviewed all six character turns.");
     expect(session.pairId).toBe(makePairId("gideon-glass", "jenna-pike"));
   });
 
-  it("attaches filed reads to the judge note that created them", () => {
+  it("attaches filed reads to the Cupid note that created them", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "gideon-glass",
     ]);

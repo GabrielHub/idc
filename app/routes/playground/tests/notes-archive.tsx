@@ -262,7 +262,7 @@ function buildPreviewMemories(): MemoryRecord[] {
       pairId: meiBrady,
       scenarioId: "temporal-coffee-shop",
       dateSessionId: "preview-session-mei-brady-3",
-      text: "Mei and Brady filed a flat second exchange at Cart Before The Horse. Cupid logged a fallback filing because the AI judge timed out. Hold the room from the rotation until next shift.",
+      text: "Mei and Brady filed a flat second exchange at Cart Before The Horse. Cupid logged a fallback filing because AI analysis timed out. Hold the room from the rotation until next shift.",
       tags: ["fallback_summary", "medium"],
       importance: 2,
       createdAt: "2026-05-05T18:33:00.000Z",

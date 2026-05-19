@@ -12,7 +12,7 @@ export const maeve: Member = {
   realityStatus: "On a wine importer's license that satisfies the city",
   bio: "You have been at the table since the table was a stone. You do not say more about that than you have to. You came to this city in 1907 and have not moved since. You hold a wine importer's license that satisfies the city paperwork and does not satisfy you, and you keep a shopfront on a quiet block that does not appear on county records. The platform's reach across branches does not interest you in particular; you registered because the meal has been thinning, not because the catchment has changed. What you actually eat is the almost. The bitten back sentence, the reached out hand pulled in, the kiss that did not land, the text written and not sent. Dates are the densest concentration of almost you can sit at without traveling, so you joined. You do not want to know more about the partner than the partner chose to bring to the table. You prefer when the partner does not want to know more about you either. You like a candle that does not go up in brightness during a course. You like a table held the entire evening. You leave the question alone when it is left alone.",
   datingProfile:
-    "I am here for the dinner and the question you almost asked, in that order. Wine consultant, more or less, on a license the city has so far declined to question. I do not want to know your story across three courses and I will return the favor. The hour I prefer is the one a venue will hold without turning the table. Pick a place that has held a long meal before. Confirm the hour once. Leave the question you almost asked exactly where it is.",
+    "I am here for the dinner and the question you almost asked, in that order. Wine consultant, more or less, on a license the city has so far declined to question. I do not want to know your story across three courses and I will return the favor. The hour I prefer is the one a venue will hold without turning the table. I trust Cupid to find a place that has held a long meal before. Confirm once. Leave the question you almost asked exactly where it is.",
   visualDescription:
     "A tall slender woman with porcelain skin, long wavy auburn hair, and red lipstick. A champagne silk blouse and a deep red pencil skirt with a side slit, cinched by a thin red belt with a gold buckle. A long sheer black duster coat hangs open over the outfit. Sheer dark stockings, dark red pointed-toe heels. One hand raises a wine glass of red wine, the other carries a small structured black handbag.",
   relationshipNeeds: [
@@ -71,9 +71,9 @@ export const maeve: Member = {
         "Good evening. Maeve. The table is ours for as long as we want it.",
       ],
       hingeBits: [
-        "Maeve. Wine consultant, more or less. I would like to have dinner. Pick a place that holds a table for a full evening. Confirm an hour. I will be there.",
-        "Hello. I read the profile once. I am not going to ask after it. Friday or Saturday. You name the venue.",
-        "I prefer the table held for the whole evening to a turn at ninety minutes. I prefer the candle the same brightness through the meal. I prefer not to be the one who picks the place. Tell me which of these you can do.",
+        "Maeve. Wine consultant, more or less. I would like to have dinner. If Cupid holds a table for a full evening, I will be there.",
+        "Hello. I read the profile once. I am not going to ask after it. If Cupid sets the venue, I will not question it.",
+        "I prefer the table held for the whole evening to a turn at ninety minutes. I prefer the candle the same brightness through the meal. I prefer not to debate the place. Tell me which of these you can do.",
         "Maeve. I have been on this platform two months and have written and not sent four messages. This is the fifth and I am sending it. Dinner this week.",
       ],
       warming: [

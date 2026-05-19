@@ -104,9 +104,7 @@ describe("date prompt assembly", () => {
     );
     expect(ownerPacket.prompt).toContain("<format>");
     expect(ownerPacket.prompt).toContain("One message per turn. You are texting from the table.");
-    expect(ownerPacket.prompt).toContain(
-      `Build on what Vhool just said before moving the conversation.`,
-    );
+    expect(ownerPacket.prompt).toContain(`Reply as the character would in this moment.`);
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
     expect(ownerPacket.prompt).not.toContain("Output contract:");

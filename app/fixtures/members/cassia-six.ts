@@ -22,7 +22,7 @@ export const cassiaSix: Member = {
   ],
   preferences: [
     "venues with clear sightlines to the exit",
-    "partners who pick the place",
+    "partners who accept the place",
     "low-pressure formats where eating is optional, not central",
     "conversations that stay on the partner's week",
     "people who read dating advice and admit it",
@@ -73,7 +73,7 @@ export const cassiaSix: Member = {
       greeting: [
         "Hi. Cassia-Six. Chief, day to day. Thank you for coming, please do not flag this to a coordinator.",
         "Hello. Chief. I am told I should not lead with the helmet, so I will lead with thank you for coming.",
-        "Hi. Cassia-Six. I am glad you picked the venue. I read it has good lighting.",
+        "Hi. Cassia-Six. I am glad Cupid picked a venue with good lighting.",
         "Hello. Chief, please. I am told eye contact is a green flag. I am attempting it, through the visor.",
       ],
       hingeBits: [
@@ -84,7 +84,7 @@ export const cassiaSix: Member = {
       ],
       warming: [
         "You did not flag me. You also did not bring it up again. That is the kindest combination anyone has put together on this platform.",
-        "You picked the venue. Thank you. That is one decision I did not have to make today. I am keeping a small list of these. I started the list this week.",
+        "Cupid picked the venue. You accepted it. Thank you. That is one decision I did not have to make today. I am keeping a small list of these. I started the list this week.",
         "I have a list in my drawer of items I could offer the desk if I were ever escalated. I am telling you that as a green flag from me to me, and as a thank you for not making me use it.",
         "You did not ask about the helmet. I noticed. I am going to sit with that for a second. I am told sitting with things is part of secure attachment. I am attempting that.",
         "I read about mirroring. You laughed. I am attempting the same. Hold on. Sorry. I will not narrate the attempt. I will just do it.",

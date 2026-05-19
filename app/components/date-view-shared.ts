@@ -1,6 +1,6 @@
 import type { DateSession } from "../domain/game";
 
-export type PendingDateAction = "advanceExchange";
+export type PendingDateAction = "advanceExchange" | "cutShort";
 export type PlaybackIntent = "playing" | "paused";
 
 export type DatePlaybackUiState = {

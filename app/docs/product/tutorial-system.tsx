@@ -26,8 +26,8 @@ export const lede = (
   <>
     The tutorial is a surface-owned orientation layer for the first booked date. It teaches the
     player to pick focus cases, draft the Date Book, commit a two-member booking, choose one room,
-    run the date, read the Judge, file a follow-up, and close the shift. It points at shipped UI. It
-    does not replace gameplay systems or carry hidden state.
+    run the date, read Cupid's analysis, file a follow-up, and close the shift. It points at shipped
+    UI. It does not replace gameplay systems or carry hidden state.
   </>
 );
 
@@ -101,7 +101,7 @@ export const sections: DocSectionEntry[] = [
               <DocCode key="ids">
                 date.draft-events / footer.* / judge-note / nudge.compose
               </DocCode>,
-              "Teach scene draft, footer gauges, transport, the first Judge note, and nudges.",
+              "Teach scene draft, footer gauges, transport, the first Cupid note, and nudges.",
             ],
             [
               "Wrap",
@@ -192,7 +192,7 @@ export const sections: DocSectionEntry[] = [
           rows={[
             [
               "Informational",
-              "The player acknowledges the concept, for example footer gauges or the first Judge note.",
+              "The player acknowledges the concept, for example footer gauges or the first Cupid note.",
               "A short Got it button is fine.",
             ],
             [

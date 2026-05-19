@@ -34,14 +34,18 @@ import {
 import { gatewayImageInputSupported, ollamaImageInputSupported } from "./ai/model-catalog";
 
 export { DateStreamAbortedError } from "./ai/model-service";
+import { applyMemberQuitBudgetCut } from "./budget";
 import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
   applyJudgeToMembers,
   applyJudgeToPrivateDateState,
   applyJudgeToPairState,
   applyDateFinalReportToMembers,
+  canCutDateShort,
   clearActiveBookingForShift,
   createClosureNearMissMemoryRecord,
+  createCutShortMemberMemoryRecords,
+  createCutShortSystemMessage,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
@@ -54,7 +58,9 @@ import {
   requireMember,
   requirePairState,
   requireScenario,
+  resolveDateEndReason,
   resolveEndedDateSentiment,
+  resolvePlayerCutShortStatus,
   shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
@@ -71,9 +77,15 @@ import {
   withCharacterVisibilityRetryGuard,
   type CharacterPromptImageAttachment,
   type CharacterPromptPacket,
+  type JudgePromptMode,
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
+import {
+  describeHiddenInfoLeak,
+  detectHiddenInfoLeak,
+  type HiddenInfoLeak,
+} from "./hidden-info-guard";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
 import { applyCompletedDatePairMemoryEffects, applyJudgePairMemoryEffects } from "./pair-memory";
 import {
@@ -253,6 +265,25 @@ export async function advanceDateExchangeWithLocalAiStream(
 ): Promise<LocalAiDateEngineResult> {
   await persistAcceptedInputSave(save, repository);
   return advanceDateExchangeWithLocalAiInternal(save, repository, input, emit);
+}
+
+export async function cutDateShortWithLocalAi(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
+  return cutDateShortWithLocalAiInternal(save, repository, input);
+}
+
+export async function cutDateShortWithLocalAiStream(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit: (event: LocalAiDateStreamEvent) => Promise<void> | void,
+): Promise<LocalAiDateEngineResult> {
+  await persistAcceptedInputSave(save, repository);
+  return cutDateShortWithLocalAiInternal(save, repository, input, emit);
 }
 
 async function advanceDateExchangeWithLocalAiInternal(
@@ -437,6 +468,11 @@ async function advanceDateExchangeWithLocalAiInternal(
   const nextEndSentiment = isEndingEarly
     ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
     : session.endSentiment;
+  const nextEndReason = resolveDateEndReason({
+    previousEndReason: session.endReason,
+    nextStatus,
+    isEndingEarly,
+  });
   const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
   const privateStateByCharacter = applyJudgeToPrivateDateState(
     session,
@@ -449,6 +485,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     dateHealth: nextDateHealth,
     status: nextStatus,
     endSentiment: nextEndSentiment,
+    endReason: nextEndReason,
     playbackState: nextPlaybackState,
     transcript,
     privateStateByCharacter,
@@ -525,6 +562,192 @@ async function advanceDateExchangeWithLocalAiInternal(
   return {
     save: nextSave,
     session: completedSession,
+    runtimeMode: "local_ai",
+    warningMessages,
+    aiTelemetry: telemetry,
+  };
+}
+
+async function cutDateShortWithLocalAiInternal(
+  save: GameSave,
+  repository: GameRepository,
+  input: LocalAiDateEngineInput,
+  emit?: (event: LocalAiDateStreamEvent) => Promise<void> | void,
+): Promise<LocalAiDateEngineResult> {
+  const runtime = input.runtime ?? defaultLocalAiDateRuntime;
+  const config = input.config ?? save.config;
+  const now = input.now ?? new Date();
+  const timestamp = now.toISOString();
+  const warningMessages: string[] = [];
+  const telemetry = createEmptyCharacterTelemetry();
+  const session = dateSessionSchema.parse({
+    ...requireDateSession(save, input.dateSessionId),
+    runtimeMode: "local_ai",
+  });
+
+  if (!canCutDateShort(session)) {
+    throw new Error("Cupid can cut a date short after two filed reads while the date is paused.");
+  }
+
+  const scenario = requireScenario(session.scenarioId);
+  const pairState = requirePairState(save, session.pairId);
+  const members = session.participants.map((memberId) => requireMember(save, memberId));
+  const focusRequest = findMemberRequestById(session.focusRequestId);
+  const cutShortMessage = createCutShortSystemMessage(session, timestamp);
+  const transcript = [...session.transcript, cutShortMessage];
+  const cutSession = dateSessionSchema.parse({
+    ...session,
+    transcript,
+  });
+  const matchFit = evaluateMatchFit({
+    members,
+    scenario,
+    pairState,
+    activeRequests: focusRequest === undefined ? [] : [focusRequest],
+    knownPairReads: visibleReadsForPair(save, pairState.id),
+  });
+  const exchangeMessages = messagesForCutShortJudge(session, transcript);
+  const pendingRevealMessages = exchangeMessages;
+  const exchangeIndex = session.judgeSnapshots.length;
+
+  if (emit !== undefined) {
+    await emit({ type: "judgeStart", exchangeIndex });
+  }
+
+  const revealCandidates = buildRevealCandidates({
+    members,
+    scenario,
+    pairState,
+    focusRequest,
+    matchFit,
+    knownReads: save.playerKnowledge,
+  });
+  const eligibleCandidates = filterExchangeEligibleRevealCandidates({
+    candidates: revealCandidates,
+    exchangeMessages: pendingRevealMessages,
+  });
+  const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
+    runtime,
+    config,
+    session: cutSession,
+    pairState,
+    scenario,
+    exchangeMessages,
+    exchangeIndex,
+    members,
+    revealCandidates: eligibleCandidates,
+    mode: "player_cut_short",
+  });
+  const acceptedEvidenceIds = computeAcceptedEvidenceIds({
+    proposed: localAiJudgeSnapshot.usedEvidenceIds,
+    candidates: eligibleCandidates,
+  });
+  const judgeSnapshotWithReveals = judgeSnapshotSchema.parse({
+    ...localAiJudgeSnapshot,
+    usedEvidenceIds: acceptedEvidenceIds,
+  });
+  const judgeSnapshot = applyMatchFitToJudgeSnapshot({
+    session: cutSession,
+    pairState,
+    judgeSnapshot: judgeSnapshotWithReveals,
+  });
+  const judgedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
+  const pairMemoryResult = applyJudgePairMemoryEffects({
+    pairState: judgedPairState,
+    judgeSnapshot,
+    timestamp,
+  });
+  const updatedPairState = pairMemoryResult.pairState;
+  const updatedMembers = applyJudgeToMembers(save.members, judgeSnapshot);
+  const nextDateHealth = clampScore(session.dateHealth + judgeSnapshot.dateHealthDelta);
+  const cutShortStatus = resolvePlayerCutShortStatus({
+    nextDateHealth,
+    judgeSnapshot,
+  });
+  const privateStateByCharacter = applyJudgeToPrivateDateState(
+    cutSession,
+    judgeSnapshot,
+    nextDateHealth,
+  );
+  const baseUpdatedSession = dateSessionSchema.parse({
+    ...cutSession,
+    currentTurn: session.currentTurn,
+    dateHealth: nextDateHealth,
+    status: cutShortStatus.status,
+    endSentiment: cutShortStatus.endSentiment,
+    endReason: cutShortStatus.endReason,
+    playbackState: "ended",
+    privateStateByCharacter,
+    judgeSnapshots: [...session.judgeSnapshots, judgeSnapshot],
+  });
+  const completion = await createLocalAiFinalSession({
+    runtime,
+    config,
+    session: baseUpdatedSession,
+    pairState: updatedPairState,
+    members,
+    scenario,
+    completedAt: timestamp,
+  });
+  warningMessages.push(...completion.warningMessages);
+  const completedSession = completion.session;
+  const revealResult = applyJudgeReveals({
+    save,
+    candidates: eligibleCandidates,
+    acceptedIds: judgeSnapshot.usedEvidenceIds,
+    judgeSnapshot,
+    revealedAt: timestamp,
+  });
+  const finalPairState = markPairDateComplete(updatedPairState, completedSession);
+  const completedPairMemoryResult = applyCompletedDatePairMemoryEffects({
+    pairState: finalPairState,
+    session: completedSession,
+    timestamp,
+  });
+  const cutShortMemberMemories = createCutShortMemberMemoryRecords(
+    completedSession,
+    members,
+    scenario,
+    timestamp,
+  );
+  const finalSession = linkFinalReportMemoryRecords(
+    completedSession,
+    cutShortMemberMemories.map((memory) => memory.id),
+  );
+  const finalMembers = applyDateFinalReportToMembers(
+    updatedMembers,
+    finalSession,
+    getActiveShift(save).shiftNumber,
+  );
+  const saveWithCutShortDate = gameSaveSchema.parse({
+    ...save,
+    members: finalMembers,
+    pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
+    dateSessions: replaceById(save.dateSessions, finalSession),
+    memories: [
+      ...save.memories,
+      ...pairMemoryResult.memories,
+      ...completedPairMemoryResult.memories,
+      ...completion.memories,
+      ...cutShortMemberMemories,
+    ],
+    playerKnowledge: revealResult.save.playerKnowledge,
+    shifts: clearActiveBookingForShift(save.shifts, save.activeShiftId),
+    updatedAt: timestamp,
+  });
+  const nextSave = gameSaveSchema.parse(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave: saveWithCutShortDate,
+      shift: getActiveShift(save).shiftNumber,
+    }),
+  );
+
+  await repository.saveGame(nextSave);
+
+  return {
+    save: nextSave,
+    session: finalSession,
     runtimeMode: "local_ai",
     warningMessages,
     aiTelemetry: telemetry,
@@ -691,7 +914,14 @@ async function createLocalAiCharacterMessage({
               abortSignal,
             });
 
-      return { text: sanitizeCharacterText(generation.text, speaker.name), generation };
+      const text = sanitizeCharacterText(generation.text, speaker.name);
+      const leak = detectHiddenInfoLeak(text, [speaker, partner]);
+
+      if (leak !== null) {
+        throw new HiddenInfoLeakError(leak);
+      }
+
+      return { text, generation };
     }
 
     async function runVisibleAttempt(
@@ -701,6 +931,14 @@ async function createLocalAiCharacterMessage({
       try {
         return await runAttempt(repetitionRetry, rhythmRetry, false);
       } catch (error) {
+        if (error instanceof HiddenInfoLeakError) {
+          warningMessages.push(
+            `Cupid asked ${speaker.name} to rewrite a line that echoed hidden fixture text: ${describeHiddenInfoLeak(error.leak)}.`,
+          );
+
+          return runAttempt(repetitionRetry, rhythmRetry, true);
+        }
+
         if (!(error instanceof EmptyPerformerMessageError)) {
           throw error;
         }
@@ -776,6 +1014,13 @@ async function createLocalAiCharacterMessage({
     });
 
     if (emit !== undefined) {
+      await emit({
+        type: "characterDelta",
+        speakerId: speaker.id,
+        sequenceIndex,
+        turnIndex,
+        textDelta: text,
+      });
       await emit({
         type: "characterDone",
         speakerId: speaker.id,
@@ -1186,21 +1431,7 @@ async function streamCharacterMessage({
       config,
       tools,
       abortSignal,
-      onTextDelta: async (delta) => {
-        const textDelta = stripForbiddenPunctuation(delta);
-
-        if (textDelta.length === 0) {
-          return;
-        }
-
-        await emit({
-          type: "characterDelta",
-          speakerId: speaker.id,
-          sequenceIndex,
-          turnIndex,
-          textDelta,
-        });
-      },
+      onTextDelta: () => undefined,
     });
   } catch (error) {
     if (isDateStreamAbort(error)) {
@@ -1241,6 +1472,7 @@ async function createLocalAiJudgeSnapshot({
   exchangeIndex,
   members,
   revealCandidates,
+  mode = "exchange",
 }: {
   runtime: LocalAiDateRuntime;
   config: Partial<AiRuntimeConfig>;
@@ -1251,6 +1483,7 @@ async function createLocalAiJudgeSnapshot({
   exchangeIndex: number;
   members: Member[];
   revealCandidates?: readonly RevealCandidate[];
+  mode?: JudgePromptMode;
 }): Promise<JudgeSnapshot> {
   try {
     const packet = buildJudgePromptPacket({
@@ -1258,8 +1491,10 @@ async function createLocalAiJudgeSnapshot({
       session,
       pairState,
       exchangeMessages,
+      exchangeIndex,
       members,
       revealCandidates,
+      mode,
     });
 
     const judgeSnapshot = await runtime.judgeDateExchange({
@@ -1269,9 +1504,16 @@ async function createLocalAiJudgeSnapshot({
       config,
     });
 
-    return sanitizeJudgeSnapshot(judgeSnapshot, session, { members, scenario });
+    return sanitizeJudgeSnapshot(
+      judgeSnapshot,
+      session,
+      { members, scenario },
+      {
+        allowEndSentimentWithoutEarlyEnd: mode === "player_cut_short",
+      },
+    );
   } catch (error) {
-    throw new Error(`AI judge failed: ${errorToMessage(error)}`);
+    throw new Error(`AI Cupid analysis failed: ${errorToMessage(error)}`);
   }
 }
 
@@ -1283,6 +1525,29 @@ function computeAcceptedEvidenceIds({
   candidates: readonly RevealCandidate[];
 }): string[] {
   return validateUsedEvidenceIds(proposed, candidates);
+}
+
+function messagesForCutShortJudge(
+  session: DateSession,
+  transcript: readonly DateMessage[],
+): DateMessage[] {
+  const sinceLastJudge = messagesSinceLastJudge(session, transcript);
+
+  if (sinceLastJudge.some((message) => message.kind === "character")) {
+    return sinceLastJudge;
+  }
+
+  const latestExchangeIndex = latestJudgedExchangeIndex(session);
+  const recentCharacterMessages =
+    latestExchangeIndex < 0
+      ? []
+      : transcript.filter(
+          (message) =>
+            message.kind === "character" &&
+            exchangeIndexForTurn(message.turnIndex) === latestExchangeIndex,
+        );
+
+  return [...recentCharacterMessages, ...sinceLastJudge];
 }
 
 async function createLocalAiFinalSession({
@@ -1396,7 +1661,11 @@ function createLocalAiFallbackMemoryRecord({
     report === undefined
       ? `${members[0].firstName} and ${members[1].firstName} completed ${scenario.title}.`
       : `${report.summary} ${report.statSummary}`;
-  const text = `${summary} Recommended follow-up: ${followUp}. Cupid filed a basic case note after the memory clerk missed the structured form.`;
+  const cutShortNote =
+    session.endReason === "player_cut_short"
+      ? " Cupid cut the date short and filed the final read as part of the case note."
+      : "";
+  const text = `${summary}${cutShortNote} Recommended follow-up: ${followUp}. Cupid filed a basic case note after the memory clerk missed the structured form.`;
   const embedding = createDeterministicEmbedding(text);
 
   return memoryRecordSchema.parse({
@@ -1503,9 +1772,14 @@ function normalizeMemoryCandidate(
   const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
   const fallbackSubjectIds = subjectIds.length === 0 ? [...session.participants] : subjectIds;
   const cleanedText = scrubPlayerSafeCopy(candidate.text);
+  const hiddenLeak = detectHiddenInfoLeak(cleanedText, context.members, {
+    includeSingleLabels: true,
+  });
   const memoryCheck = checkCupidCorporateCopy(cleanedText, { maxLength: 320 });
   const memoryTextIsUsable =
-    memoryCheck.ok && memoryTextIsGroundedInTranscript(cleanedText, context.transcriptTokens);
+    hiddenLeak === null &&
+    memoryCheck.ok &&
+    memoryTextIsGroundedInTranscript(cleanedText, context.transcriptTokens);
   const memoryText = memoryTextIsUsable
     ? cleanedText
     : buildDeterministicMemoryText({
@@ -1608,24 +1882,32 @@ function sanitizeJudgeSnapshot(
   judgeSnapshot: JudgeSnapshot,
   session: DateSession,
   context: { members: readonly Member[]; scenario: DateScenario },
+  options: { allowEndSentimentWithoutEarlyEnd?: boolean } = {},
 ): JudgeSnapshot {
   const memberMoodDeltas = normalizeParticipantMemberMoodDeltas(
     judgeSnapshot.memberMoodDeltas,
     session.participants,
   );
+  const shouldKeepEndSentiment =
+    judgeSnapshot.shouldEndEarly || options.allowEndSentimentWithoutEarlyEnd === true;
   const cleanedSummary = scrubPlayerSafeCopy(judgeSnapshot.playerSummary);
+  const summaryLeak = detectHiddenInfoLeak(cleanedSummary, context.members, {
+    includeSingleLabels: true,
+  });
   const summaryCheck = checkCupidCorporateCopy(cleanedSummary, { maxLength: 320 });
-  const playerSummary = summaryCheck.ok
-    ? cleanedSummary
-    : buildDeterministicJudgeSummary({
-        scenario: context.scenario,
-        members: context.members,
-        judgeSnapshot,
-      });
+  const playerSummary =
+    summaryLeak === null && summaryCheck.ok
+      ? cleanedSummary
+      : buildDeterministicJudgeSummary({
+          scenario: context.scenario,
+          members: context.members,
+          judgeSnapshot,
+        });
   const cleanedMoments = judgeSnapshot.notableMoments
     .map((moment) => scrubPlayerSafeCopy(moment))
     .filter((moment) => moment.length > 0);
   const sanitizedMoments = cleanedMoments.map((moment) =>
+    detectHiddenInfoLeak(moment, context.members, { includeSingleLabels: true }) === null &&
     checkCupidCorporateCopy(moment, { maxLength: 220 }).ok
       ? moment
       : buildDeterministicNotableMoment({
@@ -1645,15 +1927,28 @@ function sanitizeJudgeSnapshot(
 
   return {
     ...judgeSnapshot,
-    endSentiment: judgeSnapshot.shouldEndEarly ? judgeSnapshot.endSentiment : null,
+    endSentiment: shouldKeepEndSentiment ? judgeSnapshot.endSentiment : null,
     memberMoodDeltas,
-    earlyEndReason:
-      judgeSnapshot.earlyEndReason === undefined
-        ? undefined
-        : scrubPlayerSafeCopy(judgeSnapshot.earlyEndReason),
+    earlyEndReason: sanitizeEarlyEndReason(judgeSnapshot, context.members),
     notableMoments,
     playerSummary,
   };
+}
+
+function sanitizeEarlyEndReason(
+  judgeSnapshot: Pick<JudgeSnapshot, "shouldEndEarly" | "earlyEndReason">,
+  members: readonly Member[],
+): string | undefined {
+  if (!judgeSnapshot.shouldEndEarly || judgeSnapshot.earlyEndReason === undefined) {
+    return undefined;
+  }
+
+  const cleaned = scrubPlayerSafeCopy(judgeSnapshot.earlyEndReason);
+  if (detectHiddenInfoLeak(cleaned, members, { includeSingleLabels: true }) !== null) {
+    return undefined;
+  }
+
+  return cleaned.length === 0 ? undefined : cleaned;
 }
 
 function normalizeParticipantMemberMoodDeltas(
@@ -1768,6 +2063,16 @@ export class EmptyPerformerMessageError extends Error {
   constructor() {
     super("Performer returned an empty message.");
     this.name = "EmptyPerformerMessageError";
+  }
+}
+
+export class HiddenInfoLeakError extends Error {
+  readonly leak: HiddenInfoLeak;
+
+  constructor(leak: HiddenInfoLeak) {
+    super(`Performer echoed hidden fixture text: ${describeHiddenInfoLeak(leak)}.`);
+    this.name = "HiddenInfoLeakError";
+    this.leak = leak;
   }
 }
 

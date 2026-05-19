@@ -12,6 +12,20 @@ import type { SfxCue } from "./sfx-provider";
 
 const NUDGE_MAX_CHARS = 240;
 
+export function CutShortIcon() {
+  return (
+    <svg viewBox="0 0 14 14" className="size-3.5" aria-hidden>
+      <path
+        d="M2.3 7.2 L8.6 2.4 M3 2.9 L11 11 M5.4 11.4 L11.7 6.6"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 const MODAL_PRIMARY_CTA_CLASS =
   "aura-cta inline-flex cursor-pointer items-center gap-2 rounded-pill bg-gradient-to-r from-aura-rose via-aura-fuchsia to-aura-violet px-5 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-cta ring-1 ring-white/40 ring-inset transition hover:-translate-y-px hover:shadow-cta-hover disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0";
 
@@ -194,7 +208,8 @@ export function NudgeComposerModal({
           Whisper to {recipientName}
         </h2>
         <p className="aura-accent text-lead text-aura-muted">
-          One slip, then they hear it. They will not know it came from you.
+          Steer their next move or ask them to share something you want to know. They take it as a
+          hunch and never know it came from you.
         </p>
       </header>
 
@@ -243,7 +258,7 @@ export function NudgeComposerModal({
               fileNudge();
             }
           }}
-          placeholder={`What should ${recipientName} do next?`}
+          placeholder={`What should ${recipientName} do or share next?`}
           aria-label={`Nudge for ${recipientName}`}
           className="block min-h-[7.5rem] w-full resize-none rounded-card border border-aura-hairline bg-white/70 px-5 py-4 font-sans text-body text-aura-ink shadow-quiet outline-none transition placeholder:text-aura-faint focus:border-aura-rose/55 focus:bg-white focus:shadow-card"
         />
@@ -444,7 +459,106 @@ export function SceneConfirmModal({
   );
 }
 
+export function CutShortConfirmModal({
+  participants,
+  canCutShort,
+  onConfirm,
+  onClose,
+}: {
+  participants: Member[];
+  canCutShort: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function handleKey(keyEvent: KeyboardEvent) {
+      if (keyEvent.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (keyEvent.key === "Enter" && canCutShort) {
+        const target = keyEvent.target as HTMLElement | null;
+        if (
+          target?.tagName === "INPUT" ||
+          target?.tagName === "TEXTAREA" ||
+          target?.isContentEditable === true
+        ) {
+          return;
+        }
+        keyEvent.preventDefault();
+        onConfirm();
+      }
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, onConfirm, canCutShort]);
+
+  const [first, second] = participants;
+  const participantLine =
+    first === undefined || second === undefined
+      ? "both members"
+      : `${first.firstName} and ${second.firstName}`;
+
+  return (
+    <ModalShell
+      ariaLabel="Cut the date short"
+      closeLabel="Close cut short confirmation"
+      size="md"
+      onClose={onClose}
+      footer={
+        <>
+          <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint lg:whitespace-nowrap">
+            <span className="text-aura-muted">Enter</span> to cut ·{" "}
+            <span className="text-aura-muted">Esc</span> to close
+          </p>
+          <div className="flex shrink-0 items-center gap-3">
+            <GhostButton onClick={onClose}>Cancel</GhostButton>
+            <button
+              type="button"
+              data-sfx="primary"
+              onClick={onConfirm}
+              disabled={!canCutShort}
+              aria-label="Cut the date short"
+              className={MODAL_PRIMARY_CTA_CLASS}
+            >
+              <span>Cut short</span>
+              <CutShortIcon />
+            </button>
+          </div>
+        </>
+      }
+    >
+      <header className="flex flex-col gap-3">
+        <Eyebrow>{"// operator.exit"}</Eyebrow>
+        <h2 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink lg:text-display-md">
+          Cut the room short
+        </h2>
+        <p className="aura-accent text-lead text-aura-muted">
+          Cupid files one final read from the evidence on screen. The date resolves now, unused
+          scenes stay unused, and {participantLine} enter cooldown.
+        </p>
+      </header>
+
+      <section className="flex flex-col gap-3 rounded-chip border border-aura-amber/35 bg-aura-amber/10 px-4 py-3">
+        <Eyebrow>{"// consequence"}</Eyebrow>
+        <p className="text-body leading-relaxed text-aura-ink/85">
+          A protected exit can soften a bad room. An interrupted warm room can still sting. Cupid
+          lets the final read decide which filing cabinet gets louder.
+        </p>
+      </section>
+    </ModalShell>
+  );
+}
+
 function suggestionLabel(suggestion: string): string {
+  if (suggestion.includes("Share something")) {
+    return "Share something";
+  }
+
+  if (suggestion.includes("favorite song")) {
+    return "Drop a favorite";
+  }
+
   if (suggestion.includes("boundary")) {
     return "Name boundary";
   }
@@ -455,6 +569,10 @@ function suggestionLabel(suggestion: string): string {
 
   if (suggestion.includes("follow-up")) {
     return "Ask follow-up";
+  }
+
+  if (suggestion.includes("small plan")) {
+    return "Hand the wheel";
   }
 
   return "Ground it";

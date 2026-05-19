@@ -150,6 +150,7 @@ describe("player-knowledge selectors", () => {
 
   it("upsert deduplicates by read id and upgrades filed to confirmed", () => {
     const seed = createSeedGameSave(SEED_DATE);
+    const laterDate = new Date(SEED_DATE.getTime() + 1000).toISOString();
     const filed: PlayerKnowledgeRecord = {
       id: "rec-1",
       subjectKind: "pair",
@@ -159,6 +160,9 @@ describe("player-knowledge selectors", () => {
       readText: "Sincerity and performance pull against each other in this pair.",
       confidence: "filed",
       source: "judge",
+      dateSessionId: "first-session",
+      judgeSnapshotId: "first-judge",
+      evidenceText: "First evidence.",
       revealedAt: SEED_DATE.toISOString(),
     };
     const confirmed: PlayerKnowledgeRecord = {
@@ -166,7 +170,10 @@ describe("player-knowledge selectors", () => {
       id: "rec-2",
       confidence: "confirmed",
       source: "hard_stop",
-      revealedAt: new Date(SEED_DATE.getTime() + 1000).toISOString(),
+      dateSessionId: "second-session",
+      judgeSnapshotId: "second-judge",
+      evidenceText: "Second evidence.",
+      revealedAt: laterDate,
     };
 
     const afterFiled = upsertPlayerKnowledge(seed, [filed]);
@@ -175,6 +182,10 @@ describe("player-knowledge selectors", () => {
     expect(afterUpgrade.playerKnowledge).toHaveLength(1);
     expect(afterUpgrade.playerKnowledge[0].confidence).toBe("confirmed");
     expect(afterUpgrade.playerKnowledge[0].source).toBe("hard_stop");
+    expect(afterUpgrade.playerKnowledge[0].revealedAt).toBe(SEED_DATE.toISOString());
+    expect(afterUpgrade.playerKnowledge[0].dateSessionId).toBe("first-session");
+    expect(afterUpgrade.playerKnowledge[0].judgeSnapshotId).toBe("first-judge");
+    expect(afterUpgrade.playerKnowledge[0].evidenceText).toBe("First evidence.");
   });
 });
 
@@ -472,6 +483,52 @@ describe("buildRevealCandidates", () => {
     expect(profileSubjectIds).not.toContain(member.id);
     expect(profileSubjectIds).toContain(partner.id);
   });
+
+  it("suppresses already filed reveal ids before they reach the judge packet", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "opal-sunday");
+    const partner = findMember(seed, "bai-wenshu");
+    const scenario = findScenario("prophecy-karaoke");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+    });
+    const firstPass = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+    });
+    const candidate = firstPass.find((entry) => entry.readKind === "scenario_pressure");
+
+    if (candidate === undefined) {
+      throw new Error("Expected a scenario pressure candidate.");
+    }
+
+    const secondPass = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+      knownReads: [
+        {
+          id: `${candidate.id}:prior`,
+          subjectKind: candidate.subjectKind,
+          subjectId: candidate.subjectId,
+          readKind: candidate.readKind,
+          readId: candidate.id,
+          readText: candidate.readText,
+          confidence: "filed",
+          source: "judge",
+          revealedAt: SEED_DATE.toISOString(),
+        },
+      ],
+    });
+
+    expect(secondPass.map((entry) => entry.id)).not.toContain(candidate.id);
+  });
 });
 
 describe("filterExchangeEligibleRevealCandidates", () => {
@@ -606,6 +663,51 @@ describe("filterExchangeEligibleRevealCandidates", () => {
     for (const candidate of eligible) {
       expect(["scenario_pressure", "ask"]).toContain(candidate.readKind);
     }
+  });
+
+  it("does not make every scenario pressure read eligible for an unrelated scene drop", () => {
+    const candidates = [
+      {
+        id: "scenario:test-room:pressure:public-attention",
+        subjectKind: "scenario" as const,
+        subjectId: "test-room",
+        readKind: "scenario_pressure" as const,
+        readText: "This room turns public attention into the main hazard.",
+        evidenceText: "Look for an audience, crowd, filming, or posting beat.",
+        source: "judge" as const,
+      },
+    ];
+    const unrelated = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        {
+          id: "scene-1",
+          dateSessionId: "test",
+          kind: "scenario",
+          turnIndex: 1,
+          sequenceIndex: 1,
+          text: "A candle flickers beside the menu.",
+          createdAt: SEED_DATE.toISOString(),
+        },
+      ],
+    });
+    const related = filterExchangeEligibleRevealCandidates({
+      candidates,
+      exchangeMessages: [
+        {
+          id: "scene-2",
+          dateSessionId: "test",
+          kind: "scenario",
+          turnIndex: 1,
+          sequenceIndex: 1,
+          text: "The crowd starts filming the table.",
+          createdAt: SEED_DATE.toISOString(),
+        },
+      ],
+    });
+
+    expect(unrelated).toHaveLength(0);
+    expect(related.map((candidate) => candidate.id)).toEqual([candidates[0].id]);
   });
 
   it("keeps profile candidates ineligible until profile evidence reaches the exchange", () => {

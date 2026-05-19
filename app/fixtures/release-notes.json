@@ -274,7 +274,7 @@
         "title": "Fixes and polish",
         "items": [
           "Standee portraits now ground from visible feet, with character height canon documented for future lineup work.",
-          "AI date voice, output cleanup, and judge scoring received tighter guardrails.",
+          "AI date voice, output cleanup, and Cupid scoring received tighter guardrails.",
           "Agent workflow instructions were updated so future changes have less room to invent policy with a clipboard."
         ]
       }

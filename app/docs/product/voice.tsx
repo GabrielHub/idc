@@ -68,7 +68,7 @@ export const sections: DocSectionEntry[] = [
         </P>
         <DocSubsection id="cupid-corporate" title="Cupid corporate">
           <P>
-            <Strong>Used for:</Strong> dashboard chrome, system messages, judge reports,
+            <Strong>Used for:</Strong> dashboard chrome, system messages, Cupid reports,
             end-of-shift summaries, scenario card framing, follow-up action labels, error states,
             intervention wrapper text, goals.
           </P>

@@ -70,7 +70,7 @@ export const gabrielTan: Member = {
       greeting: [
         "hey. gabriel. glad you came.",
         "hi, gabriel. you found the place, good sign.",
-        "hey. gabriel. thanks for picking tuesday.",
+        "hey. gabriel. thanks for making tuesday work.",
         "hi. gabriel. my fault, i was early.",
       ],
       hingeBits: [

@@ -16,6 +16,7 @@ import {
   type DateMessage,
   type DateScenario,
   type DeckCoverageEntry,
+  type DateSessionEndReason,
   type EndSentiment,
   type DateSession,
   type EventDraft,
@@ -137,6 +138,7 @@ const CHARACTER_TURN_LIMIT = 24;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
 export const JUDGE_TURN_INTERVAL = 6;
 export const MAX_NUDGES_PER_DATE = 3;
+export const MIN_JUDGE_READS_BEFORE_CUT_SHORT = 2;
 export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
 export const EVENT_DRAFT_OFFERED = EVENT_DRAFT_OFFERED_PER_KIND * SCENARIO_EVENT_KINDS.length;
 export const EVENT_DRAFT_PICKED = 3;
@@ -481,6 +483,32 @@ export function canAddCupidIntervention(session: DateSession): boolean {
   }
 
   return session.interventions.length < MAX_NUDGES_PER_DATE;
+}
+
+export function canCutDateShort(session: DateSession): boolean {
+  if (session.status !== "active" || session.playbackState !== "paused") {
+    return false;
+  }
+
+  return session.judgeSnapshots.length >= MIN_JUDGE_READS_BEFORE_CUT_SHORT;
+}
+
+const CUT_SHORT_SYSTEM_MESSAGE_TEXT = "Cupid cut the date short and filed one final read.";
+
+export function createCutShortSystemMessage(session: DateSession, createdAt: string): DateMessage {
+  return {
+    id: `${session.id}-msg-${session.transcript.length}`,
+    dateSessionId: session.id,
+    kind: "system",
+    turnIndex: session.currentTurn,
+    sequenceIndex: session.transcript.length,
+    text: CUT_SHORT_SYSTEM_MESSAGE_TEXT,
+    createdAt,
+  };
+}
+
+export function isCutShortSystemMessage(message: DateMessage): boolean {
+  return message.kind === "system" && message.text === CUT_SHORT_SYSTEM_MESSAGE_TEXT;
 }
 
 export function findActiveInterventionForMember(
@@ -1015,6 +1043,11 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const nextEndSentiment = isEndingEarly
     ? resolveEndedDateSentiment(nextDateHealth, judgeSnapshot)
     : session.endSentiment;
+  const nextEndReason = resolveDateEndReason({
+    previousEndReason: session.endReason,
+    nextStatus,
+    isEndingEarly,
+  });
   const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
   const privateStateByCharacter = applyJudgeToPrivateDateState(
     session,
@@ -1027,6 +1060,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     dateHealth: nextDateHealth,
     status: nextStatus,
     endSentiment: nextEndSentiment,
+    endReason: nextEndReason,
     playbackState: nextPlaybackState,
     transcript,
     privateStateByCharacter,
@@ -2182,6 +2216,50 @@ export function resolveEndedDateSentiment(
   return judgeSnapshot.endSentiment ?? "negative";
 }
 
+export function resolveDateEndReason({
+  previousEndReason,
+  nextStatus,
+  isEndingEarly,
+}: {
+  previousEndReason: DateSessionEndReason | null;
+  nextStatus: DateSession["status"];
+  isEndingEarly: boolean;
+}): DateSessionEndReason | null {
+  if (nextStatus === "active") {
+    return previousEndReason;
+  }
+
+  return isEndingEarly ? "judge_early_end" : "natural_wrap";
+}
+
+export function resolvePlayerCutShortStatus({
+  nextDateHealth,
+  judgeSnapshot,
+}: {
+  nextDateHealth: number;
+  judgeSnapshot: Pick<JudgeSnapshot, "shouldEndEarly" | "endSentiment">;
+}): {
+  status: DateSession["status"];
+  endSentiment: EndSentiment | null;
+  endReason: DateSessionEndReason;
+} {
+  const endReason: DateSessionEndReason = "player_cut_short";
+
+  if (nextDateHealth <= 0) {
+    return { status: "ended_early", endSentiment: "negative", endReason };
+  }
+
+  if (judgeSnapshot.shouldEndEarly && judgeSnapshot.endSentiment !== "positive") {
+    return {
+      status: "ended_early",
+      endSentiment: judgeSnapshot.endSentiment ?? "negative",
+      endReason,
+    };
+  }
+
+  return { status: "completed", endSentiment: judgeSnapshot.endSentiment, endReason };
+}
+
 export function createDateMemoryRecords(
   session: DateSession,
   members: Member[],
@@ -2212,7 +2290,7 @@ export function createDateMemoryRecords(
       pairId: session.pairId,
       scenarioId: scenario.id,
       dateSessionId: session.id,
-      text: `${member.name} privately remembers ${scenario.title} as ${session.status === "ended_early" ? "a date that lost momentum" : "a completed Cupid date"} with ${members.find((candidate) => candidate.id !== member.id)?.name}.`,
+      text: `${member.name} privately remembers ${scenario.title} as ${privateDateMemoryLabel(session)} with ${members.find((candidate) => candidate.id !== member.id)?.name}.`,
       tags: ["private_date_memory", scenario.id],
       importance: 3,
       createdAt,
@@ -2254,6 +2332,57 @@ export function createDateMemoryRecords(
         });
 
   return closureNearMiss === null ? parsedRecords : [...parsedRecords, closureNearMiss];
+}
+
+export function createCutShortMemberMemoryRecords(
+  session: DateSession,
+  members: Member[],
+  scenario: DateScenario,
+  createdAt: string,
+): MemoryRecord[] {
+  if (session.endReason !== "player_cut_short") {
+    return [];
+  }
+
+  const finalJudge = session.judgeSnapshots.at(-1);
+
+  return members.map((member) => {
+    const partner = members.find((candidate) => candidate.id !== member.id);
+    const moodDelta = finalJudge?.memberMoodDeltas[member.id] ?? 0;
+    const reaction = formatCutShortPrivateReaction(moodDelta);
+    const text = `${member.name} privately remembers ${scenario.title} as a date Cupid cut short with ${partner?.name ?? "their date partner"}. The final read filed their reaction as ${reaction}.`;
+    const embedding = createDeterministicEmbedding(text);
+
+    return memoryRecordSchema.parse({
+      id: `memory-${session.id}-${member.id}-cut-short`,
+      scope: "member",
+      visibility: "member_private",
+      subjectIds: [member.id],
+      visibleToMemberIds: [member.id],
+      pairId: session.pairId,
+      scenarioId: scenario.id,
+      dateSessionId: session.id,
+      text,
+      tags: ["private_date_memory", "cut_short", scenario.id],
+      importance: 4,
+      createdAt,
+      embedding,
+      embeddingModel: DETERMINISTIC_EMBEDDING_MODEL,
+      embeddingDimensions: embedding.length,
+    });
+  });
+}
+
+function formatCutShortPrivateReaction(moodDelta: number): string {
+  if (moodDelta >= 2) {
+    return "relieved or grateful for the exit";
+  }
+
+  if (moodDelta <= -2) {
+    return "disappointed by the interruption";
+  }
+
+  return "mixed";
 }
 
 export function applyJudgeToPairState(
@@ -3006,6 +3135,10 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
     return session.endSentiment === "positive" ? "second_date" : "early_end";
   }
 
+  if (session.endReason === "player_cut_short" && session.endSentiment === "positive") {
+    return "second_date";
+  }
+
   if (pairState.stats.relationshipHealth >= 65) {
     return "second_date";
   }
@@ -3022,6 +3155,18 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
 }
 
 function finalReportStatusLine(session: DateSession, outcome: DateFinalReport["outcome"]): string {
+  if (session.endReason === "player_cut_short" && outcome === "second_date") {
+    return "Cupid cut the room short on a warm read and filed it as efficient.";
+  }
+
+  if (session.endReason === "player_cut_short" && outcome === "early_end") {
+    return "Cupid cut the room short after the file turned loud. Standard cleanup is on schedule.";
+  }
+
+  if (session.endReason === "player_cut_short") {
+    return "Cupid cut the room short and filed the consequence on the final read.";
+  }
+
   if (session.status === "ended_early" && session.endSentiment === "positive") {
     return "Date ended early with a positive exit. Cupid filed it as efficient.";
   }
@@ -3215,6 +3360,22 @@ function formatOutcomeForMemory(outcome: DateFinalReport["outcome"] | undefined)
   }
 
   return "a mixed case";
+}
+
+function privateDateMemoryLabel(session: DateSession): string {
+  if (session.endReason === "player_cut_short" && session.finalReport?.outcome === "second_date") {
+    return "a date Cupid cut short on a warm read";
+  }
+
+  if (session.endReason === "player_cut_short") {
+    return "a date Cupid cut short after a final read";
+  }
+
+  if (session.status === "ended_early") {
+    return "a date that lost momentum";
+  }
+
+  return "a completed Cupid date";
 }
 
 function formatDateHealthShift(delta: number): string {
