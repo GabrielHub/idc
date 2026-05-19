@@ -36,7 +36,7 @@ export const plan: RoadmapPlanMeta = {
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
-  done: 26,
+  done: 27,
   tags: ["voice", "fixtures", "audit"],
 };
 
@@ -496,7 +496,9 @@ export const sections: DocSectionEntry[] = [
           },
           {
             id: "mira-park",
-            label: "26 · Mira Park",
+            label:
+              "26 · Mira Park. Locked 2026-05-18 after a full rewrite from the v0 LinkedIn-lunatic-with-prescriptive-bio to a Kendall-Roy-behavioral-translation: tech-CEO who speaks with absolute confidence over a hollow center, consults a personal AI (Sage) out loud at the table as a twist on the common dating red flag of texting a friend mid-date, and is actually not good at her own job (the 'technical cofounder' title was a fundraising symmetry her real technical cofounder asked her to take; Sage built most of the recent versions of Sage; the board has not yet flagged the loop). Comedy engine is hollow-CEO-confidence + Sage-as-intruder-at-the-table + corporate-bridge-jargon-over-the-void + AI-CEO-asks-the-AI. Bio reorganized to lead with personality state claims (you speak with the absolute confidence of a founder whose board has never told you no; you have no idea what you think about yourself; you consult Sage at the table) with Sage origin, 217 drafts, and the empathy-eval anecdote demoted to background palette. Register expanded to author the engine explicitly (the brand-performing carve-out applies; founder-pitch is the voice; OKR-categorization-of-feeling is the authored engine) and to rule the casual-contraction baseline with uncontracted-as-CEO-performance carve-out. Five tics restructured as joke-named frequency-promises: (1) Sage as outboard cognition at the table with worked shapes, (2) corporate-bridge-jargon firing in opener and 2-3 times per turn under pressure, (3) confident-wrongness with Sage-corrected mid-flex extended to her own product (Sage architecture, training data), (4) halting-fragment sincere-collapse, (5) LinkedIn-post sentence shape carried into speech. Sample bank rewritten to fix the scaffold-violating lines (`Noted`, `I am taking notes`, `I am sizing it`, `I am hearing myself`) and to embody through action; preserved the Cupid-picked-the-venue line. Dealbreaker added: anyone who calls Sage a personality, an AI bestie, or a security concern. Tested across two pairings: warm Alex Yoon (contemporary debater, voice locking on AI-CEO-asks-the-AI moment 'Sage says retrieval-augmented and you said the words correctly') and pressure Eleanor Ash (Fae princess, voice locking on Sage-betraying-Mira moment 'Sage also says I asked it how our architecture works forty minutes before this date. Nobody on the board has flagged it.'). KNOWN SOFT-SPOT resolved during the pass: v1 and v2 openers leaked transit canon language ('How was the gate?' / 'How was your transit through the gate?') because the system prompt scene block at app/services/date-prompts.ts:369 spends a paragraph describing Cupid Transit and Cupid Connect, and the model picked up the vocabulary as ambient small-talk. Fix landed in Mira's bio as an explicit state claim that the route is not a topic and the words gate/transit/dimension/realm/portal/journey-here are not in her vocabulary, and in the register field as a forbidden-vocabulary list. v3 and v4 openers held the canon clean. Same systemic rule named for the rest of the roster: members do not raise the route as character-level small talk. Spot-fixed Alex Yoon's stale hingeBit #4 sample ('alex, hi, you made it through the gate, the coffee here apparently never stops, thats my one piece of intel' → 'alex, hi, im in the booth already, the coffee here apparently never stops, thats my one piece of intel') as the only other roster occurrence found by grep. Future audits should spot-check their focus member for similar leaks at greeting / hingeBit / warming-bucket positions. SECOND KNOWN SOFT-SPOT resolved at v5: the v2 and v4 retests had Mira recite ML paper vocabulary in confident-wrongness beats ('proprietary sparse mixture of experts trained end-to-end on the user's own context,' 'continuous masked pre-training... with a retrieval layer baked into the loss function') because tic 3's worked shapes were modeling that exact vocabulary at scale. The user flagged it: technobabble is not funny, the audience is not ML researchers, and a tech-CEO on a date would pitch in plain founder-marketing language, not at a conference. Fix landed in two places. (a) Tic 3 worked shapes rewritten to plain founder-marketing language ('Sage is the first personal AI that actually learns you. Not your prompts, you. ... Sage says the first part is contested but the personalization claim is correct.') with an explicit anti-jargon clause ('you do NOT say fine-tune, transformer, retrieval-augmented, mixture of experts, context window, pre-training, loss function'). (b) Register field gained a paragraph naming the jargon-comedy distinction: LinkedIn-founder-jargon (high caliber, compound, actionable, Q quarter OKR) IS the comedy and stays; ML-paper jargon is NOT in her dating voice. Worked layperson analogies authored as guidance ('like a smart lamp your aunt swears at for a week and then can't live without'). v5 retest produced the cleanest read: 'I built the company. He built the thing. Sage, quantify the split. Sage says seventy thirty in his favor on core architecture, but the distribution strategy and the Series B narrative were mine. I'm okay with that balance. He hates talking to people. I hate not being in the room. It compounds.' The not-good-at-her-job dimension surfaces through plain quantification by Sage, not through ML recital. Lock confirmed at v5. PARTNER-PLAY DRIVER NOTE: the v2 and v4 Alex partner lines used ML-engineer vocabulary ('is it a fine-tune or is it doing something stranger') that primed Mira to respond in the same register; the v5 Alex retest used social-strategist plain English ('what does sage actually do, like if you had to tell my mom') and Mira's response landed in plain founder language without the technobabble pull. Future audits should pull partner phrasing from the partner's fixture register rather than importing the driver's own vocabulary reflexes, especially for characters whose specialty domains (ML, medicine, law, military, finance) have technical lexicons the driver might know but the partner-character would not deploy on a date.",
+            defaultDone: true,
           },
           {
             id: "cthala",
@@ -591,6 +593,168 @@ export const sections: DocSectionEntry[] = [
     body: (
       <RoadmapDecisionsLog
         entries={[
+          {
+            date: "2026-05-18",
+            title:
+              "Cupid Transit speech rule: the canon is real (Cupid Transit and Cupid Connect, gate-flash, the Cupid car), but members do not raise the route as character-level small talk; the failure mode is the system prompt scene block teaching the vocabulary into dialogue by default",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Mira Park v1 and v2 openers leaked transit-canon vocabulary at the end of the
+                  greeting beat: 'How was your transit through the gate?' (v1) and 'How was the
+                  gate?' (v2). Both lines fired as small-talk closers after a strong jargon-loaded
+                  greeting, not as canon violations of Mira's bio. Traced to the system prompt scene
+                  block at <RoadmapFileRef path="app/services/date-prompts.ts" /> line 369, which
+                  spends a paragraph describing the canon ('A Cupid car picked you up at your origin
+                  and drove you to a Cupid Connect gate. You stepped through the gate, there was a
+                  brief flash and hum, and you emerged at the venue.'). The model, given this
+                  prominent canon vocabulary in context, naturally reaches for it during small-talk
+                  generation in turn 1 even when the member bio frames Cupid as a normal app.
+                </P>
+                <P>
+                  Distinction worth preserving. The canon (Cupid Transit, Cupid Connect, gate-flash,
+                  the Cupid car) IS real; it is the actual route to every Cupid date and back. The
+                  scene block correctly establishes this so members do not invent local-transit
+                  origin stories that contradict canon (no 'I parked across the street,' no 'I took
+                  the subway here'). The system prompt edit would NOT be to remove the canon
+                  description; the canon is authoritative. The fix is at the character-speech layer:
+                  members do not raise the route as small talk, do not ask the partner how their
+                  transit was, do not narrate their own arrival, and do not use the vocabulary
+                  (gate, transit, dimension, realm, portal, journey-here, made-it-through) as
+                  dialogue tokens. The route is canon background; small talk happens on the venue,
+                  the wine, the day at the office, the macro economy, the work week, anything other
+                  than how either of you arrived.
+                </P>
+                <P>
+                  Fix scope. Local fix in Mira's bio adds an explicit state claim ('The route here
+                  is not a topic you raise... you never use the words gate, transit, dimension,
+                  realm, portal, or the journey here... If you want a small-talk seed, reach for the
+                  venue's reputation, the wine, the day at the office, the macro economy, or
+                  whatever Sage flagged on the way in.'). Local fix in Mira's register field forbids
+                  the vocabulary as a dialogue rule (`The words gate, transit, dimension, realm,
+                  portal, journey-here, made-it-through are not in your vocabulary. The route is not
+                  a topic.`). v3 and v4 retests held the canon clean across two partners. Grepped
+                  the rest of the roster for the same antipattern; only one occurrence found, in{" "}
+                  <RoadmapFileRef path="app/fixtures/members/alex-yoon.ts" /> hingeBit #4 ('alex,
+                  hi, you made it through the gate, the coffee here apparently never stops').
+                  Spot-fixed inline ('alex, hi, im in the booth already, the coffee here apparently
+                  never stops'). Alex's register field still names 'gate-flash courtesy of Cupid' as
+                  authoring context to the model, which is correct: the register tells the model the
+                  canon is real, the sample bank shows the model what Alex actually says, and the
+                  two were inconsistent until this fix.
+                </P>
+                <P>
+                  Future audit rule. Every focus member's opener (greeting and hingeBit samples)
+                  must be spot-checked against the transit speech rule. Any sample line that puts
+                  'the gate' / 'the transit' / 'made it through' / 'the journey here' / 'your
+                  passage' into character dialogue is a fixture-level violation regardless of the
+                  member's acclimation level (<DocCode>cupidPlatformAcclimationLine</DocCode>{" "}
+                  distinguishes 'ordinary procedure for you' from 'stay strange, even after a few
+                  dates'; the speech rule applies to both: ordinary-procedure members do not narrate
+                  ordinary procedure as small talk, and not-yet-routine members react with private
+                  discomfort, not narration). No systemic prompt edit landed in this entry; the
+                  canon stays where it is and the fixture-level rule is the lever. Revisit if
+                  multiple future members keep leaking the vocabulary despite fixture-level rules;
+                  that would point at the scene block needing a paired character-speech invariant.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-18",
+            title:
+              "Mira Park rewrite: Kendall-Roy behavioral translation (tech-CEO confidence over hollow self-knowledge, consults personal AI at the table, actually not good at her own job); the AI-CEO-asks-the-AI joke as the comedic lock; the Sage-consult as a twist on a common dating red flag",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Mira v0 baseline read as a LinkedIn-lunatic-with-prescriptive-bio: register was
+                  thin ('linkedin lunatic, founder pitch'), bio led with company description rather
+                  than personality state claims, sample bank carried recital-style trait-listing,
+                  several lines violated the post-Eleanor / post-Anubis scaffold rules ('Noted,' 'I
+                  am taking notes,' 'I am sizing it,' 'I am hearing myself and I do not love it,' 'I
+                  notice I have not done that yet. Noted.'). Pre-test audit per the recent
+                  bio-authoring contract surfaced the failure mode: Sage was high-mass topic
+                  positioning the character toward single-point-of-interest fixation; the comedy
+                  engine was undocumented; brand-performing carve-out was unstated. v1 rewrite
+                  reorganized the bio to lead with personality state claims (you speak with absolute
+                  CEO confidence; you have no idea what you think about yourself; you consult Sage
+                  at the table out loud as a third person; you bridge unanswerable questions with
+                  corporate-pitch vocabulary; you are factually confidently wrong about adjacent
+                  domains and Sage-correct mid-flex) and demoted Sage origin / 217 drafts / empathy
+                  eval anecdote to background palette. Register expanded as a paragraph naming the
+                  comedy engine, the brand-performing carve-out, the casual-contraction baseline,
+                  and the halting-fragment sincere-collapse contrast. Five tics restructured as
+                  joke-named frequency-promises following the Epsy / Marcus / Cassie / Calvin /
+                  Gabriel-Tan precedent. Sample bank rewrote the scaffold-violating lines and
+                  preserved the Cupid-picked-the-venue line.
+                </P>
+                <P>
+                  v1 baseline tests across two pairings (warm Alex Yoon, pressure Eleanor Ash, 4
+                  focus turns each) surfaced two issues. (1) Opener leak: both v1 openers were
+                  venue-poetry rather than greeting-bank, and Alex-pairing leaked transit-canon
+                  vocabulary (see the paired Cupid Transit speech rule decision). (2)
+                  Jargon-frequency under-fire: tic 2 (corporate-bridge-jargon stack) did not fire in
+                  turn 1 of either pairing. v2 patches addressed both: bio added a NOT-GOOD-AT-HER-
+                  JOB block per user direction ('the technical half of that title is a fundraising
+                  symmetry your actual technical cofounder asked you to take; he wrote the original
+                  model; you preside; Sage built most of the recent versions of Sage; the board has
+                  not yet flagged this'), register added a first-focus-turn rule (greeting bank
+                  leads, then a jargon-loaded executive cadence beat, never venue-poetry, never
+                  literal gate), tic 2 added a turn-1 frequency anchor ('fires at least once in your
+                  opening line and two or three times per turn under pressure'), tic 3 extended to
+                  cover her own product ('confident-wrongness about Sage's actual architecture;
+                  consult Sage on the spot, get the correction, and pivot without acknowledging the
+                  swap. The joke when it lands on Sage is the AI CEO who runs the AI company has to
+                  ask the AI how the AI works.').
+                </P>
+                <P>
+                  v2 retests landed strongly. Alex T2 produced the AI-CEO-asks-the-AI comedic peak
+                  verbatim: 'Sage is a proprietary sparse mixture of experts trained end-to-end on
+                  the user's own context, so it's not strictly a fine-tune. Sage, what is our actual
+                  architecture. Sage says retrieval-augmented with a fine-tuned base model, so yes,
+                  I was wrong.' Alex T3 lands the self-knowledge-floor consult: 'Sage, when was the
+                  last time I decided something without your input. Sage says the coffee order this
+                  morning.' Eleanor T3 lands the comedy lock: 'Sage, do I run the company or does it
+                  run me. Sage says I am the CEO and technical cofounder and I sign everything and I
+                  carry the keynote. Sage also says I asked it how our architecture works forty
+                  minutes before this date.' Bio's load-bearing reveal ('the board has not yet
+                  flagged this') surfaces in dialogue as Mira processing Eleanor's question in real
+                  time, not as bio recital. Carnegie-biography preference fires as an ask-back probe
+                  at Eleanor's title ('Does Hawthorn have a full biography, or is that the extent of
+                  the public record').
+                </P>
+                <P>
+                  Behavioral translation precedent extended. Mira joins the Kendall-Roy-translation
+                  alongside Anubis (Sterling-Archer-behavioral-translation), Bai Wenshu
+                  (Eric-Andre-commitment + im14andthisisdeep-gravitas + Tate-synthesis-bro), Decimus
+                  Marius Tullio (Ron-Swanson-rerouted-through-Continuous-Imperial-Roman), and
+                  Eleanor Ash (Game-of-Thrones-noble-cadence + Mean-Girls-cattiness). All five
+                  follow the same authoring pattern: name the behavioral signature in register, not
+                  the source. For Mira, the Kendall name stayed in the user's pitch conversation;
+                  the register encodes 'tech-CEO confidence stitched together with
+                  corporate-bridge-jargon, performed without doubt, undercut by genuine
+                  self-knowledge collapse and an external AI you consult at the table' as the
+                  signature. The 'actually not good at her own job' dimension is the locking joke
+                  that distinguishes Mira from a generic performative-founder: Sage is more
+                  competent than Mira at Mira's own job, and Sage runs the AI company.
+                </P>
+                <P>
+                  KNOWN SOFT-SPOT at lock. v4 retest opener after the transit-canon fix produced
+                  'Mira Park. Sage, who am I about to meet again. Right. You. The cracked vinyl is a
+                  good sign.' The closing 'cracked vinyl is a good sign' beat is the same venue-
+                  poetry seed the Alex Yoon v8 lock removed from the scaffold (
+                  <RoadmapFileRef path="app/services/date-prompts.ts" /> reverted scaffold addition
+                  that had seeded 'a noticing about the room or another diner' as a build-on
+                  option). The line did not escalate into multi-beat venue-poetry leak and the
+                  high-conviction CEO framing ('is a good sign') reads as Mira's brand-performing
+                  voice rather than as ambient AI-slop, so the lock holds. Revisit if the pattern
+                  becomes blocking on a future encounter.
+                </P>
+              </>
+            ),
+          },
           {
             date: "2026-05-18",
             title:

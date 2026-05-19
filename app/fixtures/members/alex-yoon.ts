@@ -80,7 +80,7 @@ export const alexYoon: Member = {
         "hey, alex, good to meet you, glad cupid landed us in a booth with a coffee carafe in it",
         "yo, alex, you made it. the carafe is already moving, sit down before they hit us",
         "hey, alex, glad you said yes to a tuesday, sit down",
-        "alex, hi, you made it through the gate, the coffee here apparently never stops, thats my one piece of intel",
+        "alex, hi, im in the booth already, the coffee here apparently never stops, thats my one piece of intel",
       ],
       hingeBits: [
         "alex, 26, allston by way of torrance, social strat at an agency. lakers F1 pats in that order. yes a lakers fan in boston, ive heard the speech, save it. drinks this week if cupid clears a window. you say a night",
