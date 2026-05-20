@@ -30,6 +30,7 @@ import {
   buildReactionSignals,
   type StreamingDraftMessage,
 } from "./date-view-transcript";
+import { MemberDetailsModal } from "./member-details-modal";
 import { PairMemoryInspector } from "./pair-memory-inspector";
 import { ScenarioBackdropLayer } from "./scenario-backdrop";
 import { AudioSettingsMenu, MutedIndicator } from "./settings-menu";
@@ -168,6 +169,8 @@ export function DateView({
     }
   }, [session.playbackState, draftEventsAutoStep]);
 
+  const [openMember, setOpenMember] = useState<Member | null>(null);
+
   const judgeNoteGate = session.judgeSnapshots.length > 0;
   const judgeNoteStep = useTutorialStep(save, "date.judge-note", judgeNoteGate, onTutorialUpdate);
   const [judgeNoteAnchor, setJudgeNoteAnchor] = useState<HTMLElement | null>(null);
@@ -190,6 +193,7 @@ export function DateView({
           leftMood={leftMood}
           rightMood={rightMood}
           reactions={reactionSignals}
+          onOpenMember={setOpenMember}
         />
       ) : null}
       {session.status === "active" ? <DateAudioControls /> : null}
@@ -300,6 +304,17 @@ export function DateView({
           />
         </>
       ) : null}
+
+      {openMember === null ? null : (
+        <MemberDetailsModal
+          member={openMember}
+          playerKnowledge={playerKnowledge}
+          isFocused={save.focusedMemberIds.includes(openMember.id)}
+          save={save}
+          onTutorialUpdate={onTutorialUpdate}
+          onClose={() => setOpenMember(null)}
+        />
+      )}
     </>
   );
 }
@@ -382,23 +397,23 @@ function DateStandeeFrame({
   leftMood,
   rightMood,
   reactions,
+  onOpenMember,
 }: {
   leftMember: Member;
   rightMember: Member;
   leftMood: PortraitMood;
   rightMood: PortraitMood;
   reactions: ReactionSignal[];
+  onOpenMember: (member: Member) => void;
 }) {
   return (
-    <div
-      aria-hidden
-      className="pointer-events-none fixed inset-0 z-0 hidden overflow-hidden xl:block"
-    >
+    <div className="pointer-events-none fixed inset-0 z-0 hidden overflow-hidden xl:block">
       <DaterStandee
         member={leftMember}
         placement="bottom-left"
         mood={leftMood}
         reactions={reactions.filter((reaction) => reaction.side === "left")}
+        onClick={() => onOpenMember(leftMember)}
         className="absolute bottom-0 left-0 h-[92vh] w-72 2xl:w-96"
       />
       <DaterStandee
@@ -406,6 +421,7 @@ function DateStandeeFrame({
         placement="bottom-right"
         mood={rightMood}
         reactions={reactions.filter((reaction) => reaction.side === "right")}
+        onClick={() => onOpenMember(rightMember)}
         className="absolute bottom-0 right-0 h-[92vh] w-72 2xl:w-96"
       />
     </div>

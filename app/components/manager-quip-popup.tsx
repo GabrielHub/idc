@@ -30,7 +30,7 @@ export function ManagerQuipPopup({ quip, presentationKey, onDismissed }: Manager
 
   useEffect(() => {
     if (quip === null) return;
-    const next = pickNextManagerStandeeSide(lastSideRef.current);
+    const next = pickNextManagerStandeeSide(lastSideRef.current, [quip.id, presentationKey]);
     lastSideRef.current = next;
     setSide(next);
   }, [quip, presentationKey]);

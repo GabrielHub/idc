@@ -1,3 +1,4 @@
+import { createNamespacedRandom } from "../services/utils";
 import { getMasterGain, MIN_GAIN } from "./sfx-engine";
 
 const SOFT_ATTACK_SECONDS = 0.012;
@@ -392,10 +393,11 @@ function getOrCreateNoiseBuffer(audioContext: AudioContext, sampleCount: number)
 
   const buffer = audioContext.createBuffer(1, sampleCount, audioContext.sampleRate);
   const data = buffer.getChannelData(0);
+  const random = createNamespacedRandom("sfx-noise-buffer", [sampleCount, audioContext.sampleRate]);
 
   for (let index = 0; index < sampleCount; index += 1) {
     const fade = 1 - index / sampleCount;
-    data[index] = (Math.random() * 2 - 1) * fade;
+    data[index] = (random() * 2 - 1) * fade;
   }
 
   bucket.set(sampleCount, buffer);

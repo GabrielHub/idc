@@ -8,6 +8,12 @@ import {
   type ManagerQuipTriggerKey,
 } from "../fixtures/manager-quips";
 import { derivePairTrajectory } from "./pair-trajectory";
+import {
+  createNamespacedRandom,
+  selectFreshItems,
+  type FreshnessPenalty,
+  type RandomFn,
+} from "./utils";
 
 export type ManagerQuipResolveResult = {
   quipId: string;
@@ -24,7 +30,7 @@ export type ManagerQuipResolveInput = {
   sessionPlayedQuipIds?: ReadonlySet<string>;
   surfaceKey?: string;
   now?: Date;
-  random?: () => number;
+  random?: RandomFn;
 };
 
 const HISTORY_RETENTION_SHIFTS = 1;
@@ -56,15 +62,29 @@ export function resolveManagerQuip(
   }
 
   const sessionPlayed = input.sessionPlayedQuipIds ?? new Set<string>();
-  const random = input.random ?? Math.random;
-  const chosen = pickVariant(variants, sessionPlayed, random);
   const now = input.now ?? new Date();
+  const firedAt = now.toISOString();
+  const random =
+    input.random ??
+    createNamespacedRandom("manager-quip", [
+      input.triggerKey,
+      surfaceKey,
+      input.currentShiftNumber,
+      firedAt,
+      input.history.length,
+    ]);
+  const chosen = pickVariant(
+    variants,
+    sessionPlayed,
+    random,
+    managerQuipFreshnessPenalties(input.triggerKey, input.history),
+  );
   const historyRecord: ManagerQuipHistoryRecord = {
     quipId: chosen.id,
     triggerKey: input.triggerKey,
     cadence: group.cadence,
     shiftNumber: Math.max(1, Math.floor(input.currentShiftNumber)),
-    firedAt: now.toISOString(),
+    firedAt,
     ...(surfaceKey === undefined ? {} : { surfaceKey }),
   };
 
@@ -126,12 +146,31 @@ function shouldFire(
 function pickVariant(
   variants: readonly ManagerQuip[],
   sessionPlayedQuipIds: ReadonlySet<string>,
-  random: () => number,
+  random: RandomFn,
+  freshnessPenalties: readonly FreshnessPenalty[],
 ): ManagerQuip {
   const fresh = variants.filter((quip) => !sessionPlayedQuipIds.has(quip.id));
   const pool = fresh.length > 0 ? fresh : variants;
-  const index = Math.min(pool.length - 1, Math.max(0, Math.floor(random() * pool.length)));
-  return pool[index];
+  const [selected] = selectFreshItems({
+    candidates: pool.map((quip) => ({ id: quip.id, item: quip })),
+    count: 1,
+    random,
+    freshnessPenalties,
+  });
+  return selected ?? pool[0]!;
+}
+
+function managerQuipFreshnessPenalties(
+  triggerKey: ManagerQuipTriggerKey,
+  history: readonly ManagerQuipHistoryRecord[],
+): FreshnessPenalty[] {
+  return history
+    .filter((record) => record.triggerKey === triggerKey)
+    .slice(-6)
+    .map((record, index, records) => ({
+      id: record.quipId,
+      penalty: 1 + (records.length - index) * 0.5,
+    }));
 }
 
 function normalizeSurfaceKey(value: string | undefined): string | undefined {

@@ -34,7 +34,6 @@ const SCENARIO_ID_REPLACEMENTS: Record<string, string> = {
 
 export type CreateSeedGameSaveOptions = {
   config?: GameConfig;
-  random?: () => number;
 };
 
 export function createSeedGameSave(

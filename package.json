@@ -6,19 +6,10 @@
   "type": "module",
   "scripts": {
     "build": "react-router build",
-    "build:desktop": "react-router build --mode desktop && node scripts/verify-desktop-build.mjs",
     "dev": "react-router dev",
-    "portrait:cutout": "python scripts/portraits/remove_background.py",
-    "portrait:resize-avatars": "python scripts/portraits/resize_avatars.py",
-    "portrait:standee-footing": "python scripts/portraits/build_standee_footing.py",
-    "release:check": "node scripts/verify-release-readiness.mjs",
-    "release:notes": "node scripts/render-release-notes.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "tauri": "tauri",
-    "tauri:dev": "tauri dev",
-    "tauri:build": "vp check && react-router typegen && tsc && vp test run && tauri build --ci",
-    "typecheck": "react-router typegen && tsc",
-    "updater:manifest": "node scripts/create-updater-manifest.mjs"
+    "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.2.10",

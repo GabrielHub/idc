@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { type ReactNode } from "react";
 
 import type { ManagerQuip } from "../fixtures/manager-quips";
+import { createNamespacedRandom, type RandomSeedPart } from "../services/utils";
 import { TUTORIAL_MANAGER_PORTRAIT_SRC } from "./tutorial";
 
 export type ManagerStandeeSide = "left" | "right";
@@ -80,10 +81,12 @@ export function ManagerStandee({ quip, side, surface }: ManagerStandeeProps) {
 
 export function pickNextManagerStandeeSide(
   previous: ManagerStandeeSide | null,
+  seedParts: readonly RandomSeedPart[] = [],
 ): ManagerStandeeSide {
   if (previous === "left") return "right";
   if (previous === "right") return "left";
-  return Math.random() < 0.5 ? "left" : "right";
+  const random = createNamespacedRandom("manager-standee-side", seedParts);
+  return random() < 0.5 ? "left" : "right";
 }
 
 function ManagerStandeeBob({ children, isLeft }: { children: ReactNode; isLeft: boolean }) {

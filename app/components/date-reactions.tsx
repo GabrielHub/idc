@@ -182,12 +182,14 @@ export function DaterStandee({
   reactions,
   mood = "neutral",
   className = "",
+  onClick,
 }: {
   member: Member;
   placement: ReactionPlacement;
   reactions: ReactionSignal[];
   mood?: PortraitMood;
   className?: string;
+  onClick?: () => void;
 }) {
   const isFocus = placement === "bottom-left";
   const heightScale = resolveStandeeHeightScale(member.standeeRenderHeightInInches);
@@ -197,34 +199,46 @@ export function DaterStandee({
   const baseGlow = isFocus
     ? "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(244,63,94,0.3)_0%,rgba(217,70,239,0.09)_42%,transparent_74%)]"
     : "pointer-events-none absolute -inset-x-28 -inset-y-36 -z-10 bg-[radial-gradient(ellipse_at_50%_66%,rgba(167,139,250,0.26)_0%,rgba(217,70,239,0.08)_42%,transparent_74%)]";
+  const hoverGlow = isFocus
+    ? "pointer-events-none absolute -inset-x-14 -inset-y-20 -z-10 bg-[radial-gradient(ellipse_at_50%_60%,rgba(244,63,94,0.55)_0%,rgba(217,70,239,0.28)_38%,transparent_72%)] opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 group-focus-visible:opacity-100"
+    : "pointer-events-none absolute -inset-x-14 -inset-y-20 -z-10 bg-[radial-gradient(ellipse_at_50%_60%,rgba(167,139,250,0.5)_0%,rgba(217,70,239,0.26)_38%,transparent_72%)] opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100 group-focus-visible:opacity-100";
   const shadowClass = isFocus
     ? "drop-shadow-[0_30px_42px_rgba(244,63,94,0.22)]"
     : "drop-shadow-[0_30px_42px_rgba(167,139,250,0.22)]";
+
+  const portraitInner = (
+    <div
+      className={`absolute inset-0 origin-bottom ${sourceScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+    >
+      <div
+        className={`absolute inset-0 ${footing.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+      >
+        <Portrait member={member} variant="standee-bottom" asset="portrait" mood={mood} priority />
+      </div>
+    </div>
+  );
+
+  const portraitContainerClass = `absolute inset-x-0 bottom-0 aspect-[887/1774] origin-bottom ${heightScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`;
 
   return (
     <div className={className}>
       <span aria-hidden className={baseGlow} />
       <MoodAmbientGlow mood={mood} />
       <div className={`relative size-full ${shadowClass}`}>
-        <div
-          className={`absolute inset-x-0 bottom-0 aspect-[887/1774] origin-bottom ${heightScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
-        >
-          <div
-            className={`absolute inset-0 origin-bottom ${sourceScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
+        {onClick === undefined ? (
+          <div className={portraitContainerClass}>{portraitInner}</div>
+        ) : (
+          <button
+            type="button"
+            onClick={onClick}
+            data-sfx="click"
+            aria-label={`Open ${member.firstName} file`}
+            className={`group pointer-events-auto cursor-pointer rounded-[36%] bg-transparent p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80 focus-visible:ring-offset-0 ${portraitContainerClass}`}
           >
-            <div
-              className={`absolute inset-0 ${footing.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`}
-            >
-              <Portrait
-                member={member}
-                variant="standee-bottom"
-                asset="portrait"
-                mood={mood}
-                priority
-              />
-            </div>
-          </div>
-        </div>
+            <span aria-hidden className={hoverGlow} />
+            {portraitInner}
+          </button>
+        )}
         <ReactionStream reactions={reactions} placement={placement} />
       </div>
     </div>

@@ -70,10 +70,10 @@ export const idrisMahari: Member = {
     ],
     sampleMessages: {
       greeting: [
-        "hey. Idris. thanks for finding the place, I would have circled the block twice.",
-        "hi. Idris. you found it. good. that is, ah, one of us doing well.",
+        "hey. Idris. thanks for taking the seat, I would have stared at the menu twice.",
+        "hi. Idris. you sat down. good. that is, ah, one of us doing well.",
         "Idris. nice to meet you. the menu looks fine. I am going to need a minute.",
-        "hey. Idris Mahari. I am told the local form is to ask about parking. I will not.",
+        "hey. Idris Mahari. I am told the local form is to ask about the week. I will try.",
       ],
       hingeBits: [
         "Idris. 31. retired. they tell me dating profiles work better with a hobby. mine is, ah, sitting on a balcony and not flinching when a car backfires. I have been told that is not a hobby. they are correct. let me start over.",
@@ -82,7 +82,7 @@ export const idrisMahari: Member = {
         "I tried to buy a salad spinner this morning. they had eleven. I thought I was prepared. I was not prepared. I left without one. I am telling you because, structurally, it was the largest event of my Saturday.",
       ],
       warming: [
-        "you found the place. you accepted the time. you did not text me three follow ups about parking. I am going to be honest, that is doing things to me.",
+        "you sat down. you let the time be the time. you did not text me three follow ups about whether dinner counts as a plan. I am going to be honest, that is doing things to me.",
         "my name said once at a normal volume and I had to look at the menu for a second. I am fine. that was a positive reaction. I do not need a glass of water.",
         "the salad spinner landed. I want you to know I was hoping it would and also slightly hoping it would not, because then I would know what we are.",
         "good books or bad books. nobody asks the follow up. it is embarrassing how much that landed.",

@@ -128,8 +128,11 @@ export const sections: DocSectionEntry[] = [
               "Romance proposed in mundane terms (Costco, fitted sheets, the olive on the plate).",
               "Threats delivered as flirtation. Flirtation delivered as confession.",
               <span key="i">
-                Lowercase <DocCode>i</DocCode> is fine. Single typos are fine. Texting cadence is
-                fine. Do not over-correct toward grammar school.
+                Lowercase <DocCode>i</DocCode> is fine when the fixture authorizes it. Single typos
+                are fine. Spoken cadence (fragments, run-ons, mid-thought pivots) is fine. Texting
+                moves (laugh-tag suffix punctuation, standalone single-word reaction bubbles, text
+                shorthand at high density, newline cascades as default) are out; see the prose
+                mechanics section below. Do not over-correct toward grammar school.
               </span>,
               "A reply that drops the fingerprint to land a real reaction is in voice. A reply that hits the fingerprint at the cost of sounding rehearsed is not.",
             ]}
@@ -151,17 +154,47 @@ export const sections: DocSectionEntry[] = [
         <DocList
           items={[
             <span key="i">
-              Lowercase <DocCode>i</DocCode> is fine in member voice. Never in Cupid voice.
+              Lowercase <DocCode>i</DocCode> is fine in member voice when the character's
+              capitalization rule authorizes it (off-shift casual, lowercase-aesthetic, archaic
+              uncontracted-as-CEO-performance carve-out). Texting-native millennials who would type
+              with capital-I (Gabriel) keep the capital-I baseline; lowercase fires only as a typo
+              in that case. Spell the rule in the fixture register so the model picks the right
+              default. Never in Cupid voice.
             </span>,
             "No em dashes or en dashes anywhere. Use commas, periods, colons, parentheses, or split sentences. This applies in code, docs, and runtime copy.",
-            'Caps for emphasis are allowed in member voice ("BRAINNNN", "WIGGLING"). Use sparingly. Never in Cupid voice.',
+            'Caps for emphasis are allowed in member voice ("BRAINNNN", "WIGGLING", "BRUH"). Use sparingly for genuine spoken stress. All-caps HAHAHA streaks and typed letter-runs ("yupppppp") are texting moves and stay out of spoken dialogue. Never in Cupid voice.',
             "Run-ons welcome in member voice, especially in Rambling Spiral and Stream of Consciousness. Banned in Cupid voice.",
             'Fragments welcome ("These hand problems. They\'re fixable."). Useful in both registers.',
             "Exclamation points: member voice may use none, one, or a deliberate !! when the character fingerprint earns it. Avoid bigger stacks. Cupid voice uses zero.",
             <span key="typos">
               Single typos and casual contractions (<DocCode>ive</DocCode>, <DocCode>abt</DocCode>,{" "}
               <DocCode>tho</DocCode>) are fine in member voice if they fit the fingerprint. Do not
-              perform millennial errors in characters who would not make them.
+              perform millennial errors in characters who would not make them. Rapid-send typos with
+              asterisk-correction (Aran, Aryan*) can be a character marker when the corpus shows the
+              source person owns the typo; spell that intent in the fixture so the model does not
+              silently retype.
+            </span>,
+            <span key="stage">
+              No stage directions in member voice. Member bubbles render as spoken dialogue;
+              asterisks around actions (<DocCode>*sips wine*</DocCode>, <DocCode>*shrugs*</DocCode>,{" "}
+              <DocCode>*leans back*</DocCode>) and bracketed actions (
+              <DocCode>[picks up the glass]</DocCode>) are theater-script moves, not speech. The
+              sanitizer in <DocCode>app/services/character-markdown.ts</DocCode> strips italic
+              stage-direction lines; the fixture-level guidance lives in{" "}
+              <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink>.
+            </span>,
+            <span key="spoken">
+              The date is spoken, not texted. Laugh-tag suffix punctuation (lol / lmao / haha at the
+              end of every bubble), single-word reactions as standalone bubbles (Damn / Holy /
+              Insane / Wild as solo lines), text shorthand at high density (rn, tn, lmk, my b, kk,
+              ye), and newline cascades as default cadence are texting moves. Spoken laughter, when
+              authored, is a sound inside a sentence ("damn, that lands"), not a typographic suffix.
+              Gabriel Tan is the explicit exception (texting-native millennial) and his fixture
+              authors the cascade as a character claim. See{" "}
+              <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+                the spoken-dialogue contract
+              </DocLink>{" "}
+              for the full list of what does and does not extrapolate.
             </span>,
             'Specificity beats generality every time. Real proper nouns (Costco, Whole Foods, Build A Bear, John Goodman) outperform invented ones unless the invention is the joke. Trademarked names are fine in fiction; do not censor "Costco" to "the warehouse store."',
             'Trust the reader. No "lol just kidding," no softening, no explaining the joke after the joke.',

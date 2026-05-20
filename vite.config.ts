@@ -29,8 +29,48 @@ export default defineConfig({
       "audit:dates": {
         command: "node scripts/audit-dates.mjs",
       },
+      "build:desktop": {
+        command: "react-router build --mode desktop && node scripts/verify-desktop-build.mjs",
+        input: [{ auto: true }, "!build/**", "!node_modules/.vite/task-cache/**"],
+      },
+      "portrait:cutout": {
+        command: "python3 scripts/portraits/remove_background.py",
+        cache: false,
+      },
+      "portrait:palettes": {
+        command: "python3 scripts/portraits/build_portrait_palettes.py",
+        cache: false,
+      },
+      "portrait:resize-avatars": {
+        command: "python3 scripts/portraits/resize_avatars.py",
+        cache: false,
+      },
+      "portrait:standee-footing": {
+        command: "python3 scripts/portraits/build_standee_footing.py",
+        cache: false,
+      },
+      "release:check": {
+        command: "node scripts/verify-release-readiness.mjs",
+        cache: false,
+      },
+      "release:notes": {
+        command: "node scripts/render-release-notes.mjs",
+        cache: false,
+      },
+      "tauri:build": {
+        command: "vp check && react-router typegen && tsc && vp test run && tauri build --ci",
+        cache: false,
+      },
+      "tauri:dev": {
+        command: "tauri dev",
+        cache: false,
+      },
       tune: {
         command: "node scripts/tune-member.mjs",
+        cache: false,
+      },
+      "updater:manifest": {
+        command: "node scripts/create-updater-manifest.mjs",
         cache: false,
       },
     },

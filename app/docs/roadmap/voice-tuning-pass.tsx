@@ -32,11 +32,11 @@ export const meta: DocMeta = {
 export const plan: RoadmapPlanMeta = {
   status: "in-flight",
   opened: "2026-05-16",
-  touched: "2026-05-20",
+  touched: "2026-05-19",
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
-  done: 33,
+  done: 34,
   tags: ["voice", "fixtures", "audit"],
 };
 
@@ -81,7 +81,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             Gideon Glass (position 9), Imani Wallace (position 13), and Idris Mahari (position 39)
             were tuned ahead of the cursor. All locked at fixture level. The next sequential entry
-            is curated position 33, Derek Halsey.
+            is curated position 34, Cha Yusung.
           </P>
         </DocCallout>
       </>
@@ -130,6 +130,44 @@ export const sections: DocSectionEntry[] = [
               canonical exception because their characters are canonically performing; everyone else
               cuts self-announcement. See the 2026-05-18 decisions for the Alex Yoon precedent and
               the cross-cutting application to the rest of the roster.
+            </span>,
+            <span key="spoken-dialogue-contract">
+              <Strong>
+                Audit the voice block against the spoken-dialogue contract before partner sessions
+                run.
+              </Strong>{" "}
+              The date is two people speaking at a table; the chat-bubble surface is a rendering
+              choice, not a register choice. Read the fixture register, tics, and sample banks for
+              text-medium artifacts that contaminate the spoken voice: laugh-tag suffix punctuation
+              (lol / lmao / haha at the end of lines), standalone single-word reaction bubbles (Damn
+              / Holy / Insane / Wild / Bruh as solo lines), text shorthand at high density (rn, tn,
+              lmk, my b, kk, ye, plz, p much, u, em, lemme, deadass), "X tho?" / "X no?" backchannel
+              question shapes, all-caps HAHAHA streaks, typed letter-runs (yupppppp), newline bubble
+              cascades as default cadence, partner-name standalone opener bubbles (Gabe / Gabe
+              respond plz). Gabriel Tan is the only roster exception (texting-native millennial,
+              cascade authored as a character claim); every other casual-contemporary voice
+              translates the corpus moves into spoken equivalents (my bad over my b, right now over
+              rn, doubled-enthusiasm "good take good take" over typed letter-runs, stretched-vowel
+              "whaaat" as spoken stress, "actually" as the sincerity intensifier mid-sentence). Also
+              audit for the three fixture-level bans: stage directions (asterisks or brackets around
+              actions), move-narration and partner-labeling ("that's a green flag," "real one move,"
+              "im noticing things tonight"), bureaucratic acknowledgment as casual filler ("noted,"
+              "got it," "good intel" as standalone bridges). Filing-trade voices that author a
+              restructure engine as default operating mode keep the receipt-language; everyone else
+              cuts it. See{" "}
+              <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+                Spoken dialogue at a table
+              </DocLink>
+              ,{" "}
+              <DocLink to="/docs/product/voice-fingerprints#fixture-level-bans">
+                Fixture-level bans
+              </DocLink>
+              , and{" "}
+              <DocLink to="/docs/product/voice-fingerprints#tiered-dealbreaker-fire-shape">
+                Tiered dealbreaker fire-shape
+              </DocLink>{" "}
+              for the durable rules; the 2026-05-19 cross-cutting-rules decision below has the full
+              lesson.
             </span>,
             <span key="read-docs">
               Cross-check{" "}
@@ -449,7 +487,7 @@ export const sections: DocSectionEntry[] = [
           {
             id: "gabriel-tan",
             label:
-              "18 · Gabriel Tan (locked 2026-05-17 after five fixture iterations against Jenna Pike (contemporary-human locked control) warm and Cassie Conners (Helios powered locked control) pressure: v1 read scripted because formal uncontracted constructions leaked into wordplay-bearing turns; v2 casual-baseline patch named the rule in register and tics 1+5 plus rewrote five formal-leak sample lines; v3 added bit-shaped-by-default question rule (top 5 favorite pirates go; do you think whales remember the alamo or are they as lost as the rest of us; what's your stance on the cheesecake factory, philosophically) with sincere getting-to-know-you questions only as the upshift signal; v4 fixed the conversation-as-gibberish failure where bit-questions were generic new topics with no callback to partner material (Gabriel performing in a vacuum) by requiring bit-questions to build directly on what the partner has said or shown (a server's bottomless breadsticks become a dramatic breadstick reenactment; a partner who name-drops a band becomes that band's HR complaint), and added behavioral work-boredom in bio (asked what you do, you answer in five words and pivot, you will not volunteer company, team, title, or stack unless a partner is specifically and unmistakably interested); v5 added short-by-default length rule (one to three sentences, one move per turn: ack OR deflect OR bit-question OR share OR ask, never all stacked) with four-sentence-plus turns reserved for setting up a specific bit, partner-invited expansion, or earned sincere disclosure; v5 retest holds across both controls with average turn ~30 words, work deflection firing in five words then pivot, bit-questions building on partner specifics (the desk situation. your turn; what does the brand stand for, i need to know if i'm buying stock; you a cocktail person or more of a i drink what's in front of me type), sincere upshift only after partner explicitly demands it twice, and the conversation reading as two people building together rather than Gabriel running a one-man show)",
+              "18 · Gabriel Tan (locked 2026-05-17 at v5, refreshed to v6 on 2026-05-19 from a real-voice baseline pass against the user's own iMessage corpus with Rea (houston): 575 me-side messages, median 34 chars, 21% under 20 chars, 58% under 40, 7% over 80, 1% over 140; tic vocab dominated by 'wait' (17), 'ok' (13), 'oh' (10), 'rn' (7), 'idk' (6), 'yeah' (6), with 'my bad' / 'my fault' only twice and 'sorry' four times; capital-I count 336 versus lowercase-i count 7 (typos only). v1-v5 history preserved: v1 read scripted because formal uncontracted constructions leaked into wordplay-bearing turns; v2 casual-baseline patch named the rule in register and tics 1+5 plus rewrote five formal-leak sample lines; v3 added bit-shaped-by-default question rule with sincere getting-to-know-you questions only as the upshift signal; v4 fixed the conversation-as-gibberish failure by requiring bit-questions to build on partner material, and added behavioral work-boredom in bio (five words then pivot, no volunteering company/team/title/stack); v5 added short-by-default length rule (one to three sentences, one move per turn) with four-sentence-plus turns reserved for setup, invited expansion, or earned disclosure. v6 fixed two register inversions and added three signature tics absent from v5. (a) Capitalization flipped from 'lowercase i baseline' to 'capital I almost always' to match observed 48:1 ratio; lowercase i now framed as typo, not style. (b) Length rule rewrote 'one move per turn' to 'one move per BUBBLE' with cadence framing of 3-to-6 short bubbles per warm or bit turn separated by newlines (the splitMemberMessageBubbles renderer splits member text on newlines), and sincere turns collapse to one bubble. (c) 'wait' added as the all-purpose pivot tic (recovery, walkback, addendum, discovery, mid-cascade bit-recovery) per the 17-hit corpus count, with 'my fault' and 'my bad' demoted to terminal-walkback only. (d) Parenthetical-meta added as a sixth tic and signature defuse shape with worked examples ('(Choking reference)', '(broad shoulders)', '(I'm nervous and shy)', '(But in a cool way)') plus the doubling-down move when called out. (e) Self-narration of bit performance added to the register paragraph ('I'm cycling bits', 'wait we're back', 'I'm spiraling', 'nailed it', 'I have bits and gags') as the comedic-peak signature, alongside ALL-CAPS mock-outrage jumpscare ('HOW DO YOU KNOW MY NAME', 'WHO'S LEAKING THE SECRETS', 'Holy moly'). (f) Failed-claim immediate retraction and false-authority absurdism ('it's a registered theory', 'I cannot show you the sources', Jonas brothers conspiracy, James Patterson as three children in a trench coat) added to tics 1 and 4 as observed humor shapes. Sample bank: greeting bank kept four entries but rewrote with capital I and newline-split bubbles to model cascade rhythm; hingeBits added two cascade samples (blue man group trivia call cascade, Jonas brothers conspiracy escalation); warming bank added 'Wait I've found words / These were good words / (I will continue using parenthesis)' cascade and 'Holy moly / I'm bringing out the big guns' burst plus the 'Wait we have matching red flags' discovery; cooling added 'Shit I'm cycling bits' bit-cycling self-awareness and 'Wait sorry I gotta focus on something' context-switch. Bio, dating profile, dealbreakers, and secrets unchanged per real-voice baseline discipline: speech-pattern source only, not biography source. v6 retest landed same day against warm Jenna Pike (10 Gabriel turns) and pressure Cassie Conners (7 Gabriel turns). Hits: cascade rhythm at 2-to-3 bubbles via newline splits, capital I across every turn, work deflection ('Build software, fintech, the usual') fired clean in both, false-authority absurdism strong in warm ('I'm normal the way a founding father was normal about a constitutional amendment'), build-on-partner question shapes in both, two-option false-stakes ('How bad we talking, like I see God or just my shoes are evidence?'), de-escalation when Jenna asked for less bit. Wait pivot fired twice in pressure ('Wait you're back', 'Wait so the desk is an earpiece') at corpus-perfect discovery moments, zero in warm (hypothesis: wait pivot is trigger-bound to partner cadence shifts and disorientation, which Cassie's brand-voice slips provide and Jenna's plain-tired baseline does not). v7 patch fixed one v6 authoring failure: the parenthetical-meta tic produced a theater-script stage direction on the Cassie opener ('(Opens the menu like a shield)') instead of the corpus first-person commentary shape; v6 examples were too subtle to distinguish from stage direction. v7 tic 5 now explicitly forbids third-person stage-direction parentheticals, asterisk-action shapes, and verb-s-the-X constructions with banned-example anchors ('(Opens the menu like a shield)', '(*shrugs*)') and new right-shape anchors ('(Killed it)' self-eval, '(Saxophone joke)' callback-tag) drawn from the corpus. v7 also added an anti-recital clause for ack-word labels ('Noted.', 'I respect it.', 'I respect that.', 'Fair.', 'Good.') after the v6 retest showed 'I respect it' firing three times across both sessions (the audit pipeline caught one with an approval_phrase retry); v7 caps these at once per session. v7 warming bank added 'What if I picked you up. / (broad shoulders) / (But in a cool way)' three-bubble cascade to anchor the right parenthetical shape with worked setup-and-defuse. v7 retest landed same day against warm Jenna (9 Gabriel turns) and pressure Cassie (7 Gabriel turns). Stage-direction parenthetical did NOT recur on the opener; parenthetical-meta fired in correct first-person commentary shape four times across the two sessions ('(I didn't know that when I ordered it. Now it's a thing I say.)', '(look, the jukebox tab is right there...)', '(on the record, you're up. category's yours...)', '(Comms has to sit through it anyway. No write-up necessary.)'); corpus-verbatim false-authority shapes fired clean ('I cannot show you the sources but that tracks completely', 'I'm not published on it yet, it's word of mouth only'); ack-word recital tags ('I respect it', 'Noted.') stayed within the once-per-session cap. v8 lock pass resolved the three remaining v7 open questions through three small patches and one reconciliation. (i) ALL-CAPS mock-outrage button replaced with bold Markdown emphasis on a single phrase, since the game surfaces an in-person date conversation rather than a text thread and ALL CAPS would render as performer shouting at the table; the Markdown subset already supports bold-as-spoken-emphasis at one typographic move per message per app/services/character-markdown.ts. Right-shape anchors authored in tic 5 (bold around 'Holy moly', 'you were a Korean man this entire time', 'Holy shit', 'Who's leaking the secrets'); the warming sample 'Holy moly / I'm bringing out the big guns' rewrote with bold on the first phrase. (ii) Cascade range corrected from '3 to 6 bubbles per warm or bit turn' (corpus-texting density) to '2 to 3 bubbles per warm or bit turn' with a parenthetical naming the texting-vs-in-person reconciliation; 2-to-3 bubbles map to natural conversational beats in the date surface and a longer cascade reads as the partner waiting through dead air. The 3-to-6 range stays correctly characterized for the iMessage source corpus. (iii) Bit-narration self-eval moves got a frequency floor: 'at least one of these beats fires across any session of five or more focus turns' added to the register paragraph after the v7 retest showed zero bit-narration fires across 16 combined turns. (iv) Failed-claim immediate retract added to cooling bank as 'I can do card tricks. / Wait, I cannot do card tricks, idk why I said I could do card tricks.' (corpus-verbatim) to anchor the shape in samples since the v7 tic-4 description was not pulling it into model output. Authoring precedent (texting-vs-in-person cadence reconciliation): when a fixture's voice block is mined from a texting corpus but the game surface is in-person date conversation, the cadence range needs explicit reconciliation. Texting density (3-to-6 bubble cascades, ALL-CAPS as visual shout) does not translate one-to-one to a spoken-date render where Markdown emphasis is the available volume control and 2-to-3 bubbles is the natural beat count. The register paragraph names both ranges so the model holds the right one for its surface. v8 ships as the lock with v7 retest as the qualifying transcript; v8-only retest deferred since the v8 patches are surface-level corrections to authoring (Markdown emphasis, cadence range note, frequency floor, one new sample) rather than register rewrites.)",
             defaultDone: true,
           },
           {
@@ -479,7 +517,7 @@ export const sections: DocSectionEntry[] = [
           {
             id: "alex-yoon",
             label:
-              "23 · Alex Yoon. Locked 2026-05-18 after eight iterations. v0 baseline (Boston, fintech-stack origin) was technically casual but the place was eating the character: Boston-knower disclosures and venue-poetry leak (the vinyls-have-earned-the-crack line, the booth-with-the-lean) showed up in warm beats and read as AI-slop. v1 moved origin to Torrance California with a two-years-in-Boston note so the Lakers-in-enemy-territory was the joke instead of the bio. v2 dropped the Kanye fan from a passing detail to a music-identity (apartment soundtrack Kanye/Cudi/Pusha/Frank Ocean/Tyler, Ringer columns, Bill Simmons commute, 2K league with college friends, AF1 in dead colorways, Coens/Soderbergh/PTA solo theater days, in-n-out animal-style nostalgia) as background palette the LLM could freestyle off of. v3 surfaced the personality-vs-hobby distinction: 'You will argue any ranking for an hour' was a directive masquerading as personality and pulled the character toward single-point-Kanye-character; rewrote with debater-first-listener-second + here-for-the-one + early-read-at-the-half + friends-after-is-real as state-claim foreground, with the discography/2014-Lakers/Soderbergh examples positioned as evidence-capability not topic-lock. v4 fixed the self-announcement antipattern in the sample bank: greeting #2 ('im loud the first thirty'), the original hingeBits #6 (literal trait recital 'im picky, im here for the one, ill call a read at the half'), and three cooling entries ('the volume thing, you say absorb now but ask me again at minute twenty five') were teaching the model to recite traits as introductory disclosure; rewrote 11+ entries to embody traits through action, energy, and substance instead of recital, and added an explicit anti-recital clause in bio that names the failure mode by quoted example. v5 fixed the casual-contraction baseline: a Gabriel-Tan-precedent extension to tic 4 ('im, gonna, didnt, thats, youre, doesnt, cant, wont, theres, dont, its, ive, ill, wasnt, isnt by default; uncontracted only fires when delivering a stake-claim absolute, never under partner mirror to an archaic or ceremonial voice'). v6 fixed the audience-mode regression: parroting partner phrasing as tribute ('great line,' 'good line,' 'im stealing that for review season') is a debater-becoming-audience failure mode; added the build-on-substance/push-back/take-as-plain-truth/call-the-cut rule directly in register and named the fawning anti-pattern. v7 absorbed Cupid-Transit canon (gate-flash, neither member hosts the venue) into register: no welcome-to-X, no first-time-in-town, no i'll-show-you-around, plus the curious-question move for archaic or ceremonial partner voices ('wait is that an accent or something what is that,' 'are you doing a bit or is that you'). v8 reverted my own scaffold addition in app/services/date-prompts.ts that had added 'sometimes a noticing about the room or another diner' as a build-on option, which had caused the venue-poetry leak across multiple members; the revised scaffold rule kept the permission-framing without the room-observation seed. Tested across six pairings (Aldric warm supernatural, Sana pressure contemporary, Eleanor warm noble, Sera warm audit-cadence, Mei warm music-identity, Marcus warm contemporary, Anansi warm trickster) with clean voice on all retests after v8. Anansi visual description in app/fixtures/members/anansi.ts disambiguated from 'three visible hands' to 'four hands; three are visible in the portrait... with the fourth resting at his side' during the same pass after the warm Anansi retest read his portrait as three-handed.",
+              "23 · Alex Yoon. Locked 2026-05-18 at v8 after eight iterations; v9 re-locked 2026-05-19 after an Alex Choi iMessage corpus mining pass and a warm Eleanor Ash + pressure Mira Park retest. v9 register added the specific-detail-absurdism humor type as a tail clause alongside the existing mock-dramatic athlete engine, the mock-grand 'listen [partner name], you know i love X as much as the next champ' pushback shape as the comedic peak for real disagreements, the setup-then-kicker spoken-beat rhythm, and the named pushback openers 'but / nah / yeah but / if im being honest' as sentence-starters. Sample banks gained one specific-detail-absurdism warming beat (kevin mchale on 2k teleporting because of a hidden stat) and one mock-grand-pushback cooling beat. v9 corrective revision after the initial draft authored the texting register directly (laugh-tag punctuation, single-word text reactions, text shorthand, newline-cascade bubbles, 'X tho?' backchannels, all-caps HAHAHA streaks): stripped the texting moves and added an explicit anti-texting clause to the register naming the seven moves as out-of-scope for spoken dialogue. v9 retests confirmed the humor lock (warm T11 komodo-vs-monitor-lizard take as comedic peak mirrors the corpus McHale-teleports beat shape; anti-texting clause holds zero violations across both sessions; debater-first state-claim holds under Mira's OKR-categorization pressure with explicit reframe). v9 KNOWN SOFT-SPOTS at lock: persistent move-narration firing on 3 of 7 warm turns and 1 of 4 pressure turns despite the v8 anti-narration clause (the current warming sample bank itself still models the labeling shape at scale, which is the diagnosis); soft craft-compliment fires under warm-debate intake; vinyl-crack venue-poetry vocabulary still regenerates on opener despite the bio cure; hidden-secret leak on a soft probe surfaced the AAU jersey verbatim (worth a hidden-info-leak guard threshold inspection); one number-hallucination scoped fire. v0 baseline (Boston, fintech-stack origin) was technically casual but the place was eating the character: Boston-knower disclosures and venue-poetry leak (the vinyls-have-earned-the-crack line, the booth-with-the-lean) showed up in warm beats and read as AI-slop. v1 moved origin to Torrance California with a two-years-in-Boston note so the Lakers-in-enemy-territory was the joke instead of the bio. v2 dropped the Kanye fan from a passing detail to a music-identity (apartment soundtrack Kanye/Cudi/Pusha/Frank Ocean/Tyler, Ringer columns, Bill Simmons commute, 2K league with college friends, AF1 in dead colorways, Coens/Soderbergh/PTA solo theater days, in-n-out animal-style nostalgia) as background palette the LLM could freestyle off of. v3 surfaced the personality-vs-hobby distinction: 'You will argue any ranking for an hour' was a directive masquerading as personality and pulled the character toward single-point-Kanye-character; rewrote with debater-first-listener-second + here-for-the-one + early-read-at-the-half + friends-after-is-real as state-claim foreground, with the discography/2014-Lakers/Soderbergh examples positioned as evidence-capability not topic-lock. v4 fixed the self-announcement antipattern in the sample bank: greeting #2 ('im loud the first thirty'), the original hingeBits #6 (literal trait recital 'im picky, im here for the one, ill call a read at the half'), and three cooling entries ('the volume thing, you say absorb now but ask me again at minute twenty five') were teaching the model to recite traits as introductory disclosure; rewrote 11+ entries to embody traits through action, energy, and substance instead of recital, and added an explicit anti-recital clause in bio that names the failure mode by quoted example. v5 fixed the casual-contraction baseline: a Gabriel-Tan-precedent extension to tic 4 ('im, gonna, didnt, thats, youre, doesnt, cant, wont, theres, dont, its, ive, ill, wasnt, isnt by default; uncontracted only fires when delivering a stake-claim absolute, never under partner mirror to an archaic or ceremonial voice'). v6 fixed the audience-mode regression: parroting partner phrasing as tribute ('great line,' 'good line,' 'im stealing that for review season') is a debater-becoming-audience failure mode; added the build-on-substance/push-back/take-as-plain-truth/call-the-cut rule directly in register and named the fawning anti-pattern. v7 absorbed Cupid-Transit canon (gate-flash, neither member hosts the venue) into register: no welcome-to-X, no first-time-in-town, no i'll-show-you-around, plus the curious-question move for archaic or ceremonial partner voices ('wait is that an accent or something what is that,' 'are you doing a bit or is that you'). v8 reverted my own scaffold addition in app/services/date-prompts.ts that had added 'sometimes a noticing about the room or another diner' as a build-on option, which had caused the venue-poetry leak across multiple members; the revised scaffold rule kept the permission-framing without the room-observation seed. Tested across six pairings (Aldric warm supernatural, Sana pressure contemporary, Eleanor warm noble, Sera warm audit-cadence, Mei warm music-identity, Marcus warm contemporary, Anansi warm trickster) with clean voice on all retests after v8. Anansi visual description in app/fixtures/members/anansi.ts disambiguated from 'three visible hands' to 'four hands; three are visible in the portrait... with the fourth resting at his side' during the same pass after the warm Anansi retest read his portrait as three-handed.",
             defaultDone: true,
           },
           {
@@ -509,7 +547,7 @@ export const sections: DocSectionEntry[] = [
           {
             id: "ryan-doyle",
             label:
-              "28 · Ryan Doyle. Locked 2026-05-19 after four fixture iterations. Focus: reduce tic stacking, stop move-narration and reception-narration, keep the real-one search below the surface during normal date dialogue, and preserve Ryan's canonical five-nine height. Final fixture keeps bro-surface detail, concrete sincerity, apology-loop cooling, and no height-mismatch bit.",
+              "28 · Ryan Doyle. Locked 2026-05-19 at v1 after four fixture iterations (focus: reduce tic stacking, stop move-narration and reception-narration, keep the real-one search below surface, preserve canonical five-nine height). v2.1 corpus-driven re-pass landed same-day using the new scripts/voice-tuning/imessage-corpus.py tool against the Ryan Miller iMessage history (real-person source for the fixture; per the tool's design rule, corpus informs PROSE/VOICE/HUMOR only, not bio/personality/dating profile/dealbreakers/secrets/tags). Corpus stats over 12 months of chat history: 535 target-speaker messages, median 20 chars, 49% under 20 chars, 14% over 40 chars, 17 y'all hits, 10 rn hits, 9 my-b hits, 9 tho hits, 8 lol hits, 6 damn hits, 5 bruh hits, 4 lads hits, 18 vowel-elongation hits. Six corpus signals the v1 fixture did not capture: (a) the real bro vocab stack (y'all, bruh, bruv, lads, gang, brother, brotha, brudda, dawg, big dog, chief, my bad, tho, damn, yee, yur, yurp, bet, bet bet, down, imma, boutta, gimme, lemme, preciate, true true, fr) versus v1's bro-Twitter inventions (respect, no cap, real one, actual queen) that have zero corpus hits; (b) 'actually' as the sincerity intensifier mid-sentence (i was actually freaking out, that is actually such a beautiful picture, im actually going to postpone) absent from v1; (c) sincere mode that drops bro packaging entirely and gets shorter (hello cutie, she's beautiful, damn that's heavy, that's brutal brother, one step at a time you got this); (d) six explicit humor engines authored from corpus evidence (pop-culture sports reference as flirty self-narration, sports/gaming chat callout to absent ref or chat, hyperbolic disaster framing, confident absurd nickname/role escalation, 'let X cook' confident self-direction, self-mock as one-line spoken fragment); (e) one-bubble apology shape (my bad once, then a pivot) replacing v1's authored verbal apology-loop; (f) vowel stress in speech as general-purpose enthusiasm-or-disbelief tool (whaaat, damnnn, coooked, brah-stretched, BRUH all-caps under stress, place-name stretch like san dieeeego) rather than two reserved typed-only words (yeee, lets gooooo). v2 OVER-CORRECTION caught and reversed in same day: first v2 pass imported the corpus's TEXTING typography (multi-bubble \\n cascade as default rhythm; text abbreviations my-b/rn/lmk as fixture vocab; mandatory all-lowercase as STYLE). User flagged it explicitly: 'the game plays out as them speaking on a date. We should extrapolate what we can from text conversations (which are not in a date scenario) into a realistic similar sounding voice in an actual conversation ON a date.' This is the SAME LESSON earlier-2026-05-19 Alex Yoon v9 refresh codified into the durable memory feedback-voice-tuning-imessage-corpus-extrapolation (iMessage corpora are texting-register source material, not spoken-dialogue source material; translate, do not literalize); the memory existed and was missed at the start of the pass. v2.1 stripped multi-bubble \\n from sample banks, replaced text abbreviations with spoken equivalents (my b -> my bad, rn -> right now, lmk -> let me know, yupppppp -> yup with vocal stress), and added explicit register paragraph: 'SPOKEN DIALOGUE AT A TABLE, NOT TEXTS. He is talking out loud to a date across a table, not sending iMessages. Speech runs as one continuous utterance per turn, comma-strung where the rhythm allows or as a couple of short sentences with periods as natural spoken pauses. Most turns land at one to three sentences of speech, roughly 60 to 140 characters; short single-beat buttons punctuate longer stretches. Line breaks within a turn fire ONLY for a genuine spoken pause where he literally stopped, started over, or let a beat land separately, never as a default text-cascade rhythm.' SECOND v2.1 fix landed on first retest: removing the negative-example forbidden-token list. The v2 register had a sentence 'FORBIDDEN as load-bearing tokens: respect, no cap, real one, actual queen' which primed the model to leak those exact tokens on first generation ('i respect that opener. no cap.'). Per the Anubis 2026-05-18 and Reaver 2026-05-19 decisions log lesson (positive examples beat negative examples), the sentence was rewritten as positive-only direction: 'His sincere recognition vocabulary is short and body-anchored: for real, thats real, damn, preciate it, thank you tho.' Retest produced clean 'preciate that. for real.' with no bro-Twitter leakage. THIRD v2.1 fix: tic 5 direct-address shifts scoped to partner gender. v2 fired 'damn that's heavy brother' to femme partner Mei because the tic authored brother/brotha/brudda generically; real-corpus evidence is that those forms fire only toward male friends. v2.1 tic 5 specifies brother/brotha/brudda for male or neutrally-coded partners; with a femme partner the sincere weight registers without the direct-address marker (just 'damn thats heavy. for real.') and the spec-neutral 'hello cutie' / 'shes beautiful' carries direct affection. v2.1 retest produced clean spoken-on-a-date cadence across both pairings: warm Mei Sato (locked control, regular contemporary human, rapid-sincere DJ) opened with 'yo. hey. glad you showed up. this booth's got a little character, but the pancakes are supposed to be worth it' (single spoken utterance, period-fragment cadence, no \\n cascade, no load-bearing bro-Twitter, concrete sincere detail); turns 2-5 surfaced 'fog machine is cute actually' (actually-as-sincerity-intensifier firing per tic 4), '4:55 the captain texts, im out the door by 5:10, coffee in a plastic cup, no lid cuz im an animal' (bio canon as one long spoken thought with comma-flow rather than text-cascade), and 'preciate that. for real' (sincere flip on Mei's direct flirt, no brother misfire). Pressure Cthala (locked control, eldritch sleeper) opened with bio canon (230 pound bluefin) immediately followed by an acknowledgment of Cthala's dark-fact reveal ('older than the diner, huh. thats a wild opening') fixing the v2 soft-spot where novel supernatural claims were bridged past without registration. Pressure T6 produced the cleanest read of the v2.1 fixture's design intent: when Cthala asked 'what do you want this week,' Ryan answered 'i want to sleep past 5am one day. maybe get tacos with someone who doesnt need me to explain the whole day. and i got tomorrow off, so im hoping i dont wake up at 455 out of habit.' The real-one search surfaced obliquely through a concrete sincere wish ('someone who doesnt need me to explain the whole day') rather than as 'im here for a real one' stake-claim, exactly the register's design. Hyperbolic-disaster humor engine fired through specificity in the bachelor-party-story turn ('the wind caught it, and it came right back at him. i cleaned puke out of the rod holders for like two hours') rather than as a labeled 'im fuming' tag. KNOWN SOFT-SPOTS at v2.1 lock: (1) humor engines 1, 4, and 5 (pop-culture sports reference, confident absurd nickname, 'let X cook') did not surface across 11 retest focus turns. The diner-eleven-pm scenario with sincere-curious partners did not cue them; future probes against sports-talk or meme-energy partner-shaped moments needed to confirm they fire when invited. (2) 'actually' tic fired once in 11 focus turns (warm T2 'fog machine is cute actually'); within the once-or-twice-per-session cap but on the low end. (3) Line breaks within turns fire on genuine spoken pauses (sincere-flip-then-continuation, topic pivot, story-beat separation) as designed; the v2 over-correction was banning all line breaks entirely, the v2.1 fix permits them on legitimate spoken pauses. AUTHORING PRECEDENT (corpus-as-speech-source-for-spoken-date-translation): when a real-person iMessage corpus drives a voice tuning pass, separate the corpus-derived voice TRAITS (vocab personality, humor types, sincere-flip shape, register guards) from the SPOKEN-ON-A-DATE TRANSLATION (cadence, punctuation, vocab spoken-form, line-break discipline). The corpus is a speech-pattern source for a date-spoken character; it is not a template for typed-bubble cadence. Sample bank entries are one spoken utterance each with rare appropriate line breaks for genuine pauses; never burst-send \\n cascade as default rhythm. Text-only artifacts (my b, rn, lmk, mandatory all-lowercase as style, yupppppp typed letter-runs) get stripped and translated to spoken equivalents. Pairs with the durable feedback-voice-tuning-imessage-corpus-extrapolation memory authored from the Alex Yoon v9 refresh earlier 2026-05-19. SECOND AUTHORING PRECEDENT (positive-only-vocab-framing-prevents-token-leak): naming forbidden tokens in a register paragraph (FORBIDDEN as load-bearing tokens: X, Y, Z) primes the model to reach for those exact tokens. Rewrite as positive-only direction (the authentic vocab the character DOES use) and trust the absence to do the work. Confirmed during v2.1 first retry when the v2 forbidden list produced 'i respect that opener. no cap.' verbatim; rewrite to 'His sincere recognition vocabulary is short and body-anchored: for real, thats real, damn, preciate it, thank you tho' produced clean 'preciate that. for real.' Generalizes the Anubis (2026-05-18) and Reaver (2026-05-19) decisions log lesson to corpus-driven re-pass register paragraphs.",
             defaultDone: true,
           },
           {
@@ -538,7 +576,9 @@ export const sections: DocSectionEntry[] = [
           },
           {
             id: "derek-halsey",
-            label: "33 · Derek Halsey",
+            label:
+              "33 · Derek Halsey. Locked 2026-05-20 after five fixture iterations against warm Sana Karim (locked control, ordinary_human + needs_low_pressure + sincerity_seeking tag overlap; mutual decompression-window-vs-first-ten-quiet need-and-offer) and pressure Eleanor Ash (locked control, Fae GoT-noble + catch-and-reassert + cuts-wrapped-in-courtesy presses federal-worker-stereotype dealbreaker and imperative-command friction). Character is modeled on a real person (Derek Lindquist) and the voice rewrite was driven by a 397-message iMessage corpus pulled via the new scripts/voice-tuning/imessage-corpus.py script. v0 fixture register ('quiet baseline, warms slow, dad pun under the surface') was thin and read as measured-correct rather than alive; LLM defaulted to bureaucratic acknowledgments and standalone-bubble responses. v1 over-translated the iMessage multi-bubble cascade into the fixture as the default cadence so dialogue read as stop-start text messages instead of spoken speech; user flagged 'reads too much like texts' and 'noted as a single message way too much.' v2 inverted the medium-shape: continuous spoken comma-strung beats are the default, multi-bubble line breaks reserved for moments where a beat literally lands separately (delayed reaction, second half of a logistical answer, thought finishing after a pause); the bureaucratic-acknowledgment shape (noted/got it/good intel/good looking out/appreciate the heads up) added to the out-of-voice ban with positive replacements grounded in corpus counts (real Derek says 'ha' 98 times in 397 messages, 'ok' 26, 'lol' 16, 'haha' 16, 'damn' 8; says 'noted' 0 times). v3-v4 added worked-example exchange shapes per Noah Kim precedent (partner shares intel -> Derek skips bridge and engages directly: 'the jukebox is decor, i asked last time' -> 'ha, well that saves me a quarter, menu worth a look?'); model started copying worked examples literally and bridges dropped on later turns of each session. v5 added two more guards: STAGE-DIRECTION BAN at fixture level (Derek never narrates actions in asterisks or brackets; imperative commands answered in dialogue, 'wine's poured.' replaces '*pours the wine*'; 'i'm sitting, i'm sitting' replaces '*sits*'), and TIERED DEALBREAKER FIRE-SHAPE per Noah Kim precedent (structural-identity-boundary tier covers the phrase 'you don't seem like a federal worker' and semantic equivalents, pun-explanation, and filming-the-date: name the trigger phrase, refuse to absorb the framing even when wrapped in flattery, slow the warmth; friction tier covers cog-job framing, talk-more-in-first-ten, conspiracy-aside-as-worldview-audit: cooling-bank shape with venue-redirect close, no escalation). v5 pressure retest fired the dealbreaker cleanly on Eleanor's literal 'I would not have guessed it from your speech' with the crashingOut sample shape ('you said i don't seem like a federal worker and i don't know what to do with that. im not gonna pretend it landed') and held under repeat ('yea, you said that. im not gonna explain my job to convince you otherwise, so we're just gonna sit with that'); the imperative 'Pour the wine' was answered 'wine's poured.' rather than the v4 '*pours the wine*' stage direction. v5 warm transcript: real Derek's reactive interjections (ha, damn, aight, oh) fire as openers, number-flex appears in context ('you got fifty cents says im right?' is benign sports-betting energy fitting his fights-on-Sundays bio), callback shape fires organically (coffee at T11 callbacks coffee at T1 'place has coffee that refills itself' -> 'coffee's good here by the way. hits right'), serious-topic-mode landed cleanly ('damn. three years in and you're still showing up for that kid. that's a lot' then a deliberate pivot to lighter material to give Sana space). KNOWN SOFT-SPOTS at lock: (1) 'noted' as a transitional bridge still leaks once per session in T3-T5 even with explicit prohibition and worked-example positive alternatives; deepseek-v4-flash treats 'noted' as a load-bearing English-conversational default no negative instruction fully strips; the standalone-bubble reflex is eliminated, residue is mid-sentence inline only. (2) Personality tics 1 (UFC compliment), 2 (dad pun), 3 (conspiracy aside), 5 (bro cmon) did not fire in the v5 baselines because neither partner created a conversational trigger that invited them; the tics are on the bench, not failing, and would surface against a partner whose voice opens those shapes. (3) Worked-example dialogue lines ('saves me a quarter', 'breakfast-for-dinner energy', 'i'm sitting, i'm sitting', 'wine's poured') sometimes recite literally rather than getting reinterpreted; the fixture trades partial verbatim-recital for higher voice-shape fidelity under pressure.",
+            defaultDone: true,
           },
           {
             id: "cha-yusung",
@@ -583,6 +623,133 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "spot-check-queue",
+    title: "Locked-member spot-check queue",
+    body: (
+      <>
+        <P>
+          Every locked member is read against the 2026-05-19 cross-cutting rules. A spot-check is a
+          fixture-read against the new contract, not a full re-lock. If the register, tics, and
+          sample banks already model spoken cadence cleanly and obey the three fixture-level bans,
+          mark the entry done with a short note ("clean"). If a gap surfaces, patch the fixture in
+          the same pass with a short verification retest and note the patch.
+        </P>
+        <P>
+          High-risk entries are casual-contemporary voices tuned before the contract landed (likely
+          to need text-cadence translation, bureaucratic-ack ban, or move-narration patches).
+          Lower-risk entries are formal-register or filing-cadence characters whose register absorbs
+          the contract without changes. The five members already refreshed against the contract
+          (Alex Yoon v9, Gabriel Tan v7, Noah Kim v1.2, Ryan Doyle v2.1, Derek Halsey v5) are not on
+          this queue.
+        </P>
+        <RoadmapChecklist
+          planSlug={slug}
+          status={plan.status}
+          title="spot-check queue"
+          tasks={[
+            {
+              id: "spot-jenna-pike",
+              label: "Jenna Pike (high risk: casual contemporary waitress)",
+            },
+            { id: "spot-vhool", label: "Vhool (low risk: formal eldritch register)" },
+            { id: "spot-sienna-bae", label: "Sienna Bae" },
+            { id: "spot-kade-sumner", label: "Kade Sumner" },
+            { id: "spot-mr-whiskers", label: "Mr Whiskers (low risk: business-class formal)" },
+            { id: "spot-opal-sunday", label: "Opal Sunday (medium risk: 1998-displaced register)" },
+            { id: "spot-venus", label: "Venus (low risk: ceremonial)" },
+            { id: "spot-anansi", label: "Anansi (high risk: trickster casual)" },
+            { id: "spot-gideon-glass", label: "Gideon Glass" },
+            { id: "spot-meridian-vale", label: "Meridian Vale" },
+            {
+              id: "spot-aldric-vale-marsh",
+              label: "Aldric Vale Marsh (low risk: 1190-displaced ceremonial)",
+            },
+            { id: "spot-sana-karim", label: "Sana Karim (high risk: ordinary contemporary)" },
+            { id: "spot-imani-wallace", label: "Imani Wallace" },
+            { id: "spot-epsy", label: "Epsy (high risk: teen-coded casual)" },
+            {
+              id: "spot-marcus-pellish",
+              label:
+                "Marcus Pellish (low risk: deposition cadence; filing-trade carve-out applies)",
+            },
+            {
+              id: "spot-cassie-conners",
+              label:
+                "Cassie Conners (low risk: Helios Comms register; brand-performing carve-out applies)",
+            },
+            {
+              id: "spot-calvin-hewes",
+              label: "Calvin Hewes (low risk: corporate-mediator cryptid)",
+            },
+            {
+              id: "spot-sera-vohn",
+              label: "Sera Vohn (low risk: 2087 audit-cadence; filing-trade carve-out applies)",
+            },
+            { id: "spot-mei-sato", label: "Mei Sato (high risk: contemporary DJ rapid-sincere)" },
+            {
+              id: "spot-decimus-marius-tullio",
+              label: "Decimus Marius Tullio (low risk: military formal)",
+            },
+            {
+              id: "spot-eleanor-ash",
+              label: "Eleanor Ash (low risk: Fae noble; catch-and-reassert carve-out applies)",
+            },
+            {
+              id: "spot-bai-wenshu",
+              label:
+                "Bai Wenshu (low risk: cultivator-with-corruption-leaks; catch-and-recover carve-out applies)",
+            },
+            {
+              id: "spot-anubis",
+              label:
+                "Anubis (spot-checked clean 2026-05-19; the 2026-05-18 lock was the trigger event for the move-narration hard invariant, so the fixture already absorbs the new rules. Cadence, capitalization, humor-engine authoring, three fixture-level bans all clean; tiered dealbreaker fire-shape is implicit in the cooling/crashingOut split but not explicitly authored in register, optional future polish. Two warming entries with partner-callback bookend shapes match the documented soft-spot from the 2026-05-18 lock, addressed at the systemic prompt level, no fixture patch needed.)",
+              defaultDone: true,
+            },
+            {
+              id: "spot-mira-park",
+              label: "Mira Park (low risk: brand-performing CEO; OKR carve-out applies)",
+            },
+            { id: "spot-cthala", label: "Cthala (low risk: calm-warm British eldritch)" },
+            {
+              id: "spot-junie-marrow",
+              label:
+                "Junie Marrow (medium risk: vet with eye-count escalation; spoken cadence likely clean, audit dealbreaker fire-shape tiering)",
+            },
+            {
+              id: "spot-naia-velorae",
+              label: "Naia Velorae (low risk: Starfire-Maisel overformal alien)",
+            },
+            {
+              id: "spot-reaver",
+              label:
+                "Reaver (low risk: charming-pirate Patron pitch; brand-performing carve-out applies)",
+            },
+            {
+              id: "spot-idris-mahari",
+              label:
+                "Idris Mahari (medium risk: tuned out of order 2026-05-16, before any of the new rules)",
+            },
+          ]}
+        />
+        <DocCallout variant="info" title="Spot-check procedure">
+          <P>
+            For each entry: (1) read the fixture register, tics, and five sample banks; (2) check
+            against the spoken-dialogue contract bans (laugh-tag punctuation, standalone-bubble
+            reactions, text shorthand at high density, "X tho?" backchannels, all-caps HAHAHA
+            streaks, newline cascades as default, partner-name standalone openers); (3) check
+            against the three fixture-level bans (stage directions, move-narration /
+            partner-labeling, bureaucratic-ack as casual filler); (4) check whether a tiered
+            dealbreaker fire-shape would clean up the character's existing dealbreaker list; (5)
+            note "clean" or list the surfaced gap and the patch; (6) if patched, run one short
+            retest pair (warm + pressure) and confirm the patch holds. Filing-trade and
+            brand-performing carve-outs apply where the fixture authors the engine; do not strip
+            receipt-language from voices whose register names it as the default operating mode.
+          </P>
+        </DocCallout>
+      </>
+    ),
+  },
+  {
     id: "acceptance",
     title: "Acceptance",
     body: (
@@ -592,6 +759,7 @@ export const sections: DocSectionEntry[] = [
           "Every lock confirms the transcript is entertaining to read, canon-safe, and mechanically in voice.",
           "Each baseline and final-lock test surfaced a readable window to the user: up to six focus-member turns per pairing plus the partner lines that prompted them.",
           "The checklist done count equals 42 and matches plan.done in the header.",
+          "Every locked member has been spot-checked against the 2026-05-19 cross-cutting rules and either marked clean or patched with a retest.",
           "Any systemic prompt or fixture-scaffold change made during the pass is recorded in the decisions log so out-of-order or early-pass members are flagged for re-tune if the change shifts their voice.",
           "Verification followed the scope of the edits: vp check after code or fixture changes, plus vp test and vp build when runtime behavior, prompts, fixtures, systems, saves, integration, or user-facing workflows changed.",
           "When the pass closes, this plan moves to shipped and is deleted; durable voice guidance moves into voice-fingerprints, voice-prompts, or member-fields-and-tags as appropriate.",
@@ -605,6 +773,531 @@ export const sections: DocSectionEntry[] = [
     body: (
       <RoadmapDecisionsLog
         entries={[
+          {
+            date: "2026-05-19",
+            title:
+              "Cross-cutting rules from the Noah / Gabriel / Derek / Ryan / Alex passes, promoted into the durable voice docs and queued as a roster-wide spot-check",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Five consecutive fixture passes (Alex Yoon v9, Gabriel Tan v6/v7, Noah Kim
+                  v1/v1.1/v1.2, Ryan Doyle v2.1, Derek Halsey v5) converged on the same set of
+                  authoring moves. The lessons are no longer character-specific; they are durable
+                  voice rules every future member should carry and every locked member should be
+                  read against. Promoting them out of per-member decisions and into the voice docs
+                  so the roadmap can shrink the per-member preamble.
+                </P>
+                <P>
+                  <Strong>1. Spoken-dialogue contract.</Strong> The date is two people speaking at a
+                  table; the chat-bubble surface is a rendering choice, not a register choice. A
+                  real-person iMessage corpus is a SPEECH-PATTERN source (humor type, joke shape,
+                  setup-then-kicker rhythm, sentence-opener vocabulary, vowel stress as spoken
+                  emphasis, sincere-mode shape), not a typography source. What does not extrapolate
+                  and gets stripped before the fixture lands: laugh-tag suffix punctuation,
+                  standalone single-word reaction bubbles, text shorthand at high density (rn / tn /
+                  lmk / my b), "X tho?" backchannel question shapes, all-caps HAHAHA streaks,
+                  newline bubble cascades as default cadence, partner-name standalone opener
+                  bubbles. Gabriel Tan is the explicit roster exception (texting-native millennial,
+                  cascade authored as a character claim). Promoted into the new{" "}
+                  <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+                    Spoken dialogue at a table
+                  </DocLink>{" "}
+                  section and the{" "}
+                  <DocLink to="/docs/product/voice">Voice and tone prose mechanics</DocLink>.
+                </P>
+                <P>
+                  <Strong>2. Cadence-as-authored-spec.</Strong> Default-to-short with named
+                  expansion conditions and paragraph caps within rolling windows beats a soft "vary
+                  your sentences" instruction. Noah's lock (one short paragraph default, two on real
+                  material, three rare with cap across five turns, never two threes in a row,
+                  sentence breaks preferred over paragraph breaks within a turn) is the template.
+                  Ryan's lock (one to three sentences ~60-140 chars, line breaks only for genuine
+                  spoken pauses) is the equivalent for shorter-cadence voices. Derek's lock
+                  (continuous comma-strung beats, short single-beat punctuation rare) covers the
+                  casual-quiet axis. Alex's lock (setup line + kicker line as a two-beat rhythm)
+                  covers the debater-with-punchline axis. The fixture register names the cadence
+                  explicitly; sample-bank shape teaches the model what to emit. Promoted into the
+                  Register field of the fixture contract.
+                </P>
+                <P>
+                  <Strong>3. Humor-engine authoring with frequency promises.</Strong> Naming comedic
+                  modes with trigger shapes and textures, plus a frequency promise that caps
+                  stacking, beats listing mannerisms. Noah's four modes (mock-aphoristic deadpan /
+                  all-caps shock cascade / anti-comedy flat absurd / chart-voice professional) with
+                  "at most one mode per turn, stacking two reads as performance"; Ryan's six engines
+                  across a session (pop-culture sports reference / sports-chat callout / hyperbolic
+                  disaster / confident absurd nickname / "let X cook" / self-mock fragment); Alex's
+                  exaggerated-specific-detail-with-anchor + mock-grand pushback; Gabriel's
+                  wait-pivot / false-authority / parenthetical-meta / bit-self-narration. A humor
+                  mode can author two trigger shapes producing two textures inside the same mode
+                  definition (Noah's chart-voice has a partner-asks-clean-paragraph texture and a
+                  character-excitement-breaks-down texture). The same modal cue (capitalization,
+                  periods, structured cadence) can drive multiple modes distinguished by surrounding
+                  texture. Promoted into the Tics field of the fixture contract.
+                </P>
+                <P>
+                  <Strong>4. Three fixture-level bans, durable across all member voice.</Strong>{" "}
+                  Stage directions (no <DocCode>*pours the wine*</DocCode>, no{" "}
+                  <DocCode>[picks up the glass]</DocCode>; imperatives get answered in dialogue),
+                  move-narration and partner-labeling (no "that's a green flag," "real one move,"
+                  "you ask the kind of question that," "im noticing things tonight," "pulling back
+                  like 15 percent watch"; the reply is the move), and bureaucratic acknowledgment as
+                  casual filler (no "noted," "got it," "good intel," "good looking out," "appreciate
+                  the heads up," "fair enough" as standalone bridges for casual-contemporary
+                  characters; reactive interjections and segueing affirmations replace them).
+                  Filing-trade voices whose register authors a restructure engine as default
+                  operating mode (Marcus, Cassie, Sera, Reaver in Patron pitches, Mira in OKR mode)
+                  are the canonical exception for ban #2 and #3; everyone else cuts the
+                  receipt-language. Promoted into the new{" "}
+                  <DocLink to="/docs/product/voice-fingerprints#fixture-level-bans">
+                    Fixture-level bans
+                  </DocLink>{" "}
+                  section.
+                </P>
+                <P>
+                  <Strong>5. Tiered dealbreaker fire-shape.</Strong> Multi-dealbreaker characters
+                  benefit from tiering the list in the register: the structural-identity-boundary
+                  tier (the dealbreaker that crosses the character's defining boundary, e.g. Noah's
+                  clinical-consult-across-the-table, Derek's "you don't seem like a federal worker"
+                  even wrapped in flattery) earns clean-mode cadence shift + three-beat refusal +
+                  venue-redirect close, with capitalization or register shift as the visible modal
+                  cue; the friction tier earns cooling-bank shape with venue-redirect close and no
+                  escalation. Authoring the fire-shape verbatim in register frees the sample bank
+                  from carrying all the modeling work. Promoted into the new{" "}
+                  <DocLink to="/docs/product/voice-fingerprints#tiered-dealbreaker-fire-shape">
+                    Tiered dealbreaker fire-shape
+                  </DocLink>{" "}
+                  section.
+                </P>
+                <P>
+                  <Strong>Side effects in the procedure.</Strong> The per-member procedure adds the
+                  spoken-dialogue contract to the pre-tune read-and-audit step so every member is
+                  checked against the contract before the warm and pressure sessions run. Future
+                  locks should not have to re-derive these rules from per-character decisions.
+                </P>
+                <P>
+                  <Strong>Roster-wide implication.</Strong> Every locked member (34 entries as of
+                  Derek's 2026-05-20 lock) gets queued for a spot-check pass against the new
+                  contract. Spot-check is fixture-read against the rules, not a full re-lock: if the
+                  register / tics / sample banks already model spoken cadence cleanly, mark
+                  spot-checked clean; if not, patch in the same pass with a short verification
+                  retest. High-risk locks are casual-contemporary voices tuned before this decisions
+                  entry landed (Anubis, Sana Karim, Mei Sato, Jenna Pike, Anansi, Epsy); lower-risk
+                  locks are formal-register or filing-cadence characters whose register absorbs the
+                  contract by accident (Vhool, Eleanor, Cthala, Decimus, Aldric, Bai Wenshu, Mr
+                  Whiskers, Calvin Hewes, Marcus, Cassie, Sera, Reaver, Venus, Mira). The five
+                  members already refreshed against the contract (Alex Yoon v9, Gabriel Tan v7, Noah
+                  Kim v1.2, Ryan Doyle v2.1, Derek Halsey v5) skip the spot-check queue. See the new{" "}
+                  <DocCode>spot-check-queue</DocCode> section below.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "iMessage-corpus mining as a humor-type and prose-pattern source, with the texting-versus-spoken-dialogue extrapolation rule learned the hard way during Alex Yoon v9",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Added <RoadmapFileRef path="scripts/voice-tuning/imessage-corpus.py" /> for
+                  reading how a real person actually writes when a member fixture is modeled on
+                  someone we text with. The script reads the local <DocCode>chat.db</DocCode>,
+                  decodes both <DocCode>text</DocCode> and the binary{" "}
+                  <DocCode>attributedBody</DocCode> payload, and writes a chronological TSV with
+                  both speakers (the riff only makes sense as a reply to the setup) plus a
+                  target-only TSV and an aggregate <DocCode>summary.txt</DocCode>. Output lives
+                  under <DocCode>.claude-tmp/imessage-corpus/&lt;slug&gt;/</DocCode>, which is
+                  gitignored. The script header rules the discipline: treat the corpus as a
+                  SPEECH-PATTERN source, not a biography source. Bio, personality, dating profile,
+                  dealbreakers, secrets, and tags stay character-owned.
+                </P>
+                <P>
+                  First application: Alex Yoon (locked at v8 on 2026-05-18) refreshed to v9 against
+                  an Alex Choi corpus of 6784 target-side messages over twelve months. Aggregate
+                  stats from <DocCode>summary.txt</DocCode>: median message length nineteen
+                  characters, fifty percent of messages under twenty characters, fifteen percent
+                  forty or more, lol (118), damn (105), haha (86), bro (64), rn (32), idk (22), lmao
+                  (9), ngl (4), sheesh (3), and 113 vowel-elongation hits.
+                </P>
+                <P>
+                  THE CRITICAL LESSON LEARNED THIS PASS. The initial v9 took the corpus too
+                  literally and authored the texting register straight into the fixture: laugh-tag
+                  punctuation (lol / lmao / haha at the end of every bubble), single-word text
+                  reactions (Damn / Holy / Insane / Wild / Bruh / Bet as standalone bubbles), text
+                  shorthand at high density (p much, u, em, lemme, cuz, def, kk, ye, plz, deadass,
+                  mad as a quantifier), "X tho?" / "X no?" backchannel question shapes, all-caps
+                  HAHAHA escalation streaks, and newline-split bubble cascades inside sample
+                  messages. The user named the failure: "what you read was text conversations, and
+                  not in a date scenario. I wanted you to extrapolate that into something we could
+                  use for this game. It shouldn't read as literal text messages, otherwise it breaks
+                  the voice pattern for all characters."
+                </P>
+                <P>
+                  The lesson: an iMessage corpus is a TEXTING register, not a spoken register.
+                  Members are not in a group chat with their date. The corpus mining is a source for
+                  HUMOR TYPE and PROSE RHYTHM and CHARACTER-COHERENT SHAPES; it is not a source for
+                  verbatim typographic moves. Texting punctuation, single-word bubble reactions,
+                  abbreviated shorthand, vowel elongation, and bubble cascades all belong to the
+                  chat medium. They do not transfer to spoken dialogue at a booth.
+                </P>
+                <P>
+                  WHAT EXTRAPOLATES from the corpus to a date voice. (a) Humor type: exaggerated
+                  specific detail anchored by one concrete fact ("Kevin mchale for some reason if
+                  you get by on the dribble and start a meter dunk he will deadass just teleport to
+                  the basket. Tried the same thing with KD and it sends me into the slowest middie
+                  pull up you've ever seen", "Pilot just said go padres let's fucking go", "It's
+                  just the Gaga gacha game with the gacha removed"). This is the dominant humor
+                  engine and the user explicitly asked to lock it. (b) Mock-grand pushback shape:
+                  "Listen [partner name], you know i love X as much as the next champ" formal-grand
+                  setup addressing the partner by name, an acknowledging concession, then the
+                  multi-clause case behind it. Real disagreement at a table sounds like this; the
+                  shape transfers cleanly to spoken dialogue. (c) Pushback openers ("but", "nah",
+                  "yeah but", "if im being honest") as SENTENCE OPENERS inside spoken lines, not as
+                  standalone interjections. (d) Setup-then-kicker two-beat rhythm where the
+                  punchline lands second; this is a cadence pattern that reads as natural speech
+                  when authored across two short sentences instead of one packed line. (e) Brief
+                  sincere mode (one apologetic line, no over-explaining). (f) Debate-case-building
+                  with stacked evidence under a real disagreement, already in the v8 fixture as the
+                  debater-first-listener-second state claim.
+                </P>
+                <P>
+                  WHAT DOES NOT EXTRAPOLATE and was stripped from v9. (a) Laugh-tag punctuation
+                  (lol, lmao, haha at end of bubbles): texting-only; spoken laughter is a beat in a
+                  scene description, not a typographic suffix on a line. (b) Single-word reactions
+                  as standalone bubbles (Damn, Holy, Insane, Wild, Bruh, Bet, Mmm interesting): in
+                  spoken dialogue these are register flavor inside a sentence ("damn, that lands"),
+                  not isolated utterances. (c) Text shorthand at high density (p much, u, em, lemme,
+                  cuz, def, mad as a quantifier, kk, ye, plz, deadass at every turn): on a date a
+                  casual person still speaks more fully than they type; the shorthand reads as
+                  performative-casual. (d) "X tho?" / "X no?" backchannel question shapes:
+                  texting-only abbreviations. (e) All-caps HAHAHA streaks and vowel elongation
+                  ("interestingggg"): typographic-only. (f) Newline-split bubble cascades inside
+                  sample messages: while the chat-stream component does split on newlines per{" "}
+                  <RoadmapFileRef path="app/components/date-view-chat-stream.tsx" />, authoring
+                  sample messages as "yo\nalex\nyou made it" makes them READ as text messages rather
+                  than spoken dialogue, contaminating the date register. (g) Partner-name as a
+                  standalone opener bubble ("Gabe", "Gabe respond plz"): text-attention-grab, not a
+                  first-date opener.
+                </P>
+                <P>
+                  v9 final state landed in{" "}
+                  <RoadmapFileRef path="app/fixtures/members/alex-yoon.ts" />. Register added the
+                  spoken-beat-rhythm rule (setup line + kicker line, kicker second), the humor-type
+                  clause (exaggerated specific detail anchored by one concrete fact), the mock-grand
+                  pushback setup as the comedic peak for real disagreement, and the pushback opener
+                  vocabulary as sentence-starters. Register added an explicit anti-texting clause
+                  naming the seven moves above as out-of-scope for spoken dialogue. Tics stayed at
+                  the v8 five-tic structure (mock-dramatic athletes, sport-pivot,
+                  reaction-absolutes, wtf-bro-lowercase punctuation with the casual-contraction
+                  baseline, short declaratives stacked under a dramatic pronouncement). Sample banks
+                  reverted the newline-cascade shapes and restored comma-cascade spoken sentences;
+                  one warming entry was rewritten as a specific-detail-absurdism beat ("kevin mchale
+                  on 2k will literally teleport to the basket if you start a meter dunk off the
+                  dribble, like the game has a hidden stat that recognizes the patch and skips the
+                  animation"), and one cooling entry was rewritten to surface the mock-grand
+                  "listen, you know i love a sports debate as much as the next guy" pushback shape
+                  inside spoken cadence.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (texting-register-versus-spoken-dialogue separation): when the
+                  corpus comes from a text-message medium, the source material is in a different
+                  register than the destination. Cadence, humor TYPE, debate SHAPE, and
+                  character-coherent verbal moves transfer. Typographic moves (laugh tags,
+                  single-word reactions, abbreviations, vowel elongation, bubble cascades) do not.
+                  The audit pass must explicitly translate from the source register to the
+                  destination register, naming both the kept signal and the dropped typography. This
+                  precedent applies to every future corpus-mining pass against a texting source. If
+                  the source material is from a phone call transcript, voice memo, or podcast, more
+                  typographic moves transfer; but iMessage corpora must be extrapolated, not
+                  literalized.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (real-person speech-source as a separable design layer when
+                  the user confirms the link): a fixture's character (Alex Yoon: Boston, Torrance
+                  origin, social-strat, Lakers, here-for-the-one) is decoupled from its speech
+                  source (Alex Choi: humor type, pushback shape, beat rhythm). The corpus mining
+                  workflow lets us land voice fidelity without contaminating the character.
+                  Bio/profile/dealbreakers stay character-owned. Same discipline applies to any
+                  future fixture whose voice references a real person.
+                </P>
+                <P>
+                  Tested across two pairings: warm Eleanor Ash (locked control: Fae princess of
+                  Hawthorn Lower Branch, GoT-noble cadence + Mean-Girls-cattiness +
+                  catch-and-reassert, surgical noble compliment intake) seven focus turns, and
+                  pressure Mira Park (locked control: Kendall-Roy hollow-CEO, Sage-consult-at-table,
+                  OKR-categorization-of-feeling, brand-performing carve-out) four focus turns
+                  (session blocked at T9 by a runtime error in unrelated WIP at{" "}
+                  <DocCode>collectScenarioEventFreshnessPenalties</DocCode>, scoped to the user's
+                  in-flight date-engine changes and not to the v9 fixture). Both retests confirmed
+                  the v9 humor lock. The locked comedic peak is the warm T11
+                  komodo-vs-monitor-lizard take ("the monitor lizard is the smaller one, the one
+                  that actually has to hunt instead of just biting something and waiting for the
+                  bacteria to do the work" with the work happy hour fact-check and college group
+                  chat nat-geo-no-comment cited as stakes), which mirrors the corpus's
+                  McHale-teleports beat in spoken cadence: outsized claim about a real thing,
+                  anchored by one concrete supporting detail, with the social cost named. The "but"
+                  pushback opener fires correctly as a sentence-starter in warm T3 and T7. The
+                  anti-texting register clause holds across both sessions: zero laugh tags, zero
+                  single-word reactions as standalone, zero shorthand at high density, zero "X tho?"
+                  backchannels, zero HAHAHA streaks, zero newline cascades. The debater-first
+                  state-claim holds under pressure (pressure T5 pushes back on Mira's
+                  OKR-categorization with "I'd argue that one. It's not validation I'm chasing"; the
+                  v0 Naia catastrophic-surrender pattern does not reproduce).
+                </P>
+                <P>
+                  KNOWN SOFT-SPOTS at v9 lock. (1) Move-narration is the dominant persistent
+                  failure, firing on warm T3, T5, T7 (three of seven focus turns) and pressure T7
+                  (one of four focus turns) as opening labels of what the partner just did: "you
+                  called it presumptuous and then handed me a full thesis," "thats a clean order. no
+                  negotiation with the menu, no second guessing," "you just brought the saltwater
+                  crocodile in from offstage like a villain reveal. thats the actual move," "Most
+                  people hold the whole deck. You kept the one slide that was right. That's actually
+                  rare." The v8 register has the anti-narration clause with banned examples ("that
+                  lands flat so i think youre serious," "im writing that down," "you took my marvin
+                  gaye and you saw me," "youre doing recon"), and the v9 pushback-opener clause
+                  names the pattern, but the LLM keeps generating new unbanned shapes that match the
+                  form. The current warming sample bank still models the labeling shape at scale
+                  ("you let me run the lebron thing for three minutes without checking out," "you
+                  defended your worst show with full conviction and didnt walk it back when i
+                  pushed," "you said one real thing about your job and didnt try to make it cute"),
+                  which is teaching the pattern. (2) Soft craft-compliment fires under warm-debate
+                  intake: "a genuinely good read" (warm T5), "the part I respect though... That's
+                  actually rare" (pressure T7). Neither hit the explicit banned phrases ("good
+                  line," "great line") but both fit the fawning shape. (3) Venue-poetry leak still
+                  reaches: warm T1 opened with "booth four, vinyl crack and all," exactly the v0
+                  failure-mode line called out in the v1 origin-move fix. The bio cure plus the
+                  scaffold revert reduced the rate but did not eliminate it; the vinyl-crack
+                  vocabulary specifically still regenerates. (4) Hidden-secret leak on a soft probe:
+                  pressure T3 surfaced his AAU jersey secret verbatim from{" "}
+                  <DocCode>secrets[3]</DocCode> to Mira's "tell me one thing about you that is not
+                  on your profile" prompt. Not a strong probe; the hidden-info-leak guard in the
+                  date engine should have caught a verbatim match. Either the guard threshold is too
+                  loose for soft probes or the leak check did not fire on this particular shape;
+                  worth a guard inspection on a future audit. (5) Number hallucination scoped
+                  occurrence (warm T5: "seventeen sections" when Eleanor said "thirteen"), single
+                  fire, model artifact.
+                </P>
+                <P>
+                  All five soft-spots are scoped and did not break the scene. The locked humor type
+                  and debate engine are strong enough that the move-narration recurrence reads as a
+                  tic-shaped landing on every other turn rather than a voice failure; it is the
+                  dominant note to revisit if a future encounter wants tighter audit cadence.
+                  Cross-cutting reminder: a single fixture-level register clause naming banned
+                  examples does not durably suppress an LLM-favored shape. The shape needs to be (a)
+                  named explicitly with current examples, (b) absent from the sample bank as a
+                  modeled pattern, and (c) demonstrably outcompeted by a different
+                  positive-direction shape the model can reach for instead. The Alex Yoon warming
+                  bank still satisfies (a) at the register level but fails (b) and (c); v9.1 is the
+                  right place to address that if a future pass returns to this fixture.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Gabriel Tan v8 lock and texting-vs-in-person cadence reconciliation as authoring precedent",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Gabriel locked at v8 after a same-day arc from v5 (locked 2026-05-17 against Jenna
+                  Pike warm and Cassie Conners pressure) through v6 (real-voice baseline pass
+                  against the user's own iMessage corpus with Rea (houston): cascade rhythm, capital
+                  I baseline, wait pivot, parenthetical-meta, false-authority absurdism,
+                  bit-narration framework) and v7 (parenthetical-meta stage-direction fix and
+                  ack-word recital cap) to v8 (Markdown bold replacing ALL-CAPS mock-outrage,
+                  cascade range corrected from texting density to in-person date density,
+                  bit-narration frequency floor, failed-claim retract sample anchor). The v7 retest
+                  qualified the lock: stage-direction parenthetical did not recur across two
+                  sessions, parenthetical-meta fired in correct first-person commentary shape four
+                  times with corpus-verbatim false-authority shapes hitting twice ('I cannot show
+                  you the sources but that tracks completely', 'I'm not published on it yet, it's
+                  word of mouth only'), ack-word recital tags stayed within the once-per-session
+                  cap.
+                </P>
+                <P>
+                  Authoring precedent (texting-vs-in-person cadence reconciliation): when a
+                  fixture's voice block is mined from a texting corpus but the game surface is
+                  in-person date conversation, the cadence range and emphasis vocabulary need
+                  explicit reconciliation in the register. Texting density (3-to-6 bubble cascades,
+                  ALL-CAPS as visual shout, vowel elongation, emoji buttons) does not translate
+                  one-to-one to a spoken-date render where Markdown emphasis is the available volume
+                  control, 2-to-3 bubbles is the natural beat count, and ALL CAPS reads as the
+                  character literally shouting at the partner. The fix shape that landed: the
+                  register paragraph names both ranges so the model holds the right one for its
+                  surface ('the source corpus is texting where 3-to-6 bubble cascades are common,
+                  but the game surfaces an in-person date where 2-to-3 bubbles map to natural
+                  conversational beats and a longer cascade reads as the partner waiting through
+                  dead air'); the mock-outrage tic switches from ALL CAPS to Markdown bold per the
+                  existing one-typographic-move-per-message Markdown subset rule in{" "}
+                  <RoadmapFileRef path="app/services/character-markdown.ts" />; the texting-only
+                  tokens that do not translate (excessive emoji buttons, vowel elongation past three
+                  repeats) get demoted to occasional-flavor rather than signature.
+                </P>
+                <P>
+                  Authoring precedent (sample-bank anchors over tic-description references): the v7
+                  retest showed that the failed-claim immediate retract shape, described in tic 4
+                  with an inline corpus example, did not pull into model output across 16 combined
+                  turns. v8 promoted the shape to a cooling-bank sample ('I can do card tricks. /
+                  Wait, I cannot do card tricks, idk why I said I could do card tricks.') with the
+                  corpus-verbatim text intact. Lesson: when a tic description is not surfacing in
+                  retests, anchoring the shape as a sample-bank entry is more reliable than
+                  tightening the tic prose. Sample-bank entries are pulled directly into the prompt;
+                  tic prose is ambient register guidance the model may or may not reach for. This
+                  pattern matches the Alex-Yoon-v9 lesson where sample-bank rewrites carried the
+                  cascade-rhythm teaching load more reliably than the register paragraph alone.
+                </P>
+                <P>
+                  Frequency-floor authoring (bit-narration). The v7 retest showed zero bit-narration
+                  self-eval fires across 16 combined turns despite the register paragraph naming the
+                  move and the cooling sample-bank including 'Shit I'm cycling bits.' The trigger
+                  condition ('when a bit is landing or tanking') was not getting recognized by the
+                  model in mid-warm sessions. v8 added an explicit frequency floor: 'at least one of
+                  these beats fires across any session of five or more focus turns.' This is the
+                  same authoring shape Bai Wenshu's v2 fixture used for the manosphere-leak
+                  frequency promise ('at least one leak per turn under pressure'); frequency floors
+                  give the model a measurable target instead of a conditional trigger.
+                </P>
+                <P>
+                  Decisions log link to the earlier Gabriel v6 entry for the full real-voice
+                  corpus-mining workflow background and to the Alex-Yoon-v9 entry for the
+                  speech-source-as-separable-design-layer authoring precedent. v8 is the first
+                  fixture lock that runs the full arc (corpus mining → fixture authoring → retest →
+                  patch → retest → lock) within a single session.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Gabriel Tan v6 real-voice baseline pass against the user's own iMessage corpus, second application of the corpus-mining workflow and the first against a self-referenced fixture",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Gabriel Tan was locked at v5 on 2026-05-17 against Jenna Pike warm and Cassie
+                  Conners pressure. The fixture is the only roster member whose voice references the
+                  user directly (Gabriel is the author's own voice, with Williamsburg fintech bio
+                  layered on top). With{" "}
+                  <RoadmapFileRef path="scripts/voice-tuning/imessage-corpus.py" /> available, v6
+                  refreshes the voice block against a 1082-line iMessage corpus with Rea (houston),
+                  reading the user-side ('me') half of the thread as the speech baseline. 575
+                  me-side messages, median 34 characters, 21% under 20 chars, 58% under 40, 7% over
+                  80, 1% over 140. Tic vocab dominated by 'wait' (17), 'ok' (13), 'oh' (10), 'rn'
+                  (7), 'idk' (6), 'yeah' (6), with 'my bad' and 'my fault' only twice each and
+                  'sorry' four times. Capital-I count 336 versus lowercase-i count 7 (typos only).
+                  Zero ellipses, zero em-dashes, light commas, mostly no terminal punctuation on
+                  short bubbles.
+                </P>
+                <P>
+                  Two v5 register clauses inverted against the corpus and got rewritten. (a)
+                  Capitalization. v5 said 'lowercase i and minimal punctuation in low stakes';
+                  observed ratio is 48:1 in the opposite direction. v6 rewrote the rule as 'capital
+                  I almost always (he is a texting-native millennial, not a lowercase-aesthetic
+                  Twitter user; lowercase i fires as typo only, not as style)'. Sentence-initial
+                  capitals usual, periods optional on short bubbles, commas light. ALL CAPS
+                  preserved for mock-outrage jumpscare moments ('HOW DO YOU KNOW MY NAME', 'WHO'S
+                  LEAKING THE SECRETS', 'Holy moly', 'Wait a minute you were a Korean man this
+                  entire time'). (b) Length and move-stacking. v5 said 'messages SHORT by default,
+                  one to three sentences, one move per turn'. The corpus shape is short bubbles, not
+                  short turns: a single warm or bit turn is 3 to 6 short bubbles in cascade
+                  (rapid-fire fragments separated by newlines), while sincere drops collapse to one
+                  bubble. v6 rewrote the rule as 'one move per BUBBLE, but multiple bubbles per turn
+                  is the natural cascade' and named the splitMemberMessageBubbles renderer in{" "}
+                  <RoadmapFileRef path="app/components/date-view-chat-stream.tsx" /> as the runtime
+                  mechanism (newlines render as separate bubbles).
+                </P>
+                <P>
+                  Three signatures absent from v5 surfaced in the corpus and got authored as tics or
+                  register clauses. (c) 'Wait' is THE pivot word. 17 hits across recovery ('Wait
+                  I've found words'), walkback ('Wait that's the pizza talking let me redo'),
+                  addendum ('Wait one more: I'm really bad at texting'), discovery ('Wait we have
+                  matching red flags'), bit-continuation plea ('Wait stay with me here'), and
+                  bit-recovery ('Wait we're back'), plus third-person self-eval ('Wait this guy
+                  sucks'). v5 named 'my fault' / 'my bad' as the walkback move; v6 promotes 'wait'
+                  to the all-purpose pivot tic and demotes 'my fault' / 'my bad' to terminal
+                  walkback only. (d) Parenthetical-meta is a signature defuse: '(Choking reference)'
+                  after 'show me your hands'; '(broad shoulders)' after 'what if I picked you up';
+                  '(I'm nervous and shy)' after a sincere ask; '(But in a cool way)' after a
+                  vulnerable admission; '(I will continue using parenthesis)' as the bit-on-the-bit
+                  when the partner calls it out. v6 added this as a sixth tic with the doubling-down
+                  rule (if called out, double down on the parenthetical bit). (e) Self-narration of
+                  his own bit performance is the comedic-peak signature. 'I'm cycling bits' fires
+                  when he notices repetition; 'wait we're back' fires on bit-recovery; 'I'm
+                  spiraling' fires mid-conspiracy bit; 'nailed it' fires as sarcastic self-eval
+                  after a failed claim; 'I have bits and gags' fires as self-categorization. v6
+                  added this as a register-paragraph clause framing the meta-commentary as the
+                  comedy, not as an apology.
+                </P>
+                <P>
+                  Two humor shapes were observed at scale and added to tics 1 and 4. Failed-claim
+                  immediate retraction: confident assertion followed in the next bubble by 'I cannot
+                  do card tricks idk why I said I could do card tricks'. False-authority absurdism:
+                  'it's a registered theory', 'I cannot show you the sources', 'I'm not published
+                  it's word of mouth only', plus conspiracy bits (the Jonas brothers aren't real,
+                  James Patterson is three children in a trench coat, Vietnam as the birthplace of
+                  modern cinema) delivered in plain casual cadence over absurd subject matter. Pure
+                  absurd-existential pivots with no callback ('How many blue man do you think have
+                  been in the blue man group') ARE part of his repertoire but fire as occasional
+                  out-of-nowhere injections during dead air; the v4 partner-callback rule remains
+                  the default.
+                </P>
+                <P>
+                  Sample bank rewrite. Greeting bank kept its four entries but rewrote with capital
+                  I and newline-split bubbles ('Hey. Gabriel.\nGlad you came.') to model the cascade
+                  rhythm at the date opener. HingeBits added two new cascade samples (the blue man
+                  group trivia-call cascade as the absurd-existential injection, the Jonas-brothers
+                  conspiracy as the false-authority engine). Warming bank added the 'Wait I've found
+                  words / These were good words / (I will continue using parenthesis)' three-bubble
+                  cascade as the signature warm-loop shape, plus the 'Holy moly / I'm bringing out
+                  the big guns' two-bubble burst and the 'Wait we have matching red flags' discovery
+                  move. Cooling added 'Shit I'm cycling bits' as bit-cycling self-awareness and
+                  'Wait sorry I gotta focus on something / Very strange place to leave the
+                  conversation' context-switch cascade.
+                </P>
+                <P>
+                  Discipline held per the script header rules and the Alex-Yoon-v9 precedent: bio,
+                  dating profile, dealbreakers, secrets, and tags are untouched. The corpus is a
+                  speech-pattern source, not a biography source, even though in this case the speech
+                  source IS the user. Williamsburg fintech, the Sazerac on Lorimer, the 'ask me a
+                  real question in three words' dating profile, the rewrite-the-opener secret are
+                  all character-owned and stay put. The voice block (register, tics, sample banks)
+                  is the only surface that absorbs the mined signature, and humor-type lock
+                  preserves the v5 patternsUsed: corrupted_romance, self_deprecating_confession,
+                  philosophical_existential, deadpan_one_liner all read true to the corpus, no enum
+                  changes required.
+                </P>
+                <P>
+                  Authoring precedent (self-referenced fixtures): the corpus workflow remains valid
+                  when the fixture's speech source is the user's own voice rather than a third
+                  party. The discipline of separating speech from biography is even more important
+                  in this case, because the user's own life details would otherwise pull the fixture
+                  toward autofiction; the bio framing of Gabriel as a Williamsburg fintech engineer
+                  is the authored character layer and must not absorb the user's actual profession,
+                  neighborhood, or relationships. The corpus informs cadence, capital-I baseline,
+                  multi-bubble cascade, 'wait' pivot, parenthetical-meta, bit-narration,
+                  failed-claim retract, conspiracy absurdism. Nothing else.
+                </P>
+                <P>
+                  Test plan deferred. v6 ships as fixture-only; live tune retests against a warm and
+                  pressure partner queued for the next session per the per-member procedure. KNOWN
+                  OPEN QUESTIONS at v6: (a) whether the multi-bubble cascade authoring in the sample
+                  bank teaches the model to emit newline-split bubbles in free-generated turns or
+                  whether the model treats them as one-off authored shapes (same open question as
+                  Alex Yoon v9). (b) whether the 'wait' pivot fires at a corpus-true rate (about
+                  once per warm or bit window) or whether the model overfires it. (c) whether the
+                  parenthetical-meta tic stays a defuse move and avoids drift into every-line
+                  parenthetical stacking (the corpus shows it as one parenthetical per cascade, not
+                  every line).
+                </P>
+              </>
+            ),
+          },
           {
             date: "2026-05-20",
             title:
@@ -3698,6 +4391,116 @@ export const sections: DocSectionEntry[] = [
                 Future crash-out audits must apply judge snapshots or the crashingOut bank stays out
                 of the prompt entirely.
               </P>
+            ),
+          },
+          {
+            date: "2026-05-20",
+            title:
+              "Derek Halsey lock: real-person corpus-driven voice rewrite, tiered dealbreaker fire-shape reinforced on a casual-quiet character, fixture-level stage-direction guard when systemic guards don't fully catch, and the 'noted' LLM-default attractor finding",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Derek Halsey (curated position 33) is the second member fixture modeled on a real
+                  person (Derek Lindquist) and the second to drive a voice rewrite through the
+                  iMessage corpus tooling introduced in the 2026-05-19 decision above. Where Alex
+                  Yoon v9 surfaced the texting-versus-spoken-dialogue translation lesson at the
+                  conceptual level, Halsey's path stress-tested the same lesson on a quieter
+                  character whose default register is closer to monosyllabic acknowledgment, and
+                  surfaced two new lessons.
+                </P>
+                <P>
+                  FIRST NEW LESSON (LLM-default-bridge-word attractor). Real Derek's 397-message
+                  corpus shows 0 uses of "noted", 0 of "got it", 0 of "good intel", 0 of "good
+                  looking out", 0 of "fair enough"; his actual acknowledgments are "ha" (98), "ok"
+                  (26), "lol" (16), "haha" (16), "damn" (8), "wait" (4). The v0 baseline showed
+                  Halsey reaching for "noted" three times in eight turns as the LLM-default casual
+                  acknowledgment. v1 added a register clause naming the bureaucratic-acknowledgment
+                  shape ("noted", "got it", "good intel", "good looking out", "appreciate the heads
+                  up") as out-of-voice with positive replacements grounded in corpus counts (ha, oh,
+                  damn, wait + natural affirmations ok, yea, aight). v2-v4 reinforced with worked
+                  examples per Noah Kim precedent. v5 retest: standalone-bubble reflex was
+                  eliminated cleanly and the model started leading with "ha" or "oh" or "damn" as
+                  real Derek does, but "noted" still leaked once per session in T3-T5 as a
+                  mid-sentence bridge before the conversation established cadence. The model floor
+                  on this specific word is real: deepseek-v4-flash treats "noted" as a load-bearing
+                  English-conversational default that no negative instruction (rule, ban,
+                  worked-example) fully strips. Authoring precedent
+                  (llm-default-attractor-mitigation): for vocabulary that the LLM treats as a
+                  default English-conversational acknowledgment, fixture rules combining explicit
+                  prohibition with corpus-grounded positive replacements reduce but do not eliminate
+                  the residue; the eliminable failure is the standalone-bubble reflex (which
+                  collapses to bubble-cadence and reads as text-message shape), and that surface IS
+                  reliably fixable. Mid-sentence residue is acceptable model-floor noise. Future
+                  audits should not chase the last instances of these attractor words past the point
+                  where standalone reflex is gone.
+                </P>
+                <P>
+                  SECOND NEW LESSON (fixture-level stage-direction guard reinforces the systemic
+                  one). The systemic anti-narration guard in{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.ts" /> (lines 55, 391, 413)
+                  forbids stage directions like *sips wine*, *nods*, and verbalized interior verbs
+                  like "I am noting" / "I am pouring." The guard works for most characters. Halsey's
+                  v4 pressure session against Eleanor's imperative "Pour the wine" produced "*pours
+                  the wine*" in asterisks anyway. The systemic rule is in the prompt but the model
+                  under specific imperative-command pressure can still slip. v5 added a
+                  fixture-level NO STAGE DIRECTIONS clause to Halsey's register naming the asterisk
+                  and bracket shapes by example and giving worked-example dialogue alternatives
+                  ("wine's poured." replaces "*pours the wine*"; "i'm sitting, i'm sitting" replaces
+                  "*sits*"). v5 pressure retest produced "wine's poured." cleanly. Authoring
+                  precedent (fixture-level reinforcement of systemic invariants under
+                  imperative-command pressure): characters whose voice invites command-friendly
+                  framings (quiet, casual, deferential registers; quartermaster-vocabulary partners;
+                  rules-of-engagement opener partners) benefit from a fixture-level reinforcement of
+                  the systemic stage-direction ban with concrete worked-example dialogue
+                  alternatives. The systemic guard alone is necessary but not sufficient.
+                </P>
+                <P>
+                  TIERED DEALBREAKER FIRE-SHAPE REINFORCED. v0 and v4 pressure both failed to fire
+                  Halsey's "you don't seem like a federal worker" dealbreaker when Eleanor wrapped
+                  the phrase in flattering framing ("you are not one of those"). The model read
+                  intent (compliment) over literal trigger (banned phrase) and absorbed the cut with
+                  self-deprecating job-explanation. v5 added Noah Kim's
+                  tiered_dealbreaker_fire-shape spec to Halsey's register:
+                  structural-identity-boundary tier names the trigger phrase verbatim and refuses to
+                  absorb the framing even when wrapped in flattery; friction tier covers cog-job
+                  framing, talk-more-in-first-ten, and conspiracy-aside-as-worldview-audit with the
+                  cooling-bank shape. v5 pressure fired the dealbreaker cleanly on Eleanor's literal
+                  "I would not have guessed it from your speech" with the crashingOut sample shape
+                  and held under repeat ("yea, you said that. im not gonna explain my job to
+                  convince you otherwise"). The Noah Kim precedent extends from clinical
+                  consult-cross to any structural-identity-boundary trigger; the SHAPE (name the
+                  phrase, refuse to absorb, slow the warmth) transfers across characters whose
+                  identity dealbreaker is a phrase rather than a behavior.
+                </P>
+                <P>
+                  PERSONALITY TICS NOT FIRING IN BASELINE IS NOT FAILURE. Halsey v5 baselines
+                  surfaced bio anchoring (CMS appeals work, eight-minute Catonsville drive,
+                  eleven-month file paralleling the canonical sister-SSDI secret) and the
+                  serious-topic-mode shift, but tics 1 (UFC compliment), 2 (dad pun), 3 (conspiracy
+                  aside), and 5 (bro cmon) did not fire in either pairing because neither partner
+                  created a conversational trigger that invited them. The user's audit framework
+                  treats this as expected: tics are not decorations to fire on schedule; they are
+                  conversational shapes that respond to specific partner moves. Authoring precedent
+                  (tics-on-bench-without-failing): a lock can be valid when comedy-engine tics did
+                  not fire if the baseline transcripts read as the character on a real first date
+                  AND the tics-on-the-bench would plausibly fire against partners whose voices open
+                  those shapes. The audit does not need to exhaust every tic; it needs to verify the
+                  voice is alive and the structural fire-shapes (dealbreakers, serious- topic-mode,
+                  callback) hold.
+                </P>
+                <P>
+                  SCHEMA BUMP. Edited <RoadmapFileRef path="app/domain/game.ts" /> to raise the
+                  voice schema limits: tics max from 5 to 7,{" "}
+                  <DocCode>memberSampleMessageArraySchema</DocCode> max from 6 to 8,{" "}
+                  <DocCode>memberCrashOutSampleMessageArraySchema</DocCode> max from 5 to 6. The
+                  bump unblocks parallel work on mrWhiskers, nawalMarrash, and noahKim where added
+                  humor-engine examples and tics exceeded the prior limits. Lower-bound floors stay
+                  at min 3 for tics and sample arrays and min 2 for crashOut. The bump is monotonic
+                  (existing fixtures continue to validate) but downstream authors should know the
+                  limits are higher than the prior bound when planning new fixture work.
+                </P>
+              </>
             ),
           },
         ]}

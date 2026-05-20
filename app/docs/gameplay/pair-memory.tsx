@@ -52,6 +52,13 @@ export const sections: DocSectionEntry[] = [
           first write through <DocCode>replaceById</DocCode>; callers do not need a separate
           ceremony to promote a projection.
         </DocCallout>
+        <DocCallout variant="warn" title="Storage escalation gate">
+          Keep relationship persistence behind the existing whole-save repository until measured
+          desktop scale pressure proves otherwise. Do not add SQLite just because pair storage is a
+          graph now. Reopen desktop SQL only after a committed roster exceeds 100 members, sparse
+          save size exceeds 5 MB for real authored content, or measured save parse/write time
+          exceeds the accepted budget.
+        </DocCallout>
       </>
     ),
   },

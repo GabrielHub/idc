@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { SCENARIO_EVENT_KINDS, type ScenarioEventKind } from "../domain/game";
+import { SCENARIO_EVENT_KINDS, type DateSession, type ScenarioEventKind } from "../domain/game";
 import { starterScenarios } from "../fixtures";
 import {
   drawScenarioEventOffer,
@@ -170,5 +170,57 @@ describe("scenario event draft", () => {
     for (const kind of SCENARIO_EVENT_KINDS) {
       expect(counts[kind]).toBe(EVENT_DRAFT_OFFERED_PER_KIND);
     }
+  });
+
+  it("penalizes recently offered scenario events when drafting a repeat scenario", () => {
+    const save = ensureScenarioInHand(
+      withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), ["jenna-pike"]),
+      "temporal-coffee-shop",
+    );
+    const started = startDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+      random: () => 0.42,
+    });
+    const staleEventId = started.session.eventDraft.offered[0];
+    const staleKind = starterScenarios
+      .find((scenario) => scenario.id === started.session.scenarioId)
+      ?.director.events.find((event) => event.id === staleEventId)?.kind;
+
+    if (staleEventId === undefined || staleKind === undefined) {
+      throw new Error("Expected the started date to offer at least one event.");
+    }
+
+    const completedSession: DateSession = {
+      ...started.session,
+      status: "completed",
+      eventDraft: { offered: [staleEventId], picked: [staleEventId] },
+      eventsTriggered: [staleEventId],
+      playbackState: "ended",
+    };
+    const scenario = starterScenarios.find(
+      (candidate) => candidate.id === started.session.scenarioId,
+    );
+
+    if (scenario === undefined) {
+      throw new Error("Expected the started scenario to exist.");
+    }
+
+    const alternatives = scenario.director.events.filter(
+      (event) => event.kind === staleKind && event.id !== staleEventId,
+    );
+
+    if (alternatives.length < EVENT_DRAFT_OFFERED_PER_KIND) {
+      throw new Error("Expected enough same-kind alternatives for freshness selection.");
+    }
+
+    const nextDraft = drawScenarioEventOffer(scenario, () => 0.42, {
+      completedSessions: [completedSession],
+    });
+
+    expect(nextDraft.offered).not.toContain(staleEventId);
   });
 });

@@ -65,6 +65,22 @@ const CUPID_LOGISTICS_AGENCY_PATTERN = new RegExp(
   String.raw`\bCupid\b[^.!?\n]{0,40}${LOGISTICS_ACTION_PATTERN}[^.!?\n]{0,60}${LOGISTICS_OBJECT_PATTERN}`,
   "iu",
 );
+const CUPID_TRANSIT_SAMPLE_PATTERNS: ReadonlyArray<{ label: string; pattern: RegExp }> = [
+  {
+    label: "arrival route vocabulary",
+    pattern:
+      /\b(?:gate-flash|gate flash|cupid car|cupid transit|cupid connect|journey here|made it through|route at dinner|arriving by car|arrive by car|the drive)\b/iu,
+  },
+  {
+    label: "parking or valet as Cupid date chatter",
+    pattern: /\b(?:parking|valet)\b/iu,
+  },
+  {
+    label: "partner credited for date logistics",
+    pattern:
+      /\b(?:thanks for making|you found it|you found the place|you found the booth|you found the table|you accepted the time|you (?:picked|chose|booked)[^.!?\n]{0,60}\b(?:place|spot|restaurant|venue|booth|time|hour|day|date|table)\b)\b/iu,
+  },
+];
 
 // Manager quip length ceiling. The voice doc targets five to twelve words and
 // one or two sentences; the lint caps a generous ceiling so future authors do
@@ -125,6 +141,16 @@ function nonCupidLogisticsAgencySentences(text: string): string[] {
   }
 
   return violations;
+}
+
+function memberSampleMessageEntries(member: Member): Array<{ bucket: string; text: string }> {
+  return [
+    { bucket: "greeting", messages: member.voice.sampleMessages.greeting },
+    { bucket: "hingeBits", messages: member.voice.sampleMessages.hingeBits },
+    { bucket: "warming", messages: member.voice.sampleMessages.warming },
+    { bucket: "cooling", messages: member.voice.sampleMessages.cooling },
+    { bucket: "crashingOut", messages: member.voice.sampleMessages.crashingOut },
+  ].flatMap(({ bucket, messages }) => messages.map((text) => ({ bucket, text })));
 }
 
 describe("fixture content lint", () => {
@@ -223,6 +249,22 @@ describe("fixture content lint", () => {
       for (const request of memberRequests) {
         for (const sentence of nonCupidLogisticsAgencySentences(request.text)) {
           violations.push(`${request.id}: ${sentence}`);
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+
+    it("keeps Cupid Transit and arrival logistics out of member sample dialogue", () => {
+      const violations: string[] = [];
+
+      for (const member of starterMembers) {
+        for (const { bucket, text } of memberSampleMessageEntries(member)) {
+          for (const { label, pattern } of CUPID_TRANSIT_SAMPLE_PATTERNS) {
+            if (pattern.test(text)) {
+              violations.push(`${member.id}/${bucket}: ${label}: ${text}`);
+            }
+          }
         }
       }
 

@@ -63,7 +63,7 @@ export const kadeSumner: Member = {
     ],
     sampleMessages: {
       greeting: [
-        "no but hi, kade, you found it, parking is a war zone out there babe",
+        "no but hi, kade, this lighting is a war zone in a good way babe",
         "hey hey hey, kade. ok sitting down. you look exactly like your photos which is rare",
         "babe hi, im kade. the lighting in here is unreal, anyway tell me about your week",
         "hi! kade. ok i promise the phone stays in the pocket for at least one course",
@@ -71,7 +71,7 @@ export const kadeSumner: Member = {
       hingeBits: [
         "no but hear me out, what if we did dinner and i film a tiny soft launch in your car mirror first. wont post it. pinky promise. ok i might post it.",
         "babe my comments said you give serial killer lawyer in a good way and i was like ok that is actually a compliment in 2026",
-        "for the record kade does not ghost. i pay, i confirm, i have a parking app. doing great.",
+        "for the record kade does not ghost. i pay, i confirm, i have a calendar app. doing great.",
         "what if we matched outfits but make it not a couples post. cause that is corny. unless. should it be corny. crying emoji.",
       ],
       warming: [

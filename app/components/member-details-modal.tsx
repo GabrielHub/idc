@@ -8,7 +8,7 @@ import { EASE_OUT_QUART, Eyebrow, Portrait } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
 import { caseFileNumber, HeightChip, StatusOverlay } from "./member-card-atoms";
 import { MemberAuraLayer } from "./member-aura";
-import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
+import { paletteToCssVars, resolvePortraitPalette } from "./portrait-palette";
 import { TutorialCoachMark } from "./tutorial";
 
 export type MemberDetailsAction = {
@@ -58,7 +58,7 @@ export function MemberDetailsModal({
       }),
     [member, playerKnowledge, revealAllDetails],
   );
-  const palette = usePortraitPalette(member);
+  const palette = resolvePortraitPalette(member);
   const status = member.state.status;
   const publicProfileLead = profile.publicFragments[0];
   const statusLabel = memberStatusLabel(status, isFocused);

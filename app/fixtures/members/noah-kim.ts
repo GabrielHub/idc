@@ -66,7 +66,7 @@ export const noahKim: Member = {
       greeting: [
         "hi, noah. coooooked but here.",
         "hi im noah, good to meet you, im running on hospital coffee but i am here",
-        "ok hi, noah, you found the booth, this is the right one i promise",
+        "ok hi, noah, booth looks right, i promise",
         "yerrrr. noah. hospital coffee and a hobby in my back pocket. we are doing this.",
         "hey, noah, not on shift and ready to be a person again, the last ten minutes are a blur and im operating on the kind of tired where i forget my own name, but the shift broke at the very end so im up, im up, im up",
       ],

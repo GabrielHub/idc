@@ -64,7 +64,7 @@ export const vhool: Member = {
       greeting: [
         "Greetings. I am Vhool. Please sit. The chair is ordinary, I have checked.",
         "Hello. Vhool. Thank you for arriving. The candle is decorative.",
-        "Greetings, kindred. Vhool. You found the table.",
+        "Greetings, kindred. Vhool. The table remains ordinary.",
         "I am Vhool. Welcome. The building is aware of us and is, for now, calm.",
       ],
       hingeBits: [
@@ -75,7 +75,7 @@ export const vhool: Member = {
       ],
       warming: [
         "You have not flinched. You have asked the soup question with sincerity. I have been Watching, and you have done well.",
-        "You accepted a place. You accepted a Time. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
+        "You have not asked the building to explain itself. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
         "You did not call my hair a costume. This is a small kindness that registers. The Lower Choir has heard.",
         "You spoke of your week as though it were ordinary. I am told this is the local form. I will accept the local form.",
       ],

@@ -1,4 +1,4 @@
-import { clampRandom } from "../services/utils";
+import { createNamespacedRandom, randomIndex, type RandomFn } from "../services/utils";
 
 export const MIN_GAIN = 0.0001;
 export const DEFAULT_VOLUME = 0.6;
@@ -134,9 +134,10 @@ export function getDateAmbientLoop(audioContext: AudioContext): DateAmbientLoop 
   return loop;
 }
 
-function selectDateAmbientTrack(randomValue = Math.random()): DateAmbientTrack {
-  const index = Math.floor(clampRandom(randomValue) * DATE_AMBIENT_TRACKS.length);
-  return DATE_AMBIENT_TRACKS[index];
+function selectDateAmbientTrack(
+  random: RandomFn = createNamespacedRandom("date-ambient-track", [Date.now()]),
+): DateAmbientTrack {
+  return DATE_AMBIENT_TRACKS[randomIndex(DATE_AMBIENT_TRACKS.length, random)];
 }
 
 function dateAmbientGain(volume: number): number {
@@ -443,5 +444,5 @@ export function __listDateAmbientTrackUrlsForTests(): string[] {
 }
 
 export function __selectDateAmbientTrackUrlForTests(randomValue: number): string {
-  return selectDateAmbientTrack(randomValue).url;
+  return selectDateAmbientTrack(() => randomValue).url;
 }

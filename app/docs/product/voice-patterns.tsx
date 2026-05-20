@@ -4,6 +4,7 @@ import {
   DocPage,
   DocPatternGrid,
   P,
+  Strong,
   type DocMeta,
   type DocPattern,
   type DocSectionEntry,
@@ -325,6 +326,16 @@ export const sections: DocSectionEntry[] = [
           member with deadpan flavor still admits they are nervous when the room asks them to.
           Comedy comes from the gap between self-image and reality, not from a member always
           performing their bit on cue.
+        </P>
+        <P>
+          The catalog is a library of <Strong>humor types</Strong>, not bubble cadence. Even the
+          patterns that look chat-shaped on the page (Stream of Consciousness, Urgent Crisis Plea,
+          Cursed Question) are read as humor SHAPES the character speaks at the table, not as text
+          messages the character types from a phone. See the spoken-dialogue contract in{" "}
+          <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+            Voice fingerprints
+          </DocLink>{" "}
+          for the bans on laugh-tag punctuation, standalone-bubble reactions, and text shorthand.
         </P>
       </DocCallout>
     ),

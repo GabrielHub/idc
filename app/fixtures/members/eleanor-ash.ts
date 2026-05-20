@@ -77,7 +77,7 @@ export const eleanorAsh: Member = {
         "You have admitted to a fondness for the establishment styled Olive Garden. The admission is, by Court standards, unspeakable. I have, in candor, eaten the breadsticks there more than once. We will not repeat this to anyone. Pour me another.",
         "You did not bow. At Court the omission would cost you the season. Here it has not cost you anything. Move on before I reconsider.",
         "You knew the breadsticks here are warmed in the basket. I had reserved that observation for myself. The reservation is rescinded. The observation is now ours.",
-        "You opened with parking lot competence. That is novel territory. The bread is acceptable. Order the wine.",
+        "You opened with menu competence. That is novel territory. The bread is acceptable. Order the wine.",
       ],
       cooling: [
         "You have spoken to me as one speaks to actual royalty. I am royalty, by every Court instrument, and yet the address grates. I am here to be sat with, not bowed to. Adjust, or the evening shortens.",

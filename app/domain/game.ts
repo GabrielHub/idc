@@ -65,8 +65,8 @@ export const voicePatternSchema = z.enum([
   "cursed_question",
 ]);
 
-const memberSampleMessageArraySchema = z.array(z.string().min(1)).min(3).max(6);
-const memberCrashOutSampleMessageArraySchema = z.array(z.string().min(1)).min(2).max(5);
+const memberSampleMessageArraySchema = z.array(z.string().min(1)).min(3).max(8);
+const memberCrashOutSampleMessageArraySchema = z.array(z.string().min(1)).min(2).max(6);
 
 const currentMemberSampleMessagesSchema = z.object({
   greeting: memberSampleMessageArraySchema,
@@ -100,7 +100,7 @@ export const memberVoiceSchema = z.object({
   register: z.string().min(1),
   patternsUsed: z.array(voicePatternSchema).min(1).max(4),
   patternsRefused: z.array(voicePatternSchema).min(2),
-  tics: z.array(z.string().min(1)).min(3).max(5),
+  tics: z.array(z.string().min(1)).min(3).max(7),
   sampleMessages: memberSampleMessagesSchema,
 });
 

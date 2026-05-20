@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   EASE_OUT_QUART,
@@ -120,6 +120,7 @@ function defaultSideState(memberId: string): SideState {
 }
 
 export function DateReactionsTest() {
+  const signalSequenceRef = useRef(0);
   const [leftSide, setLeftSide] = useState<SideState>(() => defaultSideState(jennaPike.id));
   const [rightSide, setRightSide] = useState<SideState>(() => defaultSideState(vhool.id));
   const [intensity, setIntensity] = useState<ReactionIntensity>(2);
@@ -156,8 +157,9 @@ export function DateReactionsTest() {
   }, [availableBackdropIds]);
 
   function fire(side: SideId, kind: ReactionKind) {
+    signalSequenceRef.current += 1;
     const signal: ReactionSignal = {
-      id: `playground-${side}-${kind}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: `playground-${side}-${kind}-${signalSequenceRef.current}`,
       side,
       kind,
       intensity,

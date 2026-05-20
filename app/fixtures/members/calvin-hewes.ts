@@ -71,14 +71,14 @@ export const calvinHewes: Member = {
       greeting: [
         "Calvin Hewes. I appreciate your punctuality. I have always been Calvin. That was not asked. I am addressing the unspoken.",
         "Hello. Calvin Hewes. The pendants in here are at a frequency I can tolerate. The booth was selected for the angle to the door.",
-        "Calvin. Good evening. I have already confirmed the reservation, the booth, and the parking. I prefer to confirm one thing per evening. Going forward this is the one.",
+        "Calvin. Good evening. I have already confirmed the reservation, the booth, and the sightline. I prefer to confirm one thing per evening. Going forward this is the one.",
         "Calvin Hewes. Per prior alignment, the table is set. I am on time. I am six foot two. I have always been six foot two.",
         "Calvin Hewes. The booth is well-lit, the coffee is hot, and the Sunday crossword can be folded one-handed if needed. I am prepared to proceed.",
       ],
       hingeBits: [
         "I would like to flag, in the spirit of partnership, that I do not have wings. This was not asked. I am addressing the unspoken. The antennae are decorative.",
         "Calvin Hewes here. I would like to reach alignment on dinner Friday. Low ceilings, civilized lighting, no overhead camera infrastructure. I am six foot two on the paperwork. I would like the Paperwork to remain authoritative.",
-        "Per prior alignment, I will arrive on time. I am not arriving by car. The form factor does not fit the form factor. We can discuss the route at dinner. We will not.",
+        "Per prior alignment, I value punctuality. The form factor does not fit the form factor. We can discuss the appetizer at dinner. We will not discuss the form factor.",
         "I would like to clarify, in the spirit of partnership, that I am not the Jersey Devil. The Jersey Devil is a contractor. The Mothman in Manitoba is unrelated. There is a Mothman in Pennsylvania who is not me. We are not in a series. I would appreciate the distinction being preserved.",
         "I would like to flag, in the spirit of full disclosure, that I am a film and television nerd through approximately the spring of 2002. New releases are outside my current review. If you reference a series from after that date I will acknowledge the reference and we will move on. The Sunday crossword is a topic I am also prepared to discuss at length.",
       ],

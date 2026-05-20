@@ -88,6 +88,41 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "randomness",
+    title: "Randomness contract",
+    body: (
+      <>
+        <P>
+          Gameplay randomness uses the shared helpers in <DocCode>app/services/utils.ts</DocCode>,
+          not <DocCode>Math.random</DocCode>. Random sources are domain-namespaced, seedable, and
+          selected through helpers such as <DocCode>createNamespacedRandom</DocCode>,{" "}
+          <DocCode>randomIndex</DocCode>, and <DocCode>shuffleInPlace</DocCode> so service tests can
+          replay exact outcomes.
+        </P>
+        <DocList
+          items={[
+            <span key="deterministic">
+              Deterministic systems such as deck hands, shift goals, and request ordering seed from
+              stable save facts, ids, and shift numbers.
+            </span>,
+            <span key="fresh">
+              Live date event drafts include saved booking entropy such as{" "}
+              <DocCode>booking.committedAt</DocCode>, so repeated real bookings feel fresh while a
+              saved booking remains reproducible. Scenario event drafts also penalize recently
+              offered, picked, and triggered events for the same pair and scenario before reusing
+              them.
+            </span>,
+            <span key="tests">
+              Service boundaries that need exact assertions should accept{" "}
+              <DocCode>random?: RandomFn</DocCode> and pass that source through instead of creating
+              hidden state.
+            </span>,
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "date-length",
     title: "Date length",
     body: (

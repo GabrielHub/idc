@@ -185,7 +185,8 @@ export const sections: DocSectionEntry[] = [
         <P>After source approval, run:</P>
         <DocCodeBlock language="powershell">{`vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite
 vp run portrait:resize-avatars
-vp run portrait:standee-footing`}</DocCodeBlock>
+vp run portrait:standee-footing
+vp run portrait:palettes`}</DocCodeBlock>
         <P>
           After the neutral portrait is locked, update the member fixture{" "}
           <DocCode>visualDescription</DocCode>. This field is runtime prompt context for models

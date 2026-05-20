@@ -1,6 +1,6 @@
 import { type GoalMetric, type Member, type ShiftState } from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
-import { hashSeedUint32 } from "./utils";
+import { buildRandomSeed, shuffledBySeed } from "./utils";
 
 export const SHIFT_FEATURED_MEMBER_COUNT = 4;
 const SHIFT_COMPANY_GOAL_COUNT = 2;
@@ -42,7 +42,7 @@ export function selectShiftCompanyGoalIds({
     isCompanyGoalPossible(goal.metric, goal.target, activeMembers, dateSlotsTotal),
   );
 
-  return seededSortById(possibleGoals, `shift:${shiftNumber}:goals`)
+  return seededOrderById(possibleGoals, "shift-goals", [shiftNumber])
     .slice(0, SHIFT_COMPANY_GOAL_COUNT)
     .map((goal) => goal.id);
 }
@@ -61,7 +61,7 @@ export function selectFeaturedMemberRequestIds({
     .map((member) => resolveCurrentMemberRequest(member))
     .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
 
-  return seededSortById(requests, `shift:${shiftNumber}:requests`).map((request) => request.id);
+  return seededOrderById(requests, "shift-requests", [shiftNumber]).map((request) => request.id);
 }
 
 export function getMemberRequestPoolIds(memberId: string): string[] {
@@ -150,14 +150,11 @@ function isMemberActiveForShift(member: Member): boolean {
   return member.state.status === "active";
 }
 
-function seededSortById<TValue extends { id: string }>(
+function seededOrderById<TValue extends { id: string }>(
   values: readonly TValue[],
-  seed: string,
+  namespace: string,
+  parts: readonly (string | number)[],
 ): TValue[] {
-  return [...values].sort((first, second) => {
-    const firstScore = hashSeedUint32(`${seed}:${first.id}`);
-    const secondScore = hashSeedUint32(`${seed}:${second.id}`);
-
-    return firstScore - secondScore || first.id.localeCompare(second.id);
-  });
+  const stableValues = [...values].sort((first, second) => first.id.localeCompare(second.id));
+  return shuffledBySeed(stableValues, buildRandomSeed(namespace, parts));
 }

@@ -13,7 +13,7 @@ import {
   deriveDeckBudgetStatus,
   activeBudgetDiscountOffers,
 } from "./budget";
-import { hashSeedUint32, mulberry32 } from "./utils";
+import { createNamespacedRandom, randomIndex } from "./utils";
 
 export const SCENARIO_HAND_SIZE = 3;
 
@@ -121,7 +121,7 @@ export type DrawHandResult = {
 };
 
 export function drawHand(deck: ScenarioDeck, seedKey: string): string[] {
-  const random = mulberry32(hashSeedUint32(`scenario-hand:${seedKey}`));
+  const random = createNamespacedRandom("scenario-hand", [seedKey]);
   const availableIds = [...deck.cardIds];
 
   if (availableIds.length === 0) {
@@ -132,7 +132,7 @@ export function drawHand(deck: ScenarioDeck, seedKey: string): string[] {
   const drawn: string[] = [];
 
   for (let index = 0; index < handSize; index += 1) {
-    const pickIndex = Math.floor(random() * availableIds.length);
+    const pickIndex = randomIndex(availableIds.length, random);
     const picked = availableIds.splice(pickIndex, 1)[0];
 
     if (picked !== undefined) {

@@ -1102,6 +1102,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildJudgePromptPacket({
@@ -1158,6 +1159,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing",
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const exchangeMessages: DateMessage[] = [
@@ -1274,6 +1276,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildJudgePromptPacket({
@@ -1330,6 +1333,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildJudgePromptPacket({
@@ -1414,6 +1418,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildJudgePromptPacket({
@@ -1467,6 +1472,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildJudgePromptPacket({
@@ -1561,6 +1567,7 @@ describe("character prompt repetition guard", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const transcript = [
@@ -1668,6 +1675,7 @@ describe("character prompt repetition guard", () => {
       eventsTriggered: [],
       playbackState: "playing" as const,
       endSentiment: null,
+      endReason: null,
       interventions: [],
     };
     const packet = buildCharacterPromptPacket({
@@ -1765,6 +1773,7 @@ describe("character prompt repetition guard", () => {
         eventsTriggered: [],
         playbackState: "playing",
         endSentiment: null,
+        endReason: null,
         interventions: [],
       },
       pairState,

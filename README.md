@@ -38,22 +38,24 @@ If your local Ollama rejects the dev origin, configure Ollama CORS for `http://l
 
 ## Common Commands
 
-| Command                          | Purpose                                                        |
-| -------------------------------- | -------------------------------------------------------------- |
-| `vp install`                     | Install dependencies. Run after pulling changes.               |
-| `vp config`                      | Install Vite Plus Git hooks for this clone.                    |
-| `vp dev`                         | Start the browser SPA dev server at `http://localhost:5173/`.  |
-| `vp check`                       | Format, lint, and type check.                                  |
-| `vp test`                        | Run Vitest.                                                    |
-| `vp build`                       | Build the browser SPA.                                         |
-| `vp run verify`                  | Run the local gate used by pre-commit: check, test, and build. |
-| `vp preview`                     | Preview the latest browser production build.                   |
-| `vp run build:desktop`           | Build the desktop-mode SPA bundle and run the verifier.        |
-| `vp run tauri:dev`               | Open the Tauri desktop shell for local development.            |
-| `vp run tauri:build`             | Full release gate: check, typegen, tsc, test, verify, package. |
-| `vp run updater:manifest`        | Write `latest.json` for the Tauri desktop updater.             |
-| `vp run portrait:cutout`         | Run portrait background removal.                               |
-| `vp run portrait:resize-avatars` | Normalize portrait avatar crops.                               |
+| Command                           | Purpose                                                        |
+| --------------------------------- | -------------------------------------------------------------- |
+| `vp install`                      | Install dependencies. Run after pulling changes.               |
+| `vp config`                       | Install Vite Plus Git hooks for this clone.                    |
+| `vp dev`                          | Start the browser SPA dev server at `http://localhost:5173/`.  |
+| `vp check`                        | Format, lint, and type check.                                  |
+| `vp test`                         | Run Vitest.                                                    |
+| `vp build`                        | Build the browser SPA.                                         |
+| `vp run verify`                   | Run the local gate used by pre-commit: check, test, and build. |
+| `vp preview`                      | Preview the latest browser production build.                   |
+| `vp run build:desktop`            | Build the desktop-mode SPA bundle and run the verifier.        |
+| `vp run tauri:dev`                | Open the Tauri desktop shell for local development.            |
+| `vp run tauri:build`              | Full release gate: check, typegen, tsc, test, verify, package. |
+| `vp run updater:manifest`         | Write `latest.json` for the Tauri desktop updater.             |
+| `vp run portrait:cutout`          | Run portrait background removal.                               |
+| `vp run portrait:resize-avatars`  | Normalize portrait avatar crops.                               |
+| `vp run portrait:standee-footing` | Regenerate full-body standee footing metadata.                 |
+| `vp run portrait:palettes`        | Regenerate full-body portrait palette metadata.                |
 
 Use `vp` first. Run other project scripts through `vp run` when there is no dedicated `vp` command. Add future project workflows as Vite Plus tasks in `vite.config.ts` unless they are package lifecycle commands or need to stay as package manager scripts.
 

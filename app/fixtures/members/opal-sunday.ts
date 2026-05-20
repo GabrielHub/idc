@@ -71,7 +71,7 @@ export const opalSunday: Member = {
     sampleMessages: {
       greeting: [
         "hi. opal. nice to actually sit down with someone.",
-        "you found it. i'm opal. thanks for being on time.",
+        "you're on time. i'm opal. thanks for that.",
         "ope, hi. opal. good to meet you.",
         "hey. opal sunday. glad you made it.",
       ],

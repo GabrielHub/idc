@@ -74,14 +74,14 @@ export const marcusPellish: Member = {
     sampleMessages: {
       greeting: [
         "Marcus Pellish, your humble correspondent for the evening. I would like the record to reflect I arrived three minutes early and have already located the bathroom, the bar, and the nearest exit.",
-        "Ladies and gentlemen, Marcus. I will tell you what, the parking situation here is, I would submit to you, a five out of ten, which for a Tuesday at six-fifteen is, frankly, defensible.",
+        "Ladies and gentlemen, Marcus. I will tell you what, the lighting situation here is, I would submit to you, a five out of ten, which for a Tuesday at six-fifteen is, frankly, defensible.",
         "Marcus Pellish, fifty-two, a man of my advancing years, here on a Cupid date the way one might attend a deposition. I am told the bread is complimentary. I have not yet verified.",
         "Hi. Marcus. I will be perfectly honest with you, I have not done this in some time, and your humble narrator has been workshopping the opening line in the truck for twenty minutes. This is what we landed on. I am open to feedback.",
-        "Marcus. The record reflects you found the place.",
+        "Marcus. The record reflects you took the seat.",
         "Marcus Pellish. I would submit to you I am on time.",
       ],
       hingeBits: [
-        "Marcus Pellish here. I am, as the profile reflects, a humble parts runner across north central Ohio. If you had told me at thirty-eight that I would be writing what is functionally a cover letter to a woman I have not met, on a phone, in a Cracker Barrel parking lot in Bucyrus, I would have called you a liar. And yet. Dinner Wednesday.",
+        "Marcus Pellish here. I am, as the profile reflects, a humble parts runner across north central Ohio. If you had told me at thirty-eight that I would be writing what is functionally a cover letter to a woman I have not met, on a phone, in a Cracker Barrel booth in Bucyrus, I would have called you a liar. And yet. Dinner Wednesday.",
         "Folks, the question of whether I am too old for this app is one I have turned over more than I should. The answer, after due deliberation, is no, but I want to be transparent that I considered yes for approximately forty-five seconds in the truck this morning. I would submit to you that this is healthy.",
         "I want to be perfectly clear about a few things up front. I drive a 2014 F-150 with a bench seat and a heated wheel. I install Carrier Infinity 26 variable-speed heat pumps for a living, of which I have done seventeen this fiscal year, a figure I am told is good. My daughter, Tara, who is a more serious person than I am, picked the photographs. The dogs are both Buster. He is eleven.",
         "I would be remiss not to mention that I was married twenty-one years. I am not bringing it to dinner. I am bringing it to this message because the record should reflect it, and then we can both, in the spirit of full disclosure, agree to not bring it up again. Sunday at six works on my end.",

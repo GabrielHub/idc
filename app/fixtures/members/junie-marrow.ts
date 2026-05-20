@@ -68,7 +68,7 @@ export const junieMarrow: Member = {
     sampleMessages: {
       greeting: [
         "hi! im Junie. and this is Otis, he says hi too, he doesn't but you know.",
-        "hey! Junie. thanks for making it somewhere with floor space, Otis appreciates it.",
+        "hey! Junie. this floor space is good news, Otis appreciates it.",
         "hi, im Junie, sorry we're a lot to seat. you look nice though.",
         "hi! Junie Marrow. okay sitting down. Otis is fine, he's just looking.",
       ],

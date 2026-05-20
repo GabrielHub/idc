@@ -14,7 +14,7 @@ import {
 import { CompactMemberCard } from "./member-card-compact";
 import type { MemberCardProps, MemberCardState } from "./member-card-types";
 import { MemberAuraLayer } from "./member-aura";
-import { paletteToCssVars, usePortraitPalette } from "./portrait-palette";
+import { paletteToCssVars, resolvePortraitPalette } from "./portrait-palette";
 
 export { caseFileNumber, type MemberCardPill } from "./member-card-atoms";
 export type { MemberCardDensity, MemberCardProps, MemberCardState } from "./member-card-types";
@@ -84,7 +84,7 @@ export function MemberCard({
     visibilityMode: revealAllDetails ? "dev_unveiled" : "earned",
   });
   const blurb = blurbOverride ?? profile.publicFragments[0];
-  const palette = usePortraitPalette(member);
+  const palette = resolvePortraitPalette(member);
   const file = fileNumber ?? caseFileNumber(member.id);
   const sealedCount = profile.redactedBlocks.length;
   const knownCount = profile.revealedReads.length;

@@ -95,9 +95,12 @@ import {
   clamp,
   clampDelta,
   clampScore,
+  createNamespacedRandom,
   pushIntoBucket,
   replaceById,
-  shuffleInPlace,
+  selectFreshItems,
+  type FreshnessPenalty,
+  type RandomFn,
 } from "./utils";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
@@ -109,6 +112,7 @@ export type StartDateInput = {
   secondMemberId: string;
   scenarioId: string;
   now?: Date;
+  random?: RandomFn;
 };
 
 export type AdvanceDateInput = {
@@ -308,6 +312,7 @@ export function clearActiveBooking(save: GameSave): GameSave {
 export type StartDateSessionFromBookingInput = {
   scenarioId: string;
   now?: Date;
+  random?: RandomFn;
 };
 
 export function startDateSessionFromBooking(
@@ -372,7 +377,17 @@ export function startDateSessionFromBooking(
       ];
     }),
   );
-  const eventDraft = drawScenarioEventOffer(scenario, Math.random, {
+  const random =
+    input.random ??
+    createNamespacedRandom("scenario-event-draft", [
+      booking.id,
+      booking.committedAt,
+      booking.pairId,
+      scenario.id,
+      sessionId,
+      save.dateSessions.length,
+    ]);
+  const eventDraft = drawScenarioEventOffer(scenario, random, {
     pairState,
     completedSessions: save.dateSessions,
   });
@@ -469,11 +484,13 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
     return startDateSessionFromBooking(adjustedSave, {
       scenarioId: input.scenarioId,
       now: input.now,
+      random: input.random,
     });
   }
   return startDateSessionFromBooking(committed.save, {
     scenarioId: input.scenarioId,
     now: input.now,
+    random: input.random,
   });
 }
 
@@ -672,10 +689,11 @@ export type DrawScenarioEventContext = {
 
 export function drawScenarioEventOffer(
   scenario: DateScenario,
-  randomFn: () => number = Math.random,
+  randomFn: RandomFn = createNamespacedRandom("scenario-event-offer", [scenario.id]),
   context: DrawScenarioEventContext = {},
 ): EventDraft {
   const buckets = new Map<ScenarioEventKind, ScenarioEvent[]>();
+  const freshnessPenalties = collectScenarioEventFreshnessPenalties(scenario.id, context);
 
   for (const event of scenario.director.events) {
     pushIntoBucket(buckets, event.kind, event);
@@ -685,8 +703,13 @@ export function drawScenarioEventOffer(
 
   for (const kind of SCENARIO_EVENT_KINDS) {
     const bucket = buckets.get(kind) ?? [];
-    shuffleInPlace(bucket, randomFn);
-    const rankedBucket = rankScenarioEventBucket(bucket, kind, context);
+    const rankedBucket = rankScenarioEventBucket(
+      bucket,
+      kind,
+      context,
+      randomFn,
+      freshnessPenalties,
+    );
 
     const targetCount = Math.min(EVENT_DRAFT_OFFERED_PER_KIND, rankedBucket.length);
 
@@ -709,25 +732,75 @@ function rankScenarioEventBucket(
   bucket: readonly ScenarioEvent[],
   kind: ScenarioEventKind,
   context: DrawScenarioEventContext,
+  random: RandomFn,
+  freshnessPenalties: readonly FreshnessPenalty[],
 ): ScenarioEvent[] {
-  if (context.pairState === undefined) {
-    return [...bucket];
+  const trajectory =
+    context.pairState === undefined
+      ? undefined
+      : derivePairTrajectory({
+          pairState: context.pairState,
+          completedSessions: context.completedSessions ?? [],
+        });
+  const openLoopCount =
+    context.pairState?.openLoops.filter((loop) => loop.status === "open").length ?? 0;
+
+  return selectFreshItems({
+    candidates: bucket.map((event) => ({
+      id: event.id,
+      item: event,
+      score:
+        trajectory === undefined
+          ? 0
+          : scoreScenarioEventForPair(event, kind, trajectory.state, openLoopCount),
+    })),
+    count: bucket.length,
+    random,
+    freshnessPenalties,
+  });
+}
+
+function collectScenarioEventFreshnessPenalties(
+  scenarioId: string,
+  context: DrawScenarioEventContext,
+): FreshnessPenalty[] {
+  const completedSessions = context.completedSessions ?? [];
+  const pairId = context.pairState?.id;
+  const relevantSessions: DateSession[] = [];
+
+  for (
+    let cursor = completedSessions.length - 1;
+    cursor >= 0 && relevantSessions.length < 4;
+    cursor -= 1
+  ) {
+    const session = completedSessions[cursor];
+    if (session === undefined) continue;
+    if (session.scenarioId !== scenarioId) continue;
+    if (pairId !== undefined && session.pairId !== pairId) continue;
+    relevantSessions.push(session);
+  }
+  relevantSessions.reverse();
+
+  const penalties: FreshnessPenalty[] = [];
+
+  for (let index = 0; index < relevantSessions.length; index += 1) {
+    const session = relevantSessions[index];
+    if (session === undefined) continue;
+    const recency = relevantSessions.length - index;
+    const multiplier = 1 + recency * 0.25;
+
+    for (const eventId of session.eventDraft.offered) {
+      penalties.push({ id: eventId, penalty: 1.5 * multiplier });
+    }
+    for (const eventId of session.eventDraft.picked ?? []) {
+      penalties.push({ id: eventId, penalty: 3 * multiplier });
+    }
+    for (const eventId of session.eventsTriggered) {
+      penalties.push({ id: eventId, penalty: 5 * multiplier });
+    }
   }
 
-  const trajectory = derivePairTrajectory({
-    pairState: context.pairState,
-    completedSessions: context.completedSessions ?? [],
-  });
-  const openLoopCount = context.pairState.openLoops.filter((loop) => loop.status === "open").length;
-
-  return [...bucket]
-    .map((event, index) => ({
-      event,
-      index,
-      score: scoreScenarioEventForPair(event, kind, trajectory.state, openLoopCount),
-    }))
-    .sort((left, right) => right.score - left.score || left.index - right.index)
-    .map((entry) => entry.event);
+  return penalties;
 }
 
 function scoreScenarioEventForPair(
@@ -1744,14 +1817,9 @@ function formatGoalProgress(metric: GoalMetric, progress: number, target: number
   return GOAL_PROGRESS_TEMPLATES[metric](progress, target);
 }
 
-export type StartNextShiftOptions = {
-  random?: () => number;
-};
-
 export function startNextShift(
   save: GameSave,
   now = new Date(),
-  _options: StartNextShiftOptions = {},
 ): { save: GameSave; shift: ShiftState } {
   const activeShift = getActiveShift(save);
 

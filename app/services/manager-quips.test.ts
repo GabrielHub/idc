@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import type { GameSave, ManagerQuipHistoryRecord, PairState } from "../domain/game";
 import {
@@ -174,6 +174,62 @@ describe("resolveManagerQuip", () => {
     });
     expect(result).not.toBeNull();
     expect(playedAll.has(result!.quipId)).toBe(true);
+  });
+
+  it("uses reproducible fallback randomness without Math.random", () => {
+    const mathRandom = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Manager quip selection should not use global randomness.");
+    });
+
+    try {
+      const first = resolveManagerQuip({
+        triggerKey: "date.started",
+        history: [],
+        currentShiftNumber: 1,
+        surfaceKey: "date-session-1",
+        now: NOW,
+      });
+      const second = resolveManagerQuip({
+        triggerKey: "date.started",
+        history: [],
+        currentShiftNumber: 1,
+        surfaceKey: "date-session-1",
+        now: NOW,
+      });
+
+      expect(first?.quipId).toBe(second?.quipId);
+    } finally {
+      mathRandom.mockRestore();
+    }
+  });
+
+  it("penalizes recently played variants for the same trigger", () => {
+    const dateStartVariants = MANAGER_QUIP_CATALOG.filter(
+      (quip) => quip.triggerKey === "date.started",
+    );
+    const stale = dateStartVariants[0];
+
+    if (stale === undefined || dateStartVariants.length < 2) {
+      throw new Error("Expected at least two date.started quips.");
+    }
+
+    const result = resolveManagerQuip({
+      triggerKey: "date.started",
+      history: [
+        makeHistoryRecord({
+          triggerKey: "date.started",
+          cadence: "regular",
+          shiftNumber: 1,
+          quipId: stale.id,
+        }),
+      ],
+      currentShiftNumber: 2,
+      now: NOW,
+      random: () => 0,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.quipId).not.toBe(stale.id);
   });
 });
 

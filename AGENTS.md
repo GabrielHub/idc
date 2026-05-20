@@ -28,6 +28,11 @@
 - Deterministic systems still choose the date frame, eligible context, match fit overlays, hard stops, and persistence boundaries.
 - Never use `any` or `as any`. Keep types explicit and narrow. Prefer inline interfaces and types unless reused.
 
+## Randomness
+
+- Do not call `Math.random` in app code. Use the typed RNG helpers in `app/services/utils.ts`: `createNamespacedRandom`, `createSeededRandom`, `randomIndex`, `shuffleInPlace`, and `shuffledBySeed`.
+- Gameplay randomness must be seedable and domain-namespaced. Include saved entropy such as `booking.committedAt` when live play should feel fresh, and keep `random?: RandomFn` injection on service boundaries that need exact tests.
+
 ## Playwright Testing
 
 - Browser automation is the primary fast regression surface for gameplay and UI work.
@@ -89,7 +94,7 @@
 - Runtime AI must stay bounded by schemas, deterministic context retrieval, memory visibility, and validated state updates.
 - Production-time AI asset work is separate from runtime AI. Engineering and content agents may generate or revise assets while executing plans, but generated assets should be checked in only after human approval.
 - Generate member portraits against a white background.
-- Follow the webtoon/manhwa portrait direction in `docs/product/image-style.md`.
+- Follow the webtoon/manhwa portrait direction in `app/docs/product/image-style.tsx`.
 - Use `scripts/portraits/remove_background.py` with `bria-rmbg` for approved portrait cutouts.
 - Tool-assisted background removal is a final post-approval asset step for cutout images. Do not use it for full backdrops or unique portrait cards.
 
@@ -102,8 +107,8 @@
 - Disabled controls must use `disabled:cursor-not-allowed` or an equivalent disabled-state cursor.
 - Minimum font size is `text-sm` or 14px. Never use smaller arbitrary text. The Tailwind default `text-xs` (12px) is off-limits. Custom tokens `text-micro` and `text-label` resolve to 14px and are kept as semantic aliases (chip eyebrow vs body caption).
 - Desktop-first. Do not spend effort on mobile, but keep the UI responsive across desktop sizes.
-- Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `docs/product/visual-design.md`.
-- Preserve the Aura design language described in `app/app.css` and `docs/product/visual-design.md`.
+- Preserve the implemented operations dashboard feel in `app/app.css`, `app/components/`, and `app/docs/product/visual-design.tsx`.
+- Preserve the Aura design language described in `app/app.css` and `app/docs/product/visual-design.tsx`.
 - Always check if a component or pattern already exists, reuse components when we can. If you find duplicate components, create a shared one and replace the duplicates
 
 ## Verification

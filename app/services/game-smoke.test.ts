@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   dateSessionSchema,
@@ -37,6 +37,7 @@ import {
   startAndDraftDateSession,
   withFeaturedMembers,
 } from "./test-helpers";
+import { mulberry32 } from "./utils";
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
@@ -150,6 +151,110 @@ describe("IDC playable smoke path", () => {
     });
 
     expect(() => clearActiveBooking(activeSessionSave)).toThrow(/active date session/);
+  });
+
+  it("threads seeded randomness into scenario event drafts when starting from a booking", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const setupSave = withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]);
+    const { save: committedSave, booking } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+      now: new Date("2026-05-05T12:00:00.000Z"),
+    });
+    const scenarioId = booking.drawnScenarioIds[0];
+
+    if (scenarioId === undefined) {
+      throw new Error("Expected booking to draw at least one scenario.");
+    }
+
+    const mathRandom = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Expected startDateSessionFromBooking to use the provided random source.");
+    });
+
+    try {
+      const first = startDateSessionFromBooking(committedSave, {
+        scenarioId,
+        now: new Date("2026-05-05T12:01:00.000Z"),
+        random: mulberry32(1776),
+      });
+      const second = startDateSessionFromBooking(committedSave, {
+        scenarioId,
+        now: new Date("2026-05-05T12:01:00.000Z"),
+        random: mulberry32(1776),
+      });
+
+      expect(first.session.eventDraft).toEqual(second.session.eventDraft);
+    } finally {
+      mathRandom.mockRestore();
+    }
+  });
+
+  it("defaults scenario event drafts to reproducible booking scoped randomness", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const setupSave = withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]);
+    const { save: committedSave, booking } = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+      now: new Date("2026-05-05T12:00:00.000Z"),
+    });
+    const scenarioId = booking.drawnScenarioIds[0];
+
+    if (scenarioId === undefined) {
+      throw new Error("Expected booking to draw at least one scenario.");
+    }
+
+    const mathRandom = vi.spyOn(Math, "random").mockImplementation(() => {
+      throw new Error("Scenario event drafts should not use global randomness.");
+    });
+
+    try {
+      const first = startDateSessionFromBooking(committedSave, {
+        scenarioId,
+        now: new Date("2026-05-05T12:01:00.000Z"),
+      });
+      const second = startDateSessionFromBooking(committedSave, {
+        scenarioId,
+        now: new Date("2026-05-05T12:01:00.000Z"),
+      });
+
+      expect(first.session.eventDraft).toEqual(second.session.eventDraft);
+    } finally {
+      mathRandom.mockRestore();
+    }
+  });
+
+  it("varies scenario event drafts across live bookings for the same pair and scenario", () => {
+    const firstMemberId = "jenna-pike";
+    const secondMemberId = "sana-karim";
+    const setupSave = withFeaturedMembers(createSeedGameSave(), [firstMemberId, secondMemberId]);
+    const firstBooking = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+      now: new Date("2026-05-05T12:00:00.000Z"),
+    });
+    const secondBooking = commitDateBooking(setupSave, {
+      focusMemberId: firstMemberId,
+      partnerMemberId: secondMemberId,
+      now: new Date("2026-05-05T12:00:01.000Z"),
+    });
+    const scenarioId = firstBooking.booking.drawnScenarioIds[0];
+
+    if (scenarioId === undefined || scenarioId !== secondBooking.booking.drawnScenarioIds[0]) {
+      throw new Error("Expected matching deterministic hands for the same pair and shift.");
+    }
+
+    const first = startDateSessionFromBooking(firstBooking.save, {
+      scenarioId,
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const second = startDateSessionFromBooking(secondBooking.save, {
+      scenarioId,
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+
+    expect(first.session.eventDraft).not.toEqual(second.session.eventDraft);
   });
 
   it("running a date does not mutate the active deck", () => {
@@ -416,6 +521,7 @@ describe("IDC playable smoke path", () => {
             eventsTriggered: [],
             playbackState: "ended" as const,
             endSentiment: null,
+            endReason: null,
             interventions: [],
           },
         ],

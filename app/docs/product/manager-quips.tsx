@@ -129,7 +129,9 @@ export const sections: DocSectionEntry[] = [
         />
         <P>
           Variation count scales with trigger frequency. The more often a trigger fires, the more
-          variants it needs so the rotation does not stale.
+          variants it needs so the rotation does not stale. Runtime selection prefers variants that
+          have not played in the current session and penalizes recently played variants for the same
+          trigger before repeating them.
         </P>
         <DocList
           items={[

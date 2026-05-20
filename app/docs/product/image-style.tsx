@@ -605,10 +605,16 @@ Constraints: no text, no logos, no watermarks, no frames, no UI, no scenery, no 
               detail: "vp run portrait:resize-avatars (128/256/512)",
             },
             {
+              id: "palette",
+              kind: "process",
+              label: "Generate palettes",
+              detail: "vp run portrait:palettes",
+            },
+            {
               id: "ship",
               kind: "output",
               label: "Runtime cutouts",
-              detail: "public/assets/portraits/<member-id>/",
+              detail: "cutouts plus portrait-palettes.generated.ts",
             },
           ]}
         />
@@ -634,10 +640,12 @@ Constraints: no text, no logos, no watermarks, no frames, no UI, no scenery, no 
           neutral full-body image and <DocCode>avatar.png</DocCode> for the upper-half image. Use{" "}
           <DocCode>portrait-&lt;variant&gt;.png</DocCode> for optional full-body expression
           variants. The <DocCode>avatar-&lt;width&gt;.png</DocCode> files are downscaled siblings
-          used by the runtime <DocCode>srcset</DocCode> so the browser fetches a member-card-sized
-          PNG (typically 30 KB) instead of the multi-megabyte source. Do not put member files back
-          under <DocCode>public/assets/portraits/cutout/</DocCode>; that flat folder no longer
-          matches the fixture contract.
+          used by the runtime <DocCode>srcset</DocCode> so the browser fetches a UI-sized PNG
+          instead of the multi-megabyte source. Runtime avatar <DocCode>srcset</DocCode> candidates
+          intentionally stop at <DocCode>avatar-512.png</DocCode>; do not add{" "}
+          <DocCode>avatar.png</DocCode> back as a high-density candidate for avatar surfaces. Do not
+          put member files back under <DocCode>public/assets/portraits/cutout/</DocCode>; that flat
+          folder no longer matches the fixture contract.
         </P>
         <DocCallout variant="warn">
           Do not place source images under <DocCode>public/assets/portraits/source</DocCode>. Vite
@@ -668,6 +676,11 @@ vp run portrait:cutout --input assets-source/portraits --output public/assets/po
           date standees ground from the visible feet instead of transparent canvas padding:
         </P>
         <DocCodeBlock language="bash">{`vp run portrait:standee-footing`}</DocCodeBlock>
+        <P>
+          After changing any neutral full-body portrait cutout, regenerate the portrait palette
+          manifest used by roster cards and member modals:
+        </P>
+        <DocCodeBlock language="bash">{`vp run portrait:palettes`}</DocCodeBlock>
       </>
     ),
   },
@@ -676,9 +689,12 @@ vp run portrait:cutout --input assets-source/portraits --output public/assets/po
     title: "UI usage",
     body: (
       <P>
-        Use avatar cutouts in member cards and compact profile surfaces. Use full-body portrait
-        cutouts in profile panels, selected match panels, and date surfaces where the character can
-        occupy a taller frame. Keep both images large enough to establish character identity.
+        Use full-body portrait cutouts for roster member-card art, profile panels, selected match
+        panels, and date surfaces where the character can occupy a taller frame. Use avatar cutouts
+        in compact profile surfaces and circular in-card identity chips. Member-card and member
+        modal color palettes come from <DocCode>portrait-palettes.generated.ts</DocCode>, generated
+        from approved neutral full-body cutouts at asset time. Do not reintroduce runtime canvas
+        sampling for these surfaces. Keep both images large enough to establish character identity.
         Portraits should sit inside the Aura UI language defined in{" "}
         <DocLink to="/docs/product/visual-design">Visual design</DocLink>. Do not give every
         portrait its own illustrated card background. Let the dashboard provide the frame and let

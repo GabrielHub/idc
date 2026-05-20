@@ -150,7 +150,7 @@ function useQuipPlayback() {
       stopPlayback();
       keyRef.current += 1;
       const key = keyRef.current;
-      const side = pickNextManagerStandeeSide(lastSideRef.current);
+      const side = pickNextManagerStandeeSide(lastSideRef.current, [quip.id, key]);
       lastSideRef.current = side;
       setActive({ quip, key, side });
       if (quip.status === "recorded") {
