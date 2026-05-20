@@ -909,7 +909,7 @@ describe("filterExchangeEligibleRevealCandidates", () => {
       exchangeMessages: [
         makeCharacterMessage(
           member.id,
-          "Protecting is not the point. I need silence to sit, scheduled hours with no improvisation, and no performative necromancy.",
+          "Hayoon would approve of this booth. I need silence to sit, scheduled hours with no improvisation, and no performative necromancy.",
         ),
       ],
     });

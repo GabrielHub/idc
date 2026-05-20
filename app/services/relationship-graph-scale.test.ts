@@ -28,9 +28,10 @@ describe("relationship graph scale benches", () => {
       // ~250*249/2 * 56 = 1.7M bytes of empty zero counters alone, so the
       // bound is well below that threshold while leaving headroom for member
       // fixture growth as authored registers and tics expand during the voice
-      // tuning pass.
+      // tuning pass. Cap bumped from 3M to 3.5M after the Cha Yusung register
+      // rewrite expanded from a single phrase to a full webtoon-cadence spec.
       const serialized = JSON.stringify(save);
-      expect(serialized.length).toBeLessThan(3_000_000);
+      expect(serialized.length).toBeLessThan(3_500_000);
     });
 
     it(`parses a ${size}-member save through gameSaveSchema`, () => {
