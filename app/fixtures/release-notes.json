@@ -1,5 +1,36 @@
 [
   {
+    "version": "0.3.8",
+    "date": "2026-05-19",
+    "headline": "Cupid tightens the table manners before the next voice batch escapes.",
+    "summary": "Voice and prompt test alpha. Locks five more roster voices, sharpens table-height and transit speech rules, and drafts the safe Markdown plan for live date bubbles.",
+    "sections": [
+      {
+        "title": "Roster pass",
+        "items": [
+          "Cthala, Ryan Doyle, Junie Marrow, Naia Velorae, and Noah Kim are locked after transcript retests, with Reaver queued for the next review seat.",
+          "Cthala now plays as a calm warm eldritch date who places dark facts plainly, which is technically employee wellness if you write small enough.",
+          "Naia Velorae is rebuilt as a bright, dimension-hopping princess whose cheerful surface is the whole deal, so partners looking for secret tragedy get sent to another counter."
+        ]
+      },
+      {
+        "title": "Prompt guardrails",
+        "items": [
+          "Date prompts now forbid members from treating Cupid Transit as arrival small talk. Venue, work week, and world details get the conversational floor instead.",
+          "Height context now reads as what both people can see at the table, not a profile field trying to become a monologue.",
+          "The filing-voice carve-out now only applies when a fixture actually authors that engine, so professions stop getting a free clipboard."
+        ]
+      },
+      {
+        "title": "Planning desk",
+        "items": [
+          "A new member-message Markdown roadmap scopes a small, sanitized formatting subset for future live-date bubbles.",
+          "The plan keeps guard checks on plain speech projection while blocking links, images, HTML, code, tables, and other markup tricks."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.7",
     "date": "2026-05-18",
     "headline": "Cupid gets a controlled exit button and a tighter privacy desk.",
