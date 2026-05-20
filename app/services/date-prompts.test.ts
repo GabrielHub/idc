@@ -392,7 +392,7 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain(hiddenProfileText);
     expect(packet.prompt).toContain(vhool.visualDescription);
     expect(packet.prompt).toContain(
-      `Listed height: ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in. Yours: 5 ft 0 in.`,
+      `Heights at the table (what your eyes confirm): ${vhool.firstName} is ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in, you are 5 ft 0 in.`,
     );
     expect(packet.prompt).not.toContain(vhool.bio);
     expect(packet.prompt).not.toContain(vhool.species);

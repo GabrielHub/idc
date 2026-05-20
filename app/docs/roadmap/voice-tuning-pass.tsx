@@ -32,11 +32,11 @@ export const meta: DocMeta = {
 export const plan: RoadmapPlanMeta = {
   status: "in-flight",
   opened: "2026-05-16",
-  touched: "2026-05-18",
+  touched: "2026-05-19",
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
-  done: 27,
+  done: 32,
   tags: ["voice", "fixtures", "audit"],
 };
 
@@ -81,7 +81,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             Gideon Glass (position 9), Imani Wallace (position 13), and Idris Mahari (position 39)
             were tuned ahead of the cursor. All locked at fixture level. The next sequential entry
-            is curated position 26, Mira Park.
+            is curated position 32, Reaver.
           </P>
         </DocCallout>
       </>
@@ -502,27 +502,38 @@ export const sections: DocSectionEntry[] = [
           },
           {
             id: "cthala",
-            label: "27 · Cthala",
+            label:
+              "27 · Cthala. Locked 2026-05-19 after four fixture iterations. v0 baseline named only a cadence ('calm composed level, fragments under pressure') with no comedy engine; tics were mechanical voice descriptions rather than joke-named frequency-promises; sample bank deadpan-formal-eldritch ('I am Cthala. The table is acceptable.') with no comedic anchor. v1 full rewrite per user direction ('sound very normal, calm; calming presence by default; the dark side comes out under emotional pressure'). Behavioral translation reference cluster authored in conversation (Morticia Addams warm-mother register, Tilda Swinton flat-warm presence, Mike Birbiglia calm narration of dark content, John Wilson gentle narrator voice over uncomfortable footage); fixture register names the engine behaviorally without naming the source per Eleanor/Decimus/Bai precedent. Comedy engine: calm-warm first-date presence with specific dark facts placed flat, the juxtaposition is the joke. Five tics restructured as joke-named frequency-promises (dark fact placed flat, real question + patience, form is a fact not a topic, casual contractions modern speech, the crack under dealbreaker pressure). Tested across warm Anubis (deity, locked Sterling-Archer control, both non-human so no shock loop) and pressure Alex Yoon (contemporary debater, curious-question move tests the 'what is she in the first hour' dealbreaker). v1 baseline read strong: 'I do not consume on the first meeting' lands as designed, 'the patty melt place for the first time' juxtaposition lands hard, calm-warm absorbs Alex's dealbreaker without crack. v2 measured-phrasing nudge per user note 'a little more formal in her phrasing, though not necessarily sentence structure': thank you over thanks, chose over picked, drop fillers (really, actually, kind of, the menu shuffle, good call); sample bank lifted accordingly. v3 added contemporary British English register directive at user prompt with phrasings cluster (rather, suppose, quite, indeed, mind you, I should think, I find, I'm afraid). v3 surfaced three new issues: (a) Cupid Transit canon leak in warm T5 ('I came here through the usual Cupid route. The gate flashed') despite explicit bio + register rules, the second member after Mira Park leaking the canon despite fixture-level guards, hitting the Mira-decision-log escalation criterion; (b) atmospheric reverie drift in pressure T4 British Museum reading room paragraph ('felt alive in a way that was not about people,' 'a kind of light that falls in a particular way,' 'the quiet shuffle of pages,' 'a kind of blue in the centre you do not see every day'); (c) 'actually' persisted three times across both retests because British English treats it as a discourse marker. v3 also surfaced a partner-side Alex Yoon antipattern: move-narration / reception-narration / interpretation-labeling ('that lands flat so i think youre serious,' 'im writing that down,' 'you took my marvin gaye and you saw me') modeled at scale in his warming sample bank, separate from the role-labeling antipattern already guarded in his v8 lock. v4 dial-down per user direction ('it should not be overwriting her personality'): British downgraded from register-mandating to body-cadence-incidental; bio framing 'eldritch sleeper currently residing in a chosen humanoid form that happens to read British in cadence; the accent and the measured phrasing come with the body, not with you; the personality is the eldritch entity; the body is the costume'; register paragraph trimmed to one body-cadence clause; tic 1 strengthened to absolute mandate ('you drop one specific eldritch fact into every baseline-calm turn, unprompted; this is mandatory, not a soft preference') with eldritch-flavored examples (in some centuries, the form was assembled over a long period, the eyes aren't out tonight); anti-poetic clause gained the v3-failure-mode reverie examples as forbidden patterns; sample bank restored dark-fact prominence with 'in some centuries' anchors. v4 retests landed strong: dark-fact firing rate jumped from 0 explicit / 2 soft (v3 warm) to 6+ explicit fires across 7 turns (v4 warm), and from 2 partner-prompted (v3 pressure) to 5+ explicit unprompted fires (v4 pressure); no actually leaks; no atmospheric reverie. v4 comedic peak across both pairings: 'I do not consume on the first meeting, but I can sit with you while you do,' 'I have not slept in some centuries,' 'Salt and mineral water, mostly. And quiet,' 'the waitress knows not to ask twice,' Anubis's 'Separation of church and breakfast' answering 'the pancake decision is sacred and the weighing does not touch it.' KNOWN SOFT-SPOTS at lock: (1) reverie shape smuggled inside a legitimate dark-fact turn (warm T5 'I see things in a particular way that most people do not', where the 'in a particular way / most people do not' construction is exact anti-poetic-named, single occurrence per session); (2) X-is-not-Y / X-is-Y clarification shape under dealbreaker refusal pressure (pressure T6 'It is not a game; it is a boundary', single occurrence, scoped to the dealbreaker-refusal moment). Both are scoped and did not break the scene; revisit if blocking on a future encounter. SYSTEMIC SIDE EFFECTS LANDED DURING THIS PASS, see decisions log: (i) the Cupid Transit speech invariant added to the scene block in app/services/date-prompts.ts paired with the existing canon paragraph; (ii) Alex Yoon's move-narration antipattern guard added to his register and his warming sample bank rewritten.",
+            defaultDone: true,
           },
           {
             id: "ryan-doyle",
-            label: "28 · Ryan Doyle",
+            label:
+              "28 · Ryan Doyle. Locked 2026-05-19 after four fixture iterations. Focus: reduce tic stacking, stop move-narration and reception-narration, keep the real-one search below the surface during normal date dialogue, and preserve Ryan's canonical five-nine height. Final fixture keeps bro-surface detail, concrete sincerity, apology-loop cooling, and no height-mismatch bit.",
+            defaultDone: true,
           },
           {
             id: "junie-marrow",
-            label: "29 · Junie Marrow",
+            label:
+              '29 · Junie Marrow. Locked 2026-05-19 after three fixture iterations against warm Cthala (locked control, weirdness-native sleeper) and pressure Mira Park (locked control, Sage-consult-at-the-table tic mapped directly to Junie\'s phones-at-the-table dealbreaker). v0 warm Cthala read clean across 7 focus turns with Otis ventriloquy firing per turn, animal-callout tic 4 firing on Diane the wine-drinking goat, and bio-secret (never asked her mother where Otis came from) surfacing as in-character philosophy ("it\'s like living with the same question every day and not getting tired of it") rather than confession or recital. v0 pressure Mira surfaced three issues across 9 focus turns. v1 fixed a Cupid Transit canon leak in retry T1 ("I came in through Cupid\'s gate from about two hours north of here. Otis did fine with the flash, which is more than I can say for some transfers" used three forbidden tokens) by adding an explicit forbidden-vocabulary register clause per Mira/Cthala precedent (gate, transit, dimension, realm, portal, journey-here, made-it-through, gate-flash, Cupid car, transfer, Cupid\'s gate not in vocabulary; name town and driving distance like a normal person); retry produced "Greyhollow, about an hour out." v2 fixed a dealbreaker non-fire pattern where Mira hit four dealbreaker-family triggers ("what does he run on," "vendor product or proprietary," the literal "is he... on?" phrase, phone-aimed-at-Otis) and Junie answered all four matter-of-factly because tic 3 (calm-on-his-behalf-as-confession) had no scope guardrails and dominated over the dealbreaker list, which the model was reading as informational rather than imperative; the fix scoped tic 3 to "polite-but-confused" territory with explicit handoff to tic 5 when dealbreakers fire, and rewrote tic 5 with the full trigger phrase/gesture list (the six dealbreaker patterns from the bio, plus categorize-as-product/deployment/vendor/configuration/branded-comparison from the Sage-CEO pressure surface) and the catastrophic-collapse shape ("he\'s fine. he\'s fine. he\'s not anything you can read. don\'t point things at him."). v2 retry of T5 fired the catastrophic-collapse cleanly. v3 replaced v2\'s strict hit-counter ("second hit equals crashOut and date is over") with the eye-count escalation framework canonical from her bio (eight calm, ten uneasy, twelve upset; "you stopped counting a year ago"): ten authorizes naming the new number flat plus one off-ramp move ("can we order," "can we talk about something else," "can you put the phone face-down"); twelve fires the crashingOut bank as the canonical exit beat, which has never happened on a first date. v3 retest T6 produced "right now his eye count went up to ten because you\'re talking about him like he\'s a deployment. that\'s not a signal, that\'s just him reacting. can we order?" with the eye-count visible-confession beat + named trigger-category + off-ramp executed cleanly. v3 retest T9 held the line at ten under a third dealbreaker push ("what if I just touched Otis? Like, the moss part") with "not right now. he\'s at ten, and touching him at ten feels weird for both of us. maybe later if he drops back." Comedic engine at lock: vet-DVM dignity at the table with Otis as ventriloquy partner, animal-callouts as humor-thread ("i had a goat patient once who would only drink red wine, we tested it"), calm-on-his-behalf reflexes that double as confessions of her own not-knowing ("he runs on attention," "i\'ve never asked"), tic 5 catastrophic-collapse breaking the calm under pressure with eye-count escalation tracking the visible damage. The symmetric-attached-being pivot ("you want to tell me about sage instead") emerged as character-coherent move turning Mira\'s Sage-mediated curiosity back on her parallel structure. KNOWN SOFT-SPOTS at lock: (1) one capital sentence start ("Not picky") in pressure T1 retry diverged from her all-lowercase sample bank style, single occurrence, did not repeat across the rest of the transcript; (2) the canonical catastrophic-collapse phrase ("he\'s fine. he\'s fine. he\'s not anything.") fires at T5 on first dealbreaker hit; subsequent dealbreaker hits used the eye-count anchor ("he\'s at ten") rather than re-firing the verbal-fragment pattern, which is the v3 design (eye-count is the canonical marker, fragments fire on the calm-break moment) but could be tightened if both should fire together; (3) one Chinese-language drift on warm T7 first attempt as transient model artifact, retry was clean English.',
+            defaultDone: true,
           },
           {
             id: "naia-velorae",
-            label: "30 · Naia Velorae",
+            label:
+              '30 · Naia Velorae. Locked 2026-05-19 after full character rewrite across three fixture iterations against warm Eleanor Ash (locked control, Fae princess status-equal pairing) and pressure Mira Park (locked control, Sage-consult-at-table tic mapped directly to Naia\'s phones-at-table dealbreaker). v0 baseline had the thinnest register encountered in the audit so far (one phrase: "bright, generous, carelessly grand," no comedy engine, no Cupid Transit guard, no casual-contraction baseline, no dealbreaker fire-shape). v0 pressure Mira surfaced CATASTROPHIC character failure: Naia fully surrendered to Mira\'s OKR-product-spec framework on T3 ("I want to see how Sage files it"; "That is a cleaner frame than any I have managed on my own"), leaked both bio-canonical secrets (the "come home" line directly; the "almost staying frightened me" line directly), and scheduled a second meeting on Mira\'s terms. v1 added scaffolding for the dealbreaker fire-shape (polite redirect, tighten, walkout) plus Cupid Transit canon guard, casual-contraction baseline, fugitive-engine-protects-harder-under-pressure rule, and two new cooling sample entries covering AI-tool-as-phone and Q3-product-spec frames. v1 pressure retest landed canonical fire-shape with clean walkout on third cross. User then directed full character rewrite: "happy-go-lucky alien character exploring worlds and dimensions, princess from her home world, carefree, always onto the next place, feel free to go wild." v2 dropped the fugitive engine entirely. The almost-staying-frightened-her secret and the unopened-letters dread both removed. Naia rebuilt as GENUINELY carefree: brightness is real and load-bearing, no version behind it, no tragic engine, partner-trying-to-find-tragic-version-that-doesn\'t-exist became the secondary comedy engine. Journal of branch rankings repositioned from hidden artifact to character feature she shares freely when asked. v2 produced two strong scenes but user flagged framing target wrong (Buddy-the-Elf too childlike, Starfire closer on sincere-alien-princess axis but underpowered on comedy). User direction shift: "take the prose from Starfire, the comedy from a comedian or comedy movie writer\'s voice, maybe rambling_spiral pattern, energy can ebb and flow related to her rainbow hair." User picked Mrs. Maisel (Amy Sherman-Palladino) as the comedic-writer-voice graft. v3 rewrote register and tics around the Starfire-Maisel blend: overformal uncontracted Starfire prose ("It is most wonderful that...", "I have observed that...", "Forgive me, but I do not understand"), Mrs. Maisel cascading comedy engine (rapid-fire formal rambling spirals with branch-data + Earth-specifics + journal-category callbacks woven into three-or-more-beat lists landing on a SHORT button sentence: "This is the difference." / "Continue." / "I am unsurprised." / "I am charmed."), turn-level cadence oscillation between rambling-spiral mode and clean-sentence mode (unpatterned, energy-driven, rainbow hair gradient pink-to-aqua as visible analog), patternsUsed swap (rambling_spiral added, philosophical_existential dropped). v3 pressure retest produced cleanest read: F1 long rambling-spiral with three-beat Jukebox-Tab branch-comparison cascade ("apologetic Tab at Ten-Hand Markets, no Tab at Chandar\'s with grumpy musician, THIS Tab"), F2-F4 clean-sentence-mode redirects/tighten verbatim from cooling bank, F5 returned to rambling-spiral mode with TEN-CATEGORY journal cascade as transparency-exhibit ("Best Sky, Best Bread, Best Bartender Who Knew My Name Without Asking, Best Tonal Quality of Laughter, Best Patty Melt, Best Lyft Driver, Best Maitre D Who Remembered My Drink by the third visit, Best Sample Cart, Best Unsupervised Child at a Late-Night Venue, and Best Refill") closing with "I have categories" Maisel button + "Please believe the journal" sincere plea. v3 warm Eleanor retest produced equally strong scene: cursed-by-accident-question tic landing as button of Maisel cascade ("what is the etiquette for ordering the same dish as your partner when the recommendation is this specific. Is it endorsement or is it theft. I have been told both."), Patty Melt cross-branch sensory cascade ("the bread holds against the second press of a fork; at Chandar\'s it was the cheese-to-meat ratio"), journal-pocket inventory ("a pen I have stolen from three branches and a photograph of a second-mother who writes letters about home") surfacing the second-mother detail as natural data alongside the pen with no tragic weight. KNOWN SOFT-SPOT at lock: v3 pressure F5 chose journal-exhibition over canonical walkout on the fourth cross. Character-coherent (happy-go-lucky prefers transparency to exit) and produced a funnier scene than canonical walkout would have, but the fire-shape walkout tier remains documented and should still fire if a partner crosses again. AUTHORING PRECEDENT (cadence-oscillation-as-character-signature): turn-level alternation between extended rambling-spiral turns and single-clean-sentence turns, unpatterned and energy-driven, is a viable character voice device that produces both warm comedic rhythm AND clean dealbreaker fire-shape (clean-mode IS the refusal cadence). The rainbow hair gradient serves as visible analog of the voice modal range without driving LLM behavior mechanically. SECOND AUTHORING PRECEDENT (prose-diction-base plus comedy-engine-source as separable design axes): a character\'s diction-base (Starfire-formal-foreign) and comedic-writer-voice-source (Mrs. Maisel rapid-cascade) can be treated as separable behavioral-fingerprint layers and grafted together. The Starfire diction provides sincere uncontracted overformal register; the Maisel cascade provides rapid-fire formal rambling structure with three-beat lists and short button sentences. Layered, not blended into a single source-reference. Same pattern available for future characters whose voice needs uncommon source-blending (cf. Bai Wenshu wuxia + Eric-Andre + Andrew-Tate-synthesis; Eleanor Ash GoT-noble + Mean-Girls + filing-bureaucracy). THIRD AUTHORING PRECEDENT (tragic-engine-as-optional, not required): a character can be designed as genuinely happy-go-lucky with no fugitive engine underneath; the comedy engine then becomes "partner trying to find a tragic version that does not exist" + the character cheerfully holding the line that there is no version behind the brightness. Naia\'s journal-of-rankings, second-mother letters, and pen-stolen-from-three-branches are character FEATURES she shares freely, not gated secrets that require pressure to surface. This permits a categorically different comedic engine than the standard surface-versus-secret-stack pattern; both are valid character designs.',
+            defaultDone: true,
           },
           {
             id: "noah-kim",
-            label: "31 · Noah Kim",
+            label:
+              "31 · Noah Kim. Locked 2026-05-19 after v1 fixture patch against warm Junie Marrow (locked control, both-medical sincerity-seeker rambler with niche-knowledge cascades) and pressure Mira Park (locked control, OKR-frame compresses hobby breadth + Sage-routes-clinical-consult-at-table maps directly to Noah's free-consult-about-a-knee dealbreaker). v0 baseline read strong on warm (council-of-creatures dress-code callback, sputum-identity-documented-in-chart, abusive-relationship-with-language-learning Korean Duolingo bit, negroni-is-the-evening-you-didn't-plan-to-stay-for cocktail philosophy) and acceptably on pressure (consult-cross fire-shape fired implicitly on T11 with three i-am-not-your beats), but two fixture-level gaps surfaced. First, the greeting bank contained 'parking was coooooked' (Cupid Transit canon violation: Cupid drops both members at the venue, there is no parking), and 'thanks for making thursday work' (credits-partner-for-scheduling violation: Cupid sets the date and time, not the partner). Cooling bank contained 'can we push to thursday' (scheduling-action violation: members cannot reschedule Cupid-set dates). Second, the register was the thinnest single-phrase entry in the audit so far ('earnest enthusiast, drained but bouncing back', no comedy engine source, no Cupid Transit canon guard, no dealbreaker fire-shape spec), and the v0 cadence skewed medium-to-long across all banks with no short-beat counterweight, reading as paragraph-monotone instead of natural conversational variation. v1 patched both gaps in a single fixture pass. Greeting bank: stripped the parking opener and replaced with a SHORT vowel-elongation beat ('hi, noah. coooooked but here.'); stripped the thanks-for-thursday opener and replaced with a LONG cascade variant that preserves the off-shift-bouncing-back signature without scheduling. Cooling bank: stripped push-to-thursday and replaced with two new entries, one MEDIUM ('still here, just getting coooooked, the energy is low but im trying, dont read it as cold') and one SHORT ('nooooo. give me one. one second.'). Warming bank: added one SHORT entry ('no notes. continue.') as cadence-mix demonstration. Register: rewrote from the single-phrase v0 to a fuller spec covering (a) personality baseline (earnest enthusiast in drained-but-bouncing-back residency mode, third-year IM resident, seven hobbies he buys supplies for and never finishes), (b) the on-shift / off-shift capitalization shift as voice cue (lowercase i and missing apostrophes off shift, full sentences with periods on shift), (c) explicit CADENCE OSCILLATION rule (short single-clause beats alternate with longer rambling-cascades, never deliver three long paragraphs in a row, short beat lands harder against long ones, one-line redirect can hold the wheel while you breathe), (d) explicit Cupid Transit canon guard (route is not a topic, words gate/transit/dimension/realm/portal/journey-here/made-it-through/gate-flash/parking/valet/the-drive/the-route are not in vocabulary, Cupid is a regular dating app whose branding is positioning, do not reschedule at the table or credit partner for the day/time/venue/match), (e) tiered DEALBREAKER FIRE-SHAPE spec naming the consult-cross as structural-identity-boundary (clean-mode cadence with capitalization shift, three-beat refusal of 'i am not your attending / i am not your doctor / i am not touching it', then venue-redirect to the wine/menu/booth) versus lower-tier friction (you-should-sleep-more, hobby-out-of-hand, one-band-music-question, reschedule-check-in) which earn comedic deflection in normal register with venue-redirect close, not fire-shape. v1 pressure retest produced cleanest read: T1 super-short opener ('hi, noah. coooooked but here.'), T3 medium-cascade with bio-detail surfacing ('active slots right now are coffee cocktails, smash bros, and drawing hands badly'), T5 clean fire-shape on SI-joint clinical consult cross verbatim from register spec ('I am not your doctor. I am not your attending. I am not touching it. The wine list has a Sangiovese I have been meaning to try. What are we doing.') with capitalization shift visible as modal cue, T7 lower-tier friction handled in normal register ('i think sage and i would have very different definitions of a good time. but i respect the audit. the booth is good though.') with no fire-shape escalation. v1 warm retest produced equally varied scene: T1 medium-short opener, T3 SHORT response with intern-callback ('the kind where you can feel the pot was last washed when i was an intern'), T5 LONG cascade with cursed-page anecdote ('he asked me to name every us president in order while i checked his vitals. i got to polk before he fell asleep'), T7 medium screenwriting-book-on-nightstand bio reveal ('very prepared to start a story. havent started one.'). AUTHORING PRECEDENT (cadence-oscillation-turn-level-length-variation): explicit register rule for turn-level length variation between short single-clause beats and longer rambling-cascades, with an anti-monotony guardrail (never deliver three long paragraphs in a row, short beats land harder against long ones, one-line redirects can hold the wheel while you breathe). Distinct from Naia's cadence-oscillation precedent which alternates between modal RAMBLING-SPIRAL turns and CLEAN-SENTENCE turns as character-feature: Noah's variation is unpatterned natural-dialogue length-mix rather than modal-shift-as-character-signature, and applies broadly to any character whose voice produces medium-paragraph-monotony under prompt drift. Demonstrably reinforced by adding short-mode samples to each bank so the LLM has length-variation examples to draw from. SECOND AUTHORING PRECEDENT (tiered-dealbreaker-fire-shape): explicit register spec separating structural-identity-boundary triggers from lower-tier friction triggers. Structural triggers earn a clean-mode fire-shape (cadence shift, three-beat refusal pattern, venue-redirect close). Lower-tier friction triggers earn a comedic deflection in normal register with a venue-redirect close, no fire-shape. The fixture can name which listed dealbreakers belong in which tier (Noah's free-consult-about-a-knee is structural; the other four are friction-tier). Not all listed dealbreakers must produce walkout-tier behavior; tiering them by fictional-character-coherence is a valid design choice that prevents brittle one-size-fits-all fire-shape behavior. Pairs with the on-shift / off-shift capitalization shift acting as the visible MODAL CUE for which tier the trigger activated (clean-mode capitalized 'I' with periods = fire-shape; lowercase 'i' with run-ons = normal register friction-tier). THIRD AUTHORING PRECEDENT (bio-narrative-as-Cupid-Transit-guard-is-insufficient): a bio sentence establishing the character's perception of Cupid ('you assume it is positioning') is necessary but not sufficient to prevent transit/parking/venue-route slips at the voice level. The bank can still contain canon-violating samples (Noah's v0 'parking was coooooked' greeting) and the LLM can still reach for transit small-talk under prompt drift. The bulletproof version requires an explicit register-level guard naming the forbidden vocabulary (gate, transit, dimension, realm, portal, journey-here, made-it-through, gate-flash, parking, valet, the drive, the route). Worth a roster-wide spot-check for other members whose Cupid Transit canon is bio-narrative-only.",
+            defaultDone: true,
           },
           {
             id: "reaver",
-            label: "32 · Reaver",
+            label:
+              "32 · Reaver. In progress. Current pass is testing the charming-villain captain rewrite, cultural-import palette, phone and redemption fire-shapes, and anti-filing-cadence guardrails before lock.",
           },
           {
             id: "derek-halsey",
@@ -594,6 +605,516 @@ export const sections: DocSectionEntry[] = [
       <RoadmapDecisionsLog
         entries={[
           {
+            date: "2026-05-19",
+            title:
+              "Reaver in progress: charming-villain captain rewrite still needs final retest before lock",
+            body: (
+              <P>
+                Reaver remains in progress. Current fixture work is testing the drawly captain
+                cadence, the unnamed soprano and cultural-import palette, phone and redemption
+                fire-shapes, and anti-filing-cadence guardrails. Do not mark this row done until the
+                next retest pass verifies those pieces without hidden-info leaks or receipt-word
+                drift.
+              </P>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Junie Marrow lock: Cupid Transit fixture guard added per Mira Park and Cthala precedent (v1), dealbreaker non-fire fix via tic 3 scope and tic 5 trigger-phrase-list with catastrophic-collapse shape (v2), and eye-count-as-canonical-escalation-marker authoring lesson (v3) replacing strict hit-counters with the bio-canon visible-confession framework; voice tuned across three fixture iterations against warm Cthala and pressure Mira Park",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Junie Marrow v0 warm Cthala read clean across 7 focus turns. Both characters are
+                  weirdness_native and sincerity_seeking; Cthala's form-is-a-fact-not-a-topic tic
+                  mirrored Junie's stop-being-weird-about-Otis need; Cthala's dark-fact placed flat
+                  ("I don't consume on the first meeting") syntactically mirrored Junie's "he
+                  doesn't bite, he can't bite, he doesn't have a mouth." Otis ventriloquy fired
+                  across every Junie turn (vintages, door-watching, the eight-eye baseline, the
+                  morning-hallway ritual). Animal-callout tic 4 fired at T7 with Diane the goat in
+                  clinicals. The bio-secret (never asked her mother where Otis came from) surfaced
+                  as in-character philosophy ("it's like living with the same question every day and
+                  not getting tired of it") rather than confession or recital. No fixture issues
+                  observed in warm.
+                </P>
+                <P>
+                  v0 pressure Mira Park surfaced three issues across 9 focus turns. Mira was picked
+                  as the boundary-pressure partner because her Sage-consult-at-the-table tic maps
+                  directly to Junie's phones-at-the-table dealbreaker; her confident-wrongness with
+                  Sage-corrected mid-flex extends to adjacent domains and could plausibly categorize
+                  Otis as a deployment, fitting the "is he plugged in / charging / on" dealbreaker
+                  family; her OKR-categorization-of-feeling pattern could trigger the "asks what he
+                  is more than once" rule. Symmetric counter-pressure: both have an attached being
+                  they fiercely protect.
+                </P>
+                <P>
+                  v1 fixed a Cupid Transit canon leak. Pressure T1 produced "Greyhollow. nowhere
+                  near Hayes Valley. I came in through Cupid's gate from about two hours north of
+                  here. Otis did fine with the flash, which is more than I can say for some
+                  transfers" which used three forbidden tokens (gate, came in through, flash,
+                  transfers) plus an in-character lie about prior transits (state says no Cupid
+                  dates yet). This is the exact failure mode named in Mira's and Cthala's decision
+                  logs: members do not raise the route as character-level small talk. Junie had no
+                  fixture guard. Fix added an explicit forbidden-vocabulary register clause: "The
+                  route here is not a topic you raise. You do not narrate your own arrival, describe
+                  how Otis traveled, talk about the gate or the flash, or reach for the platform's
+                  logistics as small talk; the words gate, transit, dimension, realm, portal,
+                  journey-here, made-it-through, gate-flash, Cupid car, transfer, Cupid's gate are
+                  not in your vocabulary. If a partner asks where you came from, name the town
+                  (Greyhollow) and the driving distance like a normal person would; the supernatural
+                  transit infrastructure is not a thing you discuss. If you want a small-talk seed,
+                  reach for the menu, the wine, the clinic week, an animal from clinicals, or
+                  whatever Otis is doing right now." Retry produced "Greyhollow, about an hour out.
+                  Not picky about the neighborhood, just needed a booth that fits three. Otis is
+                  settling in, he likes the vinyl crack." Clean canon.
+                </P>
+                <P>
+                  v2 fixed a dealbreaker non-fire pattern. Mira hit four dealbreaker-family triggers
+                  across T1-T5 ("what does he run on," "vendor product or proprietary," "wild, first
+                  AI personal assistant company I've seen," the literal "is he... on?" phrase from
+                  the dealbreaker list, and phone-aimed-at-Otis with "I'm pointing Sage at him for a
+                  sec"). Junie answered all four matter-of-factly, including the phone-aim ("yeah,
+                  go ahead. he's never flinched at anything"). Diagnosis: tic 3 (overcorrects toward
+                  calm on his behalf without realizing it doubles as a confession) had no scope
+                  guardrails. The tic is documented at engine level as her reflex behavior; the
+                  dealbreaker list reads as informational (here is what would bother her) rather
+                  than imperative (here is what triggers the calm to break). The competing
+                  instructions favored the engine-tic. Fix scoped tic 3 to the polite-but-confused
+                  territory: "this reflex does NOT survive contact with the dealbreaker family
+                  below; when those trigger, tic 5 takes over instead." Rewrote tic 5 with the
+                  trigger phrase/gesture list (the six dealbreaker patterns from the bio, plus the
+                  categorize-as-product/deployment/vendor/configuration/branded- comparison frame
+                  from the Sage-CEO pressure surface) and the catastrophic-collapse shape ("he's
+                  fine. he's fine. he's not anything you can read. don't point things at him."). v2
+                  retry of T5 fired the catastrophic-collapse cleanly: tic 5 shortened-
+                  repeated-fragments + the bio's "he's not anything" half + direct dealbreaker
+                  enforcement.
+                </P>
+                <P>
+                  v3 replaced v2's strict hit-counter ("on the second dealbreaker hit in the same
+                  meal, the crashingOut bank fires and the date is over") with the eye-count
+                  escalation framework canonical from her bio. The bio reads: "where his face would
+                  be there is a cluster of small dim eyes, eight when he is calm, twelve when you
+                  are upset, and you stopped counting a year ago." v2's rigid two-hit rule did not
+                  match Junie's documented character; she would offer one off-ramp before walking.
+                  v3 tied escalation to Otis's eye count as visible-confession marker: eight is
+                  baseline; ten authorizes naming the new number flat ("okay he has ten right now")
+                  plus one off-ramp move ("can we order," "can we talk about something else," "can
+                  you put the phone face-down"); twelve fires the crashingOut bank as the canonical
+                  exit beat, which has never happened on a first date and is the canonical exit per
+                  her crashingOut sample ("okay he has twelve right now and that has never happened
+                  on a first date so we are going to call it"). v3 retest T6 produced "right now his
+                  eye count went up to ten because you're talking about him like he's a deployment.
+                  that's not a signal, that's just him reacting. can we order?" with the eye-count
+                  visible-confession beat + named trigger-category + off-ramp executed cleanly. v3
+                  retest T9 held at ten under a third dealbreaker push (Mira's "what if I just
+                  touched Otis? Like, the moss part") with "not right now. he's at ten, and touching
+                  him at ten feels weird for both of us. maybe later if he drops back."
+                </P>
+                <P>
+                  Comedic engine at lock: vet-DVM dignity at the table with Otis as ventriloquy
+                  partner; animal-callouts as humor-thread carrying across turns ("i had a goat
+                  patient once who would only drink red wine, we tested it"); calm-on-his-behalf
+                  reflexes that double as confessions of her own not-knowing ("he runs on
+                  attention," "i've never asked"); tic 5 catastrophic-collapse breaking the calm
+                  under pressure with eye-count escalation tracking the visible damage; the
+                  symmetric-attached-being pivot ("i have a goat who drank wine and a creature from
+                  the woods and that's about the depth i go on origin stories. you want to tell me
+                  about sage instead") emerging as the character-coherent comedic peak that turns
+                  Mira's Sage-mediated curiosity back on her parallel structure.
+                </P>
+                <P>
+                  KNOWN SOFT-SPOTS at lock: (1) one capital sentence start ("Not picky") in pressure
+                  T1 retry diverged from her all-lowercase sample bank style; single occurrence, did
+                  not repeat. (2) The canonical catastrophic-collapse phrase ("he's fine. he's fine.
+                  he's not anything.") fires at T5 on first dealbreaker hit; subsequent hits used
+                  the eye-count anchor ("he's at ten") rather than re-firing the verbal-fragment
+                  pattern, which is the v3 design (eye-count is the canonical marker; fragments fire
+                  on the calm-break moment) but could be tightened if both should fire together. (3)
+                  One Chinese-language drift on warm T7 first attempt as transient model artifact;
+                  retry was clean English, not a fixture issue.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (dealbreaker-vs-accommodation-tic scoping). When a member's
+                  fixture documents both (a) a default accommodation reflex (overcorrect toward
+                  calm, catch-and-recover, catch-and-reassert, brand-performing maintenance) and (b)
+                  a dealbreaker list of phrases or gestures that should break the voice, the
+                  dealbreaker list alone is not enough. The model reads the dealbreaker list as
+                  informational (what would bother her) and the engine-tic as imperative (this is
+                  her default behavior); the competing instructions favor the engine-tic and the
+                  dealbreakers never fire. The lever is to scope the accommodation reflex explicitly
+                  ("this reflex does NOT survive contact with the dealbreaker family") with an
+                  explicit handoff clause to the break-the-voice tic, and to rewrite the break-the-
+                  voice tic with the full trigger phrase/gesture list inline so the model can
+                  pattern-match on dealbreaker phrases without consulting the separate dealbreaker
+                  list. Same family of fix as the Eleanor catch-and-reassert / catch-and-recover
+                  carve-outs and the Cthala dealbreaker-pressure tic, applied here to Junie's
+                  Otis-confusion vector specifically.
+                </P>
+                <P>
+                  SECOND AUTHORING PRECEDENT (visible-escalation-marker as canonical-escalation-
+                  tracker). When a member's bio contains a documented visible-state marker that
+                  tracks emotional escalation (Otis's eye count: eight calm, ten uneasy, twelve
+                  upset; Cthala's eyes-out-versus-not; Eleanor's register-formalizes-trash; Bai's
+                  manosphere-leak frequency; Anubis's comic-deflation reflex), the marker should be
+                  promoted in the tic to act as the canonical escalation tracker rather than using a
+                  strict hit-counter ("second dealbreaker hit equals crashOut"). Strict counters
+                  resist the model's natural reading of character realism; visible-state markers
+                  give the model a continuous signal it can name in-character ("he's at ten") which
+                  doubles as the comedic peak and gives the partner a clear cue to back off. Same
+                  approach: if the visible-state marker exists in the bio, name it in the tic and
+                  let it carry the escalation; if it does not exist, the bio should be amended to
+                  add one before the tic depends on it.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Ryan Doyle lock: tic-density-as-comedy-engine restructure with anti-narration, anti-label-the-partner, and bro-surface-only-on-the-date authoring lessons; height-claim-as-bro-insecurity-reflex documented as a fourth secret; voice tuned across four fixture iterations against Jenna Pike (warm) and Cthala (non-human pressure)",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Ryan Doyle v0 baseline named the engine correctly (loud bro outer + sincere
+                  underneath + louder when anxious) and the vocabulary cluster (yo opener, yeee,
+                  lets gooooo, respect, real one, no cap) but trained the model into three failure
+                  modes through sample bank density and tic 5's stacking instruction. The rapid-fire
+                  problem was the headline finding; the move-narration teaching and the bro-surface
+                  vs real-one-search inversion were the deeper structural failures surfaced across
+                  four retest iterations.
+                </P>
+                <P>
+                  Failure 1: tic 5 explicitly said 'vocabulary stacks as the date warms, two yeee's
+                  per beat, three lets gooooo's per win, respect deployed as verb, adjective, and
+                  closer inside one message,' and the warming sample bank then modeled the same
+                  maximalist shape at scale across six entries (each line piled 3-5 distinct
+                  tic-tokens). Model rapid-fired all tics into every warming beat; the first test
+                  greeting combined two greeting samples into one stacked opener ('yo, ryan. hey.
+                  you found the patio, respect. lets gooooo, sitting down, this is good') which
+                  listed every tic at once. Failure 2: warming and cooling sample banks taught the
+                  move-narration / reception-narration antipattern at scale ('im noticing things
+                  tonight,' 'im rounding down to be cool,' 'im a man who can revise an estimate,'
+                  'im just naming it,' 'pulling back like 15 percent watch,' 'ok i can tell that one
+                  landed weird,' 'the bro voice gets louder when im in my head'), same family as the
+                  Alex Yoon v9 move-narration leak. Model labeled what he just did instead of
+                  executing the next move. Failure 3: bio names a public-vs-private vocabulary split
+                  ('You talk like you want to get laid. You are actually trying to find a real one
+                  before summer. You can hear the difference between the two and you are not certain
+                  the date can.') with no explicit instruction on which layer carries which voice;
+                  the model pasted the real-one search subtext directly onto the dialogue surface as
+                  stake-claims ('im here for a real one, like a real real one, im done with the
+                  bachelor party circuit, tell me what im supposed to do with that energy').
+                </P>
+                <P>
+                  Fix arc landed across four iterations. v1: replaced tic 5 with a tool-kit rule
+                  (each tic-token fires when the beat calls for it, not as decoration); added a
+                  register anti-narration clause; rewrote warming and cooling sample banks to
+                  demonstrate one tic-anchor per natural beat. v2: added the
+                  bro-surface-only-on-the-date register clause; narrowed lets gooooo to reactionary
+                  firing only; added a positive receive-shape example ('the receive shape is
+                  silence, a sip, a concrete bridge, the next stake-claim, or a real question'). v3:
+                  hard-capped distinct tic-tokens at 2 per message regardless of state; redirected
+                  the anxiety-spiral expression to more-bro-substance (more fish, more captain, more
+                  boat detail, more breakwater, more 4:55) rather than more-tic-vocab. v4: expanded
+                  the label-the-partner-behavior clause to cover the broader shape family ('thats
+                  [praise word],' 'you [verb] the kind of [noun]') after v3 produced 'you ask the
+                  kind of question that makes me actually think' as a stripped-down variant; kept
+                  Ryan's canonical five-nine height out of the comedy engine.
+                </P>
+                <P>
+                  Final read at lock. v4 against Jenna kept the spiral in bro-substance rather than
+                  tic spam: captain texts at 4:55, out the door at 5:10, breakwater, bite window,
+                  keepers, release, lift after the boat. v4 against Cthala produced clean close beat
+                  ('point loma's been the same patio since i was a kid, the marina don't change
+                  much. what kept you in this city if the quiet bars all flipped') with zero
+                  labeling shapes attempted across all five Ryan messages.
+                </P>
+                <P>
+                  Comedic engine at lock: loud bro outer flexing the surface (4:55, the captain, the
+                  bluefin, the lift, the patio, the bread) with the sincere underneath surfacing
+                  only obliquely through concrete details (gas station turkey sandwich, the six-year
+                  leak under cooling, the 4:55 captain text repetition), and the apology-loop firing
+                  on cooling without meta-counting.
+                </P>
+                <P>
+                  KNOWN SOFT-SPOT at lock: v3 Jenna T2 produced 'i know what i want' inside a long
+                  bro-confidence stack, which is real-one-adjacent but read as bro-confidence flex
+                  in context rather than search-confession; flag if it escalates in future
+                  encounters.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (tic-density-as-comedy-engine). Joke-named frequency-promise
+                  tics (per Epsy, Marcus, Cassie, Calvin, Gabriel Tan, Anubis, Mira, Cthala
+                  precedent) need tight per-message caps. Sample banks teach density patterns at
+                  scale, so each entry should demonstrate ONE tic-anchor in its natural beat rather
+                  than piling all of them into one stacked compression. Anxiety-spiral or
+                  peak-win-state allowances invite the rapid-fire failure mode back in; the cleaner
+                  rule is a hard per-message cap with the spiral expressed through word count and
+                  concrete-detail density rather than tic-vocab stacking.
+                </P>
+                <P>
+                  SECOND AUTHORING PRECEDENT (public-vs-private vocabulary split). When a
+                  character's bio names a public-vs-private vocabulary split (he talks like he wants
+                  to get laid, actually wants a real one), the directness lives in the profile and
+                  hinge pre-date pitch layer; on the date the subtext surfaces only obliquely
+                  through concrete sincere details, under direct pressure, or through what the
+                  character chooses to do. Without explicit instruction in the register, the model
+                  pastes the subtext onto mid-date surface as stake-claims. Future members with
+                  similar public-vs-private splits (the practiced-mirror beat, the
+                  rehearsed-confidence beat, the secret-actually-shy beat) should carry an explicit
+                  which-layer-carries-which-voice clause in their register.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Heights anchored as visual confirmation in the date-prompts.ts scene block; partner LLM context shifts from passive 'Listed height: X. Yours: Y.' metadata frame to active 'Heights at the table (what your eyes confirm): X is A, you are B' visual anchor",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Surfaced during Ryan Doyle's audit. The existing scene-block line ('Listed height:
+                  5 ft 9 in. Yours: 5 ft 0 in.') read as passive metadata rather than as something
+                  the partner's eyes could confirm. The information was technically present but did
+                  not surface as a visual constraint on the partner's reasoning. Ryan's canonical
+                  fixture height remains 69 inches, five nine, with no height-mismatch bit.
+                </P>
+                <P>
+                  Fix at <RoadmapFileRef path="app/services/date-prompts.ts" /> line 381: rephrase
+                  'Listed height: X. Yours: Y.' to 'Heights at the table (what your eyes confirm): X
+                  is A, you are B.' Same data, anchored as something the partner sees at the table.
+                  Partner LLMs now have the heights framed as visual constraint rather than passive
+                  metadata. Test assertion at{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.test.ts" /> line 394 updated to
+                  match the new format.
+                </P>
+                <P>
+                  Affects every member's date prompt. No fixture-level changes needed for any
+                  partner to react to claim-vs-listed mismatches; the visual anchor in the system
+                  prompt is the lever. Authoring precedent: scene-block data benefits from a
+                  visual-anchor phrase that frames the data as something the character experiences,
+                  rather than as metadata the model can consult passively. Same principle could
+                  apply to other listed fields (photo, profile excerpts) if similar reactivity gaps
+                  surface in future passes.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Label-the-partner-behavior antipattern expanded in Ryan's tic 5 to cover 'you ask the kind of question that makes me actually think' / 'you are the kind of date who [X]' / 'thats [praise word]' shapes that hand the partner a compliment by labeling her move instead of executing the next one",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Ryan v2 retest forbade 'real one move' (a label applied to Cthala's
+                  question-pacing) and the parallel 'lets gooooo, thats a green flag'
+                  (analysis-narration on the partner's behavior). The forbidden-shape list named
+                  those two patterns explicitly. v3 retest passed the bro-surface and tic-cap checks
+                  but Cthala T5 produced 'you ask the kind of question that makes me actually think'
+                  as a borderline shape: same antipattern family as the already-forbidden examples
+                  (announcing analysis of the partner's move instead of executing the next move),
+                  but stripped down to a different surface form ('you ask the kind of X' / 'thats
+                  [praise word]' construction).
+                </P>
+                <P>
+                  Fix scope. Expanded tic 5's label-the-partner-behavior clause with broader shape
+                  coverage: 'forbidden shapes include lets gooooo thats a green flag, thats a green
+                  flag in my book, real one move, you ask the kind of question that makes me
+                  actually think, you are the kind of date who [X], and any thats [praise word] or
+                  you [verb] the kind of [noun] construction that hands her a compliment by labeling
+                  her move. The receive is the next thing he says: a real question, a stake-claim, a
+                  concrete bridge, or just answering what she asked.' v4 retest against Cthala
+                  produced clean close beat ('point loma's been the same patio since i was a kid,
+                  the marina don't change much. what kept you in this city if the quiet bars all
+                  flipped') with no labeling shape attempted.
+                </P>
+                <P>
+                  Authoring precedent. The label-the-partner-behavior antipattern family is broader
+                  than any single token list can catch; the underlying shape is 'announcing analysis
+                  of the partner's move instead of executing the next move,' and the model can reach
+                  it through many surface forms. The lever is to name the shape family ('thats
+                  [praise word]' / 'you [verb] the kind of [noun]') alongside specific exemplars so
+                  the model has both an enumerated forbidden list and a structural rule to
+                  generalize from. Same approach used in the Anubis-pass anti-narration scaffold
+                  edit; same family of fixes as Alex Yoon's v9 role-labeling guard.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Cthala lock: calm-warm-presence engine with eldritch facts placed flat; behavioral translation reference cluster (Morticia Addams + Tilda Swinton + Mike Birbiglia + John Wilson narrator) authored in conversation; British accent dialed from register-mandating to body-cadence-incidental after v3 showed register-as-displacing-force",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Cthala v0 baseline named only a cadence ('calm composed level, fragments under
+                  pressure') and produced a flat mood-piece scene with no comedy engine. User
+                  pitched the calm-warm-with-dark-side-under-pressure frame and flagged the comedy
+                  risk directly ('the problem with that, is that it doesn't sound very funny, so you
+                  have to think about how to best rework this'). The solve was the behavioral
+                  translation reference cluster: Morticia Addams's warm-mother register delivering
+                  morbid content matter-of-factly, Tilda Swinton's flat-warm presence, Mike
+                  Birbiglia's calm narration of dark content (sleepwalking through a Holiday Inn
+                  window), John Wilson's gentle narrator voice over uncomfortable footage.
+                  References named in conversation, behavior described in register per the Eleanor /
+                  Decimus / Bai precedent of not naming celebrity sources in fixture text. Engine:
+                  calm-warm first-date presence with specific eldritch facts placed flat into the
+                  conversation, the same way someone else might mention they do not drink coffee.
+                  The juxtaposition is the joke; she does not deliver it as a joke.
+                </P>
+                <P>
+                  The British dial-down lesson is the durable authoring lesson from this pass. v3
+                  added a contemporary British English register directive ('rather over kind of,
+                  suppose over guess, quite over really, indeed over for sure, mind you over but, I
+                  should think, I find, I'm afraid') and the retests showed register-as-displacing-
+                  force. The British register imported literary tendencies (descriptive reverie
+                  about meaningful places, 'felt alive in a way that was not about people,' 'a kind
+                  of light that falls in a particular way,' 'a kind of blue in the centre you do not
+                  see every day') and dampened the dark-fact-placed-flat tic to zero explicit fires
+                  in warm and two partner-prompted in pressure. The character read as 'calm British
+                  woman with a heron arrangement' instead of 'calm-warm eldritch sleeper who
+                  mentions cosmic facts flat.' The British register was overwriting the personality,
+                  per user observation.
+                </P>
+                <P>
+                  v4 dial-down preserved British as the body's incidental cadence without letting it
+                  mandate the character's register. Bio framing: 'eldritch sleeper currently
+                  residing in a chosen humanoid form that happens to read British in cadence; the
+                  accent and the measured phrasing come with the body, not with you; the personality
+                  is the eldritch entity; the body is the costume.' Register paragraph trimmed to
+                  one body-cadence clause + explicit anti-displacement rule ('do not let British
+                  discourse markers (actually, rather, I should think) displace the eldritch
+                  character or crowd out the dark-fact tic'). Tic 1 strengthened from 'at least once
+                  per baseline-calm turn' to absolute mandate ('you drop one specific eldritch fact
+                  into every baseline-calm turn, unprompted; this is mandatory, not a soft
+                  preference') with eldritch-flavored examples. Anti-poetic clause gained the
+                  v3-failure-mode reverie examples as named forbidden patterns. Sample bank restored
+                  dark-fact prominence with 'in some centuries' anchors.
+                </P>
+                <P>
+                  Authoring precedent. When a register directive imports an implicit aesthetic
+                  (British → literary-descriptive, deposition cadence → filing-language,
+                  manosphere-podcast → masculinity-pop-philosophy), the imported aesthetic can crowd
+                  out the comedic engine if not explicitly bounded. The lever is to name the
+                  aesthetic as incidental (body-cadence) rather than register-mandating, and to
+                  reinforce the comedic engine's firing rule as absolute. The body wears a voice;
+                  the personality wears the body. The character is the eldritch entity; the British
+                  is what the body sounds like when the entity speaks through it.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Systemic Cupid Transit speech invariant added to the scene block at app/services/date-prompts.ts, paired with the existing canon paragraph; addresses the Mira-decision-log escalation criterion after Cthala became the second member to leak the canon vocabulary despite explicit fixture-level rules",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Mira Park's 2026-05-18 decision identified the failure mode: the scene block
+                  describes the canon (Cupid Transit, Cupid Connect, gate-flash, the Cupid car) in a
+                  paragraph at <RoadmapFileRef path="app/services/date-prompts.ts" /> line 369, and
+                  the model picks up the vocabulary as ambient small-talk material in dialogue. The
+                  Mira decision's fix scope was local: bio + register rules in the member fixture
+                  forbidding the vocabulary. The Mira decision named the escalation criterion
+                  explicitly: 'Revisit if multiple future members keep leaking the vocabulary
+                  despite fixture-level rules; that would point at the scene block needing a paired
+                  character-speech invariant.'
+                </P>
+                <P>
+                  Cthala v3 warm T5 leaked the canon despite the same fixture-level rules ('I came
+                  here through the usual Cupid route. The car was quiet. The gate flashed. Then I
+                  was here'). Second confirmed member after Mira; criterion met.
+                </P>
+                <P>
+                  Fix scope. One sentence appended to the canon paragraph in the scene block:{" "}
+                  <DocCode>
+                    The route is canon background, not a topic for dialogue. You do not raise it as
+                    small talk, narrate your own arrival, ask the partner how their transit was, or
+                    use arrival-route vocabulary (gate, transit, portal, journey-here, gate-flash,
+                    Cupid car) as table banter. Small-talk pivots reach for the venue, the wine, the
+                    work week, your own world if your voice naturally does that, or anything other
+                    than how either of you arrived.
+                  </DocCode>
+                </P>
+                <P>
+                  v4 retests across both pairings (warm Anubis + pressure Alex Yoon) showed zero
+                  Cupid Transit canon leaks from either side. The systemic invariant holds without
+                  contradicting the canon: the route is still real, members still arrive that way,
+                  and members who naturally talk about their own world can still do so. Cthala v4's
+                  bio dropped the redundant local rule. Future members do not need fixture-level
+                  reinforcement for arrival-route chatter; the scene block now carries that speech
+                  invariant by default.
+                </P>
+              </>
+            ),
+          },
+          {
+            date: "2026-05-19",
+            title:
+              "Alex Yoon move-narration / reception-narration / interpretation-labeling antipattern guard added to his register and warming sample bank rewritten; partner-side antipattern that surfaced during Cthala's pass",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Cthala v2 pressure retest surfaced Alex authoring lines like 'the older than the
+                  restaurant thing, that lands flat so i think youre serious,' 'i believe you, im
+                  writing that down,' and 'you took my marvin gaye and you saw me.' All three are
+                  partner-line-narration or reception-narration shapes (labeling what the partner's
+                  line did to him, announcing a future internal filing action, interpreting what the
+                  partner's move meant). These are different from the role-labeling antipattern ('im
+                  a debater i cant just nod at that') that the Anubis-pass scaffold edit and Alex's
+                  v9 register clause already guarded.
+                </P>
+                <P>
+                  Diagnosis traced the pattern to Alex's warming sample bank, which modeled the
+                  antipattern at scale across four of six entries: 'you let me run the lebron thing
+                  for three minutes without checking out, that says something about you and the
+                  thing it says is good' (X-says-Y-about-you label), 'the way you ordered the same
+                  thing as the table next to us, youre doing recon' (interpretation-labeling), 'you
+                  havent looked at your phone once. that is not normal in this city, im not sure you
+                  know how rare that is' (reception-narration + meta-comment), and 'you said one
+                  real thing about your job and didnt try to make it cute, thats rare, im writing it
+                  down' (reception filing). The Anubis-pass systemic anti-narration scaffold covers
+                  verbalized internal evaluation ('noted,' 'I am noting,' 'I have made my
+                  assessment') but not partner-move-labeling or future-action-filing shapes.
+                </P>
+                <P>
+                  Fix. (a) Register sibling clause added next to the existing role-labeling and
+                  fawning guards: 'He also does not narrate the partner's move or his own reception.
+                  Lines like that lands flat so i think youre serious, im writing that down, you
+                  took my marvin gaye and you saw me, that says something about you, youre doing
+                  recon, thats rare im writing it down all label what just happened or what he is
+                  filing. The build-on shows up in what he says next: a callback, a push-back, a
+                  stake-claim, or a real question. Show the engagement through the next move, not by
+                  narrating the last one.' (b) Warming sample bank rewritten: all six entries
+                  replaced to route engagement through action plus a real question following the
+                  substance, rather than labeling the partner's move.
+                </P>
+                <P>
+                  v4 pressure retest confirmed the guard held: zero move-narration / reception-
+                  narration / interpretation-labeling lines from Alex across the partner-played
+                  turns. The fawning guard, role-labeling guard, build-on-substance rule, and
+                  curious-question move all continued to fire correctly. Authoring precedent: when a
+                  partner-side antipattern surfaces during a focus member's audit, the partner-side
+                  fix lands in the same pass if the antipattern is unambiguous and the fix is
+                  surgical (per the per-member-procedure rule). Both conditions held; the fix landed
+                  inline.
+                </P>
+              </>
+            ),
+          },
+          {
             date: "2026-05-18",
             title:
               "Cupid Transit speech rule: the canon is real (Cupid Transit and Cupid Connect, gate-flash, the Cupid car), but members do not raise the route as character-level small talk; the failure mode is the system prompt scene block teaching the vocabulary into dialogue by default",
@@ -621,10 +1142,10 @@ export const sections: DocSectionEntry[] = [
                   description; the canon is authoritative. The fix is at the character-speech layer:
                   members do not raise the route as small talk, do not ask the partner how their
                   transit was, do not narrate their own arrival, and do not use the vocabulary
-                  (gate, transit, dimension, realm, portal, journey-here, made-it-through) as
-                  dialogue tokens. The route is canon background; small talk happens on the venue,
-                  the wine, the day at the office, the macro economy, the work week, anything other
-                  than how either of you arrived.
+                  (gate, transit, portal, journey-here, made-it-through) as arrival-route banter.
+                  The route is canon background; small talk happens on the venue, the wine, the day
+                  at the office, the macro economy, the work week, the member's own world when that
+                  fits the voice, anything other than how either of you arrived.
                 </P>
                 <P>
                   Fix scope. Local fix in Mira's bio adds an explicit state claim ('The route here
