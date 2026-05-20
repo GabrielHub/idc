@@ -36,7 +36,7 @@ type SfxContextValue = {
   setEnabled: (isEnabled: boolean) => void;
   volume: number;
   setVolume: (volume: number) => void;
-  setDateAmbientActive: (isActive: boolean) => void;
+  setDateAmbientSession: (sessionId: string | null) => void;
   play: (cue: SfxCue) => void;
   playVoiceClip: (path: string) => Promise<VoiceClipPlayback>;
 };
@@ -46,7 +46,7 @@ const FALLBACK_SFX_CONTEXT: SfxContextValue = {
   setEnabled: () => undefined,
   volume: DEFAULT_VOLUME,
   setVolume: () => undefined,
-  setDateAmbientActive: () => undefined,
+  setDateAmbientSession: () => undefined,
   play: () => undefined,
   playVoiceClip: () => Promise.resolve(VOICE_CLIP_SILENT_FALLBACK),
 };
@@ -67,7 +67,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     isSfxEnabledByDefault(detectRuntimePlatform()),
   );
   const [volume, setVolumeState] = useState(DEFAULT_VOLUME);
-  const [dateAmbientActive, setDateAmbientActive] = useState(false);
+  const [dateAmbientSessionId, setDateAmbientSessionId] = useState<string | null>(null);
   const isEnabledRef = useRef(isEnabled);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function SfxProvider({ children }: { children: ReactNode }) {
   }, [isEnabled, volume]);
 
   useEffect(() => {
-    if (!dateAmbientActive || !isEnabled || volume <= 0) {
+    if (dateAmbientSessionId === null || !isEnabled || volume <= 0) {
       readDateAmbientLoop()?.fadeOut({ immediate: !isEnabled || volume <= 0 });
       return;
     }
@@ -97,9 +97,9 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     }
 
     void getDateAmbientLoop(audioContext)
-      .fadeIn(volume)
+      .fadeIn(volume, dateAmbientSessionId)
       .catch(() => undefined);
-  }, [dateAmbientActive, isEnabled, volume]);
+  }, [dateAmbientSessionId, isEnabled, volume]);
 
   useEffect(() => {
     return () => readDateAmbientLoop()?.fadeOut({ immediate: true });
@@ -132,6 +132,10 @@ export function SfxProvider({ children }: { children: ReactNode }) {
     writeStoredSfxVolume(clamped);
   }, []);
 
+  const setDateAmbientSession = useCallback((sessionId: string | null) => {
+    setDateAmbientSessionId(sessionId);
+  }, []);
+
   useEffect(() => {
     if (!isEnabled) {
       return;
@@ -155,11 +159,11 @@ export function SfxProvider({ children }: { children: ReactNode }) {
       setEnabled,
       volume,
       setVolume,
-      setDateAmbientActive,
+      setDateAmbientSession,
       play,
       playVoiceClip,
     }),
-    [isEnabled, play, playVoiceClip, setDateAmbientActive, setEnabled, setVolume, volume],
+    [isEnabled, play, playVoiceClip, setDateAmbientSession, setEnabled, setVolume, volume],
   );
 
   return <SfxContext.Provider value={value}>{children}</SfxContext.Provider>;

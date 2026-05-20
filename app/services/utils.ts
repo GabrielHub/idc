@@ -68,7 +68,7 @@ export function hashSeedUint32(seed: string): number {
 
 // Clamp a random source value to [0, 1) so Math.floor(value * length) cannot
 // index past the end of an array. Non-finite inputs collapse to 0.
-function clampRandom(value: number): number {
+export function clampRandom(value: number): number {
   if (!Number.isFinite(value)) {
     return 0;
   }

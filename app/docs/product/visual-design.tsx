@@ -392,11 +392,56 @@ export const sections: DocSectionEntry[] = [
             house default is the right call.
           </P>
         </DocSubsection>
+        <DocSubsection id="bubble-markdown-subset" title="Member message Markdown subset">
+          <P>
+            Member bubbles render text through{" "}
+            <DocCode>app/components/member-message-markdown.tsx</DocCode>, a tiny hardened renderer
+            that accepts a single typographic subset:
+          </P>
+          <DocList
+            items={[
+              <span key="prose">Paragraphs of plain prose.</span>,
+              <span key="soft">
+                Soft line breaks in live date chat render as consecutive same-speaker bubbles.
+              </span>,
+              <span key="blank">
+                A blank line creates the same split while the transcript keeps one saved character
+                turn.
+              </span>,
+              <span key="italic">
+                <DocCode>*italic*</DocCode> spans for spoken stress only, never stage directions.
+              </span>,
+              <span key="strong">
+                <DocCode>**strong**</DocCode> spans for a named term or a punch line.
+              </span>,
+              <span key="heading">
+                One <DocCode># SHOUTED LINE</DocCode> ATX heading per message rendered as a
+                bubble-local display paragraph, not a semantic heading.
+              </span>,
+            ]}
+          />
+          <P>
+            Lists, links, images, raw HTML, code, tables, math, Mermaid, blockquotes, footnotes, and
+            task syntax are rejected before persistence by the character sanitizer in{" "}
+            <DocCode>app/services/character-markdown.ts</DocCode>. The renderer caps a single
+            message at three visible blocks after cleanup. In the live date stream, the chat lane
+            splits newline-separated blocks into a tight bubble run before handing each segment to
+            the renderer. The heading beat lands inside the existing bubble width and tail; it never
+            widens the transcript lane or introduces semantic <DocCode>h1</DocCode> through{" "}
+            <DocCode>h6</DocCode> elements.
+          </P>
+          <P>
+            See{" "}
+            <DocLink to="/docs/product/voice-prompts#member-markdown-subset">Voice prompts</DocLink>{" "}
+            for the writer-facing rules and authoring examples.
+          </P>
+        </DocSubsection>
       </>
     ),
     subsections: [
       { id: "bubble-authoring", title: "Authoring guidance" },
       { id: "bubble-reference-examples", title: "Reference examples" },
+      { id: "bubble-markdown-subset", title: "Member message Markdown subset" },
     ],
   },
   {

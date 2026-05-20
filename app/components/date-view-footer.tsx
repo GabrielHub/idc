@@ -103,13 +103,14 @@ export function DateFooter({
     nudgeButtonEnabled && nudgesUsed === 0,
     onTutorialUpdate,
   );
-  const cutShortButtonEnabled = canCutShort && !playbackBusy && !pauseRequested;
-  const cutShortTooltip = resolveCutShortTooltip({
+  const cutShortStatus = resolveCutShortStatus({
     session,
     isPaused,
+    canCutShort,
     playbackBusy,
     pauseRequested,
   });
+  const cutShortButtonEnabled = cutShortStatus.enabled;
 
   // Conditions can flip from parent state, so close the composer when it stops being valid.
   useEffect(() => {
@@ -233,8 +234,7 @@ export function DateFooter({
               pauseRequested={pauseRequested}
               playbackBusy={playbackBusy}
               canAdvance={canAdvance}
-              canCutShort={cutShortButtonEnabled}
-              cutShortTooltip={cutShortTooltip}
+              cutShortStatus={cutShortStatus}
               pendingDateAction={pendingDateAction}
               containerRef={transportClusterRef}
               onAdvance={(count) => {
@@ -255,7 +255,7 @@ export function DateFooter({
               pauseRequested={pauseRequested}
               interventionSlotAvailable={interventionSlotAvailable}
               dropsEnabled={dropsEnabled}
-              cutShortEnabled={cutShortButtonEnabled}
+              cutShortStatus={cutShortStatus}
               pendingDateAction={pendingDateAction}
             />
           </div>
@@ -354,30 +354,72 @@ export function DateFooter({
   );
 }
 
-function resolveCutShortTooltip({
+type CutShortStatusKind = "busy" | "locked" | "needs-pause" | "ready";
+
+type CutShortStatus = {
+  kind: CutShortStatusKind;
+  enabled: boolean;
+  buttonAriaLabel: string;
+  tooltipMessage: string;
+  chipProgress?: string;
+};
+
+function resolveCutShortStatus({
   session,
   isPaused,
+  canCutShort,
   playbackBusy,
   pauseRequested,
 }: {
   session: DateSession;
   isPaused: boolean;
+  canCutShort: boolean;
   playbackBusy: boolean;
   pauseRequested: boolean;
-}): string {
-  if (session.judgeSnapshots.length < MIN_JUDGE_READS_BEFORE_CUT_SHORT) {
-    return `Cut short unlocks after ${MIN_JUDGE_READS_BEFORE_CUT_SHORT} Cupid reads.`;
+}): CutShortStatus {
+  const filedReads = session.judgeSnapshots.length;
+  const requiredReads = MIN_JUDGE_READS_BEFORE_CUT_SHORT;
+  const readProgress = `${Math.min(filedReads, requiredReads)}/${requiredReads}`;
+
+  if (filedReads < requiredReads || !canCutShort) {
+    const tooltipMessage = `Cut short unlocks after ${requiredReads} Cupid reads. Filed so far: ${readProgress}.`;
+    return {
+      kind: "locked",
+      enabled: false,
+      buttonAriaLabel: `Cut short locked. ${tooltipMessage}`,
+      tooltipMessage,
+      chipProgress: readProgress,
+    };
   }
 
   if (playbackBusy || pauseRequested) {
-    return "Cupid is already filing a beat. Wait for the clipboard to stop moving.";
+    const tooltipMessage = "Cut short waits for the current beat to finish.";
+    return {
+      kind: "busy",
+      enabled: false,
+      buttonAriaLabel: tooltipMessage,
+      tooltipMessage,
+    };
   }
 
   if (!isPaused) {
-    return "Pause the date before cutting it short.";
+    const tooltipMessage = "Pause the date before cutting it short.";
+    return {
+      kind: "needs-pause",
+      enabled: false,
+      buttonAriaLabel: tooltipMessage,
+      tooltipMessage,
+    };
   }
 
-  return "Cut the date short. Cupid files one final read, then both members leave and enter cooldown.";
+  const tooltipMessage =
+    "Cut the date short. Cupid files one final read and sends both members to cooldown.";
+  return {
+    kind: "ready",
+    enabled: true,
+    buttonAriaLabel: tooltipMessage,
+    tooltipMessage,
+  };
 }
 
 function DirectorSlate({
@@ -385,14 +427,14 @@ function DirectorSlate({
   pauseRequested,
   interventionSlotAvailable,
   dropsEnabled,
-  cutShortEnabled,
+  cutShortStatus,
   pendingDateAction,
 }: {
   isPaused: boolean;
   pauseRequested: boolean;
   interventionSlotAvailable: boolean;
   dropsEnabled: boolean;
-  cutShortEnabled: boolean;
+  cutShortStatus: CutShortStatus;
   pendingDateAction: PendingDateAction | null;
 }) {
   if (pauseRequested) {
@@ -419,7 +461,7 @@ function DirectorSlate({
       <div
         role="status"
         aria-label="Held. Paused for direction."
-        className="aura-glass-rose inline-flex items-center gap-2.5 rounded-pill px-3.5 py-1.5"
+        className="aura-glass-rose inline-flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2.5 rounded-pill px-3.5 py-1.5 lg:max-w-3xl"
       >
         <span className="inline-flex items-center gap-1.5">
           <span className="aura-pulse size-1.5 rounded-full bg-aura-rose" />
@@ -428,10 +470,15 @@ function DirectorSlate({
           </span>
         </span>
         <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
-        <span className="inline-flex items-center gap-1.5">
+        <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
           <SlateActionChip kind="whisper" enabled={interventionSlotAvailable} label="Whisper" />
           <SlateActionChip kind="scene" enabled={dropsEnabled} label="Drop scene" />
-          <SlateActionChip kind="cut" enabled={cutShortEnabled} label="Cut short" />
+          <SlateActionChip
+            kind="cut"
+            enabled={cutShortStatus.enabled}
+            label="Cut short"
+            progress={cutShortStatus.chipProgress}
+          />
           <SlateActionChip kind="advance" enabled label="Advance beat" />
         </span>
       </div>
@@ -465,10 +512,12 @@ function SlateActionChip({
   kind,
   enabled,
   label,
+  progress,
 }: {
   kind: "whisper" | "scene" | "advance" | "cut";
   enabled: boolean;
   label: string;
+  progress?: string;
 }) {
   const tone = !enabled
     ? "border-aura-hairline-strong/50 bg-white/40 text-aura-faint"
@@ -484,6 +533,7 @@ function SlateActionChip({
     >
       <SlateChipIcon kind={kind} />
       <span>{label}</span>
+      {progress ? <span className="opacity-70">{progress}</span> : null}
     </span>
   );
 }
@@ -534,8 +584,7 @@ function TransportCluster({
   pauseRequested,
   playbackBusy,
   canAdvance,
-  canCutShort,
-  cutShortTooltip,
+  cutShortStatus,
   pendingDateAction,
   containerRef,
   onAdvance,
@@ -549,8 +598,7 @@ function TransportCluster({
   pauseRequested: boolean;
   playbackBusy: boolean;
   canAdvance: boolean;
-  canCutShort: boolean;
-  cutShortTooltip: string;
+  cutShortStatus: CutShortStatus;
   pendingDateAction: PendingDateAction | null;
   containerRef?: React.Ref<HTMLDivElement>;
   onAdvance: (turnCount: 1 | 2) => void;
@@ -570,12 +618,16 @@ function TransportCluster({
     <div ref={containerRef} className="flex shrink-0 items-center gap-1.5">
       {isPaused && !pauseRequested ? (
         <>
-          <Tooltip message={cutShortTooltip} placement="top-center">
+          <Tooltip
+            message={cutShortStatus.tooltipMessage}
+            placement="top-center"
+            messageClassName={cutShortStatus.enabled ? "text-aura-violet" : "text-aura-muted"}
+          >
             <TransportButton
               kind="cut"
-              disabled={!canCutShort || cutShortBusy}
+              disabled={!cutShortStatus.enabled || cutShortBusy}
               onClick={onCutShort}
-              ariaLabel="Cut the date short"
+              ariaLabel={cutShortStatus.buttonAriaLabel}
             >
               <CutShortIcon />
             </TransportButton>

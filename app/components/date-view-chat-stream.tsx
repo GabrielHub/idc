@@ -1,10 +1,11 @@
 import { motion } from "motion/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type { DateSession, Member } from "../domain/game";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
 import type { DatePlaybackUiState, PendingDateAction } from "./date-view-shared";
 import { readKindLabel, type TranscriptItem } from "./date-view-transcript";
+import { MemberMessageMarkdown } from "./member-message-markdown";
 import {
   HOUSE_BUBBLE_FONT_CLASS,
   HOUSE_BUBBLE_LEFT_CLASS,
@@ -17,6 +18,19 @@ type ChatStreamAnimation = {
   animate: { opacity: number; y: number };
   transition: { duration: number; ease: typeof EASE_OUT_QUART; delay: number };
 };
+
+export function splitMemberMessageBubbles(text: string): string[] {
+  const normalized = text.replace(/\r\n?/g, "\n").trim();
+
+  if (normalized.length === 0) {
+    return [];
+  }
+
+  return normalized
+    .split(/\n+/)
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0);
+}
 
 export function ChatStream({
   items,
@@ -249,6 +263,7 @@ function ChatBubble({
     : isLeft
       ? "bg-white/85"
       : "bg-aura-rose/70";
+  const bubbleSegments = useMemo(() => splitMemberMessageBubbles(item.text), [item.text]);
 
   return (
     <motion.li {...animation} className={`flex ${justify} ${tightClass}`}>
@@ -260,39 +275,61 @@ function ChatBubble({
             {member.firstName}
           </span>
         ) : null}
-        <div className={`${bubbleClass} ${item.isDraft ? "opacity-95" : ""}`} style={bubbleStyle}>
-          <p className={`text-lead leading-snug ${textColorClass}`}>
-            {item.isStreaming && item.text.trim().length === 0 ? (
-              <span
-                role="status"
-                aria-label={`${member.firstName} is thinking`}
-                className="inline-flex items-center gap-1 align-middle"
-              >
+        <div className={`flex flex-col gap-1.5 ${itemsAlign}`}>
+          {item.isStreaming && bubbleSegments.length === 0 ? (
+            <div
+              className={`${bubbleClass} ${item.isDraft ? "opacity-95" : ""}`}
+              style={bubbleStyle}
+            >
+              <p className={`text-lead leading-snug ${textColorClass}`}>
                 <span
-                  aria-hidden
-                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:0ms]`}
-                />
-                <span
-                  aria-hidden
-                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:180ms]`}
-                />
-                <span
-                  aria-hidden
-                  className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:360ms]`}
-                />
-              </span>
-            ) : (
-              <>
-                {item.text}
-                {item.isStreaming ? (
+                  role="status"
+                  aria-label={`${member.firstName} is thinking`}
+                  className="inline-flex items-center gap-1 align-middle"
+                >
                   <span
                     aria-hidden
-                    className={`ml-1 inline-block h-4 w-1 translate-y-0.5 animate-pulse rounded-full ${caretColor}`}
+                    className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:0ms]`}
                   />
-                ) : null}
-              </>
-            )}
-          </p>
+                  <span
+                    aria-hidden
+                    className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:180ms]`}
+                  />
+                  <span
+                    aria-hidden
+                    className={`aura-typing-dot size-1.5 rounded-full ${caretColor} [animation-delay:360ms]`}
+                  />
+                </span>
+              </p>
+            </div>
+          ) : (
+            bubbleSegments.map((segment, segmentIndex) => {
+              const isLastSegment = segmentIndex === bubbleSegments.length - 1;
+              const segmentTailClass =
+                isLastSegment || customBubble
+                  ? ""
+                  : isLeft
+                    ? "!rounded-bl-[22px]"
+                    : "!rounded-br-[22px]";
+
+              return (
+                <div
+                  key={`${item.id}-segment-${segmentIndex}`}
+                  className={`${bubbleClass} ${segmentTailClass} ${
+                    item.isDraft ? "opacity-95" : ""
+                  }`}
+                  style={bubbleStyle}
+                >
+                  <MemberMessageMarkdown
+                    text={segment}
+                    showCaret={item.isStreaming === true && isLastSegment}
+                    caretClassName={caretColor}
+                    className={`text-lead leading-snug ${textColorClass}`}
+                  />
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </motion.li>

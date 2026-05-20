@@ -183,7 +183,7 @@ function useCueOnMessageChange(
 
 function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const repository = useMemo(() => createGameRepository(), []);
-  const { play, setDateAmbientActive } = useSfx();
+  const { play, setDateAmbientSession } = useSfx();
   const isTutorialBlocking = useIsRequiredTutorialActive();
   const isTutorialBlockingRef = useRef(isTutorialBlocking);
   useEffect(() => {
@@ -417,11 +417,11 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     () => (save === null ? false : deckIsRepairBlocked(save, starterScenarios)),
     [save],
   );
-  const dateAmbientActive = activeSession?.status === "active";
+  const dateAmbientSessionId = activeSession?.status === "active" ? activeSession.id : null;
   useEffect(() => {
-    setDateAmbientActive(dateAmbientActive);
-    return () => setDateAmbientActive(false);
-  }, [dateAmbientActive, setDateAmbientActive]);
+    setDateAmbientSession(dateAmbientSessionId);
+    return () => setDateAmbientSession(null);
+  }, [dateAmbientSessionId, setDateAmbientSession]);
   const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
   const screenKey =
     currentRoom === "livedate"
@@ -1526,7 +1526,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
             <FloatingNavCluster
               current={currentRoom}
-              hidden={dateAmbientActive}
+              hidden={dateAmbientSessionId !== null}
               liveDateState={liveDateState}
               onSelect={(room) => setCurrentRoom(room)}
             />

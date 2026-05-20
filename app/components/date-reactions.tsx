@@ -139,15 +139,15 @@ export function pushReactionSignal(
 
 const REACTION_BUBBLE_FILL: Record<ReactionKind, string> = {
   spark:
-    "border border-violet-200/70 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(221,214,254,0.62)_42%,rgba(167,139,250,0.42)_82%)] shadow-[0_18px_30px_-14px_rgba(124,58,237,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
-  love: "border border-rose-200/70 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,205,211,0.62)_42%,rgba(244,63,94,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(244,63,94,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+    "border border-white/30 bg-violet-400/20 ring-1 ring-inset ring-violet-300/30 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
+  love: "border border-white/30 bg-rose-400/20 ring-1 ring-inset ring-rose-300/30 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
   laugh:
-    "border border-amber-200/80 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,243,199,0.7)_42%,rgba(245,158,11,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(245,158,11,0.5),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+    "border border-white/30 bg-amber-400/20 ring-1 ring-inset ring-amber-300/30 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
   anger:
-    "border border-rose-300/75 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.92),rgba(254,205,211,0.55)_40%,rgba(190,18,60,0.5)_82%)] shadow-[0_20px_32px_-14px_rgba(190,18,60,0.6),inset_0_1px_0_0_rgba(255,255,255,0.8)]",
-  cry: "border border-sky-200/80 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(186,230,253,0.62)_42%,rgba(14,165,233,0.45)_82%)] shadow-[0_18px_30px_-14px_rgba(14,165,233,0.5),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+    "border border-white/30 bg-rose-500/25 ring-1 ring-inset ring-rose-400/35 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
+  cry: "border border-white/30 bg-sky-400/20 ring-1 ring-inset ring-sky-300/30 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
   warning:
-    "border border-amber-300/75 bg-[radial-gradient(circle_at_30%_24%,rgba(255,255,255,0.95),rgba(254,243,199,0.7)_42%,rgba(217,119,6,0.42)_82%)] shadow-[0_18px_30px_-14px_rgba(245,158,11,0.55),inset_0_1px_0_0_rgba(255,255,255,0.85)]",
+    "border border-white/30 bg-amber-500/25 ring-1 ring-inset ring-amber-400/35 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.15)]",
 };
 
 const BUBBLE_SIZE_CLASS = [
@@ -381,7 +381,7 @@ function ReactionBubble({
   return (
     <div className="absolute left-0 top-0 -translate-x-1/2 -translate-y-1/2">
       <motion.span
-        className={`grid place-items-center rounded-full backdrop-blur-md ${sizeClass} ${REACTION_BUBBLE_FILL[reaction.kind]}`}
+        className={`grid place-items-center rounded-full backdrop-blur-lg ${sizeClass} ${REACTION_BUBBLE_FILL[reaction.kind]}`}
         initial={{ opacity: 0, scale: 0.2, x: startX, y: 0 }}
         animate={{
           opacity: opacityArc,
@@ -398,10 +398,6 @@ function ReactionBubble({
           times: [0, 0.18, 0.5, 0.78, 1],
         }}
       >
-        <span
-          aria-hidden
-          className="pointer-events-none absolute left-[20%] top-[16%] h-[26%] w-[26%] rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.95),transparent_70%)] blur-[1px]"
-        />
         <span className={`relative select-none leading-none ${emojiClass}`}>
           {REACTION_ICON[reaction.kind]}
         </span>

@@ -98,6 +98,11 @@ import {
   type RevealCandidate,
 } from "./player-knowledge";
 import {
+  projectMemberSpeechPlain,
+  sanitizeCharacterMarkdownInput,
+  type MarkupAbuseDetection,
+} from "./character-markdown";
+import {
   cleanMemberFacingText,
   scrubPlayerSafeCopy,
   stripForbiddenPunctuation,
@@ -915,7 +920,7 @@ async function createLocalAiCharacterMessage({
             });
 
       const text = sanitizeCharacterText(generation.text, speaker.name);
-      const leak = detectHiddenInfoLeak(text, [speaker, partner]);
+      const leak = detectHiddenInfoLeak(projectMemberSpeechPlain(text), [speaker, partner]);
 
       if (leak !== null) {
         throw new HiddenInfoLeakError(leak);
@@ -951,10 +956,13 @@ async function createLocalAiCharacterMessage({
       }
     }
 
+    const projectedRecentSpeakerLines = recentSpeakerLines.map(projectMemberSpeechPlain);
+
     let attempt = await runVisibleAttempt(undefined, undefined);
+    let attemptProjected = projectMemberSpeechPlain(attempt.text);
     const initialRepeat = hasNearDuplicateRecentLine({
-      text: attempt.text,
-      recentLines: recentSpeakerLines,
+      text: attemptProjected,
+      recentLines: projectedRecentSpeakerLines,
     });
 
     if (initialRepeat !== null) {
@@ -962,13 +970,15 @@ async function createLocalAiCharacterMessage({
         `Cupid asked ${speaker.name} to rewrite a near duplicate line before filing the turn.`,
       );
       const retry = await runVisibleAttempt(initialRepeat, undefined);
+      const retryProjected = projectMemberSpeechPlain(retry.text);
       const stillRepeats = hasNearDuplicateRecentLine({
-        text: retry.text,
-        recentLines: recentSpeakerLines,
+        text: retryProjected,
+        recentLines: projectedRecentSpeakerLines,
       });
 
       if (stillRepeats === null) {
         attempt = retry;
+        attemptProjected = retryProjected;
       } else {
         warningMessages.push(
           `${speaker.name} stayed on the same line after the rewrite. Cupid filed the turn anyway.`,
@@ -977,8 +987,8 @@ async function createLocalAiCharacterMessage({
     }
 
     const repeatedApproval = hasRepeatedApprovalPhrase({
-      text: attempt.text,
-      recentLines: recentSpeakerLines,
+      text: attemptProjected,
+      recentLines: projectedRecentSpeakerLines,
     });
 
     if (repeatedApproval !== null) {
@@ -986,9 +996,10 @@ async function createLocalAiCharacterMessage({
         `Cupid asked ${speaker.name} to rewrite a repeated approval phrase before filing the turn.`,
       );
       const retry = await runVisibleAttempt(undefined, repeatedApproval);
+      const retryProjected = projectMemberSpeechPlain(retry.text);
       const stillRepeats = hasRepeatedApprovalPhrase({
-        text: retry.text,
-        recentLines: recentSpeakerLines,
+        text: retryProjected,
+        recentLines: projectedRecentSpeakerLines,
       });
 
       if (stillRepeats === null) {
@@ -2076,21 +2087,86 @@ export class HiddenInfoLeakError extends Error {
   }
 }
 
-export function sanitizeCharacterText(text: string, speakerName: string): string {
-  const trimmedText = stripForbiddenPunctuation(text)
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/^["']|["']$/g, "")
-    .replace(speakerLabelPattern(speakerName), "")
-    .trim();
-  const spokenText = stripPerformerActionNarration(stripUnbalancedDoubleQuotes(trimmedText));
-  const memberFacingText = cleanMemberFacingText(spokenText).trim();
+export type CharacterTextSanitizationResult = {
+  text: string;
+  markupAbuses: MarkupAbuseDetection[];
+};
 
-  if (memberFacingText.length === 0) {
+export function sanitizeCharacterText(text: string, speakerName: string): string {
+  return sanitizeCharacterTextWithReport(text, speakerName).text;
+}
+
+export function sanitizeCharacterTextWithReport(
+  text: string,
+  speakerName: string,
+): CharacterTextSanitizationResult {
+  const markdownPass = sanitizeCharacterMarkdownInput(text);
+  const balancedText = stripUnbalancedDoubleQuotes(markdownPass.text);
+  const lines = balancedText.split("\n");
+  const cleaned: string[] = [];
+  let firstNonEmptyHandled = false;
+
+  for (const rawLine of lines) {
+    if (rawLine.length === 0) {
+      cleaned.push("");
+      continue;
+    }
+
+    let line = stripForbiddenPunctuation(rawLine);
+    line = line.replace(/[^\S\n]+/g, " ").trim();
+
+    if (!firstNonEmptyHandled && line.length > 0) {
+      line = line.replace(/^["']/, "");
+      line = line.replace(speakerLabelPattern(speakerName), "").trim();
+      firstNonEmptyHandled = true;
+    }
+
+    if (line.length === 0) {
+      cleaned.push("");
+      continue;
+    }
+
+    line = stripPerformerActionNarration(line);
+    line = cleanMemberFacingText(line).trim();
+
+    cleaned.push(line);
+  }
+
+  for (let index = cleaned.length - 1; index >= 0; index -= 1) {
+    if (cleaned[index].length > 0) {
+      cleaned[index] = cleaned[index].replace(/["']$/, "").trim();
+      break;
+    }
+  }
+
+  while (cleaned.length > 0 && cleaned[0] === "") {
+    cleaned.shift();
+  }
+  while (cleaned.length > 0 && cleaned[cleaned.length - 1] === "") {
+    cleaned.pop();
+  }
+
+  const collapsed: string[] = [];
+  let lastBlank = false;
+  for (const line of cleaned) {
+    if (line === "") {
+      if (!lastBlank) {
+        collapsed.push("");
+      }
+      lastBlank = true;
+    } else {
+      collapsed.push(line);
+      lastBlank = false;
+    }
+  }
+
+  const finalText = collapsed.join("\n");
+
+  if (finalText.length === 0) {
     throw new EmptyPerformerMessageError();
   }
 
-  return memberFacingText;
+  return { text: finalText, markupAbuses: markdownPass.abuses };
 }
 
 function stripUnbalancedDoubleQuotes(text: string): string {

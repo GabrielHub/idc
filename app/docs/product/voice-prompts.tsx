@@ -116,6 +116,71 @@ export const sections: DocSectionEntry[] = [
             color. Cupid analysis can use clinical scoring; the transcript itself never breaks
             voice, but it also never sacrifices a natural reaction in order to hit a pattern.
           </P>
+          <DocSubsection id="member-markdown-subset" title="Member message Markdown subset">
+            <P>
+              Member bubbles render a hardened Markdown subset. The subset is optional, occasional,
+              and voice-earned. Use it as spoken typography, not decoration. A formatted beat should
+              make the delivery clearer than plain text would.
+            </P>
+            <DocCompareGrid
+              columns={[
+                {
+                  heading: "Good shape",
+                  tone: "positive",
+                  items: [
+                    "A single stressed word: I said *almost* normal.",
+                    "A named joke or hard correction: **Receipt law.** The garnish is evidence.",
+                    "A line break when the next thought should arrive as a separate bubble.",
+                    "A blank line when the character lets a beat sit.",
+                  ],
+                },
+                {
+                  heading: "Avoid this shape",
+                  tone: "negative",
+                  items: [
+                    "Formatting every emotional word.",
+                    "Using italic for stage directions or body language.",
+                    "Turning dialogue into a list, note, or structured report.",
+                    "Stacking headings or making a message look like a poster.",
+                  ],
+                },
+              ]}
+            />
+            <P>The allowed moves are:</P>
+            <DocList
+              items={[
+                <span key="paragraph">Plain prose paragraphs.</span>,
+                <span key="soft-break">
+                  Single line breaks split a live date turn into consecutive same-speaker bubbles.
+                </span>,
+                <span key="blank-line">
+                  A blank line creates the same split, with the saved text still treated as one
+                  character turn.
+                </span>,
+                <span key="italic">
+                  <DocCode>*italic*</DocCode> for spoken stress on a word or phrase. Never a stage
+                  direction. Lines that are nothing but an italic action verb like{" "}
+                  <DocCode>*sighs*</DocCode>, <DocCode>*looks away*</DocCode>, or{" "}
+                  <DocCode>*pauses*</DocCode> are markup abuse and get stripped before render.
+                </span>,
+                <span key="strong">
+                  <DocCode>**strong**</DocCode> for a named term, threat, correction, or punch line,
+                  not for every emotional word.
+                </span>,
+                <span key="heading">
+                  One ATX heading line per message as a shouted opening (
+                  <DocCode># SHOUTED LINE</DocCode>) rendered as a bubble-local display paragraph.
+                  Stacking more than one heading is markup abuse.
+                </span>,
+              ]}
+            />
+            <P>
+              Lists, links, images, raw HTML, code, tables, math, Mermaid, blockquotes, footnotes,
+              and task syntax are all banned and the sanitizer strips them before persistence.
+              Member speech still has to read like a message from a real person at a table. The
+              renderer caps a reply at three visible blocks after cleanup.
+            </P>
+          </DocSubsection>
         </DocSubsection>
         <DocSubsection id="cupid-intervention" title="Cupid intervention (player-typed)">
           <P>

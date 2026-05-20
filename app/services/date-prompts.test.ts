@@ -104,6 +104,9 @@ describe("date prompt assembly", () => {
     );
     expect(ownerPacket.prompt).toContain("<format>");
     expect(ownerPacket.prompt).toContain("One message per turn. You are texting from the table.");
+    expect(ownerPacket.prompt).toContain("Markdown is spoken typography, not decoration.");
+    expect(ownerPacket.prompt).toContain("Useful Markdown shapes: I said *almost* normal.");
+    expect(ownerPacket.prompt).toContain("Use at most one typographic move in a normal message.");
     expect(ownerPacket.prompt).toContain(`Reply as the character would in this moment.`);
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");

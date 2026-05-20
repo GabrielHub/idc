@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { EASE_OUT_QUART, MutedLabel, SelectInput } from "../../../components/dashboard-atoms";
+import { MemberMessageMarkdown } from "../../../components/member-message-markdown";
 import type { AiProvider, AiReasoningLevel, Member } from "../../../domain/game";
 import { starterMembers, starterScenarios } from "../../../fixtures";
 import {
@@ -952,7 +953,14 @@ function MemberChatPanel({
               <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] opacity-70">
                 {message.role === "tester" ? "You" : (member?.firstName ?? "Member")}
               </span>
-              <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed">{message.text}</p>
+              {message.role === "member" ? (
+                <MemberMessageMarkdown
+                  text={message.text}
+                  className="mt-1 text-body leading-relaxed"
+                />
+              ) : (
+                <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed">{message.text}</p>
+              )}
             </li>
           ))
         )}
@@ -1083,9 +1091,16 @@ function AiOutputPanel({
                 <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
                   {turn.speakerName}
                 </span>
-                <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed text-aura-ink">
-                  {turn.text}
-                </p>
+                {isFeatureBench ? (
+                  <p className="mt-1 whitespace-pre-wrap text-body leading-relaxed text-aura-ink">
+                    {turn.text}
+                  </p>
+                ) : (
+                  <MemberMessageMarkdown
+                    text={turn.text}
+                    className="mt-1 text-body leading-relaxed text-aura-ink"
+                  />
+                )}
               </li>
             ))}
           </ol>

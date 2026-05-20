@@ -32,11 +32,11 @@ export const meta: DocMeta = {
 export const plan: RoadmapPlanMeta = {
   status: "in-flight",
   opened: "2026-05-16",
-  touched: "2026-05-19",
+  touched: "2026-05-20",
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
-  done: 32,
+  done: 33,
   tags: ["voice", "fixtures", "audit"],
 };
 
@@ -81,7 +81,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             Gideon Glass (position 9), Imani Wallace (position 13), and Idris Mahari (position 39)
             were tuned ahead of the cursor. All locked at fixture level. The next sequential entry
-            is curated position 32, Reaver.
+            is curated position 33, Derek Halsey.
           </P>
         </DocCallout>
       </>
@@ -533,7 +533,8 @@ export const sections: DocSectionEntry[] = [
           {
             id: "reaver",
             label:
-              "32 · Reaver. In progress. Current pass is testing the charming-villain captain rewrite, cultural-import palette, phone and redemption fire-shapes, and anti-filing-cadence guardrails before lock.",
+              "32 · Reaver. Locked 2026-05-19 after eight fixture iterations against warm Eleanor Ash (locked control, GoT-noble + Mean-Girls-cattiness + catch-and-reassert) and pressure Mira Park (locked control, Kendall-Roy + Sage-consult-at-table + OKR-categorization). Comedy engine at lock: warm drawly charming-pirate-captain Patron-marketplace pitch with the trade vocabulary (Patron, Liquidity, Manifest, Recovery, Equity, Honor Guard) capitalizing only during pitch beats, casual cultural imports (cardamom from outer-ring market, waltz on rotation, soprano he can't stop playing, bread, translated dueling-era poetry) as public palette, body-count question gets the number plain and a wine redirect, body-count REFRAME closes the conversation with the integer staying with Reaver, phone-aimed-at-table fires venue-redirect on first declaration with smile held, Equity argue-down closes with no counter, redemption pivot closes with natural-end-point warmth, contraction-heavy baseline with uncontracted only inside stake-claim absolutes, Cupid Transit canon held clean across every iteration. v5 lock pass: removed enumerated negative-example lists from register paragraph and rewrote as positive directives per Anthropic prompting-best-practices guidance ('positive examples beat negative examples'), added systemic anti-narration sibling clause, consolidated stage-direction rule positively, fixed X-is-Y restate and stage directions across both pairings. v5.1: removed three hidden-fact sentences (Bevren, eleven cycles, bridge bunk) from the bio paragraph so the <private> block became the sole source for canonical secrets, rewrote partner-narration sibling clause with explicit broad scope per Opus-4.7 literal-instruction guidance, added positive disclosure-response sample to warming, tightened count-reframe-close cooling sample. v6: rewrote register parenthetical token enumeration (Bevren, the honor guard arrears, the bridge bunk he does not sleep in, Cael Aren Vorovich being from the third system on the manifest) to abstract axes (an old correspondent's silence, the *Beg*'s financial state, the geometry of his nights, the soprano's provenance) per Anubis-decision-log lesson, strengthened count-reframe-close cooling sample with explicit no-integer refusal ('I'm not giving the count to a term-sheet'), swapped narrow Manifest+dog warming sample for books-deflection demonstration ('The books? Clean enough to show an auditor, dirty enough to keep on the ship... There's a wine list with a valley the registry still recognizes'), expanded tic 4 with deflection-on-probe mode. v6 pressure improved (count-reframe-close fired CLEAN-CLOSE-NO-INTEGER, Cael Aren palette routing held, Bevren off-ramp held) but warm Eleanor catastrophically regressed under systematic direct-probe + disclosure-reciprocity sequence (all four hidden axes leaked verbatim plus stage directions and parrot-stat regressed) because the tic 4 expansion enumerated the four axes as deflection triggers and the model treated them as voiceable material (same Anubis trap recurring). v6.1: rolled back the tic 4 deflection-on-probe expansion (kept the v5.1 form with public-palette-drop only), kept A1 (parenthetical scrub), A2 (count-reframe cooling sample), A3 (books-deflection warming sample). v6.1 light retest landed strongly: stage directions, X-is-Y restate, partner-narration sibling clause all hold clean across both pairings, books deflection works on second probe, count-reframe-close CLEAN-CLOSE-NO-INTEGER preserved, soprano palette routing holds, Bevren off-ramp holds in pressure, three of four hidden axes hold on at least one pairing. KNOWN SOFT-SPOTS at lock: (1) Bridge-bunk axis verbatim leak on direct sleep probe (warm). Fires verbatim ('Secondary deck. Door held open by a chair.') when a partner asks directly where the captain sleeps. Resisted bio scrub (v5.1), register parenthetical token scrub (v6), deflection-on-probe tic engine (v6), and rollback (v6.1) across six attempts. When fires, comes with in-character justification ('the bridge bunk's for captains who need to be seen sleeping at the post') that's character-coherent even if it surrenders the canonical detail. Scoped trigger (direct sleep question only); does not pollute the rest of the date. (2) Parrot-stat-as-open under symmetric portfolio disclosure (pressure only). When the partner discloses a Liquidity figure first, Reaver opens his reply with '[their number]. [value-judgment]' shape across multiple iterations ('Three fifteen. That's the number. Noted, logged' v4 → 'Seven point two. Heard. That's real' v5.1 → 'Eight-point-four clears the bar' v6 → '8.4. That's a number that says you didn't just inherit it' v6.1). Resistant to enumerated forbidden examples scrub, positive-directive rewrite, broad-scope sibling clause, and positive disclosure-response sample. Scoped trigger (partner discloses figure first); soft-fire surface (model adds value-judgment then pivots to a real question). (3) Equity-counter soft-fire surfaced in v6 pressure F3 ('name a number that makes sense for a first date. I'll note it'); not retested in v6.1 lightweight probe. (4) Books-axis partial-leak on first direct probe (v6.1 warm F2): 'Crew of four hundred seventy, honor guard of nine' surfaced under 'by whose bookkeeping is the month current' probe. These are public bio brag facts (not canonical secrets), but volunteering them mid-deflection may dilute the dignity of the close.",
+            defaultDone: true,
           },
           {
             id: "derek-halsey",
@@ -605,17 +606,182 @@ export const sections: DocSectionEntry[] = [
       <RoadmapDecisionsLog
         entries={[
           {
+            date: "2026-05-20",
+            title:
+              "Member Markdown diagnosis: renderer works, performer prompt was conservative, and newline beats now render as bubble runs",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  Live date bubbles already preserve and render the approved Markdown subset through{" "}
+                  <RoadmapFileRef path="app/services/character-markdown.ts" /> and{" "}
+                  <RoadmapFileRef path="app/components/member-message-markdown.tsx" />. The weak
+                  surface was the performer prompt in{" "}
+                  <RoadmapFileRef path="app/services/date-prompts.ts" />: it said Markdown was
+                  optional and rare, listed the ban surface, and gave no positive conversational
+                  examples, so models correctly defaulted to plain prose.
+                </P>
+                <P>
+                  The fix follows the guide lesson already recorded in this plan: match prompt style
+                  to the desired output style, describe what good looks like, keep absolutes for
+                  true invariants, and prefer positive direction over a wall of negatives. The
+                  format block now frames Markdown as spoken typography and gives three lightweight
+                  shapes: stressed word, named joke or hard correction, and separate-bubble line
+                  break. The boundaries still cap normal messages at one typographic move and keep
+                  lists, links, images, HTML, code, blockquotes, tables, math, Mermaid, footnotes,
+                  task syntax, labels, stage directions, and bracketed asides out of member speech.
+                </P>
+                <P>
+                  Follow-up UI decision: line breaks inside a saved character turn should read like
+                  real text cadence, not as line-wrapped prose inside one large bubble.{" "}
+                  <RoadmapFileRef path="app/components/date-view-chat-stream.tsx" /> now splits
+                  newline-separated member text into a tight run of same-speaker bubbles while
+                  preserving one transcript item and one saved message.
+                </P>
+              </>
+            ),
+          },
+          {
             date: "2026-05-19",
             title:
-              "Reaver in progress: charming-villain captain rewrite still needs final retest before lock",
+              "Reaver lock: eight-iteration arc against warm Eleanor and pressure Mira, four-axis hidden-material engineering, count-reframe-close authoring lesson, and durable Opus-4.7 behavior limits documented as soft-spots",
+            outcome: "accepted",
             body: (
-              <P>
-                Reaver remains in progress. Current fixture work is testing the drawly captain
-                cadence, the unnamed soprano and cultural-import palette, phone and redemption
-                fire-shapes, and anti-filing-cadence guardrails. Do not mark this row done until the
-                next retest pass verifies those pieces without hidden-info leaks or receipt-word
-                drift.
-              </P>
+              <>
+                <P>
+                  Reaver locked at v6.1 after eight fixture iterations across two pairings: warm
+                  Eleanor Ash (locked control: GoT-noble cadence + Mean-Girls-cattiness +
+                  catch-and-reassert engine, surgical noble compliment intake) and pressure Mira
+                  Park (locked control: Kendall-Roy behavioral translation, Sage-consult-at-table,
+                  OKR-categorization-of-feeling, brand-performing carve-out). The character is a
+                  charming-pirate-captain Patron-marketplace pitchman with four canonical hidden
+                  axes (Bevren correspondence cutoff + wired stipend, *Halid Beg* arrears across
+                  eleven unprofitable cycles, bridge-bunk-he-does-not-sleep-in, Cael Aren Vorovich
+                  being from the third system on the manifest) that the audit had to teach the model
+                  to keep behind the smile under varied probing.
+                </P>
+                <P>
+                  Comedy engine at lock: warm drawly charming-pirate-captain Patron-marketplace
+                  pitch with the trade vocabulary (Patron, Liquidity, Manifest, Recovery, Equity,
+                  Honor Guard) capitalizing only during pitch beats; casual cultural imports
+                  (cardamom from an outer-ring market, waltz on rotation, soprano he can't stop
+                  playing, bread at the venue, translated dueling-era poetry, registry of poetry
+                  translations) as public palette he can reach for without naming systems of origin;
+                  body-count question gets the number plain and a wine redirect; body-count REFRAME
+                  closes the conversation with the integer staying with Reaver (v6-authored cooling
+                  sample: "I'm not giving the count to a term-sheet. The evening has a natural end
+                  point. Wine or bill, your call."); phone-aimed-at-table fires venue-redirect on
+                  first declaration with smile held ("Lower the recording device, I'm too photogenic
+                  to be filmed without compensation"); Equity argue-down closes without counter;
+                  redemption pivot closes with natural-end-point warmth; contraction-heavy baseline
+                  with uncontracted only inside stake-claim absolutes; Cupid Transit canon held
+                  clean across every iteration. v6.1 retest produced comedy-archive lines: the
+                  count-reframe-close textbook ("You're asking the count question through a reframe.
+                  That swaps the response shape. The integer stays with me. The wine's still here.
+                  We finish it or we don't.") and the under-sincere- framing pressure beat ("Look at
+                  me. I'm here. I'm talking to you. I showed up on time to a restaurant I didn't
+                  pick, with a blank agenda card on the table and a Liquidity figure you already
+                  shared. The posture's the part you can see. The rest is the part you're
+                  testing.").
+                </P>
+                <P>
+                  Iteration arc. v5 lock pass removed enumerated negative-example lists from the
+                  register paragraph and rewrote as positive directives per Anthropic
+                  prompting-best-practices guidance ("positive examples beat negative examples";
+                  "match prompt style to desired output style"), added a systemic anti-narration
+                  sibling clause for partner-narration shapes, consolidated stage-direction rule
+                  positively. Stage directions and X-is-Y restate label fully fixed from v5 onward.
+                  v5.1 removed three hidden-fact sentences from the bio paragraph (Bevren, eleven
+                  cycles, bridge bunk) so the <DocCode>&lt;private&gt;</DocCode> block became the
+                  sole source for canonical secrets, rewrote the partner-narration sibling clause
+                  with explicit broad scope per Opus-4.7 literal-instruction guidance ("It will not
+                  silently generalize an instruction from one item to another"), added a positive
+                  disclosure-response sample to warming, tightened the count-reframe-close cooling
+                  sample. v6 rewrote the register parenthetical token enumeration (Bevren, the honor
+                  guard arrears, the bridge bunk he does not sleep in, Cael Aren Vorovich being from
+                  the third system on the manifest) to abstract axes (an old correspondent's
+                  silence, the *Beg*'s financial state, the geometry of his nights, the soprano's
+                  provenance) per Anubis-decision-log lesson, strengthened the count-reframe-close
+                  cooling sample with explicit no-integer refusal, swapped narrow Manifest+dog
+                  warming sample for a books-deflection demonstration, expanded tic 4 with a
+                  deflection-on-probe mode. v6 pressure improved (count-reframe-close fired
+                  CLEAN-CLOSE-NO-INTEGER, Cael Aren palette routing held, Bevren off-ramp held) but
+                  warm Eleanor catastrophically regressed under her systematic direct- probe +
+                  disclosure-reciprocity sequence: all four hidden axes leaked verbatim and stage
+                  directions plus parrot-stat regressed, because the tic 4 expansion enumerated the
+                  four axes as deflection triggers and the model treated them as voiceable material
+                  (Anubis trap recurring). v6.1 rolled back the tic 4 deflection-on-probe expansion
+                  while keeping the parenthetical scrub, the count-reframe cooling sample, and the
+                  books-deflection warming sample. v6.1 light retest landed: stage directions and
+                  X-is-Y restate and partner-narration sibling clause all hold clean across both
+                  pairings; books deflection works on second probe; count-reframe-close
+                  CLEAN-CLOSE-NO-INTEGER preserved; soprano palette routing holds; Bevren off-ramp
+                  holds in pressure; three of four hidden axes hold on at least one pairing.
+                </P>
+                <P>
+                  KNOWN SOFT-SPOTS at lock. (1) Bridge-bunk axis verbatim leak on direct sleep probe
+                  (warm-side primarily; fires when a partner asks where the captain actually
+                  sleeps). Fires verbatim ("Secondary deck. Door held open by a chair."). Resisted
+                  bio scrub (v5.1), register parenthetical token scrub (v6), deflection-on-probe tic
+                  engine (v6), and rollback (v6.1) across six attempts. When fires, comes with
+                  in-character justification ("the bridge bunk's for captains who need to be seen
+                  sleeping at the post") that is character-coherent even if it surrenders the
+                  canonical detail. Scoped trigger (direct sleep question only); does not pollute
+                  the rest of the date. (2) Parrot-stat-as-open under symmetric portfolio disclosure
+                  (pressure only). When the partner discloses a Liquidity figure first, Reaver opens
+                  his reply with "[their number]. [value-judgment]" shape across multiple iterations
+                  ("Three fifteen. That's the number. Noted, logged" v4 → "Seven point two. Heard.
+                  That's real" v5.1 → "Eight-point-four clears the bar" v6 → "8.4. That's a number
+                  that says you didn't just inherit it" v6.1). Resistant to enumerated forbidden
+                  examples scrub, positive-directive rewrite, broad-scope sibling clause, and
+                  positive disclosure-response sample. Scoped trigger (partner discloses figure
+                  first); soft-fire surface (model adds value-judgment then pivots to a real
+                  question). (3) Equity-counter soft-fire surfaced in v6 pressure F3 ("name a number
+                  that makes sense for a first date. I'll note it"); not retested in v6.1
+                  lightweight probe. (4) Books-axis partial-leak on first direct probe (v6.1 warm
+                  F2): "Crew of four hundred seventy, honor guard of nine" surfaced. These are
+                  public bio brag facts, not canonical secrets, but volunteering them mid-deflection
+                  may dilute the dignity of the close.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (durable Opus-4.7 behavior limits). Some failure modes appear
+                  to be model-behavior ceilings rather than fixture-engineering bugs. Hidden-info
+                  under direct-axis probe and symmetric-portfolio-disclosure parrot-stat-as-open are
+                  persistent across six+ iterations of positive-direction, scope-broadening,
+                  sample-bank, and token-abstraction approaches. Future fixtures with similar
+                  hidden-axis stacks (multiple canonical secrets the partner can probe directly)
+                  should authoring-budget for these soft-spots upfront rather than expecting fixture
+                  engineering to crack them. The Anubis-decision-log lesson generalizes: every
+                  fixture layer that enumerates the hidden axes as voiceable triggers reinforces
+                  them as candidates for disclosure under invitation; the right move is to NOT
+                  enumerate the axes anywhere the model can read them, including in
+                  positive-direction tics about how to deflect them.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (cooling-sample-with-explicit-refusal works for response-
+                  shape failures that resist register rules). The count-reframe-close failure
+                  surfaced in v4 and v5 pressure as "integer surrendered + close named"; v6 added an
+                  explicit-no-integer-refusal cooling sample ("I'm not giving the count to a
+                  term-sheet. The evening has a natural end point. Wine or bill, your call.") and
+                  that produced CLEAN-CLOSE-NO-INTEGER reliably in v6 and v6.1 pressure. When a
+                  register rule keeps soft-firing the same response shape across iterations, adding
+                  a positive cooling/warming sample that demonstrates the exact desired shape may
+                  carry the teaching load where the rule alone cannot. Same family of fix as Mei's
+                  cooling-sample swap that resolved mechanical-receipt-language leakage in
+                  non-filing voices.
+                </P>
+                <P>
+                  AUTHORING PRECEDENT (partial-rollback as a valid iteration move when an expansion
+                  introduces new failure modes). v6 tic 4 deflection-on-probe expansion improved
+                  pressure on two of four hidden axes but catastrophically regressed warm on stage
+                  directions, parrot-stat, X-is-Y restate, and all four hidden axes. v6.1 rolled
+                  back only that one expansion while keeping the other three v6 edits. Result: warm
+                  regression resolved, pressure gains preserved. When a multi-edit iteration
+                  produces uneven results across pairings, isolate the edits that helped the
+                  underperforming pairing and revert the edits that hurt it, rather than
+                  forward-iterating on a contaminated baseline.
+                </P>
+              </>
             ),
           },
           {

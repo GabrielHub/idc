@@ -1,3 +1,5 @@
+import { clampRandom } from "../services/utils";
+
 export const MIN_GAIN = 0.0001;
 export const DEFAULT_VOLUME = 0.6;
 export const CUE_GAIN_SCALE = 30;
@@ -9,7 +11,16 @@ const COMPRESSOR_RATIO = 3;
 const COMPRESSOR_ATTACK_SECONDS = 0.005;
 const COMPRESSOR_RELEASE_SECONDS = 0.12;
 
-const DATE_AMBIENT_URL = "/assets/audio/date-ambient-jazz.mp3";
+type DateAmbientTrack = {
+  id: string;
+  url: string;
+};
+
+const DATE_AMBIENT_TRACKS: DateAmbientTrack[] = [
+  { id: "date-ambient-jazz", url: "/assets/audio/date-ambient-jazz.mp3" },
+  { id: "date-ambient-jazz-2", url: "/assets/audio/date-ambient-jazz-2.wav" },
+  { id: "date-ambient-lo-fi", url: "/assets/audio/date-ambient-lo-fi.wav" },
+];
 const DATE_AMBIENT_TARGET_LEVEL = 0.08;
 const DATE_AMBIENT_SUBMIX_GAIN = DATE_AMBIENT_TARGET_LEVEL / CUE_GAIN_SCALE;
 const DATE_AMBIENT_FADE_SECONDS = 8;
@@ -123,6 +134,11 @@ export function getDateAmbientLoop(audioContext: AudioContext): DateAmbientLoop 
   return loop;
 }
 
+function selectDateAmbientTrack(randomValue = Math.random()): DateAmbientTrack {
+  const index = Math.floor(clampRandom(randomValue) * DATE_AMBIENT_TRACKS.length);
+  return DATE_AMBIENT_TRACKS[index];
+}
+
 function dateAmbientGain(volume: number): number {
   if (clampVolume(volume) <= 0) {
     return MIN_GAIN;
@@ -152,8 +168,10 @@ export class DateAmbientLoop {
   private readonly audioContext: AudioContext;
   private readonly outputGain: GainNode;
   private readonly activeSources = new Set<AudioBufferSourceNode>();
-  private buffer: AudioBuffer | null = null;
-  private bufferPromise: Promise<AudioBuffer> | null = null;
+  private readonly bufferCache = new Map<string, AudioBuffer>();
+  private readonly bufferPromiseCache = new Map<string, Promise<AudioBuffer>>();
+  private trackedSession: { id: string; track: DateAmbientTrack } | null = null;
+  private activeTrack: DateAmbientTrack | null = null;
   private nextStartTime = 0;
   private requestCounter = 0;
   private requested = false;
@@ -167,13 +185,13 @@ export class DateAmbientLoop {
     this.outputGain.connect(getMasterGain(audioContext));
   }
 
-  async fadeIn(volume: number): Promise<void> {
+  async fadeIn(volume: number, sessionId: string): Promise<void> {
     this.requested = true;
     this.requestCounter += 1;
     const requestId = this.requestCounter;
     this.cancelStopTimer();
 
-    const buffer = await this.loadBuffer();
+    const { buffer, track } = await this.loadResolvedBuffer(sessionId);
 
     if (!this.canContinue(requestId)) {
       return;
@@ -187,13 +205,16 @@ export class DateAmbientLoop {
       return;
     }
 
-    if (this.schedulerId === null) {
+    if (this.schedulerId === null || this.activeTrack?.id !== track.id) {
       const minimumStartTime = this.audioContext.currentTime + DATE_AMBIENT_START_DELAY_SECONDS;
 
-      if (this.activeSources.size === 0 || this.nextStartTime < minimumStartTime) {
-        this.nextStartTime = minimumStartTime;
+      if (this.activeTrack?.id !== track.id) {
+        this.clearScheduler();
+        this.stopActiveSources();
+        this.activeTrack = track;
       }
 
+      this.nextStartTime = minimumStartTime;
       this.schedule(buffer);
       this.schedulerId = window.setInterval(
         () => this.schedule(buffer),
@@ -239,30 +260,97 @@ export class DateAmbientLoop {
     );
   }
 
-  private async loadBuffer(): Promise<AudioBuffer> {
-    if (this.buffer !== null) {
-      return this.buffer;
+  private resolveTrack(sessionId: string): DateAmbientTrack {
+    if (this.trackedSession?.id === sessionId) {
+      return this.trackedSession.track;
     }
 
-    if (this.bufferPromise === null) {
-      const pending = fetch(DATE_AMBIENT_URL, { cache: "force-cache" })
-        .then((response) => {
-          if (!response.ok) {
-            throw new Error("Date ambient track failed to load.");
-          }
-          return response.arrayBuffer();
-        })
-        .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer));
-      pending.catch(() => {
-        if (this.bufferPromise === pending) {
-          this.bufferPromise = null;
+    const selected = selectDateAmbientTrack();
+    this.trackedSession = { id: sessionId, track: selected };
+    return selected;
+  }
+
+  private async loadBuffer(track: DateAmbientTrack): Promise<AudioBuffer> {
+    const cached = this.bufferCache.get(track.url);
+
+    if (cached !== undefined) {
+      return cached;
+    }
+
+    const cachedPromise = this.bufferPromiseCache.get(track.url);
+
+    if (cachedPromise !== undefined) {
+      return cachedPromise;
+    }
+
+    const pending = fetch(track.url, { cache: "force-cache" })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`Date ambient track failed to load: ${track.id}.`);
         }
+        return response.arrayBuffer();
+      })
+      .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer))
+      .then((buffer) => {
+        this.bufferCache.set(track.url, buffer);
+        this.bufferPromiseCache.delete(track.url);
+        return buffer;
       });
-      this.bufferPromise = pending;
+
+    pending.catch(() => {
+      if (this.bufferPromiseCache.get(track.url) === pending) {
+        this.bufferPromiseCache.delete(track.url);
+      }
+    });
+    this.bufferPromiseCache.set(track.url, pending);
+    return pending;
+  }
+
+  private async loadFallbackBuffer(failedTrack: DateAmbientTrack): Promise<{
+    buffer: AudioBuffer;
+    track: DateAmbientTrack;
+  }> {
+    for (const track of DATE_AMBIENT_TRACKS) {
+      if (track.id === failedTrack.id) {
+        continue;
+      }
+
+      try {
+        const buffer = await this.loadBuffer(track);
+        return { buffer, track };
+      } catch {
+        continue;
+      }
     }
 
-    this.buffer = await this.bufferPromise;
-    return this.buffer;
+    const buffer = await this.loadBuffer(failedTrack);
+    return { buffer, track: failedTrack };
+  }
+
+  private async loadBufferWithFallback(track: DateAmbientTrack): Promise<{
+    buffer: AudioBuffer;
+    track: DateAmbientTrack;
+  }> {
+    try {
+      const buffer = await this.loadBuffer(track);
+      return { buffer, track };
+    } catch {
+      return this.loadFallbackBuffer(track);
+    }
+  }
+
+  private async loadResolvedBuffer(sessionId: string): Promise<{
+    buffer: AudioBuffer;
+    track: DateAmbientTrack;
+  }> {
+    const track = this.resolveTrack(sessionId);
+    const resolved = await this.loadBufferWithFallback(track);
+
+    if (resolved.track.id !== track.id && this.trackedSession?.id === sessionId) {
+      this.trackedSession = { id: sessionId, track: resolved.track };
+    }
+
+    return resolved;
   }
 
   private schedule(buffer: AudioBuffer): void {
@@ -348,4 +436,12 @@ export function __resetEngineStateForTests(): void {
   sharedAudioContext = null;
   currentMasterVolume = DEFAULT_VOLUME;
   currentMasterMuted = true;
+}
+
+export function __listDateAmbientTrackUrlsForTests(): string[] {
+  return DATE_AMBIENT_TRACKS.map((track) => track.url);
+}
+
+export function __selectDateAmbientTrackUrlForTests(randomValue: number): string {
+  return selectDateAmbientTrack(randomValue).url;
 }

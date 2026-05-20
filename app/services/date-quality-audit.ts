@@ -31,6 +31,13 @@ import {
   summarizeDateMemories,
 } from "./ai/model-service";
 import {
+  MARKUP_ABUSE_FAIL_KINDS,
+  describeMarkupAbuse,
+  detectMarkupAbuses,
+  projectMemberSpeechPlain,
+  type MarkupAbuseKind,
+} from "./character-markdown";
+import {
   CUPID_COPY_BANNED_PHRASES,
   checkCupidCorporateCopy,
   hasNearDuplicateRecentLine,
@@ -55,6 +62,7 @@ export type AuditCategory =
   | "approval_phrase"
   | "info_leak"
   | "venue_monologue"
+  | "markup_abuse"
   | "json_repair"
   | "weak_judge_summary"
   | "overlong_turn"
@@ -127,11 +135,16 @@ const EMPTY_FINDING_COUNTS: Record<AuditCategory, number> = {
   approval_phrase: 0,
   info_leak: 0,
   venue_monologue: 0,
+  markup_abuse: 0,
   json_repair: 0,
   weak_judge_summary: 0,
   overlong_turn: 0,
   engine_error: 0,
 };
+
+function markupAbuseSeverity(kind: MarkupAbuseKind): AuditSeverity {
+  return MARKUP_ABUSE_FAIL_KINDS.has(kind) ? "fail" : "warn";
+}
 
 export const AUDIT_CATEGORIES: readonly AuditCategory[] = Object.keys(
   EMPTY_FINDING_COUNTS,
@@ -462,6 +475,7 @@ export function detectTranscriptFindings({
 
   const focusSpeakerMessages: DateMessage[] = [];
   const partnerSpeakerMessages: DateMessage[] = [];
+  const projectedTexts = new Map<string, string>();
 
   for (let index = 0; index < transcript.length; index += 1) {
     const message = transcript[index];
@@ -476,16 +490,38 @@ export function detectTranscriptFindings({
       partnerSpeakerMessages.push(message);
     }
 
-    findings.push(...detectVenueMonologue(message, scenario, venueProfile));
-    findings.push(...detectInfoLeak({ message, member: partner, owner: "partner" }));
-    findings.push(...detectInfoLeak({ message, member: speaker, owner: "speaker" }));
+    const projection = projectMemberSpeechPlain(message.text);
+    projectedTexts.set(message.id, projection);
+
+    findings.push(...detectMarkupAbuseFindings(message));
+    findings.push(...detectVenueMonologue(message, projection, scenario, venueProfile));
+    findings.push(...detectInfoLeak({ message, projection, member: partner, owner: "partner" }));
+    findings.push(...detectInfoLeak({ message, projection, member: speaker, owner: "speaker" }));
   }
 
-  findings.push(...detectRepetitionAmongSpeakerMessages(focusSpeakerMessages, focusMember.id));
-  findings.push(...detectRepetitionAmongSpeakerMessages(partnerSpeakerMessages, partnerMember.id));
-  findings.push(...detectApprovalPhraseAmongSpeakerMessages(focusSpeakerMessages, focusMember.id));
   findings.push(
-    ...detectApprovalPhraseAmongSpeakerMessages(partnerSpeakerMessages, partnerMember.id),
+    ...detectRepetitionAmongSpeakerMessages(focusSpeakerMessages, projectedTexts, focusMember.id),
+  );
+  findings.push(
+    ...detectRepetitionAmongSpeakerMessages(
+      partnerSpeakerMessages,
+      projectedTexts,
+      partnerMember.id,
+    ),
+  );
+  findings.push(
+    ...detectApprovalPhraseAmongSpeakerMessages(
+      focusSpeakerMessages,
+      projectedTexts,
+      focusMember.id,
+    ),
+  );
+  findings.push(
+    ...detectApprovalPhraseAmongSpeakerMessages(
+      partnerSpeakerMessages,
+      projectedTexts,
+      partnerMember.id,
+    ),
   );
 
   // Sort by turn for stable reports.
@@ -496,6 +532,7 @@ export function detectTranscriptFindings({
 
 function detectRepetitionAmongSpeakerMessages(
   speakerMessages: readonly DateMessage[],
+  projectedTexts: ReadonlyMap<string, string>,
   speakerId: string,
 ): AuditFinding[] {
   const findings: AuditFinding[] = [];
@@ -503,9 +540,9 @@ function detectRepetitionAmongSpeakerMessages(
     const message = speakerMessages[index];
     const priorLines = speakerMessages
       .slice(Math.max(0, index - 3), index)
-      .map((entry) => entry.text);
+      .map((entry) => projectedTexts.get(entry.id) ?? projectMemberSpeechPlain(entry.text));
     const dup = hasNearDuplicateRecentLine({
-      text: message.text,
+      text: projectedTexts.get(message.id) ?? projectMemberSpeechPlain(message.text),
       recentLines: priorLines,
     });
     if (dup !== null) {
@@ -524,14 +561,17 @@ function detectRepetitionAmongSpeakerMessages(
 
 function detectApprovalPhraseAmongSpeakerMessages(
   speakerMessages: readonly DateMessage[],
+  projectedTexts: ReadonlyMap<string, string>,
   speakerId: string,
 ): AuditFinding[] {
   const findings: AuditFinding[] = [];
   for (let index = 0; index < speakerMessages.length; index += 1) {
     const message = speakerMessages[index];
-    const recent = speakerMessages.slice(Math.max(0, index - 3), index).map((entry) => entry.text);
+    const recent = speakerMessages
+      .slice(Math.max(0, index - 3), index)
+      .map((entry) => projectedTexts.get(entry.id) ?? projectMemberSpeechPlain(entry.text));
     const repeated = hasRepeatedApprovalPhrase({
-      text: message.text,
+      text: projectedTexts.get(message.id) ?? projectMemberSpeechPlain(message.text),
       recentLines: recent,
     });
     if (repeated !== null) {
@@ -572,10 +612,11 @@ function buildVenueProfile(scenario: DateScenario): VenueProfile {
 
 function detectVenueMonologue(
   message: DateMessage,
+  projection: string,
   scenario: DateScenario,
   profile: VenueProfile,
 ): AuditFinding[] {
-  const messageNgrams = ngramSet(message.text, VENUE_MONOLOGUE_NGRAM_TOKENS);
+  const messageNgrams = ngramSet(projection, VENUE_MONOLOGUE_NGRAM_TOKENS);
   if (messageNgrams.size === 0) return [];
   const matches: string[] = [];
   for (const ngram of messageNgrams) {
@@ -599,18 +640,50 @@ function detectVenueMonologue(
   ];
 }
 
+// === Markup abuse ===
+
+function detectMarkupAbuseFindings(message: DateMessage): AuditFinding[] {
+  const detections = detectMarkupAbuses(message.text);
+
+  if (detections.length === 0) {
+    return [];
+  }
+
+  const findings: AuditFinding[] = [];
+  const seen = new Set<MarkupAbuseKind>();
+
+  for (const detection of detections) {
+    if (seen.has(detection.kind)) {
+      continue;
+    }
+    seen.add(detection.kind);
+    findings.push({
+      category: "markup_abuse",
+      severity: markupAbuseSeverity(detection.kind),
+      message: describeMarkupAbuse(detection.kind),
+      turnIndex: message.turnIndex,
+      speakerId: message.speakerId,
+      evidence: truncateEvidence(`${detection.kind}: ${detection.evidence}`),
+    });
+  }
+
+  return findings;
+}
+
 // === Hidden info leak ===
 
 function detectInfoLeak({
   message,
+  projection,
   member,
   owner,
 }: {
   message: DateMessage;
+  projection: string;
   member: Member;
   owner: "partner" | "speaker";
 }): AuditFinding[] {
-  const leak = detectHiddenInfoLeak(message.text, [member], {
+  const leak = detectHiddenInfoLeak(projection, [member], {
     includeSingleLabels: owner === "partner",
   });
   if (leak === null) {

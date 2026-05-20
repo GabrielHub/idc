@@ -7,12 +7,36 @@ import {
   HOUSE_BUBBLE_NAME_CLASS,
   resolveMemberChatBubbleStyle,
 } from "../../../components/member-chat-bubble-style";
+import { MemberMessageMarkdown } from "../../../components/member-message-markdown";
 import { type Member } from "../../../domain/game";
 import { starterMembers } from "../../../fixtures";
 import { TestHeader } from "../shared";
 
 const CHAT_BUBBLE_FALLBACK_SAMPLE =
   "no but seriously, send me a time, a place, and a chair that does not creak. that is the whole vibe.";
+
+const MARKDOWN_SHOWCASE_SAMPLES: { label: string; text: string }[] = [
+  {
+    label: "ordinary",
+    text: "i can do thursday. one quiet table, no surprise audience.",
+  },
+  {
+    label: "italic stress",
+    text: "this is *quieter* than i meant to sound.",
+  },
+  {
+    label: "strong punch",
+    text: "**no.** ask it properly.",
+  },
+  {
+    label: "line rhythm",
+    text: "the silence is doing a lot of work.\nlet it.\n\nthursday at seven.",
+  },
+  {
+    label: "heading beat",
+    text: "# FOG MACHINE OFF.\n\nthe silence is doing a lot of work.\nlet it.",
+  },
+];
 
 function pickChatBubbleSample(member: Member): string {
   const sample =
@@ -66,12 +90,90 @@ export function ChatBubbleGalleryTest() {
         </button>
       </div>
 
+      <MarkdownShowcase replayKey={replayKey} />
+
       <div key={replayKey} className="grid gap-4 lg:grid-cols-2">
         {starterMembers.map((member) => (
           <ChatBubblePreviewCard key={member.id} member={member} />
         ))}
       </div>
     </motion.section>
+  );
+}
+
+function MarkdownShowcase({ replayKey }: { replayKey: number }) {
+  const defaultMember = starterMembers.find((entry) => entry.chatBubble === undefined);
+  const customMember = starterMembers.find((entry) => entry.chatBubble !== undefined);
+
+  return (
+    <section
+      key={`markdown-${replayKey}`}
+      className="aura-glass rounded-card px-5 py-5 space-y-4"
+      aria-labelledby="markdown-showcase-heading"
+    >
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h3
+          id="markdown-showcase-heading"
+          className="font-display text-display-sm font-semibold text-aura-ink"
+        >
+          Member Markdown subset
+        </h3>
+        <p className="max-w-xl text-label leading-relaxed text-aura-muted">
+          Each row renders the same source through the shared MemberMessageMarkdown component.
+          Italic, strong, soft line breaks, and a single ATX heading are allowed; lists, links,
+          images, raw HTML, code, blockquotes, tables, math, and footnotes are stripped before
+          render.
+        </p>
+      </div>
+      <ul className="grid gap-3 lg:grid-cols-2">
+        {MARKDOWN_SHOWCASE_SAMPLES.map((sample) => (
+          <li key={sample.label} className="grid gap-2">
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+              {sample.label}
+            </span>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <BubblePreview member={defaultMember} sampleText={sample.text} variant="default" />
+              {customMember ? (
+                <BubblePreview member={customMember} sampleText={sample.text} variant="custom" />
+              ) : null}
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function BubblePreview({
+  member,
+  sampleText,
+  variant,
+}: {
+  member: Member | undefined;
+  sampleText: string;
+  variant: "default" | "custom";
+}) {
+  if (member === undefined) {
+    return null;
+  }
+  const customBubble = member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
+  const bubbleClass = customBubble ? customBubble.className : HOUSE_BUBBLE_LEFT_CLASS;
+  const bubbleStyle = customBubble?.style;
+  const textColorClass = customBubble ? "" : "text-white";
+  const accentStyle = customBubble?.accentStyle;
+
+  return (
+    <div className="flex max-w-[80%] flex-col items-start gap-2" style={accentStyle}>
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+        {variant === "default" ? "default house" : member.firstName}
+      </span>
+      <div className={bubbleClass} style={bubbleStyle}>
+        <MemberMessageMarkdown
+          text={sampleText}
+          className={`text-body leading-relaxed ${textColorClass}`}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -120,7 +222,10 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
             {member.firstName}
           </span>
           <div className={bubbleClass} style={bubbleStyle}>
-            <p className={`text-body leading-relaxed ${textColorClass}`}>{sampleText}</p>
+            <MemberMessageMarkdown
+              text={sampleText}
+              className={`text-body leading-relaxed ${textColorClass}`}
+            />
           </div>
         </div>
       </div>

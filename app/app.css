@@ -195,6 +195,20 @@ body::-webkit-scrollbar {
     0 28px 70px -18px rgba(244, 63, 94, 0.28);
 }
 
+/* Flat modern glass: a single semi-transparent fill, neutral hairline, and
+   soft neutral drop shadow. No vertical gradient and no inset top highlight,
+   so the surface reads as the same material whether the panel is short
+   (collapsed) or tall (expanded). */
+.aura-glass-flat {
+  background-color: rgba(255, 253, 249, 0.72);
+  backdrop-filter: blur(32px) saturate(160%);
+  -webkit-backdrop-filter: blur(32px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  box-shadow:
+    0 1px 2px 0 rgba(15, 23, 42, 0.04),
+    0 18px 44px -18px rgba(15, 23, 42, 0.18);
+}
+
 /* Inverted glass for active segments and pressed tab states. */
 .aura-glass-ink {
   background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.92) 100%);
@@ -374,21 +388,22 @@ body::-webkit-scrollbar {
   animation: aura-bar-fill 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
-/* Typing-indicator dot bounce, used in the date chat stream. */
+/* Typing-indicator dot wave, used in the date chat stream. iMessage-style:
+   each dot rises and brightens, then settles before the next dot peaks. */
 @keyframes aura-typing-dot {
   0%,
   60%,
   100% {
     transform: translateY(0);
-    opacity: 0.45;
+    opacity: 0.35;
   }
   30% {
-    transform: translateY(-3px);
+    transform: translateY(-5px);
     opacity: 1;
   }
 }
 .aura-typing-dot {
-  animation: aura-typing-dot 1.2s ease-in-out infinite;
+  animation: aura-typing-dot 1.4s ease-in-out infinite;
 }
 
 /* Marquee loop for the splash footer. */
@@ -1361,6 +1376,11 @@ body::-webkit-scrollbar {
   background-color: rgba(237, 226, 207, 0.07);
   background-image: none;
   border-color: rgba(237, 226, 207, 0.1);
+  box-shadow: none;
+}
+[data-theme="dark"] .aura-glass-flat {
+  background-color: rgba(237, 226, 207, 0.06);
+  border-color: rgba(237, 226, 207, 0.09);
   box-shadow: none;
 }
 [data-theme="dark"] .aura-glass-lift:hover {

@@ -16,6 +16,7 @@ import {
 } from "../../domain/game";
 import { memberRequests, starterMembers, starterScenarios } from "../../fixtures";
 import { EmptyPerformerMessageError, sanitizeCharacterText } from "../ai-date-engine";
+import { MEMBER_CHAT_MARKUP_REJECT_KINDS, detectMarkupAbuses } from "../character-markdown";
 import {
   buildJudgePromptPacket,
   buildCharacterPromptPacket,
@@ -526,6 +527,10 @@ type MemberChatReplyInspection =
 
 function inspectMemberChatReply(rawText: string, member: Member): MemberChatReplyInspection {
   try {
+    if (rawTextHasRejectableMarkup(rawText)) {
+      return { outcome: "retry", reason: "presentation" };
+    }
+
     const text = sanitizeCharacterText(rawText, member.name);
 
     if (!shouldRetryMemberChatMessage(text, member)) {
@@ -540,6 +545,12 @@ function inspectMemberChatReply(rawText: string, member: Member): MemberChatRepl
 
     return { outcome: "retry", reason: "empty" };
   }
+}
+
+function rawTextHasRejectableMarkup(rawText: string): boolean {
+  return detectMarkupAbuses(rawText).some((entry) =>
+    MEMBER_CHAT_MARKUP_REJECT_KINDS.has(entry.kind),
+  );
 }
 
 function isEmptyPerformerMessage(error: unknown): boolean {
@@ -623,11 +634,6 @@ function isFragmentMemberChatMessage(text: string): boolean {
 }
 
 const MEMBER_CHAT_PRESENTATION_PATTERNS: readonly RegExp[] = [
-  /[*_`]/,
-  /^\s*>/,
-  /^\s*(?:[-+*]|\d+[.)])\s+/,
-  /^\s*[<{]/,
-  /<\/?[a-z][\w:-]*(?:\s+[^>]*)?>/i,
   /^\s*(?:assistant|user|system|member|tester|other person|reply|answer|message|speaker|stage|direction|narration)\s*:/i,
   /^\s*\([^)]{1,80}\)\s*/,
   /^\s*\[[^\]]{1,80}\]\s*/,

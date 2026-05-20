@@ -124,6 +124,18 @@ describe("date quality audit detectors", () => {
       expect(findings.some((finding) => finding.category === "repetition")).toBe(true);
     });
 
+    it("flags a short duplicate when Markdown markers wrap the repeated line", () => {
+      const transcript = buildTranscript([
+        { speaker: JENNA, text: "maybe.", turnIndex: 1 },
+        { speaker: VHOOL, text: "I will allow maybe as a filing category.", turnIndex: 2 },
+        { speaker: JENNA, text: "*maybe.*", turnIndex: 3 },
+      ]);
+
+      const findings = runDetectors(transcript);
+
+      expect(findings.some((finding) => finding.category === "repetition")).toBe(true);
+    });
+
     it("does not flag distinct consecutive lines", () => {
       const transcript = buildTranscript([
         { speaker: JENNA, text: "Soup is the most honest contract in this room.", turnIndex: 1 },
@@ -167,6 +179,18 @@ describe("date quality audit detectors", () => {
       const transcript = buildTranscript([
         { speaker: VHOOL, text: "I want a sincere receipt.", turnIndex: 1 },
         { speaker: JENNA, text: `So you ${bioFragment} the receipt then.`, turnIndex: 2 },
+      ]);
+
+      const findings = runDetectors(transcript);
+
+      expect(findings.some((finding) => finding.category === "info_leak")).toBe(true);
+    });
+
+    it("flags hidden fixture text when Markdown emphasis wraps the leak", () => {
+      const bioFragment = extractDistinctiveTriGram(VHOOL.bio);
+      const transcript = buildTranscript([
+        { speaker: VHOOL, text: "I want a sincere receipt.", turnIndex: 1 },
+        { speaker: JENNA, text: `So the file says **${bioFragment}**.`, turnIndex: 2 },
       ]);
 
       const findings = runDetectors(transcript);
@@ -221,6 +245,32 @@ describe("date quality audit detectors", () => {
       const findings = runDetectors(transcript);
 
       expect(findings.some((finding) => finding.category === "venue_monologue")).toBe(false);
+    });
+  });
+
+  describe("markup abuse", () => {
+    it("flags raw HTML as a failed markup abuse finding", () => {
+      const transcript = buildTranscript([
+        { speaker: JENNA, text: "hello <b>receipt</b>.", turnIndex: 1 },
+      ]);
+
+      const findings = runDetectors(transcript);
+      const markupFinding = findings.find((finding) => finding.category === "markup_abuse");
+
+      expect(markupFinding?.severity).toBe("fail");
+      expect(markupFinding?.message).toContain("raw HTML");
+    });
+
+    it("flags list syntax as a warning markup abuse finding", () => {
+      const transcript = buildTranscript([
+        { speaker: JENNA, text: "* first filing\n* second filing", turnIndex: 1 },
+      ]);
+
+      const findings = runDetectors(transcript);
+      const markupFinding = findings.find((finding) => finding.category === "markup_abuse");
+
+      expect(markupFinding?.severity).toBe("warn");
+      expect(markupFinding?.message).toContain("list syntax");
     });
   });
 
@@ -341,6 +391,7 @@ describe("audit report serialization", () => {
           approval_phrase: 0,
           info_leak: 0,
           venue_monologue: 0,
+          markup_abuse: 0,
           json_repair: 0,
           weak_judge_summary: 0,
           overlong_turn: 0,
