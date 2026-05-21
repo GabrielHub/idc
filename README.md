@@ -70,7 +70,7 @@ Playwright is the primary UI regression surface. Assume the dev server is alread
 AI setup runs in app, not in a server route. The setup panel lets the player choose:
 
 - Ollama on this PC. Default URL is `http://127.0.0.1:11434`, default chat model is `gemma4:e4b`, and default embedding model is `embeddinggemma`. The catalog ships heavier and lighter alternatives for different VRAM tiers.
-- Vercel AI Gateway. Default URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash`, and default embedding model is `google/gemini-embedding-2`.
+- Vercel AI Gateway. Default URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash` with locked high reasoning, and default embedding model is `google/gemini-embedding-2`. Gateway selector cost labels come from `app/fixtures/gateway-model-costs.json`; refresh them with `vp run benchmark:gateway-costs`.
 
 The implementation uses AI SDK v6 `createGateway` from `ai` for Vercel AI Gateway. The old OpenAI-compatible provider path is only supported as a saved default URL migration.
 

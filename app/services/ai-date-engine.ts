@@ -541,12 +541,13 @@ async function advanceDateExchangeWithLocalAiInternal(
           updatedMembers,
           completedSession,
           getActiveShift(save).shiftNumber,
+          revealResult.save.playerKnowledge,
         );
   const shiftsAfterCompletion =
     completedSession.finalReport === undefined
       ? save.shifts
       : clearActiveBookingForShift(save.shifts, save.activeShiftId);
-  const nextSave = gameSaveSchema.parse({
+  const saveWithCompletedDate = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
     pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
@@ -561,6 +562,13 @@ async function advanceDateExchangeWithLocalAiInternal(
     shifts: shiftsAfterCompletion,
     updatedAt: timestamp,
   });
+  const nextSave = gameSaveSchema.parse(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave: saveWithCompletedDate,
+      shift: getActiveShift(save).shiftNumber,
+    }),
+  );
 
   await repository.saveGame(nextSave);
 
@@ -723,6 +731,7 @@ async function cutDateShortWithLocalAiInternal(
     updatedMembers,
     finalSession,
     getActiveShift(save).shiftNumber,
+    revealResult.save.playerKnowledge,
   );
   const saveWithCutShortDate = gameSaveSchema.parse({
     ...save,

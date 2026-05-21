@@ -10,6 +10,23 @@ export function canBeFocusCase(member: Member): boolean {
   return member.state.status === "active";
 }
 
+function applyFocusSwapPenalty(member: Member): Member {
+  const retention = clampScore(member.state.retention - FOCUS_SWAP_RETENTION_PENALTY);
+
+  return {
+    ...member,
+    state: {
+      ...member.state,
+      retention,
+      recentDateResult:
+        retention === 0
+          ? "Client file closed. Member quit the app."
+          : "Case rotated off the focus board. Client confidence fell.",
+      status: retention === 0 ? "quit" : member.state.status,
+    },
+  };
+}
+
 export function selectInitialFocusCases(save: GameSave, memberIds: readonly string[]): GameSave {
   const uniqueIds = Array.from(new Set(memberIds));
 
@@ -57,10 +74,30 @@ export function removeFocusCase(save: GameSave, memberId: string): GameSave {
     return save;
   }
 
-  return {
+  const updatedFocus = save.focusedMemberIds.filter((id) => id !== memberId);
+  const removedMember = save.members.find((candidate) => candidate.id === memberId);
+
+  if (removedMember === undefined || removedMember.state.status !== "active") {
+    return {
+      ...save,
+      focusedMemberIds: updatedFocus,
+    };
+  }
+
+  const updatedMembers = save.members.map((member) =>
+    member.id === memberId ? applyFocusSwapPenalty(member) : member,
+  );
+  const nextSave: GameSave = {
     ...save,
-    focusedMemberIds: save.focusedMemberIds.filter((id) => id !== memberId),
+    focusedMemberIds: updatedFocus,
+    members: updatedMembers,
   };
+
+  return applyMemberQuitBudgetCut({
+    previousSave: save,
+    nextSave,
+    shift: activeShiftNumber(save),
+  });
 }
 
 function activeShiftNumber(save: GameSave): number {
@@ -92,25 +129,9 @@ export function swapFocusCase(save: GameSave, oldId: string, newId: string): Gam
   }
 
   const updatedFocus = save.focusedMemberIds.map((id) => (id === oldId ? newId : id));
-  const updatedMembers = save.members.map((member) => {
-    if (member.id !== oldId) {
-      return member;
-    }
-    const retention = clampScore(member.state.retention - FOCUS_SWAP_RETENTION_PENALTY);
-
-    return {
-      ...member,
-      state: {
-        ...member.state,
-        retention,
-        recentDateResult:
-          retention === 0
-            ? "Client file closed. Member quit the app."
-            : "Case rotated off the focus board. Client confidence fell.",
-        status: retention === 0 ? "quit" : member.state.status,
-      },
-    };
-  });
+  const updatedMembers = save.members.map((member) =>
+    member.id === oldId ? applyFocusSwapPenalty(member) : member,
+  );
 
   const nextSave: GameSave = { ...save, focusedMemberIds: updatedFocus, members: updatedMembers };
   return applyMemberQuitBudgetCut({
@@ -151,24 +172,9 @@ export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): 
   }
 
   const droppedSet = new Set(droppedActiveIds);
-  const updatedMembers = save.members.map((member) => {
-    if (!droppedSet.has(member.id)) {
-      return member;
-    }
-    const retention = clampScore(member.state.retention - FOCUS_SWAP_RETENTION_PENALTY);
-    return {
-      ...member,
-      state: {
-        ...member.state,
-        retention,
-        recentDateResult:
-          retention === 0
-            ? "Client file closed. Member quit the app."
-            : "Case rotated off the focus board. Client confidence fell.",
-        status: retention === 0 ? "quit" : member.state.status,
-      },
-    };
-  });
+  const updatedMembers = save.members.map((member) =>
+    droppedSet.has(member.id) ? applyFocusSwapPenalty(member) : member,
+  );
 
   const nextSave: GameSave = { ...save, focusedMemberIds: uniqueIds, members: updatedMembers };
   return applyMemberQuitBudgetCut({
@@ -211,7 +217,7 @@ export function syncActiveShiftFocusCases(save: GameSave): GameSave {
   );
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
-    featuredMemberIds: save.focusedMemberIds,
+    featuredMemberIds: activeFocusedMemberIds,
     memberRequestIds: selectFeaturedMemberRequestIds({
       members: save.members,
       featuredMemberIds: activeFocusedMemberIds,

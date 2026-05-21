@@ -63,13 +63,53 @@ export const sections: DocSectionEntry[] = [
     id: "shift-cadence",
     title: "Shift cadence",
     body: (
-      <P>
-        Each shift books one date. After a date finishes (completed or ended early), both
-        participants stamp <DocCode>member.state.lastDateShift</DocCode> and enter a one-shift
-        cooldown. <DocCode>isMemberInCooldown(member, currentShift)</DocCode> is true on the date
-        shift and the immediately following shift. Cupid cannot book a member while they are in
-        cooldown.
-      </P>
+      <>
+        <P>
+          Each shift books one date. After a date finishes (completed or ended early), both
+          participants stamp <DocCode>member.state.lastDateShift</DocCode> and enter a one-shift
+          cooldown. <DocCode>isMemberInCooldown(member, currentShift)</DocCode> is true on the date
+          shift and the immediately following shift. Cupid cannot book a member while they are in
+          cooldown.
+        </P>
+        <P>
+          Each shift surfaces one current request per focused member, so three of the four are
+          normally unaddressed when the shift is filed. That is expected case-load play, not a
+          failure state. <DocCode>completeShift</DocCode> classifies each shift request via{" "}
+          <DocCode>classifyShiftRequestOutcomes</DocCode> into one of four buckets, using the focus
+          member's <DocCode>ask-covered</DocCode> / <DocCode>ask-blocked</DocCode> player-knowledge
+          reads as the landed-signal source:
+        </P>
+        <DocList
+          items={[
+            <span key="covered">
+              <Strong>covered</Strong> — booked and the judge filed <DocCode>ask-covered</DocCode>.
+              The request rotates to the next one in the pool, no penalty, recent date result reads
+              "Ask covered."
+            </span>,
+            <span key="raised">
+              <Strong>raised</Strong> — booked and the judge filed <DocCode>ask-blocked</DocCode>{" "}
+              (scenario was a wrong fit). Rotates, no penalty, recent date result reads "Ask raised,
+              room blocked it."
+            </span>,
+            <span key="missed">
+              <Strong>missed</Strong> — booked but neither ask read was filed; the date drifted off
+              the ask. Does not rotate (the ask stays alive for another shift), and the asking
+              member loses half of <DocCode>moodPenaltyIfIgnored</DocCode> mood (no burnout or
+              retention hit). Recent date result reads "Booked, but the ask never landed."
+            </span>,
+            <span key="ignored">
+              <Strong>ignored</Strong> — never booked. Rotates, member loses the full{" "}
+              <DocCode>moodPenaltyIfIgnored</DocCode> mood (5 to 7 per request, authored on the
+              fixture; no burnout or retention hit).
+            </span>,
+          ]}
+        />
+        <P>
+          All mood deltas roll up into the shift report's <DocCode>memberMoodDelta</DocCode> goal
+          metric. The HR note on the shift report breaks out both the ignored and missed counts so a
+          covered booking and a drifted booking do not read the same.
+        </P>
+      </>
     ),
   },
   {
@@ -310,7 +350,8 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="info" title="Out of scope">
           Out of scope for the current closure pass: re-opening closed cases, player-edited closure
           summaries, regenerating closure summaries, per-pair leaderboards, roster expansion, drift
-          mechanics. Neglect is not punished. Closure is real reward without an inverse penalty.
+          mechanics. Closure has no anti-closure decay path; previously closed pairs do not lose
+          their +5 retention bump over time.
         </DocCallout>
       </>
     ),

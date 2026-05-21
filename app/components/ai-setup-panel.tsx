@@ -9,7 +9,7 @@ import {
 } from "../platform/runtime";
 import {
   OLLAMA_CHAT_MODEL_OPTIONS,
-  gatewayReasoningSupported,
+  gatewayLockedReasoningLevelForModel,
   modelDefaultsForProvider,
   recommendedOllamaChatModels,
   recommendedOllamaEmbeddings,
@@ -163,13 +163,15 @@ export function AiSetupPanel({
     () => recommendedOllamaEmbeddings(ollamaModels),
     [ollamaModels],
   );
-  const gatewayReasoningDisabled =
-    draftConfig.aiProvider === "gateway" && !gatewayReasoningSupported(draftConfig.chatModel);
   const verifiedConfig = useMemo(() => lockAiProviderBaseUrlsForRuntime(config), [config]);
   const draftStatusMatchesVerifiedConfig = useMemo(() => {
     const activeDraftConfig = lockAiProviderBaseUrlsForRuntime({
       ...draftConfig,
       aiProvider: activeProvider,
+      reasoningLevel:
+        activeProvider === "gateway"
+          ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
+          : draftConfig.reasoningLevel,
     });
     const configMatches =
       activeDraftConfig.aiProvider === verifiedConfig.aiProvider &&
@@ -189,6 +191,10 @@ export function AiSetupPanel({
     setDraftConfig((current) => ({
       ...current,
       ...nextConfig,
+      reasoningLevel:
+        (nextConfig.aiProvider ?? current.aiProvider) === "gateway"
+          ? gatewayLockedReasoningLevelForModel(nextConfig.chatModel ?? current.chatModel)
+          : (nextConfig.reasoningLevel ?? current.reasoningLevel),
     }));
   }
 
@@ -232,6 +238,10 @@ export function AiSetupPanel({
       const pendingConfig = {
         ...lockAiProviderBaseUrlsForRuntime(draftConfig),
         aiProvider: activeProvider,
+        reasoningLevel:
+          activeProvider === "gateway"
+            ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
+            : draftConfig.reasoningLevel,
         aiSetupComplete: false,
       };
       await onSave(pendingConfig, draftGatewayKey);
@@ -269,6 +279,10 @@ export function AiSetupPanel({
         lockAiProviderBaseUrlsForRuntime({
           ...draftConfig,
           aiProvider: activeProvider,
+          reasoningLevel:
+            activeProvider === "gateway"
+              ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
+              : draftConfig.reasoningLevel,
         }),
         draftGatewayKey,
       );
@@ -343,7 +357,6 @@ export function AiSetupPanel({
               <GatewaySetupTab
                 config={draftConfig}
                 gatewayApiKey={draftGatewayKey}
-                reasoningDisabled={gatewayReasoningDisabled}
                 isUrlLocked={isProviderUrlLocked}
                 isSaving={isSaving}
                 isVerifying={isVerifying}
@@ -364,7 +377,11 @@ export function AiSetupPanel({
               provider={activeProvider}
               chatModel={draftConfig.chatModel}
               embeddingModel={draftConfig.embeddingModel}
-              reasoningLevel={draftConfig.reasoningLevel}
+              reasoningLevel={
+                activeProvider === "gateway"
+                  ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
+                  : draftConfig.reasoningLevel
+              }
               isUrlLocked={isProviderUrlLocked}
             />
           </aside>

@@ -99,6 +99,14 @@ export const sections: DocSectionEntry[] = [
                 Open AI setup inside the app, switch the desk to Cloud, and paste the key into the
                 api key field.
               </span>,
+              <span key="model">
+                The default chat model is <DocCode>deepseek/deepseek-v4-flash</DocCode> with{" "}
+                <DocCode>high</DocCode> reasoning. The Cloud selector also exposes{" "}
+                <DocCode>google/gemini-3.1-flash-lite</DocCode>,{" "}
+                <DocCode>anthropic/claude-haiku-4.5</DocCode>,{" "}
+                <DocCode>minimax/minimax-m2.7</DocCode>, <DocCode>alibaba/qwen3.5-flash</DocCode>,{" "}
+                <DocCode>zai/glm-4.7-flash</DocCode>, and <DocCode>openai/gpt-5.4-nano</DocCode>.
+              </span>,
               <span key="storage">
                 The key is stored as a plaintext file in app local data on this device, outside save
                 files. It is not encrypted and not in the OS keychain. Treat the device as the trust
@@ -107,9 +115,10 @@ export const sections: DocSectionEntry[] = [
                 Saving a blank key removes it.
               </span>,
               <span key="reason">
-                Gateway reasoning offers <DocCode>none</DocCode>, <DocCode>minimal</DocCode>,{" "}
-                <DocCode>low</DocCode>, <DocCode>medium</DocCode>, <DocCode>high</DocCode>, and{" "}
-                <DocCode>xhigh</DocCode> where the selected provider accepts those values.
+                Gateway reasoning is locked per model so date behavior stays comparable. DeepSeek V4
+                Flash uses <DocCode>high</DocCode>; Gemini 3.1 Flash Lite uses{" "}
+                <DocCode>medium</DocCode>; GPT 5.4 Nano uses <DocCode>none</DocCode>; models without
+                a stable Gateway reasoning control use <DocCode>off</DocCode>.
               </span>,
             ]}
           />

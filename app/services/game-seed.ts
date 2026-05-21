@@ -25,6 +25,7 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
+import { derivePairStats } from "./pair-stats";
 import { arraysShallowEqual, clampScore } from "./utils";
 
 const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
@@ -384,15 +385,32 @@ function hydratePairStates(
       continue;
     }
     const counts = hydrateScenarioUseCounts(pair.scenarioUseCounts);
-    if (counts === pair.scenarioUseCounts) {
+    const stats = derivePairStats(pair.stats);
+    const statsChanged = !pairStatsEqual(stats, pair.stats);
+    const countsChanged = counts !== pair.scenarioUseCounts;
+
+    if (!countsChanged && !statsChanged) {
       kept.push(pair);
     } else {
       dirty = true;
-      kept.push({ ...pair, scenarioUseCounts: counts });
+      kept.push({ ...pair, stats, scenarioUseCounts: counts });
     }
   }
 
   return { pairStates: dirty ? kept : savedPairStates, dirty };
+}
+
+function pairStatsEqual(first: PairStats, second: PairStats): boolean {
+  return (
+    first.chemistry === second.chemistry &&
+    first.trust === second.trust &&
+    first.stability === second.stability &&
+    first.conflict === second.conflict &&
+    first.weirdnessTolerance === second.weirdnessTolerance &&
+    first.spark === second.spark &&
+    first.strain === second.strain &&
+    first.relationshipHealth === second.relationshipHealth
+  );
 }
 
 function hydrateScenarioUseCounts(
@@ -429,21 +447,17 @@ function createInitialPairStats(first: Member, second: Member): PairStats {
   const trust = clampScore(Math.round((first.state.mood + second.state.mood) / 2) - 5);
   const stability = clampScore(100 - conflict + 8);
   const spark = clampScore(Math.round((chemistry + weirdnessTolerance) / 2));
-  const strain = conflict;
-  const relationshipHealth = clampScore(
-    Math.round((trust + stability + spark + (100 - strain)) / 4),
-  );
 
-  return {
+  return derivePairStats({
     chemistry,
     trust,
     stability,
     conflict,
     weirdnessTolerance,
     spark,
-    strain,
-    relationshipHealth,
-  };
+    strain: conflict,
+    relationshipHealth: 50,
+  });
 }
 
 function createStarterMemories(timestamp: string) {

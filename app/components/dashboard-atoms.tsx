@@ -300,6 +300,8 @@ type SelectInputAlign = "left" | "right";
 export type SelectInputOption<TValue extends string = string> = {
   value: TValue;
   label: string;
+  icon?: React.ReactNode;
+  meta?: React.ReactNode;
 };
 
 export function SelectInput<TValue extends string = string>({
@@ -398,6 +400,7 @@ export function SelectInput<TValue extends string = string>({
           className={selectInputTriggerClass(layout)}
         >
           {layout === "toolbar" ? <span className="text-aura-faint">{label}</span> : null}
+          {activeOption?.icon}
           <span
             className={`min-w-0 flex-1 truncate text-left ${
               layout === "toolbar" ? "text-aura-ink" : ""
@@ -405,6 +408,7 @@ export function SelectInput<TValue extends string = string>({
           >
             {activeLabel}
           </span>
+          {activeOption?.meta}
           <SelectInputChevron open={open} />
         </button>
         <AnimatePresence>
@@ -432,7 +436,11 @@ export function SelectInput<TValue extends string = string>({
                       onClick={() => handleOptionSelect(option)}
                       className={selectInputOptionClass(layout, selected)}
                     >
-                      <span className="min-w-0 truncate">{option.label}</span>
+                      <span className="flex min-w-0 flex-1 items-center gap-2">
+                        {option.icon}
+                        <span className="min-w-0 truncate">{option.label}</span>
+                      </span>
+                      {option.meta}
                       {selected ? <SelectInputCheck /> : null}
                     </button>
                   </li>

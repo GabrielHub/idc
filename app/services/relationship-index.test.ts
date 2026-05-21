@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { dateSessionSchema, gameSaveSchema, type DateSession, type PairEdge } from "../domain/game";
 import { jennaPike, vhool } from "../fixtures/members";
-import { createSeedGameSave, makePairId } from "./game-seed";
+import { createSeedGameSave, hydrateFixtureOwnedMemberData, makePairId } from "./game-seed";
 import {
   buildRelationshipIndex,
   getPairProjectionByPairId,
@@ -82,6 +82,56 @@ describe("relationship index", () => {
 
     expect(projection!.completedDateIds).toEqual(["date-old-ready", "date-new-not-ready"]);
     expect(projection!.scenarioUseCounts["temporal-coffee-shop"]).toBe(2);
+  });
+
+  it("hydrates stale persisted derived pair stats", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const edge = buildPersistedEdge(seed);
+    const staleEdge = gameSaveSchema.parse({
+      ...seed,
+      pairStates: [
+        {
+          ...edge,
+          stats: {
+            ...edge.stats,
+            relationshipHealth: 0,
+            strain: 100,
+          },
+        },
+      ],
+    }).pairStates[0];
+
+    if (staleEdge === undefined) {
+      throw new Error("Expected stale edge.");
+    }
+
+    const result = hydrateFixtureOwnedMemberData(
+      gameSaveSchema.parse({
+        ...seed,
+        pairStates: [staleEdge],
+      }),
+    );
+    const hydratedEdge = result.save.pairStates[0];
+
+    if (hydratedEdge === undefined) {
+      throw new Error("Expected hydrated edge.");
+    }
+
+    expect(result.dirty).toBe(true);
+    expect(hydratedEdge.stats.relationshipHealth).toBe(
+      Math.round(
+        (edge.stats.chemistry +
+          edge.stats.trust +
+          edge.stats.stability +
+          (100 - edge.stats.conflict)) /
+          4,
+      ),
+    );
+    expect(hydratedEdge.stats.strain).toBe(
+      Math.round((edge.stats.conflict + (100 - edge.stats.stability)) / 2),
+    );
+    expect(hydratedEdge.stats.chemistry).toBe(edge.stats.chemistry);
+    expect(hydratedEdge.scenarioUseCounts).toEqual(edge.scenarioUseCounts);
   });
 });
 

@@ -1126,12 +1126,19 @@ export function providerOptionsForRuntime(
   }
 
   const reasoningLevel = gatewayReasoningLevelForModel(modelId, config.reasoningLevel);
+  const providerId = providerIdFromGatewayModelId(modelId);
+
+  if (providerId === "alibaba" && reasoningLevel === "off") {
+    return {
+      alibaba: {
+        enableThinking: false,
+      },
+    };
+  }
 
   if (reasoningLevel === "off") {
     return undefined;
   }
-
-  const providerId = providerIdFromGatewayModelId(modelId);
 
   if (providerId === "openai") {
     return {

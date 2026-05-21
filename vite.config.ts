@@ -29,6 +29,10 @@ export default defineConfig({
       "audit:dates": {
         command: "node scripts/audit-dates.mjs",
       },
+      "benchmark:gateway-costs": {
+        command: "node scripts/benchmark-gateway-model-costs.mjs",
+        cache: false,
+      },
       "build:desktop": {
         command: "react-router build --mode desktop && node scripts/verify-desktop-build.mjs",
         input: [{ auto: true }, "!build/**", "!node_modules/.vite/task-cache/**"],

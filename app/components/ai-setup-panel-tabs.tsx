@@ -6,9 +6,11 @@ import {
 } from "../domain/game";
 import {
   GATEWAY_CHAT_MODELS,
-  GATEWAY_REASONING_LEVEL_OPTIONS,
   GPU_RECOMMENDATION_PROFILES,
   OLLAMA_REASONING_LEVEL_OPTIONS,
+  gatewayModelCostLabel,
+  type AiModelOption,
+  type AiModelCostTier,
   type OllamaModelSummary,
 } from "../services/ai/model-catalog";
 import {
@@ -146,7 +148,6 @@ export function OllamaSetupTab({
 export function GatewaySetupTab({
   config,
   gatewayApiKey,
-  reasoningDisabled,
   isUrlLocked,
   isSaving,
   isVerifying,
@@ -160,7 +161,6 @@ export function GatewaySetupTab({
 }: {
   config: GameConfig;
   gatewayApiKey: string;
-  reasoningDisabled: boolean;
   isUrlLocked: boolean;
   isSaving: boolean;
   isVerifying: boolean;
@@ -179,6 +179,8 @@ export function GatewaySetupTab({
   const storageTrustCopy = isUrlLocked
     ? `${DESKTOP_GATEWAY_KEY_STORAGE} Wiping a save leaves it in place. Saving a blank key removes it.`
     : BROWSER_GATEWAY_KEY_STORAGE;
+  const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === config.chatModel);
+  const lockedReasoningLevel = selectedModel?.recommendedReasoningLevel ?? "off";
 
   return (
     <div className="space-y-5">
@@ -242,7 +244,12 @@ export function GatewaySetupTab({
           <SelectInput
             label="chat model"
             value={config.chatModel}
-            options={GATEWAY_CHAT_MODELS.map((model) => ({ value: model.id, label: model.label }))}
+            options={GATEWAY_CHAT_MODELS.map((model) => ({
+              value: model.id,
+              label: model.label,
+              icon: gatewayModelIconForOption(model),
+              meta: <GatewayModelCostBadge model={model} />,
+            }))}
             onChange={(value) => {
               const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
               onConfig({
@@ -253,13 +260,16 @@ export function GatewaySetupTab({
             }}
           />
           <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <SelectInput
-              label="reasoning"
-              value={config.reasoningLevel}
-              disabled={reasoningDisabled}
-              options={GATEWAY_REASONING_LEVEL_OPTIONS}
-              onChange={(value) => onConfig({ reasoningLevel: value })}
+            <ReadOnlyField
+              label="locked reasoning"
+              value={selectedModel?.reasoningSupported === true ? lockedReasoningLevel : "off"}
             />
+            <ReadOnlyField
+              label="cost"
+              value={selectedModel === undefined ? "$ ?" : gatewayModelCostLabel(selectedModel.id)}
+            />
+          </div>
+          <div className="mt-4">
             <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
           </div>
         </FormSection>
@@ -281,4 +291,80 @@ export function GatewaySetupTab({
       </div>
     </div>
   );
+}
+
+function gatewayModelIconForOption(model: AiModelOption) {
+  if (model.iconLabel === undefined || model.iconTone === undefined) {
+    return undefined;
+  }
+
+  return <GatewayModelIcon iconLabel={model.iconLabel} iconTone={model.iconTone} />;
+}
+
+function GatewayModelIcon({
+  iconLabel,
+  iconTone,
+}: {
+  iconLabel: string;
+  iconTone: NonNullable<AiModelOption["iconTone"]>;
+}) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`grid size-6 shrink-0 place-items-center rounded-chip border font-mono text-sm font-bold ${gatewayModelIconClass(
+        iconTone,
+      )}`}
+    >
+      {iconLabel}
+    </span>
+  );
+}
+
+function gatewayModelIconClass(iconTone: NonNullable<AiModelOption["iconTone"]>): string {
+  const classes: Record<NonNullable<AiModelOption["iconTone"]>, string> = {
+    deepseek: "border-cyan-200 bg-cyan-50 text-cyan-700",
+    google: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    anthropic: "border-stone-200 bg-stone-50 text-stone-700",
+    minimax: "border-amber-200 bg-amber-50 text-amber-700",
+    qwen: "border-sky-200 bg-sky-50 text-sky-700",
+    zai: "border-lime-200 bg-lime-50 text-lime-700",
+    openai: "border-teal-200 bg-teal-50 text-teal-700",
+  };
+
+  return classes[iconTone];
+}
+
+function GatewayModelCostBadge({ model }: { model: AiModelOption }) {
+  const costTier = model.cost?.costTier;
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`shrink-0 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] ${gatewayModelCostBadgeClass(
+        costTier,
+      )}`}
+    >
+      {gatewayModelCostLabel(model.id)}
+    </span>
+  );
+}
+
+function gatewayModelCostBadgeClass(costTier: AiModelCostTier | undefined): string {
+  if (costTier === "low") {
+    return "bg-aura-emerald/15 text-aura-emerald";
+  }
+
+  if (costTier === "medium") {
+    return "bg-aura-amber/15 text-aura-amber";
+  }
+
+  if (costTier === "high") {
+    return "bg-aura-rose/12 text-aura-rose";
+  }
+
+  if (costTier === "very-high") {
+    return "bg-aura-ink text-white";
+  }
+
+  return "bg-white/55 text-aura-muted";
 }

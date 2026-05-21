@@ -71,7 +71,7 @@ describe("focus cases service", () => {
     expect(() => addFocusCase(seeded, extra.id)).toThrow();
   });
 
-  it("removeFocusCase frees the slot without retention penalty", () => {
+  it("removeFocusCase deducts 25 retention from an active dropped member", () => {
     const save = createSeedGameSave();
     const ids = pickInitialIds(save);
     const seeded = selectInitialFocusCases(save, ids);
@@ -82,7 +82,34 @@ describe("focus cases service", () => {
     const next = removeFocusCase(seeded, removed);
     expect(next.focusedMemberIds).not.toContain(removed);
     const member = next.members.find((candidate) => candidate.id === removed);
+    expect(member?.state.retention).toBe(100 - FOCUS_SWAP_RETENTION_PENALTY);
+    expect(member?.state.recentDateResult).toBe(
+      "Case rotated off the focus board. Client confidence fell.",
+    );
+  });
+
+  it("removeFocusCase frees a closed member slot without retention penalty", () => {
+    const save = createSeedGameSave();
+    const ids = pickInitialIds(save);
+    const removed = ids[0];
+    if (removed === undefined) {
+      throw new Error("Expected at least one focus id.");
+    }
+    const focused = selectInitialFocusCases(save, ids);
+    const seeded = {
+      ...focused,
+      members: focused.members.map((member) =>
+        member.id === removed
+          ? { ...member, state: { ...member.state, status: "closed" as const } }
+          : member,
+      ),
+    };
+    const next = removeFocusCase(seeded, removed);
+    const member = next.members.find((candidate) => candidate.id === removed);
+
+    expect(next.focusedMemberIds).not.toContain(removed);
     expect(member?.state.retention).toBe(100);
+    expect(member?.state.status).toBe("closed");
   });
 
   it("swapFocusCase deducts 25 retention from the dropped member", () => {

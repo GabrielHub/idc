@@ -65,10 +65,10 @@ describe("AI model service", () => {
       reasoningLevel: "high",
     });
 
-    expect(providerOptionsForRuntime(gatewayConfig, "google/gemini-3-flash")).toEqual({
+    expect(providerOptionsForRuntime(gatewayConfig, "google/gemini-3.1-flash-lite")).toEqual({
       google: {
         thinkingConfig: {
-          thinkingLevel: "high",
+          thinkingLevel: "medium",
           includeThoughts: false,
         },
       },
@@ -78,19 +78,17 @@ describe("AI model service", () => {
         thinking: { type: "enabled" },
       },
     });
-    expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-sonnet-4.6")).toEqual({
-      anthropic: {
-        thinking: {
-          type: "enabled",
-          budgetTokens: 12_000,
-        },
-        effort: "high",
+    expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-sonnet-4.6")).toBeUndefined();
+    expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-haiku-4.5")).toBeUndefined();
+    expect(providerOptionsForRuntime(gatewayConfig, "xai/grok-4.3")).toBeUndefined();
+    expect(providerOptionsForRuntime(gatewayConfig, "openai/gpt-5.4-nano")).toEqual({
+      openai: {
+        reasoningEffort: "none",
       },
     });
-    expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-haiku-4.5")).toBeUndefined();
   });
 
-  it("passes the full OpenAI Gateway reasoning effort set", () => {
+  it("does not pass reasoning for unsurfaced Gateway model ids", () => {
     const noneConfig = gameConfigSchema.parse({
       aiProvider: "gateway",
       reasoningLevel: "none",
@@ -100,16 +98,8 @@ describe("AI model service", () => {
       reasoningLevel: "xhigh",
     });
 
-    expect(providerOptionsForRuntime(noneConfig, "openai/gpt-5.1-thinking")).toEqual({
-      openai: {
-        reasoningEffort: "none",
-      },
-    });
-    expect(providerOptionsForRuntime(xhighConfig, "openai/gpt-5.1-codex-max")).toEqual({
-      openai: {
-        reasoningEffort: "xhigh",
-      },
-    });
+    expect(providerOptionsForRuntime(noneConfig, "openai/gpt-5.1-thinking")).toBeUndefined();
+    expect(providerOptionsForRuntime(xhighConfig, "openai/gpt-5.1-codex-max")).toBeUndefined();
   });
 
   it("scales Gateway reasoning levels for providers with a smaller native set", () => {
@@ -122,15 +112,26 @@ describe("AI model service", () => {
       reasoningLevel: "none",
     });
 
-    expect(providerOptionsForRuntime(minimalConfig, "google/gemini-3-flash")).toEqual({
+    expect(providerOptionsForRuntime(minimalConfig, "google/gemini-3.1-flash-lite")).toEqual({
       google: {
         thinkingConfig: {
-          thinkingLevel: "low",
+          thinkingLevel: "medium",
           includeThoughts: false,
         },
       },
     });
-    expect(providerOptionsForRuntime(noneConfig, "deepseek/deepseek-v4-flash")).toBeUndefined();
+    expect(providerOptionsForRuntime(noneConfig, "deepseek/deepseek-v4-flash")).toEqual({
+      deepseek: {
+        thinking: { type: "enabled" },
+      },
+    });
+    expect(providerOptionsForRuntime(noneConfig, "xai/grok-4.3")).toBeUndefined();
+    expect(providerOptionsForRuntime(noneConfig, "alibaba/qwen3.5-flash")).toEqual({
+      alibaba: {
+        enableThinking: false,
+      },
+    });
+    expect(providerOptionsForRuntime(noneConfig, "zai/glm-4.7-flash")).toBeUndefined();
   });
 
   it("does not send Gateway provider options for Ollama", () => {
@@ -139,6 +140,6 @@ describe("AI model service", () => {
       reasoningLevel: "high",
     });
 
-    expect(providerOptionsForRuntime(ollamaConfig, "google/gemini-3-flash")).toBeUndefined();
+    expect(providerOptionsForRuntime(ollamaConfig, "google/gemini-3.1-flash-lite")).toBeUndefined();
   });
 });

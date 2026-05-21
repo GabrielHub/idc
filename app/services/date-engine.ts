@@ -5,8 +5,6 @@ import {
   gameSaveSchema,
   judgeSnapshotSchema,
   memoryRecordSchema,
-  pairStatsSchema,
-  RELATIONSHIP_STATS,
   shiftReportSchema,
   shiftStateSchema,
   type ActiveDateBooking,
@@ -30,8 +28,8 @@ import {
   type PairState,
   type PairStats,
   type MemberRequest,
+  type PlayerKnowledgeRecord,
   type PlaybackState,
-  type RelationshipStat,
   type ScenarioEvent,
   type ScenarioEventKind,
   SCENARIO_EVENT_KINDS,
@@ -67,6 +65,11 @@ import {
   applyFollowUpPairMemoryEffects,
   applyJudgePairMemoryEffects,
 } from "./pair-memory";
+import {
+  applyPrimaryPairStatDeltas,
+  deriveJudgeSnapshotPairStatDeltas,
+  type PrimaryStatDeltas,
+} from "./pair-stats";
 import { derivePairTrajectory } from "./pair-trajectory";
 import {
   CLIENT_LOSS_LIMIT_BASE,
@@ -1198,6 +1201,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           updatedMembers,
           finalSession,
           getActiveShift(save).shiftNumber,
+          revealResult.save.playerKnowledge,
         );
   const shiftsAfterCompletion =
     finalSession.finalReport === undefined
@@ -1282,7 +1286,7 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
   const effects = resolveFollowUpEffects(pairState, session, input.action);
   const pairStateWithStats = {
     ...pairState,
-    stats: pairStatsSchema.parse(adjustStats(pairState.stats, effects.statDeltas)),
+    stats: applyPrimaryPairStatDeltas(pairState.stats, effects.statDeltas),
   };
   const pairMemoryResult = applyFollowUpPairMemoryEffects({
     pairState: pairStateWithStats,
@@ -1338,20 +1342,29 @@ export function completeShift(
 
   const completedDates = shiftDateSessions.filter((session) => session.status !== "active");
   const earlyEndedDates = completedDates.filter((session) => session.status === "ended_early");
-  const ignoredRequests = findIgnoredShiftRequests(activeShift, completedDates);
+  const requestOutcomes = classifyShiftRequestOutcomes(
+    save.playerKnowledge,
+    activeShift,
+    completedDates,
+  );
+  const ignoredRequests = findShiftRequestsByOutcome(requestOutcomes, "ignored");
+  const missedRequests = findShiftRequestsByOutcome(requestOutcomes, "missed");
   const goalMetrics = buildShiftGoalMetrics({
     shift: activeShift,
     dateSessions: save.dateSessions,
     members: save.members,
-    memberMoodAdjustments: buildIgnoredRequestMoodAdjustments(ignoredRequests),
+    memberMoodAdjustments: buildShiftRequestMoodAdjustments(ignoredRequests, missedRequests),
   });
   const goalResults = activeShift.companyGoalIds.map((goalId) => scoreGoal(goalId, goalMetrics));
   const deckCoverage = buildDeckCoverage({ save, shift: activeShift });
-  const penalizedMembers = applyIgnoredRequestPenalties(save.members, ignoredRequests);
+  const penalizedMembers = applyMissedRequestPenalties(
+    applyIgnoredRequestPenalties(save.members, ignoredRequests),
+    missedRequests,
+  );
   const updatedMembers = rotateMemberRequestsForShift(
     penalizedMembers,
     activeShift,
-    completedDates,
+    requestOutcomes,
   );
   const saveAfterMembers: GameSave = {
     ...save,
@@ -1395,6 +1408,7 @@ export function completeShift(
     hrNote: buildShiftHrNote({
       completedDates,
       ignoredRequests,
+      missedRequests,
       members: save.members,
     }),
     budgetReview: budgetReviewForReport,
@@ -2026,8 +2040,6 @@ export function judgeExchangeDeterministically({
     conflict: clampDelta(Math.abs(Math.min(scenarioRiskPenalty, 0))),
     weirdnessTolerance: clampDelta(scenario.card.chaos === "high" && isWarmExchange ? 3 : 1),
     spark: attractionDelta,
-    strain: clampDelta(Math.abs(Math.min(scenarioRiskPenalty + repeatPenalty, 0))),
-    relationshipHealth: clampDelta(Math.round(dateHealthDelta / 2)),
   };
   const memberMoodDeltas = deriveDeterministicMemberMoodDeltas({
     session,
@@ -2052,20 +2064,23 @@ export function judgeExchangeDeterministically({
     },
   ];
 
-  return judgeSnapshotSchema.parse({
-    id: `judge-${session.id}-${exchangeIndex}`,
-    dateSessionId: session.id,
-    exchangeIndex,
-    dateHealthDelta,
-    statDeltas,
-    memberMoodDeltas,
-    shouldEndEarly,
-    earlyEndReason: shouldEndEarly ? "Date Health reached zero." : undefined,
-    endSentiment: shouldEndEarly ? "negative" : null,
-    notableMoments: exchangeMessages.map((message) => message.text).slice(0, 2),
-    playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
-    memoryCandidates,
-  });
+  return deriveJudgeSnapshotPairStatDeltas(
+    pairState,
+    judgeSnapshotSchema.parse({
+      id: `judge-${session.id}-${exchangeIndex}`,
+      dateSessionId: session.id,
+      exchangeIndex,
+      dateHealthDelta,
+      statDeltas,
+      memberMoodDeltas,
+      shouldEndEarly,
+      earlyEndReason: shouldEndEarly ? "Date Health reached zero." : undefined,
+      endSentiment: shouldEndEarly ? "negative" : null,
+      notableMoments: exchangeMessages.map((message) => message.text).slice(0, 2),
+      playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
+      memoryCandidates,
+    }),
+  );
 }
 
 function deriveDeterministicMemberMoodDeltas({
@@ -2457,15 +2472,9 @@ export function applyJudgeToPairState(
   pairState: PairState,
   judgeSnapshot: JudgeSnapshot,
 ): PairState {
-  const nextStats = { ...pairState.stats };
-
-  for (const stat of RELATIONSHIP_STATS) {
-    nextStats[stat] = clampScore(nextStats[stat] + (judgeSnapshot.statDeltas[stat] ?? 0));
-  }
-
   return {
     ...pairState,
-    stats: pairStatsSchema.parse(nextStats),
+    stats: applyPrimaryPairStatDeltas(pairState.stats, judgeSnapshot.statDeltas),
   };
 }
 
@@ -2555,6 +2564,7 @@ export function applyDateFinalReportToMembers(
   members: Member[],
   session: DateSession,
   shiftNumber: number,
+  playerKnowledge: readonly PlayerKnowledgeRecord[],
 ): Member[] {
   const outcome = session.finalReport?.outcome;
 
@@ -2562,17 +2572,48 @@ export function applyDateFinalReportToMembers(
     return members;
   }
 
-  const afterDeltas = applyStateDeltasToMembers(members, session.participants, {
-    ...FINAL_OUTCOME_DELTAS[outcome],
-    recentDateResult: finalOutcomeMemberResult(outcome),
-  });
-  const participantIds = new Set(session.participants);
+  const baseResult = finalOutcomeMemberResult(outcome);
+  const focusMemberId = session.focusMemberId;
+  const focusRequestId = session.focusRequestId;
+  const focusAskResult =
+    focusMemberId !== undefined &&
+    focusRequestId !== undefined &&
+    session.participants.includes(focusMemberId)
+      ? `${focusAskResultPrefix(
+          focusAskOutcomeFromKnowledge(playerKnowledge, focusMemberId, focusRequestId),
+        )} ${baseResult}`
+      : undefined;
 
-  return afterDeltas.map((member) =>
-    participantIds.has(member.id)
-      ? { ...member, state: { ...member.state, lastDateShift: shiftNumber } }
-      : member,
-  );
+  const participantIds = new Set(session.participants);
+  const baseDeltas = FINAL_OUTCOME_DELTAS[outcome];
+
+  return members.map((member) => {
+    if (!participantIds.has(member.id)) {
+      return member;
+    }
+
+    const isFocus = member.id === focusMemberId;
+    const updated = applyMemberStateDeltas(member, {
+      ...baseDeltas,
+      recentDateResult: isFocus && focusAskResult !== undefined ? focusAskResult : baseResult,
+    });
+
+    return {
+      ...updated,
+      state: { ...updated.state, lastDateShift: shiftNumber },
+    };
+  });
+}
+
+function focusAskResultPrefix(outcome: "covered" | "raised" | "missed"): string {
+  switch (outcome) {
+    case "covered":
+      return "Ask covered.";
+    case "raised":
+      return "Ask raised, room blocked it.";
+    case "missed":
+      return "Booked, but the ask never landed.";
+  }
 }
 
 function applyFollowUpToMembers(
@@ -2601,17 +2642,93 @@ function applyIgnoredRequestPenalties(
 
     return applyMemberStateDeltas(member, {
       mood: -ignoredPenalty,
-      burnout: Math.ceil(ignoredPenalty / 2),
-      retention: -ignoredPenalty,
-      recentDateResult: "Request ignored. Client confidence fell.",
+      burnout: 0,
+      retention: 0,
+      recentDateResult: "Request unaddressed. Member felt skipped.",
     });
   });
+}
+
+function applyMissedRequestPenalties(
+  members: Member[],
+  missedRequests: readonly MemberRequest[],
+): Member[] {
+  return members.map((member) => {
+    const moodPenalty = missedRequests
+      .filter((request) => request.memberId === member.id)
+      .reduce((total, request) => total + missedRequestMoodPenalty(request), 0);
+
+    if (moodPenalty === 0 || !isMemberActive(member)) {
+      return member;
+    }
+
+    return {
+      ...member,
+      state: {
+        ...member.state,
+        mood: clampScore(member.state.mood - moodPenalty),
+      },
+    };
+  });
+}
+
+export type ShiftRequestAskOutcome = "covered" | "raised" | "missed" | "ignored";
+
+function focusAskOutcomeFromKnowledge(
+  playerKnowledge: readonly PlayerKnowledgeRecord[],
+  memberId: string,
+  requestId: string,
+): "covered" | "raised" | "missed" {
+  const coveredReadId = `member:${memberId}:ask-covered:${requestId}`;
+  const blockedReadId = `member:${memberId}:ask-blocked:${requestId}`;
+
+  for (const record of playerKnowledge) {
+    if (record.readId === coveredReadId) {
+      return "covered";
+    }
+    if (record.readId === blockedReadId) {
+      return "raised";
+    }
+  }
+
+  return "missed";
+}
+
+export function classifyShiftRequestOutcomes(
+  playerKnowledge: readonly PlayerKnowledgeRecord[],
+  shift: ShiftState,
+  completedDates: readonly DateSession[],
+): Map<string, ShiftRequestAskOutcome> {
+  const outcomes = new Map<string, ShiftRequestAskOutcome>();
+
+  for (const requestId of shift.memberRequestIds) {
+    outcomes.set(requestId, "ignored");
+  }
+
+  for (const session of completedDates) {
+    const requestId = session.focusRequestId;
+    if (requestId === undefined || !outcomes.has(requestId)) {
+      continue;
+    }
+
+    const request = memberRequests.find((candidate) => candidate.id === requestId);
+    if (request === undefined) {
+      continue;
+    }
+
+    outcomes.set(
+      requestId,
+      focusAskOutcomeFromKnowledge(playerKnowledge, request.memberId, requestId),
+    );
+  }
+
+  return outcomes;
 }
 
 function rotateMemberRequestsForShift(
   members: Member[],
   shift: ShiftState,
-  completedDates: readonly DateSession[],
+  outcomes: ReadonlyMap<string, ShiftRequestAskOutcome>,
 ): Member[] {
   const shiftRequestIds = new Set(shift.memberRequestIds);
   const memberIdsToRotate = new Set<string>();
@@ -2628,26 +2745,18 @@ function rotateMemberRequestsForShift(
     return members;
   }
 
-  const addressedRequestIds = new Set(
-    completedDates
-      .map((session) => session.focusRequestId)
-      .filter((requestId): requestId is string => requestId !== undefined),
-  );
-
   return members.map((member) => {
     if (!memberIdsToRotate.has(member.id) || !isMemberRetained(member)) {
       return member;
     }
 
     const currentRequestId = member.state.currentRequestId;
-    const wasAddressed =
-      currentRequestId !== undefined && addressedRequestIds.has(currentRequestId);
-    const wasIgnored =
-      currentRequestId !== undefined &&
-      shiftRequestIds.has(currentRequestId) &&
-      !addressedRequestIds.has(currentRequestId);
+    if (currentRequestId === undefined || !shiftRequestIds.has(currentRequestId)) {
+      return member;
+    }
 
-    if (!wasAddressed && !wasIgnored) {
+    const outcome = outcomes.get(currentRequestId);
+    if (outcome === undefined || outcome === "missed") {
       return member;
     }
 
@@ -2736,9 +2845,7 @@ function finalOutcomeMemberResult(outcome: DateFinalReport["outcome"]): string {
   return "Mixed date filed. Client file under review.";
 }
 
-export type PrimaryStatDeltas = Partial<
-  Record<Exclude<RelationshipStat, "relationshipHealth" | "strain">, number>
->;
+export type { PrimaryStatDeltas } from "./pair-stats";
 
 export type FollowUpEffectPreview = {
   action: FollowUpAction;
@@ -2761,7 +2868,7 @@ export function previewFollowUpEffects(
     outcome: requireFinalOutcome(session),
     statDeltas: effects.statDeltas,
     memberDeltas: effects.memberDeltas,
-    nextStats: adjustStats(pairState.stats, effects.statDeltas),
+    nextStats: applyPrimaryPairStatDeltas(pairState.stats, effects.statDeltas),
     reasons: effects.reasons,
   };
 }
@@ -2863,27 +2970,6 @@ function requireFinalOutcome(session: DateSession): DateFinalReport["outcome"] {
   return outcome;
 }
 
-function adjustStats(stats: PairStats, deltas: PrimaryStatDeltas): PairStats {
-  const nextStats = { ...stats };
-
-  for (const stat of RELATIONSHIP_STATS) {
-    if (stat === "relationshipHealth" || stat === "strain") {
-      continue;
-    }
-    nextStats[stat] = clampScore(nextStats[stat] + (deltas[stat] ?? 0));
-  }
-
-  nextStats.relationshipHealth = clampScore(
-    Math.round(
-      (nextStats.chemistry + nextStats.trust + nextStats.stability + (100 - nextStats.conflict)) /
-        4,
-    ),
-  );
-  nextStats.strain = clampScore(Math.round((nextStats.conflict + (100 - nextStats.stability)) / 2));
-
-  return pairStatsSchema.parse(nextStats);
-}
-
 function scoreGoal(goalId: string, metrics: Record<GoalMetric, number>): ShiftGoalResult {
   const goal = companyGoals.find((candidate) => candidate.id === goalId);
 
@@ -2929,24 +3015,20 @@ function findFocusRequest(shift: ShiftState, focusMemberId: string) {
   );
 }
 
-function findIgnoredShiftRequests(
-  shift: ShiftState,
-  completedDates: readonly DateSession[],
+function findShiftRequestsByOutcome(
+  outcomes: ReadonlyMap<string, ShiftRequestAskOutcome>,
+  target: ShiftRequestAskOutcome,
 ): MemberRequest[] {
-  const addressedRequestIds = new Set(
-    completedDates
-      .map((session) => session.focusRequestId)
-      .filter((requestId): requestId is string => requestId !== undefined),
-  );
-
-  return memberRequests.filter(
-    (request) =>
-      shift.memberRequestIds.includes(request.id) && !addressedRequestIds.has(request.id),
-  );
+  return memberRequests.filter((request) => outcomes.get(request.id) === target);
 }
 
-function buildIgnoredRequestMoodAdjustments(
+function missedRequestMoodPenalty(request: MemberRequest): number {
+  return Math.ceil(request.moodPenaltyIfIgnored / 2);
+}
+
+function buildShiftRequestMoodAdjustments(
   ignoredRequests: readonly MemberRequest[],
+  missedRequests: readonly MemberRequest[],
 ): Map<string, number> {
   const adjustments = new Map<string, number>();
 
@@ -2954,6 +3036,13 @@ function buildIgnoredRequestMoodAdjustments(
     adjustments.set(
       request.memberId,
       (adjustments.get(request.memberId) ?? 0) - request.moodPenaltyIfIgnored,
+    );
+  }
+
+  for (const request of missedRequests) {
+    adjustments.set(
+      request.memberId,
+      (adjustments.get(request.memberId) ?? 0) - missedRequestMoodPenalty(request),
     );
   }
 
@@ -3121,16 +3210,18 @@ type RankedOutcome = { session: DateSession; report: DateFinalReport };
 function buildShiftHrNote({
   completedDates,
   ignoredRequests,
+  missedRequests,
   members,
 }: {
   completedDates: readonly DateSession[];
   ignoredRequests: readonly MemberRequest[];
+  missedRequests: readonly MemberRequest[];
   members: readonly Member[];
 }): string {
   const ranked: RankedOutcome[] = completedDates.flatMap((session) =>
     session.finalReport === undefined ? [] : [{ session, report: session.finalReport }],
   );
-  const askLine = formatIgnoredAsksLine(ignoredRequests.length);
+  const askLine = formatShiftAskLine(ignoredRequests.length, missedRequests.length);
 
   if (ranked.length === 0) {
     return `No dates filed. ${askLine}`;
@@ -3161,11 +3252,20 @@ function buildShiftHrNote({
   return `${highlight} ${incident} ${askLine}`;
 }
 
-function formatIgnoredAsksLine(count: number): string {
-  if (count === 0) {
+function formatShiftAskLine(ignoredCount: number, missedCount: number): string {
+  if (ignoredCount === 0 && missedCount === 0) {
     return "All member asks closed.";
   }
-  return `${count} member ${count === 1 ? "ask" : "asks"} left on the floor. HR cc'd.`;
+
+  const parts: string[] = [];
+  if (ignoredCount > 0) {
+    parts.push(`${ignoredCount} ${ignoredCount === 1 ? "ask" : "asks"} left on the floor`);
+  }
+  if (missedCount > 0) {
+    parts.push(`${missedCount} booked ${missedCount === 1 ? "ask" : "asks"} never landed`);
+  }
+
+  return `${parts.join("; ")}. HR cc'd.`;
 }
 
 function formatPairNames(session: DateSession, memberById: ReadonlyMap<string, Member>): string {
@@ -3207,11 +3307,11 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
     return "second_date";
   }
 
-  if (pairState.stats.relationshipHealth >= 65) {
+  if (session.dateHealth >= 65) {
     return "second_date";
   }
 
-  if (isBadFitOutcome(pairState.stats)) {
+  if (session.dateHealth <= 25 || isBadFitOutcome(pairState.stats)) {
     return "bad_fit";
   }
 

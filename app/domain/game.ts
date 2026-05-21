@@ -9,6 +9,13 @@ export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+const CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL = "google/gemini-3.1-flash-lite";
+const LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS: Record<string, string> = {
+  "google/gemini-3-flash": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
+  "google/gemini-3.1-flash-lite-preview": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
+  "moonshotai/kimi-k2.5": DEFAULT_GATEWAY_CHAT_MODEL,
+  "xai/grok-4.3": DEFAULT_GATEWAY_CHAT_MODEL,
+};
 
 export const memberIdSchema = z.string().min(1);
 export const scenarioIdSchema = z.string().min(1);
@@ -853,25 +860,51 @@ function toGameConfigInput(value: unknown): unknown {
     aiProvider === "ollama" ? DEFAULT_OLLAMA_EMBEDDING_MODEL : DEFAULT_GATEWAY_EMBEDDING_MODEL;
   const defaultChatModel =
     aiProvider === "ollama" ? DEFAULT_OLLAMA_CHAT_MODEL : DEFAULT_GATEWAY_CHAT_MODEL;
+  const chatModel = normalizeChatModel(
+    aiProvider,
+    typeof record.chatModel === "string"
+      ? record.chatModel
+      : (legacyPerformerModel ?? defaultChatModel),
+  );
 
   return {
     ...record,
     aiProvider,
-    chatModel:
-      typeof record.chatModel === "string"
-        ? record.chatModel
-        : (legacyPerformerModel ?? defaultChatModel),
+    chatModel,
     embeddingModel: legacyEmbeddingModel ?? defaultEmbeddingModel,
-    reasoningLevel:
-      typeof record.reasoningLevel === "string"
-        ? record.reasoningLevel
-        : aiProvider === "ollama"
-          ? "off"
-          : "medium",
+    reasoningLevel: normalizeReasoningLevel(aiProvider, chatModel, record.reasoningLevel),
     ollamaBaseURL:
       typeof record.ollamaBaseURL === "string" ? record.ollamaBaseURL : DEFAULT_OLLAMA_BASE_URL,
     gatewayBaseURL: normalizeGatewayBaseURL(record.gatewayBaseURL),
   };
+}
+
+function normalizeChatModel(aiProvider: unknown, modelId: string): string {
+  if (aiProvider !== "gateway") {
+    return modelId;
+  }
+
+  return LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS[modelId] ?? modelId;
+}
+
+function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: unknown): string {
+  if (aiProvider !== "gateway") {
+    return typeof value === "string" ? value : "off";
+  }
+
+  if (chatModel === DEFAULT_GATEWAY_CHAT_MODEL) {
+    return "high";
+  }
+
+  if (chatModel === CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL) {
+    return "medium";
+  }
+
+  if (chatModel === "openai/gpt-5.4-nano") {
+    return "none";
+  }
+
+  return "off";
 }
 
 function normalizeGatewayBaseURL(value: unknown): string {

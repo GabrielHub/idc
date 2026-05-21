@@ -2,9 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   dateMessageSchema,
+  dateSessionSchema,
+  gameSaveSchema,
   judgeSnapshotSchema,
   memoryCandidateSchema,
   memoryRecordSchema,
+  pairStateSchema,
 } from "../domain/game";
 import { LocalGameRepository } from "../repositories/local-game-repository";
 import { MemorySaveStore } from "../repositories/memory-save-store";
@@ -26,6 +29,7 @@ import { OPEN_LOOP_TAG, PAIR_AGREEMENT_TAG } from "./pair-memory";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { createDeterministicEmbedding } from "./vector-memory";
 import type { CharacterPromptPacket } from "./date-prompts";
+import { getPairProjectionFromSave } from "./relationship-index";
 
 describe("AI date text sanitation", () => {
   it("removes bare action narration while keeping spoken text", () => {
@@ -319,7 +323,7 @@ describe("AI date engine orchestration", () => {
 
         if (url.endsWith("/v1/models")) {
           return Response.json({
-            data: [{ id: "google/gemini-3-flash", tags: ["vision", "file-input"] }],
+            data: [{ id: "google/gemini-3.1-flash-lite", tags: ["vision", "file-input"] }],
           });
         }
 
@@ -405,7 +409,7 @@ describe("AI date engine orchestration", () => {
         config: {
           ...started.save.config,
           aiProvider: "gateway",
-          chatModel: "google/gemini-3-flash",
+          chatModel: "google/gemini-3.1-flash-lite",
         },
         now: new Date("2026-05-05T12:02:00.000Z"),
       });
@@ -2033,6 +2037,123 @@ describe("AI date engine orchestration", () => {
     expect(result.session.finalReport?.outcome).toBe("early_end");
     expect(updatedMember?.state.status).toBe("quit");
     expect(result.save.budgetCap).toBe(runningSave.budgetCap + MEMBER_QUIT_BUDGET_CUT);
+    expect(
+      result.save.budgetHistory.some((entry) =>
+        entry.reasons.some(
+          (reason) => reason.kind === "member_quit" && reason.label === "Jenna closed their file",
+        ),
+      ),
+    ).toBe(true);
+  });
+
+  it("records a budget cut when natural completion makes a participant quit", async () => {
+    const repository = new LocalGameRepository(
+      new MemorySaveStore(),
+      "ai-natural-completion-budget-cut-test",
+    );
+    let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    save = {
+      ...save,
+      config: {
+        ...save.config,
+        defaultDateMessageLimit: 2,
+      },
+    };
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const pairState = getPairProjectionFromSave(started.save, started.session.pairId);
+
+    if (pairState === undefined) {
+      throw new Error("Expected started pair projection.");
+    }
+
+    const weakPair = pairStateSchema.parse({
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        chemistry: 10,
+        trust: 10,
+        stability: 30,
+        relationshipHealth: 20,
+        conflict: 50,
+        strain: 60,
+      },
+    });
+    const lowHealthSession = dateSessionSchema.parse({
+      ...started.session,
+      dateHealth: 50,
+    });
+    const fragileSave = gameSaveSchema.parse({
+      ...started.save,
+      members: started.save.members.map((member) =>
+        member.id === "jenna-pike"
+          ? { ...member, state: { ...member.state, retention: 14 } }
+          : member,
+      ),
+      pairStates: [
+        ...started.save.pairStates.filter((candidate) => candidate.id !== weakPair.id),
+        weakPair,
+      ],
+      dateSessions: started.save.dateSessions.map((candidate) =>
+        candidate.id === lowHealthSession.id ? lowHealthSession : candidate,
+      ),
+    });
+    const runtime: LocalAiDateRuntime = {
+      generateCharacterTurn: async ({ packet }) => ({
+        text: packet.prompt.includes("You are Jenna Pike")
+          ? "Jenna asks a grounded coffee question."
+          : "Vhool answers without recruiting anyone.",
+        providerMode: "ollama",
+        model: "fake-performer",
+        stepCount: 1,
+        toolCallCount: 0,
+        toolResultCount: 0,
+      }),
+      judgeDateExchange: async ({ dateSessionId, exchangeIndex }) =>
+        judgeSnapshotSchema.parse({
+          id: `judge-${dateSessionId}-${exchangeIndex}`,
+          dateSessionId,
+          exchangeIndex,
+          dateHealthDelta: 0,
+          statDeltas: {},
+          memberMoodDeltas: {},
+          shouldEndEarly: false,
+          notableMoments: ["Cupid filed a weak final read."],
+          playerSummary: "Cupid filed a weak final read.",
+          memoryCandidates: [],
+        }),
+      summarizeDateMemories: async () => [],
+      embedMemoryText: async ({ text }) => {
+        const embedding = createDeterministicEmbedding(text);
+
+        return {
+          embedding,
+          model: "fake-embedding",
+          dimensions: embedding.length,
+        };
+      },
+    };
+    await repository.saveGame(fragileSave);
+
+    const result = await completeDateSessionWithLocalAi(fragileSave, repository, {
+      dateSessionId: started.session.id,
+      runtime,
+      config: fragileSave.config,
+      now: new Date("2026-05-05T12:02:00.000Z"),
+    });
+    const updatedMember = result.save.members.find((member) => member.id === "jenna-pike");
+
+    expect(result.session.status).toBe("completed");
+    expect(result.session.finalReport?.outcome).toBe("bad_fit");
+    expect(updatedMember?.state.status).toBe("quit");
+    expect(result.save.budgetCap).toBe(fragileSave.budgetCap + MEMBER_QUIT_BUDGET_CUT);
     expect(
       result.save.budgetHistory.some((entry) =>
         entry.reasons.some(

@@ -487,7 +487,10 @@ describe("applyMatchFitToJudgeSnapshot", () => {
 
     expect(fit.boundaryRisk).not.toBeNull();
     expect(result.dateHealthDelta).toBe(5);
-    expect(result.statDeltas).toEqual(judgeSnapshot.statDeltas);
+    expect(result.statDeltas.relationshipHealth).not.toBe(
+      judgeSnapshot.statDeltas.relationshipHealth,
+    );
+    expect(result.statDeltas.trust).toBe(judgeSnapshot.statDeltas.trust);
     expect(result.memberMoodDeltas).toEqual(judgeSnapshot.memberMoodDeltas);
     expect(result.shouldEndEarly).toBe(false);
   });
@@ -528,7 +531,8 @@ describe("applyMatchFitToJudgeSnapshot", () => {
       exchangeIndex: 0,
       dateHealthDelta: -10,
       statDeltas: {
-        conflict: 4,
+        conflict: 12,
+        stability: -12,
         strain: 5,
         relationshipHealth: -7,
       },
@@ -551,7 +555,8 @@ describe("applyMatchFitToJudgeSnapshot", () => {
     });
 
     expect(result.dateHealthDelta).toBe(-10);
-    expect(result.statDeltas).toEqual(judgeSnapshot.statDeltas);
+    expect(result.statDeltas.strain).not.toBe(judgeSnapshot.statDeltas.strain);
+    expect(result.statDeltas.conflict).toBe(judgeSnapshot.statDeltas.conflict);
     expect(result.memberMoodDeltas).toEqual(judgeSnapshot.memberMoodDeltas);
     expect(result.shouldEndEarly).toBe(true);
     expect(result.earlyEndReason).toBe("Member boundary crossed walkout threshold.");

@@ -1,0 +1,108 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-05-21T20:29:01.381Z",
+  "pricingSource": "Vercel AI Gateway model pages",
+  "benchmark": {
+    "kind": "gateway-cost-smoke-date-chat",
+    "memberIds": ["jenna-pike", "vhool"],
+    "scenarioId": "temporal-coffee-shop",
+    "turnCount": 4,
+    "dateHealth": 62,
+    "spark": 55,
+    "strain": 24,
+    "includeCurrentAsk": true
+  },
+  "models": {
+    "deepseek/deepseek-v4-flash": {
+      "inputUsdPerMillionTokens": 0.14,
+      "outputUsdPerMillionTokens": 0.28,
+      "costTier": "medium",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:02:15.363Z",
+        "inputTokens": 1655,
+        "outputTokens": 463,
+        "totalTokens": 2118,
+        "estimatedUsd": 0.00036134,
+        "elapsedMs": 9297
+      }
+    },
+    "google/gemini-3.1-flash-lite": {
+      "inputUsdPerMillionTokens": 0.25,
+      "outputUsdPerMillionTokens": 1.5,
+      "costTier": "very-high",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:02:15.363Z",
+        "inputTokens": 1527,
+        "outputTokens": 864,
+        "totalTokens": 2391,
+        "estimatedUsd": 0.00167775,
+        "elapsedMs": 6822
+      }
+    },
+    "anthropic/claude-haiku-4.5": {
+      "inputUsdPerMillionTokens": 1,
+      "outputUsdPerMillionTokens": 5,
+      "costTier": "very-high",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:02:15.363Z",
+        "inputTokens": 1905,
+        "outputTokens": 168,
+        "totalTokens": 2073,
+        "estimatedUsd": 0.002745,
+        "elapsedMs": 6008
+      }
+    },
+    "minimax/minimax-m2.7": {
+      "inputUsdPerMillionTokens": 0.3,
+      "outputUsdPerMillionTokens": 1.2,
+      "costTier": "high",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:02:15.363Z",
+        "inputTokens": 1541,
+        "outputTokens": 880,
+        "totalTokens": 2421,
+        "estimatedUsd": 0.0015183,
+        "elapsedMs": 12728
+      }
+    },
+    "alibaba/qwen3.5-flash": {
+      "inputUsdPerMillionTokens": 0.1,
+      "outputUsdPerMillionTokens": 0.4,
+      "costTier": "low",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:29:01.381Z",
+        "inputTokens": 1759,
+        "outputTokens": 113,
+        "totalTokens": 1872,
+        "estimatedUsd": 0.0002211,
+        "elapsedMs": 6470
+      }
+    },
+    "zai/glm-4.7-flash": {
+      "inputUsdPerMillionTokens": 0.07,
+      "outputUsdPerMillionTokens": 0.4,
+      "costTier": "low",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:24:10.640Z",
+        "inputTokens": 1591,
+        "outputTokens": 78,
+        "totalTokens": 1669,
+        "estimatedUsd": 0.00014257,
+        "elapsedMs": 1551
+      }
+    },
+    "openai/gpt-5.4-nano": {
+      "inputUsdPerMillionTokens": 0.2,
+      "outputUsdPerMillionTokens": 1.25,
+      "costTier": "medium",
+      "benchmark": {
+        "measuredAt": "2026-05-21T20:27:22.863Z",
+        "inputTokens": 1724,
+        "outputTokens": 165,
+        "totalTokens": 1889,
+        "estimatedUsd": 0.00055105,
+        "elapsedMs": 5559
+      }
+    }
+  }
+}

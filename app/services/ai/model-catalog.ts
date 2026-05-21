@@ -7,13 +7,35 @@ import {
   type AiReasoningLevel,
   type GameConfig,
 } from "../../domain/game";
+import gatewayModelCostsJson from "../../fixtures/gateway-model-costs.json";
+
+export type AiModelCostTier = "low" | "medium" | "high" | "very-high";
+
+export type GatewayModelBenchmark = {
+  measuredAt: string;
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+  estimatedUsd: number;
+  elapsedMs: number;
+};
+
+export type GatewayModelCost = {
+  inputUsdPerMillionTokens: number;
+  outputUsdPerMillionTokens: number;
+  costTier: AiModelCostTier;
+  benchmark: GatewayModelBenchmark | null;
+};
 
 export type AiModelOption = {
   id: string;
   label: string;
   provider: AiProvider;
+  iconLabel?: string;
+  iconTone?: "deepseek" | "google" | "anthropic" | "minimax" | "qwen" | "zai" | "openai";
   recommendedReasoningLevel: AiReasoningLevel;
   reasoningSupported: boolean;
+  cost: GatewayModelCost | null;
 };
 
 export type AiReasoningLevelOption = {
@@ -36,16 +58,24 @@ export type GpuRecommendationProfile = {
   modelIds: string[];
 };
 
+type GatewayModelCostCatalog = {
+  models: Record<string, GatewayModelCost | undefined>;
+};
+
+const gatewayModelCosts = gatewayModelCostsJson as GatewayModelCostCatalog;
+
 const REASONING_DISABLED_GATEWAY_MODEL_IDS = new Set([
   "anthropic/claude-haiku-4.5",
-  "moonshotai/kimi-k2.5",
+  "minimax/minimax-m2.7",
+  "alibaba/qwen3.5-flash",
+  "zai/glm-4.7-flash",
 ]);
 
 const GATEWAY_IMAGE_INPUT_MODEL_IDS = new Set([
-  "google/gemini-3-flash",
-  "google/gemini-3.1-flash-lite-preview",
+  "google/gemini-3.1-flash-lite",
   "anthropic/claude-haiku-4.5",
-  "moonshotai/kimi-k2.5",
+  "alibaba/qwen3.5-flash",
+  "openai/gpt-5.4-nano",
 ]);
 
 const OLLAMA_IMAGE_INPUT_MODEL_PREFIXES = ["gemma4"] as const;
@@ -72,36 +102,71 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "deepseek/deepseek-v4-flash",
     label: "DeepSeek V4 Flash",
     provider: "gateway",
-    recommendedReasoningLevel: "medium",
+    iconLabel: "D",
+    iconTone: "deepseek",
+    recommendedReasoningLevel: "high",
     reasoningSupported: true,
+    cost: gatewayModelCost("deepseek/deepseek-v4-flash"),
   },
   {
-    id: "google/gemini-3-flash",
-    label: "Gemini 3 Flash",
+    id: "google/gemini-3.1-flash-lite",
+    label: "Gemini 3.1 Flash Lite",
     provider: "gateway",
+    iconLabel: "G",
+    iconTone: "google",
     recommendedReasoningLevel: "medium",
     reasoningSupported: true,
-  },
-  {
-    id: "google/gemini-3.1-flash-lite-preview",
-    label: "Gemini 3.1 Flash Lite Preview",
-    provider: "gateway",
-    recommendedReasoningLevel: "medium",
-    reasoningSupported: true,
+    cost: gatewayModelCost("google/gemini-3.1-flash-lite"),
   },
   {
     id: "anthropic/claude-haiku-4.5",
     label: "Claude Haiku 4.5",
     provider: "gateway",
+    iconLabel: "C",
+    iconTone: "anthropic",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
+    cost: gatewayModelCost("anthropic/claude-haiku-4.5"),
   },
   {
-    id: "moonshotai/kimi-k2.5",
-    label: "Kimi K2.5",
+    id: "minimax/minimax-m2.7",
+    label: "MiniMax M2.7",
     provider: "gateway",
+    iconLabel: "M",
+    iconTone: "minimax",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
+    cost: gatewayModelCost("minimax/minimax-m2.7"),
+  },
+  {
+    id: "alibaba/qwen3.5-flash",
+    label: "Qwen 3.5 Flash",
+    provider: "gateway",
+    iconLabel: "Q",
+    iconTone: "qwen",
+    recommendedReasoningLevel: "off",
+    reasoningSupported: false,
+    cost: gatewayModelCost("alibaba/qwen3.5-flash"),
+  },
+  {
+    id: "zai/glm-4.7-flash",
+    label: "GLM 4.7 Flash",
+    provider: "gateway",
+    iconLabel: "Z",
+    iconTone: "zai",
+    recommendedReasoningLevel: "off",
+    reasoningSupported: false,
+    cost: gatewayModelCost("zai/glm-4.7-flash"),
+  },
+  {
+    id: "openai/gpt-5.4-nano",
+    label: "GPT 5.4 Nano",
+    provider: "gateway",
+    iconLabel: "O",
+    iconTone: "openai",
+    recommendedReasoningLevel: "none",
+    reasoningSupported: true,
+    cost: gatewayModelCost("openai/gpt-5.4-nano"),
   },
 ];
 
@@ -112,6 +177,7 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     provider: "ollama",
     recommendedReasoningLevel: "off",
     reasoningSupported: true,
+    cost: null,
   },
   {
     id: "gemma4:e4b",
@@ -119,6 +185,7 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     provider: "ollama",
     recommendedReasoningLevel: "off",
     reasoningSupported: true,
+    cost: null,
   },
   {
     id: "gemma4:26b",
@@ -126,6 +193,7 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
     provider: "ollama",
     recommendedReasoningLevel: "off",
     reasoningSupported: true,
+    cost: null,
   },
 ];
 
@@ -168,7 +236,7 @@ export function modelDefaultsForProvider(
       aiProvider: provider,
       chatModel: DEFAULT_GATEWAY_CHAT_MODEL,
       embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
-      reasoningLevel: "medium",
+      reasoningLevel: "high",
     };
   }
 
@@ -186,17 +254,80 @@ export function gatewayModelOption(modelId: string): AiModelOption | undefined {
 
 export function gatewayReasoningLevelForModel(
   modelId: string,
-  requestedLevel: AiReasoningLevel,
+  _requestedLevel: AiReasoningLevel,
 ): AiReasoningLevel {
-  if (!gatewayReasoningSupported(modelId)) {
-    return "off";
-  }
-
-  return requestedLevel;
+  return gatewayLockedReasoningLevelForModel(modelId);
 }
 
 export function gatewayReasoningSupported(modelId: string): boolean {
   return !REASONING_DISABLED_GATEWAY_MODEL_IDS.has(modelId);
+}
+
+export function gatewayLockedReasoningLevelForModel(modelId: string): AiReasoningLevel {
+  return gatewayModelOption(modelId)?.recommendedReasoningLevel ?? "off";
+}
+
+export function gatewayModelCost(modelId: string): GatewayModelCost | null {
+  return gatewayModelCosts.models[modelId] ?? null;
+}
+
+export function gatewayModelCostLabel(modelId: string): string {
+  const cost = gatewayModelCost(modelId);
+
+  if (cost === null) {
+    return "$ ?";
+  }
+
+  if (cost.benchmark !== null) {
+    return `${costTierGlyph(cost.costTier)} ${formatEstimatedUsd(cost.benchmark.estimatedUsd)}/run`;
+  }
+
+  return `${costTierGlyph(cost.costTier)} est.`;
+}
+
+export function estimateGatewayRunCostUsd({
+  modelId,
+  inputTokens,
+  outputTokens,
+}: {
+  modelId: string;
+  inputTokens: number;
+  outputTokens: number;
+}): number | undefined {
+  const cost = gatewayModelCost(modelId);
+
+  if (cost === null) {
+    return undefined;
+  }
+
+  return (
+    (inputTokens * cost.inputUsdPerMillionTokens) / 1_000_000 +
+    (outputTokens * cost.outputUsdPerMillionTokens) / 1_000_000
+  );
+}
+
+function costTierGlyph(costTier: AiModelCostTier): "$" | "$$" | "$$$" | "$$$$" {
+  if (costTier === "low") {
+    return "$";
+  }
+
+  if (costTier === "medium") {
+    return "$$";
+  }
+
+  if (costTier === "high") {
+    return "$$$";
+  }
+
+  return "$$$$";
+}
+
+function formatEstimatedUsd(value: number): string {
+  if (value < 0.01) {
+    return `$${value.toFixed(4)}`;
+  }
+
+  return `$${value.toFixed(2)}`;
 }
 
 export function gatewayImageInputSupported(modelId: string): boolean {

@@ -360,14 +360,17 @@ describe("IDC playable smoke path", () => {
       ...pairProjection,
       stats: {
         ...pairProjection.stats,
-        chemistry: 20,
-        trust: 20,
-        relationshipHealth: 20,
-        conflict: 75,
+        chemistry: 10,
+        trust: 15,
+        stability: 20,
+        conflict: 85,
+        strain: 83,
+        relationshipHealth: 15,
       },
     });
     const shortSession = dateSessionSchema.parse({
       ...started.session,
+      dateHealth: 45,
       turnLimit: 2,
     });
     const fragileSave = gameSaveSchema.parse({

@@ -1,12 +1,73 @@
 import { describe, expect, it } from "vitest";
 
-import { dateSessionSchema, type DateMessage } from "../domain/game";
+import { dateSessionSchema, pairStateSchema, type DateMessage } from "../domain/game";
 import { starterScenarios } from "../fixtures";
-import { applyJudgeToPrivateDateState, judgeExchangeDeterministically } from "./date-engine";
+import {
+  applyJudgeToPrivateDateState,
+  finalizeDateSession,
+  judgeExchangeDeterministically,
+} from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { getPairProjectionFromSave } from "./relationship-index";
 
 describe("date engine member state", () => {
+  it("uses final Date Health for visible outcome thresholds", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      jenna === undefined ||
+      vhool === undefined ||
+      scenario === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected date outcome fixture setup.");
+    }
+
+    const session = dateSessionSchema.parse({
+      id: "date-visible-health-outcome-test",
+      pairId: pairState.id,
+      scenarioId: scenario.id,
+      turnLimit: 2,
+      currentTurn: 2,
+      dateHealth: 20,
+      status: "completed",
+      runtimeMode: "local_ai",
+      participants: [jenna.id, vhool.id],
+      transcript: [],
+      privateStateByCharacter: {
+        [jenna.id]: { mood: 60, comfort: 60, intent: "trying" },
+        [vhool.id]: { mood: 60, comfort: 60, intent: "trying" },
+      },
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: [] },
+      eventsTriggered: [],
+      playbackState: "ended",
+      endSentiment: null,
+      interventions: [],
+    });
+    const warmHiddenPair = pairStateSchema.parse({
+      ...pairState,
+      stats: {
+        ...pairState.stats,
+        relationshipHealth: 80,
+      },
+    });
+    const report = finalizeDateSession({
+      session,
+      pairState: warmHiddenPair,
+      members: [jenna, vhool],
+      scenario,
+      completedAt: "2026-05-05T12:02:00.000Z",
+    }).finalReport;
+
+    expect(report?.outcome).toBe("bad_fit");
+    expect(report?.recommendedFollowUp).toBe("mark_bad_fit");
+  });
+
   it("can produce asymmetric member mood deltas from deterministic evidence", () => {
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const mira = save.members.find((member) => member.id === "mira-park");

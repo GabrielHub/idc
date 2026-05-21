@@ -11,6 +11,7 @@ import {
   type PlayerKnowledgeRecord,
 } from "../domain/game";
 import { makePairId } from "./game-seed";
+import { deriveJudgeSnapshotPairStatDeltas } from "./pair-stats";
 import { clamp } from "./utils";
 
 export type MatchFitLevel = "strong" | "neutral" | "risky";
@@ -940,10 +941,12 @@ export function buildPublicRiskNotes({
 }
 
 export function applyMatchFitToJudgeSnapshot(input: ApplyMatchFitToJudgeInput): JudgeSnapshot {
+  const judgeSnapshot = deriveJudgeSnapshotPairStatDeltas(input.pairState, input.judgeSnapshot);
+
   return applyWalkoutEscalation({
     session: input.session,
     pairState: input.pairState,
-    judgeSnapshot: input.judgeSnapshot,
+    judgeSnapshot,
   });
 }
 

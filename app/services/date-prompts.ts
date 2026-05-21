@@ -938,12 +938,12 @@ export function buildJudgePromptPacket({
         "<output_format>",
         "Return JSON only. No Markdown, comments, or prose outside JSON.",
         "Do not use em dashes or en dashes in any string.",
-        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"strain":0,"relationshipHealth":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[],"agreementCandidates":[],"agreementUpdates":[],"openLoopCandidates":[],"openLoopUpdates":[]}`,
+        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"conflict":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[],"agreementCandidates":[],"agreementUpdates":[],"openLoopCandidates":[],"openLoopUpdates":[]}`,
         "</output_format>",
         "",
         "<field_rules>",
         "- dateHealthDelta must be an integer from -18 to 14.",
-        "- statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, spark, strain, and relationshipHealth. Each value must be an integer from -8 to 8.",
+        "- statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, and spark. Each value must be an integer from -8 to 8. Do not set strain or relationshipHealth; Cupid derives them from the other pair stats.",
         `- memberMoodDeltas must include exactly these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         isPlayerCutShort
           ? "- shouldEndEarly is true only when the transcript requires the date to stop even without Cupid cutting it short."
@@ -979,7 +979,7 @@ export function buildJudgePromptPacket({
         "- Positive memberMoodDeltas attach to the member who personally seems warmed, amused, attracted, reassured, or leaning in.",
         "- Negative memberMoodDeltas attach to the member who seems confused, guarded, embarrassed, angry, or overloaded.",
         "- Use 0 for a member when the exchange gives no specific evidence that their affect changed. One member can be warmed while the other is guarded; the two scores can diverge.",
-        "- Raise conflict or strain when the exchange creates irritation, pressure, public discomfort, or a boundary crossing.",
+        "- Raise conflict when the exchange creates irritation, pressure, public discomfort, or a boundary crossing. Lower stability when the pressure makes the pair less steady.",
         "- When an early end trigger is visibly met, set shouldEndEarly true even when Date Health remains above zero.",
         "</scoring_guidance>",
         "",
