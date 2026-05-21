@@ -16,6 +16,7 @@ import { getPairProjectionFromSave } from "./relationship-index";
 import {
   MEMBER_PLAYER_VISIBILITY_CONTRACT,
   applyJudgeReveals,
+  buildAskEvidenceId,
   buildJudgeRevealCandidatePacket,
   buildRevealCandidates,
   buildVisibleMemberProfile,
@@ -343,6 +344,48 @@ describe("buildRevealCandidates", () => {
       `${member.firstName}'s current ask is blocked in this room.`,
     );
     expect(askCandidate?.readText).toMatch(/dealbreaker|destiny|stage|pressure|memory/i);
+  });
+
+  it("keeps ask candidates available when the same ask read is already known", () => {
+    const seed = createSeedGameSave(SEED_DATE);
+    const member = findMember(seed, "opal-sunday");
+    const partner = findMember(seed, "bai-wenshu");
+    const scenario = findScenario("prophecy-karaoke");
+    const pairState = getPairProjectionFromSave(seed, makePairId(member.id, partner.id))!;
+    const focusRequest = memberRequests.find((request) => request.memberId === member.id);
+
+    if (focusRequest === undefined) {
+      throw new Error("Expected a member request.");
+    }
+
+    const matchFit = evaluateMatchFit({
+      members: [member, partner],
+      scenario,
+      pairState,
+      activeRequests: [focusRequest],
+    });
+    const askEvidenceId = buildAskEvidenceId(member.id, focusRequest.id, "blocked");
+    const knownAsk: PlayerKnowledgeRecord = {
+      id: `${askEvidenceId}:prior-judge`,
+      subjectKind: "member",
+      subjectId: member.id,
+      readKind: "ask",
+      readId: askEvidenceId,
+      readText: "Prior ask read.",
+      confidence: "filed",
+      source: "judge",
+      revealedAt: SEED_DATE.toISOString(),
+    };
+    const candidates = buildRevealCandidates({
+      members: [member, partner],
+      scenario,
+      pairState,
+      matchFit,
+      focusRequest,
+      knownReads: [knownAsk],
+    });
+
+    expect(candidates.some((candidate) => candidate.id === askEvidenceId)).toBe(true);
   });
 
   it("pair rule hits produce pair dynamic candidates", () => {

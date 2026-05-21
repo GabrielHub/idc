@@ -466,6 +466,7 @@ export const pairAgreementSchema = z.object({
   sourceDateSessionId: dateSessionIdSchema.optional(),
   sourceJudgeSnapshotId: z.string().min(1).optional(),
   createdAt: z.string().min(1),
+  strainedAt: z.string().min(1).optional(),
   resolvedAt: z.string().min(1).optional(),
 });
 
@@ -478,6 +479,7 @@ export const openLoopSchema = z.object({
   sourceDateSessionId: dateSessionIdSchema.optional(),
   sourceJudgeSnapshotId: z.string().min(1).optional(),
   createdAt: z.string().min(1),
+  strainedAt: z.string().min(1).optional(),
   resolvedAt: z.string().min(1).optional(),
 });
 
@@ -799,6 +801,8 @@ export const deckCoverageEntrySchema = z.object({
   label: z.string().min(1),
 });
 
+export const shiftRequestAskOutcomeSchema = z.enum(["covered", "raised", "missed", "ignored"]);
+
 export const shiftReportSchema = z.object({
   id: z.string().min(1),
   shiftId: z.string().min(1),
@@ -808,7 +812,9 @@ export const shiftReportSchema = z.object({
   ordinaryNonHumanDates: z.number().int().min(0),
   memberMoodDelta: z.number().int(),
   goalResults: z.array(shiftGoalResultSchema),
-  ignoredRequestIds: z.array(z.string().min(1)),
+  // Legacy field retained for back-compat read of old saves. New code writes requestOutcomes.
+  ignoredRequestIds: z.array(z.string().min(1)).default([]),
+  requestOutcomes: z.record(z.string().min(1), shiftRequestAskOutcomeSchema).default({}),
   offeredScenarioIds: z.array(scenarioIdSchema),
   summary: z.string().min(1),
   hrNote: z.string().min(1).optional(),
@@ -1090,6 +1096,7 @@ export type DeckCoverageEntry = z.infer<typeof deckCoverageEntrySchema>;
 export type MemberLifecycleStatus = z.infer<typeof memberLifecycleStatusSchema>;
 export type GoalScoreStatus = z.infer<typeof goalScoreStatusSchema>;
 export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
+export type ShiftRequestAskOutcome = z.infer<typeof shiftRequestAskOutcomeSchema>;
 export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftState = z.infer<typeof shiftStateSchema>;
 export type AiProvider = z.infer<typeof aiProviderSchema>;

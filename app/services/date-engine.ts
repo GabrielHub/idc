@@ -28,7 +28,6 @@ import {
   type PairState,
   type PairStats,
   type MemberRequest,
-  type PlayerKnowledgeRecord,
   type PlaybackState,
   type ScenarioEvent,
   type ScenarioEventKind,
@@ -36,23 +35,18 @@ import {
   type ScenarioTag,
   type ShiftGoalResult,
   type ShiftReport,
+  type ShiftRequestAskOutcome,
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import {
-  buildPairProjection,
   findMemberInSave,
   getActiveShift,
   makePairId,
   normalizeStarterScenarioId,
 } from "./game-seed";
 import { getPairProjectionFromSave, materializePairEdge } from "./relationship-index";
-import {
-  applyMatchFitToJudgeSnapshot,
-  evaluateMatchFit,
-  scenarioRoomReadFromMatchFit,
-  type MatchFitResult,
-} from "./match-fit";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, type MatchFitResult } from "./match-fit";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
@@ -95,6 +89,15 @@ import {
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
 import {
+  assessShiftRequests,
+  classifyFocusAskOutcomeFromSession,
+  classifyShiftRequestOutcomes,
+  deriveHotRequestId,
+  missedRequestMoodPenalty,
+  recentRequestFulfillmentRate,
+  type ShiftRequestAssessment,
+} from "./shift-request-assessment";
+import {
   clamp,
   clampDelta,
   clampScore,
@@ -108,6 +111,7 @@ import {
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
 export { PERFORMANCE_REVIEW_INTERVAL } from "./budget";
+export { classifyShiftRequestOutcomes, deriveHotRequestId, recentRequestFulfillmentRate };
 
 export type StartDateInput = {
   focusMemberId: string;
@@ -1201,7 +1205,6 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           updatedMembers,
           finalSession,
           getActiveShift(save).shiftNumber,
-          revealResult.save.playerKnowledge,
         );
   const shiftsAfterCompletion =
     finalSession.finalReport === undefined
@@ -1342,29 +1345,23 @@ export function completeShift(
 
   const completedDates = shiftDateSessions.filter((session) => session.status !== "active");
   const earlyEndedDates = completedDates.filter((session) => session.status === "ended_early");
-  const requestOutcomes = classifyShiftRequestOutcomes(
-    save.playerKnowledge,
-    activeShift,
-    completedDates,
-  );
-  const ignoredRequests = findShiftRequestsByOutcome(requestOutcomes, "ignored");
-  const missedRequests = findShiftRequestsByOutcome(requestOutcomes, "missed");
+  const requestAssessment = assessShiftRequests({ shift: activeShift, completedDates });
   const goalMetrics = buildShiftGoalMetrics({
     shift: activeShift,
     dateSessions: save.dateSessions,
     members: save.members,
-    memberMoodAdjustments: buildShiftRequestMoodAdjustments(ignoredRequests, missedRequests),
+    memberMoodAdjustments: requestAssessment.moodAdjustments,
   });
   const goalResults = activeShift.companyGoalIds.map((goalId) => scoreGoal(goalId, goalMetrics));
   const deckCoverage = buildDeckCoverage({ save, shift: activeShift });
   const penalizedMembers = applyMissedRequestPenalties(
-    applyIgnoredRequestPenalties(save.members, ignoredRequests),
-    missedRequests,
+    applyIgnoredRequestPenalties(save.members, requestAssessment.penaltyRequests.ignored),
+    requestAssessment.penaltyRequests.missed,
   );
   const updatedMembers = rotateMemberRequestsForShift(
     penalizedMembers,
     activeShift,
-    requestOutcomes,
+    requestAssessment.outcomes,
   );
   const saveAfterMembers: GameSave = {
     ...save,
@@ -1376,7 +1373,42 @@ export function completeShift(
     shift: activeShift.shiftNumber,
   });
 
-  let saveWithBudgetReview = saveAfterQuitCuts;
+  const buildReport = (budgetReview?: ShiftReport["budgetReview"]): ShiftReport =>
+    shiftReportSchema.parse({
+      id: `report-${activeShift.id}`,
+      shiftId: activeShift.id,
+      completedAt: timestamp,
+      completedDates: completedDates.length,
+      earlyEndedDates: earlyEndedDates.length,
+      ordinaryNonHumanDates: goalMetrics.ordinaryNonHumanDates,
+      memberMoodDelta: goalMetrics.memberMoodDelta,
+      goalResults,
+      requestOutcomes: Object.fromEntries(requestAssessment.outcomes),
+      offeredScenarioIds: [],
+      summary: buildShiftSummary(
+        completedDates.length,
+        earlyEndedDates.length,
+        goalMetrics.memberMoodDelta,
+      ),
+      hrNote: buildShiftHrNote({
+        completedDates,
+        hotOutcome: requestAssessment.leadOutcome,
+        backgroundIgnoredCount: requestAssessment.backgroundIgnoredCount,
+        members: save.members,
+      }),
+      budgetReview,
+      deckCoverage,
+    });
+
+  const { activeBooking: _activeBooking, ...shiftWithoutBooking } = activeShift;
+  const buildCompletedShift = (report: ShiftReport): ShiftState =>
+    shiftStateSchema.parse({
+      ...shiftWithoutBooking,
+      status: "completed",
+      completedAt: timestamp,
+      report,
+    });
+  let saveWithReview = saveAfterQuitCuts;
   let budgetReviewForReport: ShiftReport["budgetReview"] | undefined;
   if (
     shouldRunPerformanceReview({
@@ -1384,62 +1416,41 @@ export function completeShift(
       shiftNumber: activeShift.shiftNumber,
     })
   ) {
-    const reviewResult = runPerformanceReview(saveAfterQuitCuts, activeShift.shiftNumber);
-    saveWithBudgetReview = reviewResult.save;
+    const reviewResult = runPerformanceReview(
+      saveAfterQuitCuts,
+      activeShift.shiftNumber,
+      requestAssessment,
+    );
+    saveWithReview = reviewResult.save;
     budgetReviewForReport = reviewResult.review;
   }
 
-  const report = shiftReportSchema.parse({
-    id: `report-${activeShift.id}`,
-    shiftId: activeShift.id,
-    completedAt: timestamp,
-    completedDates: completedDates.length,
-    earlyEndedDates: earlyEndedDates.length,
-    ordinaryNonHumanDates: goalMetrics.ordinaryNonHumanDates,
-    memberMoodDelta: goalMetrics.memberMoodDelta,
-    goalResults,
-    ignoredRequestIds: ignoredRequests.map((request) => request.id),
-    offeredScenarioIds: [],
-    summary: buildShiftSummary(
-      completedDates.length,
-      earlyEndedDates.length,
-      goalMetrics.memberMoodDelta,
-    ),
-    hrNote: buildShiftHrNote({
-      completedDates,
-      ignoredRequests,
-      missedRequests,
-      members: save.members,
-    }),
-    budgetReview: budgetReviewForReport,
-    deckCoverage,
-  });
-  const { activeBooking: _activeBooking, ...shiftWithoutBooking } = activeShift;
-  const updatedShift = shiftStateSchema.parse({
-    ...shiftWithoutBooking,
-    status: "completed",
-    completedAt: timestamp,
-    report,
-  });
-  const nextSave = gameSaveSchema.parse({
-    ...saveWithBudgetReview,
-    shifts: replaceById(saveWithBudgetReview.shifts, updatedShift),
+  const finalReport = buildReport(budgetReviewForReport);
+  const finalShift = buildCompletedShift(finalReport);
+  const finalSave = gameSaveSchema.parse({
+    ...saveWithReview,
+    shifts: replaceById(saveWithReview.shifts, finalShift),
     updatedAt: timestamp,
   });
 
-  return { save: nextSave, report };
+  return { save: finalSave, report: finalReport };
 }
 
 function runPerformanceReview(
   save: GameSave,
   shiftNumber: number,
+  currentShiftAssessment: ShiftRequestAssessment,
 ): { save: GameSave; review: NonNullable<ShiftReport["budgetReview"]> } {
   const windowStart = save.lastBudgetReviewShift;
   const closuresSinceLastReview = countClosuresInWindow(save, windowStart);
   const quitsSinceLastReview = countQuitEventsInWindow(save, windowStart);
   const averageActiveRetention = averageRetention(save.members);
   const { averageHealth, averageFriction } = pairStatsAverages(save.pairStates);
-  const requestFulfillmentRate = recentRequestFulfillmentRate(save, windowStart);
+  const requestFulfillmentRate = recentRequestFulfillmentRate(
+    save,
+    windowStart,
+    currentShiftAssessment,
+  );
 
   const reasons = buildPerformanceReviewReasons({
     save,
@@ -1527,19 +1538,6 @@ function pairStatsAverages(pairStates: readonly PairState[]): {
   };
 }
 
-function recentRequestFulfillmentRate(save: GameSave, windowStart: number): number {
-  let asked = 0;
-  let fulfilled = 0;
-  for (const shift of save.shifts) {
-    if (shift.shiftNumber <= windowStart || shift.report === undefined) continue;
-    asked += shift.memberRequestIds.length;
-    const ignored = shift.report.ignoredRequestIds.length;
-    fulfilled += Math.max(0, shift.memberRequestIds.length - ignored);
-  }
-  if (asked === 0) return 1;
-  return fulfilled / asked;
-}
-
 function findCurrentRequestForMember(
   members: readonly Member[],
   memberId: string,
@@ -1576,21 +1574,7 @@ function buildDeckCoverage({
     return [];
   }
 
-  const drawnScenarios = shift.drawnScenarioIds
-    .map((id) => starterScenarios.find((scenario) => scenario.id === id))
-    .filter((scenario): scenario is DateScenario => scenario !== undefined);
-
-  if (drawnScenarios.length === 0) {
-    return shift.featuredMemberIds.map((memberId) => ({
-      focusMemberId: memberId,
-      status: "no_draw" as const,
-      label: "No hand drawn this shift",
-    }));
-  }
-
   const memberById = new Map(save.members.map((member) => [member.id, member] as const));
-  const pairStateById = new Map(save.pairStates.map((edge) => [edge.id, edge] as const));
-  const activeMembers = save.members.filter((member) => member.state.status === "active");
   const bookedFocusMemberIds = new Set<string>();
   for (const session of save.dateSessions) {
     if (session.focusMemberId === undefined) continue;
@@ -1608,45 +1592,11 @@ function buildDeckCoverage({
         label: "Member missing from save",
       };
     }
-    const bookedForMember = bookedFocusMemberIds.has(memberId);
-    let promisingForMember = false;
-    if (!bookedForMember) {
-      for (const scenario of drawnScenarios) {
-        for (const partner of activeMembers) {
-          if (partner.id === memberId) continue;
-          const pairId = makePairId(member.id, partner.id);
-          const pairState =
-            pairStateById.get(pairId) ?? materializePairEdge(buildPairProjection(member, partner));
-          try {
-            const fit = evaluateMatchFit({
-              members: [member, partner],
-              scenario,
-              pairState,
-              activeRequests: [],
-              knownPairReads: visibleReadsForPair(save, pairState.id),
-            });
-            if (scenarioRoomReadFromMatchFit(fit) === "promising") {
-              promisingForMember = true;
-              break;
-            }
-          } catch {
-            continue;
-          }
-        }
-        if (promisingForMember) break;
-      }
-    }
-    const status =
-      bookedForMember || promisingForMember ? ("served" as const) : ("missed" as const);
-    const label = bookedForMember
-      ? "Booked tonight"
-      : promisingForMember
-        ? "Hand covered the case"
-        : "No promising card for this case";
+    const booked = bookedFocusMemberIds.has(memberId);
     return {
       focusMemberId: memberId,
-      status,
-      label,
+      status: booked ? ("served" as const) : ("missed" as const),
+      label: booked ? "Booked tonight" : "Not booked this shift",
     };
   });
 }
@@ -2564,7 +2514,6 @@ export function applyDateFinalReportToMembers(
   members: Member[],
   session: DateSession,
   shiftNumber: number,
-  playerKnowledge: readonly PlayerKnowledgeRecord[],
 ): Member[] {
   const outcome = session.finalReport?.outcome;
 
@@ -2580,7 +2529,7 @@ export function applyDateFinalReportToMembers(
     focusRequestId !== undefined &&
     session.participants.includes(focusMemberId)
       ? `${focusAskResultPrefix(
-          focusAskOutcomeFromKnowledge(playerKnowledge, focusMemberId, focusRequestId),
+          classifyFocusAskOutcomeFromSession(session, focusMemberId, focusRequestId),
         )} ${baseResult}`
       : undefined;
 
@@ -2670,59 +2619,6 @@ function applyMissedRequestPenalties(
       },
     };
   });
-}
-
-export type ShiftRequestAskOutcome = "covered" | "raised" | "missed" | "ignored";
-
-function focusAskOutcomeFromKnowledge(
-  playerKnowledge: readonly PlayerKnowledgeRecord[],
-  memberId: string,
-  requestId: string,
-): "covered" | "raised" | "missed" {
-  const coveredReadId = `member:${memberId}:ask-covered:${requestId}`;
-  const blockedReadId = `member:${memberId}:ask-blocked:${requestId}`;
-
-  for (const record of playerKnowledge) {
-    if (record.readId === coveredReadId) {
-      return "covered";
-    }
-    if (record.readId === blockedReadId) {
-      return "raised";
-    }
-  }
-
-  return "missed";
-}
-
-export function classifyShiftRequestOutcomes(
-  playerKnowledge: readonly PlayerKnowledgeRecord[],
-  shift: ShiftState,
-  completedDates: readonly DateSession[],
-): Map<string, ShiftRequestAskOutcome> {
-  const outcomes = new Map<string, ShiftRequestAskOutcome>();
-
-  for (const requestId of shift.memberRequestIds) {
-    outcomes.set(requestId, "ignored");
-  }
-
-  for (const session of completedDates) {
-    const requestId = session.focusRequestId;
-    if (requestId === undefined || !outcomes.has(requestId)) {
-      continue;
-    }
-
-    const request = memberRequests.find((candidate) => candidate.id === requestId);
-    if (request === undefined) {
-      continue;
-    }
-
-    outcomes.set(
-      requestId,
-      focusAskOutcomeFromKnowledge(playerKnowledge, request.memberId, requestId),
-    );
-  }
-
-  return outcomes;
 }
 
 function rotateMemberRequestsForShift(
@@ -3015,40 +2911,6 @@ function findFocusRequest(shift: ShiftState, focusMemberId: string) {
   );
 }
 
-function findShiftRequestsByOutcome(
-  outcomes: ReadonlyMap<string, ShiftRequestAskOutcome>,
-  target: ShiftRequestAskOutcome,
-): MemberRequest[] {
-  return memberRequests.filter((request) => outcomes.get(request.id) === target);
-}
-
-function missedRequestMoodPenalty(request: MemberRequest): number {
-  return Math.ceil(request.moodPenaltyIfIgnored / 2);
-}
-
-function buildShiftRequestMoodAdjustments(
-  ignoredRequests: readonly MemberRequest[],
-  missedRequests: readonly MemberRequest[],
-): Map<string, number> {
-  const adjustments = new Map<string, number>();
-
-  for (const request of ignoredRequests) {
-    adjustments.set(
-      request.memberId,
-      (adjustments.get(request.memberId) ?? 0) - request.moodPenaltyIfIgnored,
-    );
-  }
-
-  for (const request of missedRequests) {
-    adjustments.set(
-      request.memberId,
-      (adjustments.get(request.memberId) ?? 0) - missedRequestMoodPenalty(request),
-    );
-  }
-
-  return adjustments;
-}
-
 function shiftSessionPrefix(shiftNumber: number): string {
   return `date-${shiftNumber}-`;
 }
@@ -3209,19 +3071,19 @@ type RankedOutcome = { session: DateSession; report: DateFinalReport };
 
 function buildShiftHrNote({
   completedDates,
-  ignoredRequests,
-  missedRequests,
+  hotOutcome,
+  backgroundIgnoredCount,
   members,
 }: {
   completedDates: readonly DateSession[];
-  ignoredRequests: readonly MemberRequest[];
-  missedRequests: readonly MemberRequest[];
+  hotOutcome: ShiftRequestAskOutcome | undefined;
+  backgroundIgnoredCount: number;
   members: readonly Member[];
 }): string {
   const ranked: RankedOutcome[] = completedDates.flatMap((session) =>
     session.finalReport === undefined ? [] : [{ session, report: session.finalReport }],
   );
-  const askLine = formatShiftAskLine(ignoredRequests.length, missedRequests.length);
+  const askLine = formatShiftAskLine({ hotOutcome, backgroundIgnoredCount });
 
   if (ranked.length === 0) {
     return `No dates filed. ${askLine}`;
@@ -3252,20 +3114,34 @@ function buildShiftHrNote({
   return `${highlight} ${incident} ${askLine}`;
 }
 
-function formatShiftAskLine(ignoredCount: number, missedCount: number): string {
-  if (ignoredCount === 0 && missedCount === 0) {
-    return "All member asks closed.";
+function formatShiftAskLine({
+  hotOutcome,
+  backgroundIgnoredCount,
+}: {
+  hotOutcome: ShiftRequestAskOutcome | undefined;
+  backgroundIgnoredCount: number;
+}): string {
+  const queueTail =
+    backgroundIgnoredCount === 0
+      ? ""
+      : ` ${backgroundIgnoredCount} ${
+          backgroundIgnoredCount === 1 ? "case" : "cases"
+        } in the queue.`;
+
+  if (hotOutcome === undefined) {
+    return queueTail === "" ? "All member asks closed." : queueTail.trim();
   }
 
-  const parts: string[] = [];
-  if (ignoredCount > 0) {
-    parts.push(`${ignoredCount} ${ignoredCount === 1 ? "ask" : "asks"} left on the floor`);
+  switch (hotOutcome) {
+    case "covered":
+      return `Lead ask landed.${queueTail}`;
+    case "raised":
+      return `Lead ask surfaced; the room blocked it.${queueTail}`;
+    case "missed":
+      return `Lead ask booked but never landed.${queueTail}`;
+    case "ignored":
+      return `Lead ask sat this shift.${queueTail}`;
   }
-  if (missedCount > 0) {
-    parts.push(`${missedCount} booked ${missedCount === 1 ? "ask" : "asks"} never landed`);
-  }
-
-  return `${parts.join("; ")}. HR cc'd.`;
 }
 
 function formatPairNames(session: DateSession, memberById: ReadonlyMap<string, Member>): string {

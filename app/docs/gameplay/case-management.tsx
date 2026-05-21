@@ -46,7 +46,14 @@ export const sections: DocSectionEntry[] = [
               <DocCode>featuredMemberIds</DocCode> mirror <DocCode>focusedMemberIds</DocCode> for
               backwards compatibility.
             </span>,
-            "Swapping a focus case costs 25 retention to the dropped member. Removing a case (through closure or open-slot freeing) does not. Adding into an open slot is free.",
+            <span key="penalty">
+              Swapping a focus case costs 25 retention to the dropped member. Dropping an active
+              focus case via <Strong>Drop from focus</Strong> costs the same 25 retention (it routes
+              through the same penalty as swap). Freeing a slot held by a closed or quit member via{" "}
+              <Strong>Free slot</Strong> is non-punitive, and closure removes the pair directly via{" "}
+              <DocCode>closePair</DocCode> without touching retention. Adding into an open slot is
+              free.
+            </span>,
             <span key="status">
               Closed and quit members cannot be focused, matched, or selected for shift requests.
               Their lifecycle status lives on <DocCode>member.state.status</DocCode> as{" "}
@@ -74,10 +81,20 @@ export const sections: DocSectionEntry[] = [
         <P>
           Each shift surfaces one current request per focused member, so three of the four are
           normally unaddressed when the shift is filed. That is expected case-load play, not a
-          failure state. <DocCode>completeShift</DocCode> classifies each shift request via{" "}
+          failure state. Each shift also designates one of those requests as the{" "}
+          <Strong>lead ask</Strong> via <DocCode>selectHotRequestId</DocCode> in{" "}
+          <DocCode>app/services/shift-planning.ts</DocCode> — a deterministic, shift-number-seeded
+          pick that rotates fairly across focus cases. The lead ask is derived from{" "}
+          <DocCode>(shift.memberRequestIds, shift.shiftNumber)</DocCode> on read via{" "}
+          <DocCode>deriveHotRequestId</DocCode> rather than persisted, so it stays in sync with the
+          roster automatically. The lead ask is the one the shift is graded on.{" "}
+          <DocCode>completeShift</DocCode> classifies each shift request via{" "}
           <DocCode>classifyShiftRequestOutcomes</DocCode> into one of four buckets, using the focus
-          member's <DocCode>ask-covered</DocCode> / <DocCode>ask-blocked</DocCode> player-knowledge
-          reads as the landed-signal source:
+          session's own judge-snapshot evidence (
+          <DocCode>session.judgeSnapshots[].usedEvidenceIds</DocCode> containing{" "}
+          <DocCode>ask-covered</DocCode> or <DocCode>ask-blocked</DocCode> ids) as the landed-signal
+          source. The lookup is session-scoped so a prior shift's covered record cannot leak into a
+          later shift when the same ask rotates back into the pool:
         </P>
         <DocList
           items={[
@@ -93,21 +110,45 @@ export const sections: DocSectionEntry[] = [
             </span>,
             <span key="missed">
               <Strong>missed</Strong> — booked but neither ask read was filed; the date drifted off
-              the ask. Does not rotate (the ask stays alive for another shift), and the asking
-              member loses half of <DocCode>moodPenaltyIfIgnored</DocCode> mood (no burnout or
-              retention hit). Recent date result reads "Booked, but the ask never landed."
+              the ask. Does not rotate (the ask stays alive for another shift). If the missed ask
+              was the lead ask, the member loses half of <DocCode>moodPenaltyIfIgnored</DocCode>{" "}
+              mood (no burnout or retention hit). Background drifts apply no penalty. Recent date
+              result reads "Booked, but the ask never landed."
             </span>,
             <span key="ignored">
-              <Strong>ignored</Strong> — never booked. Rotates, member loses the full{" "}
-              <DocCode>moodPenaltyIfIgnored</DocCode> mood (5 to 7 per request, authored on the
-              fixture; no burnout or retention hit).
+              <Strong>ignored</Strong> — never booked. Rotates. If the ignored ask was the lead ask,
+              the member loses the full <DocCode>moodPenaltyIfIgnored</DocCode> mood (5 to 7 per
+              request, authored on the fixture; no burnout or retention hit). Background ignored
+              asks apply no penalty — they read as cases waiting in the queue on the shift report.
             </span>,
           ]}
         />
         <P>
-          All mood deltas roll up into the shift report's <DocCode>memberMoodDelta</DocCode> goal
-          metric. The HR note on the shift report breaks out both the ignored and missed counts so a
-          covered booking and a drifted booking do not read the same.
+          Only the lead ask contributes to mood deltas and to the shift report's{" "}
+          <DocCode>memberMoodDelta</DocCode> goal metric. The HR note's ask line states the lead
+          ask's outcome (covered, raised, missed, or sat) and, if any background members are still
+          waiting, counts them as "cases in the queue" rather than as failures.
+        </P>
+        <P>
+          Each shift report persists a typed{" "}
+          <DocCode>requestOutcomes: Record&lt;requestId, ShiftRequestAskOutcome&gt;</DocCode> map
+          (covered / raised / missed / ignored) covering every request on the shift roster, for
+          audit and report copy. Legacy reports that only persisted{" "}
+          <DocCode>ignoredRequestIds</DocCode> are still readable and fall back to per-request
+          averaging. The budget review's asks-honored rate scores the lead ask for each shift:
+          covered at <Strong>1.0</Strong>, raised at <Strong>0.75</Strong>, missed at{" "}
+          <Strong>0.5</Strong>, and ignored at <Strong>0</Strong>. Background queue cases do not
+          count against the budget cap. The current shift's just-filed report is included in its own
+          performance review window when the review fires on a review-interval boundary, so the
+          current shift's lead-ask outcome contributes to the budget reasons computed that same
+          turn.
+        </P>
+        <P>
+          <DocCode>buildDeckCoverage</DocCode> reports each focus member as either{" "}
+          <Strong>served</Strong> (a date was booked for the member this shift) or{" "}
+          <Strong>missed</Strong> (not booked). Previously, an unbooked case could still read as
+          served when the drawn hand contained a promising card; that path was removed. Coverage is
+          now strictly about whether a case got a date.
         </P>
       </>
     ),

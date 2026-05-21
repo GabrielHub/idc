@@ -1,4 +1,5 @@
 import { memberSchema } from "../../domain/game";
+import { aegis } from "./aegis";
 import { aldricValeMarsh } from "./aldric-vale-marsh";
 import { alexYoon } from "./alex-yoon";
 import { anansi } from "./anansi";
@@ -44,7 +45,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(42)
+  .length(43)
   .parse([
     jennaPike,
     meridianVale,
@@ -88,9 +89,11 @@ export const starterMembers = memberSchema
     anubis,
     johnPork,
     cassiaSix,
+    aegis,
   ]);
 
 export {
+  aegis,
   aldricValeMarsh,
   alexYoon,
   anansi,

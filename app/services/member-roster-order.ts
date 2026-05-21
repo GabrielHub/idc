@@ -28,6 +28,7 @@ export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "bai-wenshu",
   "anubis",
   "mira-park",
+  "aegis",
   "cthala",
   "ryan-doyle",
   "junie-marrow",

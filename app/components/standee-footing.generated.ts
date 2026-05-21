@@ -17,6 +17,38 @@ export const DEFAULT_STANDEE_FOOTING = {
 } as const satisfies StandeeFooting;
 
 export const STANDEE_FOOTING_BY_CUTOUT_PATH: Readonly<Record<string, StandeeFooting>> = {
+  "/assets/portraits/aegis/portrait-angry.png": {
+    topTransparentPixels: 92,
+    bottomTransparentPixels: 214,
+    visibleHeightPixels: 1468,
+    renderedVisibleHeightRatio: 0.8275,
+    className: "translate-y-[12.06%]",
+    renderedCanvasTranslatePercent: 12.06,
+  },
+  "/assets/portraits/aegis/portrait-confused.png": {
+    topTransparentPixels: 146,
+    bottomTransparentPixels: 240,
+    visibleHeightPixels: 1388,
+    renderedVisibleHeightRatio: 0.7824,
+    className: "translate-y-[13.53%]",
+    renderedCanvasTranslatePercent: 13.53,
+  },
+  "/assets/portraits/aegis/portrait-flirty.png": {
+    topTransparentPixels: 83,
+    bottomTransparentPixels: 100,
+    visibleHeightPixels: 1591,
+    renderedVisibleHeightRatio: 0.8968,
+    className: "translate-y-[5.64%]",
+    renderedCanvasTranslatePercent: 5.64,
+  },
+  "/assets/portraits/aegis/portrait.png": {
+    topTransparentPixels: 80,
+    bottomTransparentPixels: 96,
+    visibleHeightPixels: 1598,
+    renderedVisibleHeightRatio: 0.9008,
+    className: "translate-y-[5.41%]",
+    renderedCanvasTranslatePercent: 5.41,
+  },
   "/assets/portraits/aldric-vale-marsh/portrait-angry.png": {
     topTransparentPixels: 120,
     bottomTransparentPixels: 79,

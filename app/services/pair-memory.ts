@@ -22,6 +22,7 @@ export const OPEN_LOOP_TAG = "open_loop";
 export const OPEN_LOOP_RESOLVED_TAG = "open_loop_resolved";
 export const OPEN_LOOP_DROPPED_TAG = "open_loop_dropped";
 export const PAIR_AGED_OUT_TAG = "pair_aged_out";
+export const PAIR_STRAINED_TAG = "pair_strained";
 
 const FOLLOW_UP_TAG = "follow_up";
 const MAX_AGREEMENT_CANDIDATES_PER_JUDGE = 2;
@@ -200,6 +201,10 @@ export function applyCompletedDatePairMemoryEffects({
   session,
   timestamp,
 }: ApplyCompletedDatePairMemoryEffectsInput): PairMemoryEffectsResult {
+  if (session.status === "ended_early") {
+    return applyEarlyEndPairMemoryStrain({ pairState, session, timestamp });
+  }
+
   if (session.status !== "completed") {
     return { pairState, memories: [] };
   }
@@ -281,19 +286,14 @@ export function applyCompletedDatePairMemoryEffects({
     );
   }
 
-  const activeAgreementCount = agreements.filter((entry) => entry.status === "active").length;
-  if (activeAgreementCount > MAX_ACTIVE_AGREEMENTS) {
-    const surplus = activeAgreementCount - MAX_ACTIVE_AGREEMENTS;
-    const youngestFirst = [...agreements]
-      .filter((entry) => entry.status === "active")
-      .sort(
-        (first, second) =>
-          completedDatesAfterSource(pairState, first.sourceDateSessionId) -
-            completedDatesAfterSource(pairState, second.sourceDateSessionId) ||
-          second.id.localeCompare(first.id),
-      );
-    const overflow = youngestFirst.slice(0, surplus);
-    const overflowIds = new Set(overflow.map((entry) => entry.id));
+  const overflowAgreements = selectActiveOverflow(
+    agreements,
+    MAX_ACTIVE_AGREEMENTS,
+    (entry) => entry.status === "active",
+    pairState,
+  );
+  if (overflowAgreements.length > 0) {
+    const overflowIds = new Set(overflowAgreements.map((entry) => entry.id));
     agreements = agreements.map((entry) => {
       if (!overflowIds.has(entry.id)) return entry;
       const retired: PairAgreement = { ...entry, status: "retired", resolvedAt: timestamp };
@@ -312,19 +312,14 @@ export function applyCompletedDatePairMemoryEffects({
     });
   }
 
-  const activeOpenLoopCount = openLoops.filter((entry) => entry.status === "open").length;
-  if (activeOpenLoopCount > MAX_ACTIVE_OPEN_LOOPS) {
-    const surplus = activeOpenLoopCount - MAX_ACTIVE_OPEN_LOOPS;
-    const youngestFirst = [...openLoops]
-      .filter((entry) => entry.status === "open")
-      .sort(
-        (first, second) =>
-          completedDatesAfterSource(pairState, first.sourceDateSessionId) -
-            completedDatesAfterSource(pairState, second.sourceDateSessionId) ||
-          second.id.localeCompare(first.id),
-      );
-    const overflow = youngestFirst.slice(0, surplus);
-    const overflowIds = new Set(overflow.map((entry) => entry.id));
+  const overflowOpenLoops = selectActiveOverflow(
+    openLoops,
+    MAX_ACTIVE_OPEN_LOOPS,
+    (entry) => entry.status === "open",
+    pairState,
+  );
+  if (overflowOpenLoops.length > 0) {
+    const overflowIds = new Set(overflowOpenLoops.map((entry) => entry.id));
     openLoops = openLoops.map((entry) => {
       if (!overflowIds.has(entry.id)) return entry;
       const dropped: OpenLoop = { ...entry, status: "dropped", resolvedAt: timestamp };
@@ -343,7 +338,7 @@ export function applyCompletedDatePairMemoryEffects({
     });
   }
 
-  if (memories.length === 0) {
+  if (agreements === pairState.agreements && openLoops === pairState.openLoops) {
     return { pairState, memories };
   }
 
@@ -351,6 +346,150 @@ export function applyCompletedDatePairMemoryEffects({
     pairState: pairStateSchema.parse({ ...pairState, agreements, openLoops }),
     memories,
   };
+}
+
+function applyEarlyEndPairMemoryStrain({
+  pairState,
+  session,
+  timestamp,
+}: ApplyCompletedDatePairMemoryEffectsInput): PairMemoryEffectsResult {
+  const memories: MemoryRecord[] = [];
+  const strainedAgreementIds = new Set<string>();
+  const strainedOpenLoopIds = new Set<string>();
+
+  for (const agreement of pairState.agreements) {
+    if (agreement.status !== "active") continue;
+    if (agreement.strainedAt !== undefined) continue;
+    const age = completedDatesAfterSource(pairState, agreement.sourceDateSessionId);
+    if (age < AGREEMENT_AGE_CUTOFF) continue;
+
+    strainedAgreementIds.add(agreement.id);
+    memories.push(
+      buildPairMemory({
+        id: `${agreement.id}-strained-${session.id}`,
+        pairState,
+        text: formatStrainedAgreementMemoryText(
+          agreement,
+          "The pair ended early before it was tested again.",
+        ),
+        tags: [...agreementTagsForStatus(agreement.status), PAIR_STRAINED_TAG],
+        importance: 3,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  for (const openLoop of pairState.openLoops) {
+    if (openLoop.status !== "open") continue;
+    if (openLoop.strainedAt !== undefined) continue;
+    const age = completedDatesAfterSource(pairState, openLoop.sourceDateSessionId);
+    if (age < OPEN_LOOP_AGE_CUTOFF) continue;
+
+    strainedOpenLoopIds.add(openLoop.id);
+    memories.push(
+      buildPairMemory({
+        id: `${openLoop.id}-strained-${session.id}`,
+        pairState,
+        text: formatStrainedOpenLoopMemoryText(
+          openLoop,
+          "The pair ended early before it could close.",
+        ),
+        tags: [...openLoopTagsForStatus(openLoop.status), PAIR_STRAINED_TAG],
+        importance: 3,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  const overflowAgreements = selectActiveOverflow(
+    pairState.agreements,
+    MAX_ACTIVE_AGREEMENTS,
+    (entry) => entry.status === "active" && entry.strainedAt === undefined,
+    pairState,
+  );
+  for (const agreement of overflowAgreements) {
+    if (strainedAgreementIds.has(agreement.id)) continue;
+    strainedAgreementIds.add(agreement.id);
+    memories.push(
+      buildPairMemory({
+        id: `${agreement.id}-strained-overflow-${session.id}`,
+        pairState,
+        text: formatStrainedAgreementMemoryText(
+          agreement,
+          "Pair file already crowded when the date ended early.",
+        ),
+        tags: [...agreementTagsForStatus(agreement.status), PAIR_STRAINED_TAG],
+        importance: 2,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  const overflowOpenLoops = selectActiveOverflow(
+    pairState.openLoops,
+    MAX_ACTIVE_OPEN_LOOPS,
+    (entry) => entry.status === "open" && entry.strainedAt === undefined,
+    pairState,
+  );
+  for (const openLoop of overflowOpenLoops) {
+    if (strainedOpenLoopIds.has(openLoop.id)) continue;
+    strainedOpenLoopIds.add(openLoop.id);
+    memories.push(
+      buildPairMemory({
+        id: `${openLoop.id}-strained-overflow-${session.id}`,
+        pairState,
+        text: formatStrainedOpenLoopMemoryText(
+          openLoop,
+          "Pair file already crowded when the date ended early.",
+        ),
+        tags: [...openLoopTagsForStatus(openLoop.status), PAIR_STRAINED_TAG],
+        importance: 2,
+        dateSessionId: session.id,
+        timestamp,
+      }),
+    );
+  }
+
+  if (strainedAgreementIds.size === 0 && strainedOpenLoopIds.size === 0) {
+    return { pairState, memories };
+  }
+
+  return {
+    pairState: pairStateSchema.parse({
+      ...pairState,
+      agreements: pairState.agreements.map((agreement) =>
+        strainedAgreementIds.has(agreement.id)
+          ? { ...agreement, strainedAt: timestamp }
+          : agreement,
+      ),
+      openLoops: pairState.openLoops.map((openLoop) =>
+        strainedOpenLoopIds.has(openLoop.id) ? { ...openLoop, strainedAt: timestamp } : openLoop,
+      ),
+    }),
+    memories,
+  };
+}
+
+function selectActiveOverflow<T extends { id: string; sourceDateSessionId: string }>(
+  entries: readonly T[],
+  maxActive: number,
+  isActive: (entry: T) => boolean,
+  pairState: PairState,
+): T[] {
+  const active = entries.filter(isActive);
+  const surplus = active.length - maxActive;
+  if (surplus <= 0) return [];
+  return [...active]
+    .sort(
+      (first, second) =>
+        completedDatesAfterSource(pairState, first.sourceDateSessionId) -
+          completedDatesAfterSource(pairState, second.sourceDateSessionId) ||
+        second.id.localeCompare(first.id),
+    )
+    .slice(0, surplus);
 }
 
 export function applyFollowUpPairMemoryEffects({
@@ -706,9 +845,17 @@ function formatAgreementMemoryText(agreement: PairAgreement, note?: string): str
   return `Agreement filed: ${agreement.text}.`;
 }
 
+function formatStrainedAgreementMemoryText(agreement: PairAgreement, note: string): string {
+  return `Agreement strained: ${agreement.text}. ${cleanCandidateText(note)}`;
+}
+
 function formatOpenLoopMemoryText(openLoop: OpenLoop, note?: string): string {
   const suffix = note === undefined ? "" : ` ${cleanCandidateText(note)}`;
   if (openLoop.status === "resolved") return `Open loop resolved: ${openLoop.text}.${suffix}`;
   if (openLoop.status === "dropped") return `Open loop dropped: ${openLoop.text}.${suffix}`;
   return `Open loop filed: ${openLoop.text}.`;
+}
+
+function formatStrainedOpenLoopMemoryText(openLoop: OpenLoop, note: string): string {
+  return `Open loop strained: ${openLoop.text}. ${cleanCandidateText(note)}`;
 }

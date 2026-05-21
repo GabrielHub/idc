@@ -541,7 +541,6 @@ async function advanceDateExchangeWithLocalAiInternal(
           updatedMembers,
           completedSession,
           getActiveShift(save).shiftNumber,
-          revealResult.save.playerKnowledge,
         );
   const shiftsAfterCompletion =
     completedSession.finalReport === undefined
@@ -731,7 +730,6 @@ async function cutDateShortWithLocalAiInternal(
     updatedMembers,
     finalSession,
     getActiveShift(save).shiftNumber,
-    revealResult.save.playerKnowledge,
   );
   const saveWithCutShortDate = gameSaveSchema.parse({
     ...save,

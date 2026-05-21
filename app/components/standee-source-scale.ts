@@ -9,6 +9,7 @@ export const DEFAULT_STANDEE_SOURCE_SCALE: StandeeSourceScale = {
 };
 
 const STANDEE_SOURCE_SCALE_BY_MEMBER_ID: Readonly<Partial<Record<string, StandeeSourceScale>>> = {
+  aegis: { className: "scale-[1.18]", value: 1.18 },
   "aldric-vale-marsh": { className: "scale-[1.26]", value: 1.26 },
   anubis: { className: "scale-[1.05]", value: 1.05 },
   "brady-strait": { className: "scale-[0.94]", value: 0.94 },

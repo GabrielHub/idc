@@ -1191,4 +1191,11 @@ export const starterMemberRequests: MemberRequest[] = [
     moodPenaltyIfIgnored: 6,
     tags: ["sincerity", "respect"],
   },
+  {
+    id: "request-aegis-shield-not-a-coat",
+    memberId: "aegis",
+    text: "Aegis wants one date where nobody asks her to put the shield in the cloakroom or 'just lean her in the corner over there.' The shield is not a coat. She will explain it once.",
+    moodPenaltyIfIgnored: 5,
+    tags: ["respect", "grounded"],
+  },
 ];

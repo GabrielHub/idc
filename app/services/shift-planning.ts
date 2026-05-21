@@ -64,6 +64,20 @@ export function selectFeaturedMemberRequestIds({
   return seededOrderById(requests, "shift-requests", [shiftNumber]).map((request) => request.id);
 }
 
+export function selectHotRequestId({
+  memberRequestIds,
+  shiftNumber,
+}: {
+  memberRequestIds: readonly string[];
+  shiftNumber: number;
+}): string | undefined {
+  if (memberRequestIds.length === 0) {
+    return undefined;
+  }
+  const stable = [...memberRequestIds].sort((first, second) => first.localeCompare(second));
+  return shuffledBySeed(stable, buildRandomSeed("shift-hot-ask", [shiftNumber]))[0];
+}
+
 export function getMemberRequestPoolIds(memberId: string): string[] {
   return memberRequests
     .filter((request) => request.memberId === memberId)

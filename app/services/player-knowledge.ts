@@ -240,6 +240,14 @@ function readsForSubject(
   return bucket === undefined ? [] : [...bucket];
 }
 
+export function buildAskEvidenceId(
+  memberId: string,
+  requestId: string,
+  variant: "covered" | "blocked",
+): string {
+  return `member:${memberId}:ask-${variant}:${requestId}`;
+}
+
 export function visibleReadsForMember(save: GameSave, memberId: string): PlayerKnowledgeRecord[] {
   return readsForSubject(save, "member", memberId);
 }
@@ -606,7 +614,11 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
   const seenIds = new Set<string>();
   const knownReadIndex = getOrBuildIndex(input.knownReads ?? []);
   const pushCandidate = (candidate: RevealCandidate) => {
-    if (seenIds.has(candidate.id) || knownReadIndex.knownReadIds.has(candidate.id)) {
+    if (seenIds.has(candidate.id)) return;
+    // Ask candidates re-emit even when the read is already in player knowledge so the
+    // current session's judge snapshot records the evidence id for shift-request
+    // classification. Other read kinds dedup against global player knowledge.
+    if (candidate.readKind !== "ask" && knownReadIndex.knownReadIds.has(candidate.id)) {
       return;
     }
     seenIds.add(candidate.id);
@@ -655,7 +667,7 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
       if (input.matchFit.blockedRequestIds.includes(input.focusRequest.id)) {
         const block = describeAskBlock(requestMember, input.scenario, input.matchFit);
         pushCandidate({
-          id: `member:${requestMember.id}:ask-blocked:${input.focusRequest.id}`,
+          id: buildAskEvidenceId(requestMember.id, input.focusRequest.id, "blocked"),
           subjectKind: "member",
           subjectId: requestMember.id,
           readKind: "ask",
@@ -666,7 +678,7 @@ export function buildRevealCandidates(input: BuildRevealCandidatesInput): Reveal
       } else if (input.matchFit.coveredRequestIds.includes(input.focusRequest.id)) {
         const cover = describeAskCover(requestMember, input.scenario);
         pushCandidate({
-          id: `member:${requestMember.id}:ask-covered:${input.focusRequest.id}`,
+          id: buildAskEvidenceId(requestMember.id, input.focusRequest.id, "covered"),
           subjectKind: "member",
           subjectId: requestMember.id,
           readKind: "ask",

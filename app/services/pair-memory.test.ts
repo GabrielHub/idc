@@ -21,6 +21,7 @@ import {
   OPEN_LOOP_TAG,
   PAIR_AGED_OUT_TAG,
   PAIR_AGREEMENT_TAG,
+  PAIR_STRAINED_TAG,
   rankActiveAgreements,
   rankActiveOpenLoops,
   selectPairSpotlightItem,
@@ -410,6 +411,256 @@ describe("pair memory effects", () => {
     const agedMemory = result.memories.find((memory) => memory.tags.includes(PAIR_AGED_OUT_TAG));
     expect(agedMemory?.tags).toContain(OPEN_LOOP_DROPPED_TAG);
     expect(agedMemory?.text).toContain("aged out");
+  });
+
+  it("on early-ended dates strains aged agreements without retiring them", () => {
+    const pairState = buildPairState({
+      completedDateIds: [
+        "date-session-1",
+        "date-session-2",
+        "date-session-3",
+        "date-session-4",
+        "date-session-5",
+      ],
+      agreements: [
+        {
+          id: "agreement-old",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        id: "date-session-5",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-5",
+          dateSessionId: "date-session-5",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed an early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+
+    const agreement = result.pairState.agreements[0];
+    expect(agreement?.status).toBe("active");
+    expect(agreement?.resolvedAt).toBeUndefined();
+    expect(agreement?.strainedAt).toBe(NOW);
+    expect(result.memories).toHaveLength(1);
+    expect(result.memories[0]?.tags).toContain(PAIR_STRAINED_TAG);
+    expect(result.memories[0]?.tags).not.toContain(AGREEMENT_RETIRED_TAG);
+    expect(result.memories[0]?.text).toContain("ended early");
+  });
+
+  it("does not file duplicate strain memories for the same active agreement", () => {
+    const pairState = buildPairState({
+      completedDateIds: [
+        "date-session-1",
+        "date-session-2",
+        "date-session-3",
+        "date-session-4",
+        "date-session-5",
+      ],
+      agreements: [
+        {
+          id: "agreement-old",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const first = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        id: "date-session-5",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-5",
+          dateSessionId: "date-session-5",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed an early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+    const second = applyCompletedDatePairMemoryEffects({
+      pairState: first.pairState,
+      session: buildDateSession({
+        id: "date-session-6",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-6",
+          dateSessionId: "date-session-6",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed another early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+
+    expect(first.memories).toHaveLength(1);
+    expect(second.memories).toHaveLength(0);
+    expect(second.pairState.agreements[0]?.strainedAt).toBe(NOW);
+  });
+
+  it("on early-ended dates strains aged open loops without dropping them", () => {
+    const pairState = buildPairState({
+      completedDateIds: [
+        "date-session-1",
+        "date-session-2",
+        "date-session-3",
+        "date-session-4",
+        "date-session-5",
+      ],
+      openLoops: [
+        {
+          id: "loop-old",
+          text: "Whether the morning rule survives the workweek.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        id: "date-session-5",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-5",
+          dateSessionId: "date-session-5",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed an early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+
+    const loop = result.pairState.openLoops[0];
+    expect(loop?.status).toBe("open");
+    expect(loop?.resolvedAt).toBeUndefined();
+    expect(loop?.strainedAt).toBe(NOW);
+    expect(result.memories).toHaveLength(1);
+    expect(result.memories[0]?.tags).toContain(PAIR_STRAINED_TAG);
+    expect(result.memories[0]?.tags).not.toContain(OPEN_LOOP_DROPPED_TAG);
+  });
+
+  it("does not honor agreements on an early-ended date even after two later dates", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "No filming at the table.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          sourceJudgeSnapshotId: "judge-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        id: "date-session-3",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-3",
+          dateSessionId: "date-session-3",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed an early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+
+    expect(result.pairState.agreements[0]?.status).toBe("active");
+    expect(result.memories.some((memory) => memory.text.includes("Agreement honored"))).toBe(false);
+  });
+
+  it("on early-ended dates strains youngest soft-cap overflow without retiring", () => {
+    const completedDateIds = ["date-session-1", "date-session-2", "date-session-3"];
+    const agreements = Array.from({ length: MAX_ACTIVE_AGREEMENTS + 2 }, (_, index) => ({
+      id: `agreement-${index}`,
+      text: `Hold to commitment ${index} between dates.`,
+      status: "active" as const,
+      sourceDateSessionId: index === 0 ? "date-session-1" : "date-session-3",
+      createdAt: `2026-05-05T11:${String(index).padStart(2, "0")}:00.000Z`,
+    }));
+    const pairState = buildPairState({ completedDateIds, agreements });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState,
+      session: buildDateSession({
+        id: "date-session-3",
+        status: "ended_early",
+        endSentiment: "negative",
+        finalReport: {
+          id: "final-date-session-3",
+          dateSessionId: "date-session-3",
+          completedAt: NOW,
+          outcome: "early_end",
+          summary: "Cupid filed an early end.",
+          statSummary: "Case read: pair memory test.",
+          recommendedFollowUp: "cool_down",
+          memoryRecordIds: [],
+          readyToClose: false,
+        },
+      }),
+      timestamp: NOW,
+    });
+
+    const stillActive = result.pairState.agreements.filter((entry) => entry.status === "active");
+    expect(stillActive).toHaveLength(MAX_ACTIVE_AGREEMENTS + 2);
+    const strainedOverflow = result.memories.filter((memory) =>
+      memory.tags.includes(PAIR_STRAINED_TAG),
+    );
+    expect(strainedOverflow.length).toBeGreaterThanOrEqual(2);
+    expect(result.memories.every((memory) => !memory.tags.includes(AGREEMENT_RETIRED_TAG))).toBe(
+      true,
+    );
   });
 
   it("retires the youngest active loops when the soft cap is exceeded", () => {

@@ -1,6 +1,12 @@
 import type { PortraitPalette } from "./portrait-palette";
 
 export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPalette>> = {
+  aegis: {
+    from: "rgb(225, 209, 193)",
+    via: "rgb(234, 216, 205)",
+    to: "rgb(227, 211, 196)",
+    accent: "rgb(209, 150, 112)",
+  },
   "aldric-vale-marsh": {
     from: "rgb(192, 202, 226)",
     via: "rgb(207, 214, 231)",

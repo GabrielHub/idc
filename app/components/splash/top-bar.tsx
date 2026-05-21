@@ -84,10 +84,12 @@ function NavPill({
     >
       <Link
         to={to}
-        className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-4 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose"
+        aria-label={label}
+        title={label}
+        className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-3 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose lg:px-4"
       >
         {icon}
-        <span>{label}</span>
+        <span className="hidden lg:inline">{label}</span>
         <span
           aria-hidden
           className="hidden translate-x-0 text-aura-faint transition group-hover:translate-x-0.5 group-hover:text-aura-rose lg:inline"
