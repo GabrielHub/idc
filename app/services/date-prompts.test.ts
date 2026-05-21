@@ -91,7 +91,7 @@ describe("date prompt assembly", () => {
       "You signed up for Cupid, a dating app. The platform crosses dimensions:",
     );
     expect(ownerPacket.prompt).toContain(
-      "Your Cupid dating manager set this date up: she paired you with your partner, and Cupid picked the venue and the time.",
+      "Your Cupid dating manager set this date up: she paired you with Vhool, and Cupid picked the venue and the time.",
     );
     expect(ownerPacket.prompt).toContain("Neither of you chose this place or each other.");
     expect(ownerPacket.prompt).toContain(
@@ -103,11 +103,10 @@ describe("date prompt assembly", () => {
       "- Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     );
     expect(ownerPacket.prompt).toContain("<format>");
-    expect(ownerPacket.prompt).toContain("One message per turn. You are texting from the table.");
-    expect(ownerPacket.prompt).toContain("Markdown is spoken typography, not decoration.");
+    expect(ownerPacket.prompt).toContain("You are texting from the table, one message at a time.");
     expect(ownerPacket.prompt).toContain("Useful Markdown shapes: I said *almost* normal.");
-    expect(ownerPacket.prompt).toContain("Use at most one typographic move in a normal message.");
-    expect(ownerPacket.prompt).toContain(`Reply as the character would in this moment.`);
+    expect(ownerPacket.prompt).toContain("At most one move in a normal message");
+    expect(ownerPacket.prompt).toContain("No em dashes or en dashes.");
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
     expect(ownerPacket.prompt).not.toContain("Output contract:");
@@ -395,7 +394,7 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain(hiddenProfileText);
     expect(packet.prompt).toContain(vhool.visualDescription);
     expect(packet.prompt).toContain(
-      `Heights at the table (what your eyes confirm): ${vhool.firstName} is ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in, you are 5 ft 0 in.`,
+      `Heights at the table: ${vhool.firstName} is ${Math.floor(vhool.characterHeightInInches / 12)} ft ${vhool.characterHeightInInches % 12} in, you are 5 ft 0 in.`,
     );
     expect(packet.prompt).not.toContain(vhool.bio);
     expect(packet.prompt).not.toContain(vhool.species);
@@ -1631,10 +1630,10 @@ describe("character prompt repetition guard", () => {
     });
 
     expect(packet.prompt).toContain("<recent>");
-    expect(packet.prompt).toContain("Your last lines. Do not repeat or lightly reword them:");
+    expect(packet.prompt).toContain("Your last lines. The conversation has moved past these:");
     expect(packet.prompt).toContain("Jenna brought up the lemon tart at the back booth.");
     expect(packet.prompt).toContain("Jenna mentioned the rain pinging the window.");
-    expect(packet.prompt).toContain("Vhool's last lines. Do not echo verbatim:");
+    expect(packet.prompt).toContain("Vhool's last lines. They have already landed:");
     expect(packet.prompt).toContain("Vhool counted the brass receipts on the saucer.");
     expect(packet.prompt).toContain("Vhool offered to share the saucer with the receipts.");
     expect(packet.prompt).not.toContain("<retry_guard>");

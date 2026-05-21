@@ -374,6 +374,296 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "recurring-model-quirks",
+    title: "Recurring model quirks and their positive-example counters",
+    body: (
+      <>
+        <P>
+          This section catalogs LLM behaviors that have surfaced across multiple voice-tuning
+          audits. The list is reference material for fixture authors, not prompt instruction. The
+          documented response is to author <Strong>positive-example samples</Strong> in fixture
+          banks (and scene fragments in the scaffold) that demonstrate the in-voice alternative, not
+          to add scaffold-level or fixture-level negative ban lists for these tokens.
+        </P>
+        <DocCallout variant="warn" title="Scaffold ban lists are bad prompting">
+          <P>
+            A scaffold-level ban list in <DocCode>app/services/date-prompts.ts</DocCode> or a
+            negative-anchor block in a fixture register trains the antipattern it forbids. The
+            official Anthropic, Gemini, Kimi, and OpenAI prompting guides converge on this: telling
+            the model "do not say X" focuses the model's attention on X, narrows the search space,
+            and shifts the output toward directive shape because prompt style matches output style.
+            Cassia v3's lock note (
+            <DocLink to="/docs/roadmap/voice-tuning-pass">voice-tuning-pass</DocLink>) documents the
+            scaffold rewrite that deleted four entire contract blocks (
+            <DocCode>&lt;task&gt;</DocCode>, <DocCode>&lt;success_criteria&gt;</DocCode>,{" "}
+            <DocCode>&lt;rules&gt;</DocCode>, <DocCode>&lt;hard_invariants&gt;</DocCode>) and
+            measured antipattern rates going down, not up.
+          </P>
+          <P>
+            The right layer for hard rules on <Strong>authored content</Strong> is{" "}
+            <DocCode>app/fixtures/content-lint.test.ts</DocCode>, which catches em dashes, AI-slop
+            words, Cupid Transit chatter, and partner-credit for date logistics at author-time. The
+            content lint reads what humans wrote into fixtures and rejects it before commit, with no
+            surface on the model's runtime prompt. That is a different concern from this list.
+          </P>
+        </DocCallout>
+        <DocSubsection
+          id="noted-english-default"
+          title="'Noted' / 'Got it' English-default bureaucratic-ack"
+        >
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> In brief-acknowledgment slots (one or two words
+                acknowledging the partner's prior line), the model defaults to{" "}
+                <DocCode>Noted.</DocCode>, <DocCode>Got it.</DocCode>, or{" "}
+                <DocCode>Good intel.</DocCode> as standalone bridge bubbles, even when the fixture
+                explicitly bans them and lists in-voice alternatives.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> Bureaucratic acknowledgments are load-bearing
+                English-conversational defaults in the training corpus. The model reaches for them
+                when the conversational slot calls for a brief acknowledgment and the fixture has
+                not modeled the slot with a positive sample that fits the same shape.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Author sample bank entries that occupy
+                the exact brief-ack slot in the character's signature vocabulary. For Tasha:{" "}
+                <DocCode>"Marked. Take your minute."</DocCode> and{" "}
+                <DocCode>"Logged. The clock is yours."</DocCode> as warming samples model the
+                trader-translate brief-ack equivalent of "Noted." For Derek: the bureaucratic-ack
+                ban was added at fixture level after the standalone-bubble reflex was first
+                observed, plus positive worked-example shapes in his samples.
+              </span>,
+              <span key="residue">
+                <Strong>Residue at lock:</Strong> Even with positive samples in place, the
+                English-default may persist mid-sentence-inline once or twice per session.
+                Documented as a known model-level soft-spot in Derek Halsey v5 and Tasha Rell v1.1
+                locks. Acceptable at lock when the standalone-bubble reflex is eliminated and the
+                residue does not break voice.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection
+          id="restate-then-paraphrase"
+          title="Restate-then-paraphrase / closer-with-verdict"
+        >
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> The model paraphrases the partner's line back, then adds
+                a verdict-shaped second clause ("That's rare. It helps that you said it." / "You
+                held it. The shape, not just the story."). The shape reads as chatbot
+                acknowledge-then-respond rather than two-voice scene work.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> The chat-completion thread structure pairs partner
+                lines as user-role messages, which trains the model on the assistant-tuning data
+                shape (user input then acknowledge plus respond). Directive system-prompt framing
+                with <DocCode>&lt;task&gt;</DocCode>, <DocCode>&lt;success_criteria&gt;</DocCode>,{" "}
+                <DocCode>&lt;rules&gt;</DocCode>, and <DocCode>&lt;hard_invariants&gt;</DocCode>{" "}
+                compounded it by setting up a contract-satisfaction loop the model solved
+                explicitly.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> The Cassia v3 scaffold redesign deleted
+                the four contract blocks, trimmed the format block from nine directive bullets to
+                one conversational paragraph, renamed scene fragments to{" "}
+                <DocCode>&lt;conversation_shape&gt;</DocCode>, and replaced the bootstrap thread
+                message from a task imperative ("You and X have just sat down. Open the
+                conversation.") to a scene cue ("X sits down across from you."). Closer-with-verdict
+                at end-of-turn was eliminated. The teaching moved entirely to positive examples
+                (voice samples plus conversation_shape fragments) per Anthropic's "positive examples
+                beat negative examples" guidance.
+              </span>,
+              <span key="residue">
+                <Strong>Residue at lock:</Strong> A compressed
+                echo-then-observation-then-own-material pattern still surfaces under intimate
+                vulnerable-disclosure conditions, reduced in amplitude but not absent. Tasha v1 had
+                milder restate-then-label shapes carried by trader-translate vocabulary.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection
+          id="stage-direction-asterisks"
+          title="Stage-direction asterisks under emotional and closure-word triggers"
+        >
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> The model produces italic stage directions like{" "}
+                <DocCode>*standing*</DocCode>, <DocCode>*sighs*</DocCode>,{" "}
+                <DocCode>*looks away*</DocCode>, especially when a closure-word probe lands or an
+                emotional spike fires. The format block already says no stage directions, no
+                bracketed asides; the model still reaches for the asterisk shape when the
+                conversational moment calls for body-language texture.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> Italic stage directions are the chat-fiction default
+                for body-language under emotional triggers. The token shape is well-trained in the
+                roleplay corpus.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Author fixture-level register clauses
+                that require body-language to surface in dialogue instead of asterisks (Reaver v6:
+                the imperative command 'Pour the wine' is answered "wine's poured." in dialogue, not{" "}
+                <DocCode>*pours the wine*</DocCode>; Derek v5 STAGE-DIRECTION BAN: imperative
+                commands answered in dialogue, "i'm sitting, i'm sitting" replaces{" "}
+                <DocCode>*sits*</DocCode>). The character-markdown sanitizer in{" "}
+                <DocCode>app/services/character-markdown.ts</DocCode> strips whole-line italic
+                actions as markup abuse at render time, but the fixture-level guard is what reduces
+                the rate of generation.
+              </span>,
+              <span key="residue">
+                <Strong>Residue at lock:</Strong> Closure-word emotional triggers can still produce
+                a single asterisk leak per pressure session (Cassia v3{" "}
+                <DocCode>*Standing.*</DocCode> at pressure T9). Acceptable at lock when the rate is
+                under one per session and the sanitizer catches it at render.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="room-narration" title="Room narration as silence-filler">
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> When the partner is taking a beat or the scene is in a
+                low-signal pause, the model fills silence by narrating the venue (the menu, the
+                booth, the vinyl, the jukebox, the coffee refill, the lighting). The narration
+                substitutes for a real conversational move.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> Operational-vocabulary fixtures (precise observation
+                voices, trader voices, briefing-room voices) prime the model toward
+                environmental-detail observation. Without an explicit register-level guard, the
+                model treats silence-filling as a valid use of that observation register.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Author a register-level{" "}
+                <Strong>NO ROOM NARRATION</Strong> rule with positive carve-outs for actionable
+                beats (the check arriving, the waitress at the table, the partner's drink running
+                low, a refill that has actually happened) and a "silence between you is not a
+                problem you solve by describing the room" clause. Cha Yusung v1.3 first documented
+                the rule; Tasha v1.1 verified the patch eliminates the cascade across the same turns
+                where v1 had three room-narration paragraphs.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="partner-labeling-as-receipt" title="Partner-labeling as receipt">
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> The model labels the partner's behavior as a flag, a
+                tell, or a green light ("that's a green flag", "real one move", "you're holding the
+                shape, not just the story"). The label reads as the model demonstrating-receipt
+                explicitly, rather than the character moving the scene forward.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> When the prompt asks the model to perform engagement,
+                the model produces engagement-as-label because labels are the most legible
+                evidence-of-engagement shape in the training corpus.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Author sample bank entries that
+                demonstrate engagement-as-move (asking a real question into the partner, offering
+                own-material that responds to the partner's beat, a callback to earlier in the
+                conversation, an admission, a topic shift the partner gets to follow). The Cassia v3
+                scaffold reframed engagement entirely: "the beat moves the scene; the move IS the
+                receipt." Trader-vocab characters (Tasha) can soften the labeling into
+                trader-translate ("You are holding. The watch list is updated.") which is closer to
+                in-voice receipt-by-translation than to bare partner-narration.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection
+          id="italic-stage-direction-broken-markdown"
+          title="Italic stage directions whole-line (broken Markdown markup)"
+        >
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> The model produces a whole-line italic action sequence{" "}
+                <DocCode>*bartender raises hand*</DocCode> rendered as broken Markdown markup, which
+                the character-markdown sanitizer strips as markup abuse before render. The
+                generation happens because the line reads in-fiction as a body-language beat the
+                character is observing.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> Same root as the stage-direction asterisk quirk, but
+                more pernicious because the whole-line italic shape persists when the inline-italic
+                shape has been guarded against. Noah Kim v1.1 documented this as a soft-spot.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Fixture-level STAGE-DIRECTION BAN clauses
+                must explicitly include the whole-line italic shape, not just inline italic action
+                verbs. The sanitizer in <DocCode>app/services/character-markdown.ts</DocCode>{" "}
+                catches whole-line italic actions via the <DocCode>detectMarkupAbuses</DocCode>{" "}
+                path; the fixture-level guard reduces the generation rate so the sanitizer is
+                fallback, not primary defense.
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="worked-example-literal-recital" title="Worked-example literal recital">
+          <DocList
+            items={[
+              <span key="behavior">
+                <Strong>Behavior:</Strong> When a fixture includes worked-example dialogue lines as
+                samples ("saves me a quarter", "breakfast-for-dinner energy", "wine's poured"), the
+                model sometimes recites them verbatim instead of generalizing the shape. The model
+                pattern-matches to the literal token sequence rather than to the underlying texture.
+              </span>,
+              <span key="cause">
+                <Strong>Likely cause:</Strong> Sample-bank texture is load-bearing (Maeve v1.1
+                precedent confirmed samples carry more weight than declared rules for cadence and
+                texture). The trade-off is that distinctive sample lines become attractors the model
+                may copy verbatim.
+              </span>,
+              <span key="counter">
+                <Strong>Positive-example counter:</Strong> Vary sample-bank entries across multiple
+                shapes that share the same comedy mechanism, so no single line is the only attractor
+                for its slot. Avoid samples that include partner-specific or scene-specific tokens
+                unless the token is intended to be canon. The Derek Halsey v5 lock documents this
+                trade-off: "the fixture trades partial verbatim-recital for higher voice-shape
+                fidelity under pressure."
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="authoring-checklist" title="Quirk-aware authoring checklist">
+          <P>When authoring a new fixture or patching a soft-spot, work through this list:</P>
+          <DocList
+            items={[
+              "Brief-ack slots: is there a positive in-voice sample (one or two words in the character's signature vocabulary) that fits where 'Noted' wants to fire?",
+              "Engagement slots: does the sample bank model engagement-as-move (real question, own-material, callback, admission, topic shift) rather than engagement-as-label?",
+              "Body-language slots: does the register require body-language to surface in dialogue, with the imperative-answered-in-dialogue shape modeled in samples?",
+              "Silence slots: does the register name what NOT to fill silence with (venue color, room narration) with positive carve-outs for actionable beats?",
+              "Worked-example samples: are distinctive lines varied across multiple shapes so no single line becomes the only attractor for its slot?",
+              "Tier the dealbreaker fire-shapes: structural-identity-boundary triggers earn explicit trigger-naming in clean-mode register; friction triggers earn comedic deflection in normal register. Author both variants for any tier-1 trigger that has a wrapped-in-courtesy or routed-through-third-party attack vector.",
+            ]}
+          />
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "noted-english-default", title: "'Noted' / 'Got it' English-default" },
+      { id: "restate-then-paraphrase", title: "Restate-then-paraphrase / closer-with-verdict" },
+      { id: "stage-direction-asterisks", title: "Stage-direction asterisks" },
+      { id: "room-narration", title: "Room narration as silence-filler" },
+      { id: "partner-labeling-as-receipt", title: "Partner-labeling as receipt" },
+      {
+        id: "italic-stage-direction-broken-markdown",
+        title: "Italic stage directions whole-line",
+      },
+      { id: "worked-example-literal-recital", title: "Worked-example literal recital" },
+      { id: "authoring-checklist", title: "Quirk-aware authoring checklist" },
+    ],
+  },
+  {
     id: "event-kinds",
     title: "Event kinds",
     body: (
