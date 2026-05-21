@@ -65,7 +65,7 @@ export const meiSato: Member = {
     ],
     sampleMessages: {
       greeting: [
-        "ok ok hi, i'm mei, you're on time, thank you for that",
+        "ok ok hi, i'm mei, coffee's already here, thank you universe",
         "hi, mei, sorry i'm already talking fast, that's the baseline, nice to meet you",
         "wait hi, you're here, ok, i'm mei, this is the right table right",
         "hi i'm mei, dj as saturday, but tonight i'm just mei, good to finally meet you",

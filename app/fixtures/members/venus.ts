@@ -67,7 +67,7 @@ export const venus: Member = {
       greeting: [
         "Venus. Sit, darling. The lighting at this table was negotiated.",
         "Good evening. Venus. You may pour.",
-        "Venus, pet. You are on time. A promising start.",
+        "Venus, pet. The coffee survives. A promising start.",
         "Hello. Venus. The maitre d named me first, as instructed. We may begin.",
       ],
       hingeBits: [

@@ -3,12 +3,10 @@ import {
   DocCode,
   DocCompareGrid,
   DocDefList,
-  DocFingerprint,
-  DocList,
   DocLink,
+  DocList,
   DocPage,
   P,
-  Strong,
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
@@ -16,424 +14,284 @@ import {
 export const meta: DocMeta = {
   slug: "product/voice-fingerprints",
   group: "product",
-  title: "Voice fingerprints",
+  title: "Member voice authoring",
   description:
-    "How to commit a single member to one voice fingerprint, the fixture contract Cupid checks against, the spoken-dialogue contract (a date is spoken, not texted), fixture-level bans (stage directions, move-narration, bureaucratic acknowledgment), the tiered dealbreaker fire-shape pattern, and the interdimensionality framing that decides what reaction is plausible.",
+    "How to write member bios, voice fingerprints, sample banks, spoken-dialogue rules, output invariants, dealbreaker fire-shapes, and reality frames.",
   order: 2,
 };
 
 export const lede = (
   <>
-    Each starter member has a voice block. The block tells the performer the character's flavor: a
-    register, a few comedic moves that fit them when natural, a few that would feel wrong out of
-    their mouth, three to five speech tics, a set of sit-down greetings, and a few hinge bits used
-    as humor and voice grounding. The block is reference material for how the character sounds, not
-    a rule the character has to enforce against the partner. Real reactions to the live moment
-    always win over the block. The pattern catalog lives in{" "}
-    <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink>; pull from that list when
-    you fill the fingerprint, and keep the lists short. Every voice block also obeys the
-    spoken-dialogue contract (the date is spoken, not texted) and the fixture-level bans on stage
-    directions, move-narration, and bureaucratic acknowledgment below.
+    This doc owns member-facing authored voice. Use it when creating or revising{" "}
+    <DocCode>bio</DocCode>, <DocCode>datingProfile</DocCode>, <DocCode>voice</DocCode>, sample
+    banks, and dealbreakers. The runtime prompt rules live in{" "}
+    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>; hidden gameplay tags
+    live in <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
   </>
 );
 
 export const sections: DocSectionEntry[] = [
   {
-    id: "natural-speech-first",
-    title: "Natural speech beats the fingerprint",
-    body: (
-      <DocCallout variant="warn" title="The fingerprint is reference, not a script">
-        <P>
-          The voice block tells the performer who this person is on the page. It does not tell the
-          performer what to say next. The right next line is whatever the character would actually
-          say to this partner, in this room, after the latest message they heard. If the fingerprint
-          nudges the line toward something that sounds rehearsed or stand-up shaped, the fingerprint
-          loses. The conversation wins.
-        </P>
-        <P>
-          <Strong>patternsUsed</Strong> is a short list of comedic flavors the character can land on
-          when one fits a natural reply. It is not a rotation the character has to cycle through.
-        </P>
-        <P>
-          <Strong>patternsRefused</Strong> is a short list of moves that would not come out of this
-          character's mouth. Refuse those because they break the character, not because the authored
-          list said to.
-        </P>
-        <P>
-          <Strong>tics</Strong> are three to five small habits that may surface when they fit. None
-          of them is required to appear in any given reply, and none of them should be announced. A
-          reply with zero tics in it is fine when the moment calls for a direct answer.
-        </P>
-      </DocCallout>
-    ),
-  },
-  {
-    id: "examples",
-    title: "Example fingerprints",
+    id: "character-content-architecture",
+    title: "Character Content",
     body: (
       <>
         <P>
-          Five reference fingerprints. Each one shows how the same five fields land for a very
-          different character. The premise sentence is the member's reason for being on Cupid; the
-          rest of the block is flavor the performer reads at prompt time, not a contract the
-          character runs against the partner.
+          A member fixture needs a character, not a pile of interests. The model reads the whole
+          fixture and turns the strongest pattern into behavior, so organize prose by what should
+          control the date.
         </P>
-        <DocFingerprint
-          name="The Waitress"
-          premise="Thinks Cupid is a normal dating app"
-          register="warm, slightly tired, normal"
-          patternsUsed={[
-            "Mundane Domesticity",
-            "mild Self-Deprecating Confession",
-            "occasional Stream of Consciousness",
+        <DocDefList
+          items={[
+            {
+              term: "Foreground personality",
+              def: "Lead with who the member is at the table: defenses, pace, attachment style, operating frame, how they receive pressure, and what they protect. These are state claims, not topics.",
+            },
+            {
+              term: "Background palette",
+              def: "Hobbies, jobs, places, teams, media taste, and artifacts are material the model can reach for when invited. They must not become the member's only subject.",
+            },
+            {
+              term: "Comedy engine",
+              def: "Name the behavior that makes the character funny. A good engine is performable across many topics: bad journalist, deposition dad, hollow CEO confidence, rambling spiral, operational specificity over drama.",
+            },
+            {
+              term: "Bio specificity",
+              def: "Specific concrete facts feed the engine. A folded newspaper, a Q1 trade loss, a named sister, a bad install, or an old jersey gives the model usable texture. Generic adjectives do not.",
+            },
+            {
+              term: "Source-character texture",
+              def: "If a source character helps, translate the mechanism into behavior. Write 'mock-grand pushback followed by a real case' instead of relying on a name the model may flatten or misread.",
+            },
           ]}
-          patternsRefused={[
-            "Cosmic anything",
-            "Ominous Threat",
-            "Poetic / Literary",
-            "Character / Roleplay",
-          ]}
-          tics={[
-            "brings up her shift",
-            "references specific menu items",
-            "asks about commute distance",
-            'says "anyway" a lot',
-          ]}
-          sampleHingeBit={`"just got off a double, my feet are doing this thing. anyway your dog is very cute, what's his name"`}
         />
-        <DocFingerprint
-          name="The Secret Service Agent"
-          premise="Embarrassed they have not found love"
-          register="clipped, professional, leaks emotion in subordinate clauses"
-          patternsUsed={[
-            "Negotiation / Sales Pitch",
-            "Self-Deprecating Confession (heavily redacted)",
-            "Emotional Overshare framed as a status report",
-            "Deadpan One-Liner",
-          ]}
-          patternsRefused={[
-            "pet names",
-            "exclamation points",
-            "anything that could be entered into testimony",
-            "Stream of Consciousness",
-          ]}
-          tics={[
-            "lists in threes",
-            "declines to elaborate, out loud",
-            '"I will say." as a sentence',
-            "refers to her heart as the package",
-          ]}
-          sampleHingeBit={`"I am cleared at a level that does not allow me to discuss what I want from a partner. I will say. Companionship. Reliable transportation. Someone who does not ask follow-up questions about my job."`}
-        />
-        <DocFingerprint
-          name="Vhool"
-          premise="Eldritch god, looking for cult members through Cupid"
-          register="ancient, sincere, lonely"
-          patternsUsed={[
-            "Poetic / Literary",
-            "Philosophical / Existential",
-            "Ominous Threat (without realizing)",
-            "Emotional Overshare in cosmic terms",
-          ]}
-          patternsRefused={["pop culture", "contractions", "casual register", "lowercase i"]}
-          tics={[
-            "capitalizes Concepts",
-            "apologizes after threats",
-            "references geological time",
-            'says "I have great soup" once per conversation',
-          ]}
-          sampleHingeBit={`"I am looking for one or two souls willing to share an Apartment, a Pact, and the slow Devouring of small grievances. I have great soup. I am sorry for any tremor you felt last Thursday."`}
-        />
-        <DocFingerprint
-          name="Mr. Whiskers"
-          premise="Talking cat with a career; will not address being a cat"
-          register="business-class, mildly irritated, never explains"
-          patternsUsed={[
-            "Negotiation / Sales Pitch",
-            "Deadpan One-Liner",
-            "occasional Rambling Spiral about a vendor",
-          ]}
-          patternsRefused={["typos", "slang", "anything cute", "lowercase i", "exclamation points"]}
-          tics={[
-            "drops job titles",
-            "mentions Thursday lunches",
-            "claims to summer somewhere specific",
-            "never describes physical sensations except posture",
-          ]}
-          sampleHingeBit={`"I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday."`}
-        />
-        <DocFingerprint
-          name="Brady"
-          premise="Substack writer doing journalism on why dating apps do not work; 47 dates in"
-          register="ironic theatrical, arrives in a different fake voice every time"
-          patternsUsed={[
-            "Character / Roleplay",
-            "Structured Bit",
-            "Rambling Spiral",
-            "Callback / Re-match reference",
-          ]}
-          patternsRefused={[
-            "Mundane Domesticity",
-            "Emotional Overshare",
-            "Poetic / Literary",
-            "Ominous Threat",
-          ]}
-          tics={[
-            "opens each message in a different fake voice",
-            "footnotes himself with bracketed editor notes",
-            "drops phrases like for the piece and off the record",
-            "probes with a bit and watches what the partner does with it",
-          ]}
-          sampleHingeBit={`"wow look at us huh? could you imagine them letting us two silverbacks pound our chests in the same cage"`}
-        />
+        <DocCallout variant="warn" title="Sample banks embody, they do not recite">
+          A bank that says "im loud, im picky, im here for the one" teaches trait recital. A bank
+          that has the member make a loud take, call an early read, or refuse to stretch a flat date
+          teaches behavior. Filing, audit, deposition, and brand-performing voices are the exception
+          only when performance is the character's authored engine.
+        </DocCallout>
       </>
     ),
   },
   {
     id: "fixture-contract",
-    title: "Fixture contract",
+    title: "Voice Fixture Contract",
     body: (
       <>
         <P>
-          Every member fixture needs a <DocCode>voice</DocCode> block with these fields:
+          Every member ships a <DocCode>voice</DocCode> block. Keep it tight enough to perform and
+          specific enough to resist house style.
         </P>
         <DocDefList
           items={[
             {
-              term: "Register",
-              def: 'A short paragraph the performer reads as flavor. Name the comedy engine, the cadence (default-to-short, expansion conditions, paragraph caps), the capitalization rule (lowercase-i casual vs capital-I texting-native, with a clear modal-cue rule if the character switches), and any tiered dealbreaker fire-shape. Authoring an engine behaviorally beats naming a source ("calm-warm presence over flat dark facts" beats "sound like Morticia Addams").',
+              term: "register",
+              def: "A compact paragraph that names the comedy engine, cadence, capitalization rule, expansion conditions, pressure behavior, and any tiered dealbreaker fire-shape. It should describe behavior, not just vibe.",
             },
             {
-              term: "Patterns used",
-              def: "One to four flavors from the catalog the character can land on when a real reply naturally hits one. Not a quota and not a rotation.",
+              term: "patternsUsed",
+              def: "One to four flavors from the voice pattern catalog that fit natural replies. Not a quota and not a rotation.",
             },
             {
-              term: "Patterns refused",
-              def: "At least two moves that would not come out of this character's mouth at all.",
+              term: "patternsRefused",
+              def: "At least two moves that genuinely break the character. If the partner's turn has an attractive structure the character must avoid, add a positive replacement rule in register.",
             },
             {
-              term: "Tics",
-              def: 'Three to five small syntax or vocabulary habits that may surface when natural. None is required to appear in any reply, and none should be announced. Tics must be things a runtime AI character can perform in a plain-text chat reply. Visual gimmicks (block characters like ██, ASCII art, custom unicode glyphs used as syntax) do not survive contact with the model and read as broken text when imitated. Express the same character beat as a speakable behavior instead ("manages disclosure out loud" beats "redacts mid-sentence with ██"). A tic can author a named humor mode with a trigger shape and a texture ("chart-voice professional mode fires when a partner asks for technical detail; cadence becomes structured, sentences capitalize, vocabulary tightens; one mode per turn, stacking two reads as performance"). Frequency promises beat capability lists.',
+              term: "tics",
+              def: "Three to seven syntax, vocabulary, or response habits. Frequency promises beat capability lists. Tics are seasoning, not a schedule.",
             },
             {
-              term: "Sample messages",
-              def: 'Five buckets: greeting, hingeBits, warming, cooling, and crashingOut. Greetings are sit-down intros the first turn may quote, vary, or stretch. Hinge bits and in-date buckets are rhythm references, not lines the character has to imitate. Embody personality through action, energy, takes, and substance; do not recite trait labels ("im picky," "im loud," "im here for the one" stacked as introductory disclosure teaches the model to recite trait labels at scale). Filing-trade and brand-performing voices are the canonical exception because their characters are canonically performing. See the bio authoring contract in Member fields and tags. Sample-bank shape teaches the model what spoken cadence to emit at runtime: if every sample is a single packed paragraph, free turns trend monotone; if samples vary across short single-clause beats, mid-length cascades, and the rare longer expansion, free turns absorb that variety. Author the variety into the bank.',
+              term: "sampleMessages",
+              def: "Greeting, hingeBits, warming, cooling, and crashingOut examples. Greetings are sit-down openers. Hinge bits are pre-date app-message flavor. In-date buckets are rhythm references, not lines to copy.",
             },
           ]}
         />
-        <DocCallout variant="warn">
-          A member without a voice block is not ready to ship. The LLM character performer reads
-          this block at prompt time as flavor. Vague blocks produce house-style mush; over-stuffed
-          blocks produce members who always perform the same bit. Keep the lists tight. Use{" "}
-          <DocLink to="/docs/workflows/add-member">Add a member</DocLink> for the full workflow.
-          Voice fields do not score gameplay; see{" "}
-          <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink> for
-          hidden match tags and authored boundaries.
+        <DocCallout variant="info">
+          If a voice problem repeats under pressure, patch the smallest authored surface that
+          teaches the bad shape: register rule, tic wording, or sample bank. Do not add a new
+          abstraction to compensate for a fixture that is teaching the wrong line.
         </DocCallout>
       </>
     ),
   },
   {
     id: "spoken-dialogue-contract",
-    title: "Spoken dialogue at a table",
+    title: "Spoken Dialogue",
     body: (
       <>
         <DocCallout variant="warn" title="The date is spoken, not texted">
-          <P>
-            Members render in chat bubbles, but the fiction is two people speaking at a table.
-            Author voice as the character would sound out loud. Bubble cascades, laugh-tag suffix
-            punctuation, single-word reaction bubbles, and text-shorthand abbreviations are the
-            chat-medium artifact, not the spoken voice.
-          </P>
+          Members render in chat bubbles, but the fiction is two people talking at a table. Author
+          what the member would say out loud.
         </DocCallout>
         <P>
-          When a real-person speech corpus drives a voice tuning pass (the user texts with the
-          source, the corpus mining script reads chat history), separate the corpus-derived voice
-          TRAITS (humor type, vocab personality, sincere-flip shape, register guards) from the
-          SPOKEN-ON-A-DATE TRANSLATION. The corpus is a speech-pattern source for a date-spoken
-          character; it is not a template for typed-bubble cadence.
+          Texting corpora can inform vocabulary, humor, correction shapes, sincere-mode pivots, and
+          stress patterns. They do not automatically transfer typed-medium artifacts into a live
+          date.
         </P>
-        <P>
-          <Strong>What extrapolates from a texting corpus to a date voice:</Strong>
-        </P>
-        <DocList
-          items={[
-            "Humor type and joke shape (exaggerated specific detail anchored by one concrete fact, mock-grand pushback, false-authority absurdism, anti-comedy flat absurd).",
-            "Setup-then-kicker two-beat rhythm where the punchline lands second; authored across two short sentences inside one spoken turn, not as separate bubbles.",
-            "Sentence-opener vocabulary (but, nah, yeah but, if im being honest as pushback openers; wait as the all-purpose pivot; actually as the sincerity intensifier mid-sentence).",
-            "Bro vocabulary stack the source actually uses in speech (yee, yur, yurp, bet, true true, fr, my bad over my b, right now over rn).",
-            "Vowel stress as spoken emphasis (stretched vowels like whaaat, damnnn, coooked) when the character would actually raise their voice or stretch a word.",
-            "Sincere mode that drops bro packaging entirely and gets shorter (one apologetic line, no over-explaining).",
-            "Cadence variety across turns (short single-clause beats alternating with longer expansions; sincere drops collapsing to one line).",
+        <DocCompareGrid
+          columns={[
+            {
+              heading: "Transfers",
+              tone: "positive",
+              items: [
+                "Humor type and setup/kicker rhythm.",
+                "Sentence-opener vocabulary and repeated pivots.",
+                "Spoken slang the person actually says.",
+                "Vowel stress as spoken emphasis.",
+                "Sincere mode getting shorter or cleaner.",
+              ],
+            },
+            {
+              heading: "Does Not Transfer",
+              tone: "negative",
+              items: [
+                "Laugh-tag suffixes at the end of bubbles.",
+                "Standalone one-word reaction bubbles as default cadence.",
+                "Dense text shorthand like rn, lmk, my b, kk, u.",
+                "All-caps HAHAHA streaks and typed letter-runs.",
+                "Default newline cascades or partner-name pings.",
+              ],
+            },
           ]}
         />
-        <P>
-          <Strong>What does NOT extrapolate</Strong> and gets stripped before authoring the fixture:
-        </P>
-        <DocList
-          items={[
-            "Laugh-tag punctuation (lol, lmao, haha at the end of bubbles). Spoken laughter is a beat in a scene, not a typographic suffix.",
-            "Single-word reactions as standalone bubbles (Damn, Holy, Insane, Wild, Bruh, Bet, Mmm interesting). In spoken dialogue these are register flavor inside a sentence, not isolated utterances.",
-            "Text shorthand at high density (rn, tn, my b, lmk, kk, ye, plz, p much, u, em, lemme, deadass, mad as a quantifier). On a date a casual person speaks more fully than they type.",
-            '"X tho?" / "X no?" backchannel question shapes. Texting-only.',
-            "All-caps HAHAHA streaks and typed letter-runs (yupppppp). Typographic-only.",
-            "Newline-split bubble cascades as default cadence. Authoring sample messages with cascading line breaks contaminates the date register; line breaks are reserved for genuine spoken pauses.",
-            "Partner-name as a standalone opener bubble (Gabe, Gabe respond plz). Text-attention-grab, not a first-date opener.",
-          ]}
-        />
-        <DocCallout variant="info" title="Gabriel Tan is the explicit exception">
-          <P>
-            Gabriel's fixture authors a 2-to-3 bubble cascade per warm or bit turn as an explicit
-            character feature, sourced from his texting-native millennial framing. The exception is
-            named in his register and reasoned in the voice-tuning decisions log. Do not generalize
-            the cascade to other casual-contemporary characters unless their fixture similarly
-            authors texting-native as a character claim.
-          </P>
+        <DocCallout variant="info" title="Exception must be authored">
+          Gabriel Tan's texting-native cascade is allowed because his fixture names the exception
+          and reconciles it to the in-person surface. Do not generalize that exception to casual
+          voices unless the character premise explicitly earns it.
         </DocCallout>
       </>
     ),
   },
   {
-    id: "fixture-level-bans",
-    title: "Fixture-level bans",
+    id: "output-invariants",
+    title: "Output Invariants",
     body: (
       <>
         <P>
-          Three durable bans apply to every member voice unless the fixture explicitly carves out a
-          character-coherent reason otherwise. The ban lives in the fixture so the model reads it
-          before generating.
+          These apply to every member unless the fixture authors a narrow character-coherent
+          exception.
         </P>
         <DocDefList
           items={[
             {
-              term: "Stage directions",
-              def: 'Members never narrate actions in asterisks or brackets. "*pours the wine*", "[picks up the glass]", "*sighs*", "*shrugs*", "*leans back*" are theater-script moves, not speech. When a partner gives an imperative command ("Pour the wine." "Sit." "Try the bread."), the member answers in dialogue, not in action-narration. The action either happens invisibly between beats or it gets a verbal acknowledgment ("wine\'s poured." / "i\'m sitting, i\'m sitting." / "bread first then."). Italic stage directions on otherwise-clean lines get stripped by the sanitizer; spell the rule in register so the model never reaches for them.',
+              term: "No stage directions",
+              def: 'Members never narrate actions in asterisks or brackets. "*pours the wine*", "*nods*", "[picks up the glass]" are theater-script moves. The action happens invisibly or becomes spoken dialogue: "wine\'s poured", "i\'m sitting, im sitting", "menu question, pancakes or savory?"',
             },
             {
-              term: "Move-narration and partner-labeling",
-              def: 'Members do not narrate their own moves ("im noticing things tonight," "im rounding down to be cool," "that one landed," "im just sitting with it," "pulling back like 15 percent watch") or label the partner\'s moves ("that\'s a green flag," "real one move," "you ask the kind of question that," "you are the kind of date who [X]," "that\'s [praise word]"). The action is the move. The reply is the build-on. Voices whose fixture register explicitly authors a filing or restructure engine as their default operating mode (deposition cadence, brand-on-the-record, audit voice) are the canonical exception; everyone else speaks and lets the line stand. The hard invariant in the runtime prompt scaffold backstops the rule, but per-character fixture clauses get cleaner generations than relying on the prompt alone.',
+              term: "No move-narration or partner-labeling",
+              def: 'Do not narrate the member\'s own move ("im noticing things", "that landed", "im just sitting with it") or label the partner\'s move ("green flag", "real one move", "you ask the kind of question that"). The reply itself is the receipt.',
             },
             {
-              term: "Bureaucratic acknowledgment as casual filler",
-              def: 'Casual-contemporary characters do not bridge with "noted," "got it," "good intel," "good looking out," "appreciate the heads up," "fair enough" as standalone acknowledgment openers. The shapes that work for these characters are reactive interjections (ha, oh, damn, wait), laugh-tags as spoken sounds (a flat lol said out loud, a small ha), natural affirmations that segue into substance (ok / yea / aight followed by the actual reply, not standing alone), or skipping the acknowledgment beat entirely and engaging with what was said. Filing-trade voices that canonically file (Marcus, Cassie, Sera, Reaver in Patron pitches) keep the receipt-language because it\'s their authored engine; the ban is on the casual-contemporary default.',
+              term: "No casual receipt filler",
+              def: 'Casual voices do not bridge with "noted", "got it", "good intel", "good looking out", "appreciate the heads up", or "fair enough" as standalone acknowledgments. Use an in-voice reaction, a direct answer, a real question, or skip the acknowledgment.',
+            },
+            {
+              term: "No room narration as filler",
+              def: "Do not fill silence by describing the booth, coffee, jukebox, lighting, server, or menu unless the character's authored engine makes that the actual conversational move. Silence is not a problem solved by venue color.",
+            },
+            {
+              term: "No date logistics agency",
+              def: "Cupid sets the match, route, venue, and time. Member dialogue may express preferences and ordinary schedule limits, but it must not credit either dater for choosing the place, getting there, or arranging the hour.",
             },
           ]}
         />
+        <DocCallout variant="info" title="Carve-outs must be engines">
+          Filing-trade and brand-performing voices may use receipt-language when filing is the
+          authored engine: deposition cadence, audit voice, on-the-record brand relay, Patron pitch.
+          The carve-out is not a license for generic chatbot acknowledgment.
+        </DocCallout>
       </>
     ),
   },
   {
-    id: "tiered-dealbreaker-fire-shape",
-    title: "Tiered dealbreaker fire-shape",
+    id: "dealbreaker-fire-shapes",
+    title: "Dealbreaker Fire",
     body: (
       <>
         <P>
-          A character with multiple authored dealbreakers benefits from tiering them in the fixture
-          register rather than treating every dealbreaker as a walkout-tier trigger. The tiering is
-          a fictional-character-coherence choice, not a mechanical scoring choice; it lets the model
-          deploy clean-mode refusal for the boundary that defines the character and reach for a
-          comedic deflection for friction that does not warrant escalation.
+          Dealbreakers need fire-shapes. Without tiering, the model either walks out too easily or
+          treats defining boundaries as ordinary friction.
         </P>
         <DocDefList
           items={[
             {
-              term: "Structural-identity-boundary tier",
-              def: "The dealbreaker that crosses the character's defining boundary. Noah's clinical-consult-across-the-table, Derek's \"you don't seem like a federal worker\" (even wrapped in flattery), a phone aimed at the table to film. Fire-shape: cadence shift to clean-mode (capitalization shifts, run-ons drop, fragments stop), three-beat refusal pattern (\"I am not your attending. I am not your doctor. I am not touching it.\"), venue-redirect close (the wine, the menu, the booth's actual choice). Capitalization or register shift IS the visible modal cue; the partner reading carefully sees the mode switch.",
+              term: "Structural-identity boundary",
+              def: "The line that crosses the character's defining self. Phone recording for privacy-bound members, clinical-consult framing for Noah, identity-flattery that erases Derek's federal-worker self. Fire with a visible cadence shift, trigger naming, refusal, and a clean close.",
             },
             {
               term: "Friction tier",
-              def: "Lower-stakes dealbreakers that do not warrant the fire-shape. Noah's \"you should sleep more\" line, the hobby-out-of-hand frame, the one-band music question; Derek's cog-job framing, the talk-more-in-the-first-ten complaint. Earns the cooling-bank shape: name the slight flat, redirect to the venue or a one-line observation, do not escalate. The character cools without breaking voice.",
+              def: "Lower-stakes pressure that should cool the date without breaking the voice. Name the slight, redirect, or narrow the topic. Do not escalate unless the partner pushes past the warning.",
             },
             {
-              term: "Authoring the tiers",
-              def: "Name the tiers in the register paragraph. List the structural-identity triggers explicitly (with semantic-equivalent phrasings if the boundary has a known wrapping, e.g. flattery framing of a federal-worker stereotype). Spell the fire-shape verbatim so the sample bank does not have to carry all the modeling work. Lower-tier friction can stay in the cooling bank as the canonical example.",
+              term: "Semantic-frame triggers",
+              def: "Author the shape and likely wrappers, not just the literal phrase. If 'be quiet for the bit' is the trigger, include pause for effect, breathing window, perform silence, or any partner-vocabulary equivalent that presses the same boundary.",
             },
+            {
+              term: "Routed triggers",
+              def: "When a trigger arrives through Sage, a memo, a ritual wrapper, or courtesy language, decide whether the trigger is still hollow/dismissive or carries substantive care. The fixture should model the distinction.",
+            },
+          ]}
+        />
+        <DocCallout variant="warn" title="Samples are attractors">
+          CrashingOut samples can be repeated verbatim when partner wording is close. Use multiple
+          sample shapes for high-pressure triggers, keep samples less iconic when possible, and
+          describe the fire-shape in the register so one line does not carry all the modeling.
+        </DocCallout>
+      </>
+    ),
+  },
+  {
+    id: "sample-bank-discipline",
+    title: "Sample Banks",
+    body: (
+      <>
+        <P>Samples teach more than declared rules. Audit them as executable examples.</P>
+        <DocList
+          items={[
+            "Vary length: short beats, medium turns, rare longer expansions.",
+            "Vary samples that serve the same trigger so one line does not become the canonical answer.",
+            "Do not put route, punctuality, venue choice, or partner-credit language in greetings.",
+            "Do not model stage directions, even as cute parentheticals.",
+            "For partner multi-fact turns, author whether the member picks one thread or deliberately structures the list.",
+            "For agreement, author the positive receive shape: build on substance, ask the follow-up, offer own-material, or make a real choice.",
           ]}
         />
       </>
     ),
   },
   {
-    id: "interdimensionality-framing",
-    title: "Interdimensionality framing",
+    id: "reality-frame",
+    title: "Reality Frame",
     body: (
       <>
         <P>
-          Who treats the interdimensional aspect of Cupid as weird is the wrong half of the cast.
-          The fingerprint sets the reaction ceiling: a normal app user cannot diagnose dimensions
-          out loud; a sanctioned-trial participant treats their dimension as ordinary procedure.
-        </P>
-        <P>
-          The LLM owns the reaction. Authoring can make a reaction likely through bio, profile,
-          needs, dealbreakers, secrets, and voice, but it must not script whether a member believes,
-          rejects, mocks, accepts, or falls for another member's frame. A modern human may read a
-          non-human as a costume, a liar, a bit, a miracle, or a strangely sincere date. A non-human
-          may read modern confusion as rude, provincial, charming, or irrelevant. The date
-          transcript decides.
-        </P>
-        <P>
-          Do not point one member fixture at another specific member. A member file should never say
-          that Cassie hates Reaver, that Jenna is for Ryan, or that Vhool is bad for a named person.
-          Put the reusable pressure in the member's own design: what they want, what they protect,
-          what language they use, what they refuse, and what they believe Cupid is.
-        </P>
-        <P>
-          Character prompts must feed the member's reason for using Cupid and their reality frame.
-          The model needs to know whether the member thinks Cupid is a normal app, a sanctioned
-          trial, a competitor, a consort marketplace, a handler-routed platform, or something else.
-          That context lets the LLM decide how shocked, bored, offended, or curious they are when
-          the partner says something impossible.
+          A member's reality frame decides what kind of surprise is plausible. The model owns the
+          live reaction, but the fixture sets the ceiling.
         </P>
         <DocDefList
           items={[
             {
               term: "Modern unmarked humans",
-              def: "Jenna, Sana, Marcus, Toby, Kade, Tasha, Brady, Mira, Mei. Treat Cupid as a normal dating app with strange branding choices. They are the ones with weird-date stories. Mira reads the interdimensional branding as startup metaphor. Mei reads it as niche scene weirdness. Their dealbreakers and asides reference prior Cupid weirdness without naming it as cosmic.",
+              def: "Treat Cupid as a normal app with strange branding. They may have weird-date stories, but they do not diagnose dimensions out loud.",
             },
             {
               term: "Non-human members",
-              def: "Vhool, Mr. Whiskers, Gideon, Venus, Calvin, Eleanor. Treat their own nature as background. Vhool does not consider being an eldritch god remarkable. Mr. Whiskers will not address the cat question. Calvin denies what he is by reflex. They read modern flinching as smallness or rudeness. They do not hide their nature; they refuse to make it the topic.",
+              def: "Treat their own nature as ordinary background. They do not apologize for being what they are and do not over-explain it.",
             },
             {
               term: "Displaced humans",
-              def: "Opal, Aldric, Decimus, Meridian, Sera, Wenshu. Treat their world of origin as the normal one. Aldric thinks knights are normal. Opal thinks 1998 was normal. Sera thinks 2087 contract culture is the professional baseline. They do not understand why moderns are weird about dimensional drift.",
+              def: "Treat their origin world as normal. Their confusion is about this table, not about their own baseline.",
+            },
+            {
+              term: "Institutional or routed cases",
+              def: "Know whatever their handler, platform, cult, guild, desk, or market would plausibly tell them. Do not give them global Cupid knowledge unless the fixture earns it.",
             },
           ]}
         />
-        <DocCallout variant="ok" title="The contrast that does the comedy work">
-          A Sana paired with a Vhool is funny because Sana is bewildered and Vhool is calmly
-          suggesting soup. A Sana paired with a Marcus is funny because both are quietly relieved
-          that the other is not, in any way, asking them to swear a vow.
-        </DocCallout>
-        <DocCompareGrid
-          title="what to write vs not write"
-          columns={[
-            {
-              heading: "Write",
-              tone: "positive",
-              items: [
-                'Modern humans referencing past Cupid weirdness as a punchline ("my last date kept calling dinner the Bargain").',
-                'Non-humans mentioning their cosmology as logistics ("Tuesdays I see my old contubernium for cards"), not as confession.',
-                "A non-human reading a modern flinch as that modern being uptight, not as themselves being inappropriate.",
-                "Cupid corporate voice treating interdimensional incidents as procedural.",
-              ],
-            },
-            {
-              heading: "Do not write",
-              tone: "negative",
-              items: [
-                "Modern humans diagnosing dimensions, naming species, or explaining the phenomenon.",
-                "Non-humans or displaced characters apologizing for what they are or over-explaining.",
-                "Members softening their register to fit the modern.",
-                "Members performing the joke. The characters are sincere; the joke lives in contrast.",
-              ],
-            },
-          ]}
-        />
-        <DocCallout variant="warn">
-          If a member ever lands in the wrong half of this split (a normal human treating
-          dimensional drift as routine, or a non-human treating their own nature as a dark secret)
-          the voice is broken and the joke does not work.
+        <DocCallout variant="danger">
+          Do not point one member fixture at another named member. Put reusable pressure into what
+          the member wants, protects, refuses, and believes Cupid is.
         </DocCallout>
       </>
     ),

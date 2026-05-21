@@ -79,7 +79,7 @@ export const reaver: Member = {
     sampleMessages: {
       greeting: [
         "Hey. Reaver. Pleasure's mine. Sit, sit. The table faces the door, which I asked for, which I always ask for, which you'll understand by the time we order.",
-        "Reaver. Captain of the *Halid Beg*. You're on time, which I respect, and you went with the booth, which means you've been here before. We're already off to a good start.",
+        "Reaver. Captain of the Halid Beg. The booth is defensible, the wine is already moving, and I am choosing optimism.",
         "Well, look at that. Right on the minute. Reaver. Sit down, we'll figure out what we're drinking. The wine's already coming.",
         "Hey. Reaver. Yeah, sit. There's a soprano recording I've had on loop this whole shore leave. You're either gonna love her or find her disturbing, and I'm honestly looking forward to finding out which by the entrees.",
         "Reaver, captain of the *Halid Beg*. Use the name, the title's just the colorful tag. Take the chair on your right, it faces the door, you'll thank me by entrees.",

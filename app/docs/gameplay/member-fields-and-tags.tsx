@@ -6,7 +6,6 @@ import {
   DocList,
   DocPage,
   P,
-  Strong,
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
@@ -16,99 +15,119 @@ export const meta: DocMeta = {
   group: "gameplay",
   title: "Member fields and tags",
   description:
-    "Authored fields on a Member fixture, the hidden tag taxonomy, member request tags, and the ship-ready contract for new members.",
+    "The data contract for Member fixtures: authored fields, hidden tags, request tags, player-knowledge boundaries, and ship-ready content requirements.",
   order: 0,
 };
 
 export const lede = (
   <>
-    Gameplay tags are hidden planning signals used by Cupid systems to shape prompts, risk notes,
-    and bounded state changes. They are not UI copy, not relationship truth, and should not be shown
-    to the player. This doc owns the authored data shape on a member.
+    This doc owns member fixture data. Voice authoring rules live in{" "}
+    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Runtime
+    surfaces live in <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>.
   </>
 );
 
 export const sections: DocSectionEntry[] = [
   {
     id: "member-fields",
-    title: "Member fields",
+    title: "Member Fields",
     body: (
       <>
-        <P>Use member fields this way:</P>
+        <P>Use the fields this way:</P>
         <DocDefList
           items={[
+            {
+              term: "identity fields",
+              def: (
+                <>
+                  <DocCode>id</DocCode>, <DocCode>name</DocCode>, <DocCode>firstName</DocCode>,{" "}
+                  <DocCode>origin</DocCode>, <DocCode>species</DocCode>,{" "}
+                  <DocCode>dimension</DocCode>, and <DocCode>realityStatus</DocCode> establish
+                  authoring and prompt context. They are not player-facing case-file fields by
+                  default.
+                </>
+              ),
+            },
+            {
+              term: "bio",
+              def: (
+                <>
+                  Largest prompt-time character context. It should foreground personality and
+                  background palette. The full contract lives in{" "}
+                  <DocLink to="/docs/product/voice-fingerprints#character-content-architecture">
+                    Member voice authoring
+                  </DocLink>
+                  .
+                </>
+              ),
+            },
             {
               term: "datingProfile",
               def: (
                 <>
-                  Authored profile copy. The first sentence is the public roster tagline at intake.
-                  It must read like the member speaking about themself in one short sentence,
-                  carrying voice, personality, and a concrete hook. Later sentences are revealed
-                  only through a filed <DocCode>profile</DocCode> read. Profile copy must honor the
-                  Cupid blind date setup: the dating manager pairs the members, and Cupid picks the
-                  venue and time. A member may state venue preferences, schedule limits, or arrival
-                  behavior, but must not claim that either dater chose the place or hour.
+                  Public profile copy. The first sentence becomes the roster tagline. It must be an
+                  in-character hook, not a census row. Cupid owns match, route, venue, and time;
+                  profile copy may state preferences but must not assign those logistics to either
+                  dater.
                 </>
               ),
             },
             {
-              term: "relationshipNeeds",
-              def: (
-                <>
-                  Authored reasons a member might want a specific kind of date. These are not shown
-                  in full at intake. Player-safe <DocCode>ask</DocCode> reads are filed when a focus
-                  request or transcript evidence makes the need visible.
-                </>
-              ),
+              term: "relationshipNeeds / preferences / dealbreakers",
+              def: "Hidden authored pressure surfaces. They feed fit, risk, player-safe reads, and prompts. They are not shown wholesale at intake.",
             },
             {
-              term: "preferences",
-              def: (
-                <>
-                  Authored soft clues for good rooms, partners, and pacing. These are not shown in
-                  full at intake. Player-safe <DocCode>comfort</DocCode> reads are filed when a
-                  comfort beat or transcript evidence makes the preference visible.
-                </>
-              ),
+              term: "secrets",
+              def: "Private background, not free disclosure material. Secrets may surface only when the transcript earns them or a system intentionally exposes player-safe copy.",
             },
             {
-              term: "dealbreakers",
-              def: (
-                <>
-                  Authored boundaries a member watches for. These are not shown in full at intake.
-                  Player-safe <DocCode>boundary</DocCode> reads are filed when risk or transcript
-                  evidence makes the boundary visible.
-                </>
-              ),
+              term: "tags",
+              def: "Hidden deterministic gameplay inputs. Tags must be proved by authored prose.",
             },
-            { term: "tags", def: "Hidden deterministic gameplay inputs." },
             {
               term: "voice",
-              def: "Flavor reference for the runtime AI: register, tics, sample buckets, and short lists of comedic moves that fit or break the character. The performer reads it to know who this person sounds like, then answers the live conversation naturally. Voice is not a script the character has to enforce against the partner.",
+              def: (
+                <>
+                  Flavor reference for the runtime AI. The schema shape lives here; the authoring
+                  rules live in{" "}
+                  <DocLink to="/docs/product/voice-fingerprints#fixture-contract">
+                    Member voice authoring
+                  </DocLink>
+                  .
+                </>
+              ),
             },
           ]}
         />
         <DocCallout variant="danger">
-          Do not add new member fixture fields unless gameplay or UI reads them. Do not reintroduce{" "}
-          <DocCode>traits</DocCode> or <DocCode>redFlags</DocCode>. <DocCode>traits</DocCode> were
-          vague public labels. <DocCode>redFlags</DocCode> mixed member behavior with things members
-          reject.
-        </DocCallout>
-        <DocCallout variant="warn" title="Internal context fields">
-          <DocCode>species</DocCode>, <DocCode>origin</DocCode>, <DocCode>dimension</DocCode>,{" "}
-          <DocCode>realityStatus</DocCode>, and <DocCode>bio</DocCode> are authoring, prompt,
-          fixture, and asset context. They are not player-facing case file fields. Use public
-          profile copy and filed reads for player surfaces.
+          Do not add new fixture fields unless gameplay or UI reads them. Do not reintroduce{" "}
+          <DocCode>traits</DocCode> or <DocCode>redFlags</DocCode>.
         </DocCallout>
       </>
     ),
   },
   {
+    id: "content-boundaries",
+    title: "Content Boundaries",
+    body: (
+      <DocList
+        items={[
+          "Voice, gameplay tags, and player knowledge stay separate. Voice tells the performer how the member sounds; tags tell systems how to score; filed reads tell the player what Cupid has earned.",
+          "Do not point one member fixture at another named member as a required match, enemy, or failure.",
+          "Do not invent visual canon before a portrait exists. Runtime visual descriptions come from approved neutral portrait art.",
+          "A member may state ordinary preferences or schedule limits, but Cupid owns date logistics.",
+          "Hidden fields can hint through public profile copy only when the hint is player-safe and character-coherent.",
+          "Every authored field should support reusable roster pressure, not a single destined pair.",
+        ]}
+      />
+    ),
+  },
+  {
     id: "hidden-tags",
-    title: "Hidden tags",
+    title: "Hidden Tags",
     body: (
       <>
-        <P>Every member needs 3 to 5 hidden tags and exactly one identity tag:</P>
+        <P>Every member needs 3 to 5 hidden tags and exactly one identity tag.</P>
         <DocDefList
           items={[
             {
@@ -144,48 +163,21 @@ export const sections: DocSectionEntry[] = [
             },
           ]}
         />
-        <DocCallout variant="info" title="acquisitive">
-          The <DocCode>acquisitive</DocCode> tag marks members who run relationships as recruitment
-          funnels into a larger structure they already control. Their pitch is incorporation, not
-          partnership, and their vocabulary treats a counterpart as something to be added to a
-          manifest, a Pact, a fleet, or a household. Authored copy must show the recruiter cadence
-          (Pact talk, manifest talk, equity talk, claim talk) for the tag to be earned. Do not stack{" "}
-          <DocCode>acquisitive</DocCode> with <DocCode>sincerity_seeking</DocCode> casually; if both
-          are present, the contradiction is the character (Vhool wants kindred sincerely and is also
-          recruiting for the Lower Choir).
-        </DocCallout>
         <DocCallout variant="warn">
-          Hidden tags must be supported by authored copy. If a member has{" "}
-          <DocCode>prophecy_averse</DocCode>, their profile, ask, preferences, or dealbreakers
-          should make prophecy pressure legible to services and eventual filed reads without naming
-          the tag.
+          A tag is not a wish. If authored prose does not prove it, rewrite the prose or remove the
+          tag.
         </DocCallout>
       </>
     ),
   },
   {
-    id: "hidden-member-retention",
-    title: "Hidden member retention",
-    body: (
-      <P>
-        Member <DocCode>retention</DocCode> is an internal quit-risk score used by deterministic
-        services. It must not be exposed in player-facing UI as HP, health, or an exact meter. The
-        broader player-facing policy for Mood, Openness, Burnout, and retention is still unsettled,
-        so case files should not show exact values. Player surfaces may show closed-file state or
-        qualitative risk copy when needed, while services keep the numeric value for consequences.
-        See <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for the full
-        visibility tier.
-      </P>
-    ),
-  },
-  {
     id: "member-request-tags",
-    title: "Member request tags",
+    title: "Member Request Tags",
     body: (
       <>
         <P>
-          Member requests use a controlled tag taxonomy that is separate from hidden member tags.
-          These tags express deterministic asks for fit scoring. They are not UI copy.
+          Member requests use a separate controlled taxonomy for deterministic fit. These tags are
+          not UI copy.
         </P>
         <DocDefList
           items={[
@@ -237,100 +229,51 @@ export const sections: DocSectionEntry[] = [
           ]}
         />
         <DocCallout variant="warn">
-          Avoid one-off request tags. If a new request tag is needed, add it to{" "}
-          <DocCode>memberRequestTagSchema</DocCode>, update deterministic fit handling when it
-          should affect scoring, and add coverage in the same change.
+          Avoid one-off request tags. If a new request tag is needed, update the schema,
+          deterministic fit handling when needed, docs, and tests in the same change.
         </DocCallout>
       </>
     ),
   },
   {
-    id: "bio-authoring-contract",
-    title: "Bio authoring contract: personality foreground, hobby background",
+    id: "state-and-visibility",
+    title: "State And Visibility",
     body: (
       <>
         <P>
-          A member's <DocCode>bio</DocCode> is the largest piece of voice-shaping context the
-          runtime AI reads at prompt time. Two failure modes recur if the bio is not authored to a
-          contract: (1) single-point-of-interest fixation where one hobby (a band, a team, a job, a
-          city) absorbs the whole character and every reply routes back through it, and (2)
-          directive-as-personality where bio text reads to the model as "the character must discuss
-          X" rather than "the character is Y." Both produce characters that feel scripted in
-          transcripts.
+          Member <DocCode>mood</DocCode>, <DocCode>openness</DocCode>, <DocCode>burnout</DocCode>,
+          and <DocCode>retention</DocCode> are internal state. They drive deterministic consequences
+          and prompt context; they are not exact player-facing meters.
         </P>
-        <P>The contract that addresses both failure modes:</P>
-        <DocDefList
-          items={[
-            {
-              term: "Foreground: personality state claims",
-              def: 'Lead the bio with claims that describe who the member IS at the table. Debater-first-listener-second. Loud-by-default-without-noticing-until-pointed-out-twice. Here-for-the-one-not-here-to-stretch-a-date. Mortifies-easily-recovers-quickly. Treats-strangers-as-tomorrow\'s-anecdote. These are facts about the character, not topics the character will raise. They are written as second-person assertions ("you are," "you do," "your default is") and they describe energy, posture, defenses, and operating-frame, not interests.',
-            },
-            {
-              term: "Background: palette",
-              def: "After the personality is established, the bio backgrounds palette the LLM can freestyle off of without those topics owning the character. Hobbies (Kanye discography ranking, the 2014 Lakers, 2K league with college friends, Korean cooking badly, AF1 in dead colorways). Environments (the apartment with a TV bigger than the couch, the booth at the brass cat, the kitchen mom would weep over). Reference catalogs (Ringer columns, Bill Simmons commute, Coens-Soderbergh-PTA solo theater days). Specific small artifacts (the middle school AAU jersey folded in a drawer, the in-n-out animal-style burger he brings up more than he should). The model will reach into this palette when a partner gives it room; the character will not BE the palette.",
-            },
-            {
-              term: "Sample banks: embody, do not recite",
-              def: 'Sample messages teach the model the pattern. A bank that recites trait labels ("im picky, im loud, im here for the one, ill call an early read at the half" stacked as introductory disclosure) teaches the model to recite trait labels at scale. A bank that embodies personality through action, energy, takes, and substance teaches the model to embody. Filing-trade voices (audit, deposition, brand relay, on-the-record) and brand-performing voices are the canonical exception because their characters are canonically performing; everyone else cuts self-announcement.',
-            },
-          ]}
-        />
         <P>
-          Cross-provider prompt-engineering guidance supports this contract directly. State-claim
-          framing for character behavior is the dominant recommendation. Anthropic: "Setting a role
-          in the system prompt focuses Claude's behavior and tone for your use case. Even a single
-          sentence makes a difference." Google Gemini and Moonshot Kimi both recommend persona /
-          role framing as the primary lever. OpenAI is explicit on outcome-over-process for
-          character behavior: "Persona: &lt;one sentence&gt;" anchors behavior, and "Add detail only
-          where it changes behavior" guards against over-direction. Few-shot examples (sample banks)
-          carry the same weight as instructions: Anthropic warns to "vary enough that Claude doesn't
-          pick up unintended patterns," and Gemini notes "the model attempts to identify patterns
-          and relationships from the examples and applies them when generating a response." Recital
-          patterns in the bank are unintended patterns the model picks up.
+          Player-safe knowledge rules live in{" "}
+          <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink>. Case files may
+          show filed reads, qualitative risk, or closure state when earned.
         </P>
-        <DocCallout variant="info" title="Test the contract in transcripts">
-          <P>
-            The visible failure mode is: open a tune session, count how many turns route through a
-            single hobby or topic; count how many sample-bank phrases the character utters near-
-            verbatim in the first three turns. Single-point-of-interest fixation shows as topic-mass
-            concentration. Self-announcement shows as bank-recital frequency. The fix is in the bio
-            (move trait claims to foreground, hobbies to background palette) and in the sample bank
-            (rewrite recital entries to embody through action). See the Alex Yoon entries in the
-            voice-tuning-pass roadmap decisions log for the precedent.
-          </P>
-        </DocCallout>
       </>
     ),
   },
   {
-    id: "member-authoring-requirements",
-    title: "Member authoring requirements",
+    id: "ship-ready-contract",
+    title: "Ship-Ready Contract",
     body: (
       <>
-        <P>New members must fit this product contract before they ship:</P>
+        <P>New or heavily revised members must satisfy this before they ship:</P>
         <DocList
           items={[
-            "The member has a durable roster role with at least two natural warm pressures and two natural friction pressures against the existing cast.",
-            "The authored prose proves every hidden tag. A tag cannot exist only to force a named pair outcome.",
-            <span key="id">
-              Exactly one identity tag is present: <DocCode>ordinary_human</DocCode> or{" "}
-              <DocCode>non_human</DocCode>.
-            </span>,
-            "Voice, gameplay tags, and player knowledge stay separate. Voice gives the LLM flavor for how the character naturally sounds; the character still has to answer the live conversation. Tags tell services how to score pressure. Filed reads tell the player what Cupid has earned.",
-            <span key="chem">
-              Chemistry anchors stay in{" "}
-              <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink> as a human
-              authoring map. They do not go into member fixtures, scenario fixtures, prompts, or
-              runtime scoring tables.
+            "Durable roster role with multiple warm and friction pressures against the existing cast.",
+            "All hidden tags are proved by prose.",
+            "Exactly one identity tag is present.",
+            "Voice block is complete and obeys member voice authoring rules.",
+            "Dating profile first sentence works as a public tagline.",
+            "Member requests exist and currentRequestId points at one of them.",
+            "Approved portrait and avatar paths exist before full fixture validation is expected to pass.",
+            <span key="workflow">
+              The procedural checklist lives in{" "}
+              <DocLink to="/docs/workflows/add-member">Add a member</DocLink>.
             </span>,
           ]}
         />
-        <P>
-          Use the procedural checklist in{" "}
-          <DocLink to="/docs/workflows/add-member">Add a member</DocLink> when adding or revising a
-          member. <Strong>Voice</Strong> rules live in{" "}
-          <DocLink to="/docs/product/voice">Voice and tone</DocLink>.
-        </P>
       </>
     ),
   },

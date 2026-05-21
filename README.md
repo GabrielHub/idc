@@ -136,7 +136,6 @@ The docs are TSX modules under `app/docs/` and render at `/docs`. Browser dev re
 - [Field manual index](app/routes/docs.tsx): rendered as `/docs` with roadmap, product, gameplay, workflows, and support drawers.
 - [Roadmap](app/docs/roadmap/index.tsx): active implementation board and status lanes.
 - [Authoring plans](app/docs/roadmap/authoring-plans.tsx): temporary roadmap plan shape, lifecycle, and closeout policy.
-- [Roster voice tuning pass](app/docs/roadmap/voice-tuning-pass.tsx): active voice-tuning implementation plan. Check `plan.status` before using it.
 - [Desktop install guide](app/docs/support/desktop-install-guide.tsx): private alpha install flow, provider setup, save locations, logs, updates, caveats.
 - [Release README](app/docs/support/release-readme.tsx): short install notes for player-facing GitHub release assets.
 - [Desktop release workflow](app/docs/workflows/release-checklist.tsx): release, updater, fallback, and desktop bundle flow.

@@ -72,7 +72,7 @@ export const chaYusung: Member = {
       greeting: [
         "Yusung. On time.",
         "Yusung. Hayoon made the profile. She is in the next room. She is checking.",
-        "Yusung. Hayoon picked the place. I am not going to debate it.",
+        "Yusung. Hayoon made the profile. I am not going to debate it.",
         "Yusung. Hayoon would like me to make a better impression. I am working with what I have.",
         "Hi. Yusung. Thank you for showing up.",
       ],

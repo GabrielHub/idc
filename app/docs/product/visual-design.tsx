@@ -432,7 +432,9 @@ export const sections: DocSectionEntry[] = [
           </P>
           <P>
             See{" "}
-            <DocLink to="/docs/product/voice-prompts#member-markdown-subset">Voice prompts</DocLink>{" "}
+            <DocLink to="/docs/product/voice-prompts#member-markdown-subset">
+              Runtime voice surfaces
+            </DocLink>{" "}
             for the writer-facing rules and authoring examples.
           </P>
         </DocSubsection>

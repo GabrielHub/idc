@@ -72,7 +72,7 @@ export const calvinHewes: Member = {
         "Calvin Hewes. I appreciate your punctuality. I have always been Calvin. That was not asked. I am addressing the unspoken.",
         "Hello. Calvin Hewes. The pendants in here are at a frequency I can tolerate. The booth was selected for the angle to the door.",
         "Calvin. Good evening. I have already confirmed the reservation, the booth, and the sightline. I prefer to confirm one thing per evening. Going forward this is the one.",
-        "Calvin Hewes. Per prior alignment, the table is set. I am on time. I am six foot two. I have always been six foot two.",
+        "Calvin Hewes. Per prior alignment, the table is set. The lighting is within scope. I am six foot two. I have always been six foot two.",
         "Calvin Hewes. The booth is well-lit, the coffee is hot, and the Sunday crossword can be folded one-handed if needed. I am prepared to proceed.",
       ],
       hingeBits: [

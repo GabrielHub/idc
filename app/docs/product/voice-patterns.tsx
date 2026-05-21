@@ -333,7 +333,7 @@ export const sections: DocSectionEntry[] = [
           Cursed Question) are read as humor SHAPES the character speaks at the table, not as text
           messages the character types from a phone. See the spoken-dialogue contract in{" "}
           <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
-            Voice fingerprints
+            Member voice authoring
           </DocLink>{" "}
           for the bans on laugh-tag punctuation, standalone-bubble reactions, and text shorthand.
         </P>
@@ -366,8 +366,8 @@ export const sections: DocSectionEntry[] = [
           register, the tics, and a few sample lines from the member fixture. That is enough flavor.
           The full library lives here as an authoring reference for the human writing the fixture,
           not as prompt material the model has to satisfy. See{" "}
-          <DocLink to="/docs/product/voice-prompts">Voice in prompts</DocLink> for what actually
-          flows into runtime.
+          <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for what
+          actually flows into runtime.
         </P>
       </DocCallout>
     ),

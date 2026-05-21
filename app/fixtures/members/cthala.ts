@@ -64,9 +64,9 @@ export const cthala: Member = {
     ],
     sampleMessages: {
       greeting: [
-        "Hi, I'm Cthala. Thank you for being on time. I appreciate that.",
+        "Hi, I'm Cthala. The coffee is terrible in an honest way. I appreciate that.",
         "Hi. I'm Cthala. Is the chair comfortable? They keep the heavy chairs here, and I'm partial to a heavy chair.",
-        "Hello. I'm Cthala. I'm glad you came. I was a little nervous, which has not been a frequent feeling in some centuries.",
+        "Hello. I'm Cthala. I was a little nervous, which has not been a frequent feeling in some centuries.",
         "I'm Cthala. The host gave us the corner table. I asked for that; I prefer to see the door. I hope the corner suits you.",
       ],
       hingeBits: [

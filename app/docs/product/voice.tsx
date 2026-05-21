@@ -14,191 +14,140 @@ import {
 export const meta: DocMeta = {
   slug: "product/voice",
   group: "product",
-  title: "Voice and tone",
+  title: "Voice system",
   description:
-    "The core bit, the two-register split, prose mechanics, what this tone is not, when comedy stops, and the closure summary voice.",
+    "The map for IDC voice docs: house tone, register split, global prose rules, comedy boundaries, and where member authoring and runtime prompt rules live.",
   order: 0,
 };
 
 export const lede = (
   <>
-    This document owns IDC voice, prose mechanics, and the comedy stops.{" "}
-    <DocCode>app/app.css</DocCode> and{" "}
-    <DocLink to="/docs/product/visual-design">Visual design</DocLink> own the frontend visual
-    language; <DocLink to="/docs/product/image-style">Image style</DocLink> owns image asset style.
-    The pattern catalog lives in <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink>
-    ; per-member voice setup in{" "}
-    <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink>; surface and prompt
-    usage in <DocLink to="/docs/product/voice-prompts">Voice in prompts</DocLink>.
+    This is the voice map. It owns the house tone and points to the one doc that owns each deeper
+    rule. Member fixture authoring lives in{" "}
+    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Runtime prompt
+    surfaces and model quirks live in{" "}
+    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Gameplay data fields
+    live in <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
   </>
 );
 
 export const sections: DocSectionEntry[] = [
   {
-    id: "the-core-bit",
-    title: "The core bit",
+    id: "ownership-map",
+    title: "Ownership Map",
     body: (
       <>
-        <P>
-          Cupid, the company, has the dry confidence of a workplace sitcom. The members do not.
-          Members write like they are typing in a moving car, in love with the next sentence before
-          they finish the current one. Comedy lives in the contrast between operational competence
-          and member chaos, and in the gap between how each member sees themselves and how they read
-          on the page.
-        </P>
-        <P>
-          The tone is affectionate, never cruel. The members are sincere. The reader sees them
-          clearly. The members do not see themselves clearly. That is the whole machine.
-        </P>
-        <P>
-          This tone is not snarky, not random, not winking. It is specific neurosis delivered with
-          full conviction.
-        </P>
+        <P>Use the docs this way. Do not duplicate the same rule in multiple places.</P>
+        <DocList
+          items={[
+            <span key="voice">
+              <Strong>Voice system:</Strong> house tone, Cupid corporate voice, member voice
+              baseline, global prose rules, and comedy boundaries.
+            </span>,
+            <span key="fingerprints">
+              <Strong>Member voice authoring:</Strong> how to write <DocCode>voice</DocCode>,{" "}
+              <DocCode>bio</DocCode>, sample banks, dealbreaker fire-shapes, and the spoken-dialogue
+              contract for member fixtures.
+            </span>,
+            <span key="patterns">
+              <Strong>Voice patterns:</Strong> the controlled catalog for{" "}
+              <DocCode>patternsUsed</DocCode> and <DocCode>patternsRefused</DocCode>.
+            </span>,
+            <span key="prompts">
+              <Strong>Runtime voice surfaces:</Strong> dating profiles, opening messages, transcript
+              prompts, Markdown rendering, Cupid reports, scenario event kinds, and recurring LLM
+              quirks.
+            </span>,
+            <span key="fields">
+              <Strong>Member fields and tags:</Strong> fixture fields, hidden tags, member request
+              tags, player-knowledge boundaries, and schema-owned data rules.
+            </span>,
+            <span key="workflow">
+              <Strong>Add a member:</Strong> ordered workflow for adding or heavily revising one
+              member, including tune sessions and validation.
+            </span>,
+          ]}
+        />
+        <DocCallout variant="warn" title="No roadmap as archive">
+          Finished roadmap plans are deleted after durable guidance moves into the owning docs. Do
+          not preserve audit logs, per-member lock diaries, or transcript dumps in product docs.
+        </DocCallout>
       </>
     ),
   },
   {
-    id: "two-voice-registers",
-    title: "Two voice registers",
+    id: "house-registers",
+    title: "House Registers",
     body: (
       <>
         <P>
-          IDC carries two distinct registers and they alternate constantly. Most copy belongs to one
-          or the other. They almost never mix inside a single line.
+          IDC alternates between two registers. Most copy belongs to exactly one. Mixing them inside
+          one line usually means the surface is confused.
         </P>
-        <DocSubsection id="cupid-corporate" title="Cupid corporate">
+        <DocSubsection id="cupid-corporate" title="Cupid Corporate">
           <P>
-            <Strong>Used for:</Strong> dashboard chrome, system messages, Cupid reports,
-            end-of-shift summaries, scenario card framing, follow-up action labels, error states,
-            intervention wrapper text, goals.
-          </P>
-          <P>
-            <Strong>Voice:</Strong> confident, dry, slightly bored. Workplace comedy under
-            supernatural pressure. The agent has processed a thousand cosmic incidents this quarter.
-            They have a template for it.
+            Used for dashboard chrome, goals, scenario cards, reports, intervention wrappers, error
+            states, and closure copy.
           </P>
           <DocList
             items={[
-              "Active voice.",
-              "Short, declarative sentences.",
-              <span key="absurd">
-                Treat the absurd as routine:{" "}
-                <em>"Vhool's date ended early. Standard cosmic cleanup is on schedule."</em>
-              </span>,
-              <span key="proc">
-                Treat the routine as a procedure:{" "}
-                <em>"Member Mood is below floor. Recommend Repair."</em>
-              </span>,
-              <span key="kpi">
-                KPI energy with the wrong noun:{" "}
-                <em>"Match one ordinary human with one obviously non-human member."</em>
-              </span>,
-              "No exclamation points. No oops. No mascot voice. No emoji unless the surface already carries them.",
-              <span key="case">
-                Sentence case for body. UPPERCASE TRACKED only on micro labels, matching the
-                existing Aura UI mono labels (<DocCode>// session.0</DocCode>,{" "}
-                <DocCode>9 / 11 dim</DocCode>).
-              </span>,
+              "Confident, dry, procedural. Workplace comedy under supernatural pressure.",
+              "Short declarative sentences. Active voice. No mascot voice.",
+              "Treat the absurd as routine and the routine as procedure.",
+              "No exclamation points, emoji, or apology copy.",
+              "KPI energy with the wrong noun: Match one ordinary human with one obviously non-human member.",
             ]}
           />
         </DocSubsection>
-        <DocSubsection id="member" title="Member">
+        <DocSubsection id="member-register" title="Member">
           <P>
-            <Strong>Used for:</Strong> dating profile blurbs, opening messages, in-date transcripts,
-            member-side request text, member-private memory phrasing, anything spoken by a member.
-          </P>
-          <P>
-            <Strong>Voice:</Strong> someone typing too fast on the way to a date they are already
-            late for. The cringe is sincere. The character is not in on the joke; the reader is.
+            Used for dating profiles, sit-down openers, live date transcript lines, member requests,
+            and member-authored memories.
           </P>
           <DocList
             items={[
-              <span key="finger">
-                Each member has a voice fingerprint (see{" "}
-                <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink>). Use it
-                as flavor, not as a script. A natural reply to the partner and the room always wins;
-                the fingerprint never overrides the conversation.
-              </span>,
-              "Run-on sentences are fine. Mid-thought pivots are encouraged.",
-              <span key="spec">
-                Specific over general, every time. <em>"23 & me"</em> beats <em>"a DNA test."</em>{" "}
-                <em>"Cheesecake Factory"</em> beats <em>"a restaurant."</em>
-              </span>,
-              "Confidence about embarrassing things. Confession about ordinary things.",
-              "Romance proposed in mundane terms (Costco, fitted sheets, the olive on the plate).",
-              "Threats delivered as flirtation. Flirtation delivered as confession.",
-              <span key="i">
-                Lowercase <DocCode>i</DocCode> is fine when the fixture authorizes it. Single typos
-                are fine. Spoken cadence (fragments, run-ons, mid-thought pivots) is fine. Texting
-                moves (laugh-tag suffix punctuation, standalone single-word reaction bubbles, text
-                shorthand at high density, newline cascades as default) are out; see the prose
-                mechanics section below. Do not over-correct toward grammar school.
-              </span>,
-              "A reply that drops the fingerprint to land a real reaction is in voice. A reply that hits the fingerprint at the cost of sounding rehearsed is not.",
+              "Sincere first. The character is not in on the joke; the reader is.",
+              "Specific neurosis delivered with conviction. Random absurdity is not enough.",
+              "A natural response to the partner beats any authored tic or pattern.",
+              "Run-ons, fragments, lowercase, and awkward pivots are allowed when the fixture earns them.",
+              "Member voice is spoken at a table, not texted into a phone. The full contract lives in Member voice authoring.",
             ]}
           />
         </DocSubsection>
       </>
     ),
     subsections: [
-      { id: "cupid-corporate", title: "Cupid corporate" },
-      { id: "member", title: "Member" },
+      { id: "cupid-corporate", title: "Cupid Corporate" },
+      { id: "member-register", title: "Member" },
     ],
   },
   {
-    id: "prose-mechanics",
-    title: "Prose mechanics",
+    id: "global-prose-rules",
+    title: "Global Prose Rules",
     body: (
       <>
-        <P>These apply to all member-voice copy. Cupid corporate voice uses cleaner mechanics.</P>
+        <P>These rules apply across authored copy unless a narrower doc says otherwise.</P>
         <DocList
           items={[
-            <span key="i">
-              Lowercase <DocCode>i</DocCode> is fine in member voice when the character's
-              capitalization rule authorizes it (off-shift casual, lowercase-aesthetic, archaic
-              uncontracted-as-CEO-performance carve-out). Texting-native millennials who would type
-              with capital-I (Gabriel) keep the capital-I baseline; lowercase fires only as a typo
-              in that case. Spell the rule in the fixture register so the model picks the right
-              default. Never in Cupid voice.
+            "No em dashes or en dashes. Use commas, colons, parentheses, or separate sentences.",
+            "Specific proper nouns beat generic categories when they are true to the character.",
+            "Trust the reader. Do not explain the joke after the joke.",
+            "No AI-slop words: delve, in essence, moreover, tapestry, intricate, myriad, plethora, unleash, robust filler, or not just X but also Y.",
+            "No stage directions in member speech. Member bubbles are dialogue, not theater scripts.",
+            <span key="markdown">
+              Member Markdown is optional spoken typography. The allowed subset lives in{" "}
+              <DocLink to="/docs/product/voice-prompts#member-markdown-subset">
+                Runtime voice surfaces
+              </DocLink>
+              .
             </span>,
-            "No em dashes or en dashes anywhere. Use commas, periods, colons, parentheses, or split sentences. This applies in code, docs, and runtime copy.",
-            'Caps for emphasis are allowed in member voice ("BRAINNNN", "WIGGLING", "BRUH"). Use sparingly for genuine spoken stress. All-caps HAHAHA streaks and typed letter-runs ("yupppppp") are texting moves and stay out of spoken dialogue. Never in Cupid voice.',
-            "Run-ons welcome in member voice, especially in Rambling Spiral and Stream of Consciousness. Banned in Cupid voice.",
-            'Fragments welcome ("These hand problems. They\'re fixable."). Useful in both registers.',
-            "Exclamation points: member voice may use none, one, or a deliberate !! when the character fingerprint earns it. Avoid bigger stacks. Cupid voice uses zero.",
-            <span key="typos">
-              Single typos and casual contractions (<DocCode>ive</DocCode>, <DocCode>abt</DocCode>,{" "}
-              <DocCode>tho</DocCode>) are fine in member voice if they fit the fingerprint. Do not
-              perform millennial errors in characters who would not make them. Rapid-send typos with
-              asterisk-correction (Aran, Aryan*) can be a character marker when the corpus shows the
-              source person owns the typo; spell that intent in the fixture so the model does not
-              silently retype.
+            <span key="fixtures">
+              Fixture-level invariants for member voice live in{" "}
+              <DocLink to="/docs/product/voice-fingerprints#output-invariants">
+                Member voice authoring
+              </DocLink>
+              .
             </span>,
-            <span key="stage">
-              No stage directions in member voice. Member bubbles render as spoken dialogue;
-              asterisks around actions (<DocCode>*sips wine*</DocCode>, <DocCode>*shrugs*</DocCode>,{" "}
-              <DocCode>*leans back*</DocCode>) and bracketed actions (
-              <DocCode>[picks up the glass]</DocCode>) are theater-script moves, not speech. The
-              sanitizer in <DocCode>app/services/character-markdown.ts</DocCode> strips italic
-              stage-direction lines; the fixture-level guidance lives in{" "}
-              <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink>.
-            </span>,
-            <span key="spoken">
-              The date is spoken, not texted. Laugh-tag suffix punctuation (lol / lmao / haha at the
-              end of every bubble), single-word reactions as standalone bubbles (Damn / Holy /
-              Insane / Wild as solo lines), text shorthand at high density (rn, tn, lmk, my b, kk,
-              ye), and newline cascades as default cadence are texting moves. Spoken laughter, when
-              authored, is a sound inside a sentence ("damn, that lands"), not a typographic suffix.
-              Gabriel Tan is the explicit exception (texting-native millennial) and his fixture
-              authors the cascade as a character claim. See{" "}
-              <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
-                the spoken-dialogue contract
-              </DocLink>{" "}
-              for the full list of what does and does not extrapolate.
-            </span>,
-            'Specificity beats generality every time. Real proper nouns (Costco, Whole Foods, Build A Bear, John Goodman) outperform invented ones unless the invention is the joke. Trademarked names are fine in fiction; do not censor "Costco" to "the warehouse store."',
-            'Trust the reader. No "lol just kidding," no softening, no explaining the joke after the joke.',
-            'No AI-slop words: "delve," "in essence," "moreover," "tapestry," "intricate," "myriad," "plethora," "unleash," "leverage" / "harness" as verbs, "elevate," filler "robust," "not just X but also Y." See AGENTS.md for the full list.',
           ]}
         />
       </>
@@ -206,20 +155,17 @@ export const sections: DocSectionEntry[] = [
   },
   {
     id: "what-this-tone-is-not",
-    title: "What this tone is not",
+    title: "Not This",
     body: (
       <DocCallout variant="danger">
         <DocList
           items={[
-            'Not snarky. No Marvel-style quips, no Twitter dunks, no "well that just happened" energy.',
-            "Not random. Random absurdism is not this. Specific neurosis is.",
-            "Not mean. The members are pathetic on purpose, and the reader loves them for it. Cruelty toward them breaks the spell.",
-            "Not winking. Characters are not in on the joke. The reader is. Keep that wall.",
-            "Not horny without character. Yearning, oversharing, awkward physical confession, yes. Generic Reddit horny voice, no.",
-            'Not Reddit voice. No "this guy fucks," "found the X," "username checks out."',
-            'Not Twitter voice. No "girl. girl." cadence, no "the way I would," no "no thoughts head empty," no "it me."',
-            "Not chronically online voice as default. Specific characters can use it; the house style does not.",
-            'Not "lol so random." Every absurd line should map to a recognizable human anxiety: control, attachment, ego, loneliness, status, body, mortality, failure to be loved.',
+            "Not snarky. No Marvel quips, Twitter dunks, or well-that-happened energy.",
+            "Not random. Every absurd line should map to control, attachment, ego, loneliness, status, body, mortality, or fear of not being loved.",
+            "Not cruel. The members are embarrassing and sincere; the reader should want them to land.",
+            "Not winking. Characters do not perform awareness of the joke.",
+            "Not generic horny voice. Yearning is welcome when it is character-specific.",
+            "Not Reddit or Twitter cadence as house style. A specific member may earn it; IDC does not default to it.",
           ]}
         />
       </DocCallout>
@@ -227,90 +173,38 @@ export const sections: DocSectionEntry[] = [
   },
   {
     id: "when-comedy-stops",
-    title: "When comedy stops",
+    title: "Comedy Stops",
     body: (
-      <DocCallout variant="danger" title="Death and serious-injury copy is never funny">
-        <P>Extending the AGENTS.md rule:</P>
+      <DocCallout variant="danger" title="Do not make harm the punchline">
         <DocList
           items={[
-            "Real-world tragedy, war, or violence: never punchline.",
-            "Abuse, harassment, sexual coercion: never punchline. Members can be unsettling, never abusive.",
-            "Suicide and self-harm: never punchline. Existential dread as cosmic flavor (Vhool) is fine; a member describing actual self-harm is not.",
-            "Mental illness as a category: not the joke. Specific neuroses that anyone might recognize are the joke. The line is whether a real person with that diagnosis would feel mocked.",
-            "Identity (race, gender, sexuality, disability): not the joke. Eccentric specificity about an individual life is the joke; categorical jokes about groups are not.",
+            "Real-world tragedy, war, violence, abuse, harassment, coercion, suicide, and self-harm are never punchlines.",
+            "Mental illness as a category is not the joke. Specific recognizable coping patterns can be funny when the character stays human.",
+            "Identity categories are not the joke. Individual specificity is.",
+            "If a premise touches grief, exile, death, or displacement, the character's coping texture can be funny. The loss is real.",
           ]}
         />
-        <P>
-          The rule: comedy comes from the gap between self-image and reality. If the punchline
-          requires the reader to look down on a group, it is not this tone.
-        </P>
-        <P>
-          If a member's premise touches a serious topic (a ghost member's death, a time-displaced
-          member's lost world, a cursed royal's exile), the comedy comes from how mundanely they
-          treat it, not from the loss itself. Their tone is funny. Their pain is real.
-        </P>
       </DocCallout>
     ),
   },
   {
     id: "closure-summary-voice",
-    title: "Closure summary voice",
+    title: "Closure Copy",
     body: (
       <>
         <P>
-          Closure summaries are filed by <DocCode>generateClosureSummary</DocCode> when the player
-          closes a pair. They live on the pair memory tagged <DocCode>pair_closure</DocCode> and
-          surface in the Files canvas with the <Strong>CASE CLOSED</Strong> frame treatment, in the
-          Live Date planning closure callout, and in the soft-win cutscene.
+          Closure summaries are filed by <DocCode>generateClosureSummary</DocCode> when a pair is
+          closed. They use Cupid corporate voice, not either member's voice.
         </P>
         <DocList
           items={[
-            "Warm, specific, short. Two to four sentences. Anchor the note in one to three concrete shared moments from the pair's filed history.",
-            "Workplace-comedy professional, not sentimental. Treat the pair landing as routine, not as a victory lap.",
-            "Never editorialize about Cupid, the company, the app, the agency, or matchmaking. The pair leaves on their own terms.",
-            "Never include exact stat numbers, Date Health values, Spark, Strain, Relationship Health values, or raw percentages. Closure notes are case copy, not stat dumps.",
-            <span key="dash">
-              Never use em dashes or en dashes. Use commas, periods, colons, or separate sentences.
-              The validator in <DocCode>app/services/closures.ts</DocCode> rejects either form.
-            </span>,
-            'No filler like "tapestry," "intricate," "myriad," "unleash," "leverage," "elevate," "journey," or "chapter." No "not just X but also Y."',
-            "Death and serious-injury copy is never funny. The closure is the warm endgame; keep it warm.",
+            "Two to four sentences.",
+            "Warm, specific, professional. Anchor in one to three shared moments from filed history.",
+            "No exact stats, raw percentages, Date Health, Spark, Strain, or Relationship Health values.",
+            "No victory lap. The pair leaves on their own terms.",
+            "No em dashes, AI-slop words, or sentimental chapter/journey phrasing.",
           ]}
         />
-      </>
-    ),
-  },
-  {
-    id: "manager-fingerprint",
-    title: "Manager fingerprint",
-    body: (
-      <>
-        <P>
-          The manager is the only character who speaks directly to the player. She is the HR manager
-          running a supernatural matchmaking agency, ten years deep, laid back, a little tired. Dry
-          wit, not punchlines. Her lines play through pre-generated ElevenLabs audio at named
-          gameplay beats and never inside the simulation itself. The shipped pass used Eleven v3,
-          Natural stability, and the Lyan voice.
-        </P>
-        <DocList
-          items={[
-            "One sentence, two at most. Five to twelve words. Three to five seconds of audio. Short fragments are fine when the delivery carries them.",
-            "Spoken register. Contractions, sentence fragments, casual filler (yeah, okay, cool). Office words still anchor her (file, log, archive, cap, books) but they sit inside conversational rhythm.",
-            "She talks to the player when sarcasm needs a target, and about the pair when commenting on the work. Pick whichever lands the line.",
-            "Future recording scripts use Eleven v3 audio tags when performance needs direction. Keep display copy clean, and put bracketed tags like [sighs], [whispers], [sarcastic], or [light chuckle] in the generation script.",
-            <span key="multi">
-              Roughly one line in ten slips into another language without warning (Chinese,
-              Spanish). Keep the meaning self-contained so non-speakers still feel the tone. Pass a{" "}
-              <DocCode>translation</DocCode> on the catalog entry so the preview and screen-reader
-              announcement render it in parentheses; ElevenLabs never reads the translation.
-            </span>,
-            "No em dashes or en dashes in audio scripts. No exclamation marks. No participation-trophy congratulation. No mean-girl cruelty toward the members.",
-          ]}
-        />
-        <P>
-          The full catalog, trigger table, and authoring workflow live in{" "}
-          <DocLink to="/docs/product/manager-quips">Manager check-in quips</DocLink>.
-        </P>
       </>
     ),
   },

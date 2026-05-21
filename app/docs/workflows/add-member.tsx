@@ -6,7 +6,6 @@ import {
   DocList,
   DocPage,
   DocSteps,
-  DocSubsection,
   P,
   Strong,
   type DocMeta,
@@ -18,80 +17,54 @@ export const meta: DocMeta = {
   group: "workflows",
   title: "Add a member",
   description:
-    "Content pass for one member fixture: design, fixture fields, prose rules, requests, registration, and validation.",
+    "Ordered workflow for adding or heavily revising one member fixture, including voice design, live tune audit, requests, presentation hooks, and validation.",
   order: 0,
 };
 
 export const lede = (
   <>
-    Use this checklist when adding or heavily revising one member. Code contracts live in{" "}
-    <DocCode>app/domain/game.ts</DocCode>, fixtures live in <DocCode>app/fixtures/members/</DocCode>
-    , and fixture tests enforce several content rules.
+    Use this for one member at a time. Code contracts live in <DocCode>app/domain/game.ts</DocCode>;
+    fixtures live in <DocCode>app/fixtures/members/</DocCode>; content lint catches authored prose
+    rules.
   </>
 );
 
 export const sections: DocSectionEntry[] = [
   {
-    id: "scope",
-    title: "Scope",
-    body: (
-      <>
-        <P>
-          This workflow is the content pass. Complete the member's nonvisual game content in one
-          pass, then hand visual design and image assets to{" "}
-          <DocLink to="/docs/workflows/visual-asset-iteration">Visual asset iteration</DocLink>. Do
-          not generate portraits, avatars, variants, scenario backgrounds, or image prompts in the
-          fixture pass.
-        </P>
-      </>
-    ),
-  },
-  {
     id: "read-first",
-    title: "Read first",
+    title: "Read First",
     body: (
       <DocList
         items={[
-          <span key="member-fields">
+          <span key="fields">
             <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink> for
-            schema, identity tag, voice block contract, and authoring requirements.
-          </span>,
-          <span key="knowledge">
-            <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink> for what is
-            public, gated, or never visible.
-          </span>,
-          <span key="match-fit">
-            <DocLink to="/docs/gameplay/match-fit">Match fit</DocLink> for tag-driven booking
-            pressure and boundary risk.
-          </span>,
-          <span key="roster-chemistry">
-            <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink> for warm
-            clusters, friction zones, and the four-anchor authoring pass.
+            schema, hidden tags, request tags, and ship-ready data rules.
           </span>,
           <span key="voice">
-            <DocLink to="/docs/product/voice">Voice and tone</DocLink> for registers, prose
-            mechanics, and what the tone is not.{" "}
-            <DocLink to="/docs/product/voice-fingerprints">Voice fingerprints</DocLink> for the
-            per-member voice block (register, patterns used and refused, tics, greeting, hinge bits)
-            read as flavor, not a script, plus interdimensionality framing.{" "}
-            <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the comedic
-            flavor library you draw from when filling the block.
+            <DocLink to="/docs/product/voice">Voice system</DocLink> for house tone;{" "}
+            <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink> for bio,
+            voice, sample banks, output invariants, and dealbreakers;{" "}
+            <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the controlled
+            pattern catalog.
           </span>,
-          <span key="heights">
-            <DocLink to="/docs/product/character-heights">Character heights</DocLink> for genuine
-            profile height canon and the playground Height lineup workflow.
+          <span key="runtime">
+            <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for profile
+            taglines, openers, Markdown, prompt packet shape, scenario event kinds, and model
+            quirks.
           </span>,
-          <span key="image-style">
-            <DocLink to="/docs/product/image-style">Image style</DocLink> for the portrait canvas
-            contract, prompt construction, and acceptance checks.
+          <span key="knowledge">
+            <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink>,{" "}
+            <DocLink to="/docs/gameplay/match-fit">Match fit</DocLink>, and{" "}
+            <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink>.
           </span>,
-          <span key="visual-design">
-            <DocLink to="/docs/product/visual-design">Visual design</DocLink>, especially per-member
-            chat bubbles and per-member auras when approved direction already exists.
+          <span key="visual">
+            <DocLink to="/docs/product/character-heights">Character heights</DocLink>,{" "}
+            <DocLink to="/docs/product/visual-design">Visual design</DocLink>, and{" "}
+            <DocLink to="/docs/product/image-style">Image style</DocLink> for the visual handoff.
           </span>,
           <span key="existing">
-            Existing member fixtures in <DocCode>app/fixtures/members/</DocCode>, existing requests
-            in <DocCode>app/fixtures/goals/member-requests.ts</DocCode>, and the aura registry in{" "}
+            Existing member fixtures, existing member requests,{" "}
+            <DocCode>app/services/member-roster-order.ts</DocCode>, and{" "}
             <DocCode>app/components/member-aura-registry.ts</DocCode>.
           </span>,
         ]}
@@ -100,243 +73,146 @@ export const sections: DocSectionEntry[] = [
   },
   {
     id: "design-pass",
-    title: "Design pass",
+    title: "Design Pass",
     body: (
       <DocSteps
         items={[
-          "Work on one member at a time. Do not batch create members.",
-          "Define the member's durable role in the roster. A good member creates reusable pressure across the cast, not a single destined match.",
-          <span key="clusters">
-            Place the member into at least one warm cluster and one friction zone from{" "}
-            <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink>. If neither
-            fits, reshape the premise.
-          </span>,
-          <span key="anchor">
-            Run the four-anchor authoring pass: four warm anchors, four friction anchors, one
-            sentence of evidence for each, and any field revisions needed.
-          </span>,
-          "Keep the anchor list out of fixtures, scenario fixtures, prompts, and scoring tables. The list is an authoring audit only.",
-          "Decide the member's reality frame before writing voice: normal app user, non-human who treats their nature as ordinary, displaced human, sanctioned trial participant, competitor, consort market user, handler routed case, or another specific frame.",
+          "Define the member's durable roster role. A good member creates reusable pressure, not one destined match.",
+          "Place the member in at least one warm cluster and one friction zone. If neither exists, reshape the premise.",
+          "Run the four-anchor pass: four warm anchors, four friction anchors, one sentence of evidence each.",
+          "Decide the reality frame: normal app user, non-human who treats themself as ordinary, displaced human, sanctioned trial, competitor, consort market, handler-routed case, or another explicit frame.",
+          "Name the comedy engine before writing samples. If the v0 concept is broken, stop and choose the engine first.",
+          "Keep anchor lists out of fixtures, prompts, scoring tables, and scenario fixtures. They are authoring notes only.",
         ]}
       />
     ),
   },
   {
-    id: "fixture-requirements",
-    title: "Fixture requirements",
+    id: "fixture-pass",
+    title: "Fixture Pass",
     body: (
       <>
         <P>
-          Add <DocCode>app/fixtures/members/&lt;member-id&gt;.ts</DocCode> with a{" "}
-          <DocCode>Member</DocCode> object that satisfies <DocCode>memberSchema</DocCode>:
+          Add or revise <DocCode>app/fixtures/members/&lt;member-id&gt;.ts</DocCode> with a{" "}
+          <DocCode>Member</DocCode> object that satisfies <DocCode>memberSchema</DocCode>.
         </P>
         <DocList
           items={[
             <span key="identity">
-              <Strong>Identity fields:</Strong> <DocCode>id</DocCode>, <DocCode>name</DocCode>,{" "}
-              <DocCode>firstName</DocCode>, <DocCode>origin</DocCode>, <DocCode>species</DocCode>,{" "}
-              <DocCode>dimension</DocCode>, <DocCode>realityStatus</DocCode>.
-            </span>,
-            <span key="height">
-              <Strong>Height:</Strong> two integer inch fields.{" "}
-              <DocCode>characterHeightInInches</DocCode> is the canonical date-surface profile
-              height shown on labels.<DocCode>standeeRenderHeightInInches</DocCode> is the standee
-              scale bucket. Tune the second after source-scale normalization. Keep it inside the
-              lineup bounds enforced by <DocCode>members.test.ts</DocCode>.
+              <Strong>Identity:</Strong> id, name, firstName, origin, species, dimension,
+              realityStatus, and both height fields.
             </span>,
             <span key="prose">
-              <Strong>Core prose:</Strong> <DocCode>bio</DocCode>, <DocCode>datingProfile</DocCode>,{" "}
-              <DocCode>relationshipNeeds</DocCode>, <DocCode>preferences</DocCode>,{" "}
-              <DocCode>dealbreakers</DocCode>, <DocCode>secrets</DocCode>. Do not fill{" "}
-              <DocCode>visualDescription</DocCode> in this initial content pass.
+              <Strong>Core prose:</Strong> bio, datingProfile, relationshipNeeds, preferences,
+              dealbreakers, secrets.
             </span>,
             <span key="tags">
-              <Strong>Hidden tags:</Strong> 3 to 5 tags from <DocCode>memberTagSchema</DocCode>,
-              with exactly one identity tag: <DocCode>ordinary_human</DocCode> or{" "}
-              <DocCode>non_human</DocCode>.
+              <Strong>Tags:</Strong> 3 to 5 hidden tags, exactly one identity tag, all proved by
+              prose.
             </span>,
             <span key="voice">
-              <Strong>Voice:</Strong> <DocCode>register</DocCode>, <DocCode>patternsUsed</DocCode>,{" "}
-              <DocCode>patternsRefused</DocCode>, <DocCode>tics</DocCode>, and{" "}
-              <DocCode>sampleMessages</DocCode>.
+              <Strong>Voice:</Strong> register, patternsUsed, patternsRefused, tics, sampleMessages.
             </span>,
             <span key="state">
-              <Strong>State:</Strong> <DocCode>mood</DocCode>, <DocCode>openness</DocCode>,{" "}
-              <DocCode>burnout</DocCode>, <DocCode>retention</DocCode>,{" "}
-              <DocCode>currentRequestId</DocCode>, <DocCode>recentDateResult</DocCode>,{" "}
-              <DocCode>status</DocCode>.
+              <Strong>State:</Strong> mood, openness, burnout, retention, currentRequestId,
+              recentDateResult, status.
             </span>,
-            <span key="portrait">
-              <Strong>Portrait references</Strong> only after approved files exist. Do not generate
-              images in this pass. Do not set <DocCode>portraitAsset.prompt</DocCode>.{" "}
-              <DocCode>visualDescription</DocCode> is added only after the neutral portrait is
-              approved in the visual asset workflow.
-            </span>,
-            <span key="bubble">
-              Optional presentation such as <DocCode>chatBubble</DocCode> only when approved visual
-              direction already exists. Otherwise leave it for the visual asset workflow.
+            <span key="visual">
+              <Strong>Visual:</Strong> leave <DocCode>visualDescription</DocCode> and portrait
+              references for the visual asset pass unless approved files already exist.
             </span>,
           ]}
         />
-        <DocSubsection id="sample-counts" title="Sample and pattern counts (schema-enforced)">
-          <P>
-            The counts below are upper bounds, not quotas the performer is meant to hit. Sample
-            lines are rhythm references for the model; pattern entries are flavors the character can
-            land on when natural. None of them is required to appear in any given reply.
-          </P>
-          <DocList
-            items={[
-              <span key="greeting">
-                <DocCode>greeting</DocCode>: 3 to 6 lines. Actual sit-down intros, not punchy bits.
-                These are the only samples the performer is allowed to repeat or stretch as a
-                literal first line.
-              </span>,
-              <span key="hingeBits">
-                <DocCode>hingeBits</DocCode>: 3 to 6 lines. Humor and voice grounding, written as
-                the kind of bit this character would post on a dating app. Reference only; never
-                used verbatim.
-              </span>,
-              <span key="warming">
-                <DocCode>warming</DocCode>: 3 to 6 lines.
-              </span>,
-              <span key="cooling">
-                <DocCode>cooling</DocCode>: 3 to 6 lines.
-              </span>,
-              <span key="crashing">
-                <DocCode>crashingOut</DocCode>: 2 to 4 lines.
-              </span>,
-              <span key="used">
-                <DocCode>patternsUsed</DocCode>: 1 to 4 flavors from{" "}
-                <DocCode>voicePatternSchema</DocCode>. Keep this tight. A long list reads to the
-                performer as a quota and produces members who always do the bit.
-              </span>,
-              <span key="refused">
-                <DocCode>patternsRefused</DocCode>: at least 2 entries from{" "}
-                <DocCode>voicePatternSchema</DocCode> that genuinely break the character.
-              </span>,
-              <span key="tics">
-                <DocCode>tics</DocCode>: 3 to 5 concrete syntax or vocabulary habits that may
-                surface when natural. Not stage directions the performer has to perform.
-              </span>,
-            ]}
-          />
-        </DocSubsection>
+        <DocCallout variant="danger">
+          Do not generate portraits, image prompts, cutouts, or visual canon during the content
+          pass.
+        </DocCallout>
       </>
     ),
-    subsections: [{ id: "sample-counts", title: "Sample and pattern counts (schema-enforced)" }],
   },
   {
-    id: "prose-rules",
-    title: "Prose rules",
+    id: "voice-audit",
+    title: "Voice Audit",
     body: (
-      <DocList
+      <DocSteps
         items={[
-          "Write member copy in the member's voice. Write system and request framing in Cupid corporate voice when the surface demands it.",
-          <span key="tagline">
-            Treat the first sentence of <DocCode>datingProfile</DocCode> as the public roster
-            tagline. It appears on member cards before the player has earned deeper reads.
-          </span>,
-          "The public tagline must be one short in-character sentence that tells who the member is through voice, personality, and a concrete hook. Reaver and Cha Yusung are the model shape: job or background lands inside the voice, not as a census row.",
-          "The first sentence must carry the hook by itself. The app sentence-splits the profile, so a first sentence that only says a name, label, or setup for the next sentence will make the roster card weak even if the second sentence is good.",
-          "Do not use a bare name, name plus period, age plus location inventory, or job label as the public tagline. Venus is the narrow exception when the name declaration itself carries the bit.",
-          <span key="no-name">
-            Do not name another member as a required match, enemy, success, or failure inside the
-            member fixture. <DocCode>members.test.ts</DocCode> checks this.
-          </span>,
-          "Keep player knowledge boundaries intact. Public profile fragments can hint. Hidden fields, secrets, tags, exact state values, prompts, and raw scoring rules stay hidden.",
-          "Do not invent visual canon before a portrait exists. Runtime visual descriptions come from approved neutral portrait art, not from the initial member-writing agent.",
-          "Every hidden tag must be supported by authored prose. If the prose does not prove the tag, change the prose or remove the tag.",
-          "Do not add a member field unless code or UI reads it.",
+          "Check bio structure: personality foreground, hobby and reference palette background.",
+          "Check sample banks for trait recital, route/venue/time/arrival credit, stage directions, move-narration, partner-labeling, and generic receipt filler.",
+          "Check dealbreakers for tiers: structural-identity boundary vs lower friction.",
+          "Author semantic equivalents for structural triggers that partners may wrap in different vocabulary.",
+          "Use sample variance for high-pressure crashingOut triggers so one canonical line does not become the only answer.",
+          "If the member uses a real-person or texting corpus, translate traits into spoken date dialogue before writing the fixture.",
         ]}
       />
     ),
   },
   {
+    id: "live-tune-audit",
+    title: "Live Tune Audit",
+    body: (
+      <>
+        <P>
+          Runtime voice must be verified against the AI character pipeline before lock or major
+          re-lock.
+        </P>
+        <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-partner-id> --name <session-name> --focus-opens
+vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
+        <DocSteps
+          items={[
+            "Pick one warm pairing and one boundary-pressure pairing from the roster.",
+            "Use a named session for every run. Pass the session name on every command after start.",
+            "Surface a readable window: up to six focus-member turns plus the partner lines that prompted them.",
+            "Read both speakers. Partner drift is still fixture evidence.",
+            "Patch the smallest correct surface: fixture register, tic, sample bank, prompt scaffold, or content lint.",
+            "Rerun focused checks after patches. A full re-lock is required only when the character engine changed.",
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "member-requests",
-    title: "Member requests",
+    title: "Member Requests",
     body: (
       <DocSteps
         items={[
           <span key="add">
             Add request entries in <DocCode>app/fixtures/goals/member-requests.ts</DocCode>.
           </span>,
-          "Give the member enough request variety for shift rotation. Current roster pattern is usually four requests per member.",
-          <span key="state">
-            Set the fixture <DocCode>state.currentRequestId</DocCode> to an existing request id for
-            that member.
+          "Give the member enough request variety for shift rotation. Current roster pattern is usually four requests.",
+          <span key="current">
+            Set <DocCode>state.currentRequestId</DocCode> to one existing request id for the member.
           </span>,
-          <span key="tags">
-            Use request tags from <DocCode>memberRequestTagSchema</DocCode>. If a new tag is needed,
-            update the schema, deterministic fit handling when needed, docs, and tests in the same
-            change.
-          </span>,
-          "Keep request text member-aware but operational. It should express what the member wants Cupid to book, not reveal hidden facts wholesale.",
+          "Use controlled request tags. If a new tag is needed, update schema, deterministic handling when needed, docs, and tests in the same change.",
+          "Keep request text operational. It states what the member wants Cupid to book, not hidden facts wholesale.",
         ]}
       />
     ),
   },
   {
-    id: "visual-assets-out-of-scope",
-    title: "Visual assets out of scope",
-    body: (
-      <DocCallout variant="danger" title="Do not generate images here">
-        <P>
-          Do not create image prompts, generate images, run cutouts, or commit new portrait files in
-          this content workflow. The fixture pass can write visual requirements in plain member
-          facts that a later image-capable agent can use: intended profile height, species or
-          origin, age presentation, outfit language, and supernatural visual hook.
-        </P>
-        <P>
-          Member fixtures should not include the prompts used to create images. Leave{" "}
-          <DocCode>portraitAsset.prompt</DocCode> unset.
-        </P>
-        <P>
-          If approved portrait files do not exist yet, do not claim the member is shippable. Keep
-          the content complete and hand off to{" "}
-          <DocLink to="/docs/workflows/visual-asset-iteration">Visual asset iteration</DocLink>.
-          Full member fixture validation runs after approved source and runtime assets exist,
-          because <DocCode>members.test.ts</DocCode> verifies the asset paths.
-        </P>
-      </DocCallout>
-    ),
-  },
-  {
     id: "presentation-hooks",
-    title: "Presentation hooks",
+    title: "Presentation Hooks",
     body: (
       <DocList
         items={[
           <span key="index">
-            Add the member import, parse entry, and export in{" "}
-            <DocCode>app/fixtures/members/index.ts</DocCode>. Update the schema array length.
+            Export the member through <DocCode>app/fixtures/members/index.ts</DocCode> and update
+            schema array length if required.
           </span>,
           <span key="goals">
-            Add or confirm member requests are exported through{" "}
-            <DocCode>app/fixtures/goals/index.ts</DocCode>.
+            Confirm member requests export through <DocCode>app/fixtures/goals/index.ts</DocCode>.
+          </span>,
+          <span key="order">
+            Add the member to <DocCode>app/services/member-roster-order.ts</DocCode> only when the
+            roster position is decided.
           </span>,
           <span key="aura">
-            Add an aura entry in <DocCode>app/components/member-aura-registry.ts</DocCode> only if
-            visual direction is already approved. Otherwise leave the aura handoff in the content
-            notes for the visual pass. The kind table, render slots, and per-kind tint examples live
-            in{" "}
-            <DocLink to="/docs/product/visual-design#per-member-auras">
-              Visual design, Per-member auras
-            </DocLink>
-            ; focus a member in the Roster room of the playable shell to see auras animate.
-          </span>,
-          <span key="bubble">
-            Add <DocCode>chatBubble</DocCode> only when the member needs a distinct bubble style and
-            the visual direction is already approved. Otherwise leave it for the visual pass. The
-            schema axes and four reference fixtures (Venus, Vhool, Aldric, Sera) are in{" "}
-            <DocLink to="/docs/product/visual-design#per-member-chat-bubbles">
-              Visual design, Per-member chat bubbles
-            </DocLink>
-            ; the <DocLink to="/playground">Playground</DocLink> Chat bubble gallery shows every
-            shipped bubble side by side.
+            Add aura or chat bubble presentation only when visual direction is approved. Otherwise
+            leave it for visual asset iteration.
           </span>,
           <span key="chemistry">
-            Update <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink> clusters
-            and friction zones with the member's durable pressures.
+            Update <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink> with
+            durable warm and friction pressures.
           </span>,
         ]}
       />
@@ -347,21 +223,13 @@ export const sections: DocSectionEntry[] = [
     title: "Validation",
     body: (
       <>
-        <P>Run the project checks through Vite Plus:</P>
-        <DocCodeBlock language="powershell">{`vp check
+        <P>Run Vite Plus checks before shipping:</P>
+        <DocCodeBlock language="bash">{`vp check
 vp test
 vp build`}</DocCodeBlock>
         <P>
-          The nonvisual content should pass <DocCode>vp check</DocCode>. Full{" "}
-          <DocCode>vp test</DocCode> and <DocCode>vp build</DocCode> are required before shipping
-          the member. If approved portrait files do not exist yet, record that full member fixture
-          validation is blocked on the visual asset pass because <DocCode>members.test.ts</DocCode>{" "}
-          verifies portrait asset paths and avatar srcset files.
-        </P>
-        <P>
-          Use Playwright for UI validation when the new member affects roster cards, modal layout,
-          date standees, chat bubbles, auras, or onboarding. The dev server must already be running
-          at <DocCode>http://localhost:5173/</DocCode> before Playwright work.
+          If approved portrait files do not exist yet, record that full member validation is blocked
+          on the visual asset pass because tests verify portrait and avatar paths.
         </P>
       </>
     ),

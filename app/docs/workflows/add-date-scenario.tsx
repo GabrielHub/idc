@@ -50,9 +50,9 @@ export const sections: DocSectionEntry[] = [
       <DocList
         items={[
           <span key="voice">
-            <DocLink to="/docs/product/voice-prompts">Voice in prompts</DocLink> for event kinds, no
-            continuing offstage speakers, and scenario card voice.{" "}
-            <DocLink to="/docs/product/voice">Voice and tone</DocLink> for the register and prose
+            <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for event
+            kinds, no continuing offstage speakers, and scenario card voice.{" "}
+            <DocLink to="/docs/product/voice">Voice system</DocLink> for the register and prose
             rules every scenario card and Cupid line must obey.
           </span>,
           <span key="match-fit">
