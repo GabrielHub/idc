@@ -1,5 +1,37 @@
 [
   {
+    "version": "0.3.9",
+    "date": "2026-05-20",
+    "headline": "Cupid lets date bubbles breathe, under supervision from Legal.",
+    "summary": "Voice and date-surface test alpha. Adds controlled Markdown in member chat bubbles, rotates date ambience by session, and locks the next voice batch on the new scene-voicing prompt scaffold.",
+    "sections": [
+      {
+        "title": "Live date surface",
+        "items": [
+          "Member messages can now use a small spoken-typography Markdown set: emphasis, bold, held paragraph beats, soft line breaks, and one shouted line inside the bubble.",
+          "The sanitizer strips links, images, code, HTML, tables, repeated headings, and stage-direction tricks before text reaches the player-facing chat surface.",
+          "Date ambience now picks from multiple tracks per session, then keeps the same track through pauses so the room stops changing jazz permits mid-meeting."
+        ]
+      },
+      {
+        "title": "Voice pass",
+        "items": [
+          "The character prompt scaffold now frames each member turn as a scene beat at the table, reducing chat-app echoing and making the response itself carry the receipt.",
+          "Reaver, Derek Halsey, Cha Yusung, Cassia Six, Nawal Marrash, Maeve, and Tasha Rell are locked after paired transcript checks on the patched scaffold.",
+          "A roster-wide spoken-dialogue audit tightened member fixtures away from stage directions, partner labeling, and stiff filing-language filler unless the member truly owns that bit."
+        ]
+      },
+      {
+        "title": "Systems polish",
+        "items": [
+          "Gameplay randomness now goes through seedable helpers for deck hands, shift goals, scenario events, manager quips, and audio selection.",
+          "Portrait palette extraction moved to an offline generated catalog, cutting runtime image sampling out of the shell.",
+          "Live-date standees now open member details directly, because Cupid has decided portraits should be useful as well as judgmental."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.8",
     "date": "2026-05-19",
     "headline": "Cupid tightens the table manners before the next voice batch escapes.",
