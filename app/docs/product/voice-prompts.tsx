@@ -299,6 +299,7 @@ export const sections: DocSectionEntry[] = [
             "Identity, personality, and state blocks: bio, relationship needs, preferences, dealbreakers, private pressure, current mood, pair memories, agreements, open loops, and pair trajectory when present.",
             "The member's register and tics, framed as optional habits. The performer should know that none of these need to surface in any given reply.",
             "Sample buckets selected for the current moment. Opening turns may include greeting examples as sit-down intros. Hinge bits, warming, cooling, and crashingOut samples feed voice flavor by dateHealth and are references, not lines to copy.",
+            "A private memory search note only when the runtime provides the tool. The note tells the performer to search only when the latest line depends on prior self, pair, or place context that is not already in state. If the thread already gives enough context, answer without searching.",
             <span key="cupid-context">
               The shared scene block: the member signed up for Cupid, arrived through Cupid Transit
               and Cupid Connect, and did not pick the partner, venue, time, or route. It also states{" "}
@@ -308,7 +309,7 @@ export const sections: DocSectionEntry[] = [
               The ordinal counts completed dates in the pair plus one.
             </span>,
             "A live venue frame: location, what both characters know, room feel, director rules, partner profile blurb, photo description, both heights, and the reminder that the partner profile is background, not a checklist to mirror.",
-            "Format, rules, and hard invariant blocks: one plain-text message, no labels or stage directions, no forbidden dash punctuation, varied sentence shape, shared conversational work, no parroting, no self-echoing, and no answering Cupid notes aloud.",
+            "Format, rules, and hard invariant blocks: the UI sends one message at a time, but the fiction is spoken conversation across the table. No labels or stage directions, no forbidden dash punctuation, varied sentence shape, shared conversational work, no parroting, no self-echoing, and no answering Cupid notes aloud.",
             "Retry guards, recent-line guards, and attachment notices only when the current packet needs them.",
           ]}
         />

@@ -899,6 +899,7 @@ async function createLocalAiCharacterMessage({
         memoryPack: promptInputs.memoryPack,
         focusRequest,
         partnerKnowledge,
+        memorySearchAvailable: true,
         repetitionRetry,
         rhythmRetry,
         imageAttachments: promptInputs.imageAttachments,

@@ -10,6 +10,7 @@ import { memberRequests, starterScenarios } from "../fixtures";
 import { addCupidIntervention, advanceDateExchange, triggerScenarioEvent } from "./date-engine";
 import {
   buildCharacterPromptPacket,
+  buildClosureSummaryPromptPacket,
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
   checkCupidCorporateCopy,
@@ -103,7 +104,9 @@ describe("date prompt assembly", () => {
       "- Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     );
     expect(ownerPacket.prompt).toContain("<format>");
-    expect(ownerPacket.prompt).toContain("You are texting from the table, one message at a time.");
+    expect(ownerPacket.prompt).toContain(
+      "The UI sends one message at a time, but in the fiction you are speaking across the table.",
+    );
     expect(ownerPacket.prompt).toContain("Useful Markdown shapes: I said *almost* normal.");
     expect(ownerPacket.prompt).toContain("At most one move in a normal message");
     expect(ownerPacket.prompt).toContain("No em dashes or en dashes.");
@@ -119,6 +122,64 @@ describe("date prompt assembly", () => {
       /\b(Date Health|gameplay|transcript)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
+  });
+
+  it("adds memory search guidance only when runtime search is available", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const memoryPack = {
+      self: [],
+      pair: [],
+      scenario: [],
+      recentTranscript: started.session.transcript,
+    };
+    const searchablePacket = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack,
+      memorySearchAvailable: true,
+    });
+    const offlinePacket = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack,
+      memorySearchAvailable: false,
+    });
+
+    expect(searchablePacket.prompt).toContain("<memory_search>");
+    expect(searchablePacket.prompt).toContain(
+      "Use it only when the latest partner line depends on prior self, pair, or place context",
+    );
+    expect(searchablePacket.prompt).toContain("answer now without searching");
+    expect(offlinePacket.prompt).not.toContain("<memory_search>");
   });
 
   it("includes active agreements and unresolved loops without archived transcript dependence", () => {
@@ -1064,6 +1125,43 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain(
       "Favor memories that help the pair continue a later conversation",
     );
+    expect(packet.prompt).toContain(
+      "The transcript is primary evidence. Use the final Cupid summary only to understand the filed outcome",
+    );
+  });
+
+  it("keeps closure examples from becoming pair facts", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const jenna = save.members.find((member) => member.id === "jenna-pike");
+    const vhool = save.members.find((member) => member.id === "vhool");
+
+    if (jenna === undefined || vhool === undefined) {
+      throw new Error("Expected closure prompt fixture members.");
+    }
+
+    const packet = buildClosureSummaryPromptPacket({
+      members: [jenna, vhool],
+      pairId: makePairId("jenna-pike", "vhool"),
+      pairMemories: [
+        {
+          text: "Jenna and Vhool agreed to treat soup as a planning document.",
+          tags: ["pair_agreement"],
+          importance: 4,
+        },
+      ],
+      lastFinalReport: {
+        outcome: "leaving_together",
+        summary: "Soup logistics held.",
+        statSummary: "The file reads warm.",
+      },
+      lastSessionScenarioTitle: "Temporal Coffee Shop",
+    });
+
+    expect(packet.system).toContain(
+      "Examples teach cadence only. Do not reuse their names, objects, or events.",
+    );
+    expect(packet.system).not.toContain("Jenna brought the spare key");
+    expect(packet.system).not.toContain("Vhool kept the receipt");
   });
 });
 
@@ -1115,6 +1213,9 @@ describe("buildJudgePromptPacket reveal candidates", () => {
 
     expect(packet.prompt).toContain("dateHealthDelta must be an integer from -18 to 14.");
     expect(packet.prompt).toContain("<scoring_guidance>");
+    expect(packet.prompt).toContain("Player-facing strings include playerSummary");
+    expect(packet.prompt).toContain("agreement update notes");
+    expect(packet.prompt).toContain("open loop update notes");
     expect(packet.prompt).toContain("Use -1 to -3 for mild drift");
     expect(packet.prompt).toContain("Scenario pressure: risk");
     expect(packet.prompt).toContain("Early end triggers:");

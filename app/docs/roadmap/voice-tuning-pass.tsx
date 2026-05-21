@@ -32,7 +32,7 @@ export const meta: DocMeta = {
 export const plan: RoadmapPlanMeta = {
   status: "in-flight",
   opened: "2026-05-16",
-  touched: "2026-05-20",
+  touched: "2026-05-21",
   owner: "gabriel",
   tldr: "Walk every member in the onboarding-screen curated order, run live tune sessions, lock only when the scene is funny and interesting to read, then queue the next member. Out-of-order tunes are allowed but tracked here.",
   tasks: 42,
@@ -783,6 +783,41 @@ export const sections: DocSectionEntry[] = [
     body: (
       <RoadmapDecisionsLog
         entries={[
+          {
+            date: "2026-05-21",
+            title: "Runtime prompt cleanup after roleplay practice review and vendor guide reread",
+            outcome: "accepted",
+            body: (
+              <>
+                <P>
+                  The prompt audit compared the current IDC scaffolds against the linked Anthropic,
+                  Gemini, Kimi, and OpenAI guidance plus active roleplay prompting practices. The
+                  result was a narrow cleanup rather than a character-scaffold rewrite. The live
+                  member prompt already keeps identity high, conversation history in messages, and
+                  the latest exchange at the tail. The fix was to remove one contradictory surface
+                  phrase, add explicit memory-search placement, and tighten player-safe boundaries
+                  on non-character prompts.
+                </P>
+                <P>
+                  Edits landed in <RoadmapFileRef path="app/services/date-prompts.ts" /> and{" "}
+                  <RoadmapFileRef path="app/services/ai-date-engine.ts" />. The member format line
+                  now says the UI sends one message at a time while the fiction is spoken
+                  conversation across the table, replacing the old "texting from the table" phrase.
+                  Runtime character prompts now receive a conditional private memory-search note
+                  only when the tool is available, and that note tells the performer to search only
+                  when the latest line needs prior self, pair, or place context not already in
+                  state.
+                </P>
+                <P>
+                  Judge prompts now name every player-facing string governed by the hidden-info
+                  boundary, not just playerSummary. Summarizer prompts now state that the transcript
+                  is primary evidence and the final Cupid summary cannot add new facts. Closure
+                  summary examples were moved off roster names and marked as cadence examples only
+                  so they do not become fact attractors.
+                </P>
+              </>
+            ),
+          },
           {
             date: "2026-05-19",
             title:

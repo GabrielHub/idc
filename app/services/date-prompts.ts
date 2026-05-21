@@ -301,6 +301,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
       ? null
       : `What you most want to come out of tonight: ${input.focusRequest.text}`;
   const attachments = input.imageAttachments ?? [];
+  const memorySearchAvailable = input.memorySearchAvailable === true;
 
   const system = [
     `<role>You are ${member.name}. People who know you call you ${member.firstName}.</role>`,
@@ -391,6 +392,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     ...formatCharacterMemorySection(memoryPack, partner),
     ...formatCharacterPairContextSection(pairState, pairTrajectory, pairSpotlight, partner),
     `</state>`,
+    ...formatCharacterMemorySearchSection(memorySearchAvailable),
     ``,
     `<scene>`,
     `You are at ${scenario.publicBrief.location}. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
@@ -411,7 +413,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `</scene>`,
     ``,
     `<format>`,
-    `You are texting from the table, one message at a time. Most messages stay plain. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at three visible blocks. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare.`,
+    `The UI sends one message at a time, but in the fiction you are speaking across the table. Most messages stay plain. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at three visible blocks. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare.`,
     `</format>`,
     ...buildRepetitionRetryNotice(input.repetitionRetry),
     ...buildRhythmRetryNotice(input.rhythmRetry),
@@ -598,6 +600,21 @@ function formatCharacterMemorySection(memoryPack: MemoryPack, partner: Member): 
   }
 
   return lines;
+}
+
+function formatCharacterMemorySearchSection(memorySearchAvailable: boolean): string[] {
+  if (!memorySearchAvailable) {
+    return [];
+  }
+
+  return [
+    "",
+    "<memory_search>",
+    "A private memory search is available. Use it only when the latest partner line depends on prior self, pair, or place context that is not already listed above.",
+    "If the visible thread and state already give you enough, answer now without searching.",
+    "Search results are private recall, not dialogue. Do not mention the search or quote hidden labels.",
+    "</memory_search>",
+  ];
 }
 
 function formatCharacterPairContextSection(
@@ -938,6 +955,7 @@ export function buildJudgePromptPacket({
         "- notableMoments must contain 1 to 3 short strings, each anchored in a concrete scene detail.",
         "- playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
         "- memoryCandidates must be an empty array.",
+        "- Player-facing strings include playerSummary, notableMoments, earlyEndReason, agreement text, agreement update notes, open loop text, and open loop update notes. Keep all of them free of hidden labels, species, origin, dimension, reality status, exact state, raw stat numbers, and fixture-only phrasing.",
         "- usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
         "- agreementCandidates may contain at most 2 concrete pair agreements newly made in this exchange. Use only plain player-safe text. No stat numbers or hidden labels.",
         "- agreementUpdates may contain active agreement ids only when this exchange clearly honored, broke, or retired that agreement.",
@@ -1107,6 +1125,7 @@ export function buildSummarizerPromptPacket({
       "</field_rules>",
       "",
       "<content_rules>",
+      "- The transcript is primary evidence. Use the final Cupid summary only to understand the filed outcome; it cannot add facts that are absent from the transcript.",
       "- Preserve soft canon that mattered: improvised objects, orders, invented same-day anecdotes, callbacks, and small commitments when a partner accepted or reacted to them.",
       "- Preserve revealed information that later performers need because they do not receive the partner's private file.",
       "- Store how the pair treated each other only when the transcript shows the move: who asked, refused, trusted, dodged, softened, or followed up.",
@@ -1181,9 +1200,10 @@ export function buildClosureSummaryPromptPacket({
       "</style>",
       "",
       "<examples>",
+      "Examples teach cadence only. Do not reuse their names, objects, or events.",
       "Good closure note:",
-      '- "Jenna brought the spare key on a Wednesday and Vhool kept the receipt from their first dinner pinned to the apartment fridge. They are taking the long way home tonight, the way that passes the bookstore. Filed."',
-      '- "By the third date they had figured out the laundry rotation and never argued about it again. Vhool is bringing the soup. Take care of each other."',
+      '- "Mara kept the borrowed umbrella behind the bar and Ivo stopped pretending he did not know where it came from. They are taking the long way home tonight, the one with the dry sidewalk. Filed."',
+      '- "By the third date they had figured out the laundry rotation and never argued about the missing sock again. Jules is bringing the basil plant. Take care of each other."',
       "Bad closure note:",
       '- "Their tapestry of moments came together as they unleashed deeper connection." (AI slop, no concrete moment)',
       '- "Cupid is proud to file this match." (editorializing about the agency)',
