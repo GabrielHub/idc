@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.0.0",
+    "date": "2026-05-21",
+    "headline": "Cupid stamps the audited roster as the first full alpha line.",
+    "summary": "Major test alpha. Promotes the member-audited build to 1.0.0, carrying the completed roster voice pass, live-date bubble polish, and release-ready desktop update path.",
+    "sections": [
+      {
+        "title": "Member audit milestone",
+        "items": [
+          "The roster-wide member audit is complete, with locked voices, safer spoken-dialogue fixtures, and transcript-tested behavior across the current agency lineup.",
+          "Recent fixture passes removed stray stage directions, partner labels, stiff filing-language filler, and hidden dossier leaks from player-facing date turns.",
+          "Members now enter live dates with clearer table manners: venue, work-week, world, and visible partner details fuel the conversation instead of profile recitation."
+        ]
+      },
+      {
+        "title": "Date surface",
+        "items": [
+          "Live date bubbles support the small approved Markdown set for spoken emphasis while blocking links, HTML, code, tables, images, and markup tricks.",
+          "Session ambience stays stable once picked, and standee portraits open member details directly for faster case review during active bookings.",
+          "Seeded gameplay randomness now covers deck hands, shift goals, scenario events, manager quips, and audio selection for steadier tests and saves."
+        ]
+      },
+      {
+        "title": "Release line",
+        "items": [
+          "The desktop release identity moves to v1.0.0 across package metadata, Tauri packaging, Cargo metadata, and the app window title.",
+          "The public release catalog now marks this as the current player-facing release, so What's new and updater notes describe the audited build."
+        ]
+      }
+    ]
+  },
+  {
     "version": "0.3.9",
     "date": "2026-05-20",
     "headline": "Cupid lets date bubbles breathe, under supervision from Legal.",
