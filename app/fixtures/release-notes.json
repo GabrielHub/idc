@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.0.3",
+    "date": "2026-05-22",
+    "headline": "Cupid opens Fred Stavropoulos's case file.",
+    "summary": "Roster test alpha. Adds Fred Stavropoulos as the 48th starter member, with full voice authoring, portrait assets, case requests, availability, roster ordering, aura, palettes, and smoke coverage.",
+    "sections": [
+      {
+        "title": "Roster",
+        "items": [
+          "Fred Stavropoulos joins the starter roster as a mid-PhD mechanical engineering grad student from Birmingham and Ann Arbor with dry Midwestern timing, Greek Orthodox background texture, Lakers loyalty, and an exotic-fish basement operation.",
+          "Fred ships with the full portrait set, avatar sizes, generated palette data, standee footing, aura treatment, roster ordering, and soft-schedule shift availability.",
+          "His case requests cover letting the wit land, not turning the fish hobby into the whole interview, no LeBron litigation, decisive scheduling, and no recruitment-pitch framing."
+        ]
+      },
+      {
+        "title": "Coverage",
+        "items": [
+          "Roster count and smoke coverage now treat Fred as part of the default agency lineup.",
+          "Shift availability coverage includes Fred in the soft-schedule profile group."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.2",
     "date": "2026-05-22",
     "headline": "Cupid moves Gateway keys into the OS vault.",
