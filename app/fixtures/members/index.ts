@@ -16,6 +16,7 @@ import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { derekHalsey } from "./derek-halsey";
 import { eleanorAsh } from "./eleanor-ash";
 import { epsy } from "./epsy";
+import { fredStavropoulos } from "./fred-stavropoulos";
 import { gabrielTan } from "./gabriel-tan";
 import { gideonGlass } from "./gideon-glass";
 import { idrisMahari } from "./idris-mahari";
@@ -49,7 +50,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(47)
+  .length(48)
   .parse([
     jennaPike,
     meridianVale,
@@ -98,6 +99,7 @@ export const starterMembers = memberSchema
     mjolnir,
     concord,
     rostin,
+    fredStavropoulos,
   ]);
 
 export {
@@ -118,6 +120,7 @@ export {
   derekHalsey,
   eleanorAsh,
   epsy,
+  fredStavropoulos,
   gabrielTan,
   gideonGlass,
   idrisMahari,

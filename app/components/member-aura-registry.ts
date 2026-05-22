@@ -91,6 +91,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "godray",
     tint: { primary: "rgba(252, 192, 124, 0.58)", glow: "rgba(232, 144, 88, 0.38)" },
   },
+  "fred-stavropoulos": {
+    kind: "godray",
+    tint: { primary: "rgba(232, 200, 240, 0.5)", glow: "rgba(218, 184, 232, 0.32)" },
+  },
 
   "gideon-glass": {
     kind: "ectoplasm",

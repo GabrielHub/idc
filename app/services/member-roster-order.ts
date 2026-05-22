@@ -49,6 +49,7 @@ export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "brady-strait",
   "john-pork",
   "rostin",
+  "fred-stavropoulos",
 ];
 
 type CuratedMember = Pick<Member, "id" | "firstName">;

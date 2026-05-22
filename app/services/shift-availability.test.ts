@@ -43,6 +43,7 @@ const EXPECTED_PROFILE_IDS = {
     "maeve",
     "nawal-marrash",
     "toby-wenz",
+    "fred-stavropoulos",
   ],
   formal_calendar: [
     "aldric-vale-marsh",

@@ -41,7 +41,7 @@ import { mulberry32 } from "./utils";
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(47);
+    expect(starterMembers).toHaveLength(48);
     expect(starterScenarios).toHaveLength(56);
   });
 

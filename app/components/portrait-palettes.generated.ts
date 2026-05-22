@@ -103,6 +103,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(190, 223, 233)",
     accent: "rgb(216, 105, 150)",
   },
+  "fred-stavropoulos": {
+    from: "rgb(238, 203, 180)",
+    via: "rgb(242, 222, 196)",
+    to: "rgb(226, 207, 197)",
+    accent: "rgb(234, 146, 88)",
+  },
   "gabriel-tan": {
     from: "rgb(232, 206, 186)",
     via: "rgb(230, 218, 209)",
