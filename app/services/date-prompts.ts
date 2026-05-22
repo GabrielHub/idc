@@ -266,6 +266,105 @@ function formatPartnerProfileForPrompt(
   return joined.length === 0 ? "" : truncateForPrompt(joined, 520);
 }
 
+function formatCharacterVoiceSection(member: Member): string[] {
+  const lines = ["", "<voice>", "<register>", member.voice.register, "</register>"];
+
+  if (member.voice.comedyMechanics.length > 0) {
+    lines.push(
+      "",
+      "<comedy_mechanics>",
+      ...member.voice.comedyMechanics.map((mechanic) => `- ${mechanic}`),
+      "</comedy_mechanics>",
+    );
+  }
+
+  lines.push(
+    "",
+    "<tics>",
+    "How your speech moves:",
+    ...member.voice.tics.map((tic) => `- ${tic}`),
+    "</tics>",
+    "</voice>",
+    "",
+  );
+
+  return lines;
+}
+
+function formatCharacterConversationShapeSection(member: Member): string[] {
+  if (member.voice.conversationShape.length === 0) {
+    return [];
+  }
+
+  const lines = [
+    "",
+    "<conversation_shape>",
+    `Member-specific examples of unforced two-voice talk. You: is ${member.firstName}. Partner: is the person across the table.`,
+  ];
+
+  for (const [index, example] of member.voice.conversationShape.entries()) {
+    lines.push("", `<example index="${index + 1}">`);
+    for (const turn of example.turns) {
+      const label = turn.speaker === "member" ? "You" : "Partner";
+      lines.push(`${label}: ${turn.text}`);
+    }
+    lines.push("</example>");
+  }
+
+  lines.push("</conversation_shape>", "");
+
+  return lines;
+}
+
+function formatCharacterContrastExamplesSection(member: Member): string[] {
+  if (member.voice.contrastExamples.length === 0) {
+    return [];
+  }
+
+  const lines = [
+    "",
+    "<contrastive_examples>",
+    "Preferred lines show the voice to reach for when a nearby off-voice shape is tempting.",
+  ];
+
+  for (const [index, example] of member.voice.contrastExamples.entries()) {
+    lines.push(
+      "",
+      `<example index="${index + 1}">`,
+      `Preferred: "${example.preferred}"`,
+      `Tempting but off-voice: "${example.tempting}"`,
+    );
+    if (example.because !== undefined) {
+      lines.push(`Because: ${example.because}`);
+    }
+    lines.push("</example>");
+  }
+
+  lines.push("</contrastive_examples>", "");
+
+  return lines;
+}
+
+function formatCharacterFormatSection(member: Member): string[] {
+  const lines = [
+    "",
+    "<format>",
+    "The UI sends one message at a time, but in the fiction you are speaking across the table. Most messages stay plain. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at three visible blocks. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare.",
+  ];
+
+  if (member.voice.outputConstraints.length > 0) {
+    lines.push(
+      "",
+      "Member-specific spoken-surface constraints:",
+      ...member.voice.outputConstraints.map((constraint) => `- ${constraint}`),
+    );
+  }
+
+  lines.push("</format>");
+
+  return lines;
+}
+
 export function buildCharacterPromptPacket(input: CharacterPromptInput): CharacterPromptPacket {
   const { member, partner, scenario, session, pairState, memoryPack } = input;
   const visibleTranscript = filterCharacterVisibleTranscript({
@@ -309,14 +408,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `<identity>`,
     member.bio,
     `</identity>`,
-    ``,
-    `<voice>`,
-    `${member.voice.register}.`,
-    ``,
-    `How your speech moves:`,
-    ...member.voice.tics.map((tic) => `- ${tic}`),
-    `</voice>`,
-    ``,
+    ...formatCharacterVoiceSection(member),
     ...(greetingSamples.length === 0
       ? []
       : [
@@ -330,45 +422,8 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `Lines that sound like you:`,
     formatBulletList(voiceFlavorSamples),
     `</voice_examples>`,
-    ``,
-    `<conversation_shape>`,
-    `Brief exchanges that show what unforced two-voice talk sounds like across a table. A: and B: are placeholders; neither is you. What you would say in any of these moments sounds like ${member.firstName}, not like A or B.`,
-    ``,
-    `<example>`,
-    `A: You haven't asked me anything yet.`,
-    `B: You wouldn't be wrong.`,
-    `A: Your chances are slipping.`,
-    `B: What kind of shows do you like.`,
-    `A: Sci-fi mostly.`,
-    `</example>`,
-    ``,
-    `<example>`,
-    `A: What do you do for work?`,
-    `B: Software engineer.`,
-    `A: How was today.`,
-    `B: Long. Tomorrow will be worse.`,
-    `A: Why's that.`,
-    `B: They'll find out I blew my chance with you.`,
-    `</example>`,
-    ``,
-    `<example>`,
-    `A: Long week.`,
-    `B: Same.`,
-    `A: Mine cost me a kid in my class. He's in a different room now.`,
-    `B: How long was he yours.`,
-    `A: Eight months.`,
-    `</example>`,
-    ``,
-    `<example>`,
-    `A: Mornings are whatever wins between me and the alarm.`,
-    `B: I walk a loop before the city wakes. Same route every time.`,
-    `A: That sounds like a commitment.`,
-    `B: It is a habit.`,
-    `A: What's the difference.`,
-    `B: Habits forgive me when I miss one.`,
-    `</example>`,
-    `</conversation_shape>`,
-    ``,
+    ...formatCharacterConversationShapeSection(member),
+    ...formatCharacterContrastExamplesSection(member),
     `<wants>`,
     ...member.relationshipNeeds.map((item) => `- ${item}`),
     `</wants>`,
@@ -411,10 +466,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `During the date the dating manager may send private in-app notes meant as coaching, not conversation. The note is yours to follow, bend, or ignore. Your reply is the spoken line to your date; if a note changes your behavior, the spoken line still has to make sense to someone who cannot read the note.`,
     `This is your ${ordinal(dateNumber)} date with ${partner.firstName} through Cupid.`,
     `</scene>`,
-    ``,
-    `<format>`,
-    `The UI sends one message at a time, but in the fiction you are speaking across the table. Most messages stay plain. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at three visible blocks. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare.`,
-    `</format>`,
+    ...formatCharacterFormatSection(member),
     ...buildRepetitionRetryNotice(input.repetitionRetry),
     ...buildRhythmRetryNotice(input.rhythmRetry),
     ...buildRecentLineNotices({

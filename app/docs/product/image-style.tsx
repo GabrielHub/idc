@@ -165,7 +165,8 @@ portrait-angry.png`}</DocCodeBlock>
         <P>
           Members may ship with any subset of these variants. The UI falls back to{" "}
           <DocCode>portrait.png</DocCode> when a requested variant is missing or still marked{" "}
-          <DocCode>pending</DocCode>.
+          <DocCode>pending</DocCode>. If the neutral portrait is also missing or pending, portrait
+          surfaces render without an image until the approved asset lands.
         </P>
       </>
     ),
@@ -646,6 +647,12 @@ Constraints: no text, no logos, no watermarks, no frames, no UI, no scenery, no 
           <DocCode>avatar.png</DocCode> back as a high-density candidate for avatar surfaces. Do not
           put member files back under <DocCode>public/assets/portraits/cutout/</DocCode>; that flat
           folder no longer matches the fixture contract.
+        </P>
+        <P>
+          During content and asset work that runs in parallel, fixtures may reference these
+          conventional future paths before the files exist. Mark those asset records{" "}
+          <DocCode>model: "pending"</DocCode> until approved source and runtime files are checked
+          in.
         </P>
         <DocCallout variant="warn">
           Do not place source images under <DocCode>public/assets/portraits/source</DocCode>. Vite

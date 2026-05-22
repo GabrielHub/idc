@@ -27,7 +27,7 @@ function deriveDockStatus({
   if (shiftClosed) return "shift filed, open the next one to book";
   if (deckRepairBlocked && !isCommitted) return "date book is over budget, open it to repair";
   if (!shiftDateAvailable && !isCommitted) return "this shift's date is already booked";
-  if (focus === null) return "pick a focus case";
+  if (focus === null) return "pick today's lead case";
   if (partner === null) return "pick a partner";
   if (isCommitted && scenario === null) return "pick a date plan";
   return null;
@@ -157,7 +157,7 @@ function DockSummary({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-4">
-      <DockChip label="focus" onClick={() => onScrollTo("focus")}>
+      <DockChip label="lead" onClick={() => onScrollTo("focus")}>
         {focus === null ? (
           <span className="text-aura-faint">··</span>
         ) : (

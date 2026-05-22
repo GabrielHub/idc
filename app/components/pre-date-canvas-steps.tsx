@@ -12,6 +12,7 @@ import {
   PendingMemberCard,
   rosterGridFillerClasses,
 } from "./member-card";
+import { OffTonightSection, type OffTonightEntry } from "./pre-date-canvas-off-tonight";
 import { ScenarioCard } from "./scenario-card";
 
 function StepHeader({
@@ -79,12 +80,12 @@ export function FocusStep({
     <section ref={sectionRef} className="mt-10">
       <StepHeader
         index={1}
-        eyebrow="// step.01.focus"
-        title={locked ? "Focus case (locked)" : "Focus case"}
+        eyebrow="// step.01.lead"
+        title={locked ? "Lead case (locked)" : "Lead case"}
         hint={
           locked
-            ? "Pair is committed. Resolve or cancel the booking to reassign focus."
-            : "Pick which case you're working tonight. Cooldowns and closed files cannot be picked."
+            ? "Pair is committed. Resolve or cancel the booking to reassign the lead."
+            : "Pick today's lead from your four cases. The other three wait their turn. Cooldowns and closed files cannot be picked."
         }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
@@ -137,8 +138,8 @@ export function PartnerStep({
   selectedCardRef,
   activeFocus,
   candidatePartners,
+  unavailablePartners,
   partnerId,
-  suggestedPartnerId,
   playerKnowledge,
   revealAllMemberDetails,
   locked,
@@ -150,8 +151,8 @@ export function PartnerStep({
   selectedCardRef: Ref<HTMLLIElement>;
   activeFocus: Member | null;
   candidatePartners: Member[];
+  unavailablePartners: ReadonlyArray<OffTonightEntry>;
   partnerId: string | null;
-  suggestedPartnerId: string | null;
   playerKnowledge: GameSave["playerKnowledge"];
   revealAllMemberDetails: boolean;
   locked: boolean;
@@ -166,7 +167,7 @@ export function PartnerStep({
           index={2}
           eyebrow="// step.02.partner"
           title="Partner"
-          hint="Pick a focus case first."
+          hint="Pick today's lead case first."
         />
       </section>
     );
@@ -178,46 +179,40 @@ export function PartnerStep({
         <StepHeader
           index={2}
           eyebrow="// step.02.partner"
-          title={`Partner for ${activeFocus.firstName}`}
-          hint="No eligible partners on file. Open the roster to add a focus case or wait out a cooldown."
+          title="Tonight's roster"
+          hint="No partners are reachable tonight. Open the roster to change focus cases or wait out a cooldown."
           rightSlot={<GhostButton onClick={onOpenRoster}>Open roster</GhostButton>}
+        />
+        <OffTonightSection
+          entries={unavailablePartners}
+          playerKnowledge={playerKnowledge}
+          revealAllMemberDetails={revealAllMemberDetails}
+          onExpand={onExpand}
         />
       </section>
     );
   }
-
-  const effectivePartnerId = partnerId ?? suggestedPartnerId;
 
   return (
     <section ref={sectionRef} className="mt-10">
       <StepHeader
         index={2}
         eyebrow="// step.02.partner"
-        title={
-          locked
-            ? `Partner for ${activeFocus.firstName} (locked)`
-            : `Partner for ${activeFocus.firstName}`
-        }
+        title={locked ? "Tonight's roster (locked)" : "Tonight's roster"}
         hint={
           locked
             ? "Pair is committed. The Date Book and partner are locked until the date resolves."
-            : suggestedPartnerId === null
-              ? "No clear recommendation on file. Pick any active member."
-              : "Cupid found one clear booking recommendation. Tap any active member to override."
+            : `${candidatePartners.length} ${candidatePartners.length === 1 ? "partner is" : "partners are"} reachable for ${activeFocus.firstName} tonight. Availability is logistics, not a verdict.`
         }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
       <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {candidatePartners.map((member, index) => {
-          const isPicked = member.id === effectivePartnerId;
-          const isSuggested = member.id === suggestedPartnerId;
-          const isUserOverride = isPicked && partnerId !== null;
+          const isPicked = member.id === partnerId;
           const cardState: MemberCardState = isPicked ? "selected" : "default";
-          const statusPill: MemberCardPill | undefined = isUserOverride
+          const statusPill: MemberCardPill | undefined = isPicked
             ? { tone: "rose", label: "your pick" }
-            : isPicked || isSuggested
-              ? { tone: "ink", label: "recommended" }
-              : undefined;
+            : undefined;
           return (
             <MemberCard
               key={member.id}
@@ -242,6 +237,12 @@ export function PartnerStep({
           <PendingMemberCard key={`pending-${fillerIndex}`} className={fillerClass} />
         ))}
       </ul>
+      <OffTonightSection
+        entries={unavailablePartners}
+        playerKnowledge={playerKnowledge}
+        revealAllMemberDetails={revealAllMemberDetails}
+        onExpand={onExpand}
+      />
     </section>
   );
 }

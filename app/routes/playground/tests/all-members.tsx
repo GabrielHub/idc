@@ -709,13 +709,29 @@ function VoiceSpread({
           </h3>
         </div>
         <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          register, patterns, tics, samples
+          register, mechanics, constraints, samples
         </span>
       </header>
 
       <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
         <div className="space-y-3">
           <RegisterCard register={member.voice.register} />
+          <VoiceListCard title="Comedy mechanics" items={member.voice.comedyMechanics} />
+          <VoiceListCard title="Output constraints" items={member.voice.outputConstraints} />
+          <VoiceListCard
+            title="Conversation shape"
+            items={member.voice.conversationShape.map((example) =>
+              example.turns
+                .map((turn) => `${turn.speaker === "member" ? "Member" : "Partner"}: ${turn.text}`)
+                .join(" / "),
+            )}
+          />
+          <VoiceListCard
+            title="Contrasts"
+            items={member.voice.contrastExamples.map(
+              (example) => `${example.preferred} <- ${example.tempting}`,
+            )}
+          />
           <PatternStrip
             title="Patterns used"
             tone="positive"
@@ -784,6 +800,29 @@ function RegisterCard({ register }: { register: string }) {
       <p className="mt-2 font-display text-body font-semibold tracking-tight text-aura-ink">
         {register}
       </p>
+    </div>
+  );
+}
+
+function VoiceListCard({ title, items }: { title: string; items: readonly string[] }) {
+  return (
+    <div className="rounded-tile border border-aura-hairline bg-white/60 p-4">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+        {title}
+      </p>
+      {items.length === 0 ? (
+        <p className="mt-2 font-display text-body font-semibold tracking-tight text-aura-muted">
+          None authored.
+        </p>
+      ) : (
+        <ul className="mt-3 space-y-2">
+          {items.map((item, index) => (
+            <li key={`${title}-${index}`} className="text-body leading-relaxed text-aura-ink/85">
+              {item}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

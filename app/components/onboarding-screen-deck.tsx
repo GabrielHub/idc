@@ -241,7 +241,7 @@ export function DeckDraftStep({
             target={startShiftCtaRef}
             placement="top"
             title="Start the shift"
-            body="Deck is legal. Start the shift and Cupid opens Live Date. You will pick one focus case, one different partner, then commit. Three scenarios get drawn from this pool."
+            body="Deck is legal. Start the shift and Cupid opens Live Date. You will pick today's lead case, one different partner, then commit. Three scenarios get drawn from this pool."
             primaryLabel="Start the shift"
             onPrimary={() => {
               deckStartStep.complete();

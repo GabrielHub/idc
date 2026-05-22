@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   dateSessionSchema,
+  shiftReportSchema,
+  shiftStateSchema,
   type DateMessage,
   type JudgeSnapshot,
   type Member,
@@ -9,12 +11,73 @@ import {
 } from "../domain/game";
 import { starterScenarios } from "../fixtures";
 import { createSeedGameSave, makePairId } from "../services/game-seed";
+import { buildShiftAskDeskEntries } from "../services/shift-request-assessment";
 import { startAndDraftDateSession, withFeaturedMembers } from "../services/test-helpers";
 import {
   buildTranscriptItems,
   resolveDatePlaybackUiState,
   type StreamingDraftMessage,
 } from "./date-view";
+
+describe("shift report ask desk", () => {
+  it("puts the lead ask first and keeps background asks as waiting queue work", () => {
+    const save = createSeedGameSave(new Date("2026-05-21T12:00:00.000Z"));
+    const baseShift = save.shifts[0];
+
+    if (baseShift === undefined) {
+      throw new Error("Expected seed shift.");
+    }
+
+    const memberRequestIds = [
+      "request-aegis-shield-not-a-coat",
+      "request-gideon-name",
+      "request-ryan-just-out",
+      "request-tasha-counterparty",
+    ];
+    const report = shiftReportSchema.parse({
+      id: "report-shift-3",
+      shiftId: "shift-3",
+      completedAt: "2026-05-21T13:00:00.000Z",
+      completedDates: 1,
+      earlyEndedDates: 0,
+      ordinaryNonHumanDates: 1,
+      memberMoodDelta: 0,
+      goalResults: [],
+      requestOutcomes: {
+        "request-aegis-shield-not-a-coat": "covered",
+        "request-gideon-name": "ignored",
+        "request-ryan-just-out": "ignored",
+        "request-tasha-counterparty": "ignored",
+      },
+      offeredScenarioIds: [],
+      summary: "One date filed.",
+      hrNote: "Lead ask landed. 3 cases in the queue.",
+    });
+    const shift = shiftStateSchema.parse({
+      ...baseShift,
+      id: "shift-3",
+      shiftNumber: 3,
+      status: "completed",
+      memberRequestIds,
+      report,
+    });
+
+    const entries = buildShiftAskDeskEntries({ shift, members: save.members });
+
+    expect(entries).toHaveLength(4);
+    expect(entries[0]).toMatchObject({
+      memberName: "Aegis",
+      isLead: true,
+      outcome: "covered",
+      outcomeLabel: "landed",
+    });
+    expect(entries.slice(1).map((entry) => entry.outcomeLabel)).toEqual([
+      "waiting",
+      "waiting",
+      "waiting",
+    ]);
+  });
+});
 
 describe("dashboard transcript presentation", () => {
   it("places Cupid notes after the full reviewed turn interval", () => {

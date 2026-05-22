@@ -162,17 +162,18 @@ export const sections: DocSectionEntry[] = [
             "Role block: the member's name and first name.",
             "Task: produce one spoken reply grounded in the latest partner line.",
             "Identity and state: bio, needs, preferences, dealbreakers, private pressure, current mood, memories, agreements, open loops, and pair trajectory.",
-            "Voice flavor: register, tics, and selected sample buckets as optional reference material.",
+            "Voice flavor: compact register, comedy mechanics, tics, selected sample buckets, optional member-specific conversation shape, and optional contrast examples.",
             "Shared scene: Cupid set the match, route, venue, and time; this is the pair's current date through Cupid.",
             "Venue frame: location, room feel, director rules, partner profile, portrait cues, and heights.",
-            "Format and invariants: spoken conversation at a table, no labels, no stage directions, no dash punctuation, no parroting, no answering private notes aloud.",
+            "Format and invariants: spoken conversation at a table, no labels, no stage directions, no dash punctuation, no parroting, no answering private notes aloud, plus member-specific output constraints.",
             "Retry guards and attachment notices only when needed.",
           ]}
         />
         <DocCallout variant="danger">
-          Do not paste the full voice docs into runtime prompts. Do not expose pattern taxonomy as a
-          checklist the model must satisfy. The prompt should describe who the member is, what they
-          protect, and the conversation they are inside.
+          Do not paste the full voice docs or generic conversation-shape examples into runtime
+          prompts. Do not expose pattern taxonomy as a checklist the model must satisfy. The prompt
+          should describe who the member is, what they protect, and the conversation they are
+          inside.
         </DocCallout>
       </>
     ),

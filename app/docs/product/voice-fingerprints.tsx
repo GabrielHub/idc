@@ -87,7 +87,23 @@ export const sections: DocSectionEntry[] = [
           items={[
             {
               term: "register",
-              def: "A compact paragraph that names the comedy engine, cadence, capitalization rule, expansion conditions, pressure behavior, and any tiered dealbreaker fire-shape. It should describe behavior, not just vibe.",
+              def: "A compact paragraph that names the member's table sound and primary engine. Keep detailed mechanics, constraints, and examples in their structured fields.",
+            },
+            {
+              term: "comedyMechanics",
+              def: "Named performable behavior rules and pressure shapes. This is where cadence engines, recurring bits, fire-shapes, and canon-specific behavior live after migration out of register.",
+            },
+            {
+              term: "outputConstraints",
+              def: "Member-specific spoken-surface constraints that belong next to runtime format rules: stage-direction bans, medium artifacts, route/logistics guards, and character-specific output failure modes.",
+            },
+            {
+              term: "conversationShape",
+              def: "Optional member-specific two-voice examples. Use only when a member needs a cadence demonstration in their own voice. There is no shared generic fallback.",
+            },
+            {
+              term: "contrastExamples",
+              def: "Optional preferred-over-tempting examples for recurring drift. Keep them targeted and sparse so the preferred line is the attractor.",
             },
             {
               term: "patternsUsed",

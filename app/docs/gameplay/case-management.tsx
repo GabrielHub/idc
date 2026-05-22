@@ -23,9 +23,10 @@ export const meta: DocMeta = {
 
 export const lede = (
   <>
-    Cupid runs four focus cases at a time and one date per shift. This frames the player as a
-    relationship operator who carries small case loads instead of a matchmaker who rerolls every
-    shift.
+    Cupid keeps four focus cases on the desk and books one date per shift. Each shift the player
+    picks one of the four as today's <Strong>lead case</Strong> — the file the shift runs on — and
+    the other three sit in the queue as waiting-room pressure. The player runs a small relationship
+    desk instead of rerolling matches every shift.
   </>
 );
 
@@ -79,18 +80,30 @@ export const sections: DocSectionEntry[] = [
           cooldown.
         </P>
         <P>
-          Each shift surfaces one current request per focused member, so three of the four are
-          normally unaddressed when the shift is filed. That is expected case-load play, not a
-          failure state. Each shift also designates one of those requests as the{" "}
-          <Strong>lead ask</Strong> via <DocCode>selectHotRequestId</DocCode> in{" "}
+          Each active shift also persists <DocCode>availablePartnerMemberIds</DocCode>, the
+          10-member
+          <Strong>Tonight&apos;s Roster</Strong>. This is a logistics board, not a match verdict:
+          member availability comes from authored scheduling profiles, shift rhythm, recent Cupid
+          activity, and current member state. Focus cases are the case desk and cannot appear as
+          partners. Members outside tonight&apos;s board remain visible under{" "}
+          <Strong>Off Tonight</Strong> with disabled cards and a reason such as focus case,
+          cooldown, closed file, cancelled membership, or off shift.
+        </P>
+        <P>
+          Each shift surfaces one current request per focused member. One of those four requests is
+          the <Strong>lead ask</Strong> — the request the shift is graded on — and the other three
+          sit in the queue as waiting-room pressure rather than unaddressed homework: they roll
+          forward shift to shift and incur no penalty when no one books that case. The lead ask is
+          designated via <DocCode>selectHotRequestId</DocCode> in{" "}
           <DocCode>app/services/shift-planning.ts</DocCode> — a deterministic, shift-number-seeded
-          pick that rotates fairly across focus cases. The lead ask is derived from{" "}
+          pick that rotates fairly across focus cases. It is derived from{" "}
           <DocCode>(shift.memberRequestIds, shift.shiftNumber)</DocCode> on read via{" "}
           <DocCode>deriveHotRequestId</DocCode> rather than persisted, so it stays in sync with the
-          roster automatically. The lead ask is the one the shift is graded on.{" "}
-          <DocCode>completeShift</DocCode> classifies each shift request via{" "}
-          <DocCode>classifyShiftRequestOutcomes</DocCode> into one of four buckets, using the focus
-          session's own judge-snapshot evidence (
+          roster automatically. Note that the lead ask can sit on a focus member the player does not
+          book tonight; in that case it is classified <DocCode>ignored</DocCode>, while the booked
+          member's request runs as a non-graded background ask. <DocCode>completeShift</DocCode>{" "}
+          classifies each shift request via <DocCode>classifyShiftRequestOutcomes</DocCode> into one
+          of four buckets, using the focus session's own judge-snapshot evidence (
           <DocCode>session.judgeSnapshots[].usedEvidenceIds</DocCode> containing{" "}
           <DocCode>ask-covered</DocCode> or <DocCode>ask-blocked</DocCode> ids) as the landed-signal
           source. The lookup is session-scoped so a prior shift's covered record cannot leak into a

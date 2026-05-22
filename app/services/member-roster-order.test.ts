@@ -4,7 +4,6 @@ import type { Member } from "../domain/game";
 import { starterMembers } from "../fixtures";
 import {
   CURATED_MEMBER_ROSTER_ORDER,
-  moveSuggestedMemberFirst,
   sortMembersByCuratedRosterOrder,
   sortMembersForRoster,
 } from "./member-roster-order";
@@ -52,18 +51,6 @@ describe("member roster order", () => {
       "mr-whiskers",
       "vhool",
     ]);
-  });
-
-  it("moves the suggested partner first without losing curated order", () => {
-    const sampleMembers = [
-      requireMember("kade-sumner"),
-      requireMember("vhool"),
-      requireMember("jenna-pike"),
-    ];
-
-    const orderedIds = moveSuggestedMemberFirst(sampleMembers, "vhool").map((member) => member.id);
-
-    expect(orderedIds).toEqual(["vhool", "jenna-pike", "kade-sumner"]);
   });
 });
 

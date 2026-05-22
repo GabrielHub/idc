@@ -127,27 +127,6 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
-    id: "partner-recommendation-badge",
-    title: "Partner recommendation badge",
-    body: (
-      <>
-        <P>
-          The partner recommendation badge is scenario-free. It runs before any scenario is locked
-          and uses runtime pair data only: authored pair rules, pair memory pressure, agreements,
-          open loops, request blocks tied to the partner, and known dynamic reads. It must not
-          consult the selected scenario, a fallback scenario, the Pair Board graph, or the roster
-          chemistry authoring matrix.
-        </P>
-        <P>
-          The badge appears only when the top candidate clears a meaningful score, has no
-          partner-tied blocked requests, and is ahead of the runner-up by a meaningful margin. If
-          the room produces a tie, a weak top score, or only least-bad options, the UI should show
-          no recommendation and let the player choose.
-        </P>
-      </>
-    ),
-  },
-  {
     id: "boundary-risk",
     title: "Boundary risk",
     body: (

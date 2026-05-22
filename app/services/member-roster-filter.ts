@@ -3,6 +3,7 @@ import { caseFileNumber } from "../components/member-card";
 import { getMemberQuitRiskStatus } from "./date-engine";
 import { sortMembersByCuratedRosterOrder } from "./member-roster-order";
 import { buildVisibleMemberProfile } from "./player-knowledge";
+import { isMemberOnTonightBoard } from "./shift-availability";
 import { isMemberInCooldown } from "./shift-planning";
 
 export type MemberSortKey = "default" | "name" | "tallest" | "shortest";
@@ -46,7 +47,7 @@ export const MEMBER_AVAILABILITY_FILTER_OPTIONS: ReadonlyArray<{
   label: string;
 }> = [
   { value: "all", label: "Any availability" },
-  { value: "bookable", label: "Bookable this shift" },
+  { value: "bookable", label: "On tonight's board" },
   { value: "cooldown", label: "On cooldown" },
 ];
 
@@ -86,6 +87,7 @@ export const MEMBER_STATUS_FILTER_OPTIONS: ReadonlyArray<{
 
 export type MemberRosterFilterContext = {
   focusedMemberIds?: readonly string[];
+  availablePartnerMemberIds?: readonly string[];
   activeShiftNumber?: number;
   readyClosureMemberIds?: ReadonlySet<string>;
 };
@@ -104,12 +106,19 @@ export function matchesAvailabilityFilter(
   member: Member,
   availability: MemberAvailabilityFilter,
   activeShiftNumber: number | undefined,
+  options: Pick<MemberRosterFilterContext, "focusedMemberIds" | "availablePartnerMemberIds"> = {},
 ): boolean {
   if (availability === "all") return true;
   if (member.state.status !== "active") return false;
   if (activeShiftNumber === undefined) return false;
   const inCooldown = isMemberInCooldown(member, activeShiftNumber);
-  return availability === "cooldown" ? inCooldown : !inCooldown;
+  if (availability === "cooldown") return inCooldown;
+  return isMemberOnTonightBoard({
+    member,
+    shiftNumber: activeShiftNumber,
+    focusedMemberIds: options.focusedMemberIds ?? [],
+    availablePartnerMemberIds: options.availablePartnerMemberIds ?? [],
+  });
 }
 
 export function matchesAttentionFilter(member: Member, attention: MemberAttentionFilter): boolean {
@@ -175,7 +184,10 @@ export function applyMemberRosterFilters(
     (member) =>
       matchesStatusFilter(member, filterState.status) &&
       matchesFocusFilter(member, filterState.focus, options.focusedMemberIds) &&
-      matchesAvailabilityFilter(member, filterState.availability, options.activeShiftNumber) &&
+      matchesAvailabilityFilter(member, filterState.availability, options.activeShiftNumber, {
+        focusedMemberIds: options.focusedMemberIds,
+        availablePartnerMemberIds: options.availablePartnerMemberIds,
+      }) &&
       matchesAttentionFilter(member, filterState.attention) &&
       matchesClosureFilter(member, filterState.closure, options.readyClosureMemberIds) &&
       matchesSearch(member, filterState.search, options),

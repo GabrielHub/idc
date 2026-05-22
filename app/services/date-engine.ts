@@ -88,6 +88,7 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
+import { selectShiftPartnerMemberIds } from "./shift-availability";
 import {
   assessShiftRequests,
   classifyFocusAskOutcomeFromSession,
@@ -176,6 +177,37 @@ export type CommitDateBookingInput = {
   now?: Date;
 };
 
+function assertPairBookable({
+  save,
+  focusMember,
+  partnerMember,
+  activeShift,
+}: {
+  save: GameSave;
+  focusMember: Member;
+  partnerMember: Member;
+  activeShift: ShiftState;
+}): void {
+  if (focusMember.state.status !== "active" || partnerMember.state.status !== "active") {
+    throw new Error("Cupid cannot book closed or quit members.");
+  }
+  if (!save.focusedMemberIds.includes(focusMember.id)) {
+    throw new Error("The focused member is not on the case board.");
+  }
+  if (save.focusedMemberIds.includes(partnerMember.id)) {
+    throw new Error("Focus cases cannot be matched with each other this shift.");
+  }
+  if (
+    isMemberInCooldown(focusMember, activeShift.shiftNumber) ||
+    isMemberInCooldown(partnerMember, activeShift.shiftNumber)
+  ) {
+    throw new Error("One of the members is still in cooldown from a recent date.");
+  }
+  if (!activeShift.availablePartnerMemberIds.includes(partnerMember.id)) {
+    throw new Error("That member is not on tonight's roster.");
+  }
+}
+
 export type CommitDateBookingResult = {
   save: GameSave;
   booking: ActiveDateBooking;
@@ -216,20 +248,7 @@ export function commitDateBooking(
     throw new Error("Cupid has lost too many clients to book another date.");
   }
 
-  if (focusMember.state.status !== "active" || partnerMember.state.status !== "active") {
-    throw new Error("Cupid cannot book closed or quit members.");
-  }
-
-  if (!save.focusedMemberIds.includes(focusMember.id)) {
-    throw new Error("The focused member is not on the case board.");
-  }
-
-  if (
-    isMemberInCooldown(focusMember, activeShift.shiftNumber) ||
-    isMemberInCooldown(partnerMember, activeShift.shiftNumber)
-  ) {
-    throw new Error("One of the members is still in cooldown from a recent date.");
-  }
+  assertPairBookable({ save, focusMember, partnerMember, activeShift });
 
   const offers = activeBudgetDiscountOffers(save);
   const effectiveCosts = computeEffectiveCosts(starterScenarios, offers);
@@ -1815,6 +1834,11 @@ export function startNextShift(
     dateSlotsTotal: save.config.shiftDateSlots,
     dateSlotsUsed: 0,
     featuredMemberIds,
+    availablePartnerMemberIds: selectShiftPartnerMemberIds({
+      members: save.members,
+      focusedMemberIds: featuredMemberIds,
+      shiftNumber: nextShiftNumber,
+    }),
     drawnScenarioIds: [],
     companyGoalIds,
     memberRequestIds,

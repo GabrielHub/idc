@@ -41,6 +41,7 @@ export const meiSato: Member = {
     "She thinks the Sunday after a Saturday set is the loneliest stretch of her week and has not figured out what to do with it.",
   ],
   tags: ["ordinary_human", "sincerity_seeking", "career_focused"],
+  shiftAvailabilityProfile: "career_locked",
   voice: {
     register: "bright rapid sincere",
     patternsUsed: [

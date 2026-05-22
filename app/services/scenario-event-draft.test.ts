@@ -12,7 +12,7 @@ import {
 } from "./date-engine";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { getPairProjectionFromSave } from "./relationship-index";
-import { ensureScenarioInHand, withFeaturedMembers } from "./test-helpers";
+import { ensureScenarioInHand, withAvailablePartner, withFeaturedMembers } from "./test-helpers";
 import { mulberry32 } from "./utils";
 
 function zeroCountsByKind(): Record<ScenarioEventKind, number> {
@@ -83,7 +83,12 @@ describe("scenario event draft", () => {
 
   it("requires picks to be drawn from the offered set under the new pool size", () => {
     const save = ensureScenarioInHand(
-      withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), ["jenna-pike"]),
+      withAvailablePartner(
+        withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+          "jenna-pike",
+        ]),
+        "vhool",
+      ),
       "temporal-coffee-shop",
     );
     const started = startDateSession(save, {
@@ -174,7 +179,12 @@ describe("scenario event draft", () => {
 
   it("penalizes recently offered scenario events when drafting a repeat scenario", () => {
     const save = ensureScenarioInHand(
-      withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), ["jenna-pike"]),
+      withAvailablePartner(
+        withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+          "jenna-pike",
+        ]),
+        "vhool",
+      ),
       "temporal-coffee-shop",
     );
     const started = startDateSession(save, {

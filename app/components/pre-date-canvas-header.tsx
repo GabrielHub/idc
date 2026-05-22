@@ -45,7 +45,7 @@ export function PreDateHeader({
             Tonight's date
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-aura-muted">
-            Pick a focus case, pick their partner, commit, then read the room. Cupid drafts the
+            Pick today's lead case, pick their partner, commit, then read the room. Cupid drafts the
             scenarios from your Date Book.
           </p>
         </div>

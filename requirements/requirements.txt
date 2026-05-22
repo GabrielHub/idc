@@ -10,4 +10,4 @@ rembg[cpu,cli]>=2.0.75,<3
 
 # Pillow handles avatar resizing for srcset variants. rembg already pulls Pillow,
 # but listing it explicitly keeps `resize_avatars.py` runnable on its own.
-Pillow>=10.0,<12
+Pillow>=12.1,<13

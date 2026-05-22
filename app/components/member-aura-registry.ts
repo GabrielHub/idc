@@ -87,6 +87,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "godray",
     tint: { primary: "rgba(244, 184, 96, 0.6)", glow: "rgba(220, 156, 68, 0.4)" },
   },
+  rostin: {
+    kind: "godray",
+    tint: { primary: "rgba(252, 192, 124, 0.58)", glow: "rgba(232, 144, 88, 0.38)" },
+  },
 
   "gideon-glass": {
     kind: "ectoplasm",
@@ -156,6 +160,14 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "pulse",
     tint: { primary: "rgba(180, 36, 48, 0.55)", glow: "rgba(150, 24, 36, 0.55)" },
   },
+  aegis: {
+    kind: "pulse",
+    tint: { primary: "rgba(170, 126, 74, 0.62)", glow: "rgba(88, 128, 104, 0.5)" },
+  },
+  mjolnir: {
+    kind: "pulse",
+    tint: { primary: "rgba(140, 168, 200, 0.6)", glow: "rgba(200, 228, 248, 0.55)" },
+  },
 
   epsy: {
     kind: "pixelrain",
@@ -190,10 +202,18 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "ember",
     tint: { primary: "rgba(208, 172, 124, 0.6)", glow: "rgba(164, 124, 76, 0.45)" },
   },
+  "saffron-vex": {
+    kind: "ember",
+    tint: { primary: "rgba(252, 168, 84, 0.78)", glow: "rgba(220, 96, 32, 0.55)" },
+  },
 
   "naia-velorae": {
     kind: "prism",
     tint: { primary: "rgba(168, 232, 220, 0.6)", glow: "rgba(180, 196, 248, 0.55)" },
+  },
+  concord: {
+    kind: "prism",
+    tint: { primary: "rgba(252, 196, 204, 0.65)", glow: "rgba(168, 220, 232, 0.55)" },
   },
 
   "imani-wallace": {

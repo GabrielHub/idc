@@ -10,6 +10,7 @@ import { calvinHewes } from "./calvin-hewes";
 import { cassiaSix } from "./cassia-six";
 import { cassieConners } from "./cassie-conners";
 import { chaYusung } from "./cha-yusung";
+import { concord } from "./concord";
 import { cthala } from "./cthala";
 import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { derekHalsey } from "./derek-halsey";
@@ -28,13 +29,16 @@ import { marcusPellish } from "./marcus-pellish";
 import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
+import { mjolnir } from "./mjolnir";
 import { mrWhiskers } from "./mr-whiskers";
 import { naiaVelorae } from "./naia-velorae";
 import { nawalMarrash } from "./nawal-marrash";
 import { noahKim } from "./noah-kim";
 import { opalSunday } from "./opal-sunday";
 import { reaver } from "./reaver";
+import { rostin } from "./rostin";
 import { ryanDoyle } from "./ryan-doyle";
+import { saffronVex } from "./saffron-vex";
 import { sanaKarim } from "./sana-karim";
 import { seraVohn } from "./sera-vohn";
 import { siennaBae } from "./sienna-bae";
@@ -45,7 +49,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(43)
+  .length(47)
   .parse([
     jennaPike,
     meridianVale,
@@ -90,6 +94,10 @@ export const starterMembers = memberSchema
     johnPork,
     cassiaSix,
     aegis,
+    saffronVex,
+    mjolnir,
+    concord,
+    rostin,
   ]);
 
 export {
@@ -104,6 +112,7 @@ export {
   cassiaSix,
   cassieConners,
   chaYusung,
+  concord,
   cthala,
   decimusMariusTullio,
   derekHalsey,
@@ -122,13 +131,16 @@ export {
   meiSato,
   meridianVale,
   miraPark,
+  mjolnir,
   mrWhiskers,
   naiaVelorae,
   nawalMarrash,
   noahKim,
   opalSunday,
   reaver,
+  rostin,
   ryanDoyle,
+  saffronVex,
   sanaKarim,
   seraVohn,
   siennaBae,

@@ -25,6 +25,10 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
+import {
+  hydrateAvailablePartnerMemberIds,
+  selectShiftPartnerMemberIds,
+} from "./shift-availability";
 import { derivePairStats } from "./pair-stats";
 import { arraysShallowEqual, clampScore } from "./utils";
 
@@ -53,6 +57,11 @@ export function createSeedGameSave(
     dateSlotsTotal: config.shiftDateSlots,
     dateSlotsUsed: 0,
     featuredMemberIds: focusedMemberIds,
+    availablePartnerMemberIds: selectShiftPartnerMemberIds({
+      members,
+      focusedMemberIds,
+      shiftNumber: 1,
+    }),
     drawnScenarioIds: [],
     companyGoalIds: selectShiftCompanyGoalIds({
       members,
@@ -161,7 +170,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
 
   const shiftsResult = mapWithDirty(
     save.shifts,
-    (shift) => hydrateShiftScenarioIds(shift, members),
+    (shift) => hydrateShift(shift, members),
     shiftsEqual,
   );
   if (shiftsResult.dirty) dirty = true;
@@ -237,6 +246,7 @@ function mapWithDirty<T>(
 function shiftsEqual(before: ShiftState, after: ShiftState): boolean {
   return (
     arraysShallowEqual(before.featuredMemberIds, after.featuredMemberIds) &&
+    arraysShallowEqual(before.availablePartnerMemberIds, after.availablePartnerMemberIds) &&
     arraysShallowEqual(before.drawnScenarioIds, after.drawnScenarioIds)
   );
 }
@@ -275,10 +285,16 @@ function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
   return scenarioDeck;
 }
 
-function hydrateShiftScenarioIds(shift: ShiftState, members: Member[]): ShiftState {
+function hydrateShift(shift: ShiftState, members: Member[]): ShiftState {
+  const featuredMemberIds = hydrateFeaturedMemberIds({ shift, members });
   return shiftStateSchema.parse({
     ...shift,
-    featuredMemberIds: hydrateFeaturedMemberIds({ shift, members }),
+    featuredMemberIds,
+    availablePartnerMemberIds: hydrateAvailablePartnerMemberIds({
+      shift,
+      members,
+      focusedMemberIds: featuredMemberIds,
+    }),
     drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
   });
 }

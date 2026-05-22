@@ -56,7 +56,7 @@
         "title": "Release line",
         "items": [
           "The desktop release identity moves to v1.0.0 across package metadata, Tauri packaging, Cargo metadata, and the app window title.",
-          "The public release catalog now marks this as the current player-facing release, so What's new and updater notes describe the audited build."
+          "The public release catalog marks v1.0.0 as the first full alpha player-facing release, so What's new and updater notes can show the audited build as release-line context."
         ]
       }
     ]

@@ -182,6 +182,12 @@ export const sections: DocSectionEntry[] = [
         <DocCodeBlock>{`assets-source/portraits/<member-id>/`}</DocCodeBlock>
         <P>Approved member runtime cutouts go under:</P>
         <DocCodeBlock>{`public/assets/portraits/<member-id>/`}</DocCodeBlock>
+        <P>
+          Missing in-progress member assets should stay referenced with their conventional paths and{" "}
+          <DocCode>model: "pending"</DocCode>. Those fixtures may be committed before files exist;
+          the runtime falls back to a ready neutral portrait when possible and otherwise renders no
+          portrait image.
+        </P>
         <P>After source approval, run:</P>
         <DocCodeBlock language="powershell">{`vp run portrait:cutout --input assets-source/portraits/<member-id> --output public/assets/portraits/<member-id> --overwrite
 vp run portrait:resize-avatars

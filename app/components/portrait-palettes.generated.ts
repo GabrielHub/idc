@@ -67,6 +67,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(198, 210, 226)",
     accent: "rgb(117, 164, 204)",
   },
+  concord: {
+    from: "rgb(228, 204, 190)",
+    via: "rgb(233, 214, 206)",
+    to: "rgb(226, 213, 197)",
+    accent: "rgb(208, 147, 113)",
+  },
   cthala: {
     from: "rgb(199, 185, 233)",
     via: "rgb(242, 232, 196)",
@@ -175,6 +181,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(226, 207, 198)",
     accent: "rgb(219, 147, 102)",
   },
+  mjolnir: {
+    from: "rgb(232, 210, 186)",
+    via: "rgb(238, 217, 201)",
+    to: "rgb(226, 212, 198)",
+    accent: "rgb(222, 152, 100)",
+  },
   "mr-whiskers": {
     from: "rgb(226, 209, 192)",
     via: "rgb(230, 219, 209)",
@@ -211,11 +223,23 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(226, 207, 197)",
     accent: "rgb(209, 112, 123)",
   },
+  rostin: {
+    from: "rgb(240, 204, 178)",
+    via: "rgb(242, 218, 196)",
+    to: "rgb(240, 213, 183)",
+    accent: "rgb(238, 157, 83)",
+  },
   "ryan-doyle": {
     from: "rgb(240, 212, 178)",
     via: "rgb(242, 220, 196)",
     to: "rgb(189, 211, 234)",
     accent: "rgb(240, 167, 81)",
+  },
+  "saffron-vex": {
+    from: "rgb(233, 189, 185)",
+    via: "rgb(233, 215, 206)",
+    to: "rgb(226, 206, 198)",
+    accent: "rgb(220, 111, 102)",
   },
   "sana-karim": {
     from: "rgb(225, 204, 193)",

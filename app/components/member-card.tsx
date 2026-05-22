@@ -166,7 +166,7 @@ export function MemberCard({
             <StatusOverlay status={state} placement="card" />
           ) : null}
 
-          {state === "disabled" ? (
+          {state === "disabled" && statusPill === undefined ? (
             <div className="pointer-events-none absolute inset-x-0 top-12 z-20 grid place-items-center opacity-0 transition-opacity duration-200 group-hover/card:opacity-100">
               <span className="rounded-pill bg-aura-ink/80 px-3 py-1 font-mono text-micro uppercase tracking-[0.22em] text-white shadow-quiet backdrop-blur-sm">
                 Caseload full

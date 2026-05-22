@@ -1,11 +1,10 @@
 import { motion } from "motion/react";
-import { useMemo, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { Link } from "react-router";
 
-import { CupidMark, EASE_OUT_QUART, LiveDot } from "../dashboard-atoms";
+import { CupidMark, EASE_OUT_QUART } from "../dashboard-atoms";
 import { AudioSettingsMenu } from "../settings-menu";
 import { WhatsNewUpdatePill } from "../whats-new-update-pill";
-import { formatClock, formatDate, useTickingNow } from "./shared";
 
 export function TopBar({
   canOpenReleaseNotes,
@@ -18,23 +17,23 @@ export function TopBar({
 }) {
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-30">
-      <div className="relative flex w-full items-center justify-between gap-3 px-4 pt-4 lg:px-8 lg:pt-6">
+      <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 pt-4 lg:px-8 lg:pt-6">
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: EASE_OUT_QUART }}
-          className="aura-glass pointer-events-auto inline-flex items-center gap-3 rounded-pill px-5 py-2.5"
+          className="aura-glass pointer-events-auto inline-flex min-w-0 max-w-full items-center justify-self-start rounded-pill px-4 py-2.5 sm:gap-3 sm:px-5"
         >
           <CupidMark className="size-4" />
           <span className="font-display text-base font-semibold tracking-tight text-aura-ink">
             Cupid
           </span>
-          <span aria-hidden className="h-3 w-px bg-aura-hairline" />
-          <span className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">
+          <span aria-hidden className="hidden h-3 w-px bg-aura-hairline sm:inline-block" />
+          <span className="hidden font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose sm:inline">
             operations terminal
           </span>
-          <span aria-hidden className="hidden h-3 w-px bg-aura-hairline lg:inline-block" />
-          <span className="hidden font-mono text-micro uppercase tracking-[0.24em] text-aura-faint lg:inline">
+          <span aria-hidden className="hidden h-3 w-px bg-aura-hairline 2xl:inline-block" />
+          <span className="hidden font-mono text-micro uppercase tracking-[0.24em] text-aura-faint 2xl:inline">
             sub-basement 4
           </span>
         </motion.div>
@@ -44,7 +43,7 @@ export function TopBar({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.02 }}
-            className="pointer-events-none absolute left-1/2 top-4 -translate-x-1/2 lg:top-6"
+            className="pointer-events-none justify-self-center"
           >
             <WhatsNewUpdatePill
               hasUnreadNotes={hasUnreadReleaseNotes}
@@ -53,11 +52,10 @@ export function TopBar({
           </motion.div>
         ) : null}
 
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 items-center justify-self-end gap-2">
           <DocsPill />
           {import.meta.env.MODE === "desktop" ? null : <PlaygroundPill />}
           <SettingsPill />
-          <ClockPill />
         </div>
       </div>
     </header>
@@ -86,13 +84,13 @@ function NavPill({
         to={to}
         aria-label={label}
         title={label}
-        className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-3 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose lg:px-4"
+        className="aura-glass group inline-flex cursor-pointer items-center gap-2 rounded-pill px-3 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose xl:px-4"
       >
         {icon}
-        <span className="hidden lg:inline">{label}</span>
+        <span className="hidden xl:inline">{label}</span>
         <span
           aria-hidden
-          className="hidden translate-x-0 text-aura-faint transition group-hover:translate-x-0.5 group-hover:text-aura-rose lg:inline"
+          className="hidden translate-x-0 text-aura-faint transition group-hover:translate-x-0.5 group-hover:text-aura-rose xl:inline"
         >
           ↗
         </span>
@@ -164,29 +162,5 @@ function PlaygroundIcon() {
       <circle cx="4.2" cy="11.8" r="1.6" stroke="currentColor" strokeWidth="1.4" />
       <circle cx="11.8" cy="11.8" r="1.6" stroke="currentColor" strokeWidth="1.4" />
     </svg>
-  );
-}
-
-function ClockPill() {
-  const now = useTickingNow();
-  const formatted = useMemo(() => formatClock(now), [now]);
-  const dateLabel = useMemo(() => formatDate(now), [now]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE_OUT_QUART, delay: 0.06 }}
-      className="aura-glass pointer-events-auto inline-flex items-center gap-3 rounded-pill px-5 py-2.5"
-    >
-      <LiveDot tone="emerald" />
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-ink tabular-nums">
-        {formatted}
-      </span>
-      <span aria-hidden className="hidden h-3 w-px bg-aura-hairline lg:inline-block" />
-      <span className="hidden font-mono text-micro uppercase tracking-[0.24em] text-aura-faint lg:inline">
-        {dateLabel}
-      </span>
-    </motion.div>
   );
 }

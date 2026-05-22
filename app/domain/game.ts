@@ -103,8 +103,41 @@ export const memberSampleMessagesSchema = z.union([
   legacyMemberSampleMessagesSchema,
 ]);
 
+export const memberConversationShapeTurnSchema = z.object({
+  speaker: z.enum(["member", "partner"]),
+  text: z.string().min(1),
+});
+
+export const memberConversationShapeExampleSchema = z
+  .object({
+    turns: z.array(memberConversationShapeTurnSchema).min(2).max(8),
+  })
+  .superRefine((example, context) => {
+    const speakers = new Set(example.turns.map((turn) => turn.speaker));
+
+    if (!speakers.has("member") || !speakers.has("partner")) {
+      context.addIssue({
+        code: "custom",
+        message: "Conversation shape examples must include member and partner turns.",
+        path: ["turns"],
+      });
+    }
+  });
+
+export const memberContrastExampleSchema = z.object({
+  tempting: z.string().min(1),
+  preferred: z.string().min(1),
+  because: z.string().min(1).optional(),
+});
+
+const memberVoiceGuidanceSchema = z.string().min(1).max(360);
+
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),
+  comedyMechanics: z.array(memberVoiceGuidanceSchema).max(8).default([]),
+  outputConstraints: z.array(memberVoiceGuidanceSchema).max(12).default([]),
+  conversationShape: z.array(memberConversationShapeExampleSchema).max(3).default([]),
+  contrastExamples: z.array(memberContrastExampleSchema).max(3).default([]),
   patternsUsed: z.array(voicePatternSchema).min(1).max(4),
   patternsRefused: z.array(voicePatternSchema).min(2),
   tics: z.array(z.string().min(1)).min(3).max(7),
@@ -246,6 +279,15 @@ export const memberChatBubbleStyleSchema = z.object({
   accentColor: hexColorSchema.optional(),
 });
 
+export const shiftAvailabilityProfileSchema = z.enum([
+  "steady",
+  "busy_public",
+  "career_locked",
+  "soft_schedule",
+  "formal_calendar",
+  "weird_erratic",
+]);
+
 export const memberSchema = z
   .object({
     id: memberIdSchema,
@@ -269,6 +311,7 @@ export const memberSchema = z
     state: memberStateSchema,
     portraits: memberPortraitsSchema,
     chatBubble: memberChatBubbleStyleSchema.optional(),
+    shiftAvailabilityProfile: shiftAvailabilityProfileSchema.default("weird_erratic"),
   })
   .superRefine((member, context) => {
     const identityTagCount = member.tags.filter((tag) => MEMBER_IDENTITY_TAGS.includes(tag)).length;
@@ -829,6 +872,7 @@ export const shiftStateSchema = z.object({
   dateSlotsTotal: z.number().int().min(1).default(1),
   dateSlotsUsed: z.number().int().min(0),
   featuredMemberIds: z.array(memberIdSchema).default([]),
+  availablePartnerMemberIds: z.array(memberIdSchema).default([]),
   drawnScenarioIds: z.array(scenarioIdSchema),
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
@@ -1029,6 +1073,9 @@ export type MemberPortraits = z.infer<typeof memberPortraitsSchema>;
 export type PortraitMood = z.infer<typeof portraitMoodSchema>;
 export type VoicePattern = z.infer<typeof voicePatternSchema>;
 export type MemberSampleMessages = z.infer<typeof memberSampleMessagesSchema>;
+export type MemberConversationShapeTurn = z.infer<typeof memberConversationShapeTurnSchema>;
+export type MemberConversationShapeExample = z.infer<typeof memberConversationShapeExampleSchema>;
+export type MemberContrastExample = z.infer<typeof memberContrastExampleSchema>;
 export type MemberVoice = z.infer<typeof memberVoiceSchema>;
 export type MemberState = z.infer<typeof memberStateSchema>;
 export type MemberTag = z.infer<typeof memberTagSchema>;
@@ -1043,6 +1090,7 @@ export type MemberChatBubbleFontFamily = z.infer<typeof memberChatBubbleFontFami
 export type MemberChatBubbleTextColor = z.infer<typeof memberChatBubbleTextColorSchema>;
 export type MemberChatBubbleTextEffect = z.infer<typeof memberChatBubbleTextEffectSchema>;
 export type Member = z.infer<typeof memberSchema>;
+export type ShiftAvailabilityProfile = z.infer<typeof shiftAvailabilityProfileSchema>;
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;
 export type ScenarioEventKind = z.infer<typeof scenarioEventKindSchema>;

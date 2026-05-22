@@ -114,7 +114,7 @@ export const sections: DocSectionEntry[] = [
         items={[
           "Voice, gameplay tags, and player knowledge stay separate. Voice tells the performer how the member sounds; tags tell systems how to score; filed reads tell the player what Cupid has earned.",
           "Do not point one member fixture at another named member as a required match, enemy, or failure.",
-          "Do not invent visual canon before a portrait exists. Runtime visual descriptions come from approved neutral portrait art.",
+          "Do not invent image-specific visual canon before a portrait exists. Runtime visual descriptions come from approved neutral portrait art; aura and chat bubble presentation can be authored from the member premise.",
           "A member may state ordinary preferences or schedule limits, but Cupid owns date logistics.",
           "Hidden fields can hint through public profile copy only when the hint is player-safe and character-coherent.",
           "Every authored field should support reusable roster pressure, not a single destined pair.",
@@ -267,7 +267,8 @@ export const sections: DocSectionEntry[] = [
             "Voice block is complete and obeys member voice authoring rules.",
             "Dating profile first sentence works as a public tagline.",
             "Member requests exist and currentRequestId points at one of them.",
-            "Approved portrait and avatar paths exist before full fixture validation is expected to pass.",
+            "Portrait references use conventional paths and missing approved files are marked pending.",
+            "Every member has an aura registry entry, and non-human or distinctive members declare a chatBubble unless the house default is intentional.",
             <span key="workflow">
               The procedural checklist lives in{" "}
               <DocLink to="/docs/workflows/add-member">Add a member</DocLink>.

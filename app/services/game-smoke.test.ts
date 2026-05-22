@@ -24,7 +24,7 @@ import {
 } from "./date-engine";
 import { isMemberInCooldown } from "./shift-planning";
 import { canBeFocusCase, selectInitialFocusCases } from "./focus-cases";
-import { createSeedGameSave, makePairId } from "./game-seed";
+import { createSeedGameSave, hydrateFixtureOwnedMemberData, makePairId } from "./game-seed";
 import { getPairProjectionFromSave } from "./relationship-index";
 import {
   activeBudgetDiscountOffers,
@@ -41,7 +41,7 @@ import { mulberry32 } from "./utils";
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(43);
+    expect(starterMembers).toHaveLength(47);
     expect(starterScenarios).toHaveLength(56);
   });
 
@@ -105,6 +105,71 @@ describe("IDC playable smoke path", () => {
     expect(activeShift?.activeBooking?.id).toBe(booking.id);
     expect(activeShift?.dateSlotsUsed).toBe(1);
     expect(activeShift?.drawnScenarioIds).toEqual([...booking.drawnScenarioIds]);
+  });
+
+  it("commitDateBooking rejects two focused members", () => {
+    const setupSave = selectInitialFocusCases(createSeedGameSave(), [
+      "jenna-pike",
+      "sana-karim",
+      "vhool",
+      "sienna-bae",
+    ]);
+
+    expect(() =>
+      commitDateBooking(setupSave, {
+        focusMemberId: "jenna-pike",
+        partnerMemberId: "sana-karim",
+      }),
+    ).toThrow(/Focus cases cannot be matched/);
+  });
+
+  it("commitDateBooking rejects active partners who are off tonight's roster", () => {
+    const setupSave = selectInitialFocusCases(createSeedGameSave(), [
+      "jenna-pike",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const activeShift = setupSave.shifts.find((shift) => shift.id === setupSave.activeShiftId);
+    const offShiftPartner = setupSave.members.find(
+      (member) =>
+        member.state.status === "active" &&
+        !setupSave.focusedMemberIds.includes(member.id) &&
+        activeShift?.availablePartnerMemberIds.includes(member.id) !== true,
+    );
+
+    if (offShiftPartner === undefined) {
+      throw new Error("Expected an active off-shift partner for the booking guard test.");
+    }
+
+    expect(() =>
+      commitDateBooking(setupSave, {
+        focusMemberId: "jenna-pike",
+        partnerMemberId: offShiftPartner.id,
+      }),
+    ).toThrow(/tonight's roster/);
+  });
+
+  it("commitDateBooking accepts a partner persisted on tonight's roster", () => {
+    const setupSave = selectInitialFocusCases(createSeedGameSave(), [
+      "jenna-pike",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const activeShift = setupSave.shifts.find((shift) => shift.id === setupSave.activeShiftId);
+    const partnerMemberId = activeShift?.availablePartnerMemberIds[0];
+
+    if (partnerMemberId === undefined) {
+      throw new Error("Expected a persisted partner slate.");
+    }
+
+    const result = commitDateBooking(setupSave, {
+      focusMemberId: "jenna-pike",
+      partnerMemberId,
+    });
+
+    expect(result.booking.participantIds).toEqual(["jenna-pike", partnerMemberId]);
   });
 
   it("clearActiveBooking cancels the reserved slot and drawn hand before a session starts", () => {
@@ -583,6 +648,25 @@ describe("IDC playable smoke path", () => {
     // The new flow does not pre-draw a hand. The hand is drawn when the player
     // commits a pair.
     expect(result.shift.drawnScenarioIds).toEqual([]);
+  });
+
+  it("hydrates historical partner rosters against their own featured cases", () => {
+    const seed = createSeedGameSave();
+    const oldPartnerId = "sana-karim";
+    const save = gameSaveSchema.parse({
+      ...seed,
+      focusedMemberIds: ["sana-karim", "vhool", "sienna-bae", "kade-sumner"],
+      shifts: seed.shifts.map((shift) => ({
+        ...shift,
+        status: "completed",
+        featuredMemberIds: ["jenna-pike"],
+        availablePartnerMemberIds: [oldPartnerId],
+      })),
+    });
+
+    const result = hydrateFixtureOwnedMemberData(save);
+
+    expect(result.save.shifts[0]?.availablePartnerMemberIds).toContain(oldPartnerId);
   });
 
   it("generates first-period discounts from selected onboarding focus cases", () => {

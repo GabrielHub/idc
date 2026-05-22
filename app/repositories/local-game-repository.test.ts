@@ -15,11 +15,18 @@ describe("LocalGameRepository", () => {
           hingeBits: _hingeBits,
           ...legacySampleMessages
         } = member.voice.sampleMessages;
+        const {
+          comedyMechanics: _comedyMechanics,
+          outputConstraints: _outputConstraints,
+          conversationShape: _conversationShape,
+          contrastExamples: _contrastExamples,
+          ...legacyVoice
+        } = member.voice;
 
         return {
           ...member,
           voice: {
-            ...member.voice,
+            ...legacyVoice,
             sampleMessages: {
               opener: member.voice.sampleMessages.greeting,
               ...legacySampleMessages,
@@ -51,5 +58,7 @@ describe("LocalGameRepository", () => {
     expect(loadedMember.voice.sampleMessages.hingeBits).toEqual(
       sourceMember.voice.sampleMessages.hingeBits,
     );
+    expect(loadedMember.voice.comedyMechanics).toEqual(sourceMember.voice.comedyMechanics);
+    expect(loadedMember.voice.outputConstraints).toEqual(sourceMember.voice.outputConstraints);
   });
 });

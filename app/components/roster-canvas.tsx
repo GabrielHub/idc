@@ -77,7 +77,8 @@ export function RosterCanvas({
   );
 
   const focusedSet = useMemo(() => new Set(focusedMemberIds), [focusedMemberIds]);
-  const activeShiftNumber = useMemo(() => getActiveShift(save).shiftNumber, [save]);
+  const activeShift = useMemo(() => getActiveShift(save), [save]);
+  const activeShiftNumber = activeShift.shiftNumber;
   const orderedMembers = useMemo(
     () =>
       applyMemberRosterFilters(members, filterState, {
@@ -85,6 +86,7 @@ export function RosterCanvas({
         playerKnowledge,
         revealAllMemberDetails,
         focusedMemberIds,
+        availablePartnerMemberIds: activeShift.availablePartnerMemberIds,
         activeShiftNumber,
         readyClosureMemberIds,
       }),
@@ -92,6 +94,7 @@ export function RosterCanvas({
       members,
       filterState,
       focusedMemberIds,
+      activeShift.availablePartnerMemberIds,
       playerKnowledge,
       revealAllMemberDetails,
       activeShiftNumber,

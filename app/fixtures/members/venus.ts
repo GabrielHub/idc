@@ -41,6 +41,7 @@ export const venus: Member = {
     "She suspects she started the affair with Mars partly to upset Vulcan, and the day she says it out loud will be a difficult day.",
   ],
   tags: ["non_human", "attention_seeking", "status_sensitive", "performative", "competitive"],
+  shiftAvailabilityProfile: "busy_public",
   voice: {
     register: "imperious cocky",
     patternsUsed: [

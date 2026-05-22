@@ -48,6 +48,7 @@ export const mrWhiskers: Member = {
     "privacy_sensitive",
     "needs_clear_plan",
   ],
+  shiftAvailabilityProfile: "career_locked",
   voice: {
     register: "business irritated",
     patternsUsed: ["negotiation_sales_pitch", "deadpan_one_liner", "rambling_spiral"],

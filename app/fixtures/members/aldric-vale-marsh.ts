@@ -46,6 +46,7 @@ export const aldricValeMarsh: Member = {
     "ceremony_minded",
     "needs_clear_plan",
   ],
+  shiftAvailabilityProfile: "formal_calendar",
   voice: {
     register: "knightly ardent",
     patternsUsed: [

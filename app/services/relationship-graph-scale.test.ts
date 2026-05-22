@@ -29,9 +29,12 @@ describe("relationship graph scale benches", () => {
       // bound is well below that threshold while leaving headroom for member
       // fixture growth as authored registers and tics expand during the voice
       // tuning pass. Cap bumped from 3M to 3.5M after the Cha Yusung register
-      // rewrite expanded from a single phrase to a full webtoon-cadence spec.
+      // rewrite expanded from a single phrase to a full webtoon-cadence spec,
+      // then to 3.6M after Saffron Vex, Mjolnir, and Concord joined the roster
+      // with full-spec voice registers, then to 3.8M when structured voice
+      // fields made member mechanics and constraints first-class save payload.
       const serialized = JSON.stringify(save);
-      expect(serialized.length).toBeLessThan(3_500_000);
+      expect(serialized.length).toBeLessThan(3_800_000);
     });
 
     it(`parses a ${size}-member save through gameSaveSchema`, () => {

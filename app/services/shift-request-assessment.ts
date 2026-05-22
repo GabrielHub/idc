@@ -1,6 +1,7 @@
 import type {
   DateSession,
   GameSave,
+  Member,
   MemberRequest,
   ShiftRequestAskOutcome,
   ShiftState,
@@ -27,6 +28,15 @@ export type ShiftRequestAssessment = {
 export type RequestFulfillmentScore = {
   asked: number;
   weighted: number;
+};
+
+export type ShiftAskDeskEntry = {
+  requestId: string;
+  memberName: string;
+  requestText: string;
+  outcome: ShiftRequestAskOutcome;
+  outcomeLabel: string;
+  isLead: boolean;
 };
 
 export function assessShiftRequests({
@@ -62,6 +72,41 @@ export function assessShiftRequests({
       requestOutcomes: Object.fromEntries(outcomes),
     }),
   };
+}
+
+export function buildShiftAskDeskEntries({
+  shift,
+  members,
+}: {
+  shift: ShiftState;
+  members: readonly Member[];
+}): ShiftAskDeskEntry[] {
+  const report = shift.report;
+  if (report === undefined || shift.memberRequestIds.length === 0) {
+    return [];
+  }
+
+  const leadRequestId = deriveHotRequestId(shift);
+  const memberById = new Map(members.map((member) => [member.id, member] as const));
+  const requestById = new Map(memberRequests.map((request) => [request.id, request] as const));
+
+  return shift.memberRequestIds
+    .map((requestId): ShiftAskDeskEntry | undefined => {
+      const request = requestById.get(requestId);
+      if (request === undefined) return undefined;
+      const outcome = report.requestOutcomes[requestId] ?? "ignored";
+      const isLead = requestId === leadRequestId;
+      return {
+        requestId,
+        memberName: memberById.get(request.memberId)?.firstName ?? request.memberId,
+        requestText: request.text,
+        outcome,
+        outcomeLabel: shiftAskOutcomeLabel(outcome, isLead),
+        isLead,
+      };
+    })
+    .filter((entry): entry is ShiftAskDeskEntry => entry !== undefined)
+    .sort((left, right) => Number(right.isLead) - Number(left.isLead));
 }
 
 export function classifyFocusAskOutcomeFromSession(
@@ -201,6 +246,19 @@ function countShiftRequestsByOutcome(
     if (outcome === target) count += 1;
   }
   return count;
+}
+
+function shiftAskOutcomeLabel(outcome: ShiftRequestAskOutcome, isLead: boolean): string {
+  switch (outcome) {
+    case "covered":
+      return "landed";
+    case "raised":
+      return "room blocked";
+    case "missed":
+      return "booked, drifted";
+    case "ignored":
+      return isLead ? "sat" : "waiting";
+  }
 }
 
 export function missedRequestMoodPenalty(request: MemberRequest): number {

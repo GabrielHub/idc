@@ -160,6 +160,12 @@ export const MEMBER_PLAYER_VISIBILITY_CONTRACT: readonly MemberFieldVisibilityEn
     tier: "presentation",
     playerPath: "Visible date presentation style. It carries no player-facing case fact.",
   },
+  {
+    field: "shiftAvailabilityProfile",
+    tier: "never_player_facing",
+    playerPath:
+      "Logistics input to deterministic partner-slate selection. Player sees the slate, not the profile label.",
+  },
 ];
 
 export type BuildRevealCandidatesInput = {

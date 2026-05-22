@@ -40,6 +40,7 @@ export const vhool: Member = {
     "Vhool has been practicing the word maybe alone in his apartment.",
   ],
   tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded", "acquisitive"],
+  shiftAvailabilityProfile: "formal_calendar",
   voice: {
     register: "ancient sincere",
     patternsUsed: [

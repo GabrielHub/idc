@@ -3,9 +3,11 @@ import { describe, expect, it } from "vitest";
 import { memberSchema, type JudgeSnapshot, type Member, type PortraitAsset } from "../domain/game";
 import { starterMembers } from "../fixtures";
 import {
+  hasReadyPortraitMood,
   readyPortraitMoodPaths,
   selectDominantMood,
   selectPortraitAsset,
+  selectPortraitAssetCandidates,
   selectPortraitMood,
 } from "./date-presentation-signals";
 
@@ -159,6 +161,10 @@ describe("date presentation signals", () => {
       baseMember.portraits.neutral.avatar,
     );
     expect(selectPortraitAsset(member, "portrait", "flirty")).toBe(flirtyPortrait);
+    expect(selectPortraitAssetCandidates(member, "portrait", "flirty")).toEqual([
+      flirtyPortrait,
+      baseMember.portraits.neutral.portrait,
+    ]);
     expect(selectPortraitAsset(member, "portrait", "confused")).toBe(
       baseMember.portraits.neutral.portrait,
     );
@@ -169,6 +175,37 @@ describe("date presentation signals", () => {
       baseMember.portraits.neutral.portrait.cutoutPath,
       flirtyPortrait.cutoutPath,
     ]);
+  });
+
+  it("treats a pending neutral portrait as no renderable portrait", () => {
+    const baseMember = requireStarterMember("vhool");
+    const flirtyPortrait = makePortraitAsset("flirty");
+    const pendingNeutralPortrait: PortraitAsset = {
+      ...baseMember.portraits.neutral.portrait,
+      model: "pending",
+    };
+    const member = memberSchema.parse({
+      ...baseMember,
+      portraits: {
+        neutral: {
+          ...baseMember.portraits.neutral,
+          portrait: pendingNeutralPortrait,
+        },
+        flirty: {
+          portrait: flirtyPortrait,
+        },
+      },
+    });
+
+    expect(selectPortraitAssetCandidates(member, "portrait", "neutral")).toEqual([
+      pendingNeutralPortrait,
+    ]);
+    expect(selectPortraitAssetCandidates(member, "portrait", "flirty")).toEqual([
+      pendingNeutralPortrait,
+    ]);
+    expect(hasReadyPortraitMood(member, "neutral")).toBe(false);
+    expect(hasReadyPortraitMood(member, "flirty")).toBe(false);
+    expect(readyPortraitMoodPaths(member)).toEqual([]);
   });
 });
 

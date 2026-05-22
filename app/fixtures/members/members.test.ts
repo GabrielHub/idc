@@ -38,6 +38,14 @@ function memberDesignText(member: Member): string {
     ...member.dealbreakers,
     ...member.secrets,
     member.voice.register,
+    ...member.voice.comedyMechanics,
+    ...member.voice.outputConstraints,
+    ...member.voice.conversationShape.flatMap((example) => example.turns.map((turn) => turn.text)),
+    ...member.voice.contrastExamples.flatMap((example) => [
+      example.tempting,
+      example.preferred,
+      example.because ?? "",
+    ]),
     ...member.voice.tics,
     ...member.voice.sampleMessages.greeting,
     ...member.voice.sampleMessages.hingeBits,
@@ -111,7 +119,7 @@ describe("member fixtures", () => {
     expect(problems).toEqual([]);
   });
 
-  it("points every portrait asset at checked-in source and runtime files", () => {
+  it("points every portrait asset at conventional source and runtime locations", () => {
     const problems: string[] = [];
 
     for (const member of starterMembers) {
@@ -131,17 +139,21 @@ describe("member fixtures", () => {
           );
         }
 
-        assertPathExists(reference.asset.sourcePath, problems);
-        assertPathExists(publicAssetPath(reference.asset.cutoutPath), problems);
+        if (reference.asset.model !== "pending") {
+          assertPathExists(reference.asset.sourcePath, problems);
+          assertPathExists(publicAssetPath(reference.asset.cutoutPath), problems);
+        }
       }
 
-      for (const width of AVATAR_SRCSET_WIDTHS) {
-        const avatarPath = member.portraits.neutral.avatar.cutoutPath.replace(
-          /avatar\.png$/u,
-          `avatar-${width}.png`,
-        );
+      if (member.portraits.neutral.avatar.model !== "pending") {
+        for (const width of AVATAR_SRCSET_WIDTHS) {
+          const avatarPath = member.portraits.neutral.avatar.cutoutPath.replace(
+            /avatar\.png$/u,
+            `avatar-${width}.png`,
+          );
 
-        assertPathExists(publicAssetPath(avatarPath), problems);
+          assertPathExists(publicAssetPath(avatarPath), problems);
+        }
       }
     }
 

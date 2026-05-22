@@ -1,5 +1,6 @@
 import { gameSaveSchema, shiftStateSchema, type GameSave, type Member } from "../domain/game";
 import { applyMemberQuitBudgetCut } from "./budget";
+import { hydrateAvailablePartnerMemberIds } from "./shift-availability";
 import { selectFeaturedMemberRequestIds } from "./shift-planning";
 import { clampScore } from "./utils";
 
@@ -46,7 +47,7 @@ export function selectInitialFocusCases(save: GameSave, memberIds: readonly stri
     }
   }
 
-  return { ...save, focusedMemberIds: uniqueIds };
+  return syncActiveShiftFocusCases({ ...save, focusedMemberIds: uniqueIds });
 }
 
 export function addFocusCase(save: GameSave, memberId: string): GameSave {
@@ -66,7 +67,10 @@ export function addFocusCase(save: GameSave, memberId: string): GameSave {
     throw new Error(`${member.firstName} cannot be focused. Pick an active member.`);
   }
 
-  return { ...save, focusedMemberIds: [...save.focusedMemberIds, memberId] };
+  return syncActiveShiftFocusCases({
+    ...save,
+    focusedMemberIds: [...save.focusedMemberIds, memberId],
+  });
 }
 
 export function removeFocusCase(save: GameSave, memberId: string): GameSave {
@@ -78,10 +82,10 @@ export function removeFocusCase(save: GameSave, memberId: string): GameSave {
   const removedMember = save.members.find((candidate) => candidate.id === memberId);
 
   if (removedMember === undefined || removedMember.state.status !== "active") {
-    return {
+    return syncActiveShiftFocusCases({
       ...save,
       focusedMemberIds: updatedFocus,
-    };
+    });
   }
 
   const updatedMembers = save.members.map((member) =>
@@ -93,11 +97,13 @@ export function removeFocusCase(save: GameSave, memberId: string): GameSave {
     members: updatedMembers,
   };
 
-  return applyMemberQuitBudgetCut({
-    previousSave: save,
-    nextSave,
-    shift: activeShiftNumber(save),
-  });
+  return syncActiveShiftFocusCases(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave,
+      shift: activeShiftNumber(save),
+    }),
+  );
 }
 
 function activeShiftNumber(save: GameSave): number {
@@ -134,11 +140,13 @@ export function swapFocusCase(save: GameSave, oldId: string, newId: string): Gam
   );
 
   const nextSave: GameSave = { ...save, focusedMemberIds: updatedFocus, members: updatedMembers };
-  return applyMemberQuitBudgetCut({
-    previousSave: save,
-    nextSave,
-    shift: activeShiftNumber(save),
-  });
+  return syncActiveShiftFocusCases(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave,
+      shift: activeShiftNumber(save),
+    }),
+  );
 }
 
 export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): GameSave {
@@ -168,7 +176,7 @@ export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): 
   });
 
   if (droppedActiveIds.length === 0) {
-    return { ...save, focusedMemberIds: uniqueIds };
+    return syncActiveShiftFocusCases({ ...save, focusedMemberIds: uniqueIds });
   }
 
   const droppedSet = new Set(droppedActiveIds);
@@ -177,11 +185,13 @@ export function reselectFocusCases(save: GameSave, nextIds: readonly string[]): 
   );
 
   const nextSave: GameSave = { ...save, focusedMemberIds: uniqueIds, members: updatedMembers };
-  return applyMemberQuitBudgetCut({
-    previousSave: save,
-    nextSave,
-    shift: activeShiftNumber(save),
-  });
+  return syncActiveShiftFocusCases(
+    applyMemberQuitBudgetCut({
+      previousSave: save,
+      nextSave,
+      shift: activeShiftNumber(save),
+    }),
+  );
 }
 
 export function previewReselectDrops(save: GameSave, nextIds: readonly string[]): Member[] {
@@ -218,6 +228,11 @@ export function syncActiveShiftFocusCases(save: GameSave): GameSave {
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
     featuredMemberIds: activeFocusedMemberIds,
+    availablePartnerMemberIds: hydrateAvailablePartnerMemberIds({
+      shift: activeShift,
+      members: save.members,
+      focusedMemberIds: activeFocusedMemberIds,
+    }),
     memberRequestIds: selectFeaturedMemberRequestIds({
       members: save.members,
       featuredMemberIds: activeFocusedMemberIds,

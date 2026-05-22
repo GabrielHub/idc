@@ -20,20 +20,15 @@ import {
 } from "../services/date-engine";
 import { companyGoals } from "../fixtures";
 import {
-  chooseScenarioFreeRecommendation,
   evaluateMatchFit,
-  evaluateScenarioFreePairSignal,
   scenarioRoomReadFromMatchFit,
-  type ScenarioFreeRecommendationCandidate,
   type ScenarioRoomRead,
 } from "../services/match-fit";
-import { makePairId } from "../services/game-seed";
 import { getPairProjectionFromSave } from "../services/relationship-index";
-import {
-  moveSuggestedMemberFirst,
-  sortMembersByCuratedRosterOrder,
-} from "../services/member-roster-order";
+import { sortMembersByCuratedRosterOrder } from "../services/member-roster-order";
 import { visibleReadsForPair } from "../services/player-knowledge";
+import { classifyShiftPartners } from "../services/shift-availability";
+import { deriveHotRequestId } from "../services/shift-request-assessment";
 import { isMemberInCooldown } from "../services/shift-planning";
 import { useTutorialStep } from "../services/tutorial";
 import { Hairline } from "./dashboard-atoms";
@@ -195,24 +190,43 @@ export function PreDateCanvas({
     [save.members, activeFocusId],
   );
 
-  const candidatePartners = useMemo(() => {
-    if (activeFocus === null) return [];
+  const { candidatePartners, unavailablePartners } = useMemo(() => {
+    if (activeFocus === null) {
+      return { candidatePartners: [] as Member[], unavailablePartners: [] };
+    }
     if (activeBooking !== null) {
       const partnerIdFromBooking = activeBooking.participantIds.find(
         (id) => id !== activeBooking.focusMemberId,
       );
       const partner = save.members.find((member) => member.id === partnerIdFromBooking);
-      return partner === undefined ? [] : [partner];
+      return {
+        candidatePartners: partner === undefined ? ([] as Member[]) : [partner],
+        unavailablePartners: [],
+      };
     }
-    return sortMembersByCuratedRosterOrder(
-      save.members.filter(
-        (member) =>
-          member.id !== activeFocus.id &&
-          member.state.status === "active" &&
-          !isMemberInCooldown(member, shift.shiftNumber),
-      ),
+    const { available, unavailable } = classifyShiftPartners({
+      members: save.members.filter((member) => member.id !== activeFocus.id),
+      shiftNumber: shift.shiftNumber,
+      focusedMemberIds: save.focusedMemberIds,
+      availablePartnerMemberIds: shift.availablePartnerMemberIds,
+    });
+    const reasonById = new Map(
+      unavailable.map((entry) => [entry.member.id, entry.reason] as const),
     );
-  }, [save.members, activeFocus, shift.shiftNumber, activeBooking]);
+    return {
+      candidatePartners: sortMembersByCuratedRosterOrder(available),
+      unavailablePartners: sortMembersByCuratedRosterOrder(
+        unavailable.map((entry) => entry.member),
+      ).map((member) => ({ member, reason: reasonById.get(member.id) ?? "off_shift" })),
+    };
+  }, [
+    save.members,
+    save.focusedMemberIds,
+    activeFocus,
+    shift.availablePartnerMemberIds,
+    shift.shiftNumber,
+    activeBooking,
+  ]);
 
   useEffect(() => {
     if (activeBooking !== null) return;
@@ -255,6 +269,7 @@ export function PreDateCanvas({
 
     return undefined;
   }, [activeFocus, requestsById, shift.memberRequestIds]);
+  const leadRequestId = useMemo(() => deriveHotRequestId(shift), [shift]);
   const shiftGoals = useMemo(
     () =>
       shift.companyGoalIds
@@ -282,38 +297,10 @@ export function PreDateCanvas({
     return new Map(snapshots.map((snapshot) => [snapshot.goalId, snapshot] as const));
   }, [save.dateSessions, save.members, shift, shiftGoals]);
 
-  const suggestedPartner = useMemo(() => {
-    if (activeFocus === null || activeBooking !== null) return null;
-    const candidates: ScenarioFreeRecommendationCandidate<Member>[] = [];
-    for (const candidate of candidatePartners) {
-      const pairState = resolvePairState(makePairId(activeFocus.id, candidate.id));
-      if (pairState === undefined) continue;
-      try {
-        const signal = evaluateScenarioFreePairSignal({
-          members: [activeFocus, candidate],
-          pairState,
-          activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
-          knownPairReads: visibleReadsForPair(save, pairState.id),
-        });
-        candidates.push({ candidate, signal });
-      } catch {
-        continue;
-      }
-    }
-    return chooseScenarioFreeRecommendation(candidates);
-  }, [activeFocus, activeFocusRequest, candidatePartners, save, resolvePairState, activeBooking]);
-
-  const orderedCandidatePartners = useMemo(
-    () => moveSuggestedMemberFirst(candidatePartners, suggestedPartner?.id ?? null),
-    [candidatePartners, suggestedPartner?.id],
-  );
-
   const effectivePartner = useMemo(
     () =>
-      partnerId === null
-        ? suggestedPartner
-        : (save.members.find((member) => member.id === partnerId) ?? null),
-    [partnerId, suggestedPartner, save.members],
+      partnerId === null ? null : (save.members.find((member) => member.id === partnerId) ?? null),
+    [partnerId, save.members],
   );
 
   const offers = useMemo(() => activeBudgetDiscountOffers(save), [save]);
@@ -472,6 +459,7 @@ export function PreDateCanvas({
         progressByGoalId={goalProgressById}
         activeFocus={activeFocus}
         activeFocusRequest={activeFocusRequest}
+        leadRequestId={leadRequestId}
         shiftClosed={shiftClosed}
       />
 
@@ -518,9 +506,9 @@ export function PreDateCanvas({
         sectionRef={partnerSectionRef}
         selectedCardRef={selectedPartnerCardRef}
         activeFocus={activeFocus}
-        candidatePartners={orderedCandidatePartners}
+        candidatePartners={candidatePartners}
+        unavailablePartners={unavailablePartners}
         partnerId={partnerId}
-        suggestedPartnerId={suggestedPartner?.id ?? null}
         playerKnowledge={save.playerKnowledge}
         revealAllMemberDetails={revealAllMemberDetails}
         locked={isCommitted}
@@ -621,8 +609,8 @@ export function PreDateCanvas({
         <TutorialCoachMark
           target={[selectedFocusCardRef, focusSectionRef]}
           placement="right"
-          title="Pick a focus case"
-          body="Tonight runs on one focus case and one different partner. Tap the case Cupid opened to confirm it, or pick another from your four."
+          title="Pick today's lead case"
+          body="Tonight runs on one lead case and one different partner. Tap the case Cupid opened to confirm it, or pick another from your four. The other three wait in the lobby."
           stepIndex={0}
           stepCount={3}
           dismissLabel="Skip tour"
@@ -637,7 +625,7 @@ export function PreDateCanvas({
             target={[selectedPartnerCardRef, partnerSectionRef]}
             placement="right"
             title="Pick one partner"
-            body="Tonight needs two different members. Tap a partner card to lock the choice. Cupid may recommend one, and you may overrule the machine."
+            body="Tonight needs two different members. Tap someone in tonight's roster to lock the choice. Files in the off-tonight drawer can still be opened, but they cannot be booked."
             stepIndex={1}
             stepCount={3}
             dismissLabel="Skip tour"

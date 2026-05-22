@@ -9,12 +9,14 @@ export function ShiftBriefDock({
   progressByGoalId,
   activeFocus,
   activeFocusRequest,
+  leadRequestId,
   shiftClosed,
 }: {
   goals: readonly CompanyGoal[];
   progressByGoalId: ReadonlyMap<string, GoalProgressSnapshot>;
   activeFocus: Member | null;
   activeFocusRequest: MemberRequest | undefined;
+  leadRequestId: string | undefined;
   shiftClosed: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,6 +35,8 @@ export function ShiftBriefDock({
       : activeFocusRequest === undefined
         ? `${activeFocus.firstName} has no active ask on file.`
         : activeFocusRequest.text;
+  const isLeadAsk = activeFocusRequest !== undefined && activeFocusRequest.id === leadRequestId;
+  const askLabel = isLeadAsk ? "lead ask" : "case ask";
 
   return (
     <div className="mt-5 flex justify-end xl:fixed xl:right-6 xl:top-20 xl:z-40 xl:mt-0 xl:block xl:w-96">
@@ -106,7 +110,7 @@ export function ShiftBriefDock({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-                      case ask
+                      {askLabel}
                     </p>
                     {shiftClosed ? (
                       <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint">

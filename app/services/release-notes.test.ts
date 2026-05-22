@@ -35,6 +35,18 @@ describe("release notes", () => {
     ).toEqual(SORTED_RELEASE_NOTES.slice(0, 3).map((note) => note.version));
   });
 
+  it("keeps the 1.0.0 to 1.0.1 same-day upgrade on the current release note first", () => {
+    const sameDayUpgradeNotes = listReleaseNotesForModal({ currentVersion: "1.0.1" });
+
+    expect(sameDayUpgradeNotes.map((note) => note.version)).toEqual(["1.0.1", "1.0.0", "0.3.9"]);
+    expect(sameDayUpgradeNotes.map((note) => note.date).slice(0, 2)).toEqual([
+      "2026-05-21",
+      "2026-05-21",
+    ]);
+    expect(sameDayUpgradeNotes[0]?.headline).toContain("Aegis");
+    expect(sameDayUpgradeNotes[1]?.headline).toContain("first full alpha");
+  });
+
   it("opens on first launch only when an existing save has progress", () => {
     expect(
       shouldOpenReleaseNotes({
@@ -51,6 +63,31 @@ describe("release notes", () => {
         hasExistingSaveProgress: true,
       }),
     ).toBe(true);
+  });
+
+  it("opens for an existing save upgrading from 1.0.0 to 1.0.1", () => {
+    const existingSave = {
+      ...createSeedGameSave(new Date("2026-05-21T12:00:00.000Z")),
+      focusedMemberIds: ["jenna-pike"],
+    };
+    const hasExistingSaveProgress = hasReleaseNotesEligibleSaveProgress(existingSave);
+
+    expect(hasExistingSaveProgress).toBe(true);
+    expect(
+      shouldOpenReleaseNotes({
+        currentVersion: "1.0.1",
+        lastSeenVersion: "1.0.0",
+        hasExistingSaveProgress,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldOpenReleaseNotes({
+        currentVersion: "1.0.1",
+        lastSeenVersion: "v1.0.1",
+        hasExistingSaveProgress,
+      }),
+    ).toBe(false);
   });
 
   it("opens when the stored version is older than the current version", () => {

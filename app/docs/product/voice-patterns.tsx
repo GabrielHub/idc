@@ -363,9 +363,9 @@ export const sections: DocSectionEntry[] = [
         <P>
           When prompting the Character Performer, do not paste this catalog as a compliance
           checklist and do not list every flavor a character can use. The performer already has the
-          register, the tics, and a few sample lines from the member fixture. That is enough flavor.
-          The full library lives here as an authoring reference for the human writing the fixture,
-          not as prompt material the model has to satisfy. See{" "}
+          compact register, comedy mechanics, tics, and a few sample lines from the member fixture.
+          That is enough flavor. The full library lives here as an authoring reference for the human
+          writing the fixture, not as prompt material the model has to satisfy. See{" "}
           <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for what
           actually flows into runtime.
         </P>

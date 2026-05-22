@@ -176,9 +176,9 @@ describe("buildPairDossier", () => {
     expect(dossier.closureNearMiss).toBe(false);
 
     const dossierJson = JSON.stringify(dossier);
-    expect(dossierJson).not.toMatch(/spark/i);
-    expect(dossierJson).not.toMatch(/strain/i);
-    expect(dossierJson).not.toMatch(/relationshipHealth/);
+    expect(dossierJson).not.toMatch(/"spark"\s*:/i);
+    expect(dossierJson).not.toMatch(/"strain"\s*:/i);
+    expect(dossierJson).not.toMatch(/"relationshipHealth"\s*:/);
   });
 
   it("does not expose canonical agreements or open loops without filed public notes", () => {

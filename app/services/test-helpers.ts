@@ -13,6 +13,7 @@ import {
 } from "./date-engine";
 import { FOCUS_CASE_LIMIT } from "./focus-cases";
 import { getActiveShift } from "./game-seed";
+import { SHIFT_PARTNER_SLATE_SIZE, selectShiftPartnerMemberIds } from "./shift-availability";
 
 /**
  * Starts a date session and immediately drafts the first three offered events
@@ -20,7 +21,9 @@ import { getActiveShift } from "./game-seed";
  * deck are injected before booking so test fixtures stay terse.
  */
 export function startAndDraftDateSession(save: GameSave, input: StartDateInput): DateEngineResult {
-  const ready = ensureScenarioInDeck(save, input.scenarioId);
+  const partnerMemberId =
+    input.firstMemberId === input.focusMemberId ? input.secondMemberId : input.firstMemberId;
+  const ready = withAvailablePartner(ensureScenarioInDeck(save, input.scenarioId), partnerMemberId);
   const started = startDateSession(ready, input);
 
   if (started.session.playbackState !== "drafting") {
@@ -40,14 +43,17 @@ export function buildFeaturedMemberIds(
   requiredMemberIds: readonly string[] | undefined,
 ): string[] {
   const activeShift = getActiveShift(save);
+  const focusRequiredMemberIds =
+    requiredMemberIds === undefined || requiredMemberIds.length <= 2
+      ? (requiredMemberIds ?? []).slice(0, 1)
+      : requiredMemberIds;
   const candidateMemberIds = [
-    ...(requiredMemberIds ?? []),
+    ...focusRequiredMemberIds,
     ...save.focusedMemberIds,
     ...activeShift.featuredMemberIds,
-    ...save.members.map((member) => member.id),
   ];
   const featuredMemberIds: string[] = [];
-  const desiredCount = Math.min(FOCUS_CASE_LIMIT, save.members.length);
+  const desiredCount = Math.min(FOCUS_CASE_LIMIT, candidateMemberIds.length);
 
   for (const memberId of candidateMemberIds) {
     if (
@@ -71,16 +77,62 @@ export function buildFeaturedMemberIds(
 export function withFeaturedMembers(save: GameSave, requiredMemberIds: string[]): GameSave {
   const activeShift = getActiveShift(save);
   const featuredMemberIds = buildFeaturedMemberIds(save, requiredMemberIds);
+  const focusedMemberIds = featuredMemberIds.slice(0, FOCUS_CASE_LIMIT);
+  const forcedPartnerIds = requiredMemberIds.filter(
+    (memberId) => !focusedMemberIds.includes(memberId),
+  );
+  const selectedPartnerIds = selectShiftPartnerMemberIds({
+    members: save.members,
+    focusedMemberIds,
+    shiftNumber: activeShift.shiftNumber,
+  });
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
     featuredMemberIds,
+    availablePartnerMemberIds: buildForcedPartnerSlate(save, [
+      ...forcedPartnerIds,
+      ...selectedPartnerIds,
+    ]),
   });
 
   return gameSaveSchema.parse({
     ...save,
-    focusedMemberIds: featuredMemberIds.slice(0, FOCUS_CASE_LIMIT),
+    focusedMemberIds,
     shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
   });
+}
+
+export function withAvailablePartner(save: GameSave, partnerMemberId: string): GameSave {
+  const activeShift = getActiveShift(save);
+  const updatedShift = shiftStateSchema.parse({
+    ...activeShift,
+    availablePartnerMemberIds: buildForcedPartnerSlate(save, [
+      partnerMemberId,
+      ...activeShift.availablePartnerMemberIds,
+    ]),
+  });
+
+  return gameSaveSchema.parse({
+    ...save,
+    shifts: save.shifts.map((shift) => (shift.id === updatedShift.id ? updatedShift : shift)),
+  });
+}
+
+function buildForcedPartnerSlate(save: GameSave, memberIds: readonly string[]): string[] {
+  const activeIds = new Set(
+    save.members.filter((member) => member.state.status === "active").map((member) => member.id),
+  );
+  const seen = new Set<string>();
+  const slate: string[] = [];
+
+  for (const memberId of memberIds) {
+    if (slate.length >= SHIFT_PARTNER_SLATE_SIZE) break;
+    if (seen.has(memberId) || !activeIds.has(memberId)) continue;
+    seen.add(memberId);
+    slate.push(memberId);
+  }
+
+  return slate;
 }
 
 /**

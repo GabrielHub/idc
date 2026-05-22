@@ -61,24 +61,45 @@ export function selectDominantMood(left: PortraitMood, right: PortraitMood): Por
   return "neutral";
 }
 
+/**
+ * Returns a single portrait asset for one-off renders (no layered fallback
+ * needed). Use this when you just need the right portrait for a frame; use
+ * `selectPortraitAssetCandidates` when you need the full mood→neutral
+ * fallback chain so the previous portrait can stay visible while the next
+ * one loads.
+ */
 export function selectPortraitAsset(
   member: Member,
   asset: PortraitAssetKind,
   mood: PortraitMood = "neutral",
 ): PortraitAsset {
+  return selectPortraitAssetCandidates(member, asset, mood)[0];
+}
+
+export function selectPortraitAssetCandidates(
+  member: Member,
+  asset: PortraitAssetKind,
+  mood: PortraitMood = "neutral",
+): PortraitAsset[] {
   if (asset === "avatar") {
-    return member.portraits.neutral.avatar;
+    return [member.portraits.neutral.avatar];
+  }
+
+  const neutralPortrait = member.portraits.neutral.portrait;
+
+  if (!isPortraitAssetReady(neutralPortrait)) {
+    return [neutralPortrait];
   }
 
   if (mood !== "neutral") {
     const moodAsset = member.portraits[mood]?.portrait;
 
     if (moodAsset !== undefined && isPortraitAssetReady(moodAsset)) {
-      return moodAsset;
+      return uniquePortraitAssets([moodAsset, neutralPortrait]);
     }
   }
 
-  return member.portraits.neutral.portrait;
+  return [neutralPortrait];
 }
 
 export function readyPortraitPath(asset: PortraitAsset): string | undefined {
@@ -86,6 +107,12 @@ export function readyPortraitPath(asset: PortraitAsset): string | undefined {
 }
 
 export function hasReadyPortraitMood(member: Member, mood: PortraitMood): boolean {
+  const neutralPortrait = member.portraits.neutral.portrait;
+
+  if (!isPortraitAssetReady(neutralPortrait)) {
+    return false;
+  }
+
   if (mood === "neutral") {
     return true;
   }
@@ -110,4 +137,22 @@ export function readyPortraitMoodPaths(member: Member): string[] {
 
 function isPortraitAssetReady(asset: PortraitAsset): boolean {
   return asset.model !== "pending";
+}
+
+function uniquePortraitAssets(assets: readonly PortraitAsset[]): PortraitAsset[] {
+  // cutoutPath is what gets rendered, so two assets with the same cutoutPath
+  // are visually identical even if their sourcePaths differ.
+  const seen = new Set<string>();
+  const uniqueAssets: PortraitAsset[] = [];
+
+  for (const asset of assets) {
+    if (seen.has(asset.cutoutPath)) {
+      continue;
+    }
+
+    seen.add(asset.cutoutPath);
+    uniqueAssets.push(asset);
+  }
+
+  return uniqueAssets;
 }

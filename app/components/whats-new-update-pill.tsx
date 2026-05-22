@@ -181,10 +181,10 @@ export function WhatsNewUpdatePill({
           onClick={handleOpenWhatsNew}
           aria-label={hasUnreadNotes ? "Open What's New (unread updates)" : "Open What's New"}
           title="What's new"
-          className="group inline-flex cursor-pointer items-center gap-2 px-4 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose"
+          className="group inline-flex cursor-pointer items-center gap-2 px-3 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted transition hover:text-aura-rose xl:px-4"
         >
           <SparkIcon />
-          <span>what's new</span>
+          <span className="hidden xl:inline">what's new</span>
           {hasUnreadNotes ? <UnreadDot /> : null}
         </button>
 
@@ -199,11 +199,13 @@ export function WhatsNewUpdatePill({
               aria-haspopup="dialog"
               aria-label={`Desktop update v${updateState.version} ready`}
               title={`Desktop update v${updateState.version} ready`}
-              className="group relative inline-flex cursor-pointer items-center gap-2 px-4 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose transition hover:bg-aura-rose hover:text-white"
+              className="group relative inline-flex cursor-pointer items-center gap-2 px-3 py-2.5 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose transition hover:bg-aura-rose hover:text-white xl:px-4"
             >
               <UpdatePulseDot active={updateState.status === "available"} />
-              <span>{updateState.status === "installing" ? "installing" : "update"}</span>
-              <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-ink transition group-hover:text-white">
+              <span className="hidden xl:inline">
+                {updateState.status === "installing" ? "installing" : "update"}
+              </span>
+              <span className="hidden font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-ink transition group-hover:text-white xl:inline">
                 v{updateState.version}
               </span>
               <ChevronDownIcon />

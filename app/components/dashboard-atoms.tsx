@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
-import type { Member, PortraitMood } from "../domain/game";
+import type { Member, PortraitAsset, PortraitMood } from "../domain/game";
 import { pad2 } from "../services/utils";
-import { readyPortraitPath, selectPortraitAsset } from "./date-presentation-signals";
+import { readyPortraitPath, selectPortraitAssetCandidates } from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
 export { pad2 };
@@ -121,49 +121,46 @@ export function Portrait({
   mood?: PortraitMood;
   priority?: boolean;
 }) {
-  const activePath = readyPortraitPath(selectPortraitAsset(member, asset, mood));
+  const candidatePaths = readyPortraitPaths(selectPortraitAssetCandidates(member, asset, mood));
+  const activePath = candidatePaths[0];
   const imageDimensions = asset === "portrait" ? PORTRAIT_DIMENSIONS : AVATAR_DIMENSIONS;
 
   const [loadedPaths, setLoadedPaths] = useState<ReadonlySet<string>>(() => new Set());
   const [failedPaths, setFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
-  const [displayPath, setDisplayPath] = useState<string | undefined>(undefined);
+  const [srcSetFailedPaths, setSrcSetFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
     setLoadedPaths(new Set());
     setFailedPaths(new Set());
-    setDisplayPath(undefined);
+    setSrcSetFailedPaths(new Set());
   }, [member.id, asset]);
-
-  useEffect(() => {
-    if (activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath)) {
-      setDisplayPath(activePath);
-    }
-  }, [activePath, failedPaths, loadedPaths]);
 
   const activeReady =
     activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath);
-  const avatarSrcSet = asset === "avatar" ? buildAvatarSrcSet(activePath) : undefined;
+  const shouldUseAvatarSrcSet =
+    asset === "avatar" && activePath !== undefined && !srcSetFailedPaths.has(activePath);
+  const avatarSrcSet = shouldUseAvatarSrcSet ? buildAvatarSrcSet(activePath) : undefined;
   const avatarSizes = asset === "avatar" ? AVATAR_SIZES_FOR_VARIANT[variant] : undefined;
-  const layerPaths = useMemo(
-    () => buildVisiblePortraitLayerPaths(activePath, displayPath),
-    [activePath, displayPath],
-  );
-  const visiblePath = activeReady ? activePath : displayPath;
+  const visiblePath = activeReady
+    ? activePath
+    : firstLoadedPortraitPath(candidatePaths, loadedPaths, failedPaths);
   const hasVisibleImage = visiblePath !== undefined;
+  const shouldShowInitials = asset === "avatar" && !hasVisibleImage;
 
   return (
     <div
       className={`relative grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}
     >
-      {layerPaths.map((path) => {
+      {candidatePaths.map((path) => {
         const isActive = path === activePath;
+        const useSrcSet = isActive && avatarSrcSet !== undefined;
         const loaded = loadedPaths.has(path);
         const failed = failedPaths.has(path);
         const visible = path === visiblePath && loaded && !failed;
 
         return (
           <img
-            key={path}
+            key={`${path}:${useSrcSet ? "srcset" : "src"}`}
             ref={(node) => {
               if (node?.complete !== true) {
                 return;
@@ -176,8 +173,8 @@ export function Portrait({
             }}
             alt=""
             src={path}
-            srcSet={isActive ? avatarSrcSet : undefined}
-            sizes={isActive ? avatarSizes : undefined}
+            srcSet={useSrcSet ? avatarSrcSet : undefined}
+            sizes={useSrcSet ? avatarSizes : undefined}
             width={imageDimensions.width}
             height={imageDimensions.height}
             className={`absolute inset-0 will-change-[opacity] ${PORTRAIT_FADE_CLASS} ${
@@ -187,7 +184,14 @@ export function Portrait({
             fetchPriority={priority && isActive ? "high" : "auto"}
             loading={priority && isActive ? "eager" : "lazy"}
             onLoad={() => addPath(setLoadedPaths, path)}
-            onError={() => addPath(setFailedPaths, path)}
+            onError={() => {
+              if (useSrcSet) {
+                addPath(setSrcSetFailedPaths, path);
+                return;
+              }
+
+              addPath(setFailedPaths, path);
+            }}
           />
         );
       })}
@@ -195,12 +199,26 @@ export function Portrait({
         aria-hidden="true"
         className={`absolute inset-0 grid place-items-center ${PORTRAIT_FADE_CLASS} ${
           PORTRAIT_INITIALS[variant]
-        } ${hasVisibleImage ? "opacity-0" : "opacity-100"}`}
+        } ${shouldShowInitials ? "opacity-100" : "opacity-0"}`}
       >
         {initialsFor(member.firstName)}
       </span>
     </div>
   );
+}
+
+function readyPortraitPaths(assets: readonly PortraitAsset[]): string[] {
+  const paths: string[] = [];
+
+  for (const asset of assets) {
+    const path = readyPortraitPath(asset);
+
+    if (path !== undefined && !paths.includes(path)) {
+      paths.push(path);
+    }
+  }
+
+  return paths;
 }
 
 function buildAvatarSrcSet(activePath: string | undefined): string | undefined {
@@ -223,19 +241,6 @@ function buildAvatarSrcSet(activePath: string | undefined): string | undefined {
   return [...widthEntries, `${activePath} 1024w`].join(", ");
 }
 
-function buildVisiblePortraitLayerPaths(
-  activePath: string | undefined,
-  displayPath: string | undefined,
-): string[] {
-  if (activePath === undefined) {
-    return displayPath === undefined ? [] : [displayPath];
-  }
-  if (displayPath === undefined || displayPath === activePath) {
-    return [activePath];
-  }
-  return [displayPath, activePath];
-}
-
 function addPath(
   setter: (updater: (current: ReadonlySet<string>) => ReadonlySet<string>) => void,
   path: string,
@@ -249,6 +254,14 @@ function addPath(
     next.add(path);
     return next;
   });
+}
+
+function firstLoadedPortraitPath(
+  paths: readonly string[],
+  loadedPaths: ReadonlySet<string>,
+  failedPaths: ReadonlySet<string>,
+): string | undefined {
+  return paths.find((path) => loadedPaths.has(path) && !failedPaths.has(path));
 }
 
 function initialsFor(name: string) {

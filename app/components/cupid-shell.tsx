@@ -62,7 +62,6 @@ import {
   removeFocusCase as focusRemoveCase,
   reselectFocusCases as focusReselect,
   selectInitialFocusCases as focusSelectInitial,
-  syncActiveShiftFocusCases,
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
@@ -1053,9 +1052,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
         ),
       };
-      const withFocus = syncActiveShiftFocusCases(
-        focusSelectInitial(withDeck, payload.focusedMemberIds),
-      );
+      const withFocus = focusSelectInitial(withDeck, payload.focusedMemberIds);
       const requestsById = new Map(memberRequests.map((request) => [request.id, request] as const));
       const focusedMemberRequests = withFocus.focusedMemberIds
         .map((memberId) => withFocus.members.find((member) => member.id === memberId))
@@ -1083,7 +1080,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   async function handleAddFocus(memberId: string) {
     if (save === null) return;
     tryAction("focusCase", async () => {
-      await persist(syncActiveShiftFocusCases(focusAddCase(save, memberId)));
+      await persist(focusAddCase(save, memberId));
       play("reveal");
     });
   }
@@ -1091,7 +1088,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   async function handleRemoveFocus(memberId: string) {
     if (save === null) return;
     tryAction("focusCase", async () => {
-      await persist(syncActiveShiftFocusCases(focusRemoveCase(save, memberId)));
+      await persist(focusRemoveCase(save, memberId));
     });
   }
 
@@ -1099,7 +1096,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     const previousSave = save;
     tryAction("focusCase", async () => {
-      const nextSave = syncActiveShiftFocusCases(focusSwapCase(save, oldId, newId));
+      const nextSave = focusSwapCase(save, oldId, newId);
       await persist(nextSave);
       processManagerQuipSaveDiff(previousSave, nextSave);
       play("reveal");
@@ -1110,7 +1107,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     const previousSave = save;
     tryAction("focusCase", async () => {
-      const nextSave = syncActiveShiftFocusCases(focusReselect(save, nextFocusIds));
+      const nextSave = focusReselect(save, nextFocusIds);
       await persist(nextSave);
       processManagerQuipSaveDiff(previousSave, nextSave);
     });

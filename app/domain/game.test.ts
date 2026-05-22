@@ -82,6 +82,38 @@ describe("game domain schemas", () => {
     );
   });
 
+  it("defaults structured voice fields on legacy member voices", () => {
+    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const legacyMembers = save.members.map((member) => {
+      const {
+        comedyMechanics: _comedyMechanics,
+        outputConstraints: _outputConstraints,
+        conversationShape: _conversationShape,
+        contrastExamples: _contrastExamples,
+        ...legacyVoice
+      } = member.voice;
+
+      return {
+        ...member,
+        voice: legacyVoice,
+      };
+    });
+    const parsedSave = gameSaveSchema.parse({
+      ...save,
+      members: legacyMembers,
+    });
+    const firstMember = parsedSave.members[0];
+
+    if (firstMember === undefined) {
+      throw new Error("Expected seed members.");
+    }
+
+    expect(firstMember.voice.comedyMechanics).toEqual([]);
+    expect(firstMember.voice.outputConstraints).toEqual([]);
+    expect(firstMember.voice.conversationShape).toEqual([]);
+    expect(firstMember.voice.contrastExamples).toEqual([]);
+  });
+
   it("defaults judge agreement and open loop proposals", () => {
     const snapshot = judgeSnapshotSchema.parse({
       id: "judge-legacy",

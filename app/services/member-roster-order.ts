@@ -29,7 +29,9 @@ export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "anubis",
   "mira-park",
   "aegis",
+  "mjolnir",
   "cthala",
+  "concord",
   "ryan-doyle",
   "junie-marrow",
   "naia-velorae",
@@ -43,8 +45,10 @@ export const CURATED_MEMBER_ROSTER_ORDER: readonly string[] = [
   "tasha-rell",
   "idris-mahari",
   "toby-wenz",
+  "saffron-vex",
   "brady-strait",
   "john-pork",
+  "rostin",
 ];
 
 type CuratedMember = Pick<Member, "id" | "firstName">;
@@ -91,24 +95,6 @@ export function sortMembersForRoster(
 
     return compareMembersByCuratedRosterOrder(first, second);
   });
-}
-
-export function moveSuggestedMemberFirst<TMember extends CuratedMember>(
-  members: readonly TMember[],
-  suggestedMemberId: string | null,
-): TMember[] {
-  const sortedMembers = sortMembersByCuratedRosterOrder(members);
-
-  if (suggestedMemberId === null) {
-    return sortedMembers;
-  }
-
-  const suggestedMember = sortedMembers.find((member) => member.id === suggestedMemberId);
-  if (suggestedMember === undefined) {
-    return sortedMembers;
-  }
-
-  return [suggestedMember, ...sortedMembers.filter((member) => member.id !== suggestedMember.id)];
 }
 
 function curatedRankFor(memberId: string): number {

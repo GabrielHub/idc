@@ -40,6 +40,7 @@ export const kadeSumner: Member = {
     "His mom still does his laundry on Sundays and he counts that against himself privately every week.",
   ],
   tags: ["ordinary_human", "performative", "attention_seeking", "anxious_spiral"],
+  shiftAvailabilityProfile: "busy_public",
   voice: {
     register: "stream of consciousness chat speak",
     patternsUsed: [

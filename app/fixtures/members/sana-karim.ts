@@ -12,7 +12,7 @@ export const sanaKarim: Member = {
   realityStatus: "Ordinary, year three",
   bio: "You teach fourth grade at a public school where the laminator's been broken since October 2025. You're 28 and you have the back of someone who isn't 28. There's a kid in your class who cannot stay in his chair. He has been your reason for going home tired since September. You've stopped saying his name out loud because saying it feels like agreeing. Year three is the year you used to want this job and the year you've started to wonder whether you still want it, which is a sentence you haven't let yourself finish in any of three internal drafts. You believe Cupid is a normal dating app, that the branding is a lot, and that the cosmic vocabulary is a marketing decision. You haven't connected the dots in any other direction. You arrive on time. You decompress for ten minutes before you can be present. A partner who lets you do that without commenting on it is a partner you can stay through dinner with. You have a private list of three students you'd adopt if it were legal and one you'd pay to transfer. You eat at restaurants you've been to. You order what you've ordered before. You expect this to change someday. So far it hasn't.",
   datingProfile:
-    "28. Fourth grade public school. Year three. The laminator's broken. I'm not. Looking for someone with a couch, a quiet hobby, and the social skill of not asking how my day was until I've sat down. Photos: me, also me, and a class pet I'm not allowed to keep at home.",
+    "28, fourth grade public school, year three, the laminator's broken and I'm not. Looking for someone with a couch, a quiet hobby, and the social skill of not asking how my day was until I've sat down. Photos: me, also me, and a class pet I'm not allowed to keep at home.",
   visualDescription:
     "A slender South Asian woman with very long dark wavy hair, black oval-frame glasses, and a tired calm expression. A taupe cardigan worn open over a fitted dark top with a white lanyard and ID badge at the chest. A brown belt, taupe ankle-length slim trousers, and low black flats. One arm holds a stack of papers and folders against her chest.",
   relationshipNeeds: [
@@ -41,6 +41,7 @@ export const sanaKarim: Member = {
     "She has a private list of three students she would adopt if it were legal and one student she would pay to transfer.",
   ],
   tags: ["ordinary_human", "needs_low_pressure", "sincerity_seeking", "needs_clear_plan"],
+  shiftAvailabilityProfile: "soft_schedule",
   voice: {
     register: "tired flat dry, contractions normal, clipped declarative cadence",
     patternsUsed: ["mundane_domesticity", "self_deprecating_confession", "emotional_overshare"],

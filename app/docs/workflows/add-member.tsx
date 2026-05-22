@@ -64,8 +64,9 @@ export const sections: DocSectionEntry[] = [
           </span>,
           <span key="existing">
             Existing member fixtures, existing member requests,{" "}
-            <DocCode>app/services/member-roster-order.ts</DocCode>, and{" "}
-            <DocCode>app/components/member-aura-registry.ts</DocCode>.
+            <DocCode>app/services/member-roster-order.ts</DocCode>,{" "}
+            <DocCode>app/components/member-aura-registry.ts</DocCode>, and existing{" "}
+            <DocCode>chatBubble</DocCode> fixture blocks.
           </span>,
         ]}
       />
@@ -111,15 +112,20 @@ export const sections: DocSectionEntry[] = [
               prose.
             </span>,
             <span key="voice">
-              <Strong>Voice:</Strong> register, patternsUsed, patternsRefused, tics, sampleMessages.
+              <Strong>Voice:</Strong> compact register, comedyMechanics, outputConstraints, optional
+              conversationShape and contrastExamples, patternsUsed, patternsRefused, tics,
+              sampleMessages.
             </span>,
             <span key="state">
               <Strong>State:</Strong> mood, openness, burnout, retention, currentRequestId,
               recentDateResult, status.
             </span>,
             <span key="visual">
-              <Strong>Visual:</Strong> leave <DocCode>visualDescription</DocCode> and portrait
-              references for the visual asset pass unless approved files already exist.
+              <Strong>Visual:</Strong> keep <DocCode>visualDescription</DocCode> neutral and point
+              portrait references at their conventional future paths. Use{" "}
+              <DocCode>model: "pending"</DocCode> for assets whose approved files do not exist yet.
+              Portrait asset approval can run later; baseline aura and chat presentation decisions
+              belong with the fixture.
             </span>,
           ]}
         />
@@ -207,8 +213,18 @@ vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
             roster position is decided.
           </span>,
           <span key="aura">
-            Add aura or chat bubble presentation only when visual direction is approved. Otherwise
-            leave it for visual asset iteration.
+            Add an aura entry in <DocCode>app/components/member-aura-registry.ts</DocCode> for every
+            new member. This is a presentation hook from the member premise and does not wait for
+            portrait approval.
+          </span>,
+          <span key="bubble">
+            Add a <DocCode>chatBubble</DocCode> block on the fixture for non-human or otherwise
+            distinctive members. Ordinary humans may intentionally use the house default; make that
+            decision by comparing nearby fixtures and{" "}
+            <DocLink to="/docs/product/visual-design#per-member-chat-bubbles">
+              Per-member chat bubbles
+            </DocLink>
+            .
           </span>,
           <span key="chemistry">
             Update <DocLink to="/docs/gameplay/roster-chemistry">Roster chemistry</DocLink> with
@@ -228,8 +244,10 @@ vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
 vp test
 vp build`}</DocCodeBlock>
         <P>
-          If approved portrait files do not exist yet, record that full member validation is blocked
-          on the visual asset pass because tests verify portrait and avatar paths.
+          Member fixture validation is allowed to pass before approved portrait files exist. Keep
+          the conventional paths in the fixture and mark missing assets{" "}
+          <DocCode>model: "pending"</DocCode>; runtime surfaces fall back to a ready neutral
+          portrait when available and otherwise leave the image slot empty.
         </P>
       </>
     ),

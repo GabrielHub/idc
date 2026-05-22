@@ -124,6 +124,103 @@ describe("date prompt assembly", () => {
     expect(partnerPacket.prompt).not.toContain(request.text);
   });
 
+  it("renders structured voice fields and member-specific examples", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "rostin",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "rostin",
+      firstMemberId: "rostin",
+      secondMemberId: "derek-halsey",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const rostin = started.save.members.find((member) => member.id === "rostin");
+    const derek = started.save.members.find((member) => member.id === "derek-halsey");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("rostin", "derek-halsey"));
+
+    if (
+      scenario === undefined ||
+      rostin === undefined ||
+      derek === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: rostin,
+      partner: derek,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    });
+
+    expect(packet.prompt).toContain("<voice>");
+    expect(packet.prompt).toContain("<register>");
+    expect(packet.prompt).toContain("</register>");
+    expect(packet.prompt).toContain("<comedy_mechanics>");
+    expect(packet.prompt).toContain("<tics>");
+    expect(packet.prompt).toContain("<conversation_shape>");
+    expect(packet.prompt).toContain("You: yo yo, rostin.");
+    expect(packet.prompt).toContain("<contrastive_examples>");
+    expect(packet.prompt).toContain("Preferred:");
+    expect(packet.prompt).toContain("Member-specific spoken-surface constraints:");
+    expect(packet.prompt).toContain("the things that belong on a phone screen");
+    expect(packet.prompt).not.toContain("A: You haven't asked me anything yet.");
+  });
+
+  it("omits opt-in voice example blocks when the member has none authored", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    });
+
+    expect(packet.prompt).not.toContain("<conversation_shape>");
+    expect(packet.prompt).not.toContain("<contrastive_examples>");
+    expect(packet.prompt).not.toContain("A: You haven't asked me anything yet.");
+  });
+
   it("adds memory search guidance only when runtime search is available", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",

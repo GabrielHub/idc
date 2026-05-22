@@ -78,22 +78,49 @@ describe("member roster availability filter", () => {
     expect(matchesAvailabilityFilter(cooldownMember, "cooldown", 5)).toBe(false);
   });
 
-  it("treats members as bookable when they are active and not on cooldown", () => {
+  it("treats active focus cases and scheduled partners as bookable when not on cooldown", () => {
     const freshMember = withState(baseMember, { status: "active", lastDateShift: undefined });
     const recentMember = withState(baseMember, { status: "active", lastDateShift: 3 });
 
-    expect(matchesAvailabilityFilter(freshMember, "bookable", 3)).toBe(true);
-    expect(matchesAvailabilityFilter(recentMember, "bookable", 3)).toBe(false);
-    expect(matchesAvailabilityFilter(recentMember, "bookable", 5)).toBe(true);
+    expect(
+      matchesAvailabilityFilter(freshMember, "bookable", 3, {
+        availablePartnerMemberIds: [freshMember.id],
+      }),
+    ).toBe(true);
+    expect(
+      matchesAvailabilityFilter(freshMember, "bookable", 3, {
+        focusedMemberIds: [freshMember.id],
+      }),
+    ).toBe(true);
+    expect(
+      matchesAvailabilityFilter(freshMember, "bookable", 3, {
+        availablePartnerMemberIds: [],
+        focusedMemberIds: [],
+      }),
+    ).toBe(false);
+    expect(
+      matchesAvailabilityFilter(recentMember, "bookable", 3, {
+        availablePartnerMemberIds: [recentMember.id],
+      }),
+    ).toBe(false);
+    expect(
+      matchesAvailabilityFilter(recentMember, "bookable", 5, {
+        availablePartnerMemberIds: [recentMember.id],
+      }),
+    ).toBe(true);
   });
 
   it("excludes closed and cancelled members from bookable and cooldown", () => {
     const closed = withState(baseMember, { status: "closed" });
     const quit = withState(baseMember, { status: "quit" });
 
-    expect(matchesAvailabilityFilter(closed, "bookable", 3)).toBe(false);
+    expect(
+      matchesAvailabilityFilter(closed, "bookable", 3, { availablePartnerMemberIds: [closed.id] }),
+    ).toBe(false);
     expect(matchesAvailabilityFilter(closed, "cooldown", 3)).toBe(false);
-    expect(matchesAvailabilityFilter(quit, "bookable", 3)).toBe(false);
+    expect(
+      matchesAvailabilityFilter(quit, "bookable", 3, { availablePartnerMemberIds: [quit.id] }),
+    ).toBe(false);
     expect(matchesAvailabilityFilter(quit, "cooldown", 3)).toBe(false);
   });
 
@@ -198,6 +225,7 @@ describe("applyMemberRosterFilters", () => {
       },
       {
         activeShiftNumber: 5,
+        availablePartnerMemberIds: [ready.id],
       },
     );
 

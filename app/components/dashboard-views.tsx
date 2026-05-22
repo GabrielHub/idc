@@ -1,6 +1,12 @@
 import { motion } from "motion/react";
 
-import { type Member, type ShiftReport, type ShiftState } from "../domain/game";
+import {
+  type Member,
+  type ShiftReport,
+  type ShiftRequestAskOutcome,
+  type ShiftState,
+} from "../domain/game";
+import { buildShiftAskDeskEntries } from "../services/shift-request-assessment";
 import { EASE_OUT_QUART, Eyebrow, LiveDot, pad2, PrimaryButton } from "./dashboard-atoms";
 
 /* ================================================================== */
@@ -48,6 +54,8 @@ export function ShiftReportPanel({
           <BudgetReviewBlock review={report.budgetReview} className="mt-8" />
         )}
 
+        <ShiftAskDeskBlock shift={shift} members={members} className="mt-8" />
+
         {report.deckCoverage.length === 0 ? null : (
           <DeckCoverageBlock coverage={report.deckCoverage} members={members} className="mt-4" />
         )}
@@ -68,6 +76,53 @@ export function ShiftReportPanel({
     </motion.aside>
   );
 }
+
+function ShiftAskDeskBlock({
+  shift,
+  members,
+  className = "",
+}: {
+  shift: ShiftState;
+  members: Member[];
+  className?: string;
+}) {
+  const entries = buildShiftAskDeskEntries({ shift, members });
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className={`aura-glass rounded-card p-5 ${className}`.trim()}>
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        // ask desk
+      </p>
+      <ul className="mt-3 space-y-3">
+        {entries.map((entry) => (
+          <li key={entry.requestId} className="min-w-0">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <span className="font-display text-sm font-semibold tracking-tight text-aura-ink">
+                {entry.memberName}
+              </span>
+              <span
+                className={`font-mono text-micro font-semibold uppercase tracking-[0.18em] ${SHIFT_ASK_OUTCOME_CLASS[entry.outcome]}`}
+              >
+                {entry.isLead ? "lead ask" : "queue"} · {entry.outcomeLabel}
+              </span>
+            </div>
+            <p className="mt-1 text-sm leading-snug text-aura-muted">{entry.requestText}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const SHIFT_ASK_OUTCOME_CLASS: Record<ShiftRequestAskOutcome, string> = {
+  covered: "text-emerald-700",
+  raised: "text-aura-amber",
+  missed: "text-aura-amber",
+  ignored: "text-aura-faint",
+};
 
 export function ShiftGoalResultsBlock({
   results,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { getMemberAuraConfig } from "../components/member-aura-registry";
 import { type Member, SCENARIO_EVENT_KINDS, SCENARIO_EVENTS_PER_KIND } from "../domain/game";
 import { memberRequests } from "./goals";
 import { MANAGER_QUIP_CATALOG, type ManagerQuipTriggerKey } from "./manager-quips";
@@ -105,6 +106,14 @@ function memberContentText(member: Member): string {
     ...member.dealbreakers,
     ...member.secrets,
     member.voice.register,
+    ...member.voice.comedyMechanics,
+    ...member.voice.outputConstraints,
+    ...member.voice.conversationShape.flatMap((example) => example.turns.map((turn) => turn.text)),
+    ...member.voice.contrastExamples.flatMap((example) => [
+      example.tempting,
+      example.preferred,
+      example.because ?? "",
+    ]),
     ...member.voice.tics,
     ...member.voice.sampleMessages.greeting,
     ...member.voice.sampleMessages.hingeBits,
@@ -117,6 +126,26 @@ function memberContentText(member: Member): string {
 function countWords(text: string): number {
   const trimmed = text.trim();
   return trimmed.length === 0 ? 0 : trimmed.split(/\s+/u).length;
+}
+
+/**
+ * Detects voice bullets that look like mechanical sentence-splits of a long
+ * prose register rather than authored standalone rules. Returns a reason
+ * string when the entry is suspicious, null when it looks intentional.
+ */
+function brokenVoiceBulletReason(entry: string): string | null {
+  const trimmed = entry.trim();
+  if (trimmed.length < 12) return `too short: "${trimmed}"`;
+  if (countWords(trimmed) > 55) return `too long: ${countWords(trimmed)} words`;
+  if (/^[,.;:)\]]/.test(trimmed)) return `starts with punctuation: "${trimmed.slice(0, 40)}"`;
+  if (/\(\s*[a-z]\.\s*$/.test(trimmed)) return `ends mid-abbreviation: "${trimmed.slice(-40)}"`;
+  if (/^['")\]]/.test(trimmed) && !/^['"]/.test(trimmed)) {
+    return `orphan closing bracket: "${trimmed.slice(0, 40)}"`;
+  }
+  if (/^[A-Z][A-Z\- ]+\.$/.test(trimmed)) {
+    return `orphan section heading: "${trimmed}"`;
+  }
+  return null;
 }
 
 function countSentences(text: string): number {
@@ -210,6 +239,46 @@ describe("fixture content lint", () => {
   });
 
   describe("member voice constraints", () => {
+    it("keeps the register compact when structured voice is authored", () => {
+      const violations: string[] = [];
+
+      for (const member of starterMembers) {
+        if (member.voice.comedyMechanics.length === 0) continue;
+        const words = countWords(member.voice.register);
+        if (words > 70) {
+          violations.push(`${member.id} register has ${words} words`);
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+
+    it("rejects voice bullets that look like mechanical sentence-splits", () => {
+      // Catches the failure mode where a long prose register is mechanically
+      // split on every period: orphan close-parens, fragments ending in (e.
+      // or (i. abbreviations, entries that are only punctuation, etc. These
+      // are not voice — they are broken artifacts of the split, and they
+      // ship straight into LLM prompts via the voice-prompt builder.
+      const violations: string[] = [];
+
+      for (const member of starterMembers) {
+        const fields: Array<[string, readonly string[]]> = [
+          ["comedyMechanics", member.voice.comedyMechanics],
+          ["outputConstraints", member.voice.outputConstraints],
+        ];
+        for (const [fieldName, entries] of fields) {
+          for (const [index, entry] of entries.entries()) {
+            const reason = brokenVoiceBulletReason(entry);
+            if (reason !== null) {
+              violations.push(`${member.id}.${fieldName}[${index}]: ${reason}`);
+            }
+          }
+        }
+      }
+
+      expect(violations).toEqual([]);
+    });
+
     it("uses no em dashes or en dashes in authored copy", () => {
       const violations: string[] = [];
 
@@ -322,6 +391,16 @@ describe("fixture content lint", () => {
           violations.push(member.id);
         }
       }
+
+      expect(violations).toEqual([]);
+    });
+  });
+
+  describe("aura registry", () => {
+    it("declares an aura on every starter member", () => {
+      const violations = starterMembers
+        .map((member) => member.id)
+        .filter((memberId) => getMemberAuraConfig(memberId) === undefined);
 
       expect(violations).toEqual([]);
     });
