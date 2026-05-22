@@ -1,5 +1,36 @@
 [
   {
+    "version": "1.0.1",
+    "date": "2026-05-21",
+    "headline": "Cupid promotes the lead ask desk and opens the Aegis case file.",
+    "summary": "Gameplay test alpha. Adds Aegis to the starter roster, locks Gateway model reasoning to the catalog, and makes shift-request grading depend on the current date session instead of stale case history.",
+    "sections": [
+      {
+        "title": "Roster",
+        "items": [
+          "Aegis joins the starter roster as the 43rd member, with portrait assets, palette data, standee footing, roster ordering, and a dedicated shield-not-a-coat request.",
+          "The roster count and smoke coverage now treat Aegis as part of the default agency lineup."
+        ]
+      },
+      {
+        "title": "Case management",
+        "items": [
+          "Each shift now picks one deterministic lead ask, so only the ask Cupid actually foregrounded can apply the full missed or ignored mood penalty.",
+          "Shift reports persist a typed requestOutcomes map with covered, raised, missed, and ignored states while keeping older ignored-request saves readable.",
+          "Ask evidence is read from the current date session snapshots, preventing a read filed in an older shift from incorrectly covering a later ask."
+        ]
+      },
+      {
+        "title": "Runtime AI",
+        "items": [
+          "Gateway models now carry catalog-owned cost labels and locked reasoning levels, and saved legacy model ids migrate to the current lineup.",
+          "Relationship strain and relationship health are derived from primary pair stats instead of being written directly by judge output.",
+          "Ending a date early now strains active agreements and open loops instead of silently treating them like normal completed-date memory."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.0",
     "date": "2026-05-21",
     "headline": "Cupid stamps the audited roster as the first full alpha line.",
