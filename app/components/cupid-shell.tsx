@@ -106,11 +106,12 @@ import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating
 import { OnboardingScreen } from "./onboarding-screen";
 import { PreDateCanvas } from "./pre-date-canvas";
 import { RosterCanvas } from "./roster-canvas";
-import { buildDiagnosticsSnapshot, MutedIndicator, SettingsMenu } from "./settings-menu";
+import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
 import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
+import { ShellChrome } from "./shell-chrome";
 import {
   getReleaseNoteByVersion,
   hasReleaseNotesEligibleSaveProgress,
@@ -203,6 +204,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
   const [localAiStatus, setLocalAiStatus] = useState<AiSetupStatus>(CHECKING_LOCAL_AI_STATUS);
   const [gatewayApiKey, setGatewayApiKey] = useState("");
+  const [gatewayApiKeyReadError, setGatewayApiKeyReadError] = useState<string | null>(null);
   const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
@@ -250,9 +252,16 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   useEffect(() => {
     let mounted = true;
     void (async () => {
-      const stored = await readStoredGatewayApiKey();
+      let stored = "";
+      let readError: string | null = null;
+      try {
+        stored = await readStoredGatewayApiKey();
+      } catch (error) {
+        readError = errorToMessage(error) || "OS credential store operation failed.";
+      }
       if (!mounted) return;
       setGatewayApiKey(stored);
+      setGatewayApiKeyReadError(readError);
       setIsGatewayApiKeyLoaded(true);
     })();
     return () => {
@@ -317,6 +326,19 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       return;
     }
     const configForStatus = aiStatusConfig;
+    if (configForStatus.aiProvider === "gateway" && gatewayApiKeyReadError !== null) {
+      const message = `Gateway key storage unavailable. ${gatewayApiKeyReadError}`;
+      setLocalAiStatus({
+        status: "unavailable",
+        message,
+        details: [],
+        checkedAt: new Date().toISOString(),
+      });
+      if (configForStatus.aiSetupComplete) {
+        setErrorMessage(message);
+      }
+      return;
+    }
     let mounted = true;
     async function loadStatus() {
       setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
@@ -332,7 +354,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       mounted = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiStatusConfigKey, gatewayApiKey, isGatewayApiKeyLoaded]);
+  }, [aiStatusConfigKey, gatewayApiKey, gatewayApiKeyReadError, isGatewayApiKeyLoaded]);
 
   useCueOnMessageChange(errorMessage, "alert", play);
   useCueOnMessageChange(noticeMessage, "notice", play);
@@ -687,6 +709,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     await storeGatewayApiKey(nextGatewayApiKey);
     setGatewayApiKey(nextGatewayApiKey.trim());
+    setGatewayApiKeyReadError(null);
     setIsGatewayApiKeyLoaded(true);
     await persist({
       ...save,
@@ -1303,6 +1326,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   const aiReady = localAiStatus.status === "ready" && save.config.aiSetupComplete === true;
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
+  const isDateViewActive = currentRoom === "livedate" && activeSession !== null;
 
   return (
     <>
@@ -1336,49 +1360,28 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             className="relative isolate min-h-screen w-full"
           >
             <AmbientMesh />
-            <header className="relative z-40 mx-auto flex w-full max-w-canvas items-center justify-between gap-4 px-6 py-4 lg:px-12">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={onPunchOut}
-                  data-sfx="click"
-                  className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
-                >
-                  ← Punch out
-                </button>
-                <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black">
-                  shift {String(activeShift?.shiftNumber ?? 1).padStart(2, "0")} / {currentRoom}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <MutedIndicator />
-                <button
-                  type="button"
-                  onClick={() => setIsAiSetupOpen(true)}
-                  data-sfx="click"
-                  className="cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose"
-                >
-                  ai · {aiStatusLabel}
-                </button>
-                <SettingsMenu
-                  isActionPending={isActionPending}
-                  getDiagnostics={getDiagnostics}
-                  canExportSave={save !== null}
-                  canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
-                  devRevealAllMemberDetails={revealAllMemberDetails}
-                  onOpenAiSetup={() => setIsAiSetupOpen(true)}
-                  onReset={handleResetSave}
-                  onResetOrientation={() => {
-                    void handleResetOrientation();
-                  }}
-                  onExportSave={handleExportSave}
-                  onImportSave={handleImportSave}
-                  onCopyDiagnostics={handleCopyDiagnostics}
-                  onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
-                  onOpenReleaseNotes={handleOpenReleaseNotes}
-                />
-              </div>
-            </header>
+            <ShellChrome
+              isDateViewActive={isDateViewActive}
+              shiftNumber={activeShift?.shiftNumber ?? 1}
+              currentRoom={currentRoom}
+              aiStatusLabel={aiStatusLabel}
+              isActionPending={isActionPending}
+              getDiagnostics={getDiagnostics}
+              canExportSave={save !== null}
+              canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+              devRevealAllMemberDetails={revealAllMemberDetails}
+              onPunchOut={onPunchOut}
+              onOpenAiSetup={() => setIsAiSetupOpen(true)}
+              onReset={handleResetSave}
+              onResetOrientation={() => {
+                void handleResetOrientation();
+              }}
+              onExportSave={handleExportSave}
+              onImportSave={handleImportSave}
+              onCopyDiagnostics={handleCopyDiagnostics}
+              onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+              onOpenReleaseNotes={handleOpenReleaseNotes}
+            />
 
             <AnimatePresence mode="wait">
               <motion.main

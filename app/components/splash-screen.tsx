@@ -58,6 +58,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
   const [pendingError, setPendingError] = useState<string | null>(null);
   const [confirmingWipe, setConfirmingWipe] = useState(false);
   const [gatewayApiKey, setGatewayApiKey] = useState("");
+  const [gatewayApiKeyReadError, setGatewayApiKeyReadError] = useState<string | null>(null);
   const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiSetupStatus>(INITIAL_AI_STATUS);
   const [aiPanelOpen, setAiPanelOpen] = useState(false);
@@ -94,13 +95,20 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     let cancelled = false;
 
     void (async () => {
-      const storedKey = await readStoredGatewayApiKey();
+      let storedKey = "";
+      let readError: string | null = null;
+      try {
+        storedKey = await readStoredGatewayApiKey();
+      } catch (error) {
+        readError = errorToMessage(error) || "OS credential store operation failed.";
+      }
 
       if (cancelled) {
         return;
       }
 
       setGatewayApiKey(storedKey);
+      setGatewayApiKeyReadError(readError);
       setIsGatewayApiKeyLoaded(true);
     })();
 
@@ -170,6 +178,17 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
       return;
     }
 
+    if (aiReadinessConfig.aiProvider === "gateway" && gatewayApiKeyReadError !== null) {
+      const message = `Gateway key storage unavailable. ${gatewayApiKeyReadError}`;
+      setAiStatus({
+        status: "unavailable",
+        message,
+        details: [],
+        checkedAt: new Date().toISOString(),
+      });
+      return;
+    }
+
     let cancelled = false;
     setAiStatus(INITIAL_AI_STATUS);
 
@@ -184,7 +203,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [aiReadinessConfig, gatewayApiKey, isGatewayApiKeyLoaded]);
+  }, [aiReadinessConfig, gatewayApiKey, gatewayApiKeyReadError, isGatewayApiKeyLoaded]);
 
   const aiBoot: AiBootState =
     aiStatus.status === "checking" ? "checking" : deriveAiBoot(save, aiStatus);
@@ -264,6 +283,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
     }
     await storeGatewayApiKey(nextGatewayApiKey);
     setGatewayApiKey(nextGatewayApiKey.trim());
+    setGatewayApiKeyReadError(null);
     setIsGatewayApiKeyLoaded(true);
     const nextSave: GameSave = { ...save, config: lockAiProviderBaseUrlsForRuntime(nextConfig) };
     await repository.saveGame(nextSave);

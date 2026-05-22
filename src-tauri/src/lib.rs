@@ -4,12 +4,16 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use keyring::{Entry, Error as KeyringError};
 use tauri::Manager;
 use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 
 const DIAGNOSTICS_SCHEMA_VERSION: u8 = 1;
 const MAX_ATTACHED_LOG_FILES: usize = 3;
 const MAX_LOG_TAIL_BYTES: usize = 64 * 1024;
+const GATEWAY_API_KEY_SERVICE: &str = "dev.idc.cupid";
+const GATEWAY_API_KEY_ACCOUNT: &str = "vercel-ai-gateway";
+const LEGACY_GATEWAY_API_KEY_PATH: &[&str] = &["secrets", "gateway-api-key.txt"];
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -212,6 +216,95 @@ fn read_file_tail(path: &Path, max_bytes: usize) -> Result<(String, bool), Strin
     ))
 }
 
+fn credential_error_message(error: KeyringError) -> String {
+    let summary = match &error {
+        KeyringError::NoEntry => "Gateway API key is not stored",
+        KeyringError::NoStorageAccess(_) => "OS credential store is unavailable or denied access",
+        KeyringError::PlatformFailure(_) => "OS credential store returned a platform error",
+        KeyringError::Ambiguous(_) => "OS credential store returned more than one matching entry",
+        KeyringError::Invalid(_, _) => "OS credential store rejected the Gateway key entry",
+        _ => "OS credential store operation failed",
+    };
+    log::warn!("gateway api key keyring error: {error}");
+    format!("{summary}: {error}")
+}
+
+fn gateway_api_key_entry() -> Result<Entry, String> {
+    Entry::new(GATEWAY_API_KEY_SERVICE, GATEWAY_API_KEY_ACCOUNT).map_err(credential_error_message)
+}
+
+fn delete_gateway_api_key_entry() -> Result<(), String> {
+    match gateway_api_key_entry()?.delete_credential() {
+        Ok(()) | Err(KeyringError::NoEntry) => Ok(()),
+        Err(error) => Err(credential_error_message(error)),
+    }
+}
+
+fn legacy_gateway_api_key_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
+    let mut path = app
+        .path()
+        .app_local_data_dir()
+        .map_err(|err| err.to_string())?;
+
+    for segment in LEGACY_GATEWAY_API_KEY_PATH {
+        path.push(segment);
+    }
+
+    Ok(path)
+}
+
+#[tauri::command]
+fn read_gateway_api_key() -> Result<String, String> {
+    match gateway_api_key_entry()?.get_password() {
+        Ok(password) => Ok(password),
+        Err(KeyringError::NoEntry) => Ok(String::new()),
+        Err(error) => Err(credential_error_message(error)),
+    }
+}
+
+#[tauri::command]
+fn write_gateway_api_key(value: String) -> Result<(), String> {
+    let trimmed = value.trim();
+
+    if trimmed.is_empty() {
+        return delete_gateway_api_key_entry();
+    }
+
+    gateway_api_key_entry()?
+        .set_password(trimmed)
+        .map_err(credential_error_message)
+}
+
+#[tauri::command]
+fn delete_gateway_api_key() -> Result<(), String> {
+    delete_gateway_api_key_entry()
+}
+
+#[tauri::command]
+fn migrate_legacy_gateway_api_key(app: tauri::AppHandle) -> Result<bool, String> {
+    let path = legacy_gateway_api_key_path(&app)?;
+    let text = match fs::read_to_string(&path) {
+        Ok(text) => text,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => return Ok(false),
+        Err(error) => return Err(error.to_string()),
+    };
+    let trimmed = text.trim();
+
+    if !trimmed.is_empty() {
+        gateway_api_key_entry()?
+            .set_password(trimmed)
+            .map_err(credential_error_message)?;
+    }
+
+    if let Err(error) = fs::remove_file(&path) {
+        log::warn!(
+            "migrated legacy gateway api key but could not remove plaintext file {}: {error}",
+            path.display()
+        );
+    }
+    Ok(!trimmed.is_empty())
+}
+
 #[tauri::command]
 fn open_log_folder(app: tauri::AppHandle) -> Result<(), String> {
     let path = app.path().app_log_dir().map_err(|err| err.to_string())?;
@@ -289,6 +382,10 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
+            read_gateway_api_key,
+            write_gateway_api_key,
+            delete_gateway_api_key,
+            migrate_legacy_gateway_api_key,
             open_log_folder,
             open_save_folder,
             write_crash_diagnostics

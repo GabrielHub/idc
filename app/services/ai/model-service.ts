@@ -897,7 +897,7 @@ type GatewayRuntimeProviderOptions = Record<string, Record<string, JSONValue>>;
 
 const PROVIDER_CACHE_LIMIT = 8;
 const ollamaProviderCache = new Map<string, OllamaProvider>();
-const gatewayProviderCache = new Map<string, GatewayProvider>();
+const gatewayProviderCache = new Map<string, { provider: GatewayProvider; apiKey: string }>();
 
 function promptStatsForRequest({
   system,
@@ -1020,13 +1020,25 @@ function getOllamaProvider(baseURL: string | undefined): OllamaProvider {
 }
 
 function getGatewayProvider(baseURL: string, apiKey: string): GatewayProvider {
-  return getOrCreateProvider(gatewayProviderCache, JSON.stringify([baseURL, apiKey]), () =>
-    createGateway({
-      baseURL,
-      apiKey,
-      fetch: selectFetch(),
-    }),
-  );
+  const cached = gatewayProviderCache.get(baseURL);
+
+  if (cached !== undefined && cached.apiKey === apiKey) {
+    gatewayProviderCache.delete(baseURL);
+    gatewayProviderCache.set(baseURL, cached);
+    return cached.provider;
+  }
+
+  if (cached === undefined && gatewayProviderCache.size >= PROVIDER_CACHE_LIMIT) {
+    const oldestKey = gatewayProviderCache.keys().next().value;
+
+    if (oldestKey !== undefined) {
+      gatewayProviderCache.delete(oldestKey);
+    }
+  }
+
+  const provider = createGateway({ baseURL, apiKey, fetch: selectFetch() });
+  gatewayProviderCache.set(baseURL, { provider, apiKey });
+  return provider;
 }
 
 function getOrCreateProvider<TProvider>(

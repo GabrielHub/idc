@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   BrowserLocalStorageGatewayApiKeyStore,
   GATEWAY_API_KEY_STORAGE_KEY,
-  TAURI_GATEWAY_API_KEY_FILE_PATH,
+  LEGACY_TAURI_GATEWAY_API_KEY_FILE_PATH,
   createGatewayApiKeyStore,
   readStoredGatewayApiKey,
   storeGatewayApiKey,
@@ -59,6 +59,20 @@ class MemoryGatewayApiKeyStore implements GatewayApiKeyStore {
   }
 }
 
+class RejectingGatewayApiKeyStore implements GatewayApiKeyStore {
+  async read(): Promise<string> {
+    throw new Error("credential store unavailable");
+  }
+
+  async write(): Promise<void> {
+    throw new Error("credential store unavailable");
+  }
+
+  async delete(): Promise<void> {
+    throw new Error("credential store unavailable");
+  }
+}
+
 describe("Gateway key storage", () => {
   it("keeps browser dev on localStorage", async () => {
     const storage = new MemoryStorage();
@@ -93,7 +107,7 @@ describe("Gateway key storage", () => {
     expect(storage.getItem(GATEWAY_API_KEY_STORAGE_KEY)).toBeNull();
   });
 
-  it("migrates a legacy Tauri WebView localStorage key into app local data", async () => {
+  it("migrates a legacy Tauri WebView localStorage key into the desktop primary store", async () => {
     const storage = new MemoryStorage();
     const browserStore = new BrowserLocalStorageGatewayApiKeyStore(storage);
     const tauriStore = new MemoryGatewayApiKeyStore();
@@ -120,8 +134,14 @@ describe("Gateway key storage", () => {
     expect(store.deleteCount).toBe(1);
   });
 
-  it("keeps the Tauri Gateway key path outside the saves directory", () => {
-    expect(TAURI_GATEWAY_API_KEY_FILE_PATH.startsWith("saves/")).toBe(false);
-    expect(TAURI_GATEWAY_API_KEY_FILE_PATH).toBe("secrets/gateway-api-key.txt");
+  it("surfaces primary store read failures", async () => {
+    await expect(readStoredGatewayApiKey(new RejectingGatewayApiKeyStore())).rejects.toThrow(
+      "credential store unavailable",
+    );
+  });
+
+  it("keeps the legacy Tauri plaintext Gateway key path outside the saves directory", () => {
+    expect(LEGACY_TAURI_GATEWAY_API_KEY_FILE_PATH.startsWith("saves/")).toBe(false);
+    expect(LEGACY_TAURI_GATEWAY_API_KEY_FILE_PATH).toBe("secrets/gateway-api-key.txt");
   });
 });

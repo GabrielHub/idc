@@ -5,7 +5,7 @@ export const OLLAMA_LOCAL_FLOW =
 export const GATEWAY_CLOUD_FLOW =
   "Date prompts, character context, transcripts, and retrieved memories leave this machine through Vercel AI Gateway and go to the selected model provider.";
 export const DESKTOP_GATEWAY_KEY_STORAGE =
-  "Plaintext file in app local data at secrets/gateway-api-key.txt, outside saves and not in the OS keychain.";
+  "Desktop stores the key in the OS credential store, outside saves and outside renderer filesystem scope.";
 export const BROWSER_GATEWAY_KEY_STORAGE =
   "Browser dev stores the key in localStorage under idc.cupid.aiGatewayKey. This is not the desktop key path.";
 

@@ -33,7 +33,6 @@ import {
 import { MemberDetailsModal } from "./member-details-modal";
 import { PairMemoryInspector } from "./pair-memory-inspector";
 import { ScenarioBackdropLayer } from "./scenario-backdrop";
-import { AudioSettingsMenu, MutedIndicator } from "./settings-menu";
 import { TutorialCoachMark, TutorialSpotlight } from "./tutorial";
 
 export type { PendingDateAction, PlaybackIntent } from "./date-view-shared";
@@ -196,8 +195,6 @@ export function DateView({
           onOpenMember={setOpenMember}
         />
       ) : null}
-      {session.status === "active" ? <DateAudioControls /> : null}
-
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -424,18 +421,6 @@ function DateStandeeFrame({
         onClick={() => onOpenMember(rightMember)}
         className="absolute bottom-0 right-0 h-[92vh] w-72 2xl:w-96"
       />
-    </div>
-  );
-}
-
-function DateAudioControls() {
-  return (
-    <div
-      aria-label="Live date audio controls"
-      className="fixed left-4 top-4 z-40 flex items-center gap-2 lg:left-8 lg:top-6"
-    >
-      <MutedIndicator />
-      <AudioSettingsMenu align="left" />
     </div>
   );
 }

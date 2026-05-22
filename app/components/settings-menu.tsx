@@ -114,6 +114,7 @@ export function SettingsMenu({
   canExportSave,
   canUseDevMemberDetailsPreview,
   devRevealAllMemberDetails,
+  align = "right",
   onOpenAiSetup,
   onReset,
   onResetOrientation,
@@ -128,6 +129,7 @@ export function SettingsMenu({
   canExportSave: boolean;
   canUseDevMemberDetailsPreview: boolean;
   devRevealAllMemberDetails: boolean;
+  align?: "left" | "right";
   onOpenAiSetup: () => void;
   onReset: () => void;
   onResetOrientation: () => void;
@@ -354,6 +356,7 @@ export function SettingsMenu({
   const settingsLabel = hasAvailableUpdate
     ? `Settings. Update v${updateState.version} available.`
     : "Settings";
+  const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -377,7 +380,7 @@ export function SettingsMenu({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="aura-glass-strong absolute right-0 top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card"
+            className={`aura-glass-strong absolute ${popoverAlignmentClass} top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card`}
           >
             <SfxControls variant="menu" />
             <div className="mx-2 h-px bg-aura-hairline" />

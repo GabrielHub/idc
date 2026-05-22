@@ -90,7 +90,7 @@ export function AiSetupPanel({
   onClose: () => void;
 }) {
   const [draftConfig, setDraftConfig] = useState<GameConfig>(config);
-  const [draftGatewayKey, setDraftGatewayKey] = useState(gatewayApiKey);
+  const [pastedGatewayKey, setPastedGatewayKey] = useState("");
   const [activeProvider, setActiveProvider] = useState<AiProvider>(config.aiProvider);
   const [ollamaModels, setOllamaModels] = useState<OllamaModelSummary[]>([]);
   const [ollamaError, setOllamaError] = useState<string | null>(null);
@@ -125,10 +125,6 @@ export function AiSetupPanel({
     setDraftConfig(config);
     setActiveProvider(config.aiProvider);
   }, [config]);
-
-  useEffect(() => {
-    setDraftGatewayKey(gatewayApiKey);
-  }, [gatewayApiKey]);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -180,12 +176,12 @@ export function AiSetupPanel({
       activeDraftConfig.chatModel === verifiedConfig.chatModel &&
       activeDraftConfig.embeddingModel === verifiedConfig.embeddingModel &&
       activeDraftConfig.reasoningLevel === verifiedConfig.reasoningLevel;
-    const keyMatches =
-      activeProvider !== "gateway" || draftGatewayKey.trim() === gatewayApiKey.trim();
+    const keyMatches = activeProvider !== "gateway" || pastedGatewayKey.trim().length === 0;
 
     return configMatches && keyMatches;
-  }, [activeProvider, draftConfig, draftGatewayKey, gatewayApiKey, verifiedConfig]);
+  }, [activeProvider, draftConfig, pastedGatewayKey, verifiedConfig]);
   const displayedStatus = draftStatusMatchesVerifiedConfig ? status : DRAFT_PENDING_STATUS;
+  const hasStoredGatewayKey = gatewayApiKey.trim().length > 0;
 
   function updateDraft(nextConfig: Partial<GameConfig>) {
     setDraftConfig((current) => ({
@@ -206,6 +202,18 @@ export function AiSetupPanel({
       ...defaults,
       aiSetupComplete: false,
     }));
+  }
+
+  function activeRuntimeConfig(aiSetupComplete = draftConfig.aiSetupComplete): GameConfig {
+    return {
+      ...lockAiProviderBaseUrlsForRuntime(draftConfig),
+      aiProvider: activeProvider,
+      reasoningLevel:
+        activeProvider === "gateway"
+          ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
+          : draftConfig.reasoningLevel,
+      aiSetupComplete,
+    };
   }
 
   async function scanOllama() {
@@ -235,17 +243,11 @@ export function AiSetupPanel({
     setSaveHint(null);
 
     try {
-      const pendingConfig = {
-        ...lockAiProviderBaseUrlsForRuntime(draftConfig),
-        aiProvider: activeProvider,
-        reasoningLevel:
-          activeProvider === "gateway"
-            ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
-            : draftConfig.reasoningLevel,
-        aiSetupComplete: false,
-      };
-      await onSave(pendingConfig, draftGatewayKey);
-      const checkedStatus = await onCheck(pendingConfig, draftGatewayKey);
+      const pendingConfig = activeRuntimeConfig(false);
+      const effectiveKey = effectiveGatewayKey();
+
+      await onSave(pendingConfig, effectiveKey);
+      const checkedStatus = await onCheck(pendingConfig, effectiveKey);
 
       if (checkedStatus.status !== "ready") {
         setSaveHint(
@@ -259,7 +261,7 @@ export function AiSetupPanel({
         aiSetupComplete: true,
       };
       setDraftConfig(completeConfig);
-      await onSave(completeConfig, draftGatewayKey);
+      await onSave(completeConfig, effectiveKey);
       onClose();
     } catch (error) {
       setSaveError(errorToMessage(error) || "Cupid could not save the AI setup.");
@@ -275,20 +277,37 @@ export function AiSetupPanel({
 
     setIsVerifying(true);
     try {
-      await onCheck(
-        lockAiProviderBaseUrlsForRuntime({
-          ...draftConfig,
-          aiProvider: activeProvider,
-          reasoningLevel:
-            activeProvider === "gateway"
-              ? gatewayLockedReasoningLevelForModel(draftConfig.chatModel)
-              : draftConfig.reasoningLevel,
-        }),
-        draftGatewayKey,
-      );
+      await onCheck(activeRuntimeConfig(), effectiveGatewayKey());
     } finally {
       setIsVerifying(false);
     }
+  }
+
+  async function clearStoredGatewayKey() {
+    if (isSaving || isVerifying) {
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    setSaveHint(null);
+
+    try {
+      const pendingConfig = activeRuntimeConfig(false);
+
+      await onSave(pendingConfig, "");
+      setDraftConfig(pendingConfig);
+      setPastedGatewayKey("");
+      setSaveHint("Saved Gateway key removed. Paste a new key before booking Gateway dates.");
+    } catch (error) {
+      setSaveError(errorToMessage(error) || "Cupid could not remove the Gateway key.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function effectiveGatewayKey(): string {
+    return pastedGatewayKey.trim().length > 0 ? pastedGatewayKey : gatewayApiKey;
   }
 
   const busy = isActionPending || isSaving || isVerifying;
@@ -356,7 +375,8 @@ export function AiSetupPanel({
             ) : (
               <GatewaySetupTab
                 config={draftConfig}
-                gatewayApiKey={draftGatewayKey}
+                pastedGatewayKey={pastedGatewayKey}
+                hasStoredGatewayKey={hasStoredGatewayKey}
                 isUrlLocked={isProviderUrlLocked}
                 isSaving={isSaving}
                 isVerifying={isVerifying}
@@ -364,7 +384,8 @@ export function AiSetupPanel({
                 saveError={saveError}
                 saveHint={saveHint}
                 onConfig={updateDraft}
-                onGatewayApiKey={setDraftGatewayKey}
+                onPastedGatewayKey={setPastedGatewayKey}
+                onClearGatewayApiKey={clearStoredGatewayKey}
                 onSaveAndCheck={saveAndCheck}
                 onVerify={verifyOnly}
               />
@@ -557,7 +578,7 @@ function StatusCard({
 function footerCopyFor(provider: AiProvider, isUrlLocked: boolean): string {
   if (provider === "gateway") {
     return isUrlLocked
-      ? "Desktop stores the Gateway key as plaintext in app local data outside saves. Saving a blank key removes it. Gateway sends date prompts, context, transcripts, and retrieved memories off this device."
+      ? "Desktop stores the Gateway key in the OS credential store outside saves. Gateway sends date prompts, context, transcripts, and retrieved memories off this device."
       : "Browser dev stores the Gateway key in localStorage. Gateway sends date prompts, context, transcripts, and retrieved memories off this device.";
   }
   return isUrlLocked

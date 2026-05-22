@@ -1,12 +1,10 @@
-import { BaseDirectory, mkdir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 
 import { detectRuntimePlatform, type RuntimePlatform } from "../../platform/runtime";
 
 export const GATEWAY_API_KEY_STORAGE_KEY = "idc.cupid.aiGatewayKey";
-export const TAURI_GATEWAY_API_KEY_DIR = "secrets";
-export const TAURI_GATEWAY_API_KEY_FILE_PATH = `${TAURI_GATEWAY_API_KEY_DIR}/gateway-api-key.txt`;
-
-const MISSING_FILE_PATTERN = /No such file|os error [23]|not found/i;
+export const DESKTOP_GATEWAY_API_KEY_STORAGE_LABEL = "OS credential store";
+export const LEGACY_TAURI_GATEWAY_API_KEY_FILE_PATH = "secrets/gateway-api-key.txt";
 
 export interface GatewayApiKeyStore {
   read(): Promise<string>;
@@ -79,50 +77,29 @@ export class BrowserLocalStorageGatewayApiKeyStore implements GatewayApiKeyStore
   }
 }
 
-export class TauriAppLocalDataGatewayApiKeyStore implements GatewayApiKeyStore {
-  private secretDirEnsured = false;
+export class TauriCredentialGatewayApiKeyStore implements GatewayApiKeyStore {
+  private legacyMigrationAttempted = false;
 
   async read(): Promise<string> {
-    try {
-      return await readTextFile(TAURI_GATEWAY_API_KEY_FILE_PATH, {
-        baseDir: BaseDirectory.AppLocalData,
-      });
-    } catch (error) {
-      if (isMissingFileError(error)) {
-        return "";
-      }
-      throw error;
-    }
+    await this.migrateLegacyPlaintextKey();
+    return invoke<string>("read_gateway_api_key");
   }
 
   async write(value: string): Promise<void> {
-    await this.ensureSecretDir();
-    await writeTextFile(TAURI_GATEWAY_API_KEY_FILE_PATH, value, {
-      baseDir: BaseDirectory.AppLocalData,
-    });
+    await invoke("write_gateway_api_key", { value });
   }
 
   async delete(): Promise<void> {
-    try {
-      await remove(TAURI_GATEWAY_API_KEY_FILE_PATH, { baseDir: BaseDirectory.AppLocalData });
-    } catch (error) {
-      if (isMissingFileError(error)) {
-        return;
-      }
-      throw error;
-    }
+    await invoke("delete_gateway_api_key");
   }
 
-  private async ensureSecretDir(): Promise<void> {
-    if (this.secretDirEnsured) {
+  private async migrateLegacyPlaintextKey(): Promise<void> {
+    if (this.legacyMigrationAttempted) {
       return;
     }
 
-    await mkdir(TAURI_GATEWAY_API_KEY_DIR, {
-      baseDir: BaseDirectory.AppLocalData,
-      recursive: true,
-    });
-    this.secretDirEnsured = true;
+    await invoke("migrate_legacy_gateway_api_key");
+    this.legacyMigrationAttempted = true;
   }
 }
 
@@ -132,7 +109,7 @@ export function createGatewayApiKeyStore(
   const platform = options.platform ?? detectRuntimePlatform();
 
   if (platform === "tauri") {
-    const tauriStore = options.tauriStore ?? new TauriAppLocalDataGatewayApiKeyStore();
+    const tauriStore = options.tauriStore ?? new TauriCredentialGatewayApiKeyStore();
     const legacyBrowserStore =
       options.legacyBrowserStore ??
       options.browserStore ??
@@ -145,11 +122,7 @@ export function createGatewayApiKeyStore(
 }
 
 export async function readStoredGatewayApiKey(store = createGatewayApiKeyStore()): Promise<string> {
-  try {
-    return normalizeSecret(await store.read()) ?? "";
-  } catch {
-    return "";
-  }
+  return normalizeSecret(await store.read()) ?? "";
 }
 
 export async function storeGatewayApiKey(
@@ -205,16 +178,4 @@ class MigratingGatewayApiKeyStore implements GatewayApiKeyStore {
 function normalizeSecret(value: string): string | undefined {
   const trimmed = value.trim();
   return trimmed.length === 0 ? undefined : trimmed;
-}
-
-function isMissingFileError(error: unknown): boolean {
-  if (typeof error === "string") {
-    return MISSING_FILE_PATTERN.test(error);
-  }
-
-  if (error instanceof Error) {
-    return MISSING_FILE_PATTERN.test(error.message);
-  }
-
-  return false;
 }

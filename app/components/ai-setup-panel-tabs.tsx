@@ -147,7 +147,8 @@ export function OllamaSetupTab({
 
 export function GatewaySetupTab({
   config,
-  gatewayApiKey,
+  pastedGatewayKey,
+  hasStoredGatewayKey,
   isUrlLocked,
   isSaving,
   isVerifying,
@@ -155,12 +156,14 @@ export function GatewaySetupTab({
   saveError,
   saveHint,
   onConfig,
-  onGatewayApiKey,
+  onPastedGatewayKey,
+  onClearGatewayApiKey,
   onSaveAndCheck,
   onVerify,
 }: {
   config: GameConfig;
-  gatewayApiKey: string;
+  pastedGatewayKey: string;
+  hasStoredGatewayKey: boolean;
   isUrlLocked: boolean;
   isSaving: boolean;
   isVerifying: boolean;
@@ -168,17 +171,19 @@ export function GatewaySetupTab({
   saveError: string | null;
   saveHint: string | null;
   onConfig: (config: Partial<GameConfig>) => void;
-  onGatewayApiKey: (value: string) => void;
+  onPastedGatewayKey: (value: string) => void;
+  onClearGatewayApiKey: () => void;
   onSaveAndCheck: () => void;
   onVerify: () => void;
 }) {
   const endpointDescription = isUrlLocked
     ? `Desktop uses the fixed Vercel AI Gateway endpoint: ${DEFAULT_GATEWAY_BASE_URL}.`
     : "Browser dev uses this Gateway URL and keeps the key in localStorage.";
-  const keyPlaceholder = isUrlLocked ? "Plaintext app local data" : "Browser localStorage for dev";
-  const storageTrustCopy = isUrlLocked
-    ? `${DESKTOP_GATEWAY_KEY_STORAGE} Wiping a save leaves it in place. Saving a blank key removes it.`
-    : BROWSER_GATEWAY_KEY_STORAGE;
+  const keyPlaceholder = hasStoredGatewayKey ? "Paste new key to rotate" : "Paste Gateway key";
+  const baseStorageCopy = isUrlLocked ? DESKTOP_GATEWAY_KEY_STORAGE : BROWSER_GATEWAY_KEY_STORAGE;
+  const storageLocation = isUrlLocked ? "the OS credential store" : "browser localStorage";
+  const storageTrustCopy = `${baseStorageCopy} Wiping a save leaves it in place. Use Remove saved key to delete it.`;
+  const hasPastedKey = pastedGatewayKey.trim().length > 0;
   const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === config.chatModel);
   const lockedReasoningLevel = selectedModel?.recommendedReasoningLevel ?? "off";
 
@@ -192,8 +197,8 @@ export function GatewaySetupTab({
               Paste the Vercel AI Gateway key
             </h3>
             <p className="text-body leading-relaxed text-aura-muted">
-              Use the key from Vercel. Cupid saves it, then checks that date simulation can reach
-              Gateway.
+              Use the key from Vercel. Cupid saves it in {storageLocation}, then checks that date
+              simulation can reach Gateway.
             </p>
           </div>
           <span className="rounded-pill bg-aura-ink px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">
@@ -205,15 +210,20 @@ export function GatewaySetupTab({
           <TextInput
             label="api key"
             type="password"
-            value={gatewayApiKey}
+            value={pastedGatewayKey}
             placeholder={keyPlaceholder}
             prominence="primary"
-            onChange={onGatewayApiKey}
+            onChange={onPastedGatewayKey}
           />
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <GhostButton disabled={busy} onClick={onVerify}>
-              {isVerifying ? "Verifying" : "Verify saved key"}
+              {isVerifying ? "Verifying" : hasPastedKey ? "Verify pasted key" : "Verify saved key"}
             </GhostButton>
+            {hasStoredGatewayKey ? (
+              <GhostButton disabled={busy} onClick={onClearGatewayApiKey}>
+                Remove saved key
+              </GhostButton>
+            ) : null}
             <PrimaryButton disabled={busy} onClick={onSaveAndCheck}>
               {isSaving ? "Verifying" : "Save and verify"}
             </PrimaryButton>
@@ -221,8 +231,9 @@ export function GatewaySetupTab({
         </div>
 
         <p className="mt-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
-          Saving a blank key removes the stored key. Cupid will not book dates until this desk
-          verifies.
+          {hasStoredGatewayKey
+            ? `A saved key is already in ${storageLocation}. Paste a replacement only when rotating keys.`
+            : "Cupid will not book Gateway dates until this desk verifies."}
         </p>
         <SetupFeedback className="mt-3" saveError={saveError} saveHint={saveHint} />
       </section>

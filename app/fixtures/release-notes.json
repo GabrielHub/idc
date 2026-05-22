@@ -1,5 +1,35 @@
 [
   {
+    "version": "1.0.2",
+    "date": "2026-05-22",
+    "headline": "Cupid moves Gateway keys into the OS vault.",
+    "summary": "Desktop test alpha. Moves Vercel AI Gateway keys from app-local plaintext into the OS credential store, preserves legacy key migration, and keeps live-date shell controls available from one chrome.",
+    "sections": [
+      {
+        "title": "Gateway storage",
+        "items": [
+          "Desktop builds now store Vercel AI Gateway keys in the OS credential store instead of a plaintext app-local data file.",
+          "Older desktop plaintext keys migrate from secrets/gateway-api-key.txt into the credential store on first read, then Cupid removes the legacy file.",
+          "AI setup now treats saved Gateway keys as write-only credentials: paste a replacement to rotate, verify the saved key, or use Remove saved key to delete it."
+        ]
+      },
+      {
+        "title": "Desktop shell",
+        "items": [
+          "Live dates use the shared shell chrome so punch out, mute, AI setup, and Settings remain reachable without a separate audio control overlay.",
+          "Settings popovers now align to the active chrome position, keeping the menu usable in both normal rooms and the live-date view."
+        ]
+      },
+      {
+        "title": "Docs and safeguards",
+        "items": [
+          "The desktop install guide and README now describe OS credential-store behavior, uninstall expectations, and the legacy plaintext migration path.",
+          "Gateway key read failures now surface as setup errors instead of silently clearing the key, so credential-store problems are visible before booking dates."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.1",
     "date": "2026-05-21",
     "headline": "Cupid promotes the lead ask desk and opens the Aegis case file.",

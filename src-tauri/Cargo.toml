@@ -1,6 +1,6 @@
 [package]
 name = "idc"
-version = "1.0.1"
+version = "1.0.2"
 description = "Interdimensional Dating Coach desktop alpha shell"
 authors = ["IDC team"]
 edition = "2021"
@@ -25,3 +25,4 @@ tauri-plugin-fs = "2"
 tauri-plugin-http = "2"
 tauri-plugin-process = "2"
 tauri-plugin-updater = "2"
+keyring = "3.6.3"

@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions for the IDC: Cupid desktop window. Filesystem is scoped to saves and Gateway key storage under app local data. HTTP is scoped to local Ollama and the default Vercel AI Gateway URL.",
+  "description": "Permissions for the IDC: Cupid desktop window. Filesystem is scoped to saves under app local data. Gateway keys use the OS credential store. HTTP is scoped to local Ollama and the default Vercel AI Gateway URL.",
   "windows": ["main"],
   "permissions": [
     "core:default",
@@ -15,12 +15,7 @@
     "process:allow-restart",
     {
       "identifier": "fs:scope",
-      "allow": [
-        { "path": "$APPLOCALDATA/saves" },
-        { "path": "$APPLOCALDATA/saves/**" },
-        { "path": "$APPLOCALDATA/secrets" },
-        { "path": "$APPLOCALDATA/secrets/**" }
-      ]
+      "allow": [{ "path": "$APPLOCALDATA/saves" }, { "path": "$APPLOCALDATA/saves/**" }]
     },
     {
       "identifier": "http:default",

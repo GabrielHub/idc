@@ -74,7 +74,7 @@ AI setup runs in app, not in a server route. The setup panel lets the player cho
 
 The implementation uses AI SDK v6 `createGateway` from `ai` for Vercel AI Gateway. The old OpenAI-compatible provider path is only supported as a saved default URL migration.
 
-There is no `AI_GATEWAY_API_KEY` fallback. Gateway keys are entered by the player and passed explicitly to `createGateway`, then stored outside the game save. Browser builds use a localStorage key. Desktop builds use `secrets/gateway-api-key.txt` under the Tauri app local data directory and migrate any older browser-storage key into that file.
+There is no `AI_GATEWAY_API_KEY` fallback. Gateway keys are entered by the player and passed explicitly to `createGateway`, then stored outside the game save. Browser builds use a localStorage key. Desktop builds use the OS credential store and migrate older desktop plaintext keys from `secrets/gateway-api-key.txt` into that store on first read.
 
 Desktop builds lock provider base URLs to the Tauri HTTP scope: localhost Ollama and the default Vercel AI Gateway URL. Custom provider hosts need a build with an updated desktop scope.
 

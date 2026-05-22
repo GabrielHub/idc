@@ -108,11 +108,11 @@ export const sections: DocSectionEntry[] = [
                 <DocCode>zai/glm-4.7-flash</DocCode>, and <DocCode>openai/gpt-5.4-nano</DocCode>.
               </span>,
               <span key="storage">
-                The key is stored as a plaintext file in app local data on this device, outside save
-                files. It is not encrypted and not in the OS keychain. Treat the device as the trust
-                boundary. Wiping a save leaves the key in place at runtime, and updating the app
-                preserves it. Uninstalling the app wipes the key along with the rest of app data.
-                Saving a blank key removes it.
+                The key is stored in the OS credential store on this device, outside save files and
+                outside the desktop renderer filesystem scope. Treat the signed app and the device
+                account as the trust boundary. Wiping a save leaves the key in place at runtime, and
+                updating the app preserves it. Use Remove saved key in AI setup before uninstalling
+                if you want Cupid to delete the credential entry.
               </span>,
               <span key="reason">
                 Gateway reasoning is locked per model so date behavior stays comparable. DeepSeek V4
@@ -226,8 +226,9 @@ export const sections: DocSectionEntry[] = [
           previous save as a backup when it can.
         </P>
         <P>
-          Gateway key storage lives under the same app local data root in{" "}
-          <DocCode>secrets/gateway-api-key.txt</DocCode>. It is not part of the save backup path.
+          Gateway key storage lives in the OS credential store, not the save folder. Current builds
+          migrate older plaintext keys from <DocCode>secrets/gateway-api-key.txt</DocCode> into the
+          credential store on first read, then remove the plaintext file.
         </P>
       </>
     ),
@@ -239,9 +240,10 @@ export const sections: DocSectionEntry[] = [
       <DocList
         items={[
           <span key="win">
-            <Strong>Windows:</Strong> Settings, Apps, IDC, Uninstall. The uninstaller wipes the
-            entire app data directory: saves, logs, Gateway key, and WebView2 cache. Back up{" "}
-            <DocCode>%LOCALAPPDATA%\dev.idc.cupid\saves\</DocCode> first if you want to keep a save.
+            <Strong>Windows:</Strong> Settings, Apps, IDC, Uninstall. The uninstaller wipes app data
+            such as saves, logs, and WebView2 cache. The Gateway key is an OS credential entry; use
+            Remove saved key in AI setup first if you want Cupid to delete it. Back up{" "}
+            <DocCode>%LOCALAPPDATA%\dev.idc.cupid\saves\</DocCode> if you want to keep a save.
           </span>,
           <span key="mac">
             <Strong>macOS:</Strong> drag IDC.app to Trash. The Application Support directory is
@@ -266,7 +268,7 @@ export const sections: DocSectionEntry[] = [
           installs an update without you choosing Install.
         </P>
         <P>
-          Updates preserve app local data, including saves and the Gateway key. Alpha saves are
+          Updates preserve app local data and the OS credential-store Gateway key. Alpha saves are
           still schema-bound. If the new build cannot read an older save, Cupid backs it up as a{" "}
           <DocCode>.bak.*</DocCode> file and starts a fresh save.
         </P>
@@ -290,8 +292,8 @@ export const sections: DocSectionEntry[] = [
           <span key="gateway">
             <Strong>Gateway route:</Strong> prompts, character context, date transcripts, and any
             retrieved memories are sent to <DocCode>https://ai-gateway.vercel.sh/v3/ai</DocCode> and
-            forwarded to the model provider Cupid is configured to use. The Gateway key is the trust
-            boundary.
+            forwarded to the model provider Cupid is configured to use. The app retrieves the
+            Gateway key from the OS credential store when it needs to make those requests.
           </span>,
           <span key="saves">
             <Strong>Saves:</Strong> local files. Cupid does not phone home and there is no
@@ -339,7 +341,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             "Unsigned builds. You will see SmartScreen and Gatekeeper warnings until the team ships signed releases.",
             "Custom Ollama or Gateway hostnames are not supported. The desktop HTTP scope is fixed to localhost Ollama and the default Vercel AI Gateway. Custom hosts need a build with an updated scope.",
-            "Gateway keys are plaintext on disk under app local data. Anyone with file access on this device can read them. There is no OS keychain integration in the alpha.",
+            "Gateway keys are stored in the OS credential store, but a compromised renderer or compromised device account can still misuse the key while Cupid is running.",
             "The playground route is not present in desktop builds. It only exists in the browser dev shell.",
             "Update checks require access to public GitHub release assets.",
           ]}
