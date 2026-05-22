@@ -48,9 +48,11 @@ const ROOM_READ_TONE: Record<ScenarioRoomRead, string> = {
 };
 
 const ROOM_READ_TOOLTIP: Record<ScenarioRoomRead, string> = {
-  steady: "This room reads steady for the committed pair. A workmanlike booking.",
-  promising: "This room reads promising for the committed pair. Strong booking texture.",
-  volatile: "This room reads volatile for the committed pair. Booking is a real risk.",
+  steady: "Tests low-pressure rapport. Comfort and repair reads fit here. Spark may not surface.",
+  promising:
+    "Tests whether the pair clears a booking line. Spark and swing reads fit here. Comfort risks reading flat.",
+  volatile:
+    "Tests under pressure. Surface and swing reads fit here. Comfort is a stretch the room may not give.",
 };
 
 export type ScenarioCardState = "default" | "selected" | "disabled";

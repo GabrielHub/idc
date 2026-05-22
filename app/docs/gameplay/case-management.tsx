@@ -40,7 +40,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             <span key="save">
               The save owns <DocCode>focusedMemberIds</DocCode>, capped at 4. Onboarding requires
-              exactly 4 selected from the 40 active members; closures free a slot.{" "}
+              exactly 4 selected from the 47 active members; closures free a slot.{" "}
               <DocCode>app/services/focus-cases.ts</DocCode> exposes{" "}
               <DocCode>selectInitialFocusCases</DocCode>, <DocCode>addFocusCase</DocCode>,{" "}
               <DocCode>removeFocusCase</DocCode>, and <DocCode>swapFocusCase</DocCode>. The shift's{" "}
@@ -80,8 +80,7 @@ export const sections: DocSectionEntry[] = [
           cooldown.
         </P>
         <P>
-          Each active shift also persists <DocCode>availablePartnerMemberIds</DocCode>, the
-          10-member
+          Each active shift also persists <DocCode>availablePartnerMemberIds</DocCode>, the 8-member
           <Strong>Tonight&apos;s Roster</Strong>. This is a logistics board, not a match verdict:
           member availability comes from authored scheduling profiles, shift rhythm, recent Cupid
           activity, and current member state. Focus cases are the case desk and cannot appear as
@@ -148,7 +147,8 @@ export const sections: DocSectionEntry[] = [
           (covered / raised / missed / ignored) covering every request on the shift roster, for
           audit and report copy. Legacy reports that only persisted{" "}
           <DocCode>ignoredRequestIds</DocCode> are still readable and fall back to per-request
-          averaging. The budget review's asks-honored rate scores the lead ask for each shift:
+          averaging; archived UI labels those rows as legacy instead of inventing a retrospective
+          lead ask. The budget review's lead-asks-honored rate scores the lead ask for each shift:
           covered at <Strong>1.0</Strong>, raised at <Strong>0.75</Strong>, missed at{" "}
           <Strong>0.5</Strong>, and ignored at <Strong>0</Strong>. Background queue cases do not
           count against the budget cap. The current shift's just-filed report is included in its own
@@ -167,17 +167,74 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "planning-canvas",
+    title: "Planning canvas",
+    body: (
+      <>
+        <P>
+          The planning canvas anchors each shift on a single sentence: tonight, Cupid is trying to
+          help <Strong>{`<member>`}</Strong> with <Strong>{`<ask>`}</Strong> by booking{" "}
+          <Strong>{`<partner>`}</Strong> in <Strong>{`<room>`}</Strong> because{" "}
+          <Strong>{`<intent>`}</Strong>. The UI surfaces that sentence one slot at a time so the
+          operations layer reads as matchmaking infrastructure instead of the actual game.
+        </P>
+        <P>
+          The <Strong>Lead ask banner</Strong> in{" "}
+          <DocCode>app/components/pre-date-canvas-lead-ask.tsx</DocCode> renders directly under the
+          shift header and stays visible through every planning step. It pulls{" "}
+          <DocCode>activeFocusRequest</DocCode> off the focused member and compares its id to{" "}
+          <DocCode>deriveHotRequestId(shift)</DocCode> to decide between the{" "}
+          <Strong>lead ask</Strong> and <Strong>queued ask</Strong> pills. Goals continue to live in
+          the collapsible <DocCode>ShiftBriefDock</DocCode>, which no longer hides the ask behind a
+          toggle.
+        </P>
+        <P>
+          The <Strong>Intent step</Strong> in{" "}
+          <DocCode>app/components/pre-date-canvas-steps.tsx</DocCode> asks the player to commit to a
+          read of the booking. It is optional and stores onto the active booking as{" "}
+          <DocCode>matchmakingIntent</DocCode> (one of <DocCode>comfort</DocCode>,{" "}
+          <DocCode>spark</DocCode>, <DocCode>surface</DocCode>, <DocCode>repair</DocCode>,{" "}
+          <DocCode>swing</DocCode>). The chosen intent is copied onto the session at start time so
+          the date engine can read it at finalize time without consulting the shift.
+        </P>
+        <P>
+          <DocCode>finalizeDateSession</DocCode> in <DocCode>app/services/date-engine.ts</DocCode>{" "}
+          stamps both <DocCode>matchmakingIntent</DocCode> and <DocCode>intentOutcome</DocCode>{" "}
+          (supported / mixed / unsupported) on the <DocCode>DateFinalReport</DocCode> via{" "}
+          <DocCode>deriveIntentOutcome</DocCode> in{" "}
+          <DocCode>app/services/matchmaking-intent.ts</DocCode>. The derivation is deterministic and
+          depends on the outcome, the final date health, and the judge snapshots'{" "}
+          <DocCode>statDeltas</DocCode> for strain and conflict. The footer derives the echo line
+          (e.g. "Cupid booked this as a comfort read. The room supported that read.") at render time
+          via <DocCode>intentEchoLine</DocCode>, so label wording stays editable without touching
+          saved reports.
+        </P>
+        <P>
+          The <Strong>FinalReportFooter</Strong> in{" "}
+          <DocCode>app/components/date-view-final-report.tsx</DocCode> leads with people-first
+          content: the focus member's <DocCode>recentDateResult</DocCode> as the case line, the
+          intent echo as the secondary line, then the LLM-written summary, then the deterministic{" "}
+          <DocCode>statSummary</DocCode> at the bottom in muted style. Filed reads and follow-up
+          choices stay in the remaining two columns. Operational deltas are still on the screen, but
+          they no longer lead.
+        </P>
+      </>
+    ),
+  },
+  {
     id: "deck",
     title: "Deck and draws",
     body: (
       <P>
-        The deck is a save-owned budget allocation of 6 to 12 cards, not a shift-owned hand. A shift
-        starts without a hand. When the player commits a focus case and partner, Cupid stores an
-        active booking on the shift, snapshots the current deck budget, reserves the shift date
-        slot, and draws 3 cards into <DocCode>shift.drawnScenarioIds</DocCode>. Playing a card does
-        not remove it from the deck or open a replacement slot. Date Book edits add or drop cards
-        against the current budget cap and are locked while an active booking or date session
-        exists. See the deck service in <DocCode>app/services/deck.ts</DocCode>.
+        The deck is a save-owned budget allocation of 6 to 12 cards, not a shift-owned hand.
+        Onboarding installs a minimum-size starter deck for shift 1, and Date Book editing unlocks
+        after the first date report. A shift starts without a hand. When the player commits a focus
+        case and partner, Cupid stores an active booking on the shift, snapshots the current deck
+        budget, reserves the shift date slot, and draws 3 cards into{" "}
+        <DocCode>shift.drawnScenarioIds</DocCode>. Playing a card does not remove it from the deck
+        or open a replacement slot. Date Book edits add or drop cards against the current budget cap
+        and are locked while an active booking or date session exists. See the deck service in{" "}
+        <DocCode>app/services/deck.ts</DocCode>.
       </P>
     ),
   },

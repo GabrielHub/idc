@@ -23,6 +23,7 @@ import {
   type GoalMetric,
   type GoalScoreStatus,
   type JudgeSnapshot,
+  type MatchmakingIntent,
   type Member,
   type MemoryRecord,
   type PairState,
@@ -47,6 +48,7 @@ import {
 } from "./game-seed";
 import { getPairProjectionFromSave, materializePairEdge } from "./relationship-index";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, type MatchFitResult } from "./match-fit";
+import { deriveIntentOutcome } from "./matchmaking-intent";
 import {
   applyJudgeReveals,
   buildRevealCandidates,
@@ -174,6 +176,7 @@ const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDelta
 export type CommitDateBookingInput = {
   focusMemberId: string;
   partnerMemberId: string;
+  matchmakingIntent?: MatchmakingIntent;
   now?: Date;
 };
 
@@ -296,6 +299,7 @@ export function commitDateBooking(
     },
     drawnScenarioIds: drawnTuple,
     committedAt: timestamp,
+    matchmakingIntent: input.matchmakingIntent,
   });
 
   const updatedShift = shiftStateSchema.parse({
@@ -442,6 +446,7 @@ export function startDateSessionFromBooking(
     playbackState: initialPlaybackState,
     endSentiment: null,
     interventions: [],
+    matchmakingIntent: booking.matchmakingIntent,
   });
   const updatedBooking = activeDateBookingSchema.parse({
     ...booking,
@@ -1363,6 +1368,16 @@ export function completeShift(
   }
 
   const completedDates = shiftDateSessions.filter((session) => session.status !== "active");
+  const pendingFollowUps = completedDates.filter(
+    (session) =>
+      session.finalReport !== undefined && session.finalReport.appliedFollowUp === undefined,
+  );
+
+  if (pendingFollowUps.length > 0) {
+    throw new Error("File a follow-up for every completed date before ending the shift.");
+  }
+
+  const skipped = completedDates.length === 0;
   const earlyEndedDates = completedDates.filter((session) => session.status === "ended_early");
   const requestAssessment = assessShiftRequests({ shift: activeShift, completedDates });
   const goalMetrics = buildShiftGoalMetrics({
@@ -1397,6 +1412,7 @@ export function completeShift(
       id: `report-${activeShift.id}`,
       shiftId: activeShift.id,
       completedAt: timestamp,
+      skipped,
       completedDates: completedDates.length,
       earlyEndedDates: earlyEndedDates.length,
       ordinaryNonHumanDates: goalMetrics.ordinaryNonHumanDates,
@@ -1404,11 +1420,13 @@ export function completeShift(
       goalResults,
       requestOutcomes: Object.fromEntries(requestAssessment.outcomes),
       offeredScenarioIds: [],
-      summary: buildShiftSummary(
-        completedDates.length,
-        earlyEndedDates.length,
-        goalMetrics.memberMoodDelta,
-      ),
+      summary: buildShiftSummary({
+        completedDates: completedDates.length,
+        earlyEndedDates: earlyEndedDates.length,
+        memberMoodDelta: goalMetrics.memberMoodDelta,
+        skipped,
+        leadOutcome: requestAssessment.leadOutcome,
+      }),
       hrNote: buildShiftHrNote({
         completedDates,
         hotOutcome: requestAssessment.leadOutcome,
@@ -2199,6 +2217,10 @@ export function finalizeDateSession({
     completedDateCount,
     members,
   });
+  const intentOutcome =
+    session.matchmakingIntent === undefined
+      ? undefined
+      : deriveIntentOutcome({ intent: session.matchmakingIntent, outcome, session });
   const report: DateFinalReport = dateFinalReportSchema.parse({
     id: `final-${session.id}`,
     dateSessionId: session.id,
@@ -2208,6 +2230,8 @@ export function finalizeDateSession({
     statSummary: closureNearMiss
       ? closureNearMissCaseSummary(pairState)
       : finalReportCaseSummary(outcome),
+    matchmakingIntent: session.matchmakingIntent,
+    intentOutcome,
     recommendedFollowUp,
     memoryRecordIds: memoryRecordIds ?? [
       `memory-${session.id}-pair`,
@@ -2867,17 +2891,41 @@ function resolveFollowUpEffects(
     };
   }
 
-  const protective = outcome === "bad_fit" || outcome === "early_end" || highStrain;
-  if (protective) reasons.push("protective bad fit filing");
-  else reasons.push("premature bad fit filing");
+  if (action === "mark_bad_fit") {
+    const protective = outcome === "bad_fit" || outcome === "early_end" || highStrain;
+    if (protective) reasons.push("protective bad fit filing");
+    else reasons.push("premature bad fit filing");
+
+    return {
+      statDeltas: protective
+        ? { chemistry: -8, trust: -1, stability: 5, conflict: -3, spark: -10 }
+        : { chemistry: -6, trust: -3, stability: 1, conflict: 4, spark: -8 },
+      memberDeltas: protective
+        ? { retention: 7, mood: 1, burnout: -2 }
+        : { retention: -3, mood: -2, burnout: 2 },
+      reasons,
+    };
+  }
+
+  const missedRepair = boundaryPressure || brokenAgreementCount > 0 || highStrain;
+  const missedWarmth = outcome === "second_date";
+  const openLoopsLingering = openLoopCount > 0;
+  if (missedRepair) reasons.push("strain left unaddressed");
+  else if (missedWarmth) reasons.push("warmth left on the table");
+  else if (openLoopsLingering) reasons.push("open loops untouched");
+  else reasons.push("filed without action");
 
   return {
-    statDeltas: protective
-      ? { chemistry: -8, trust: -1, stability: 5, conflict: -3, spark: -10 }
-      : { chemistry: -6, trust: -3, stability: 1, conflict: 4, spark: -8 },
-    memberDeltas: protective
-      ? { retention: 7, mood: 1, burnout: -2 }
-      : { retention: -3, mood: -2, burnout: 2 },
+    statDeltas: missedRepair
+      ? { chemistry: -3, trust: -2, stability: -3, conflict: 3, spark: -2 }
+      : missedWarmth
+        ? { chemistry: -2, trust: -1, stability: -1, spark: -4 }
+        : { chemistry: -1, trust: -1, stability: -1, conflict: 1, spark: -1 },
+    memberDeltas: missedRepair
+      ? { retention: -3, mood: -2, burnout: 1 }
+      : missedWarmth
+        ? { retention: -2, mood: -1, burnout: 1 }
+        : { retention: -1, mood: -1, burnout: 1 },
     reasons,
   };
 }
@@ -2946,6 +2994,19 @@ function sessionBelongsToShift(session: DateSession, shiftNumber: number): boole
 function hasActiveDateInShift(save: GameSave, shiftNumber: number): boolean {
   return save.dateSessions.some(
     (session) => sessionBelongsToShift(session, shiftNumber) && session.status === "active",
+  );
+}
+
+export function pendingFollowUpSessionsForShift(
+  save: GameSave,
+  shiftNumber: number,
+): DateSession[] {
+  return save.dateSessions.filter(
+    (session) =>
+      sessionBelongsToShift(session, shiftNumber) &&
+      session.status !== "active" &&
+      session.finalReport !== undefined &&
+      session.finalReport.appliedFollowUp === undefined,
   );
 }
 
@@ -3034,11 +3095,27 @@ export function exchangeIndexForPendingTurn(
   return exchangeIndexForTurn(firstCharacterMessage.turnIndex);
 }
 
-function buildShiftSummary(
-  completedDates: number,
-  earlyEndedDates: number,
-  memberMoodDelta: number,
-): string {
+function buildShiftSummary({
+  completedDates,
+  earlyEndedDates,
+  memberMoodDelta,
+  skipped,
+  leadOutcome,
+}: {
+  completedDates: number;
+  earlyEndedDates: number;
+  memberMoodDelta: number;
+  skipped: boolean;
+  leadOutcome: ShiftRequestAskOutcome | undefined;
+}): string {
+  if (skipped) {
+    const leadLine =
+      leadOutcome === "ignored"
+        ? "Lead ask sat; mood penalty applied."
+        : "No lead ask penalty applied.";
+    return `Roster skipped. ${leadLine} Member Mood delta ${memberMoodDelta}. Filing.`;
+  }
+
   const completedLabel = completedDates === 1 ? "date" : "dates";
   return `${completedDates} ${completedLabel} completed. ${earlyEndedDates} ended early. Member Mood delta ${memberMoodDelta}. Filing.`;
 }

@@ -36,6 +36,7 @@ export type ShiftAskDeskEntry = {
   requestText: string;
   outcome: ShiftRequestAskOutcome;
   outcomeLabel: string;
+  bucketLabel: "lead ask" | "queue" | "legacy";
   isLead: boolean;
 };
 
@@ -87,6 +88,8 @@ export function buildShiftAskDeskEntries({
   }
 
   const leadRequestId = deriveHotRequestId(shift);
+  const hasCurrentOutcomes = Object.keys(report.requestOutcomes).length > 0;
+  const legacyIgnoredIds = new Set(report.ignoredRequestIds);
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   const requestById = new Map(memberRequests.map((request) => [request.id, request] as const));
 
@@ -94,14 +97,19 @@ export function buildShiftAskDeskEntries({
     .map((requestId): ShiftAskDeskEntry | undefined => {
       const request = requestById.get(requestId);
       if (request === undefined) return undefined;
-      const outcome = report.requestOutcomes[requestId] ?? "ignored";
-      const isLead = requestId === leadRequestId;
+      const outcome = hasCurrentOutcomes
+        ? (report.requestOutcomes[requestId] ?? "ignored")
+        : legacyIgnoredIds.has(requestId)
+          ? "ignored"
+          : "covered";
+      const isLead = hasCurrentOutcomes && requestId === leadRequestId;
       return {
         requestId,
         memberName: memberById.get(request.memberId)?.firstName ?? request.memberId,
         requestText: request.text,
         outcome,
-        outcomeLabel: shiftAskOutcomeLabel(outcome, isLead),
+        outcomeLabel: shiftAskOutcomeLabel(outcome, isLead, !hasCurrentOutcomes),
+        bucketLabel: hasCurrentOutcomes ? (isLead ? "lead ask" : "queue") : "legacy",
         isLead,
       };
     })
@@ -248,7 +256,15 @@ function countShiftRequestsByOutcome(
   return count;
 }
 
-function shiftAskOutcomeLabel(outcome: ShiftRequestAskOutcome, isLead: boolean): string {
+function shiftAskOutcomeLabel(
+  outcome: ShiftRequestAskOutcome,
+  isLead: boolean,
+  isLegacy: boolean,
+): string {
+  if (isLegacy) {
+    return outcome === "ignored" ? "skipped" : "not skipped";
+  }
+
   switch (outcome) {
     case "covered":
       return "landed";

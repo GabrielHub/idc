@@ -6,12 +6,15 @@ import {
   addCardToDeck,
   createDraftedScenarioDeck,
   createInitialScenarioDeck,
+  createStarterScenarioDeck,
+  dateBookEditingUnlocked,
   drawHand,
   drawHandForBooking,
   listLibraryCards,
   removeCardFromDeck,
   SCENARIO_HAND_SIZE,
   STARTER_CATALOG_IDS,
+  STARTER_DECK_IDS,
   softComposeWarnings,
   unlockedScenarioIds,
 } from "./deck";
@@ -19,6 +22,18 @@ import { createSeedGameSave } from "./game-seed";
 import { computeEffectiveCosts } from "./budget";
 
 describe("deck service", () => {
+  it("createStarterScenarioDeck installs the minimum legal starter deck", () => {
+    const deck = createStarterScenarioDeck(starterScenarios);
+    const effectiveCosts = computeEffectiveCosts(starterScenarios, []);
+
+    expect(deck.cardIds).toEqual(STARTER_DECK_IDS);
+    expect(deck.cardIds).toHaveLength(DECK_SIZE_MIN);
+    expect(deck.cardIds.length).toBeLessThanOrEqual(DECK_SIZE_MAX);
+    expect(
+      deck.cardIds.reduce((sum, id) => sum + (effectiveCosts[id] ?? 0), 0),
+    ).toBeLessThanOrEqual(STARTER_BUDGET_CAP);
+  });
+
   it("createDraftedScenarioDeck enforces size and budget gates", () => {
     const effectiveCosts = computeEffectiveCosts(starterScenarios, []);
     const draft = STARTER_CATALOG_IDS.slice(0, 10);
@@ -152,6 +167,10 @@ describe("deck service", () => {
     for (const entry of library) {
       expect(deckIds.has(entry.scenarioId)).toBe(false);
     }
+  });
+
+  it("dateBookEditingUnlocked waits for a completed date report", () => {
+    expect(dateBookEditingUnlocked(createSeedGameSave())).toBe(false);
   });
 
   it("unlockedScenarioIds gates closure-tier and shift-tier picks", () => {

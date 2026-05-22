@@ -6,8 +6,10 @@ import type {
   DateSession,
   FollowUpAction,
   GameSave,
+  Member,
   PlayerKnowledgeRecord,
 } from "../domain/game";
+import { intentEchoLine } from "../services/matchmaking-intent";
 import { useTutorialStep } from "../services/tutorial";
 import { EASE_OUT_QUART, Eyebrow, Tooltip } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
@@ -18,6 +20,7 @@ const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
   cool_down: "Cool Down",
   repair: "Repair",
   mark_bad_fit: "Mark Bad Fit",
+  let_it_sit: "Let It Sit",
 };
 
 const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
@@ -25,6 +28,7 @@ const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
   cool_down: "Give the pair room before the next booking.",
   repair: "Send a careful follow-up before rebooking pressure returns.",
   mark_bad_fit: "Close the romantic lane and keep the operational note.",
+  let_it_sit: "File no action. Cupid lets the pair drift until the next booking.",
 };
 
 const FOLLOW_UP_ORDER: readonly FollowUpAction[] = [
@@ -32,6 +36,7 @@ const FOLLOW_UP_ORDER: readonly FollowUpAction[] = [
   "cool_down",
   "repair",
   "mark_bad_fit",
+  "let_it_sit",
 ];
 
 type EndSentimentBadge = { label: string; tone: string; dot: string };
@@ -93,6 +98,10 @@ export function FinalReportFooter({
   const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
   const filed = report.appliedFollowUp;
   const followUpSectionRef = useRef<HTMLElement | null>(null);
+  const focusMember =
+    session.focusMemberId === undefined
+      ? null
+      : (save.members.find((member) => member.id === session.focusMemberId) ?? null);
   const followUpStep = useTutorialStep(
     save,
     "date.followup",
@@ -110,7 +119,11 @@ export function FinalReportFooter({
     >
       <div className="relative mx-auto w-full max-w-5xl">
         <div className="aura-glass-strong pointer-events-auto grid w-full gap-4 rounded-card px-4 py-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-5 lg:px-6 lg:py-5">
-          <FinalReportSummarySection report={report} sentimentBadge={sentimentBadge} />
+          <FinalReportSummarySection
+            report={report}
+            sentimentBadge={sentimentBadge}
+            focusMember={focusMember}
+          />
           <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
           <FinalReportReadsSection reads={revealedThisDate} />
           <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
@@ -134,7 +147,7 @@ export function FinalReportFooter({
             target={followUpSectionRef}
             placement="top"
             title="File one follow-up"
-            body="Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance."
+            body="Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance. Let It Sit if no action fits, but the shift will not close until every date has a follow-up on file."
             dismissLabel="Skip tour"
             onDismiss={followUpStep.dismiss}
           />
@@ -147,10 +160,17 @@ export function FinalReportFooter({
 function FinalReportSummarySection({
   report,
   sentimentBadge,
+  focusMember,
 }: {
   report: DateFinalReport;
   sentimentBadge: EndSentimentBadge;
+  focusMember: Member | null;
 }) {
+  const caseLead = focusMember?.state.recentDateResult;
+  const intentNote =
+    report.matchmakingIntent !== undefined && report.intentOutcome !== undefined
+      ? intentEchoLine(report.matchmakingIntent, report.intentOutcome)
+      : undefined;
   return (
     <section className="flex min-w-0 flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -162,8 +182,14 @@ function FinalReportSummarySection({
           {sentimentBadge.label}
         </span>
       </div>
-      <p className="text-label leading-snug text-aura-ink">{report.summary}</p>
-      <p className="text-label leading-snug text-aura-muted">{report.statSummary}</p>
+      {caseLead === undefined || caseLead.length === 0 ? null : (
+        <p className="text-label font-semibold leading-snug text-aura-ink">{caseLead}</p>
+      )}
+      {intentNote === undefined ? null : (
+        <p className="text-label leading-snug text-aura-ink/85">{intentNote}</p>
+      )}
+      <p className="text-label leading-snug text-aura-ink/90">{report.summary}</p>
+      <p className="mt-1 text-sm leading-snug text-aura-muted">{report.statSummary}</p>
     </section>
   );
 }
@@ -223,7 +249,7 @@ function FinalReportFollowUpSection({
         )}
       </div>
       {filed === undefined ? (
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
           {FOLLOW_UP_ORDER.map((action) => (
             <FollowUpActionButton
               key={action}

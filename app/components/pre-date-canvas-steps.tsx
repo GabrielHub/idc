@@ -1,10 +1,21 @@
 import type { Ref } from "react";
 
-import type { DateScenario, GameSave, Member, MemberRequest } from "../domain/game";
+import type {
+  DateScenario,
+  GameSave,
+  MatchmakingIntent,
+  Member,
+  MemberRequest,
+} from "../domain/game";
 import { getMemberQuitRiskStatus, MEMBER_QUIT_RISK_LABEL } from "../services/date-engine";
 import type { ScenarioRoomRead } from "../services/match-fit";
+import {
+  MATCHMAKING_INTENT_LABEL,
+  MATCHMAKING_INTENT_TOOLTIP,
+  MATCHMAKING_INTENTS,
+} from "../services/matchmaking-intent";
 import { isMemberInCooldown } from "../services/shift-planning";
-import { GhostButton } from "./dashboard-atoms";
+import { GhostButton, Tooltip } from "./dashboard-atoms";
 import {
   MemberCard,
   type MemberCardPill,
@@ -20,14 +31,17 @@ function StepHeader({
   eyebrow,
   title,
   hint,
+  tooltipHint,
   rightSlot,
 }: {
   index: number;
   eyebrow: string;
   title: string;
-  hint: string;
+  hint?: string;
+  tooltipHint?: React.ReactNode;
   rightSlot?: React.ReactNode;
 }) {
+  const titleClass = "mt-1 font-display text-lg font-semibold tracking-tight text-aura-ink";
   return (
     <header className="mb-5 flex flex-wrap items-end justify-between gap-4">
       <div className="flex items-start gap-3">
@@ -38,10 +52,25 @@ function StepHeader({
           <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
             {eyebrow}
           </p>
-          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-aura-ink">
-            {title}
-          </h2>
-          <p className="mt-1 max-w-xl text-sm text-aura-muted">{hint}</p>
+          {tooltipHint === undefined ? (
+            <h2 className={titleClass}>{title}</h2>
+          ) : (
+            <Tooltip
+              message={tooltipHint}
+              placement="bottom-start"
+              messageClassName="text-aura-ink"
+            >
+              <h2
+                tabIndex={0}
+                className={`${titleClass} cursor-help rounded-sm outline-none focus-visible:text-aura-rose`}
+              >
+                {title}
+              </h2>
+            </Tooltip>
+          )}
+          {hint === undefined ? null : (
+            <p className="mt-1 max-w-xl text-sm text-aura-muted">{hint}</p>
+          )}
         </div>
       </div>
       {rightSlot === undefined ? null : <div className="flex items-center gap-2">{rightSlot}</div>}
@@ -57,6 +86,7 @@ export function FocusStep({
   playerKnowledge,
   shiftNumber,
   requestForMember,
+  leadRequestId,
   revealAllMemberDetails,
   locked,
   onSelect,
@@ -70,6 +100,7 @@ export function FocusStep({
   playerKnowledge: GameSave["playerKnowledge"];
   shiftNumber: number;
   requestForMember: (member: Member) => MemberRequest | undefined;
+  leadRequestId: string | undefined;
   revealAllMemberDetails: boolean;
   locked: boolean;
   onSelect: (id: string) => void;
@@ -85,7 +116,12 @@ export function FocusStep({
         hint={
           locked
             ? "Pair is committed. Resolve or cancel the booking to reassign the lead."
-            : "Pick today's lead from your four cases. The other three wait their turn. Cooldowns and closed files cannot be picked."
+            : undefined
+        }
+        tooltipHint={
+          locked
+            ? undefined
+            : "Today's lead runs the shift. Pick one of your four focus cases — the other three wait their turn. Cases in cooldown or closed files can't lead."
         }
         rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
       />
@@ -93,8 +129,11 @@ export function FocusStep({
         {focusedMembers.map((member, index) => {
           const isActive = member.id === activeFocusId;
           const isInCooldown = isMemberInCooldown(member, shiftNumber);
+          const request = member.state.status === "active" ? requestForMember(member) : undefined;
           const askPreview =
-            member.state.status === "active" ? requestForMember(member)?.text : undefined;
+            request === undefined
+              ? undefined
+              : `${request.id === leadRequestId ? "Lead ask" : "Queue"}: ${request.text}`;
           return (
             <MemberCard
               key={member.id}
@@ -202,9 +241,13 @@ export function PartnerStep({
         hint={
           locked
             ? "Pair is committed. The Date Book and partner are locked until the date resolves."
-            : `${candidatePartners.length} ${candidatePartners.length === 1 ? "partner is" : "partners are"} reachable for ${activeFocus.firstName} tonight. Availability is logistics, not a verdict.`
+            : undefined
         }
-        rightSlot={<GhostButton onClick={onOpenRoster}>Manage roster</GhostButton>}
+        tooltipHint={
+          locked
+            ? undefined
+            : "Cupid draws a partner board each shift from member schedules, recent activity, and rhythm. Anyone not on it stays visible under Off tonight with a reason. Availability is logistics, not a verdict."
+        }
       />
       <ul className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {candidatePartners.map((member, index) => {
@@ -247,6 +290,90 @@ export function PartnerStep({
   );
 }
 
+export function IntentStep({
+  sectionRef,
+  activeFocus,
+  partner,
+  selectedIntent,
+  locked,
+  onSelect,
+}: {
+  sectionRef: Ref<HTMLElement>;
+  activeFocus: Member | null;
+  partner: Member | null;
+  selectedIntent: MatchmakingIntent | null;
+  locked: boolean;
+  onSelect: (intent: MatchmakingIntent | null) => void;
+}) {
+  if (activeFocus === null || partner === null) return null;
+
+  const hint = locked
+    ? selectedIntent === null
+      ? "No intent on file. Cupid will phrase the post-date note without a stated read."
+      : `Filed as ${MATCHMAKING_INTENT_LABEL[selectedIntent].toLowerCase()}.`
+    : "Optional. Cupid uses your read to phrase the post-date note.";
+
+  return (
+    <section ref={sectionRef} className="mt-10">
+      <header className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
+            // intent
+          </p>
+          <h2 className="mt-1 font-display text-lg font-semibold tracking-tight text-aura-ink">
+            Why this booking?
+          </h2>
+          <p className="mt-1 max-w-xl text-sm text-aura-muted">{hint}</p>
+        </div>
+        {locked || selectedIntent === null ? null : (
+          <button
+            type="button"
+            data-sfx="click"
+            onClick={() => onSelect(null)}
+            className="cursor-pointer font-mono text-micro uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose"
+          >
+            Clear intent
+          </button>
+        )}
+      </header>
+      <ul className="flex flex-wrap gap-2">
+        {MATCHMAKING_INTENTS.map((intent) => {
+          const isPicked = intent === selectedIntent;
+          const dimWhenLocked = locked && !isPicked;
+          if (dimWhenLocked) return null;
+          const tone = isPicked
+            ? "bg-gradient-to-r from-aura-rose/15 via-aura-fuchsia/12 to-aura-violet/15 text-aura-rose ring-1 ring-aura-rose/45"
+            : "aura-glass text-aura-muted ring-1 ring-aura-hairline hover:text-aura-ink";
+          return (
+            <li key={intent}>
+              <Tooltip message={MATCHMAKING_INTENT_TOOLTIP[intent]} placement="top-center">
+                <button
+                  type="button"
+                  data-sfx="click"
+                  aria-pressed={isPicked}
+                  disabled={locked}
+                  onClick={() => onSelect(isPicked ? null : intent)}
+                  className={`flex items-center gap-2 rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed ${
+                    locked ? "" : "cursor-pointer"
+                  } ${tone}`}
+                >
+                  <span aria-hidden className="size-1.5 rounded-full bg-current opacity-70" />
+                  <span>{MATCHMAKING_INTENT_LABEL[intent]}</span>
+                </button>
+              </Tooltip>
+            </li>
+          );
+        })}
+      </ul>
+      {locked && selectedIntent === null ? (
+        <p className="mt-3 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          // intent unset
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 export function ScenarioStep({
   sectionRef,
   selectedCardRef,
@@ -255,6 +382,7 @@ export function ScenarioStep({
   committed,
   effectiveCostsByScenarioId,
   roomReadByScenarioId,
+  dateBookLockedUntilFirstReport,
   onSelect,
   onExpand,
   onOpenDateBook,
@@ -266,10 +394,19 @@ export function ScenarioStep({
   committed: boolean;
   effectiveCostsByScenarioId: Record<string, number>;
   roomReadByScenarioId: ReadonlyMap<string, ScenarioRoomRead>;
+  dateBookLockedUntilFirstReport: boolean;
   onSelect: (id: string) => void;
   onExpand: (id: string) => void;
   onOpenDateBook: () => void;
 }) {
+  const dateBookButton = dateBookLockedUntilFirstReport ? (
+    <Tooltip message="Date Book edits open after the first date report." placement="bottom-end">
+      <GhostButton disabled>Open the date book</GhostButton>
+    </Tooltip>
+  ) : (
+    <GhostButton onClick={onOpenDateBook}>Open the date book</GhostButton>
+  );
+
   return (
     <section ref={sectionRef} className="mt-10">
       <StepHeader
@@ -279,9 +416,11 @@ export function ScenarioStep({
         hint={
           committed
             ? "Three cards drawn from your Date Book for this pair. Pick one to start the date."
-            : "Commit the pair to draw three cards. Adjust the Date Book first if needed."
+            : dateBookLockedUntilFirstReport
+              ? "Commit the pair to draw three cards from Cupid's starter Date Book."
+              : "Commit the pair to draw three cards. Adjust the Date Book first if needed."
         }
-        rightSlot={<GhostButton onClick={onOpenDateBook}>Open the date book</GhostButton>}
+        rightSlot={dateBookButton}
       />
       {!committed ? (
         <p className="text-sm text-aura-muted">

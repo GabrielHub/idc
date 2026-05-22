@@ -2,7 +2,7 @@ import type { Member, ShiftAvailabilityProfile, ShiftState } from "../domain/gam
 import { createNamespacedRandom, randomIndex } from "./utils";
 import { isMemberInCooldown } from "./shift-planning";
 
-export const SHIFT_PARTNER_SLATE_SIZE = 10;
+export const SHIFT_PARTNER_SLATE_SIZE = 8;
 
 export type ShiftPartnerUnavailableReason =
   | "focus_case"

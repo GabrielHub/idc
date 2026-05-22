@@ -92,59 +92,18 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         id: "onboarding.focus.start",
         surface: "Onboarding · focus picker · advance CTA",
         trigger: "All four focus cases selected.",
-        completesOn: "Clicking Build the date book.",
-        target: "pulse-ring",
-        placement: "top",
-        title: "Build the Date Book",
-        body: "Four cases on file. Next, draft the Date Book. Six to twelve rooms, under budget. Cupid will draw a hand from this pool every time you commit a pair.",
-      },
-    ],
-  },
-  {
-    id: "deck",
-    label: "Drafting the Date Book",
-    badge: "02",
-    tone: "violet",
-    caption:
-      "Onboarding · deck stage. The player learns the pool versus hand distinction and the budget cap.",
-    steps: [
-      {
-        id: "onboarding.deck.pick",
-        surface: "Onboarding · scenario grid",
-        trigger: "Deck is empty.",
-        completesOn: "Tapping any scenario tile to add it.",
-        target: "spotlight",
-        placement: "left",
-        title: "Build the Date Book",
-        body: "This is the pool Cupid draws from. Pick six to twelve rooms and stay under budget. The hand comes later, after you commit two members.",
-      },
-      {
-        id: "onboarding.deck.expand",
-        surface: "Onboarding · scenario grid",
-        trigger: "After the first scenario is added, while the deck is not yet legal.",
-        completesOn: "Opening a room brief from the card arrow.",
-        target: "pulse-ring",
-        placement: "right",
-        title: "Scout the room",
-        body: "Tap a card's arrow to open the room brief. Useful for sizing up vibe and rules before you spend on it.",
-      },
-      {
-        id: "onboarding.deck.start",
-        surface: "Onboarding · scenario grid · start CTA",
-        trigger: "Deck size and budget both satisfy the cap.",
-        completesOn: "Clicking Start the shift, which also confirms onboarding.",
+        completesOn: "Clicking Start the shift.",
         target: "pulse-ring",
         placement: "top",
         title: "Start the shift",
-        body: "Deck is legal. Start the shift and Cupid opens Live Date. You will pick today's lead case, one different partner, then commit. Three scenarios get drawn from this pool.",
-        primaryLabel: "Start the shift",
+        body: "Four cases on file. Cupid prefilled the first Date Book with a small starter set. Run one date first; deck edits open after the first report.",
       },
     ],
   },
   {
     id: "booking",
     label: "Booking the pair",
-    badge: "03",
+    badge: "02",
     tone: "fuchsia",
     caption:
       "Pre-date canvas. The three-dot spine teaches the booking workflow, then two follow-up marks cover scenario draw and Begin.",
@@ -211,7 +170,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
   {
     id: "live",
     label: "Running the date",
-    badge: "04",
+    badge: "03",
     tone: "amber",
     caption:
       "Live date dashboard. The footer teaches the gauges and transport, then the player drafts scenes, sees the first Cupid note, and learns nudges.",
@@ -279,7 +238,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
   {
     id: "wrap",
     label: "Wrapping the shift",
-    badge: "05",
+    badge: "04",
     tone: "emerald",
     caption:
       "After the date resolves the player files a follow-up, then files the shift back on Pre-date.",
@@ -292,7 +251,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "spotlight",
         placement: "top",
         title: "File one follow-up",
-        body: "Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance.",
+        body: "Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance. Let It Sit if no action fits, but the shift will not close until every date has a follow-up on file.",
       },
       {
         id: "planning.file-shift",
@@ -302,14 +261,14 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "pulse-ring",
         placement: "bottom",
         title: "File the shift",
-        body: "One shift, one date. File it when the date is settled. Cupid will score goals, rotate pressure, and pretend this was a normal evening.",
+        body: "One shift, one date. File it when the date is settled. If you skip the open roster instead, Cupid files the lead ask as sitting and applies the mood penalty.",
       },
     ],
   },
   {
     id: "files",
     label: "Opening files for the first time",
-    badge: "06",
+    badge: "05",
     tone: "sky",
     caption:
       "Two one-time orientations that fire the first time the player opens a member modal or a scenario modal.",
@@ -341,7 +300,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
   {
     id: "lazy",
     label: "Lazy support marks",
-    badge: "07",
+    badge: "06",
     tone: "slate",
     caption:
       "These never fire on the required path. They wait for an edge case (a swap, a budget cut, a cooldown, a closure) and explain it once.",

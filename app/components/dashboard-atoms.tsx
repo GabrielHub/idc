@@ -90,6 +90,9 @@ const PORTRAIT_INITIALS: Record<PortraitVariant, string> = {
 
 const PORTRAIT_FADE_CLASS =
   "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
+const PORTRAIT_PRELOAD_ROOT_MARGIN = "900px 0px";
+const PORTRAIT_PLACEHOLDER_CLASS =
+  "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_18%,rgba(255,255,255,0.68)_0%,transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.18)_0%,rgba(244,63,94,0.1)_48%,rgba(167,139,250,0.12)_100%)] motion-safe:animate-pulse";
 
 // Must match scripts/portraits/resize_avatars.py (DEFAULT_VARIANT_WIDTHS).
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
@@ -125,15 +128,47 @@ export function Portrait({
   const activePath = candidatePaths[0];
   const imageDimensions = asset === "portrait" ? PORTRAIT_DIMENSIONS : AVATAR_DIMENSIONS;
 
+  const frameRef = useRef<HTMLDivElement>(null);
+  const [shouldLoad, setShouldLoad] = useState(priority);
   const [loadedPaths, setLoadedPaths] = useState<ReadonlySet<string>>(() => new Set());
   const [failedPaths, setFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
   const [srcSetFailedPaths, setSrcSetFailedPaths] = useState<ReadonlySet<string>>(() => new Set());
 
   useEffect(() => {
+    setShouldLoad(priority);
     setLoadedPaths(new Set());
     setFailedPaths(new Set());
     setSrcSetFailedPaths(new Set());
-  }, [member.id, asset]);
+  }, [member.id, asset, mood, activePath, priority]);
+
+  useEffect(() => {
+    if (priority || shouldLoad || activePath === undefined) {
+      return;
+    }
+
+    const frame = frameRef.current;
+    if (frame === null) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: PORTRAIT_PRELOAD_ROOT_MARGIN },
+    );
+
+    observer.observe(frame);
+    return () => observer.disconnect();
+  }, [activePath, priority, shouldLoad]);
 
   const activeReady =
     activePath !== undefined && loadedPaths.has(activePath) && !failedPaths.has(activePath);
@@ -149,11 +184,19 @@ export function Portrait({
 
   return (
     <div
+      ref={frameRef}
       className={`relative grid shrink-0 place-items-center overflow-hidden ${PORTRAIT_FRAME[variant]}`}
     >
+      <span
+        aria-hidden="true"
+        className={`${PORTRAIT_PLACEHOLDER_CLASS} ${PORTRAIT_FADE_CLASS} ${
+          hasVisibleImage ? "opacity-0" : "opacity-100"
+        }`}
+      />
       {candidatePaths.map((path) => {
         const isActive = path === activePath;
         const useSrcSet = isActive && avatarSrcSet !== undefined;
+        const shouldRequest = priority || shouldLoad || loadedPaths.has(path);
         const loaded = loadedPaths.has(path);
         const failed = failedPaths.has(path);
         const visible = path === visiblePath && loaded && !failed;
@@ -162,28 +205,35 @@ export function Portrait({
           <img
             key={`${path}:${useSrcSet ? "srcset" : "src"}`}
             ref={(node) => {
-              if (node?.complete !== true) {
+              if (
+                node?.complete !== true ||
+                !shouldRequest ||
+                loadedPaths.has(path) ||
+                failedPaths.has(path)
+              ) {
                 return;
               }
               if (node.naturalWidth > 0) {
-                addPath(setLoadedPaths, path);
+                decodeLoadedImage(node, path, setLoadedPaths, setFailedPaths);
               } else {
                 addPath(setFailedPaths, path);
               }
             }}
             alt=""
-            src={path}
-            srcSet={useSrcSet ? avatarSrcSet : undefined}
-            sizes={useSrcSet ? avatarSizes : undefined}
+            src={shouldRequest ? path : undefined}
+            srcSet={shouldRequest && useSrcSet ? avatarSrcSet : undefined}
+            sizes={shouldRequest && useSrcSet ? avatarSizes : undefined}
             width={imageDimensions.width}
             height={imageDimensions.height}
-            className={`absolute inset-0 will-change-[opacity] ${PORTRAIT_FADE_CLASS} ${
-              PORTRAIT_IMAGE[variant]
-            } ${visible ? "opacity-100" : "opacity-0"}`}
+            className={`absolute inset-0 ${PORTRAIT_FADE_CLASS} ${PORTRAIT_IMAGE[variant]} ${
+              visible ? "opacity-100" : "opacity-0"
+            }`}
             decoding="async"
             fetchPriority={priority && isActive ? "high" : "auto"}
-            loading={priority && isActive ? "eager" : "lazy"}
-            onLoad={() => addPath(setLoadedPaths, path)}
+            loading={shouldRequest ? "eager" : "lazy"}
+            onLoad={(event) =>
+              decodeLoadedImage(event.currentTarget, path, setLoadedPaths, setFailedPaths)
+            }
             onError={() => {
               if (useSrcSet) {
                 addPath(setSrcSetFailedPaths, path);
@@ -205,6 +255,49 @@ export function Portrait({
       </span>
     </div>
   );
+}
+
+function decodeLoadedImage(
+  image: HTMLImageElement,
+  path: string,
+  setLoadedPaths: (updater: (current: ReadonlySet<string>) => ReadonlySet<string>) => void,
+  setFailedPaths: (updater: (current: ReadonlySet<string>) => ReadonlySet<string>) => void,
+): void {
+  if (image.naturalWidth <= 0) {
+    addPath(setFailedPaths, path);
+    return;
+  }
+
+  image
+    .decode()
+    .then(() => {
+      removePath(setFailedPaths, path);
+      addPath(setLoadedPaths, path);
+    })
+    .catch(() => {
+      if (image.naturalWidth > 0) {
+        removePath(setFailedPaths, path);
+        addPath(setLoadedPaths, path);
+        return;
+      }
+
+      addPath(setFailedPaths, path);
+    });
+}
+
+function removePath(
+  setter: (updater: (current: ReadonlySet<string>) => ReadonlySet<string>) => void,
+  path: string,
+): void {
+  setter((current) => {
+    if (!current.has(path)) {
+      return current;
+    }
+
+    const next = new Set(current);
+    next.delete(path);
+    return next;
+  });
 }
 
 function readyPortraitPaths(assets: readonly PortraitAsset[]): string[] {

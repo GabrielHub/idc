@@ -590,6 +590,14 @@ export function applyFollowUpPairMemoryEffects({
         3,
       );
     }
+  } else if (action === "let_it_sit") {
+    if (boundaryPressure || activeOpenLoops.length > 0 || brokenAgreements.length > 0) {
+      pushOpenLoopFollowUp(
+        "Whether the pair surfaces what Cupid left sitting between bookings.",
+        "Follow-up left the file sitting.",
+        3,
+      );
+    }
   } else {
     for (const agreement of activeAgreements) {
       const retired: PairAgreement = {

@@ -11,7 +11,7 @@ import { makePairId } from "./game-seed";
 import { syncActiveShiftFocusCases } from "./focus-cases";
 import { DETERMINISTIC_EMBEDDING_MODEL, createDeterministicEmbedding } from "./vector-memory";
 
-export type DevSeedRequest = "closures";
+export type DevSeedRequest = "closures" | "campaign-lost";
 
 const DEV_SEED_QUERY_PARAM = "seed";
 
@@ -150,7 +150,52 @@ export function readDevSeedRequest(): DevSeedRequest | null {
   }
 
   const seed = new URLSearchParams(window.location.search).get(DEV_SEED_QUERY_PARAM);
-  return seed === "closures" ? "closures" : null;
+  if (seed === "closures") return "closures";
+  if (seed === "campaign-lost") return "campaign-lost";
+  return null;
+}
+
+export function seedCampaignLostState(save: GameSave, options: { now?: Date } = {}): GameSave {
+  const timestamp = (options.now ?? new Date()).toISOString();
+  const active = save.members.filter((member) => member.state.status === "active");
+  const lossCap = 3 + save.closureCount;
+  const targets = active.slice(0, lossCap + 1);
+
+  if (targets.length === 0) {
+    return save;
+  }
+
+  const targetIds = new Set(targets.map((member) => member.id));
+  const quitReasons = [
+    "Ghosted Cupid after a bad room read.",
+    "Burned out. Cancelled their membership at the door.",
+    "Walked off mid-shift. Returned the lanyard.",
+    "Decided the office wasn't a fit.",
+    "Got tired of waiting on the queue.",
+    "Filed a complaint with HR and never came back.",
+  ];
+
+  const updatedMembers = save.members.map((member, index) => {
+    if (!targetIds.has(member.id)) return member;
+    return {
+      ...member,
+      state: {
+        ...member.state,
+        status: "quit" as const,
+        retention: 0,
+        recentDateResult: quitReasons[index % quitReasons.length],
+      },
+    };
+  });
+
+  const seeded = gameSaveSchema.parse({
+    ...save,
+    members: updatedMembers,
+    focusedMemberIds: save.focusedMemberIds.filter((id) => !targetIds.has(id)),
+    updatedAt: timestamp,
+  });
+
+  return syncActiveShiftFocusCases(seeded);
 }
 
 export function clearDevSeedQueryParam(): void {
@@ -174,6 +219,12 @@ export async function applyDevSeed(
 ): Promise<GameSave> {
   if (seed === "closures") {
     const seeded = seedClosedAndQuitMembers(save);
+    await repository.saveGame(seeded);
+    return seeded;
+  }
+
+  if (seed === "campaign-lost") {
+    const seeded = seedCampaignLostState(save);
     await repository.saveGame(seeded);
     return seeded;
   }

@@ -106,7 +106,7 @@ function ShiftAskDeskBlock({
               <span
                 className={`font-mono text-micro font-semibold uppercase tracking-[0.18em] ${SHIFT_ASK_OUTCOME_CLASS[entry.outcome]}`}
               >
-                {entry.isLead ? "lead ask" : "queue"} · {entry.outcomeLabel}
+                {entry.bucketLabel} · {entry.outcomeLabel}
               </span>
             </div>
             <p className="mt-1 text-sm leading-snug text-aura-muted">{entry.requestText}</p>

@@ -68,14 +68,68 @@ describe("shift report ask desk", () => {
     expect(entries[0]).toMatchObject({
       memberName: "Aegis",
       isLead: true,
+      bucketLabel: "lead ask",
       outcome: "covered",
       outcomeLabel: "landed",
     });
+    expect(entries.slice(1).map((entry) => entry.bucketLabel)).toEqual(["queue", "queue", "queue"]);
     expect(entries.slice(1).map((entry) => entry.outcomeLabel)).toEqual([
       "waiting",
       "waiting",
       "waiting",
     ]);
+  });
+
+  it("renders legacy ignoredRequestIds reports without inventing a lead ask", () => {
+    const save = createSeedGameSave(new Date("2026-05-21T12:00:00.000Z"));
+    const baseShift = save.shifts[0];
+
+    if (baseShift === undefined) {
+      throw new Error("Expected seed shift.");
+    }
+
+    const memberRequestIds = [
+      "request-aegis-shield-not-a-coat",
+      "request-gideon-name",
+      "request-ryan-just-out",
+      "request-tasha-counterparty",
+    ];
+    const report = shiftReportSchema.parse({
+      id: "report-shift-legacy",
+      shiftId: "shift-legacy",
+      completedAt: "2026-05-21T13:00:00.000Z",
+      completedDates: 1,
+      earlyEndedDates: 0,
+      ordinaryNonHumanDates: 1,
+      memberMoodDelta: 0,
+      goalResults: [],
+      ignoredRequestIds: ["request-gideon-name"],
+      offeredScenarioIds: [],
+      summary: "Legacy shift filed.",
+    });
+    const shift = shiftStateSchema.parse({
+      ...baseShift,
+      id: "shift-legacy",
+      shiftNumber: 3,
+      status: "completed",
+      memberRequestIds,
+      report,
+    });
+
+    const entries = buildShiftAskDeskEntries({ shift, members: save.members });
+
+    expect(entries.map((entry) => entry.bucketLabel)).toEqual([
+      "legacy",
+      "legacy",
+      "legacy",
+      "legacy",
+    ]);
+    expect(entries.find((entry) => entry.requestId === "request-gideon-name")).toMatchObject({
+      outcome: "ignored",
+      outcomeLabel: "skipped",
+      isLead: false,
+    });
+    expect(entries.filter((entry) => entry.outcomeLabel === "not skipped")).toHaveLength(3);
   });
 });
 

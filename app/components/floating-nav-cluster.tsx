@@ -10,6 +10,7 @@ export type FloatingNavClusterProps = {
   current: RoomKey;
   hidden?: boolean;
   liveDateState?: LiveDateState;
+  disabledRooms?: Partial<Record<RoomKey, string>>;
   onSelect: (room: RoomKey) => void;
 };
 
@@ -30,6 +31,7 @@ export function FloatingNavCluster({
   current,
   hidden = false,
   liveDateState = "idle",
+  disabledRooms = {},
   onSelect,
 }: FloatingNavClusterProps) {
   const buttons: RoomKey[] = ["livedate", "roster", "datebook", "files"];
@@ -49,14 +51,18 @@ export function FloatingNavCluster({
       {buttons.map((room) => {
         const active = current === room;
         const label = room === "livedate" ? LIVE_DATE_LABEL[liveDateState] : STATIC_LABELS[room];
+        const disabledReason = disabledRooms[room];
         return (
           <NavButton
             key={room}
             room={room}
             active={active}
             label={label}
+            disabledReason={disabledReason}
             liveDateState={room === "livedate" ? liveDateState : undefined}
-            onClick={() => onSelect(room)}
+            onClick={() => {
+              if (disabledReason === undefined) onSelect(room);
+            }}
           />
         );
       })}
@@ -69,16 +75,19 @@ function NavButton({
   active,
   onClick,
   label,
+  disabledReason,
   liveDateState,
 }: {
   room: RoomKey;
   active: boolean;
   onClick: () => void;
   label: string;
+  disabledReason?: string;
   liveDateState?: LiveDateState;
 }) {
   const [hovered, setHovered] = useState(false);
   const focused = active || hovered;
+  const disabled = disabledReason !== undefined;
 
   const surfaceClass = active
     ? "aura-glass-rose text-aura-rose outline outline-2 outline-offset-2 outline-aura-rose/30"
@@ -89,7 +98,7 @@ function NavButton({
   const showWrapDot = liveDateState === "wrap";
 
   return (
-    <Tooltip message={label} placement="left-center">
+    <Tooltip message={disabledReason ?? label} placement="left-center">
       <button
         type="button"
         onClick={onClick}
@@ -97,8 +106,9 @@ function NavButton({
         onMouseLeave={() => setHovered(false)}
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
-        aria-label={label}
+        aria-label={disabled ? `${label}. ${disabledReason}` : label}
         aria-current={active ? "page" : undefined}
+        disabled={disabled}
         data-sfx="click"
         className={`aura-glass-lift relative grid size-14 cursor-pointer place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40 ${surfaceClass}`}
       >

@@ -37,7 +37,7 @@ const STATE_PILL_LABEL: Record<MemberCardState, string> = {
 const CARD_FRAME_CLASS: Record<MemberCardState, string> = {
   focused: "border-transparent shadow-aura-soft",
   selected: "border-aura-rose/60 shadow-card ring-2 ring-aura-rose/35",
-  disabled: "border-aura-hairline shadow-quiet",
+  disabled: "border-aura-hairline shadow-quiet opacity-60 saturate-[0.6]",
   closed: "border-aura-hairline shadow-quiet opacity-90",
   quit: "border-aura-hairline shadow-quiet opacity-90",
   default:
@@ -92,7 +92,6 @@ export function MemberCard({
   return (
     <motion.li
       ref={cardRef}
-      layout
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index, 14) * 0.025, duration: 0.42, ease: EASE_OUT_QUART }}

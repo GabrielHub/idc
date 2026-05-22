@@ -5,6 +5,7 @@ import type {
   CompanyGoal,
   DateScenario,
   GameSave,
+  MatchmakingIntent,
   Member,
   MemberRequest,
   PairState,
@@ -16,6 +17,7 @@ import {
   buildGoalProgressSnapshots,
   buildShiftGoalMetrics,
   getQuitMembers,
+  pendingFollowUpSessionsForShift,
   type GoalProgressSnapshot,
 } from "../services/date-engine";
 import { companyGoals } from "../fixtures";
@@ -36,11 +38,16 @@ import { MemberDetailsModal } from "./member-card";
 import { ScenarioDetailsModal } from "./scenario-details-modal";
 import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
 
-import { ClosureCallout, DeckRepairCallout } from "./pre-date-canvas-callouts";
+import {
+  ClosureCallout,
+  DeckRepairCallout,
+  PendingFollowUpCallout,
+} from "./pre-date-canvas-callouts";
 import { BeginDateDock } from "./pre-date-canvas-dock";
 import { PreDateHeader } from "./pre-date-canvas-header";
+import { LeadAskBanner } from "./pre-date-canvas-lead-ask";
 import { ShiftBriefDock } from "./pre-date-canvas-shift-brief";
-import { FocusStep, PartnerStep, ScenarioStep } from "./pre-date-canvas-steps";
+import { FocusStep, IntentStep, PartnerStep, ScenarioStep } from "./pre-date-canvas-steps";
 
 export type PreDateCanvasProps = {
   save: GameSave;
@@ -56,8 +63,13 @@ export type PreDateCanvasProps = {
   closureError: { pairId: string; message: string } | null;
   revealAllMemberDetails: boolean;
   deckRepairBlocked: boolean;
+  dateBookLockedUntilFirstReport: boolean;
   onTutorialUpdate: (next: GameSave) => void;
-  onCommitPair: (input: { focusMemberId: string; partnerMemberId: string }) => void;
+  onCommitPair: (input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    matchmakingIntent?: MatchmakingIntent;
+  }) => void;
   onStartDate: (input: { scenarioId: string }) => void;
   onCancelBooking: () => void;
   onConfirmClosure: (pairId: string) => void;
@@ -68,6 +80,7 @@ export type PreDateCanvasProps = {
   onOpenAiSetup: () => void;
   onCloseShift: () => void;
   onStartNextShift: () => void;
+  onOpenDateSession: (dateSessionId: string) => void;
   onDeckOverBudgetBlocked?: (surfaceKey: string) => void;
 };
 
@@ -85,6 +98,7 @@ export function PreDateCanvas({
   closureError,
   revealAllMemberDetails,
   deckRepairBlocked,
+  dateBookLockedUntilFirstReport,
   onTutorialUpdate,
   onCommitPair,
   onStartDate,
@@ -97,6 +111,7 @@ export function PreDateCanvas({
   onOpenAiSetup,
   onCloseShift,
   onStartNextShift,
+  onOpenDateSession,
   onDeckOverBudgetBlocked,
 }: PreDateCanvasProps) {
   const focusedIds = useMemo(
@@ -120,6 +135,21 @@ export function PreDateCanvas({
       ),
     [save.dateSessions],
   );
+  const pendingFollowUpSessions = useMemo(
+    () => pendingFollowUpSessionsForShift(save, shift.shiftNumber),
+    [save, shift.shiftNumber],
+  );
+  const pendingFollowUpEntries = useMemo(() => {
+    const memberById = new Map(save.members.map((member) => [member.id, member] as const));
+    return pendingFollowUpSessions.flatMap((session) => {
+      const [firstId, secondId] = session.participants;
+      const first = memberById.get(firstId);
+      const second = memberById.get(secondId);
+      if (first === undefined || second === undefined) return [];
+      return [{ session, participants: [first, second] as const }];
+    });
+  }, [pendingFollowUpSessions, save.members]);
+  const pendingFollowUpCount = pendingFollowUpEntries.length;
   const eligibleFocus = useMemo(
     () =>
       focusedMembers.filter(
@@ -143,10 +173,14 @@ export function PreDateCanvas({
     return null;
   });
   const [scenarioId, setScenarioId] = useState<string | null>(null);
+  const [matchmakingIntent, setMatchmakingIntent] = useState<MatchmakingIntent | null>(
+    activeBooking?.matchmakingIntent ?? null,
+  );
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
   const focusSectionRef = useRef<HTMLElement | null>(null);
   const partnerSectionRef = useRef<HTMLElement | null>(null);
+  const intentSectionRef = useRef<HTMLElement | null>(null);
   const dateSectionRef = useRef<HTMLElement | null>(null);
   const selectedDateCardRef = useRef<HTMLDivElement | null>(null);
   const selectedFocusCardRef = useRef<HTMLLIElement | null>(null);
@@ -170,6 +204,7 @@ export function PreDateCanvas({
       setActiveFocusId(activeBooking.focusMemberId);
       const partner = activeBooking.participantIds.find((id) => id !== activeBooking.focusMemberId);
       setPartnerId(partner ?? null);
+      setMatchmakingIntent(activeBooking.matchmakingIntent ?? null);
       return;
     }
     if (activeFocusId !== null && eligibleFocus.some((member) => member.id === activeFocusId)) {
@@ -210,13 +245,12 @@ export function PreDateCanvas({
       focusedMemberIds: save.focusedMemberIds,
       availablePartnerMemberIds: shift.availablePartnerMemberIds,
     });
-    const reasonById = new Map(
-      unavailable.map((entry) => [entry.member.id, entry.reason] as const),
-    );
+    const offTonight = unavailable.filter((entry) => entry.reason !== "focus_case");
+    const reasonById = new Map(offTonight.map((entry) => [entry.member.id, entry.reason] as const));
     return {
       candidatePartners: sortMembersByCuratedRosterOrder(available),
       unavailablePartners: sortMembersByCuratedRosterOrder(
-        unavailable.map((entry) => entry.member),
+        offTonight.map((entry) => entry.member),
       ).map((member) => ({ member, reason: reasonById.get(member.id) ?? "off_shift" })),
     };
   }, [
@@ -446,6 +480,7 @@ export function PreDateCanvas({
         shiftClosed={shiftClosed}
         activeBookingLocked={isCommitted}
         isActionPending={isActionPending}
+        pendingFollowUpCount={pendingFollowUpCount}
         fileShiftButtonRef={fileShiftCtaRef}
         onCloseShift={() => {
           if (fileShiftStep.active) fileShiftStep.complete();
@@ -454,14 +489,21 @@ export function PreDateCanvas({
         onStartNextShift={onStartNextShift}
       />
 
-      <ShiftBriefDock
-        goals={shiftGoals}
-        progressByGoalId={goalProgressById}
-        activeFocus={activeFocus}
-        activeFocusRequest={activeFocusRequest}
+      <LeadAskBanner
+        focus={activeFocus}
+        request={activeFocusRequest}
         leadRequestId={leadRequestId}
-        shiftClosed={shiftClosed}
       />
+
+      <ShiftBriefDock goals={shiftGoals} progressByGoalId={goalProgressById} />
+
+      {pendingFollowUpEntries.length > 0 ? (
+        <PendingFollowUpCallout
+          entries={pendingFollowUpEntries}
+          isActionPending={isActionPending}
+          onOpenDateSession={onOpenDateSession}
+        />
+      ) : null}
 
       {focusedClosurePairs.length > 0 ? (
         <div ref={closureCalloutRef}>
@@ -490,6 +532,7 @@ export function PreDateCanvas({
         playerKnowledge={save.playerKnowledge}
         shiftNumber={shift.shiftNumber}
         requestForMember={requestForMember}
+        leadRequestId={leadRequestId}
         revealAllMemberDetails={revealAllMemberDetails}
         locked={isCommitted}
         onSelect={(id) => {
@@ -520,6 +563,15 @@ export function PreDateCanvas({
         onExpand={(id) => setOpenMemberId(id)}
       />
 
+      <IntentStep
+        sectionRef={intentSectionRef}
+        activeFocus={activeFocus}
+        partner={effectivePartner}
+        selectedIntent={matchmakingIntent}
+        locked={isCommitted}
+        onSelect={(intent) => setMatchmakingIntent(intent)}
+      />
+
       <Hairline className="mt-12" />
 
       <ScenarioStep
@@ -530,6 +582,7 @@ export function PreDateCanvas({
         committed={isCommitted}
         effectiveCostsByScenarioId={effectiveCostsByScenarioId}
         roomReadByScenarioId={roomReadByScenarioId}
+        dateBookLockedUntilFirstReport={dateBookLockedUntilFirstReport}
         onSelect={(id) => {
           setScenarioId(id);
           if (planningScenarioStep.active) planningScenarioStep.complete();
@@ -568,6 +621,7 @@ export function PreDateCanvas({
             onCommitPair({
               focusMemberId: activeFocus.id,
               partnerMemberId: effectivePartner.id,
+              matchmakingIntent: matchmakingIntent ?? undefined,
             });
           }
         }}
@@ -692,7 +746,7 @@ export function PreDateCanvas({
             target={fileShiftCtaRef}
             placement="bottom"
             title="File the shift"
-            body="One shift, one date. File it when the date is settled. Cupid will score goals, rotate pressure, and pretend this was a normal evening."
+            body="One shift, one date. File it when the date is settled. Cupid will score goals, file the lead ask, and keep the queue moving."
             dismissLabel="Skip tour"
             onDismiss={fileShiftStep.dismiss}
           />

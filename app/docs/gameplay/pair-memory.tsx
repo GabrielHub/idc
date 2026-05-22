@@ -90,6 +90,11 @@ export const sections: DocSectionEntry[] = [
           ids. Player-facing copy should describe the commitment, not expose status math or hidden
           rule hits.
         </P>
+        <P>
+          An early-ended date can mark an active agreement with <DocCode>strainedAt</DocCode>. That
+          is not a status transition: the agreement remains active, does not receive{" "}
+          <DocCode>resolvedAt</DocCode>, and can still be honored, broken, or retired later.
+        </P>
       </>
     ),
   },
@@ -118,6 +123,11 @@ export const sections: DocSectionEntry[] = [
           Active loops can appear in prompt context as unresolved pair items. Resolved and dropped
           loops stay in canonical history but do not drive prompt pressure.
         </P>
+        <P>
+          An early-ended date can also mark an open loop with <DocCode>strainedAt</DocCode>. The
+          loop remains open, keeps driving continuity pressure, and does not become dropped unless a
+          later completed-date aging pass or Cupid update closes it.
+        </P>
       </>
     ),
   },
@@ -140,6 +150,14 @@ export const sections: DocSectionEntry[] = [
           threads, which are closest to resolution or aging out, are preserved for one more shot.
         </P>
         <P>
+          Early-ended dates take a separate strain path instead of the normal completed-date aging
+          path. Aged active agreements and aged open loops receive a one-time{" "}
+          <DocCode>strainedAt</DocCode> marker and a strain memory, but they are not honored,
+          retired, resolved, or dropped on that date. Soft-cap overflow on an early end also strains
+          the youngest unstrained overflow items with lower-importance crowding notes instead of
+          trimming them from the active sets.
+        </P>
+        <P>
           The hidden spotlight gives items at age cutoff minus one a final-chance priority boost so
           the next date has a clear opportunity to move them before they age out. Aged-out items
           still mirror into pair memories with <DocCode>agreement_retired</DocCode> or{" "}
@@ -157,8 +175,10 @@ export const sections: DocSectionEntry[] = [
         <P>
           Accepted changes mirror into public pair memories with tags such as{" "}
           <DocCode>pair_agreement</DocCode>, <DocCode>open_loop</DocCode>,{" "}
-          <DocCode>open_loop_resolved</DocCode>, and <DocCode>agreement_broken</DocCode>. These tags
-          support retrieval and pair-board notes through existing memory paths.
+          <DocCode>open_loop_resolved</DocCode>, <DocCode>agreement_broken</DocCode>, and{" "}
+          <DocCode>pair_strained</DocCode>. These tags support retrieval and pair-board notes
+          through existing memory paths. <DocCode>pair_strained</DocCode> identifies early-end or
+          early-end overflow strain notes; it does not mean the canonical agreement or loop closed.
         </P>
         <DocCallout variant="warn">
           Do not repair pair state from mirrored memories. <DocCode>PairState</DocCode> is the
@@ -212,12 +232,14 @@ export const sections: DocSectionEntry[] = [
     title: "Follow-up resolver",
     body: (
       <P>
-        Follow-up buttons stay unchanged. The resolver is outcome-aware: effects depend on the final
-        outcome, recent Cupid pressure, boundary reads, agreement or loop status, and current pair
-        stats. Follow-up actions remain one-time per final report. They may move pair stats and
-        member state, create repair agreements, create return-later loops, retire agreements, or
-        drop open loops. The UI should continue to present them as normal case actions rather than
-        new systems.
+        Five follow-up actions: Encourage, Cool Down, Repair, Mark Bad Fit, and Let It Sit. The
+        resolver is outcome-aware: effects depend on the final outcome, recent Cupid pressure,
+        boundary reads, agreement or loop status, and current pair stats. Follow-up actions remain
+        one-time per final report. They may move pair stats and member state, create repair
+        agreements, create return-later loops, retire agreements, or drop open loops. Let It Sit
+        files no action and applies a small drift — the resolver penalizes it harder when strain or
+        warmth was left on the table. A shift will not close until every completed date has a
+        follow-up filed, so Let It Sit is the explicit opt-out rather than an implicit skip.
       </P>
     ),
   },

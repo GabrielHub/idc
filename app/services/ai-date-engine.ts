@@ -1718,6 +1718,10 @@ function formatFallbackFollowUp(action: FollowUpAction): string {
     return "Mark bad fit";
   }
 
+  if (action === "let_it_sit") {
+    return "Let it sit";
+  }
+
   return "Repair";
 }
 

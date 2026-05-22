@@ -715,7 +715,7 @@ describe("IDC playable smoke path", () => {
 });
 
 describe("completeShift", () => {
-  it("files a report and stamps the shift completed", () => {
+  it("files an empty shift as skipped and stamps it completed", () => {
     const baseSave = createSeedGameSave();
     const focused = baseSave.members
       .filter(canBeFocusCase)
@@ -725,6 +725,8 @@ describe("completeShift", () => {
 
     const { save: nextSave, report } = completeShift(withFocus);
     expect(report.completedDates).toBe(0);
+    expect(report.skipped).toBe(true);
+    expect(report.summary).toMatch(/Roster skipped/);
     const closedShift = nextSave.shifts.find((shift) => shift.id === nextSave.activeShiftId);
     expect(closedShift?.status).toBe("completed");
   });

@@ -202,4 +202,39 @@ describe("buildPairMemoryTimeline", () => {
 
     expect(timeline.map((entry) => entry.kind)).toEqual(["agreement_filed", "open_loop_filed"]);
   });
+
+  it("emits strain entries without treating active agreements or open loops as resolved", () => {
+    const pair = basePair({
+      agreements: [
+        {
+          id: "agreement-strained",
+          text: "No filming at the table.",
+          status: "active",
+          createdAt: "2026-05-05T12:00:00.000Z",
+          strainedAt: "2026-05-05T12:30:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-strained",
+          text: "Whether Kade can make a memory.",
+          status: "open",
+          createdAt: "2026-05-05T12:05:00.000Z",
+          strainedAt: "2026-05-05T12:35:00.000Z",
+        },
+      ],
+    });
+
+    const timeline = buildPairMemoryTimeline(pair);
+    const kinds = timeline.map((entry) => entry.kind);
+
+    expect(kinds).toContain("agreement_strained");
+    expect(kinds).toContain("open_loop_strained");
+    expect(kinds).not.toContain("agreement_retired");
+    expect(kinds).not.toContain("open_loop_dropped");
+    expect(timeline.find((entry) => entry.kind === "agreement_strained")).toMatchObject({
+      occurredAt: "2026-05-05T12:30:00.000Z",
+      text: "No filming at the table.",
+    });
+  });
 });

@@ -1,6 +1,7 @@
 import {
   DECK_SIZE_MAX,
   DECK_SIZE_MIN,
+  STARTER_BUDGET_CAP,
   scenarioDeckSchema,
   type ActiveDateBooking,
   type DateScenario,
@@ -55,9 +56,16 @@ export const STARTER_CATALOG_IDS: readonly string[] = [
 ];
 
 /**
+ * Player-facing starter deck used when onboarding finishes. It is deliberately
+ * the minimum legal deck size so shift one starts from a small, readable room
+ * set before the player has context for full Date Book editing.
+ */
+export const STARTER_DECK_IDS: readonly string[] = STARTER_CATALOG_IDS.slice(0, DECK_SIZE_MIN);
+
+/**
  * Deterministic fallback used when no player-drafted deck exists yet (pre-onboarding
- * test fixtures, dev seeds). This is NOT the player-facing starter deck; the player
- * builds that during onboarding from STARTER_CATALOG_IDS.
+ * test fixtures, dev seeds). This is NOT the player-facing starter deck; onboarding
+ * applies STARTER_DECK_IDS when the first focus cases are confirmed.
  */
 export const PRE_ONBOARDING_FALLBACK_DECK_IDS: readonly string[] = STARTER_CATALOG_IDS.slice(0, 10);
 
@@ -68,6 +76,20 @@ export function createInitialScenarioDeck(scenarios: readonly DateScenario[]): S
   return scenarioDeckSchema.parse({
     cardIds: [...cardIds],
   });
+}
+
+export function createStarterScenarioDeck(scenarios: readonly DateScenario[]): ScenarioDeck {
+  return createDraftedScenarioDeck({
+    cardIds: STARTER_DECK_IDS,
+    catalog: scenarios,
+    catalogIds: STARTER_CATALOG_IDS,
+    budgetCap: STARTER_BUDGET_CAP,
+    effectiveCosts: computeEffectiveCosts(scenarios, []),
+  });
+}
+
+export function dateBookEditingUnlocked(save: GameSave): boolean {
+  return save.dateSessions.some((session) => session.finalReport !== undefined);
 }
 
 export type DraftDeckInput = {

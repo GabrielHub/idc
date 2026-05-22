@@ -1,42 +1,26 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 
-import type { CompanyGoal, Member, MemberRequest } from "../domain/game";
+import type { CompanyGoal } from "../domain/game";
 import { fallbackGoalProgress, type GoalProgressSnapshot } from "../services/date-engine";
 
 export function ShiftBriefDock({
   goals,
   progressByGoalId,
-  activeFocus,
-  activeFocusRequest,
-  leadRequestId,
-  shiftClosed,
 }: {
   goals: readonly CompanyGoal[];
   progressByGoalId: ReadonlyMap<string, GoalProgressSnapshot>;
-  activeFocus: Member | null;
-  activeFocusRequest: MemberRequest | undefined;
-  leadRequestId: string | undefined;
-  shiftClosed: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  if (goals.length === 0 && activeFocusRequest === undefined) {
+  if (goals.length === 0) {
     return null;
   }
 
   const metGoalCount = goals.filter(
     (goal) => (progressByGoalId.get(goal.id) ?? fallbackGoalProgress(goal)).status === "met",
   ).length;
-  const goalSummary = goals.length === 0 ? "case ask" : `${metGoalCount} / ${goals.length} clear`;
-  const requestSummary =
-    activeFocus === null
-      ? "No focus case"
-      : activeFocusRequest === undefined
-        ? `${activeFocus.firstName} has no active ask on file.`
-        : activeFocusRequest.text;
-  const isLeadAsk = activeFocusRequest !== undefined && activeFocusRequest.id === leadRequestId;
-  const askLabel = isLeadAsk ? "lead ask" : "case ask";
+  const goalSummary = `${metGoalCount} / ${goals.length} clear`;
 
   return (
     <div className="mt-5 flex justify-end xl:fixed xl:right-6 xl:top-20 xl:z-40 xl:mt-0 xl:block xl:w-96">
@@ -91,37 +75,15 @@ export function ShiftBriefDock({
               className="overflow-hidden"
             >
               <div className="border-t border-aura-hairline px-4 pb-4 pt-3">
-                {goals.length > 0 ? (
-                  <ul className="space-y-2.5">
-                    {goals.map((goal) => (
-                      <ShiftGoalItem
-                        key={goal.id}
-                        goal={goal}
-                        progress={progressByGoalId.get(goal.id) ?? fallbackGoalProgress(goal)}
-                      />
-                    ))}
-                  </ul>
-                ) : null}
-
-                <div
-                  className={
-                    goals.length > 0 ? "mt-3 border-t border-aura-hairline pt-3" : undefined
-                  }
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-                      {askLabel}
-                    </p>
-                    {shiftClosed ? (
-                      <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-faint">
-                        filed
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 whitespace-normal break-words text-label leading-snug text-aura-ink">
-                    {requestSummary}
-                  </p>
-                </div>
+                <ul className="space-y-2.5">
+                  {goals.map((goal) => (
+                    <ShiftGoalItem
+                      key={goal.id}
+                      goal={goal}
+                      progress={progressByGoalId.get(goal.id) ?? fallbackGoalProgress(goal)}
+                    />
+                  ))}
+                </ul>
               </div>
             </motion.div>
           ) : null}

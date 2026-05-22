@@ -9,6 +9,7 @@ import {
   type FollowUpAction,
   type GameConfig,
   type GameSave,
+  type MatchmakingIntent,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { APP_VERSION } from "../platform/release-identity";
@@ -41,6 +42,7 @@ import {
   clearActiveBooking,
   commitDateBooking,
   completeShift,
+  isCampaignLost,
   pickScenarioEvents,
   startDateSessionFromBooking,
   startNextShift,
@@ -49,12 +51,12 @@ import {
 } from "../services/date-engine";
 import {
   addCardToDeck,
-  createDraftedScenarioDeck,
+  createStarterScenarioDeck,
+  dateBookEditingUnlocked,
   deckIsRepairBlocked,
   removeCardFromDeck,
-  STARTER_CATALOG_IDS,
 } from "../services/deck";
-import { computeEffectiveCosts, rotateBudgetPeriod } from "../services/budget";
+import { rotateBudgetPeriod } from "../services/budget";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
   addFocusCase as focusAddCase,
@@ -107,6 +109,7 @@ import { RosterCanvas } from "./roster-canvas";
 import { buildDiagnosticsSnapshot, MutedIndicator, SettingsMenu } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
+import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
 import {
   getReleaseNoteByVersion,
@@ -374,6 +377,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return ids;
   }, [readyClosurePairs]);
   const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
+  const campaignLost = save !== null && isCampaignLost(save);
 
   useEffect(() => {
     if (currentRoom !== "files" && filesPairFocusId !== null) {
@@ -416,6 +420,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     () => (save === null ? false : deckIsRepairBlocked(save, starterScenarios)),
     [save],
   );
+  const dateBookLockedUntilFirstReport =
+    save !== null && !dateBookEditingUnlocked(save) && !deckRepairBlocked;
   const dateAmbientSessionId = activeSession?.status === "active" ? activeSession.id : null;
   useEffect(() => {
     setDateAmbientSession(dateAmbientSessionId);
@@ -463,6 +469,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     dispatchManagerQuip({ triggerKey: "onboarding.welcome", bypassTutorialGate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsInitialFocusCases]);
+
+  useEffect(() => {
+    if (dateBookLockedUntilFirstReport && currentRoom === "datebook") {
+      setCurrentRoom("livedate");
+    }
+  }, [currentRoom, dateBookLockedUntilFirstReport]);
 
   useEffect(() => {
     if (
@@ -705,7 +717,11 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     })();
   }
 
-  async function handleCommitPair(input: { focusMemberId: string; partnerMemberId: string }) {
+  async function handleCommitPair(input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    matchmakingIntent?: MatchmakingIntent;
+  }) {
     if (save === null) return;
     tryAction("startDate", async () => {
       if (!save.config.aiSetupComplete) {
@@ -1032,22 +1048,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleConfirmOnboarding(payload: {
-    focusedMemberIds: string[];
-    scenarioDeckCardIds: string[];
-  }) {
+  async function handleConfirmOnboarding(payload: { focusedMemberIds: string[] }) {
     if (save === null) return;
     tryAction("focusCase", async () => {
-      const draftedDeck = createDraftedScenarioDeck({
-        cardIds: payload.scenarioDeckCardIds,
-        catalog: starterScenarios,
-        catalogIds: STARTER_CATALOG_IDS,
-        budgetCap: save.budgetCap,
-        effectiveCosts: computeEffectiveCosts(starterScenarios, []),
-      });
+      const starterDeck = createStarterScenarioDeck(starterScenarios);
       const withDeck: GameSave = {
         ...save,
-        scenarioDeck: draftedDeck,
+        scenarioDeck: starterDeck,
         shifts: save.shifts.map((shift) =>
           shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
         ),
@@ -1311,7 +1318,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           >
             <OnboardingScreen
               members={save.members}
-              scenarios={starterScenarios}
               save={save}
               onTutorialUpdate={handleTutorialUpdate}
               onConfirm={handleConfirmOnboarding}
@@ -1439,18 +1445,22 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       closureError={closureError}
                       revealAllMemberDetails={revealAllMemberDetails}
                       deckRepairBlocked={deckRepairBlocked}
+                      dateBookLockedUntilFirstReport={dateBookLockedUntilFirstReport}
                       onTutorialUpdate={handleTutorialUpdate}
                       onCommitPair={handleCommitPair}
                       onStartDate={handleStartDate}
                       onCancelBooking={handleCancelBooking}
                       onConfirmClosure={handleConfirmClosure}
                       onDismissClosureError={handleDismissClosureError}
-                      onOpenDateBook={() => setCurrentRoom("datebook")}
+                      onOpenDateBook={() => {
+                        if (!dateBookLockedUntilFirstReport) setCurrentRoom("datebook");
+                      }}
                       onOpenRoster={() => setCurrentRoom("roster")}
                       onOpenPairFile={handleOpenPairFile}
                       onOpenAiSetup={() => setIsAiSetupOpen(true)}
                       onCloseShift={handleEndShift}
                       onStartNextShift={handleStartNextShift}
+                      onOpenDateSession={setActiveDateSessionId}
                       onDeckOverBudgetBlocked={(surfaceKey) =>
                         dispatchManagerQuip({
                           triggerKey: "datebook.commit.over-budget",
@@ -1525,6 +1535,11 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
               current={currentRoom}
               hidden={dateAmbientSessionId !== null}
               liveDateState={liveDateState}
+              disabledRooms={
+                dateBookLockedUntilFirstReport
+                  ? { datebook: "Date Book edits open after the first date report." }
+                  : undefined
+              }
               onSelect={(room) => setCurrentRoom(room)}
             />
 
@@ -1554,11 +1569,23 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             </AnimatePresence>
 
             <AnimatePresence>
-              {softWinDue && !isReleaseNotesOpen ? (
+              {softWinDue && !campaignLost && !isReleaseNotesOpen ? (
                 <SoftWinCutscene
                   save={save}
                   isActionPending={isActionPending}
                   onContinue={handleMarkSoftWinSeen}
+                />
+              ) : null}
+            </AnimatePresence>
+
+            <AnimatePresence>
+              {campaignLost && !isReleaseNotesOpen ? (
+                <CampaignLossModal
+                  save={save}
+                  isActionPending={isActionPending}
+                  onResetCampaign={handleResetSave}
+                  onExportSave={handleExportSave}
+                  onPunchOut={onPunchOut}
                 />
               ) : null}
             </AnimatePresence>

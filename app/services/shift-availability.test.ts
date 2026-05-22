@@ -58,7 +58,7 @@ const EXPECTED_PROFILE_IDS = {
 } satisfies Record<ShiftAvailabilityProfile, readonly string[]>;
 
 describe("shift partner availability", () => {
-  it("selects a deterministic 10-member partner slate for the same shift", () => {
+  it("selects a deterministic 8-member partner slate for the same shift", () => {
     const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
     const first = selectShiftPartnerMemberIds({
       members: save.members,

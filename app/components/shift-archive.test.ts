@@ -18,7 +18,7 @@ function makeReport(overrides: Partial<ShiftReport> = {}): ShiftReport {
     ordinaryNonHumanDates: overrides.ordinaryNonHumanDates ?? 0,
     memberMoodDelta: overrides.memberMoodDelta ?? 0,
     goalResults: overrides.goalResults ?? [],
-    ignoredRequestIds: overrides.ignoredRequestIds ?? [],
+    requestOutcomes: overrides.requestOutcomes ?? {},
     offeredScenarioIds: overrides.offeredScenarioIds ?? [],
     summary: overrides.summary ?? "1 date completed.",
     hrNote: overrides.hrNote,

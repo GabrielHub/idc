@@ -8,7 +8,12 @@ import {
   type DateFinalReport,
   type FollowUpAction,
 } from "../domain/game";
-import { applyFollowUpAction, previewFollowUpEffects } from "./date-engine";
+import {
+  applyFollowUpAction,
+  completeShift,
+  pendingFollowUpSessionsForShift,
+  previewFollowUpEffects,
+} from "./date-engine";
 import { MEMBER_QUIT_BUDGET_CUT } from "./budget";
 import { createSeedGameSave } from "./game-seed";
 
@@ -140,6 +145,44 @@ describe("outcome aware follow-up preview", () => {
     expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
   });
 
+  it("penalizes let_it_sit harder when strain was left unaddressed", () => {
+    const preview = previewFollowUpEffects(
+      buildPairState(),
+      buildSession("early_end"),
+      "let_it_sit",
+    );
+
+    expect(preview.reasons).toContain("strain left unaddressed");
+    expect(preview.statDeltas.conflict).toBeGreaterThan(0);
+    expect(preview.memberDeltas.retention).toBeLessThan(0);
+  });
+
+  it("penalizes let_it_sit lightly when there is no strain or warmth to act on", () => {
+    const calmPair = pairStateSchema.parse({
+      id: "pair-calm",
+      participantIds: ["jenna-pike", "vhool"],
+      stats: {
+        chemistry: 50,
+        trust: 55,
+        stability: 60,
+        conflict: 20,
+        weirdnessTolerance: 55,
+        spark: 45,
+        strain: 25,
+        relationshipHealth: 60,
+      },
+      completedDateIds: [],
+      scenarioUseCounts: {},
+      agreements: [],
+      openLoops: [],
+    });
+    const preview = previewFollowUpEffects(calmPair, buildSession("mixed"), "let_it_sit");
+
+    expect(preview.reasons).toContain("filed without action");
+    expect(preview.memberDeltas.retention).toBeLessThan(0);
+    expect(preview.statDeltas.spark ?? 0).toBeGreaterThanOrEqual(-2);
+  });
+
   it("records a budget cut when follow-up makes a member quit", () => {
     const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const pairState = buildPairState();
@@ -171,5 +214,78 @@ describe("outcome aware follow-up preview", () => {
         entry.reasons.some((reason) => reason.kind === "member_quit"),
       ),
     ).toBe(true);
+  });
+});
+
+describe("shift closure follow-up gate", () => {
+  function buildSaveWithCompletedShiftSession(filed: boolean) {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const activeShift = seed.shifts.find((shift) => shift.id === seed.activeShiftId);
+    if (activeShift === undefined) {
+      throw new Error("Expected an active shift in the seed save.");
+    }
+    const session = dateSessionSchema.parse({
+      id: `date-${activeShift.shiftNumber}-1-pair-jenna-pike-vhool-temporal-coffee-shop`,
+      pairId: "pair-jenna-pike-vhool",
+      scenarioId: "temporal-coffee-shop",
+      turnLimit: 24,
+      currentTurn: 4,
+      dateHealth: 55,
+      status: "completed",
+      runtimeMode: "local_ai",
+      participants: ["jenna-pike", "vhool"],
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: [] },
+      eventsTriggered: [],
+      playbackState: "ended",
+      endSentiment: null,
+      interventions: [],
+      finalReport: {
+        id: "final-gate-test",
+        dateSessionId: `date-${activeShift.shiftNumber}-1-pair-jenna-pike-vhool-temporal-coffee-shop`,
+        completedAt: "2026-05-05T12:30:00.000Z",
+        outcome: "mixed",
+        summary: "Cupid filed a follow-up gate test.",
+        statSummary: "Case read: gate test.",
+        recommendedFollowUp: "repair",
+        appliedFollowUp: filed ? "let_it_sit" : undefined,
+        memoryRecordIds: [],
+        readyToClose: false,
+      },
+    });
+    return gameSaveSchema.parse({
+      ...seed,
+      shifts: seed.shifts.map((shift) =>
+        shift.id === activeShift.id ? { ...shift, dateSlotsUsed: 1 } : shift,
+      ),
+      dateSessions: [...seed.dateSessions, session],
+    });
+  }
+
+  it("reports the pending sessions for the active shift", () => {
+    const save = buildSaveWithCompletedShiftSession(false);
+    const activeShift = save.shifts.find((shift) => shift.id === save.activeShiftId);
+    if (activeShift === undefined) {
+      throw new Error("Expected an active shift in the test save.");
+    }
+
+    const pending = pendingFollowUpSessionsForShift(save, activeShift.shiftNumber);
+
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.finalReport?.appliedFollowUp).toBeUndefined();
+  });
+
+  it("blocks completeShift while a session is missing a follow-up", () => {
+    const save = buildSaveWithCompletedShiftSession(false);
+
+    expect(() => completeShift(save)).toThrow(/File a follow-up/);
+  });
+
+  it("allows completeShift once every completed session has a follow-up filed", () => {
+    const save = buildSaveWithCompletedShiftSession(true);
+
+    expect(() => completeShift(save)).not.toThrow();
   });
 });

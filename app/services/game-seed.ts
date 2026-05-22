@@ -483,7 +483,7 @@ function createStarterMemories(timestamp: string) {
       scope: "company",
       visibility: "public",
       subjectIds: [],
-      text: "Cupid has opened the office with a 40 member roster and a budgeted Date Book.",
+      text: `Cupid has opened the office with a ${STARTER_FIXTURE_MEMBERS.length} member roster and a ${starterScenarios.length}-scenario Date Book.`,
       tags: ["baseline", "shift"],
       importance: 2,
       createdAt: timestamp,

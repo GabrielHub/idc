@@ -9,9 +9,11 @@ export type PairMemoryTimelineEntryKind =
   | "agreement_honored"
   | "agreement_broken"
   | "agreement_retired"
+  | "agreement_strained"
   | "open_loop_filed"
   | "open_loop_resolved"
-  | "open_loop_dropped";
+  | "open_loop_dropped"
+  | "open_loop_strained";
 
 export type PairMemoryTimelineEntry = {
   id: string;
@@ -44,6 +46,16 @@ export function buildPairMemoryTimeline(pairState: PairState): PairMemoryTimelin
         sourceJudgeSnapshotId: agreement.sourceJudgeSnapshotId,
       });
     }
+    if (agreement.strainedAt !== undefined) {
+      entries.push({
+        id: `${agreement.id}-strained`,
+        kind: "agreement_strained",
+        text: agreement.text,
+        occurredAt: agreement.strainedAt,
+        sourceDateSessionId: agreement.sourceDateSessionId,
+        sourceJudgeSnapshotId: agreement.sourceJudgeSnapshotId,
+      });
+    }
   }
 
   for (const loop of pairState.openLoops) {
@@ -61,6 +73,16 @@ export function buildPairMemoryTimeline(pairState: PairState): PairMemoryTimelin
         kind: openLoopResolutionKind(loop.status),
         text: loop.text,
         occurredAt: loop.resolvedAt,
+        sourceDateSessionId: loop.sourceDateSessionId,
+        sourceJudgeSnapshotId: loop.sourceJudgeSnapshotId,
+      });
+    }
+    if (loop.strainedAt !== undefined) {
+      entries.push({
+        id: `${loop.id}-strained`,
+        kind: "open_loop_strained",
+        text: loop.text,
+        occurredAt: loop.strainedAt,
         sourceDateSessionId: loop.sourceDateSessionId,
         sourceJudgeSnapshotId: loop.sourceJudgeSnapshotId,
       });
@@ -104,9 +126,11 @@ const TIMELINE_LABEL: Record<PairMemoryTimelineEntryKind, { label: string; tone:
   agreement_honored: { label: "honored", tone: "ok" },
   agreement_broken: { label: "broken", tone: "warn" },
   agreement_retired: { label: "retired", tone: "soft" },
+  agreement_strained: { label: "strained", tone: "warn" },
   open_loop_filed: { label: "filed", tone: "open" },
   open_loop_resolved: { label: "resolved", tone: "ok" },
   open_loop_dropped: { label: "dropped", tone: "soft" },
+  open_loop_strained: { label: "strained", tone: "warn" },
 };
 
 const TIMELINE_KIND_PREFIX: Record<PairMemoryTimelineEntryKind, string> = {
@@ -114,9 +138,11 @@ const TIMELINE_KIND_PREFIX: Record<PairMemoryTimelineEntryKind, string> = {
   agreement_honored: "agreement",
   agreement_broken: "agreement",
   agreement_retired: "agreement",
+  agreement_strained: "agreement",
   open_loop_filed: "loop",
   open_loop_resolved: "loop",
   open_loop_dropped: "loop",
+  open_loop_strained: "loop",
 };
 
 const RECENT_CHANGE_LIMIT = 8;
@@ -289,7 +315,10 @@ function AgreementCard({ agreement }: { agreement: PairAgreement }) {
   return (
     <li className="rounded-chip border border-aura-hairline bg-white/65 px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <StatusPill label="active" tone="active" />
+        <div className="flex min-w-0 items-center gap-1.5">
+          <StatusPill label="active" tone="active" />
+          {agreement.strainedAt === undefined ? null : <StatusPill label="strained" tone="warn" />}
+        </div>
         <SourceMeta createdAt={agreement.createdAt} dateSessionId={agreement.sourceDateSessionId} />
       </div>
       <p className="mt-1.5 line-clamp-3 text-label leading-snug text-aura-ink">{agreement.text}</p>
@@ -301,7 +330,10 @@ function OpenLoopCard({ openLoop }: { openLoop: OpenLoop }) {
   return (
     <li className="rounded-chip border border-aura-hairline bg-white/65 px-3 py-2">
       <div className="flex items-center justify-between gap-2">
-        <StatusPill label="open" tone="open" />
+        <div className="flex min-w-0 items-center gap-1.5">
+          <StatusPill label="open" tone="open" />
+          {openLoop.strainedAt === undefined ? null : <StatusPill label="strained" tone="warn" />}
+        </div>
         <SourceMeta createdAt={openLoop.createdAt} dateSessionId={openLoop.sourceDateSessionId} />
       </div>
       <p className="mt-1.5 line-clamp-3 text-label leading-snug text-aura-ink">{openLoop.text}</p>

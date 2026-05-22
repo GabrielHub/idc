@@ -708,7 +708,17 @@ export const playerKnowledgeRecordSchema = z.object({
 export const dateSessionStatusSchema = z.enum(["active", "completed", "ended_early"]);
 export const dateRuntimeModeSchema = z.literal("local_ai");
 
-export const followUpActionSchema = z.enum(["encourage", "cool_down", "repair", "mark_bad_fit"]);
+export const followUpActionSchema = z.enum([
+  "encourage",
+  "cool_down",
+  "repair",
+  "mark_bad_fit",
+  "let_it_sit",
+]);
+
+export const matchmakingIntentSchema = z.enum(["comfort", "spark", "surface", "repair", "swing"]);
+
+export const matchmakingIntentOutcomeSchema = z.enum(["supported", "mixed", "unsupported"]);
 
 export const dateFinalReportSchema = z.object({
   id: z.string().min(1),
@@ -717,6 +727,8 @@ export const dateFinalReportSchema = z.object({
   outcome: z.enum(["second_date", "mixed", "cool_down", "bad_fit", "early_end"]),
   summary: z.string().min(1),
   statSummary: z.string().min(1),
+  matchmakingIntent: matchmakingIntentSchema.optional(),
+  intentOutcome: matchmakingIntentOutcomeSchema.optional(),
   recommendedFollowUp: followUpActionSchema,
   appliedFollowUp: followUpActionSchema.optional(),
   memoryRecordIds: z.array(memoryIdSchema),
@@ -744,6 +756,7 @@ export const dateSessionSchema = z.object({
   endSentiment: endSentimentSchema.nullable().default(null),
   endReason: dateSessionEndReasonSchema.nullable().default(null),
   interventions: z.array(cupidInterventionSchema).default([]),
+  matchmakingIntent: matchmakingIntentSchema.optional(),
   finalReport: dateFinalReportSchema.optional(),
 });
 
@@ -823,6 +836,7 @@ export const activeDateBookingSchema = z.object({
   }),
   drawnScenarioIds: z.tuple([scenarioIdSchema, scenarioIdSchema, scenarioIdSchema]),
   committedAt: z.string().min(1),
+  matchmakingIntent: matchmakingIntentSchema.optional(),
   dateSessionId: dateSessionIdSchema.optional(),
 });
 
@@ -850,6 +864,7 @@ export const shiftReportSchema = z.object({
   id: z.string().min(1),
   shiftId: z.string().min(1),
   completedAt: z.string().min(1),
+  skipped: z.boolean().default(false),
   completedDates: z.number().int().min(0),
   earlyEndedDates: z.number().int().min(0),
   ordinaryNonHumanDates: z.number().int().min(0),
@@ -1131,6 +1146,8 @@ export type DateRuntimeMode = z.infer<typeof dateRuntimeModeSchema>;
 export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
+export type MatchmakingIntent = z.infer<typeof matchmakingIntentSchema>;
+export type MatchmakingIntentOutcome = z.infer<typeof matchmakingIntentOutcomeSchema>;
 export type ScenarioDeck = z.infer<typeof scenarioDeckSchema>;
 export type BudgetReasonKind = z.infer<typeof budgetReasonKindSchema>;
 export type BudgetReason = z.infer<typeof budgetReasonSchema>;

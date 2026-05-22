@@ -355,7 +355,7 @@ export function buildPerformanceReviewReasons(input: BudgetReviewSignalsInput): 
     const percent = Math.round(input.requestFulfillmentRate * 100);
     reasons.push({
       kind: "performance_request_fulfillment",
-      label: `${percent}% of asks honored`,
+      label: `${percent}% of lead asks honored`,
       delta: requestDelta,
     });
   }

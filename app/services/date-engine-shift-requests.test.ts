@@ -316,6 +316,7 @@ describe("applyDateFinalReportToMembers ask-state prefix", () => {
         summary: "summary",
         statSummary: "stat",
         recommendedFollowUp: "encourage",
+        appliedFollowUp: "encourage",
         memoryRecordIds: [],
       }),
     });
@@ -531,7 +532,7 @@ describe("completeShift hot-only penalty gating", () => {
     return { id: hotRequestId, memberId: hotRequest.memberId };
   }
 
-  it("penalizes only the hot member when no bookings happened", () => {
+  it("penalizes only the hot member when the shift is skipped", () => {
     const { save, focusIds } = seedWithFourFocus();
     const hot = getHotRequest(save);
     expect(focusIds).toContain(hot.memberId);
@@ -554,6 +555,7 @@ describe("completeShift hot-only penalty gating", () => {
 
     expect(report.hrNote ?? "").toMatch(/Lead ask sat/);
     expect(report.hrNote ?? "").toMatch(/3 cases in the queue/);
+    expect(report.skipped).toBe(true);
   });
 
   it("does not penalize anyone when the lead ask was a covered booking", () => {
@@ -586,6 +588,7 @@ describe("completeShift hot-only penalty gating", () => {
         summary: "summary",
         statSummary: "stat",
         recommendedFollowUp: "encourage",
+        appliedFollowUp: "encourage",
         memoryRecordIds: [],
       }),
     });
@@ -630,7 +633,7 @@ describe("completeShift hot-only penalty gating", () => {
     );
 
     expect(report.budgetReview).toBeDefined();
-    expect(requestReason?.label).toBe("0% of asks honored");
+    expect(requestReason?.label).toBe("0% of lead asks honored");
     expect(requestReason?.delta).toBe(-5);
   });
 });

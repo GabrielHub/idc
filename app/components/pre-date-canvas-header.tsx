@@ -13,6 +13,7 @@ export function PreDateHeader({
   shiftClosed,
   activeBookingLocked,
   isActionPending,
+  pendingFollowUpCount,
   fileShiftButtonRef,
   onCloseShift,
   onStartNextShift,
@@ -27,6 +28,7 @@ export function PreDateHeader({
   shiftClosed: boolean;
   activeBookingLocked: boolean;
   isActionPending: boolean;
+  pendingFollowUpCount: number;
   fileShiftButtonRef?: Ref<HTMLButtonElement>;
   onCloseShift: () => void;
   onStartNextShift: () => void;
@@ -69,6 +71,7 @@ export function PreDateHeader({
             activeBookingLocked={activeBookingLocked}
             shiftDateAvailable={shiftDateAvailable}
             isActionPending={isActionPending}
+            pendingFollowUpCount={pendingFollowUpCount}
             fileShiftButtonRef={fileShiftButtonRef}
             onCloseShift={onCloseShift}
             onStartNextShift={onStartNextShift}
@@ -105,6 +108,7 @@ function ShiftCta({
   activeBookingLocked,
   shiftDateAvailable,
   isActionPending,
+  pendingFollowUpCount,
   fileShiftButtonRef,
   onCloseShift,
   onStartNextShift,
@@ -113,6 +117,7 @@ function ShiftCta({
   activeBookingLocked: boolean;
   shiftDateAvailable: boolean;
   isActionPending: boolean;
+  pendingFollowUpCount: number;
   fileShiftButtonRef?: Ref<HTMLButtonElement>;
   onCloseShift: () => void;
   onStartNextShift: () => void;
@@ -136,10 +141,23 @@ function ShiftCta({
     );
   }
 
+  if (pendingFollowUpCount > 0) {
+    return (
+      <Tooltip
+        message={`File a follow-up for ${pendingFollowUpCount === 1 ? "the completed date" : `all ${pendingFollowUpCount} completed dates`} before closing the shift. Pick Let It Sit if no action fits.`}
+        placement="bottom-end"
+      >
+        <GhostButton disabled buttonRef={fileShiftButtonRef}>
+          Follow-up pending ({pendingFollowUpCount})
+        </GhostButton>
+      </Tooltip>
+    );
+  }
+
   if (shiftDateAvailable) {
     return (
       <Tooltip
-        message="End this shift without booking a date. Cupid files the day, applies any ignored request fallout, and lets you open the next shift."
+        message="Skip tonight's roster without booking a date. The lead ask sits and takes its full mood penalty; background cases stay in the queue."
         placement="bottom-end"
       >
         <GhostButton
@@ -147,7 +165,7 @@ function ShiftCta({
           onClick={onCloseShift}
           disabled={isActionPending}
         >
-          File the shift
+          Skip tonight's roster
         </GhostButton>
       </Tooltip>
     );
