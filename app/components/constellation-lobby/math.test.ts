@@ -10,9 +10,6 @@ import {
   haloColorForStar,
   intensityForRole,
   pairPartnerPosition,
-  rainColorForStar,
-  rainDensityForStar,
-  rgbChannelsFromColor,
   ringColorForRole,
   roleForStar,
   sizeForStar3D,
@@ -340,87 +337,6 @@ describe("withAlpha", () => {
   });
 });
 
-describe("rgbChannelsFromColor", () => {
-  it("normalizes #rrggbb to 0-1 channels", () => {
-    expect(rgbChannelsFromColor("#ff0080")).toEqual({ r: 1, g: 0, b: 128 / 255 });
-  });
-
-  it("normalizes #rgb to 0-1 channels via duplication", () => {
-    expect(rgbChannelsFromColor("#abc")).toEqual({
-      r: 0xaa / 255,
-      g: 0xbb / 255,
-      b: 0xcc / 255,
-    });
-  });
-
-  it("normalizes rgb() to 0-1 channels and drops the alpha", () => {
-    expect(rgbChannelsFromColor("rgb(255, 128, 0)")).toEqual({ r: 1, g: 128 / 255, b: 0 });
-  });
-
-  it("normalizes rgba() and drops the alpha", () => {
-    expect(rgbChannelsFromColor("rgba(0, 64, 192, 0.5)")).toEqual({
-      r: 0,
-      g: 64 / 255,
-      b: 192 / 255,
-    });
-  });
-
-  it("returns a soft warm fallback for unparseable inputs (never pure-black rain)", () => {
-    const fallback = rgbChannelsFromColor("currentColor");
-    expect(fallback.r).toBeGreaterThan(0.5);
-    expect(fallback.g).toBeGreaterThan(0.5);
-    expect(fallback.b).toBeGreaterThan(0.5);
-  });
-});
-
-describe("rainColorForStar", () => {
-  const palette = resolvePortraitPalette(jennaPike);
-
-  it("uses the focus rose for focus stars", () => {
-    expect(rainColorForStar("focus", palette, undefined)).toEqual(rgbChannelsFromColor("#fb7185"));
-  });
-
-  it("uses the partner violet for partner stars", () => {
-    expect(rainColorForStar("partner", palette, undefined)).toEqual(
-      rgbChannelsFromColor("#c4b5fd"),
-    );
-  });
-
-  it("prefers aura tint for eligible candidates when an aura is registered", () => {
-    expect(rainColorForStar("eligible", palette, SAMPLE_AURA)).toEqual(
-      rgbChannelsFromColor(SAMPLE_AURA.tint.primary),
-    );
-  });
-
-  it("falls back to the palette accent for eligible candidates without an aura", () => {
-    expect(rainColorForStar("eligible", palette, undefined)).toEqual(
-      rgbChannelsFromColor(palette.accent),
-    );
-  });
-
-  it("warms cooling stars toward soft rose", () => {
-    expect(rainColorForStar("ineligible_cooling", palette, undefined)).toEqual(
-      rgbChannelsFromColor("#fda4af"),
-    );
-  });
-
-  it("desaturates off-shift and closed stars to a cool blue-grey", () => {
-    const offShift = rainColorForStar("ineligible_off_shift", palette, undefined);
-    const closed = rainColorForStar("ineligible_closed", palette, undefined);
-    expect(offShift).toEqual(rgbChannelsFromColor("#94a3b8"));
-    expect(closed).toEqual(rgbChannelsFromColor("#94a3b8"));
-  });
-
-  it("still tints dim background stars by aura or palette so each carries identity", () => {
-    expect(rainColorForStar("dim", palette, SAMPLE_AURA)).toEqual(
-      rgbChannelsFromColor(SAMPLE_AURA.tint.primary),
-    );
-    expect(rainColorForStar("dim", palette, undefined)).toEqual(
-      rgbChannelsFromColor(palette.accent),
-    );
-  });
-});
-
 describe("haloColorForStar", () => {
   const palette = resolvePortraitPalette(jennaPike);
 
@@ -437,35 +353,5 @@ describe("haloColorForStar", () => {
   it("falls back to the palette accent when no aura is registered", () => {
     expect(haloColorForStar("eligible", palette, undefined)).toBe(palette.accent);
     expect(haloColorForStar("dim", palette, undefined)).toBe(palette.accent);
-  });
-});
-
-describe("rainDensityForStar", () => {
-  it("cascades heavy data for focus and partner", () => {
-    expect(rainDensityForStar("focus", "mid", "focus_selected")).toBe(22);
-    expect(rainDensityForStar("partner", "mid", "partner_selected")).toBe(18);
-  });
-
-  it("gives eligibles a moderate cascade", () => {
-    expect(rainDensityForStar("eligible", "mid", "focus_selected")).toBe(12);
-  });
-
-  it("dims ineligibles in availability severity order (closed gets nothing)", () => {
-    expect(rainDensityForStar("ineligible_cooling", "mid", "focus_selected")).toBe(5);
-    expect(rainDensityForStar("ineligible_off_shift", "mid", "focus_selected")).toBe(2);
-    expect(rainDensityForStar("ineligible_closed", "mid", "focus_selected")).toBe(0);
-  });
-
-  it("scales dim density by tier in the idle field", () => {
-    expect(rainDensityForStar("dim", "foreground", "idle")).toBe(8);
-    expect(rainDensityForStar("dim", "mid", "idle")).toBe(4);
-    expect(rainDensityForStar("dim", "background", "idle")).toBe(2);
-  });
-
-  it("shrinks dim density further when the lobby is non-idle so the active pair leads", () => {
-    expect(rainDensityForStar("dim", "foreground", "focus_selected")).toBeLessThan(
-      rainDensityForStar("dim", "foreground", "idle"),
-    );
-    expect(rainDensityForStar("dim", "background", "focus_selected")).toBe(0);
   });
 });

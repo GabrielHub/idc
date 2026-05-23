@@ -34,12 +34,7 @@ import { getMemberAuraConfig } from "../components/member-aura-registry";
 import { resolvePortraitPalette, type PortraitPalette } from "../components/portrait-palette";
 import { caseFileNumber } from "../components/member-card-atoms";
 import { createSeededRandom } from "../services/utils";
-import { PixelRainTrail, ShimmerPixels } from "../components/constellation-lobby/pixel-rain";
-import {
-  haloColorForStar,
-  rainColorForStar,
-  rainDensityForStar,
-} from "../components/constellation-lobby/math";
+import { haloColorForStar } from "../components/constellation-lobby/math";
 import type {
   CameraTarget,
   LobbyScenario,
@@ -984,21 +979,6 @@ export function StarSprite({
     () => intensityForRole(role, star.tier, state),
     [role, star.tier, state],
   );
-  // Pixel-rain tint + density derived per role: focus/partner cascade heavy
-  // with the active-pair color, eligibles cascade in their aura color, dim
-  // stars get a sparse trickle, closed stars get nothing so the closed-case
-  // glyph reads cleanly. See app/components/constellation-lobby/math.ts.
-  const rainColor = useMemo(
-    () => rainColorForStar(role, star.palette, star.aura),
-    [role, star.palette, star.aura],
-  );
-  const rainCount = useMemo(
-    () => rainDensityForStar(role, star.tier, state),
-    [role, star.tier, state],
-  );
-  // Shimmer pixels sit AT the star, not below. Reserved for active roles so
-  // we don't fight the dim field for attention.
-  const shimmerCount = role === "focus" ? 7 : role === "partner" ? 6 : role === "eligible" ? 4 : 0;
   // Star-points geometry — five spikes radiating from the circle border so
   // the bubble reads as an actual star. Inner notch matches the avatar's
   // outer edge so the inner vertices tuck behind the circle and only the
@@ -1070,12 +1050,25 @@ export function StarSprite({
     const haloPulse = reducedMotion ? 1 : 0.78 + slow * 0.34;
 
     if (haloMatRef.current !== null) {
-      // Bumped role targets from v6.2 so the rim glow reads as "this is a
-      // star" rather than "this is a coin in a velvet pocket". Bloom in the
-      // post pass amplifies it further once the value crosses the luminance
-      // threshold, so we don't have to push these all the way to 1.
+      // Each star gets a visible palette-tinted halo so the field reads as
+      // a constellation of differently-colored glows rather than a uniform
+      // warm wash. Active roles get the strongest baseline; ineligibles
+      // dim by severity; dim background stars still carry a soft palette
+      // glow so each one slightly pulses and breathes with its own color.
       const baseTarget =
-        role === "focus" ? 0.72 : role === "partner" ? 0.58 : role === "eligible" ? 0.32 : 0.06;
+        role === "focus"
+          ? 0.78
+          : role === "partner"
+            ? 0.62
+            : role === "eligible"
+              ? 0.4
+              : role === "ineligible_cooling"
+                ? 0.24
+                : role === "ineligible_off_shift"
+                  ? 0.18
+                  : role === "ineligible_closed"
+                    ? 0.12
+                    : 0.3;
       const target = baseTarget * haloPulse;
       haloMatRef.current.opacity = THREE.MathUtils.lerp(
         haloMatRef.current.opacity,
@@ -1157,50 +1150,8 @@ export function StarSprite({
         : null;
 
   // Rain trail brightness rides the role intensity AND the filtered-out
-  // multiplier so cases the lens filtered out cascade visibly dimmer instead
-  // of disappearing. Pushed brighter than the v6 baseline so the rain reads
-  // distinctly against the ambient ParticleField dust (warm-cream additive
-  // dots) — at this intensity each rain particle's RGB clamps high enough
-  // that Bloom amplifies it past the dust into a visible cascade.
-  const rainIntensity =
-    (filteredOut ? 0.42 : 1) * (role === "focus" || role === "partner" ? 2.2 : 1.65);
-  // Rain spawn span scales with the halo. Active roles narrow the column so
-  // the cascade reads as a vertical stream (Matrix-rain shape) rather than a
-  // wide cone — wider drives the wider field stars where presence matters
-  // more than read.
-  const rainSpawnRadius =
-    sizing.haloRadius * (role === "focus" || role === "partner" ? 0.85 : 0.95);
-  const rainFallHeight =
-    sizing.haloRadius *
-    (role === "focus" ? 7 : role === "partner" ? 6 : role === "eligible" ? 4.6 : 3);
-  const rainFallSpeed = sizing.haloRadius * (role === "focus" || role === "partner" ? 2.4 : 1.8);
-  // Particle size in world units. PointsMaterial with sizeAttenuation maps
-  // these to screen pixels through the standard perspective formula — at the
-  // camera's default 17-unit distance with role pulled to z~3, focus stars
-  // are ~14 world units away. Pushed up from v6 so each rain particle reads
-  // as a chunky pixel rather than a faint dust dot that blends with the
-  // ParticleField behind it.
-  const rainParticleSize =
-    sizing.haloRadius *
-    (role === "focus" || role === "partner" ? 0.42 : role === "eligible" ? 0.34 : 0.24);
-
   return (
     <group ref={groupRef} position={[natural.x, natural.y, natural.z]} visible={!hovered}>
-      {/* Pixel-rain trail — lives OUTSIDE the Billboard so the cascade falls
-          along world -Y instead of rotating with the avatar plane. Parented
-          to the group so it inherits position + scale. Sized off the halo
-          radius so each star's rain reads in proportion to its bubble. */}
-      <PixelRainTrail
-        count={rainCount}
-        spawnRadius={rainSpawnRadius}
-        fallHeight={rainFallHeight}
-        fallSpeed={rainFallSpeed}
-        color={rainColor}
-        intensity={rainIntensity}
-        seed={star.member.id}
-        reducedMotion={reducedMotion}
-        size={rainParticleSize}
-      />
       <Billboard>
         {/* Star spikes — a 5-point star polygon sitting just behind the halo
             so the inner notches hide behind the avatar circle and only the
@@ -1234,23 +1185,6 @@ export function StarSprite({
             fog={false}
           />
         </mesh>
-
-        {/* Shimmer pixels — additive dots that twinkle AT the star (not falling)
-            for the "data energy" pop-glow on active roles. Inside Billboard so
-            the cluster always faces the camera; arranged off-center via the
-            ShimmerPixels seeded offsets so they ring the avatar rather than
-            covering the face. */}
-        {shimmerCount > 0 ? (
-          <ShimmerPixels
-            count={shimmerCount}
-            radius={sizing.haloRadius * 0.78}
-            color={rainColor}
-            intensity={role === "focus" ? 1 : role === "partner" ? 0.9 : 0.7}
-            seed={star.member.id}
-            reducedMotion={reducedMotion}
-            size={sizing.haloRadius * 0.16}
-          />
-        ) : null}
 
         {/* Avatar (lit) — circleGeometry clips the cutout PNG to a disc so the
             shoulders / body of the original image cannot bleed past the ring
