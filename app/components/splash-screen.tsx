@@ -47,7 +47,7 @@ const INITIAL_AI_STATUS: AiSetupStatus = {
 };
 
 type SplashScreenProps = {
-  onPunchIn: () => void;
+  onPunchIn: (toLobby: boolean) => void;
 };
 
 export function SplashScreen({ onPunchIn }: SplashScreenProps) {
@@ -219,7 +219,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
       setPhase("stamping");
       window.setTimeout(() => {
         setPhase("authenticating");
-        window.setTimeout(onPunchIn, 220);
+        window.setTimeout(() => onPunchIn(true), 220);
       }, STAMP_DURATION_MS);
       return;
     }
@@ -230,7 +230,7 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
       setSave(fresh);
       window.setTimeout(() => {
         setPhase("authenticating");
-        window.setTimeout(onPunchIn, 220);
+        window.setTimeout(() => onPunchIn(false), 220);
       }, STAMP_DURATION_MS);
     } catch (error) {
       setPhase("idle");

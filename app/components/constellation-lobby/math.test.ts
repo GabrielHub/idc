@@ -6,7 +6,6 @@ import { resolvePortraitPalette } from "../portrait-palette";
 import {
   advanceFlythroughLayer,
   availabilityRole,
-  computeCameraTarget,
   computeFlythroughCameraTarget,
   computeLayerZOffset,
   computeStarFlythroughLayer,
@@ -18,8 +17,10 @@ import {
   haloColorForStar,
   intensityForRole,
   pairPartnerPosition,
+  resolveStarRenderTarget,
   ringColorForRole,
   roleForStar,
+  rosterClusterPosition,
   sizeForStar3D,
   starWorldPosition,
   withAlpha,
@@ -84,46 +85,69 @@ describe("pairPartnerPosition", () => {
   });
 });
 
-describe("computeCameraTarget", () => {
-  it("returns the centered idle frame with mild bokeh so focus cases stay sharp", () => {
-    expect(computeCameraTarget("idle", undefined)).toEqual({
-      position: [0, 0, 17],
-      lookAt: [0, 0, -1],
-      bokehScale: 0.45,
+describe("resolveStarRenderTarget", () => {
+  const natural = { x: 1, y: 2, z: -10 };
+
+  it("returns the natural position when nothing overrides it", () => {
+    expect(
+      resolveStarRenderTarget({
+        natural,
+        overridePos: null,
+        clusterPosition: null,
+        flythroughLayer: undefined,
+        layerZOffset: 0,
+      }),
+    ).toEqual({ x: 1, y: 2, z: -10 });
+  });
+
+  it("layers role-driven Z offset on top of the natural Z when no slab is set", () => {
+    expect(
+      resolveStarRenderTarget({
+        natural,
+        overridePos: null,
+        clusterPosition: null,
+        flythroughLayer: undefined,
+        layerZOffset: 2.4,
+      }),
+    ).toEqual({ x: 1, y: 2, z: -10 + 2.4 });
+  });
+
+  it("uses the override XY and Z when one is provided (partner anchor)", () => {
+    expect(
+      resolveStarRenderTarget({
+        natural,
+        overridePos: { x: 5, y: 6, z: -3 },
+        clusterPosition: null,
+        flythroughLayer: undefined,
+        layerZOffset: 1.4,
+      }),
+    ).toEqual({ x: 5, y: 6, z: -3 + 1.4 });
+  });
+
+  it("snaps to the flythrough slab Z plus a small jitter pulled from natural Z", () => {
+    const layered = resolveStarRenderTarget({
+      natural,
+      overridePos: null,
+      clusterPosition: null,
+      flythroughLayer: 1,
+      layerZOffset: 0,
     });
+    expect(layered.x).toBe(1);
+    expect(layered.y).toBe(2);
+    expect(layered.z).toBeCloseTo(FLYTHROUGH_LAYER_Z[1] + natural.z * 0.18);
   });
 
-  it("returns the mild-bokeh idle frame when callouts dominate", () => {
-    expect(computeCameraTarget("callout_heavy", makeStar())).toEqual({
-      position: [0, 0, 17],
-      lookAt: [0, 0, -1],
-      bokehScale: 0.45,
+  it("clusters in front of the camera on the focus slab without natural-Z jitter", () => {
+    const clustered = resolveStarRenderTarget({
+      natural,
+      overridePos: null,
+      clusterPosition: { x: -2.6, y: 1.8, z: 0 },
+      flythroughLayer: 0,
+      layerZOffset: 0,
     });
-  });
-
-  it("falls back to the centered frame in non-idle states without a focus", () => {
-    expect(computeCameraTarget("focus_selected", undefined)).toEqual({
-      position: [0, 0, 17],
-      lookAt: [0, 0, -1],
-      bokehScale: 0.45,
-    });
-  });
-
-  it("dollies in toward the focus on focus_selected with a deeper bokeh", () => {
-    const focus = makeStar({ x: 70, y: 30, z: 0 });
-    const target = computeCameraTarget("focus_selected", focus);
-    expect(target.position[2]).toBe(10);
-    expect(target.bokehScale).toBe(1.1);
-    const fp = starWorldPosition(focus);
-    expect(target.position[0]).toBeCloseTo(fp.x * 0.55);
-    expect(target.position[1]).toBeCloseTo(fp.y * 0.5);
-  });
-
-  it("frames the pair anchor on partner_selected and beyond with the deepest bokeh", () => {
-    const focus = makeStar({ x: 60, y: 40, z: 0 });
-    const target = computeCameraTarget("partner_selected", focus);
-    expect(target.position[2]).toBe(6.5);
-    expect(target.bokehScale).toBe(1.25);
+    expect(clustered.x).toBe(-2.6);
+    expect(clustered.y).toBe(1.8);
+    expect(clustered.z).toBe(FLYTHROUGH_LAYER_Z[0]);
   });
 });
 
@@ -448,12 +472,87 @@ describe("flythroughMemberSlabActivity", () => {
     );
   });
 
+  it("crushes non-lead intensity on layer 1 so leads pop unambiguously", () => {
+    const lead = flythroughMemberSlabActivity(1, 1, "eligible", "eligibles");
+    const offCohort = flythroughMemberSlabActivity(1, 1, "off_tonight", "eligibles");
+    const otherIneligible = flythroughMemberSlabActivity(1, 1, "other_ineligible", "eligibles");
+    // Leads should be at least 5x brighter than the dimmer cohorts so the
+    // pickable faces dominate while the off cohorts read as outline stars.
+    expect(lead.intensityMultiplier).toBeGreaterThan(offCohort.intensityMultiplier * 5);
+    expect(lead.intensityMultiplier).toBeGreaterThan(otherIneligible.intensityMultiplier * 5);
+    // Other ineligible should be the dimmest tier.
+    expect(otherIneligible.intensityMultiplier).toBeLessThan(offCohort.intensityMultiplier);
+  });
+
   it("recedes every member slab when the player is on the scenarios layer", () => {
     const layer0 = flythroughMemberSlabActivity(0, 2);
     const layer1 = flythroughMemberSlabActivity(1, 2);
     expect(layer0.intensityMultiplier).toBeLessThan(0.5);
     expect(layer1.intensityMultiplier).toBeLessThan(0.5);
     expect(layer0).toEqual(layer1);
+  });
+});
+
+describe("rosterClusterPosition", () => {
+  it("returns the origin for an empty or single-item cohort", () => {
+    expect(rosterClusterPosition(0, 0)).toEqual({ x: 0, y: 0, z: 0 });
+    expect(rosterClusterPosition(0, 1)).toEqual({ x: 0, y: 0, z: 0 });
+  });
+
+  it("lays a pair out horizontally so both faces sit side-by-side", () => {
+    const left = rosterClusterPosition(0, 2);
+    const right = rosterClusterPosition(1, 2);
+    expect(left.y).toBe(0);
+    expect(right.y).toBe(0);
+    expect(left.x).toBeLessThan(0);
+    expect(right.x).toBeGreaterThan(0);
+    expect(left.x).toBe(-right.x);
+  });
+
+  it("centers a partial last row so the cluster reads as a balanced rectangle", () => {
+    // 5 items -> 2 rows of 3 (last row has 2, centered)
+    const lastRowLeft = rosterClusterPosition(3, 5);
+    const lastRowRight = rosterClusterPosition(4, 5);
+    expect(lastRowLeft.y).toBe(lastRowRight.y);
+    expect(lastRowLeft.x).toBeLessThan(0);
+    expect(lastRowRight.x).toBeGreaterThan(0);
+    expect(lastRowLeft.x).toBeCloseTo(-lastRowRight.x);
+  });
+
+  it("clamps spacing so a roster of 12 still fits inside the viewport bounds", () => {
+    const positions = Array.from({ length: 12 }, (_, i) => rosterClusterPosition(i, 12));
+    const xs = positions.map((p) => p.x);
+    const ys = positions.map((p) => p.y);
+    const maxX = Math.max(...xs.map(Math.abs));
+    const maxY = Math.max(...ys.map(Math.abs));
+    // Half-width should fit within the camera-fov-derived safe area (~6.5 wu)
+    // and half-height inside the chrome-cleared safe area (~3.5 wu).
+    expect(maxX).toBeLessThanOrEqual(6.5);
+    expect(maxY).toBeLessThanOrEqual(3.5);
+  });
+
+  it("clamps even a large 20-member roster inside the viewport bounds", () => {
+    const positions = Array.from({ length: 20 }, (_, i) => rosterClusterPosition(i, 20));
+    const xs = positions.map((p) => p.x);
+    const ys = positions.map((p) => p.y);
+    const maxX = Math.max(...xs.map(Math.abs));
+    const maxY = Math.max(...ys.map(Math.abs));
+    expect(maxX).toBeLessThanOrEqual(6.5);
+    expect(maxY).toBeLessThanOrEqual(3.5);
+  });
+
+  it("keeps every cluster position on the roster slab plane (z=0 before slab snap)", () => {
+    for (const total of [1, 4, 9, 12, 16]) {
+      for (let i = 0; i < total; i += 1) {
+        expect(rosterClusterPosition(i, total).z).toBe(0);
+      }
+    }
+  });
+
+  it("clamps out-of-range indices to the last valid slot", () => {
+    const last = rosterClusterPosition(11, 12);
+    const clamped = rosterClusterPosition(99, 12);
+    expect(clamped).toEqual(last);
   });
 });
 

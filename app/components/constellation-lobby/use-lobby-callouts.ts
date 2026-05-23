@@ -2,7 +2,7 @@ import { useMemo } from "react";
 
 import type { GameSave, ShiftState } from "../../domain/game";
 import { pendingFollowUpSessionsForShift } from "../../services/date-engine";
-import type { Callout } from "./canvas-convention";
+import type { Callout } from "./lobby-hud";
 
 export function useLobbyCallouts({
   deckRepairBlocked,
@@ -46,8 +46,8 @@ export function useLobbyCallouts({
           readyClosurePairCount === 1
             ? "One pair is ready to close"
             : `${readyClosurePairCount} pairs are ready to close`,
-        body: "Open the notes archive to file the closure summary before the next shift.",
-        action: { label: "Open notes", onClick: onOpenClosures },
+        body: "File a placeholder closure summary before the next shift.",
+        action: { label: "File closure", onClick: onOpenClosures },
       });
     }
     if (onOpenDateSession !== undefined) {

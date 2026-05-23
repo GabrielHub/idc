@@ -9,6 +9,7 @@ export type {
   TutorialCoachMarkProps,
   CoachMarkPlacement,
   CoachMarkPortraitMode,
+  CoachMarkFixedPosition,
 } from "./tutorial-coach-mark";
 
 export { TutorialProgressDots } from "./tutorial-progress-dots";

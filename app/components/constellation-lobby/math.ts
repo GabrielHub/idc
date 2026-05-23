@@ -6,6 +6,7 @@
  * `role` takes them as args so the same helper works for spike and prod.
  */
 
+import type { Member } from "../../domain/game";
 import type {
   CameraTarget,
   FlythroughLayer,
@@ -46,28 +47,31 @@ export function pairPartnerPosition(focus: StarMark): Vec3 {
   };
 }
 
-export function computeCameraTarget(state: LobbyState, focus: StarMark | undefined): CameraTarget {
-  if (state === "idle" || state === "callout_heavy") {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 0.45 };
-  }
-  if (focus === undefined) {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 0.45 };
-  }
-  const fp = starWorldPosition(focus);
-  if (state === "focus_selected") {
-    return {
-      position: [fp.x * 0.55, fp.y * 0.5, 10],
-      lookAt: [fp.x * 0.9, fp.y * 0.9, fp.z + 0.2],
-      bokehScale: 1.1,
-    };
-  }
-  const anchorX = fp.x + 1.4;
-  const anchorY = fp.y + 0.2;
-  return {
-    position: [anchorX * 0.55, anchorY * 0.45, 6.5],
-    lookAt: [anchorX * 0.85, anchorY * 0.8, fp.z + 0.3],
-    bokehScale: 1.25,
-  };
+/**
+ * Resolves the world position a star is actually rendered at — the lerp target
+ * its `<StarSprite>` follows each frame. Anything anchored to the star (the
+ * active HoverDetailCard mount, the pair connector endpoint, an overlay arrow)
+ * should use this instead of `starWorldPosition` so it lands on the rendered
+ * star instead of its raw field coordinates. Drift, lerp damping, and per-axis
+ * jitter are visual-only and handled inside StarSprite — this returns the
+ * static target.
+ */
+export function resolveStarRenderTarget(input: {
+  natural: Vec3;
+  overridePos: Vec3 | null;
+  clusterPosition: Vec3 | null;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  layerZOffset: number;
+}): Vec3 {
+  const { natural, overridePos, clusterPosition, flythroughLayer, layerZOffset } = input;
+  const x = clusterPosition?.x ?? overridePos?.x ?? natural.x;
+  const y = clusterPosition?.y ?? overridePos?.y ?? natural.y;
+  const flythroughZ =
+    flythroughLayer === undefined
+      ? null
+      : flythroughStarZ(flythroughLayer) + (clusterPosition === null ? natural.z * 0.18 : 0);
+  const z = flythroughZ !== null ? flythroughZ : (overridePos?.z ?? natural.z) + layerZOffset;
+  return { x, y, z };
 }
 
 /**
@@ -119,6 +123,65 @@ export function focusClusterPosition(index: number, total: number): Vec3 {
 }
 
 /**
+ * Roster-slab cluster layout. The active subview's leads (eligibles when the
+ * pill is on "Eligibles", off-tonight cohort when flipped) pack into a
+ * viewport-fitting rectangular grid centered on the layer-1 lookAt so every
+ * pickable face fits on screen at once instead of being scattered across the
+ * field. Non-lead members keep their natural positions and recede behind the
+ * cluster as outline-only background stars (handled by the heavy intensity
+ * drop in `flythroughMemberSlabActivity` for the off cohort).
+ *
+ * The grid picker biases toward wider layouts (viewport is wider than tall)
+ * and clamps total spacing to a max bounding box so even larger rosters fit
+ * without overflowing into the chrome. Partial last rows are centered.
+ */
+const ROSTER_CLUSTER_MAX_WIDTH = 11;
+const ROSTER_CLUSTER_MAX_HEIGHT = 6;
+const ROSTER_CLUSTER_DEFAULT_SPACING_X = 2.8;
+const ROSTER_CLUSTER_DEFAULT_SPACING_Y = 2.5;
+
+function pickRosterClusterGrid(total: number): { rows: number; cols: number } {
+  if (total <= 3) return { rows: 1, cols: total };
+  if (total === 4) return { rows: 2, cols: 2 };
+  if (total <= 6) return { rows: 2, cols: 3 };
+  if (total <= 9) return { rows: 3, cols: 3 };
+  if (total <= 12) return { rows: 3, cols: 4 };
+  if (total <= 16) return { rows: 4, cols: 4 };
+  if (total <= 20) return { rows: 4, cols: 5 };
+  return { rows: Math.ceil(total / 5), cols: 5 };
+}
+
+export function rosterClusterPosition(index: number, total: number): Vec3 {
+  if (total <= 0) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+  if (total === 1) return { x: 0, y: 0, z: 0 };
+
+  const { rows, cols } = pickRosterClusterGrid(total);
+  const spacingX =
+    cols > 1
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_X, ROSTER_CLUSTER_MAX_WIDTH / (cols - 1))
+      : ROSTER_CLUSTER_DEFAULT_SPACING_X;
+  const spacingY =
+    rows > 1
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, ROSTER_CLUSTER_MAX_HEIGHT / (rows - 1))
+      : ROSTER_CLUSTER_DEFAULT_SPACING_Y;
+
+  const col = clamped % cols;
+  const row = Math.floor(clamped / cols);
+  // Last row may be partial — center its items so the cluster reads as a
+  // balanced rectangle even when total isn't evenly divisible by cols.
+  const itemsInThisRow = row === rows - 1 ? total - row * cols : cols;
+  const colOffset = (cols - itemsInThisRow) / 2;
+  const effectiveCol = col + colOffset;
+
+  return {
+    x: (effectiveCol - (cols - 1) / 2) * spacingX,
+    y: ((rows - 1) / 2 - row) * spacingY,
+    z: 0,
+  };
+}
+
+/**
  * Camera target for archive mode. Idle reads as a pulled-back overhead of
  * the whole constellation field so every star + edge is in frame at once.
  * When a selection bisects two stars (pair edge selected), the camera dollies
@@ -149,6 +212,60 @@ export function computeArchiveCameraTarget(input: {
     };
   }
   return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+}
+
+// Canvas FOV (38°) mirrored from the lobby's <Canvas camera={fov: 38}/> config.
+// A change there must also update this constant — the fit math depends on the
+// matching vertical FOV so the bounding box fills the actual viewport.
+const ARCHIVE_FIT_HALF_FOV_TAN = Math.tan((38 * Math.PI) / 180 / 2);
+// Most desktop viewports are at least 16:9. We bias horizontal headroom to a
+// slightly narrower assumption so portrait-ish browser windows don't crop the
+// outer paired stars.
+const ARCHIVE_FIT_ASPECT = 16 / 10;
+const ARCHIVE_FIT_MIN_Z = 9;
+// Slack baked around the bounding extent so the outermost stars never sit at
+// the literal viewport edge. Higher = more breathing room, smaller stars.
+const ARCHIVE_FIT_MARGIN = 1.55;
+
+/**
+ * Bounding-box-fit camera for archive mode's default (no-selection) view.
+ * With fewer paired stars the camera dollies in until the bounding box of
+ * their positions fills the viewport, so a single filed pair reads as a
+ * close-up duo rather than two specks in a vast pulled-back field.
+ *
+ * Returns the pulled-back overhead when called with an empty position list —
+ * callers that don't want that should gate on `positions.length` before
+ * calling.
+ */
+export function computeArchiveFitCamera(positions: readonly Vec3[]): CameraTarget {
+  if (positions.length === 0) {
+    return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+  }
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const pos of positions) {
+    if (pos.x < minX) minX = pos.x;
+    if (pos.x > maxX) maxX = pos.x;
+    if (pos.y < minY) minY = pos.y;
+    if (pos.y > maxY) maxY = pos.y;
+  }
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  // Single-point or near-degenerate bbox (one paired member, or two in the
+  // same slot) — floor the extent so we don't divide toward zero and end up
+  // jammed inside the star.
+  const halfWidth = Math.max((maxX - minX) / 2, 1.5);
+  const halfHeight = Math.max((maxY - minY) / 2, 1.5);
+  const zForY = (halfHeight * ARCHIVE_FIT_MARGIN) / ARCHIVE_FIT_HALF_FOV_TAN;
+  const zForX = (halfWidth * ARCHIVE_FIT_MARGIN) / (ARCHIVE_FIT_HALF_FOV_TAN * ARCHIVE_FIT_ASPECT);
+  const z = Math.max(ARCHIVE_FIT_MIN_Z, Math.min(ARCHIVE_CAMERA_Z, Math.max(zForY, zForX)));
+  return {
+    position: [centerX * 0.55, centerY * 0.55, z],
+    lookAt: [centerX, centerY, 0],
+    bokehScale: 0.45,
+  };
 }
 
 export function computeFlythroughCameraTarget(
@@ -237,16 +354,20 @@ export function flythroughMemberSlabActivity(
     return { intensityMultiplier: 1, scaleMultiplier: 2.5 };
   }
   if (currentLayer === 1) {
-    // Roster slab — avatars need to read as portraits, not as a sea of small
-    // sparkles. Leads are pulled forward at hero-card sizes; the inactive
-    // cohort and other ineligibles still get readable sizes so the slab
-    // reads as a real roster, not background noise.
+    // Roster slab. Leads (the cohort the player has the pill on) get a hero
+    // size + full brightness so the pickable faces dominate the canvas. The
+    // off cohort and other ineligibles drop to faint outline stars — visible
+    // enough to keep the constellation feel, but dim enough that they don't
+    // compete with the cluster for attention. The big intensity gap between
+    // leads and non-leads is the primary signal for "who's pickable" — paired
+    // with the roster cluster layout that packs leads into a viewport-fitting
+    // grid (see `rosterClusterPosition`).
     const leads = rosterSubview === "eligibles" ? cohort === "eligible" : cohort === "off_tonight";
-    if (leads) return { intensityMultiplier: 1.05, scaleMultiplier: 2.4 };
+    if (leads) return { intensityMultiplier: 1.1, scaleMultiplier: 2.6 };
     if (cohort === "other_ineligible") {
-      return { intensityMultiplier: 0.32, scaleMultiplier: 1.4 };
+      return { intensityMultiplier: 0.12, scaleMultiplier: 0.85 };
     }
-    return { intensityMultiplier: 0.45, scaleMultiplier: 1.6 };
+    return { intensityMultiplier: 0.18, scaleMultiplier: 1.0 };
   }
   return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
 }
@@ -424,4 +545,20 @@ export function haloColorForStar(
   if (role === "partner") return "#c4b5fd";
   if (aura !== undefined) return aura.tint.primary;
   return palette.accent;
+}
+
+/** Truncated profile blurb used by hover cards and case-file headers. */
+export function profileSnippetFor(member: Member): string {
+  const profile = member.datingProfile;
+  if (typeof profile === "string" && profile.trim().length > 0) {
+    return profile.length > 220 ? `${profile.slice(0, 220).trimEnd()}…` : profile;
+  }
+  return "Profile reads on file.";
+}
+
+/** Render member height as a feet-and-inches string ("5'10\""). */
+export function formatHeightShort(heightInInches: number): string {
+  const feet = Math.floor(heightInInches / 12);
+  const inches = heightInInches - feet * 12;
+  return `${feet}'${inches}"`;
 }

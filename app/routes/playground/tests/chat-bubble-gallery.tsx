@@ -48,8 +48,6 @@ function pickChatBubbleSample(member: Member): string {
 }
 
 export function ChatBubbleGalleryTest() {
-  const [replayKey, setReplayKey] = useState(0);
-
   const customCount = useMemo(
     () => starterMembers.filter((member) => member.chatBubble !== undefined).length,
     [],
@@ -64,35 +62,26 @@ export function ChatBubbleGalleryTest() {
     >
       <TestHeader
         title="Chat bubble gallery"
-        description="Every member's focused-side bubble in one screen. Each card uses the same resolver as a live date so authoring tweaks land here first. Continuous textures (drift, holographic, crackling) animate in place. Replay re-mounts the grid to retrigger entry animations."
+        description="Every member's focused-side bubble in one screen. Each card uses the same resolver as a live date so authoring tweaks land here first. Continuous textures (drift, holographic, crackling) animate in place. Use the replay button on any card to re-trigger that member's entry animation in isolation."
       />
 
-      <div className="aura-glass flex flex-wrap items-center justify-between gap-3 rounded-card px-5 py-4">
-        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-          <MutedLabel>roster</MutedLabel>
-          <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-            <span className="text-aura-ink tabular-nums">{customCount}</span> custom
-            <span aria-hidden> · </span>
-            <span className="text-aura-ink tabular-nums">
-              {starterMembers.length - customCount}
-            </span>{" "}
-            default
-            <span aria-hidden> · </span>
-            <span className="text-aura-ink tabular-nums">{starterMembers.length}</span> total
-          </span>
-        </div>
-        <button
-          type="button"
-          onClick={() => setReplayKey((current) => current + 1)}
-          className="cursor-pointer rounded-pill bg-aura-ink px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white transition hover:bg-aura-rose"
-        >
-          Replay animations
-        </button>
+      <div className="aura-glass flex flex-wrap items-baseline gap-x-4 gap-y-1 rounded-card px-5 py-4">
+        <MutedLabel>roster</MutedLabel>
+        <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+          <span className="text-aura-ink tabular-nums">{customCount}</span> custom
+          <span aria-hidden> · </span>
+          <span className="text-aura-ink tabular-nums">
+            {starterMembers.length - customCount}
+          </span>{" "}
+          default
+          <span aria-hidden> · </span>
+          <span className="text-aura-ink tabular-nums">{starterMembers.length}</span> total
+        </span>
       </div>
 
-      <MarkdownShowcase replayKey={replayKey} />
+      <MarkdownShowcase />
 
-      <div key={replayKey} className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {starterMembers.map((member) => (
           <ChatBubblePreviewCard key={member.id} member={member} />
         ))}
@@ -101,13 +90,12 @@ export function ChatBubbleGalleryTest() {
   );
 }
 
-function MarkdownShowcase({ replayKey }: { replayKey: number }) {
+function MarkdownShowcase() {
   const defaultMember = starterMembers.find((entry) => entry.chatBubble === undefined);
   const customMember = starterMembers.find((entry) => entry.chatBubble !== undefined);
 
   return (
     <section
-      key={`markdown-${replayKey}`}
       className="aura-glass rounded-card px-5 py-5 space-y-4"
       aria-labelledby="markdown-showcase-heading"
     >
@@ -178,6 +166,7 @@ function BubblePreview({
 }
 
 function ChatBubblePreviewCard({ member }: { member: Member }) {
+  const [replayKey, setReplayKey] = useState(0);
   const customBubble = member.chatBubble ? resolveMemberChatBubbleStyle(member.chatBubble) : null;
   const sampleText = pickChatBubbleSample(member);
 
@@ -196,22 +185,40 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
       <header className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <Portrait member={member} variant="row" />
-          <div className="space-y-1">
-            <h3 className="font-display text-body font-semibold tracking-tight text-aura-ink">
-              {member.name}
-            </h3>
-            <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
-              {member.voice.register}
-            </p>
-          </div>
+          <h3 className="font-display text-body font-semibold tracking-tight text-aura-ink">
+            {member.name}
+          </h3>
         </div>
-        <span
-          className={`shrink-0 rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${
-            customBubble ? "bg-aura-ink/5 text-aura-muted" : "bg-[#0a84ff]/10 text-[#0a84ff]"
-          }`}
-        >
-          {customBubble ? "custom" : "default house"}
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          <span
+            className={`rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] ${
+              customBubble ? "bg-aura-ink/5 text-aura-muted" : "bg-[#0a84ff]/10 text-[#0a84ff]"
+            }`}
+          >
+            {customBubble ? "custom" : "default house"}
+          </span>
+          <button
+            type="button"
+            onClick={() => setReplayKey((current) => current + 1)}
+            aria-label={`Replay ${member.firstName}'s bubble animation`}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill bg-aura-ink/5 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted transition hover:bg-aura-ink hover:text-white"
+          >
+            <svg
+              aria-hidden
+              viewBox="0 0 16 16"
+              className="h-3 w-3"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M2.5 8a5.5 5.5 0 1 0 1.61-3.89" />
+              <path d="M2.5 2.5v3h3" />
+            </svg>
+            replay
+          </button>
+        </div>
       </header>
 
       <div className="flex justify-start">
@@ -221,7 +228,7 @@ function ChatBubblePreviewCard({ member }: { member: Member }) {
           >
             {member.firstName}
           </span>
-          <div className={bubbleClass} style={bubbleStyle}>
+          <div key={replayKey} className={bubbleClass} style={bubbleStyle}>
             <MemberMessageMarkdown
               text={sampleText}
               className={`text-body leading-relaxed ${textColorClass}`}

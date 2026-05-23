@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
 
+import { CosmicWarpOverlay } from "../components/cosmic-warp-overlay";
 import { CupidShell } from "../components/cupid-shell";
 import { SfxProvider } from "../components/sfx-provider";
 import { SplashScreen } from "../components/splash-screen";
@@ -8,6 +9,11 @@ import { SplashScreen } from "../components/splash-screen";
 type ShellPhase = "splash" | "operations";
 
 const SHELL_PHASE_STORAGE_KEY = "idc.cupid.shell.phase";
+
+// Overlay covers the splash → operations swap so its end state can match the
+// lobby's first paint and the handoff stays invisible behind the overlay.
+const WARP_SHELL_SWAP_MS = 550;
+const WARP_OVERLAY_CLEAR_MS = 1200;
 
 export function meta() {
   return [
@@ -21,6 +27,7 @@ export function meta() {
 
 export default function Home() {
   const [phase, setPhase] = useState<ShellPhase>("splash");
+  const [warping, setWarping] = useState(false);
 
   useEffect(() => {
     const storedPhase = readStoredShellPhase();
@@ -35,6 +42,16 @@ export default function Home() {
     writeShellPhase(nextPhase);
   }
 
+  function handlePunchIn(toLobby: boolean) {
+    if (!toLobby) {
+      setShellPhase("operations");
+      return;
+    }
+    setWarping(true);
+    window.setTimeout(() => setShellPhase("operations"), WARP_SHELL_SWAP_MS);
+    window.setTimeout(() => setWarping(false), WARP_OVERLAY_CLEAR_MS);
+  }
+
   return (
     <SfxProvider>
       <AnimatePresence mode="wait" initial={false}>
@@ -45,7 +62,7 @@ export default function Home() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45, ease: [0.2, 0.8, 0.2, 1] }}
           >
-            <SplashScreen onPunchIn={() => setShellPhase("operations")} />
+            <SplashScreen onPunchIn={handlePunchIn} />
           </motion.div>
         ) : (
           <motion.div
@@ -57,6 +74,9 @@ export default function Home() {
             <CupidShell onPunchOut={() => setShellPhase("splash")} />
           </motion.div>
         )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {warping ? <CosmicWarpOverlay key="warp" originX="70%" originY="42%" /> : null}
       </AnimatePresence>
     </SfxProvider>
   );

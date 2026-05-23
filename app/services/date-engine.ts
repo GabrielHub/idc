@@ -2987,7 +2987,7 @@ function shiftSessionPrefix(shiftNumber: number): string {
   return `date-${shiftNumber}-`;
 }
 
-function sessionBelongsToShift(session: DateSession, shiftNumber: number): boolean {
+export function sessionBelongsToShift(session: DateSession, shiftNumber: number): boolean {
   return session.id.startsWith(shiftSessionPrefix(shiftNumber));
 }
 

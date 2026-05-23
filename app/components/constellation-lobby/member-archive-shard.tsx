@@ -43,10 +43,7 @@ export function MemberArchiveShard({
       className="pointer-events-auto aura-liquid-glass aura-liquid-glass-violet rounded-card px-4 py-3"
     >
       <div className="flex items-center gap-3">
-        <div
-          className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-aura-violet/60"
-          style={{ backgroundColor: "rgba(196,181,253,0.15)" }}
-        >
+        <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-aura-violet/15 ring-2 ring-aura-violet/60">
           <img
             src={portrait.src}
             srcSet={portrait.srcset}

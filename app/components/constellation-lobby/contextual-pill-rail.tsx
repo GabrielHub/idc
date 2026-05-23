@@ -1,19 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
+import type { Ref } from "react";
 
-import { DECK_SIZE_MAX } from "../../domain/game";
 import type { FlythroughLayer, RosterSubview, ViewMode } from "./types";
 import type { CathedralMode } from "./cathedral";
-import type { DeckAxisLevels } from "./deck-composition";
-
-type DeckBookShards = {
-  slotCount: number;
-  slotTone: "rose" | "neutral";
-  spend: number;
-  budgetCap: number;
-  budgetTone: "rose" | "neutral";
-  axes: DeckAxisLevels;
-  pressure?: { lowPressure: number; highPressure: number };
-};
 
 export function ContextualPillRail({
   scenarioMode,
@@ -22,18 +11,21 @@ export function ContextualPillRail({
   currentLayer,
   rosterSubview,
   filterActive,
-  deckBookShards,
-  reselectMode,
   canReselect,
   viewMode,
   archiveEdgeCount,
   archiveSelectionActive,
+  fileShiftBlockedReason,
+  onCompleteShift,
+  onOpenNotes,
+  onOpenShiftArchive,
   onToggleDateBook,
   onOpenLens,
   onToggleReselect,
   onRosterSubviewChange,
   onToggleArchive,
   onClearArchiveSelection,
+  fileShiftButtonRef,
 }: {
   scenarioMode: CathedralMode;
   bookingLocked: boolean;
@@ -41,23 +33,29 @@ export function ContextualPillRail({
   currentLayer: FlythroughLayer;
   rosterSubview: RosterSubview;
   filterActive: boolean;
-  deckBookShards: DeckBookShards;
-  reselectMode: boolean;
   canReselect: boolean;
   viewMode: ViewMode;
   archiveEdgeCount: number;
   archiveSelectionActive: boolean;
+  fileShiftBlockedReason?: string;
+  onCompleteShift: () => void;
+  onOpenNotes: () => void;
+  onOpenShiftArchive: () => void;
   onToggleDateBook: () => void;
   onOpenLens: () => void;
   onToggleReselect: () => void;
   onRosterSubviewChange: (next: RosterSubview) => void;
   onToggleArchive: () => void;
   onClearArchiveSelection: (() => void) | undefined;
+  fileShiftButtonRef?: Ref<HTMLButtonElement>;
 }) {
   const inArchive = viewMode === "archive";
   const dateBookActive = !inArchive && scenarioMode !== "auto";
-  const showDeckShards = !inArchive && (scenarioMode === "deck" || scenarioMode === "library");
   const showRosterPills = !inArchive && currentLayer === 1;
+  // No filed-note pairs exist yet — the archive has nothing to show, so hide
+  // its entry pill entirely. The lobby auto-exits archive view in the same
+  // edge case, so the pill never needs to render as a way back out.
+  const showArchivePill = archiveEdgeCount > 0;
 
   const dateBookLabel =
     scenarioMode === "deck"
@@ -71,25 +69,23 @@ export function ContextualPillRail({
       ? "aura-liquid-glass-amber"
       : "";
 
-  const archiveLabel = inArchive
-    ? archiveEdgeCount === 0
-      ? "Pairs · empty"
-      : `Pairs · ${archiveEdgeCount}`
-    : "Pairs";
+  const archiveLabel = inArchive ? `Pairs · ${archiveEdgeCount}` : "Pairs";
   const archiveTone = inArchive ? "aura-liquid-glass-violet" : "";
 
   return (
     <div className="pointer-events-none absolute right-6 top-5 z-30 flex flex-col items-end gap-2">
       <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-        <button
-          type="button"
-          onClick={onToggleArchive}
-          aria-label={archiveLabel}
-          aria-pressed={inArchive}
-          className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${archiveTone} rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper`}
-        >
-          {archiveLabel}
-        </button>
+        {showArchivePill ? (
+          <button
+            type="button"
+            onClick={onToggleArchive}
+            aria-label={archiveLabel}
+            aria-pressed={inArchive}
+            className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${archiveTone} rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper`}
+          >
+            {archiveLabel}
+          </button>
+        ) : null}
         {inArchive && archiveSelectionActive && onClearArchiveSelection !== undefined ? (
           <button
             type="button"
@@ -111,35 +107,38 @@ export function ContextualPillRail({
             {dateBookLabel}
           </button>
         )}
+        <button
+          type="button"
+          onClick={onOpenNotes}
+          aria-label="Open notes archive"
+          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper"
+        >
+          Notes
+        </button>
+        <button
+          type="button"
+          onClick={onOpenShiftArchive}
+          aria-label="Open shift archive"
+          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper"
+        >
+          Archive
+        </button>
+        <button
+          ref={fileShiftButtonRef}
+          type="button"
+          onClick={onCompleteShift}
+          disabled={fileShiftBlockedReason !== undefined}
+          aria-label={
+            fileShiftBlockedReason === undefined
+              ? "File shift"
+              : `File shift blocked: ${fileShiftBlockedReason}`
+          }
+          title={fileShiftBlockedReason}
+          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover aura-liquid-glass-amber rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          {fileShiftBlockedReason === undefined ? "File shift" : "Shift blocked"}
+        </button>
       </div>
-
-      <AnimatePresence mode="popLayout">
-        {showDeckShards ? (
-          <motion.div
-            key="deck-shards"
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.24, ease: [0.22, 0.8, 0.2, 1] }}
-            className="pointer-events-auto flex flex-wrap items-center justify-end gap-2"
-          >
-            <PillShard
-              eyebrow="slots"
-              value={`${deckBookShards.slotCount} / ${DECK_SIZE_MAX}`}
-              tone={deckBookShards.slotTone}
-            />
-            <PillShard
-              eyebrow="budget"
-              value={`${deckBookShards.spend} / ${deckBookShards.budgetCap}`}
-              tone={deckBookShards.budgetTone}
-            />
-            <AxesPill axes={deckBookShards.axes} />
-            {deckBookShards.pressure === undefined ? null : (
-              <PressurePill pressure={deckBookShards.pressure} />
-            )}
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
 
       <AnimatePresence mode="popLayout">
         {showRosterPills ? (
@@ -164,82 +163,15 @@ export function ContextualPillRail({
               <button
                 type="button"
                 onClick={onToggleReselect}
-                className={`cursor-pointer rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro ${
-                  reselectMode
-                    ? "aura-liquid-glass aura-liquid-glass-rose"
-                    : "aura-liquid-glass aura-liquid-glass-hover"
-                }`}
-                aria-label={reselectMode ? "Cancel reselect" : "Reselect focus rack"}
+                className="cursor-pointer rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro aura-liquid-glass aura-liquid-glass-hover"
+                aria-label="Manage cases"
               >
-                {reselectMode ? "Cancel reselect" : "Reselect leads"}
+                Manage cases
               </button>
             ) : null}
           </motion.div>
         ) : null}
       </AnimatePresence>
-    </div>
-  );
-}
-
-function PillShard({
-  eyebrow,
-  value,
-  tone,
-}: {
-  eyebrow: string;
-  value: string;
-  tone: "rose" | "neutral";
-}) {
-  const toneClass = tone === "rose" ? "aura-liquid-glass-rose" : "";
-  const valueClass = tone === "rose" ? "text-aura-rose" : "text-aura-paper";
-  return (
-    <div className={`aura-liquid-glass ${toneClass} rounded-full px-3 py-1 leading-tight`}>
-      <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
-        {eyebrow}
-      </span>
-      <span className={`ml-1.5 font-display text-label ${valueClass}`}>{value}</span>
-    </div>
-  );
-}
-
-function AxesPill({ axes }: { axes: DeckAxisLevels }) {
-  return (
-    <div className="aura-liquid-glass rounded-full px-3 py-1 leading-tight flex items-center gap-1.5">
-      <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">axes</span>
-      <AxisDot label="R" level={axes.risk} />
-      <AxisDot label="I" level={axes.intimacy} />
-      <AxisDot label="C" level={axes.chaos} />
-    </div>
-  );
-}
-
-function AxisDot({ label, level }: { label: string; level: "low" | "medium" | "high" }) {
-  const dot =
-    level === "high" ? "bg-aura-rose" : level === "medium" ? "bg-aura-amber" : "bg-aura-emerald";
-  const text =
-    level === "high"
-      ? "text-aura-rose"
-      : level === "medium"
-        ? "text-aura-amber"
-        : "text-aura-emerald";
-  return (
-    <span className={`inline-flex items-center gap-1 font-display text-label ${text}`}>
-      <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
-      <span>{label}</span>
-    </span>
-  );
-}
-
-function PressurePill({ pressure }: { pressure: { lowPressure: number; highPressure: number } }) {
-  return (
-    <div className="aura-liquid-glass rounded-full px-3 py-1 leading-tight">
-      <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
-        pressure
-      </span>
-      <span className="ml-1.5 font-display text-label text-aura-paper">
-        {pressure.lowPressure} <span className="text-white/45">low</span> · {pressure.highPressure}{" "}
-        <span className="text-white/45">high</span>
-      </span>
     </div>
   );
 }

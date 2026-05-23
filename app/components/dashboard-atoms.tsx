@@ -92,7 +92,7 @@ const PORTRAIT_FADE_CLASS =
   "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 const PORTRAIT_PRELOAD_ROOT_MARGIN = "900px 0px";
 const PORTRAIT_PLACEHOLDER_CLASS =
-  "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_18%,rgba(255,255,255,0.68)_0%,transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.18)_0%,rgba(244,63,94,0.1)_48%,rgba(167,139,250,0.12)_100%)] motion-safe:animate-pulse";
+  "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_18%,rgba(255,255,255,0.68)_0%,transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.18)_0%,rgba(244,63,94,0.1)_48%,rgba(167,139,250,0.12)_100%)]";
 
 // Must match scripts/portraits/resize_avatars.py (DEFAULT_VARIANT_WIDTHS).
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
@@ -190,7 +190,7 @@ export function Portrait({
       <span
         aria-hidden="true"
         className={`${PORTRAIT_PLACEHOLDER_CLASS} ${PORTRAIT_FADE_CLASS} ${
-          hasVisibleImage ? "opacity-0" : "opacity-100"
+          hasVisibleImage ? "opacity-0" : "opacity-100 motion-safe:animate-pulse"
         }`}
       />
       {candidatePaths.map((path) => {

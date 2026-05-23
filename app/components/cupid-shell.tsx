@@ -9,7 +9,6 @@ import {
   type FollowUpAction,
   type GameConfig,
   type GameSave,
-  type MatchmakingIntent,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { APP_VERSION } from "../platform/release-identity";
@@ -28,6 +27,7 @@ import {
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
 import {
+  closePair,
   getReadyClosurePairs,
   markSoftWinSeen,
   shouldShowSoftWinForActiveShift,
@@ -39,6 +39,7 @@ import {
   canCutDateShort,
   clearActiveBooking,
   commitDateBooking,
+  completeShift,
   isCampaignLost,
   pickScenarioEvents,
   startDateSessionFromBooking,
@@ -53,7 +54,6 @@ import {
   getFocusedMembers,
   removeFocusCase as focusRemoveCase,
   reselectFocusCases as focusReselect,
-  swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
 import { completeInitialOnboarding } from "../services/onboarding";
@@ -90,6 +90,7 @@ import {
   type StreamingDraftMessage,
 } from "./date-view";
 import { ConstellationLobby } from "./constellation-lobby";
+import { CosmicWarpOverlay } from "./cosmic-warp-overlay";
 import { OnboardingScreen } from "./onboarding-screen";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
@@ -197,6 +198,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [isDateJudgePending, setIsDateJudgePending] = useState(false);
+  const [onboardingWarping, setOnboardingWarping] = useState(false);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
   const [devRevealAllMemberDetails, setDevRevealAllMemberDetails] = useState(
     readStoredDevMemberDetailsPreview,
@@ -678,26 +680,26 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return refreshLocalAiStatus(nextConfig, nextGatewayApiKey);
   }
 
-  function tryAction(kind: PendingAction, run: () => Promise<void>) {
-    if (isActionPending) return;
+  async function tryAction(kind: PendingAction, run: () => Promise<void>): Promise<boolean> {
+    if (isActionPending) return false;
     setPendingAction(kind);
     setErrorMessage(null);
     setNoticeMessage(null);
-    void (async () => {
-      try {
-        await run();
-      } catch (error) {
-        setErrorMessage(errorToMessage(error));
-      } finally {
-        setPendingAction(null);
-      }
-    })();
+    try {
+      await run();
+      return true;
+    } catch (error) {
+      setErrorMessage(errorToMessage(error));
+      return false;
+    } finally {
+      setPendingAction(null);
+    }
   }
 
-  async function handleCommitPair(input: {
+  async function handleBeginDate(input: {
     focusMemberId: string;
     partnerMemberId: string;
-    matchmakingIntent?: MatchmakingIntent;
+    scenarioId: string;
   }) {
     if (save === null) return;
     tryAction("startDate", async () => {
@@ -709,19 +711,15 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       if (status.status !== "ready") {
         throw new Error(status.message);
       }
-      const result = commitDateBooking(save, input);
-      await persist(result.save);
-    });
-  }
-
-  async function handleStartDate(input: { scenarioId: string }) {
-    if (save === null) return;
-    tryAction("startDate", async () => {
-      const status = await refreshLocalAiStatus();
-      if (status.status !== "ready") {
-        throw new Error(status.message);
-      }
-      const result = startDateSessionFromBooking(save, input);
+      const activeShift = getActiveShift(save);
+      const bookingSave =
+        activeShift.activeBooking === undefined
+          ? commitDateBooking(save, {
+              focusMemberId: input.focusMemberId,
+              partnerMemberId: input.partnerMemberId,
+            }).save
+          : save;
+      const result = startDateSessionFromBooking(bookingSave, { scenarioId: input.scenarioId });
       await persist(result.save);
       dispatchManagerQuip({ triggerKey: "date.started", surfaceKey: result.session.id });
       setActiveDateSessionId(result.session.id);
@@ -1003,6 +1001,30 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
+  async function handleClosePair(input: { pairId: string; summary: string }): Promise<boolean> {
+    if (save === null) return false;
+    const previousSave = save;
+    return tryAction("closure", async () => {
+      const nextSave = closePair({ save, pairId: input.pairId, summary: input.summary });
+      await persist(nextSave);
+      dispatchManagerQuip({ triggerKey: "pair.closure.confirmed", surfaceKey: input.pairId });
+      processManagerQuipSaveDiff(previousSave, nextSave);
+      play("report");
+    });
+  }
+
+  async function handleCompleteShift() {
+    if (save === null) return;
+    const previousSave = save;
+    tryAction("endShift", async () => {
+      const result = completeShift(save);
+      await persist(result.save);
+      dispatchManagerQuip({ triggerKey: "shift.ended", surfaceKey: result.report.id });
+      processManagerQuipSaveDiff(previousSave, result.save);
+      play("report");
+    });
+  }
+
   async function handleStartNextShift() {
     if (save === null) return;
     const previousSave = save;
@@ -1019,6 +1041,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     scenarioDeckCardIds: string[];
   }) {
     if (save === null) return;
+    setOnboardingWarping(true);
+    window.setTimeout(() => setOnboardingWarping(false), 1200);
     tryAction("focusCase", async () => {
       const withBudgetPeriod = completeInitialOnboarding({
         save,
@@ -1045,17 +1069,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     if (save === null) return;
     tryAction("focusCase", async () => {
       await persist(focusRemoveCase(save, memberId));
-    });
-  }
-
-  async function handleSwapFocus(oldId: string, newId: string) {
-    if (save === null) return;
-    const previousSave = save;
-    tryAction("focusCase", async () => {
-      const nextSave = focusSwapCase(save, oldId, newId);
-      await persist(nextSave);
-      processManagerQuipSaveDiff(previousSave, nextSave);
-      play("reveal");
     });
   }
 
@@ -1324,18 +1337,20 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       isActionPending={isActionPending}
                       bookingLocked={activeShift.activeBooking !== undefined}
                       readyClosurePairCount={readyClosurePairs.length}
+                      readyClosurePairs={readyClosurePairs}
                       readyClosurePairIds={readyClosurePairIds}
                       readyClosureMemberIds={readyClosureMemberIds}
                       revealAllMemberDetails={revealAllMemberDetails}
-                      onCommitPair={handleCommitPair}
-                      onStartDate={handleStartDate}
+                      onTutorialUpdate={handleTutorialUpdate}
+                      onBeginDate={handleBeginDate}
                       onCancelBooking={handleCancelBooking}
                       onAddDeckCard={handleAddDeckCard}
                       onRemoveDeckCard={handleRemoveDeckCard}
+                      onClosePair={handleClosePair}
+                      onCompleteShift={handleCompleteShift}
                       onOpenDateSession={setActiveDateSessionId}
                       onAddFocus={handleAddFocus}
                       onRemoveFocus={handleRemoveFocus}
-                      onSwapFocus={handleSwapFocus}
                       onReselectFocus={handleReselectFocus}
                       chromeSlot={
                         <LobbyChromePills
@@ -1438,6 +1453,11 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         presentationKey={managerQuipPresentationKey}
         onDismissed={handleManagerQuipDismissed}
       />
+      <AnimatePresence>
+        {onboardingWarping ? (
+          <CosmicWarpOverlay key="onboarding-warp" originX="50%" originY="92%" />
+        ) : null}
+      </AnimatePresence>
     </>
   );
 }

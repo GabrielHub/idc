@@ -6,33 +6,22 @@ import { buildArchiveEdgeSpecs, computeArchiveStarPosition } from "./archive-lay
 import { applyImportanceBudget } from "./edge-lod";
 import {
   computeArchiveCameraTarget,
-  computeCameraTarget,
+  computeArchiveFitCamera,
   computeFlythroughCameraTarget,
 } from "./math";
-import type {
-  ArchiveSelection,
-  FlythroughLayer,
-  LobbyState,
-  StarMark,
-  Vec3,
-  ViewMode,
-} from "./types";
+import type { ArchiveSelection, FlythroughLayer, StarMark, Vec3, ViewMode } from "./types";
 
 export function useArchiveView({
   save,
-  stars,
   viewMode,
   archiveSelection,
   currentLayer,
-  lobbyState,
   focusStar,
 }: {
   save: GameSave;
-  stars: readonly StarMark[];
   viewMode: ViewMode;
   archiveSelection: ArchiveSelection;
   currentLayer: FlythroughLayer;
-  lobbyState: LobbyState;
   focusStar: StarMark | undefined;
 }) {
   const archiveGraph = useMemo(
@@ -40,21 +29,17 @@ export function useArchiveView({
     [save.members, save.pairStates, save.memories],
   );
 
+  // Only paired members (those in archiveGraph.nodes) get an archive position.
+  // Members without any filed-note pair are excluded entirely so the archive
+  // reads as a constellation of pairs, not a roll-call of the roster. The
+  // Scene loop treats a missing position as "skip this star" in archive mode.
   const archivePositions = useMemo(() => {
     const positions = new Map<string, Vec3>();
-    const isolatedIndexById = new Map<string, number>();
-    archiveGraph.meta.isolatedMembers.forEach((member, index) => {
-      isolatedIndexById.set(member.id, index);
-    });
-    for (const star of stars) {
-      const isolated = isolatedIndexById.get(star.member.id) ?? null;
-      positions.set(
-        star.member.id,
-        computeArchiveStarPosition(star.member.id, archiveGraph, isolated),
-      );
+    for (const node of archiveGraph.nodes) {
+      positions.set(node.member.id, computeArchiveStarPosition(node.member.id, archiveGraph, null));
     }
     return positions;
-  }, [archiveGraph, stars]);
+  }, [archiveGraph]);
 
   const archiveEdges = useMemo(
     () => buildArchiveEdgeSpecs(applyImportanceBudget(archiveGraph.edges), archivePositions),
@@ -78,9 +63,7 @@ export function useArchiveView({
 
   const cameraTarget = useMemo(() => {
     if (viewMode !== "archive") {
-      return currentLayer === 0 && lobbyState !== "idle"
-        ? computeCameraTarget(lobbyState, focusStar)
-        : computeFlythroughCameraTarget(currentLayer, focusStar);
+      return computeFlythroughCameraTarget(currentLayer, focusStar);
     }
     if (archiveSelection?.kind === "pair") {
       const edge = archiveGraph.edgeById.get(archiveSelection.pairId);
@@ -102,16 +85,11 @@ export function useArchiveView({
       const pos = archivePositions.get(archiveSelection.memberId);
       if (pos !== undefined) return computeArchiveCameraTarget({ focusedStar: pos });
     }
-    return computeArchiveCameraTarget({});
-  }, [
-    viewMode,
-    archiveSelection,
-    archiveGraph,
-    archivePositions,
-    currentLayer,
-    lobbyState,
-    focusStar,
-  ]);
+    // No selection — fit the camera to the bounding box of paired stars so
+    // a small archive (a single pair, a handful of pairs) reads tight and
+    // legible rather than as specks against the pulled-back overhead.
+    return computeArchiveFitCamera([...archivePositions.values()]);
+  }, [viewMode, archiveSelection, archiveGraph, archivePositions, currentLayer, focusStar]);
 
   return { archiveGraph, archivePositions, archiveEdges, archiveIsolation, cameraTarget };
 }

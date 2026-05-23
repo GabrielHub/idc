@@ -76,6 +76,18 @@ function buildDetail({
   onClose: () => void;
 }) {
   const effective = effectiveCosts[scenario.id] ?? scenario.card.cost;
+  if (mode === "auto") {
+    // Auto mode is the "tonight's draw" picker: clicking the card body locks
+    // the scenario for the BottomDock Begin button. The detail overlay opens
+    // from the lintel peek glyph as a read-only brief — no CTA, because the
+    // selection action belongs to the card body, not this surface.
+    return {
+      eyebrow: "// tonight's draw",
+      cta: null,
+      note: undefined,
+      effectiveCost: effective,
+    };
+  }
   if (mode === "deck") {
     const dropDisabled = bookingLocked || isActionPending;
     return {

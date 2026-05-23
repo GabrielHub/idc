@@ -14,6 +14,20 @@ export type CoachMarkPlacement = "top" | "bottom" | "left" | "right";
 
 export type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
 
+/**
+ * Pixel offsets from the viewport edge. When supplied, the coach mark pins
+ * itself to the matching corner instead of computing position from `target`
+ * + `placement`. Use this on steps whose anchor target sits inside a busy
+ * surface (e.g. the constellation field) so the popup can float in a clear
+ * corner while the pulse ring still highlights the real target.
+ */
+export type CoachMarkFixedPosition = {
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+};
+
 export type TutorialCoachMarkProps = {
   target: TutorialTarget;
   placement?: CoachMarkPlacement;
@@ -28,6 +42,7 @@ export type TutorialCoachMarkProps = {
   width?: number;
   offset?: number;
   portrait?: CoachMarkPortraitMode;
+  fixedPosition?: CoachMarkFixedPosition;
 };
 
 export function TutorialCoachMark({
@@ -44,6 +59,7 @@ export function TutorialCoachMark({
   width = 340,
   offset = 24,
   portrait = "avatar",
+  fixedPosition,
 }: TutorialCoachMarkProps) {
   const rect = useTargetRect(target);
   if (rect === null) return null;
@@ -61,6 +77,24 @@ export function TutorialCoachMark({
     estimatedHeight,
   );
 
+  const fixed = fixedPosition;
+  const animateProps =
+    fixed === undefined
+      ? {
+          top: position.top,
+          left: position.left,
+          width,
+          y: effectivePlacement === "top" ? "-100%" : "0%",
+        }
+      : {
+          top: fixed.top,
+          left: fixed.left,
+          right: fixed.right,
+          bottom: fixed.bottom,
+          width,
+          y: "0%",
+        };
+
   return (
     <motion.div
       role="dialog"
@@ -68,12 +102,7 @@ export function TutorialCoachMark({
       aria-label={title}
       className="fixed z-50"
       initial={false}
-      animate={{
-        top: position.top,
-        left: position.left,
-        width,
-        y: effectivePlacement === "top" ? "-100%" : "0%",
-      }}
+      animate={animateProps}
       transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
     >
       <motion.div
@@ -89,8 +118,8 @@ export function TutorialCoachMark({
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
         className="relative"
       >
-        <div className="relative rounded-card border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(255,248,240,0.78)_100%)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),inset_0_0_0_1px_rgba(244,63,94,0.06),0_4px_14px_-4px_rgba(15,23,42,0.08),0_30px_70px_-22px_rgba(244,63,94,0.32)] backdrop-blur-[36px] backdrop-saturate-[180%]">
-          <PaperWatermark />
+        <div className="aura-glass-strong relative rounded-card">
+          <GlassWatermark />
           <RegistrationCorners />
 
           {useAvatar ? <TutorialManagerAvatarPeek /> : null}
@@ -151,11 +180,11 @@ export function TutorialCoachMark({
   );
 }
 
-function PaperWatermark() {
+function GlassWatermark() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(15,23,42,0)_0_22px,rgba(15,23,42,0.012)_22px_23px),radial-gradient(120%_80%_at_100%_0%,rgba(244,63,94,0.06),rgba(244,63,94,0)_60%)] mix-blend-multiply"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0)_0_22px,rgba(255,255,255,0.06)_22px_23px),radial-gradient(120%_80%_at_100%_0%,rgba(255,255,255,0.12),rgba(255,255,255,0)_60%)]"
     />
   );
 }

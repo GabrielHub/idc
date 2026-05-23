@@ -11,8 +11,8 @@
  * Reuses buildPairDossier from notes-view-helpers when the dossier path
  * applies (no board edge). For pairs that already have board edges,
  * derives the equivalent shape inline so the shard still surfaces info.
- * Clicking fires onOpenNotes — production lobby wires this to open the
- * Notes glass overlay scoped to this pair.
+ * Clicking fires closure when the pair is ready, otherwise opens the Notes
+ * glass overlay scoped to this pair.
  */
 
 import { motion } from "motion/react";
@@ -30,6 +30,7 @@ export type PairDossierShardProps = {
   playerKnowledge: readonly PlayerKnowledgeRecord[];
   readyClosurePairIds: ReadonlySet<string>;
   onOpenNotes: (pairId: string) => void;
+  onOpenClosure?: (pairId: string) => void;
 };
 
 type DossierShardData = {
@@ -48,6 +49,7 @@ export function PairDossierShard({
   playerKnowledge,
   readyClosurePairIds,
   onOpenNotes,
+  onOpenClosure,
 }: PairDossierShardProps) {
   const memberById = useMemo(
     () => new Map(members.map((member) => [member.id, member])),
@@ -81,17 +83,27 @@ export function PairDossierShard({
   if (data === null) return null;
   const [first, second] = data.participants;
   const title = joinPairFirstNames([first.firstName, second.firstName]) ?? first.firstName;
+  const actionLabel =
+    data.closureReady && onOpenClosure !== undefined
+      ? `File closure for ${title}`
+      : `Open notes for ${title}`;
 
   return (
     <motion.button
       type="button"
-      onClick={() => onOpenNotes(pairId)}
+      onClick={() => {
+        if (data.closureReady && onOpenClosure !== undefined) {
+          onOpenClosure(pairId);
+          return;
+        }
+        onOpenNotes(pairId);
+      }}
       initial={{ opacity: 0, x: 24 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 24 }}
       transition={{ duration: 0.32, ease: [0.22, 0.8, 0.2, 1] }}
       className="pointer-events-auto cursor-pointer text-left aura-liquid-glass aura-liquid-glass-hover rounded-card px-4 py-3"
-      aria-label={`Open notes for ${title}`}
+      aria-label={actionLabel}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">

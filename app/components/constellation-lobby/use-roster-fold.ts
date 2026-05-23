@@ -26,15 +26,17 @@ export function useRosterFold({
 }) {
   const focusedSet = useMemo(() => new Set(save.focusedMemberIds), [save.focusedMemberIds]);
   const eligiblePartnerIds = useMemo<ReadonlySet<string>>(() => {
+    const availableSet = new Set(shift.availablePartnerMemberIds);
     const ids = new Set<string>();
     for (const member of save.members) {
       if (member.state.status !== "active") continue;
       if (focusedSet.has(member.id)) continue;
+      if (!availableSet.has(member.id)) continue;
       if (isMemberInCooldown(member, shift.shiftNumber)) continue;
       ids.add(member.id);
     }
     return ids;
-  }, [save.members, focusedSet, shift.shiftNumber]);
+  }, [save.members, focusedSet, shift.availablePartnerMemberIds, shift.shiftNumber]);
   const offTonightIds = useMemo<ReadonlySet<string>>(() => {
     const availableSet = new Set(shift.availablePartnerMemberIds);
     const ids = new Set<string>();
