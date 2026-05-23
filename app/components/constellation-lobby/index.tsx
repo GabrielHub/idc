@@ -28,11 +28,11 @@
  * Out of scope for this fold:
  *   - Match-fit-driven eligibility (currently any active+ready member can
  *     be a partner; matches the spike's looseness, not real game rules)
- *   - Roster fold mode (separate room migration)
- *   - Roster knowledge visibility in HoverDetailCard (uses datingProfile
- *     raw for now; will swap to buildVisibleMemberProfile in the roster
- *     fold)
  *   - AI readiness and tutorial coachmark routing
+ *   - Closure / end-shift wiring (NotesOverlay does not yet surface a
+ *     "file closure" action; cupid-shell's old closure handlers were
+ *     removed when the rooms were dropped — re-wire through the lobby's
+ *     onOpenClosures path when the closure UI is redesigned)
  */
 
 import { Suspense, useCallback, useMemo, useState } from "react";
