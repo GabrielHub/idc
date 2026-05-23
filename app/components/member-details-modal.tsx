@@ -324,7 +324,7 @@ export function MemberDetailsModal({
 
 type RedactedBlock = VisibleMemberProfile["redactedBlocks"][number];
 
-function MemberIntelBoard({
+export function MemberIntelBoard({
   member,
   profile,
   revealAllDetails,
@@ -456,7 +456,7 @@ function IntelList({
   );
 }
 
-function FiledReadSummary({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
+export function FiledReadSummary({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
   return (
     <ul className="mt-2 grid gap-1.5">
       {reads.map((read) => (
@@ -471,7 +471,7 @@ function FiledReadSummary({ reads }: { reads: readonly PlayerKnowledgeRecord[] }
   );
 }
 
-function SealedLines({ lineCount }: { lineCount: number }) {
+export function SealedLines({ lineCount }: { lineCount: number }) {
   const normalizedCount = Math.min(Math.max(lineCount, 1), 5);
 
   return (

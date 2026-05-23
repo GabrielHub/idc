@@ -14,12 +14,6 @@ export type FloatingNavClusterProps = {
   onSelect: (room: RoomKey) => void;
 };
 
-const STATIC_LABELS: Record<Exclude<RoomKey, "livedate">, string> = {
-  roster: "Roster",
-  datebook: "Date Book",
-  files: "Files",
-};
-
 const LIVE_DATE_LABEL: Record<LiveDateState, string> = {
   idle: "Live Date",
   planning: "Live Date · Planning",
@@ -27,6 +21,13 @@ const LIVE_DATE_LABEL: Record<LiveDateState, string> = {
   wrap: "Date Wrap",
 };
 
+/**
+ * RoomKey kept for shell-wide compatibility, but the Roster, Date Book, and
+ * Files rooms were folded into the constellation lobby — Roster's filters,
+ * hover affordances, swap-into-focus, and reselect modes are now driven
+ * from the field via the Lens panel, HoverDetailCard, CaseFilePanel, and
+ * ReselectDock. The cluster only renders the Live Date button now.
+ */
 export function FloatingNavCluster({
   current,
   hidden = false,
@@ -34,7 +35,7 @@ export function FloatingNavCluster({
   disabledRooms = {},
   onSelect,
 }: FloatingNavClusterProps) {
-  const buttons: RoomKey[] = ["livedate", "roster", "datebook", "files"];
+  const buttons: Array<Extract<RoomKey, "livedate">> = ["livedate"];
 
   if (hidden) {
     return null;
@@ -50,7 +51,7 @@ export function FloatingNavCluster({
     >
       {buttons.map((room) => {
         const active = current === room;
-        const label = room === "livedate" ? LIVE_DATE_LABEL[liveDateState] : STATIC_LABELS[room];
+        const label = LIVE_DATE_LABEL[liveDateState];
         const disabledReason = disabledRooms[room];
         return (
           <NavButton

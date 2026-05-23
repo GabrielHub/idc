@@ -49,13 +49,7 @@ import {
   togglePlayback,
   triggerScenarioEvent,
 } from "../services/date-engine";
-import {
-  addCardToDeck,
-  createStarterScenarioDeck,
-  dateBookEditingUnlocked,
-  deckIsRepairBlocked,
-  removeCardFromDeck,
-} from "../services/deck";
+import { addCardToDeck, createStarterScenarioDeck, removeCardFromDeck } from "../services/deck";
 import { rotateBudgetPeriod } from "../services/budget";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
@@ -100,12 +94,10 @@ import {
   type PlaybackIntent,
   type StreamingDraftMessage,
 } from "./date-view";
-import { NotesView } from "./notes-view";
-import { DateBookCanvas } from "./date-book-canvas";
+import { ConstellationLobby } from "./constellation-lobby";
 import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";
 import { PreDateCanvas } from "./pre-date-canvas";
-import { RosterCanvas } from "./roster-canvas";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
@@ -198,7 +190,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [save, setSave] = useState<GameSave | null>(null);
   const saveRef = useRef<GameSave | null>(null);
   const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
-  const [filesPairFocusId, setFilesPairFocusId] = useState<string | null>(null);
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
@@ -401,16 +392,17 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
   const campaignLost = save !== null && isCampaignLost(save);
 
+  /**
+   * Files room dropped: the standalone Notes / pair-board surface now lives
+   * inside the constellation lobby (NotesOverlay + PairDossierShard).
+   * Bounce stale saves or deep links pointing at /files back to Live Date.
+   */
   useEffect(() => {
-    if (currentRoom !== "files" && filesPairFocusId !== null) {
-      setFilesPairFocusId(null);
+    if (currentRoom === "files") {
+      setCurrentRoom("livedate");
     }
-  }, [currentRoom, filesPairFocusId]);
+  }, [currentRoom]);
 
-  const handleOpenPairFile = useCallback((pairId: string) => {
-    setFilesPairFocusId(pairId);
-    setCurrentRoom("files");
-  }, []);
   const activeSession = useMemo(
     () =>
       save === null || activeDateSessionId === null
@@ -438,12 +430,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             .filter((scenario): scenario is DateScenario => scenario !== undefined),
     [activeShift],
   );
-  const deckRepairBlocked = useMemo(
-    () => (save === null ? false : deckIsRepairBlocked(save, starterScenarios)),
-    [save],
-  );
-  const dateBookLockedUntilFirstReport =
-    save !== null && !dateBookEditingUnlocked(save) && !deckRepairBlocked;
   const dateAmbientSessionId = activeSession?.status === "active" ? activeSession.id : null;
   useEffect(() => {
     setDateAmbientSession(dateAmbientSessionId);
@@ -493,10 +479,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }, [needsInitialFocusCases]);
 
   useEffect(() => {
-    if (dateBookLockedUntilFirstReport && currentRoom === "datebook") {
+    // Date Book is no longer a room — the spike-era datebook route has been
+    // folded into the constellation lobby's ScenarioPanel. Bounce stale
+    // saves or deep links back to Live Date so they reach the lobby.
+    if (currentRoom === "datebook") {
       setCurrentRoom("livedate");
     }
-  }, [currentRoom, dateBookLockedUntilFirstReport]);
+  }, [currentRoom]);
 
   useEffect(() => {
     if (
@@ -1434,91 +1423,29 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       />
                     </div>
                   ) : (
-                    <PreDateCanvas
+                    <ConstellationLobby
                       save={save}
                       shift={activeShift}
                       focusedMembers={focusedMembers}
                       drawnScenarios={drawnScenarios}
-                      memberRequests={memberRequests}
-                      pairStates={save.pairStates}
                       isActionPending={isActionPending}
-                      aiReady={aiReady}
-                      readyClosurePairs={readyClosurePairs}
-                      closingPairId={closingPairId}
-                      closureError={closureError}
+                      bookingLocked={activeShift.activeBooking !== undefined}
+                      readyClosurePairCount={readyClosurePairs.length}
+                      readyClosurePairIds={readyClosurePairIds}
+                      readyClosureMemberIds={readyClosureMemberIds}
                       revealAllMemberDetails={revealAllMemberDetails}
-                      deckRepairBlocked={deckRepairBlocked}
-                      dateBookLockedUntilFirstReport={dateBookLockedUntilFirstReport}
-                      onTutorialUpdate={handleTutorialUpdate}
                       onCommitPair={handleCommitPair}
                       onStartDate={handleStartDate}
                       onCancelBooking={handleCancelBooking}
-                      onConfirmClosure={handleConfirmClosure}
-                      onDismissClosureError={handleDismissClosureError}
-                      onOpenDateBook={() => {
-                        if (!dateBookLockedUntilFirstReport) setCurrentRoom("datebook");
-                      }}
-                      onOpenRoster={() => setCurrentRoom("roster")}
-                      onOpenPairFile={handleOpenPairFile}
-                      onOpenAiSetup={() => setIsAiSetupOpen(true)}
-                      onCloseShift={handleEndShift}
-                      onStartNextShift={handleStartNextShift}
+                      onAddDeckCard={handleAddDeckCard}
+                      onRemoveDeckCard={handleRemoveDeckCard}
                       onOpenDateSession={setActiveDateSessionId}
-                      onDeckOverBudgetBlocked={(surfaceKey) =>
-                        dispatchManagerQuip({
-                          triggerKey: "datebook.commit.over-budget",
-                          surfaceKey,
-                        })
-                      }
+                      onAddFocus={handleAddFocus}
+                      onRemoveFocus={handleRemoveFocus}
+                      onSwapFocus={handleSwapFocus}
+                      onReselectFocus={handleReselectFocus}
                     />
                   )
-                ) : null}
-
-                {currentRoom === "datebook" && activeShift !== null ? (
-                  <DateBookCanvas
-                    save={save}
-                    currentShift={activeShift.shiftNumber}
-                    scenarios={starterScenarios}
-                    isActionPending={isActionPending}
-                    bookingLocked={activeShift.activeBooking !== undefined}
-                    onTutorialUpdate={handleTutorialUpdate}
-                    onAddToDeck={handleAddDeckCard}
-                    onRemoveFromDeck={handleRemoveDeckCard}
-                    onBack={() => setCurrentRoom("livedate")}
-                  />
-                ) : null}
-
-                {currentRoom === "roster" ? (
-                  <RosterCanvas
-                    members={save.members}
-                    focusedMemberIds={save.focusedMemberIds}
-                    playerKnowledge={save.playerKnowledge}
-                    isActionPending={isActionPending}
-                    revealAllMemberDetails={revealAllMemberDetails}
-                    save={save}
-                    readyClosureMemberIds={readyClosureMemberIds}
-                    onTutorialUpdate={handleTutorialUpdate}
-                    onAddFocus={handleAddFocus}
-                    onRemoveFocus={handleRemoveFocus}
-                    onSwapFocus={handleSwapFocus}
-                    onReselectFocus={handleReselectFocus}
-                    onBack={() => setCurrentRoom("livedate")}
-                  />
-                ) : null}
-
-                {currentRoom === "files" ? (
-                  <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
-                    <NotesView
-                      memories={save.memories}
-                      members={save.members}
-                      pairEdges={relationshipIndex?.recentEdges ?? []}
-                      scenarios={starterScenarios}
-                      shifts={save.shifts}
-                      pairFocusId={filesPairFocusId}
-                      playerKnowledge={save.playerKnowledge}
-                      readyClosurePairIds={readyClosurePairIds}
-                    />
-                  </div>
                 ) : null}
               </motion.main>
             </AnimatePresence>
@@ -1538,11 +1465,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
               current={currentRoom}
               hidden={dateAmbientSessionId !== null}
               liveDateState={liveDateState}
-              disabledRooms={
-                dateBookLockedUntilFirstReport
-                  ? { datebook: "Date Book edits open after the first date report." }
-                  : undefined
-              }
               onSelect={(room) => setCurrentRoom(room)}
             />
 
