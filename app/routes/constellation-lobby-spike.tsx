@@ -495,7 +495,12 @@ export function Scene({
             zIndexRange={[60, 0]}
             className="pointer-events-none"
           >
-            <div className="ml-9 -translate-y-1/2">
+            {/*
+             * The morph anchors at the star's projected screen point. The card
+             * itself owns the slide-out-and-grow transform, so this wrapper is
+             * just a 0x0 anchor; the motion.div inside expands outward.
+             */}
+            <div className="relative h-0 w-0">
               {renderHoverCard !== undefined ? (
                 renderHoverCard({
                   star: hoveredStar,
@@ -2109,6 +2114,37 @@ export type HoverDetailCardProps = {
   onMouseLeave: () => void;
 };
 
+/**
+ * Approach (shared-element morph): the avatar disc on the constellation field
+ * is a 3D mesh owned by StarSprite, which another agent is upgrading and we
+ * cannot touch. So instead of fading the mesh and swapping in a DOM avatar at
+ * the same screen point, we anchor the card at the star's projected screen
+ * coords via Drei's `<Html>` (which already does the world→screen math) and
+ * let the card itself grow OUT of that anchor.
+ *
+ * The card starts as a small, circular "ghost portrait" centered on the star
+ * (matching the avatar's apparent disc), then springs outward to the right
+ * while transforming from a circle to a rounded rectangle. As the card
+ * expands, the ghost portrait shrinks into the upper-left chip slot, and the
+ * rest of the content (filename, name, tags, snippet, buttons) cross-fades in
+ * after the layout has mostly settled. The 3D star mesh keeps glowing behind
+ * the morph — when the card finishes, its liquid-glass surface covers the
+ * disc; when the card exits, the disc is revealed again.
+ *
+ * Reduced-motion mode snaps the card to its final layout with a plain
+ * opacity fade, skipping the spring entirely.
+ */
+
+// Star avatar disc, projected to screen pixels at the typical field distance.
+// We anchor the morph circle at this diameter so the card "blooms" from a
+// shape the eye reads as the star itself, not an arbitrary popup.
+const MORPH_START_DIAMETER_PX = 56;
+const MORPH_FINAL_WIDTH_PX = 340;
+// Horizontal offset from the star center to the card's left edge, in the
+// final layout. The card grows out and slides to the right of the star so
+// the disc stays visually anchored on the left side of the rack.
+const MORPH_FINAL_OFFSET_X_PX = 36;
+
 export function HoverDetailCard({
   star,
   snippet,
@@ -2129,6 +2165,7 @@ export function HoverDetailCard({
   const resolvedSnippet = snippet ?? profileSnippetFor(member);
   const resolvedFileNumber = fileNumber ?? caseFileNumber(member.id);
   const resolvedHeight = heightInInches ?? member.characterHeightInInches;
+  const reducedMotion = useReducedMotion() === true;
 
   const statusLabel = (() => {
     if (statusBadge === "closed") return "case closed";
@@ -2153,19 +2190,137 @@ export function HoverDetailCard({
       ? "aura-liquid-glass aura-liquid-glass-hover"
       : "aura-liquid-glass aura-liquid-glass-rose aura-liquid-glass-hover";
 
+  const srcset = avatarSrcsetFor(member.id);
+
+  // Tween shape. A snappy spring on layout (width/height/border-radius/x/y)
+  // sells the bloom; the content cross-fade lags slightly so the text doesn't
+  // pop in before the box has room for it. Reduced motion collapses both into
+  // an instant opacity swap with no transform interpolation.
+  const layoutTransition = reducedMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 320, damping: 32, mass: 0.7 };
+  const contentTransition = reducedMotion
+    ? { duration: 0 }
+    : { duration: 0.22, delay: 0.12, ease: [0.22, 0.8, 0.2, 1] as const };
+  const portraitTransition = reducedMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 360, damping: 30, mass: 0.6 };
+
+  const portraitFinalSize = 48;
+  const portraitAccent = palette.accent;
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.86, x: -12 }}
-      animate={{ opacity: 1, scale: 1, x: 0 }}
-      exit={{ opacity: 0, scale: 0.88, x: -8 }}
-      transition={{ duration: 0.22, ease: [0.22, 0.8, 0.2, 1] }}
-      className="aura-liquid-glass pointer-events-auto rounded-card w-[340px] origin-left p-4"
+      // The card mounts at the star's center as a small circle. `top` and
+      // `left` are 50% so the circle is centered on the anchor; `x` and `y`
+      // shift away from center as the card grows so the morph "opens to the
+      // right" with the avatar at its left edge.
+      initial={
+        reducedMotion
+          ? {
+              opacity: 0,
+              width: MORPH_FINAL_WIDTH_PX,
+              height: "auto",
+              borderRadius: 16,
+              x: MORPH_FINAL_OFFSET_X_PX,
+              y: "-50%",
+            }
+          : {
+              opacity: 0.85,
+              width: MORPH_START_DIAMETER_PX,
+              height: MORPH_START_DIAMETER_PX,
+              borderRadius: MORPH_START_DIAMETER_PX / 2,
+              x: -MORPH_START_DIAMETER_PX / 2,
+              y: -MORPH_START_DIAMETER_PX / 2,
+            }
+      }
+      animate={{
+        opacity: 1,
+        width: MORPH_FINAL_WIDTH_PX,
+        height: "auto",
+        borderRadius: 16,
+        x: MORPH_FINAL_OFFSET_X_PX,
+        y: "-50%",
+      }}
+      exit={
+        reducedMotion
+          ? { opacity: 0, transition: { duration: 0.12 } }
+          : {
+              opacity: 0,
+              width: MORPH_START_DIAMETER_PX,
+              height: MORPH_START_DIAMETER_PX,
+              borderRadius: MORPH_START_DIAMETER_PX / 2,
+              x: -MORPH_START_DIAMETER_PX / 2,
+              y: -MORPH_START_DIAMETER_PX / 2,
+              transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] as const },
+            }
+      }
+      transition={layoutTransition}
+      style={{ position: "absolute", top: 0, left: 0, overflow: "hidden" }}
+      className="aura-liquid-glass pointer-events-auto p-4"
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       <div className="flex items-start gap-3">
-        <PortraitChip member={member} palette={palette} accent={palette.accent} />
-        <div className="min-w-0 leading-tight flex-1">
+        {/*
+         * Ghost portrait. Anchored to the same top-left corner as the card
+         * but absolutely positioned so it can shrink from "fills the
+         * pop-out circle" to "sits in the chip slot" independently of the
+         * card layout. Once the card has opened, this image's bounds
+         * coincide with the PortraitChip that the chip slot reserves.
+         */}
+        <motion.div
+          initial={
+            reducedMotion
+              ? {
+                  width: portraitFinalSize,
+                  height: portraitFinalSize,
+                  x: 0,
+                  y: 0,
+                  borderRadius: portraitFinalSize / 2,
+                  boxShadow: `0 0 0 1.5px ${portraitAccent}, 0 0 18px ${withAlpha(portraitAccent, 0.5)}`,
+                }
+              : {
+                  width: MORPH_START_DIAMETER_PX,
+                  height: MORPH_START_DIAMETER_PX,
+                  x: 0,
+                  y: 0,
+                  borderRadius: MORPH_START_DIAMETER_PX / 2,
+                  boxShadow: `0 0 0 1.5px ${portraitAccent}, 0 0 26px ${withAlpha(portraitAccent, 0.7)}`,
+                }
+          }
+          animate={{
+            width: portraitFinalSize,
+            height: portraitFinalSize,
+            x: 0,
+            y: 0,
+            borderRadius: portraitFinalSize / 2,
+            boxShadow: `0 0 0 1.5px ${portraitAccent}, 0 0 18px ${withAlpha(portraitAccent, 0.5)}`,
+          }}
+          transition={portraitTransition}
+          style={{
+            position: "relative",
+            flexShrink: 0,
+            background: `linear-gradient(160deg, ${palette.from}, ${palette.to})`,
+            overflow: "hidden",
+          }}
+        >
+          <img
+            src={srcset.src}
+            srcSet={srcset.srcset}
+            sizes={`${portraitFinalSize}px`}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-top"
+            loading="lazy"
+          />
+        </motion.div>
+        <motion.div
+          initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={reducedMotion ? { opacity: 0 } : { opacity: 0, transition: { duration: 0.1 } }}
+          transition={contentTransition}
+          className="min-w-0 leading-tight flex-1"
+        >
           <div className="font-mono text-micro uppercase tracking-[0.22em] text-aura-rose/85">
             // {resolvedFileNumber.toLowerCase()}
           </div>
@@ -2189,32 +2344,39 @@ export function HoverDetailCard({
               </span>
             )}
           </div>
+        </motion.div>
+      </div>
+      <motion.div
+        initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, transition: { duration: 0.1 } }}
+        transition={contentTransition}
+      >
+        <p className="mt-3 font-sans text-label text-white/85 line-clamp-3">{resolvedSnippet}</p>
+        {recentNotesSlot}
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenCase}
+            className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-display text-label text-aura-paper"
+          >
+            Open case
+          </button>
+          <button
+            type="button"
+            onClick={onPrimaryAction}
+            disabled={onPrimaryAction === undefined}
+            className={`cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 rounded-full px-3.5 py-1.5 font-display text-label ${primaryToneClass}`}
+          >
+            {primaryLabel}
+          </button>
         </div>
-      </div>
-      <p className="mt-3 font-sans text-label text-white/85 line-clamp-3">{resolvedSnippet}</p>
-      {recentNotesSlot}
-      <div className="mt-3 flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onOpenCase}
-          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-display text-label text-aura-paper"
-        >
-          Open case
-        </button>
-        <button
-          type="button"
-          onClick={onPrimaryAction}
-          disabled={onPrimaryAction === undefined}
-          className={`cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 rounded-full px-3.5 py-1.5 font-display text-label ${primaryToneClass}`}
-        >
-          {primaryLabel}
-        </button>
-      </div>
-      {ctaVariant === "swap_into_focus" && swapPenalty !== undefined ? (
-        <p className="mt-2 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose/85">
-          Dropped case loses {swapPenalty} retention
-        </p>
-      ) : null}
+        {ctaVariant === "swap_into_focus" && swapPenalty !== undefined ? (
+          <p className="mt-2 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose/85">
+            Dropped case loses {swapPenalty} retention
+          </p>
+        ) : null}
+      </motion.div>
     </motion.div>
   );
 }
