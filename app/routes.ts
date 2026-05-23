@@ -6,5 +6,6 @@ export default [
   index("routes/home.tsx"),
   route("docs", "routes/docs.tsx"),
   route("docs/*", "routes/docs.$.tsx"),
+  route("constellation-lobby-spike", "routes/constellation-lobby-spike.tsx"),
   ...(isDesktopMode ? [] : [route("playground", "routes/playground.tsx")]),
 ] satisfies RouteConfig;
