@@ -16,6 +16,7 @@ import type {
   Vec3,
 } from "./types";
 import type { PortraitPalette } from "../portrait-palette";
+import type { MemberAuraConfig } from "../member-aura-registry";
 
 /** star.x (0–100) → world x (~-11..+11). */
 export const WORLD_X_SCALE = 0.22;
@@ -224,4 +225,113 @@ export function withAlpha(color: string, alpha: number): string {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
   return color;
+}
+
+/**
+ * Parses an `rgba(r, g, b, a)` / `rgb(r, g, b)` / `#rgb` / `#rrggbb` string
+ * into normalized 0–1 RGB channels. Alpha is dropped — the rain-glow and
+ * shimmer effects modulate brightness via additive blending, so per-vertex
+ * alpha isn't needed (and additive is what makes them bloom through the
+ * post-process pass). Returns a soft warm fallback for unparseable inputs so
+ * no star ever renders pure-black rain.
+ */
+export function rgbChannelsFromColor(color: string): { r: number; g: number; b: number } {
+  const channels = color.match(/\d+(?:\.\d+)?/g);
+  if (
+    channels !== null &&
+    (color.startsWith("rgba") || color.startsWith("rgb")) &&
+    channels.length >= 3
+  ) {
+    const r = Number.parseFloat(channels[0] ?? "255") / 255;
+    const g = Number.parseFloat(channels[1] ?? "255") / 255;
+    const b = Number.parseFloat(channels[2] ?? "255") / 255;
+    return { r, g, b };
+  }
+  if (color.startsWith("#")) {
+    const hex = color.slice(1);
+    const normalized =
+      hex.length === 3
+        ? hex
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : hex;
+    const r = Number.parseInt(normalized.slice(0, 2), 16) / 255;
+    const g = Number.parseInt(normalized.slice(2, 4), 16) / 255;
+    const b = Number.parseInt(normalized.slice(4, 6), 16) / 255;
+    return { r, g, b };
+  }
+  return { r: 1, g: 0.92, b: 0.78 };
+}
+
+/**
+ * Per-star rain / glow tint. Focus and partner roles get the active-pair tints
+ * so the player can read them from across the field; eligible candidates use
+ * the member's aura-primary when present (so members with a registered aura
+ * like vhool's violet runes or epsy's cyan pixel-rain carry that identity into
+ * the lobby) and otherwise fall back to the portrait palette accent. Cooling
+ * stars cool toward soft rose; off-shift / closed stars desaturate to a cool
+ * blue-grey so they read as inactive without disappearing.
+ */
+export function rainColorForStar(
+  role: StarRole,
+  palette: PortraitPalette,
+  aura: MemberAuraConfig | undefined,
+): { r: number; g: number; b: number } {
+  if (role === "focus") return rgbChannelsFromColor("#fb7185");
+  if (role === "partner") return rgbChannelsFromColor("#c4b5fd");
+  if (role === "eligible") {
+    if (aura !== undefined) return rgbChannelsFromColor(aura.tint.primary);
+    return rgbChannelsFromColor(palette.accent);
+  }
+  if (role === "ineligible_cooling") return rgbChannelsFromColor("#fda4af");
+  if (role === "ineligible_off_shift" || role === "ineligible_closed") {
+    return rgbChannelsFromColor("#94a3b8");
+  }
+  // Dim background stars still get a soft palette tint so each one carries a
+  // hint of identity, just at low density and brightness.
+  if (aura !== undefined) return rgbChannelsFromColor(aura.tint.primary);
+  return rgbChannelsFromColor(palette.accent);
+}
+
+/**
+ * Halo tint preference. Active roles keep the rose/violet pair colors so the
+ * player can read focus vs partner at a glance; everyone else picks up the
+ * per-member aura color (or palette accent fallback) so the field reads as
+ * a constellation of differently-glowing stars instead of a uniform warm wash.
+ */
+export function haloColorForStar(
+  role: StarRole,
+  palette: PortraitPalette,
+  aura: MemberAuraConfig | undefined,
+): string {
+  if (role === "focus") return "#fb7185";
+  if (role === "partner") return "#c4b5fd";
+  if (aura !== undefined) return aura.tint.primary;
+  return palette.accent;
+}
+
+/**
+ * Pixel-rain density per role and tier. Active roles cascade heavy data; the
+ * eligible slate cascades moderately; ineligibles get the bare minimum so
+ * they still read as "alive" without competing with the active pair. Counts
+ * stay small (focus/partner = 14, eligible = 9, dim = 0-6) so the total
+ * particle budget across 48 stars stays under ~300 — well inside what a
+ * single per-star Points geometry can handle without dropping frames.
+ */
+export function rainDensityForStar(role: StarRole, tier: StarTier, state: LobbyState): number {
+  if (role === "focus") return 22;
+  if (role === "partner") return 18;
+  if (role === "eligible") return 12;
+  if (role === "ineligible_cooling") return 5;
+  if (role === "ineligible_off_shift") return 2;
+  if (role === "ineligible_closed") return 0;
+  if (state === "idle") {
+    if (tier === "foreground") return 8;
+    if (tier === "mid") return 4;
+    return 2;
+  }
+  if (tier === "foreground") return 5;
+  if (tier === "mid") return 2;
+  return 0;
 }
