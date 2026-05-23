@@ -383,17 +383,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
   const campaignLost = save !== null && isCampaignLost(save);
 
-  /**
-   * Files room dropped: the standalone Notes / pair-board surface now lives
-   * inside the constellation lobby (NotesOverlay + PairDossierShard).
-   * Bounce stale saves or deep links pointing at /files back to Live Date.
-   */
-  useEffect(() => {
-    if (currentRoom === "files") {
-      setCurrentRoom("livedate");
-    }
-  }, [currentRoom]);
-
   const activeSession = useMemo(
     () =>
       save === null || activeDateSessionId === null
@@ -426,11 +415,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setDateAmbientSession(dateAmbientSessionId);
     return () => setDateAmbientSession(null);
   }, [dateAmbientSessionId, setDateAmbientSession]);
-  const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
-  const screenKey =
-    currentRoom === "livedate"
-      ? `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`
-      : currentRoom;
+  const liveDateState: LiveDateState = deriveLiveDateState(activeSession);
+  const screenKey = `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`;
   const diagnosticsInputsRef = useRef<Parameters<typeof buildDiagnosticsSnapshot>[0]>({
     config: null,
     localAiStatus: CHECKING_LOCAL_AI_STATUS,
@@ -468,15 +454,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     dispatchManagerQuip({ triggerKey: "onboarding.welcome", bypassTutorialGate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsInitialFocusCases]);
-
-  useEffect(() => {
-    // Date Book is no longer a room — the spike-era datebook route has been
-    // folded into the constellation lobby's ScenarioPanel. Bounce stale
-    // saves or deep links back to Live Date so they reach the lobby.
-    if (currentRoom === "datebook") {
-      setCurrentRoom("livedate");
-    }
-  }, [currentRoom]);
 
   useEffect(() => {
     if (
@@ -1242,7 +1219,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }
 
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
-  const isDateViewActive = currentRoom === "livedate" && activeSession !== null;
+  const isDateViewActive = activeSession !== null;
 
   return (
     <>
@@ -1307,7 +1284,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                {currentRoom === "livedate" && activeShift !== null ? (
+                {activeShift !== null ? (
                   activeSession !== null ? (
                     <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
                       <DateView
@@ -1461,12 +1438,9 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   );
 }
 
-function deriveLiveDateState(
-  activeSession: { status: string } | null,
-  currentRoom: RoomKey,
-): LiveDateState {
+function deriveLiveDateState(activeSession: { status: string } | null): LiveDateState {
   if (activeSession === null) {
-    return currentRoom === "livedate" ? "planning" : "idle";
+    return "planning";
   }
   return activeSession.status === "active" ? "live" : "wrap";
 }

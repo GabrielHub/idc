@@ -2,7 +2,13 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import { Tooltip } from "./dashboard-atoms";
 
-export type RoomKey = "livedate" | "roster" | "datebook" | "files";
+/**
+ * `livedate` is the only remaining room — Roster, Date Book, and Files
+ * were folded into the constellation lobby. The type is kept as a single-
+ * value union so existing call sites (`currentRoom === "livedate"`) stay
+ * legible without churn.
+ */
+export type RoomKey = "livedate";
 
 export type LiveDateState = "idle" | "planning" | "live" | "wrap";
 
@@ -10,7 +16,6 @@ export type FloatingNavClusterProps = {
   current: RoomKey;
   hidden?: boolean;
   liveDateState?: LiveDateState;
-  disabledRooms?: Partial<Record<RoomKey, string>>;
   onSelect: (room: RoomKey) => void;
 };
 
@@ -22,73 +27,57 @@ const LIVE_DATE_LABEL: Record<LiveDateState, string> = {
 };
 
 /**
- * RoomKey kept for shell-wide compatibility, but the Roster, Date Book, and
- * Files rooms were folded into the constellation lobby — Roster's filters,
- * hover affordances, swap-into-focus, and reselect modes are now driven
- * from the field via the Lens panel, HoverDetailCard, CaseFilePanel, and
- * ReselectDock. The cluster only renders the Live Date button now.
+ * Single Live Date glass button at the bottom-right of the lobby. Roster,
+ * Date Book, and Files affordances now live inside the constellation lobby
+ * itself (Lens panel, HoverDetailCard, CaseFilePanel, ReselectDock,
+ * ScenarioPanel, NotesOverlay). The pulse / planning / wrap dot reflects
+ * date-session state so the player can read whether a date is ready, live,
+ * or wrapping without leaving the lobby.
  */
 export function FloatingNavCluster({
   current,
   hidden = false,
   liveDateState = "idle",
-  disabledRooms = {},
   onSelect,
 }: FloatingNavClusterProps) {
-  const buttons: Array<Extract<RoomKey, "livedate">> = ["livedate"];
-
   if (hidden) {
     return null;
   }
 
+  const label = LIVE_DATE_LABEL[liveDateState];
+  const active = current === "livedate";
+
   return (
     <motion.nav
-      aria-label="Cupid rooms"
+      aria-label="Live date"
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0, pointerEvents: "auto" }}
       transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
       className="fixed bottom-6 right-6 z-40 flex flex-col gap-3"
     >
-      {buttons.map((room) => {
-        const active = current === room;
-        const label = LIVE_DATE_LABEL[liveDateState];
-        const disabledReason = disabledRooms[room];
-        return (
-          <NavButton
-            key={room}
-            room={room}
-            active={active}
-            label={label}
-            disabledReason={disabledReason}
-            liveDateState={room === "livedate" ? liveDateState : undefined}
-            onClick={() => {
-              if (disabledReason === undefined) onSelect(room);
-            }}
-          />
-        );
-      })}
+      <NavButton
+        active={active}
+        label={label}
+        liveDateState={liveDateState}
+        onClick={() => onSelect("livedate")}
+      />
     </motion.nav>
   );
 }
 
 function NavButton({
-  room,
   active,
   onClick,
   label,
-  disabledReason,
   liveDateState,
 }: {
-  room: RoomKey;
   active: boolean;
   onClick: () => void;
   label: string;
-  disabledReason?: string;
-  liveDateState?: LiveDateState;
+  liveDateState: LiveDateState;
 }) {
   const [hovered, setHovered] = useState(false);
   const focused = active || hovered;
-  const disabled = disabledReason !== undefined;
 
   const surfaceClass = active
     ? "aura-glass-rose text-aura-rose outline outline-2 outline-offset-2 outline-aura-rose/30"
@@ -99,7 +88,7 @@ function NavButton({
   const showWrapDot = liveDateState === "wrap";
 
   return (
-    <Tooltip message={disabledReason ?? label} placement="left-center">
+    <Tooltip message={label} placement="left-center">
       <button
         type="button"
         onClick={onClick}
@@ -107,14 +96,13 @@ function NavButton({
         onMouseLeave={() => setHovered(false)}
         onFocus={() => setHovered(true)}
         onBlur={() => setHovered(false)}
-        aria-label={disabled ? `${label}. ${disabledReason}` : label}
+        aria-label={label}
         aria-current={active ? "page" : undefined}
-        disabled={disabled}
         data-sfx="click"
-        className={`aura-glass-lift relative grid size-14 cursor-pointer place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40 ${surfaceClass}`}
+        className={`aura-glass-lift relative grid size-14 cursor-pointer place-items-center rounded-full transition ${surfaceClass}`}
       >
         <span aria-hidden className="drop-shadow-[0_1px_3px_rgba(244,63,94,0.22)]">
-          <RoomIcon room={room} focused={focused} liveDateState={liveDateState} />
+          <LiveDateIcon focused={focused} state={liveDateState} />
         </span>
         {showLiveDot ? (
           <span aria-hidden className="absolute right-1.5 top-1.5 grid size-2.5 place-items-center">
@@ -135,27 +123,6 @@ function NavButton({
       </button>
     </Tooltip>
   );
-}
-
-function RoomIcon({
-  room,
-  focused,
-  liveDateState,
-}: {
-  room: RoomKey;
-  focused: boolean;
-  liveDateState?: LiveDateState;
-}) {
-  if (room === "livedate") {
-    return <LiveDateIcon focused={focused} state={liveDateState ?? "idle"} />;
-  }
-  if (room === "roster") {
-    return <RosterIcon focused={focused} />;
-  }
-  if (room === "datebook") {
-    return <DateBookIcon focused={focused} />;
-  }
-  return <FilesIcon focused={focused} />;
 }
 
 const LIVE_DATE_ICON_MOTION: Record<
@@ -196,109 +163,5 @@ function LiveDateIcon({ focused, state }: { focused: boolean; state: LiveDateSta
         transition={{ duration: 0.25 }}
       />
     </motion.svg>
-  );
-}
-
-function RosterIcon({ focused }: { focused: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <motion.g
-        animate={{ x: focused ? -1.5 : 1.5, opacity: focused ? 1 : 0.55 }}
-        transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-      >
-        <circle cx="4" cy="8" r="1.75" />
-        <path d="M1.5 15.5c0-1.7 1.1-3 2.75-3" />
-      </motion.g>
-      <motion.g
-        animate={{ y: focused ? -0.5 : 0 }}
-        transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-      >
-        <circle cx="10" cy="6.5" r="2.5" />
-        <path d="M4.5 16.5c0-2.6 2.5-4.5 5.5-4.5s5.5 1.9 5.5 4.5" />
-      </motion.g>
-      <motion.g
-        animate={{ x: focused ? 1.5 : -1.5, opacity: focused ? 1 : 0.55 }}
-        transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-      >
-        <circle cx="16" cy="8" r="1.75" />
-        <path d="M18.5 15.5c0-1.7-1.1-3-2.75-3" />
-      </motion.g>
-    </svg>
-  );
-}
-
-function DateBookIcon({ focused }: { focused: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-      strokeLinecap="round"
-    >
-      <motion.g
-        initial={false}
-        animate={{ opacity: focused ? 0 : 1 }}
-        transition={{ duration: 0.18 }}
-      >
-        <rect x="5.5" y="3" width="9" height="14" rx="1" />
-        <line x1="7.75" y1="3" x2="7.75" y2="17" strokeWidth="0.9" />
-      </motion.g>
-      <motion.g
-        initial={false}
-        animate={{ opacity: focused ? 1 : 0 }}
-        transition={{ duration: 0.25, delay: focused ? 0.12 : 0 }}
-      >
-        <path d="M3 5 L 10 5.5 L 10 16.5 L 3 17 Z" />
-        <path d="M17 5 L 10 5.5 L 10 16.5 L 17 17 Z" />
-        <line x1="5" y1="9" x2="8.5" y2="9" strokeWidth="0.7" />
-        <line x1="5" y1="11.25" x2="8.5" y2="11.25" strokeWidth="0.7" />
-        <line x1="5" y1="13.5" x2="8.5" y2="13.5" strokeWidth="0.7" />
-        <line x1="11.5" y1="9" x2="15" y2="9" strokeWidth="0.7" />
-        <line x1="11.5" y1="11.25" x2="15" y2="11.25" strokeWidth="0.7" />
-        <line x1="11.5" y1="13.5" x2="15" y2="13.5" strokeWidth="0.7" />
-      </motion.g>
-    </svg>
-  );
-}
-
-function FilesIcon({ focused }: { focused: boolean }) {
-  return (
-    <svg
-      viewBox="0 0 20 20"
-      className="size-5"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinejoin="round"
-      strokeLinecap="round"
-    >
-      <motion.g
-        initial={false}
-        animate={{ opacity: focused ? 0 : 1 }}
-        transition={{ duration: 0.18 }}
-      >
-        <path d="M3 6 L 8 6 L 10 8 L 17 8 L 17 16 L 3 16 Z" />
-      </motion.g>
-      <motion.g
-        initial={false}
-        animate={{ opacity: focused ? 1 : 0 }}
-        transition={{ duration: 0.25, delay: focused ? 0.12 : 0 }}
-      >
-        <path d="M3 5 L 8 5 L 10 7 L 17 7 L 17 12 L 3 12 Z" />
-        <line x1="5.5" y1="9.5" x2="14.5" y2="9.5" strokeWidth="0.8" />
-        <path d="M4.5 12 L 15.5 12 L 17.5 17 L 2.5 17 Z" />
-      </motion.g>
-    </svg>
   );
 }
