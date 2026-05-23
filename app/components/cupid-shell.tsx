@@ -1145,8 +1145,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setInterventionTargetMemberId("");
     setStreamingDrafts([]);
     setQueuedPlaybackIntent(null);
-    setClosingPairId(null);
-    setClosureError(null);
     setCurrentRoom("livedate");
     sessionManagerQuipIdsRef.current = new Set();
     setActiveManagerQuip(null);
