@@ -27,9 +27,7 @@ import {
   DateStreamAbortedError,
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
-import { generateClosureSummary } from "../services/closure-summary";
 import {
-  closePair,
   getReadyClosurePairs,
   markSoftWinSeen,
   shouldShowSoftWinForActiveShift,
@@ -41,7 +39,6 @@ import {
   canCutDateShort,
   clearActiveBooking,
   commitDateBooking,
-  completeShift,
   isCampaignLost,
   pickScenarioEvents,
   startDateSessionFromBooking,
@@ -70,7 +67,6 @@ import {
   indexMembersById,
   pairEnteredBrittleTrajectory,
   resolveManagerQuip,
-  shouldFireSoftWinQuip,
   type ManagerQuipResolveResult,
 } from "../services/manager-quips";
 import {
@@ -97,7 +93,6 @@ import {
 import { ConstellationLobby } from "./constellation-lobby";
 import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";
-import { PreDateCanvas } from "./pre-date-canvas";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
@@ -205,10 +200,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [isDateJudgePending, setIsDateJudgePending] = useState(false);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
-  const [closingPairId, setClosingPairId] = useState<string | null>(null);
-  const [closureError, setClosureError] = useState<{ pairId: string; message: string } | null>(
-    null,
-  );
   const [devRevealAllMemberDetails, setDevRevealAllMemberDetails] = useState(
     readStoredDevMemberDetailsPreview,
   );
@@ -1038,17 +1029,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleEndShift() {
-    if (save === null) return;
-    const previousSave = save;
-    tryAction("endShift", async () => {
-      const { save: nextSave } = completeShift(save);
-      await persist(nextSave);
-      dispatchManagerQuip({ triggerKey: "shift.ended" });
-      processManagerQuipSaveDiff(previousSave, nextSave);
-    });
-  }
-
   async function handleStartNextShift() {
     if (save === null) return;
     const previousSave = save;
@@ -1150,56 +1130,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       const next = removeCardFromDeck(save, deckCardId);
       await persist(next);
     });
-  }
-
-  async function handleConfirmClosure(pairId: string) {
-    if (save === null) return;
-    const ready = readyClosurePairs.find((entry) => entry.pairState.id === pairId);
-    if (ready === undefined) {
-      setClosureError({ pairId, message: "That pair no longer meets the closure threshold." });
-      return;
-    }
-
-    if (!save.config.aiSetupComplete) {
-      setIsAiSetupOpen(true);
-      setClosureError({ pairId, message: "AI setup is required to file a closure summary." });
-      return;
-    }
-
-    setClosingPairId(pairId);
-    setClosureError(null);
-
-    const previousSave = save;
-    tryAction("closure", async () => {
-      try {
-        const status = await refreshLocalAiStatus();
-        if (status.status !== "ready") {
-          throw new Error(status.message);
-        }
-        const summary = await generateClosureSummary({
-          save,
-          ready,
-          config: { ...save.config, gatewayApiKey: gatewayApiKey || undefined },
-        });
-        const closed = closePair({ save, pairId, summary });
-        await persist(closed);
-        dispatchManagerQuip({ triggerKey: "pair.closure.confirmed", surfaceKey: pairId });
-        if (shouldFireSoftWinQuip(closed.managerQuipHistory, closed.closureCount)) {
-          dispatchManagerQuip({ triggerKey: "campaign.closures.five" });
-        }
-        processManagerQuipSaveDiff(previousSave, closed);
-        setClosingPairId(null);
-      } catch (error) {
-        setClosingPairId(null);
-        setClosureError({ pairId, message: errorToMessage(error) });
-        throw error;
-      }
-    });
-  }
-
-  function handleDismissClosureError() {
-    setClosureError(null);
-    setClosingPairId(null);
   }
 
   async function handleMarkSoftWinSeen() {
@@ -1313,7 +1243,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return <DashboardLoading />;
   }
 
-  const aiReady = localAiStatus.status === "ready" && save.config.aiSetupComplete === true;
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
   const isDateViewActive = currentRoom === "livedate" && activeSession !== null;
 
