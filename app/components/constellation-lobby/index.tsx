@@ -5,12 +5,11 @@
  * intent), and routes Begin-date through the existing onCommitPair →
  * onStartDate sequence.
  *
- * This composes the spike's exported components (Scene, TopBar, SideRail,
- * BottomDock, ScenarioPanel, CalloutCluster) — the spike still lives at
- * /constellation-lobby-spike for R&D, and this file is what /home (via
- * CupidShell) renders for real. The physical extraction of those
- * components into their own files is a follow-up cleanup; right now the
- * spike is the single source of truth for the lobby's visual language.
+ * This composes the shared canvas convention (Scene, TopBar, SideRail,
+ * BottomDock, ScenarioPanel, CalloutCluster). The old spike route has been
+ * retired; this file is now the production owner that / renders through
+ * CupidShell, while the convention module remains the temporary single source
+ * of truth for the visual language.
  *
  * Files fold (this iteration):
  *   - HoverDetailCard receives a recentNotesSlot via the Scene's
@@ -35,10 +34,10 @@
  *     onOpenClosures path when the closure UI is redesigned)
  */
 
-import { Suspense, useCallback, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
-import { AnimatePresence, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 
 import {
   BottomDock,
@@ -46,26 +45,9 @@ import {
   HoverDetailCard,
   LayerIndicator,
   Scene,
-  ScenarioPanel,
   SideRail,
-  TopBar,
-  type Callout,
-  type NavShardSpec,
-  type ScenarioPanelMode,
-  type StatusShardSpec,
-} from "../../routes/constellation-lobby-spike";
-import { getMemberAuraConfig } from "../member-aura-registry";
-import { resolvePortraitPalette } from "../portrait-palette";
+} from "./canvas-convention";
 import { caseFileNumber } from "../member-card-atoms";
-import { createSeededRandom } from "../../services/utils";
-import {
-  activeBudgetDiscountOffers,
-  computeEffectiveCosts,
-  deriveDeckBudgetStatus,
-} from "../../services/budget";
-import { pendingFollowUpSessionsForShift } from "../../services/date-engine";
-import { deckIsRepairBlocked, softComposeWarnings } from "../../services/deck";
-import { DECK_SIZE_MAX } from "../../domain/game";
 import type {
   DateScenario,
   GameSave,
@@ -82,38 +64,45 @@ import {
   FOCUS_SWAP_RETENTION_PENALTY,
 } from "../../services/focus-cases";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
-import { isMemberInCooldown } from "../../services/shift-planning";
 import {
-  applyMemberRosterFilters,
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   isMemberRosterFilterActive,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
-import { computeCameraTarget, computeFlythroughCameraTarget } from "./math";
 import { NotesOverlay } from "./notes-overlay";
+import { MemberArchiveShard } from "./member-archive-shard";
 import { PairDossierShard } from "./pair-dossier-shard";
 import { RecentNotesSlot } from "./recent-notes-slot";
 import { ShiftArchiveOverlay } from "./shift-archive-overlay";
 import { CaseFilePanel } from "./case-file-panel";
 import { LensPanel } from "./lens-panel";
 import { ReselectDock } from "./reselect-dock";
+import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
+import { ContextualPillRail } from "./contextual-pill-rail";
+import { pickHeaviestAxisLevel } from "./deck-composition";
+import { buildLobbyStars } from "./star-model";
+import { useArchiveView } from "./use-archive-view";
+import { useCathedralModel } from "./use-cathedral-model";
+import { useLobbyCallouts } from "./use-lobby-callouts";
+import { useRosterFold } from "./use-roster-fold";
+import { CathedralScenarioDetail } from "./cathedral-scenario-detail";
 import type {
+  ArchiveSelection,
   FlythroughLayer,
-  LobbyScenario,
   LobbyState,
-  StarAvailability,
+  RosterSubview,
   StarMark,
-  StarTier,
+  ViewMode,
 } from "./types";
-import { DeckModePanel } from "./deck-mode-panel";
-import { LibraryModePanel } from "./library-mode-panel";
+import {
+  CathedralFilterRail,
+  CathedralPanel,
+  type CathedralMode,
+  type RiskFilter,
+  type SortMode,
+} from "./cathedral";
 
-const FIELD_SEED = "constellation-lobby.v1.layout";
-const FIELD_PADDING_X = 8;
-const FIELD_PADDING_Y = 14;
-const FIELD_MIN_SPACING = 9;
-
-type ScenarioMode = ScenarioPanelMode;
+type ScenarioMode = CathedralMode;
 
 type ConstellationLobbyProps = {
   save: GameSave;
@@ -162,6 +151,13 @@ type ConstellationLobbyProps = {
   onRemoveFocus?: (memberId: string) => void;
   onSwapFocus?: (oldId: string, newId: string) => void;
   onReselectFocus?: (nextFocusIds: string[]) => void;
+  /**
+   * Slot for the shell chrome pills (punch out, AI status, settings, mute).
+   * The lobby renders this in the top-left corner so the canvas can own the
+   * frame; cupid-shell hides its own ShellChrome cream bar when the lobby is
+   * the active screen and passes the same pills through here instead.
+   */
+  chromeSlot?: ReactNode;
 };
 
 const EMPTY_READY_CLOSURE_IDS: ReadonlySet<string> = new Set();
@@ -190,14 +186,24 @@ export function ConstellationLobby({
   onRemoveFocus,
   onSwapFocus,
   onReselectFocus,
+  chromeSlot,
 }: ConstellationLobbyProps) {
   const reducedMotion = useReducedMotion() === true;
   const activeBooking = shift.activeBooking ?? null;
 
-  const [focusId, _setFocusId] = useState<string | null>(
-    activeBooking?.focusMemberId ?? focusedMembers[0]?.id ?? null,
-  );
-  void _setFocusId;
+  // Layer 0 reads as a picker — the 4 focused leads sit on the focus slab and
+  // the player taps one to commit it as this shift's focus case. Do not
+  // auto-pick from `focusedMembers[0]`; that collapses the picker into a
+  // single-portrait "focus locked" screen on first render. The only legitimate
+  // initial focus is a resumed `activeBooking` — restoring an in-flight pair.
+  const [focusId, setFocusId] = useState<string | null>(activeBooking?.focusMemberId ?? null);
+  useEffect(() => {
+    setFocusId((current) => {
+      if (activeBooking?.focusMemberId !== undefined) return activeBooking.focusMemberId;
+      if (current !== null && save.focusedMemberIds.includes(current)) return current;
+      return null;
+    });
+  }, [activeBooking, save.focusedMemberIds]);
   // `participantIds` is `[focus, partner]` by convention — pull the second
   // slot to seed the partner state for an in-flight booking.
   const [partnerId, setPartnerId] = useState<string | null>(
@@ -213,6 +219,13 @@ export function ConstellationLobby({
    * tick, throttled so a single wheel notch advances one layer.
    */
   const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
+  /**
+   * Roster-slab subview controls which cohort the constellation spotlights on
+   * layer 1. Defaults to "eligibles" — tonight's available partners lead the
+   * eye, off-tonight members recede. The two-segment pill on layer 1 flips
+   * this so the player can scan rested members without leaving the slab.
+   */
+  const [rosterSubview, setRosterSubview] = useState<RosterSubview>("eligibles");
 
   // Roster fold state. lobbyMode toggles between browse and reselect; the
   // case file overlay opens from HoverDetailCard's "Open case" or a double
@@ -221,6 +234,10 @@ export function ConstellationLobby({
   const [lobbyMode, setLobbyMode] = useState<"browse" | "reselect">("browse");
   const [reselectDraft, setReselectDraft] = useState<readonly string[] | null>(null);
   const [openCaseMemberId, setOpenCaseMemberId] = useState<string | null>(null);
+  // Active star whose `HoverDetailCard` is morphed open. Click-driven (not
+  // hover), since the bigger detail card is too eager to flash on every
+  // pointer pass through the dense field.
+  const [activeStarId, setActiveStarId] = useState<string | null>(null);
   const [isLensOpen, setIsLensOpen] = useState(false);
   const [filterState, setFilterState] = useState<MemberRosterFilterState>(
     DEFAULT_MEMBER_ROSTER_FILTER_STATE,
@@ -235,6 +252,29 @@ export function ConstellationLobby({
     pairFocusId: string | null;
   }>({ open: false, pairFocusId: null });
   const [isShiftArchiveOpen, setIsShiftArchiveOpen] = useState(false);
+
+  // Cathedral state. The cathedral is the layer-2 surface that renders all
+  // date cards as 3D doors lining a nave. `expandedDoorId` is the door the
+  // player has opened (single-clicked) so the detail overlay can mount with
+  // the right scenario context. The hover id drives the door's hover bloom.
+  // Library filter/sort state lifts out of the old `LibraryModePanel`; the
+  // cathedral filter rail at the top of the screen owns these now.
+  const [expandedDoorId, setExpandedDoorId] = useState<string | null>(null);
+  const [hoveredDoorId, setHoveredDoorId] = useState<string | null>(null);
+  const [librarySearch, setLibrarySearch] = useState("");
+  const [libraryRiskFilter, setLibraryRiskFilter] = useState<RiskFilter>("any");
+  const [librarySort, setLibrarySort] = useState<SortMode>("alpha");
+
+  // Archive view: stars re-flow into a pair-graph layout and constellation
+  // edges etch between paired stars. Orthogonal to LobbyState — the player
+  // can flip in/out of archive regardless of focus/partner selection.
+  const [viewMode, setViewMode] = useState<ViewMode>("tonight");
+  const [archiveSelection, setArchiveSelection] = useState<ArchiveSelection>(null);
+  // Exiting archive clears the archive's own selection so re-entry reads
+  // as a fresh look-around.
+  useEffect(() => {
+    if (viewMode === "tonight") setArchiveSelection(null);
+  }, [viewMode]);
 
   const stars = useMemo(
     () => buildLobbyStars(save.members, shift, focusedMembers),
@@ -261,71 +301,35 @@ export function ConstellationLobby({
     [stars, partnerId],
   );
 
-  // Camera target: on layer 0 the lobby state still drives the framing
-  // (focus / partner / committed dolly), but layers 1-3 hand control to the
-  // flythrough so the camera punches through the slabs.
-  const cameraTarget = useMemo(
-    () =>
-      currentLayer === 0 && lobbyState !== "idle"
-        ? computeCameraTarget(lobbyState, focusStar)
-        : computeFlythroughCameraTarget(currentLayer, focusStar),
-    [currentLayer, lobbyState, focusStar],
-  );
+  const { archiveGraph, archivePositions, archiveEdges, archiveIsolation, cameraTarget } =
+    useArchiveView({
+      save,
+      stars,
+      viewMode,
+      archiveSelection,
+      currentLayer,
+      lobbyState,
+      focusStar,
+    });
 
-  const scenarioById = useMemo(
-    () => new Map(starterScenarios.map((scenario) => [scenario.id, scenario])),
-    [],
-  );
-
-  const offers = useMemo(() => activeBudgetDiscountOffers(save), [save]);
-  const effectiveCosts = useMemo(() => computeEffectiveCosts(starterScenarios, offers), [offers]);
-  const budgetStatus = useMemo(
-    () =>
-      deriveDeckBudgetStatus({
-        cardIds: save.scenarioDeck.cardIds,
-        effectiveCosts,
-        budgetCap: save.budgetCap,
-      }),
-    [save.scenarioDeck.cardIds, save.budgetCap, effectiveCosts],
-  );
-  const deckRepairBlocked = useMemo(() => deckIsRepairBlocked(save, starterScenarios), [save]);
-  const warnings = useMemo(
-    () => softComposeWarnings(save.scenarioDeck, starterScenarios),
-    [save.scenarioDeck],
-  );
-
-  const deckComposition = useMemo(
-    () => computeDeckComposition(save.scenarioDeck.cardIds, scenarioById),
-    [save.scenarioDeck.cardIds, scenarioById],
-  );
-
-  const lobbyScenarios = useMemo(() => drawnScenarios.map(toLobbyScenario), [drawnScenarios]);
-
-  /**
-   * Scenarios shown on the layer-3 flythrough slab. When a pair is committed
-   * (drawnScenarios is populated) we render those exact cards; otherwise we
-   * preview the first three from the player's deck so the layer reads as
-   * "the scenarios layer" instead of an empty slab the player can scroll
-   * into. The fallback preview is for read-only orientation — the booking
-   * flow still requires a committed pair before onScenarioClick can route
-   * through onStartDate.
-   */
-  const flythroughScenariosForLayer = useMemo(() => {
-    if (lobbyScenarios.length > 0) return lobbyScenarios;
-    const deckIds = save.scenarioDeck.cardIds.slice(0, 3);
-    return deckIds
-      .map((id) => starterScenarios.find((s) => s.id === id))
-      .filter((s): s is DateScenario => s !== undefined)
-      .map(toLobbyScenario);
-  }, [lobbyScenarios, save.scenarioDeck.cardIds]);
-
-  const selectedScenarioTitle = useMemo(
-    () =>
-      selectedScenarioId === null
-        ? undefined
-        : (drawnScenarios.find((s) => s.id === selectedScenarioId)?.title ?? undefined),
-    [drawnScenarios, selectedScenarioId],
-  );
+  const {
+    effectiveCosts,
+    budgetStatus,
+    deckRepairBlocked,
+    deckComposition,
+    filteredLibrary,
+    cathedralDoors,
+    expandedScenario,
+  } = useCathedralModel({
+    save,
+    shift,
+    drawnScenarios,
+    scenarioMode,
+    librarySearch,
+    libraryRiskFilter,
+    librarySort,
+    expandedDoorId,
+  });
 
   const handleBeginDate = () => {
     if (isActionPending) return;
@@ -348,11 +352,34 @@ export function ConstellationLobby({
   const handleDateBookNavToggle = () => {
     if (bookingLocked) return;
     setScenarioMode((current) => {
-      if (current === "auto") return "deck";
-      if (current === "deck") return "library";
+      if (current === "auto") {
+        // Entering the deck warps the camera into the cathedral so the door
+        // array reads as the active surface, not a popover.
+        setCurrentLayer(2);
+        setExpandedDoorId(null);
+        return "deck";
+      }
+      if (current === "deck") {
+        setCurrentLayer(2);
+        setExpandedDoorId(null);
+        return "library";
+      }
+      // library → auto: leave the cathedral; the lobby state decides which
+      // member-layer slab the camera should return to.
+      setCurrentLayer(lobbyState === "committed_pair" ? 2 : 0);
+      setExpandedDoorId(null);
       return "auto";
     });
   };
+
+  // Auto-zoom into the cathedral the moment a pair is committed so the
+  // player picks tonight's scenario inside the nave instead of through a
+  // floating overlay. This fires once per state transition into
+  // `committed_pair`; subsequent layer changes from the wheel handler are
+  // free to scroll back to the member layers.
+  useEffect(() => {
+    if (lobbyState === "committed_pair") setCurrentLayer(2);
+  }, [lobbyState]);
 
   /**
    * Files-fold openers. The Notes glass overlay (and shift-archive overlay)
@@ -360,20 +387,20 @@ export function ConstellationLobby({
    * still fire so existing callers keep working, but the local opener
    * surfaces the new overlay first.
    */
-  const openNotesOverlay = (pairFocusId: string | null) => {
+  const openNotesOverlay = useCallback((pairFocusId: string | null) => {
     setNotesOverlay({ open: true, pairFocusId });
-  };
-  const closeNotesOverlay = () => {
+  }, []);
+  const closeNotesOverlay = useCallback(() => {
     setNotesOverlay({ open: false, pairFocusId: null });
-  };
-  const handleOpenClosures = () => {
+  }, []);
+  const handleOpenClosures = useCallback(() => {
     openNotesOverlay(null);
     onOpenClosures?.();
-  };
-  const handleOpenFollowUps = () => {
+  }, [onOpenClosures, openNotesOverlay]);
+  const handleOpenFollowUps = useCallback(() => {
     openNotesOverlay(null);
     onOpenFollowUps?.();
-  };
+  }, [onOpenFollowUps, openNotesOverlay]);
 
   const committedPairId = useMemo<string | null>(() => {
     if (activeBooking !== null) return activeBooking.pairId;
@@ -389,58 +416,24 @@ export function ConstellationLobby({
   // recent-notes slot.
   // ===========================================================================
 
-  const focusedSet = useMemo(() => new Set(save.focusedMemberIds), [save.focusedMemberIds]);
-
-  const eligiblePartnerIds = useMemo<ReadonlySet<string>>(() => {
-    const ids = new Set<string>();
-    for (const member of save.members) {
-      if (member.state.status !== "active") continue;
-      if (focusedSet.has(member.id)) continue;
-      if (isMemberInCooldown(member, shift.shiftNumber)) continue;
-      ids.add(member.id);
-    }
-    return ids;
-  }, [save.members, focusedSet, shift.shiftNumber]);
-
-  const filteredMembers = useMemo(
-    () =>
-      applyMemberRosterFilters(save.members, filterState, {
-        playerKnowledge: save.playerKnowledge,
-        revealAllMemberDetails,
-        focusedMemberIds: save.focusedMemberIds,
-        availablePartnerMemberIds: shift.availablePartnerMemberIds,
-        activeShiftNumber: shift.shiftNumber,
-        readyClosureMemberIds,
-      }),
-    [
-      save.members,
-      filterState,
-      save.playerKnowledge,
-      revealAllMemberDetails,
-      save.focusedMemberIds,
-      shift.availablePartnerMemberIds,
-      shift.shiftNumber,
-      readyClosureMemberIds,
-    ],
-  );
-  const filterMatchedIds = useMemo<ReadonlySet<string> | undefined>(() => {
-    if (!isMemberRosterFilterActive(filterState)) return undefined;
-    return new Set(filteredMembers.map((m) => m.id));
-  }, [filteredMembers, filterState]);
-
-  // Reselect mode draft + dock arithmetic.
-  const draftCount = reselectDraft?.length ?? 0;
-  const draftFull = draftCount >= FOCUS_CASE_LIMIT;
-  const reselectDrops = useMemo<Member[]>(() => {
-    if (reselectDraft === null) return [];
-    const draftIds = new Set(reselectDraft);
-    const byId = new Map(save.members.map((m) => [m.id, m] as const));
-    return save.focusedMemberIds
-      .filter((id) => !draftIds.has(id))
-      .map((id) => byId.get(id))
-      .filter((m): m is Member => m !== undefined && m.state.status === "active");
-  }, [reselectDraft, save.focusedMemberIds, save.members]);
-  const totalDropCost = reselectDrops.length * FOCUS_SWAP_RETENTION_PENALTY;
+  const {
+    focusedSet,
+    eligiblePartnerIds,
+    offTonightIds,
+    filteredMembers,
+    filterMatchedIds,
+    draftCount,
+    draftFull,
+    reselectDrops,
+    totalDropCost,
+  } = useRosterFold({
+    save,
+    shift,
+    filterState,
+    revealAllMemberDetails,
+    readyClosureMemberIds,
+    reselectDraft,
+  });
 
   const enterReselect = () => {
     if (lobbyMode === "reselect") return;
@@ -482,9 +475,22 @@ export function ConstellationLobby({
         toggleReselectMember(star.member.id);
         return;
       }
+      // Archive mode: clicking a star isolates that member — camera centers
+      // on them via computeArchiveCameraTarget, incident edges/partners stay
+      // bright, the rest of the field dims. Same-star click clears so the
+      // pulled-back idle view returns.
+      if (viewMode === "archive") {
+        setActiveStarId(null);
+        setArchiveSelection((current) =>
+          current?.kind === "member" && current.memberId === star.member.id
+            ? null
+            : { kind: "member", memberId: star.member.id },
+        );
+        return;
+      }
       setActiveStarId((prev) => (prev === star.member.id ? null : star.member.id));
     },
-    [lobbyMode],
+    [lobbyMode, viewMode],
   );
 
   // Double-click is a power-user shortcut that skips the card and opens the
@@ -529,10 +535,28 @@ export function ConstellationLobby({
         status === "active" &&
         eligiblePartnerIds.has(member.id);
 
+      // A focused lead becomes pickable as the focus case while the booking
+      // is still being assembled — i.e. no committed pair, no partner queued.
+      // Once a partner is queued or the pair is committed, focus locks.
+      const isFocusPickable =
+        isFocused &&
+        status === "active" &&
+        member.id !== focusId &&
+        partnerId === null &&
+        activeBooking === null;
+
       let ctaVariant: "make_focus" | "make_partner" | "swap_into_focus" | "view_case" = "view_case";
       let onPrimaryAction: (() => void) | undefined = undefined;
 
-      if (status !== "active" || isFocused) {
+      if (isFocusPickable) {
+        // Layer-0 picker: clicking a focused lead's card commits it as this
+        // shift's focus case so the partner stage can open.
+        ctaVariant = "make_focus";
+        onPrimaryAction = () => {
+          setFocusId(member.id);
+          setActiveStarId(null);
+        };
+      } else if (status !== "active" || isFocused) {
         ctaVariant = "view_case";
         onPrimaryAction = () => openCaseAndDismiss(member.id);
       } else if (isPartnerCandidate) {
@@ -554,6 +578,7 @@ export function ConstellationLobby({
             ? undefined
             : () => {
                 onAddFocus(member.id);
+                setFocusId((current) => current ?? member.id);
                 setActiveStarId(null);
               };
       }
@@ -593,6 +618,7 @@ export function ConstellationLobby({
       onAddFocus,
       focusId,
       partnerId,
+      activeBooking,
       eligiblePartnerIds,
       openCaseAndDismiss,
     ],
@@ -656,11 +682,40 @@ export function ConstellationLobby({
     onSwapFocus,
   ]);
 
+  const memberByIdMap = useMemo(
+    () => new Map(save.members.map((member) => [member.id, member] as const)),
+    [save.members],
+  );
+
+  // Side-rail dossier resolution. Three cases:
+  //  1. archive + member selection → MemberArchiveShard listing their pairs
+  //  2. archive + pair selection (or tonight + committed pair) → PairDossierShard
+  //  3. nothing → empty slot
+  const archiveFocusedMember =
+    viewMode === "archive" && archiveSelection?.kind === "member"
+      ? (memberByIdMap.get(archiveSelection.memberId) ?? null)
+      : null;
+  const archiveFocusedIncidentEdges = useMemo(() => {
+    if (archiveFocusedMember === null) return [];
+    const edges = archiveGraph.incidentEdgesByNode.get(archiveFocusedMember.id) ?? [];
+    return [...edges].sort((a, b) => b.latestNoteAt - a.latestNoteAt);
+  }, [archiveFocusedMember, archiveGraph.incidentEdgesByNode]);
+  const dossierPairId =
+    viewMode === "archive" && archiveSelection?.kind === "pair"
+      ? archiveSelection.pairId
+      : committedPairId;
   const pairDossierSlot =
-    committedPairId === null ? undefined : (
+    archiveFocusedMember !== null ? (
+      <MemberArchiveShard
+        focusMember={archiveFocusedMember}
+        incidentEdges={archiveFocusedIncidentEdges}
+        memberById={memberByIdMap}
+        onSelectPair={(pairId) => setArchiveSelection({ kind: "pair", pairId })}
+      />
+    ) : dossierPairId === null ? undefined : (
       <PairDossierShard
-        pairId={committedPairId}
-        pairState={save.pairStates.find((p) => p.id === committedPairId)}
+        pairId={dossierPairId}
+        pairState={save.pairStates.find((p) => p.id === dossierPairId)}
         members={save.members}
         memories={save.memories}
         playerKnowledge={save.playerKnowledge}
@@ -669,35 +724,29 @@ export function ConstellationLobby({
       />
     );
 
-  const statusShards = useMemo<StatusShardSpec[]>(() => {
-    const shards: StatusShardSpec[] = [
-      {
-        kind: "label",
-        eyebrow: "slots",
-        value: `${save.scenarioDeck.cardIds.length} / ${DECK_SIZE_MAX}`,
-        tone: budgetStatus.status === "invalid_size" ? "rose" : undefined,
-      },
-      {
-        kind: "label",
-        eyebrow: "budget",
-        value: `${budgetStatus.spend} / ${save.budgetCap}`,
-        tone: budgetStatus.status === "over_budget" ? "rose" : undefined,
-      },
-    ];
-    shards.push({
-      kind: "axes",
-      axes: pickHeaviestAxisLevel(deckComposition),
-    });
-    if (deckComposition.lowPressure > 0 || deckComposition.highPressure > 0) {
-      shards.push({
-        kind: "pressure",
-        pressure: {
-          lowPressure: deckComposition.lowPressure,
-          highPressure: deckComposition.highPressure,
-        },
-      });
-    }
-    return shards;
+  /**
+   * Deck-composition shards rendered only while the player is in date book
+   * mode. The old TopBar surfaced these globally; we now keep the canvas
+   * clean and surface slots / budget / axes / pressure as a single floating
+   * pill row that fades in alongside the deck or library panel.
+   */
+  const deckBookShards = useMemo(() => {
+    const heaviest = pickHeaviestAxisLevel(deckComposition);
+    return {
+      slotCount: save.scenarioDeck.cardIds.length,
+      slotTone: budgetStatus.status === "invalid_size" ? ("rose" as const) : ("neutral" as const),
+      spend: budgetStatus.spend,
+      budgetCap: save.budgetCap,
+      budgetTone: budgetStatus.status === "over_budget" ? ("rose" as const) : ("neutral" as const),
+      axes: heaviest,
+      pressure:
+        deckComposition.lowPressure > 0 || deckComposition.highPressure > 0
+          ? {
+              lowPressure: deckComposition.lowPressure,
+              highPressure: deckComposition.highPressure,
+            }
+          : undefined,
+    };
   }, [
     save.scenarioDeck.cardIds.length,
     save.budgetCap,
@@ -706,116 +755,36 @@ export function ConstellationLobby({
     deckComposition,
   ]);
 
-  const navShards = useMemo<NavShardSpec[]>(
-    () => [
-      {
-        label:
-          scenarioMode === "deck"
-            ? "Date book · deck"
-            : scenarioMode === "library"
-              ? "Date book · library"
-              : "Date book",
-        active: scenarioMode !== "auto",
-        hot: deckRepairBlocked,
-        disabled: bookingLocked,
-        onClick: handleDateBookNavToggle,
-      },
-    ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [scenarioMode, deckRepairBlocked, bookingLocked],
-  );
-
-  const callouts = useMemo<Callout[]>(() => {
-    const items: Callout[] = [];
-    if (deckRepairBlocked) {
-      items.push({
-        id: "deck-repair",
-        tone: "rose",
-        eyebrow: "deck needs repair",
-        title: "Deck is over budget",
-        body: "Drop cards from the deck until spend is under the cap before booking the next pair.",
-        action: {
-          label: "Open deck",
-          onClick: () => setScenarioMode("deck"),
-        },
-      });
-    }
-    for (const warning of warnings) {
-      items.push({
-        id: `soft-${warning}`,
-        tone: "amber",
-        eyebrow: "deck composition",
-        title: warning,
-      });
-    }
-    if (readyClosurePairCount > 0) {
-      items.push({
-        id: "closures-ready",
-        tone: "rose",
-        eyebrow: "closure pending",
-        title:
-          readyClosurePairCount === 1
-            ? "One pair is ready to close"
-            : `${readyClosurePairCount} pairs are ready to close`,
-        body: "Open the notes archive to file the closure summary before the next shift.",
-        action: { label: "Open notes", onClick: handleOpenClosures },
-      });
-    }
-    if (onOpenDateSession !== undefined) {
-      const memberById = new Map(save.members.map((member) => [member.id, member] as const));
-      const sessions = pendingFollowUpSessionsForShift(save, shift.shiftNumber);
-      for (const session of sessions) {
-        const [firstId, secondId] = session.participants;
-        const first = memberById.get(firstId);
-        const second = memberById.get(secondId);
-        if (first === undefined || second === undefined) continue;
-        const sessionId = session.id;
-        items.push({
-          id: `follow-up-${session.id}`,
-          tone: "rose",
-          eyebrow: "follow-up due",
-          title: `${first.firstName} + ${second.firstName}`,
-          body: "File a follow-up before the shift closes.",
-          action: { label: "Open date", onClick: () => onOpenDateSession(sessionId) },
-        });
-      }
-    } else if (pendingFollowUpCount > 0) {
-      items.push({
-        id: "follow-ups",
-        tone: "amber",
-        eyebrow: "follow-ups",
-        title:
-          pendingFollowUpCount === 1
-            ? "One follow-up needs a response"
-            : `${pendingFollowUpCount} follow-ups need a response`,
-        action: { label: "Open notes", onClick: handleOpenFollowUps },
-      });
-    }
-    return items;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
+  const openDeckFromCallout = useCallback(() => setScenarioMode("deck"), []);
+  const callouts = useLobbyCallouts({
     deckRepairBlocked,
-    warnings,
     readyClosurePairCount,
     pendingFollowUpCount,
     save,
-    shift.shiftNumber,
+    shift,
     onOpenDateSession,
-  ]);
+    onOpenClosures: handleOpenClosures,
+    onOpenFollowUps: handleOpenFollowUps,
+    onOpenDeck: openDeckFromCallout,
+  });
 
-  // Floating ScenarioPanel only renders when the player is on a member layer.
-  // Layer 3 mounts the scenarios as 3D card meshes inside the canvas, so the
-  // floating UI hides to avoid doubling. The committed_pair/scenario_chosen
-  // gating still applies — the panel is part of the booking flow, not a
-  // permanent overlay.
-  const showAutoScenarios =
-    scenarioMode === "auto" &&
-    (lobbyState === "committed_pair" || lobbyState === "scenario_chosen") &&
-    lobbyScenarios.length > 0 &&
-    currentLayer !== 3;
-  const showDeckPanel = scenarioMode === "deck" && currentLayer !== 3;
-  const showLibraryPanel = scenarioMode === "library" && !bookingLocked && currentLayer !== 3;
   const showCallouts = callouts.length > 0;
+  const showLibraryFilterRail = scenarioMode === "library" && !bookingLocked && currentLayer === 2;
+
+  /**
+   * Door click routes to one of two flows. In auto mode (committed pair
+   * picking tonight's scenario) the click sets `selectedScenarioId` so the
+   * BottomDock's Begin-date button can fire. In deck / library mode the
+   * click opens the detail overlay so the player can read the brief and
+   * fire the mode-specific CTA (Drop / Add).
+   */
+  const handleDoorClick = (id: string) => {
+    if (scenarioMode === "auto") {
+      setSelectedScenarioId((current) => (current === id ? null : id));
+      return;
+    }
+    setExpandedDoorId((current) => (current === id ? null : id));
+  };
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#07041a] text-aura-paper">
@@ -829,6 +798,7 @@ export function ConstellationLobby({
             powerPreference: "high-performance",
           }}
           camera={{ position: [0, 0, 17], fov: 38, near: 0.1, far: 80 }}
+          onPointerMissed={() => setActiveStarId(null)}
         >
           <Suspense fallback={null}>
             <Scene
@@ -847,86 +817,78 @@ export function ConstellationLobby({
                 eligiblePartnerIds,
                 filterMatchedIds,
               }}
+              activeStarId={activeStarId}
+              onActiveStarChange={setActiveStarId}
               currentLayer={currentLayer}
               onLayerChange={setCurrentLayer}
               focusedIds={focusedSet}
-              flythroughScenarios={flythroughScenariosForLayer}
-              selectedScenarioId={selectedScenarioId}
-              onScenarioClick={setSelectedScenarioId}
+              offTonightSet={offTonightIds}
+              rosterSubview={rosterSubview}
+              viewMode={viewMode}
+              archiveData={
+                viewMode === "archive"
+                  ? { positions: archivePositions, edges: archiveEdges }
+                  : undefined
+              }
+              archiveSelection={archiveSelection}
+              archiveIsolation={archiveIsolation}
+              onArchiveEdgeClick={(pairId) => setArchiveSelection({ kind: "pair", pairId })}
+              renderArchiveEdgeTooltip={(edge) => (
+                <ArchiveEdgeTooltip edge={edge} memberById={memberByIdMap} />
+              )}
             />
           </Suspense>
         </Canvas>
       </div>
-      <TopBar state={lobbyState} status={statusShards} navs={navShards} />
-      <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
+      {chromeSlot === undefined ? null : (
+        <div className="pointer-events-none absolute left-6 top-5 z-30 flex items-center gap-2">
+          <div className="pointer-events-auto flex items-center gap-2">{chromeSlot}</div>
+        </div>
+      )}
+      {viewMode === "tonight" ? (
+        <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
+      ) : null}
       <SideRail
         state={lobbyState}
         focus={focusStar}
         partner={partnerStar}
         pairDossierSlot={pairDossierSlot}
       />
-      <AnimatePresence>
-        {showAutoScenarios ? (
-          <ScenarioPanel
-            key="auto"
-            mode="auto"
-            scenarios={lobbyScenarios}
-            selectedId={selectedScenarioId}
-            onScenarioClick={setSelectedScenarioId}
-          />
-        ) : null}
-        {showDeckPanel ? (
-          <ScenarioPanel
-            key="deck"
-            mode="deck"
-            scenarios={[]}
-            selectedId={null}
-            deckPanel={
-              <DeckModePanel
-                deckCardIds={save.scenarioDeck.cardIds}
-                scenarioById={scenarioById}
-                toLobbyScenario={toLobbyScenario}
-                effectiveCosts={effectiveCosts}
-                spend={budgetStatus.spend}
-                budgetCap={save.budgetCap}
-                status={budgetStatus.status}
-                bookingLocked={bookingLocked}
-                isActionPending={isActionPending}
-                onDrop={onRemoveDeckCard}
-              />
-            }
-          />
-        ) : null}
-        {showLibraryPanel ? (
-          <ScenarioPanel
-            key="library"
-            mode="library"
-            scenarios={[]}
-            selectedId={null}
-            libraryPanel={
-              <LibraryModePanel
-                save={save}
-                currentShift={shift.shiftNumber}
-                scenarios={starterScenarios}
-                scenarioById={scenarioById}
-                toLobbyScenario={toLobbyScenario}
-                effectiveCosts={effectiveCosts}
-                budgetCap={save.budgetCap}
-                isActionPending={isActionPending}
-                bookingLocked={bookingLocked}
-                onAdd={onAddDeckCard}
-              />
-            }
-          />
-        ) : null}
-      </AnimatePresence>
+      <CathedralPanel
+        open={viewMode === "tonight" && currentLayer === 2}
+        mode={scenarioMode}
+        doors={cathedralDoors}
+        selectedId={scenarioMode === "auto" ? selectedScenarioId : expandedDoorId}
+        hoveredId={hoveredDoorId}
+        onHover={setHoveredDoorId}
+        onSelect={handleDoorClick}
+        reducedMotion={reducedMotion}
+      />
+      <CathedralFilterRail
+        open={showLibraryFilterRail}
+        matchCount={filteredLibrary.length}
+        search={librarySearch}
+        riskFilter={libraryRiskFilter}
+        sortMode={librarySort}
+        onSearchChange={setLibrarySearch}
+        onRiskFilterChange={setLibraryRiskFilter}
+        onSortChange={setLibrarySort}
+      />
+      <CathedralScenarioDetail
+        scenario={expandedScenario}
+        mode={scenarioMode}
+        save={save}
+        effectiveCosts={effectiveCosts}
+        bookingLocked={bookingLocked}
+        isActionPending={isActionPending}
+        onAddDeckCard={onAddDeckCard}
+        onRemoveDeckCard={onRemoveDeckCard}
+        onClose={() => setExpandedDoorId(null)}
+      />
       {showCallouts ? <CalloutCluster callouts={callouts} /> : null}
       <BottomDock
         state={lobbyState}
-        focus={focusStar}
-        partner={partnerStar}
         selectedScenarioId={selectedScenarioId}
-        selectedScenarioTitle={selectedScenarioTitle}
         beginDisabled={isActionPending}
         onBeginDate={handleBeginDate}
         onCancelPair={handleCancelPair}
@@ -966,35 +928,30 @@ export function ConstellationLobby({
         aria-label="Open notes archive"
       />
 
-      {/* Roster fold — small action rail below the TopBar that opens the
-          Lens overlay and toggles reselect mode. We render this outside the
-          spike's NavShard rail because the spike already owns nav for
-          Date Book. A future spike pass can absorb these into NavShard with
-          proper onClick threading. */}
-      <div className="pointer-events-none absolute right-6 top-[64px] z-30 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setIsLensOpen(true)}
-          className="pointer-events-auto cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper"
-          aria-label="Open roster lens"
-        >
-          Lens · {isMemberRosterFilterActive(filterState) ? "active" : "all"}
-        </button>
-        {onReselectFocus === undefined ? null : (
-          <button
-            type="button"
-            onClick={() => (lobbyMode === "reselect" ? cancelReselect() : enterReselect())}
-            className={`pointer-events-auto cursor-pointer rounded-full px-3.5 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper ${
-              lobbyMode === "reselect"
-                ? "aura-liquid-glass aura-liquid-glass-rose"
-                : "aura-liquid-glass aura-liquid-glass-hover"
-            }`}
-            aria-label={lobbyMode === "reselect" ? "Cancel reselect" : "Reselect focus rack"}
-          >
-            {lobbyMode === "reselect" ? "Cancel reselect" : "Reselect leads"}
-          </button>
-        )}
-      </div>
+      <ContextualPillRail
+        scenarioMode={scenarioMode}
+        bookingLocked={bookingLocked}
+        deckRepairBlocked={deckRepairBlocked}
+        currentLayer={currentLayer}
+        rosterSubview={rosterSubview}
+        filterActive={isMemberRosterFilterActive(filterState)}
+        deckBookShards={deckBookShards}
+        reselectMode={lobbyMode === "reselect"}
+        canReselect={onReselectFocus !== undefined}
+        viewMode={viewMode}
+        archiveEdgeCount={archiveEdges.length}
+        onToggleDateBook={handleDateBookNavToggle}
+        onOpenLens={() => setIsLensOpen(true)}
+        onToggleReselect={() => (lobbyMode === "reselect" ? cancelReselect() : enterReselect())}
+        onRosterSubviewChange={setRosterSubview}
+        onToggleArchive={() =>
+          setViewMode((current) => (current === "archive" ? "tonight" : "archive"))
+        }
+        onClearArchiveSelection={
+          archiveSelection === null ? undefined : () => setArchiveSelection(null)
+        }
+        archiveSelectionActive={archiveSelection !== null}
+      />
 
       <LensPanel
         isOpen={isLensOpen}
@@ -1037,170 +994,4 @@ export function ConstellationLobby({
       ) : null}
     </div>
   );
-}
-
-/**
- * Build stars from real save members. Maps each member to a deterministic
- * field position keyed off FIELD_SEED so the layout is stable across saves
- * but unique to this lobby instance. Availability is derived from the
- * member's state and the shift; eligible-partner filtering is intentionally
- * loose for the first cutover (anyone active + ready can be a partner).
- */
-function buildLobbyStars(
-  members: readonly Member[],
-  shift: ShiftState,
-  focusedMembers: readonly Member[],
-): StarMark[] {
-  const rng = createSeededRandom(FIELD_SEED);
-  const placements: Array<{ x: number; y: number }> = [];
-  const stars: StarMark[] = [];
-  const focusedIds = new Set(focusedMembers.map((m) => m.id));
-
-  for (const member of members) {
-    let placed: { x: number; y: number } | null = null;
-    for (let attempt = 0; attempt < 220; attempt += 1) {
-      const candidateX = FIELD_PADDING_X + rng() * (100 - FIELD_PADDING_X * 2);
-      const candidateY = FIELD_PADDING_Y + rng() * (100 - FIELD_PADDING_Y * 2);
-      const tooClose = placements.some(
-        (p) =>
-          (p.x - candidateX) * (p.x - candidateX) + (p.y - candidateY) * (p.y - candidateY) <
-          FIELD_MIN_SPACING * FIELD_MIN_SPACING,
-      );
-      if (!tooClose) {
-        placed = { x: candidateX, y: candidateY };
-        break;
-      }
-    }
-    if (placed === null) {
-      placed = {
-        x: FIELD_PADDING_X + rng() * (100 - FIELD_PADDING_X * 2),
-        y: FIELD_PADDING_Y + rng() * (100 - FIELD_PADDING_Y * 2),
-      };
-    }
-    placements.push(placed);
-
-    // Focused leads sit in the foreground tier so they read prominently.
-    // Everything else gets random tier assignment with a heavier bias to
-    // foreground/mid so the field doesn't feel empty.
-    const isFocusedLead = focusedIds.has(member.id);
-    const tierRoll = rng();
-    let tier: StarTier;
-    let z: number;
-    if (isFocusedLead) {
-      tier = "foreground";
-      z = 30 + rng() * 30;
-    } else if (tierRoll > 0.55) {
-      tier = "foreground";
-      z = 10 + rng() * 40;
-    } else if (tierRoll > 0.25) {
-      tier = "mid";
-      z = -50 + rng() * 50;
-    } else {
-      tier = "background";
-      z = -180 + rng() * 110;
-    }
-
-    stars.push({
-      member,
-      palette: resolvePortraitPalette(member),
-      aura: getMemberAuraConfig(member.id),
-      x: placed.x,
-      y: placed.y,
-      z,
-      tier,
-      availability: availabilityForMember(member, shift),
-      phase: rng() * Math.PI * 2,
-    });
-  }
-
-  return stars;
-}
-
-function availabilityForMember(member: Member, shift: ShiftState): StarAvailability {
-  const status = member.state.status;
-  if (status === "closed") return "closed";
-  if (status === "quit") return "closed";
-  if (isMemberInCooldown(member, shift.shiftNumber)) return "cooling";
-  // Members not on tonight's slate read as "off_shift" unless they're the
-  // active focus case (focus cards never go dim from off-shift treatment).
-  const isFocused = shift.activeBooking?.focusMemberId === member.id;
-  if (!isFocused && !shift.availablePartnerMemberIds.includes(member.id)) {
-    return "off_shift";
-  }
-  return "ready";
-}
-
-function toLobbyScenario(scenario: DateScenario): LobbyScenario {
-  return {
-    id: scenario.id,
-    title: scenario.title,
-    venue: scenario.publicBrief.location,
-    cost: scenario.card.cost,
-    axes: {
-      risk: riskToNumber(scenario.card.risk),
-      intimacy: riskToNumber(scenario.card.intimacy),
-      chaos: riskToNumber(scenario.card.chaos),
-    },
-    // TODO(constellation-lobby-room-folds): wire to real room read derivation.
-    roomRead: "steady",
-  };
-}
-
-function riskToNumber(level: "low" | "medium" | "high"): number {
-  if (level === "low") return 1;
-  if (level === "medium") return 2;
-  return 3;
-}
-
-type DeckComposition = {
-  risk: { low: number; medium: number; high: number };
-  intimacy: { low: number; medium: number; high: number };
-  chaos: { low: number; medium: number; high: number };
-  lowPressure: number;
-  highPressure: number;
-};
-
-function computeDeckComposition(
-  cardIds: readonly string[],
-  scenarioById: ReadonlyMap<string, DateScenario>,
-): DeckComposition {
-  const composition: DeckComposition = {
-    risk: { low: 0, medium: 0, high: 0 },
-    intimacy: { low: 0, medium: 0, high: 0 },
-    chaos: { low: 0, medium: 0, high: 0 },
-    lowPressure: 0,
-    highPressure: 0,
-  };
-  for (const id of cardIds) {
-    const scenario = scenarioById.get(id);
-    if (scenario === undefined) continue;
-    composition.risk[scenario.card.risk] += 1;
-    composition.intimacy[scenario.card.intimacy] += 1;
-    composition.chaos[scenario.card.chaos] += 1;
-    if (scenario.card.tags.includes("low_pressure")) composition.lowPressure += 1;
-    if (scenario.card.tags.includes("high_pressure")) composition.highPressure += 1;
-  }
-  return composition;
-}
-
-function pickHeaviestAxisLevel(composition: DeckComposition): {
-  risk: "low" | "medium" | "high";
-  intimacy: "low" | "medium" | "high";
-  chaos: "low" | "medium" | "high";
-} {
-  return {
-    risk: heaviestLevel(composition.risk),
-    intimacy: heaviestLevel(composition.intimacy),
-    chaos: heaviestLevel(composition.chaos),
-  };
-}
-
-function heaviestLevel(counts: {
-  low: number;
-  medium: number;
-  high: number;
-}): "low" | "medium" | "high" {
-  if (counts.high >= counts.medium && counts.high >= counts.low) return "high";
-  if (counts.medium >= counts.low) return "medium";
-  return "low";
 }

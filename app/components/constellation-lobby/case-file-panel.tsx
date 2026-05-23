@@ -17,7 +17,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { GameSave, Member, PlayerKnowledgeRecord } from "../../domain/game";
-import { PortraitChip } from "../../routes/constellation-lobby-spike";
+import { PortraitChip } from "./canvas-convention";
 import { caseFileNumber } from "../member-card-atoms";
 import { MemberIntelBoard } from "../member-details-modal";
 import { resolvePortraitPalette } from "../portrait-palette";

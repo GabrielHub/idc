@@ -23,7 +23,7 @@ import type { DateScenario, GameSave } from "../../domain/game";
 import { DECK_SIZE_MAX } from "../../domain/game";
 import { canAddToDeck } from "../../services/budget";
 import { listLibraryCards, unlockedScenarioIds } from "../../services/deck";
-import { LobbyScenarioCard } from "../../routes/constellation-lobby-spike";
+import { LobbyScenarioCard } from "./canvas-convention";
 import type { LobbyScenario } from "./types";
 
 export type LibraryModePanelProps = {

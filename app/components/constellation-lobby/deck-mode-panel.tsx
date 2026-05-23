@@ -18,7 +18,7 @@ import { useState } from "react";
 
 import type { DateScenario } from "../../domain/game";
 import { DECK_SIZE_MAX, DECK_SIZE_MIN } from "../../domain/game";
-import { LobbyScenarioCard } from "../../routes/constellation-lobby-spike";
+import { LobbyScenarioCard } from "./canvas-convention";
 import type { LobbyScenario } from "./types";
 
 export type DeckModePanelProps = {

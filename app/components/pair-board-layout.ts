@@ -455,3 +455,30 @@ export function describeRecency(latestNoteAt: number, now: number): string {
   const weeks = Math.round(days / 7);
   return `filed ${weeks}w ago`;
 }
+
+/**
+ * Pair-board selection — moved here from the deleted SVG renderer so the
+ * notes-view-helpers seeding helper + its tests still compile. The
+ * constellation lobby keeps a richer ArchiveSelection in its own types;
+ * this one stays narrow because it only seeds initial open state.
+ */
+export type ActivePairBoardSelection =
+  | { kind: "node"; memberId: string }
+  | { kind: "edge"; pairId: string };
+
+export type PairBoardSelection = ActivePairBoardSelection | { kind: "none" };
+
+/**
+ * Split a long note body into a lead sentence + trailing tail so cards and
+ * hover tooltips can surface the lead in bold and the rest in body weight.
+ * Falls back to a single lead when there's no sentence break.
+ */
+export function splitLead(text: string): { lead: string; tail: string } {
+  const trimmed = text.trim();
+  const breaks = [". ", "? ", "! "]
+    .map((token) => trimmed.indexOf(token))
+    .filter((index) => index > 0);
+  if (breaks.length === 0) return { lead: trimmed, tail: "" };
+  const cut = Math.min(...breaks);
+  return { lead: trimmed.slice(0, cut + 1), tail: trimmed.slice(cut + 2).trim() };
+}

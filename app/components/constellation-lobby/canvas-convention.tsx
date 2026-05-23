@@ -1,8 +1,7 @@
 /**
- * R&D spike v6 for the constellation lobby rewrite. This route exists to answer
- * the design question "what should the primary pre-date screen feel like?"
- * before any architecture lands. It uses fixture members, local state only, and
- * no game services. Plan: app/docs/roadmap/constellation-lobby-spike.tsx.
+ * Shared canvas convention for the constellation lobby rewrite. This module
+ * owns the 3D scene primitives, HUD shards, morphing detail cards, scenario
+ * field, and the production-facing scene convention.
  *
  * v6 direction (full 3D upgrade):
  *   - react-three-fiber Canvas replaces the CSS-3D stage
@@ -17,253 +16,59 @@
  *   - HUD stays as HTML/Tailwind overlays. UI element reconsideration is the
  *     next spike pass — v6 focuses purely on the 3D scene language.
  *
- * Single file by design. We expect to throw most of this code away once the
- * foundation plan picks up the approved direction.
+ * Still intentionally consolidated while the convention is settling; keep
+ * future changes biased toward extracting Scene/HUD/cards into narrower files.
  */
 
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type MutableRefObject,
-  type ReactNode,
-} from "react";
-import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Html, Line, useTexture } from "@react-three/drei";
 import { Bloom, DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
-import type { Member } from "../domain/game";
-import { starterMembers } from "../fixtures/members";
-import { getMemberAuraConfig } from "../components/member-aura-registry";
-import { resolvePortraitPalette, type PortraitPalette } from "../components/portrait-palette";
-import { caseFileNumber } from "../components/member-card-atoms";
-import { createSeededRandom } from "../services/utils";
+import type { Member } from "../../domain/game";
+import { createSeededRandom } from "../../services/utils";
+import { caseFileNumber } from "../member-card-atoms";
+import type { PortraitPalette } from "../portrait-palette";
 import {
   advanceFlythroughLayer,
-  computeFlythroughCameraTarget,
+  computeRosterCohort,
   computeStarFlythroughLayer,
+  flythroughLayerDirectionFromKey,
   flythroughMemberSlabActivity,
   flythroughStarZ,
+  focusClusterPosition,
   haloColorForStar,
-} from "../components/constellation-lobby/math";
+} from "./math";
 import type {
+  ArchiveSelection,
   CameraTarget,
   FlythroughLayer,
   LobbyScenario,
   LobbyState,
+  RosterSubview,
   StarAvailability,
   StarFlythroughLayer,
   StarMark,
   StarRole,
   StarTier,
   Vec3,
-} from "../components/constellation-lobby/types";
+  ViewMode,
+} from "./types";
+import type { PairBoardEdge } from "../pair-board-layout";
+import type { PairEdgeRenderSpec } from "./archive-layout";
+import { PairEdgeMesh } from "./pair-edge-mesh";
 
-export function meta() {
-  return [
-    { title: "IDC | Constellation lobby spike" },
-    { name: "description", content: "R&D spike for the constellation lobby primary screen." },
-  ];
-}
+const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
+const EMPTY_ELIGIBLE_PARTNER_IDS: ReadonlySet<string> = new Set();
 
 // Types are shared with the production lobby — see
 // app/components/constellation-lobby/types.ts.
 
-const FIELD_SEED = "constellation-spike.v6.layout";
-const FIELD_PADDING_X = 8;
-const FIELD_PADDING_Y = 14;
-const FIELD_MIN_SPACING = 9;
-
 const WORLD_X_SCALE = 0.22; // star.x (0-100) -> world x (-11..+11)
 const WORLD_Y_SCALE = -0.12; // star.y (0-100) -> world y (+6..-6, flipped)
 const WORLD_Z_SCALE = 0.05; // star.z (-260..+60) -> world z (-13..+3) — broad depth so perspective parallax actually reads
-
-const FOCUS_ID = "jenna-pike";
-const PARTNER_ID = "ryan-doyle";
-
-const ELIGIBLE_PARTNER_IDS = new Set<string>([
-  "ryan-doyle",
-  "marcus-pellish",
-  "brady-strait",
-  "kade-sumner",
-  "fred-stavropoulos",
-  "calvin-hewes",
-  "toby-wenz",
-  "noah-kim",
-  "alex-yoon",
-  "gideon-glass",
-]);
-
-const COOLING_IDS = new Set<string>(["mei-sato", "mira-park", "sana-karim"]);
-const OFF_SHIFT_IDS = new Set<string>(["aldric-vale-marsh", "anubis", "anansi", "cthala"]);
-const CLOSED_IDS = new Set<string>(["concord", "epsy"]);
-
-const MOCK_SCENARIOS: LobbyScenario[] = [
-  {
-    id: "weeknight-diner",
-    title: "Weeknight Diner Run",
-    venue: "Big Sky Diner, 9:40pm booth",
-    cost: 38,
-    axes: { risk: 1, intimacy: 2, chaos: 1 },
-    roomRead: "steady",
-  },
-  {
-    id: "lakeside-walk",
-    title: "Lakeside Walk + Stand",
-    venue: "Marrow Pier, hot pretzel stand",
-    cost: 22,
-    axes: { risk: 2, intimacy: 3, chaos: 2 },
-    roomRead: "promising",
-  },
-  {
-    id: "off-strip-karaoke",
-    title: "Off-Strip Karaoke Loft",
-    venue: "Velour Room, mezzanine, weeknight rate",
-    cost: 64,
-    axes: { risk: 3, intimacy: 3, chaos: 4 },
-    roomRead: "volatile",
-  },
-];
-
-/* ============================================================================
- * Top-level route component.
- * ========================================================================== */
-
-export default function ConstellationLobbySpike() {
-  const [state, setState] = useState<LobbyState>("idle");
-  const [showAuras, setShowAuras] = useState(true);
-  const [showParallax, setShowParallax] = useState(true);
-  /**
-   * Flythrough layer the player has scrolled into. Scroll-down advances
-   * 0 → 1 → 2 → 3, scroll-up reverses; the throttle inside Scene's wheel
-   * handler ensures a normal wheel notch advances one layer per tick. The
-   * layer state is orthogonal to LobbyState — the player can traverse the
-   * member slabs and the scenarios layer regardless of whether they've
-   * committed to a focus / partner / scenario.
-   */
-  const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
-  /** Selected scenario id when the player commits one from the scenarios layer. */
-  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
-
-  const stars = useMemo<StarMark[]>(() => buildStars(starterMembers), []);
-  const focusStar = stars.find((s) => s.member.id === FOCUS_ID);
-  const partnerStar = stars.find((s) => s.member.id === PARTNER_ID);
-
-  /**
-   * Spike layer membership. Layer 0 is the seeded focus case + a couple
-   * starter focus stars to populate the slab. Layer 1 = the eligible set.
-   * Layer 2 is implicit (everyone else: cooling / off_shift / closed).
-   */
-  const focusedIds = useMemo<ReadonlySet<string>>(
-    () => new Set<string>([FOCUS_ID, "ryan-doyle", "mei-sato", "marcus-pellish"]),
-    [],
-  );
-
-  // Camera target derives from the lobby state for the selection workflow
-  // OR from the flythrough layer when the player has scrolled past layer 0.
-  // Layer-0 framing defers to the LobbyState camera so existing focus /
-  // partner / committed framings still feel anchored.
-  const cameraTarget =
-    currentLayer === 0 && state !== "idle"
-      ? computeCameraTarget(state, focusStar)
-      : computeFlythroughCameraTarget(currentLayer, focusStar);
-  const reducedMotion = useReducedMotion() === true;
-
-  const showFocusChip = state !== "idle" && state !== "callout_heavy" && focusStar !== undefined;
-  const showPartnerChip =
-    (state === "partner_selected" || state === "committed_pair" || state === "scenario_chosen") &&
-    partnerStar !== undefined;
-  // Scenarios-as-3D land on layer 3, regardless of the booking state — the
-  // player is exploring the scenarios layer. The legacy floating ScenarioPanel
-  // still shows once a pair is committed, but only while the player is back
-  // on a member layer (so the floating UI doesn't double the in-canvas grid).
-  const showFloatingScenario =
-    (state === "committed_pair" || state === "scenario_chosen") && currentLayer !== 3;
-  const scenarioLocked = state === "scenario_chosen";
-
-  const handleScenarioClick = useCallback((scenarioId: string) => {
-    setSelectedScenarioId(scenarioId);
-  }, []);
-
-  return (
-    <div className="relative min-h-screen w-full overflow-hidden bg-[#07041a] text-aura-paper">
-      <div className="absolute inset-0">
-        <Canvas
-          dpr={[1, 1.6]}
-          gl={{
-            antialias: true,
-            alpha: false,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            powerPreference: "high-performance",
-          }}
-          camera={{ position: [0, 0, 17], fov: 38, near: 0.1, far: 80 }}
-        >
-          <Suspense fallback={null}>
-            <Scene
-              state={state}
-              stars={stars}
-              focusStar={focusStar}
-              partnerStar={partnerStar}
-              cameraTarget={cameraTarget}
-              showAuras={showAuras}
-              showParallax={showParallax}
-              reducedMotion={reducedMotion}
-              currentLayer={currentLayer}
-              onLayerChange={setCurrentLayer}
-              focusedIds={focusedIds}
-              flythroughScenarios={MOCK_SCENARIOS}
-              selectedScenarioId={selectedScenarioId}
-              onScenarioClick={handleScenarioClick}
-            />
-          </Suspense>
-        </Canvas>
-      </div>
-
-      <TopBar state={state} />
-      <SideRail
-        state={state}
-        focus={showFocusChip ? focusStar : undefined}
-        partner={showPartnerChip ? partnerStar : undefined}
-      />
-      <BottomDock
-        state={state}
-        focus={focusStar}
-        partner={partnerStar}
-        selectedScenarioId={scenarioLocked ? "lakeside-walk" : selectedScenarioId}
-      />
-
-      <AnimatePresence>
-        {showFloatingScenario ? (
-          <ScenarioPanel
-            key="scenario"
-            scenarios={MOCK_SCENARIOS}
-            selectedId={scenarioLocked ? "lakeside-walk" : null}
-          />
-        ) : null}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {state === "callout_heavy" ? <CalloutCluster key="cluster" /> : null}
-      </AnimatePresence>
-
-      <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
-
-      <SpikeControls
-        state={state}
-        onState={setState}
-        showAuras={showAuras}
-        onShowAuras={setShowAuras}
-        showParallax={showParallax}
-        onShowParallax={setShowParallax}
-      />
-    </div>
-  );
-}
 
 /* ============================================================================
  * 3D scene root. All R3F primitives live below this. We preload the avatar
@@ -275,26 +80,27 @@ export default function ConstellationLobbySpike() {
  * HoverDetailCard with real save state (focus handlers, swap penalty, sealed
  * counts). The spike falls back to a vanilla card when this prop is absent.
  */
-export type RenderHoverCard = (args: {
-  star: StarMark;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}) => ReactNode;
+export type RenderHoverCard = (args: { star: StarMark }) => ReactNode;
 
 /**
  * Optional callbacks the production lobby uses to drive focus picking, swap
  * targeting, reselect-mode toggling, and case-file zoom from star pointer
  * events. The spike does not need any of these (it cycles state via the
- * R&D SpikeControls panel).
+ * production lobby controls).
  */
 export type StarClickHandlers = {
   onStarClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
   onStarDoubleClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
-  /** When provided, overrides the default ELIGIBLE_PARTNER_IDS set. */
+  /** Eligible partner ids for focus-selected hover affordances. */
   eligiblePartnerIds?: ReadonlySet<string>;
   /** Stars not in this set get extra dimming. Used by the lens filter. */
   filterMatchedIds?: ReadonlySet<string>;
 };
+
+function isEditableEventTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return target.closest("input, textarea, select, [contenteditable='true']") !== null;
+}
 
 export function Scene({
   state,
@@ -307,12 +113,20 @@ export function Scene({
   reducedMotion,
   renderHoverCard,
   starClickHandlers,
+  activeStarId = null,
+  onActiveStarChange,
   currentLayer,
   onLayerChange,
   focusedIds,
-  flythroughScenarios,
-  selectedScenarioId,
-  onScenarioClick,
+  offTonightSet,
+  rosterSubview,
+  viewMode = "tonight",
+  archiveData,
+  archiveSelection = null,
+  archiveIsolation,
+  onArchiveEdgeHover,
+  onArchiveEdgeClick,
+  renderArchiveEdgeTooltip,
 }: {
   state: LobbyState;
   stars: StarMark[];
@@ -325,6 +139,47 @@ export function Scene({
   renderHoverCard?: RenderHoverCard;
   starClickHandlers?: StarClickHandlers;
   /**
+   * View mode. "tonight" is the default flythrough lobby. "archive" flips
+   * stars into a pair-graph layout and mounts constellation edges between
+   * paired stars. The layer wheel/keyboard handler is disabled in archive
+   * mode — layers belong to tonight's framing.
+   */
+  viewMode?: ViewMode;
+  /**
+   * Archive payload. Required when viewMode === "archive" to render edges
+   * and reposition stars. `positions` maps every star's member id to its
+   * archive world target; `edges` is the LOD-budgeted render spec list.
+   */
+  archiveData?: {
+    positions: ReadonlyMap<string, Vec3>;
+    edges: readonly PairEdgeRenderSpec[];
+  };
+  archiveSelection?: ArchiveSelection;
+  /**
+   * Isolation scope when a member is archive-selected. Stars whose ids fall
+   * outside `includedMemberIds` get extra dimming; edges that don't touch
+   * `focusMemberId` fade. Undefined means no isolation (full graph reads).
+   */
+  archiveIsolation?: {
+    focusMemberId: string;
+    includedMemberIds: ReadonlySet<string>;
+  };
+  onArchiveEdgeHover?: (pairId: string | null) => void;
+  onArchiveEdgeClick?: (pairId: string) => void;
+  /**
+   * Optional drei-Html tooltip renderer mounted at a hovered edge's midpoint
+   * when the LOD spec is in the near band. Returning null hides it.
+   */
+  renderArchiveEdgeTooltip?: (edge: PairBoardEdge) => ReactNode;
+  /**
+   * Controlled active-star id. The HoverDetailCard morphs out of the star
+   * whose id matches this value. The consumer owns the state and sets it on
+   * click; Esc, background click on the Canvas (`onPointerMissed`), a same-
+   * star toggle, or a card action button all clear it.
+   */
+  activeStarId?: string | null;
+  onActiveStarChange?: (id: string | null) => void;
+  /**
    * Discrete depth slab the player has scrolled into. When provided, Scene
    * mounts a wheel handler that advances the layer per scroll tick instead
    * of the previous cycle-focus behavior, and overlays per-layer slab
@@ -334,96 +189,128 @@ export function Scene({
   currentLayer?: FlythroughLayer;
   onLayerChange?: (next: FlythroughLayer) => void;
   /**
-   * Member ids that live on layer 0 (focus slab). Layer 1 is eligible
-   * partners (derived from eligiblePartnerIds in starClickHandlers, with
-   * fallback to the spike's default ELIGIBLE_PARTNER_IDS); layer 2 is
-   * everyone else. Required for the layer-flythrough overlay; when
+   * Member ids that live on the focus slab (slab 0). Everyone else lives on
+   * the roster slab (slab 1); the eligible / off-tonight / other cohort
+   * split is driven by `offTonightSet` and `rosterSubview` rather than a
+   * separate slab. Required for the layer-flythrough overlay; when
    * undefined, the Scene falls back to no slab treatment.
    */
   focusedIds?: ReadonlySet<string>;
   /**
-   * Scenarios rendered as 3D card meshes on layer 3. When undefined, the
-   * Scene skips the scenarios-layer treatment entirely.
+   * Member ids that are scheduled off-tonight. The roster slab uses this
+   * (plus `eligiblePartnerIds` from starClickHandlers) to assign a per-star
+   * cohort that the layer-1 RosterSubview toggle then spotlights.
    */
-  flythroughScenarios?: LobbyScenario[];
-  selectedScenarioId?: string | null;
-  onScenarioClick?: (scenarioId: string) => void;
+  offTonightSet?: ReadonlySet<string>;
+  /**
+   * Roster-slab subview the player has toggled to. Defaults to "eligibles"
+   * — the eligible cohort leads the eye, off-tonight recedes; flipping to
+   * "off_tonight" inverts that highlight.
+   */
+  rosterSubview?: RosterSubview;
 }) {
+  // Hover drives the visual hover bump on `StarSprite` and the eligible-
+  // partner connector in `focus_selected`. It no longer opens the card —
+  // that's `activeStarId`, which is click-set by the consumer.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
-  const dismissTimerRef = useRef<number | null>(null);
+  // Archive-mode hover state for the constellation edges. Drives the hover
+  // halo on PairEdgeMesh and the midpoint Html tooltip mount.
+  const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
 
-  // R&D debug hook: `?hover=<memberId>` pins a hover state on mount so the
-  // detail card can be verified without a real pointer. Safe to keep through
-  // the spike — the param is opt-in and only seeds initial state.
+  // Esc dismisses the active card. Both the spike route and the production
+  // wrapper get this for free.
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    const debugHover = params.get("hover");
-    if (debugHover !== null && debugHover.length > 0) {
-      setHoveredId(debugHover);
-    }
-  }, []);
-
-  const setHoverWithGrace = useCallback((id: string | null) => {
-    if (dismissTimerRef.current !== null) {
-      window.clearTimeout(dismissTimerRef.current);
-      dismissTimerRef.current = null;
-    }
-    if (id === null) {
-      dismissTimerRef.current = window.setTimeout(() => {
-        setHoveredId(null);
-        dismissTimerRef.current = null;
-      }, 160);
-    } else {
-      setHoveredId(id);
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (dismissTimerRef.current !== null) {
-        window.clearTimeout(dismissTimerRef.current);
-        dismissTimerRef.current = null;
+    if (onActiveStarChange === undefined) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onActiveStarChange(null);
       }
     };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onActiveStarChange]);
+
+  // R&D debug hook: `?active=<memberId>` (or legacy `?hover=`) pins an open
+  // card on mount so the morph can be verified without a real click. Opt-in;
+  // only seeds initial state.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (onActiveStarChange === undefined) return;
+    const params = new URLSearchParams(window.location.search);
+    const debugId = params.get("active") ?? params.get("hover");
+    if (debugId !== null && debugId.length > 0) {
+      onActiveStarChange(debugId);
+    }
+    // Run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Layer-flythrough scroll handler. Each wheel tick advances `currentLayer`
-  // by one step in the scroll direction, throttled so a single mouse-wheel
-  // motion advances one layer rather than several. Disabled when the parent
-  // didn't wire `onLayerChange` — the spike's old cycle-hover-through-eligibles
-  // behavior is gone; the parent owns layer state.
+  // Layer-flythrough input handler. Wheel/trackpad and A/D/Up/Down all advance
+  // `currentLayer` by one step, with the document scroll locked while this
+  // scene owns layer navigation.
   const currentLayerRef = useRef<FlythroughLayer | undefined>(currentLayer);
+  const lastLayerAdvanceRef = useRef(0);
   useEffect(() => {
     currentLayerRef.current = currentLayer;
   }, [currentLayer]);
 
   useEffect(() => {
     if (onLayerChange === undefined) return;
-    const lastAdvanceRef = { current: 0 };
+    if (viewMode === "archive") return;
+    const advanceLayer = (direction: 1 | -1) => {
+      const next = advanceFlythroughLayer(currentLayerRef.current ?? 0, direction);
+      if (next !== currentLayerRef.current) {
+        onLayerChange(next);
+      }
+    };
     const handleWheel = (event: WheelEvent) => {
+      event.preventDefault();
       const dominantDelta =
         Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
       if (Math.abs(dominantDelta) < 4) return;
       const now = performance.now();
       // 220ms throttle — a normal mouse-wheel motion advances one layer per
-      // tick instead of zipping through all four. Trackpad inertia still
+      // tick instead of zipping through all three. Trackpad inertia still
       // produces multiple events per gesture but is similarly clamped.
-      if (now - lastAdvanceRef.current < 220) {
-        event.preventDefault();
+      if (now - lastLayerAdvanceRef.current < 220) {
         return;
       }
-      lastAdvanceRef.current = now;
-      event.preventDefault();
+      lastLayerAdvanceRef.current = now;
       const dir: 1 | -1 = dominantDelta > 0 ? 1 : -1;
-      const next = advanceFlythroughLayer(currentLayerRef.current ?? 0, dir);
-      if (next !== currentLayerRef.current) {
-        onLayerChange(next);
-      }
+      advanceLayer(dir);
     };
-    window.addEventListener("wheel", handleWheel, { passive: false });
-    return () => window.removeEventListener("wheel", handleWheel);
-  }, [onLayerChange]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (isEditableEventTarget(event.target)) return;
+      const direction = flythroughLayerDirectionFromKey(event.code);
+      if (direction === null) return;
+      event.preventDefault();
+      const now = performance.now();
+      if (event.repeat && now - lastLayerAdvanceRef.current < 160) return;
+      lastLayerAdvanceRef.current = now;
+      advanceLayer(direction);
+    };
+    const root = document.documentElement;
+    const body = document.body;
+    const previousRootOverflow = root.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousRootOverscroll = root.style.overscrollBehavior;
+    const previousBodyOverscroll = body.style.overscrollBehavior;
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    root.style.overscrollBehavior = "none";
+    body.style.overscrollBehavior = "none";
+    window.addEventListener("wheel", handleWheel, { passive: false, capture: true });
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener("wheel", handleWheel, { capture: true });
+      window.removeEventListener("keydown", handleKeyDown, { capture: true });
+      root.style.overflow = previousRootOverflow;
+      body.style.overflow = previousBodyOverflow;
+      root.style.overscrollBehavior = previousRootOverscroll;
+      body.style.overscrollBehavior = previousBodyOverscroll;
+    };
+  }, [onLayerChange, viewMode]);
 
   const sources = useMemo(
     () =>
@@ -447,21 +334,23 @@ export function Scene({
       const w = img?.width ?? 256;
       const h = img?.height ?? 256;
       const aspect = w / h;
-      const baseCrop = 0.82;
+      // Crop sized for a portrait disc — head plus a bit of hair / shoulder.
+      // 0.55 was too aggressive (no margin around the face); 0.7 leaves room
+      // for the head silhouette to read as a portrait, not a zoomed face.
+      const baseCrop = 0.7;
       if (aspect >= 1) {
-        // Wide / square texture: head is roughly centered. Sample a square
-        // region matching the height, cropped by baseCrop, centered with a
-        // slight upward bias.
+        // Wide / square texture: head sits in the upper-center band. Sample a
+        // square region matching the height, with a mild upward bias so the
+        // body is mostly clipped but the shoulders still ground the portrait.
         t.repeat.set(baseCrop / aspect, baseCrop);
-        t.center.set(0.5, 0.55);
+        t.center.set(0.5, 0.6);
       } else {
         // Tall texture: head is at the top. Sample a square region matching
-        // the width, cropped by baseCrop, with the sample anchored near the
-        // top of the texture so we keep the face and clip the body.
+        // the width, anchored just below the top of the texture so the disc
+        // is all face and the body falls outside the sampled region.
         const repeatY = baseCrop * aspect;
         t.repeat.set(baseCrop, repeatY);
-        // Place the sample so its top edge sits just below V=1.0 — gives a
-        // small margin for forehead/hair without missing the top of the head.
+        // Top edge of the sample sits at V ≈ 0.96 (4% margin for hair / forehead).
         t.center.set(0.5, 1.0 - 0.04 - repeatY / 2);
       }
       t.needsUpdate = true;
@@ -469,16 +358,22 @@ export function Scene({
   }, [textures]);
 
   const flareTexture = useMemo(() => buildFlareTexture(), []);
+  const haloTexture = useMemo(() => buildSoftSparkleTexture(), []);
 
   const focusPos = focusStar ? starWorldPosition(focusStar) : null;
   const partnerNatural = partnerStar ? starWorldPosition(partnerStar) : null;
   const partnerCompressed = focusStar ? pairPartnerPosition(focusStar) : null;
   // stars.find returns `undefined`, not `null`, so we normalize to a single
-  // `undefined` sentinel — the JSX `!== undefined` guard then narrows
-  // hoveredStar to a real StarMark for the children.
+  // `undefined` sentinel — the JSX `!== undefined` guard then narrows the
+  // result to a real StarMark for the children.
   const hoveredStar =
     hoveredId === null ? undefined : (stars.find((s) => s.member.id === hoveredId) ?? undefined);
   const hoveredPos = hoveredStar ? starWorldPosition(hoveredStar) : null;
+  const activeStar =
+    activeStarId === null
+      ? undefined
+      : (stars.find((s) => s.member.id === activeStarId) ?? undefined);
+  const activePos = activeStar ? starWorldPosition(activeStar) : null;
 
   const pairConnectorEndpoint =
     state === "committed_pair" || state === "scenario_chosen"
@@ -487,7 +382,7 @@ export function Scene({
         ? partnerNatural
         : null;
 
-  const eligiblePartnerSet = starClickHandlers?.eligiblePartnerIds ?? ELIGIBLE_PARTNER_IDS;
+  const eligiblePartnerSet = starClickHandlers?.eligiblePartnerIds ?? EMPTY_ELIGIBLE_PARTNER_IDS;
   const showHoverConnector =
     state === "focus_selected" && hoveredId !== null && eligiblePartnerSet.has(hoveredId);
 
@@ -508,6 +403,13 @@ export function Scene({
   const focusId = focusStar?.member.id;
   const partnerId = partnerStar?.member.id;
 
+  // Iteration order of focusedIds matches save.focusedMemberIds; the index
+  // drives the centered 2x2 cluster on layer 0.
+  const focusOrder = useMemo(
+    () => (focusedIds === undefined ? [] : Array.from(focusedIds)),
+    [focusedIds],
+  );
+
   return (
     <>
       <CameraRig target={cameraTarget} parallax={showParallax} reducedMotion={reducedMotion} />
@@ -525,26 +427,61 @@ export function Scene({
           partnerId,
           eligiblePartnerIds: eligiblePartnerSet,
         });
-        const overridePos = role === "partner" && focusStar ? pairPartnerPosition(focusStar) : null;
-        const layerZOffset = computeLayerZOffset(role, state);
-        const filteredOut =
+        // Archive mode overrides position via the per-member archive map; it
+        // also disables flythrough slab / cluster / role-Z stacking so the
+        // graph layout reads cleanly without tonight-mode framing.
+        const inArchive = viewMode === "archive";
+        const archivePos = inArchive ? (archiveData?.positions.get(star.member.id) ?? null) : null;
+        const overridePos = inArchive
+          ? archivePos
+          : role === "partner" && focusStar
+            ? pairPartnerPosition(focusStar)
+            : null;
+        const layerZOffset = inArchive ? 0 : computeLayerZOffset(role, state);
+        const lensFilteredOut =
           starClickHandlers?.filterMatchedIds !== undefined &&
           !starClickHandlers.filterMatchedIds.has(star.member.id);
+        // Archive isolation: when a member is selected, stars outside the
+        // member + partners scope dim alongside any lens filtering already
+        // active. Same `filteredOut` channel — the visual treatment composes.
+        const archiveIsolated =
+          inArchive &&
+          archiveIsolation !== undefined &&
+          !archiveIsolation.includedMemberIds.has(star.member.id);
+        const filteredOut = lensFilteredOut || archiveIsolated;
         // Flythrough slab membership. Each star lives on exactly one of the
-        // three member layers (0 focus, 1 eligible, 2 off-tonight). We
-        // compute it here so StarSprite can lerp to the slab Z and pick up
-        // the active-layer scale/opacity multipliers in its useFrame.
-        const flythroughLayer: StarFlythroughLayer | undefined =
-          focusedIds === undefined
+        // two member slabs (0 focus, 1 roster). Eligible vs off-tonight is a
+        // per-star cohort within slab 1 — the roster subview toggle picks
+        // which cohort leads the eye. Archive mode opts out entirely.
+        const flythroughLayer: StarFlythroughLayer | undefined = inArchive
+          ? undefined
+          : focusedIds === undefined
             ? undefined
-            : computeStarFlythroughLayer(star.member.id, {
-                focusedIds,
+            : computeStarFlythroughLayer(star.member.id, { focusedIds });
+        const cohort =
+          !inArchive && flythroughLayer === 1
+            ? computeRosterCohort(star.member.id, {
                 eligibleIds: eligiblePartnerSet,
-              });
+                offTonightIds: offTonightSet ?? EMPTY_OFF_TONIGHT_IDS,
+              })
+            : undefined;
         const slabActivity =
-          flythroughLayer === undefined || currentLayer === undefined
+          inArchive || flythroughLayer === undefined || currentLayer === undefined
             ? undefined
-            : flythroughMemberSlabActivity(flythroughLayer, currentLayer);
+            : flythroughMemberSlabActivity(
+                flythroughLayer,
+                currentLayer,
+                cohort,
+                rosterSubview ?? "eligibles",
+              );
+        // Layer-0 cluster: focused leads arrange in a centered 2x2 grid so the
+        // picker reads as a hero row rather than 4 small stars scattered across
+        // the field. Releases on layer change so the natural field returns.
+        // Archive mode never clusters — it owns its own layout.
+        const clusterPosition =
+          !inArchive && flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0
+            ? focusClusterPosition(focusOrder.indexOf(star.member.id), focusOrder.length)
+            : null;
         return (
           <StarSprite
             key={star.member.id}
@@ -555,14 +492,17 @@ export function Scene({
             layerZOffset={layerZOffset}
             texture={textures[star.member.id]}
             flareTexture={flareTexture}
+            haloTexture={haloTexture}
             showAura={showAuras}
             reducedMotion={reducedMotion}
             filteredOut={filteredOut}
             hovered={hoveredId === star.member.id}
+            cardOpen={activeStarId === star.member.id}
             flythroughLayer={flythroughLayer}
             slabActivity={slabActivity}
-            onHoverEnter={() => setHoverWithGrace(star.member.id)}
-            onHoverLeave={() => setHoverWithGrace(null)}
+            clusterPosition={clusterPosition}
+            onHoverEnter={() => setHoveredId(star.member.id)}
+            onHoverLeave={() => setHoveredId(null)}
             onClick={
               starClickHandlers?.onStarClick === undefined
                 ? undefined
@@ -577,32 +517,66 @@ export function Scene({
         );
       })}
 
-      {flythroughScenarios !== undefined && flythroughScenarios.length > 0 ? (
-        <ScenarioCardField3D
-          scenarios={flythroughScenarios}
-          currentLayer={currentLayer ?? 0}
-          selectedScenarioId={selectedScenarioId ?? null}
-          onScenarioClick={onScenarioClick}
-          reducedMotion={reducedMotion}
-        />
-      ) : null}
+      {viewMode === "archive" && archiveData !== undefined
+        ? archiveData.edges.map((spec) => {
+            const pairId = spec.edge.pairId;
+            const isSelected =
+              archiveSelection !== null &&
+              archiveSelection.kind === "pair" &&
+              archiveSelection.pairId === pairId;
+            // Edge counts as hovered when either the player is pointing at
+            // the edge itself OR pointing at one of its endpoint stars —
+            // hovering a star highlights its incident edges.
+            const incidentToHoveredStar =
+              hoveredId !== null && (spec.edge.a === hoveredId || spec.edge.b === hoveredId);
+            const isHovered = hoveredEdgeId === pairId || incidentToHoveredStar;
+            // Isolation: when a member is selected, edges not touching them
+            // fade (still visible so the graph reads, but recede).
+            const isFaded =
+              archiveIsolation !== undefined &&
+              spec.edge.a !== archiveIsolation.focusMemberId &&
+              spec.edge.b !== archiveIsolation.focusMemberId;
+            return (
+              <PairEdgeMesh
+                key={pairId}
+                edge={spec.edge}
+                from={spec.from}
+                to={spec.to}
+                control={spec.control}
+                isHovered={isHovered}
+                isSelected={isSelected}
+                isFaded={isFaded}
+                onHoverEnter={() => {
+                  setHoveredEdgeId(pairId);
+                  onArchiveEdgeHover?.(pairId);
+                }}
+                onHoverLeave={() => {
+                  setHoveredEdgeId((current) => (current === pairId ? null : current));
+                  onArchiveEdgeHover?.(null);
+                }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onArchiveEdgeClick?.(pairId);
+                }}
+                hoverTooltip={renderArchiveEdgeTooltip?.(spec.edge)}
+              />
+            );
+          })
+        : null}
 
-      {pairConnectorEndpoint !== null && focusPos !== null ? (
+      {viewMode === "tonight" && pairConnectorEndpoint !== null && focusPos !== null ? (
         <PairConnector3D from={focusPos} to={pairConnectorEndpoint} />
       ) : null}
 
-      {showHoverConnector && focusPos !== null && hoveredPos !== null ? (
+      {viewMode === "tonight" && showHoverConnector && focusPos !== null && hoveredPos !== null ? (
         <HoverConnector from={focusPos} to={hoveredPos} />
       ) : null}
 
       <AnimatePresence>
-        {hoveredStar !== undefined &&
-        hoveredPos !== null &&
-        hoveredId !== focusId &&
-        hoveredId !== partnerId ? (
+        {activeStar !== undefined && activePos !== null ? (
           <Html
-            key={hoveredStar.member.id}
-            position={[hoveredPos.x, hoveredPos.y, hoveredPos.z]}
+            key={activeStar.member.id}
+            position={[activePos.x, activePos.y, activePos.z]}
             zIndexRange={[60, 0]}
             className="pointer-events-none"
           >
@@ -613,17 +587,9 @@ export function Scene({
              */}
             <div className="relative h-0 w-0">
               {renderHoverCard !== undefined ? (
-                renderHoverCard({
-                  star: hoveredStar,
-                  onMouseEnter: () => setHoverWithGrace(hoveredStar.member.id),
-                  onMouseLeave: () => setHoverWithGrace(null),
-                })
+                renderHoverCard({ star: activeStar })
               ) : (
-                <HoverDetailCard
-                  star={hoveredStar}
-                  onMouseEnter={() => setHoverWithGrace(hoveredStar.member.id)}
-                  onMouseLeave={() => setHoverWithGrace(null)}
-                />
+                <HoverDetailCard star={activeStar} />
               )}
             </div>
           </Html>
@@ -912,6 +878,80 @@ function buildFlareTexture(): THREE.CanvasTexture | null {
 }
 
 /* ============================================================================
+ * Soft sparkle. The 4-point ✦ silhouette drawn with heavy Gaussian blur so
+ * the rays read as a glow that keeps the sparkle SHAPE rather than a hard
+ * cross. Layered passes from wide+soft to tight+sharper give the glow a
+ * smooth falloff, capped with a bright nucleus for the bubble's core.
+ * Tinted at runtime via meshBasicMaterial.color and composited additively.
+ * ========================================================================== */
+
+function buildSoftSparkleTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext("2d");
+  if (ctx === null) return new THREE.CanvasTexture(canvas);
+
+  const cx = 256;
+  const cy = 256;
+  // Long slender spikes so the four points read past the blur and the
+  // silhouette reads as a sparkle ✦ rather than a soft circular halo.
+  const spikeLength = 248;
+  // Deep pinch keeps the four rays slender. Smaller pinch → thinner spike
+  // bases → clearer sparkle silhouette once the heavy blur is applied.
+  const pinch = 0.16;
+
+  const drawSparkle = (alpha: number, blur: number) => {
+    ctx.save();
+    ctx.filter = `blur(${blur}px)`;
+    ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+    ctx.beginPath();
+    const startAngle = -Math.PI / 2;
+    const angleStep = Math.PI / 2;
+    ctx.moveTo(cx + Math.cos(startAngle) * spikeLength, cy + Math.sin(startAngle) * spikeLength);
+    for (let i = 0; i < 4; i += 1) {
+      const curr = startAngle + i * angleStep;
+      const next = startAngle + (i + 1) * angleStep;
+      const c1x = cx + Math.cos(curr) * spikeLength * pinch;
+      const c1y = cy + Math.sin(curr) * spikeLength * pinch;
+      const c2x = cx + Math.cos(next) * spikeLength * pinch;
+      const c2y = cy + Math.sin(next) * spikeLength * pinch;
+      const nx = cx + Math.cos(next) * spikeLength;
+      const ny = cy + Math.sin(next) * spikeLength;
+      ctx.bezierCurveTo(c1x, c1y, c2x, c2y, nx, ny);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+
+  // Three blur passes — wide+soft, mid, then tighter+sharper — composite
+  // into a glow that keeps the sparkle silhouette legible. The tightest
+  // pass is intentionally low-blur so the four spikes still read as rays,
+  // not a uniformly round halo.
+  drawSparkle(0.42, 28);
+  drawSparkle(0.5, 12);
+  drawSparkle(0.55, 4);
+
+  // Soft outer bloom only — kept dim and wide so the sparkle reads as glow
+  // rather than a bright pin at the center. The avatar disc sits in front
+  // of this, so a bright nucleus would just leak through the face and wash
+  // the portrait out.
+  ctx.filter = "none";
+  const bloom = ctx.createRadialGradient(cx, cy, 0, cx, cy, 110);
+  bloom.addColorStop(0, "rgba(255, 255, 255, 0.18)");
+  bloom.addColorStop(0.6, "rgba(255, 255, 255, 0.06)");
+  bloom.addColorStop(1, "rgba(255, 255, 255, 0)");
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, 512, 512);
+
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/* ============================================================================
  * Particle field. Seeded dust at varied depths. Catches fog and bloom, gives
  * the field its sense of volume between camera and backdrop.
  * ========================================================================== */
@@ -993,32 +1033,6 @@ export function ParticleField({ count }: { count: number }) {
  * frame so role transitions feel mechanical free.
  * ========================================================================== */
 
-/**
- * Build a star polygon as a flat ShapeGeometry — `points` outer spikes alternating
- * with `points` inner notches around (0, 0). The inner notch radius is set to the
- * avatar circle's outer edge so the inner vertices tuck behind the circle and only
- * the outer spike tips poke through; the result reads as a circle wearing star
- * points along its border rather than a separate star next to a circle.
- */
-function makeStarPointsGeometry(
-  outerRadius: number,
-  innerRadius: number,
-  points = 5,
-): THREE.ShapeGeometry {
-  const shape = new THREE.Shape();
-  const angleStep = Math.PI / points;
-  for (let i = 0; i < points * 2; i += 1) {
-    const angle = -Math.PI / 2 + i * angleStep;
-    const r = i % 2 === 0 ? outerRadius : innerRadius;
-    const x = Math.cos(angle) * r;
-    const y = Math.sin(angle) * r;
-    if (i === 0) shape.moveTo(x, y);
-    else shape.lineTo(x, y);
-  }
-  shape.closePath();
-  return new THREE.ShapeGeometry(shape, 1);
-}
-
 export function StarSprite({
   star,
   role,
@@ -1027,12 +1041,15 @@ export function StarSprite({
   layerZOffset,
   texture,
   flareTexture,
+  haloTexture,
   showAura,
   reducedMotion,
   filteredOut = false,
   hovered = false,
+  cardOpen = false,
   flythroughLayer,
   slabActivity,
+  clusterPosition = null,
   onHoverEnter,
   onHoverLeave,
   onClick,
@@ -1045,17 +1062,21 @@ export function StarSprite({
   layerZOffset: number;
   texture: THREE.Texture | undefined;
   flareTexture: THREE.Texture | null;
+  /** Soft radial halo behind every avatar — replaces the old sparkle cross. */
+  haloTexture: THREE.Texture | null;
   showAura: boolean;
   reducedMotion: boolean;
   /** Lens-filter excluded this star — gets extra dimming + lower opacity. */
   filteredOut?: boolean;
+  /** Pointer is over the star — bump scale to telegraph "you can click me". */
+  hovered?: boolean;
   /**
    * The HoverDetailCard is morphing out of this star — hide the 3D mesh so
    * the card reads as the same element (i.e. the star itself becoming the
    * card) instead of doubling-up over the avatar mesh that's still rendered
    * underneath.
    */
-  hovered?: boolean;
+  cardOpen?: boolean;
   /**
    * Flythrough slab the star lives on. When provided, the star lerps toward
    * the slab's absolute world-Z instead of its seeded natural Z + role offset
@@ -1071,6 +1092,13 @@ export function StarSprite({
    * their slab.
    */
   slabActivity?: { intensityMultiplier: number; scaleMultiplier: number };
+  /**
+   * Layer-0 picker override. When non-null, the star lerps to this position
+   * in world space instead of its natural field position, so the 4 focused
+   * leads form a centered 2x2 grid. Released (null) on any other layer and
+   * after a focus is committed.
+   */
+  clusterPosition?: Vec3 | null;
   onHoverEnter: () => void;
   onHoverLeave: () => void;
   onClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -1079,18 +1107,12 @@ export function StarSprite({
   const groupRef = useRef<THREE.Group>(null);
   const avatarMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const haloMatRef = useRef<THREE.MeshBasicMaterial>(null);
-  const ringMatRef = useRef<THREE.MeshBasicMaterial>(null);
-  const innerRimMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const flareMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const flareMeshRef = useRef<THREE.Mesh>(null);
   const scaleRef = useRef(1);
 
   const natural = useMemo(() => starWorldPosition(star), [star]);
   const sizing = useMemo(() => sizeForStar3D(star.tier, role, state), [star.tier, role, state]);
-  const ringColor = useMemo(
-    () => ringColorForRole(role, state, star.palette),
-    [role, state, star.palette],
-  );
   // Per-member halo tint: aura primary when present so vhool reads violet,
   // epsy cyan, alex-yoon warm-amber etc.; focus / partner override to the
   // active-pair rose/violet so the player can read the selection from
@@ -1105,21 +1127,19 @@ export function StarSprite({
     () => intensityForRole(role, star.tier, state),
     [role, star.tier, state],
   );
-  // Star-points geometry — five spikes radiating from the circle border so
-  // the bubble reads as an actual star. Inner notch matches the avatar's
-  // outer edge so the inner vertices tuck behind the circle and only the
-  // outer tips show through. Spike protrusion grows with role weight so the
-  // focus pair gets the most dramatic star silhouette.
-  const starPointsGeometry = useMemo(() => {
-    const protrusion =
+  // Sparkle plane size — a soft halo with the ✦ silhouette bleeding past the
+  // avatar disc. Kept tight to the avatar so the disc is the dominant shape
+  // and the spikes read as accent rays, not the primary feature.
+  const haloSize = useMemo(() => {
+    const reach =
       role === "focus" || role === "partner"
-        ? 1.34
+        ? 1.8
         : role === "eligible"
-          ? 1.26
+          ? 1.55
           : role === "ineligible_cooling"
-            ? 1.2
-            : 1.18;
-    return makeStarPointsGeometry(sizing.avatarRadius * protrusion, sizing.avatarRadius * 0.92, 5);
+            ? 1.35
+            : 1.45;
+    return sizing.avatarRadius * reach;
   }, [role, sizing.avatarRadius]);
 
   useFrame((s, delta) => {
@@ -1130,13 +1150,19 @@ export function StarSprite({
       const driftX = Math.sin(t * 0.28 + star.phase) * driftAmp;
       const driftY = Math.cos(t * 0.21 + star.phase * 1.43) * driftAmp;
 
-      const targetX = (overridePos?.x ?? natural.x) + driftX;
-      const targetY = (overridePos?.y ?? natural.y) + driftY;
+      // Cluster position (layer-0 picker) wins over both `overridePos` (pair
+      // partner anchor) and the natural field position so the 4 focused
+      // leads form a clean centered grid in front of the camera.
+      const targetX = (clusterPosition?.x ?? overridePos?.x ?? natural.x) + driftX;
+      const targetY = (clusterPosition?.y ?? overridePos?.y ?? natural.y) + driftY;
       // Flythrough overrides the legacy role-driven Z stack: when a slab is
       // assigned, the star lerps to the slab's absolute Z (with a small jitter
-      // pulled from the seeded natural Z so the slab has internal depth).
+      // pulled from the seeded natural Z so the slab has internal depth). The
+      // cluster sits flush with the focus slab Z so the grid reads flat.
       const flythroughZ =
-        flythroughLayer === undefined ? null : flythroughStarZ(flythroughLayer) + natural.z * 0.18;
+        flythroughLayer === undefined
+          ? null
+          : flythroughStarZ(flythroughLayer) + (clusterPosition === null ? natural.z * 0.18 : 0);
       const targetZ =
         flythroughZ !== null ? flythroughZ : (overridePos?.z ?? natural.z) + layerZOffset;
 
@@ -1146,11 +1172,15 @@ export function StarSprite({
       pos.y = THREE.MathUtils.lerp(pos.y, targetY, moveLerp);
       pos.z = THREE.MathUtils.lerp(pos.z, targetZ, moveLerp);
 
+      // Hover bumps the scale ~22% so the player feels which star their cursor
+      // is on. Focus/partner already get their own scale weight in `sizing`;
+      // the slab multiplier and the hover bump compose on top.
       const scaleLerp = reducedMotion ? 1 : 1 - Math.pow(0.002, delta);
       const slabScale = slabActivity?.scaleMultiplier ?? 1;
+      const hoverBoost = hovered ? 1.22 : 1;
       scaleRef.current = THREE.MathUtils.lerp(
         scaleRef.current,
-        sizing.scale * slabScale,
+        sizing.scale * slabScale * hoverBoost,
         scaleLerp,
       );
       groupRef.current.scale.setScalar(scaleRef.current);
@@ -1162,18 +1192,31 @@ export function StarSprite({
     // hovered-card grace and lens-filter dim still composes on top.
     const slabIntensity = slabActivity?.intensityMultiplier ?? 1;
 
+    // "Prominent" stars are the cluster (layer-0 picker) and the active
+    // layer's leading cohort (slabIntensity >= 0.9). For these the avatar
+    // pins to full opacity so the additive sparkle never bleeds through the
+    // face. Cluster also bypasses the availability-driven desat so the
+    // player's chosen leads always read in full color.
+    const inCluster = clusterPosition !== null;
+    const isProminent = inCluster || slabIntensity >= 0.9;
+
     if (avatarMatRef.current !== null) {
       // filteredOut multiplies intensity by 0.32 so non-matching cases dim
       // visibly without disappearing — the field stays a constellation, the
       // lens just spotlights what matches.
       const filterMultiplier = filteredOut ? 0.32 : 1;
+      const targetOpacity = isProminent
+        ? filterMultiplier
+        : intensity * filterMultiplier * slabIntensity;
       avatarMatRef.current.opacity = THREE.MathUtils.lerp(
         avatarMatRef.current.opacity,
-        intensity * filterMultiplier * slabIntensity,
+        targetOpacity,
         Math.min(1, delta * 5),
       );
-      const desat = role === "ineligible_off_shift" || role === "ineligible_closed" || filteredOut;
-      const cool = role === "ineligible_cooling";
+      const desat =
+        !inCluster &&
+        (role === "ineligible_off_shift" || role === "ineligible_closed" || filteredOut);
+      const cool = !inCluster && role === "ineligible_cooling";
       avatarMatRef.current.color.setRGB(
         desat ? 0.5 : cool ? 0.92 : 1,
         desat ? 0.5 : cool ? 0.85 : 1,
@@ -1181,61 +1224,34 @@ export function StarSprite({
       );
     }
     // Halo + flare both ride the slow sin pulse so each star has a distinct
-    // alive cadence instead of a synchronized strobe. The slow component
-    // drives the bubble's breathing, computed before the materials so any
-    // dependent value (haloPulse, flare base) can multiply against it.
+    // alive cadence instead of a synchronized strobe.
     const slow = Math.sin(t * 1.4 + star.phase) * 0.5 + 0.5;
-    // Halo pulse — modulate around the role target so the bubble visibly
-    // breathes. Active roles get a deeper pulse so the player can feel the
-    // focus/partner draw attention; dim stars get a shallower pulse so they
-    // don't twitch in the background. Bloom multiplies any overshoot, so we
-    // keep the modulation amplitude conservative.
-    const haloPulse = reducedMotion ? 1 : 0.78 + slow * 0.34;
 
     if (haloMatRef.current !== null) {
-      // Each star gets a visible palette-tinted halo so the field reads as
-      // a constellation of differently-colored glows rather than a uniform
-      // warm wash. Active roles get the strongest baseline; ineligibles
-      // dim by severity; dim background stars still carry a soft palette
-      // glow so each one slightly pulses and breathes with its own color.
-      const baseTarget =
+      // Soft sparkle halo opacity — kept moderate so the avatar reads as the
+      // focal element with the glow blooming behind it. Falls off on
+      // ineligibles by severity. A slow breath modulates the opacity so the
+      // halo gently pulses. Slab intensity composes on top; auras toggle
+      // dims (not kills) the glow.
+      const haloBase =
         role === "focus"
-          ? 0.78
+          ? 0.7
           : role === "partner"
             ? 0.62
             : role === "eligible"
-              ? 0.4
+              ? 0.52
               : role === "ineligible_cooling"
-                ? 0.24
+                ? 0.38
                 : role === "ineligible_off_shift"
-                  ? 0.18
+                  ? 0.3
                   : role === "ineligible_closed"
-                    ? 0.12
-                    : 0.3;
-      const target = baseTarget * haloPulse * slabIntensity;
+                    ? 0.24
+                    : 0.45;
+      const haloMix = reducedMotion ? 1 : 0.85 + slow * 0.15;
+      const auraGate = showAura ? 1 : 0.4;
       haloMatRef.current.opacity = THREE.MathUtils.lerp(
         haloMatRef.current.opacity,
-        showAura ? target : target * 0.4,
-        Math.min(1, delta * 5),
-      );
-    }
-    if (ringMatRef.current !== null) {
-      const target =
-        role === "focus" ? 1 : role === "partner" ? 0.95 : role === "eligible" ? 0.75 : 0.3;
-      ringMatRef.current.opacity = THREE.MathUtils.lerp(
-        ringMatRef.current.opacity,
-        target * intensity * slabIntensity,
-        Math.min(1, delta * 5),
-      );
-    }
-    if (innerRimMatRef.current !== null) {
-      // Glass-rim opacity tuned per role. Brighter on the active pair so the
-      // bubble reads as glass rather than a flat outline; subtle on eligibles.
-      const target =
-        role === "focus" ? 0.34 : role === "partner" ? 0.28 : role === "eligible" ? 0.14 : 0;
-      innerRimMatRef.current.opacity = THREE.MathUtils.lerp(
-        innerRimMatRef.current.opacity,
-        target * slabIntensity,
+        haloBase * haloMix * auraGate * slabIntensity,
         Math.min(1, delta * 5),
       );
     }
@@ -1253,6 +1269,18 @@ export function StarSprite({
       // Tiny rotation on focus/partner so the flare arms feel alive.
       const rot = reducedMotion ? 0 : Math.sin(t * 0.3 + star.phase) * 0.06;
       flareMeshRef.current.rotation.z = rot;
+    }
+
+    // Cull the group entirely once it's fully receded so off-axis stars stop
+    // intercepting pointer events on the active layer. We key off the lerped
+    // avatar opacity rather than the slab intensity directly so the group
+    // stays renderable during the fade-in / fade-out transitions.
+    if (groupRef.current !== null) {
+      const avatarOpacity = avatarMatRef.current?.opacity ?? 0;
+      const shouldRender = !cardOpen && avatarOpacity > 0.01;
+      if (groupRef.current.visible !== shouldRender) {
+        groupRef.current.visible = shouldRender;
+      }
     }
   });
 
@@ -1294,20 +1322,20 @@ export function StarSprite({
 
   // Rain trail brightness rides the role intensity AND the filtered-out
   return (
-    <group ref={groupRef} position={[natural.x, natural.y, natural.z]} visible={!hovered}>
+    <group ref={groupRef} position={[natural.x, natural.y, natural.z]}>
       <Billboard>
-        {/* Star spikes — a 5-point star polygon sitting just behind the halo
-            so the inner notches hide behind the avatar circle and only the
-            outer tips poke past the ring. Additive blending lets the spike
-            tips bloom with the same palette tint as the halo, so the bubble
-            reads as "a star" rather than "a portrait disk". */}
-        <mesh position={[0, 0, -0.052]} geometry={starPointsGeometry}>
+        {/* Soft halo — a circular radial gradient that fades to transparent
+            at the edges. Sits behind the avatar disc so the bleed reads as
+            ambient glow rather than a sharp shape cutting through the face.
+            Additive blending lets the per-member tint bloom outward. */}
+        <mesh position={[0, 0, -0.05]}>
+          <planeGeometry args={[haloSize * 2, haloSize * 2]} />
           <meshBasicMaterial
+            ref={haloMatRef}
+            map={haloTexture}
             color={haloColor}
             transparent
-            opacity={
-              role === "focus" || role === "partner" ? 0.7 : role === "eligible" ? 0.55 : 0.32
-            }
+            opacity={0.001}
             depthWrite={false}
             fog={false}
             blending={THREE.AdditiveBlending}
@@ -1315,31 +1343,17 @@ export function StarSprite({
           />
         </mesh>
 
-        {/* Soft additive halo */}
-        <mesh position={[0, 0, -0.05]}>
-          <circleGeometry args={[sizing.haloRadius, 48]} />
-          <meshBasicMaterial
-            ref={haloMatRef}
-            color={haloColor}
-            transparent
-            opacity={0.001}
-            blending={THREE.AdditiveBlending}
-            depthWrite={false}
-            fog={false}
-          />
-        </mesh>
-
-        {/* Avatar (lit) — circleGeometry clips the cutout PNG to a disc so the
-            shoulders / body of the original image cannot bleed past the ring
-            frame. The disc radius matches the ring's inner radius so the avatar
-            fills exactly inside the frame. */}
+        {/* Avatar (lit) — circleGeometry clips the cutout PNG to a disc so
+            the shoulders / body of the original image don't bleed past the
+            disc edge. Sits in front of the halo so the portrait is the
+            focal element; no ring frame surrounds it. */}
         <mesh
           onPointerOver={handlePointerEnter}
           onPointerOut={handlePointerLeave}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
         >
-          <circleGeometry args={[sizing.avatarRadius * 0.92, 96]} />
+          <circleGeometry args={[sizing.avatarRadius, 96]} />
           <meshStandardMaterial
             ref={avatarMatRef}
             map={texture}
@@ -1349,39 +1363,6 @@ export function StarSprite({
             metalness={0.05}
             depthWrite={false}
             toneMapped
-          />
-        </mesh>
-
-        {/* Inner glass rim — a thin additive highlight just inside the frame
-            so the bubble reads as glass rather than a flat outline. */}
-        <mesh position={[0, 0, 0.0008]}>
-          <ringGeometry args={[sizing.avatarRadius * 0.86, sizing.avatarRadius * 0.92, 64]} />
-          <meshBasicMaterial
-            ref={innerRimMatRef}
-            color={ringColor}
-            transparent
-            opacity={0.001}
-            depthWrite={false}
-            fog={false}
-            side={THREE.DoubleSide}
-            blending={THREE.AdditiveBlending}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Ring frame — thicker band than v6.2 so the bubble has more presence
-            against the busy field. */}
-        <mesh position={[0, 0, 0.0015]}>
-          <ringGeometry args={[sizing.avatarRadius * 0.92, sizing.avatarRadius * 1.0, 96]} />
-          <meshBasicMaterial
-            ref={ringMatRef}
-            color={ringColor}
-            transparent
-            opacity={0.001}
-            depthWrite={false}
-            fog={false}
-            side={THREE.DoubleSide}
-            toneMapped={false}
           />
         </mesh>
 
@@ -1752,27 +1733,6 @@ export function SideRail({
           <BriefRow label="Follow-up" value="Jenna · diner" status="met" />
         </div>
       </div>
-      <div className="pointer-events-auto aura-liquid-glass aura-liquid-glass-hover rounded-card px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
-            off tonight
-          </span>
-          <span className="font-mono text-micro text-white/55">{OFF_SHIFT_IDS.size}</span>
-        </div>
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {Array.from(OFF_SHIFT_IDS).map((id) => {
-            const member = starterMembers.find((m) => m.id === id);
-            return member === undefined ? null : (
-              <span
-                key={id}
-                className="rounded-full border border-white/15 bg-white/8 px-2 py-0.5 font-mono text-micro text-white/65"
-              >
-                {member.firstName}
-              </span>
-            );
-          })}
-        </div>
-      </div>
     </div>
   );
 }
@@ -1880,58 +1840,43 @@ function BriefRow({
 
 export function BottomDock({
   state,
-  focus,
-  partner,
   selectedScenarioId,
-  selectedScenarioTitle,
   onBeginDate,
   onCancelPair,
   onResetFocus,
   beginDisabled,
 }: {
   state: LobbyState;
-  focus: StarMark | undefined;
-  partner: StarMark | undefined;
   selectedScenarioId: string | null;
-  selectedScenarioTitle?: string;
   onBeginDate?: () => void;
   onCancelPair?: () => void;
   onResetFocus?: () => void;
   beginDisabled?: boolean;
 }) {
-  const breadcrumb = breadcrumbFor(
-    state,
-    focus,
-    partner,
-    selectedScenarioId,
-    selectedScenarioTitle,
-  );
-  const canBegin = state === "scenario_chosen" && beginDisabled !== true;
+  const canBegin =
+    state === "scenario_chosen" &&
+    selectedScenarioId !== null &&
+    onBeginDate !== undefined &&
+    beginDisabled !== true;
+  const showResetFocus = state === "focus_selected" || state === "partner_selected";
+  const showCancelPair = state === "committed_pair" || state === "scenario_chosen";
+
+  if (!showResetFocus && !showCancelPair && !canBegin) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-between gap-4 px-6 pb-6">
-      <div className="pointer-events-auto aura-liquid-glass rounded-card px-5 py-3 leading-tight min-w-0">
-        <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
-          {breadcrumb.eyebrow}
-        </div>
-        <div className="font-display text-display-sm text-aura-paper">{breadcrumb.line}</div>
-      </div>
-
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-end gap-4 px-6 pb-6">
       <div className="pointer-events-auto flex items-center gap-3">
-        {state === "focus_selected" || state === "partner_selected" ? (
-          <ShardButton label="Reset focus" onClick={onResetFocus} />
+        {showResetFocus ? <ShardButton label="Reset focus" onClick={onResetFocus} /> : null}
+        {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
+        {canBegin ? (
+          <button
+            type="button"
+            onClick={onBeginDate}
+            className="cursor-pointer aura-liquid-cta rounded-full px-7 py-3 font-display text-display-sm"
+          >
+            Begin date
+          </button>
         ) : null}
-        {state === "committed_pair" || state === "scenario_chosen" ? (
-          <ShardButton label="Cancel pair" onClick={onCancelPair} />
-        ) : null}
-        <button
-          type="button"
-          disabled={!canBegin}
-          onClick={onBeginDate}
-          className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-7 py-3 font-display text-display-sm"
-        >
-          Begin date
-        </button>
       </div>
     </div>
   );
@@ -1947,45 +1892,6 @@ function ShardButton({ label, onClick }: { label: string; onClick?: () => void }
       {label}
     </button>
   );
-}
-
-function breadcrumbFor(
-  state: LobbyState,
-  focus: StarMark | undefined,
-  partner: StarMark | undefined,
-  selectedScenarioId: string | null,
-  selectedScenarioTitle?: string,
-): { eyebrow: string; line: string } {
-  if (state === "callout_heavy") {
-    return { eyebrow: "shift requires attention", line: "Closure pending · 2 callouts" };
-  }
-  if (state === "idle") {
-    return { eyebrow: "step 1 of 4", line: "Pick a lead case to open the field" };
-  }
-  if (state === "focus_selected") {
-    return {
-      eyebrow: "step 2 of 4 · focus locked",
-      line: `Pick a partner near ${focus?.member.firstName ?? "the focus"}`,
-    };
-  }
-  if (state === "partner_selected") {
-    return {
-      eyebrow: "step 3 of 4 · partner queued",
-      line: `Commit ${focus?.member.firstName ?? ""} + ${partner?.member.firstName ?? ""}`,
-    };
-  }
-  if (state === "committed_pair") {
-    return { eyebrow: "step 4 of 4 · pair live", line: "Pick a date plan from the scenario deck" };
-  }
-  if (state === "scenario_chosen") {
-    const fallbackTitle = MOCK_SCENARIOS.find((s) => s.id === selectedScenarioId)?.title;
-    const title = selectedScenarioTitle ?? fallbackTitle;
-    return {
-      eyebrow: "ready · ai ollama · 1660 tokens",
-      line: title !== undefined ? `Begin · ${title}` : "Begin date",
-    };
-  }
-  return { eyebrow: "", line: "" };
 }
 
 /* ============================================================================
@@ -2256,12 +2162,15 @@ function CalloutCard({ callout }: { callout: Callout }) {
  * focus rack:
  *
  * - "make_focus" — slots have room, primary CTA adds the case to focus.
+ * - "make_partner" — a focus case is already selected and this case is an
+ *   eligible partner; the primary CTA confirms it as the partner for the
+ *   pair so the date can begin.
  * - "swap_into_focus" — focus slots are full, primary CTA opens a swap with
  *   a one-line retention penalty preview.
  * - "view_case" — the case is already focused (or closed/quit), so the
  *   primary CTA just opens the case file.
  */
-export type HoverDetailCtaVariant = "make_focus" | "swap_into_focus" | "view_case";
+export type HoverDetailCtaVariant = "make_focus" | "make_partner" | "swap_into_focus" | "view_case";
 
 export type HoverDetailCardProps = {
   star: StarMark;
@@ -2301,19 +2210,17 @@ export type HoverDetailCardProps = {
    * Roster's renderHoverCard render-prop can opt into the same slot.
    */
   recentNotesSlot?: ReactNode;
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
 };
 
 /**
- * Approach (same-element morph): when the star is hovered, `StarSprite`
- * receives `hovered=true` and the 3D group goes invisible so the only thing
- * the player sees at that position is the morphing card. The card mounts at
- * the star's projected screen coords via Drei's `<Html>` (which does the
- * world→screen math), starts as a small "ghost portrait" disc sized to match
- * the avatar, and springs outward into the full rounded-rectangle card. The
- * effect reads as the star itself transforming into the card rather than a
- * popup appearing next to it.
+ * Approach (same-element morph): when the star is clicked, `StarSprite`
+ * receives `cardOpen=true` and the 3D group goes invisible so the only
+ * thing the player sees at that position is the morphing card. The card
+ * mounts at the star's projected screen coords via Drei's `<Html>` (which
+ * does the world→screen math), starts as a small "ghost portrait" disc
+ * sized to match the avatar, and springs outward into the full rounded-
+ * rectangle card. The effect reads as the star itself transforming into the
+ * card rather than a popup appearing next to it.
  *
  * As the card expands the ghost portrait shrinks into the upper-left chip
  * slot and the rest of the content (filename, name, tags, snippet, buttons)
@@ -2328,11 +2235,17 @@ export type HoverDetailCardProps = {
 // shape the eye reads as the star itself, not an arbitrary popup.
 const MORPH_START_DIAMETER_PX = 56;
 const MORPH_FINAL_WIDTH_PX = 340;
-// Card stays anchored at the star center — the avatar chip in the card's
-// upper-left lands roughly where the original avatar disc was, so the eye
-// reads the card as the star itself unfolding outward instead of sliding
-// to one side.
-const MORPH_FINAL_OFFSET_X_PX = -32;
+// Card final padding (Tailwind p-4 = 16px). We animate padding 0 → 16 along
+// with width/height so the portrait disc fills the card at the start (looks
+// like the original star) and slides into the upper-left chip slot at the
+// end. With portrait size 48 and final padding 16, the chip center sits at
+// (16 + 24, 16 + 24) = (40, 40) from the card's top-left — so the card top-
+// left must be at (-40, -40) for the chip center to land on the star anchor
+// throughout the morph.
+const MORPH_FINAL_PADDING_PX = 16;
+const MORPH_PORTRAIT_FINAL_SIZE_PX = 48;
+const MORPH_FINAL_OFFSET_X_PX = -(MORPH_FINAL_PADDING_PX + MORPH_PORTRAIT_FINAL_SIZE_PX / 2);
+const MORPH_FINAL_OFFSET_Y_PX = -(MORPH_FINAL_PADDING_PX + MORPH_PORTRAIT_FINAL_SIZE_PX / 2);
 
 export function HoverDetailCard({
   star,
@@ -2347,8 +2260,6 @@ export function HoverDetailCard({
   onPrimaryAction,
   onOpenCase,
   recentNotesSlot,
-  onMouseEnter,
-  onMouseLeave,
 }: HoverDetailCardProps) {
   const { member, palette } = star;
   const resolvedSnippet = snippet ?? profileSnippetFor(member);
@@ -2372,6 +2283,7 @@ export function HoverDetailCard({
   const primaryLabel = (() => {
     if (ctaVariant === "view_case") return "View case";
     if (ctaVariant === "swap_into_focus") return "Swap into focus";
+    if (ctaVariant === "make_partner") return "Make partner";
     return "Make focus";
   })();
   const primaryToneClass =
@@ -2391,19 +2303,22 @@ export function HoverDetailCard({
   const contentTransition = reducedMotion
     ? { duration: 0 }
     : { duration: 0.22, delay: 0.12, ease: [0.22, 0.8, 0.2, 1] as const };
-  const portraitTransition = reducedMotion
-    ? { duration: 0 }
-    : { type: "spring" as const, stiffness: 360, damping: 30, mass: 0.6 };
+  // Portrait shares the card's spring so the chip stays anchored on the star
+  // throughout the morph. With separate springs the chip drifts a few px off-
+  // center while one settles faster than the other.
+  const portraitTransition = layoutTransition;
 
-  const portraitFinalSize = 48;
+  const portraitFinalSize = MORPH_PORTRAIT_FINAL_SIZE_PX;
   const portraitAccent = palette.accent;
 
   return (
     <motion.div
-      // The card mounts at the star's center as a small circle. `top` and
-      // `left` are 50% so the circle is centered on the anchor; `x` and `y`
-      // shift away from center as the card grows so the morph "opens to the
-      // right" with the avatar at its left edge.
+      // The card mounts as a 56×56 disc centered on the star anchor and grows
+      // outward into a 340-wide card whose upper-left chip slot lands exactly
+      // back on the anchor. `padding` animates 0 → 16 in lockstep with the
+      // size change so the portrait disc fills the card at the start (and
+      // therefore reads as the star itself) and shrinks into the chip slot
+      // at the end.
       initial={
         reducedMotion
           ? {
@@ -2411,14 +2326,16 @@ export function HoverDetailCard({
               width: MORPH_FINAL_WIDTH_PX,
               height: "auto",
               borderRadius: 16,
+              padding: MORPH_FINAL_PADDING_PX,
               x: MORPH_FINAL_OFFSET_X_PX,
-              y: "-50%",
+              y: MORPH_FINAL_OFFSET_Y_PX,
             }
           : {
               opacity: 0.85,
               width: MORPH_START_DIAMETER_PX,
               height: MORPH_START_DIAMETER_PX,
               borderRadius: MORPH_START_DIAMETER_PX / 2,
+              padding: 0,
               x: -MORPH_START_DIAMETER_PX / 2,
               y: -MORPH_START_DIAMETER_PX / 2,
             }
@@ -2428,8 +2345,9 @@ export function HoverDetailCard({
         width: MORPH_FINAL_WIDTH_PX,
         height: "auto",
         borderRadius: 16,
+        padding: MORPH_FINAL_PADDING_PX,
         x: MORPH_FINAL_OFFSET_X_PX,
-        y: "-50%",
+        y: MORPH_FINAL_OFFSET_Y_PX,
       }}
       exit={
         reducedMotion
@@ -2439,6 +2357,7 @@ export function HoverDetailCard({
               width: MORPH_START_DIAMETER_PX,
               height: MORPH_START_DIAMETER_PX,
               borderRadius: MORPH_START_DIAMETER_PX / 2,
+              padding: 0,
               x: -MORPH_START_DIAMETER_PX / 2,
               y: -MORPH_START_DIAMETER_PX / 2,
               transition: { duration: 0.18, ease: [0.4, 0, 0.2, 1] as const },
@@ -2446,9 +2365,7 @@ export function HoverDetailCard({
       }
       transition={layoutTransition}
       style={{ position: "absolute", top: 0, left: 0, overflow: "hidden" }}
-      className="aura-liquid-glass pointer-events-auto p-4"
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      className="aura-liquid-glass pointer-events-auto"
     >
       <div className="flex items-start gap-3">
         {/*
@@ -2585,17 +2502,19 @@ function formatHeightShort(heightInInches: number): string {
 }
 
 /* ============================================================================
- * Layer indicator HUD. Four vertical glass dots on the left edge; active one
- * filled with rose tint, others muted. Each dot is clickable so the player
- * can jump layers without scrolling. Layer labels surface on hover and the
- * active layer name always reads under the dot stack.
+ * Layer indicator HUD. A vertical glass pill in the bottom-left corner with
+ * three dots — one per flythrough layer, the active dot filled rose. Each dot
+ * owns its own label line: hover the pill (or scroll between layers) and each
+ * label slides out from its dot in a downward stagger, the labels living in
+ * the same row as their dot. The cascade reverses on collapse so the pill eases
+ * back to a bare vertical column of dots. Dots remain clickable so the player
+ * can jump layers without scrolling.
  * ========================================================================== */
 
 const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
   0: "Focused cases",
-  1: "Tonight's eligibles",
-  2: "Off tonight",
-  3: "Date scenarios",
+  1: "Roster",
+  2: "Date cathedral",
 };
 
 export function LayerIndicator({
@@ -2605,10 +2524,30 @@ export function LayerIndicator({
   currentLayer: FlythroughLayer;
   onLayerSelect: (layer: FlythroughLayer) => void;
 }) {
-  const layers: FlythroughLayer[] = [0, 1, 2, 3];
+  const layers: FlythroughLayer[] = [0, 1, 2];
+  const [isHovering, setIsHovering] = useState(false);
+  const [showOnLayerChange, setShowOnLayerChange] = useState(false);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    if (!mountedRef.current) {
+      mountedRef.current = true;
+      return;
+    }
+    setShowOnLayerChange(true);
+    const id = window.setTimeout(() => setShowOnLayerChange(false), 1600);
+    return () => window.clearTimeout(id);
+  }, [currentLayer]);
+
+  const expanded = isHovering || showOnLayerChange;
+
   return (
-    <div className="pointer-events-none absolute left-6 top-1/2 z-30 flex -translate-y-1/2 flex-col items-start gap-3">
-      <div className="pointer-events-auto aura-liquid-glass aura-liquid-glass-ink rounded-full px-3 py-4 flex flex-col items-center gap-3">
+    <div className="pointer-events-none absolute left-6 bottom-6 z-30">
+      <div
+        className="pointer-events-auto aura-liquid-glass rounded-full flex flex-col items-start gap-3 p-3"
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
         {layers.map((layer) => {
           const active = layer === currentLayer;
           const label = FLYTHROUGH_LAYER_LABELS[layer];
@@ -2618,369 +2557,47 @@ export function LayerIndicator({
               type="button"
               onClick={() => onLayerSelect(layer)}
               aria-label={`Jump to layer ${layer + 1}: ${label}`}
-              className={`group relative cursor-pointer h-3 w-3 rounded-full transition-all ${
-                active
-                  ? "bg-aura-rose ring-2 ring-aura-rose/40 ring-offset-2 ring-offset-[#07041a]"
-                  : "bg-white/25 hover:bg-white/55"
-              }`}
+              className="cursor-pointer flex items-center gap-3 h-3"
             >
-              <span className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 whitespace-nowrap rounded-full aura-liquid-glass-ink px-3 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper opacity-0 transition-opacity group-hover:opacity-100">
-                {label}
-              </span>
+              <span
+                className={`h-3 w-3 rounded-full transition-all flex-shrink-0 ${
+                  active
+                    ? "bg-aura-rose shadow-[0_0_8px_rgba(244,63,94,0.55)]"
+                    : "bg-white/25 hover:bg-white/55"
+                }`}
+              />
+              <motion.span
+                initial={false}
+                animate={{
+                  width: expanded ? "auto" : 0,
+                  opacity: expanded ? 1 : 0,
+                }}
+                transition={{
+                  duration: 0.26,
+                  ease: [0.22, 1, 0.36, 1],
+                  delay: expanded ? layer * 0.06 : (layers.length - 1 - layer) * 0.04,
+                }}
+                className="overflow-hidden whitespace-nowrap flex items-center h-full"
+              >
+                <span
+                  className={`font-mono text-micro uppercase tracking-[0.18em] leading-none ${
+                    active ? "text-aura-paper" : "text-white/55"
+                  }`}
+                >
+                  {label}
+                </span>
+              </motion.span>
             </button>
           );
         })}
       </div>
-      <div className="pointer-events-none aura-liquid-glass aura-liquid-glass-ink rounded-card px-3 py-2 leading-tight">
-        <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
-          layer {currentLayer + 1} / 4
-        </div>
-        <div className="font-display text-label text-aura-paper">
-          {FLYTHROUGH_LAYER_LABELS[currentLayer]}
-        </div>
-      </div>
     </div>
-  );
-}
-
-/* ============================================================================
- * Scenarios as 3D card meshes. Each scenario renders as a Drei <Html transform>
- * mounted at its world-space position so the card text reads sharp (DOM, not
- * canvas pixels) but the whole element scales + perspectives as a 3D object
- * — turning with the camera, fading with the slab activity multiplier the
- * same way stars do.
- *
- * The cards sit on a 3-card horizontal rail centered at (0, 0, -1) — directly
- * in front of the camera's layer-3 position (z=4) — with the outer cards
- * splayed slightly back in Z so the rail reads as a curved holographic shelf
- * rather than three flat planes pasted on a wall.
- * ========================================================================== */
-
-export function ScenarioCardField3D({
-  scenarios,
-  currentLayer,
-  selectedScenarioId,
-  onScenarioClick,
-  reducedMotion,
-}: {
-  scenarios: LobbyScenario[];
-  currentLayer: FlythroughLayer;
-  selectedScenarioId: string | null;
-  onScenarioClick?: (scenarioId: string) => void;
-  reducedMotion: boolean;
-}) {
-  const active = currentLayer === 3;
-  // Activity opacity for the whole field — on layer 3 it's full, on layers
-  // 0/1/2 the cards fade back so they read as the next stop further down
-  // rather than UI overlaid on the member field.
-  const fieldOpacity = active ? 1 : 0.0;
-  const groupRef = useRef<THREE.Group>(null);
-  const opacityRef = useRef(0);
-
-  useFrame((_, delta) => {
-    if (groupRef.current === null) return;
-    const moveLerp = reducedMotion ? 1 : 1 - Math.pow(0.0008, delta);
-    // Park the field a step further back when not active so it doesn't punch
-    // through stars on the layer-2 slab (which sits at z=-4).
-    const targetZ = active ? -1 : -8;
-    groupRef.current.position.z = THREE.MathUtils.lerp(
-      groupRef.current.position.z,
-      targetZ,
-      moveLerp,
-    );
-    opacityRef.current = THREE.MathUtils.lerp(
-      opacityRef.current,
-      fieldOpacity,
-      Math.min(1, delta * 4),
-    );
-  });
-
-  return (
-    <group ref={groupRef} position={[0, 0, -1]}>
-      {scenarios.map((scenario, idx) => {
-        const total = scenarios.length;
-        // Horizontal rail spread — wider when there are more cards, but
-        // capped so the outer cards don't drift off-frame at layer-3 camera
-        // distance.
-        const spread = total === 1 ? 0 : 3.4;
-        const offsetX = total === 1 ? 0 : (idx - (total - 1) / 2) * spread;
-        // Outer cards bend back so the rail reads as a curved shelf rather
-        // than a flat triptych.
-        const offsetZ = total === 1 ? 0 : -Math.abs(idx - (total - 1) / 2) * 0.4;
-        const rotY = total === 1 ? 0 : -(idx - (total - 1) / 2) * 0.18;
-        return (
-          <Scenario3DCard
-            key={scenario.id}
-            scenario={scenario}
-            position={[offsetX, 0, offsetZ]}
-            rotationY={rotY}
-            opacityRef={opacityRef}
-            selected={selectedScenarioId === scenario.id}
-            dimmed={selectedScenarioId !== null && selectedScenarioId !== scenario.id}
-            onClick={onScenarioClick === undefined ? undefined : () => onScenarioClick(scenario.id)}
-          />
-        );
-      })}
-    </group>
-  );
-}
-
-function Scenario3DCard({
-  scenario,
-  position,
-  rotationY,
-  opacityRef,
-  selected,
-  dimmed,
-  onClick,
-}: {
-  scenario: LobbyScenario;
-  position: [number, number, number];
-  rotationY: number;
-  opacityRef: MutableRefObject<number>;
-  selected: boolean;
-  dimmed: boolean;
-  onClick?: () => void;
-}) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-
-  // The card's opacity tracks the scenarios-field activity ref so the cards
-  // fade in/out together with the layer. Direct DOM mutation avoids a per-
-  // frame React re-render that would burn the avatar textures' lazy load.
-  useFrame(() => {
-    if (wrapperRef.current === null) return;
-    const op = opacityRef.current ?? 0;
-    wrapperRef.current.style.opacity = op.toFixed(3);
-    // Disable pointer events when the field is mostly faded so the cards
-    // don't catch clicks while the player is still on a member layer.
-    wrapperRef.current.style.pointerEvents = op > 0.6 ? "auto" : "none";
-  });
-
-  const roomReadTone =
-    scenario.roomRead === "steady"
-      ? "text-aura-emerald"
-      : scenario.roomRead === "promising"
-        ? "text-aura-amber"
-        : "text-aura-rose";
-  const selectedTone = selected ? "aura-liquid-glass-rose" : "";
-
-  return (
-    <group position={position} rotation={[0, rotationY, 0]}>
-      <Html
-        transform
-        distanceFactor={6}
-        zIndexRange={[20, 0]}
-        style={{ width: "320px", pointerEvents: "none" }}
-      >
-        <div
-          ref={wrapperRef}
-          className={`aura-liquid-glass ${selectedTone} aura-liquid-glass-hover rounded-card overflow-hidden ${
-            dimmed ? "opacity-50" : ""
-          }`}
-          style={{ opacity: 0 }}
-        >
-          <button
-            type="button"
-            onClick={onClick}
-            className="cursor-pointer block w-full text-left px-5 py-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
-                {scenario.venue}
-              </span>
-              <span className={`font-mono text-micro uppercase tracking-[0.18em] ${roomReadTone}`}>
-                {scenario.roomRead}
-              </span>
-            </div>
-            <div className="mt-1 font-display text-display-sm text-aura-paper">
-              {scenario.title}
-            </div>
-            <div className="mt-3 flex items-center justify-between text-label">
-              <div className="flex gap-2">
-                <AxisChip label="risk" value={scenario.axes.risk} />
-                <AxisChip label="warmth" value={scenario.axes.intimacy} />
-                <AxisChip label="chaos" value={scenario.axes.chaos} />
-              </div>
-              <span className="font-display text-label text-aura-paper">${scenario.cost}</span>
-            </div>
-          </button>
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-/* ============================================================================
- * Spike controls panel. State sweep + a couple of toggles. Marked R&D so it's
- * clear this lives only in the spike.
- * ========================================================================== */
-
-function SpikeControls({
-  state,
-  onState,
-  showAuras,
-  onShowAuras,
-  showParallax,
-  onShowParallax,
-}: {
-  state: LobbyState;
-  onState: (next: LobbyState) => void;
-  showAuras: boolean;
-  onShowAuras: (next: boolean) => void;
-  showParallax: boolean;
-  onShowParallax: (next: boolean) => void;
-}) {
-  return (
-    <div className="pointer-events-none fixed bottom-[110px] right-6 z-40 flex flex-col gap-2 w-[280px]">
-      <div className="pointer-events-auto aura-liquid-glass aura-liquid-glass-ink rounded-card px-4 py-3">
-        <div className="flex items-center justify-between">
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-white/60">
-            spike controls
-          </span>
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-rose">
-            R&D
-          </span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-1.5">
-          {(
-            [
-              ["idle", "Idle"],
-              ["focus_selected", "Focus"],
-              ["partner_selected", "Partner"],
-              ["committed_pair", "Committed"],
-              ["scenario_chosen", "Scenario"],
-              ["callout_heavy", "Callouts"],
-            ] as const
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => onState(key)}
-              className={`cursor-pointer rounded-full px-3 py-1.5 font-display text-label transition-colors ${
-                state === key
-                  ? "bg-aura-rose text-white"
-                  : "bg-white/8 text-white/80 hover:bg-white/16"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-        <div className="mt-3 grid grid-cols-1 gap-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/60">
-              Auras
-            </span>
-            <SpikeBoolean value={showAuras} onChange={onShowAuras} />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/60">
-              Lead-ahead
-            </span>
-            <SpikeBoolean value={showParallax} onChange={onShowParallax} />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SpikeBoolean({ value, onChange }: { value: boolean; onChange: (next: boolean) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onChange(!value)}
-      className={`cursor-pointer rounded-full px-3 py-1 font-display text-label ${
-        value ? "bg-aura-rose text-white" : "bg-white/8 text-white/70"
-      }`}
-    >
-      {value ? "On" : "Off"}
-    </button>
   );
 }
 
 /* ============================================================================
  * Helpers
  * ========================================================================== */
-
-function buildStars(members: readonly Member[]): StarMark[] {
-  const rng = createSeededRandom(FIELD_SEED);
-  const placements: Array<{ x: number; y: number }> = [];
-  const stars: StarMark[] = [];
-
-  const focusIndex = members.findIndex((m) => m.id === FOCUS_ID);
-  const partnerIndex = members.findIndex((m) => m.id === PARTNER_ID);
-  const order = members.map((_, idx) => idx);
-  if (focusIndex !== -1 && partnerIndex !== -1) {
-    order.splice(order.indexOf(focusIndex), 1);
-    order.splice(order.indexOf(partnerIndex), 1);
-    order.unshift(focusIndex, partnerIndex);
-  }
-
-  for (const idx of order) {
-    const member = members[idx];
-    if (member === undefined) continue;
-    let placed: { x: number; y: number } | null = null;
-    for (let attempt = 0; attempt < 220; attempt += 1) {
-      const candidateX = FIELD_PADDING_X + rng() * (100 - FIELD_PADDING_X * 2);
-      const candidateY = FIELD_PADDING_Y + rng() * (100 - FIELD_PADDING_Y * 2);
-      const tooClose = placements.some(
-        (p) =>
-          (p.x - candidateX) * (p.x - candidateX) + (p.y - candidateY) * (p.y - candidateY) <
-          FIELD_MIN_SPACING * FIELD_MIN_SPACING,
-      );
-      if (!tooClose) {
-        placed = { x: candidateX, y: candidateY };
-        break;
-      }
-    }
-    if (placed === null) {
-      placed = {
-        x: FIELD_PADDING_X + rng() * (100 - FIELD_PADDING_X * 2),
-        y: FIELD_PADDING_Y + rng() * (100 - FIELD_PADDING_Y * 2),
-      };
-    }
-    placements.push(placed);
-
-    const tierRoll = rng();
-    let tier: StarTier;
-    let z: number;
-    if (member.id === FOCUS_ID || member.id === PARTNER_ID) {
-      tier = "foreground";
-      z = 50;
-    } else if (tierRoll > 0.6) {
-      tier = "foreground";
-      z = 10 + rng() * 40;
-    } else if (tierRoll > 0.28) {
-      tier = "mid";
-      z = -50 + rng() * 50;
-    } else {
-      tier = "background";
-      z = -180 + rng() * 110;
-    }
-
-    stars.push({
-      member,
-      palette: resolvePortraitPalette(member),
-      aura: getMemberAuraConfig(member.id),
-      x: placed.x,
-      y: placed.y,
-      z,
-      tier,
-      availability: availabilityFor(member.id),
-      phase: rng() * Math.PI * 2,
-    });
-  }
-
-  return stars;
-}
-
-function availabilityFor(id: string): StarAvailability {
-  if (CLOSED_IDS.has(id)) return "closed";
-  if (OFF_SHIFT_IDS.has(id)) return "off_shift";
-  if (COOLING_IDS.has(id)) return "cooling";
-  return "ready";
-}
 
 function roleForStar(
   star: StarMark,
@@ -3056,31 +2673,6 @@ function pairPartnerPosition(focus: StarMark): Vec3 {
   };
 }
 
-function computeCameraTarget(state: LobbyState, focus: StarMark | undefined): CameraTarget {
-  if (state === "idle" || state === "callout_heavy") {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 1.2 };
-  }
-  if (focus === undefined) {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 1.2 };
-  }
-  const fp = starWorldPosition(focus);
-  if (state === "focus_selected") {
-    return {
-      position: [fp.x * 0.55, fp.y * 0.5, 10],
-      lookAt: [fp.x * 0.9, fp.y * 0.9, fp.z + 0.2],
-      bokehScale: 1.4,
-    };
-  }
-  // partner_selected, committed_pair, scenario_chosen — frame the pair
-  const anchorX = fp.x + 1.4;
-  const anchorY = fp.y + 0.2;
-  return {
-    position: [anchorX * 0.55, anchorY * 0.45, 6.5],
-    lookAt: [anchorX * 0.85, anchorY * 0.8, fp.z + 0.3],
-    bokehScale: 1.5,
-  };
-}
-
 type StarSizing = {
   avatarRadius: number;
   haloRadius: number;
@@ -3129,17 +2721,6 @@ function intensityForRole(role: StarRole, tier: StarTier, state: LobbyState): nu
   if (tier === "foreground") return 0.62;
   if (tier === "mid") return 0.42;
   return 0.24;
-}
-
-function ringColorForRole(role: StarRole, state: LobbyState, palette: PortraitPalette): string {
-  if (role === "focus") return "#fb7185";
-  if (role === "partner") return "#c4b5fd";
-  if (role === "eligible") return palette.accent;
-  if (role === "ineligible_cooling") return "#fecdd3";
-  if (role === "ineligible_off_shift") return "#94a3b8";
-  if (role === "ineligible_closed") return "#64748b";
-  if (state === "idle") return "#ffe6c8";
-  return "#ffeed0";
 }
 
 export function avatarSrcsetFor(id: string): { src: string; srcset: string } {

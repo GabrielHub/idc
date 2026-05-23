@@ -8,8 +8,6 @@ import { AllMembersTest } from "./playground/tests/all-members";
 import { ChatBubbleGalleryTest } from "./playground/tests/chat-bubble-gallery";
 import { DateReactionsTest } from "./playground/tests/date-reactions";
 import { HeightLineupTest } from "./playground/tests/height-lineup";
-import { NotesArchiveTest } from "./playground/tests/notes-archive";
-import { PairBoardTest } from "./playground/tests/pair-board";
 
 const PLAYGROUND_TESTS = [
   {
@@ -36,16 +34,6 @@ const PLAYGROUND_TESTS = [
     id: "chat-bubbles",
     title: "Chat bubble gallery",
     summary: "Per-member focused-side bubble styles in one grid.",
-  },
-  {
-    id: "notes-archive",
-    title: "Notes archive",
-    summary: "Case notes view with mock pair, date, and scenario memories.",
-  },
-  {
-    id: "pair-board",
-    title: "Pair board",
-    summary: "Network-graph view of filed pair connections with hover, expand, and rail UX.",
   },
 ] as const;
 
@@ -79,8 +67,6 @@ export default function PlaygroundRoute() {
           {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
           {activeTestId === "height-scale" ? <HeightLineupTest /> : null}
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
-          {activeTestId === "notes-archive" ? <NotesArchiveTest /> : null}
-          {activeTestId === "pair-board" ? <PairBoardTest /> : null}
         </div>
       </div>
     </main>

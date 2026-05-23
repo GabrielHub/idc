@@ -10,6 +10,7 @@ import type {
   CameraTarget,
   FlythroughLayer,
   LobbyState,
+  RosterSubview,
   StarAvailability,
   StarFlythroughLayer,
   StarMark,
@@ -20,11 +21,11 @@ import type {
 import type { PortraitPalette } from "../portrait-palette";
 import type { MemberAuraConfig } from "../member-aura-registry";
 
-/** star.x (0–100) → world x (~-11..+11). */
+/** star.x (0-100) -> world x (~-11..+11). */
 export const WORLD_X_SCALE = 0.22;
-/** star.y (0–100) → world y (~+6..-6, flipped to match screen orientation). */
+/** star.y (0-100) -> world y (~+6..-6, flipped to match screen orientation). */
 export const WORLD_Y_SCALE = -0.12;
-/** star.z (-260..+60) → world z (~-13..+3) — broad depth so perspective parallax actually reads. */
+/** star.z (-260..+60) -> world z (~-13..+3) — broad depth so perspective parallax actually reads. */
 export const WORLD_Z_SCALE = 0.05;
 
 export function starWorldPosition(star: StarMark): Vec3 {
@@ -35,11 +36,6 @@ export function starWorldPosition(star: StarMark): Vec3 {
   };
 }
 
-/**
- * When a focus is selected, the partner star compresses to a fixed offset
- * near the focus so the pair frames cleanly without depending on the
- * partner's natural field position.
- */
 export function pairPartnerPosition(focus: StarMark): Vec3 {
   const px = focus.x + 14;
   const py = focus.y + 2;
@@ -51,9 +47,6 @@ export function pairPartnerPosition(focus: StarMark): Vec3 {
 }
 
 export function computeCameraTarget(state: LobbyState, focus: StarMark | undefined): CameraTarget {
-  // Idle / callout-heavy keep DoF mild so focus-case stars scattered through
-  // the field still read sharp — the player hasn't picked a target yet, so
-  // there's nothing to bias the focus plane around.
   if (state === "idle" || state === "callout_heavy") {
     return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 0.45 };
   }
@@ -68,7 +61,6 @@ export function computeCameraTarget(state: LobbyState, focus: StarMark | undefin
       bokehScale: 1.1,
     };
   }
-  // partner_selected / committed_pair / scenario_chosen — frame the pair
   const anchorX = fp.x + 1.4;
   const anchorY = fp.y + 0.2;
   return {
@@ -80,66 +72,96 @@ export function computeCameraTarget(state: LobbyState, focus: StarMark | undefin
 
 /**
  * Per-layer world Z position the camera dollies toward in the flythrough.
- * Layer 0 sits where the default idle camera does (z=17); each subsequent
- * layer punches forward in world Z so the active member slab is right under
- * the lens. Layer 3 (scenarios) lands at z=4 so the scenario card meshes
- * sitting at z ≈ -1 read as the foreground "wall" the player just zoomed up
- * against.
+ * Layer 0 sits where the default idle camera does (z=17); layer 1 punches
+ * forward so the roster slab is right under the lens. Layer 2 (scenarios)
+ * lands at z=4 so the scenario card meshes sitting at z ≈ -1 read as the
+ * foreground "wall" the player just zoomed up against.
  */
 export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
   0: 17,
-  1: 13,
-  2: 9,
-  3: 4,
+  1: 11,
+  2: 4,
 };
 
 /**
- * Per-layer world-Z plane each slab of stars lives on once flythrough is
- * active. Layer 0 (focus) is pulled WAY forward — these are the closest,
- * largest, brightest stars; the player landed here. Layer 1 (eligible) sits
- * a step behind layer 0. Layer 2 (off-tonight) sits another step behind.
- * Layer 3 doesn't carry stars — it's the scenarios layer. These are absolute
- * world-Z targets, not offsets, so the StarSprite useFrame can lerp toward
- * them regardless of the star's seeded natural Z. We add a small natural-Z
- * jitter back in the StarSprite so each layer slab still has a bit of inner
- * depth and the player can read parallax across stars within a layer.
+ * Per-slab world-Z plane each cohort of stars lives on once flythrough is
+ * active. Slab 0 (focus) is pulled forward; slab 1 (roster) sits behind.
  */
 export const FLYTHROUGH_LAYER_Z: Record<StarFlythroughLayer, number> = {
-  0: 6.0, // focus slab — pulled hard forward
-  1: 1.0, // eligible slab
-  2: -4.0, // off-tonight slab
+  0: 6.0,
+  1: -1.5,
 };
 
 /**
- * Camera framing for the flythrough. The base focus/partner framing still
- * drives lookAt + dolly inside the focus slab when the player has picked one;
- * for layers 1-3 we look down-axis (Z negative) so the slab the player is
- * traversing reads flat across the screen. Bokeh deepens slightly per layer
- * so the active slab feels punched into focus while the others feather away.
- *
- * The lookAt point sits ahead of the camera (further in -Z) so each layer
- * traversal feels like punching through the previous one rather than tilting
- * down at the field from above.
+ * Focus-slab cluster layout. The 4 focused leads sit in a centered grid in
+ * front of the camera on layer 0 so the player reads them as the shift's
+ * picker, instead of scattered across the field. Single member centers,
+ * two sit side-by-side, three or four arrange in a 2x2 grid (third lands in
+ * the bottom-left slot when total is 3). All share the focus slab's Z plane.
  */
+const FOCUS_CLUSTER_SPACING_X = 5.2;
+const FOCUS_CLUSTER_SPACING_Y = 3.6;
+
+export function focusClusterPosition(index: number, total: number): Vec3 {
+  if (total <= 0) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+  if (total === 1) return { x: 0, y: 0, z: 0 };
+  if (total === 2) {
+    return { x: (clamped - 0.5) * FOCUS_CLUSTER_SPACING_X, y: 0, z: 0 };
+  }
+  const col = clamped % 2;
+  const row = Math.floor(clamped / 2);
+  return {
+    x: (col - 0.5) * FOCUS_CLUSTER_SPACING_X,
+    y: (0.5 - row) * FOCUS_CLUSTER_SPACING_Y,
+    z: 0,
+  };
+}
+
+/**
+ * Camera target for archive mode. Idle reads as a pulled-back overhead of
+ * the whole constellation field so every star + edge is in frame at once.
+ * When a selection bisects two stars (pair edge selected), the camera dollies
+ * forward to bracket the chosen edge. When a single star is selected, the
+ * camera bias-tracks that star at archive depth so its incident edges stay
+ * in view (slightly farther back than the tonight-mode focus dolly).
+ */
+export const ARCHIVE_CAMERA_Z = 22;
+
+export function computeArchiveCameraTarget(input: {
+  pairMidpoint?: Vec3;
+  focusedStar?: Vec3;
+}): CameraTarget {
+  if (input.pairMidpoint !== undefined) {
+    const mid = input.pairMidpoint;
+    return {
+      position: [mid.x * 0.55, mid.y * 0.55, 14],
+      lookAt: [mid.x, mid.y, mid.z],
+      bokehScale: 0.9,
+    };
+  }
+  if (input.focusedStar !== undefined) {
+    const star = input.focusedStar;
+    return {
+      position: [star.x * 0.45, star.y * 0.45, 16],
+      lookAt: [star.x * 0.8, star.y * 0.8, star.z],
+      bokehScale: 0.7,
+    };
+  }
+  return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+}
+
 export function computeFlythroughCameraTarget(
   layer: FlythroughLayer,
   focus: StarMark | undefined,
 ): CameraTarget {
   const z = FLYTHROUGH_CAMERA_Z[layer];
-  // Bias toward focus star x/y on layer 0 so the framing leads with whichever
-  // focus case the player most recently engaged — falls back to centered
-  // framing when no focus is picked.
   const focusBias = layer === 0 && focus !== undefined ? starWorldPosition(focus) : null;
   const biasX = focusBias === null ? 0 : focusBias.x * 0.25;
   const biasY = focusBias === null ? 0 : focusBias.y * 0.25;
 
-  // DoF target sits at the slab the camera is currently looking at, so the
-  // active layer stays sharp under post.
-  const slabZ = layer === 3 ? -1 : FLYTHROUGH_LAYER_Z[layer];
-
-  // Bokeh deepens slightly as we punch through; layer 3 (scenarios) gets the
-  // tightest framing so the cards read crisply.
-  const bokeh = layer === 0 ? 0.45 : layer === 1 ? 0.75 : layer === 2 ? 0.95 : 0.6;
+  const slabZ = layer === 2 ? -1 : FLYTHROUGH_LAYER_Z[layer];
+  const bokeh = layer === 0 ? 0.45 : layer === 1 ? 0.85 : 0.6;
 
   return {
     position: [biasX, biasY, z],
@@ -148,89 +170,105 @@ export function computeFlythroughCameraTarget(
   };
 }
 
-/**
- * Map a member-layer flythrough slab (0 / 1 / 2) onto its absolute world-Z
- * plane. Pure pass-through into the FLYTHROUGH_LAYER_Z record; exists as a
- * function so callers don't import the constant directly and so the math
- * stays in one place for tests + future extension.
- */
 export function flythroughStarZ(layer: StarFlythroughLayer): number {
   return FLYTHROUGH_LAYER_Z[layer];
 }
 
 /**
- * Decide which member layer a star belongs to in the flythrough. Pure
- * function — takes the membership sets the lobby has already computed
- * (focused, eligible, ineligible) and returns 0/1/2. Returns 2 as the
- * fallback so any uncategorised member still has a layer rather than
- * disappearing.
+ * Decide which slab a star belongs to in the flythrough. Focused -> 0,
+ * everyone else -> 1. The eligibles vs off-tonight distinction is a per-star
+ * cohort within the roster slab, not a separate slab.
  */
 export function computeStarFlythroughLayer(
   memberId: string,
-  {
-    focusedIds,
-    eligibleIds,
-  }: { focusedIds: ReadonlySet<string>; eligibleIds: ReadonlySet<string> },
+  { focusedIds }: { focusedIds: ReadonlySet<string> },
 ): StarFlythroughLayer {
   if (focusedIds.has(memberId)) return 0;
-  if (eligibleIds.has(memberId)) return 1;
-  return 2;
+  return 1;
 }
 
 /**
- * Per-star opacity / scale multiplier driven by the active flythrough layer.
- * The active slab gets the full role intensity; non-active slabs get pushed
- * down so the eye reads the active layer as the foreground. Layer 3 (the
- * scenarios layer) recedes ALL member slabs so the scenario cards sit
- * clearly in front of a muted constellation backdrop.
+ * Cohort within the roster slab. Stars on the roster slab still belong to
+ * one of three groups (eligible / off_tonight / other_ineligible — the last
+ * for cooling and closed); the layer-1 RosterSubview toggle picks which
+ * group leads the eye.
+ */
+export type RosterCohort = "eligible" | "off_tonight" | "other_ineligible";
+
+export function computeRosterCohort(
+  memberId: string,
+  {
+    eligibleIds,
+    offTonightIds,
+  }: { eligibleIds: ReadonlySet<string>; offTonightIds: ReadonlySet<string> },
+): RosterCohort {
+  if (eligibleIds.has(memberId)) return "eligible";
+  if (offTonightIds.has(memberId)) return "off_tonight";
+  return "other_ineligible";
+}
+
+/**
+ * Per-star opacity / scale multiplier driven by the active flythrough layer
+ * and (on the roster slab) the active roster subview.
  */
 export function flythroughMemberSlabActivity(
   starLayer: StarFlythroughLayer,
   currentLayer: FlythroughLayer,
+  cohort?: RosterCohort,
+  rosterSubview: RosterSubview = "eligibles",
 ): { intensityMultiplier: number; scaleMultiplier: number } {
-  if (currentLayer === 3) {
-    // Scenarios layer — all member layers recede uniformly so the scenario
-    // cards lead.
-    return { intensityMultiplier: 0.35, scaleMultiplier: 0.85 };
+  if (currentLayer === 2) {
+    // Cathedral layer — stars vanish entirely so the door array reads as
+    // its own room. Scale collapses to 0.55 so any half-faded sprites
+    // mid-transition recede into the distance instead of staying at full
+    // size while their opacity falls.
+    return { intensityMultiplier: 0, scaleMultiplier: 0.55 };
   }
-  if (starLayer === currentLayer) {
-    return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
+  if (starLayer !== currentLayer) {
+    // Off-axis slab — the layer the player isn't on is entirely culled so
+    // each layer reads as its own room. Scale collapses so any in-flight
+    // transition reads as a pull-back rather than a fade-against-field.
+    return { intensityMultiplier: 0, scaleMultiplier: 0.6 };
   }
-  // Off-axis member layers fade — closer-to-active fades less.
-  const distance = Math.abs(starLayer - currentLayer);
-  if (distance === 1) return { intensityMultiplier: 0.45, scaleMultiplier: 0.9 };
-  return { intensityMultiplier: 0.22, scaleMultiplier: 0.78 };
+  if (currentLayer === 0) {
+    // Focus picker — the 4 focused leads sit in a centered cluster. Scale is
+    // large enough that each avatar reads as a hero card but doesn't fill the
+    // screen; the cluster position override in StarSprite drives the layout.
+    return { intensityMultiplier: 1, scaleMultiplier: 2.5 };
+  }
+  if (currentLayer === 1) {
+    // Roster slab — avatars need to read as portraits, not as a sea of small
+    // sparkles. Leads are pulled forward at hero-card sizes; the inactive
+    // cohort and other ineligibles still get readable sizes so the slab
+    // reads as a real roster, not background noise.
+    const leads = rosterSubview === "eligibles" ? cohort === "eligible" : cohort === "off_tonight";
+    if (leads) return { intensityMultiplier: 1.05, scaleMultiplier: 2.4 };
+    if (cohort === "other_ineligible") {
+      return { intensityMultiplier: 0.32, scaleMultiplier: 1.4 };
+    }
+    return { intensityMultiplier: 0.45, scaleMultiplier: 1.6 };
+  }
+  return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
 }
 
-/**
- * Advance the flythrough layer by one step in the given direction (1 = scroll
- * down / punch deeper, -1 = scroll up / come back out). Clamped to the 0..3
- * range so the player can't scroll past the scenarios layer or out the back
- * of the focus layer.
- */
 export function advanceFlythroughLayer(
   current: FlythroughLayer,
   direction: 1 | -1,
 ): FlythroughLayer {
   const next = current + direction;
   if (next < 0) return 0;
-  if (next > 3) return 3;
-  // The arithmetic guarantees 0..3 — cast keeps the union narrow without
-  // relying on type assertions.
+  if (next > 2) return 2;
   if (next === 0) return 0;
   if (next === 1) return 1;
-  if (next === 2) return 2;
-  return 3;
+  return 2;
 }
 
-/**
- * Layered zoom Z offset. Once the player picks a focus, the foreground layer
- * (focus + partner + eligible candidates) pulls forward in world Z so it
- * lands sharper after the camera dolly; off-tonight / cooling / closed
- * members recede so they read as context behind the active layer. Stars lerp
- * into these offsets each frame via the StarSprite useFrame, so transitions
- * feel like depth re-layering rather than teleports.
- */
+export function flythroughLayerDirectionFromKey(code: string): 1 | -1 | null {
+  if (code === "KeyD" || code === "ArrowDown") return 1;
+  if (code === "KeyA" || code === "ArrowUp") return -1;
+  return null;
+}
+
 export function computeLayerZOffset(role: StarRole, state: LobbyState): number {
   if (state === "idle" || state === "callout_heavy") return 0;
   if (role === "focus" || role === "partner") return 1.4;
@@ -377,12 +415,6 @@ export function withAlpha(color: string, alpha: number): string {
   return color;
 }
 
-/**
- * Halo tint preference. Active roles keep the rose/violet pair colors so the
- * player can read focus vs partner at a glance; everyone else picks up the
- * per-member aura color (or palette accent fallback) so the field reads as
- * a constellation of differently-glowing stars instead of a uniform warm wash.
- */
 export function haloColorForStar(
   role: StarRole,
   palette: PortraitPalette,

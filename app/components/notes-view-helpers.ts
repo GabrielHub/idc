@@ -1,6 +1,6 @@
 import type { Member, MemoryRecord, PairState, PlayerKnowledgeRecord } from "../domain/game";
 import { CLOSURE_NEAR_MISS_TAG } from "../services/date-engine";
-import type { PairBoardSelection } from "./pair-board-shared";
+import type { PairBoardSelection } from "./pair-board-layout";
 
 export type NotesScopeFilter = "all" | "pairs" | "scenarios";
 

@@ -46,18 +46,17 @@ import {
   togglePlayback,
   triggerScenarioEvent,
 } from "../services/date-engine";
-import { addCardToDeck, createStarterScenarioDeck, removeCardFromDeck } from "../services/deck";
-import { rotateBudgetPeriod } from "../services/budget";
+import { addCardToDeck, removeCardFromDeck } from "../services/deck";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
   addFocusCase as focusAddCase,
   getFocusedMembers,
   removeFocusCase as focusRemoveCase,
   reselectFocusCases as focusReselect,
-  selectInitialFocusCases as focusSelectInitial,
   swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
+import { completeInitialOnboarding } from "../services/onboarding";
 import { buildRelationshipIndex, getPairProjectionByPairId } from "../services/relationship-index";
 import {
   appendManagerQuipHistory,
@@ -91,14 +90,13 @@ import {
   type StreamingDraftMessage,
 } from "./date-view";
 import { ConstellationLobby } from "./constellation-lobby";
-import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
 import { OnboardingScreen } from "./onboarding-screen";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
 import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
-import { ShellChrome } from "./shell-chrome";
+import { LobbyChromePills, ShellChrome, type RoomKey } from "./shell-chrome";
 import {
   getReleaseNoteByVersion,
   hasReleaseNotesEligibleSaveProgress,
@@ -415,7 +413,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setDateAmbientSession(dateAmbientSessionId);
     return () => setDateAmbientSession(null);
   }, [dateAmbientSessionId, setDateAmbientSession]);
-  const liveDateState: LiveDateState = deriveLiveDateState(activeSession);
   const screenKey = `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`;
   const diagnosticsInputsRef = useRef<Parameters<typeof buildDiagnosticsSnapshot>[0]>({
     config: null,
@@ -1017,36 +1014,19 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleConfirmOnboarding(payload: { focusedMemberIds: string[] }) {
+  async function handleConfirmOnboarding(payload: {
+    focusedMemberIds: string[];
+    scenarioDeckCardIds: string[];
+  }) {
     if (save === null) return;
     tryAction("focusCase", async () => {
-      const starterDeck = createStarterScenarioDeck(starterScenarios);
-      const withDeck: GameSave = {
-        ...save,
-        scenarioDeck: starterDeck,
-        shifts: save.shifts.map((shift) =>
-          shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
-        ),
-      };
-      const withFocus = focusSelectInitial(withDeck, payload.focusedMemberIds);
-      const requestsById = new Map(memberRequests.map((request) => [request.id, request] as const));
-      const focusedMemberRequests = withFocus.focusedMemberIds
-        .map((memberId) => withFocus.members.find((member) => member.id === memberId))
-        .map((member) =>
-          member?.state.currentRequestId === undefined
-            ? undefined
-            : requestsById.get(member.state.currentRequestId),
-        )
-        .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
-      const activeShift = getActiveShift(withFocus);
-      const activeCompanyGoalIds = new Set(activeShift.companyGoalIds);
-      const withBudgetPeriod = rotateBudgetPeriod({
-        save: withFocus,
-        shiftNumber: 1,
+      const withBudgetPeriod = completeInitialOnboarding({
+        save,
+        focusedMemberIds: payload.focusedMemberIds,
+        scenarioDeckCardIds: payload.scenarioDeckCardIds,
         scenarios: starterScenarios,
-        focusedMemberRequests,
-        recentClosurePairTags: [],
-        activeCompanyGoals: companyGoals.filter((goal) => activeCompanyGoalIds.has(goal.id)),
+        memberRequests,
+        companyGoals,
       });
       await persist(withBudgetPeriod);
       setCurrentRoom("livedate");
@@ -1220,6 +1200,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
   const isDateViewActive = activeSession !== null;
+  /**
+   * The constellation lobby owns its own chrome (Punch out / AI / settings as
+   * glass pills floating on the canvas) so we suppress the cream
+   * `ShellChrome` header when it's the active screen.
+   */
+  const isLobbyViewActive = activeShift !== null && activeSession === null;
 
   return (
     <>
@@ -1235,6 +1221,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           >
             <OnboardingScreen
               members={save.members}
+              scenarios={starterScenarios}
               save={save}
               onTutorialUpdate={handleTutorialUpdate}
               onConfirm={handleConfirmOnboarding}
@@ -1253,28 +1240,30 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             className="relative isolate min-h-screen w-full"
           >
             <AmbientMesh />
-            <ShellChrome
-              isDateViewActive={isDateViewActive}
-              shiftNumber={activeShift?.shiftNumber ?? 1}
-              currentRoom={currentRoom}
-              aiStatusLabel={aiStatusLabel}
-              isActionPending={isActionPending}
-              getDiagnostics={getDiagnostics}
-              canExportSave={save !== null}
-              canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
-              devRevealAllMemberDetails={revealAllMemberDetails}
-              onPunchOut={onPunchOut}
-              onOpenAiSetup={() => setIsAiSetupOpen(true)}
-              onReset={handleResetSave}
-              onResetOrientation={() => {
-                void handleResetOrientation();
-              }}
-              onExportSave={handleExportSave}
-              onImportSave={handleImportSave}
-              onCopyDiagnostics={handleCopyDiagnostics}
-              onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
-              onOpenReleaseNotes={handleOpenReleaseNotes}
-            />
+            {isLobbyViewActive ? null : (
+              <ShellChrome
+                isDateViewActive={isDateViewActive}
+                shiftNumber={activeShift?.shiftNumber ?? 1}
+                currentRoom={currentRoom}
+                aiStatusLabel={aiStatusLabel}
+                isActionPending={isActionPending}
+                getDiagnostics={getDiagnostics}
+                canExportSave={save !== null}
+                canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                devRevealAllMemberDetails={revealAllMemberDetails}
+                onPunchOut={onPunchOut}
+                onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                onReset={handleResetSave}
+                onResetOrientation={() => {
+                  void handleResetOrientation();
+                }}
+                onExportSave={handleExportSave}
+                onImportSave={handleImportSave}
+                onCopyDiagnostics={handleCopyDiagnostics}
+                onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                onOpenReleaseNotes={handleOpenReleaseNotes}
+              />
+            )}
 
             <AnimatePresence mode="wait">
               <motion.main
@@ -1348,6 +1337,28 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onRemoveFocus={handleRemoveFocus}
                       onSwapFocus={handleSwapFocus}
                       onReselectFocus={handleReselectFocus}
+                      chromeSlot={
+                        <LobbyChromePills
+                          shiftNumber={activeShift.shiftNumber}
+                          aiStatusLabel={aiStatusLabel}
+                          isActionPending={isActionPending}
+                          getDiagnostics={getDiagnostics}
+                          canExportSave={save !== null}
+                          canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                          devRevealAllMemberDetails={revealAllMemberDetails}
+                          onPunchOut={onPunchOut}
+                          onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                          onReset={handleResetSave}
+                          onResetOrientation={() => {
+                            void handleResetOrientation();
+                          }}
+                          onExportSave={handleExportSave}
+                          onImportSave={handleImportSave}
+                          onCopyDiagnostics={handleCopyDiagnostics}
+                          onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                          onOpenReleaseNotes={handleOpenReleaseNotes}
+                        />
+                      }
                     />
                   )
                 ) : null}
@@ -1364,13 +1375,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                 onOpenNextShift={handleStartNextShift}
               />
             ) : null}
-
-            <FloatingNavCluster
-              current={currentRoom}
-              hidden={dateAmbientSessionId !== null}
-              liveDateState={liveDateState}
-              onSelect={(room) => setCurrentRoom(room)}
-            />
 
             <AnimatePresence>
               {isAiSetupOpen ? (
@@ -1436,13 +1440,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       />
     </>
   );
-}
-
-function deriveLiveDateState(activeSession: { status: string } | null): LiveDateState {
-  if (activeSession === null) {
-    return "planning";
-  }
-  return activeSession.status === "active" ? "live" : "wrap";
 }
 
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {

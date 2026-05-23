@@ -16,7 +16,7 @@ import type { MemoryRecord } from "../../domain/game";
 import { scrubPlayerSafeCopy } from "../../services/player-safe-copy";
 import { formatNoteTimestamp, isPlayerVisibleNote, sortMemoriesNewestFirst } from "../notes-format";
 import { paletteForMemory } from "../notes-palette";
-import { splitLead } from "../pair-board-shared";
+import { splitLead } from "../pair-board-layout";
 
 const MAX_VISIBLE_NOTES = 2;
 

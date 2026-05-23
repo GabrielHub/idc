@@ -12,6 +12,7 @@ import {
   computeStarFlythroughLayer,
   FLYTHROUGH_CAMERA_Z,
   FLYTHROUGH_LAYER_Z,
+  flythroughLayerDirectionFromKey,
   flythroughMemberSlabActivity,
   flythroughStarZ,
   haloColorForStar,
@@ -367,11 +368,9 @@ describe("advanceFlythroughLayer", () => {
   it("advances one layer per call when scrolling deeper", () => {
     expect(advanceFlythroughLayer(0, 1)).toBe(1);
     expect(advanceFlythroughLayer(1, 1)).toBe(2);
-    expect(advanceFlythroughLayer(2, 1)).toBe(3);
   });
 
   it("reverses one layer per call when scrolling back out", () => {
-    expect(advanceFlythroughLayer(3, -1)).toBe(2);
     expect(advanceFlythroughLayer(2, -1)).toBe(1);
     expect(advanceFlythroughLayer(1, -1)).toBe(0);
   });
@@ -380,72 +379,81 @@ describe("advanceFlythroughLayer", () => {
     expect(advanceFlythroughLayer(0, -1)).toBe(0);
   });
 
-  it("clamps at the scenarios layer when scrolling down from layer 3", () => {
-    expect(advanceFlythroughLayer(3, 1)).toBe(3);
+  it("clamps at the scenarios layer when scrolling down from layer 2", () => {
+    expect(advanceFlythroughLayer(2, 1)).toBe(2);
+  });
+});
+
+describe("flythroughLayerDirectionFromKey", () => {
+  it("maps D and ArrowDown to deeper layer navigation", () => {
+    expect(flythroughLayerDirectionFromKey("KeyD")).toBe(1);
+    expect(flythroughLayerDirectionFromKey("ArrowDown")).toBe(1);
+  });
+
+  it("maps A and ArrowUp to reverse layer navigation", () => {
+    expect(flythroughLayerDirectionFromKey("KeyA")).toBe(-1);
+    expect(flythroughLayerDirectionFromKey("ArrowUp")).toBe(-1);
+  });
+
+  it("ignores unrelated keys", () => {
+    expect(flythroughLayerDirectionFromKey("Space")).toBeNull();
   });
 });
 
 describe("computeStarFlythroughLayer", () => {
   const focusedIds = new Set(["focus-1", "focus-2"]);
-  const eligibleIds = new Set(["eligible-1", "eligible-2"]);
 
-  it("places focused members on layer 0", () => {
-    expect(computeStarFlythroughLayer("focus-1", { focusedIds, eligibleIds })).toBe(0);
+  it("places focused members on the focus slab", () => {
+    expect(computeStarFlythroughLayer("focus-1", { focusedIds })).toBe(0);
   });
 
-  it("places eligible members on layer 1", () => {
-    expect(computeStarFlythroughLayer("eligible-1", { focusedIds, eligibleIds })).toBe(1);
-  });
-
-  it("places everyone else on layer 2 (off tonight)", () => {
-    expect(computeStarFlythroughLayer("stranger", { focusedIds, eligibleIds })).toBe(2);
-  });
-
-  it("prefers focus over eligible when a member is in both sets", () => {
-    const overlap = new Set(["overlap-id"]);
-    expect(
-      computeStarFlythroughLayer("overlap-id", {
-        focusedIds: overlap,
-        eligibleIds: new Set(["overlap-id"]),
-      }),
-    ).toBe(0);
+  it("places everyone else on the roster slab", () => {
+    expect(computeStarFlythroughLayer("stranger", { focusedIds })).toBe(1);
   });
 });
 
 describe("flythroughStarZ", () => {
-  it("maps each member slab to a forward-receding world Z", () => {
+  it("places the focus slab in front of the roster slab", () => {
     expect(flythroughStarZ(0)).toBe(FLYTHROUGH_LAYER_Z[0]);
     expect(flythroughStarZ(1)).toBe(FLYTHROUGH_LAYER_Z[1]);
-    expect(flythroughStarZ(2)).toBe(FLYTHROUGH_LAYER_Z[2]);
     expect(flythroughStarZ(0)).toBeGreaterThan(flythroughStarZ(1));
-    expect(flythroughStarZ(1)).toBeGreaterThan(flythroughStarZ(2));
   });
 });
 
 describe("flythroughMemberSlabActivity", () => {
-  it("gives the active slab a full intensity and a scale bump so it reads forward", () => {
+  it("gives the active focus slab a full intensity and a scale bump", () => {
     const focusActive = flythroughMemberSlabActivity(0, 0);
     expect(focusActive.intensityMultiplier).toBe(1);
     expect(focusActive.scaleMultiplier).toBeGreaterThan(1);
   });
 
-  it("dims neighbouring slabs less than far slabs", () => {
-    // Player on layer 1; layer 0 is 1 away, layer 2 is 1 away.
-    const near = flythroughMemberSlabActivity(0, 1);
-    const far = flythroughMemberSlabActivity(2, 0);
-    expect(near.intensityMultiplier).toBeGreaterThan(far.intensityMultiplier);
+  it("dims the off-axis slab when the player is on the focus layer", () => {
+    const offAxis = flythroughMemberSlabActivity(1, 0);
+    expect(offAxis.intensityMultiplier).toBeLessThan(1);
+  });
+
+  it("spotlights the eligible cohort on layer 1 when the subview is eligibles", () => {
+    const eligibleLeads = flythroughMemberSlabActivity(1, 1, "eligible", "eligibles");
+    const offTonightRecedes = flythroughMemberSlabActivity(1, 1, "off_tonight", "eligibles");
+    expect(eligibleLeads.intensityMultiplier).toBeGreaterThan(
+      offTonightRecedes.intensityMultiplier,
+    );
+  });
+
+  it("spotlights the off-tonight cohort on layer 1 when the subview flips", () => {
+    const offTonightLeads = flythroughMemberSlabActivity(1, 1, "off_tonight", "off_tonight");
+    const eligibleRecedes = flythroughMemberSlabActivity(1, 1, "eligible", "off_tonight");
+    expect(offTonightLeads.intensityMultiplier).toBeGreaterThan(
+      eligibleRecedes.intensityMultiplier,
+    );
   });
 
   it("recedes every member slab when the player is on the scenarios layer", () => {
-    const layer0 = flythroughMemberSlabActivity(0, 3);
-    const layer1 = flythroughMemberSlabActivity(1, 3);
-    const layer2 = flythroughMemberSlabActivity(2, 3);
+    const layer0 = flythroughMemberSlabActivity(0, 2);
+    const layer1 = flythroughMemberSlabActivity(1, 2);
     expect(layer0.intensityMultiplier).toBeLessThan(0.5);
     expect(layer1.intensityMultiplier).toBeLessThan(0.5);
-    expect(layer2.intensityMultiplier).toBeLessThan(0.5);
-    // Uniform recede so no member slab sneaks forward of the scenarios.
     expect(layer0).toEqual(layer1);
-    expect(layer1).toEqual(layer2);
   });
 });
 
@@ -454,10 +462,8 @@ describe("computeFlythroughCameraTarget", () => {
     expect(computeFlythroughCameraTarget(0, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[0]);
     expect(computeFlythroughCameraTarget(1, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[1]);
     expect(computeFlythroughCameraTarget(2, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[2]);
-    expect(computeFlythroughCameraTarget(3, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[3]);
     expect(FLYTHROUGH_CAMERA_Z[0]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[1]);
     expect(FLYTHROUGH_CAMERA_Z[1]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[2]);
-    expect(FLYTHROUGH_CAMERA_Z[2]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[3]);
   });
 
   it("biases layer 0 framing toward the focus star x/y when one is provided", () => {
@@ -476,7 +482,7 @@ describe("computeFlythroughCameraTarget", () => {
   });
 
   it("looks ahead in -Z so each layer punches through the previous one", () => {
-    for (const layer of [0, 1, 2, 3] as const) {
+    for (const layer of [0, 1, 2] as const) {
       const target = computeFlythroughCameraTarget(layer, undefined);
       expect(target.lookAt[2]).toBeLessThan(target.position[2]);
     }
@@ -484,10 +490,8 @@ describe("computeFlythroughCameraTarget", () => {
 
   it("tightens DoF as the player closes in on the scenarios layer", () => {
     const layer0 = computeFlythroughCameraTarget(0, undefined);
-    const layer3 = computeFlythroughCameraTarget(3, undefined);
-    // Layer 0 stays mild (idle field), layer 3 reads as a foreground "wall"
-    // of scenario cards so the bokeh tightens up to keep text crisp.
-    expect(layer3.bokehScale).toBeLessThan(1);
+    const layer2 = computeFlythroughCameraTarget(2, undefined);
+    expect(layer2.bokehScale).toBeLessThan(1);
     expect(layer0.bokehScale).toBeLessThan(1);
   });
 });

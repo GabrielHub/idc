@@ -1,8 +1,12 @@
-import type { RoomKey } from "./floating-nav-cluster";
 import { MutedIndicator, SettingsMenu, type DiagnosticsSnapshot } from "./settings-menu";
+
+export type RoomKey = "livedate";
 
 const CHROME_PILL_CLASS =
   "cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose";
+
+const LOBBY_CHROME_PILL_CLASS =
+  "cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper transition";
 
 export function ShellChrome({
   isDateViewActive,
@@ -104,5 +108,92 @@ export function ShellChrome({
         {settingsMenu}
       </div>
     </header>
+  );
+}
+
+/**
+ * Glass-pill chrome rendered inline by the constellation lobby in place of the
+ * cream `ShellChrome` header. Same controls, restyled with `aura-liquid-glass`
+ * so they sit cleanly on the 3D canvas. The lobby positions this; we only
+ * return the pills + their spacing.
+ */
+export function LobbyChromePills({
+  shiftNumber,
+  aiStatusLabel,
+  isActionPending,
+  getDiagnostics,
+  canExportSave,
+  canUseDevMemberDetailsPreview,
+  devRevealAllMemberDetails,
+  onPunchOut,
+  onOpenAiSetup,
+  onReset,
+  onResetOrientation,
+  onExportSave,
+  onImportSave,
+  onCopyDiagnostics,
+  onDevRevealAllMemberDetailsChange,
+  onOpenReleaseNotes,
+}: {
+  shiftNumber: number;
+  aiStatusLabel: string;
+  isActionPending: boolean;
+  getDiagnostics: () => DiagnosticsSnapshot;
+  canExportSave: boolean;
+  canUseDevMemberDetailsPreview: boolean;
+  devRevealAllMemberDetails: boolean;
+  onPunchOut: () => void;
+  onOpenAiSetup: () => void;
+  onReset: () => void;
+  onResetOrientation: () => void;
+  onExportSave: () => void;
+  onImportSave: (file: File) => void;
+  onCopyDiagnostics: () => Promise<boolean>;
+  onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
+  onOpenReleaseNotes: () => void;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onPunchOut}
+        data-sfx="click"
+        className={LOBBY_CHROME_PILL_CLASS}
+      >
+        ← Punch out
+      </button>
+      <div className="aura-liquid-glass rounded-full px-3 py-1.5 inline-flex items-center gap-2">
+        <span className="aura-pulse h-2 w-2 rounded-full bg-aura-rose" />
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-paper">
+          shift {String(shiftNumber).padStart(2, "0")} · live
+        </span>
+      </div>
+      <MutedIndicator variant="glass" />
+      <button
+        type="button"
+        onClick={onOpenAiSetup}
+        data-sfx="click"
+        className={LOBBY_CHROME_PILL_CLASS}
+      >
+        ai · {aiStatusLabel}
+      </button>
+      <SettingsMenu
+        isActionPending={isActionPending}
+        getDiagnostics={getDiagnostics}
+        canExportSave={canExportSave}
+        canUseDevMemberDetailsPreview={canUseDevMemberDetailsPreview}
+        devRevealAllMemberDetails={devRevealAllMemberDetails}
+        align="left"
+        variant="glass"
+        onOpenAiSetup={onOpenAiSetup}
+        onReset={onReset}
+        onResetOrientation={onResetOrientation}
+        onExportSave={onExportSave}
+        onImportSave={onImportSave}
+        onCopyDiagnostics={onCopyDiagnostics}
+        onDevRevealAllMemberDetailsChange={onDevRevealAllMemberDetailsChange}
+        onOpenReleaseNotes={onOpenReleaseNotes}
+      />
+    </>
   );
 }

@@ -35,9 +35,9 @@ export type StarMark = {
   member: Member;
   palette: PortraitPalette;
   aura: MemberAuraConfig | undefined;
-  /** 0–100 layout x in field space, before world scaling. */
+  /** 0-100 layout x in field space, before world scaling. */
   x: number;
-  /** 0–100 layout y in field space, before world scaling. */
+  /** 0-100 layout y in field space, before world scaling. */
   y: number;
   /** Signed Z depth in field space (~-260..+60), before world scaling. */
   z: number;
@@ -65,19 +65,46 @@ export type CameraTarget = {
 
 /**
  * Discrete depth layer the player has scrolled into. Scrolling down advances
- * the layer 0 → 1 → 2 → 3 (clamped). Each layer corresponds to a depth slab
- * the player is currently traversing — 0 = focus cases pulled forward, 1 =
- * tonight's eligible partners, 2 = off-tonight members, 3 = the scenarios
- * layer where date plans render as 3D card meshes inside the canvas.
+ * the layer 0 -> 1 -> 2 (clamped). 0 = focus cases pulled forward, 1 = the
+ * roster slab (eligibles by default, off-tonight when the RosterSubview
+ * toggle flips), 2 = the scenarios layer where date plans render as 3D card
+ * meshes inside the canvas.
  */
-export type FlythroughLayer = 0 | 1 | 2 | 3;
+export type FlythroughLayer = 0 | 1 | 2;
 
 /**
- * Which layer a given star belongs to in the flythrough. Stars only live on
- * one of the three member layers; `none` means the star is not a roster
- * star at all (today: not used, but reserved for future non-member meshes
- * that might float between layers).
+ * Which slab a given star belongs to in the flythrough. Stars only live on
+ * one of two slabs — focus or roster. The eligibles vs off-tonight split is
+ * a per-star cohort inside the roster slab, not a separate slab.
  */
-export type StarFlythroughLayer = 0 | 1 | 2;
+export type StarFlythroughLayer = 0 | 1;
+
+/**
+ * On the roster layer (FlythroughLayer === 1), the player can flip which
+ * cohort the field highlights. "eligibles" frames tonight's available
+ * partners; "off_tonight" frames members on rest. The off-set still reads
+ * the field underneath but the inactive cohort recedes so the chosen one
+ * leads the eye.
+ */
+export type RosterSubview = "eligibles" | "off_tonight";
+
+/**
+ * Top-level view mode for the constellation lobby. "tonight" is the
+ * date-prep flythrough (focus picker → roster → cathedral). "archive" is
+ * the pair-history view: stars re-flow into a graph layout and constellation
+ * edges etch between pairs with filed notes. Orthogonal to LobbyState — a
+ * player can be in archive mode regardless of focus/partner selection.
+ */
+export type ViewMode = "tonight" | "archive";
+
+/**
+ * What the player has selected inside archive mode. Edge selection drives
+ * the side-rail PairDossierShard; star selection opens the CaseFilePanel
+ * with incident edges highlighted in the field.
+ */
+export type ArchiveSelection =
+  | { kind: "pair"; pairId: string }
+  | { kind: "member"; memberId: string }
+  | null;
 
 export type Vec3 = { x: number; y: number; z: number };
