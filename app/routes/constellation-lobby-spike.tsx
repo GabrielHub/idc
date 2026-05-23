@@ -466,6 +466,7 @@ export function Scene({
             showAura={showAuras}
             reducedMotion={reducedMotion}
             filteredOut={filteredOut}
+            hovered={hoveredId === star.member.id}
             onHoverEnter={() => setHoverWithGrace(star.member.id)}
             onHoverLeave={() => setHoverWithGrace(null)}
             onClick={
@@ -526,10 +527,10 @@ export function Scene({
       </AnimatePresence>
 
       <EffectComposer multisampling={4}>
-        <Bloom intensity={0.55} luminanceThreshold={0.62} luminanceSmoothing={0.45} mipmapBlur />
+        <Bloom intensity={0.72} luminanceThreshold={0.55} luminanceSmoothing={0.5} mipmapBlur />
         <DepthOfField
           target={dofTarget}
-          focalLength={0.018}
+          focalLength={0.034}
           bokehScale={cameraTarget.bokehScale}
           height={1080}
         />
@@ -888,6 +889,32 @@ export function ParticleField({ count }: { count: number }) {
  * frame so role transitions feel mechanical free.
  * ========================================================================== */
 
+/**
+ * Build a star polygon as a flat ShapeGeometry — `points` outer spikes alternating
+ * with `points` inner notches around (0, 0). The inner notch radius is set to the
+ * avatar circle's outer edge so the inner vertices tuck behind the circle and only
+ * the outer spike tips poke through; the result reads as a circle wearing star
+ * points along its border rather than a separate star next to a circle.
+ */
+function makeStarPointsGeometry(
+  outerRadius: number,
+  innerRadius: number,
+  points = 5,
+): THREE.ShapeGeometry {
+  const shape = new THREE.Shape();
+  const angleStep = Math.PI / points;
+  for (let i = 0; i < points * 2; i += 1) {
+    const angle = -Math.PI / 2 + i * angleStep;
+    const r = i % 2 === 0 ? outerRadius : innerRadius;
+    const x = Math.cos(angle) * r;
+    const y = Math.sin(angle) * r;
+    if (i === 0) shape.moveTo(x, y);
+    else shape.lineTo(x, y);
+  }
+  shape.closePath();
+  return new THREE.ShapeGeometry(shape, 1);
+}
+
 export function StarSprite({
   star,
   role,
@@ -899,6 +926,7 @@ export function StarSprite({
   showAura,
   reducedMotion,
   filteredOut = false,
+  hovered = false,
   onHoverEnter,
   onHoverLeave,
   onClick,
@@ -915,6 +943,13 @@ export function StarSprite({
   reducedMotion: boolean;
   /** Lens-filter excluded this star — gets extra dimming + lower opacity. */
   filteredOut?: boolean;
+  /**
+   * The HoverDetailCard is morphing out of this star — hide the 3D mesh so
+   * the card reads as the same element (i.e. the star itself becoming the
+   * card) instead of doubling-up over the avatar mesh that's still rendered
+   * underneath.
+   */
+  hovered?: boolean;
   onHoverEnter: () => void;
   onHoverLeave: () => void;
   onClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -925,7 +960,6 @@ export function StarSprite({
   const haloMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const ringMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const innerRimMatRef = useRef<THREE.MeshBasicMaterial>(null);
-  const sparkMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const flareMatRef = useRef<THREE.MeshBasicMaterial>(null);
   const flareMeshRef = useRef<THREE.Mesh>(null);
   const scaleRef = useRef(1);
@@ -944,17 +978,6 @@ export function StarSprite({
   const haloColor = useMemo(
     () => haloColorForStar(role, star.palette, star.aura),
     [role, star.palette, star.aura],
-  );
-  const sparkColor = useMemo(
-    () =>
-      role === "focus"
-        ? "#fff1d4"
-        : role === "partner"
-          ? "#f3e9ff"
-          : role === "eligible"
-            ? star.palette.accent
-            : "#fff4dc",
-    [role, star.palette.accent],
   );
   const flareColor = useMemo(() => (role === "focus" ? "#ffd5a3" : "#dec8ff"), [role]);
   const intensity = useMemo(
@@ -976,6 +999,22 @@ export function StarSprite({
   // Shimmer pixels sit AT the star, not below. Reserved for active roles so
   // we don't fight the dim field for attention.
   const shimmerCount = role === "focus" ? 7 : role === "partner" ? 6 : role === "eligible" ? 4 : 0;
+  // Star-points geometry — five spikes radiating from the circle border so
+  // the bubble reads as an actual star. Inner notch matches the avatar's
+  // outer edge so the inner vertices tuck behind the circle and only the
+  // outer tips show through. Spike protrusion grows with role weight so the
+  // focus pair gets the most dramatic star silhouette.
+  const starPointsGeometry = useMemo(() => {
+    const protrusion =
+      role === "focus" || role === "partner"
+        ? 1.34
+        : role === "eligible"
+          ? 1.26
+          : role === "ineligible_cooling"
+            ? 1.2
+            : 1.18;
+    return makeStarPointsGeometry(sizing.avatarRadius * protrusion, sizing.avatarRadius * 0.92, 5);
+  }, [role, sizing.avatarRadius]);
 
   useFrame((s, delta) => {
     const t = s.clock.elapsedTime;
@@ -1018,14 +1057,11 @@ export function StarSprite({
         desat ? 0.55 : cool ? 0.88 : 1,
       );
     }
-    // Twinkle. Two-frequency sin gives slow-pulse + fast-shimmer, so each star
-    // has a distinctly "alive" cadence rather than a synchronized strobe.
-    // Computed before the halo so the halo can ride the slow pulse too — the
-    // soft breathing is what makes each star read as a living glow instead
-    // of a static disk.
+    // Halo + flare both ride the slow sin pulse so each star has a distinct
+    // alive cadence instead of a synchronized strobe. The slow component
+    // drives the bubble's breathing, computed before the materials so any
+    // dependent value (haloPulse, flare base) can multiply against it.
     const slow = Math.sin(t * 1.4 + star.phase) * 0.5 + 0.5;
-    const fast = Math.sin(t * 4.7 + star.phase * 2.3) * 0.5 + 0.5;
-    const twinkle = reducedMotion ? 0.85 : 0.6 + slow * 0.28 + fast * 0.14;
     // Halo pulse — modulate around the role target so the bubble visibly
     // breathes. Active roles get a deeper pulse so the player can feel the
     // focus/partner draw attention; dim stars get a shallower pulse so they
@@ -1065,31 +1101,6 @@ export function StarSprite({
         innerRimMatRef.current.opacity,
         target,
         Math.min(1, delta * 5),
-      );
-    }
-    if (sparkMatRef.current !== null) {
-      // No spark on focus / partner — the halo, ring frame, inner rim, and
-      // accent point-lights already mark them. The bright center sparkle was
-      // landing on the face and reading as a smudge. Glittery sparks stay
-      // reserved for the smaller field stars where there is no face to cover.
-      const sparkBase =
-        role === "focus" || role === "partner"
-          ? 0
-          : role === "eligible"
-            ? 0.5
-            : role === "ineligible_cooling"
-              ? 0.4
-              : role === "ineligible_off_shift" || role === "ineligible_closed"
-                ? 0.22
-                : star.tier === "foreground"
-                  ? 0.65
-                  : star.tier === "mid"
-                    ? 0.48
-                    : 0.32;
-      sparkMatRef.current.opacity = THREE.MathUtils.lerp(
-        sparkMatRef.current.opacity,
-        sparkBase * twinkle,
-        Math.min(1, delta * 8),
       );
     }
     if (flareMatRef.current !== null) {
@@ -1147,9 +1158,12 @@ export function StarSprite({
 
   // Rain trail brightness rides the role intensity AND the filtered-out
   // multiplier so cases the lens filtered out cascade visibly dimmer instead
-  // of disappearing.
+  // of disappearing. Pushed brighter than the v6 baseline so the rain reads
+  // distinctly against the ambient ParticleField dust (warm-cream additive
+  // dots) — at this intensity each rain particle's RGB clamps high enough
+  // that Bloom amplifies it past the dust into a visible cascade.
   const rainIntensity =
-    (filteredOut ? 0.42 : 1) * (role === "focus" || role === "partner" ? 1.25 : 0.95);
+    (filteredOut ? 0.42 : 1) * (role === "focus" || role === "partner" ? 2.2 : 1.65);
   // Rain spawn span scales with the halo. Active roles narrow the column so
   // the cascade reads as a vertical stream (Matrix-rain shape) rather than a
   // wide cone — wider drives the wider field stars where presence matters
@@ -1163,15 +1177,15 @@ export function StarSprite({
   // Particle size in world units. PointsMaterial with sizeAttenuation maps
   // these to screen pixels through the standard perspective formula — at the
   // camera's default 17-unit distance with role pulled to z~3, focus stars
-  // are ~14 world units away and a 0.22 world size renders as ~16 screen
-  // pixels per particle, which is what makes the rain read as "pixels" and
-  // not as dust. Smaller for non-active roles so the field doesn't crowd.
+  // are ~14 world units away. Pushed up from v6 so each rain particle reads
+  // as a chunky pixel rather than a faint dust dot that blends with the
+  // ParticleField behind it.
   const rainParticleSize =
     sizing.haloRadius *
-    (role === "focus" || role === "partner" ? 0.26 : role === "eligible" ? 0.22 : 0.16);
+    (role === "focus" || role === "partner" ? 0.42 : role === "eligible" ? 0.34 : 0.24);
 
   return (
-    <group ref={groupRef} position={[natural.x, natural.y, natural.z]}>
+    <group ref={groupRef} position={[natural.x, natural.y, natural.z]} visible={!hovered}>
       {/* Pixel-rain trail — lives OUTSIDE the Billboard so the cascade falls
           along world -Y instead of rotating with the avatar plane. Parented
           to the group so it inherits position + scale. Sized off the halo
@@ -1188,6 +1202,25 @@ export function StarSprite({
         size={rainParticleSize}
       />
       <Billboard>
+        {/* Star spikes — a 5-point star polygon sitting just behind the halo
+            so the inner notches hide behind the avatar circle and only the
+            outer tips poke past the ring. Additive blending lets the spike
+            tips bloom with the same palette tint as the halo, so the bubble
+            reads as "a star" rather than "a portrait disk". */}
+        <mesh position={[0, 0, -0.052]} geometry={starPointsGeometry}>
+          <meshBasicMaterial
+            color={haloColor}
+            transparent
+            opacity={
+              role === "focus" || role === "partner" ? 0.7 : role === "eligible" ? 0.55 : 0.32
+            }
+            depthWrite={false}
+            fog={false}
+            blending={THREE.AdditiveBlending}
+            toneMapped={false}
+          />
+        </mesh>
+
         {/* Soft additive halo */}
         <mesh position={[0, 0, -0.05]}>
           <circleGeometry args={[sizing.haloRadius, 48]} />
@@ -1271,22 +1304,6 @@ export function StarSprite({
             depthWrite={false}
             fog={false}
             side={THREE.DoubleSide}
-            toneMapped={false}
-          />
-        </mesh>
-
-        {/* Twinkling bright spark core — toneMapped=false so the bright center
-            triggers Bloom and reads as a real star. */}
-        <mesh position={[0, 0, 0.04]}>
-          <circleGeometry args={[sizing.sparkRadius, 24]} />
-          <meshBasicMaterial
-            ref={sparkMatRef}
-            color={sparkColor}
-            transparent
-            opacity={0.001}
-            depthWrite={false}
-            fog={false}
-            blending={THREE.AdditiveBlending}
             toneMapped={false}
           />
         </mesh>
@@ -2212,21 +2229,18 @@ export type HoverDetailCardProps = {
 };
 
 /**
- * Approach (shared-element morph): the avatar disc on the constellation field
- * is a 3D mesh owned by StarSprite, which another agent is upgrading and we
- * cannot touch. So instead of fading the mesh and swapping in a DOM avatar at
- * the same screen point, we anchor the card at the star's projected screen
- * coords via Drei's `<Html>` (which already does the world→screen math) and
- * let the card itself grow OUT of that anchor.
+ * Approach (same-element morph): when the star is hovered, `StarSprite`
+ * receives `hovered=true` and the 3D group goes invisible so the only thing
+ * the player sees at that position is the morphing card. The card mounts at
+ * the star's projected screen coords via Drei's `<Html>` (which does the
+ * world→screen math), starts as a small "ghost portrait" disc sized to match
+ * the avatar, and springs outward into the full rounded-rectangle card. The
+ * effect reads as the star itself transforming into the card rather than a
+ * popup appearing next to it.
  *
- * The card starts as a small, circular "ghost portrait" centered on the star
- * (matching the avatar's apparent disc), then springs outward to the right
- * while transforming from a circle to a rounded rectangle. As the card
- * expands, the ghost portrait shrinks into the upper-left chip slot, and the
- * rest of the content (filename, name, tags, snippet, buttons) cross-fades in
- * after the layout has mostly settled. The 3D star mesh keeps glowing behind
- * the morph — when the card finishes, its liquid-glass surface covers the
- * disc; when the card exits, the disc is revealed again.
+ * As the card expands the ghost portrait shrinks into the upper-left chip
+ * slot and the rest of the content (filename, name, tags, snippet, buttons)
+ * cross-fades in after the layout has mostly settled.
  *
  * Reduced-motion mode snaps the card to its final layout with a plain
  * opacity fade, skipping the spring entirely.
@@ -2237,10 +2251,11 @@ export type HoverDetailCardProps = {
 // shape the eye reads as the star itself, not an arbitrary popup.
 const MORPH_START_DIAMETER_PX = 56;
 const MORPH_FINAL_WIDTH_PX = 340;
-// Horizontal offset from the star center to the card's left edge, in the
-// final layout. The card grows out and slides to the right of the star so
-// the disc stays visually anchored on the left side of the rack.
-const MORPH_FINAL_OFFSET_X_PX = 36;
+// Card stays anchored at the star center — the avatar chip in the card's
+// upper-left lands roughly where the original avatar disc was, so the eye
+// reads the card as the star itself unfolding outward instead of sliding
+// to one side.
+const MORPH_FINAL_OFFSET_X_PX = -32;
 
 export function HoverDetailCard({
   star,

@@ -80,19 +80,19 @@ describe("pairPartnerPosition", () => {
 });
 
 describe("computeCameraTarget", () => {
-  it("returns the centered idle frame when the lobby is idle", () => {
+  it("returns the centered idle frame with mild bokeh so focus cases stay sharp", () => {
     expect(computeCameraTarget("idle", undefined)).toEqual({
       position: [0, 0, 17],
       lookAt: [0, 0, -1],
-      bokehScale: 1.2,
+      bokehScale: 0.45,
     });
   });
 
-  it("returns the centered idle frame when callouts dominate", () => {
+  it("returns the mild-bokeh idle frame when callouts dominate", () => {
     expect(computeCameraTarget("callout_heavy", makeStar())).toEqual({
       position: [0, 0, 17],
       lookAt: [0, 0, -1],
-      bokehScale: 1.2,
+      bokehScale: 0.45,
     });
   });
 
@@ -100,25 +100,25 @@ describe("computeCameraTarget", () => {
     expect(computeCameraTarget("focus_selected", undefined)).toEqual({
       position: [0, 0, 17],
       lookAt: [0, 0, -1],
-      bokehScale: 1.2,
+      bokehScale: 0.45,
     });
   });
 
-  it("dollies in toward the focus on focus_selected", () => {
+  it("dollies in toward the focus on focus_selected with a deeper bokeh", () => {
     const focus = makeStar({ x: 70, y: 30, z: 0 });
     const target = computeCameraTarget("focus_selected", focus);
     expect(target.position[2]).toBe(10);
-    expect(target.bokehScale).toBe(1.4);
+    expect(target.bokehScale).toBe(1.1);
     const fp = starWorldPosition(focus);
     expect(target.position[0]).toBeCloseTo(fp.x * 0.55);
     expect(target.position[1]).toBeCloseTo(fp.y * 0.5);
   });
 
-  it("frames the pair anchor on partner_selected and beyond", () => {
+  it("frames the pair anchor on partner_selected and beyond with the deepest bokeh", () => {
     const focus = makeStar({ x: 60, y: 40, z: 0 });
     const target = computeCameraTarget("partner_selected", focus);
     expect(target.position[2]).toBe(6.5);
-    expect(target.bokehScale).toBe(1.5);
+    expect(target.bokehScale).toBe(1.25);
   });
 });
 

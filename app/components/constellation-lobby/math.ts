@@ -49,18 +49,21 @@ export function pairPartnerPosition(focus: StarMark): Vec3 {
 }
 
 export function computeCameraTarget(state: LobbyState, focus: StarMark | undefined): CameraTarget {
+  // Idle / callout-heavy keep DoF mild so focus-case stars scattered through
+  // the field still read sharp — the player hasn't picked a target yet, so
+  // there's nothing to bias the focus plane around.
   if (state === "idle" || state === "callout_heavy") {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 1.2 };
+    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 0.45 };
   }
   if (focus === undefined) {
-    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 1.2 };
+    return { position: [0, 0, 17], lookAt: [0, 0, -1], bokehScale: 0.45 };
   }
   const fp = starWorldPosition(focus);
   if (state === "focus_selected") {
     return {
       position: [fp.x * 0.55, fp.y * 0.5, 10],
       lookAt: [fp.x * 0.9, fp.y * 0.9, fp.z + 0.2],
-      bokehScale: 1.4,
+      bokehScale: 1.1,
     };
   }
   // partner_selected / committed_pair / scenario_chosen — frame the pair
@@ -69,7 +72,7 @@ export function computeCameraTarget(state: LobbyState, focus: StarMark | undefin
   return {
     position: [anchorX * 0.55, anchorY * 0.45, 6.5],
     lookAt: [anchorX * 0.85, anchorY * 0.8, fp.z + 0.3],
-    bokehScale: 1.5,
+    bokehScale: 1.25,
   };
 }
 
