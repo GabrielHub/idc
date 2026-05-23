@@ -63,4 +63,21 @@ export type CameraTarget = {
   bokehScale: number;
 };
 
+/**
+ * Discrete depth layer the player has scrolled into. Scrolling down advances
+ * the layer 0 → 1 → 2 → 3 (clamped). Each layer corresponds to a depth slab
+ * the player is currently traversing — 0 = focus cases pulled forward, 1 =
+ * tonight's eligible partners, 2 = off-tonight members, 3 = the scenarios
+ * layer where date plans render as 3D card meshes inside the canvas.
+ */
+export type FlythroughLayer = 0 | 1 | 2 | 3;
+
+/**
+ * Which layer a given star belongs to in the flythrough. Stars only live on
+ * one of the three member layers; `none` means the star is not a roster
+ * star at all (today: not used, but reserved for future non-member meshes
+ * that might float between layers).
+ */
+export type StarFlythroughLayer = 0 | 1 | 2;
+
 export type Vec3 = { x: number; y: number; z: number };

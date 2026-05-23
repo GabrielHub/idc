@@ -44,6 +44,7 @@ import {
   BottomDock,
   CalloutCluster,
   HoverDetailCard,
+  LayerIndicator,
   Scene,
   ScenarioPanel,
   SideRail,
@@ -88,7 +89,7 @@ import {
   isMemberRosterFilterActive,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
-import { computeCameraTarget } from "./math";
+import { computeCameraTarget, computeFlythroughCameraTarget } from "./math";
 import { NotesOverlay } from "./notes-overlay";
 import { PairDossierShard } from "./pair-dossier-shard";
 import { RecentNotesSlot } from "./recent-notes-slot";
@@ -96,7 +97,14 @@ import { ShiftArchiveOverlay } from "./shift-archive-overlay";
 import { CaseFilePanel } from "./case-file-panel";
 import { LensPanel } from "./lens-panel";
 import { ReselectDock } from "./reselect-dock";
-import type { LobbyScenario, LobbyState, StarAvailability, StarMark, StarTier } from "./types";
+import type {
+  FlythroughLayer,
+  LobbyScenario,
+  LobbyState,
+  StarAvailability,
+  StarMark,
+  StarTier,
+} from "./types";
 import { DeckModePanel } from "./deck-mode-panel";
 import { LibraryModePanel } from "./library-mode-panel";
 
@@ -186,9 +194,10 @@ export function ConstellationLobby({
   const reducedMotion = useReducedMotion() === true;
   const activeBooking = shift.activeBooking ?? null;
 
-  const [focusId, setFocusId] = useState<string | null>(
+  const [focusId, _setFocusId] = useState<string | null>(
     activeBooking?.focusMemberId ?? focusedMembers[0]?.id ?? null,
   );
+  void _setFocusId;
   // `participantIds` is `[focus, partner]` by convention — pull the second
   // slot to seed the partner state for an in-flight booking.
   const [partnerId, setPartnerId] = useState<string | null>(
@@ -196,6 +205,14 @@ export function ConstellationLobby({
   );
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [scenarioMode, setScenarioMode] = useState<ScenarioMode>("auto");
+  /**
+   * Flythrough layer the player has scrolled into. 0 = focus cases, 1 =
+   * tonight's eligibles, 2 = off-tonight, 3 = scenarios (rendered as 3D
+   * card meshes inside the canvas via Scene's ScenarioCardField3D). The
+   * Scene mounts a wheel handler that calls `setCurrentLayer` per scroll
+   * tick, throttled so a single wheel notch advances one layer.
+   */
+  const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
 
   // Roster fold state. lobbyMode toggles between browse and reselect; the
   // case file overlay opens from HoverDetailCard's "Open case" or a double
@@ -244,9 +261,15 @@ export function ConstellationLobby({
     [stars, partnerId],
   );
 
+  // Camera target: on layer 0 the lobby state still drives the framing
+  // (focus / partner / committed dolly), but layers 1-3 hand control to the
+  // flythrough so the camera punches through the slabs.
   const cameraTarget = useMemo(
-    () => computeCameraTarget(lobbyState, focusStar),
-    [lobbyState, focusStar],
+    () =>
+      currentLayer === 0 && lobbyState !== "idle"
+        ? computeCameraTarget(lobbyState, focusStar)
+        : computeFlythroughCameraTarget(currentLayer, focusStar),
+    [currentLayer, lobbyState, focusStar],
   );
 
   const scenarioById = useMemo(
@@ -277,6 +300,24 @@ export function ConstellationLobby({
   );
 
   const lobbyScenarios = useMemo(() => drawnScenarios.map(toLobbyScenario), [drawnScenarios]);
+
+  /**
+   * Scenarios shown on the layer-3 flythrough slab. When a pair is committed
+   * (drawnScenarios is populated) we render those exact cards; otherwise we
+   * preview the first three from the player's deck so the layer reads as
+   * "the scenarios layer" instead of an empty slab the player can scroll
+   * into. The fallback preview is for read-only orientation — the booking
+   * flow still requires a committed pair before onScenarioClick can route
+   * through onStartDate.
+   */
+  const flythroughScenariosForLayer = useMemo(() => {
+    if (lobbyScenarios.length > 0) return lobbyScenarios;
+    const deckIds = save.scenarioDeck.cardIds.slice(0, 3);
+    return deckIds
+      .map((id) => starterScenarios.find((s) => s.id === id))
+      .filter((s): s is DateScenario => s !== undefined)
+      .map(toLobbyScenario);
+  }, [lobbyScenarios, save.scenarioDeck.cardIds]);
 
   const selectedScenarioTitle = useMemo(
     () =>
@@ -430,53 +471,41 @@ export function ConstellationLobby({
     setLobbyMode("browse");
   };
 
-  // Click handlers wired into Scene: in reselect, toggle the draft; in
-  // browse, pick focus / partner depending on availability and slots.
+  // Click handlers wired into Scene: in reselect, toggle the draft directly
+  // (the card concept doesn't fit there — the dock is the affordance). In
+  // browse, click morphs the star into its `HoverDetailCard`; the card's
+  // buttons drive focus/partner selection and case-file zoom.
   const handleStarClick = useCallback(
     (star: StarMark) => {
-      const member = star.member;
       if (lobbyMode === "reselect") {
-        if (member.state.status !== "active") return;
-        toggleReselectMember(member.id);
+        if (star.member.state.status !== "active") return;
+        toggleReselectMember(star.member.id);
         return;
       }
-      if (member.state.status !== "active") {
-        setOpenCaseMemberId(member.id);
-        return;
-      }
-      if (focusId === null) {
-        setFocusId(member.id);
-        return;
-      }
-      if (member.id === focusId) {
-        setPartnerId(null);
-        setSelectedScenarioId(null);
-        return;
-      }
-      if (eligiblePartnerIds.has(member.id)) {
-        setPartnerId(member.id);
-      }
+      setActiveStarId((prev) => (prev === star.member.id ? null : star.member.id));
     },
-    [lobbyMode, focusId, eligiblePartnerIds],
+    [lobbyMode],
   );
 
+  // Double-click is a power-user shortcut that skips the card and opens the
+  // full case-file overlay directly.
   const handleStarDoubleClick = useCallback((star: StarMark) => {
+    setActiveStarId(null);
     setOpenCaseMemberId(star.member.id);
+  }, []);
+
+  // Opening the case file from anywhere also dismisses the inline card so the
+  // two layers don't fight for attention.
+  const openCaseAndDismiss = useCallback((memberId: string) => {
+    setActiveStarId(null);
+    setOpenCaseMemberId(memberId);
   }, []);
 
   // HoverDetailCard receives both Roster fold context (file number, sealed/
   // known counts, knowledge-gated snippet, swap penalty, context-aware CTA)
   // and the Files agent's recentNotesSlot.
   const renderHoverCard = useCallback(
-    ({
-      star,
-      onMouseEnter,
-      onMouseLeave,
-    }: {
-      star: StarMark;
-      onMouseEnter: () => void;
-      onMouseLeave: () => void;
-    }) => {
+    ({ star }: { star: StarMark }) => {
       const member = star.member;
       const profile = buildVisibleMemberProfile(
         member,
@@ -489,19 +518,35 @@ export function ConstellationLobby({
       const status = member.state.status;
       const slotsFull = save.focusedMemberIds.length >= FOCUS_CASE_LIMIT;
       const eligibleForFocus = canBeFocusCase(member);
+      // In focus_selected, an active non-focus member that's an eligible
+      // partner becomes the candidate to seal the pair. The card's primary
+      // CTA reflects that — "Make partner" sets partnerId and closes the
+      // card so the player drops back to the dock to confirm.
+      const isPartnerCandidate =
+        focusId !== null &&
+        partnerId === null &&
+        member.id !== focusId &&
+        status === "active" &&
+        eligiblePartnerIds.has(member.id);
 
-      let ctaVariant: "make_focus" | "swap_into_focus" | "view_case" = "view_case";
+      let ctaVariant: "make_focus" | "make_partner" | "swap_into_focus" | "view_case" = "view_case";
       let onPrimaryAction: (() => void) | undefined = undefined;
 
       if (status !== "active" || isFocused) {
         ctaVariant = "view_case";
-        onPrimaryAction = () => setOpenCaseMemberId(member.id);
+        onPrimaryAction = () => openCaseAndDismiss(member.id);
+      } else if (isPartnerCandidate) {
+        ctaVariant = "make_partner";
+        onPrimaryAction = () => {
+          setPartnerId(member.id);
+          setActiveStarId(null);
+        };
       } else if (!eligibleForFocus) {
         ctaVariant = "view_case";
-        onPrimaryAction = () => setOpenCaseMemberId(member.id);
+        onPrimaryAction = () => openCaseAndDismiss(member.id);
       } else if (slotsFull) {
         ctaVariant = "swap_into_focus";
-        onPrimaryAction = () => setOpenCaseMemberId(member.id);
+        onPrimaryAction = () => openCaseAndDismiss(member.id);
       } else {
         ctaVariant = "make_focus";
         onPrimaryAction =
@@ -509,6 +554,7 @@ export function ConstellationLobby({
             ? undefined
             : () => {
                 onAddFocus(member.id);
+                setActiveStarId(null);
               };
       }
 
@@ -533,10 +579,8 @@ export function ConstellationLobby({
           swapPenalty={ctaVariant === "swap_into_focus" ? FOCUS_SWAP_RETENTION_PENALTY : undefined}
           ctaVariant={ctaVariant}
           onPrimaryAction={onPrimaryAction}
-          onOpenCase={() => setOpenCaseMemberId(member.id)}
+          onOpenCase={() => openCaseAndDismiss(member.id)}
           recentNotesSlot={<RecentNotesSlot memberId={member.id} memories={save.memories} />}
-          onMouseEnter={onMouseEnter}
-          onMouseLeave={onMouseLeave}
         />
       );
     },
@@ -547,6 +591,10 @@ export function ConstellationLobby({
       focusedSet,
       revealAllMemberDetails,
       onAddFocus,
+      focusId,
+      partnerId,
+      eligiblePartnerIds,
+      openCaseAndDismiss,
     ],
   );
 
@@ -755,12 +803,18 @@ export function ConstellationLobby({
     onOpenDateSession,
   ]);
 
+  // Floating ScenarioPanel only renders when the player is on a member layer.
+  // Layer 3 mounts the scenarios as 3D card meshes inside the canvas, so the
+  // floating UI hides to avoid doubling. The committed_pair/scenario_chosen
+  // gating still applies — the panel is part of the booking flow, not a
+  // permanent overlay.
   const showAutoScenarios =
     scenarioMode === "auto" &&
     (lobbyState === "committed_pair" || lobbyState === "scenario_chosen") &&
-    lobbyScenarios.length > 0;
-  const showDeckPanel = scenarioMode === "deck";
-  const showLibraryPanel = scenarioMode === "library" && !bookingLocked;
+    lobbyScenarios.length > 0 &&
+    currentLayer !== 3;
+  const showDeckPanel = scenarioMode === "deck" && currentLayer !== 3;
+  const showLibraryPanel = scenarioMode === "library" && !bookingLocked && currentLayer !== 3;
   const showCallouts = callouts.length > 0;
 
   return (
@@ -793,11 +847,18 @@ export function ConstellationLobby({
                 eligiblePartnerIds,
                 filterMatchedIds,
               }}
+              currentLayer={currentLayer}
+              onLayerChange={setCurrentLayer}
+              focusedIds={focusedSet}
+              flythroughScenarios={flythroughScenariosForLayer}
+              selectedScenarioId={selectedScenarioId}
+              onScenarioClick={setSelectedScenarioId}
             />
           </Suspense>
         </Canvas>
       </div>
       <TopBar state={lobbyState} status={statusShards} navs={navShards} />
+      <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
       <SideRail
         state={lobbyState}
         focus={focusStar}

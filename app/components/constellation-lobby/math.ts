@@ -8,8 +8,10 @@
 
 import type {
   CameraTarget,
+  FlythroughLayer,
   LobbyState,
   StarAvailability,
+  StarFlythroughLayer,
   StarMark,
   StarRole,
   StarTier,
@@ -74,6 +76,151 @@ export function computeCameraTarget(state: LobbyState, focus: StarMark | undefin
     lookAt: [anchorX * 0.85, anchorY * 0.8, fp.z + 0.3],
     bokehScale: 1.25,
   };
+}
+
+/**
+ * Per-layer world Z position the camera dollies toward in the flythrough.
+ * Layer 0 sits where the default idle camera does (z=17); each subsequent
+ * layer punches forward in world Z so the active member slab is right under
+ * the lens. Layer 3 (scenarios) lands at z=4 so the scenario card meshes
+ * sitting at z ≈ -1 read as the foreground "wall" the player just zoomed up
+ * against.
+ */
+export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
+  0: 17,
+  1: 13,
+  2: 9,
+  3: 4,
+};
+
+/**
+ * Per-layer world-Z plane each slab of stars lives on once flythrough is
+ * active. Layer 0 (focus) is pulled WAY forward — these are the closest,
+ * largest, brightest stars; the player landed here. Layer 1 (eligible) sits
+ * a step behind layer 0. Layer 2 (off-tonight) sits another step behind.
+ * Layer 3 doesn't carry stars — it's the scenarios layer. These are absolute
+ * world-Z targets, not offsets, so the StarSprite useFrame can lerp toward
+ * them regardless of the star's seeded natural Z. We add a small natural-Z
+ * jitter back in the StarSprite so each layer slab still has a bit of inner
+ * depth and the player can read parallax across stars within a layer.
+ */
+export const FLYTHROUGH_LAYER_Z: Record<StarFlythroughLayer, number> = {
+  0: 6.0, // focus slab — pulled hard forward
+  1: 1.0, // eligible slab
+  2: -4.0, // off-tonight slab
+};
+
+/**
+ * Camera framing for the flythrough. The base focus/partner framing still
+ * drives lookAt + dolly inside the focus slab when the player has picked one;
+ * for layers 1-3 we look down-axis (Z negative) so the slab the player is
+ * traversing reads flat across the screen. Bokeh deepens slightly per layer
+ * so the active slab feels punched into focus while the others feather away.
+ *
+ * The lookAt point sits ahead of the camera (further in -Z) so each layer
+ * traversal feels like punching through the previous one rather than tilting
+ * down at the field from above.
+ */
+export function computeFlythroughCameraTarget(
+  layer: FlythroughLayer,
+  focus: StarMark | undefined,
+): CameraTarget {
+  const z = FLYTHROUGH_CAMERA_Z[layer];
+  // Bias toward focus star x/y on layer 0 so the framing leads with whichever
+  // focus case the player most recently engaged — falls back to centered
+  // framing when no focus is picked.
+  const focusBias = layer === 0 && focus !== undefined ? starWorldPosition(focus) : null;
+  const biasX = focusBias === null ? 0 : focusBias.x * 0.25;
+  const biasY = focusBias === null ? 0 : focusBias.y * 0.25;
+
+  // DoF target sits at the slab the camera is currently looking at, so the
+  // active layer stays sharp under post.
+  const slabZ = layer === 3 ? -1 : FLYTHROUGH_LAYER_Z[layer];
+
+  // Bokeh deepens slightly as we punch through; layer 3 (scenarios) gets the
+  // tightest framing so the cards read crisply.
+  const bokeh = layer === 0 ? 0.45 : layer === 1 ? 0.75 : layer === 2 ? 0.95 : 0.6;
+
+  return {
+    position: [biasX, biasY, z],
+    lookAt: [biasX, biasY * 0.6, slabZ - 1],
+    bokehScale: bokeh,
+  };
+}
+
+/**
+ * Map a member-layer flythrough slab (0 / 1 / 2) onto its absolute world-Z
+ * plane. Pure pass-through into the FLYTHROUGH_LAYER_Z record; exists as a
+ * function so callers don't import the constant directly and so the math
+ * stays in one place for tests + future extension.
+ */
+export function flythroughStarZ(layer: StarFlythroughLayer): number {
+  return FLYTHROUGH_LAYER_Z[layer];
+}
+
+/**
+ * Decide which member layer a star belongs to in the flythrough. Pure
+ * function — takes the membership sets the lobby has already computed
+ * (focused, eligible, ineligible) and returns 0/1/2. Returns 2 as the
+ * fallback so any uncategorised member still has a layer rather than
+ * disappearing.
+ */
+export function computeStarFlythroughLayer(
+  memberId: string,
+  {
+    focusedIds,
+    eligibleIds,
+  }: { focusedIds: ReadonlySet<string>; eligibleIds: ReadonlySet<string> },
+): StarFlythroughLayer {
+  if (focusedIds.has(memberId)) return 0;
+  if (eligibleIds.has(memberId)) return 1;
+  return 2;
+}
+
+/**
+ * Per-star opacity / scale multiplier driven by the active flythrough layer.
+ * The active slab gets the full role intensity; non-active slabs get pushed
+ * down so the eye reads the active layer as the foreground. Layer 3 (the
+ * scenarios layer) recedes ALL member slabs so the scenario cards sit
+ * clearly in front of a muted constellation backdrop.
+ */
+export function flythroughMemberSlabActivity(
+  starLayer: StarFlythroughLayer,
+  currentLayer: FlythroughLayer,
+): { intensityMultiplier: number; scaleMultiplier: number } {
+  if (currentLayer === 3) {
+    // Scenarios layer — all member layers recede uniformly so the scenario
+    // cards lead.
+    return { intensityMultiplier: 0.35, scaleMultiplier: 0.85 };
+  }
+  if (starLayer === currentLayer) {
+    return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
+  }
+  // Off-axis member layers fade — closer-to-active fades less.
+  const distance = Math.abs(starLayer - currentLayer);
+  if (distance === 1) return { intensityMultiplier: 0.45, scaleMultiplier: 0.9 };
+  return { intensityMultiplier: 0.22, scaleMultiplier: 0.78 };
+}
+
+/**
+ * Advance the flythrough layer by one step in the given direction (1 = scroll
+ * down / punch deeper, -1 = scroll up / come back out). Clamped to the 0..3
+ * range so the player can't scroll past the scenarios layer or out the back
+ * of the focus layer.
+ */
+export function advanceFlythroughLayer(
+  current: FlythroughLayer,
+  direction: 1 | -1,
+): FlythroughLayer {
+  const next = current + direction;
+  if (next < 0) return 0;
+  if (next > 3) return 3;
+  // The arithmetic guarantees 0..3 — cast keeps the union narrow without
+  // relying on type assertions.
+  if (next === 0) return 0;
+  if (next === 1) return 1;
+  if (next === 2) return 2;
+  return 3;
 }
 
 /**

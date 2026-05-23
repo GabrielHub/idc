@@ -21,7 +21,16 @@
  * foundation plan picks up the approved direction.
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MutableRefObject,
+  type ReactNode,
+} from "react";
 import { Canvas, useFrame, type ThreeEvent } from "@react-three/fiber";
 import { Billboard, Html, Line, useTexture } from "@react-three/drei";
 import { Bloom, DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
@@ -34,12 +43,21 @@ import { getMemberAuraConfig } from "../components/member-aura-registry";
 import { resolvePortraitPalette, type PortraitPalette } from "../components/portrait-palette";
 import { caseFileNumber } from "../components/member-card-atoms";
 import { createSeededRandom } from "../services/utils";
-import { haloColorForStar } from "../components/constellation-lobby/math";
+import {
+  advanceFlythroughLayer,
+  computeFlythroughCameraTarget,
+  computeStarFlythroughLayer,
+  flythroughMemberSlabActivity,
+  flythroughStarZ,
+  haloColorForStar,
+} from "../components/constellation-lobby/math";
 import type {
   CameraTarget,
+  FlythroughLayer,
   LobbyScenario,
   LobbyState,
   StarAvailability,
+  StarFlythroughLayer,
   StarMark,
   StarRole,
   StarTier,
@@ -120,20 +138,57 @@ export default function ConstellationLobbySpike() {
   const [state, setState] = useState<LobbyState>("idle");
   const [showAuras, setShowAuras] = useState(true);
   const [showParallax, setShowParallax] = useState(true);
+  /**
+   * Flythrough layer the player has scrolled into. Scroll-down advances
+   * 0 → 1 → 2 → 3, scroll-up reverses; the throttle inside Scene's wheel
+   * handler ensures a normal wheel notch advances one layer per tick. The
+   * layer state is orthogonal to LobbyState — the player can traverse the
+   * member slabs and the scenarios layer regardless of whether they've
+   * committed to a focus / partner / scenario.
+   */
+  const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
+  /** Selected scenario id when the player commits one from the scenarios layer. */
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
 
   const stars = useMemo<StarMark[]>(() => buildStars(starterMembers), []);
   const focusStar = stars.find((s) => s.member.id === FOCUS_ID);
   const partnerStar = stars.find((s) => s.member.id === PARTNER_ID);
 
-  const cameraTarget = computeCameraTarget(state, focusStar);
+  /**
+   * Spike layer membership. Layer 0 is the seeded focus case + a couple
+   * starter focus stars to populate the slab. Layer 1 = the eligible set.
+   * Layer 2 is implicit (everyone else: cooling / off_shift / closed).
+   */
+  const focusedIds = useMemo<ReadonlySet<string>>(
+    () => new Set<string>([FOCUS_ID, "ryan-doyle", "mei-sato", "marcus-pellish"]),
+    [],
+  );
+
+  // Camera target derives from the lobby state for the selection workflow
+  // OR from the flythrough layer when the player has scrolled past layer 0.
+  // Layer-0 framing defers to the LobbyState camera so existing focus /
+  // partner / committed framings still feel anchored.
+  const cameraTarget =
+    currentLayer === 0 && state !== "idle"
+      ? computeCameraTarget(state, focusStar)
+      : computeFlythroughCameraTarget(currentLayer, focusStar);
   const reducedMotion = useReducedMotion() === true;
 
   const showFocusChip = state !== "idle" && state !== "callout_heavy" && focusStar !== undefined;
   const showPartnerChip =
     (state === "partner_selected" || state === "committed_pair" || state === "scenario_chosen") &&
     partnerStar !== undefined;
-  const showScenario = state === "committed_pair" || state === "scenario_chosen";
+  // Scenarios-as-3D land on layer 3, regardless of the booking state — the
+  // player is exploring the scenarios layer. The legacy floating ScenarioPanel
+  // still shows once a pair is committed, but only while the player is back
+  // on a member layer (so the floating UI doesn't double the in-canvas grid).
+  const showFloatingScenario =
+    (state === "committed_pair" || state === "scenario_chosen") && currentLayer !== 3;
   const scenarioLocked = state === "scenario_chosen";
+
+  const handleScenarioClick = useCallback((scenarioId: string) => {
+    setSelectedScenarioId(scenarioId);
+  }, []);
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#07041a] text-aura-paper">
@@ -158,6 +213,12 @@ export default function ConstellationLobbySpike() {
               showAuras={showAuras}
               showParallax={showParallax}
               reducedMotion={reducedMotion}
+              currentLayer={currentLayer}
+              onLayerChange={setCurrentLayer}
+              focusedIds={focusedIds}
+              flythroughScenarios={MOCK_SCENARIOS}
+              selectedScenarioId={selectedScenarioId}
+              onScenarioClick={handleScenarioClick}
             />
           </Suspense>
         </Canvas>
@@ -173,11 +234,11 @@ export default function ConstellationLobbySpike() {
         state={state}
         focus={focusStar}
         partner={partnerStar}
-        selectedScenarioId={scenarioLocked ? "lakeside-walk" : null}
+        selectedScenarioId={scenarioLocked ? "lakeside-walk" : selectedScenarioId}
       />
 
       <AnimatePresence>
-        {showScenario ? (
+        {showFloatingScenario ? (
           <ScenarioPanel
             key="scenario"
             scenarios={MOCK_SCENARIOS}
@@ -189,6 +250,8 @@ export default function ConstellationLobbySpike() {
       <AnimatePresence>
         {state === "callout_heavy" ? <CalloutCluster key="cluster" /> : null}
       </AnimatePresence>
+
+      <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
 
       <SpikeControls
         state={state}
@@ -244,6 +307,12 @@ export function Scene({
   reducedMotion,
   renderHoverCard,
   starClickHandlers,
+  currentLayer,
+  onLayerChange,
+  focusedIds,
+  flythroughScenarios,
+  selectedScenarioId,
+  onScenarioClick,
 }: {
   state: LobbyState;
   stars: StarMark[];
@@ -255,6 +324,30 @@ export function Scene({
   reducedMotion: boolean;
   renderHoverCard?: RenderHoverCard;
   starClickHandlers?: StarClickHandlers;
+  /**
+   * Discrete depth slab the player has scrolled into. When provided, Scene
+   * mounts a wheel handler that advances the layer per scroll tick instead
+   * of the previous cycle-focus behavior, and overlays per-layer slab
+   * activity (active layer pulled forward, others receded) on top of the
+   * existing role-driven star treatment.
+   */
+  currentLayer?: FlythroughLayer;
+  onLayerChange?: (next: FlythroughLayer) => void;
+  /**
+   * Member ids that live on layer 0 (focus slab). Layer 1 is eligible
+   * partners (derived from eligiblePartnerIds in starClickHandlers, with
+   * fallback to the spike's default ELIGIBLE_PARTNER_IDS); layer 2 is
+   * everyone else. Required for the layer-flythrough overlay; when
+   * undefined, the Scene falls back to no slab treatment.
+   */
+  focusedIds?: ReadonlySet<string>;
+  /**
+   * Scenarios rendered as 3D card meshes on layer 3. When undefined, the
+   * Scene skips the scenarios-layer treatment entirely.
+   */
+  flythroughScenarios?: LobbyScenario[];
+  selectedScenarioId?: string | null;
+  onScenarioClick?: (scenarioId: string) => void;
 }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const dismissTimerRef = useRef<number | null>(null);
@@ -295,53 +388,42 @@ export function Scene({
     };
   }, []);
 
-  // Scroll-to-cycle: wheel events cycle the highlighted member through the
-  // eligible set. In idle/callouts we cycle all "ready" candidates; in
-  // focus_selected we narrow to partner-eligible. Stays a no-op once a pair is
-  // committed — scrolling at that point shouldn't reshuffle the selection.
-  const hoveredIdRef = useRef<string | null>(hoveredId);
+  // Layer-flythrough scroll handler. Each wheel tick advances `currentLayer`
+  // by one step in the scroll direction, throttled so a single mouse-wheel
+  // motion advances one layer rather than several. Disabled when the parent
+  // didn't wire `onLayerChange` — the spike's old cycle-hover-through-eligibles
+  // behavior is gone; the parent owns layer state.
+  const currentLayerRef = useRef<FlythroughLayer | undefined>(currentLayer);
   useEffect(() => {
-    hoveredIdRef.current = hoveredId;
-  }, [hoveredId]);
+    currentLayerRef.current = currentLayer;
+  }, [currentLayer]);
 
   useEffect(() => {
-    const lastCycleAtRef = { current: 0 };
+    if (onLayerChange === undefined) return;
+    const lastAdvanceRef = { current: 0 };
     const handleWheel = (event: WheelEvent) => {
-      const eligibleSet = starClickHandlers?.eligiblePartnerIds ?? ELIGIBLE_PARTNER_IDS;
-      let eligibleIds: string[] = [];
-      if (state === "idle" || state === "callout_heavy") {
-        eligibleIds = stars.filter((s) => s.availability === "ready").map((s) => s.member.id);
-      } else if (state === "focus_selected") {
-        eligibleIds = stars
-          .filter((s) => s.availability === "ready" && eligibleSet.has(s.member.id))
-          .map((s) => s.member.id);
-      } else {
-        return;
-      }
-      if (eligibleIds.length === 0) return;
       const dominantDelta =
         Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
       if (Math.abs(dominantDelta) < 4) return;
       const now = performance.now();
-      if (now - lastCycleAtRef.current < 110) return;
-      lastCycleAtRef.current = now;
-      event.preventDefault();
-      if (dismissTimerRef.current !== null) {
-        window.clearTimeout(dismissTimerRef.current);
-        dismissTimerRef.current = null;
+      // 220ms throttle — a normal mouse-wheel motion advances one layer per
+      // tick instead of zipping through all four. Trackpad inertia still
+      // produces multiple events per gesture but is similarly clamped.
+      if (now - lastAdvanceRef.current < 220) {
+        event.preventDefault();
+        return;
       }
-      const currentIdx =
-        hoveredIdRef.current !== null ? eligibleIds.indexOf(hoveredIdRef.current) : -1;
-      const dir = dominantDelta > 0 ? 1 : -1;
-      const nextIdx = (currentIdx + dir + eligibleIds.length) % eligibleIds.length;
-      const next = eligibleIds[nextIdx];
-      if (next !== undefined) {
-        setHoveredId(next);
+      lastAdvanceRef.current = now;
+      event.preventDefault();
+      const dir: 1 | -1 = dominantDelta > 0 ? 1 : -1;
+      const next = advanceFlythroughLayer(currentLayerRef.current ?? 0, dir);
+      if (next !== currentLayerRef.current) {
+        onLayerChange(next);
       }
     };
     window.addEventListener("wheel", handleWheel, { passive: false });
     return () => window.removeEventListener("wheel", handleWheel);
-  }, [state, stars, starClickHandlers?.eligiblePartnerIds]);
+  }, [onLayerChange]);
 
   const sources = useMemo(
     () =>
@@ -448,6 +530,21 @@ export function Scene({
         const filteredOut =
           starClickHandlers?.filterMatchedIds !== undefined &&
           !starClickHandlers.filterMatchedIds.has(star.member.id);
+        // Flythrough slab membership. Each star lives on exactly one of the
+        // three member layers (0 focus, 1 eligible, 2 off-tonight). We
+        // compute it here so StarSprite can lerp to the slab Z and pick up
+        // the active-layer scale/opacity multipliers in its useFrame.
+        const flythroughLayer: StarFlythroughLayer | undefined =
+          focusedIds === undefined
+            ? undefined
+            : computeStarFlythroughLayer(star.member.id, {
+                focusedIds,
+                eligibleIds: eligiblePartnerSet,
+              });
+        const slabActivity =
+          flythroughLayer === undefined || currentLayer === undefined
+            ? undefined
+            : flythroughMemberSlabActivity(flythroughLayer, currentLayer);
         return (
           <StarSprite
             key={star.member.id}
@@ -462,6 +559,8 @@ export function Scene({
             reducedMotion={reducedMotion}
             filteredOut={filteredOut}
             hovered={hoveredId === star.member.id}
+            flythroughLayer={flythroughLayer}
+            slabActivity={slabActivity}
             onHoverEnter={() => setHoverWithGrace(star.member.id)}
             onHoverLeave={() => setHoverWithGrace(null)}
             onClick={
@@ -477,6 +576,16 @@ export function Scene({
           />
         );
       })}
+
+      {flythroughScenarios !== undefined && flythroughScenarios.length > 0 ? (
+        <ScenarioCardField3D
+          scenarios={flythroughScenarios}
+          currentLayer={currentLayer ?? 0}
+          selectedScenarioId={selectedScenarioId ?? null}
+          onScenarioClick={onScenarioClick}
+          reducedMotion={reducedMotion}
+        />
+      ) : null}
 
       {pairConnectorEndpoint !== null && focusPos !== null ? (
         <PairConnector3D from={focusPos} to={pairConnectorEndpoint} />
@@ -922,6 +1031,8 @@ export function StarSprite({
   reducedMotion,
   filteredOut = false,
   hovered = false,
+  flythroughLayer,
+  slabActivity,
   onHoverEnter,
   onHoverLeave,
   onClick,
@@ -945,6 +1056,21 @@ export function StarSprite({
    * underneath.
    */
   hovered?: boolean;
+  /**
+   * Flythrough slab the star lives on. When provided, the star lerps toward
+   * the slab's absolute world-Z instead of its seeded natural Z + role offset
+   * so each scroll tick re-layers the field. Undefined = legacy (no slab
+   * treatment), the old role-based layer offset stands.
+   */
+  flythroughLayer?: StarFlythroughLayer;
+  /**
+   * Per-star multipliers driven by the currentLayer vs this star's slab.
+   * The active slab gets `intensityMultiplier=1, scaleMultiplier=1.15`;
+   * receded slabs get lower values. Pure multiplicative — applies AFTER
+   * the role intensity so the focus + partner roles stay distinct within
+   * their slab.
+   */
+  slabActivity?: { intensityMultiplier: number; scaleMultiplier: number };
   onHoverEnter: () => void;
   onHoverLeave: () => void;
   onClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -1006,7 +1132,13 @@ export function StarSprite({
 
       const targetX = (overridePos?.x ?? natural.x) + driftX;
       const targetY = (overridePos?.y ?? natural.y) + driftY;
-      const targetZ = (overridePos?.z ?? natural.z) + layerZOffset;
+      // Flythrough overrides the legacy role-driven Z stack: when a slab is
+      // assigned, the star lerps to the slab's absolute Z (with a small jitter
+      // pulled from the seeded natural Z so the slab has internal depth).
+      const flythroughZ =
+        flythroughLayer === undefined ? null : flythroughStarZ(flythroughLayer) + natural.z * 0.18;
+      const targetZ =
+        flythroughZ !== null ? flythroughZ : (overridePos?.z ?? natural.z) + layerZOffset;
 
       const moveLerp = reducedMotion ? 1 : 1 - Math.pow(0.0008, delta);
       const pos = groupRef.current.position;
@@ -1015,9 +1147,20 @@ export function StarSprite({
       pos.z = THREE.MathUtils.lerp(pos.z, targetZ, moveLerp);
 
       const scaleLerp = reducedMotion ? 1 : 1 - Math.pow(0.002, delta);
-      scaleRef.current = THREE.MathUtils.lerp(scaleRef.current, sizing.scale, scaleLerp);
+      const slabScale = slabActivity?.scaleMultiplier ?? 1;
+      scaleRef.current = THREE.MathUtils.lerp(
+        scaleRef.current,
+        sizing.scale * slabScale,
+        scaleLerp,
+      );
       groupRef.current.scale.setScalar(scaleRef.current);
     }
+
+    // Slab activity multiplier from the flythrough layer state. Same value
+    // applies to avatar opacity, halo, ring, and flare so the entire star
+    // dims/sharps together when the player scrolls between layers. The
+    // hovered-card grace and lens-filter dim still composes on top.
+    const slabIntensity = slabActivity?.intensityMultiplier ?? 1;
 
     if (avatarMatRef.current !== null) {
       // filteredOut multiplies intensity by 0.32 so non-matching cases dim
@@ -1026,7 +1169,7 @@ export function StarSprite({
       const filterMultiplier = filteredOut ? 0.32 : 1;
       avatarMatRef.current.opacity = THREE.MathUtils.lerp(
         avatarMatRef.current.opacity,
-        intensity * filterMultiplier,
+        intensity * filterMultiplier * slabIntensity,
         Math.min(1, delta * 5),
       );
       const desat = role === "ineligible_off_shift" || role === "ineligible_closed" || filteredOut;
@@ -1069,7 +1212,7 @@ export function StarSprite({
                   : role === "ineligible_closed"
                     ? 0.12
                     : 0.3;
-      const target = baseTarget * haloPulse;
+      const target = baseTarget * haloPulse * slabIntensity;
       haloMatRef.current.opacity = THREE.MathUtils.lerp(
         haloMatRef.current.opacity,
         showAura ? target : target * 0.4,
@@ -1081,7 +1224,7 @@ export function StarSprite({
         role === "focus" ? 1 : role === "partner" ? 0.95 : role === "eligible" ? 0.75 : 0.3;
       ringMatRef.current.opacity = THREE.MathUtils.lerp(
         ringMatRef.current.opacity,
-        target * intensity,
+        target * intensity * slabIntensity,
         Math.min(1, delta * 5),
       );
     }
@@ -1092,7 +1235,7 @@ export function StarSprite({
         role === "focus" ? 0.34 : role === "partner" ? 0.28 : role === "eligible" ? 0.14 : 0;
       innerRimMatRef.current.opacity = THREE.MathUtils.lerp(
         innerRimMatRef.current.opacity,
-        target,
+        target * slabIntensity,
         Math.min(1, delta * 5),
       );
     }
@@ -1102,7 +1245,7 @@ export function StarSprite({
       const flareBase = role === "eligible" ? 0.22 : 0;
       flareMatRef.current.opacity = THREE.MathUtils.lerp(
         flareMatRef.current.opacity,
-        flareBase * (0.85 + slow * 0.3),
+        flareBase * (0.85 + slow * 0.3) * slabIntensity,
         Math.min(1, delta * 5),
       );
     }
@@ -2439,6 +2582,232 @@ function formatHeightShort(heightInInches: number): string {
   const feet = Math.floor(heightInInches / 12);
   const inches = heightInInches - feet * 12;
   return `${feet}'${inches}"`;
+}
+
+/* ============================================================================
+ * Layer indicator HUD. Four vertical glass dots on the left edge; active one
+ * filled with rose tint, others muted. Each dot is clickable so the player
+ * can jump layers without scrolling. Layer labels surface on hover and the
+ * active layer name always reads under the dot stack.
+ * ========================================================================== */
+
+const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
+  0: "Focused cases",
+  1: "Tonight's eligibles",
+  2: "Off tonight",
+  3: "Date scenarios",
+};
+
+export function LayerIndicator({
+  currentLayer,
+  onLayerSelect,
+}: {
+  currentLayer: FlythroughLayer;
+  onLayerSelect: (layer: FlythroughLayer) => void;
+}) {
+  const layers: FlythroughLayer[] = [0, 1, 2, 3];
+  return (
+    <div className="pointer-events-none absolute left-6 top-1/2 z-30 flex -translate-y-1/2 flex-col items-start gap-3">
+      <div className="pointer-events-auto aura-liquid-glass aura-liquid-glass-ink rounded-full px-3 py-4 flex flex-col items-center gap-3">
+        {layers.map((layer) => {
+          const active = layer === currentLayer;
+          const label = FLYTHROUGH_LAYER_LABELS[layer];
+          return (
+            <button
+              key={layer}
+              type="button"
+              onClick={() => onLayerSelect(layer)}
+              aria-label={`Jump to layer ${layer + 1}: ${label}`}
+              className={`group relative cursor-pointer h-3 w-3 rounded-full transition-all ${
+                active
+                  ? "bg-aura-rose ring-2 ring-aura-rose/40 ring-offset-2 ring-offset-[#07041a]"
+                  : "bg-white/25 hover:bg-white/55"
+              }`}
+            >
+              <span className="pointer-events-none absolute left-full top-1/2 ml-3 -translate-y-1/2 whitespace-nowrap rounded-full aura-liquid-glass-ink px-3 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper opacity-0 transition-opacity group-hover:opacity-100">
+                {label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <div className="pointer-events-none aura-liquid-glass aura-liquid-glass-ink rounded-card px-3 py-2 leading-tight">
+        <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
+          layer {currentLayer + 1} / 4
+        </div>
+        <div className="font-display text-label text-aura-paper">
+          {FLYTHROUGH_LAYER_LABELS[currentLayer]}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================
+ * Scenarios as 3D card meshes. Each scenario renders as a Drei <Html transform>
+ * mounted at its world-space position so the card text reads sharp (DOM, not
+ * canvas pixels) but the whole element scales + perspectives as a 3D object
+ * — turning with the camera, fading with the slab activity multiplier the
+ * same way stars do.
+ *
+ * The cards sit on a 3-card horizontal rail centered at (0, 0, -1) — directly
+ * in front of the camera's layer-3 position (z=4) — with the outer cards
+ * splayed slightly back in Z so the rail reads as a curved holographic shelf
+ * rather than three flat planes pasted on a wall.
+ * ========================================================================== */
+
+export function ScenarioCardField3D({
+  scenarios,
+  currentLayer,
+  selectedScenarioId,
+  onScenarioClick,
+  reducedMotion,
+}: {
+  scenarios: LobbyScenario[];
+  currentLayer: FlythroughLayer;
+  selectedScenarioId: string | null;
+  onScenarioClick?: (scenarioId: string) => void;
+  reducedMotion: boolean;
+}) {
+  const active = currentLayer === 3;
+  // Activity opacity for the whole field — on layer 3 it's full, on layers
+  // 0/1/2 the cards fade back so they read as the next stop further down
+  // rather than UI overlaid on the member field.
+  const fieldOpacity = active ? 1 : 0.0;
+  const groupRef = useRef<THREE.Group>(null);
+  const opacityRef = useRef(0);
+
+  useFrame((_, delta) => {
+    if (groupRef.current === null) return;
+    const moveLerp = reducedMotion ? 1 : 1 - Math.pow(0.0008, delta);
+    // Park the field a step further back when not active so it doesn't punch
+    // through stars on the layer-2 slab (which sits at z=-4).
+    const targetZ = active ? -1 : -8;
+    groupRef.current.position.z = THREE.MathUtils.lerp(
+      groupRef.current.position.z,
+      targetZ,
+      moveLerp,
+    );
+    opacityRef.current = THREE.MathUtils.lerp(
+      opacityRef.current,
+      fieldOpacity,
+      Math.min(1, delta * 4),
+    );
+  });
+
+  return (
+    <group ref={groupRef} position={[0, 0, -1]}>
+      {scenarios.map((scenario, idx) => {
+        const total = scenarios.length;
+        // Horizontal rail spread — wider when there are more cards, but
+        // capped so the outer cards don't drift off-frame at layer-3 camera
+        // distance.
+        const spread = total === 1 ? 0 : 3.4;
+        const offsetX = total === 1 ? 0 : (idx - (total - 1) / 2) * spread;
+        // Outer cards bend back so the rail reads as a curved shelf rather
+        // than a flat triptych.
+        const offsetZ = total === 1 ? 0 : -Math.abs(idx - (total - 1) / 2) * 0.4;
+        const rotY = total === 1 ? 0 : -(idx - (total - 1) / 2) * 0.18;
+        return (
+          <Scenario3DCard
+            key={scenario.id}
+            scenario={scenario}
+            position={[offsetX, 0, offsetZ]}
+            rotationY={rotY}
+            opacityRef={opacityRef}
+            selected={selectedScenarioId === scenario.id}
+            dimmed={selectedScenarioId !== null && selectedScenarioId !== scenario.id}
+            onClick={onScenarioClick === undefined ? undefined : () => onScenarioClick(scenario.id)}
+          />
+        );
+      })}
+    </group>
+  );
+}
+
+function Scenario3DCard({
+  scenario,
+  position,
+  rotationY,
+  opacityRef,
+  selected,
+  dimmed,
+  onClick,
+}: {
+  scenario: LobbyScenario;
+  position: [number, number, number];
+  rotationY: number;
+  opacityRef: MutableRefObject<number>;
+  selected: boolean;
+  dimmed: boolean;
+  onClick?: () => void;
+}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // The card's opacity tracks the scenarios-field activity ref so the cards
+  // fade in/out together with the layer. Direct DOM mutation avoids a per-
+  // frame React re-render that would burn the avatar textures' lazy load.
+  useFrame(() => {
+    if (wrapperRef.current === null) return;
+    const op = opacityRef.current ?? 0;
+    wrapperRef.current.style.opacity = op.toFixed(3);
+    // Disable pointer events when the field is mostly faded so the cards
+    // don't catch clicks while the player is still on a member layer.
+    wrapperRef.current.style.pointerEvents = op > 0.6 ? "auto" : "none";
+  });
+
+  const roomReadTone =
+    scenario.roomRead === "steady"
+      ? "text-aura-emerald"
+      : scenario.roomRead === "promising"
+        ? "text-aura-amber"
+        : "text-aura-rose";
+  const selectedTone = selected ? "aura-liquid-glass-rose" : "";
+
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      <Html
+        transform
+        distanceFactor={6}
+        zIndexRange={[20, 0]}
+        style={{ width: "320px", pointerEvents: "none" }}
+      >
+        <div
+          ref={wrapperRef}
+          className={`aura-liquid-glass ${selectedTone} aura-liquid-glass-hover rounded-card overflow-hidden ${
+            dimmed ? "opacity-50" : ""
+          }`}
+          style={{ opacity: 0 }}
+        >
+          <button
+            type="button"
+            onClick={onClick}
+            className="cursor-pointer block w-full text-left px-5 py-4"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
+                {scenario.venue}
+              </span>
+              <span className={`font-mono text-micro uppercase tracking-[0.18em] ${roomReadTone}`}>
+                {scenario.roomRead}
+              </span>
+            </div>
+            <div className="mt-1 font-display text-display-sm text-aura-paper">
+              {scenario.title}
+            </div>
+            <div className="mt-3 flex items-center justify-between text-label">
+              <div className="flex gap-2">
+                <AxisChip label="risk" value={scenario.axes.risk} />
+                <AxisChip label="warmth" value={scenario.axes.intimacy} />
+                <AxisChip label="chaos" value={scenario.axes.chaos} />
+              </div>
+              <span className="font-display text-label text-aura-paper">${scenario.cost}</span>
+            </div>
+          </button>
+        </div>
+      </Html>
+    </group>
+  );
 }
 
 /* ============================================================================
