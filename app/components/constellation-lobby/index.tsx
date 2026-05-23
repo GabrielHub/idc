@@ -44,6 +44,7 @@ import {
   BottomDock,
   CalloutCluster,
   HoverDetailCard,
+  LayerIndicator,
   Scene,
   ScenarioPanel,
   SideRail,
@@ -88,7 +89,7 @@ import {
   isMemberRosterFilterActive,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
-import { computeCameraTarget } from "./math";
+import { computeCameraTarget, computeFlythroughCameraTarget } from "./math";
 import { NotesOverlay } from "./notes-overlay";
 import { PairDossierShard } from "./pair-dossier-shard";
 import { RecentNotesSlot } from "./recent-notes-slot";
@@ -96,7 +97,14 @@ import { ShiftArchiveOverlay } from "./shift-archive-overlay";
 import { CaseFilePanel } from "./case-file-panel";
 import { LensPanel } from "./lens-panel";
 import { ReselectDock } from "./reselect-dock";
-import type { LobbyScenario, LobbyState, StarAvailability, StarMark, StarTier } from "./types";
+import type {
+  FlythroughLayer,
+  LobbyScenario,
+  LobbyState,
+  StarAvailability,
+  StarMark,
+  StarTier,
+} from "./types";
 import { DeckModePanel } from "./deck-mode-panel";
 import { LibraryModePanel } from "./library-mode-panel";
 
@@ -196,6 +204,14 @@ export function ConstellationLobby({
   );
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   const [scenarioMode, setScenarioMode] = useState<ScenarioMode>("auto");
+  /**
+   * Flythrough layer the player has scrolled into. 0 = focus cases, 1 =
+   * tonight's eligibles, 2 = off-tonight, 3 = scenarios (rendered as 3D
+   * card meshes inside the canvas via Scene's ScenarioCardField3D). The
+   * Scene mounts a wheel handler that calls `setCurrentLayer` per scroll
+   * tick, throttled so a single wheel notch advances one layer.
+   */
+  const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
 
   // Roster fold state. lobbyMode toggles between browse and reselect; the
   // case file overlay opens from HoverDetailCard's "Open case" or a double
@@ -244,9 +260,15 @@ export function ConstellationLobby({
     [stars, partnerId],
   );
 
+  // Camera target: on layer 0 the lobby state still drives the framing
+  // (focus / partner / committed dolly), but layers 1-3 hand control to the
+  // flythrough so the camera punches through the slabs.
   const cameraTarget = useMemo(
-    () => computeCameraTarget(lobbyState, focusStar),
-    [lobbyState, focusStar],
+    () =>
+      currentLayer === 0 && lobbyState !== "idle"
+        ? computeCameraTarget(lobbyState, focusStar)
+        : computeFlythroughCameraTarget(currentLayer, focusStar),
+    [currentLayer, lobbyState, focusStar],
   );
 
   const scenarioById = useMemo(
@@ -277,6 +299,24 @@ export function ConstellationLobby({
   );
 
   const lobbyScenarios = useMemo(() => drawnScenarios.map(toLobbyScenario), [drawnScenarios]);
+
+  /**
+   * Scenarios shown on the layer-3 flythrough slab. When a pair is committed
+   * (drawnScenarios is populated) we render those exact cards; otherwise we
+   * preview the first three from the player's deck so the layer reads as
+   * "the scenarios layer" instead of an empty slab the player can scroll
+   * into. The fallback preview is for read-only orientation — the booking
+   * flow still requires a committed pair before onScenarioClick can route
+   * through onStartDate.
+   */
+  const flythroughScenariosForLayer = useMemo(() => {
+    if (lobbyScenarios.length > 0) return lobbyScenarios;
+    const deckIds = save.scenarioDeck.cardIds.slice(0, 3);
+    return deckIds
+      .map((id) => starterScenarios.find((s) => s.id === id))
+      .filter((s): s is DateScenario => s !== undefined)
+      .map(toLobbyScenario);
+  }, [lobbyScenarios, save.scenarioDeck.cardIds]);
 
   const selectedScenarioTitle = useMemo(
     () =>
@@ -755,12 +795,18 @@ export function ConstellationLobby({
     onOpenDateSession,
   ]);
 
+  // Floating ScenarioPanel only renders when the player is on a member layer.
+  // Layer 3 mounts the scenarios as 3D card meshes inside the canvas, so the
+  // floating UI hides to avoid doubling. The committed_pair/scenario_chosen
+  // gating still applies — the panel is part of the booking flow, not a
+  // permanent overlay.
   const showAutoScenarios =
     scenarioMode === "auto" &&
     (lobbyState === "committed_pair" || lobbyState === "scenario_chosen") &&
-    lobbyScenarios.length > 0;
-  const showDeckPanel = scenarioMode === "deck";
-  const showLibraryPanel = scenarioMode === "library" && !bookingLocked;
+    lobbyScenarios.length > 0 &&
+    currentLayer !== 3;
+  const showDeckPanel = scenarioMode === "deck" && currentLayer !== 3;
+  const showLibraryPanel = scenarioMode === "library" && !bookingLocked && currentLayer !== 3;
   const showCallouts = callouts.length > 0;
 
   return (
@@ -793,11 +839,18 @@ export function ConstellationLobby({
                 eligiblePartnerIds,
                 filterMatchedIds,
               }}
+              currentLayer={currentLayer}
+              onLayerChange={setCurrentLayer}
+              focusedIds={focusedSet}
+              flythroughScenarios={flythroughScenariosForLayer}
+              selectedScenarioId={selectedScenarioId}
+              onScenarioClick={setSelectedScenarioId}
             />
           </Suspense>
         </Canvas>
       </div>
       <TopBar state={lobbyState} status={statusShards} navs={navShards} />
+      <LayerIndicator currentLayer={currentLayer} onLayerSelect={setCurrentLayer} />
       <SideRail
         state={lobbyState}
         focus={focusStar}
