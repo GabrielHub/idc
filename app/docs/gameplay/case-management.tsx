@@ -179,19 +179,17 @@ export const sections: DocSectionEntry[] = [
           operations layer reads as matchmaking infrastructure instead of the actual game.
         </P>
         <P>
-          The <Strong>Lead ask banner</Strong> in{" "}
-          <DocCode>app/components/pre-date-canvas-lead-ask.tsx</DocCode> renders directly under the
-          shift header and stays visible through every planning step. It pulls{" "}
-          <DocCode>activeFocusRequest</DocCode> off the focused member and compares its id to{" "}
-          <DocCode>deriveHotRequestId(shift)</DocCode> to decide between the{" "}
-          <Strong>lead ask</Strong> and <Strong>queued ask</Strong> pills. Goals continue to live in
-          the collapsible <DocCode>ShiftBriefDock</DocCode>, which no longer hides the ask behind a
-          toggle.
+          The <Strong>Lead ask</Strong> row is derived in{" "}
+          <DocCode>app/components/constellation-lobby/use-shift-filing-state.ts</DocCode> and
+          rendered by <DocCode>ShiftBriefDock</DocCode> inside the lobby HUD. It compares{" "}
+          <DocCode>deriveHotRequestId(shift)</DocCode> to the authored member request list, then
+          keeps the current ask visible beside the shift goals while the player moves through focus,
+          partner, and room selection.
         </P>
         <P>
-          The <Strong>Intent step</Strong> in{" "}
-          <DocCode>app/components/pre-date-canvas-steps.tsx</DocCode> asks the player to commit to a
-          read of the booking. It is optional and stores onto the active booking as{" "}
+          The <Strong>Intent rail</Strong> in{" "}
+          <DocCode>app/components/constellation-lobby/intent-rail.tsx</DocCode> mounts once a focus
+          case and partner are selected. It is optional and stores onto the active booking as{" "}
           <DocCode>matchmakingIntent</DocCode> (one of <DocCode>comfort</DocCode>,{" "}
           <DocCode>spark</DocCode>, <DocCode>surface</DocCode>, <DocCode>repair</DocCode>,{" "}
           <DocCode>swing</DocCode>). The chosen intent is copied onto the session at start time so

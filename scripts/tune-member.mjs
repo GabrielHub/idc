@@ -355,6 +355,7 @@ function parseSayArgs(args) {
     showSystem: false,
     session: undefined,
     config: {},
+    generationOptions: {},
   };
   for (let index = 1; index < args.length; index += 1) {
     const token = args[index];
@@ -367,6 +368,8 @@ function parseSayArgs(args) {
     } else if (token === "--session") {
       result.session = requireFlagValue(args, index);
       index += 1;
+    } else if (isGenerationOptionFlag(token)) {
+      readGenerationOptionFlag(token, result.generationOptions);
     } else if (isRuntimeConfigFlag(token)) {
       index = readRuntimeConfigFlag(args, index, result.config);
     } else {
@@ -386,7 +389,13 @@ async function runTurn(args) {
 }
 
 function parseTurnArgs(args) {
-  const result = { showPrompt: false, showSystem: false, session: undefined, config: {} };
+  const result = {
+    showPrompt: false,
+    showSystem: false,
+    session: undefined,
+    config: {},
+    generationOptions: {},
+  };
   for (let index = 0; index < args.length; index += 1) {
     const token = args[index];
     if (token === "--show-prompt") {
@@ -396,6 +405,8 @@ function parseTurnArgs(args) {
     } else if (token === "--session") {
       result.session = requireFlagValue(args, index);
       index += 1;
+    } else if (isGenerationOptionFlag(token)) {
+      readGenerationOptionFlag(token, result.generationOptions);
     } else if (isRuntimeConfigFlag(token)) {
       index = readRuntimeConfigFlag(args, index, result.config);
     } else {
@@ -621,8 +632,10 @@ function parseShowArgs(args) {
 
 async function generateAndPrint(name, sessionBeforeReply, tune, options) {
   const focus = tune.findMemberById(sessionBeforeReply.focusMemberId);
+  const generationOptions = resolveGenerationOptions(options.generationOptions ?? {});
   const result = await tune.generateFocusMemberReply(sessionBeforeReply, {
     config: resolveRuntimeConfig(options.config ?? {}),
+    generationOptions,
   });
   saveSession(name, result.session);
 
@@ -641,6 +654,11 @@ async function generateAndPrint(name, sessionBeforeReply, tune, options) {
   const stats = [
     `model: ${result.modelId} (${result.providerMode})`,
     `tokens approx: ${result.approximatePromptTokens}`,
+    generationOptions.deepseekRoleplayThinking === true
+      ? "deepseek roleplay thinking: on"
+      : generationOptions.deepseekRoleplayThinking === false
+        ? "deepseek roleplay thinking: off"
+        : null,
     result.retried ? `retried: ${result.retryReason}` : null,
   ]
     .filter((part) => part !== null)
@@ -661,6 +679,23 @@ function isRuntimeConfigFlag(token) {
     "--reasoning",
     "--timeout-ms",
   ].includes(token);
+}
+
+function isGenerationOptionFlag(token) {
+  return ["--deepseek-roleplay-thinking", "--no-deepseek-roleplay-thinking"].includes(token);
+}
+
+function readGenerationOptionFlag(token, generationOptions) {
+  switch (token) {
+    case "--deepseek-roleplay-thinking":
+      generationOptions.deepseekRoleplayThinking = true;
+      break;
+    case "--no-deepseek-roleplay-thinking":
+      generationOptions.deepseekRoleplayThinking = false;
+      break;
+    default:
+      throw new Error(`Unknown generation option: ${token}`);
+  }
 }
 
 function readRuntimeConfigFlag(args, index, config) {
@@ -696,6 +731,20 @@ function readRuntimeConfigFlag(args, index, config) {
   }
 
   return index + 1;
+}
+
+function resolveGenerationOptions(overrides) {
+  const generationOptions = { deepseekRoleplayThinking: true };
+  const deepseekRoleplayThinkingRaw =
+    overrides.deepseekRoleplayThinking ?? process.env.TUNE_DEEPSEEK_ROLEPLAY_THINKING;
+
+  if (isTruthyFlag(deepseekRoleplayThinkingRaw)) {
+    generationOptions.deepseekRoleplayThinking = true;
+  } else if (isFalsyFlag(deepseekRoleplayThinkingRaw)) {
+    generationOptions.deepseekRoleplayThinking = false;
+  }
+
+  return generationOptions;
 }
 
 function resolveRuntimeConfig(overrides) {
@@ -737,6 +786,14 @@ function resolveRuntimeConfig(overrides) {
   }
 
   return config;
+}
+
+function isTruthyFlag(value) {
+  return value === true || value === "1" || value === "true" || value === "yes" || value === "on";
+}
+
+function isFalsyFlag(value) {
+  return value === false || value === "0" || value === "false" || value === "no" || value === "off";
 }
 
 function normalizeOptionalValue(value) {
@@ -829,6 +886,10 @@ function printHelp() {
       "  --gateway-base-url <u>  Override Gateway base URL",
       "  --reasoning <level>     off | none | minimal | low | medium | high | xhigh",
       "  --timeout-ms <ms>       Request timeout",
+      "  --deepseek-roleplay-thinking",
+      "                          Enable DeepSeek role-immersion marker for performer turns",
+      "  --no-deepseek-roleplay-thinking",
+      "                          Disable the DeepSeek performer marker for A/B tuning",
       "",
       "Environment:",
       "  Loaded from shell env and git-ignored .env.local at the repo root.",
@@ -836,6 +897,8 @@ function printHelp() {
       "  TUNE_CHAT_MODEL         Chat model id",
       "  TUNE_REASONING_LEVEL    Reasoning level",
       "  TUNE_TIMEOUT_MS         Request timeout",
+      "  TUNE_DEEPSEEK_ROLEPLAY_THINKING=1",
+      "                          Enable or disable the DeepSeek performer marker (1/0, true/false)",
       "  AI_GATEWAY_API_KEY      Gateway key. If set, tune defaults to gateway.",
       "  AI_GATEWAY_BASE_URL     Gateway base URL",
       "",

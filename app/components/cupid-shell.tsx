@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   gameSaveSchema,
   SAVE_SCHEMA_VERSION,
-  type DateFinalReport,
   type DateScenario,
   type FollowUpAction,
   type GameConfig,
@@ -17,19 +16,12 @@ import { lockAiProviderBaseUrlsForRuntime } from "../platform/runtime";
 import { tryBackupSave } from "../repositories/backup-save";
 import { createGameRepository } from "../repositories/create-game-repository";
 import {
-  readStoredGatewayApiKey,
-  requestLocalAiStatus,
-  storeGatewayApiKey,
-} from "../services/ai/client";
-import {
   advanceDateExchangeWithLocalAiStream,
   cutDateShortWithLocalAiStream,
   DateStreamAbortedError,
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
-import { generateClosureSummary } from "../services/closure-summary";
 import {
-  closePair,
   getReadyClosurePairs,
   markSoftWinSeen,
   shouldShowSoftWinForActiveShift,
@@ -49,36 +41,17 @@ import {
   togglePlayback,
   triggerScenarioEvent,
 } from "../services/date-engine";
-import {
-  addCardToDeck,
-  createStarterScenarioDeck,
-  dateBookEditingUnlocked,
-  deckIsRepairBlocked,
-  removeCardFromDeck,
-} from "../services/deck";
-import { rotateBudgetPeriod } from "../services/budget";
+import { addCardToDeck, removeCardFromDeck } from "../services/deck";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
 import {
   addFocusCase as focusAddCase,
   getFocusedMembers,
   removeFocusCase as focusRemoveCase,
   reselectFocusCases as focusReselect,
-  selectInitialFocusCases as focusSelectInitial,
-  swapFocusCase as focusSwapCase,
 } from "../services/focus-cases";
 import { getActiveShift, hydrateFixtureOwnedMemberData } from "../services/game-seed";
+import { completeInitialOnboarding } from "../services/onboarding";
 import { buildRelationshipIndex, getPairProjectionByPairId } from "../services/relationship-index";
-import {
-  appendManagerQuipHistory,
-  detectFocusSwapDropOfActive,
-  detectMemberQuitTransition,
-  detectRetentionWarningDip,
-  indexMembersById,
-  pairEnteredBrittleTrajectory,
-  resolveManagerQuip,
-  shouldFireSoftWinQuip,
-  type ManagerQuipResolveResult,
-} from "../services/manager-quips";
 import {
   TutorialActivityProvider,
   useIsRequiredTutorialActive,
@@ -86,11 +59,7 @@ import {
 } from "../services/tutorial";
 import { errorToMessage } from "../services/utils";
 import { ManagerQuipPopup } from "./manager-quip-popup";
-import {
-  getManagerQuipById,
-  type ManagerQuip,
-  type ManagerQuipTriggerKey,
-} from "../fixtures/manager-quips";
+import { useManagerQuips } from "./use-manager-quips";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { AmbientMesh } from "./ambient-mesh";
 import { DashboardLoading, ShiftReportPanel } from "./dashboard-views";
@@ -100,18 +69,17 @@ import {
   type PlaybackIntent,
   type StreamingDraftMessage,
 } from "./date-view";
-import { NotesView } from "./notes-view";
-import { DateBookCanvas } from "./date-book-canvas";
-import { FloatingNavCluster, type LiveDateState, type RoomKey } from "./floating-nav-cluster";
+import { ConstellationLobby } from "./constellation-lobby";
+import { CosmicWarpOverlay } from "./cosmic-warp-overlay";
 import { OnboardingScreen } from "./onboarding-screen";
-import { PreDateCanvas } from "./pre-date-canvas";
-import { RosterCanvas } from "./roster-canvas";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
+import { useClosureFiling } from "./use-closure-filing";
+import { CHECKING_LOCAL_AI_STATUS, useAiSetupStatus } from "./use-ai-setup-status";
 import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
-import { ShellChrome } from "./shell-chrome";
+import { LobbyChromePills, ShellChrome } from "./shell-chrome";
 import {
   getReleaseNoteByVersion,
   hasReleaseNotesEligibleSaveProgress,
@@ -122,22 +90,8 @@ import {
 } from "../services/release-notes";
 
 const AUTOPLAY_TICK_DELAY_MS = 480;
-const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
-  status: "checking",
-  message: "Checking AI provider. Cupid is holding the clipboard very still.",
-  details: [],
-};
 const DEV_MEMBER_DETAILS_STORAGE_KEY = "idc.cupid.dev.memberDetailsPreview";
 const CAN_USE_DEV_MEMBER_DETAILS_PREVIEW = import.meta.env.DEV;
-
-const OUTCOME_QUIP_TRIGGER_KEYS: Partial<
-  Record<DateFinalReport["outcome"], ManagerQuipTriggerKey>
-> = {
-  bad_fit: "date.outcome.bad-fit",
-  cool_down: "date.outcome.cool-down",
-  second_date: "date.outcome.encourage",
-  mixed: "date.outcome.encourage",
-};
 
 type CupidShellProps = {
   onPunchOut: () => void;
@@ -192,20 +146,15 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   useEffect(() => {
     isTutorialBlockingRef.current = isTutorialBlocking;
   }, [isTutorialBlocking]);
-  const [activeManagerQuip, setActiveManagerQuip] = useState<ManagerQuip | null>(null);
-  const [managerQuipPresentationKey, setManagerQuipPresentationKey] = useState(0);
-  const sessionManagerQuipIdsRef = useRef<Set<string>>(new Set());
   const [save, setSave] = useState<GameSave | null>(null);
   const saveRef = useRef<GameSave | null>(null);
-  const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
-  const [filesPairFocusId, setFilesPairFocusId] = useState<string | null>(null);
+  // Inline assignment during render so getSave() sees the current save in the
+  // same tick as a setSave call. A useEffect-based update lags by one render
+  // and would let async closure handlers read a stale snapshot.
+  saveRef.current = save;
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
   const [interventionTargetMemberId, setInterventionTargetMemberId] = useState("");
-  const [localAiStatus, setLocalAiStatus] = useState<AiSetupStatus>(CHECKING_LOCAL_AI_STATUS);
-  const [gatewayApiKey, setGatewayApiKey] = useState("");
-  const [gatewayApiKeyReadError, setGatewayApiKeyReadError] = useState<string | null>(null);
-  const [isGatewayApiKeyLoaded, setIsGatewayApiKeyLoaded] = useState(false);
   const [isAiSetupOpen, setIsAiSetupOpen] = useState(false);
   const [isReleaseNotesOpen, setIsReleaseNotesOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
@@ -213,18 +162,24 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
   const [streamingDrafts, setStreamingDrafts] = useState<StreamingDraftMessage[]>([]);
   const [isDateJudgePending, setIsDateJudgePending] = useState(false);
+  const [onboardingWarping, setOnboardingWarping] = useState(false);
   const [queuedPlaybackIntent, setQueuedPlaybackIntent] = useState<PlaybackIntent | null>(null);
-  const [closingPairId, setClosingPairId] = useState<string | null>(null);
-  const [closureError, setClosureError] = useState<{ pairId: string; message: string } | null>(
-    null,
-  );
   const [devRevealAllMemberDetails, setDevRevealAllMemberDetails] = useState(
     readStoredDevMemberDetailsPreview,
   );
-  const localAiStatusRequestRef = useRef<Promise<AiSetupStatus> | null>(null);
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
   const releaseNotesCheckCompleteRef = useRef(false);
+  const onboardingWarpTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (onboardingWarpTimerRef.current !== null) {
+        window.clearTimeout(onboardingWarpTimerRef.current);
+        onboardingWarpTimerRef.current = null;
+      }
+    },
+    [],
+  );
   const isActionPending = pendingAction !== null;
   const releaseNotesForModal = useMemo(
     () => listReleaseNotesForModal({ currentVersion: APP_VERSION }),
@@ -235,43 +190,49 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [],
   );
   const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
-  const aiStatusConfig = save?.config;
-  const aiStatusConfigKey =
-    aiStatusConfig === undefined
-      ? ""
-      : [
-          aiStatusConfig.aiProvider,
-          aiStatusConfig.chatModel,
-          aiStatusConfig.embeddingModel,
-          aiStatusConfig.reasoningLevel,
-          aiStatusConfig.ollamaBaseURL,
-          aiStatusConfig.gatewayBaseURL,
-          aiStatusConfig.aiSetupComplete ? "complete" : "incomplete",
-        ].join("|");
-
-  useEffect(() => {
-    let mounted = true;
-    void (async () => {
-      let stored = "";
-      let readError: string | null = null;
-      try {
-        stored = await readStoredGatewayApiKey();
-      } catch (error) {
-        readError = errorToMessage(error) || "OS credential store operation failed.";
-      }
-      if (!mounted) return;
-      setGatewayApiKey(stored);
-      setGatewayApiKeyReadError(readError);
-      setIsGatewayApiKeyLoaded(true);
-    })();
-    return () => {
-      mounted = false;
-    };
+  const tryActionRef = useRef<typeof tryAction | null>(null);
+  tryActionRef.current = tryAction;
+  const getSave = useCallback(() => saveRef.current, []);
+  const commitSave = useCallback((nextSave: GameSave) => {
+    saveRef.current = nextSave;
+    setSave(nextSave);
   }, []);
-
-  useEffect(() => {
-    saveRef.current = save;
-  }, [save]);
+  const runClosureAction = useCallback(
+    (run: () => Promise<void>) => tryActionRef.current?.("closure", run) ?? Promise.resolve(false),
+    [],
+  );
+  const {
+    activeManagerQuip,
+    managerQuipPresentationKey,
+    dispatchManagerQuip,
+    processManagerQuipSaveDiff,
+    dispatchPostDateQuips,
+    handleManagerQuipDismissed,
+    resetSessionQuips,
+  } = useManagerQuips({
+    getSave,
+    repository,
+    commitSave,
+    isTutorialBlockingRef,
+    play,
+  });
+  const { localAiStatus, gatewayApiKey, refreshLocalAiStatus, applyGatewayApiKeyUpdate } =
+    useAiSetupStatus({
+      aiStatusConfig: save?.config,
+      setErrorMessage,
+    });
+  const { closureErrorMessage, handleClosePair, resetClosureError } = useClosureFiling({
+    getSave,
+    gatewayApiKey,
+    refreshLocalAiStatus,
+    runClosureAction,
+    persist,
+    dispatchManagerQuip,
+    processManagerQuipSaveDiff,
+    play,
+    setIsAiSetupOpen,
+    setErrorMessage,
+  });
 
   useEffect(() => {
     let mounted = true;
@@ -298,7 +259,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         }
       }
       if (!mounted) return;
-      setSave(nextSave);
+      commitSave(nextSave);
       if (recoveredOutdatedSave) {
         setErrorMessage(
           backupKey === null
@@ -311,50 +272,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         nextSave.dateSessions.at(-1) ??
         null;
       setActiveDateSessionId(restoredSession?.id ?? null);
-      if (restoredSession?.status === "active") {
-        setCurrentRoom("livedate");
-      }
     }
     void loadSave();
     return () => {
       mounted = false;
     };
-  }, [repository]);
-
-  useEffect(() => {
-    if (aiStatusConfig === undefined || !isGatewayApiKeyLoaded) {
-      return;
-    }
-    const configForStatus = aiStatusConfig;
-    if (configForStatus.aiProvider === "gateway" && gatewayApiKeyReadError !== null) {
-      const message = `Gateway key storage unavailable. ${gatewayApiKeyReadError}`;
-      setLocalAiStatus({
-        status: "unavailable",
-        message,
-        details: [],
-        checkedAt: new Date().toISOString(),
-      });
-      if (configForStatus.aiSetupComplete) {
-        setErrorMessage(message);
-      }
-      return;
-    }
-    let mounted = true;
-    async function loadStatus() {
-      setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-      const status = await requestLocalAiStatus(configForStatus, gatewayApiKey);
-      if (!mounted) return;
-      setLocalAiStatus(status);
-      if (status.status === "unavailable" && configForStatus.aiSetupComplete) {
-        setErrorMessage(status.message);
-      }
-    }
-    void loadStatus();
-    return () => {
-      mounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [aiStatusConfigKey, gatewayApiKey, gatewayApiKeyReadError, isGatewayApiKeyLoaded]);
+  }, [commitSave, repository]);
 
   useCueOnMessageChange(errorMessage, "alert", play);
   useCueOnMessageChange(noticeMessage, "notice", play);
@@ -401,16 +324,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const softWinDue = save !== null && shouldShowSoftWinForActiveShift(save);
   const campaignLost = save !== null && isCampaignLost(save);
 
-  useEffect(() => {
-    if (currentRoom !== "files" && filesPairFocusId !== null) {
-      setFilesPairFocusId(null);
-    }
-  }, [currentRoom, filesPairFocusId]);
-
-  const handleOpenPairFile = useCallback((pairId: string) => {
-    setFilesPairFocusId(pairId);
-    setCurrentRoom("files");
-  }, []);
   const activeSession = useMemo(
     () =>
       save === null || activeDateSessionId === null
@@ -438,29 +351,18 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             .filter((scenario): scenario is DateScenario => scenario !== undefined),
     [activeShift],
   );
-  const deckRepairBlocked = useMemo(
-    () => (save === null ? false : deckIsRepairBlocked(save, starterScenarios)),
-    [save],
-  );
-  const dateBookLockedUntilFirstReport =
-    save !== null && !dateBookEditingUnlocked(save) && !deckRepairBlocked;
   const dateAmbientSessionId = activeSession?.status === "active" ? activeSession.id : null;
   useEffect(() => {
     setDateAmbientSession(dateAmbientSessionId);
     return () => setDateAmbientSession(null);
   }, [dateAmbientSessionId, setDateAmbientSession]);
-  const liveDateState: LiveDateState = deriveLiveDateState(activeSession, currentRoom);
-  const screenKey =
-    currentRoom === "livedate"
-      ? `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`
-      : currentRoom;
+  const screenKey = `livedate:${activeSession?.id ?? "planning"}:${activeSession?.status ?? "planning"}`;
   const diagnosticsInputsRef = useRef<Parameters<typeof buildDiagnosticsSnapshot>[0]>({
     config: null,
     localAiStatus: CHECKING_LOCAL_AI_STATUS,
     save: null,
     currentShift: null,
     activeDateSession: null,
-    currentRoom: "livedate",
     pendingAction: null,
     queuedPlaybackIntent: null,
     streamingDraftCount: 0,
@@ -474,7 +376,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     save,
     currentShift: activeShift,
     activeDateSession: activeSession,
-    currentRoom,
     pendingAction,
     queuedPlaybackIntent,
     streamingDraftCount: streamingDrafts.length,
@@ -491,12 +392,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     dispatchManagerQuip({ triggerKey: "onboarding.welcome", bypassTutorialGate: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [needsInitialFocusCases]);
-
-  useEffect(() => {
-    if (dateBookLockedUntilFirstReport && currentRoom === "datebook") {
-      setCurrentRoom("livedate");
-    }
-  }, [currentRoom, dateBookLockedUntilFirstReport]);
 
   useEffect(() => {
     if (
@@ -538,121 +433,18 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         ? {}
         : { managerQuipHistory: latestManagerQuipHistory }),
     };
-    saveRef.current = saveToPersist;
     await repository.saveGame(saveToPersist);
-    setSave(saveToPersist);
-  }
-
-  function dispatchManagerQuip(input: {
-    triggerKey: ManagerQuipTriggerKey;
-    surfaceKey?: string;
-    bypassTutorialGate?: boolean;
-  }): void {
-    if (isTutorialBlockingRef.current && input.bypassTutorialGate !== true) return;
-    const currentSave = saveRef.current;
-    if (currentSave === null) return;
-    const shiftNumber = getActiveShift(currentSave).shiftNumber;
-    const result = resolveManagerQuip({
-      triggerKey: input.triggerKey,
-      history: currentSave.managerQuipHistory,
-      currentShiftNumber: shiftNumber,
-      sessionPlayedQuipIds: sessionManagerQuipIdsRef.current,
-      surfaceKey: input.surfaceKey,
-    });
-    if (result === null) return;
-    presentManagerQuip(currentSave, result, shiftNumber);
-  }
-
-  function presentManagerQuip(
-    currentSave: GameSave,
-    result: ManagerQuipResolveResult,
-    shiftNumber: number,
-  ): void {
-    const quip = getManagerQuipById(result.quipId);
-    if (quip === undefined) return;
-    const nextHistory = appendManagerQuipHistory(
-      currentSave.managerQuipHistory,
-      result.historyRecord,
-      shiftNumber,
-    );
-    const updatedSave: GameSave = { ...currentSave, managerQuipHistory: nextHistory };
-    saveRef.current = updatedSave;
-    setSave(updatedSave);
-    void repository.saveGame(updatedSave).catch((error) => {
-      console.warn("Manager quip history persist failed", error);
-    });
-    sessionManagerQuipIdsRef.current.add(result.quipId);
-    setActiveManagerQuip(quip);
-    setManagerQuipPresentationKey((prev) => prev + 1);
-  }
-
-  function processManagerQuipSaveDiff(previousSave: GameSave, nextSave: GameSave): void {
-    if (isTutorialBlockingRef.current) return;
-    const previousById = indexMembersById(previousSave.members);
-    const nextById = indexMembersById(nextSave.members);
-    const quit = detectMemberQuitTransition(previousSave, nextSave, previousById);
-    if (quit !== null) {
-      dispatchManagerQuip({ triggerKey: "member.status.quit", surfaceKey: quit });
-    }
-    const retentionDip = detectRetentionWarningDip(previousSave, nextSave, previousById);
-    if (retentionDip !== null) {
-      dispatchManagerQuip({
-        triggerKey: "member.retention.warning",
-        surfaceKey: retentionDip.memberId,
-      });
-    }
-    const swapDrop = detectFocusSwapDropOfActive(previousSave, nextSave, previousById, nextById);
-    if (swapDrop !== null) {
-      dispatchManagerQuip({ triggerKey: "focus.swap.first", surfaceKey: swapDrop });
-    }
-  }
-
-  function dispatchOutcomeQuip(report: DateFinalReport | undefined, sessionId: string): void {
-    if (report === undefined) return;
-    const triggerKey = OUTCOME_QUIP_TRIGGER_KEYS[report.outcome];
-    if (triggerKey === undefined) return;
-    dispatchManagerQuip({ triggerKey, surfaceKey: sessionId });
-  }
-
-  function dispatchBrittleTrajectoryIfChanged(
-    previousSave: GameSave,
-    nextSave: GameSave,
-    pairId: string,
-  ): void {
-    const previousPair = previousSave.pairStates.find((pair) => pair.id === pairId);
-    const nextPair = nextSave.pairStates.find((pair) => pair.id === pairId);
-    if (nextPair === undefined) return;
-    const previousCompleted = previousSave.dateSessions.filter(
-      (session) => session.finalReport !== undefined,
-    );
-    const nextCompleted = nextSave.dateSessions.filter(
-      (session) => session.finalReport !== undefined,
-    );
-    if (
-      pairEnteredBrittleTrajectory({
-        previousPairState: previousPair,
-        nextPairState: nextPair,
-        previousCompletedSessions: previousCompleted,
-        nextCompletedSessions: nextCompleted,
-      })
-    ) {
-      dispatchManagerQuip({ triggerKey: "pair.trajectory.brittle", surfaceKey: pairId });
-    }
-  }
-
-  function handleManagerQuipDismissed(): void {
-    setActiveManagerQuip(null);
+    commitSave(saveToPersist);
   }
 
   const handleTutorialUpdate = useCallback(
     (next: GameSave) => {
       const current = saveRef.current;
       const merged = current === null ? next : { ...current, tutorial: next.tutorial };
-      saveRef.current = merged;
-      setSave(merged);
+      commitSave(merged);
       void repository.saveGame(merged);
     },
-    [repository],
+    [commitSave, repository],
   );
 
   async function pausePlayingSessionAfterAdvanceFailure(
@@ -673,44 +465,9 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     await persist(result.save);
   }
 
-  async function refreshLocalAiStatus(
-    config = save?.config,
-    key = gatewayApiKey,
-  ): Promise<AiSetupStatus> {
-    if (config === undefined) {
-      return {
-        status: "unavailable",
-        message: "AI provider check needs a save file first.",
-        details: [],
-        checkedAt: new Date().toISOString(),
-      };
-    }
-    if (localAiStatusRequestRef.current !== null) {
-      return localAiStatusRequestRef.current;
-    }
-    setLocalAiStatus(CHECKING_LOCAL_AI_STATUS);
-    const request = (async () => {
-      try {
-        const status = await requestLocalAiStatus(config, key);
-        setLocalAiStatus(status);
-        if (status.status === "unavailable") {
-          setErrorMessage(status.message);
-        }
-        return status;
-      } finally {
-        localAiStatusRequestRef.current = null;
-      }
-    })();
-    localAiStatusRequestRef.current = request;
-    return request;
-  }
-
   async function handleSaveAiConfig(nextConfig: GameConfig, nextGatewayApiKey: string) {
     if (save === null) return;
-    await storeGatewayApiKey(nextGatewayApiKey);
-    setGatewayApiKey(nextGatewayApiKey.trim());
-    setGatewayApiKeyReadError(null);
-    setIsGatewayApiKeyLoaded(true);
+    await applyGatewayApiKeyUpdate(nextGatewayApiKey);
     await persist({
       ...save,
       config: lockAiProviderBaseUrlsForRuntime(nextConfig),
@@ -724,20 +481,20 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return refreshLocalAiStatus(nextConfig, nextGatewayApiKey);
   }
 
-  function tryAction(kind: PendingAction, run: () => Promise<void>) {
-    if (isActionPending) return;
+  async function tryAction(kind: PendingAction, run: () => Promise<void>): Promise<boolean> {
+    if (isActionPending) return false;
     setPendingAction(kind);
     setErrorMessage(null);
     setNoticeMessage(null);
-    void (async () => {
-      try {
-        await run();
-      } catch (error) {
-        setErrorMessage(errorToMessage(error));
-      } finally {
-        setPendingAction(null);
-      }
-    })();
+    try {
+      await run();
+      return true;
+    } catch (error) {
+      setErrorMessage(errorToMessage(error));
+      return false;
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function handleCommitPair(input: {
@@ -746,7 +503,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     matchmakingIntent?: MatchmakingIntent;
   }) {
     if (save === null) return;
-    tryAction("startDate", async () => {
+    await tryAction("startDate", async () => {
       if (!save.config.aiSetupComplete) {
         setIsAiSetupOpen(true);
         throw new Error("AI setup is required before Cupid commits a pair.");
@@ -760,26 +517,38 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleStartDate(input: { scenarioId: string }) {
+  async function handleBeginDate(input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    scenarioId: string;
+    matchmakingIntent?: MatchmakingIntent;
+  }) {
     if (save === null) return;
-    tryAction("startDate", async () => {
+    await tryAction("startDate", async () => {
+      if (!save.config.aiSetupComplete) {
+        setIsAiSetupOpen(true);
+        throw new Error("AI setup is required before Cupid starts a date.");
+      }
       const status = await refreshLocalAiStatus();
       if (status.status !== "ready") {
         throw new Error(status.message);
       }
-      const result = startDateSessionFromBooking(save, input);
+      const activeShift = getActiveShift(save);
+      if (activeShift.activeBooking === undefined) {
+        throw new Error("Commit the pair before choosing a room.");
+      }
+      const result = startDateSessionFromBooking(save, { scenarioId: input.scenarioId });
       await persist(result.save);
       dispatchManagerQuip({ triggerKey: "date.started", surfaceKey: result.session.id });
       setActiveDateSessionId(result.session.id);
       setInterventionText("");
       setInterventionTargetMemberId("");
-      setCurrentRoom("livedate");
     });
   }
 
   async function handleCancelBooking() {
     if (save === null) return;
-    tryAction("startDate", async () => {
+    await tryAction("startDate", async () => {
       await persist(clearActiveBooking(save));
     });
   }
@@ -789,7 +558,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     const sessionId = activeSession.id;
     const previousStatus = activeSession.status;
     const previousSave = save;
-    tryAction("advanceExchange", async () => {
+    await tryAction("advanceExchange", async () => {
       setStreamingDrafts([]);
       setIsDateJudgePending(false);
       stopAfterCurrentTurnRef.current = false;
@@ -809,19 +578,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           (event) => applyStreamEvent(event),
         );
         await persist(result.save);
-        const nextStatus = result.session.status;
-        if (previousStatus === "active" && nextStatus === "completed") {
-          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        } else if (previousStatus === "active" && nextStatus === "ended_early") {
-          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        }
-        processManagerQuipSaveDiff(previousSave, result.save);
+        dispatchPostDateQuips({ previousStatus, previousSave, result });
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
           setNoticeMessage(result.warningMessages[0] ?? null);
@@ -850,7 +607,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     const sessionId = activeSession.id;
     const previousStatus = activeSession.status;
     const previousSave = save;
-    tryAction("cutShort", async () => {
+    await tryAction("cutShort", async () => {
       setStreamingDrafts([]);
       setIsDateJudgePending(false);
       try {
@@ -864,19 +621,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           (event) => applyStreamEvent(event),
         );
         await persist(result.save);
-        const nextStatus = result.session.status;
-        if (previousStatus === "active" && nextStatus === "completed") {
-          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        } else if (previousStatus === "active" && nextStatus === "ended_early") {
-          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        }
-        processManagerQuipSaveDiff(previousSave, result.save);
+        dispatchPostDateQuips({ previousStatus, previousSave, result });
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
           setNoticeMessage(result.warningMessages[0] ?? null);
@@ -955,7 +700,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleIntervention() {
     if (save === null || activeSession === null) return;
-    tryAction("intervention", async () => {
+    await tryAction("intervention", async () => {
       const result = addCupidIntervention(save, {
         dateSessionId: activeSession.id,
         targetMemberId: interventionTargetMemberId || activeSession.participants[0],
@@ -969,7 +714,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handlePickEvents(eventIds: string[]) {
     if (save === null || activeSession === null) return;
-    tryAction("pickEvents", async () => {
+    await tryAction("pickEvents", async () => {
       const result = pickScenarioEvents(save, {
         dateSessionId: activeSession.id,
         pickedEventIds: eventIds,
@@ -980,7 +725,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleTriggerEvent(eventId: string) {
     if (save === null || activeSession === null) return;
-    tryAction("triggerEvent", async () => {
+    await tryAction("triggerEvent", async () => {
       const result = triggerScenarioEvent(save, {
         dateSessionId: activeSession.id,
         eventId,
@@ -999,7 +744,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       setQueuedPlaybackIntent(next);
       return;
     }
-    tryAction("togglePlayback", async () => {
+    await tryAction("togglePlayback", async () => {
       setQueuedPlaybackIntent(null);
       const result = togglePlayback(save, {
         dateSessionId: activeSession.id,
@@ -1040,7 +785,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleFollowUp(action: FollowUpAction) {
     if (save === null || activeSession === null) return;
-    tryAction("followUp", async () => {
+    await tryAction("followUp", async () => {
       const result = applyFollowUpAction(save, {
         dateSessionId: activeSession.id,
         action,
@@ -1049,21 +794,22 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleEndShift() {
+  async function handleCompleteShift() {
     if (save === null) return;
     const previousSave = save;
-    tryAction("endShift", async () => {
-      const { save: nextSave } = completeShift(save);
-      await persist(nextSave);
-      dispatchManagerQuip({ triggerKey: "shift.ended" });
-      processManagerQuipSaveDiff(previousSave, nextSave);
+    await tryAction("endShift", async () => {
+      const result = completeShift(save);
+      await persist(result.save);
+      dispatchManagerQuip({ triggerKey: "shift.ended", surfaceKey: result.report.id });
+      processManagerQuipSaveDiff(previousSave, result.save);
+      play("report");
     });
   }
 
   async function handleStartNextShift() {
     if (save === null) return;
     const previousSave = save;
-    tryAction("nextShift", async () => {
+    await tryAction("nextShift", async () => {
       const { save: nextSave } = startNextShift(save);
       await persist(nextSave);
       dispatchManagerQuip({ triggerKey: "shift.started" });
@@ -1071,45 +817,41 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     });
   }
 
-  async function handleConfirmOnboarding(payload: { focusedMemberIds: string[] }) {
+  async function handleConfirmOnboarding(payload: {
+    focusedMemberIds: string[];
+    scenarioDeckCardIds: string[];
+  }) {
     if (save === null) return;
-    tryAction("focusCase", async () => {
-      const starterDeck = createStarterScenarioDeck(starterScenarios);
-      const withDeck: GameSave = {
-        ...save,
-        scenarioDeck: starterDeck,
-        shifts: save.shifts.map((shift) =>
-          shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
-        ),
-      };
-      const withFocus = focusSelectInitial(withDeck, payload.focusedMemberIds);
-      const requestsById = new Map(memberRequests.map((request) => [request.id, request] as const));
-      const focusedMemberRequests = withFocus.focusedMemberIds
-        .map((memberId) => withFocus.members.find((member) => member.id === memberId))
-        .map((member) =>
-          member?.state.currentRequestId === undefined
-            ? undefined
-            : requestsById.get(member.state.currentRequestId),
-        )
-        .filter((request): request is (typeof memberRequests)[number] => request !== undefined);
-      const activeShift = getActiveShift(withFocus);
-      const activeCompanyGoalIds = new Set(activeShift.companyGoalIds);
-      const withBudgetPeriod = rotateBudgetPeriod({
-        save: withFocus,
-        shiftNumber: 1,
+    // Gate the warp animation on validation success. The previous version
+    // fired the 1.2 s warp unconditionally and could leave the player staring
+    // at a finished animation with no room transition when
+    // completeInitialOnboarding threw on a bad payload (stale focus id,
+    // unknown deck card).
+    const succeeded = await tryAction("focusCase", async () => {
+      const withBudgetPeriod = completeInitialOnboarding({
+        save,
+        focusedMemberIds: payload.focusedMemberIds,
+        scenarioDeckCardIds: payload.scenarioDeckCardIds,
         scenarios: starterScenarios,
-        focusedMemberRequests,
-        recentClosurePairTags: [],
-        activeCompanyGoals: companyGoals.filter((goal) => activeCompanyGoalIds.has(goal.id)),
+        memberRequests,
+        companyGoals,
       });
       await persist(withBudgetPeriod);
-      setCurrentRoom("livedate");
     });
+    if (!succeeded) return;
+    setOnboardingWarping(true);
+    if (onboardingWarpTimerRef.current !== null) {
+      window.clearTimeout(onboardingWarpTimerRef.current);
+    }
+    onboardingWarpTimerRef.current = window.setTimeout(() => {
+      onboardingWarpTimerRef.current = null;
+      setOnboardingWarping(false);
+    }, 1200);
   }
 
   async function handleAddFocus(memberId: string) {
     if (save === null) return;
-    tryAction("focusCase", async () => {
+    await tryAction("focusCase", async () => {
       await persist(focusAddCase(save, memberId));
       play("reveal");
     });
@@ -1117,26 +859,15 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleRemoveFocus(memberId: string) {
     if (save === null) return;
-    tryAction("focusCase", async () => {
+    await tryAction("focusCase", async () => {
       await persist(focusRemoveCase(save, memberId));
-    });
-  }
-
-  async function handleSwapFocus(oldId: string, newId: string) {
-    if (save === null) return;
-    const previousSave = save;
-    tryAction("focusCase", async () => {
-      const nextSave = focusSwapCase(save, oldId, newId);
-      await persist(nextSave);
-      processManagerQuipSaveDiff(previousSave, nextSave);
-      play("reveal");
     });
   }
 
   async function handleReselectFocus(nextFocusIds: string[]) {
     if (save === null) return;
     const previousSave = save;
-    tryAction("focusCase", async () => {
+    await tryAction("focusCase", async () => {
       const nextSave = focusReselect(save, nextFocusIds);
       await persist(nextSave);
       processManagerQuipSaveDiff(previousSave, nextSave);
@@ -1145,7 +876,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleAddDeckCard(libraryCardId: string) {
     if (save === null) return;
-    tryAction("deck", async () => {
+    await tryAction("deck", async () => {
       const next = addCardToDeck({
         save,
         scenarios: starterScenarios,
@@ -1157,65 +888,15 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 
   async function handleRemoveDeckCard(deckCardId: string) {
     if (save === null) return;
-    tryAction("deck", async () => {
+    await tryAction("deck", async () => {
       const next = removeCardFromDeck(save, deckCardId);
       await persist(next);
     });
   }
 
-  async function handleConfirmClosure(pairId: string) {
-    if (save === null) return;
-    const ready = readyClosurePairs.find((entry) => entry.pairState.id === pairId);
-    if (ready === undefined) {
-      setClosureError({ pairId, message: "That pair no longer meets the closure threshold." });
-      return;
-    }
-
-    if (!save.config.aiSetupComplete) {
-      setIsAiSetupOpen(true);
-      setClosureError({ pairId, message: "AI setup is required to file a closure summary." });
-      return;
-    }
-
-    setClosingPairId(pairId);
-    setClosureError(null);
-
-    const previousSave = save;
-    tryAction("closure", async () => {
-      try {
-        const status = await refreshLocalAiStatus();
-        if (status.status !== "ready") {
-          throw new Error(status.message);
-        }
-        const summary = await generateClosureSummary({
-          save,
-          ready,
-          config: { ...save.config, gatewayApiKey: gatewayApiKey || undefined },
-        });
-        const closed = closePair({ save, pairId, summary });
-        await persist(closed);
-        dispatchManagerQuip({ triggerKey: "pair.closure.confirmed", surfaceKey: pairId });
-        if (shouldFireSoftWinQuip(closed.managerQuipHistory, closed.closureCount)) {
-          dispatchManagerQuip({ triggerKey: "campaign.closures.five" });
-        }
-        processManagerQuipSaveDiff(previousSave, closed);
-        setClosingPairId(null);
-      } catch (error) {
-        setClosingPairId(null);
-        setClosureError({ pairId, message: errorToMessage(error) });
-        throw error;
-      }
-    });
-  }
-
-  function handleDismissClosureError() {
-    setClosureError(null);
-    setClosingPairId(null);
-  }
-
   async function handleMarkSoftWinSeen() {
     if (save === null) return;
-    tryAction("softWin", async () => {
+    await tryAction("softWin", async () => {
       const next = markSoftWinSeen(save);
       await persist(next);
     });
@@ -1226,18 +907,15 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setInterventionTargetMemberId("");
     setStreamingDrafts([]);
     setQueuedPlaybackIntent(null);
-    setClosingPairId(null);
-    setClosureError(null);
-    setCurrentRoom("livedate");
-    sessionManagerQuipIdsRef.current = new Set();
-    setActiveManagerQuip(null);
+    resetSessionQuips();
+    resetClosureError();
   }
 
   async function handleResetSave() {
-    tryAction("reset", async () => {
+    await tryAction("reset", async () => {
       await tryBackupSave(repository);
       const nextSave = await repository.resetGame();
-      setSave(nextSave);
+      commitSave(nextSave);
       setActiveDateSessionId(null);
       resetTransientShellState();
     });
@@ -1258,7 +936,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }
 
   async function handleImportSave(file: File) {
-    tryAction("reset", async () => {
+    await tryAction("reset", async () => {
       const text = await file.text();
       let parsed: unknown;
       try {
@@ -1280,7 +958,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       await tryBackupSave(repository);
       const hydrated = hydrateFixtureOwnedMemberData(validated.data);
       const nextSave = await repository.replaceGame(hydrated.save);
-      setSave(nextSave);
+      commitSave(nextSave);
       const restoredSession =
         nextSave.dateSessions.find((session) => session.status === "active") ??
         nextSave.dateSessions.at(-1) ??
@@ -1324,9 +1002,14 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     return <DashboardLoading />;
   }
 
-  const aiReady = localAiStatus.status === "ready" && save.config.aiSetupComplete === true;
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
-  const isDateViewActive = currentRoom === "livedate" && activeSession !== null;
+  const isDateViewActive = activeSession !== null;
+  /**
+   * The constellation lobby owns its own chrome (Punch out / AI / settings as
+   * glass pills floating on the canvas) so we suppress the cream
+   * `ShellChrome` header when it's the active screen.
+   */
+  const isLobbyViewActive = activeShift !== null && activeSession === null;
 
   return (
     <>
@@ -1342,6 +1025,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           >
             <OnboardingScreen
               members={save.members}
+              scenarios={starterScenarios}
               save={save}
               onTutorialUpdate={handleTutorialUpdate}
               onConfirm={handleConfirmOnboarding}
@@ -1360,28 +1044,29 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             className="relative isolate min-h-screen w-full"
           >
             <AmbientMesh />
-            <ShellChrome
-              isDateViewActive={isDateViewActive}
-              shiftNumber={activeShift?.shiftNumber ?? 1}
-              currentRoom={currentRoom}
-              aiStatusLabel={aiStatusLabel}
-              isActionPending={isActionPending}
-              getDiagnostics={getDiagnostics}
-              canExportSave={save !== null}
-              canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
-              devRevealAllMemberDetails={revealAllMemberDetails}
-              onPunchOut={onPunchOut}
-              onOpenAiSetup={() => setIsAiSetupOpen(true)}
-              onReset={handleResetSave}
-              onResetOrientation={() => {
-                void handleResetOrientation();
-              }}
-              onExportSave={handleExportSave}
-              onImportSave={handleImportSave}
-              onCopyDiagnostics={handleCopyDiagnostics}
-              onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
-              onOpenReleaseNotes={handleOpenReleaseNotes}
-            />
+            {isLobbyViewActive ? null : (
+              <ShellChrome
+                isDateViewActive={isDateViewActive}
+                shiftNumber={activeShift?.shiftNumber ?? 1}
+                aiStatusLabel={aiStatusLabel}
+                isActionPending={isActionPending}
+                getDiagnostics={getDiagnostics}
+                canExportSave={save !== null}
+                canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                devRevealAllMemberDetails={revealAllMemberDetails}
+                onPunchOut={onPunchOut}
+                onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                onReset={handleResetSave}
+                onResetOrientation={() => {
+                  void handleResetOrientation();
+                }}
+                onExportSave={handleExportSave}
+                onImportSave={handleImportSave}
+                onCopyDiagnostics={handleCopyDiagnostics}
+                onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                onOpenReleaseNotes={handleOpenReleaseNotes}
+              />
+            )}
 
             <AnimatePresence mode="wait">
               <motion.main
@@ -1391,7 +1076,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.35, ease: [0.2, 0.8, 0.2, 1] }}
               >
-                {currentRoom === "livedate" && activeShift !== null ? (
+                {activeShift !== null ? (
                   activeSession !== null ? (
                     <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
                       <DateView
@@ -1434,91 +1119,64 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       />
                     </div>
                   ) : (
-                    <PreDateCanvas
+                    <ConstellationLobby
                       save={save}
                       shift={activeShift}
                       focusedMembers={focusedMembers}
                       drawnScenarios={drawnScenarios}
-                      memberRequests={memberRequests}
-                      pairStates={save.pairStates}
                       isActionPending={isActionPending}
-                      aiReady={aiReady}
+                      bookingLocked={activeShift.activeBooking !== undefined}
+                      aiReady={save.config.aiSetupComplete && localAiStatus.status === "ready"}
                       readyClosurePairs={readyClosurePairs}
-                      closingPairId={closingPairId}
-                      closureError={closureError}
+                      readyClosurePairIds={readyClosurePairIds}
+                      readyClosureMemberIds={readyClosureMemberIds}
                       revealAllMemberDetails={revealAllMemberDetails}
-                      deckRepairBlocked={deckRepairBlocked}
-                      dateBookLockedUntilFirstReport={dateBookLockedUntilFirstReport}
                       onTutorialUpdate={handleTutorialUpdate}
                       onCommitPair={handleCommitPair}
-                      onStartDate={handleStartDate}
+                      onBeginDate={handleBeginDate}
                       onCancelBooking={handleCancelBooking}
-                      onConfirmClosure={handleConfirmClosure}
-                      onDismissClosureError={handleDismissClosureError}
-                      onOpenDateBook={() => {
-                        if (!dateBookLockedUntilFirstReport) setCurrentRoom("datebook");
-                      }}
-                      onOpenRoster={() => setCurrentRoom("roster")}
-                      onOpenPairFile={handleOpenPairFile}
-                      onOpenAiSetup={() => setIsAiSetupOpen(true)}
-                      onCloseShift={handleEndShift}
-                      onStartNextShift={handleStartNextShift}
-                      onOpenDateSession={setActiveDateSessionId}
-                      onDeckOverBudgetBlocked={(surfaceKey) =>
+                      onAddDeckCard={handleAddDeckCard}
+                      onRemoveDeckCard={handleRemoveDeckCard}
+                      onClosePair={handleClosePair}
+                      closureErrorMessage={closureErrorMessage}
+                      onDismissClosureError={resetClosureError}
+                      onDeckOverBudgetBlocked={() =>
                         dispatchManagerQuip({
                           triggerKey: "datebook.commit.over-budget",
-                          surfaceKey,
+                          surfaceKey: "lobby.deck",
+                          bypassTutorialGate: true,
                         })
                       }
+                      onCompleteShift={handleCompleteShift}
+                      onOpenDateSession={setActiveDateSessionId}
+                      onAddFocus={handleAddFocus}
+                      onRemoveFocus={handleRemoveFocus}
+                      onReselectFocus={handleReselectFocus}
+                      chromeSlot={(opts) => (
+                        <LobbyChromePills
+                          shiftNumber={activeShift.shiftNumber}
+                          aiStatusLabel={aiStatusLabel}
+                          isActionPending={isActionPending}
+                          getDiagnostics={getDiagnostics}
+                          canExportSave={save !== null}
+                          canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                          devRevealAllMemberDetails={revealAllMemberDetails}
+                          onPunchOut={onPunchOut}
+                          onBack={opts?.onBack}
+                          onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                          onReset={handleResetSave}
+                          onResetOrientation={() => {
+                            void handleResetOrientation();
+                          }}
+                          onExportSave={handleExportSave}
+                          onImportSave={handleImportSave}
+                          onCopyDiagnostics={handleCopyDiagnostics}
+                          onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                          onOpenReleaseNotes={handleOpenReleaseNotes}
+                        />
+                      )}
                     />
                   )
-                ) : null}
-
-                {currentRoom === "datebook" && activeShift !== null ? (
-                  <DateBookCanvas
-                    save={save}
-                    currentShift={activeShift.shiftNumber}
-                    scenarios={starterScenarios}
-                    isActionPending={isActionPending}
-                    bookingLocked={activeShift.activeBooking !== undefined}
-                    onTutorialUpdate={handleTutorialUpdate}
-                    onAddToDeck={handleAddDeckCard}
-                    onRemoveFromDeck={handleRemoveDeckCard}
-                    onBack={() => setCurrentRoom("livedate")}
-                  />
-                ) : null}
-
-                {currentRoom === "roster" ? (
-                  <RosterCanvas
-                    members={save.members}
-                    focusedMemberIds={save.focusedMemberIds}
-                    playerKnowledge={save.playerKnowledge}
-                    isActionPending={isActionPending}
-                    revealAllMemberDetails={revealAllMemberDetails}
-                    save={save}
-                    readyClosureMemberIds={readyClosureMemberIds}
-                    onTutorialUpdate={handleTutorialUpdate}
-                    onAddFocus={handleAddFocus}
-                    onRemoveFocus={handleRemoveFocus}
-                    onSwapFocus={handleSwapFocus}
-                    onReselectFocus={handleReselectFocus}
-                    onBack={() => setCurrentRoom("livedate")}
-                  />
-                ) : null}
-
-                {currentRoom === "files" ? (
-                  <div className="mx-auto w-full max-w-canvas px-6 py-8 lg:px-12">
-                    <NotesView
-                      memories={save.memories}
-                      members={save.members}
-                      pairEdges={relationshipIndex?.recentEdges ?? []}
-                      scenarios={starterScenarios}
-                      shifts={save.shifts}
-                      pairFocusId={filesPairFocusId}
-                      playerKnowledge={save.playerKnowledge}
-                      readyClosurePairIds={readyClosurePairIds}
-                    />
-                  </div>
                 ) : null}
               </motion.main>
             </AnimatePresence>
@@ -1533,18 +1191,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                 onOpenNextShift={handleStartNextShift}
               />
             ) : null}
-
-            <FloatingNavCluster
-              current={currentRoom}
-              hidden={dateAmbientSessionId !== null}
-              liveDateState={liveDateState}
-              disabledRooms={
-                dateBookLockedUntilFirstReport
-                  ? { datebook: "Date Book edits open after the first date report." }
-                  : undefined
-              }
-              onSelect={(room) => setCurrentRoom(room)}
-            />
 
             <AnimatePresence>
               {isAiSetupOpen ? (
@@ -1608,18 +1254,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         presentationKey={managerQuipPresentationKey}
         onDismissed={handleManagerQuipDismissed}
       />
+      <AnimatePresence>
+        {onboardingWarping ? (
+          <CosmicWarpOverlay key="onboarding-warp" originX="50%" originY="92%" />
+        ) : null}
+      </AnimatePresence>
     </>
   );
-}
-
-function deriveLiveDateState(
-  activeSession: { status: string } | null,
-  currentRoom: RoomKey,
-): LiveDateState {
-  if (activeSession === null) {
-    return currentRoom === "livedate" ? "planning" : "idle";
-  }
-  return activeSession.status === "active" ? "live" : "wrap";
 }
 
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {

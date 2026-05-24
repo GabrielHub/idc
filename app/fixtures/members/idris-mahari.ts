@@ -46,6 +46,7 @@ export const idrisMahari: Member = {
     "sincerity_seeking",
     "needs_clear_plan",
   ],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register:
       "dry deadpan that gives a war confession and a salad spinner defeat the same weight, rambles into honesty, quietly bewildered by ordinary Saturdays",

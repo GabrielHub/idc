@@ -14,6 +14,22 @@ export type CoachMarkPlacement = "top" | "bottom" | "left" | "right";
 
 export type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
 
+export type CoachMarkTextTone = "light" | "dark";
+
+/**
+ * Pixel offsets from the viewport edge. When supplied, the coach mark pins
+ * itself to the matching corner instead of computing position from `target`
+ * + `placement`. Use this on steps whose anchor target sits inside a busy
+ * surface (e.g. the constellation field) so the popup can float in a clear
+ * corner while the pulse ring still highlights the real target.
+ */
+export type CoachMarkFixedPosition = {
+  top?: number;
+  left?: number;
+  right?: number;
+  bottom?: number;
+};
+
 export type TutorialCoachMarkProps = {
   target: TutorialTarget;
   placement?: CoachMarkPlacement;
@@ -28,6 +44,8 @@ export type TutorialCoachMarkProps = {
   width?: number;
   offset?: number;
   portrait?: CoachMarkPortraitMode;
+  fixedPosition?: CoachMarkFixedPosition;
+  textTone?: CoachMarkTextTone;
 };
 
 export function TutorialCoachMark({
@@ -41,9 +59,11 @@ export function TutorialCoachMark({
   onPrimary,
   dismissLabel = "Skip tour",
   onDismiss,
-  width = 340,
+  width = 380,
   offset = 24,
   portrait = "avatar",
+  fixedPosition,
+  textTone = "light",
 }: TutorialCoachMarkProps) {
   const rect = useTargetRect(target);
   if (rect === null) return null;
@@ -61,6 +81,25 @@ export function TutorialCoachMark({
     estimatedHeight,
   );
 
+  const fixed = fixedPosition;
+  const animateProps =
+    fixed === undefined
+      ? {
+          top: position.top,
+          left: position.left,
+          width,
+          y: effectivePlacement === "top" ? "-100%" : "0%",
+        }
+      : {
+          top: fixed.top,
+          left: fixed.left,
+          right: fixed.right,
+          bottom: fixed.bottom,
+          width,
+          y: "0%",
+        };
+  const toneClasses = textToneClasses(textTone);
+
   return (
     <motion.div
       role="dialog"
@@ -68,12 +107,7 @@ export function TutorialCoachMark({
       aria-label={title}
       className="fixed z-50"
       initial={false}
-      animate={{
-        top: position.top,
-        left: position.left,
-        width,
-        y: effectivePlacement === "top" ? "-100%" : "0%",
-      }}
+      animate={animateProps}
       transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
     >
       <motion.div
@@ -89,8 +123,8 @@ export function TutorialCoachMark({
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
         className="relative"
       >
-        <div className="relative rounded-card border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.94)_0%,rgba(255,248,240,0.78)_100%)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.95),inset_0_0_0_1px_rgba(244,63,94,0.06),0_4px_14px_-4px_rgba(15,23,42,0.08),0_30px_70px_-22px_rgba(244,63,94,0.32)] backdrop-blur-[36px] backdrop-saturate-[180%]">
-          <PaperWatermark />
+        <div className="aura-liquid-glass relative rounded-card">
+          <GlassWatermark />
           <RegistrationCorners />
 
           {useAvatar ? <TutorialManagerAvatarPeek /> : null}
@@ -98,7 +132,9 @@ export function TutorialCoachMark({
 
           <div className={`relative px-5 pb-4 pt-5${usePortrait ? " pr-20" : ""}`}>
             <header className={`min-w-0${useAvatar ? " pl-14" : ""}`}>
-              <h3 className="font-display text-lead font-semibold leading-snug tracking-tight text-aura-ink">
+              <h3
+                className={`font-display text-lead font-semibold leading-snug tracking-tight ${toneClasses.title}`}
+              >
                 {title}
               </h3>
               <span
@@ -107,42 +143,44 @@ export function TutorialCoachMark({
               />
             </header>
 
-            <div className="mt-2.5 font-sans text-label leading-relaxed text-aura-muted">
+            <div className={`mt-2.5 font-sans text-label leading-relaxed ${toneClasses.body}`}>
               {body}
             </div>
 
-            <footer className="mt-4 flex items-center gap-3">
-              <span className="mr-auto inline-flex">
+            <footer className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-3">
+              <span className="mr-auto inline-flex min-w-0">
                 {typeof stepIndex === "number" && typeof stepCount === "number" ? (
                   <TutorialProgressDots count={stepCount} active={stepIndex} />
                 ) : null}
               </span>
 
-              {onDismiss === undefined ? null : (
-                <button
-                  type="button"
-                  data-sfx="click"
-                  onClick={onDismiss}
-                  className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose"
-                >
-                  {dismissLabel}
-                </button>
-              )}
+              <span className="ml-auto inline-flex shrink-0 items-center gap-3">
+                {onDismiss === undefined ? null : (
+                  <button
+                    type="button"
+                    data-sfx="click"
+                    onClick={onDismiss}
+                    className={`shrink-0 cursor-pointer whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-[0.16em] transition hover:text-aura-rose ${toneClasses.dismiss}`}
+                  >
+                    {dismissLabel}
+                  </button>
+                )}
 
-              {primaryLabel === undefined || onPrimary === undefined ? null : (
-                <button
-                  type="button"
-                  data-sfx="primary"
-                  onClick={onPrimary}
-                  className="group/cta relative cursor-pointer overflow-hidden rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white shadow-cta transition"
-                >
-                  <span
-                    aria-hidden
-                    className="absolute inset-y-0 -left-8 w-8 -skew-x-[18deg] bg-white/35 transition duration-[650ms] group-hover/cta:translate-x-[150%]"
-                  />
-                  <span className="relative">{primaryLabel}</span>
-                </button>
-              )}
+                {primaryLabel === undefined || onPrimary === undefined ? null : (
+                  <button
+                    type="button"
+                    data-sfx="primary"
+                    onClick={onPrimary}
+                    className="group/cta relative shrink-0 cursor-pointer overflow-hidden whitespace-nowrap rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-white shadow-cta transition"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-0 -left-8 w-8 -skew-x-[18deg] bg-white/35 transition duration-[650ms] group-hover/cta:translate-x-[150%]"
+                    />
+                    <span className="relative">{primaryLabel}</span>
+                  </button>
+                )}
+              </span>
             </footer>
           </div>
         </div>
@@ -151,11 +189,30 @@ export function TutorialCoachMark({
   );
 }
 
-function PaperWatermark() {
+function textToneClasses(tone: CoachMarkTextTone): {
+  title: string;
+  body: string;
+  dismiss: string;
+} {
+  if (tone === "dark") {
+    return {
+      title: "text-aura-ink",
+      body: "text-aura-muted",
+      dismiss: "text-aura-faint",
+    };
+  }
+  return {
+    title: "text-aura-paper",
+    body: "text-aura-paper/80",
+    dismiss: "text-white/55",
+  };
+}
+
+function GlassWatermark() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(15,23,42,0)_0_22px,rgba(15,23,42,0.012)_22px_23px),radial-gradient(120%_80%_at_100%_0%,rgba(244,63,94,0.06),rgba(244,63,94,0)_60%)] mix-blend-multiply"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0)_0_22px,rgba(255,255,255,0.06)_22px_23px),radial-gradient(120%_80%_at_100%_0%,rgba(255,255,255,0.12),rgba(255,255,255,0)_60%)]"
     />
   );
 }
@@ -163,10 +220,10 @@ function PaperWatermark() {
 function RegistrationCorners() {
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0">
-      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-aura-ink/20" />
-      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-aura-ink/20" />
-      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-aura-ink/20" />
-      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-aura-ink/20" />
+      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-white/30" />
+      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-white/30" />
+      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-white/30" />
+      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-white/30" />
     </span>
   );
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { gameSaveSchema, type MemoryRecord } from "../domain/game";
-import { derivePairGraph } from "../components/pair-board-layout";
+import { derivePairArchiveGraph } from "./pair-archive-graph";
 import {
   createSyntheticGameSave,
   generateSyntheticRoster,
@@ -59,10 +59,10 @@ describe("relationship graph scale benches", () => {
       }
     });
 
-    it(`derives a Pair Board graph at ${size} members from materialized edges only`, () => {
+    it(`derives a Pair archive graph at ${size} members from materialized edges only`, () => {
       const save = createSyntheticGameSave(size, SEED_DATE);
       // Materialize a handful of edges so the bench measures the real
-      // derivation cost: Pair Board only renders pairs with filed memories
+      // derivation cost: Pair archive only renders pairs with filed memories
       // that map to a persisted edge.
       const sampledPairIds = sampleSyntheticPairIds(save.members, 8);
       const index = buildRelationshipIndex(save);
@@ -78,12 +78,12 @@ describe("relationship graph scale benches", () => {
         visibility: "public",
         subjectIds: [...edge.participantIds],
         pairId: edge.id,
-        text: `Pair Board bench memory ${memIndex + 1}.`,
+        text: `Pair archive bench memory ${memIndex + 1}.`,
         tags: ["bench"],
         importance: (memIndex % 5) + 1,
         createdAt: `2026-05-15T12:0${memIndex}:00.000Z`,
       }));
-      const graph = derivePairGraph(save.members, materializedEdges, memories, {
+      const graph = derivePairArchiveGraph(save.members, materializedEdges, memories, {
         minDegree: 1,
       });
       expect(graph.edges.length).toBe(materializedEdges.length);

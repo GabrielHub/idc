@@ -195,7 +195,7 @@ export function PairMemoryInspector({
       ref={asideRef}
       data-pair-memory-inspector
       aria-label="Pair memory inspector"
-      className="aura-glass-flat pointer-events-auto fixed right-4 top-4 z-30 hidden max-h-[calc(100vh-2rem)] w-[22rem] max-w-[28vw] flex-col overflow-hidden rounded-card text-aura-ink xl:flex"
+      className="aura-liquid-glass pointer-events-auto fixed right-4 top-4 z-30 hidden max-h-[calc(100vh-2rem)] w-[22rem] max-w-[28vw] flex-col overflow-hidden rounded-card text-aura-ink xl:flex"
     >
       <header className="flex items-center justify-between gap-3 border-b border-aura-hairline px-4 py-3">
         <div className="min-w-0">
@@ -270,7 +270,7 @@ export function PairMemoryInspector({
           target={asideRef}
           placement="left"
           title="Agreements and open loops"
-          body="Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read."
+          body="Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow the pair from date to date and shape the next room read."
           primaryLabel="Got it"
           onPrimary={firstAgreementStep.complete}
           dismissLabel="Skip tour"

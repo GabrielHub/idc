@@ -43,6 +43,7 @@ export const rostin: Member = {
     "The reason he committed to door-to-door sushi salesman as a job description is that the actual answer is a regional sushi distribution and rideshare side hustle he started after a layoff, and the long version sounds worse than the short one, so he stopped offering it.",
   ],
   tags: ["ordinary_human", "performative", "sincerity_seeking", "needs_clear_plan"],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register:
       "Committed-prophet bit voice on a five foot eight San Diego stand-up hobbyist who sells door-to-door sushi and refuses to explain it.",

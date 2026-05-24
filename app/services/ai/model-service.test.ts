@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { gameConfigSchema } from "../../domain/game";
 import {
+  applyDeepSeekRoleplayThinkingMode,
   defaultMaxOutputTokensForProvider,
   defaultRequestTimeoutMsForProvider,
   ollamaThinkForReasoningLevel,
@@ -78,6 +79,11 @@ describe("AI model service", () => {
         thinking: { type: "enabled" },
       },
     });
+    expect(providerOptionsForRuntime(gatewayConfig, "deepseek/deepseek-v4-pro")).toEqual({
+      deepseek: {
+        thinking: { type: "enabled" },
+      },
+    });
     expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-sonnet-4.6")).toBeUndefined();
     expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-haiku-4.5")).toBeUndefined();
     expect(providerOptionsForRuntime(gatewayConfig, "xai/grok-4.3")).toBeUndefined();
@@ -141,5 +147,45 @@ describe("AI model service", () => {
     });
 
     expect(providerOptionsForRuntime(ollamaConfig, "google/gemini-3.1-flash-lite")).toBeUndefined();
+  });
+
+  it("appends DeepSeek roleplay thinking marker only to the first user message", () => {
+    const gatewayConfig = gameConfigSchema.parse({
+      aiProvider: "gateway",
+      chatModel: "deepseek/deepseek-v4-flash",
+    });
+    const result = applyDeepSeekRoleplayThinkingMode({
+      packet: {
+        system: "perform Alex",
+        prompt: "preview only",
+        messages: [
+          { role: "user", content: "Alex sits down." },
+          { role: "assistant", content: "hey." },
+          { role: "user", content: "How was your day?" },
+        ],
+      },
+      config: gatewayConfig,
+      modelId: "deepseek/deepseek-v4-flash",
+      enabled: true,
+    });
+
+    expect(result.messages?.[0]?.content).toContain("【角色沉浸要求】");
+    expect(result.messages?.[2]?.content).toBe("How was your day?");
+  });
+
+  it("does not append DeepSeek roleplay thinking marker to non-DeepSeek models", () => {
+    const gatewayConfig = gameConfigSchema.parse({
+      aiProvider: "gateway",
+      chatModel: "google/gemini-3.1-flash-lite",
+    });
+
+    expect(
+      applyDeepSeekRoleplayThinkingMode({
+        packet: { system: "perform Alex", prompt: "hello" },
+        config: gatewayConfig,
+        modelId: "google/gemini-3.1-flash-lite",
+        enabled: true,
+      }).prompt,
+    ).toBe("hello");
   });
 });

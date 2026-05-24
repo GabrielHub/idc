@@ -1,10 +1,7 @@
 import type { Member, MemoryRecord, PairState, PlayerKnowledgeRecord } from "../domain/game";
 import { CLOSURE_NEAR_MISS_TAG } from "../services/date-engine";
-import type { PairBoardSelection } from "./pair-board-shared";
 
 export type NotesScopeFilter = "all" | "pairs" | "scenarios";
-
-type HasIdLookup = { has(id: string): boolean };
 
 export type PairFocusInitialFilter = {
   scopeFilter: NotesScopeFilter;
@@ -18,19 +15,6 @@ export function derivePairFocusInitialFilter(
     return null;
   }
   return { scopeFilter: "pairs", selectedPairId: pairFocusId };
-}
-
-export function resolveInitialPairBoardSelection(
-  initialEdgePairId: string | null | undefined,
-  edges: HasIdLookup,
-): PairBoardSelection {
-  if (initialEdgePairId === null || initialEdgePairId === undefined) {
-    return { kind: "none" };
-  }
-  if (!edges.has(initialEdgePairId)) {
-    return { kind: "none" };
-  }
-  return { kind: "edge", pairId: initialEdgePairId };
 }
 
 export type PairDossier = {
@@ -61,7 +45,6 @@ export function buildPairDossier(input: BuildPairDossierInput): PairDossier | nu
 
   const publicPairNotes: MemoryRecord[] = [];
   let closureNearMiss = false;
-  let hasVisibleBoardEdge = false;
   for (const memory of memories) {
     if (memory.pairId !== pairId) continue;
     if (memory.visibility !== "public") continue;
@@ -71,12 +54,7 @@ export function buildPairDossier(input: BuildPairDossierInput): PairDossier | nu
     if (!closureNearMiss && memory.tags.includes(CLOSURE_NEAR_MISS_TAG)) {
       closureNearMiss = true;
     }
-    if (!hasVisibleBoardEdge && memory.subjectIds.every((id) => memberById.has(id))) {
-      hasVisibleBoardEdge = true;
-    }
   }
-
-  if (hasVisibleBoardEdge) return null;
 
   publicPairNotes.sort((left, right) => (left.createdAt < right.createdAt ? 1 : -1));
 

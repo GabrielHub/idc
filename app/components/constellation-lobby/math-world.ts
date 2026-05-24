@@ -1,0 +1,416 @@
+/**
+ * World-space conversions, camera framing per state, slab Z planes, and
+ * cluster layouts for the constellation lobby. Pure helpers — no React, no
+ * Three runtime state.
+ */
+
+import type {
+  CameraTarget,
+  FlythroughLayer,
+  LobbyState,
+  RosterSubview,
+  StarFlythroughLayer,
+  StarMark,
+  StarRole,
+  Vec3,
+} from "./types";
+import { isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER } from "./types";
+
+/** star.x (0-100) -> world x (~-11..+11). */
+export const WORLD_X_SCALE = 0.22;
+/** star.y (0-100) -> world y (~+6..-6, flipped to match screen orientation). */
+export const WORLD_Y_SCALE = -0.12;
+/** star.z (-260..+60) -> world z (~-13..+3) — broad depth so perspective parallax actually reads. */
+export const WORLD_Z_SCALE = 0.05;
+
+export function starWorldPosition(star: StarMark): Vec3 {
+  return {
+    x: (star.x - 50) * WORLD_X_SCALE,
+    y: (star.y - 50) * WORLD_Y_SCALE,
+    z: star.z * WORLD_Z_SCALE,
+  };
+}
+
+export function pairPartnerPosition(focus: StarMark): Vec3 {
+  const px = focus.x + 14;
+  const py = focus.y + 2;
+  return {
+    x: (px - 50) * WORLD_X_SCALE,
+    y: (py - 50) * WORLD_Y_SCALE,
+    z: focus.z * WORLD_Z_SCALE,
+  };
+}
+
+/**
+ * Resolves the world position a star is actually rendered at — the lerp target
+ * its `<StarSprite>` follows each frame. Anything anchored to the star (the
+ * active HoverDetailCard mount, the pair connector endpoint, an overlay arrow)
+ * should use this instead of `starWorldPosition` so it lands on the rendered
+ * star instead of its raw field coordinates. Drift, lerp damping, and per-axis
+ * jitter are visual-only and handled inside StarSprite — this returns the
+ * static target.
+ */
+export function resolveStarRenderTarget(input: {
+  natural: Vec3;
+  overridePos: Vec3 | null;
+  clusterPosition: Vec3 | null;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  layerZOffset: number;
+}): Vec3 {
+  const { natural, overridePos, clusterPosition, flythroughLayer, layerZOffset } = input;
+  const x = clusterPosition?.x ?? overridePos?.x ?? natural.x;
+  const y = clusterPosition?.y ?? overridePos?.y ?? natural.y;
+  const flythroughZ =
+    flythroughLayer === undefined
+      ? null
+      : flythroughStarZ(flythroughLayer) + (clusterPosition === null ? natural.z * 0.18 : 0);
+  const z = flythroughZ !== null ? flythroughZ : (overridePos?.z ?? natural.z) + layerZOffset;
+  return { x, y, z };
+}
+
+/**
+ * Per-layer world Z position the camera dollies toward in the flythrough.
+ * Layer 0 sits where the default idle camera does (z=17); layers 1 and 2
+ * punch forward so the two roster cohorts sit under the lens. Layer 3
+ * (scenarios) lands at z=4 so the scenario card meshes sitting at z ≈ -1
+ * read as the foreground "wall" the player just zoomed up against.
+ */
+export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
+  0: 17,
+  1: 11,
+  2: 10.6,
+  3: 4,
+};
+
+/**
+ * Per-slab world-Z plane each cohort of stars lives on once flythrough is
+ * active. Slab 0 (focus) is pulled forward; slab 1 (roster) sits behind.
+ */
+export const FLYTHROUGH_LAYER_Z: Record<StarFlythroughLayer, number> = {
+  0: 6.0,
+  1: -1.5,
+};
+
+/**
+ * Focus-slab cluster layout. The 4 focused leads sit in a centered grid in
+ * front of the camera on layer 0 so the player reads them as the shift's
+ * picker, instead of scattered across the field. Single member centers,
+ * two sit side-by-side, three or four arrange in a 2x2 grid (third lands in
+ * the bottom-left slot when total is 3). All share the focus slab's Z plane.
+ */
+const FOCUS_CLUSTER_SPACING_X = 5.2;
+const FOCUS_CLUSTER_SPACING_Y = 3.6;
+
+function focusClusterPosition(index: number, total: number): Vec3 {
+  if (total <= 1) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+  if (total === 2) {
+    return { x: (clamped - 0.5) * FOCUS_CLUSTER_SPACING_X, y: 0, z: 0 };
+  }
+  const col = clamped % 2;
+  const row = Math.floor(clamped / 2);
+  return {
+    x: (col - 0.5) * FOCUS_CLUSTER_SPACING_X,
+    y: (0.5 - row) * FOCUS_CLUSTER_SPACING_Y,
+    z: 0,
+  };
+}
+
+/**
+ * Pinned focus marker position when state === "focus_selected" and the
+ * player has scrolled past the focus-picker layer. Sits at world center so
+ * the eligible-partner ring (see `partnerRingPosition`) wraps around it as
+ * its own gravity well. The z is overwritten by the slab-z lookup in
+ * resolveStarRenderTarget — it lives on the focus slab (z ≈ 6) at runtime,
+ * so the value here is a placeholder.
+ */
+export const FOCUS_MARKER_POSITION: Vec3 = { x: 0, y: 0, z: 0 };
+
+/**
+ * Scale multiplier applied to the focus star when it's pinned to the
+ * focus marker slot. Smaller than the layer-0 hero size so the avatar
+ * reads as a compact "selected" indicator above the roster cluster
+ * without crowding the eligible-partner picker grid below.
+ */
+export const FOCUS_MARKER_SCALE = 0.7;
+
+/**
+ * Single dispatcher for a star's tonight-mode cluster slot. Returns the
+ * focus marker pin when the focus star is parked on a roster layer, the
+ * layer-0 focus cluster slot for a focused lead currently on layer 0, the
+ * roster cluster slot for an eligible/off-tonight lead currently on a roster
+ * layer, or `null` to fall back to the star's natural field position.
+ *
+ * When state === "focus_selected" AND the player is in the "eligibles"
+ * subview, eligible partners arrange in a ring around the centered focus
+ * marker (`partnerRingPosition`) instead of the rectangular roster grid —
+ * the focus is the gravity well of its own constellation, partners orbit.
+ * Off-tonight subview keeps the grid (no focus context).
+ *
+ * Archive mode bypasses clustering entirely — callers pass `inArchive` so
+ * the helper can short-circuit instead of every callsite re-checking.
+ */
+export function resolveClusterPosition(input: {
+  memberId: string;
+  role: StarRole;
+  state: LobbyState;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  currentLayer: FlythroughLayer | undefined;
+  focusOrder: readonly string[];
+  rosterLeadOrder: readonly string[];
+  inArchive?: boolean;
+  rosterSubview?: RosterSubview;
+}): Vec3 | null {
+  const {
+    memberId,
+    role,
+    state,
+    flythroughLayer,
+    currentLayer,
+    focusOrder,
+    rosterLeadOrder,
+    inArchive = false,
+    rosterSubview = "eligibles",
+  } = input;
+  if (inArchive) return null;
+  if (role === "focus" && state === "focus_selected" && isRosterFlythroughLayer(currentLayer)) {
+    return FOCUS_MARKER_POSITION;
+  }
+  if (flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0) {
+    const idx = focusOrder.indexOf(memberId);
+    if (idx >= 0) return focusClusterPosition(idx, focusOrder.length);
+  }
+  if (
+    flythroughLayer === 1 &&
+    isRosterFlythroughLayer(currentLayer) &&
+    rosterLeadOrder.length > 0
+  ) {
+    const idx = rosterLeadOrder.indexOf(memberId);
+    if (idx >= 0) {
+      const useRing = state === "focus_selected" && rosterSubview === "eligibles";
+      return useRing
+        ? partnerRingPosition(idx, rosterLeadOrder.length)
+        : rosterClusterPosition(idx, rosterLeadOrder.length);
+    }
+  }
+  return null;
+}
+
+/**
+ * Radial ring layout for eligible partners orbiting the focused member.
+ * The focus pins at (0, 0); partners arrange at equal angles on a circle
+ * around it, starting at the top (-π/2) and walking clockwise so the
+ * visual order matches the deterministic rosterLeadOrder iteration.
+ *
+ * The ring radius scales mildly with partner count — a 3-partner ring sits
+ * tighter than a 9-partner one so single-row counts don't drift outside the
+ * viewport while large rosters still have breathing room between halos.
+ * Tuned so the top/bottom slots fit inside the layer-1 camera's vertical
+ * frustum (camera z=11 → roster slab z=-1.5 = 12.5 units of distance, half
+ * vFOV 19° gives ~4.3 world units of half-height before partners clip).
+ */
+const PARTNER_RING_BASE_RADIUS = 3.0;
+const PARTNER_RING_PER_PARTNER = 0.12;
+const PARTNER_RING_MAX_RADIUS = 4.0;
+
+export function partnerRingPosition(index: number, total: number): Vec3 {
+  if (total <= 0) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+  const radius = Math.min(
+    PARTNER_RING_MAX_RADIUS,
+    PARTNER_RING_BASE_RADIUS + total * PARTNER_RING_PER_PARTNER,
+  );
+  const angle = -Math.PI / 2 + (clamped / total) * Math.PI * 2;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * -radius,
+    z: 0,
+  };
+}
+
+/**
+ * Roster-slab cluster layout. The active subview's leads (eligibles when the
+ * pill is on "Eligibles", off-tonight cohort when flipped) pack into a
+ * viewport-fitting rectangular grid centered on the layer-1 lookAt so every
+ * pickable face fits on screen at once instead of being scattered across the
+ * field. Non-lead members keep their natural positions and recede behind the
+ * cluster as outline-only background stars (handled by the heavy intensity
+ * drop in `flythroughMemberSlabActivity` for the off cohort).
+ *
+ * The grid picker biases toward wider layouts (viewport is wider than tall)
+ * and clamps total spacing to a max bounding box so even larger rosters fit
+ * without overflowing into the chrome. Partial last rows are centered.
+ */
+const ROSTER_CLUSTER_MAX_WIDTH = 11;
+const ROSTER_CLUSTER_MAX_HEIGHT = 6;
+const ROSTER_CLUSTER_DEFAULT_SPACING_X = 2.8;
+const ROSTER_CLUSTER_DEFAULT_SPACING_Y = 2.5;
+
+function pickRosterClusterGrid(total: number): { rows: number; cols: number } {
+  if (total <= 3) return { rows: 1, cols: total };
+  if (total === 4) return { rows: 2, cols: 2 };
+  if (total <= 6) return { rows: 2, cols: 3 };
+  if (total <= 9) return { rows: 3, cols: 3 };
+  if (total <= 12) return { rows: 3, cols: 4 };
+  if (total <= 16) return { rows: 4, cols: 4 };
+  if (total <= 20) return { rows: 4, cols: 5 };
+  return { rows: Math.ceil(total / 5), cols: 5 };
+}
+
+export function rosterClusterPosition(index: number, total: number): Vec3 {
+  if (total <= 1) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+
+  const { rows, cols } = pickRosterClusterGrid(total);
+  const spacingX =
+    cols > 1
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_X, ROSTER_CLUSTER_MAX_WIDTH / (cols - 1))
+      : ROSTER_CLUSTER_DEFAULT_SPACING_X;
+  const spacingY =
+    rows > 1
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, ROSTER_CLUSTER_MAX_HEIGHT / (rows - 1))
+      : ROSTER_CLUSTER_DEFAULT_SPACING_Y;
+
+  const col = clamped % cols;
+  const row = Math.floor(clamped / cols);
+  // Last row may be partial — center its items so the cluster reads as a
+  // balanced rectangle even when total isn't evenly divisible by cols.
+  const itemsInThisRow = row === rows - 1 ? total - row * cols : cols;
+  const colOffset = (cols - itemsInThisRow) / 2;
+  const effectiveCol = col + colOffset;
+
+  return {
+    x: (effectiveCol - (cols - 1) / 2) * spacingX,
+    y: ((rows - 1) / 2 - row) * spacingY,
+    z: 0,
+  };
+}
+
+/**
+ * Camera target for archive mode. Idle reads as a pulled-back overhead of
+ * the whole constellation field so every star + edge is in frame at once.
+ * When a selection bisects two stars (pair edge selected), the camera dollies
+ * forward to bracket the chosen edge. When a single star is selected, the
+ * camera bias-tracks that star at archive depth so its incident edges stay
+ * in view (slightly farther back than the tonight-mode focus dolly).
+ */
+const ARCHIVE_CAMERA_Z = 22;
+
+export function computeArchiveCameraTarget(input: {
+  pairMidpoint?: Vec3;
+  focusedStar?: Vec3;
+}): CameraTarget {
+  if (input.pairMidpoint !== undefined) {
+    const mid = input.pairMidpoint;
+    return {
+      position: [mid.x * 0.55, mid.y * 0.55, 14],
+      lookAt: [mid.x, mid.y, mid.z],
+      bokehScale: 0.9,
+    };
+  }
+  if (input.focusedStar !== undefined) {
+    const star = input.focusedStar;
+    return {
+      position: [star.x * 0.45, star.y * 0.45, 16],
+      lookAt: [star.x * 0.8, star.y * 0.8, star.z],
+      bokehScale: 0.7,
+    };
+  }
+  return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+}
+
+// Canvas FOV (38°) mirrored from the lobby's <Canvas camera={fov: 38}/> config.
+// A change there must also update this constant — the fit math depends on the
+// matching vertical FOV so the bounding box fills the actual viewport.
+const ARCHIVE_FIT_HALF_FOV_TAN = Math.tan((38 * Math.PI) / 180 / 2);
+// Most desktop viewports are at least 16:9. We bias horizontal headroom to a
+// slightly narrower assumption so portrait-ish browser windows don't crop the
+// outer paired stars.
+const ARCHIVE_FIT_ASPECT = 16 / 10;
+const ARCHIVE_FIT_MIN_Z = 9;
+// Slack baked around the bounding extent so the outermost stars never sit at
+// the literal viewport edge. Higher = more breathing room, smaller stars.
+const ARCHIVE_FIT_MARGIN = 1.55;
+
+/**
+ * Bounding-box-fit camera for archive mode's default (no-selection) view.
+ * With fewer paired stars the camera dollies in until the bounding box of
+ * their positions fills the viewport, so a single filed pair reads as a
+ * close-up duo rather than two specks in a vast pulled-back field.
+ *
+ * Returns the pulled-back overhead when called with an empty position list —
+ * callers that don't want that should gate on `positions.length` before
+ * calling.
+ */
+export function computeArchiveFitCamera(positions: readonly Vec3[]): CameraTarget {
+  if (positions.length === 0) {
+    return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+  }
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+  for (const pos of positions) {
+    if (pos.x < minX) minX = pos.x;
+    if (pos.x > maxX) maxX = pos.x;
+    if (pos.y < minY) minY = pos.y;
+    if (pos.y > maxY) maxY = pos.y;
+  }
+  const centerX = (minX + maxX) / 2;
+  const centerY = (minY + maxY) / 2;
+  // Single-point or near-degenerate bbox (one paired member, or two in the
+  // same slot) — floor the extent so we don't divide toward zero and end up
+  // jammed inside the star.
+  const halfWidth = Math.max((maxX - minX) / 2, 1.5);
+  const halfHeight = Math.max((maxY - minY) / 2, 1.5);
+  const zForY = (halfHeight * ARCHIVE_FIT_MARGIN) / ARCHIVE_FIT_HALF_FOV_TAN;
+  const zForX = (halfWidth * ARCHIVE_FIT_MARGIN) / (ARCHIVE_FIT_HALF_FOV_TAN * ARCHIVE_FIT_ASPECT);
+  const z = Math.max(ARCHIVE_FIT_MIN_Z, Math.min(ARCHIVE_CAMERA_Z, Math.max(zForY, zForX)));
+  return {
+    position: [centerX * 0.55, centerY * 0.55, z],
+    lookAt: [centerX, centerY, 0],
+    bokehScale: 0.45,
+  };
+}
+
+export function computeFlythroughCameraTarget(
+  layer: FlythroughLayer,
+  focus: StarMark | undefined,
+): CameraTarget {
+  const z = FLYTHROUGH_CAMERA_Z[layer];
+  const focusBias = layer === 0 && focus !== undefined ? starWorldPosition(focus) : null;
+  const biasX = focusBias === null ? 0 : focusBias.x * 0.25;
+  const biasY = focusBias === null ? 0 : focusBias.y * 0.25;
+
+  const slabZ =
+    layer === SCENARIO_FLYTHROUGH_LAYER
+      ? -1
+      : isRosterFlythroughLayer(layer)
+        ? FLYTHROUGH_LAYER_Z[1]
+        : FLYTHROUGH_LAYER_Z[0];
+  const bokeh = layer === 0 ? 0.45 : isRosterFlythroughLayer(layer) ? 0.85 : 0.6;
+
+  return {
+    position: [biasX, biasY, z],
+    lookAt: [biasX, biasY * 0.6, slabZ - 1],
+    bokehScale: bokeh,
+  };
+}
+
+export function flythroughStarZ(layer: StarFlythroughLayer): number {
+  return FLYTHROUGH_LAYER_Z[layer];
+}
+
+/**
+ * Decide which slab a star belongs to in the flythrough. Focused -> 0,
+ * everyone else -> 1. The eligibles vs off-tonight distinction is exposed as
+ * separate flythrough layers, but stars still render on the shared roster
+ * slab.
+ */
+export function computeStarFlythroughLayer(
+  memberId: string,
+  { focusedIds }: { focusedIds: ReadonlySet<string> },
+): StarFlythroughLayer {
+  if (focusedIds.has(memberId)) return 0;
+  return 1;
+}

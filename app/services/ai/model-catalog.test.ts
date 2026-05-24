@@ -52,6 +52,13 @@ describe("AI model catalog", () => {
     expect(
       gameConfigSchema.parse({
         aiProvider: "gateway",
+        chatModel: "deepseek/deepseek-v4-pro",
+        reasoningLevel: "high",
+      }).reasoningLevel,
+    ).toBe("xhigh");
+    expect(
+      gameConfigSchema.parse({
+        aiProvider: "gateway",
         chatModel: "google/gemini-3.1-flash-lite",
         reasoningLevel: "high",
       }).reasoningLevel,
@@ -120,6 +127,7 @@ describe("AI model catalog", () => {
   it("surfaces the curated Gateway choices from the Vercel catalog", () => {
     expect(GATEWAY_CHAT_MODELS.map((model) => model.id)).toEqual([
       "deepseek/deepseek-v4-flash",
+      "deepseek/deepseek-v4-pro",
       "google/gemini-3.1-flash-lite",
       "anthropic/claude-haiku-4.5",
       "minimax/minimax-m2.7",
@@ -130,11 +138,7 @@ describe("AI model catalog", () => {
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "google/gemini-3-flash")).toBe(false);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "moonshotai/kimi-k2.5")).toBe(false);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "xai/grok-4.3")).toBe(false);
-    expect(
-      GATEWAY_CHAT_MODELS.every(
-        (model) => model.iconLabel !== undefined && model.iconTone !== undefined,
-      ),
-    ).toBe(true);
+    expect(GATEWAY_CHAT_MODELS.every((model) => model.brand !== undefined)).toBe(true);
   });
 
   it("keeps Gateway choices narrow and disables reasoning where no Gateway knob is exposed", () => {
@@ -145,6 +149,7 @@ describe("AI model catalog", () => {
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "minimal")).toBe("high");
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "high")).toBe("high");
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("high");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-pro", "high")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("anthropic/claude-haiku-4.5", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("minimax/minimax-m2.7", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("alibaba/qwen3.5-flash", "high")).toBe("off");
@@ -154,6 +159,7 @@ describe("AI model catalog", () => {
 
   it("marks Gateway models that accept image input", () => {
     expect(gatewayImageInputSupported("deepseek/deepseek-v4-flash")).toBe(false);
+    expect(gatewayImageInputSupported("deepseek/deepseek-v4-pro")).toBe(false);
     expect(gatewayImageInputSupported("google/gemini-3-flash")).toBe(false);
     expect(gatewayImageInputSupported("google/gemini-3.1-flash-lite")).toBe(true);
     expect(gatewayImageInputSupported("anthropic/claude-haiku-4.5")).toBe(true);
@@ -214,14 +220,37 @@ describe("AI model catalog", () => {
   });
 
   it("keeps GPU tier recommendations explicit", () => {
+    expect(GPU_RECOMMENDATION_PROFILES.map((profile) => profile.id)).toEqual([
+      "vram-8gb",
+      "vram-12gb",
+      "vram-16gb",
+      "vram-24gb",
+      "vram-32gb",
+      "apple-silicon",
+    ]);
     expect(
-      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "rtx-3080-10gb")?.modelIds,
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "vram-8gb")?.modelIds,
+    ).toEqual(["gemma4:e2b"]);
+    expect(
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "vram-12gb")?.modelIds,
     ).toEqual(["gemma4:e2b", "gemma4:e4b"]);
     expect(
-      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "balanced-12gb")?.modelIds,
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "vram-16gb")?.modelIds,
     ).toEqual(["gemma4:e4b"]);
     expect(
-      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "large-24gb")?.modelIds,
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "vram-24gb")?.modelIds,
     ).toEqual(["gemma4:26b"]);
+    expect(
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "vram-32gb")?.modelIds,
+    ).toEqual(["gemma4:26b"]);
+    expect(
+      GPU_RECOMMENDATION_PROFILES.find((profile) => profile.id === "apple-silicon")?.modelIds,
+    ).toEqual(["gemma4:e2b", "gemma4:e4b", "gemma4:26b"]);
+    const allExamples = GPU_RECOMMENDATION_PROFILES.map((profile) => profile.examples).join(" ");
+    expect(allExamples).toContain("5070");
+    expect(allExamples).toContain("5090");
+    expect(allExamples).toContain("RX 9070");
+    expect(allExamples).toContain("RX 7900 XTX");
+    expect(allExamples).toContain("M4");
   });
 });

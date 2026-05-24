@@ -119,8 +119,8 @@ export function MemberDetailsModal({
           className="aura-glass-strong relative grid w-full max-w-[108rem] grid-cols-1 overflow-hidden rounded-card md:w-[calc(100vw-2.5rem)] md:grid-cols-[minmax(260px,330px)_minmax(0,1fr)]"
         >
           <div aria-hidden className="pointer-events-none absolute inset-0 z-0">
-            <div className="absolute inset-0 bg-gradient-to-br from-[var(--char-from)] via-[var(--char-via)] to-[var(--char-to)]" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,var(--char-accent-wash)_0%,transparent_34%),radial-gradient(ellipse_at_82%_22%,var(--char-via-wash)_0%,transparent_42%),radial-gradient(ellipse_at_46%_82%,var(--char-to-wash)_0%,transparent_60%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-[var(--char-from)]/26 via-[var(--char-via)]/12 to-[var(--char-to)]/16" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,var(--char-accent-wash)_0%,transparent_34%),radial-gradient(ellipse_at_82%_22%,var(--char-via-wash)_0%,transparent_42%),radial-gradient(ellipse_at_46%_82%,var(--char-to-wash)_0%,transparent_60%)] opacity-45" />
             <div className="aura-dot-grid absolute inset-0 opacity-20" />
             <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/10" />
           </div>
@@ -227,7 +227,7 @@ export function MemberDetailsModal({
                 {request !== undefined ? (
                   <section>
                     <Eyebrow>// current ask</Eyebrow>
-                    <p className="mt-2 rounded-2xl bg-white/55 px-4 py-3 text-body text-aura-ink/85 ring-1 ring-aura-hairline">
+                    <p className="aura-glass mt-2 rounded-2xl px-4 py-3 text-body text-aura-ink/85">
                       {request.text}
                     </p>
                   </section>
@@ -242,10 +242,7 @@ export function MemberDetailsModal({
                   ) : (
                     <ul className="mt-2 space-y-2">
                       {profile.revealedReads.map((read) => (
-                        <li
-                          key={read.id}
-                          className="rounded-2xl bg-white/55 p-3 ring-1 ring-aura-hairline"
-                        >
+                        <li key={read.id} className="aura-glass rounded-2xl p-3">
                           <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
                             {readKindLabel(read)}
                           </p>
@@ -309,7 +306,7 @@ export function MemberDetailsModal({
               target={intelBoardRef}
               placement="top"
               title="Files start mostly sealed"
-              body="Public profile is what they wrote. Everything else unseals over time as Cupid files reads from dates you run."
+              body="The public profile is what they wrote. Everything else unseals as Cupid files reads from the dates you run."
               primaryLabel="Got it"
               onPrimary={firstOpenStep.complete}
               dismissLabel="Skip tour"
@@ -324,17 +321,74 @@ export function MemberDetailsModal({
 
 type RedactedBlock = VisibleMemberProfile["redactedBlocks"][number];
 
-function MemberIntelBoard({
+export type IntelBoardTheme = "paper" | "glass";
+
+type IntelThemeTokens = {
+  shell: string;
+  divider: string;
+  cell: string;
+  bodyText: string;
+  mutedText: string;
+  pillBg: string;
+  pillRing: string;
+  pillText: string;
+  sealedBar: string;
+  readTile: string;
+  readText: string;
+  cellTitleText: string;
+  sealedLabelText: string;
+  readLabelText: string;
+};
+
+const INTEL_THEME_TOKENS: Record<IntelBoardTheme, IntelThemeTokens> = {
+  paper: {
+    shell: "aura-glass-flat",
+    divider: "gap-2",
+    cell: "aura-glass",
+    bodyText: "text-aura-ink/85",
+    mutedText: "text-aura-muted",
+    pillBg: "bg-aura-rose/5",
+    pillRing: "ring-aura-rose/20",
+    pillText: "text-aura-rose/70",
+    sealedBar: "bg-aura-hairline",
+    readTile: "aura-glass",
+    readText: "text-aura-ink/85",
+    cellTitleText: "text-aura-rose/80",
+    sealedLabelText: "text-aura-rose/80",
+    readLabelText: "text-aura-rose",
+  },
+  glass: {
+    shell: "aura-liquid-glass",
+    divider: "gap-2",
+    cell: "aura-liquid-glass",
+    bodyText: "text-white/85",
+    mutedText: "text-white/55",
+    pillBg: "bg-rose-300/15",
+    pillRing: "ring-rose-300/40",
+    pillText: "text-rose-200",
+    sealedBar: "bg-white/15",
+    readTile: "aura-liquid-glass",
+    readText: "text-white/85",
+    cellTitleText: "text-rose-300/90",
+    sealedLabelText: "text-rose-300/75",
+    readLabelText: "text-rose-300",
+  },
+};
+
+export function MemberIntelBoard({
   member,
   profile,
   revealAllDetails,
   sectionRef,
+  theme = "paper",
 }: {
   member: Member;
   profile: VisibleMemberProfile;
   revealAllDetails: boolean;
   sectionRef?: Ref<HTMLElement>;
+  theme?: IntelBoardTheme;
 }) {
+  const tokens = INTEL_THEME_TOKENS[theme];
   const profileContinuation = profile.publicFragments.slice(1);
   const profileBlock = findRedactedBlock(profile, "profile:remainder");
   const needsBlock = findRedactedBlock(profile, "needs:sealed");
@@ -348,54 +402,64 @@ function MemberIntelBoard({
     <section ref={sectionRef} className="mt-4">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <Eyebrow>{revealAllDetails ? "// dev.unveiled" : "// case intel"}</Eyebrow>
-        <span className="rounded-pill bg-aura-rose/5 px-2.5 py-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/70 ring-1 ring-aura-rose/20">
+        <span
+          className={`rounded-pill px-2.5 py-1 font-mono text-micro uppercase tracking-[0.2em] ring-1 ${tokens.pillBg} ${tokens.pillRing} ${tokens.pillText}`}
+        >
           {revealAllDetails ? "preview only" : "filed reads only"}
         </span>
       </div>
 
-      <div className="mt-3 overflow-hidden rounded-2xl bg-aura-hairline ring-1 ring-aura-hairline">
-        <div className="grid gap-px lg:grid-cols-2 xl:grid-cols-4">
-          <IntelCell title="profile continues">
+      <div className={`mt-3 overflow-hidden rounded-2xl ring-1 ${tokens.shell}`}>
+        <div className={`grid lg:grid-cols-2 xl:grid-cols-4 ${tokens.divider}`}>
+          <IntelCell title="profile continues" tokens={tokens}>
             {profileContinuation.length > 0 ? (
-              <div className="mt-2 space-y-1.5 text-label leading-snug text-aura-ink/85">
+              <div className={`mt-2 space-y-1.5 text-label leading-snug ${tokens.bodyText}`}>
                 {profileContinuation.map((fragment) => (
                   <p key={fragment}>{fragment}</p>
                 ))}
               </div>
             ) : profileBlock !== undefined ? (
-              <SealedLines lineCount={profileBlock.lineCount} />
+              <SealedLines lineCount={profileBlock.lineCount} theme={theme} />
             ) : (
-              <p className="mt-2 text-label text-aura-muted">No extra profile read filed.</p>
+              <p className={`mt-2 text-label ${tokens.mutedText}`}>No extra profile read filed.</p>
             )}
           </IntelCell>
 
-          <IntelCell title="looking for">
+          <IntelCell title="looking for" tokens={tokens}>
             {revealAllDetails ? (
-              <IntelList items={member.relationshipNeeds} emptyText="No needs on file." />
+              <IntelList
+                items={member.relationshipNeeds}
+                emptyText="No needs on file."
+                tokens={tokens}
+              />
             ) : needsReads.length > 0 ? (
-              <FiledReadSummary reads={needsReads} />
+              <FiledReadSummary reads={needsReads} theme={theme} />
             ) : (
-              <SealedLines lineCount={lineCountFor(needsBlock, 3)} />
+              <SealedLines lineCount={lineCountFor(needsBlock, 3)} theme={theme} />
             )}
           </IntelCell>
 
-          <IntelCell title="preferences">
+          <IntelCell title="preferences" tokens={tokens}>
             {revealAllDetails ? (
-              <IntelList items={member.preferences} emptyText="No soft reads filed." />
+              <IntelList
+                items={member.preferences}
+                emptyText="No soft reads filed."
+                tokens={tokens}
+              />
             ) : preferenceReads.length > 0 ? (
-              <FiledReadSummary reads={preferenceReads} />
+              <FiledReadSummary reads={preferenceReads} theme={theme} />
             ) : (
-              <SealedLines lineCount={lineCountFor(preferencesBlock, 3)} />
+              <SealedLines lineCount={lineCountFor(preferencesBlock, 3)} theme={theme} />
             )}
           </IntelCell>
 
-          <IntelCell title="dealbreakers">
+          <IntelCell title="dealbreakers" tokens={tokens}>
             {revealAllDetails ? (
-              <IntelList items={member.dealbreakers} emptyText="None on file." />
+              <IntelList items={member.dealbreakers} emptyText="None on file." tokens={tokens} />
             ) : boundaryReads.length > 0 ? (
-              <FiledReadSummary reads={boundaryReads} />
+              <FiledReadSummary reads={boundaryReads} theme={theme} />
             ) : (
-              <SealedLines lineCount={lineCountFor(boundaryBlock, 3)} />
+              <SealedLines lineCount={lineCountFor(boundaryBlock, 3)} theme={theme} />
             )}
           </IntelCell>
         </div>
@@ -418,15 +482,19 @@ function lineCountFor(block: RedactedBlock | undefined, fallback: number): numbe
 function IntelCell({
   title,
   className = "",
+  tokens,
   children,
 }: {
   title: string;
   className?: string;
+  tokens: IntelThemeTokens;
   children: ReactNode;
 }) {
   return (
-    <article className={`min-h-[6.5rem] bg-white/55 p-3 ${className}`}>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
+    <article className={`min-h-[6.5rem] p-3 ${tokens.cell} ${className}`}>
+      <p
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tokens.cellTitleText}`}
+      >
         {title}
       </p>
       {children}
@@ -437,18 +505,20 @@ function IntelCell({
 function IntelList({
   items,
   emptyText = "No entries on file.",
+  tokens,
 }: {
   items: readonly string[];
   emptyText?: string;
+  tokens: IntelThemeTokens;
 }) {
   if (items.length === 0) {
-    return <p className="mt-2 text-label text-aura-muted">{emptyText}</p>;
+    return <p className={`mt-2 text-label ${tokens.mutedText}`}>{emptyText}</p>;
   }
 
   return (
     <ul className="mt-2 grid gap-1.5">
       {items.map((item) => (
-        <li key={item} className="text-label leading-snug text-aura-ink/85">
+        <li key={item} className={`text-label leading-snug ${tokens.bodyText}`}>
           {item}
         </li>
       ))}
@@ -456,32 +526,53 @@ function IntelList({
   );
 }
 
-function FiledReadSummary({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
+function FiledReadSummary({
+  reads,
+  theme = "paper",
+}: {
+  reads: readonly PlayerKnowledgeRecord[];
+  theme?: IntelBoardTheme;
+}) {
+  const tokens = INTEL_THEME_TOKENS[theme];
   return (
     <ul className="mt-2 grid gap-1.5">
       {reads.map((read) => (
-        <li key={read.id} className="rounded-tile bg-aura-rose/5 px-2.5 py-1.5">
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-rose">
+        <li key={read.id} className={`rounded-tile px-2.5 py-1.5 ${tokens.readTile}`}>
+          <p
+            className={`font-mono text-micro font-semibold uppercase tracking-[0.2em] ${tokens.readLabelText}`}
+          >
             {readKindLabel(read)}
           </p>
-          <p className="mt-1 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+          <p className={`mt-1 text-label leading-snug ${tokens.readText}`}>{read.readText}</p>
         </li>
       ))}
     </ul>
   );
 }
 
-function SealedLines({ lineCount }: { lineCount: number }) {
+function SealedLines({
+  lineCount,
+  theme = "paper",
+}: {
+  lineCount: number;
+  theme?: IntelBoardTheme;
+}) {
   const normalizedCount = Math.min(Math.max(lineCount, 1), 5);
+  const tokens = INTEL_THEME_TOKENS[theme];
 
   return (
     <>
       <div className="mt-3 space-y-1.5" aria-hidden>
         {Array.from({ length: normalizedCount }, (_, lineIndex) => (
-          <span key={lineIndex} className="block h-2 rounded-pill bg-aura-hairline last:w-2/3" />
+          <span
+            key={lineIndex}
+            className={`block h-2 rounded-pill last:w-2/3 ${tokens.sealedBar}`}
+          />
         ))}
       </div>
-      <p className="mt-3 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/80">
+      <p
+        className={`mt-3 font-mono text-micro uppercase tracking-[0.2em] ${tokens.sealedLabelText}`}
+      >
         sealed
       </p>
     </>
@@ -508,7 +599,7 @@ function ModalCloseTab({ onClose }: { onClose: () => void }) {
       onClick={onClose}
       data-sfx="click"
       aria-label="Close file"
-      className="absolute right-4 top-4 z-30 grid size-9 cursor-pointer place-items-center rounded-full bg-white/85 text-aura-muted shadow-quiet ring-1 ring-aura-hairline transition hover:bg-white hover:text-aura-ink"
+      className="aura-glass aura-glass-lift absolute right-4 top-4 z-30 grid size-9 cursor-pointer place-items-center rounded-full text-aura-muted transition hover:text-aura-ink"
     >
       <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
         <path

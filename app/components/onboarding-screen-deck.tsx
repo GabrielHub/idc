@@ -213,9 +213,10 @@ export function DeckDraftStep({
             target={firstScenarioCardRef}
             placement="left"
             title="Build the Date Book"
-            body="This is the pool Cupid draws from. Pick six to twelve rooms and stay under budget. The hand comes later, after you commit two members."
+            body="This is the pool Cupid draws from. Pick six to twelve rooms, stay under the budget. The drawn hand comes later, after you commit a pair."
             dismissLabel="Skip tour"
             onDismiss={deckPickStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -227,9 +228,10 @@ export function DeckDraftStep({
             target={rightmostExpandRef}
             placement="right"
             title="Scout the room"
-            body="Tap a card's arrow to open the room brief. Useful for sizing up vibe and rules before you spend on it."
+            body="Tap a card's arrow to open the brief. Worth a peek for the vibe and rules before you spend on it."
             dismissLabel="Skip tour"
             onDismiss={deckExpandStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -241,7 +243,7 @@ export function DeckDraftStep({
             target={startShiftCtaRef}
             placement="top"
             title="Start the shift"
-            body="Deck is legal. Start the shift and Cupid opens Live Date. You will pick today's lead case, one different partner, then commit. Three scenarios get drawn from this pool."
+            body="Deck is legal. Start the shift and Cupid opens the lobby. Pick a lead case, then a different partner, then commit. Three scenarios get drawn from this pool."
             primaryLabel="Start the shift"
             onPrimary={() => {
               deckStartStep.complete();
@@ -249,6 +251,7 @@ export function DeckDraftStep({
             }}
             dismissLabel="Skip tour"
             onDismiss={deckStartStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}

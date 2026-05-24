@@ -205,6 +205,23 @@ describe("generateFocusMemberReply", () => {
     expect(result.retried).toBe(true);
     expect(result.retryReason).toBe("visibility");
   });
+
+  it("passes DeepSeek roleplay thinking through to member generations", async () => {
+    modelServiceMocks.generateCharacterTurn.mockResolvedValueOnce(
+      generatedText("I brought a spreadsheet and a defensive pastry."),
+    );
+    const session = appendPartnerLine(newSession(), "hey there");
+
+    await generateFocusMemberReply(session, {
+      generationOptions: { deepseekRoleplayThinking: true },
+    });
+
+    expect(modelServiceMocks.generateCharacterTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: expect.objectContaining({ deepseekRoleplayThinking: true }),
+      }),
+    );
+  });
 });
 
 describe("previewMemberTurnPacket", () => {

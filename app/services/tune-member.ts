@@ -28,6 +28,7 @@ import {
 import { EmptyPerformerMessageError, sanitizeCharacterText } from "./ai-date-engine";
 import {
   generateCharacterTurn,
+  type AiGenerationOptions,
   type AiRuntimeConfig,
   type GeneratedTextResult,
 } from "./ai/model-service";
@@ -518,6 +519,7 @@ export type TuneGenerationResult = {
 
 export type GenerateOptions = {
   config?: Partial<AiRuntimeConfig>;
+  generationOptions?: AiGenerationOptions;
   now?: Date;
 };
 
@@ -531,6 +533,7 @@ export async function generateFocusMemberReply(
   const recentSpeakerLines = collectRecentFocusLines(preview.dateSession, preview.focusMember.id);
 
   const config = options.config ?? {};
+  const generationOptions = options.generationOptions;
   const runVisibleAttempt = async (
     packet: CharacterPromptPacket,
   ): Promise<{
@@ -541,6 +544,7 @@ export async function generateFocusMemberReply(
       const attempt = await runOnce({
         packet,
         config,
+        generationOptions,
         speakerName: preview.focusMember.name,
       });
       return { attempt, retriedForVisibility: false };
@@ -555,6 +559,7 @@ export async function generateFocusMemberReply(
       const retry = await runOnce({
         packet: withCharacterVisibilityRetryGuard(packet),
         config,
+        generationOptions,
         speakerName: preview.focusMember.name,
       });
       return { attempt: retry, retriedForVisibility: true };
@@ -663,13 +668,15 @@ function truncate(text: string, max = 80): string {
 async function runOnce({
   packet,
   config,
+  generationOptions,
   speakerName,
 }: {
   packet: CharacterPromptPacket;
   config: Partial<AiRuntimeConfig>;
+  generationOptions: AiGenerationOptions | undefined;
   speakerName: string;
 }): Promise<{ text: string; raw: GeneratedTextResult }> {
-  const raw = await generateCharacterTurn({ packet, config });
+  const raw = await generateCharacterTurn({ packet, config, options: generationOptions });
   const text = sanitizeCharacterText(raw.text, speakerName);
   return { text, raw };
 }

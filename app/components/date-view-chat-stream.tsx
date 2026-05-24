@@ -250,7 +250,7 @@ function ChatBubble({
       ? `text-left ${HOUSE_BUBBLE_NAME_CLASS}`
       : "text-right text-aura-faint";
   const accentStyle = customBubble?.accentStyle;
-  const defaultRightClass = `aura-glass rounded-[22px] rounded-br-md px-4 py-2.5 ${HOUSE_BUBBLE_FONT_CLASS}`;
+  const defaultRightClass = `aura-liquid-glass rounded-[22px] rounded-br-md px-4 py-2.5 ${HOUSE_BUBBLE_FONT_CLASS}`;
   const bubbleClass = customBubble
     ? customBubble.className
     : isLeft
@@ -364,7 +364,7 @@ function NarratorBeat({
 function CupidPin({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
   return (
     <motion.li {...animation} className="!my-6 flex justify-center">
-      <div className="aura-glass-rose relative max-w-md rounded-card px-5 pt-5 pb-3.5 text-center">
+      <div className="aura-liquid-glass aura-liquid-glass-rose relative max-w-md rounded-card px-5 pt-5 pb-3.5 text-center">
         <span
           aria-hidden
           className="absolute -top-1.5 left-1/2 grid size-3.5 -translate-x-1/2 place-items-center rounded-full bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-rose shadow-[0_3px_8px_rgba(244,63,94,0.45)] ring-2 ring-white/85"
@@ -391,7 +391,7 @@ function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatS
 
   return (
     <motion.li {...animation} data-judge-note-anchor="true" className="!my-5 flex justify-center">
-      <div className="aura-glass relative w-full rounded-card px-5 pt-3.5 pb-3.5">
+      <div className="aura-liquid-glass relative w-full rounded-card px-5 pt-3.5 pb-3.5 text-aura-ink">
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
@@ -481,7 +481,7 @@ function DateStatusCue({
 
 function CupidStatusPill({ label, leading }: { label: string; leading: React.ReactNode }) {
   return (
-    <div className="inline-flex items-center gap-2.5 rounded-[22px] rounded-bl-md bg-white/70 px-4 py-2.5 shadow-quiet ring-1 ring-aura-hairline backdrop-blur-md">
+    <div className="aura-liquid-glass inline-flex items-center gap-2.5 rounded-[22px] rounded-bl-md px-4 py-2.5 text-aura-ink">
       {leading}
       <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
         {label}

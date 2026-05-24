@@ -1,4 +1,5 @@
-import { GhostButton, pad2, SelectInput } from "./dashboard-atoms";
+import { pad2, SelectInput } from "./dashboard-atoms";
+import { NotesArchiveResetButton } from "./notes-cards";
 import type { NotesScopeFilter } from "./notes-view-helpers";
 
 export type NotesScopeOption = { id: string; label: string };
@@ -41,7 +42,7 @@ export function NotesFilterRail({
 
   return (
     <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3">
-      <div className="inline-flex items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+      <div className="aura-liquid-glass inline-flex items-center gap-1 rounded-pill p-1">
         {NOTES_SCOPE_FILTERS.map((filter) => {
           const active = scopeFilter === filter.id;
           return (
@@ -53,8 +54,8 @@ export function NotesFilterRail({
               aria-pressed={active}
               className={`cursor-pointer rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
                 active
-                  ? "bg-aura-ink text-white shadow-quiet"
-                  : "text-aura-muted hover:text-aura-ink"
+                  ? "bg-aura-paper text-aura-ink shadow-quiet"
+                  : "text-white/65 hover:text-aura-paper"
               }`}
             >
               {filter.label}
@@ -82,10 +83,10 @@ export function NotesFilterRail({
       ) : null}
 
       <div className="ml-auto flex items-center gap-3">
-        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
           {pad2(shownCount)} of {pad2(totalCount)} shown
         </span>
-        {hasFilters ? <GhostButton onClick={onClearFilters}>Reset filters</GhostButton> : null}
+        {hasFilters ? <NotesArchiveResetButton onClick={onClearFilters} /> : null}
       </div>
     </div>
   );
@@ -112,7 +113,8 @@ function NotesScopePicker({
       label={label}
       value={value}
       options={selectOptions}
-      layout="inline"
+      layout="toolbar"
+      tone="dark"
       onChange={onChange}
     />
   );

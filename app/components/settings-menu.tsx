@@ -25,12 +25,19 @@ import {
 export { buildDiagnosticsSnapshot };
 export type { DiagnosticsSnapshot };
 
-export function MutedIndicator() {
+export type ChromeVariant = "cream" | "glass";
+
+export function MutedIndicator({ variant = "cream" }: { variant?: ChromeVariant } = {}) {
   const { isEnabled, setEnabled } = useSfx();
 
   if (isEnabled) {
     return null;
   }
+
+  const surfaceClass =
+    variant === "glass"
+      ? "aura-liquid-glass aura-liquid-glass-hover text-aura-rose"
+      : "border border-aura-hairline bg-white text-aura-rose hover:border-aura-rose/30";
 
   return (
     <button
@@ -39,17 +46,26 @@ export function MutedIndicator() {
       aria-label="Audio is muted. Click to unmute."
       title="Audio muted. Click to unmute."
       onClick={() => setEnabled(true)}
-      className="flex cursor-pointer items-center justify-center rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-rose transition hover:border-aura-rose/30"
+      className={`flex cursor-pointer items-center justify-center rounded-pill px-2.5 py-1.5 transition ${surfaceClass}`}
     >
       <MutedIcon />
     </button>
   );
 }
 
-export function AudioSettingsMenu({ align = "right" }: { align?: "left" | "right" }) {
+export function AudioSettingsMenu({
+  align = "right",
+  variant = "cream",
+}: {
+  align?: "left" | "right";
+  variant?: ChromeVariant;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
+  const panelSurfaceClass =
+    variant === "glass" ? "aura-liquid-glass aura-liquid-glass-ink" : "aura-glass-strong";
+  const panelThemeAttr = variant === "glass" ? "dark" : undefined;
 
   useEffect(() => {
     if (!isOpen) {
@@ -87,6 +103,7 @@ export function AudioSettingsMenu({ align = "right" }: { align?: "left" | "right
       <SettingsTriggerButton
         isOpen={isOpen}
         label="Settings"
+        variant={variant}
         onClick={() => setIsOpen((open) => !open)}
       />
       <AnimatePresence>
@@ -94,11 +111,12 @@ export function AudioSettingsMenu({ align = "right" }: { align?: "left" | "right
           <motion.div
             key="audio-settings-menu"
             role="menu"
+            data-theme={panelThemeAttr}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className={`aura-glass-strong absolute top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card ${popoverAlignmentClass}`}
+            className={`${panelSurfaceClass} absolute top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card ${popoverAlignmentClass}`}
           >
             <SfxControls variant="menu" />
           </motion.div>
@@ -115,6 +133,7 @@ export function SettingsMenu({
   canUseDevMemberDetailsPreview,
   devRevealAllMemberDetails,
   align = "right",
+  variant = "cream",
   onOpenAiSetup,
   onReset,
   onResetOrientation,
@@ -130,6 +149,7 @@ export function SettingsMenu({
   canUseDevMemberDetailsPreview: boolean;
   devRevealAllMemberDetails: boolean;
   align?: "left" | "right";
+  variant?: ChromeVariant;
   onOpenAiSetup: () => void;
   onReset: () => void;
   onResetOrientation: () => void;
@@ -357,12 +377,16 @@ export function SettingsMenu({
     ? `Settings. Update v${updateState.version} available.`
     : "Settings";
   const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
+  const panelSurfaceClass =
+    variant === "glass" ? "aura-liquid-glass aura-liquid-glass-ink" : "aura-glass-strong";
+  const panelThemeAttr = variant === "glass" ? "dark" : undefined;
 
   return (
     <div ref={wrapperRef} className="relative">
       <SettingsTriggerButton
         isOpen={isOpen}
         label={settingsLabel}
+        variant={variant}
         onClick={() => setIsOpen((open) => !open)}
       >
         {hasAvailableUpdate ? (
@@ -376,11 +400,12 @@ export function SettingsMenu({
           <motion.div
             key="settings-menu"
             role="menu"
+            data-theme={panelThemeAttr}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className={`aura-glass-strong absolute ${popoverAlignmentClass} top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card`}
+            className={`${panelSurfaceClass} absolute ${popoverAlignmentClass} top-full z-40 mt-2 w-72 overflow-hidden rounded-card p-1.5 shadow-card`}
           >
             <SfxControls variant="menu" />
             <div className="mx-2 h-px bg-aura-hairline" />
@@ -490,13 +515,22 @@ function SettingsTriggerButton({
   isOpen,
   label,
   onClick,
+  variant = "cream",
   children,
 }: {
   isOpen: boolean;
   label: string;
   onClick: () => void;
+  variant?: ChromeVariant;
   children?: ReactNode;
 }) {
+  const surfaceClass =
+    variant === "glass"
+      ? `aura-liquid-glass aura-liquid-glass-hover text-aura-paper ${
+          isOpen ? "aura-liquid-glass-rose" : ""
+        }`
+      : "border border-aura-hairline bg-white text-aura-muted hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink";
+
   return (
     <button
       type="button"
@@ -506,7 +540,7 @@ function SettingsTriggerButton({
       aria-label={label}
       title={label}
       onClick={onClick}
-      className="relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill border border-aura-hairline bg-white px-2.5 py-1.5 text-aura-muted transition hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink"
+      className={`relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill px-2.5 py-1.5 transition ${surfaceClass}`}
     >
       <SettingsIcon />
       {children}

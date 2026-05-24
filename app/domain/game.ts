@@ -9,6 +9,7 @@ export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
 const CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL = "google/gemini-3.1-flash-lite";
 const LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS: Record<string, string> = {
   "google/gemini-3-flash": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
@@ -134,10 +135,10 @@ const memberVoiceGuidanceSchema = z.string().min(1).max(360);
 
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),
-  comedyMechanics: z.array(memberVoiceGuidanceSchema).max(8).default([]),
-  outputConstraints: z.array(memberVoiceGuidanceSchema).max(12).default([]),
-  conversationShape: z.array(memberConversationShapeExampleSchema).max(3).default([]),
-  contrastExamples: z.array(memberContrastExampleSchema).max(3).default([]),
+  comedyMechanics: z.array(memberVoiceGuidanceSchema).max(8).optional(),
+  outputConstraints: z.array(memberVoiceGuidanceSchema).max(12).optional(),
+  conversationShape: z.array(memberConversationShapeExampleSchema).max(3).optional(),
+  contrastExamples: z.array(memberContrastExampleSchema).max(3).optional(),
   patternsUsed: z.array(voicePatternSchema).min(1).max(4),
   patternsRefused: z.array(voicePatternSchema).min(2),
   tics: z.array(z.string().min(1)).min(3).max(7),
@@ -961,6 +962,10 @@ function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: 
     return "high";
   }
 
+  if (chatModel === DEEPSEEK_V4_PRO_MODEL) {
+    return "xhigh";
+  }
+
   if (chatModel === CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL) {
     return "medium";
   }
@@ -1009,8 +1014,10 @@ export const tutorialStepIdSchema = z.enum([
   "onboarding.deck.pick",
   "onboarding.deck.expand",
   "onboarding.deck.start",
+  "planning.layer-nav",
   "planning.focus",
   "planning.partner",
+  "planning.intent",
   "planning.commit",
   "planning.scenario",
   "planning.begin",
@@ -1021,6 +1028,9 @@ export const tutorialStepIdSchema = z.enum([
   "date.nudge.compose",
   "date.followup",
   "planning.file-shift",
+  "lazy.contextual-rail",
+  "lazy.date-book",
+  "lazy.cut-short",
   "lazy.roster.swap-penalty",
   "lazy.datebook.locked",
   "lazy.datebook.repair",

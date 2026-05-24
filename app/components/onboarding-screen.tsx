@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useRef, useState } from "react";
 
-import type { GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
+import type { DateScenario, GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import { FOCUS_CASE_LIMIT } from "../services/focus-cases";
 import {
   applyMemberRosterFilters,
@@ -21,29 +21,38 @@ import {
 import { useResponsiveColumnCount } from "./onboarding-screen-utils";
 import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
 import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
+import { DeckDraftStep } from "./onboarding-screen-deck";
 
 export type OnboardingPayload = {
   focusedMemberIds: string[];
+  scenarioDeckCardIds: string[];
 };
 
 export type OnboardingScreenProps = {
   members: Member[];
+  scenarios: DateScenario[];
   save: GameSave;
   onTutorialUpdate: (next: GameSave) => void;
   onConfirm: (payload: OnboardingPayload) => void;
 };
 
+type OnboardingPhase = "focus" | "deck";
+
 export function OnboardingScreen({
   members,
+  scenarios,
   save,
   onTutorialUpdate,
   onConfirm,
 }: OnboardingScreenProps) {
+  const [phase, setPhase] = useState<OnboardingPhase>("focus");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deckIds, setDeckIds] = useState<string[]>([]);
   const [filterState, setFilterState] = useState<MemberRosterFilterState>(
     DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   );
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+  const [openScenarioId, setOpenScenarioId] = useState<string | null>(null);
   const firstFocusCardRef = useRef<HTMLLIElement | null>(null);
   const rightmostExpandRef = useRef<HTMLButtonElement | null>(null);
   const startShiftCtaRef = useRef<HTMLButtonElement | null>(null);
@@ -106,6 +115,52 @@ export function OnboardingScreen({
   const canAdvanceToDeck = selectedIds.length === FOCUS_CASE_LIMIT;
   const openMember =
     openMemberId === null ? null : (members.find((member) => member.id === openMemberId) ?? null);
+  const openScenario =
+    openScenarioId === null
+      ? null
+      : (scenarios.find((scenario) => scenario.id === openScenarioId) ?? null);
+
+  if (phase === "deck") {
+    return (
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key="deck"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4, ease: EASE_OUT_QUART }}
+        >
+          <DeckDraftStep
+            scenarios={scenarios}
+            deckIds={deckIds}
+            focusedMemberIds={selectedIds}
+            members={members}
+            save={save}
+            onTutorialUpdate={onTutorialUpdate}
+            onChangeDeck={setDeckIds}
+            onBack={() => {
+              setOpenMemberId(null);
+              setOpenScenarioId(null);
+              setPhase("focus");
+            }}
+            onConfirm={() => {
+              onConfirm({
+                focusedMemberIds: selectedIds,
+                scenarioDeckCardIds: deckIds,
+              });
+            }}
+            onExpandScenario={setOpenScenarioId}
+            openScenario={openScenario}
+            onCloseScenario={() => setOpenScenarioId(null)}
+            onOpenMember={setOpenMemberId}
+            openMember={openMember}
+            onCloseMember={() => setOpenMemberId(null)}
+            playerKnowledge={playerKnowledge}
+          />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence mode="wait" initial={false}>
@@ -191,13 +246,11 @@ export function OnboardingScreen({
                       if (focusStartStep.active && !focusStartStep.done) {
                         focusStartStep.complete();
                       }
-                      onConfirm({
-                        focusedMemberIds: selectedIds,
-                      });
+                      setPhase("deck");
                     }
                   }}
                 >
-                  Start the shift
+                  Choose date scenarios
                   <span className="ml-2 inline-block">→</span>
                 </PrimaryButton>
               </div>
@@ -211,10 +264,11 @@ export function OnboardingScreen({
                 target={firstFocusCardRef}
                 placement="left"
                 title="Cupid is hiring. You are hired."
-                body="These are members who walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
+                body="These hopefuls walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
                 dismissLabel="Skip tour"
                 onDismiss={focusPickStep.dismiss}
                 portrait="portrait"
+                textTone="dark"
               />
             </>
           ) : null}
@@ -226,9 +280,10 @@ export function OnboardingScreen({
                 target={rightmostExpandRef}
                 placement="right"
                 title="Read the file"
-                body="Tap a card's arrow to open that member's file. Useful for sizing up a case before you commit."
+                body="Tap a card's arrow to open their file. Worth a peek before you commit a slot to them."
                 dismissLabel="Skip tour"
                 onDismiss={focusExpandStep.dismiss}
+                textTone="dark"
               />
             </>
           ) : null}
@@ -239,10 +294,11 @@ export function OnboardingScreen({
               <TutorialCoachMark
                 target={startShiftCtaRef}
                 placement="top"
-                title="Start the shift"
-                body="Four cases on file. Cupid prefilled the first Date Book with a small starter set. Run one date first; deck edits open after the first report."
+                title="Draft the Date Book"
+                body="Four cases on file. Next up: pick the starter rooms Cupid can draw from once you commit a pair."
                 dismissLabel="Skip tour"
                 onDismiss={focusStartStep.dismiss}
+                textTone="dark"
               />
             </>
           ) : null}

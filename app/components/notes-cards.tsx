@@ -13,7 +13,7 @@ import {
   visibleMemoryTagLabels,
 } from "./notes-format";
 import { paletteForMemory, type ScopePalette } from "./notes-palette";
-import { splitLead } from "./pair-board-shared";
+import { splitLead } from "../services/pair-archive-graph";
 
 export type NotesCardDeps = {
   memberById: Map<string, Member>;
@@ -40,11 +40,11 @@ export function NotesArchive({ memories, ...deps }: NotesCardDeps & { memories: 
     <div className="relative mt-8">
       <span
         aria-hidden
-        className="pointer-events-none absolute -left-3 top-4 hidden h-[calc(100%-2rem)] w-px bg-gradient-to-b from-aura-rose/45 via-aura-hairline-strong to-transparent lg:block"
+        className="pointer-events-none absolute -left-3 top-4 hidden h-[calc(100%-2rem)] w-px bg-gradient-to-b from-aura-rose/55 via-white/15 to-transparent lg:block"
       />
       <span
         aria-hidden
-        className="pointer-events-none absolute -left-[14px] top-3 hidden size-2 rounded-full bg-aura-rose/70 shadow-[0_0_0_4px_rgba(255,253,249,0.85)] lg:block"
+        className="pointer-events-none absolute -left-[14px] top-3 hidden size-2 rounded-full bg-aura-rose shadow-[0_0_0_4px_rgba(7,4,26,0.85)] lg:block"
       />
 
       {featured === undefined ? null : (
@@ -74,16 +74,29 @@ export function NotesEmptyTile({
   action?: ReactNode;
 }) {
   return (
-    <div className="mt-10 grid place-items-center rounded-card border border-dashed border-aura-hairline bg-white/40 px-6 py-12 text-center">
+    <div className="aura-liquid-glass mt-10 grid place-items-center rounded-card px-6 py-12 text-center">
       <div className="max-w-md space-y-3">
         <Eyebrow>// archive.empty</Eyebrow>
-        <h3 className="font-display text-display-md font-semibold tracking-tight text-aura-ink">
+        <h3 className="font-display text-display-md font-semibold tracking-tight text-aura-paper">
           {title}
         </h3>
-        <p className="text-label text-aura-muted">{subhead}</p>
+        <p className="text-label text-white/70">{subhead}</p>
         {action === undefined ? null : <div className="pt-2">{action}</div>}
       </div>
     </div>
+  );
+}
+
+export function NotesArchiveResetButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      data-sfx="click"
+      onClick={onClick}
+      className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-pill px-4 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-paper"
+    >
+      Reset filters
+    </button>
   );
 }
 
@@ -120,12 +133,12 @@ function FeaturedNoteCard({
       initial={{ opacity: 0, y: 12, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.46, ease: EASE_OUT_QUART }}
-      className={`aura-glass-strong relative overflow-hidden rounded-card ring-1 ${palette.glyphRing}`}
+      className="aura-liquid-glass relative overflow-hidden rounded-card"
     >
       <NoteCardWatermark palette={palette} scope={memory.scope} large />
       <span
         aria-hidden
-        className={`pointer-events-none absolute inset-y-0 left-0 w-1.5 ${palette.rail} opacity-60`}
+        className={`pointer-events-none absolute inset-y-0 left-0 w-1.5 ${palette.rail} opacity-75`}
       />
       <ImportanceRail value={memory.importance} palette={palette} large />
 
@@ -147,7 +160,7 @@ function FeaturedNoteCard({
                 {pairMembers.map((member, idx) => (
                   <span
                     key={member.id}
-                    className={`rounded-full border-[3px] border-white/90 bg-white shadow-quiet ${idx === 0 ? "rotate-[-3deg]" : "rotate-[2deg]"}`}
+                    className={`rounded-full border-[3px] border-white/85 bg-white shadow-quiet ${idx === 0 ? "rotate-[-3deg]" : "rotate-[2deg]"}`}
                   >
                     <Portrait member={member} variant="card" />
                   </span>
@@ -161,17 +174,17 @@ function FeaturedNoteCard({
               />
             )}
             <div className="space-y-1">
-              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/55">
                 Filed {formatNoteTimestamp(memory.createdAt)}
               </p>
-              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-muted">
+              <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/70">
                 Lead case · {pad2(rank)} on file
               </p>
             </div>
           </div>
 
           <div className="min-w-0">
-            <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
+            <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-paper">
               {title}
             </h3>
             {subhead === null ? null : (
@@ -179,18 +192,18 @@ function FeaturedNoteCard({
                 {subhead}
               </p>
             )}
-            <p className="aura-accent mt-5 text-lead leading-snug text-aura-ink/90">{lead}</p>
+            <p className="mt-5 text-lead leading-snug text-aura-paper/90">{lead}</p>
             {tail === "" ? null : (
-              <p className="mt-4 max-w-prose text-body leading-relaxed text-aura-ink/80">{tail}</p>
+              <p className="mt-4 max-w-prose text-body leading-relaxed text-white/75">{tail}</p>
             )}
             {tagLabels.length === 0 ? null : (
               <ul className="mt-5 flex flex-wrap gap-1.5">
                 {tagLabels.map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-pill bg-white/70 px-2.5 py-1 ring-1 ring-aura-hairline"
+                    className="rounded-pill bg-white/10 px-2.5 py-1 ring-1 ring-white/15"
                   >
-                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted">
+                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/75">
                       {tag}
                     </span>
                   </li>
@@ -200,12 +213,12 @@ function FeaturedNoteCard({
           </div>
         </div>
 
-        <div className="mt-7 flex items-center justify-between gap-4 border-t border-aura-hairline pt-4">
-          <p className="flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+        <div className="mt-7 flex items-center justify-between gap-4 border-t border-white/12 pt-4">
+          <p className="flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/55">
             <span aria-hidden className={`size-1.5 rounded-full ${palette.caseDot}`} />
             Reviewed by Cupid
           </p>
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-white/70">
             ref · {caseNumber}
           </p>
         </div>
@@ -231,13 +244,11 @@ function NoteCard({
       transition={{ duration: 0.34, delay: Math.min(index, 6) * 0.04, ease: EASE_OUT_QUART }}
       className="list-none"
     >
-      <article
-        className={`aura-glass aura-glass-lift relative h-full overflow-hidden rounded-card ring-1 ${palette.glyphRing}`}
-      >
+      <article className="aura-liquid-glass aura-liquid-glass-hover relative h-full overflow-hidden rounded-card">
         <NoteCardWatermark palette={palette} scope={memory.scope} />
         <span
           aria-hidden
-          className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${palette.rail} opacity-55`}
+          className={`pointer-events-none absolute inset-y-0 left-0 w-1 ${palette.rail} opacity-70`}
         />
         <ImportanceRail value={memory.importance} palette={palette} />
 
@@ -249,7 +260,7 @@ function NoteCard({
               <span aria-hidden className="size-1 rounded-full bg-white/85" />
               {palette.label}
             </span>
-            <span className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+            <span className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/55">
               {caseNumber}
             </span>
           </div>
@@ -260,7 +271,7 @@ function NoteCard({
                 {pairMembers.map((member, idx) => (
                   <span
                     key={member.id}
-                    className={`rounded-full border-2 border-white/90 bg-white shadow-quiet ${idx === 0 ? "rotate-[-2deg]" : "rotate-[2deg]"}`}
+                    className={`rounded-full border-2 border-white/85 bg-white shadow-quiet ${idx === 0 ? "rotate-[-2deg]" : "rotate-[2deg]"}`}
                   >
                     <Portrait member={member} variant="thumb" />
                   </span>
@@ -273,32 +284,30 @@ function NoteCard({
               />
             )}
             <div className="min-w-0 flex-1">
-              <h3 className="line-clamp-1 font-display text-display-sm font-semibold leading-[1.05] tracking-tight text-aura-ink">
+              <h3 className="line-clamp-1 font-display text-display-sm font-semibold leading-[1.05] tracking-tight text-aura-paper">
                 {title}
               </h3>
               {subhead === null ? null : (
-                <p className="mt-1 line-clamp-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+                <p className="mt-1 line-clamp-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
                   {subhead}
                 </p>
               )}
-              <p className="mt-1 font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+              <p className="mt-1 font-mono text-micro uppercase tracking-[0.24em] text-white/55">
                 Filed {formatNoteTimestamp(memory.createdAt)}
               </p>
             </div>
           </div>
 
           <div className="min-w-0">
-            <p className="aura-accent line-clamp-2 text-lead leading-snug text-aura-ink/90">
-              {lead}
-            </p>
+            <p className="line-clamp-2 text-lead leading-snug text-aura-paper/90">{lead}</p>
             {tail === "" ? null : (
-              <p className="mt-2 line-clamp-2 text-body leading-relaxed text-aura-ink/75">{tail}</p>
+              <p className="mt-2 line-clamp-2 text-body leading-relaxed text-white/75">{tail}</p>
             )}
           </div>
 
-          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-aura-hairline pt-3">
+          <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t border-white/12 pt-3">
             {tagLabels.length === 0 ? (
-              <span className="font-mono text-micro uppercase tracking-[0.24em] text-aura-faint">
+              <span className="font-mono text-micro uppercase tracking-[0.24em] text-white/50">
                 no tags filed
               </span>
             ) : (
@@ -306,21 +315,21 @@ function NoteCard({
                 {tagLabels.slice(0, 3).map((tag) => (
                   <li
                     key={tag}
-                    className="rounded-pill bg-white/70 px-2 py-0.5 ring-1 ring-aura-hairline"
+                    className="rounded-pill bg-white/10 px-2 py-0.5 ring-1 ring-white/15"
                   >
-                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-muted">
+                    <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-white/75">
                       {tag}
                     </span>
                   </li>
                 ))}
                 {tagLabels.length > 3 ? (
-                  <li className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+                  <li className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/55">
                     +{tagLabels.length - 3}
                   </li>
                 ) : null}
               </ul>
             )}
-            <span className="flex items-center gap-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
+            <span className="flex items-center gap-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/55">
               <span aria-hidden className={`size-1 rounded-full ${palette.caseDot}`} />
               {pad2(memory.importance)}/05
             </span>
@@ -353,7 +362,7 @@ function ImportanceRail({
           <span
             key={i}
             aria-hidden
-            className={`flex-1 rounded-full ${isLit ? palette.rail : "bg-aura-hairline"}`}
+            className={`flex-1 rounded-full ${isLit ? palette.rail : "bg-white/15"}`}
           />
         );
       })}
@@ -365,10 +374,10 @@ function FiledStamp({ date }: { date: string }) {
   return (
     <span
       aria-hidden
-      className="pointer-events-none inline-flex -rotate-[7deg] flex-col items-center justify-center gap-0.5 rounded-md border-2 border-aura-rose/45 px-3 py-1.5 font-mono font-semibold uppercase tracking-[0.32em] text-aura-rose/65"
+      className="pointer-events-none inline-flex -rotate-[7deg] flex-col items-center justify-center gap-0.5 rounded-md border-2 border-aura-rose/55 px-3 py-1.5 font-mono font-semibold uppercase tracking-[0.32em] text-aura-rose/80"
     >
       <span className="text-micro leading-none">Filed</span>
-      <span className="text-micro leading-none tracking-[0.18em] text-aura-rose/55">
+      <span className="text-micro leading-none tracking-[0.18em] text-aura-rose/65">
         {formatStampDate(date)}
       </span>
     </span>
@@ -387,7 +396,7 @@ function NoteCardWatermark({
   return (
     <div
       aria-hidden
-      className={`pointer-events-none absolute opacity-[0.07] ${large ? "-bottom-12 -right-10 size-64" : "-bottom-10 -right-8 size-44"}`}
+      className={`pointer-events-none absolute opacity-[0.18] ${large ? "-bottom-12 -right-10 size-64" : "-bottom-10 -right-8 size-44"}`}
     >
       <svg viewBox="0 0 100 100" className={`size-full ${palette.watermark}`} fill="currentColor">
         {scope === "scenario" ? (
@@ -425,7 +434,7 @@ function ScenarioGlyph({
       className={`relative grid shrink-0 place-items-center rounded-full bg-gradient-to-br ring-2 ${palette.glyphFill} ${palette.glyphRing} ${large ? "size-28 shadow-quiet" : "size-12"}`}
     >
       <span aria-hidden className="absolute inset-1 rounded-full ring-1 ring-white/60" />
-      <span aria-hidden className="absolute inset-2.5 rounded-full ring-1 ring-aura-hairline" />
+      <span aria-hidden className="absolute inset-2.5 rounded-full ring-1 ring-aura-ink/15" />
       <span
         className={`relative font-display font-semibold tracking-tight text-aura-ink/85 ${large ? "text-display-md" : "text-base"}`}
       >

@@ -6,10 +6,9 @@ import { EASE_OUT_QUART, Eyebrow, MutedLabel } from "../components/dashboard-ato
 import { AiPromptLabTest } from "./playground/tests/ai-prompt-lab";
 import { AllMembersTest } from "./playground/tests/all-members";
 import { ChatBubbleGalleryTest } from "./playground/tests/chat-bubble-gallery";
+import { ConstellationLobbyTest } from "./playground/tests/constellation-lobby";
 import { DateReactionsTest } from "./playground/tests/date-reactions";
 import { HeightLineupTest } from "./playground/tests/height-lineup";
-import { NotesArchiveTest } from "./playground/tests/notes-archive";
-import { PairBoardTest } from "./playground/tests/pair-board";
 
 const PLAYGROUND_TESTS = [
   {
@@ -21,6 +20,12 @@ const PLAYGROUND_TESTS = [
     id: "all-members",
     title: "Member dossier",
     summary: "Every field on every member, with a roster rail and avatar IDs for quick switching.",
+  },
+  {
+    id: "constellation-lobby",
+    title: "Constellation lobby",
+    summary:
+      "Production lobby + pair-graph archive view, seeded at four stages (empty / few pairs / mid game / end game).",
   },
   {
     id: "date-reactions",
@@ -36,16 +41,6 @@ const PLAYGROUND_TESTS = [
     id: "chat-bubbles",
     title: "Chat bubble gallery",
     summary: "Per-member focused-side bubble styles in one grid.",
-  },
-  {
-    id: "notes-archive",
-    title: "Notes archive",
-    summary: "Case notes view with mock pair, date, and scenario memories.",
-  },
-  {
-    id: "pair-board",
-    title: "Pair board",
-    summary: "Network-graph view of filed pair connections with hover, expand, and rail UX.",
   },
 ] as const;
 
@@ -79,10 +74,13 @@ export default function PlaygroundRoute() {
           {activeTestId === "date-reactions" ? <DateReactionsTest /> : null}
           {activeTestId === "height-scale" ? <HeightLineupTest /> : null}
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
-          {activeTestId === "notes-archive" ? <NotesArchiveTest /> : null}
-          {activeTestId === "pair-board" ? <PairBoardTest /> : null}
         </div>
       </div>
+
+      {/* Hoisted out of the page chrome's z-10 stacking context so its fullscreen overlay can sit above the playground top bar (z-30) and the lobby's wheel/keyboard nav can be cleanly disabled. */}
+      {activeTestId === "constellation-lobby" ? (
+        <ConstellationLobbyTest onExit={() => setActiveTestId("ai-lab")} />
+      ) : null}
     </main>
   );
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-21T20:29:01.381Z",
+  "updatedAt": "2026-05-24T19:52:10.917Z",
   "pricingSource": "Vercel AI Gateway model pages",
   "benchmark": {
     "kind": "gateway-cost-smoke-date-chat",
@@ -24,6 +24,19 @@
         "totalTokens": 2118,
         "estimatedUsd": 0.00036134,
         "elapsedMs": 9297
+      }
+    },
+    "deepseek/deepseek-v4-pro": {
+      "inputUsdPerMillionTokens": 0.43,
+      "outputUsdPerMillionTokens": 0.87,
+      "costTier": "high",
+      "benchmark": {
+        "measuredAt": "2026-05-24T19:52:10.917Z",
+        "inputTokens": 1570,
+        "outputTokens": 713,
+        "totalTokens": 2283,
+        "estimatedUsd": 0.00129541,
+        "elapsedMs": 21665
       }
     },
     "google/gemini-3.1-flash-lite": {

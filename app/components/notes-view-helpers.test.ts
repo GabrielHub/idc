@@ -12,11 +12,7 @@ import {
 import { bradyStrait, jennaPike, vhool } from "../fixtures/members";
 import { CLOSURE_NEAR_MISS_TAG } from "../services/date-engine";
 import { makePairId, sortMemberIds } from "../services/game-seed";
-import {
-  buildPairDossier,
-  derivePairFocusInitialFilter,
-  resolveInitialPairBoardSelection,
-} from "./notes-view-helpers";
+import { buildPairDossier, derivePairFocusInitialFilter } from "./notes-view-helpers";
 
 const PAIR_ID = makePairId(jennaPike.id, vhool.id);
 
@@ -31,26 +27,6 @@ describe("derivePairFocusInitialFilter", () => {
     expect(derivePairFocusInitialFilter(PAIR_ID)).toEqual({
       scopeFilter: "pairs",
       selectedPairId: PAIR_ID,
-    });
-  });
-});
-
-describe("resolveInitialPairBoardSelection", () => {
-  it("returns none when no initial pair id is supplied", () => {
-    expect(resolveInitialPairBoardSelection(null, new Set([PAIR_ID]))).toEqual({ kind: "none" });
-    expect(resolveInitialPairBoardSelection(undefined, new Set([PAIR_ID]))).toEqual({
-      kind: "none",
-    });
-  });
-
-  it("returns none when the requested edge is not on the board", () => {
-    expect(resolveInitialPairBoardSelection(PAIR_ID, new Set())).toEqual({ kind: "none" });
-  });
-
-  it("returns the edge selection when the pair has a visible edge", () => {
-    expect(resolveInitialPairBoardSelection(PAIR_ID, new Set([PAIR_ID]))).toEqual({
-      kind: "edge",
-      pairId: PAIR_ID,
     });
   });
 });
@@ -84,7 +60,7 @@ describe("buildPairDossier", () => {
     expect(dossier).toBeNull();
   });
 
-  it("returns null when a visible board edge memory exists for the pair", () => {
+  it("returns the dossier when visible archive edge notes exist for the pair", () => {
     const pairState = buildPairState(jennaPike, vhool);
     const visibleEdgeMemory = buildPairMemory(pairState, {
       id: "memory-visible-edge",
@@ -98,7 +74,7 @@ describe("buildPairDossier", () => {
       playerKnowledge: [],
       readyClosurePairIds: new Set(),
     });
-    expect(dossier).toBeNull();
+    expect(dossier?.publicPairNotes.map((note) => note.id)).toEqual(["memory-visible-edge"]);
   });
 
   it("collects player-safe pair data without surfacing raw stats", () => {

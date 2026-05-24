@@ -41,6 +41,7 @@ export const anansi: Member = {
     "Aso did not say why she left. He has rehearsed several reasons in private and is afraid none of them are wrong.",
   ],
   tags: ["non_human", "performative", "weirdness_native", "avoidant", "privacy_sensitive"],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register: "warm plain, quietly performing",
     patternsUsed: [

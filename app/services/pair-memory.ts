@@ -473,7 +473,7 @@ function applyEarlyEndPairMemoryStrain({
   };
 }
 
-function selectActiveOverflow<T extends { id: string; sourceDateSessionId: string }>(
+function selectActiveOverflow<T extends { id: string; sourceDateSessionId?: string }>(
   entries: readonly T[],
   maxActive: number,
   isActive: (entry: T) => boolean,

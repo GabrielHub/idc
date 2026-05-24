@@ -248,6 +248,197 @@ body::-webkit-scrollbar {
 }
 
 /* ========================================================================
+   AURA LIQUID GLASS, individual floating shards for the constellation lobby
+   (and any other surface that sits over a dark 3D scene). Translucent enough
+   that the scene reads through; specular top edge + soft bottom rose glow
+   carry the iOS-style refractive look. Each shard is its own object — do not
+   compose into pill rails. Reach for the tone variants (rose / violet /
+   amber) when the shard represents focus, partner, or alert state. Use
+   .aura-liquid-glass-hover when the shard is interactive; it adds scale +
+   brightness on hover.
+   ======================================================================== */
+.aura-liquid-glass {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 248, 250, 0.1) 48%,
+    rgba(255, 234, 240, 0.16) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
+    0 2px 6px -2px rgba(15, 23, 42, 0.18),
+    0 22px 60px -22px rgba(244, 63, 94, 0.22);
+  color: rgba(255, 250, 244, 0.92);
+}
+
+.aura-liquid-glass-rose {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 230, 234, 0.28) 0%,
+    rgba(244, 63, 94, 0.12) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(244, 63, 94, 0.38);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.64),
+    inset 0 0 0 1px rgba(244, 63, 94, 0.12),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.18),
+    0 24px 60px -22px rgba(244, 63, 94, 0.42);
+  color: rgba(255, 250, 244, 0.95);
+}
+
+.aura-liquid-glass-violet {
+  background-image: linear-gradient(
+    135deg,
+    rgba(232, 224, 255, 0.26) 0%,
+    rgba(139, 92, 246, 0.12) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(167, 139, 250, 0.42);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6),
+    inset 0 0 0 1px rgba(167, 139, 250, 0.12),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.18),
+    0 24px 60px -22px rgba(139, 92, 246, 0.4);
+  color: rgba(255, 250, 244, 0.95);
+}
+
+.aura-liquid-glass-amber {
+  background-image: linear-gradient(
+    135deg,
+    rgba(255, 240, 200, 0.24) 0%,
+    rgba(245, 158, 11, 0.14) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(245, 158, 11, 0.42);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.58),
+    inset 0 0 0 1px rgba(245, 158, 11, 0.1),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.18),
+    0 24px 60px -22px rgba(245, 158, 11, 0.34);
+  color: rgba(255, 250, 244, 0.95);
+}
+
+.aura-liquid-glass-ink {
+  background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.62) 0%, rgba(30, 41, 59, 0.5) 100%);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    0 2px 6px -2px rgba(0, 0, 0, 0.35),
+    0 22px 60px -22px rgba(0, 0, 0, 0.5);
+  color: rgba(255, 250, 244, 0.92);
+}
+
+.aura-liquid-glass-hover {
+  transition:
+    transform 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 280ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 240ms ease;
+  will-change: transform;
+}
+.aura-liquid-glass-hover:hover {
+  transform: scale(1.04);
+  filter: brightness(1.08);
+}
+.aura-liquid-glass.aura-liquid-glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.78),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
+    0 2px 6px -2px rgba(15, 23, 42, 0.22),
+    0 32px 80px -22px rgba(244, 63, 94, 0.4);
+}
+.aura-liquid-glass-rose.aura-liquid-glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.78),
+    inset 0 0 0 1px rgba(244, 63, 94, 0.22),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.22),
+    0 34px 86px -22px rgba(244, 63, 94, 0.6);
+}
+.aura-liquid-glass-violet.aura-liquid-glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.74),
+    inset 0 0 0 1px rgba(167, 139, 250, 0.24),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.22),
+    0 34px 86px -22px rgba(139, 92, 246, 0.56);
+}
+.aura-liquid-glass-amber.aura-liquid-glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.74),
+    inset 0 0 0 1px rgba(245, 158, 11, 0.2),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
+    0 2px 6px -2px rgba(15, 23, 42, 0.22),
+    0 34px 86px -22px rgba(245, 158, 11, 0.5);
+}
+.aura-liquid-glass-ink.aura-liquid-glass-hover:hover {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 2px 6px -2px rgba(0, 0, 0, 0.4),
+    0 34px 86px -22px rgba(0, 0, 0, 0.6);
+}
+
+/* Liquid-glass primary CTA. Filled rose with the same refractive cues so it
+   reads as the same material family, just heavier. Use for the single most
+   important action on a screen (Begin date). */
+.aura-liquid-cta {
+  background-image: linear-gradient(135deg, #fb7185 0%, #ec4899 60%, #d946ef 100%);
+  background-size: 220% 220%;
+  animation: aura-cta-shift 9s ease infinite;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+    inset 0 -2px 6px -2px rgba(124, 28, 80, 0.6),
+    0 6px 14px -4px rgba(244, 63, 94, 0.5),
+    0 26px 70px -18px rgba(244, 63, 94, 0.6);
+  color: white;
+  transition:
+    transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 240ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    filter 240ms ease;
+  will-change: transform;
+}
+.aura-liquid-cta:hover {
+  transform: scale(1.04);
+  filter: brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.72),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.24),
+    inset 0 -2px 6px -2px rgba(124, 28, 80, 0.6),
+    0 8px 18px -4px rgba(244, 63, 94, 0.55),
+    0 36px 90px -18px rgba(244, 63, 94, 0.72);
+}
+.aura-liquid-cta:disabled {
+  background-image: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(30, 41, 59, 0.32) 100%);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.18),
+    0 1px 2px 0 rgba(15, 23, 42, 0.18),
+    0 12px 30px -12px rgba(15, 23, 42, 0.3);
+  filter: none;
+  transform: none;
+  color: rgba(255, 250, 244, 0.5);
+  animation: none;
+}
+
+/* ========================================================================
    AURA motion
    ======================================================================== */
 
@@ -314,21 +505,6 @@ body::-webkit-scrollbar {
   animation: aura-cta-shift 9s ease infinite;
 }
 
-/* Dock slide-in, used by the floating bottom CTA dock. */
-@keyframes aura-dock-rise {
-  from {
-    opacity: 0;
-    transform: translateY(40px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.aura-dock-rise {
-  animation: aura-dock-rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
-}
-
 /* Slow ambient drift for secondary dashboard background mesh layers. */
 @keyframes aura-drift {
   0%,
@@ -372,20 +548,6 @@ body::-webkit-scrollbar {
 }
 .aura-caret {
   animation: aura-caret 1.2s steps(1) infinite;
-}
-
-/* Bar fill, used by date health and stats. */
-@keyframes aura-bar-fill {
-  from {
-    transform: scaleX(0);
-  }
-  to {
-    transform: scaleX(var(--bar-target, 1));
-  }
-}
-.aura-bar-fill {
-  transform-origin: left center;
-  animation: aura-bar-fill 1100ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 /* Typing-indicator dot wave, used in the date chat stream. iMessage-style:

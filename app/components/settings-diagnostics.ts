@@ -70,7 +70,6 @@ export type DiagnosticsSnapshot = {
     finalReportOutcome: string | null;
   } | null;
   shell: {
-    currentRoom: string;
     pendingAction: string | null;
     queuedPlaybackIntent: string | null;
     streamingDraftCount: number;
@@ -86,7 +85,6 @@ export function buildDiagnosticsSnapshot(input: {
   save: GameSave | null;
   currentShift: ShiftState | null;
   activeDateSession: DateSession | null;
-  currentRoom: string;
   pendingAction: string | null;
   queuedPlaybackIntent: string | null;
   streamingDraftCount: number;
@@ -149,7 +147,6 @@ export function buildDiagnosticsSnapshot(input: {
             finalReportOutcome: input.activeDateSession.finalReport?.outcome ?? null,
           },
     shell: {
-      currentRoom: input.currentRoom,
       pendingAction: input.pendingAction,
       queuedPlaybackIntent: input.queuedPlaybackIntent,
       streamingDraftCount: input.streamingDraftCount,

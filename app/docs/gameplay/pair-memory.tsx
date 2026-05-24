@@ -162,7 +162,7 @@ export const sections: DocSectionEntry[] = [
           the next date has a clear opportunity to move them before they age out. Aged-out items
           still mirror into pair memories with <DocCode>agreement_retired</DocCode> or{" "}
           <DocCode>open_loop_dropped</DocCode> plus <DocCode>pair_aged_out</DocCode> for retrieval
-          and pair-board notes.
+          and pair archive notes.
         </P>
       </>
     ),
@@ -176,7 +176,7 @@ export const sections: DocSectionEntry[] = [
           Accepted changes mirror into public pair memories with tags such as{" "}
           <DocCode>pair_agreement</DocCode>, <DocCode>open_loop</DocCode>,{" "}
           <DocCode>open_loop_resolved</DocCode>, <DocCode>agreement_broken</DocCode>, and{" "}
-          <DocCode>pair_strained</DocCode>. These tags support retrieval and pair-board notes
+          <DocCode>pair_strained</DocCode>. These tags support retrieval and pair archive notes
           through existing memory paths. <DocCode>pair_strained</DocCode> identifies early-end or
           early-end overflow strain notes; it does not mean the canonical agreement or loop closed.
         </P>

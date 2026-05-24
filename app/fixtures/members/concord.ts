@@ -44,6 +44,7 @@ export const concord: Member = {
     "The previous partner is still alive, and she has been watching him across two systems for nineteen years. She has not approached. She has not decided whether watching at this distance counts as respecting his choice.",
   ],
   tags: ["non_human", "weirdness_native", "sincerity_seeking", "acquisitive", "privacy_sensitive"],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register:
       "Calm, articulate, dry voice in a hive consciousness wearing one of its bodies. The voice is the parasite using this body, not the woman who used to live in it.",

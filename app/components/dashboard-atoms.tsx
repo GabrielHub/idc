@@ -92,7 +92,7 @@ const PORTRAIT_FADE_CLASS =
   "transition-opacity duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]";
 const PORTRAIT_PRELOAD_ROOT_MARGIN = "900px 0px";
 const PORTRAIT_PLACEHOLDER_CLASS =
-  "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_18%,rgba(255,255,255,0.68)_0%,transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.18)_0%,rgba(244,63,94,0.1)_48%,rgba(167,139,250,0.12)_100%)] motion-safe:animate-pulse";
+  "pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_35%_18%,rgba(255,255,255,0.68)_0%,transparent_34%),linear-gradient(135deg,rgba(255,255,255,0.18)_0%,rgba(244,63,94,0.1)_48%,rgba(167,139,250,0.12)_100%)]";
 
 // Must match scripts/portraits/resize_avatars.py (DEFAULT_VARIANT_WIDTHS).
 const AVATAR_SRCSET_WIDTHS = [128, 256, 512] as const;
@@ -190,7 +190,7 @@ export function Portrait({
       <span
         aria-hidden="true"
         className={`${PORTRAIT_PLACEHOLDER_CLASS} ${PORTRAIT_FADE_CLASS} ${
-          hasVisibleImage ? "opacity-0" : "opacity-100"
+          hasVisibleImage ? "opacity-0" : "opacity-100 motion-safe:animate-pulse"
         }`}
       />
       {candidatePaths.map((path) => {
@@ -402,6 +402,7 @@ export function scoreWidthClass(score: number): (typeof SCORE_WIDTH_CLASSES)[num
 
 type SelectInputLayout = "field" | "inline" | "toolbar";
 type SelectInputAlign = "left" | "right";
+type SelectInputTone = "light" | "dark";
 
 export type SelectInputOption<TValue extends string = string> = {
   value: TValue;
@@ -417,6 +418,7 @@ export function SelectInput<TValue extends string = string>({
   disabled = false,
   layout = "field",
   align = "left",
+  tone = "light",
   placeholder = "Select",
   className = "",
   onChange,
@@ -427,6 +429,7 @@ export function SelectInput<TValue extends string = string>({
   disabled?: boolean;
   layout?: SelectInputLayout;
   align?: SelectInputAlign;
+  tone?: SelectInputTone;
   placeholder?: string;
   className?: string;
   onChange: (value: TValue) => void;
@@ -503,19 +506,21 @@ export function SelectInput<TValue extends string = string>({
           aria-label={`${label}: ${activeLabel}`}
           onClick={() => setOpen((current) => !current)}
           onKeyDown={handleTriggerKeyDown}
-          className={selectInputTriggerClass(layout)}
+          className={selectInputTriggerClass(layout, tone)}
         >
-          {layout === "toolbar" ? <span className="text-aura-faint">{label}</span> : null}
+          {layout === "toolbar" ? (
+            <span className={tone === "dark" ? "text-white/55" : "text-aura-faint"}>{label}</span>
+          ) : null}
           {activeOption?.icon}
           <span
             className={`min-w-0 flex-1 truncate text-left ${
-              layout === "toolbar" ? "text-aura-ink" : ""
+              layout === "toolbar" ? (tone === "dark" ? "text-aura-paper" : "text-aura-ink") : ""
             }`}
           >
             {activeLabel}
           </span>
           {activeOption?.meta}
-          <SelectInputChevron open={open} />
+          <SelectInputChevron open={open} tone={tone} />
         </button>
         <AnimatePresence>
           {open ? (
@@ -575,19 +580,25 @@ function selectInputLabelClass(layout: Exclude<SelectInputLayout, "toolbar">): s
   return layout === "field" ? `${base} tracking-[0.24em]` : `${base} tracking-[0.22em]`;
 }
 
-function selectInputTriggerClass(layout: SelectInputLayout): string {
+function selectInputTriggerClass(layout: SelectInputLayout, tone: SelectInputTone): string {
   const base =
-    "flex cursor-pointer items-center justify-between gap-2 border border-aura-hairline outline-none transition hover:border-aura-rose/40 focus-visible:border-aura-rose disabled:cursor-not-allowed disabled:opacity-60";
+    "flex cursor-pointer items-center justify-between gap-2 outline-none transition disabled:cursor-not-allowed disabled:opacity-60";
+  const lightBorder =
+    "border border-aura-hairline hover:border-aura-rose/40 focus-visible:border-aura-rose";
 
   if (layout === "field") {
-    return `${base} w-full rounded-tile bg-white/70 px-3 py-2.5 text-body font-semibold text-aura-ink`;
+    return `${base} ${lightBorder} w-full rounded-tile bg-white/70 px-3 py-2.5 text-body font-semibold text-aura-ink`;
   }
 
   if (layout === "inline") {
-    return `${base} min-w-[8.5rem] max-w-[18rem] rounded-pill bg-white/70 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-ink`;
+    return `${base} ${lightBorder} min-w-[8.5rem] max-w-[18rem] rounded-pill bg-white/70 px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-ink`;
   }
 
-  return `${base} rounded-pill bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted hover:text-aura-ink`;
+  if (tone === "dark") {
+    return `${base} aura-liquid-glass rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/70 hover:text-aura-paper focus-visible:text-aura-paper`;
+  }
+
+  return `${base} ${lightBorder} rounded-pill bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted hover:text-aura-ink`;
 }
 
 function selectInputMenuClass(layout: SelectInputLayout, align: SelectInputAlign): string {
@@ -609,13 +620,15 @@ function selectInputOptionClass(layout: SelectInputLayout, selected: boolean): s
   return `${base} ${typography} ${tone}`;
 }
 
-function SelectInputChevron({ open }: { open: boolean }) {
+function SelectInputChevron({ open, tone }: { open: boolean; tone: SelectInputTone }) {
   return (
     <svg
       aria-hidden
       viewBox="0 0 14 14"
       fill="none"
-      className={`size-3.5 shrink-0 text-aura-faint transition ${open ? "rotate-180" : ""}`}
+      className={`size-3.5 shrink-0 transition ${
+        tone === "dark" ? "text-white/60" : "text-aura-faint"
+      } ${open ? "rotate-180" : ""}`}
     >
       <path
         d="M3.5 5.5L7 9L10.5 5.5"

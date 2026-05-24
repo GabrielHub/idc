@@ -11,20 +11,20 @@ export function TutorialProgressDots({ count, active, onSelect }: TutorialProgre
   const interactive = typeof onSelect === "function";
 
   return (
-    <div role="tablist" aria-label="Tutorial progress" className="inline-flex items-center gap-2">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint tabular-nums">
+    <div role="tablist" aria-label="Tutorial progress" className="inline-flex items-center gap-1.5">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.1em] text-aura-faint tabular-nums">
         {String(active + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
       </span>
-      <span aria-hidden className="relative ml-1 inline-flex items-center">
+      <span aria-hidden className="relative inline-flex items-center">
         <span
-          className="absolute left-1.5 right-1.5 top-1/2 -translate-y-1/2"
+          className="absolute left-1 right-1 top-1/2 -translate-y-1/2"
           style={{
             height: 1,
             backgroundImage:
               "repeating-linear-gradient(to right, rgba(15,23,42,0.18) 0 2px, transparent 2px 5px)",
           }}
         />
-        <span className="relative inline-flex items-center gap-2.5">
+        <span className="relative inline-flex items-center gap-1.5">
           {dots.map((index) => {
             const isActive = index === active;
             const isPast = index < active;

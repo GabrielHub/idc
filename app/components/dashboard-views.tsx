@@ -40,7 +40,7 @@ export function ShiftReportPanel({
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: EASE_OUT_QUART }}
-        className="aura-glass-strong mx-6 w-full max-w-2xl rounded-card p-10"
+        className="aura-glass-strong mx-6 w-full max-w-4xl rounded-card p-10"
       >
         <Eyebrow>{`// shift.${pad2(shift.shiftNumber)} closed`}</Eyebrow>
         <h2 className="mt-3 font-display text-display-lg font-semibold tracking-tight text-aura-ink">
@@ -124,26 +124,62 @@ const SHIFT_ASK_OUTCOME_CLASS: Record<ShiftRequestAskOutcome, string> = {
   ignored: "text-aura-faint",
 };
 
+export type ShiftReportBlockTone = "light" | "dark";
+
+type ShiftBlockToneTokens = {
+  surface: string;
+  eyebrow: string;
+  label: string;
+  body: string;
+  divider: string;
+  metricFaint: string;
+  metricPositive: string;
+};
+
+const SHIFT_BLOCK_TONE: Record<ShiftReportBlockTone, ShiftBlockToneTokens> = {
+  light: {
+    surface: "aura-glass",
+    eyebrow: "text-aura-faint",
+    label: "text-aura-faint",
+    body: "text-aura-ink",
+    divider: "border-aura-hairline",
+    metricFaint: "text-aura-faint",
+    metricPositive: "text-emerald-700",
+  },
+  dark: {
+    surface: "aura-liquid-glass",
+    eyebrow: "text-white/55",
+    label: "text-white/65",
+    body: "text-aura-paper",
+    divider: "border-white/12",
+    metricFaint: "text-white/55",
+    metricPositive: "text-emerald-300",
+  },
+};
+
 export function ShiftGoalResultsBlock({
   results,
   className = "",
+  tone = "light",
 }: {
   results: ShiftReport["goalResults"];
   className?: string;
+  tone?: ShiftReportBlockTone;
 }) {
   if (results.length === 0) {
     return null;
   }
+  const tokens = SHIFT_BLOCK_TONE[tone];
   return (
     <ul className={`space-y-3 ${className}`.trim()}>
       {results.map((result) => (
         <li key={result.goalId} className="flex items-baseline justify-between gap-4">
-          <span className="font-mono text-label uppercase tracking-[0.18em] text-aura-faint">
+          <span className={`font-mono text-label uppercase tracking-[0.18em] ${tokens.label}`}>
             {result.summary}
           </span>
           <span
             className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
-              result.status === "met" ? "text-emerald-600" : "text-aura-rose"
+              result.status === "met" ? tokens.metricPositive : "text-aura-rose"
             }`}
           >
             {result.status}
@@ -154,13 +190,28 @@ export function ShiftGoalResultsBlock({
   );
 }
 
-export function ShiftHrNoteBlock({ note, className = "" }: { note: string; className?: string }) {
+export function ShiftHrNoteBlock({
+  note,
+  className = "",
+  tone = "light",
+}: {
+  note: string;
+  className?: string;
+  tone?: ShiftReportBlockTone;
+}) {
+  const tokens = SHIFT_BLOCK_TONE[tone];
+  const surface =
+    tone === "dark"
+      ? "aura-liquid-glass rounded-card p-5"
+      : "rounded-card border border-aura-hairline bg-white/45 p-5";
   return (
-    <div className={`rounded-card border border-aura-hairline bg-white/45 p-5 ${className}`.trim()}>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+    <div className={`${surface} ${className}`.trim()}>
+      <p
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.24em] ${tokens.eyebrow}`}
+      >
         // hr.note
       </p>
-      <p className="mt-2 text-body text-aura-ink">{note}</p>
+      <p className={`mt-2 text-body ${tokens.body}`}>{note}</p>
     </div>
   );
 }
@@ -168,21 +219,26 @@ export function ShiftHrNoteBlock({ note, className = "" }: { note: string; class
 export function BudgetReviewBlock({
   review,
   className = "",
+  tone = "light",
 }: {
   review: NonNullable<ShiftReport["budgetReview"]>;
   className?: string;
+  tone?: ShiftReportBlockTone;
 }) {
+  const tokens = SHIFT_BLOCK_TONE[tone];
   const direction =
     review.newCap > review.previousCap
-      ? { tone: "text-emerald-700", arrow: "▲" }
+      ? { tone: tokens.metricPositive, arrow: "▲" }
       : review.newCap < review.previousCap
         ? { tone: "text-aura-rose", arrow: "▼" }
-        : { tone: "text-aura-faint", arrow: "·" };
+        : { tone: tokens.metricFaint, arrow: "·" };
   const sortedReasons = [...review.reasons].sort((a, b) => Math.abs(b.delta) - Math.abs(a.delta));
   return (
-    <div className={`aura-glass rounded-card p-5 ${className}`.trim()}>
+    <div className={`${tokens.surface} rounded-card p-5 ${className}`.trim()}>
       <div className="flex items-baseline justify-between gap-3">
-        <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+        <p
+          className={`font-mono text-micro font-semibold uppercase tracking-[0.24em] ${tokens.eyebrow}`}
+        >
           // performance review
         </p>
         <p
@@ -197,14 +253,14 @@ export function BudgetReviewBlock({
             key={`${reason.kind}-${index}`}
             className="flex items-baseline justify-between gap-3 text-sm"
           >
-            <span className="text-aura-ink">{reason.label}</span>
+            <span className={tokens.body}>{reason.label}</span>
             <span
               className={`font-mono text-micro font-semibold uppercase tracking-[0.18em] ${
                 reason.delta > 0
-                  ? "text-emerald-700"
+                  ? tokens.metricPositive
                   : reason.delta < 0
                     ? "text-aura-rose"
-                    : "text-aura-faint"
+                    : tokens.metricFaint
               }`}
             >
               {reason.delta > 0 ? `+${reason.delta}` : `${reason.delta}`}
@@ -220,33 +276,38 @@ export function DeckCoverageBlock({
   coverage,
   members,
   className = "",
+  tone = "light",
 }: {
   coverage: ShiftReport["deckCoverage"];
   members: Member[];
   className?: string;
+  tone?: ShiftReportBlockTone;
 }) {
+  const tokens = SHIFT_BLOCK_TONE[tone];
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   return (
-    <div className={`aura-glass rounded-card p-5 ${className}`.trim()}>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+    <div className={`${tokens.surface} rounded-card p-5 ${className}`.trim()}>
+      <p
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.24em] ${tokens.eyebrow}`}
+      >
         // deck coverage
       </p>
       <ul className="mt-3 space-y-2">
         {coverage.map((entry) => {
           const member = memberById.get(entry.focusMemberId);
-          const tone =
+          const statusTone =
             entry.status === "served"
-              ? "text-emerald-700"
+              ? tokens.metricPositive
               : entry.status === "missed"
                 ? "text-aura-rose"
-                : "text-aura-faint";
+                : tokens.metricFaint;
           return (
             <li
               key={entry.focusMemberId}
               className="flex items-baseline justify-between gap-3 text-sm"
             >
-              <span className="text-aura-ink">{member?.firstName ?? entry.focusMemberId}</span>
-              <span className={`font-mono text-micro uppercase tracking-[0.18em] ${tone}`}>
+              <span className={tokens.body}>{member?.firstName ?? entry.focusMemberId}</span>
+              <span className={`font-mono text-micro uppercase tracking-[0.18em] ${statusTone}`}>
                 {entry.status} · {entry.label}
               </span>
             </li>
