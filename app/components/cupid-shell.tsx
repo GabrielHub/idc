@@ -398,6 +398,17 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     () => (save === null ? [] : getReadyClosurePairs(save)),
     [save],
   );
+  const focusedMemberIdSet = useMemo(
+    () => new Set(focusedMembers.map((member) => member.id)),
+    [focusedMembers],
+  );
+  const focusedReadyClosurePairs = useMemo(
+    () =>
+      readyClosurePairs.filter((entry) =>
+        entry.participants.some((participant) => focusedMemberIdSet.has(participant.id)),
+      ),
+    [focusedMemberIdSet, readyClosurePairs],
+  );
   const readyClosurePairIds = useMemo(
     () => new Set(readyClosurePairs.map((entry) => entry.pairState.id)),
     [readyClosurePairs],
@@ -726,10 +737,9 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     }
   }
 
-  async function handleBeginDate(input: {
+  async function handleCommitPair(input: {
     focusMemberId: string;
     partnerMemberId: string;
-    scenarioId: string;
     matchmakingIntent?: MatchmakingIntent;
   }) {
     if (save === null) return;
@@ -742,16 +752,32 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       if (status.status !== "ready") {
         throw new Error(status.message);
       }
+      const result = commitDateBooking(save, input);
+      await persist(result.save);
+    });
+  }
+
+  async function handleBeginDate(input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    scenarioId: string;
+    matchmakingIntent?: MatchmakingIntent;
+  }) {
+    if (save === null) return;
+    tryAction("startDate", async () => {
+      if (!save.config.aiSetupComplete) {
+        setIsAiSetupOpen(true);
+        throw new Error("AI setup is required before Cupid starts a date.");
+      }
+      const status = await refreshLocalAiStatus();
+      if (status.status !== "ready") {
+        throw new Error(status.message);
+      }
       const activeShift = getActiveShift(save);
-      const bookingSave =
-        activeShift.activeBooking === undefined
-          ? commitDateBooking(save, {
-              focusMemberId: input.focusMemberId,
-              partnerMemberId: input.partnerMemberId,
-              matchmakingIntent: input.matchmakingIntent,
-            }).save
-          : save;
-      const result = startDateSessionFromBooking(bookingSave, { scenarioId: input.scenarioId });
+      if (activeShift.activeBooking === undefined) {
+        throw new Error("Commit the pair before choosing a room.");
+      }
+      const result = startDateSessionFromBooking(save, { scenarioId: input.scenarioId });
       await persist(result.save);
       dispatchManagerQuip({ triggerKey: "date.started", surfaceKey: result.session.id });
       setActiveDateSessionId(result.session.id);
@@ -1370,12 +1396,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       isActionPending={isActionPending}
                       bookingLocked={activeShift.activeBooking !== undefined}
                       aiReady={save.config.aiSetupComplete && localAiStatus.status === "ready"}
-                      readyClosurePairCount={readyClosurePairs.length}
-                      readyClosurePairs={readyClosurePairs}
+                      readyClosurePairCount={focusedReadyClosurePairs.length}
+                      readyClosurePairs={focusedReadyClosurePairs}
                       readyClosurePairIds={readyClosurePairIds}
                       readyClosureMemberIds={readyClosureMemberIds}
                       revealAllMemberDetails={revealAllMemberDetails}
                       onTutorialUpdate={handleTutorialUpdate}
+                      onCommitPair={handleCommitPair}
                       onBeginDate={handleBeginDate}
                       onCancelBooking={handleCancelBooking}
                       onAddDeckCard={handleAddDeckCard}

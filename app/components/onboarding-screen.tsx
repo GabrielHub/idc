@@ -268,6 +268,7 @@ export function OnboardingScreen({
                 dismissLabel="Skip tour"
                 onDismiss={focusPickStep.dismiss}
                 portrait="portrait"
+                textTone="dark"
               />
             </>
           ) : null}
@@ -282,6 +283,7 @@ export function OnboardingScreen({
                 body="Tap a card's arrow to open that member's file. Useful for sizing up a case before you commit."
                 dismissLabel="Skip tour"
                 onDismiss={focusExpandStep.dismiss}
+                textTone="dark"
               />
             </>
           ) : null}
@@ -296,6 +298,7 @@ export function OnboardingScreen({
                 body="Four cases on file. Next, choose the starter rooms Cupid can draw from when you commit a pair."
                 dismissLabel="Skip tour"
                 onDismiss={focusStartStep.dismiss}
+                textTone="dark"
               />
             </>
           ) : null}

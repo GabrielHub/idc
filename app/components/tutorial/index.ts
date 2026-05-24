@@ -10,6 +10,7 @@ export type {
   CoachMarkPlacement,
   CoachMarkPortraitMode,
   CoachMarkFixedPosition,
+  CoachMarkTextTone,
 } from "./tutorial-coach-mark";
 
 export { TutorialProgressDots } from "./tutorial-progress-dots";

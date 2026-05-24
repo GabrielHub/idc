@@ -4,13 +4,11 @@
  * constellation canvas stays dimmed behind via the overlay's scrim.
  *
  * Entry points:
- *   - TopBar Notes NavShard → opens with `initialPairFocusId === null`
- *   - PairDossierShard click → opens with `initialPairFocusId === pairId`
+ *   - Records / Notes opens with `initialPairFocusId === null`
+ *   - PairDossierShard click opens with `initialPairFocusId === pairId`
  *
- * Escape / scrim click close the overlay. Pair archive rendering is NOT mounted
- * — the dropped Files room's pair archive responsibility now lives in the
- * constellation scene itself. ShiftArchive lives in its own overlay surfaced
- * from the File-shift NavShard flow (see shift-archive-overlay.tsx).
+ * Escape / scrim click close the overlay. Pair graph rendering stays in the
+ * constellation scene; pair dossier notes render here.
  */
 
 import { AnimatePresence, motion } from "motion/react";

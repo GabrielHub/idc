@@ -32,6 +32,11 @@ export type ConstellationLobbyProps = {
     scenarioId: string;
     matchmakingIntent?: MatchmakingIntent;
   }) => void;
+  onCommitPair: (input: {
+    focusMemberId: string;
+    partnerMemberId: string;
+    matchmakingIntent?: MatchmakingIntent;
+  }) => void;
   onCancelBooking: () => void;
   onAddDeckCard: (cardId: string) => void;
   onRemoveDeckCard: (cardId: string) => void;

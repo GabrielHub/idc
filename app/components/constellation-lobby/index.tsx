@@ -47,6 +47,7 @@ import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import type { ArchiveSelection, FlythroughLayer, RosterSubview, StarMark, ViewMode } from "./types";
 import { CathedralPanel, type CathedralMode, type RiskFilter, type SortMode } from "./cathedral";
 import { EMPTY_READY_CLOSURE_IDS, type ConstellationLobbyProps } from "./props";
+import { isLayerEnabled, normalizeLayer, type LayerNavigationMode } from "./layer-access";
 
 type ScenarioMode = CathedralMode;
 
@@ -62,6 +63,7 @@ export function ConstellationLobby({
   readyClosurePairs = [],
   pendingFollowUpCount = 0,
   readyClosurePairIds = EMPTY_READY_CLOSURE_IDS,
+  onCommitPair,
   onBeginDate,
   onCancelBooking,
   onAddDeckCard,
@@ -102,6 +104,18 @@ export function ConstellationLobby({
       pendingFollowUpCount,
     });
   const [scenarioMode, setScenarioMode] = useState<ScenarioMode>("auto");
+  const layerNavigationMode: LayerNavigationMode =
+    scenarioMode !== "auto" ? "free" : activeBooking !== null ? "committed" : "planning";
+  useEffect(() => {
+    setCurrentLayer((current) => normalizeLayer(current, layerNavigationMode));
+  }, [layerNavigationMode]);
+  const handleLayerSelect = useCallback(
+    (layer: FlythroughLayer) => {
+      if (!isLayerEnabled(layer, layerNavigationMode)) return;
+      setCurrentLayer(layer);
+    },
+    [layerNavigationMode],
+  );
   /**
    * Roster-slab subview controls which cohort the constellation spotlights on
    * layer 1. Defaults to "eligibles" — tonight's available partners lead the
@@ -126,7 +140,6 @@ export function ConstellationLobby({
     lobbyState,
     focusStar,
     partnerStar,
-    previewPairId,
     committedPairId,
     resetBookingSelection,
   } = useLobbyPlanningState({ save, activeBooking, stars, onCancelBooking });
@@ -234,7 +247,6 @@ export function ConstellationLobby({
     save,
     shift,
     drawnScenarios,
-    previewPairId,
     focusId,
     partnerId,
     scenarioMode,
@@ -292,11 +304,22 @@ export function ConstellationLobby({
     setSelectedScenarioId(null);
   }, [flythroughScenariosForLayer, scenarioMode, selectedScenarioId]);
 
+  const handleCommitPair = () => {
+    if (isActionPending) return;
+    if (focusId === null || partnerId === null) return;
+    if (commitStep.active) commitStep.complete();
+    onCommitPair({
+      focusMemberId: focusId,
+      partnerMemberId: partnerId,
+      matchmakingIntent: matchmakingIntent ?? undefined,
+    });
+  };
+
   const handleBeginDate = () => {
     if (isActionPending) return;
     if (focusId === null || partnerId === null) return;
+    if (activeBooking === null) return;
     if (selectedScenarioId === null) return;
-    if (commitStep.active) commitStep.complete();
     if (beginStep.active) beginStep.complete();
     onBeginDate({
       focusMemberId: focusId,
@@ -392,9 +415,9 @@ export function ConstellationLobby({
   // Auto-advance the flythrough as the booking assembles: focus pick warps to
   // the roster slab so the partner picker opens, and a committed pair warps to
   // the cathedral so the player picks tonight's scenario inside the nave
-  // instead of through a floating overlay. Each fires once per state
-  // transition; subsequent wheel/keyboard input is free to scroll back to an
-  // earlier layer (e.g. to switch focus from the cluster on layer 0).
+  // instead of through a floating overlay. Before commit, layers 0/1 remain
+  // available; after commit, the cathedral owns navigation until the date
+  // resolves.
   useEffect(() => {
     if (lobbyState === "focus_selected") setCurrentLayer(1);
     if (lobbyState === "committed_pair") setCurrentLayer(2);
@@ -442,7 +465,6 @@ export function ConstellationLobby({
     filterState,
     revealAllMemberDetails,
     readyClosureMemberIds,
-    reselectDraft,
   });
 
   // Drop partnerId if it's no longer in eligiblePartnerIds (status flipped to
@@ -492,7 +514,7 @@ export function ConstellationLobby({
     offTonightIds,
     activeStarId,
     currentLayer,
-    onLayerChange: setCurrentLayer,
+    onLayerChange: handleLayerSelect,
     onActiveStarChange: setActiveStarId,
   });
 
@@ -511,17 +533,11 @@ export function ConstellationLobby({
     return () => window.removeEventListener("keydown", handleKey);
   }, [scenarioMode, isOverlayOpen, closeDateBook]);
 
-  // Click handlers wired into Scene: in reselect, toggle the draft directly
-  // (the card concept doesn't fit there — the dock is the affordance). In
-  // browse, click morphs the star into its `HoverDetailCard`; the card's
-  // buttons drive focus/partner selection and case-file zoom.
+  // Click handlers wired into Scene. In browse, click morphs the star into
+  // its `HoverDetailCard`; the card's buttons drive focus/partner selection
+  // and case-file zoom.
   const handleStarClick = useCallback(
     (star: StarMark) => {
-      if (lobbyMode === "reselect") {
-        if (star.member.state.status !== "active") return;
-        toggleReselectMember(star.member.id);
-        return;
-      }
       // Archive mode: clicking a star isolates that member — camera centers
       // on them via computeArchiveCameraTarget, incident edges/partners stay
       // bright, the rest of the field dims. Same-star click clears so the
@@ -537,7 +553,7 @@ export function ConstellationLobby({
       }
       setActiveStarId((prev) => (prev === star.member.id ? null : star.member.id));
     },
-    [lobbyMode, viewMode],
+    [viewMode],
   );
 
   // Double-click is a power-user shortcut that skips the card and opens the
@@ -737,12 +753,13 @@ export function ConstellationLobby({
           onStarDoubleClick: handleStarDoubleClick,
           eligiblePartnerIds,
           filterMatchedIds,
-          onClearFocus: handleClearFocus,
+          onClearFocus: activeBooking === null ? handleClearFocus : undefined,
         }}
         activeStarId={activeStarId}
         onActiveStarChange={setActiveStarId}
         currentLayer={currentLayer}
-        onLayerChange={setCurrentLayer}
+        onLayerChange={handleLayerSelect}
+        layerNavigationMode={layerNavigationMode}
         cathedralScrollRef={cathedralScrollRef}
         focusedIds={focusedSet}
         offTonightSet={offTonightIds}
@@ -800,9 +817,11 @@ export function ConstellationLobby({
           archiveEdgeCount={archiveEdges.length}
           fileShiftBlockedReason={fileShiftBlockedReason}
           archiveSelectionActive={archiveSelection !== null}
-          onLayerSelect={setCurrentLayer}
-          onClearFocus={handleClearFocus}
-          onClearPartner={handleClearPartner}
+          onLayerSelect={handleLayerSelect}
+          layerNavigationMode={layerNavigationMode}
+          onClearFocus={activeBooking === null ? handleClearFocus : undefined}
+          onClearPartner={activeBooking === null ? handleClearPartner : undefined}
+          onCommitPair={handleCommitPair}
           onBeginDate={handleBeginDate}
           onCancelPair={handleCancelPair}
           onCompleteShift={handleCompleteShiftFromHud}

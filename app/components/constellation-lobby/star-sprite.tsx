@@ -441,7 +441,7 @@ export function StarSprite({
 
         {hovered && !cardOpen && renderOverlay === undefined ? (
           <Html
-            position={[0, -haloSize * 0.78, 0.12]}
+            position={[0, -sizing.avatarRadius, 0.12]}
             zIndexRange={[50, 0]}
             className="pointer-events-none"
             center

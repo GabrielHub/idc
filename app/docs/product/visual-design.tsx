@@ -684,14 +684,14 @@ venus: {
     ],
   },
   {
-    id: "canvas-layout-and-floating-nav",
-    title: "Canvas layout and floating nav",
+    id: "canvas-layout-and-lobby-layers",
+    title: "Canvas layout and lobby layers",
     body: (
       <>
         <P>
-          The playable shell uses a canvas-and-floating-nav layout instead of tab strips. After the
-          splash, the shell hosts four rooms with their own staging. Live Date is the home room; the
-          player lands there after onboarding.
+          The playable shell uses a canvas-first layout instead of tab strips. After the splash, the
+          shell lands in Live Date planning: the constellation lobby owns focus selection, partner
+          selection, Date Book access, records overlays, and the transition into the date.
         </P>
         <DocDefList
           items={[
@@ -699,41 +699,43 @@ venus: {
               term: "Live Date",
               def: (
                 <>
-                  The primary room. Setup happens inside this room and has three states. (1)
-                  Planning: the constellation lobby renders focus cases, partner selection, the
-                  date-book cathedral, optional intent, and the sticky Begin date dock from{" "}
-                  <DocCode>app/components/constellation-lobby/index.tsx</DocCode>. (2) Active date:
-                  the live date UI takes the canvas full-bleed, floating nav hides, and pacing
-                  controls live in the transport footer. (3) Wrap: FinalReportPanel stays mounted,
-                  the header back button returns to Live Date planning.
+                  The primary surface. Setup happens inside the constellation lobby from{" "}
+                  <DocCode>app/components/constellation-lobby/index.tsx</DocCode>: layer 0 shows the
+                  focused members, layer 1 shows eligible partners, and layer 2 is the cathedral.
+                  Active dates take the canvas full-bleed, and pacing controls live in the transport
+                  footer. Wrap returns to Live Date planning after the report is filed.
                 </>
               ),
             },
             {
-              term: "Roster",
-              def: "Every member on file. Focus cases get a marked card. Closed members get a heart overlay, quit members get a red X overlay. Read-only sheets respect player knowledge visibility.",
+              term: "Roster layer",
+              def: "The layer-1 partner field. Eligible members are bright, off-tonight members can be inspected through the roster subview, and unavailable states explain why a member cannot be paired.",
             },
             {
               term: "Date Book",
-              def: "A workbench, not a list. The left column shows the active budgeted deck as compact tile scenario cards with Roman numeral slot labels. The right column shows the unlocked library as a filtered, internally scrolling tile grid with search, risk filter, and sort dropdown. Clicking any card opens an oversized inspector modal. Add and drop actions are inspector-first, and the whole editor is read-only during an active booking.",
+              def: "A cathedral workbench, not a list. Auto mode is empty until Commit pair snapshots the deck and draws the three-card hand. Deck mode edits what Cupid can draw from; Library mode browses the unlocked shelf. The editor is read-only during an active booking.",
             },
-            { term: "Files", def: "Notes archive ported into the canvas treatment." },
+            {
+              term: "Records",
+              def: "Notes, shift archive, and pair graph overlays mounted from the lobby.",
+            },
           ]}
         />
         <P>
-          The floating nav cluster sits at the bottom right of every room. Four round buttons (Live
-          Date, Roster, Date Book, Files) with rose accents on the active button. The cluster hides
-          while a date is live so the live date room owns the canvas.
+          Before commit, the focus and roster layers are scrollable and the cathedral layer is
+          disabled. Commit pair locks the chosen members, snapshots the deck, draws the hand, moves
+          the player to the cathedral, and disables returning to the earlier layers until the date
+          resolves.
         </P>
         <DocSubsection id="scenario-card-system" title="Scenario card system">
           <P>
             <DocCode>app/components/scenario-card.tsx</DocCode> is the shared component used in the
-            Date Book deck and library grids and the Live Date planning date-plan step. The
-            scenario's <DocCode>assets/scenarios/{`{id}`}/background.webp</DocCode> renders as a
-            readable ambient backdrop: barely blurred, held at ~45% opacity, seated under a ~42%
-            cream wash plus a faint bottom wash for meter legibility. The image is mood and color,
-            not picture. A glass risk badge sits top-left (LOW/MED/HIGH, color-coded). Content sits
-            directly over the cream wash without a frosted panel, in three sizes:
+            Date Book deck/library grids and the Live Date planning cathedral. The scenario's{" "}
+            <DocCode>assets/scenarios/{`{id}`}/background.webp</DocCode> renders as a readable
+            ambient backdrop: barely blurred, held at ~45% opacity, seated under a ~42% cream wash
+            plus a faint bottom wash for meter legibility. The image is mood and color, not picture.
+            A glass risk badge sits top-left (LOW/MED/HIGH, color-coded). Content sits directly over
+            the cream wash without a frosted panel, in three sizes:
           </P>
           <DocDefList
             items={[
@@ -751,7 +753,7 @@ venus: {
                 def: (
                   <>
                     ~168px min height, <DocCode>rounded-[14px]</DocCode>. Used as the three drawn
-                    cards in the Live Date planning date-plan step. Carries title, location,
+                    cards in the committed Live Date planning cathedral. Carries title, location,
                     summary, and compact meter row.
                   </>
                 ),

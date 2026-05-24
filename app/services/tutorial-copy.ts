@@ -11,7 +11,7 @@ export type TutorialCopy = {
 export const TUTORIAL_COPY = {
   "planning.layer-nav": {
     title: "Three layers, one shift",
-    body: "Tonight's lobby stacks the four focus cases, the eligible roster, and the date cathedral as three layers. Scroll or use A / D - or these three pills - to move between them. The active layer pulls forward.",
+    body: "Tonight's lobby stacks the four focus cases, the eligible roster, and the date cathedral as three layers. Scroll or use A / D - or these pills - to move between the first two layers. Commit pair unlocks the cathedral.",
     primaryLabel: "Got it",
     stepIndex: 0,
     stepCount: 7,
@@ -36,8 +36,8 @@ export const TUTORIAL_COPY = {
     stepCount: 7,
   },
   "planning.commit": {
-    title: "Pair queued. Roll to the cathedral",
-    body: "Both members are on file. Tonight's commit is implicit - once you pick a room and press Begin, the pair locks and the date opens.",
+    title: "Commit the pair",
+    body: "Both members are on file. Commit pair locks them for this shift, snapshots the deck, draws tonight's hand, and opens the cathedral. You cannot go back after commit.",
     primaryLabel: "Got it",
     stepIndex: 4,
     stepCount: 7,
@@ -50,7 +50,7 @@ export const TUTORIAL_COPY = {
   },
   "planning.begin": {
     title: "Begin the date",
-    body: "Begin commits the pair, snapshots the deck, and opens the room. The deck is locked once the date starts.",
+    body: "Begin opens the selected room from the committed hand. The deck stays locked until the date resolves.",
     stepIndex: 6,
     stepCount: 7,
   },
@@ -65,7 +65,7 @@ export const TUTORIAL_COPY = {
   },
   "lazy.date-book": {
     title: "Three modes, one pill",
-    body: "The Date book pill cycles three modes. Auto draws four scenarios for tonight. Deck edits what Cupid can draw from - drop cards under the budget cap. Library browses the full scenario shelf so you can add new rooms to the deck.",
+    body: "The Date book pill cycles three modes. Auto shows tonight's drawn hand after commit. Deck edits what Cupid can draw from - drop cards under the budget cap. Library browses the full scenario shelf so you can add new rooms to the deck.",
     primaryLabel: "Got it",
   },
   "lazy.cut-short": {
@@ -75,7 +75,7 @@ export const TUTORIAL_COPY = {
   },
   "lazy.datebook.locked": {
     title: "Date book is locked",
-    body: "A pair is committed, so the deck is frozen until the date resolves. Cancel the booking from the live date to edit, or finish the date first.",
+    body: "A pair is committed, so the deck is frozen until the date resolves. Finish the date before editing the deck again.",
     primaryLabel: "Got it",
   },
   "lazy.datebook.repair": {

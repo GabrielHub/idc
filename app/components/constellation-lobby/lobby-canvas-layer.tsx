@@ -6,6 +6,7 @@ import type { Member } from "../../domain/game";
 import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
 import { Scene, type RenderHoverCard } from "./canvas-convention";
 import type { PairEdgeRenderSpec } from "./archive-layout";
+import type { LayerNavigationMode } from "./layer-access";
 import type {
   ArchiveSelection,
   CameraTarget,
@@ -31,6 +32,7 @@ export function LobbyCanvasLayer({
   onActiveStarChange,
   currentLayer,
   onLayerChange,
+  layerNavigationMode,
   cathedralScrollRef,
   focusedIds,
   offTonightSet,
@@ -57,6 +59,7 @@ export function LobbyCanvasLayer({
   onActiveStarChange: (id: string | null) => void;
   currentLayer: FlythroughLayer;
   onLayerChange: (layer: FlythroughLayer) => void;
+  layerNavigationMode?: LayerNavigationMode;
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   focusedIds: ReadonlySet<string>;
   offTonightSet: ReadonlySet<string>;
@@ -117,6 +120,7 @@ export function LobbyCanvasLayer({
             onActiveStarChange={onActiveStarChange}
             currentLayer={currentLayer}
             onLayerChange={disableScrollLayerNav ? undefined : onLayerChange}
+            layerNavigationMode={layerNavigationMode}
             cathedralScrollRef={cathedralScrollRef}
             focusedIds={focusedIds}
             offTonightSet={offTonightSet}

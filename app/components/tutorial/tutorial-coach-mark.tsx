@@ -14,6 +14,8 @@ export type CoachMarkPlacement = "top" | "bottom" | "left" | "right";
 
 export type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
 
+export type CoachMarkTextTone = "light" | "dark";
+
 /**
  * Pixel offsets from the viewport edge. When supplied, the coach mark pins
  * itself to the matching corner instead of computing position from `target`
@@ -43,6 +45,7 @@ export type TutorialCoachMarkProps = {
   offset?: number;
   portrait?: CoachMarkPortraitMode;
   fixedPosition?: CoachMarkFixedPosition;
+  textTone?: CoachMarkTextTone;
 };
 
 export function TutorialCoachMark({
@@ -60,6 +63,7 @@ export function TutorialCoachMark({
   offset = 24,
   portrait = "avatar",
   fixedPosition,
+  textTone = "light",
 }: TutorialCoachMarkProps) {
   const rect = useTargetRect(target);
   if (rect === null) return null;
@@ -94,6 +98,7 @@ export function TutorialCoachMark({
           width,
           y: "0%",
         };
+  const toneClasses = textToneClasses(textTone);
 
   return (
     <motion.div
@@ -127,7 +132,9 @@ export function TutorialCoachMark({
 
           <div className={`relative px-5 pb-4 pt-5${usePortrait ? " pr-20" : ""}`}>
             <header className={`min-w-0${useAvatar ? " pl-14" : ""}`}>
-              <h3 className="font-display text-lead font-semibold leading-snug tracking-tight text-aura-paper">
+              <h3
+                className={`font-display text-lead font-semibold leading-snug tracking-tight ${toneClasses.title}`}
+              >
                 {title}
               </h3>
               <span
@@ -136,7 +143,7 @@ export function TutorialCoachMark({
               />
             </header>
 
-            <div className="mt-2.5 font-sans text-label leading-relaxed text-aura-paper/80">
+            <div className={`mt-2.5 font-sans text-label leading-relaxed ${toneClasses.body}`}>
               {body}
             </div>
 
@@ -152,7 +159,7 @@ export function TutorialCoachMark({
                   type="button"
                   data-sfx="click"
                   onClick={onDismiss}
-                  className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/55 transition hover:text-aura-rose"
+                  className={`cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] transition hover:text-aura-rose ${toneClasses.dismiss}`}
                 >
                   {dismissLabel}
                 </button>
@@ -178,6 +185,25 @@ export function TutorialCoachMark({
       </motion.div>
     </motion.div>
   );
+}
+
+function textToneClasses(tone: CoachMarkTextTone): {
+  title: string;
+  body: string;
+  dismiss: string;
+} {
+  if (tone === "dark") {
+    return {
+      title: "text-aura-ink",
+      body: "text-aura-muted",
+      dismiss: "text-aura-faint",
+    };
+  }
+  return {
+    title: "text-aura-paper",
+    body: "text-aura-paper/80",
+    dismiss: "text-white/55",
+  };
 }
 
 function GlassWatermark() {

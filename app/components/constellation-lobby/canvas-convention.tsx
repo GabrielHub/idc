@@ -58,6 +58,7 @@ import type {
 } from "./types";
 import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import type { PairEdgeRenderSpec } from "./archive-layout";
+import type { LayerNavigationMode } from "./layer-access";
 import { buildFlareTexture, buildRimLightTexture, buildSoftSparkleTexture } from "./textures";
 import { StarField } from "./star-field";
 import { useLayerNavigation } from "./use-layer-navigation";
@@ -98,6 +99,7 @@ export function Scene({
   onActiveStarChange,
   currentLayer,
   onLayerChange,
+  layerNavigationMode,
   cathedralScrollRef,
   focusedIds,
   offTonightSet,
@@ -171,6 +173,7 @@ export function Scene({
    */
   currentLayer?: FlythroughLayer;
   onLayerChange?: (next: FlythroughLayer) => void;
+  layerNavigationMode?: LayerNavigationMode;
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   /**
    * Member ids that live on the focus slab (slab 0). Everyone else lives on
@@ -249,7 +252,13 @@ export function Scene({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useLayerNavigation({ currentLayer, viewMode, cathedralScrollRef, onLayerChange });
+  useLayerNavigation({
+    currentLayer,
+    viewMode,
+    cathedralScrollRef,
+    onLayerChange,
+    navigationMode: layerNavigationMode,
+  });
 
   const sources = useMemo(
     () =>

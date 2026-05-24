@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from "react";
 
+import { isLayerEnabled, type LayerNavigationMode } from "./layer-access";
 import { advanceFlythroughLayer, flythroughLayerDirectionFromKey } from "./math";
 import type { FlythroughLayer, ViewMode } from "./types";
 
@@ -13,11 +14,13 @@ export function useLayerNavigation({
   viewMode,
   cathedralScrollRef,
   onLayerChange,
+  navigationMode = "free",
 }: {
   currentLayer: FlythroughLayer | undefined;
   viewMode: ViewMode;
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   onLayerChange?: (next: FlythroughLayer) => void;
+  navigationMode?: LayerNavigationMode;
 }) {
   const currentLayerRef = useRef<FlythroughLayer | undefined>(currentLayer);
   const lastLayerAdvanceRef = useRef(0);
@@ -32,6 +35,7 @@ export function useLayerNavigation({
 
     const advanceLayer = (direction: 1 | -1) => {
       const next = advanceFlythroughLayer(currentLayerRef.current ?? 0, direction);
+      if (!isLayerEnabled(next, navigationMode)) return;
       if (next !== currentLayerRef.current) {
         onLayerChange(next);
       }
@@ -85,5 +89,5 @@ export function useLayerNavigation({
       root.style.overscrollBehavior = previousRootOverscroll;
       body.style.overscrollBehavior = previousBodyOverscroll;
     };
-  }, [cathedralScrollRef, onLayerChange, viewMode]);
+  }, [cathedralScrollRef, navigationMode, onLayerChange, viewMode]);
 }

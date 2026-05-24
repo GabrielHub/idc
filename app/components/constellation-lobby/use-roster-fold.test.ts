@@ -56,7 +56,6 @@ function renderRosterFold(
       filterState: DEFAULT_MEMBER_ROSTER_FILTER_STATE,
       revealAllMemberDetails: false,
       readyClosureMemberIds: undefined,
-      reselectDraft: null,
     });
     return null;
   }

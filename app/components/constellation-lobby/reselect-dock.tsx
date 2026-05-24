@@ -17,7 +17,6 @@ export type ReselectDockProps = {
   draftCount: number;
   drops: Member[];
   totalDropCost: number;
-  draftFull: boolean;
   isActionPending: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -27,15 +26,12 @@ export function ReselectDock({
   draftCount,
   drops,
   totalDropCost,
-  draftFull,
   isActionPending,
   onCancel,
   onConfirm,
 }: ReselectDockProps) {
   const canConfirm = !isActionPending && draftCount === FOCUS_CASE_LIMIT;
   const droppedNames = drops.map((m) => m.firstName).join(", ");
-  // Silence unused-vars: draftFull is exposed so future styles can echo it.
-  void draftFull;
 
   return (
     <motion.div

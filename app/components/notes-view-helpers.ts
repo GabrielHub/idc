@@ -45,7 +45,6 @@ export function buildPairDossier(input: BuildPairDossierInput): PairDossier | nu
 
   const publicPairNotes: MemoryRecord[] = [];
   let closureNearMiss = false;
-  let hasVisibleBoardEdge = false;
   for (const memory of memories) {
     if (memory.pairId !== pairId) continue;
     if (memory.visibility !== "public") continue;
@@ -55,12 +54,7 @@ export function buildPairDossier(input: BuildPairDossierInput): PairDossier | nu
     if (!closureNearMiss && memory.tags.includes(CLOSURE_NEAR_MISS_TAG)) {
       closureNearMiss = true;
     }
-    if (!hasVisibleBoardEdge && memory.subjectIds.every((id) => memberById.has(id))) {
-      hasVisibleBoardEdge = true;
-    }
   }
-
-  if (hasVisibleBoardEdge) return null;
 
   publicPairNotes.sort((left, right) => (left.createdAt < right.createdAt ? 1 : -1));
 

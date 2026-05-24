@@ -60,7 +60,7 @@ describe("buildPairDossier", () => {
     expect(dossier).toBeNull();
   });
 
-  it("returns null when a visible board edge memory exists for the pair", () => {
+  it("returns the dossier when visible archive edge notes exist for the pair", () => {
     const pairState = buildPairState(jennaPike, vhool);
     const visibleEdgeMemory = buildPairMemory(pairState, {
       id: "memory-visible-edge",
@@ -74,7 +74,7 @@ describe("buildPairDossier", () => {
       playerKnowledge: [],
       readyClosurePairIds: new Set(),
     });
-    expect(dossier).toBeNull();
+    expect(dossier?.publicPairNotes.map((note) => note.id)).toEqual(["memory-visible-edge"]);
   });
 
   it("collects player-safe pair data without surfacing raw stats", () => {

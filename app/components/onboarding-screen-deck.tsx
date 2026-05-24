@@ -216,6 +216,7 @@ export function DeckDraftStep({
             body="This is the pool Cupid draws from. Pick six to twelve rooms and stay under budget. The hand comes later, after you commit two members."
             dismissLabel="Skip tour"
             onDismiss={deckPickStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -230,6 +231,7 @@ export function DeckDraftStep({
             body="Tap a card's arrow to open the room brief. Useful for sizing up vibe and rules before you spend on it."
             dismissLabel="Skip tour"
             onDismiss={deckExpandStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -249,6 +251,7 @@ export function DeckDraftStep({
             }}
             dismissLabel="Skip tour"
             onDismiss={deckStartStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}

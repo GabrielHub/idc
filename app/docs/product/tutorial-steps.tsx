@@ -107,7 +107,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
     badge: "02",
     tone: "fuchsia",
     caption:
-      "Constellation lobby. The layer indicator threads the player through focus → roster → cathedral; the BottomDock Begin button commits + starts in one tap. Layer-nav fires once on first entry; the intent rail fires once the pair is queued.",
+      "Constellation lobby. The layer indicator threads the player through focus -> roster, then unlocks the cathedral after Commit pair. Layer-nav fires once on first entry; the intent rail fires once the pair is queued.",
     steps: [
       {
         id: "planning.layer-nav",
@@ -162,11 +162,9 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
       },
       {
         id: "planning.commit",
-        surface: "Constellation lobby · SideRail focus + partner cards",
-        trigger:
-          "Partner is picked, intent step is done, and the player is still on a member layer.",
-        completesOn:
-          "The Got it button, or auto-completes when the player reaches the cathedral or picks a scenario.",
+        surface: "Constellation lobby · BottomDock Commit pair button",
+        trigger: "Partner is picked, intent step is done, and no active booking exists yet.",
+        completesOn: "Clicking Commit pair, which locks the pair and draws the three-card hand.",
         target: "coach-only",
         placement: "left",
         title: TUTORIAL_COPY["planning.commit"].title,
@@ -178,7 +176,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
       {
         id: "planning.scenario",
         surface: "Constellation lobby · CathedralPanel grid",
-        trigger: "Partner is picked, the player is on the cathedral layer, no scenario chosen.",
+        trigger: "Pair is committed, the player is on the cathedral layer, no scenario chosen.",
         completesOn: "Clicking any cathedral door to set the room.",
         target: "spotlight",
         placement: "top",
@@ -190,8 +188,8 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
       {
         id: "planning.begin",
         surface: "Constellation lobby · BottomDock Begin button",
-        trigger: "A scenario is selected and the pair has not yet committed.",
-        completesOn: "Clicking Begin, which commits the pair, starts the date, and opens the room.",
+        trigger: "A scenario is selected from the committed three-card hand.",
+        completesOn: "Clicking Begin, which starts the date and opens the room.",
         target: "pulse-ring",
         placement: "top",
         title: TUTORIAL_COPY["planning.begin"].title,

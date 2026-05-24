@@ -15,6 +15,7 @@ import {
 } from "../../../domain/game";
 import { starterScenarios } from "../../../fixtures";
 import { getReadyClosurePairs } from "../../../services/closures";
+import { commitDateBooking } from "../../../services/date-engine";
 import { drawHand } from "../../../services/deck";
 import { getFocusedMembers, syncActiveShiftFocusCases } from "../../../services/focus-cases";
 import {
@@ -106,6 +107,9 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
           onBeginDate={(input) => {
             // eslint-disable-next-line no-console
             console.info("[playground] onBeginDate", input);
+          }}
+          onCommitPair={(input) => {
+            setSave((current) => commitDateBooking(current, input).save);
           }}
           onCancelBooking={() => {
             setSave((current) => {

@@ -178,16 +178,20 @@ function PortraitChip({
 export function BottomDock({
   state,
   selectedScenarioId,
+  onCommitPair,
   onBeginDate,
   onCancelPair,
+  commitDisabled,
   beginDisabled,
   beginButtonRef,
   briefSlot,
 }: {
   state: LobbyState;
   selectedScenarioId: string | null;
+  onCommitPair?: () => void;
   onBeginDate?: () => void;
   onCancelPair?: () => void;
+  commitDisabled?: boolean;
   beginDisabled?: boolean;
   beginButtonRef?: Ref<HTMLButtonElement>;
   /**
@@ -197,21 +201,35 @@ export function BottomDock({
    */
   briefSlot?: ReactNode;
 }) {
+  const canCommit =
+    state === "partner_selected" && onCommitPair !== undefined && commitDisabled !== true;
   const canBegin =
-    (state === "scenario_chosen" ||
-      (state === "partner_selected" && selectedScenarioId !== null)) &&
+    state === "scenario_chosen" &&
     selectedScenarioId !== null &&
     onBeginDate !== undefined &&
     beginDisabled !== true;
-  const showCancelPair = state === "committed_pair" || state === "scenario_chosen";
+  const showCancelPair = state === "partner_selected";
+  const lockedPair = state === "committed_pair" || state === "scenario_chosen";
 
-  if (!showCancelPair && !canBegin && briefSlot === undefined) return null;
+  if (!showCancelPair && !canCommit && !canBegin && !lockedPair && briefSlot === undefined) {
+    return null;
+  }
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-end gap-4 px-6 pb-6">
       <div className="pointer-events-auto flex items-end gap-3">
         {briefSlot}
         {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
+        {lockedPair ? <ShardLabel label="Pair locked" /> : null}
+        {canCommit ? (
+          <button
+            type="button"
+            onClick={onCommitPair}
+            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm"
+          >
+            Commit pair
+          </button>
+        ) : null}
         {canBegin ? (
           <button
             ref={beginButtonRef}
@@ -224,6 +242,14 @@ export function BottomDock({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function ShardLabel({ label }: { label: string }) {
+  return (
+    <span className="aura-liquid-glass rounded-full px-5 py-2.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper/80">
+      {label}
+    </span>
   );
 }
 

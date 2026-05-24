@@ -1,18 +1,13 @@
 import { useMemo } from "react";
 
-import type { DateScenario, GameSave, ScenarioDeck, ShiftState } from "../../domain/game";
+import type { DateScenario, GameSave, ShiftState } from "../../domain/game";
 import {
   activeBudgetDiscountOffers,
   computeEffectiveCosts,
   deriveDeckBudgetStatus,
 } from "../../services/budget";
-import {
-  deckIsRepairBlocked,
-  drawHandForBooking,
-  softComposeWarnings,
-  unlockedScenarioIds,
-} from "../../services/deck";
-import { starterScenarios } from "../../fixtures";
+import { deckIsRepairBlocked, softComposeWarnings, unlockedScenarioIds } from "../../services/deck";
+import { memberRequests, starterScenarios } from "../../fixtures";
 import {
   evaluateMatchFit,
   scenarioRoomReadFromMatchFit,
@@ -20,6 +15,7 @@ import {
 } from "../../services/match-fit";
 import { getPairProjectionFromSave, materializePairEdge } from "../../services/relationship-index";
 import { makePairId } from "../../services/game-seed";
+import { visibleReadsForPair } from "../../services/player-knowledge";
 import type { CathedralMode, RiskFilter, SortMode } from "./cathedral";
 import { computeDeckComposition } from "./deck-composition";
 import { buildCathedralDoors, filterScenarioLibrary } from "./scenario-doors";
@@ -29,7 +25,6 @@ export function useCathedralModel({
   save,
   shift,
   drawnScenarios,
-  previewPairId,
   focusId,
   partnerId,
   scenarioMode,
@@ -41,7 +36,6 @@ export function useCathedralModel({
   save: GameSave;
   shift: ShiftState;
   drawnScenarios: readonly DateScenario[];
-  previewPairId: string | null;
   /**
    * Focus + partner ids when both are picked. Used to evaluate the room read
    * per scenario via evaluateMatchFit. When either is null the cathedral
@@ -97,17 +91,23 @@ export function useCathedralModel({
     const projection = getPairProjectionFromSave(save, pairId);
     if (projection === undefined) return new Map();
     const pairState = materializePairEdge(projection);
+    const activeFocusRequest = memberRequests.find(
+      (request) => request.memberId === focusId && shift.memberRequestIds.includes(request.id),
+    );
+    const knownPairReads = visibleReadsForPair(save, pairId);
     const reads = new Map<string, ScenarioRoomRead>();
     for (const scenario of starterScenarios) {
       const fit = evaluateMatchFit({
         members: [focusMember, partnerMember],
         scenario,
         pairState,
+        activeRequests: activeFocusRequest === undefined ? [] : [activeFocusRequest],
+        knownPairReads,
       });
       reads.set(scenario.id, scenarioRoomReadFromMatchFit(fit));
     }
     return reads;
-  }, [focusId, partnerId, save]);
+  }, [focusId, partnerId, save, shift.memberRequestIds]);
   const toLobby = (scenario: DateScenario) =>
     toLobbyScenario(scenario, roomReadByScenarioId.get(scenario.id) ?? "steady");
   const lobbyScenarios = useMemo(
@@ -119,20 +119,9 @@ export function useCathedralModel({
     () =>
       buildAutoModeScenarios({
         drawnScenarios,
-        deck: save.scenarioDeck,
-        shiftNumber: shift.shiftNumber,
-        previewPairId,
-        scenarioById,
       }).map(toLobby),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      drawnScenarios,
-      save.scenarioDeck,
-      shift.shiftNumber,
-      previewPairId,
-      scenarioById,
-      roomReadByScenarioId,
-    ],
+    [drawnScenarios, roomReadByScenarioId],
   );
 
   const unlockedLibraryIds = useMemo(
@@ -204,25 +193,9 @@ export function useCathedralModel({
 
 export function buildAutoModeScenarios({
   drawnScenarios,
-  deck,
-  shiftNumber,
-  previewPairId,
-  scenarioById,
 }: {
   drawnScenarios: readonly DateScenario[];
-  deck: ScenarioDeck;
-  shiftNumber: number;
-  previewPairId: string | null;
-  scenarioById: ReadonlyMap<string, DateScenario>;
 }): DateScenario[] {
   if (drawnScenarios.length > 0) return [...drawnScenarios];
-
-  const scenarioIds =
-    previewPairId === null
-      ? deck.cardIds.slice(0, 3)
-      : drawHandForBooking({ deck, shiftNumber, pairId: previewPairId });
-
-  return scenarioIds
-    .map((id) => scenarioById.get(id))
-    .filter((scenario): scenario is DateScenario => scenario !== undefined);
+  return [];
 }

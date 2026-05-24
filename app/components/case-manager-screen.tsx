@@ -174,7 +174,6 @@ export function CaseManagerScreen({
         draftCount={draftCount}
         drops={drops}
         totalDropCost={totalDropCost}
-        draftFull={draftFull}
         isActionPending={isActionPending}
         onCancel={onCancel}
         onConfirm={onConfirm}

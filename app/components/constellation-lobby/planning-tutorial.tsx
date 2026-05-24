@@ -143,13 +143,17 @@ export function usePlanningTutorial({
     // clicks open the detail overlay for adding to the deck rather than
     // picking tonight's scenario — the copy "open one to lock it" no longer
     // matches what the cards actually do.
-    partnerId !== null && selectedScenarioId === null && currentLayer === 2 && inAutoMode,
+    partnerId !== null &&
+      activeBooking !== null &&
+      selectedScenarioId === null &&
+      currentLayer === 2 &&
+      inAutoMode,
     onTutorialUpdate,
   );
   const beginStep = useTutorialStep(
     save,
     "planning.begin",
-    partnerId !== null && selectedScenarioId !== null && activeBooking === null && inAutoMode,
+    partnerId !== null && selectedScenarioId !== null && activeBooking !== null && inAutoMode,
     onTutorialUpdate,
   );
   const fileShiftStep = useTutorialStep(

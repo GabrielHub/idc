@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type Ref } from "react";
 import { motion } from "motion/react";
 
+import { layerDisabledReason, type LayerNavigationMode } from "./layer-access";
 import type { FlythroughLayer } from "./types";
 
 const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
@@ -12,11 +13,13 @@ const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
 export function LayerIndicator({
   currentLayer,
   onLayerSelect,
+  navigationMode = "free",
   containerRef,
   layerRefs,
 }: {
   currentLayer: FlythroughLayer;
   onLayerSelect: (layer: FlythroughLayer) => void;
+  navigationMode?: LayerNavigationMode;
   containerRef?: Ref<HTMLDivElement>;
   layerRefs?: Partial<Record<FlythroughLayer, Ref<HTMLButtonElement>>>;
 }) {
@@ -47,14 +50,22 @@ export function LayerIndicator({
         {layers.map((layer) => {
           const active = layer === currentLayer;
           const label = FLYTHROUGH_LAYER_LABELS[layer];
+          const disabledReason = layerDisabledReason(layer, navigationMode);
+          const disabled = disabledReason !== undefined;
           return (
             <button
               key={layer}
               ref={layerRefs?.[layer]}
               type="button"
               onClick={() => onLayerSelect(layer)}
-              aria-label={`Jump to layer ${layer + 1}: ${label}`}
-              className="aura-liquid-glass flex cursor-pointer items-center rounded-full px-2 py-2"
+              disabled={disabled}
+              title={disabledReason}
+              aria-label={
+                disabled
+                  ? `Layer ${layer + 1}: ${label} locked. ${disabledReason}`
+                  : `Jump to layer ${layer + 1}: ${label}`
+              }
+              className="aura-liquid-glass flex cursor-pointer items-center rounded-full px-2 py-2 disabled:cursor-not-allowed disabled:opacity-45"
             >
               <span
                 className={`h-2 w-2 flex-shrink-0 rounded-full transition-colors ${

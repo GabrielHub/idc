@@ -69,17 +69,10 @@ export function useLobbyPlanningState({
     () => (partnerId === null ? undefined : stars.find((star) => star.member.id === partnerId)),
     [stars, partnerId],
   );
-  const previewPairId = useMemo(
-    () =>
-      activeBooking?.pairId ??
-      (focusId === null || partnerId === null ? null : makePairId(focusId, partnerId)),
-    [activeBooking?.pairId, focusId, partnerId],
-  );
   const committedPairId = useMemo<string | null>(() => {
     if (activeBooking !== null) return activeBooking.pairId;
-    if (focusId === null || partnerId === null) return null;
-    return makePairId(focusId, partnerId);
-  }, [activeBooking, focusId, partnerId]);
+    return null;
+  }, [activeBooking]);
 
   const resetBookingSelection = useCallback(
     ({ dropFocus = false }: { dropFocus?: boolean } = {}) => {
@@ -104,7 +97,6 @@ export function useLobbyPlanningState({
     lobbyState,
     focusStar,
     partnerStar,
-    previewPairId,
     committedPairId,
     resetBookingSelection,
   };

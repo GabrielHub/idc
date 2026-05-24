@@ -5,6 +5,7 @@ import {
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
 import { ContextualPillRail } from "./contextual-pill-rail";
+import type { LayerNavigationMode } from "./layer-access";
 import { LayerIndicator } from "./layer-indicator";
 import { BottomDock, CalloutCluster, SideRail, type Callout } from "./lobby-hud";
 import type { PlanningTutorialRefs } from "./planning-tutorial";
@@ -16,6 +17,7 @@ export function LobbyHudLayer({
   chromeSlot,
   viewMode,
   currentLayer,
+  layerNavigationMode,
   refs,
   focus,
   partner,
@@ -40,6 +42,7 @@ export function LobbyHudLayer({
   onLayerSelect,
   onClearFocus,
   onClearPartner,
+  onCommitPair,
   onBeginDate,
   onCancelPair,
   onCompleteShift,
@@ -55,6 +58,7 @@ export function LobbyHudLayer({
   chromeSlot?: ReactNode;
   viewMode: ViewMode;
   currentLayer: FlythroughLayer;
+  layerNavigationMode: LayerNavigationMode;
   refs: Pick<
     PlanningTutorialRefs,
     | "layerIndicatorRef"
@@ -90,8 +94,9 @@ export function LobbyHudLayer({
   fileShiftBlockedReason?: string;
   archiveSelectionActive: boolean;
   onLayerSelect: (layer: FlythroughLayer) => void;
-  onClearFocus: () => void;
-  onClearPartner: () => void;
+  onClearFocus?: () => void;
+  onClearPartner?: () => void;
+  onCommitPair: () => void;
   onBeginDate: () => void;
   onCancelPair: () => void;
   onCompleteShift: () => void;
@@ -115,6 +120,7 @@ export function LobbyHudLayer({
         <LayerIndicator
           currentLayer={currentLayer}
           onLayerSelect={onLayerSelect}
+          navigationMode={layerNavigationMode}
           containerRef={refs.layerIndicatorRef}
           layerRefs={{
             0: refs.layerFocusRef,
@@ -141,6 +147,8 @@ export function LobbyHudLayer({
         state={lobbyState}
         selectedScenarioId={selectedScenarioId}
         beginDisabled={isActionPending || !aiReady}
+        commitDisabled={isActionPending || !aiReady}
+        onCommitPair={onCommitPair}
         onBeginDate={onBeginDate}
         onCancelPair={onCancelPair}
         beginButtonRef={refs.beginButtonRef}

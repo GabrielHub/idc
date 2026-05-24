@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 
-import type { GameSave, Member, ShiftState } from "../../domain/game";
-import { FOCUS_CASE_LIMIT, FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
+import type { GameSave, ShiftState } from "../../domain/game";
 import {
   applyMemberRosterFilters,
   isMemberRosterFilterActive,
@@ -19,14 +18,12 @@ export function useRosterFold({
   filterState,
   revealAllMemberDetails,
   readyClosureMemberIds,
-  reselectDraft,
 }: {
   save: GameSave;
   shift: ShiftState;
   filterState: MemberRosterFilterState;
   revealAllMemberDetails: boolean;
   readyClosureMemberIds: ReadonlySet<string> | undefined;
-  reselectDraft: readonly string[] | null;
 }) {
   const focusedSet = useMemo(() => new Set(save.focusedMemberIds), [save.focusedMemberIds]);
   const eligiblePartnerIds = useMemo<ReadonlySet<string>>(() => {
@@ -97,18 +94,6 @@ export function useRosterFold({
     if (!isMemberRosterFilterActive(filterState)) return undefined;
     return new Set(filteredMembers.map((m) => m.id));
   }, [filteredMembers, filterState]);
-  const draftCount = reselectDraft?.length ?? 0;
-  const draftFull = draftCount >= FOCUS_CASE_LIMIT;
-  const reselectDrops = useMemo<Member[]>(() => {
-    if (reselectDraft === null) return [];
-    const draftIds = new Set(reselectDraft);
-    const byId = new Map(save.members.map((m) => [m.id, m] as const));
-    return save.focusedMemberIds
-      .filter((id) => !draftIds.has(id))
-      .map((id) => byId.get(id))
-      .filter((m): m is Member => m !== undefined && m.state.status === "active");
-  }, [reselectDraft, save.focusedMemberIds, save.members]);
-
   return {
     focusedSet,
     eligiblePartnerIds,
@@ -116,9 +101,5 @@ export function useRosterFold({
     unavailabilityReasonById,
     filteredMembers,
     filterMatchedIds,
-    draftCount,
-    draftFull,
-    reselectDrops,
-    totalDropCost: reselectDrops.length * FOCUS_SWAP_RETENTION_PENALTY,
   };
 }
