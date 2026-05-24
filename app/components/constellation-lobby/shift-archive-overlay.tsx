@@ -10,11 +10,12 @@
  */
 
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import type { Member, ShiftState } from "../../domain/game";
-import { EASE_OUT_QUART } from "../dashboard-atoms";
-import { ShiftArchive } from "../shift-archive";
+import { AmbientMesh } from "../ambient-mesh";
+import { EASE_OUT_QUART, pad2 } from "../dashboard-atoms";
+import { selectArchivedShiftReports, ShiftArchive } from "../shift-archive";
 
 export type ShiftArchiveOverlayProps = {
   open: boolean;
@@ -36,6 +37,8 @@ export function ShiftArchiveOverlay({ open, shifts, members, onClose }: ShiftArc
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
+  const archivedCount = useMemo(() => selectArchivedShiftReports(shifts).length, [shifts]);
+
   return (
     <AnimatePresence>
       {open ? (
@@ -54,36 +57,46 @@ export function ShiftArchiveOverlay({ open, shifts, members, onClose }: ShiftArc
             type="button"
             aria-label="Close shift archive"
             onClick={onClose}
-            className="absolute inset-0 cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
+            className="absolute inset-0 cursor-pointer bg-[#07041a]/65 backdrop-blur-md"
           />
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.99 }}
             transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-            className="absolute inset-x-6 inset-y-6 lg:inset-x-12 lg:inset-y-10 flex flex-col overflow-hidden rounded-card aura-liquid-glass"
+            className="absolute inset-x-6 inset-y-6 isolate flex flex-col overflow-hidden rounded-card bg-[#07041a] text-aura-paper lg:inset-x-12 lg:inset-y-10"
           >
-            <header className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-              <div>
-                <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
+            <AmbientMesh />
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close shift archive"
+              className="aura-liquid-glass aura-liquid-glass-hover absolute right-5 top-5 z-20 cursor-pointer rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
+            >
+              Close
+            </button>
+
+            <div className="relative z-10 flex-1 overflow-y-auto px-6 pb-16 pt-14 lg:px-12 lg:pt-16">
+              <header className="mx-auto max-w-[88rem] text-center">
+                <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose">
                   // archive.shifts
-                </div>
-                <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-paper">
+                </p>
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-aura-paper lg:text-display-md">
                   Shift reports
                 </h2>
-              </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
-                aria-label="Close shift archive"
-              >
-                Close
-              </button>
-            </header>
+                <p className="mx-auto mt-4 max-w-2xl text-body text-white/70">
+                  Cupid files a shift report each time you close one. Skim the receipts to see how
+                  prior shifts wrapped before opening the next one.
+                </p>
+                <p className="mt-3 font-mono text-micro uppercase tracking-[0.28em] text-white/45">
+                  {pad2(archivedCount)} on file
+                </p>
+              </header>
 
-            <div className="flex-1 overflow-y-auto bg-aura-paper px-6 py-6 lg:px-10 lg:py-8">
-              <ShiftArchive shifts={shifts.slice()} members={members.slice()} />
+              <div className="mx-auto mt-10 max-w-[88rem]">
+                <ShiftArchive shifts={shifts.slice()} members={members.slice()} />
+              </div>
             </div>
           </motion.div>
         </motion.div>

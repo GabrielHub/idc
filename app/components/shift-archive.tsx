@@ -32,32 +32,18 @@ export function selectArchivedShiftReports(shifts: readonly ShiftState[]): Shift
 export function ShiftArchive({ shifts, members }: ShiftArchiveProps) {
   const archived = useMemo(() => selectArchivedShiftReports(shifts), [shifts]);
 
-  return (
-    <section className="mt-12 border-t border-aura-hairline pt-10">
-      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-aura-hairline pb-3">
-        <div className="space-y-1">
-          <Eyebrow>// archive.shifts</Eyebrow>
-          <h3 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-ink">
-            Shift reports
-          </h3>
-        </div>
-        <p className="font-mono text-micro uppercase tracking-[0.28em] text-aura-faint">
-          {pad2(archived.length)} on file
-        </p>
-      </header>
+  if (archived.length === 0) {
+    return <ShiftArchiveEmpty />;
+  }
 
-      {archived.length === 0 ? (
-        <ShiftArchiveEmpty />
-      ) : (
-        <ul className="mt-8 grid gap-6">
-          <AnimatePresence initial={false}>
-            {archived.map((shift, index) => (
-              <ArchivedShiftCard key={shift.id} shift={shift} members={members} index={index} />
-            ))}
-          </AnimatePresence>
-        </ul>
-      )}
-    </section>
+  return (
+    <ul className="grid gap-6">
+      <AnimatePresence initial={false}>
+        {archived.map((shift, index) => (
+          <ArchivedShiftCard key={shift.id} shift={shift} members={members} index={index} />
+        ))}
+      </AnimatePresence>
+    </ul>
   );
 }
 
@@ -84,44 +70,46 @@ function ArchivedShiftCard({
       transition={{ duration: 0.36, delay: Math.min(index, 6) * 0.04, ease: EASE_OUT_QUART }}
       className="list-none"
     >
-      <article className="aura-glass aura-glass-lift relative overflow-hidden rounded-card ring-1 ring-aura-hairline">
+      <article className="aura-liquid-glass relative overflow-hidden rounded-card">
         <span
           aria-hidden
-          className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-aura-violet via-aura-fuchsia to-aura-rose opacity-60"
+          className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-gradient-to-b from-aura-violet via-aura-fuchsia to-aura-rose opacity-75"
         />
         <div className="relative z-10 flex flex-col gap-5 px-6 py-7 pl-9 lg:px-8 lg:pl-12">
           <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2">
             <div className="space-y-1">
               <Eyebrow>{`// shift.${pad2(shift.shiftNumber)} closed`}</Eyebrow>
-              <h4 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+              <h4 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-paper">
                 Shift {pad2(shift.shiftNumber)} filed
               </h4>
             </div>
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/55">
               Closed {formatNoteTimestamp(report.completedAt)}
             </p>
           </header>
 
-          <p className="text-lead leading-snug text-aura-muted">{report.summary}</p>
+          <p className="text-lead leading-snug text-white/75">{report.summary}</p>
 
-          <ShiftGoalResultsBlock results={report.goalResults} />
+          <ShiftGoalResultsBlock tone="dark" results={report.goalResults} />
 
           {report.budgetReview === undefined ? null : (
-            <BudgetReviewBlock review={report.budgetReview} />
+            <BudgetReviewBlock tone="dark" review={report.budgetReview} />
           )}
 
           {report.deckCoverage.length === 0 ? null : (
-            <DeckCoverageBlock coverage={report.deckCoverage} members={members} />
+            <DeckCoverageBlock tone="dark" coverage={report.deckCoverage} members={members} />
           )}
 
-          {report.hrNote === undefined ? null : <ShiftHrNoteBlock note={report.hrNote} />}
+          {report.hrNote === undefined ? null : (
+            <ShiftHrNoteBlock tone="dark" note={report.hrNote} />
+          )}
 
-          <footer className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-aura-hairline pt-4">
+          <footer className="mt-1 flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-white/12 pt-4">
             <ul className="flex flex-wrap items-baseline gap-x-5 gap-y-2">
               <ArchiveStat label="dates filed" value={pad2(report.completedDates)} />
               <ArchiveStat label="ended early" value={pad2(report.earlyEndedDates)} />
             </ul>
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted">
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-white/70">
               ref · S-{pad2(shift.shiftNumber)}
             </p>
           </footer>
@@ -134,10 +122,10 @@ function ArchivedShiftCard({
 function ArchiveStat({ label, value }: { label: string; value: string }) {
   return (
     <li className="flex items-baseline gap-2">
-      <span className="font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+      <span className="font-display text-display-sm font-semibold tracking-tight text-aura-paper">
         {value}
       </span>
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-white/55">
         {label}
       </span>
     </li>
@@ -146,13 +134,13 @@ function ArchiveStat({ label, value }: { label: string; value: string }) {
 
 function ShiftArchiveEmpty() {
   return (
-    <div className="mt-8 grid place-items-center rounded-card border border-dashed border-aura-hairline bg-white/40 px-6 py-12 text-center">
+    <div className="aura-liquid-glass grid place-items-center rounded-card px-6 py-12 text-center">
       <div className="max-w-md space-y-3">
         <Eyebrow>// archive.empty</Eyebrow>
-        <h4 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink">
+        <h4 className="font-display text-display-sm font-semibold tracking-tight text-aura-paper">
           No shifts on file yet
         </h4>
-        <p className="text-label text-aura-muted">
+        <p className="text-label text-white/70">
           Cupid files a shift report once you close one. Run a shift, file it, then come back.
         </p>
       </div>

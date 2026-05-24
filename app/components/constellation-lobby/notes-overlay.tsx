@@ -21,8 +21,9 @@ import type {
   PairEdge,
   PlayerKnowledgeRecord,
 } from "../../domain/game";
-import { EASE_OUT_QUART, GhostButton } from "../dashboard-atoms";
-import { NotesArchive, NotesEmptyTile } from "../notes-cards";
+import { AmbientMesh } from "../ambient-mesh";
+import { EASE_OUT_QUART } from "../dashboard-atoms";
+import { NotesArchive, NotesArchiveResetButton, NotesEmptyTile } from "../notes-cards";
 import { NotesFilterRail, type NotesScopeOption } from "../notes-filter-rail";
 import { PairDossierCard } from "../notes-dossier";
 import {
@@ -196,75 +197,82 @@ export function NotesOverlay({
             type="button"
             aria-label="Close notes overlay"
             onClick={onClose}
-            className="absolute inset-0 cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
+            className="absolute inset-0 cursor-pointer bg-[#07041a]/65 backdrop-blur-md"
           />
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.99 }}
             transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-            className="absolute inset-x-6 inset-y-6 lg:inset-x-12 lg:inset-y-10 flex flex-col overflow-hidden rounded-card aura-liquid-glass"
+            className="absolute inset-x-6 inset-y-6 isolate flex flex-col overflow-hidden rounded-card bg-[#07041a] text-aura-paper lg:inset-x-12 lg:inset-y-10"
           >
-            <header className="flex items-center justify-between gap-4 border-b border-white/10 px-6 py-4">
-              <div>
-                <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
+            <AmbientMesh />
+
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close notes overlay"
+              className="aura-liquid-glass aura-liquid-glass-hover absolute right-5 top-5 z-20 cursor-pointer rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
+            >
+              Close
+            </button>
+
+            <div className="relative z-10 flex-1 overflow-y-auto px-6 pb-16 pt-14 lg:px-12 lg:pt-16">
+              <header className="mx-auto max-w-[88rem] text-center">
+                <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose">
                   // archive.notes
-                </div>
-                <h2 className="font-display text-display-md font-semibold leading-tight tracking-tight text-aura-paper">
+                </p>
+                <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-aura-paper lg:text-display-md">
                   Case notes
                 </h2>
+                <p className="mx-auto mt-4 max-w-2xl text-body text-white/70">
+                  Cupid files pair and scenario memories after dates wrap. Filter the archive, scan
+                  what is on file, and lean on it when planning the next shift.
+                </p>
+              </header>
+
+              <div className="mx-auto mt-10 max-w-[88rem]">
+                {pairDossier === null ? null : <PairDossierCard dossier={pairDossier} />}
+
+                <NotesFilterRail
+                  scopeFilter={scopeFilter}
+                  onScopeFilterChange={(next) => {
+                    setScopeFilter(next);
+                    if (next === "pairs") setSelectedScenarioId("any");
+                    if (next === "scenarios") setSelectedPairId("any");
+                  }}
+                  pairOptions={pairOptions}
+                  selectedPairId={selectedPairId}
+                  onSelectedPairChange={setSelectedPairId}
+                  scenarioOptions={scenarioOptions}
+                  selectedScenarioId={selectedScenarioId}
+                  onSelectedScenarioChange={setSelectedScenarioId}
+                  totalCount={totalCount}
+                  shownCount={shownCount}
+                  hasFilters={hasFilters}
+                  onClearFilters={clearNotesFilters}
+                />
+
+                {totalCount === 0 ? (
+                  <NotesEmptyTile
+                    title="No public notes yet"
+                    subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
+                  />
+                ) : filteredMemories.length === 0 ? (
+                  <NotesEmptyTile
+                    title="No notes match this filter"
+                    subhead="Loosen the filter to see more of the case archive."
+                    action={<NotesArchiveResetButton onClick={clearNotesFilters} />}
+                  />
+                ) : (
+                  <NotesArchive
+                    memories={filteredMemories}
+                    memberById={memberById}
+                    pairStateById={pairEdgeById}
+                    scenarioById={scenarioById}
+                  />
+                )}
               </div>
-              <button
-                type="button"
-                onClick={onClose}
-                className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
-                aria-label="Close notes overlay"
-              >
-                Close
-              </button>
-            </header>
-
-            <div className="flex-1 overflow-y-auto bg-aura-paper px-6 py-6 lg:px-10 lg:py-8">
-              {pairDossier === null ? null : <PairDossierCard dossier={pairDossier} />}
-
-              <NotesFilterRail
-                scopeFilter={scopeFilter}
-                onScopeFilterChange={(next) => {
-                  setScopeFilter(next);
-                  if (next === "pairs") setSelectedScenarioId("any");
-                  if (next === "scenarios") setSelectedPairId("any");
-                }}
-                pairOptions={pairOptions}
-                selectedPairId={selectedPairId}
-                onSelectedPairChange={setSelectedPairId}
-                scenarioOptions={scenarioOptions}
-                selectedScenarioId={selectedScenarioId}
-                onSelectedScenarioChange={setSelectedScenarioId}
-                totalCount={totalCount}
-                shownCount={shownCount}
-                hasFilters={hasFilters}
-                onClearFilters={clearNotesFilters}
-              />
-
-              {totalCount === 0 ? (
-                <NotesEmptyTile
-                  title="No public notes yet"
-                  subhead="Cupid files pair and scenario memories after dates wrap. Run a shift to start the archive."
-                />
-              ) : filteredMemories.length === 0 ? (
-                <NotesEmptyTile
-                  title="No notes match this filter"
-                  subhead="Loosen the filter to see more of the case archive."
-                  action={<GhostButton onClick={clearNotesFilters}>Reset filters</GhostButton>}
-                />
-              ) : (
-                <NotesArchive
-                  memories={filteredMemories}
-                  memberById={memberById}
-                  pairStateById={pairEdgeById}
-                  scenarioById={scenarioById}
-                />
-              )}
             </div>
           </motion.div>
         </motion.div>

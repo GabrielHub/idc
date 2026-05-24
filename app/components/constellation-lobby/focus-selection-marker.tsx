@@ -19,12 +19,11 @@ export function FocusSelectionMarker({
       position={[0, -avatarRadius * 1.4, 0.12]}
       zIndexRange={[55, 0]}
       className="pointer-events-none"
-      center
     >
       <div
         onPointerEnter={() => onHoverChange?.(true)}
         onPointerLeave={() => onHoverChange?.(false)}
-        className="pointer-events-auto aura-liquid-glass aura-liquid-glass-rose flex items-center gap-2 rounded-pill py-1 pl-3 pr-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-paper whitespace-nowrap shadow-cta"
+        className="pointer-events-auto aura-liquid-glass aura-liquid-glass-rose inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-pill py-1 pl-3 pr-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-paper whitespace-nowrap shadow-cta"
       >
         <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" />
         <span>Focus · {member.firstName}</span>

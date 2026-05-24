@@ -5,7 +5,7 @@ import { FOCUS_CASE_LIMIT } from "../../services/focus-cases";
 
 export type LobbyMode = "browse" | "reselect";
 
-function activeFocusedIds(save: GameSave): string[] {
+export function activeFocusedIds(save: GameSave): string[] {
   const membersById = new Map(save.members.map((member) => [member.id, member] as const));
   return save.focusedMemberIds.filter((id) => {
     const member = membersById.get(id);
@@ -35,6 +35,24 @@ export function useLobbyReselect({
     onCaseFileClose();
   }, [lobbyMode, onCaseFileClose, save]);
 
+  // Open the reselect editor pre-populated with `candidateMemberId` already in
+  // the draft. Used by the case-file's "Swap into focus" CTA so the player
+  // lands inside the manager with the candidate ready to confirm. The baseline
+  // is the current active-focused set (so cancel restores exactly that).
+  const requestReselectWithCandidate = useCallback(
+    (candidateMemberId: string) => {
+      const baseline = activeFocusedIds(save);
+      const draft = baseline.includes(candidateMemberId)
+        ? baseline
+        : [...baseline, candidateMemberId];
+      setReselectBaseline(baseline);
+      setReselectDraft(draft);
+      setLobbyMode("reselect");
+      onCaseFileClose();
+    },
+    [onCaseFileClose, save],
+  );
+
   const cancelReselect = useCallback(() => {
     setReselectDraft(null);
     setReselectBaseline(null);
@@ -63,11 +81,9 @@ export function useLobbyReselect({
     reselectDraft,
     reselectBaseline,
     enterReselect,
+    requestReselectWithCandidate,
     cancelReselect,
     toggleReselectMember,
     confirmReselect,
-    setReselectBaseline,
-    setReselectDraft,
-    setLobbyMode,
   };
 }

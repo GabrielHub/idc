@@ -1,7 +1,5 @@
 import { MutedIndicator, SettingsMenu, type DiagnosticsSnapshot } from "./settings-menu";
 
-export type RoomKey = "livedate";
-
 const CHROME_PILL_CLASS =
   "cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose";
 const DATE_CHROME_PILL_CLASS =
@@ -10,7 +8,6 @@ const DATE_CHROME_PILL_CLASS =
 export function ShellChrome({
   isDateViewActive,
   shiftNumber,
-  currentRoom,
   aiStatusLabel,
   isActionPending,
   getDiagnostics,
@@ -29,7 +26,6 @@ export function ShellChrome({
 }: {
   isDateViewActive: boolean;
   shiftNumber: number;
-  currentRoom: RoomKey;
   aiStatusLabel: string;
   isActionPending: boolean;
   getDiagnostics: () => DiagnosticsSnapshot;
@@ -55,7 +51,7 @@ export function ShellChrome({
   );
   const shiftLabel = (
     <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black">
-      shift {String(shiftNumber).padStart(2, "0")} / {currentRoom}
+      shift {String(shiftNumber).padStart(2, "0")} / livedate
     </span>
   );
   const aiStatusButton = (
@@ -128,6 +124,7 @@ export function LobbyChromePills({
   canUseDevMemberDetailsPreview,
   devRevealAllMemberDetails,
   onPunchOut,
+  onBack,
   onOpenAiSetup,
   onReset,
   onResetOrientation,
@@ -145,6 +142,12 @@ export function LobbyChromePills({
   canUseDevMemberDetailsPreview: boolean;
   devRevealAllMemberDetails: boolean;
   onPunchOut: () => void;
+  /**
+   * Overrides the leading back/punch-out button when set. The lobby supplies
+   * this when a sub-screen (e.g. the reselect case manager) needs the
+   * back affordance to close that screen instead of leaving the shift.
+   */
+  onBack?: () => void;
   onOpenAiSetup: () => void;
   onReset: () => void;
   onResetOrientation: () => void;
@@ -154,6 +157,9 @@ export function LobbyChromePills({
   onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
   onOpenReleaseNotes: () => void;
 }) {
+  const backHandler = onBack ?? onPunchOut;
+  const backAriaLabel = onBack === undefined ? "Punch out of shift" : "Back to lobby";
+  const backTitle = onBack === undefined ? "Punch out" : "Back";
   const aiDotClass =
     aiStatusLabel === "ready"
       ? "bg-aura-emerald"
@@ -166,10 +172,10 @@ export function LobbyChromePills({
     <>
       <button
         type="button"
-        onClick={onPunchOut}
+        onClick={backHandler}
         data-sfx="click"
-        aria-label="Punch out of shift"
-        title="Punch out"
+        aria-label={backAriaLabel}
+        title={backTitle}
         className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full p-2 inline-flex items-center justify-center text-aura-paper transition"
       >
         <PunchOutGlyph />

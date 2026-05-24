@@ -392,9 +392,11 @@ describe("advanceFlythroughLayer", () => {
   it("advances one layer per call when scrolling deeper", () => {
     expect(advanceFlythroughLayer(0, 1)).toBe(1);
     expect(advanceFlythroughLayer(1, 1)).toBe(2);
+    expect(advanceFlythroughLayer(2, 1)).toBe(3);
   });
 
   it("reverses one layer per call when scrolling back out", () => {
+    expect(advanceFlythroughLayer(3, -1)).toBe(2);
     expect(advanceFlythroughLayer(2, -1)).toBe(1);
     expect(advanceFlythroughLayer(1, -1)).toBe(0);
   });
@@ -403,8 +405,8 @@ describe("advanceFlythroughLayer", () => {
     expect(advanceFlythroughLayer(0, -1)).toBe(0);
   });
 
-  it("clamps at the scenarios layer when scrolling down from layer 2", () => {
-    expect(advanceFlythroughLayer(2, 1)).toBe(2);
+  it("clamps at the scenarios layer when scrolling down from layer 3", () => {
+    expect(advanceFlythroughLayer(3, 1)).toBe(3);
   });
 });
 
@@ -464,9 +466,9 @@ describe("flythroughMemberSlabActivity", () => {
     );
   });
 
-  it("spotlights the off-tonight cohort on layer 1 when the subview flips", () => {
-    const offTonightLeads = flythroughMemberSlabActivity(1, 1, "off_tonight", "off_tonight");
-    const eligibleRecedes = flythroughMemberSlabActivity(1, 1, "eligible", "off_tonight");
+  it("spotlights the off-tonight cohort on layer 2 when the subview flips", () => {
+    const offTonightLeads = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight");
+    const eligibleRecedes = flythroughMemberSlabActivity(1, 2, "eligible", "off_tonight");
     expect(offTonightLeads.intensityMultiplier).toBeGreaterThan(
       eligibleRecedes.intensityMultiplier,
     );
@@ -485,8 +487,8 @@ describe("flythroughMemberSlabActivity", () => {
   });
 
   it("recedes every member slab when the player is on the scenarios layer", () => {
-    const layer0 = flythroughMemberSlabActivity(0, 2);
-    const layer1 = flythroughMemberSlabActivity(1, 2);
+    const layer0 = flythroughMemberSlabActivity(0, 3);
+    const layer1 = flythroughMemberSlabActivity(1, 3);
     expect(layer0.intensityMultiplier).toBeLessThan(0.5);
     expect(layer1.intensityMultiplier).toBeLessThan(0.5);
     expect(layer0).toEqual(layer1);
@@ -561,8 +563,10 @@ describe("computeFlythroughCameraTarget", () => {
     expect(computeFlythroughCameraTarget(0, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[0]);
     expect(computeFlythroughCameraTarget(1, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[1]);
     expect(computeFlythroughCameraTarget(2, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[2]);
+    expect(computeFlythroughCameraTarget(3, undefined).position[2]).toBe(FLYTHROUGH_CAMERA_Z[3]);
     expect(FLYTHROUGH_CAMERA_Z[0]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[1]);
     expect(FLYTHROUGH_CAMERA_Z[1]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[2]);
+    expect(FLYTHROUGH_CAMERA_Z[2]).toBeGreaterThan(FLYTHROUGH_CAMERA_Z[3]);
   });
 
   it("biases layer 0 framing toward the focus star x/y when one is provided", () => {
@@ -575,13 +579,13 @@ describe("computeFlythroughCameraTarget", () => {
 
   it("centers the framing on layers beyond 0 regardless of focus", () => {
     const focus = makeStar({ x: 80, y: 20, z: 0 });
-    const target = computeFlythroughCameraTarget(2, focus);
+    const target = computeFlythroughCameraTarget(3, focus);
     expect(target.position[0]).toBe(0);
     expect(target.position[1]).toBe(0);
   });
 
   it("looks ahead in -Z so each layer punches through the previous one", () => {
-    for (const layer of [0, 1, 2] as const) {
+    for (const layer of [0, 1, 2, 3] as const) {
       const target = computeFlythroughCameraTarget(layer, undefined);
       expect(target.lookAt[2]).toBeLessThan(target.position[2]);
     }
@@ -589,8 +593,8 @@ describe("computeFlythroughCameraTarget", () => {
 
   it("tightens DoF as the player closes in on the scenarios layer", () => {
     const layer0 = computeFlythroughCameraTarget(0, undefined);
-    const layer2 = computeFlythroughCameraTarget(2, undefined);
-    expect(layer2.bokehScale).toBeLessThan(1);
+    const layer3 = computeFlythroughCameraTarget(3, undefined);
+    expect(layer3.bokehScale).toBeLessThan(1);
     expect(layer0.bokehScale).toBeLessThan(1);
   });
 });

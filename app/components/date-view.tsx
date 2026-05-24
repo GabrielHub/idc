@@ -293,7 +293,7 @@ export function DateView({
             target={judgeNoteAnchor}
             placement="top"
             title="Six turns, one snapshot"
-            body="Cupid reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second."
+            body="Cupid reads every sixth turn and at the wrap. Health moves here, not in the booking room. Evidence first, paperwork second."
             primaryLabel="Got it"
             onPrimary={judgeNoteStep.complete}
             dismissLabel="Skip tour"

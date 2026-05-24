@@ -127,16 +127,8 @@ export function useCathedralModel({
   ]);
   const toLobby = (scenario: DateScenario) =>
     toLobbyScenario(scenario, roomReadByScenarioId.get(scenario.id) ?? "steady");
-  const lobbyScenarios = useMemo(
+  const drawnLobbyScenarios = useMemo(
     () => drawnScenarios.map(toLobby),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [drawnScenarios, roomReadByScenarioId],
-  );
-  const flythroughScenariosForLayer = useMemo(
-    () =>
-      buildAutoModeScenarios({
-        drawnScenarios,
-      }).map(toLobby),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [drawnScenarios, roomReadByScenarioId],
   );
@@ -176,8 +168,7 @@ export function useCathedralModel({
         scenarioById,
         effectiveCosts,
         filteredLibrary,
-        lobbyScenarios,
-        flythroughScenarios: flythroughScenariosForLayer,
+        drawnScenarios: drawnLobbyScenarios,
       }),
     [
       scenarioMode,
@@ -185,8 +176,7 @@ export function useCathedralModel({
       scenarioById,
       effectiveCosts,
       filteredLibrary,
-      lobbyScenarios,
-      flythroughScenariosForLayer,
+      drawnLobbyScenarios,
     ],
   );
   const expandedScenario = useMemo(
@@ -201,19 +191,9 @@ export function useCathedralModel({
     deckRepairBlocked,
     deckComposition,
     deckComposeWarnings,
-    lobbyScenarios,
-    flythroughScenariosForLayer,
+    drawnLobbyScenarios,
     filteredLibrary,
     cathedralDoors,
     expandedScenario,
   };
-}
-
-export function buildAutoModeScenarios({
-  drawnScenarios,
-}: {
-  drawnScenarios: readonly DateScenario[];
-}): DateScenario[] {
-  if (drawnScenarios.length > 0) return [...drawnScenarios];
-  return [];
 }

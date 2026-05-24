@@ -77,7 +77,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         placement: "left",
         portrait: "portrait",
         title: "Cupid is hiring. You are hired.",
-        body: "These are members who walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised.",
+        body: "These hopefuls walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised.",
       },
       {
         id: "onboarding.focus.expand",
@@ -87,7 +87,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "pulse-ring",
         placement: "right",
         title: "Read the file",
-        body: "Tap a card's arrow to open that member's file. Useful for sizing up a case before you commit.",
+        body: "Tap a card's arrow to open their file. Worth a peek before you commit a slot to them.",
       },
       {
         id: "onboarding.focus.start",
@@ -97,7 +97,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "pulse-ring",
         placement: "top",
         title: "Draft the Date Book",
-        body: "Four cases on file. Next, choose the starter rooms Cupid can draw from when you commit a pair.",
+        body: "Four cases on file. Next up: pick the starter rooms Cupid can draw from once you commit a pair.",
       },
     ],
   },
@@ -107,7 +107,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
     badge: "02",
     tone: "fuchsia",
     caption:
-      "Constellation lobby. The layer indicator threads the player through focus -> roster, then unlocks the cathedral after Commit pair. Layer-nav fires once on first entry; the intent rail fires once the pair is queued.",
+      "Constellation lobby. The layer indicator threads the player through focus -> roster, then unlocks the pick-venue layer after Commit pair. Layer-nav fires once on first entry; the intent rail fires once the pair is queued.",
     steps: [
       {
         id: "planning.layer-nav",
@@ -151,7 +151,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         surface: "Constellation lobby · IntentRail (inside SideRail)",
         trigger: "Both focus and partner are picked; intent is not yet filed.",
         completesOn:
-          "The Got it button, or auto-completes when the player files any intent, reaches the cathedral, or picks a scenario.",
+          "The Got it button, or auto-completes when the player files any intent, reaches the pick-venue layer, or picks a scenario.",
         target: "coach-only",
         placement: "top",
         title: TUTORIAL_COPY["planning.intent"].title,
@@ -176,8 +176,8 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
       {
         id: "planning.scenario",
         surface: "Constellation lobby · CathedralPanel grid",
-        trigger: "Pair is committed, the player is on the cathedral layer, no scenario chosen.",
-        completesOn: "Clicking any cathedral door to set the room.",
+        trigger: "Pair is committed, the player is on the pick-venue layer, no scenario chosen.",
+        completesOn: "Clicking any door to set the room.",
         target: "spotlight",
         placement: "top",
         title: TUTORIAL_COPY["planning.scenario"].title,
@@ -216,7 +216,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "spotlight",
         placement: "right",
         title: "Draft three scenes",
-        body: "Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never auto-fires them.",
+        body: "Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never plays them for you.",
       },
       {
         id: "date.footer.health",
@@ -251,7 +251,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "spotlight",
         placement: "top",
         title: "Six turns, one snapshot",
-        body: "Cupid reads every sixth turn and at the wrap. Health changes here, not in the booking room. Evidence first. Paperwork second.",
+        body: "Cupid reads every sixth turn and at the wrap. Health moves here, not in the booking room. Evidence first, paperwork second.",
         primaryLabel: "Got it",
       },
       {
@@ -262,7 +262,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "pulse-ring",
         placement: "top",
         title: "One nudge, one whisper",
-        body: "Pause, pick one member, write one sentence. Steer where they go or ask them to share something you want to know. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact.",
+        body: "Pause, pick one member, write one sentence. Steer them somewhere or pull a thread you want exposed. They hear it as a private prod from the room. Spend all three and Cupid starts making eye contact.",
         primaryLabel: "Open composer",
       },
     ],
@@ -283,7 +283,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "spotlight",
         placement: "top",
         title: "File one follow-up",
-        body: "Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance. Let It Sit if no action fits, but the shift will not close until every date has a follow-up on file.",
+        body: "Encourage if the file ran warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs distance. Let It Sit if nothing fits, but the shift won't close until every date has one on file.",
       },
       {
         id: "planning.file-shift",
@@ -313,7 +313,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "coach-only",
         placement: "top",
         title: "Files start mostly sealed",
-        body: "Public profile is what they wrote. Everything else unseals over time as Cupid files reads from dates you run.",
+        body: "The public profile is what they wrote. Everything else unseals as Cupid files reads from the dates you run.",
         primaryLabel: "Got it",
       },
       {
@@ -324,7 +324,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "coach-only",
         placement: "top",
         title: "Read the room before you book it",
-        body: "Every scenario brief lays out the premise, the rules of the room, and what Cupid will reward or punish. Skim it so the match lands in the right mess.",
+        body: "Every brief lays out the premise, the rules of the room, and what Cupid rewards or punishes. Skim it so the match lands in the right kind of mess.",
         primaryLabel: "Got it",
       },
     ],
@@ -339,7 +339,8 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
     steps: [
       {
         id: "lazy.contextual-rail",
-        surface: "Constellation lobby · ContextualPillRail (top-right cluster)",
+        surface:
+          "Constellation lobby · ContextualPillRail (top-right cluster + top-center roster controls)",
         trigger: "Lobby is open with at least one focus case picked.",
         completesOn: "The Got it button.",
         target: "coach-only",
@@ -352,7 +353,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         id: "lazy.date-book",
         surface: "Constellation lobby · ContextualPillRail Date book pill",
         trigger:
-          "Lobby is on auto mode after the first date report is filed (deck editing is unlocked). Gated on auto so the coach mark can actually anchor to the visible Date book pill — deck/library mode unmounts the HUD.",
+          "Lobby is on auto mode after the first date report is filed (deck editing is unlocked). Yields to lazy.contextual-rail so the broader pill overview lands first; deck/library mode unmounts the HUD so the auto gate keeps the coach mark anchored to a visible pill.",
         completesOn: "The Got it button.",
         target: "pulse-ring",
         placement: "left",
@@ -379,7 +380,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "spotlight",
         placement: "bottom",
         title: "Swapping costs retention",
-        body: `Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, but also paperwork. Pick the next member to seal the swap.`,
+        body: `Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, also paperwork. Pick the next member to seal the swap.`,
         primaryLabel: "Got it",
       },
       {
@@ -434,7 +435,7 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         target: "coach-only",
         placement: "left",
         title: "Agreements and open loops",
-        body: "Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow this pair from date to date and shape the next room read.",
+        body: "Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow the pair from date to date and shape the next room read.",
         primaryLabel: "Got it",
       },
     ],

@@ -12,11 +12,12 @@ import type {
   StarMark,
   StarRole,
 } from "./types";
+import { isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER } from "./types";
 
 /**
  * Cohort within the roster slab. Stars on the roster slab still belong to
  * one of three groups (eligible / off_tonight / other_ineligible — the last
- * for cooling and closed); the layer-1 RosterSubview toggle picks which
+ * for cooling and closed); the active roster flythrough layer picks which
  * group leads the eye.
  */
 export type RosterCohort = "eligible" | "off_tonight" | "other_ineligible";
@@ -43,14 +44,17 @@ export function flythroughMemberSlabActivity(
   cohort?: RosterCohort,
   rosterSubview: RosterSubview = "eligibles",
 ): { intensityMultiplier: number; scaleMultiplier: number } {
-  if (currentLayer === 2) {
+  if (currentLayer === SCENARIO_FLYTHROUGH_LAYER) {
     // Cathedral layer — stars vanish entirely so the door array reads as
     // its own room. Scale collapses to 0.55 so any half-faded sprites
     // mid-transition recede into the distance instead of staying at full
     // size while their opacity falls.
     return { intensityMultiplier: 0, scaleMultiplier: 0.55 };
   }
-  if (starLayer !== currentLayer) {
+  const activeStarLayer: StarFlythroughLayer = isRosterFlythroughLayer(currentLayer)
+    ? 1
+    : currentLayer;
+  if (starLayer !== activeStarLayer) {
     // Off-axis slab — the layer the player isn't on is entirely culled so
     // each layer reads as its own room. Scale collapses so any in-flight
     // transition reads as a pull-back rather than a fade-against-field.
@@ -62,7 +66,7 @@ export function flythroughMemberSlabActivity(
     // screen; the cluster position override in StarSprite drives the layout.
     return { intensityMultiplier: 1, scaleMultiplier: 2.5 };
   }
-  if (currentLayer === 1) {
+  if (isRosterFlythroughLayer(currentLayer)) {
     // Roster slab. Leads (the cohort the player has the pill on) get a hero
     // size + full brightness so the pickable faces dominate the canvas. The
     // off cohort and other ineligibles drop to faint outline stars — visible
@@ -84,8 +88,8 @@ export function advanceFlythroughLayer(
 ): FlythroughLayer {
   const next = current + direction;
   if (next <= 0) return 0;
-  if (next >= 2) return 2;
-  return 1;
+  if (next >= SCENARIO_FLYTHROUGH_LAYER) return SCENARIO_FLYTHROUGH_LAYER;
+  return next as FlythroughLayer;
 }
 
 export function flythroughLayerDirectionFromKey(code: string): 1 | -1 | null {

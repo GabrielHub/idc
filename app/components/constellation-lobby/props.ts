@@ -22,7 +22,6 @@ export type ConstellationLobbyProps = {
    * post-click AI setup failure.
    */
   aiReady: boolean;
-  readyClosurePairCount?: number;
   readyClosurePairs?: readonly ReadyClosurePair[];
   pendingFollowUpCount?: number;
   readyClosurePairIds?: ReadonlySet<string>;
@@ -53,7 +52,12 @@ export type ConstellationLobbyProps = {
   onAddFocus?: (memberId: string) => void;
   onRemoveFocus?: (memberId: string) => void;
   onReselectFocus?: (nextFocusIds: string[]) => void;
-  chromeSlot?: ReactNode;
+  /**
+   * Render prop so the lobby can request a contextual back handler — e.g. the
+   * reselect case manager swaps the punch-out action for "close this screen"
+   * while keeping the rest of the chrome (AI status, settings) intact.
+   */
+  chromeSlot?: (opts?: { onBack: () => void }) => ReactNode;
   onDeckOverBudgetBlocked?: () => void;
   /**
    * Playground escape hatch. When true, Scene does not register global

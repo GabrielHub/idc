@@ -9,6 +9,7 @@ export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
+const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
 const CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL = "google/gemini-3.1-flash-lite";
 const LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS: Record<string, string> = {
   "google/gemini-3-flash": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
@@ -959,6 +960,10 @@ function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: 
 
   if (chatModel === DEFAULT_GATEWAY_CHAT_MODEL) {
     return "high";
+  }
+
+  if (chatModel === DEEPSEEK_V4_PRO_MODEL) {
+    return "xhigh";
   }
 
   if (chatModel === CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL) {

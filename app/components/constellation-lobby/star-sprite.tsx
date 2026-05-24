@@ -444,11 +444,10 @@ export function StarSprite({
             position={[0, -sizing.avatarRadius, 0.12]}
             zIndexRange={[50, 0]}
             className="pointer-events-none"
-            center
           >
-            <div className="aura-liquid-glass aura-liquid-glass-ink rounded-pill px-3 py-1 font-display text-label leading-none text-aura-paper whitespace-nowrap shadow-cta">
-              {star.member.name}
-            </div>
+            <span className="aura-liquid-glass aura-liquid-glass-ink inline-block -translate-x-1/2 -translate-y-1/2 rounded-pill px-3 py-1 font-display text-label leading-none text-aura-paper whitespace-nowrap shadow-cta">
+              {star.member.firstName}
+            </span>
           </Html>
         ) : null}
         {renderOverlay?.({ avatarRadius: sizing.avatarRadius, haloSize })}

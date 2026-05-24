@@ -59,16 +59,14 @@ export function buildCathedralDoors({
   scenarioById,
   effectiveCosts,
   filteredLibrary,
-  lobbyScenarios,
-  flythroughScenarios,
+  drawnScenarios,
 }: {
   mode: "auto" | "deck" | "library";
   deckCardIds: readonly string[];
   scenarioById: ReadonlyMap<string, DateScenario>;
   effectiveCosts: Readonly<Record<string, number>>;
   filteredLibrary: ReturnType<typeof listLibraryCards>;
-  lobbyScenarios: readonly LobbyScenario[];
-  flythroughScenarios: readonly LobbyScenario[];
+  drawnScenarios: readonly LobbyScenario[];
 }): DoorEntry[] {
   if (mode === "deck") {
     return deckCardIds
@@ -97,10 +95,7 @@ export function buildCathedralDoors({
       })
       .filter((entry) => entry !== null);
   }
-  if (lobbyScenarios.length > 0) {
-    return lobbyScenarios.map((scenario) => ({ scenario, kind: "draw" as const }));
-  }
-  return flythroughScenarios.map((scenario) => ({ scenario, kind: "draw" as const }));
+  return drawnScenarios.map((scenario) => ({ scenario, kind: "draw" as const }));
 }
 
 function scenarioWithEffectiveCost(

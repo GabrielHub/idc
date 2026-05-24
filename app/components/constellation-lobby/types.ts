@@ -67,28 +67,59 @@ export type CameraTarget = {
 
 /**
  * Discrete depth layer the player has scrolled into. Scrolling down advances
- * the layer 0 -> 1 -> 2 (clamped). 0 = focus cases pulled forward, 1 = the
- * roster slab (eligibles by default, off-tonight when the RosterSubview
- * toggle flips), 2 = the scenarios layer where date plans render as 3D card
+ * the layer 0 -> 1 -> 2 -> 3 (clamped). 0 = focus cases pulled forward, 1 =
+ * eligible partners on the roster slab, 2 = off-tonight members on the same
+ * roster slab, 3 = the scenarios layer where date plans render as 3D card
  * meshes inside the canvas.
  */
-export type FlythroughLayer = 0 | 1 | 2;
+export type FlythroughLayer = 0 | 1 | 2 | 3;
+
+export const FOCUS_FLYTHROUGH_LAYER: FlythroughLayer = 0;
+export const ELIGIBLE_ROSTER_FLYTHROUGH_LAYER: FlythroughLayer = 1;
+export const OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER: FlythroughLayer = 2;
+export const SCENARIO_FLYTHROUGH_LAYER: FlythroughLayer = 3;
+export const FLYTHROUGH_LAYERS: readonly FlythroughLayer[] = [
+  FOCUS_FLYTHROUGH_LAYER,
+  ELIGIBLE_ROSTER_FLYTHROUGH_LAYER,
+  OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER,
+  SCENARIO_FLYTHROUGH_LAYER,
+];
 
 /**
  * Which slab a given star belongs to in the flythrough. Stars only live on
- * one of two slabs — focus or roster. The eligibles vs off-tonight split is
- * a per-star cohort inside the roster slab, not a separate slab.
+ * one of two visual slabs — focus or roster. The eligibles vs off-tonight
+ * split is exposed as separate flythrough layers, but both layers render this
+ * same roster slab with different active cohorts.
  */
 export type StarFlythroughLayer = 0 | 1;
 
 /**
- * On the roster layer (FlythroughLayer === 1), the player can flip which
+ * On the roster layers (FlythroughLayer 1 / 2), the player can flip which
  * cohort the field highlights. "eligibles" frames tonight's available
- * partners; "off_tonight" frames members on rest. The off-set still reads
- * the field underneath but the inactive cohort recedes so the chosen one
- * leads the eye.
+ * partners; "off_tonight" frames members on rest. The inactive cohort recedes
+ * so the chosen one leads the eye.
  */
 export type RosterSubview = "eligibles" | "off_tonight";
+
+export function isRosterFlythroughLayer(
+  layer: FlythroughLayer | undefined,
+): layer is typeof ELIGIBLE_ROSTER_FLYTHROUGH_LAYER | typeof OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER {
+  return (
+    layer === ELIGIBLE_ROSTER_FLYTHROUGH_LAYER || layer === OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER
+  );
+}
+
+export function rosterSubviewForFlythroughLayer(layer: FlythroughLayer): RosterSubview | undefined {
+  if (layer === ELIGIBLE_ROSTER_FLYTHROUGH_LAYER) return "eligibles";
+  if (layer === OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER) return "off_tonight";
+  return undefined;
+}
+
+export function flythroughLayerForRosterSubview(subview: RosterSubview): FlythroughLayer {
+  return subview === "eligibles"
+    ? ELIGIBLE_ROSTER_FLYTHROUGH_LAYER
+    : OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER;
+}
 
 /**
  * Top-level view mode for the constellation lobby. "tonight" is the

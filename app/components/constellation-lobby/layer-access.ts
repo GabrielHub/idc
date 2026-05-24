@@ -1,4 +1,8 @@
-import type { FlythroughLayer } from "./types";
+import {
+  OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER,
+  SCENARIO_FLYTHROUGH_LAYER,
+  type FlythroughLayer,
+} from "./types";
 
 export type LayerNavigationMode = "planning" | "committed" | "free";
 
@@ -6,10 +10,10 @@ export function layerDisabledReason(
   layer: FlythroughLayer,
   mode: LayerNavigationMode,
 ): string | undefined {
-  if (mode === "planning" && layer === 2) {
+  if (mode === "planning" && layer === SCENARIO_FLYTHROUGH_LAYER) {
     return "Commit a pair to draw tonight's rooms.";
   }
-  if (mode === "committed" && layer !== 2) {
+  if (mode === "committed" && layer !== SCENARIO_FLYTHROUGH_LAYER) {
     return "Pair is committed for this shift.";
   }
   return undefined;
@@ -21,7 +25,7 @@ export function isLayerEnabled(layer: FlythroughLayer, mode: LayerNavigationMode
 
 export function normalizeLayer(layer: FlythroughLayer, mode: LayerNavigationMode): FlythroughLayer {
   if (isLayerEnabled(layer, mode)) return layer;
-  if (mode === "planning") return 1;
-  if (mode === "committed") return 2;
+  if (mode === "planning") return OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER;
+  if (mode === "committed") return SCENARIO_FLYTHROUGH_LAYER;
   return layer;
 }

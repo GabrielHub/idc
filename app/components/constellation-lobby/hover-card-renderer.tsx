@@ -1,8 +1,12 @@
 import type { ReactElement } from "react";
 
 import type { ActiveDateBooking, GameSave } from "../../domain/game";
-import { FOCUS_CASE_LIMIT, FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
-import { resolveFocusSelectionAffordance } from "../../services/focus-selection-affordance";
+import { FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
+import {
+  resolveFocusSelectionAffordance,
+  resolveHoverCardCta,
+  type HoverCardCta,
+} from "../../services/focus-selection-affordance";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
 import type { ShiftPartnerUnavailableReason } from "../../services/shift-availability";
 import type { TutorialStepHandle } from "../../services/tutorial";
@@ -77,8 +81,7 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
   });
   const isFocused = focusedSet.has(member.id);
   const status = member.state.status;
-  const slotsFull = save.focusedMemberIds.length >= FOCUS_CASE_LIMIT;
-  const focusAffordance = resolveFocusSelectionAffordance({
+  const affordance = resolveFocusSelectionAffordance({
     member,
     focused: isFocused,
     focusId,
@@ -93,45 +96,23 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
     status === "active" &&
     eligiblePartnerIds.has(member.id);
 
-  let ctaVariant: HoverDetailCtaVariant = "view_case";
-  let onPrimaryAction: (() => void) | undefined = undefined;
-
-  if (focusAffordance.canMakeLead) {
-    ctaVariant = "make_lead";
-    onPrimaryAction = () => {
-      if (focusStep.active) focusStep.complete();
-      onMakeLead(member.id);
-    };
-  } else if (status !== "active" || isFocused) {
-    ctaVariant = "view_case";
-    onPrimaryAction = () => openCaseAndDismiss(member.id);
-  } else if (isPartnerCandidate) {
-    ctaVariant = "make_partner";
-    onPrimaryAction = () => {
-      if (partnerStep.active) partnerStep.complete();
-      onMakePartner(member.id);
-    };
-  } else if (!focusAffordance.eligibleForFocus) {
-    ctaVariant = "view_case";
-    onPrimaryAction = () => openCaseAndDismiss(member.id);
-  } else if (focusAffordance.inCooldown) {
-    // Roster star whose member is cooling. Don't offer Make focus — view
-    // the file instead. The block reason copy below explains the gate.
-    ctaVariant = "view_case";
-    onPrimaryAction = () => openCaseAndDismiss(member.id);
-  } else if (slotsFull) {
-    ctaVariant = "swap_into_focus";
-    onPrimaryAction = () => openCaseAndDismiss(member.id);
-  } else {
-    ctaVariant = "make_focus";
-    onPrimaryAction =
-      onMakeFocus === undefined
-        ? undefined
-        : () => {
-            if (focusStep.active) focusStep.complete();
-            onMakeFocus(member.id);
-          };
-  }
+  const cta = resolveHoverCardCta({
+    affordance,
+    isFocused,
+    isPartnerCandidate,
+    status,
+    focusedCount: save.focusedMemberIds.length,
+    swapPenalty: FOCUS_SWAP_RETENTION_PENALTY,
+  });
+  const { ctaVariant, onPrimaryAction, swapPenalty } = resolveCtaRender(cta, {
+    memberId: member.id,
+    focusStep,
+    partnerStep,
+    openCaseAndDismiss,
+    onMakeLead,
+    onMakePartner,
+    onMakeFocus,
+  });
 
   // Resolve a single blockReason string, preferring the affordance reason
   // (in-flight cooldown copy is more specific) and falling back to the
@@ -139,7 +120,7 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
   // career-locked partner is unbookable.
   const unavailabilityReason = unavailabilityReasonById.get(member.id);
   const blockReason =
-    focusAffordance.blockReason ??
+    affordance.blockReason ??
     (unavailabilityReason === undefined
       ? undefined
       : unavailabilityReasonCopy(unavailabilityReason));
@@ -150,8 +131,8 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
       snippet={profile.publicFragments[0] ?? "Profile reads on file."}
       fileNumber={caseFileNumber(member.id)}
       heightInInches={member.characterHeightInInches}
-      statusBadge={focusAffordance.statusBadge}
-      swapPenalty={ctaVariant === "swap_into_focus" ? FOCUS_SWAP_RETENTION_PENALTY : undefined}
+      statusBadge={affordance.statusBadge}
+      swapPenalty={swapPenalty}
       ctaVariant={ctaVariant}
       onPrimaryAction={onPrimaryAction}
       onOpenCase={() => openCaseAndDismiss(member.id)}
@@ -159,6 +140,74 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
       blockReason={blockReason}
     />
   );
+}
+
+/**
+ * Map the typed CTA decision to the render-shape the HoverDetailCard expects.
+ * Wraps `onMakeFocus` in the optional-handler check that's specific to the
+ * production lobby (the spike doesn't pass one).
+ */
+function resolveCtaRender(
+  cta: HoverCardCta,
+  handlers: {
+    memberId: string;
+    focusStep: TutorialStepHandle;
+    partnerStep: TutorialStepHandle;
+    openCaseAndDismiss: (memberId: string) => void;
+    onMakeLead: (memberId: string) => void;
+    onMakePartner: (memberId: string) => void;
+    onMakeFocus: ((memberId: string) => void) | undefined;
+  },
+): {
+  ctaVariant: HoverDetailCtaVariant;
+  onPrimaryAction: (() => void) | undefined;
+  swapPenalty: number | undefined;
+} {
+  const { memberId, focusStep, partnerStep, openCaseAndDismiss } = handlers;
+  switch (cta.kind) {
+    case "make_lead":
+      return {
+        ctaVariant: "make_lead",
+        onPrimaryAction: () => {
+          if (focusStep.active) focusStep.complete();
+          handlers.onMakeLead(memberId);
+        },
+        swapPenalty: undefined,
+      };
+    case "make_partner":
+      return {
+        ctaVariant: "make_partner",
+        onPrimaryAction: () => {
+          if (partnerStep.active) partnerStep.complete();
+          handlers.onMakePartner(memberId);
+        },
+        swapPenalty: undefined,
+      };
+    case "make_focus":
+      return {
+        ctaVariant: "make_focus",
+        onPrimaryAction:
+          handlers.onMakeFocus === undefined
+            ? undefined
+            : () => {
+                if (focusStep.active) focusStep.complete();
+                handlers.onMakeFocus?.(memberId);
+              },
+        swapPenalty: undefined,
+      };
+    case "swap_into_focus":
+      return {
+        ctaVariant: "swap_into_focus",
+        onPrimaryAction: () => openCaseAndDismiss(memberId),
+        swapPenalty: cta.penalty,
+      };
+    case "view_case":
+      return {
+        ctaVariant: "view_case",
+        onPrimaryAction: () => openCaseAndDismiss(memberId),
+        swapPenalty: undefined,
+      };
+  }
 }
 
 function unavailabilityReasonCopy(reason: ShiftPartnerUnavailableReason): string {

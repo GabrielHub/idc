@@ -30,7 +30,6 @@ describe("settings diagnostics", () => {
       save,
       currentShift: activeShift,
       activeDateSession: started.session,
-      currentRoom: "livedate",
       pendingAction: "advanceExchange",
       queuedPlaybackIntent: "paused",
       streamingDraftCount: 1,
@@ -46,7 +45,6 @@ describe("settings diagnostics", () => {
     expect(snapshot.activeDate?.id).toBe(started.session.id);
     expect(snapshot.activeDate?.participantIds).toEqual(["jenna-pike", "vhool"]);
     expect(snapshot.shell).toMatchObject({
-      currentRoom: "livedate",
       pendingAction: "advanceExchange",
       queuedPlaybackIntent: "paused",
       streamingDraftCount: 1,

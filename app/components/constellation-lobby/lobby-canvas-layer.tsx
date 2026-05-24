@@ -46,6 +46,7 @@ export function LobbyCanvasLayer({
   onArchivePairSelect,
   onPointerMissed,
   disableScrollLayerNav = false,
+  planningPairs,
 }: {
   lobbyState: LobbyState;
   stars: StarMark[];
@@ -90,6 +91,16 @@ export function LobbyCanvasLayer({
    * through the HUD layer, so layer navigation still works.
    */
   disableScrollLayerNav?: boolean;
+  /**
+   * Persisted pair edges. Scene renders these as faint constellation lines
+   * in tonight (planning) view so the player can see relationships at a
+   * glance without flipping to the archive.
+   */
+  planningPairs?: ReadonlyArray<{
+    pairId: string;
+    participantIds: readonly [string, string];
+    health: number;
+  }>;
 }) {
   return (
     <div className="absolute inset-0">
@@ -138,6 +149,7 @@ export function LobbyCanvasLayer({
                 ),
               } satisfies SceneArchiveProps
             }
+            planningPairs={planningPairs}
           />
         </Suspense>
       </Canvas>

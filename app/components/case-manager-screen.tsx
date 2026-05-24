@@ -137,7 +137,7 @@ export function CaseManagerScreen({
         />
 
         <div className="my-8 flex flex-wrap items-center justify-between gap-4">
-          <RosterFilterBar filterState={filterState} onChange={setFilterState} />
+          <RosterFilterBar filterState={filterState} onChange={setFilterState} tone="dark" />
           <SwapSummary
             draftCount={draftCount}
             dropCount={drops.length}
@@ -207,7 +207,7 @@ export function CaseManagerScreen({
             target={swapPenaltyAnchorRef}
             placement="bottom"
             title="Swapping costs retention"
-            body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, but also paperwork. Pick the next member to seal the swap.`}
+            body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, also paperwork. Pick the next member to seal the swap.`}
             primaryLabel="Got it"
             onPrimary={swapPenaltyStep.complete}
             dismissLabel="Skip tour"

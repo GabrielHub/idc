@@ -69,6 +69,10 @@ export const STARTER_DECK_IDS: readonly string[] = STARTER_CATALOG_IDS.slice(0, 
  */
 export const PRE_ONBOARDING_FALLBACK_DECK_IDS: readonly string[] = STARTER_CATALOG_IDS.slice(0, 10);
 
+export function dateBookEditingUnlocked(save: GameSave): boolean {
+  return save.dateSessions.some((session) => session.finalReport !== undefined);
+}
+
 export function createInitialScenarioDeck(scenarios: readonly DateScenario[]): ScenarioDeck {
   const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
   const cardIds = PRE_ONBOARDING_FALLBACK_DECK_IDS.filter((cardId) => scenarioIds.has(cardId));
@@ -86,10 +90,6 @@ export function createStarterScenarioDeck(scenarios: readonly DateScenario[]): S
     budgetCap: STARTER_BUDGET_CAP,
     effectiveCosts: computeEffectiveCosts(scenarios, []),
   });
-}
-
-export function dateBookEditingUnlocked(save: GameSave): boolean {
-  return save.dateSessions.some((session) => session.finalReport !== undefined);
 }
 
 export type DraftDeckInput = {

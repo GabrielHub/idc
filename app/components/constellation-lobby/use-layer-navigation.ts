@@ -2,7 +2,7 @@ import { useEffect, useRef, type RefObject } from "react";
 
 import { isLayerEnabled, type LayerNavigationMode } from "./layer-access";
 import { advanceFlythroughLayer, flythroughLayerDirectionFromKey } from "./math";
-import type { FlythroughLayer, ViewMode } from "./types";
+import { SCENARIO_FLYTHROUGH_LAYER, type FlythroughLayer, type ViewMode } from "./types";
 
 function isEditableEventTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
@@ -45,7 +45,7 @@ export function useLayerNavigation({
       const dominantDelta =
         Math.abs(event.deltaY) >= Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
       if (Math.abs(dominantDelta) < 4) return;
-      if (currentLayerRef.current === 2) {
+      if (currentLayerRef.current === SCENARIO_FLYTHROUGH_LAYER) {
         if (dominantDelta >= 0) return;
         const panel = cathedralScrollRef?.current;
         if (panel !== undefined && panel !== null && panel.scrollTop > 0) return;

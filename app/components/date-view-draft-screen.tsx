@@ -224,7 +224,7 @@ export function DraftScreen({
             target={firstSceneCardRef}
             placement="right"
             title="Draft three scenes"
-            body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never auto-fires them."
+            body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never plays them for you."
             dismissLabel="Skip tour"
             onDismiss={draftStep.dismiss}
           />

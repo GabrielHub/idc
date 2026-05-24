@@ -306,7 +306,7 @@ export function MemberDetailsModal({
               target={intelBoardRef}
               placement="top"
               title="Files start mostly sealed"
-              body="Public profile is what they wrote. Everything else unseals over time as Cupid files reads from dates you run."
+              body="The public profile is what they wrote. Everything else unseals as Cupid files reads from the dates you run."
               primaryLabel="Got it"
               onPrimary={firstOpenStep.complete}
               dismissLabel="Skip tour"

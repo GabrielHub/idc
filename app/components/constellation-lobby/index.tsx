@@ -28,9 +28,11 @@ import {
 } from "../../services/member-roster-filter";
 import { pickHeaviestAxisLevel } from "./deck-composition";
 import { buildLobbyStars } from "./star-model";
+import { useArchiveMode } from "./use-archive-mode";
 import { useArchiveView } from "./use-archive-view";
 import { useCathedralModel } from "./use-cathedral-model";
 import { useCaseFileAction } from "./use-case-file-action";
+import { useDateBookState } from "./use-date-book-state";
 import { renderLobbyHoverCard, type HoverCardContext } from "./hover-card-renderer";
 import { useLobbyOverlays } from "./use-lobby-overlays";
 import { useLobbyCallouts } from "./use-lobby-callouts";
@@ -43,8 +45,15 @@ import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
-import type { ArchiveSelection, FlythroughLayer, RosterSubview, StarMark, ViewMode } from "./types";
-import { CathedralPanel, type RiskFilter, type SortMode } from "./cathedral";
+import {
+  SCENARIO_FLYTHROUGH_LAYER,
+  flythroughLayerForRosterSubview,
+  rosterSubviewForFlythroughLayer,
+  type FlythroughLayer,
+  type RosterSubview,
+  type StarMark,
+} from "./types";
+import { CathedralPanel } from "./cathedral";
 import { EMPTY_READY_CLOSURE_IDS, type ConstellationLobbyProps } from "./props";
 import type { LayerNavigationMode } from "./layer-access";
 
@@ -56,7 +65,6 @@ export function ConstellationLobby({
   isActionPending,
   bookingLocked,
   aiReady,
-  readyClosurePairCount = 0,
   readyClosurePairs = [],
   pendingFollowUpCount = 0,
   readyClosurePairIds = EMPTY_READY_CLOSURE_IDS,
@@ -86,6 +94,17 @@ export function ConstellationLobby({
   const activeBooking = shift.activeBooking ?? null;
 
   const cathedralScrollRef = useRef<HTMLDivElement | null>(null);
+  // Closure callouts and the shift brief only surface pairs that include a
+  // currently-focused member, so the player isn't pestered about closures they
+  // can't act on tonight. Filter once here and read `focusedReadyClosurePairs`
+  // everywhere downstream.
+  const focusedReadyClosurePairs = useMemo(() => {
+    const focusedIds = new Set(focusedMembers.map((m) => m.id));
+    return readyClosurePairs.filter((entry) =>
+      entry.participants.some((p) => focusedIds.has(p.id)),
+    );
+  }, [focusedMembers, readyClosurePairs]);
+  const readyClosurePairCount = focusedReadyClosurePairs.length;
   const { fileShiftReady, fileShiftBlockedReason, noDatesThisShift, shiftBriefRows } = useMemo(
     () =>
       deriveShiftFilingState({
@@ -100,7 +119,7 @@ export function ConstellationLobby({
   /**
    * One reducer owns the planning flow: booking selection (focus / partner /
    * intent / scenario), the cathedral mode (auto / deck / library), and the
-   * flythrough layer (0/1/2). External activeBooking changes flow in via
+   * flythrough layer (0/1/2/3). External activeBooking changes flow in via
    * `syncBooking`. See `lobby-reducer.ts` for the full transition table.
    */
   const { projection, dispatch } = useLobbyState({
@@ -120,17 +139,30 @@ export function ConstellationLobby({
     scenarioMode !== "auto" ? "free" : activeBooking !== null ? "committed" : "planning";
   const handleLayerSelect = useCallback(
     (layer: FlythroughLayer) => {
+      const nextRosterSubview = rosterSubviewForFlythroughLayer(layer);
+      if (nextRosterSubview !== undefined) setRosterSubview(nextRosterSubview);
       dispatch({ type: "selectLayer", layer, navigationMode: layerNavigationMode });
     },
     [dispatch, layerNavigationMode],
   );
   /**
    * Roster-slab subview controls which cohort the constellation spotlights on
-   * layer 1. Defaults to "eligibles" — tonight's available partners lead the
-   * eye, off-tonight members recede. The two-segment pill on layer 1 flips
-   * this so the player can scan rested members without leaving the slab.
+   * the roster layers. Defaults to "eligibles" — tonight's available partners
+   * lead the eye, off-tonight members recede. The two-segment pill and
+   * flythrough layers both write this state so the UI stays synchronized.
    */
   const [rosterSubview, setRosterSubview] = useState<RosterSubview>("eligibles");
+  const handleRosterSubviewChange = useCallback(
+    (next: RosterSubview) => {
+      setRosterSubview(next);
+      dispatch({
+        type: "selectLayer",
+        layer: flythroughLayerForRosterSubview(next),
+        navigationMode: layerNavigationMode,
+      });
+    },
+    [dispatch, layerNavigationMode],
+  );
 
   const stars = useMemo(
     () => buildLobbyStars(save.members, shift, focusedMembers),
@@ -170,6 +202,9 @@ export function ConstellationLobby({
     setIsLensOpen,
     setSkipShiftConfirmOpen,
   } = useLobbyOverlays();
+  // Lifted up here so useDateBookState can read it for its ESC guard. The
+  // case-file is its own state below; modal overlays come from the hook.
+  const isOverlayOpen = modalOverlayOpen || openCaseMemberId !== null;
 
   // Stable so useLobbyReselect's enterReselect doesn't rebuild every render —
   // an inline arrow here cascaded identity churn through handleToggleReselect
@@ -180,43 +215,45 @@ export function ConstellationLobby({
     reselectDraft,
     reselectBaseline,
     enterReselect,
+    requestReselectWithCandidate,
     cancelReselect,
     toggleReselectMember,
     confirmReselect,
-    setReselectBaseline,
-    setReselectDraft,
-    setLobbyMode,
   } = useLobbyReselect({
     save,
     onReselectFocus,
     onCaseFileClose: handleCaseFileClose,
   });
 
-  // Cathedral state. The cathedral is the layer-2 surface that renders all
-  // date cards as 3D doors lining a nave. `expandedDoorId` is the door the
-  // player has opened (single-clicked) so the detail overlay can mount with
-  // the right scenario context. The hover id drives the door's hover bloom.
-  // Library filter/sort state lifts out of the old `LibraryModePanel`; the
-  // cathedral panel's own header surfaces these as a filter row in library
-  // mode (folded in from a separate floating rail).
-  const [expandedDoorId, setExpandedDoorId] = useState<string | null>(null);
-  const [hoveredDoorId, setHoveredDoorId] = useState<string | null>(null);
-  const [librarySearch, setLibrarySearch] = useState("");
-  const [libraryRiskFilter, setLibraryRiskFilter] = useState<RiskFilter>("any");
-  const [librarySort, setLibrarySort] = useState<SortMode>("alpha");
+  // Cathedral / date book panel transient state — expandedDoor peek, hover,
+  // library filter controls — plus the open/close/cycle helpers and the ESC
+  // handler that returns to auto when no other overlay owns ESC.
+  const {
+    expandedDoorId,
+    setExpandedDoorId,
+    hoveredDoorId,
+    setHoveredDoorId,
+    librarySearch,
+    setLibrarySearch,
+    libraryRiskFilter,
+    setLibraryRiskFilter,
+    librarySort,
+    setLibrarySort,
+    closeDateBook,
+    handleDateBookNavToggle,
+    setScenarioMode,
+  } = useDateBookState({ scenarioMode, dispatch, isOverlayOpen, disabled: bookingLocked });
 
   // Archive view: stars re-flow into a pair-graph layout and constellation
   // edges etch between paired stars. Orthogonal to LobbyState — the player
-  // can flip in/out of archive regardless of focus/partner selection.
-  const [viewMode, setViewMode] = useState<ViewMode>("tonight");
-  const [archiveSelection, setArchiveSelection] = useState<ArchiveSelection>(null);
-  // Exiting archive clears the archive's own selection so re-entry reads
-  // as a fresh look-around.
-  useEffect(() => {
-    if (viewMode === "tonight") setArchiveSelection(null);
-  }, [viewMode]);
+  // can flip in/out of archive regardless of focus/partner selection. The
+  // hook owns the viewMode + selection state and the "tonight clears the
+  // archive selection" effect; the no-edges exit-guard lives below because
+  // it depends on derived archive data.
+  const { viewMode, archiveSelection, setArchiveSelection, toggleArchive, clearArchiveSelection } =
+    useArchiveMode();
 
-  const { archiveGraph, archivePositions, archiveEdges, archiveIsolation, cameraTarget } =
+  const { archivePositions, archiveEdges, archiveIsolation, cameraTarget, incidentEdgesByNode } =
     useArchiveView({
       save,
       viewMode,
@@ -232,9 +269,25 @@ export function ConstellationLobby({
   const hasArchiveEdges = archiveEdges.length > 0;
   useEffect(() => {
     if (viewMode === "archive" && !hasArchiveEdges) {
-      setViewMode("tonight");
+      // useArchiveMode exposes `toggleArchive` but no direct setter — calling
+      // it flips the mode regardless of current state. Guarded by the if so
+      // this only fires while we're actually stuck in archive.
+      toggleArchive();
     }
-  }, [viewMode, hasArchiveEdges]);
+  }, [viewMode, hasArchiveEdges, toggleArchive]);
+
+  // Planning-view pair edges: faint constellation lines between every
+  // persisted pair (note-filed or not) so the player sees relationships at
+  // a glance without flipping to the Records archive.
+  const planningPairs = useMemo(
+    () =>
+      save.pairStates.map((pair) => ({
+        pairId: pair.id,
+        participantIds: pair.participantIds,
+        health: pair.stats.relationshipHealth,
+      })),
+    [save.pairStates],
+  );
 
   const {
     effectiveCosts,
@@ -242,7 +295,7 @@ export function ConstellationLobby({
     deckRepairBlocked,
     deckComposition,
     deckComposeWarnings,
-    flythroughScenariosForLayer,
+    drawnLobbyScenarios,
     cathedralDoors,
     expandedScenario,
   } = useCathedralModel({
@@ -306,9 +359,9 @@ export function ConstellationLobby({
 
   useEffect(() => {
     if (scenarioMode !== "auto" || selectedScenarioId === null) return;
-    if (flythroughScenariosForLayer.some((scenario) => scenario.id === selectedScenarioId)) return;
+    if (drawnLobbyScenarios.some((scenario) => scenario.id === selectedScenarioId)) return;
     dispatch({ type: "selectScenario", scenarioId: null });
-  }, [dispatch, flythroughScenariosForLayer, scenarioMode, selectedScenarioId]);
+  }, [dispatch, drawnLobbyScenarios, scenarioMode, selectedScenarioId]);
 
   const handleCommitPair = () => {
     if (isActionPending) return;
@@ -354,34 +407,6 @@ export function ConstellationLobby({
   }, [activeBooking, dispatch, onCancelBooking]);
   const handleClearPartner = handleCancelPair;
 
-  const handleDateBookNavToggle = () => {
-    if (dateBookDisabledReason !== undefined) return;
-    // Three-mode cycle: auto → deck → library → auto. The reducer drives
-    // currentLayer in each transition; expandedDoorId is parent-owned so we
-    // clear it here.
-    setExpandedDoorId(null);
-    if (scenarioMode === "auto") {
-      dispatch({ type: "openDateBook", mode: "deck" });
-    } else if (scenarioMode === "deck") {
-      dispatch({ type: "openDateBook", mode: "library" });
-    } else {
-      dispatch({ type: "closeDateBook" });
-    }
-  };
-
-  /**
-   * Close the date book — drop deck/library mode back to auto so the
-   * cathedral reads as tonight's draw again. Drives the panel header's
-   * Close button, the Escape key, and the canvas-area click-outside. In
-   * auto mode this is a no-op so a stray ESC or canvas click never warps
-   * the camera away from the player's current focus/roster slab.
-   */
-  const closeDateBook = useCallback(() => {
-    if (scenarioMode === "auto") return;
-    setExpandedDoorId(null);
-    dispatch({ type: "closeDateBook" });
-  }, [dispatch, scenarioMode]);
-
   // Deck / library mode reads as a dedicated screen — the surrounding HUD
   // (chrome pills, layer dots, focus/partner rail, callouts, bottom dock,
   // contextual pill rail) recedes so the cathedral panel owns the frame.
@@ -389,14 +414,14 @@ export function ConstellationLobby({
   const dateBookOpen = scenarioMode !== "auto";
 
   const handleOpenClosures = useCallback(() => {
-    const firstReady = readyClosurePairs[0];
+    const firstReady = focusedReadyClosurePairs[0];
     if (firstReady !== undefined && onClosePair !== undefined) {
       openClosurePanel(firstReady.pairState.id);
     } else {
       openNotesOverlay(null);
     }
     onOpenClosures?.();
-  }, [onClosePair, onOpenClosures, openClosurePanel, openNotesOverlay, readyClosurePairs]);
+  }, [focusedReadyClosurePairs, onClosePair, onOpenClosures, openClosurePanel, openNotesOverlay]);
   const handleOpenFollowUps = useCallback(() => {
     openNotesOverlay(null);
     onOpenFollowUps?.();
@@ -405,17 +430,19 @@ export function ConstellationLobby({
   const closureReadyPairIndex =
     closurePairId === null
       ? -1
-      : readyClosurePairs.findIndex((ready) => ready.pairState.id === closurePairId);
+      : focusedReadyClosurePairs.findIndex((ready) => ready.pairState.id === closurePairId);
   const closureReadyPair =
-    closureReadyPairIndex < 0 ? null : (readyClosurePairs[closureReadyPairIndex] ?? null);
+    closureReadyPairIndex < 0 ? null : (focusedReadyClosurePairs[closureReadyPairIndex] ?? null);
   const openPreviousClosure = useCallback(() => {
     if (closureReadyPairIndex <= 0) return;
-    setClosurePairId(readyClosurePairs[closureReadyPairIndex - 1]?.pairState.id ?? null);
-  }, [closureReadyPairIndex, readyClosurePairs, setClosurePairId]);
+    setClosurePairId(focusedReadyClosurePairs[closureReadyPairIndex - 1]?.pairState.id ?? null);
+  }, [closureReadyPairIndex, focusedReadyClosurePairs, setClosurePairId]);
   const openNextClosure = useCallback(() => {
-    if (closureReadyPairIndex < 0 || closureReadyPairIndex >= readyClosurePairs.length - 1) return;
-    setClosurePairId(readyClosurePairs[closureReadyPairIndex + 1]?.pairState.id ?? null);
-  }, [closureReadyPairIndex, readyClosurePairs, setClosurePairId]);
+    if (closureReadyPairIndex < 0 || closureReadyPairIndex >= focusedReadyClosurePairs.length - 1) {
+      return;
+    }
+    setClosurePairId(focusedReadyClosurePairs[closureReadyPairIndex + 1]?.pairState.id ?? null);
+  }, [closureReadyPairIndex, focusedReadyClosurePairs, setClosurePairId]);
   // The closure error message is owned by the parent shell, so panel-local
   // transitions (close, Previous, Next) leak the prior pair's error into the
   // next view if we don't clear it here. Dismiss whenever the active pair
@@ -499,7 +526,6 @@ export function ConstellationLobby({
     return map;
   }, [focusId, eligiblePartnerIds, save.pairStates]);
 
-  const isOverlayOpen = modalOverlayOpen || openCaseMemberId !== null;
   useRosterKeyNavigation({
     viewMode,
     isOverlayOpen,
@@ -511,21 +537,6 @@ export function ConstellationLobby({
     onLayerChange: handleLayerSelect,
     onActiveStarChange: setActiveStarId,
   });
-
-  // Escape closes the date book back to auto when no other overlay owns the
-  // ESC channel. The overlay-open guard keeps the case file, notes, and
-  // closure panels free to handle their own ESC without us racing them.
-  useEffect(() => {
-    if (scenarioMode === "auto") return;
-    if (isOverlayOpen) return;
-    const handleKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      closeDateBook();
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [scenarioMode, isOverlayOpen, closeDateBook]);
 
   // Click handlers wired into Scene. In browse, click morphs the star into
   // its `HoverDetailCard`; the card's buttons drive focus/partner selection
@@ -621,9 +632,7 @@ export function ConstellationLobby({
     onRemoveFocus,
     onReselectFocus,
     setOpenCaseMemberId,
-    setReselectBaseline,
-    setReselectDraft,
-    setLobbyMode,
+    requestReselectWithCandidate,
   });
 
   const memberByIdMap = useMemo(
@@ -635,7 +644,7 @@ export function ConstellationLobby({
     <LobbyDossierSlot
       save={save}
       memberById={memberByIdMap}
-      archiveGraph={archiveGraph}
+      incidentEdgesByNode={incidentEdgesByNode}
       archiveSelection={viewMode === "archive" ? archiveSelection : null}
       committedPairId={committedPairId}
       readyClosurePairIds={readyClosurePairIds}
@@ -685,10 +694,7 @@ export function ConstellationLobby({
     deckComposition,
   ]);
 
-  const openDeckFromCallout = useCallback(() => {
-    setExpandedDoorId(null);
-    dispatch({ type: "openDateBook", mode: "deck" });
-  }, [dispatch]);
+  const openDeckFromCallout = useCallback(() => setScenarioMode("deck"), [setScenarioMode]);
   const callouts = useLobbyCallouts({
     deckRepairBlocked,
     readyClosurePairCount,
@@ -716,10 +722,6 @@ export function ConstellationLobby({
     }
     enterReselect();
   }, [cancelReselect, enterReselect, lobbyMode]);
-  const handleToggleArchive = useCallback(() => {
-    setViewMode((current) => (current === "archive" ? "tonight" : "archive"));
-  }, []);
-  const handleClearArchiveSelection = useCallback(() => setArchiveSelection(null), []);
 
   /**
    * Door click routes to one of two flows. In auto mode (committed pair
@@ -740,12 +742,13 @@ export function ConstellationLobby({
   };
 
   // Reselect mode hand-off: the constellation field steps aside for a dedicated
-  // editor. The chrome slot (Punch Out / AI status / settings) still renders so
-  // the player isn't stranded outside the app shell.
+  // editor. The chrome slot still renders so the player isn't stranded outside
+  // the app shell — but the leading back button retargets to cancelReselect so
+  // it closes this screen instead of punching out of the shift.
   if (lobbyMode === "reselect" && reselectDraft !== null && reselectBaseline !== null) {
     return (
       <ReselectCaseManagerView
-        chromeSlot={chromeSlot}
+        chromeSlot={chromeSlot?.({ onBack: cancelReselect })}
         save={save}
         draftIds={reselectDraft}
         baselineFocusedIds={reselectBaseline}
@@ -798,11 +801,12 @@ export function ConstellationLobby({
           setActiveStarId(null);
           closeDateBook();
         }}
-        disableScrollLayerNav={disableScrollLayerNav}
+        disableScrollLayerNav={disableScrollLayerNav || dateBookOpen}
+        planningPairs={planningPairs}
       />
       {!dateBookOpen ? (
         <LobbyHudLayer
-          chromeSlot={chromeSlot}
+          chromeSlot={chromeSlot?.()}
           viewMode={viewMode}
           currentLayer={currentLayer}
           refs={{
@@ -851,15 +855,13 @@ export function ConstellationLobby({
           onToggleDateBook={handleDateBookNavToggle}
           onOpenLens={() => setIsLensOpen(true)}
           onToggleReselect={handleToggleReselect}
-          onRosterSubviewChange={setRosterSubview}
-          onToggleArchive={handleToggleArchive}
-          onClearArchiveSelection={
-            archiveSelection === null ? undefined : handleClearArchiveSelection
-          }
+          onRosterSubviewChange={handleRosterSubviewChange}
+          onToggleArchive={toggleArchive}
+          onClearArchiveSelection={archiveSelection === null ? undefined : clearArchiveSelection}
         />
       ) : null}
       <CathedralPanel
-        open={viewMode === "tonight" && currentLayer === 2}
+        open={viewMode === "tonight" && currentLayer === SCENARIO_FLYTHROUGH_LAYER}
         mode={scenarioMode}
         doors={cathedralDoors}
         selectedId={scenarioMode === "auto" ? selectedScenarioId : expandedDoorId}
@@ -873,13 +875,18 @@ export function ConstellationLobby({
         // Close button surfaces only in deck/library — auto mode is the
         // cathedral's natural resting state and doesn't need a back affordance.
         onClose={scenarioMode === "auto" ? undefined : closeDateBook}
+        // Deck/Library tab toggle in the panel header — lets the player drop
+        // staged cards and add new ones from the library without bouncing
+        // through the lobby.
+        onChangeMode={scenarioMode === "auto" ? undefined : setScenarioMode}
         reducedMotion={reducedMotion}
         containerRef={cathedralPanelRef}
         scrollRef={cathedralScrollRef}
         deckBookShards={scenarioMode === "auto" ? undefined : deckBookShards}
-        // Surface deck-composition advisories in deck mode so the player gets
-        // the same heads-up cues the old DateBookHeader rendered.
-        composeWarnings={scenarioMode === "deck" ? deckComposeWarnings : undefined}
+        // Surface deck-composition advisories in both deck and library modes
+        // so the player can see what's missing from the deck while picking
+        // additions from the library — not just while staring at the deck.
+        composeWarnings={scenarioMode === "auto" ? undefined : deckComposeWarnings}
         libraryFilter={
           scenarioMode === "library"
             ? {
@@ -904,10 +911,12 @@ export function ConstellationLobby({
           readyPair: closureReadyPair,
           errorMessage: closureErrorMessage,
           queuePosition: closureReadyPairIndex < 0 ? undefined : closureReadyPairIndex + 1,
-          queueTotal: readyClosurePairs.length === 0 ? undefined : readyClosurePairs.length,
+          queueTotal:
+            focusedReadyClosurePairs.length === 0 ? undefined : focusedReadyClosurePairs.length,
           onPrevious: closureReadyPairIndex > 0 ? openPreviousClosure : undefined,
           onNext:
-            closureReadyPairIndex >= 0 && closureReadyPairIndex < readyClosurePairs.length - 1
+            closureReadyPairIndex >= 0 &&
+            closureReadyPairIndex < focusedReadyClosurePairs.length - 1
               ? openNextClosure
               : undefined,
           onClose: () => setClosurePairId(null),

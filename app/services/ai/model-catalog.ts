@@ -27,12 +27,20 @@ export type GatewayModelCost = {
   benchmark: GatewayModelBenchmark | null;
 };
 
+export type AiModelBrand =
+  | "deepseek"
+  | "gemini"
+  | "claude"
+  | "minimax"
+  | "qwen"
+  | "zhipu"
+  | "openai";
+
 export type AiModelOption = {
   id: string;
   label: string;
   provider: AiProvider;
-  iconLabel?: string;
-  iconTone?: "deepseek" | "google" | "anthropic" | "minimax" | "qwen" | "zai" | "openai";
+  brand?: AiModelBrand;
   recommendedReasoningLevel: AiReasoningLevel;
   reasoningSupported: boolean;
   cost: GatewayModelCost | null;
@@ -102,18 +110,25 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "deepseek/deepseek-v4-flash",
     label: "DeepSeek V4 Flash",
     provider: "gateway",
-    iconLabel: "D",
-    iconTone: "deepseek",
+    brand: "deepseek",
     recommendedReasoningLevel: "high",
     reasoningSupported: true,
     cost: gatewayModelCost("deepseek/deepseek-v4-flash"),
   },
   {
+    id: "deepseek/deepseek-v4-pro",
+    label: "DeepSeek V4 Pro",
+    provider: "gateway",
+    brand: "deepseek",
+    recommendedReasoningLevel: "xhigh",
+    reasoningSupported: true,
+    cost: gatewayModelCost("deepseek/deepseek-v4-pro"),
+  },
+  {
     id: "google/gemini-3.1-flash-lite",
     label: "Gemini 3.1 Flash Lite",
     provider: "gateway",
-    iconLabel: "G",
-    iconTone: "google",
+    brand: "gemini",
     recommendedReasoningLevel: "medium",
     reasoningSupported: true,
     cost: gatewayModelCost("google/gemini-3.1-flash-lite"),
@@ -122,8 +137,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "anthropic/claude-haiku-4.5",
     label: "Claude Haiku 4.5",
     provider: "gateway",
-    iconLabel: "C",
-    iconTone: "anthropic",
+    brand: "claude",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
     cost: gatewayModelCost("anthropic/claude-haiku-4.5"),
@@ -132,8 +146,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "minimax/minimax-m2.7",
     label: "MiniMax M2.7",
     provider: "gateway",
-    iconLabel: "M",
-    iconTone: "minimax",
+    brand: "minimax",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
     cost: gatewayModelCost("minimax/minimax-m2.7"),
@@ -142,8 +155,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "alibaba/qwen3.5-flash",
     label: "Qwen 3.5 Flash",
     provider: "gateway",
-    iconLabel: "Q",
-    iconTone: "qwen",
+    brand: "qwen",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
     cost: gatewayModelCost("alibaba/qwen3.5-flash"),
@@ -152,8 +164,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "zai/glm-4.7-flash",
     label: "GLM 4.7 Flash",
     provider: "gateway",
-    iconLabel: "Z",
-    iconTone: "zai",
+    brand: "zhipu",
     recommendedReasoningLevel: "off",
     reasoningSupported: false,
     cost: gatewayModelCost("zai/glm-4.7-flash"),
@@ -162,8 +173,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     id: "openai/gpt-5.4-nano",
     label: "GPT 5.4 Nano",
     provider: "gateway",
-    iconLabel: "O",
-    iconTone: "openai",
+    brand: "openai",
     recommendedReasoningLevel: "none",
     reasoningSupported: true,
     cost: gatewayModelCost("openai/gpt-5.4-nano"),
@@ -199,32 +209,47 @@ export const OLLAMA_CHAT_MODEL_OPTIONS: AiModelOption[] = [
 
 export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
   {
-    id: "compact",
-    label: "Compact cards",
+    id: "vram-8gb",
+    label: "8GB cards",
     vram: "8GB",
-    examples: "RTX 2070, RTX 3070, laptop 4060",
+    examples: "RTX 4060 · RTX 5060 · RTX 3060 (8GB) · RTX 3050 · RTX 3060 Ti · RTX 3070",
     modelIds: ["gemma4:e2b"],
   },
   {
-    id: "rtx-3080-10gb",
-    label: "RTX 3080",
-    vram: "10GB",
-    examples: "RTX 3080 10GB",
+    id: "vram-12gb",
+    label: "10–12GB cards",
+    vram: "10–12GB",
+    examples: "RTX 3060 (12GB) · RTX 5070 · RTX 4070 · RTX 4070 Super · RTX 3080 (10GB)",
     modelIds: ["gemma4:e2b", "gemma4:e4b"],
   },
   {
-    id: "balanced-12gb",
-    label: "12GB cards",
-    vram: "12GB",
-    examples: "RTX 3060 12GB, RTX 4070",
+    id: "vram-16gb",
+    label: "16GB cards",
+    vram: "16GB",
+    examples:
+      "RTX 5070 Ti · RTX 5080 · RTX 4060 Ti (16GB) · RTX 5060 Ti (16GB) · RTX 4070 Ti Super · RX 7800 XT · RX 9070 XT",
     modelIds: ["gemma4:e4b"],
   },
   {
-    id: "large-24gb",
-    label: "Large cards",
-    vram: "24GB plus",
-    examples: "RTX 3090, RTX 4090",
+    id: "vram-24gb",
+    label: "20–24GB cards",
+    vram: "20–24GB",
+    examples: "RTX 4090 · RTX 3090 · RTX 3090 Ti · RX 7900 XTX",
     modelIds: ["gemma4:26b"],
+  },
+  {
+    id: "vram-32gb",
+    label: "32GB+ cards",
+    vram: "32GB+",
+    examples: "RTX 5090 · Radeon Pro W7900",
+    modelIds: ["gemma4:26b"],
+  },
+  {
+    id: "apple-silicon",
+    label: "Apple Silicon",
+    vram: "Unified memory",
+    examples: "M1 / M2 / M3 / M4 (system RAM doubles as VRAM)",
+    modelIds: ["gemma4:e2b", "gemma4:e4b", "gemma4:26b"],
   },
 ];
 
@@ -275,14 +300,14 @@ export function gatewayModelCostLabel(modelId: string): string {
   const cost = gatewayModelCost(modelId);
 
   if (cost === null) {
-    return "$ ?";
+    return "—";
   }
 
   if (cost.benchmark !== null) {
-    return `${costTierGlyph(cost.costTier)} ${formatEstimatedUsd(cost.benchmark.estimatedUsd)}/run`;
+    return `${formatEstimatedUsd(cost.benchmark.estimatedUsd)}/run`;
   }
 
-  return `${costTierGlyph(cost.costTier)} est.`;
+  return "est.";
 }
 
 export function estimateGatewayRunCostUsd({
@@ -304,22 +329,6 @@ export function estimateGatewayRunCostUsd({
     (inputTokens * cost.inputUsdPerMillionTokens) / 1_000_000 +
     (outputTokens * cost.outputUsdPerMillionTokens) / 1_000_000
   );
-}
-
-function costTierGlyph(costTier: AiModelCostTier): "$" | "$$" | "$$$" | "$$$$" {
-  if (costTier === "low") {
-    return "$";
-  }
-
-  if (costTier === "medium") {
-    return "$$";
-  }
-
-  if (costTier === "high") {
-    return "$$$";
-  }
-
-  return "$$$$";
 }
 
 function formatEstimatedUsd(value: number): string {

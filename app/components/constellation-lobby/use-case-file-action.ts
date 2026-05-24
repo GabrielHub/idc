@@ -13,9 +13,7 @@ export function useCaseFileAction({
   onRemoveFocus,
   onReselectFocus,
   setOpenCaseMemberId,
-  setReselectBaseline,
-  setReselectDraft,
-  setLobbyMode,
+  requestReselectWithCandidate,
 }: {
   save: GameSave;
   openCaseMemberId: string | null;
@@ -24,9 +22,7 @@ export function useCaseFileAction({
   onRemoveFocus: ((memberId: string) => void) | undefined;
   onReselectFocus: ((nextFocusIds: string[]) => void) | undefined;
   setOpenCaseMemberId: Dispatch<SetStateAction<string | null>>;
-  setReselectBaseline: Dispatch<SetStateAction<readonly string[] | null>>;
-  setReselectDraft: Dispatch<SetStateAction<readonly string[] | null>>;
-  setLobbyMode: Dispatch<SetStateAction<"browse" | "reselect">>;
+  requestReselectWithCandidate: (candidateMemberId: string) => void;
 }): { openCaseMember: Member | null; caseFilePrimaryAction: CaseFilePrimaryAction | undefined } {
   const openCaseMember = useMemo(
     () =>
@@ -55,16 +51,10 @@ export function useCaseFileAction({
     if (slotsFull) {
       if (onReselectFocus === undefined) return undefined;
       const candidateId = openCaseMember.id;
-      const baseline = save.focusedMemberIds.filter((id) => {
-        const member = save.members.find((candidate) => candidate.id === id);
-        return member !== undefined && member.state.status === "active";
-      });
       return {
         label: "Swap into focus  ·  Manage cases →",
         onClick: () => {
-          setReselectBaseline(baseline);
-          setReselectDraft(baseline.includes(candidateId) ? baseline : [...baseline, candidateId]);
-          setLobbyMode("reselect");
+          requestReselectWithCandidate(candidateId);
           setOpenCaseMemberId(null);
         },
       };
@@ -81,14 +71,11 @@ export function useCaseFileAction({
     openCaseMember,
     focusedSet,
     save.focusedMemberIds,
-    save.members,
     onAddFocus,
     onRemoveFocus,
     onReselectFocus,
     setOpenCaseMemberId,
-    setReselectBaseline,
-    setReselectDraft,
-    setLobbyMode,
+    requestReselectWithCandidate,
   ]);
 
   return { openCaseMember, caseFilePrimaryAction };

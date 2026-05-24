@@ -30,9 +30,7 @@ export function ShiftBriefDock({ rows }: { rows: readonly ShiftBriefRowData[] })
         layout: { duration: 0.32, ease: EASE_OUT_QUART },
         borderRadius: { duration: 0.32, ease: EASE_OUT_QUART },
       }}
-      className={`pointer-events-auto overflow-hidden aura-liquid-glass aura-liquid-glass-hover ${
-        expanded ? "w-[260px]" : "w-fit"
-      }`}
+      className="pointer-events-auto w-fit overflow-hidden aura-liquid-glass aura-liquid-glass-hover"
     >
       <button
         type="button"
@@ -55,7 +53,7 @@ export function ShiftBriefDock({ rows }: { rows: readonly ShiftBriefRowData[] })
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-            className="overflow-hidden"
+            className="w-[260px] overflow-hidden"
           >
             <div className="space-y-2 px-4 pt-1 pb-3">
               {rows.map((row) => (

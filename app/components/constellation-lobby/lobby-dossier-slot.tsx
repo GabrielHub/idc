@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { GameSave, Member } from "../../domain/game";
-import type { PairArchiveGraph } from "../../services/pair-archive-graph";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import { MemberArchiveShard } from "./member-archive-shard";
 import { PairDossierShard } from "./pair-dossier-shard";
 import type { ArchiveSelection } from "./types";
@@ -9,7 +9,7 @@ import type { ArchiveSelection } from "./types";
 export function LobbyDossierSlot({
   save,
   memberById,
-  archiveGraph,
+  incidentEdgesByNode,
   archiveSelection,
   committedPairId,
   readyClosurePairIds,
@@ -19,7 +19,12 @@ export function LobbyDossierSlot({
 }: {
   save: GameSave;
   memberById: ReadonlyMap<string, Member>;
-  archiveGraph: PairArchiveGraph;
+  /**
+   * Per-member incident edges from the archive graph. Surfaces only as the
+   * Member shard's "incident pairs" list — the full graph would be over-supply
+   * for the slot's narrow needs.
+   */
+  incidentEdgesByNode: ReadonlyMap<string, readonly PairArchiveEdge[]>;
   archiveSelection: ArchiveSelection;
   committedPairId: string | null;
   readyClosurePairIds: ReadonlySet<string>;
@@ -33,9 +38,9 @@ export function LobbyDossierSlot({
       : null;
   const archiveFocusedIncidentEdges = useMemo(() => {
     if (archiveFocusedMember === null) return [];
-    const edges = archiveGraph.incidentEdgesByNode.get(archiveFocusedMember.id) ?? [];
+    const edges = incidentEdgesByNode.get(archiveFocusedMember.id) ?? [];
     return [...edges].sort((a, b) => b.latestNoteAt - a.latestNoteAt);
-  }, [archiveFocusedMember, archiveGraph.incidentEdgesByNode]);
+  }, [archiveFocusedMember, incidentEdgesByNode]);
   const dossierPairId =
     archiveSelection?.kind === "pair" ? archiveSelection.pairId : committedPairId;
 

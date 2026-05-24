@@ -264,7 +264,7 @@ export function OnboardingScreen({
                 target={firstFocusCardRef}
                 placement="left"
                 title="Cupid is hiring. You are hired."
-                body="These are members who walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
+                body="These hopefuls walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
                 dismissLabel="Skip tour"
                 onDismiss={focusPickStep.dismiss}
                 portrait="portrait"
@@ -280,7 +280,7 @@ export function OnboardingScreen({
                 target={rightmostExpandRef}
                 placement="right"
                 title="Read the file"
-                body="Tap a card's arrow to open that member's file. Useful for sizing up a case before you commit."
+                body="Tap a card's arrow to open their file. Worth a peek before you commit a slot to them."
                 dismissLabel="Skip tour"
                 onDismiss={focusExpandStep.dismiss}
                 textTone="dark"
@@ -295,7 +295,7 @@ export function OnboardingScreen({
                 target={startShiftCtaRef}
                 placement="top"
                 title="Draft the Date Book"
-                body="Four cases on file. Next, choose the starter rooms Cupid can draw from when you commit a pair."
+                body="Four cases on file. Next up: pick the starter rooms Cupid can draw from once you commit a pair."
                 dismissLabel="Skip tour"
                 onDismiss={focusStartStep.dismiss}
                 textTone="dark"

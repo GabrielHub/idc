@@ -5,12 +5,16 @@ import { MutedLabel } from "../../../components/dashboard-atoms";
 import {
   gameSaveSchema,
   memoryRecordSchema,
+  openLoopSchema,
+  pairAgreementSchema,
   pairStateSchema,
   shiftStateSchema,
   type DateScenario,
   type GameSave,
   type MemoryRecord,
   type Member,
+  type PairAgreement,
+  type OpenLoop,
   type PairState,
 } from "../../../domain/game";
 import { starterScenarios } from "../../../fixtures";
@@ -507,9 +511,7 @@ function finalize(
     (entry) => memberIds.has(entry.a) && memberIds.has(entry.b),
   );
 
-  const pairStates = usableBlueprints.map((entry) =>
-    buildPairState(entry.a, entry.b, entry.health),
-  );
+  const pairStates = usableBlueprints.map((entry) => buildPairState(entry));
   const memories = usableBlueprints.flatMap((entry) => buildMemoriesFor(entry, base.members));
 
   const stagedShifts = base.shifts.map((shift) => {
@@ -529,10 +531,16 @@ function finalize(
   return withDisabledTutorial(syncActiveShiftFocusCases(staged));
 }
 
-function buildPairState(aId: string, bId: string, health: number): PairState {
+function buildPairState(blueprint: (typeof PAIR_BLUEPRINTS)[number]): PairState {
+  const { a: aId, b: bId, health, scenarioId, noteCount } = blueprint;
   const participants = sortMemberIds(aId, bId);
+  const pairId = makePairId(aId, bId);
+  const completedDateIds = Array.from(
+    { length: noteCount },
+    (_, index) => `playground-session-${pairId}-${index}`,
+  );
   return pairStateSchema.parse({
-    id: makePairId(aId, bId),
+    id: pairId,
     participantIds: participants,
     stats: derivePairStats({
       chemistry: clampStat(health + 5),
@@ -544,10 +552,10 @@ function buildPairState(aId: string, bId: string, health: number): PairState {
       strain: 0,
       relationshipHealth: 0,
     }),
-    completedDateIds: [],
-    scenarioUseCounts: {},
-    agreements: [],
-    openLoops: [],
+    completedDateIds,
+    scenarioUseCounts: { [scenarioId]: noteCount },
+    agreements: buildAgreementsFor(blueprint),
+    openLoops: buildOpenLoopsFor(blueprint),
   });
 }
 
@@ -611,6 +619,65 @@ function noteTag(importance: 1 | 2 | 3 | 4 | 5): string {
   if (importance >= 5) return "high";
   if (importance >= 3) return "medium";
   return "low";
+}
+
+const PAIR_AGREEMENT_PHRASES: readonly string[] = [
+  "Keep their wartime nickname out of group chats.",
+  "Trade one quiet dinner before any second public outing.",
+  "No mention of the missing year until both bring it up.",
+  "Cap shared shifts at two per week so neither flames out.",
+];
+
+const PAIR_OPEN_LOOP_PHRASES: readonly string[] = [
+  "Promise of a follow-up about the missing letter.",
+  "Decision about whether to introduce family is still pending.",
+  "Unresolved disagreement about whose place they crash at.",
+  "Open question about the favor neither has called in yet.",
+];
+
+function buildAgreementsFor(blueprint: (typeof PAIR_BLUEPRINTS)[number]): PairAgreement[] {
+  const pairId = makePairId(blueprint.a, blueprint.b);
+  const count = blueprint.noteCount >= 2 ? 2 : blueprint.noteCount >= 1 ? 1 : 0;
+  const baseDate = Date.parse("2026-05-12T18:00:00.000Z");
+  const dayMs = 24 * 60 * 60 * 1000;
+  return Array.from({ length: count }, (_, index) => {
+    const offset = Math.abs(hashSeed(`${pairId}-agree-${index}`)) % PAIR_AGREEMENT_PHRASES.length;
+    const phrase = PAIR_AGREEMENT_PHRASES[offset] ?? PAIR_AGREEMENT_PHRASES[0];
+    const status = index === 0 ? "active" : blueprint.health >= 65 ? "honored" : "active";
+    return pairAgreementSchema.parse({
+      id: `playground-agree-${pairId}-${index}`,
+      text: phrase,
+      status,
+      sourceDateSessionId: `playground-session-${pairId}-${index}`,
+      createdAt: new Date(baseDate - index * dayMs).toISOString(),
+    });
+  });
+}
+
+function buildOpenLoopsFor(blueprint: (typeof PAIR_BLUEPRINTS)[number]): OpenLoop[] {
+  const pairId = makePairId(blueprint.a, blueprint.b);
+  const hasLoop = blueprint.topImportance >= 3 && blueprint.health < 75;
+  if (!hasLoop) return [];
+  const baseDate = Date.parse("2026-05-14T18:00:00.000Z");
+  const offset = Math.abs(hashSeed(`${pairId}-loop`)) % PAIR_OPEN_LOOP_PHRASES.length;
+  const phrase = PAIR_OPEN_LOOP_PHRASES[offset] ?? PAIR_OPEN_LOOP_PHRASES[0];
+  return [
+    openLoopSchema.parse({
+      id: `playground-loop-${pairId}-0`,
+      text: phrase,
+      status: "open",
+      sourceDateSessionId: `playground-session-${pairId}-0`,
+      createdAt: new Date(baseDate).toISOString(),
+    }),
+  ];
+}
+
+function hashSeed(value: string): number {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) | 0;
+  }
+  return hash;
 }
 
 function withDrawnHand(save: GameSave, shiftNumber: number): GameSave {

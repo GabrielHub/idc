@@ -14,6 +14,7 @@ import type {
   StarRole,
   Vec3,
 } from "./types";
+import { isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER } from "./types";
 
 /** star.x (0-100) -> world x (~-11..+11). */
 export const WORLD_X_SCALE = 0.22;
@@ -69,15 +70,16 @@ export function resolveStarRenderTarget(input: {
 
 /**
  * Per-layer world Z position the camera dollies toward in the flythrough.
- * Layer 0 sits where the default idle camera does (z=17); layer 1 punches
- * forward so the roster slab is right under the lens. Layer 2 (scenarios)
- * lands at z=4 so the scenario card meshes sitting at z ≈ -1 read as the
- * foreground "wall" the player just zoomed up against.
+ * Layer 0 sits where the default idle camera does (z=17); layers 1 and 2
+ * punch forward so the two roster cohorts sit under the lens. Layer 3
+ * (scenarios) lands at z=4 so the scenario card meshes sitting at z ≈ -1
+ * read as the foreground "wall" the player just zoomed up against.
  */
 export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
   0: 17,
   1: 11,
-  2: 4,
+  2: 10.6,
+  3: 4,
 };
 
 /**
@@ -134,10 +136,10 @@ export const FOCUS_MARKER_SCALE = 0.7;
 
 /**
  * Single dispatcher for a star's tonight-mode cluster slot. Returns the
- * focus marker pin when the focus star is parked on layer 1, the layer-0
- * focus cluster slot for a focused lead currently on layer 0, the layer-1
- * roster cluster slot for an eligible/off-tonight lead currently on layer
- * 1, or `null` to fall back to the star's natural field position.
+ * focus marker pin when the focus star is parked on a roster layer, the
+ * layer-0 focus cluster slot for a focused lead currently on layer 0, the
+ * roster cluster slot for an eligible/off-tonight lead currently on a roster
+ * layer, or `null` to fall back to the star's natural field position.
  *
  * When state === "focus_selected" AND the player is in the "eligibles"
  * subview, eligible partners arrange in a ring around the centered focus
@@ -171,14 +173,18 @@ export function resolveClusterPosition(input: {
     rosterSubview = "eligibles",
   } = input;
   if (inArchive) return null;
-  if (role === "focus" && state === "focus_selected" && currentLayer === 1) {
+  if (role === "focus" && state === "focus_selected" && isRosterFlythroughLayer(currentLayer)) {
     return FOCUS_MARKER_POSITION;
   }
   if (flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0) {
     const idx = focusOrder.indexOf(memberId);
     if (idx >= 0) return focusClusterPosition(idx, focusOrder.length);
   }
-  if (flythroughLayer === 1 && currentLayer === 1 && rosterLeadOrder.length > 0) {
+  if (
+    flythroughLayer === 1 &&
+    isRosterFlythroughLayer(currentLayer) &&
+    rosterLeadOrder.length > 0
+  ) {
     const idx = rosterLeadOrder.indexOf(memberId);
     if (idx >= 0) {
       const useRing = state === "focus_selected" && rosterSubview === "eligibles";
@@ -376,8 +382,13 @@ export function computeFlythroughCameraTarget(
   const biasX = focusBias === null ? 0 : focusBias.x * 0.25;
   const biasY = focusBias === null ? 0 : focusBias.y * 0.25;
 
-  const slabZ = layer === 2 ? -1 : FLYTHROUGH_LAYER_Z[layer];
-  const bokeh = layer === 0 ? 0.45 : layer === 1 ? 0.85 : 0.6;
+  const slabZ =
+    layer === SCENARIO_FLYTHROUGH_LAYER
+      ? -1
+      : isRosterFlythroughLayer(layer)
+        ? FLYTHROUGH_LAYER_Z[1]
+        : FLYTHROUGH_LAYER_Z[0];
+  const bokeh = layer === 0 ? 0.45 : isRosterFlythroughLayer(layer) ? 0.85 : 0.6;
 
   return {
     position: [biasX, biasY, z],
@@ -392,8 +403,9 @@ export function flythroughStarZ(layer: StarFlythroughLayer): number {
 
 /**
  * Decide which slab a star belongs to in the flythrough. Focused -> 0,
- * everyone else -> 1. The eligibles vs off-tonight distinction is a per-star
- * cohort within the roster slab, not a separate slab.
+ * everyone else -> 1. The eligibles vs off-tonight distinction is exposed as
+ * separate flythrough layers, but stars still render on the shared roster
+ * slab.
  */
 export function computeStarFlythroughLayer(
   memberId: string,

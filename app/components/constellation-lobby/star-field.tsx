@@ -12,15 +12,16 @@ import {
   roleForStar,
 } from "./math";
 import { buildFocusMarkerOverlay, StarSprite } from "./star-sprite";
-import type {
-  FlythroughLayer,
-  LobbyState,
-  RosterSubview,
-  StarFlythroughLayer,
-  StarClickHandlers,
-  StarMark,
-  Vec3,
-  ViewMode,
+import {
+  isRosterFlythroughLayer,
+  type FlythroughLayer,
+  type LobbyState,
+  type RosterSubview,
+  type StarFlythroughLayer,
+  type StarClickHandlers,
+  type StarMark,
+  type Vec3,
+  type ViewMode,
 } from "./types";
 
 const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
@@ -114,7 +115,10 @@ export function StarField({
               })
             : undefined;
         const isFocusMarker =
-          !inArchive && role === "focus" && state === "focus_selected" && currentLayer === 1;
+          !inArchive &&
+          role === "focus" &&
+          state === "focus_selected" &&
+          isRosterFlythroughLayer(currentLayer);
         const slabActivity = isFocusMarker
           ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
           : inArchive || flythroughLayer === undefined || currentLayer === undefined

@@ -31,7 +31,7 @@ import {
 } from "./active-card-anchor";
 import { ArchiveEdgeLayer } from "./archive-edge-layer";
 import { CameraRig, Lights, SceneBackground } from "./canvas-environment";
-import { PairConnector3D, PartnerSpoke } from "./canvas-connectors";
+import { PairConnector3D, PartnerSpoke, PlanningPairEdge } from "./canvas-connectors";
 import { ParticleField } from "./particle-field";
 import {
   computeLayerZOffset,
@@ -45,16 +45,17 @@ import {
   roleForStar,
   starWorldPosition,
 } from "./math";
-import type {
-  ArchiveSelection,
-  CameraTarget,
-  FlythroughLayer,
-  LobbyState,
-  RosterSubview,
-  StarClickHandlers,
-  StarMark,
-  Vec3,
-  ViewMode,
+import {
+  isRosterFlythroughLayer,
+  type ArchiveSelection,
+  type CameraTarget,
+  type FlythroughLayer,
+  type LobbyState,
+  type RosterSubview,
+  type StarClickHandlers,
+  type StarMark,
+  type Vec3,
+  type ViewMode,
 } from "./types";
 import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import type { PairEdgeRenderSpec } from "./archive-layout";
@@ -136,6 +137,7 @@ export function Scene({
   pairMoodByPartnerId,
   viewMode = "tonight",
   archive,
+  planningPairs,
 }: {
   state: LobbyState;
   stars: StarMark[];
@@ -176,16 +178,17 @@ export function Scene({
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   /**
    * Member ids that live on the focus slab (slab 0). Everyone else lives on
-   * the roster slab (slab 1); the eligible / off-tonight / other cohort
-   * split is driven by `offTonightSet` and `rosterSubview` rather than a
-   * separate slab. Required for the layer-flythrough overlay; when
-   * undefined, the Scene falls back to no slab treatment.
+   * the roster slab (slab 1). The eligible / off-tonight split is surfaced
+   * as separate flythrough layers, but both layers render the same visual
+   * slab with `rosterSubview` deciding the active cohort. Required for the
+   * layer-flythrough overlay; when undefined, the Scene falls back to no slab
+   * treatment.
    */
   focusedIds?: ReadonlySet<string>;
   /**
    * Member ids that are scheduled off-tonight. The roster slab uses this
    * (plus `eligiblePartnerIds` from starClickHandlers) to assign a per-star
-   * cohort that the layer-1 RosterSubview toggle then spotlights.
+   * cohort that the roster RosterSubview toggle then spotlights.
    */
   offTonightSet?: ReadonlySet<string>;
   /**
@@ -202,6 +205,18 @@ export function Scene({
    * get a spoke, but in the steady violet color band.
    */
   pairMoodByPartnerId?: ReadonlyMap<string, number>;
+  /**
+   * Pair edges to render as faint constellation lines in tonight (planning)
+   * view. One entry per persisted pair the player has formed. Edges fade
+   * during archive mode (which mounts its own ArchiveEdgeLayer). Endpoints
+   * resolve to each member's natural field position, so the line stays
+   * visible even while individual avatars are pulled into cluster slots.
+   */
+  planningPairs?: ReadonlyArray<{
+    pairId: string;
+    participantIds: readonly [string, string];
+    health: number;
+  }>;
 }) {
   // Hover drives the visual hover bump on `StarSprite` and the eligible-
   // partner connector in `focus_selected`. It no longer opens the card —
@@ -306,11 +321,11 @@ export function Scene({
   const haloTexture = useMemo(() => buildSoftSparkleTexture(), []);
   const rimLightTexture = useMemo(() => buildRimLightTexture(), []);
 
-  // When focus is pinned to the layer-1 marker slot, the connector and DOF
+  // When focus is pinned to a roster-layer marker slot, the connector and DOF
   // target should originate from the pinned position too — otherwise the
   // hover connector to an eligible partner draws from an off-screen anchor
   // (the focus star's random natural field point).
-  const focusPinned = state === "focus_selected" && currentLayer === 1;
+  const focusPinned = state === "focus_selected" && isRosterFlythroughLayer(currentLayer);
   const focusPos = focusStar
     ? focusPinned
       ? FOCUS_MARKER_POSITION
@@ -356,14 +371,14 @@ export function Scene({
     [focusedIds],
   );
 
-  // Layer-1 roster cluster order. The active subview's cohort packs into a
+  // Roster cluster order. The active subview's cohort packs into a
   // viewport-fitting grid (see `rosterClusterPosition`) so every pickable face
   // fits on screen at once. Iteration order matches use-roster-fold's set
   // construction (which walks save.members in roster order), giving each
   // member a stable slot across renders. Falls back to empty when the player
-  // isn't on layer 1 so the cluster releases as they scroll between layers.
+  // isn't on a roster layer so the cluster releases as they scroll between layers.
   const rosterLeadOrder = useMemo<readonly string[]>(() => {
-    if (currentLayer !== 1) return [];
+    if (!isRosterFlythroughLayer(currentLayer)) return [];
     const set =
       rosterSubview === "off_tonight"
         ? (offTonightSet ?? EMPTY_OFF_TONIGHT_IDS)
@@ -486,13 +501,22 @@ export function Scene({
         />
       ) : null}
 
+      {viewMode === "tonight" && planningPairs !== undefined && planningPairs.length > 0 ? (
+        <PlanningPairEdges
+          pairs={planningPairs}
+          stars={stars}
+          hoveredStarId={hoveredId}
+          activeStarId={activeStarId}
+        />
+      ) : null}
+
       {viewMode === "tonight" && pairConnectorEndpoint !== null && focusPos !== null ? (
         <PairConnector3D from={focusPos} to={pairConnectorEndpoint} />
       ) : null}
 
       {viewMode === "tonight" &&
       state === "focus_selected" &&
-      currentLayer === 1 &&
+      isRosterFlythroughLayer(currentLayer) &&
       rosterSubview === "eligibles" &&
       focusPos !== null &&
       hoveredId !== null &&
@@ -536,6 +560,61 @@ export function Scene({
         />
         <Vignette eskil={false} offset={0.28} darkness={0.62} />
       </EffectComposer>
+    </>
+  );
+}
+
+/**
+ * Faint constellation lines between members in `pairStates`. Endpoints
+ * anchor to each star's natural field position (`starWorldPosition`) so the
+ * lines stay visible across cluster/slab transitions. A pair edge brightens
+ * when either of its participants is hovered or active so the player can
+ * trace which partner an avatar is connected to.
+ */
+function PlanningPairEdges({
+  pairs,
+  stars,
+  hoveredStarId,
+  activeStarId,
+}: {
+  pairs: ReadonlyArray<{
+    pairId: string;
+    participantIds: readonly [string, string];
+    health: number;
+  }>;
+  stars: readonly StarMark[];
+  hoveredStarId: string | null;
+  activeStarId: string | null;
+}) {
+  const starById = useMemo(() => {
+    const map = new Map<string, StarMark>();
+    for (const star of stars) map.set(star.member.id, star);
+    return map;
+  }, [stars]);
+
+  return (
+    <>
+      {pairs.map((pair) => {
+        const starA = starById.get(pair.participantIds[0]);
+        const starB = starById.get(pair.participantIds[1]);
+        if (starA === undefined || starB === undefined) return null;
+        const from = starWorldPosition(starA);
+        const to = starWorldPosition(starB);
+        const highlighted =
+          hoveredStarId === pair.participantIds[0] ||
+          hoveredStarId === pair.participantIds[1] ||
+          activeStarId === pair.participantIds[0] ||
+          activeStarId === pair.participantIds[1];
+        return (
+          <PlanningPairEdge
+            key={pair.pairId}
+            from={from}
+            to={to}
+            health={pair.health}
+            highlighted={highlighted}
+          />
+        );
+      })}
     </>
   );
 }

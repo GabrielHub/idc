@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 
-import type { FlythroughLayer, RosterSubview, ViewMode } from "./types";
+import {
+  flythroughLayerForRosterSubview,
+  isRosterFlythroughLayer,
+  type FlythroughLayer,
+  type RosterSubview,
+  type ViewMode,
+} from "./types";
 
 export function useRosterKeyNavigation({
   viewMode,
@@ -42,7 +48,9 @@ export function useRosterKeyNavigation({
           : Array.from(eligiblePartnerIds);
       if (cohort.length === 0) return;
       event.preventDefault();
-      if (currentLayer !== 1) onLayerChange(1);
+      if (!isRosterFlythroughLayer(currentLayer)) {
+        onLayerChange(flythroughLayerForRosterSubview(rosterSubview));
+      }
       const currentIdx = activeStarId === null ? -1 : cohort.indexOf(activeStarId);
       const nextIdx =
         currentIdx === -1

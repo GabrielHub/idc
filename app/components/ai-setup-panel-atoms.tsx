@@ -5,23 +5,53 @@ import { MutedLabel } from "./dashboard-atoms";
 
 export function FormSection({
   label,
+  title,
   description,
   children,
 }: {
   label: string;
+  title?: string;
   description?: string;
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-card border border-aura-hairline bg-white/45 p-4">
+    <section className="rounded-card border border-aura-hairline bg-white/45 p-5">
       <header className="space-y-1.5">
         <MutedLabel>{label}</MutedLabel>
+        {title === undefined ? null : (
+          <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+            {title}
+          </h3>
+        )}
         {description === undefined ? null : (
           <p className="text-label leading-relaxed text-aura-muted">{description}</p>
         )}
       </header>
       <div className="mt-4">{children}</div>
     </section>
+  );
+}
+
+export function AdvancedDetails({
+  label = "Advanced settings",
+  children,
+}: {
+  label?: string;
+  children: ReactNode;
+}) {
+  return (
+    <details className="group rounded-card border border-aura-hairline bg-white/40 px-4 py-2 open:py-3 open:shadow-quiet">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint transition hover:text-aura-ink">
+        <span>{label}</span>
+        <span
+          aria-hidden="true"
+          className="text-aura-faint transition group-open:rotate-180 group-hover:text-aura-ink"
+        >
+          ▾
+        </span>
+      </summary>
+      <div className="mt-3 space-y-3">{children}</div>
+    </details>
   );
 }
 
@@ -113,17 +143,6 @@ export function ReadOnlyField({ label, value }: { label: string; value: string }
       <p className="mt-2 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2.5 font-mono text-label text-aura-ink">
         {value}
       </p>
-    </div>
-  );
-}
-
-export function KeyValue({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="grid grid-cols-[6.5rem_1fr] items-baseline gap-3">
-      <dt className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">{label}</dt>
-      <dd className="min-w-0 truncate font-mono text-micro uppercase tracking-[0.16em] text-aura-ink">
-        {value}
-      </dd>
     </div>
   );
 }

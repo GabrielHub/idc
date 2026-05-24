@@ -354,7 +354,7 @@ export function DateFooter({
             target={nudgeButtonRef}
             placement="top"
             title="One nudge, one whisper"
-            body="Pause, pick one member, write one sentence. Steer where they go or ask them to share something you want to know. They hear it as a private prod from the room. Use all three and Cupid starts making eye contact."
+            body="Pause, pick one member, write one sentence. Steer them somewhere or pull a thread you want exposed. They hear it as a private prod from the room. Spend all three and Cupid starts making eye contact."
             primaryLabel="Open composer"
             onPrimary={() => {
               nudgeComposeStep.complete();

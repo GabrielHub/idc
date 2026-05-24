@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 
 import type { GameSave } from "../../domain/game";
-import { derivePairArchiveGraph, type PairArchiveGraph } from "../../services/pair-archive-graph";
+import {
+  derivePairArchiveGraph,
+  type PairArchiveEdge,
+  type PairArchiveGraph,
+} from "../../services/pair-archive-graph";
 import { buildArchiveEdgeSpecs, computeArchiveStarPosition } from "./archive-layout";
 import { applyImportanceBudget } from "./edge-lod";
 import {
@@ -36,11 +40,18 @@ export function useArchiveView({
   archiveSelection: ArchiveSelection;
   currentLayer: FlythroughLayer;
   focusStar: StarMark | undefined;
-}) {
+}): {
+  archivePositions: ReadonlyMap<string, Vec3>;
+  archiveEdges: ReturnType<typeof buildArchiveEdgeSpecs>;
+  archiveIsolation: { focusMemberId: string; includedMemberIds: ReadonlySet<string> } | undefined;
+  cameraTarget: ReturnType<typeof computeFlythroughCameraTarget>;
+  /** Per-member incident edges. Forwarded to the dossier slot. */
+  incidentEdgesByNode: ReadonlyMap<string, readonly PairArchiveEdge[]>;
+} {
   // Only derive the pair graph when the player is actually in archive view —
   // otherwise every save persist (intent file, scenario pick, knowledge gain)
   // recomputed it and produced a fresh `cameraTarget` reference even though
-  // the tonight branch of the memo never reads archiveGraph.
+  // the tonight branch of the memo never reads the graph.
   const archiveGraph = useMemo(
     () =>
       viewMode === "archive"
@@ -111,5 +122,11 @@ export function useArchiveView({
     return computeArchiveFitCamera([...archivePositions.values()]);
   }, [viewMode, archiveSelection, archiveGraph, archivePositions, currentLayer, focusStar]);
 
-  return { archiveGraph, archivePositions, archiveEdges, archiveIsolation, cameraTarget };
+  return {
+    archivePositions,
+    archiveEdges,
+    archiveIsolation,
+    cameraTarget,
+    incidentEdgesByNode: archiveGraph.incidentEdgesByNode,
+  };
 }

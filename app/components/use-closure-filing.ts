@@ -55,6 +55,20 @@ export function useClosureFiling({
     setClosureErrorMessage(null);
   }, []);
 
+  // Re-read save right before each external boundary so the LLM call and the
+  // closePair / persist trio operate on the same up-to-date snapshot. Save can
+  // mutate during the multi-second await (tutorial step.complete, manager-quip
+  // history, etc.). Throws if the save was cleared mid-flight so the closure
+  // action's outer try/catch surfaces a clear error instead of a null deref.
+  const getSaveOrThrow = useCallback(
+    (whileDoing: string): GameSave => {
+      const current = getSave();
+      if (current === null) throw new Error(`Save cleared before closure ${whileDoing}.`);
+      return current;
+    },
+    [getSave],
+  );
+
   const handleClosePair = useCallback(
     async (input: ClosureFilingInput): Promise<boolean> => {
       const initialSave = getSave();
@@ -75,23 +89,13 @@ export function useClosureFiling({
             throw new Error(status.message);
           }
 
-          // Re-read save right before each external boundary so the LLM call
-          // and the closePair / persist trio operate on the same up-to-date
-          // snapshot. Save can mutate during the multi-second await (tutorial
-          // step.complete, manager-quip history, etc.).
-          const summarySave = getSave();
-          if (summarySave === null) {
-            throw new Error("Save cleared before closure summary could generate.");
-          }
+          const summarySave = getSaveOrThrow("summary could generate");
           const summary = await generateClosureSummary({
             save: summarySave,
             ready: input.ready,
             config: { ...summarySave.config, gatewayApiKey: gatewayApiKey || undefined },
           });
-          const previousSave = getSave();
-          if (previousSave === null) {
-            throw new Error("Save cleared before closure could be filed.");
-          }
+          const previousSave = getSaveOrThrow("could be filed");
           const nextSave = closePair({ save: previousSave, pairId: input.pairId, summary });
           await persist(nextSave);
           dispatchManagerQuip({
@@ -118,6 +122,7 @@ export function useClosureFiling({
       dispatchManagerQuip,
       gatewayApiKey,
       getSave,
+      getSaveOrThrow,
       persist,
       play,
       processManagerQuipSaveDiff,

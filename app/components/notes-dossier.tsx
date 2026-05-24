@@ -18,12 +18,12 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
-      className="aura-glass-strong relative mt-6 overflow-hidden rounded-card ring-1 ring-aura-rose/35"
+      className="aura-liquid-glass aura-liquid-glass-rose relative mt-6 overflow-hidden rounded-card"
       aria-label={`Selected pair dossier for ${title}`}
     >
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-aura-rose opacity-60"
+        className="pointer-events-none absolute inset-y-0 left-0 w-1.5 bg-aura-rose opacity-75"
       />
       <div className="relative z-10 space-y-5 px-5 py-5 pl-7">
         <header className="flex items-start justify-between gap-4">
@@ -32,7 +32,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
               {dossier.participants.map((member, idx) => (
                 <span
                   key={member.id}
-                  className={`rounded-full border-2 border-white/90 bg-white shadow-quiet ${
+                  className={`rounded-full border-2 border-white/85 bg-white shadow-quiet ${
                     idx === 0 ? "rotate-[-2deg]" : "rotate-[2deg]"
                   }`}
                 >
@@ -42,7 +42,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
             </span>
             <div className="min-w-0">
               <Eyebrow>// pair · dossier</Eyebrow>
-              <h4 className="font-display text-display-sm font-semibold leading-tight text-aura-ink">
+              <h4 className="font-display text-display-sm font-semibold leading-tight text-aura-paper">
                 {title}
               </h4>
             </div>
@@ -55,10 +55,10 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
           ) : null}
         </header>
 
-        <p className="text-label text-aura-muted">{NO_BOARD_EDGE_NOTE}</p>
+        <p className="text-label text-white/70">{NO_BOARD_EDGE_NOTE}</p>
 
         {dossier.closureNearMiss ? (
-          <p className="aura-accent text-body leading-snug text-aura-ink/85">
+          <p className="text-body leading-snug text-aura-paper/90">
             This pair nearly cleared closure last time. Pressure cleanup keeps the file open.
           </p>
         ) : null}
@@ -69,9 +69,9 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
               {dossier.publicPairNotes.slice(0, 3).map((note) => (
                 <li
                   key={note.id}
-                  className="rounded-card bg-white/65 px-3 py-2 ring-1 ring-aura-hairline"
+                  className="rounded-card bg-white/8 px-3 py-2 ring-1 ring-white/15"
                 >
-                  <p className="aura-accent text-body leading-snug text-aura-ink/90">
+                  <p className="text-body leading-snug text-aura-paper/90">
                     {scrubPlayerSafeCopy(note.text)}
                   </p>
                 </li>
@@ -84,7 +84,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
           {dossier.pairReads.length === 0 ? null : (
             <ul className="space-y-1.5">
               {dossier.pairReads.map((read) => (
-                <li key={read.id} className="text-body leading-snug text-aura-ink/85">
+                <li key={read.id} className="text-body leading-snug text-aura-paper/85">
                   {read.readText}
                 </li>
               ))}
@@ -107,10 +107,10 @@ function DossierGroup({
 }) {
   return (
     <div className="space-y-2">
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-aura-faint">
+      <p className="font-mono text-micro font-semibold uppercase tracking-[0.26em] text-white/55">
         {label}
       </p>
-      {children ?? <p className="text-label text-aura-muted">{empty}</p>}
+      {children ?? <p className="text-label text-white/70">{empty}</p>}
     </div>
   );
 }

@@ -2,12 +2,13 @@ import { useEffect, useRef, useState, type Ref } from "react";
 import { motion } from "motion/react";
 
 import { layerDisabledReason, type LayerNavigationMode } from "./layer-access";
-import type { FlythroughLayer } from "./types";
+import { FLYTHROUGH_LAYERS, type FlythroughLayer } from "./types";
 
 const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
   0: "Focused cases",
-  1: "Roster",
-  2: "Date cathedral",
+  1: "Eligibles",
+  2: "Off tonight",
+  3: "Pick venue",
 };
 
 export function LayerIndicator({
@@ -23,7 +24,7 @@ export function LayerIndicator({
   containerRef?: Ref<HTMLDivElement>;
   layerRefs?: Partial<Record<FlythroughLayer, Ref<HTMLButtonElement>>>;
 }) {
-  const layers: FlythroughLayer[] = [0, 1, 2];
+  const layers = FLYTHROUGH_LAYERS;
   const [isHovering, setIsHovering] = useState(false);
   const [showOnLayerChange, setShowOnLayerChange] = useState(false);
   const mountedRef = useRef(false);

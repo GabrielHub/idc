@@ -1,3 +1,11 @@
+import ClaudeColor from "@lobehub/icons/es/Claude/components/Color";
+import DeepSeekColor from "@lobehub/icons/es/DeepSeek/components/Color";
+import GeminiColor from "@lobehub/icons/es/Gemini/components/Color";
+import MinimaxColor from "@lobehub/icons/es/Minimax/components/Color";
+import OpenAIMono from "@lobehub/icons/es/OpenAI/components/Mono";
+import QwenColor from "@lobehub/icons/es/Qwen/components/Color";
+import ZhipuColor from "@lobehub/icons/es/Zhipu/components/Color";
+
 import {
   DEFAULT_GATEWAY_BASE_URL,
   DEFAULT_GATEWAY_EMBEDDING_MODEL,
@@ -9,17 +17,18 @@ import {
   GPU_RECOMMENDATION_PROFILES,
   OLLAMA_REASONING_LEVEL_OPTIONS,
   gatewayModelCostLabel,
-  type AiModelOption,
+  type AiModelBrand,
   type AiModelCostTier,
+  type AiModelOption,
   type OllamaModelSummary,
 } from "../services/ai/model-catalog";
 import {
-  BROWSER_GATEWAY_KEY_STORAGE,
-  DESKTOP_GATEWAY_KEY_STORAGE,
-  GATEWAY_CLOUD_FLOW,
-  OLLAMA_LOCAL_FLOW,
-} from "./ai-setup-panel-copy";
-import { FormSection, ReadOnlyField, SetupFeedback, TextInput } from "./ai-setup-panel-atoms";
+  AdvancedDetails,
+  FormSection,
+  ReadOnlyField,
+  SetupFeedback,
+  TextInput,
+} from "./ai-setup-panel-atoms";
 import { GhostButton, MutedLabel, PrimaryButton, SelectInput } from "./dashboard-atoms";
 
 export function OllamaSetupTab({
@@ -42,107 +51,117 @@ export function OllamaSetupTab({
   onConfig: (config: Partial<GameConfig>) => void;
 }) {
   const embeddingLabel = embeddingModels.at(0)?.name ?? DEFAULT_OLLAMA_EMBEDDING_MODEL;
-  const urlDescription = isUrlLocked
-    ? "Desktop talks to localhost Ollama through the app HTTP scope. Custom hosts need a new build."
-    : "Browser dev talks to this Ollama URL. Use a local endpoint you trust.";
-  const endpointTrustCopy = isUrlLocked
-    ? "No Gateway key is used, and desktop does not need OLLAMA_ORIGINS for localhost."
-    : "No Gateway key is used. Browser CORS rules still apply to the local Ollama server.";
 
   return (
-    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
-      <div className="space-y-5">
-        <FormSection label="endpoint" description={urlDescription}>
-          <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-            <TextInput
-              label="ollama url"
-              value={config.ollamaBaseURL}
-              disabled={isUrlLocked}
-              onChange={(value) => onConfig({ ollamaBaseURL: value })}
-            />
+    <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(24rem,0.85fr)]">
+      <div className="space-y-4">
+        <section className="rounded-card border border-aura-hairline bg-white/45 p-4">
+          <header className="flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-0.5">
+              <MutedLabel>chat model</MutedLabel>
+              <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+                Pick a chat model
+              </h3>
+            </div>
             <GhostButton disabled={isScanning} onClick={onScan}>
-              {isScanning ? "Scanning" : "Scan local desk"}
+              {isScanning ? "Scanning" : "Scan for models"}
             </GhostButton>
-          </div>
+          </header>
+
           {error === null ? null : (
             <p className="mt-3 rounded-tile border border-aura-rose/25 bg-rose-50/75 px-3 py-2 text-label text-aura-rose">
               {error}
             </p>
           )}
-          <p className="mt-3 rounded-tile border border-aura-emerald/30 bg-aura-emerald/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
-            <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-emerald">
-              local route ::
-            </span>{" "}
-            {OLLAMA_LOCAL_FLOW} {endpointTrustCopy}
-          </p>
-        </FormSection>
 
-        <FormSection
-          label="model"
-          description="Pick a pulled chat model. The default is gemma4:e4b, and embedding stays on embeddinggemma."
-        >
-          <SelectInput
-            label="chat model"
-            value={config.chatModel}
-            options={chatModels.map((model) => ({
-              value: model.name,
-              label: model.running === true ? `${model.name} (running)` : model.name,
-            }))}
-            onChange={(value) =>
-              onConfig({
-                chatModel: value,
-                embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
-              })
-            }
-          />
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
             <SelectInput
-              label="reasoning"
+              label="chat model"
+              value={config.chatModel}
+              options={chatModels.map((model) => ({
+                value: model.name,
+                label: model.running === true ? `${model.name} (running)` : model.name,
+              }))}
+              onChange={(value) =>
+                onConfig({
+                  chatModel: value,
+                  embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
+                })
+              }
+            />
+            <SelectInput
+              label="reasoning effort"
               value={config.reasoningLevel}
               options={OLLAMA_REASONING_LEVEL_OPTIONS}
               onChange={(value) => onConfig({ reasoningLevel: value })}
             />
-            <ReadOnlyField label="embedding" value={embeddingLabel} />
           </div>
-        </FormSection>
+        </section>
+
+        <AdvancedDetails>
+          <TextInput
+            label="ollama server address"
+            value={config.ollamaBaseURL}
+            disabled={isUrlLocked}
+            onChange={(value) => onConfig({ ollamaBaseURL: value })}
+          />
+          <ReadOnlyField label="embedding model" value={embeddingLabel} />
+          {isUrlLocked ? (
+            <p className="text-label leading-relaxed text-aura-muted">
+              Desktop talks to <span className="font-mono text-aura-ink">localhost</span> Ollama. A
+              custom server needs a new build.
+            </p>
+          ) : null}
+        </AdvancedDetails>
       </div>
 
-      <FormSection label="model shortcuts" description="One-click chat picks by VRAM tier.">
-        <ul className="divide-y divide-aura-hairline">
+      <section className="rounded-card border border-aura-hairline bg-white/45 p-4">
+        <header className="flex items-baseline justify-between gap-3">
+          <div className="space-y-0.5">
+            <MutedLabel>model shortcuts</MutedLabel>
+            <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+              Pick by your GPU
+            </h3>
+          </div>
+        </header>
+        <ul className="mt-2 divide-y divide-aura-hairline">
           {GPU_RECOMMENDATION_PROFILES.map((profile) => (
-            <li key={profile.id} className="py-3 first:pt-0 last:pb-0">
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-                <p className="font-display text-body font-semibold tracking-tight text-aura-ink">
-                  {profile.label}
-                </p>
-                <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-                  {profile.vram}
-                </span>
-              </div>
-              <p className="mt-1 text-label leading-relaxed text-aura-muted">{profile.examples}</p>
-              <div className="mt-2 flex flex-wrap gap-1.5">
+            <li
+              key={profile.id}
+              className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-3 py-2 first:pt-1 last:pb-1"
+            >
+              <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
+                {profile.vram}
+              </span>
+              <p className="min-w-0 text-label leading-snug text-aura-muted">{profile.examples}</p>
+              <div className="flex flex-wrap justify-end gap-1">
                 {profile.modelIds.map((modelId) => (
                   <button
                     key={modelId}
                     type="button"
+                    title={`Use ${modelId}`}
                     onClick={() =>
                       onConfig({
                         chatModel: modelId,
                         embeddingModel: DEFAULT_OLLAMA_EMBEDDING_MODEL,
                       })
                     }
-                    className="cursor-pointer rounded-pill bg-aura-ink px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white transition hover:bg-aura-rose"
+                    className="cursor-pointer rounded-pill bg-aura-ink px-2 py-0.5 font-mono text-micro font-semibold lowercase tracking-[0.12em] text-white transition hover:bg-aura-rose"
                   >
-                    pick {modelId}
+                    {shortOllamaModelLabel(modelId)}
                   </button>
                 ))}
               </div>
             </li>
           ))}
         </ul>
-      </FormSection>
+      </section>
     </div>
   );
+}
+
+function shortOllamaModelLabel(modelId: string): string {
+  return modelId.replace(/^gemma4:/i, "");
 }
 
 export function GatewaySetupTab({
@@ -176,34 +195,28 @@ export function GatewaySetupTab({
   onSaveAndCheck: () => void;
   onVerify: () => void;
 }) {
-  const endpointDescription = isUrlLocked
-    ? `Desktop uses the fixed Vercel AI Gateway endpoint: ${DEFAULT_GATEWAY_BASE_URL}.`
-    : "Browser dev uses this Gateway URL and keeps the key in localStorage.";
-  const keyPlaceholder = hasStoredGatewayKey ? "Paste new key to rotate" : "Paste Gateway key";
-  const baseStorageCopy = isUrlLocked ? DESKTOP_GATEWAY_KEY_STORAGE : BROWSER_GATEWAY_KEY_STORAGE;
-  const storageLocation = isUrlLocked ? "the OS credential store" : "browser localStorage";
-  const storageTrustCopy = `${baseStorageCopy} Wiping a save leaves it in place. Use Remove saved key to delete it.`;
+  const keyPlaceholder = hasStoredGatewayKey
+    ? "Paste a new key to replace the saved one"
+    : "Paste your Vercel AI Gateway key";
   const hasPastedKey = pastedGatewayKey.trim().length > 0;
   const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === config.chatModel);
   const lockedReasoningLevel = selectedModel?.recommendedReasoningLevel ?? "off";
+  const advancedAddressNote = isUrlLocked
+    ? `Desktop uses ${DEFAULT_GATEWAY_BASE_URL}.`
+    : "Browser dev uses this address and stores the key in localStorage.";
 
   return (
     <div className="space-y-5">
       <section className="rounded-card border border-aura-rose/25 bg-white/70 p-5 shadow-cta ring-1 ring-white/60">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="max-w-2xl space-y-2">
-            <MutedLabel>api key intake</MutedLabel>
-            <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
-              Paste the Vercel AI Gateway key
-            </h3>
-            <p className="text-body leading-relaxed text-aura-muted">
-              Use the key from Vercel. Cupid saves it in {storageLocation}, then checks that date
-              simulation can reach Gateway.
-            </p>
-          </div>
-          <span className="rounded-pill bg-aura-ink px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">
-            cloud desk
-          </span>
+        <div className="space-y-1.5">
+          <MutedLabel>step 1</MutedLabel>
+          <h3 className="font-display text-display-sm font-semibold leading-tight tracking-tight text-aura-ink">
+            Add your API key
+          </h3>
+          <p className="text-body leading-relaxed text-aura-muted">
+            Get a key from your Vercel AI Gateway dashboard. Cupid saves it on this device and uses
+            it for every date.
+          </p>
         </div>
 
         <div className="mt-5 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
@@ -217,132 +230,114 @@ export function GatewaySetupTab({
           />
           <div className="flex flex-wrap gap-2 lg:justify-end">
             <GhostButton disabled={busy} onClick={onVerify}>
-              {isVerifying ? "Verifying" : hasPastedKey ? "Verify pasted key" : "Verify saved key"}
+              {isVerifying ? "Checking" : hasPastedKey ? "Check pasted key" : "Check saved key"}
             </GhostButton>
-            {hasStoredGatewayKey ? (
-              <GhostButton disabled={busy} onClick={onClearGatewayApiKey}>
-                Remove saved key
-              </GhostButton>
-            ) : null}
             <PrimaryButton disabled={busy} onClick={onSaveAndCheck}>
-              {isSaving ? "Verifying" : "Save and verify"}
+              {isSaving ? "Saving" : "Save and connect"}
             </PrimaryButton>
           </div>
         </div>
 
-        <p className="mt-3 rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
-          {hasStoredGatewayKey
-            ? `A saved key is already in ${storageLocation}. Paste a replacement only when rotating keys.`
-            : "Cupid will not book Gateway dates until this desk verifies."}
-        </p>
+        {hasStoredGatewayKey ? (
+          <p className="mt-3 text-label leading-relaxed text-aura-muted">
+            A key is already saved on this device. Paste a new one only to replace it.
+          </p>
+        ) : null}
+
         <SetupFeedback className="mt-3" saveError={saveError} saveHint={saveHint} />
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(21rem,0.64fr)]">
-        <FormSection label="gateway url" description={endpointDescription}>
-          <TextInput
-            label="gateway url"
-            value={config.gatewayBaseURL}
-            disabled={isUrlLocked}
-            onChange={(value) => onConfig({ gatewayBaseURL: value })}
-          />
-        </FormSection>
+      <FormSection
+        label="step 2"
+        title="Pick a chat model"
+        description="Cupid runs every date through this model. Cost is per date and shown next to each option."
+      >
+        <SelectInput
+          label="chat model"
+          value={config.chatModel}
+          options={GATEWAY_CHAT_MODELS.map((model) => ({
+            value: model.id,
+            label: model.label,
+            icon: gatewayModelIconForOption(model),
+            meta: <GatewayModelCostBadge model={model} />,
+          }))}
+          onChange={(value) => {
+            const nextModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
+            onConfig({
+              chatModel: value,
+              embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
+              reasoningLevel: nextModel?.recommendedReasoningLevel ?? "off",
+            });
+          }}
+        />
+      </FormSection>
 
-        <FormSection
-          label="model"
-          description="Pick a chat model. Gateway forwards each date request to that provider, and reasoning only applies where the provider accepts it."
-        >
-          <SelectInput
-            label="chat model"
-            value={config.chatModel}
-            options={GATEWAY_CHAT_MODELS.map((model) => ({
-              value: model.id,
-              label: model.label,
-              icon: gatewayModelIconForOption(model),
-              meta: <GatewayModelCostBadge model={model} />,
-            }))}
-            onChange={(value) => {
-              const selectedModel = GATEWAY_CHAT_MODELS.find((model) => model.id === value);
-              onConfig({
-                chatModel: value,
-                embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
-                reasoningLevel: selectedModel?.recommendedReasoningLevel ?? "off",
-              });
-            }}
-          />
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <ReadOnlyField
-              label="locked reasoning"
-              value={selectedModel?.reasoningSupported === true ? lockedReasoningLevel : "off"}
-            />
-            <ReadOnlyField
-              label="cost"
-              value={selectedModel === undefined ? "$ ?" : gatewayModelCostLabel(selectedModel.id)}
-            />
-          </div>
-          <div className="mt-4">
-            <ReadOnlyField label="embedding" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
-          </div>
-        </FormSection>
-      </div>
-
-      <div className="grid gap-3 lg:grid-cols-2">
-        <p className="rounded-tile border border-aura-amber/40 bg-aura-amber/10 px-3 py-2 text-label leading-relaxed text-aura-ink">
-          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
-            data flow ::
-          </span>{" "}
-          {GATEWAY_CLOUD_FLOW} Use this route only if you accept that date data leaves the machine.
-        </p>
-        <p className="rounded-tile border border-aura-hairline bg-white/55 px-3 py-2 text-label leading-relaxed text-aura-muted">
-          <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-            key storage ::
-          </span>{" "}
-          {storageTrustCopy}
-        </p>
-      </div>
+      <AdvancedDetails>
+        <TextInput
+          label="gateway server address"
+          value={config.gatewayBaseURL}
+          disabled={isUrlLocked}
+          onChange={(value) => onConfig({ gatewayBaseURL: value })}
+        />
+        <p className="text-label leading-relaxed text-aura-muted">{advancedAddressNote}</p>
+        <ReadOnlyField label="embedding model" value={DEFAULT_GATEWAY_EMBEDDING_MODEL} />
+        <ReadOnlyField
+          label="reasoning effort"
+          value={selectedModel?.reasoningSupported === true ? lockedReasoningLevel : "off"}
+        />
+        {hasStoredGatewayKey ? (
+          <button
+            type="button"
+            onClick={onClearGatewayApiKey}
+            disabled={busy}
+            className="cursor-pointer self-start rounded-pill border border-aura-hairline bg-white/65 px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-muted transition hover:border-aura-rose/40 hover:text-aura-rose disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Remove saved key
+          </button>
+        ) : null}
+      </AdvancedDetails>
     </div>
   );
 }
 
 function gatewayModelIconForOption(model: AiModelOption) {
-  if (model.iconLabel === undefined || model.iconTone === undefined) {
+  if (model.brand === undefined) {
     return undefined;
   }
 
-  return <GatewayModelIcon iconLabel={model.iconLabel} iconTone={model.iconTone} />;
+  return <GatewayModelBrandIcon brand={model.brand} />;
 }
 
-function GatewayModelIcon({
-  iconLabel,
-  iconTone,
-}: {
-  iconLabel: string;
-  iconTone: NonNullable<AiModelOption["iconTone"]>;
-}) {
+function GatewayModelBrandIcon({ brand }: { brand: AiModelBrand }) {
   return (
     <span
       aria-hidden="true"
-      className={`grid size-6 shrink-0 place-items-center rounded-chip border font-mono text-sm font-bold ${gatewayModelIconClass(
-        iconTone,
-      )}`}
+      className="grid size-6 shrink-0 place-items-center rounded-chip bg-white/80 ring-1 ring-aura-hairline"
     >
-      {iconLabel}
+      {renderBrandGlyph(brand)}
     </span>
   );
 }
 
-function gatewayModelIconClass(iconTone: NonNullable<AiModelOption["iconTone"]>): string {
-  const classes: Record<NonNullable<AiModelOption["iconTone"]>, string> = {
-    deepseek: "border-cyan-200 bg-cyan-50 text-cyan-700",
-    google: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    anthropic: "border-stone-200 bg-stone-50 text-stone-700",
-    minimax: "border-amber-200 bg-amber-50 text-amber-700",
-    qwen: "border-sky-200 bg-sky-50 text-sky-700",
-    zai: "border-lime-200 bg-lime-50 text-lime-700",
-    openai: "border-teal-200 bg-teal-50 text-teal-700",
-  };
+function renderBrandGlyph(brand: AiModelBrand) {
+  const size = 16;
 
-  return classes[iconTone];
+  switch (brand) {
+    case "deepseek":
+      return <DeepSeekColor size={size} />;
+    case "gemini":
+      return <GeminiColor size={size} />;
+    case "claude":
+      return <ClaudeColor size={size} />;
+    case "minimax":
+      return <MinimaxColor size={size} />;
+    case "qwen":
+      return <QwenColor size={size} />;
+    case "zhipu":
+      return <ZhipuColor size={size} />;
+    case "openai":
+      return <OpenAIMono size={size} />;
+  }
 }
 
 function GatewayModelCostBadge({ model }: { model: AiModelOption }) {

@@ -147,7 +147,7 @@ export function FinalReportFooter({
             target={followUpSectionRef}
             placement="top"
             title="File one follow-up"
-            body="Encourage if the file is warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs professional distance. Let It Sit if no action fits, but the shift will not close until every date has a follow-up on file."
+            body="Encourage if the file ran warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs distance. Let It Sit if nothing fits, but the shift won't close until every date has one on file."
             dismissLabel="Skip tour"
             onDismiss={followUpStep.dismiss}
           />

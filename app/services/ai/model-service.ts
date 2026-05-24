@@ -8,6 +8,7 @@ import {
   tool,
   type JSONValue,
   type ModelMessage,
+  type UserModelMessage,
 } from "ai";
 import {
   createOllama,
@@ -126,12 +127,16 @@ export type AiGenerationOptions = {
   topP?: number;
   topK?: number;
   numCtx?: number;
+  deepseekRoleplayThinking?: boolean;
 };
+
+type ModelGenerationOptions = Omit<AiGenerationOptions, "deepseekRoleplayThinking">;
 
 const DEFAULT_CHARACTER_GENERATION_OPTIONS: AiGenerationOptions = {
   temperature: 1,
   topP: 0.95,
   topK: 64,
+  deepseekRoleplayThinking: true,
 };
 
 export type AiRuntimeConfig = GameConfig & {
@@ -263,11 +268,17 @@ export async function generateCharacterTurn({
 }): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
+  const requestPacket = applyDeepSeekRoleplayThinkingMode({
+    packet,
+    config: runtimeConfig,
+    modelId: runtimeConfig.chatModel,
+    enabled: generationOptions.deepseekRoleplayThinking === true,
+  });
 
   return generateTextWithModelService({
-    system: packet.system,
-    prompt: packet.prompt,
-    messages: packet.messages,
+    system: requestPacket.system,
+    prompt: requestPacket.prompt,
+    messages: requestPacket.messages,
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
     ...withOptionalMaxOutputTokens(
@@ -299,11 +310,17 @@ export async function streamCharacterTurn({
 }): Promise<GeneratedTextResult> {
   const runtimeConfig = normalizeRuntimeConfig(config);
   const generationOptions = normalizeCharacterGenerationOptions(options);
+  const requestPacket = applyDeepSeekRoleplayThinkingMode({
+    packet,
+    config: runtimeConfig,
+    modelId: runtimeConfig.chatModel,
+    enabled: generationOptions.deepseekRoleplayThinking === true,
+  });
 
   return streamTextWithModelService({
-    system: packet.system,
-    prompt: packet.prompt,
-    messages: packet.messages,
+    system: requestPacket.system,
+    prompt: requestPacket.prompt,
+    messages: requestPacket.messages,
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
     ...withOptionalMaxOutputTokens(
@@ -568,7 +585,7 @@ async function generateTextWithModelService({
   modelId: string;
   config: AiRuntimeConfig;
   maxOutputTokens?: number;
-  generationOptions?: AiGenerationOptions;
+  generationOptions?: ModelGenerationOptions;
   tools?: CharacterToolHandlers;
 }): Promise<GeneratedTextResult> {
   try {
@@ -633,7 +650,7 @@ async function streamTextWithModelService({
   modelId: string;
   config: AiRuntimeConfig;
   maxOutputTokens?: number;
-  generationOptions?: AiGenerationOptions;
+  generationOptions?: ModelGenerationOptions;
   abortSignal?: AbortSignal;
   tools?: CharacterToolHandlers;
   onTextDelta: (delta: string) => Promise<void> | void;
@@ -895,6 +912,16 @@ type OllamaProvider = ReturnType<typeof createOllama>;
 type GatewayProvider = ReturnType<typeof createGateway>;
 type GatewayRuntimeProviderOptions = Record<string, Record<string, JSONValue>>;
 
+const DEEPSEEK_ROLEPLAY_THINKING_MARKER = [
+  "",
+  "【角色沉浸要求】在你的思考过程（<think>标签内）中，请遵守以下规则：",
+  "1. 隐藏思考过程应沉浸在角色中，用角色第一人称的内心状态分析剧情和规划回复",
+  "2. 这些要求只适用于隐藏思考过程，不得出现在最终回复中",
+  "3. 最终回复必须使用英文，只包含角色对对方说出口的话",
+  "4. 最终回复第一行必须直接以英文台词开始，不要输出中文、括号、动作描写、舞台指示、内心独白、说明文字或<think>标签",
+].join("\n");
+const DEEPSEEK_ROLEPLAY_THINKING_MARKER_HEADER = "【角色沉浸要求】";
+
 const PROVIDER_CACHE_LIMIT = 8;
 const ollamaProviderCache = new Map<string, OllamaProvider>();
 const gatewayProviderCache = new Map<string, { provider: GatewayProvider; apiKey: string }>();
@@ -1070,7 +1097,7 @@ function getOrCreateProvider<TProvider>(
 function createLanguageModel(
   modelId: string,
   config: AiRuntimeConfig,
-  options?: AiGenerationOptions,
+  options?: ModelGenerationOptions,
 ) {
   if (config.aiProvider === "gateway") {
     return getGatewayProvider(
@@ -1109,7 +1136,7 @@ function createEmbeddingModel(modelId: string, config: AiRuntimeConfig) {
 
 function createOllamaChatSettings(
   config: AiRuntimeConfig,
-  options?: AiGenerationOptions,
+  options?: ModelGenerationOptions,
   baseSettings: OllamaChatSettings = OLLAMA_BASE_CHAT_SETTINGS,
 ): OllamaChatSettings {
   const ollamaOptions: Partial<OllamaOptions> = {
@@ -1208,6 +1235,90 @@ export function providerOptionsForRuntime(
   }
 
   return undefined;
+}
+
+export function applyDeepSeekRoleplayThinkingMode({
+  packet,
+  config,
+  modelId,
+  enabled,
+}: {
+  packet: CharacterPromptPacket;
+  config: AiRuntimeConfig;
+  modelId: string;
+  enabled: boolean;
+}): CharacterPromptPacket {
+  if (!enabled || !isGatewayDeepSeekModel(config, modelId)) {
+    return packet;
+  }
+
+  if (packet.messages === undefined) {
+    return {
+      ...packet,
+      prompt: appendDeepSeekRoleplayThinkingMarker(packet.prompt),
+    };
+  }
+
+  const firstUserIndex = packet.messages.findIndex((message) => message.role === "user");
+
+  if (firstUserIndex === -1) {
+    return {
+      ...packet,
+      messages: [
+        ...packet.messages,
+        {
+          role: "user",
+          content: DEEPSEEK_ROLEPLAY_THINKING_MARKER.trim(),
+        },
+      ],
+    };
+  }
+
+  return {
+    ...packet,
+    messages: packet.messages.map((message, index) =>
+      index === firstUserIndex && message.role === "user"
+        ? appendDeepSeekRoleplayThinkingToUserMessage(message)
+        : message,
+    ),
+  };
+}
+
+function isGatewayDeepSeekModel(config: AiRuntimeConfig, modelId: string): boolean {
+  return config.aiProvider === "gateway" && providerIdFromGatewayModelId(modelId) === "deepseek";
+}
+
+function appendDeepSeekRoleplayThinkingToUserMessage(message: UserModelMessage): UserModelMessage {
+  return {
+    ...message,
+    content: appendDeepSeekRoleplayThinkingToUserContent(message.content),
+  };
+}
+
+function appendDeepSeekRoleplayThinkingToUserContent(
+  content: UserModelMessage["content"],
+): UserModelMessage["content"] {
+  if (typeof content === "string") {
+    return appendDeepSeekRoleplayThinkingMarker(content);
+  }
+
+  const textPartIndex = content.findIndex((part) => part.type === "text");
+
+  if (textPartIndex === -1) {
+    return [{ type: "text", text: DEEPSEEK_ROLEPLAY_THINKING_MARKER.trim() }, ...content];
+  }
+
+  return content.map((part, index) =>
+    index === textPartIndex && part.type === "text"
+      ? { ...part, text: appendDeepSeekRoleplayThinkingMarker(part.text) }
+      : part,
+  );
+}
+
+function appendDeepSeekRoleplayThinkingMarker(text: string): string {
+  return text.includes(DEEPSEEK_ROLEPLAY_THINKING_MARKER_HEADER)
+    ? text
+    : `${text}${DEEPSEEK_ROLEPLAY_THINKING_MARKER}`;
 }
 
 function scaledReasoningLevel(

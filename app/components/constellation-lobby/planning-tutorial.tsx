@@ -11,14 +11,18 @@ import {
   type CoachMarkFixedPosition,
 } from "../tutorial";
 import type { CathedralMode } from "./cathedral";
-import type { FlythroughLayer, ViewMode } from "./types";
+import { SCENARIO_FLYTHROUGH_LAYER, type FlythroughLayer, type ViewMode } from "./types";
 
 // Layer-anchored steps (focus, partner) pin to a top-right corner instead of
 // floating beside the bottom-left LayerIndicator. The indicator sits inside
 // the constellation field, and the default `placement="right"` popup landed
 // on top of focused star portraits. The pulse ring still highlights the real
 // pill; only the explanatory card moves to clear space.
-const LAYER_COACH_FIXED_POSITION: CoachMarkFixedPosition = { right: 24, top: 96 };
+//
+// `top: 160` sits the card (and its avatar peek, which extends ~24px above
+// rect.top) clear of the two-row contextual pill rail in the top-right
+// corner: row 1 ends near y=56, row 2 near y=100.
+const LAYER_COACH_FIXED_POSITION: CoachMarkFixedPosition = { right: 24, top: 160 };
 
 type AnchorKey =
   | "layerIndicatorRef"
@@ -33,27 +37,6 @@ type AnchorKey =
   | "contextualRailRef"
   | "dateBookPillRef"
   | "closureCalloutRef";
-
-type ButtonAnchor =
-  | "layerFocusRef"
-  | "layerRosterRef"
-  | "layerCathedralRef"
-  | "beginButtonRef"
-  | "fileShiftButtonRef"
-  | "dateBookPillRef";
-
-const BUTTON_ANCHORS = new Set<AnchorKey>([
-  "layerFocusRef",
-  "layerRosterRef",
-  "layerCathedralRef",
-  "beginButtonRef",
-  "fileShiftButtonRef",
-  "dateBookPillRef",
-]);
-
-function isButtonAnchor(key: AnchorKey): key is ButtonAnchor {
-  return BUTTON_ANCHORS.has(key);
-}
 
 export type PlanningTutorialRefs = {
   layerIndicatorRef: RefObject<HTMLDivElement | null>;
@@ -177,7 +160,9 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
     // to picking the room. The coach mark teaches the rail; using it is
     // their call.
     autoCompleteWhen: (c) =>
-      c.matchmakingIntent !== null || c.currentLayer === 2 || c.selectedScenarioId !== null,
+      c.matchmakingIntent !== null ||
+      c.currentLayer === SCENARIO_FLYTHROUGH_LAYER ||
+      c.selectedScenarioId !== null,
     render: {
       anchor: "intentRailRef",
       placement: "top",
@@ -191,9 +176,10 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
       c.focusId !== null &&
       c.partnerId !== null &&
       c.activeBooking === null &&
-      c.currentLayer < 2 &&
+      c.currentLayer < SCENARIO_FLYTHROUGH_LAYER &&
       c.inAutoMode,
-    autoCompleteWhen: (c) => c.currentLayer === 2 || c.selectedScenarioId !== null,
+    autoCompleteWhen: (c) =>
+      c.currentLayer === SCENARIO_FLYTHROUGH_LAYER || c.selectedScenarioId !== null,
     render: {
       anchor: "sideRailRef",
       placement: "left",
@@ -212,7 +198,7 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
       c.partnerId !== null &&
       c.activeBooking !== null &&
       c.selectedScenarioId === null &&
-      c.currentLayer === 2 &&
+      c.currentLayer === SCENARIO_FLYTHROUGH_LAYER &&
       c.inAutoMode,
     render: {
       anchor: "cathedralPanelRef",
@@ -264,14 +250,15 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
     category: "lazy",
     // Date book step fires the first time the player is back on auto mode
     // after deck editing unlocks. The coach mark anchors the Date book pill,
-    // which only exists on auto mode — gating on deck mode (the previous
-    // trigger) hid the coach mark behind its own unmount.
+    // which only exists on auto mode. Yields to lazy.contextual-rail so the
+    // broader pill overview lands first.
     shouldActivate: (c) => c.inAutoMode && c.dateBookEditingUnlocked,
     render: {
       anchor: "dateBookPillRef",
       placement: "left",
       pulseRing: { padding: 6, radius: 999 },
       hasPrimary: true,
+      suppressIfActive: "lazy.contextual-rail",
     },
   },
   {
@@ -327,6 +314,27 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
 
 export type PlanningTutorialSteps = Readonly<Record<TutorialCopyId, TutorialStepHandle>>;
 
+/**
+ * Iterates the module-frozen `PLANNING_STEPS` array and calls `useTutorialStep`
+ * per entry. Centralizing the loop here keeps the rules-of-hooks invariant
+ * (PLANNING_STEPS never reorders / shrinks between renders) confined to one
+ * documented helper. Adding a new step is: append to `PLANNING_STEPS` AND its
+ * copy entry in `TUTORIAL_COPY` together — both happen in the same edit, so
+ * the iteration order can't drift independently of the typed copy ids.
+ */
+function usePlanningStepHandles(
+  save: GameSave,
+  ctx: PlanningContext,
+  onUpdate: (next: GameSave) => void,
+): PlanningTutorialSteps {
+  const steps = {} as Record<TutorialCopyId, TutorialStepHandle>;
+  for (const config of PLANNING_STEPS) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    steps[config.id] = useTutorialStep(save, config.id, config.shouldActivate(ctx), onUpdate);
+  }
+  return steps;
+}
+
 export function usePlanningTutorial(input: {
   save: GameSave;
   shift: ShiftState;
@@ -373,19 +381,7 @@ export function usePlanningTutorial(input: {
     focusedCooling,
   };
 
-  // PLANNING_STEPS is a module-scope constant — iteration is stable across
-  // renders, so calling useTutorialStep in this loop satisfies the rules of
-  // hooks.
-  const steps = {} as Record<TutorialCopyId, TutorialStepHandle>;
-  for (const config of PLANNING_STEPS) {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    steps[config.id] = useTutorialStep(
-      input.save,
-      config.id,
-      config.shouldActivate(ctx),
-      input.onTutorialUpdate,
-    );
-  }
+  const steps = usePlanningStepHandles(input.save, ctx, input.onTutorialUpdate);
 
   // Auto-complete pass. The effect runs every render and checks each step's
   // optional autoCompleteWhen predicate; firing complete() on the matching
@@ -519,28 +515,16 @@ function StepOverlay({
 }) {
   const copy = tutorialCopy(config.id);
   const render = config.render;
-  const anchorKey = render.anchor;
-  const targetRef = refs[anchorKey];
+  const targetRef = refs[render.anchor];
   return (
     <>
       {render.pulseRing !== undefined ? (
-        isButtonAnchor(anchorKey) ? (
-          <TutorialPulseRing
-            target={refs[anchorKey]}
-            padding={render.pulseRing.padding}
-            radius={render.pulseRing.radius}
-            tone={render.pulseRing.tone}
-          />
-        ) : (
-          <TutorialPulseRing
-            target={
-              targetRef as RefObject<HTMLDivElement | null> | RefObject<HTMLButtonElement | null>
-            }
-            padding={render.pulseRing.padding}
-            radius={render.pulseRing.radius}
-            tone={render.pulseRing.tone}
-          />
-        )
+        <TutorialPulseRing
+          target={targetRef}
+          padding={render.pulseRing.padding}
+          radius={render.pulseRing.radius}
+          tone={render.pulseRing.tone}
+        />
       ) : null}
       {render.spotlight !== undefined ? (
         <TutorialSpotlight

@@ -125,7 +125,7 @@ export function LobbyHudLayer({
           layerRefs={{
             0: refs.layerFocusRef,
             1: refs.layerRosterRef,
-            2: refs.layerCathedralRef,
+            3: refs.layerCathedralRef,
           }}
         />
       ) : null}

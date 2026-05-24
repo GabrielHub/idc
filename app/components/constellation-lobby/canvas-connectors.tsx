@@ -94,3 +94,51 @@ export function PairConnector3D({ from, to }: { from: Vec3; to: Vec3 }) {
     />
   );
 }
+
+const PLANNING_EDGE_SEGMENTS = 28;
+const PLANNING_EDGE_BASE_OPACITY = 0.22;
+const PLANNING_EDGE_LINE_WIDTH = 1.3;
+const PLANNING_EDGE_ARC_AMOUNT = 0.08;
+
+export function PlanningPairEdge({
+  from,
+  to,
+  health,
+  highlighted,
+}: {
+  from: Vec3;
+  to: Vec3;
+  health: number;
+  highlighted: boolean;
+}) {
+  const { points, color } = useMemo(() => {
+    const fromVec = new THREE.Vector3(from.x, from.y, from.z);
+    const toVec = new THREE.Vector3(to.x, to.y, to.z);
+    const span = toVec.clone().sub(fromVec);
+    const length = Math.max(0.001, span.length());
+    const dir = span.clone().normalize();
+    const perp = new THREE.Vector3(-dir.y, dir.x, 0);
+    if (perp.lengthSq() < 1e-4) perp.set(0, 1, 0);
+    perp.normalize().multiplyScalar(length * PLANNING_EDGE_ARC_AMOUNT);
+    const mid = fromVec.clone().lerp(toVec, 0.5).add(perp);
+    const curve = new THREE.QuadraticBezierCurve3(fromVec, mid, toVec);
+    const sampled: THREE.Vector3[] = [];
+    for (let i = 0; i <= PLANNING_EDGE_SEGMENTS; i += 1) {
+      sampled.push(curve.getPoint(i / PLANNING_EDGE_SEGMENTS));
+    }
+    return { points: sampled, color: colorForHealth(health, highlighted) };
+  }, [from.x, from.y, from.z, to.x, to.y, to.z, health, highlighted]);
+
+  return (
+    <Line
+      points={points}
+      color={color}
+      lineWidth={highlighted ? PLANNING_EDGE_LINE_WIDTH * 1.8 : PLANNING_EDGE_LINE_WIDTH}
+      transparent
+      opacity={highlighted ? 0.65 : PLANNING_EDGE_BASE_OPACITY}
+      depthWrite={false}
+      toneMapped={false}
+      blending={THREE.AdditiveBlending}
+    />
+  );
+}

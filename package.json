@@ -19,6 +19,7 @@
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource/cinzel-decorative": "^5.2.8",
     "@fontsource/im-fell-english": "^5.2.6",
+    "@lobehub/icons": "^5.8.0",
     "@react-router/node": "7.14.0",
     "@react-router/serve": "7.14.0",
     "@react-three/drei": "^10.7.7",
