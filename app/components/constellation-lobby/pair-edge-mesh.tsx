@@ -184,11 +184,12 @@ function quadraticBezierPoint(p0: Vec3, p1: Vec3, p2: Vec3, t: number): THREE.Ve
 }
 
 /**
- * Health-driven color. PairBoardEdge.health is the relationship health stat,
- * roughly 0..100. Above 70 reads warm (rose, stable), 40-70 violet (steady),
- * below 40 amber (volatile). Hovered/selected edges shift slightly brighter.
+ * Health-driven color. relationshipHealth is roughly 0..100. Above 70 reads
+ * warm (rose, stable), 40-70 violet (steady), below 40 amber (volatile).
+ * Hovered/selected edges shift slightly brighter. Exported so the lobby's
+ * focus-partner spoke renderer can share the same palette as archive edges.
  */
-function colorForHealth(health: number, highlighted: boolean): string {
+export function colorForHealth(health: number, highlighted: boolean): string {
   if (health >= 70) return highlighted ? "#fda4af" : "#fb7185";
   if (health >= 40) return highlighted ? "#ddd6fe" : "#c4b5fd";
   return highlighted ? "#fcd34d" : "#f59e0b";

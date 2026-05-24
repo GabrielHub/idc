@@ -74,6 +74,10 @@ export type TutorialStepHandle = {
 };
 
 export function isRequiredTutorialStepId(id: TutorialStepId): boolean {
+  // planning.intent shares the `planning.` prefix but auto-completes on a
+  // single Got-it, so it shouldn't suppress manager quips (or any other
+  // consumer that gates on `useIsRequiredTutorialActive`) while showing.
+  if (id === "planning.intent") return false;
   return id.startsWith("onboarding.") || id.startsWith("planning.") || id.startsWith("date.");
 }
 

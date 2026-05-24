@@ -118,7 +118,7 @@ export function FinalReportFooter({
       className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
     >
       <div className="relative mx-auto w-full max-w-5xl">
-        <div className="aura-glass-strong pointer-events-auto grid w-full gap-4 rounded-card px-4 py-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-5 lg:px-6 lg:py-5">
+        <div className="aura-liquid-glass pointer-events-auto grid w-full gap-4 rounded-card px-4 py-4 text-aura-ink lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-5 lg:px-6 lg:py-5">
           <FinalReportSummarySection
             report={report}
             sentimentBadge={sentimentBadge}
@@ -249,7 +249,7 @@ function FinalReportFollowUpSection({
         )}
       </div>
       {filed === undefined ? (
-        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+        <div className="flex flex-col gap-1.5">
           {FOLLOW_UP_ORDER.map((action) => (
             <FollowUpActionButton
               key={action}
@@ -279,10 +279,10 @@ function FollowUpActionButton({
   const label = FOLLOW_UP_LABELS[action];
   const projection = FOLLOW_UP_PROJECTIONS[action];
   const baseClass =
-    "relative flex h-full w-full cursor-pointer items-center justify-center gap-1.5 rounded-pill px-2.5 py-2 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition disabled:cursor-not-allowed disabled:opacity-40";
+    "relative flex w-full cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition disabled:cursor-not-allowed disabled:opacity-40";
   const toneClass = isRecommended
     ? "bg-gradient-to-r from-aura-rose/15 via-aura-fuchsia/12 to-aura-violet/15 text-aura-rose ring-1 ring-aura-rose/45 hover:ring-aura-rose/70 hover:shadow-cta"
-    : "aura-glass text-aura-muted hover:text-aura-ink";
+    : "aura-liquid-glass text-aura-muted hover:text-aura-ink";
 
   return (
     <Tooltip message={projection} placement="top-center" className="w-full">
@@ -295,7 +295,7 @@ function FollowUpActionButton({
         className={`${baseClass} ${toneClass}`}
       >
         {isRecommended ? (
-          <svg viewBox="0 0 12 12" className="size-3 text-aura-rose" aria-hidden>
+          <svg viewBox="0 0 12 12" className="size-3 shrink-0 text-aura-rose" aria-hidden>
             <path
               d="M6 1.4 L7.4 4.6 L10.8 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.2 5 L4.6 4.6 Z"
               fill="currentColor"

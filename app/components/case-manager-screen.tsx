@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import type { GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import {
@@ -12,6 +12,7 @@ import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   type MemberRosterFilterState,
 } from "../services/member-roster-filter";
+import { useTutorialStep } from "../services/tutorial";
 import { AmbientMesh } from "./ambient-mesh";
 import { ReselectDock } from "./constellation-lobby/reselect-dock";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
@@ -23,6 +24,7 @@ import {
   type MemberCardState,
 } from "./member-card";
 import { RosterFilterBar, RosterFilterEmptyState } from "./roster-filter-bar";
+import { TutorialCoachMark, TutorialSpotlight } from "./tutorial";
 
 export type CaseManagerScreenProps = {
   members: Member[];
@@ -57,6 +59,8 @@ export function CaseManagerScreen({
     DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   );
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+  const swapPenaltyAnchorRef = useRef<HTMLElement | null>(null);
+  const swapPenaltyStep = useTutorialStep(save, "lazy.roster.swap-penalty", true, onTutorialUpdate);
 
   const draftSet = useMemo(() => new Set(draftIds), [draftIds]);
   const baselineSet = useMemo(() => new Set(baselineFocusedIds), [baselineFocusedIds]);
@@ -112,7 +116,7 @@ export function CaseManagerScreen({
       <AmbientMesh />
 
       <div className="relative mx-auto max-w-[88rem]">
-        <header className="mb-10 text-center">
+        <header ref={swapPenaltyAnchorRef} className="mb-10 text-center">
           <p className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose">
             // case.manager
           </p>
@@ -196,6 +200,22 @@ export function CaseManagerScreen({
           })}
         />
       )}
+
+      {swapPenaltyStep.active ? (
+        <>
+          <TutorialSpotlight target={swapPenaltyAnchorRef} padding={12} radius={20} />
+          <TutorialCoachMark
+            target={swapPenaltyAnchorRef}
+            placement="bottom"
+            title="Swapping costs retention"
+            body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, but also paperwork. Pick the next member to seal the swap.`}
+            primaryLabel="Got it"
+            onPrimary={swapPenaltyStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={swapPenaltyStep.dismiss}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

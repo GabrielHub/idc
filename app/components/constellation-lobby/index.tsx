@@ -27,20 +27,12 @@ import type {
   Member,
   ShiftState,
 } from "../../domain/game";
-import { starterScenarios } from "../../fixtures";
 import { dateBookEditingUnlocked } from "../../services/deck";
 import { makePairId } from "../../services/game-seed";
 import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
-import { NotesOverlay } from "./notes-overlay";
-import { ShiftArchiveOverlay } from "./shift-archive-overlay";
-import { ShiftSkipConfirm } from "./shift-skip-confirm";
-import { ClosurePanel } from "./closure-panel";
-import { CaseFilePanel } from "./case-file-panel";
-import { LensPanel } from "./lens-panel";
-import { CaseManagerScreen } from "../case-manager-screen";
 import { pickHeaviestAxisLevel } from "./deck-composition";
 import { buildLobbyStars } from "./star-model";
 import { useArchiveView } from "./use-archive-view";
@@ -54,9 +46,10 @@ import { useLobbyReselect } from "./use-lobby-reselect";
 import { useRosterFold } from "./use-roster-fold";
 import { useRosterKeyNavigation } from "./use-roster-key-navigation";
 import { useShiftFilingState } from "./use-shift-filing-state";
-import { PlanningTutorialOverlays, usePlanningTutorial } from "./planning-tutorial";
+import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
-import { CathedralScenarioDetail } from "./cathedral-scenario-detail";
+import { LobbyOverlays } from "./lobby-overlays";
+import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import type {
   ArchiveSelection,
   FlythroughLayer,
@@ -194,6 +187,7 @@ export function ConstellationLobby({
     activeBooking?.matchmakingIntent ?? null,
   );
   const previousPairSelectionKeyRef = useRef<string | null>(null);
+  const cathedralScrollRef = useRef<HTMLDivElement | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   /**
    * Flythrough layer the player has scrolled into. 0 = focus cases, 1 =
@@ -210,29 +204,6 @@ export function ConstellationLobby({
       readyClosurePairCount,
       pendingFollowUpCount,
     });
-  const {
-    refs: {
-      layerIndicatorRef,
-      layerFocusRef,
-      layerRosterRef,
-      layerCathedralRef,
-      sideRailRef,
-      cathedralPanelRef,
-      beginButtonRef,
-      fileShiftButtonRef,
-    },
-    steps: { focusStep, partnerStep, commitStep, scenarioStep, beginStep, fileShiftStep },
-  } = usePlanningTutorial({
-    save,
-    focusId,
-    partnerId,
-    activeBooking,
-    selectedScenarioId,
-    currentLayer,
-    shift,
-    fileShiftReady,
-    onTutorialUpdate,
-  });
   const [scenarioMode, setScenarioMode] = useState<ScenarioMode>("auto");
   /**
    * Roster-slab subview controls which cohort the constellation spotlights on
@@ -388,12 +359,48 @@ export function ConstellationLobby({
     librarySort,
     expandedDoorId,
   });
-  const dateBookLockedUntilFirstReport = !dateBookEditingUnlocked(save) && !deckRepairBlocked;
+  const dateBookEditingIsUnlocked = dateBookEditingUnlocked(save);
+  const dateBookLockedUntilFirstReport = !dateBookEditingIsUnlocked && !deckRepairBlocked;
   const dateBookDisabledReason = bookingLocked
     ? "Booking active. Edits unlock after the date resolves."
     : dateBookLockedUntilFirstReport
       ? "Date Book edits unlock after the first date report."
       : undefined;
+
+  const planningTutorial = usePlanningTutorial({
+    save,
+    shift,
+    focusedMembers,
+    focusId,
+    partnerId,
+    activeBooking,
+    matchmakingIntent,
+    selectedScenarioId,
+    currentLayer,
+    scenarioMode,
+    bookingLocked,
+    deckRepairBlocked,
+    dateBookEditingUnlocked: dateBookEditingIsUnlocked,
+    readyClosurePairCount,
+    fileShiftReady,
+    onTutorialUpdate,
+  });
+  const {
+    layerIndicatorRef,
+    layerFocusRef,
+    layerRosterRef,
+    layerCathedralRef,
+    sideRailRef,
+    intentRailRef,
+    cathedralPanelRef,
+    beginButtonRef,
+    fileShiftButtonRef,
+    contextualRailRef,
+    dateBookPillRef,
+    closureCalloutRef,
+  } = planningTutorial.refs;
+  const { focusStep, partnerStep, commitStep, scenarioStep, beginStep, fileShiftStep } =
+    planningTutorial.steps;
 
   useEffect(() => {
     if (scenarioMode !== "auto" || selectedScenarioId === null) return;
@@ -542,6 +549,22 @@ export function ConstellationLobby({
       reselectDraft,
     });
 
+  // Pair-mood lookup for the focus's eligible partners — relationshipHealth
+  // (0..100) keyed by partner id, used by the canvas to color the constellation
+  // spokes between the centered focus and each ringed partner. Untouched pairs
+  // (no persisted PairState) are simply absent from the map; the renderer
+  // falls back to a neutral midline so they still get a steady-violet spoke.
+  const pairMoodByPartnerId = useMemo(() => {
+    if (focusId === null || eligiblePartnerIds.size === 0) return undefined;
+    const pairStateById = new Map(save.pairStates.map((p) => [p.id, p] as const));
+    const map = new Map<string, number>();
+    for (const partnerId of eligiblePartnerIds) {
+      const pair = pairStateById.get(makePairId(focusId, partnerId));
+      if (pair !== undefined) map.set(partnerId, pair.stats.relationshipHealth);
+    }
+    return map;
+  }, [focusId, eligiblePartnerIds, save.pairStates]);
+
   const isOverlayOpen = modalOverlayOpen || openCaseMemberId !== null;
   useRosterKeyNavigation({
     viewMode,
@@ -621,6 +644,7 @@ export function ConstellationLobby({
     partnerId,
     activeBooking,
     eligiblePartnerIds,
+    shiftNumber: shift.shiftNumber,
     focusStep,
     partnerStep,
     onAddFocus,
@@ -756,26 +780,18 @@ export function ConstellationLobby({
   // the player isn't stranded outside the app shell.
   if (lobbyMode === "reselect" && reselectDraft !== null && reselectBaseline !== null) {
     return (
-      <div className="relative min-h-screen w-full text-aura-paper">
-        {chromeSlot === undefined ? null : (
-          <div className="pointer-events-none absolute left-6 top-5 z-50 flex items-center gap-2">
-            <div className="pointer-events-auto flex items-center gap-2">{chromeSlot}</div>
-          </div>
-        )}
-        <CaseManagerScreen
-          members={save.members}
-          save={save}
-          draftIds={reselectDraft}
-          baselineFocusedIds={reselectBaseline}
-          playerKnowledge={save.playerKnowledge}
-          isActionPending={isActionPending}
-          revealAllMemberDetails={revealAllMemberDetails}
-          onTutorialUpdate={onTutorialUpdate}
-          onToggleMember={toggleReselectMember}
-          onCancel={cancelReselect}
-          onConfirm={confirmReselect}
-        />
-      </div>
+      <ReselectCaseManagerView
+        chromeSlot={chromeSlot}
+        save={save}
+        draftIds={reselectDraft}
+        baselineFocusedIds={reselectBaseline}
+        isActionPending={isActionPending}
+        revealAllMemberDetails={revealAllMemberDetails}
+        onTutorialUpdate={onTutorialUpdate}
+        onToggleMember={toggleReselectMember}
+        onCancel={cancelReselect}
+        onConfirm={confirmReselect}
+      />
     );
   }
 
@@ -800,9 +816,11 @@ export function ConstellationLobby({
         onActiveStarChange={setActiveStarId}
         currentLayer={currentLayer}
         onLayerChange={setCurrentLayer}
+        cathedralScrollRef={cathedralScrollRef}
         focusedIds={focusedSet}
         offTonightSet={offTonightIds}
         rosterSubview={rosterSubview}
+        pairMoodByPartnerId={pairMoodByPartnerId}
         viewMode={viewMode}
         archiveData={
           viewMode === "archive" ? { positions: archivePositions, edges: archiveEdges } : undefined
@@ -828,8 +846,12 @@ export function ConstellationLobby({
             layerRosterRef,
             layerCathedralRef,
             sideRailRef,
+            intentRailRef,
             beginButtonRef,
             fileShiftButtonRef,
+            contextualRailRef,
+            dateBookPillRef,
+            closureCalloutRef,
           }}
           focus={focusStar}
           partner={partnerStar}
@@ -885,6 +907,7 @@ export function ConstellationLobby({
         onClose={scenarioMode === "auto" ? undefined : closeDateBook}
         reducedMotion={reducedMotion}
         containerRef={cathedralPanelRef}
+        scrollRef={cathedralScrollRef}
         deckBookShards={scenarioMode === "auto" ? undefined : deckBookShards}
         libraryFilter={
           scenarioMode === "library"
@@ -899,108 +922,64 @@ export function ConstellationLobby({
             : undefined
         }
       />
-      <CathedralScenarioDetail
-        scenario={expandedScenario}
-        mode={scenarioMode}
+      <LobbyOverlays
         save={save}
-        effectiveCosts={effectiveCosts}
-        bookingLocked={bookingLocked}
-        isActionPending={isActionPending}
-        onAddDeckCard={onAddDeckCard}
-        onRemoveDeckCard={onRemoveDeckCard}
-        onClose={() => setExpandedDoorId(null)}
-      />
-      <NotesOverlay
-        open={notesOverlay.open}
-        memories={save.memories}
-        members={save.members}
-        pairEdges={save.pairStates}
-        scenarios={starterScenarios}
-        playerKnowledge={save.playerKnowledge}
+        notesOverlay={notesOverlay}
         readyClosurePairIds={readyClosurePairIds}
-        initialPairFocusId={notesOverlay.pairFocusId}
-        onClose={closeNotesOverlay}
-      />
-      <ShiftArchiveOverlay
-        open={isShiftArchiveOpen}
-        shifts={save.shifts}
-        members={save.members}
-        onClose={() => setIsShiftArchiveOpen(false)}
-      />
-
-      <ClosurePanel
-        readyPair={closureReadyPair}
-        isActionPending={isActionPending}
-        errorMessage={closureErrorMessage}
-        queuePosition={closureReadyPairIndex < 0 ? undefined : closureReadyPairIndex + 1}
-        queueTotal={readyClosurePairs.length === 0 ? undefined : readyClosurePairs.length}
-        onPrevious={closureReadyPairIndex > 0 ? openPreviousClosure : undefined}
-        onNext={
-          closureReadyPairIndex >= 0 && closureReadyPairIndex < readyClosurePairs.length - 1
-            ? openNextClosure
-            : undefined
-        }
-        onClose={() => setClosurePairId(null)}
-        onConfirm={async (input) => {
-          const filed = await onClosePair?.(input);
-          if (filed === true) {
-            setClosurePairId(null);
-          }
+        closeNotesOverlay={closeNotesOverlay}
+        isShiftArchiveOpen={isShiftArchiveOpen}
+        setIsShiftArchiveOpen={setIsShiftArchiveOpen}
+        closure={{
+          readyPair: closureReadyPair,
+          errorMessage: closureErrorMessage,
+          queuePosition: closureReadyPairIndex < 0 ? undefined : closureReadyPairIndex + 1,
+          queueTotal: readyClosurePairs.length === 0 ? undefined : readyClosurePairs.length,
+          onPrevious: closureReadyPairIndex > 0 ? openPreviousClosure : undefined,
+          onNext:
+            closureReadyPairIndex >= 0 && closureReadyPairIndex < readyClosurePairs.length - 1
+              ? openNextClosure
+              : undefined,
+          onClose: () => setClosurePairId(null),
+          onConfirm: async (input) => {
+            const filed = await onClosePair?.(input);
+            if (filed === true) {
+              setClosurePairId(null);
+            }
+          },
         }}
-      />
-
-      <PlanningTutorialOverlays
-        steps={{ focusStep, partnerStep, commitStep, scenarioStep, beginStep, fileShiftStep }}
-        refs={{
-          layerIndicatorRef,
-          layerFocusRef,
-          layerRosterRef,
-          layerCathedralRef,
-          sideRailRef,
-          cathedralPanelRef,
-          beginButtonRef,
-          fileShiftButtonRef,
-        }}
+        planning={planningTutorial}
         viewMode={viewMode}
-      />
-
-      <LensPanel
-        isOpen={isLensOpen}
-        filterState={filterState}
-        matchCount={filteredMembers.length}
-        totalCount={save.members.length}
-        onChange={setFilterState}
-        onClose={() => setIsLensOpen(false)}
-      />
-
-      {openCaseMember === null ? null : (
-        <CaseFilePanel
-          member={openCaseMember}
-          playerKnowledge={save.playerKnowledge}
-          revealAllDetails={revealAllMemberDetails}
-          save={save}
-          isFocused={focusedSet.has(openCaseMember.id)}
-          status={
-            openCaseMember.state.status === "closed"
-              ? "closed"
-              : openCaseMember.state.status === "quit"
-                ? "quit"
-                : "active"
-          }
-          primaryAction={caseFilePrimaryAction}
-          onClose={() => setOpenCaseMemberId(null)}
-        />
-      )}
-
-      <ShiftSkipConfirm
-        open={skipShiftConfirmOpen}
+        lens={{
+          isOpen: isLensOpen,
+          filterState,
+          matchCount: filteredMembers.length,
+          totalCount: save.members.length,
+          onChange: setFilterState,
+          onClose: () => setIsLensOpen(false),
+        }}
+        openCaseMember={openCaseMember}
+        caseFilePrimaryAction={caseFilePrimaryAction}
+        revealAllMemberDetails={revealAllMemberDetails}
+        focusedSet={focusedSet}
+        closeCaseFile={() => setOpenCaseMemberId(null)}
+        skipShiftConfirmOpen={skipShiftConfirmOpen}
+        setSkipShiftConfirmOpen={setSkipShiftConfirmOpen}
         shiftNumber={shift.shiftNumber}
         isActionPending={isActionPending}
-        onCancel={() => setSkipShiftConfirmOpen(false)}
-        onConfirm={() => {
-          setSkipShiftConfirmOpen(false);
+        onCompleteShift={onCompleteShift}
+        onFileShiftTutorialComplete={() => {
           if (fileShiftStep.active) fileShiftStep.complete();
-          onCompleteShift?.();
+        }}
+        scenarioDetail={{
+          scenario: expandedScenario,
+          mode: scenarioMode,
+          save,
+          effectiveCosts,
+          bookingLocked,
+          isActionPending,
+          onAddDeckCard,
+          onRemoveDeckCard,
+          onClose: () => setExpandedDoorId(null),
         }}
       />
     </div>

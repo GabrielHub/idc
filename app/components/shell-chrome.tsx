@@ -4,6 +4,8 @@ export type RoomKey = "livedate";
 
 const CHROME_PILL_CLASS =
   "cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose";
+const DATE_CHROME_PILL_CLASS =
+  "aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-ink transition hover:text-aura-rose";
 
 export function ShellChrome({
   isDateViewActive,
@@ -44,8 +46,10 @@ export function ShellChrome({
   onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
   onOpenReleaseNotes: () => void;
 }) {
+  const chromePillClass = isDateViewActive ? DATE_CHROME_PILL_CLASS : CHROME_PILL_CLASS;
+  const chromeVariant = isDateViewActive ? "glass" : "cream";
   const punchOutButton = (
-    <button type="button" onClick={onPunchOut} data-sfx="click" className={CHROME_PILL_CLASS}>
+    <button type="button" onClick={onPunchOut} data-sfx="click" className={chromePillClass}>
       ← Punch out
     </button>
   );
@@ -55,7 +59,7 @@ export function ShellChrome({
     </span>
   );
   const aiStatusButton = (
-    <button type="button" onClick={onOpenAiSetup} data-sfx="click" className={CHROME_PILL_CLASS}>
+    <button type="button" onClick={onOpenAiSetup} data-sfx="click" className={chromePillClass}>
       ai · {aiStatusLabel}
     </button>
   );
@@ -67,6 +71,7 @@ export function ShellChrome({
       canUseDevMemberDetailsPreview={canUseDevMemberDetailsPreview}
       devRevealAllMemberDetails={devRevealAllMemberDetails}
       align={isDateViewActive ? "left" : "right"}
+      variant={chromeVariant}
       onOpenAiSetup={onOpenAiSetup}
       onReset={onReset}
       onResetOrientation={onResetOrientation}
@@ -86,7 +91,7 @@ export function ShellChrome({
       >
         {punchOutButton}
         {shiftLabel}
-        <MutedIndicator />
+        <MutedIndicator variant={chromeVariant} />
         {aiStatusButton}
         {settingsMenu}
       </div>
@@ -100,7 +105,7 @@ export function ShellChrome({
         {shiftLabel}
       </div>
       <div className="flex items-center gap-2">
-        <MutedIndicator />
+        <MutedIndicator variant={chromeVariant} />
         {aiStatusButton}
         {settingsMenu}
       </div>

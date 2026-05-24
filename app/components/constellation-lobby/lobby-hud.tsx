@@ -10,6 +10,7 @@ export function SideRail({
   focus,
   partner,
   intentSlot,
+  intentSlotRef,
   pairDossierSlot,
   containerRef,
   onClearFocus,
@@ -18,6 +19,7 @@ export function SideRail({
   focus: StarMark | undefined;
   partner: StarMark | undefined;
   intentSlot?: ReactNode;
+  intentSlotRef?: Ref<HTMLDivElement>;
   pairDossierSlot?: ReactNode;
   containerRef?: Ref<HTMLDivElement>;
   onClearFocus?: () => void;
@@ -50,7 +52,9 @@ export function SideRail({
         ) : null}
       </AnimatePresence>
       {intentSlot === undefined ? null : (
-        <div className="pointer-events-auto max-w-[44rem]">{intentSlot}</div>
+        <div ref={intentSlotRef} className="pointer-events-auto max-w-[44rem]">
+          {intentSlot}
+        </div>
       )}
       {pairDossierSlot === undefined ? null : (
         <div className="pointer-events-auto w-[280px]">{pairDossierSlot}</div>
@@ -246,7 +250,19 @@ export type Callout = {
   action?: { label: string; onClick: () => void };
 };
 
-export function CalloutCluster({ callouts }: { callouts: Callout[] }) {
+export function CalloutCluster({
+  callouts,
+  calloutRefs,
+}: {
+  callouts: Callout[];
+  /**
+   * Optional per-callout refs keyed by `callout.id`. Used by the planning
+   * tutorial to anchor coach marks on specific situational callouts (e.g.
+   * pointing at the closures-ready callout when a focused pair becomes
+   * closable for the first time).
+   */
+  calloutRefs?: Partial<Record<string, Ref<HTMLDivElement>>>;
+}) {
   if (callouts.length === 0) return null;
   return (
     <motion.div
@@ -257,13 +273,13 @@ export function CalloutCluster({ callouts }: { callouts: Callout[] }) {
       className="pointer-events-none absolute bottom-[120px] left-6 z-30 flex w-[360px] flex-col gap-3"
     >
       {callouts.map((callout) => (
-        <CalloutCard key={callout.id} callout={callout} />
+        <CalloutCard key={callout.id} callout={callout} cardRef={calloutRefs?.[callout.id]} />
       ))}
     </motion.div>
   );
 }
 
-function CalloutCard({ callout }: { callout: Callout }) {
+function CalloutCard({ callout, cardRef }: { callout: Callout; cardRef?: Ref<HTMLDivElement> }) {
   const toneSurface =
     callout.tone === "rose"
       ? "aura-liquid-glass-rose"
@@ -278,6 +294,7 @@ function CalloutCard({ callout }: { callout: Callout }) {
         : "text-white/65";
   return (
     <div
+      ref={cardRef}
       className={`pointer-events-auto aura-liquid-glass ${toneSurface} aura-liquid-glass-hover rounded-card px-5 py-4`}
     >
       <div className={`font-mono text-micro uppercase tracking-[0.18em] ${toneEyebrow}`}>

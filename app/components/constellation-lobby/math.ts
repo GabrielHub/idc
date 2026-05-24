@@ -124,17 +124,13 @@ function focusClusterPosition(index: number, total: number): Vec3 {
 
 /**
  * Pinned focus marker position when state === "focus_selected" and the
- * player has scrolled past the focus-picker layer. Without this, the focus
- * star sits at its random natural field position and the slab-activity
- * culling on the off-axis slab drops its opacity to 0 — the inline focus
- * pill (anchored to the focus star's render target) then projects off-
- * screen. Pinning to a top-center slot above the roster cluster keeps the
- * focus star and its pill visible, and gives the hover connector a stable
- * anchor for the focus → eligible-partner line. The z is overwritten by
- * the slab-z lookup in resolveStarRenderTarget — it lives on the focus
- * slab (z ≈ 6) at runtime, so the value here is a placeholder.
+ * player has scrolled past the focus-picker layer. Sits at world center so
+ * the eligible-partner ring (see `partnerRingPosition`) wraps around it as
+ * its own gravity well. The z is overwritten by the slab-z lookup in
+ * resolveStarRenderTarget — it lives on the focus slab (z ≈ 6) at runtime,
+ * so the value here is a placeholder.
  */
-export const FOCUS_MARKER_POSITION: Vec3 = { x: 0, y: 1.05, z: 0 };
+export const FOCUS_MARKER_POSITION: Vec3 = { x: 0, y: 0, z: 0 };
 
 /**
  * Scale multiplier applied to the focus star when it's pinned to the
@@ -150,6 +146,13 @@ export const FOCUS_MARKER_SCALE = 0.7;
  * focus cluster slot for a focused lead currently on layer 0, the layer-1
  * roster cluster slot for an eligible/off-tonight lead currently on layer
  * 1, or `null` to fall back to the star's natural field position.
+ *
+ * When state === "focus_selected" AND the player is in the "eligibles"
+ * subview, eligible partners arrange in a ring around the centered focus
+ * marker (`partnerRingPosition`) instead of the rectangular roster grid —
+ * the focus is the gravity well of its own constellation, partners orbit.
+ * Off-tonight subview keeps the grid (no focus context).
+ *
  * Archive mode bypasses clustering entirely — callers pass `inArchive` so
  * the helper can short-circuit instead of every callsite re-checking.
  */
@@ -162,6 +165,7 @@ export function resolveClusterPosition(input: {
   focusOrder: readonly string[];
   rosterLeadOrder: readonly string[];
   inArchive?: boolean;
+  rosterSubview?: RosterSubview;
 }): Vec3 | null {
   const {
     memberId,
@@ -172,6 +176,7 @@ export function resolveClusterPosition(input: {
     focusOrder,
     rosterLeadOrder,
     inArchive = false,
+    rosterSubview = "eligibles",
   } = input;
   if (inArchive) return null;
   if (role === "focus" && state === "focus_selected" && currentLayer === 1) {
@@ -183,9 +188,46 @@ export function resolveClusterPosition(input: {
   }
   if (flythroughLayer === 1 && currentLayer === 1 && rosterLeadOrder.length > 0) {
     const idx = rosterLeadOrder.indexOf(memberId);
-    if (idx >= 0) return rosterClusterPosition(idx, rosterLeadOrder.length);
+    if (idx >= 0) {
+      const useRing = state === "focus_selected" && rosterSubview === "eligibles";
+      return useRing
+        ? partnerRingPosition(idx, rosterLeadOrder.length)
+        : rosterClusterPosition(idx, rosterLeadOrder.length);
+    }
   }
   return null;
+}
+
+/**
+ * Radial ring layout for eligible partners orbiting the focused member.
+ * The focus pins at (0, 0); partners arrange at equal angles on a circle
+ * around it, starting at the top (-π/2) and walking clockwise so the
+ * visual order matches the deterministic rosterLeadOrder iteration.
+ *
+ * The ring radius scales mildly with partner count — a 3-partner ring sits
+ * tighter than a 9-partner one so single-row counts don't drift outside the
+ * viewport while large rosters still have breathing room between halos.
+ * Tuned so the top/bottom slots fit inside the layer-1 camera's vertical
+ * frustum (camera z=11 → roster slab z=-1.5 = 12.5 units of distance, half
+ * vFOV 19° gives ~4.3 world units of half-height before partners clip).
+ */
+const PARTNER_RING_BASE_RADIUS = 3.0;
+const PARTNER_RING_PER_PARTNER = 0.12;
+const PARTNER_RING_MAX_RADIUS = 4.0;
+
+export function partnerRingPosition(index: number, total: number): Vec3 {
+  if (total <= 0) return { x: 0, y: 0, z: 0 };
+  const clamped = Math.max(0, Math.min(index, total - 1));
+  const radius = Math.min(
+    PARTNER_RING_MAX_RADIUS,
+    PARTNER_RING_BASE_RADIUS + total * PARTNER_RING_PER_PARTNER,
+  );
+  const angle = -Math.PI / 2 + (clamped / total) * Math.PI * 2;
+  return {
+    x: Math.cos(angle) * radius,
+    y: Math.sin(angle) * -radius,
+    z: 0,
+  };
 }
 
 /**

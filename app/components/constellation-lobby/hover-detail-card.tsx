@@ -17,12 +17,19 @@ export type HoverDetailCardProps = {
   snippet?: string;
   fileNumber?: string;
   heightInInches?: number;
-  statusBadge?: "active" | "focus" | "closed" | "quit";
+  statusBadge?: "active" | "focus" | "closed" | "quit" | "cooling";
   swapPenalty?: number;
   ctaVariant?: HoverDetailCtaVariant;
   onPrimaryAction?: () => void;
   onOpenCase?: () => void;
   recentNotesSlot?: ReactNode;
+  /**
+   * Optional one-line reason text shown under the action buttons. Used to
+   * explain why the primary CTA is unavailable (e.g. the member is still in
+   * cooldown from the prior shift), so the player learns the rule from the
+   * picker instead of from a post-commit error toast.
+   */
+  blockReason?: string;
 };
 
 const MORPH_PORTRAIT_FINAL_SIZE_PX = 48;
@@ -48,6 +55,7 @@ export function HoverDetailCard({
   onPrimaryAction,
   onOpenCase,
   recentNotesSlot,
+  blockReason,
 }: HoverDetailCardProps) {
   const { member, palette } = star;
   const resolvedSnippet = snippet ?? profileSnippetFor(member);
@@ -59,12 +67,16 @@ export function HoverDetailCard({
     if (statusBadge === "closed") return "case closed";
     if (statusBadge === "quit") return "membership cancelled";
     if (statusBadge === "focus") return "focus case";
+    if (statusBadge === "cooling") return "in cooldown";
     return null;
   })();
   const statusPillClass = (() => {
     if (statusBadge === "closed") return "bg-emerald-500/15 text-emerald-200 ring-emerald-300/30";
     if (statusBadge === "quit") return "bg-rose-500/15 text-rose-200 ring-rose-300/30";
     if (statusBadge === "focus") return "bg-aura-rose/85 text-aura-paper ring-aura-rose/40";
+    // Pale pink mirrors the star's cooling halo (#fecdd3) on the canvas so
+    // the badge reads as the same status, not a new concept.
+    if (statusBadge === "cooling") return "bg-rose-200/20 text-rose-100 ring-rose-200/40";
     return "";
   })();
 
@@ -261,6 +273,11 @@ export function HoverDetailCard({
           {ctaVariant === "swap_into_focus" && swapPenalty !== undefined ? (
             <p className="mt-2 text-center font-mono text-micro uppercase tracking-[0.18em] text-rose-200">
               Dropped case loses {swapPenalty} retention
+            </p>
+          ) : null}
+          {blockReason !== undefined ? (
+            <p className="mt-2 text-center font-mono text-micro uppercase tracking-[0.18em] text-rose-200">
+              {blockReason}
             </p>
           ) : null}
         </motion.div>

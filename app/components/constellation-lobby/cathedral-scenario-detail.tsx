@@ -39,12 +39,7 @@ export function CathedralScenarioDetail({
   return (
     <CathedralDetailOverlay
       open={true}
-      title={scenario.title}
-      venue={scenario.publicBrief.location}
-      summary={scenario.card.summary}
-      riskLabel={scenario.card.risk}
-      intimacyLabel={scenario.card.intimacy}
-      chaosLabel={scenario.card.chaos}
+      scenario={scenario}
       cost={detail.effectiveCost}
       eyebrow={detail.eyebrow}
       cta={detail.cta}

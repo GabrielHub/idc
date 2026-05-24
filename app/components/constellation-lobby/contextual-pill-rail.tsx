@@ -28,6 +28,8 @@ export function ContextualPillRail({
   onToggleArchive,
   onClearArchiveSelection,
   fileShiftButtonRef,
+  containerRef,
+  dateBookPillRef,
 }: {
   scenarioMode: CathedralMode;
   bookingLocked: boolean;
@@ -51,6 +53,8 @@ export function ContextualPillRail({
   onToggleArchive: () => void;
   onClearArchiveSelection: (() => void) | undefined;
   fileShiftButtonRef?: Ref<HTMLButtonElement>;
+  containerRef?: Ref<HTMLDivElement>;
+  dateBookPillRef?: Ref<HTMLButtonElement>;
 }) {
   const inArchive = viewMode === "archive";
   const dateBookActive = !inArchive && scenarioMode !== "auto";
@@ -103,10 +107,14 @@ export function ContextualPillRail({
   ];
 
   return (
-    <div className="pointer-events-none absolute right-6 top-5 z-30 flex flex-col items-end gap-2">
+    <div
+      ref={containerRef}
+      className="pointer-events-none absolute right-6 top-5 z-30 flex flex-col items-end gap-2"
+    >
       <div className="pointer-events-auto flex flex-wrap items-start justify-end gap-2">
         {inArchive ? null : (
           <button
+            ref={dateBookPillRef}
             type="button"
             onClick={onToggleDateBook}
             disabled={bookingLocked || dateBookDisabledReason !== undefined}

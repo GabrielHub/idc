@@ -96,7 +96,7 @@ function ModalShell({
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
-        className={`aura-glass-strong relative w-full ${widthClass} overflow-hidden rounded-card`}
+        className={`aura-liquid-glass relative w-full ${widthClass} overflow-hidden rounded-card text-aura-ink`}
       >
         <ModalCloseButton onClose={onClose} label={closeLabel} sfx="dismiss" />
         <div className="relative flex flex-col gap-6 px-7 py-7 lg:px-9 lg:py-8">{children}</div>

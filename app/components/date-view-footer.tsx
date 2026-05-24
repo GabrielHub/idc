@@ -9,6 +9,7 @@ import {
   MAX_NUDGES_PER_DATE,
 } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { EASE_OUT_QUART, Tooltip } from "./dashboard-atoms";
 import { StatusGauges } from "./date-view-gauges";
 import {
@@ -89,6 +90,7 @@ export function DateFooter({
   const statusGaugesRef = useRef<HTMLDivElement | null>(null);
   const transportClusterRef = useRef<HTMLDivElement | null>(null);
   const nudgeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const cutShortButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const footerHealthStep = useTutorialStep(save, "date.footer.health", true, onTutorialUpdate);
   const footerTransportStep = useTutorialStep(
@@ -111,6 +113,15 @@ export function DateFooter({
     pauseRequested,
   });
   const cutShortButtonEnabled = cutShortStatus.enabled;
+  const cutShortStep = useTutorialStep(
+    save,
+    "lazy.cut-short",
+    cutShortStatus.kind === "ready",
+    onTutorialUpdate,
+  );
+  const footerHealthCopy = tutorialCopy("date.footer.health");
+  const footerTransportCopy = tutorialCopy("date.footer.transport");
+  const cutShortCopy = tutorialCopy("lazy.cut-short");
 
   // Conditions can flip from parent state, so close the composer when it stops being valid.
   useEffect(() => {
@@ -205,7 +216,7 @@ export function DateFooter({
         className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
       >
         <div className="relative mx-auto w-full max-w-3xl">
-          <div className="peer aura-glass-strong pointer-events-auto flex w-full items-stretch gap-3 rounded-card px-3 py-2.5 lg:gap-5 lg:px-5 lg:py-3">
+          <div className="peer aura-liquid-glass pointer-events-auto flex w-full items-stretch gap-3 rounded-card px-3 py-2.5 text-aura-ink lg:gap-5 lg:px-5 lg:py-3">
             <StatusGauges
               dateHealth={session.dateHealth}
               displayedCurrentTurn={displayedCurrentTurn}
@@ -237,12 +248,16 @@ export function DateFooter({
               cutShortStatus={cutShortStatus}
               pendingDateAction={pendingDateAction}
               containerRef={transportClusterRef}
+              cutButtonRef={cutShortButtonRef}
               onAdvance={(count) => {
                 if (footerTransportStep.active) footerTransportStep.complete();
                 onAdvance(count);
               }}
               onCancel={onCancel}
-              onCutShort={openCutShortConfirm}
+              onCutShort={() => {
+                if (cutShortStep.active) cutShortStep.complete();
+                openCutShortConfirm();
+              }}
               onTogglePlayback={() => {
                 if (footerTransportStep.active) footerTransportStep.complete();
                 togglePlayback();
@@ -304,11 +319,11 @@ export function DateFooter({
           <TutorialCoachMark
             target={statusGaugesRef}
             placement="top"
-            title="Health, Turn, Cupid, Nudges"
-            body="Health is the date. Turn counts toward the wrap. Cupid files a read every sixth. Nudges are your three whispers. Scenes appear once you draft them."
-            stepIndex={0}
-            stepCount={2}
-            primaryLabel="Got it"
+            title={footerHealthCopy.title}
+            body={footerHealthCopy.body}
+            stepIndex={footerHealthCopy.stepIndex}
+            stepCount={footerHealthCopy.stepCount}
+            primaryLabel={footerHealthCopy.primaryLabel}
             onPrimary={footerHealthStep.complete}
             dismissLabel="Skip tour"
             onDismiss={footerHealthStep.dismiss}
@@ -322,10 +337,10 @@ export function DateFooter({
           <TutorialCoachMark
             target={transportClusterRef}
             placement="top"
-            title="Run the date"
-            body="Tap play for autoplay, or advance one beat at a time. Pause whenever you want to whisper a nudge or drop a scene. Space toggles play."
-            stepIndex={1}
-            stepCount={2}
+            title={footerTransportCopy.title}
+            body={footerTransportCopy.body}
+            stepIndex={footerTransportCopy.stepIndex}
+            stepCount={footerTransportCopy.stepCount}
             dismissLabel="Skip tour"
             onDismiss={footerTransportStep.dismiss}
           />
@@ -347,6 +362,25 @@ export function DateFooter({
             }}
             dismissLabel="Skip tour"
             onDismiss={nudgeComposeStep.dismiss}
+          />
+        </>
+      ) : null}
+
+      {!footerHealthStep.active &&
+      !footerTransportStep.active &&
+      !nudgeComposeStep.active &&
+      cutShortStep.active ? (
+        <>
+          <TutorialPulseRing target={cutShortButtonRef} padding={6} radius={18} tone="amber" />
+          <TutorialCoachMark
+            target={cutShortButtonRef}
+            placement="top"
+            title={cutShortCopy.title}
+            body={cutShortCopy.body}
+            primaryLabel={cutShortCopy.primaryLabel}
+            onPrimary={cutShortStep.complete}
+            dismissLabel="Skip tour"
+            onDismiss={cutShortStep.dismiss}
           />
         </>
       ) : null}
@@ -442,7 +476,7 @@ function DirectorSlate({
       <div
         role="status"
         aria-label="Pause filed. Finishing this beat."
-        className="aura-glass-strong inline-flex items-center gap-2 rounded-pill border border-aura-amber/35 px-3.5 py-1.5"
+        className="aura-liquid-glass aura-liquid-glass-amber inline-flex items-center gap-2 rounded-pill px-3.5 py-1.5"
       >
         <span aria-hidden className="inline-flex items-center gap-1">
           <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/55 [animation-delay:0ms]" />
@@ -461,7 +495,7 @@ function DirectorSlate({
       <div
         role="status"
         aria-label="Held. Paused for direction."
-        className="aura-glass-rose inline-flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2.5 rounded-pill px-3.5 py-1.5 lg:max-w-3xl"
+        className="aura-liquid-glass aura-liquid-glass-rose inline-flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2.5 rounded-pill px-3.5 py-1.5 lg:max-w-3xl"
       >
         <span className="inline-flex items-center gap-1.5">
           <span className="aura-pulse size-1.5 rounded-full bg-aura-rose" />
@@ -494,7 +528,7 @@ function DirectorSlate({
     <div
       role="status"
       aria-label={rollingCopy}
-      className="aura-glass-strong inline-flex items-center gap-2 rounded-pill border border-aura-violet/25 px-3.5 py-1.5"
+      className="aura-liquid-glass aura-liquid-glass-violet inline-flex items-center gap-2 rounded-pill px-3.5 py-1.5"
     >
       <span aria-hidden className="inline-flex items-center gap-1">
         <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/55 [animation-delay:0ms]" />
@@ -587,6 +621,7 @@ function TransportCluster({
   cutShortStatus,
   pendingDateAction,
   containerRef,
+  cutButtonRef,
   onAdvance,
   onCancel,
   onCutShort,
@@ -601,6 +636,7 @@ function TransportCluster({
   cutShortStatus: CutShortStatus;
   pendingDateAction: PendingDateAction | null;
   containerRef?: React.Ref<HTMLDivElement>;
+  cutButtonRef?: React.Ref<HTMLButtonElement>;
   onAdvance: (turnCount: 1 | 2) => void;
   onCancel: () => void;
   onCutShort: () => void;
@@ -628,6 +664,7 @@ function TransportCluster({
               disabled={!cutShortStatus.enabled || cutShortBusy}
               onClick={onCutShort}
               ariaLabel={cutShortStatus.buttonAriaLabel}
+              buttonRef={cutButtonRef}
             >
               <CutShortIcon />
             </TransportButton>
@@ -684,12 +721,14 @@ function TransportButton({
   onClick,
   disabled,
   ariaLabel,
+  buttonRef,
 }: {
   kind: TransportButtonKind;
   children: React.ReactNode;
   onClick: () => void;
   disabled: boolean;
   ariaLabel: string;
+  buttonRef?: React.Ref<HTMLButtonElement>;
 }) {
   const baseClass =
     "relative grid size-10 cursor-pointer place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-40";
@@ -697,6 +736,7 @@ function TransportButton({
   const sfxCue = TRANSPORT_BUTTON_SFX[kind];
   return (
     <button
+      ref={buttonRef}
       type="button"
       data-sfx={sfxCue}
       onClick={onClick}

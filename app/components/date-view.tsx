@@ -339,7 +339,7 @@ function DateHeader({
 
   return (
     <header data-date-header className={`${positionClass} z-20`}>
-      <div className="group aura-glass pointer-events-auto flex max-w-full items-center gap-2.5 rounded-pill px-2 py-1.5 transition-[gap,padding] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:gap-3 hover:px-3 lg:gap-3 lg:py-2 lg:hover:gap-4 lg:hover:px-4">
+      <div className="group aura-liquid-glass pointer-events-auto flex max-w-full items-center gap-2.5 rounded-pill px-2 py-1.5 text-aura-ink transition-[gap,padding] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:gap-3 hover:px-3 lg:gap-3 lg:py-2 lg:hover:gap-4 lg:hover:px-4">
         {canLeaveStage ? (
           <>
             <button

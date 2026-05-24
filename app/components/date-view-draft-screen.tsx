@@ -177,10 +177,10 @@ export function DraftScreen({
                         aria-pressed={selected}
                         disabled={isActionPending}
                         onClick={() => togglePick(event.id)}
-                        className={`aura-glass-lift flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`aura-liquid-glass aura-liquid-glass-hover flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           selected
-                            ? "aura-glass-strong cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
-                            : "aura-glass cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
+                            ? "aura-liquid-glass-rose cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
+                            : "cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-3">

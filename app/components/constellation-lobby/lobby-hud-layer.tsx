@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, type Ref } from "react";
 
 import {
   isMemberRosterFilterActive,
@@ -61,8 +61,12 @@ export function LobbyHudLayer({
     | "layerRosterRef"
     | "layerCathedralRef"
     | "sideRailRef"
+    | "intentRailRef"
     | "beginButtonRef"
     | "fileShiftButtonRef"
+    | "contextualRailRef"
+    | "dateBookPillRef"
+    | "closureCalloutRef"
   >;
   focus: StarMark | undefined;
   partner: StarMark | undefined;
@@ -121,12 +125,16 @@ export function LobbyHudLayer({
         focus={focus}
         partner={partner}
         intentSlot={intentSlot}
+        intentSlotRef={refs.intentRailRef}
         pairDossierSlot={pairDossierSlot}
         containerRef={refs.sideRailRef}
         onClearFocus={onClearFocus}
         onClearPartner={onClearPartner}
       />
-      <CalloutCluster callouts={[...callouts]} />
+      <CalloutCluster
+        callouts={[...callouts]}
+        calloutRefs={{ "closures-ready": refs.closureCalloutRef as Ref<HTMLDivElement> }}
+      />
       <BottomDock
         state={lobbyState}
         selectedScenarioId={selectedScenarioId}
@@ -159,6 +167,8 @@ export function LobbyHudLayer({
         onClearArchiveSelection={onClearArchiveSelection}
         archiveSelectionActive={archiveSelectionActive}
         fileShiftButtonRef={refs.fileShiftButtonRef}
+        containerRef={refs.contextualRailRef}
+        dateBookPillRef={refs.dateBookPillRef}
       />
     </>
   );

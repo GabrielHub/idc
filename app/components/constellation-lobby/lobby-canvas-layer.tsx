@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import { Suspense, type RefObject } from "react";
 import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -30,9 +30,11 @@ export function LobbyCanvasLayer({
   onActiveStarChange,
   currentLayer,
   onLayerChange,
+  cathedralScrollRef,
   focusedIds,
   offTonightSet,
   rosterSubview,
+  pairMoodByPartnerId,
   viewMode,
   archiveData,
   archiveSelection,
@@ -54,9 +56,16 @@ export function LobbyCanvasLayer({
   onActiveStarChange: (id: string | null) => void;
   currentLayer: FlythroughLayer;
   onLayerChange: (layer: FlythroughLayer) => void;
+  cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   focusedIds: ReadonlySet<string>;
   offTonightSet: ReadonlySet<string>;
   rosterSubview: RosterSubview;
+  /**
+   * Per-eligible-partner pair mood (relationshipHealth, 0..100) keyed by
+   * partner member id. Drives the constellation spokes from the focus to
+   * each ringed eligible. Optional — undefined falls back to neutral colors.
+   */
+  pairMoodByPartnerId?: ReadonlyMap<string, number>;
   viewMode: ViewMode;
   archiveData?: {
     positions: ReadonlyMap<string, Vec3>;
@@ -107,9 +116,11 @@ export function LobbyCanvasLayer({
             onActiveStarChange={onActiveStarChange}
             currentLayer={currentLayer}
             onLayerChange={disableScrollLayerNav ? undefined : onLayerChange}
+            cathedralScrollRef={cathedralScrollRef}
             focusedIds={focusedIds}
             offTonightSet={offTonightSet}
             rosterSubview={rosterSubview}
+            pairMoodByPartnerId={pairMoodByPartnerId}
             viewMode={viewMode}
             archiveData={archiveData}
             archiveSelection={archiveSelection}

@@ -1,11 +1,8 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 
 import type { GameSave, ShiftState } from "../../domain/game";
-import {
-  canBeFocusCase,
-  FOCUS_CASE_LIMIT,
-  FOCUS_SWAP_RETENTION_PENALTY,
-} from "../../services/focus-cases";
+import { FOCUS_CASE_LIMIT, FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
+import { resolveFocusSelectionAffordance } from "../../services/focus-selection-affordance";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
 import type { TutorialStepHandle } from "../../services/tutorial";
 import { caseFileNumber } from "../member-card-atoms";
@@ -21,6 +18,7 @@ export function useHoverCardRenderer({
   partnerId,
   activeBooking,
   eligiblePartnerIds,
+  shiftNumber,
   focusStep,
   partnerStep,
   onAddFocus,
@@ -36,6 +34,13 @@ export function useHoverCardRenderer({
   partnerId: string | null;
   activeBooking: ShiftState["activeBooking"] | null;
   eligiblePartnerIds: ReadonlySet<string>;
+  /**
+   * Active shift number, used to evaluate `isMemberInCooldown(member, …)`.
+   * Cooldown blocks Make-lead / Make-focus from the card so the engine's
+   * post-commit throw at `commitDateBooking` never has to be the first
+   * signal the player sees.
+   */
+  shiftNumber: number;
   focusStep: TutorialStepHandle;
   partnerStep: TutorialStepHandle;
   onAddFocus: ((memberId: string) => void) | undefined;
@@ -53,24 +58,25 @@ export function useHoverCardRenderer({
       const isFocused = focusedSet.has(member.id);
       const status = member.state.status;
       const slotsFull = save.focusedMemberIds.length >= FOCUS_CASE_LIMIT;
-      const eligibleForFocus = canBeFocusCase(member);
+      const focusAffordance = resolveFocusSelectionAffordance({
+        member,
+        focused: isFocused,
+        focusId,
+        partnerId,
+        activeBooking,
+        shiftNumber,
+      });
       const isPartnerCandidate =
         focusId !== null &&
         partnerId === null &&
         member.id !== focusId &&
         status === "active" &&
         eligiblePartnerIds.has(member.id);
-      const isFocusPickable =
-        isFocused &&
-        status === "active" &&
-        member.id !== focusId &&
-        partnerId === null &&
-        activeBooking === null;
 
       let ctaVariant: HoverDetailCtaVariant = "view_case";
       let onPrimaryAction: (() => void) | undefined = undefined;
 
-      if (isFocusPickable) {
+      if (focusAffordance.canMakeLead) {
         ctaVariant = "make_lead";
         onPrimaryAction = () => {
           if (focusStep.active) focusStep.complete();
@@ -87,7 +93,12 @@ export function useHoverCardRenderer({
           setPartnerId(member.id);
           setActiveStarId(null);
         };
-      } else if (!eligibleForFocus) {
+      } else if (!focusAffordance.eligibleForFocus) {
+        ctaVariant = "view_case";
+        onPrimaryAction = () => openCaseAndDismiss(member.id);
+      } else if (focusAffordance.inCooldown) {
+        // Roster star whose member is cooling. Don't offer Make focus — view
+        // the file instead. The block reason copy below explains the gate.
         ctaVariant = "view_case";
         onPrimaryAction = () => openCaseAndDismiss(member.id);
       } else if (slotsFull) {
@@ -106,27 +117,19 @@ export function useHoverCardRenderer({
               };
       }
 
-      const statusBadge: "active" | "focus" | "closed" | "quit" =
-        status === "closed"
-          ? "closed"
-          : status === "quit"
-            ? "quit"
-            : isFocused
-              ? "focus"
-              : "active";
-
       return (
         <HoverDetailCard
           star={star}
           snippet={profile.publicFragments[0] ?? "Profile reads on file."}
           fileNumber={caseFileNumber(member.id)}
           heightInInches={member.characterHeightInInches}
-          statusBadge={statusBadge}
+          statusBadge={focusAffordance.statusBadge}
           swapPenalty={ctaVariant === "swap_into_focus" ? FOCUS_SWAP_RETENTION_PENALTY : undefined}
           ctaVariant={ctaVariant}
           onPrimaryAction={onPrimaryAction}
           onOpenCase={() => openCaseAndDismiss(member.id)}
           recentNotesSlot={<RecentNotesSlot memberId={member.id} memories={save.memories} />}
+          blockReason={focusAffordance.blockReason}
         />
       );
     },
@@ -141,6 +144,7 @@ export function useHoverCardRenderer({
       partnerId,
       activeBooking,
       eligiblePartnerIds,
+      shiftNumber,
       openCaseAndDismiss,
       focusStep,
       partnerStep,

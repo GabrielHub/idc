@@ -1620,7 +1620,8 @@ async function createLocalAiFinalSession({
       memories: memoriesWithClosureNearMiss,
       warningMessages: [],
     };
-  } catch {
+  } catch (error) {
+    console.warn("AI memory filing fell back to deterministic case note", error);
     const fallbackMemoryId = `memory-${session.id}-ai-fallback`;
     const completedSession = finalizeDateSession({
       session,

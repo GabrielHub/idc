@@ -40,7 +40,7 @@ export function ShiftReportPanel({
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: EASE_OUT_QUART }}
-        className="aura-glass-strong mx-6 w-full max-w-2xl rounded-card p-10"
+        className="aura-glass-strong mx-6 w-full max-w-4xl rounded-card p-10"
       >
         <Eyebrow>{`// shift.${pad2(shift.shiftNumber)} closed`}</Eyebrow>
         <h2 className="mt-3 font-display text-display-lg font-semibold tracking-tight text-aura-ink">
