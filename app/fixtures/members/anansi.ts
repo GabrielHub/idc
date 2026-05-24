@@ -44,10 +44,6 @@ export const anansi: Member = {
   shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register: "warm plain, quietly performing",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "negotiation_sales_pitch",
       "deadpan_one_liner",

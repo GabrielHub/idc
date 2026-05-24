@@ -1,13 +1,11 @@
-import { createElement } from "react";
-import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
 import { gameSaveSchema, memberSchema, type Member } from "../../domain/game";
 import { DEFAULT_MEMBER_ROSTER_FILTER_STATE } from "../../services/member-roster-filter";
 import { createSeedGameSave, getActiveShift } from "../../services/game-seed";
-import { useRosterFold } from "./use-roster-fold";
+import { deriveRosterFold } from "./roster-fold";
 
-describe("useRosterFold", () => {
+describe("deriveRosterFold", () => {
   it("limits eligible partners to active, non-focused, non-cooling members on the shift slate", () => {
     const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const shift = {
@@ -34,7 +32,13 @@ describe("useRosterFold", () => {
       shifts: seed.shifts.map((candidate) => (candidate.id === shift.id ? shift : candidate)),
     });
 
-    const fold = renderRosterFold({ save, shift: getActiveShift(save) });
+    const fold = deriveRosterFold({
+      save,
+      shift: getActiveShift(save),
+      filterState: DEFAULT_MEMBER_ROSTER_FILTER_STATE,
+      revealAllMemberDetails: false,
+      readyClosureMemberIds: undefined,
+    });
 
     expect([...fold.eligiblePartnerIds]).toEqual(["alex-yoon"]);
     expect(fold.eligiblePartnerIds.has("sienna-bae")).toBe(false);
@@ -44,30 +48,6 @@ describe("useRosterFold", () => {
     expect(fold.eligiblePartnerIds.has("venus")).toBe(false);
   });
 });
-
-function renderRosterFold(
-  overrides: Pick<Parameters<typeof useRosterFold>[0], "save" | "shift">,
-): ReturnType<typeof useRosterFold> {
-  let fold: ReturnType<typeof useRosterFold> | undefined;
-
-  function Probe() {
-    fold = useRosterFold({
-      ...overrides,
-      filterState: DEFAULT_MEMBER_ROSTER_FILTER_STATE,
-      revealAllMemberDetails: false,
-      readyClosureMemberIds: undefined,
-    });
-    return null;
-  }
-
-  renderToString(createElement(Probe));
-
-  if (fold === undefined) {
-    throw new Error("Expected roster fold to render.");
-  }
-
-  return fold;
-}
 
 function withState(member: Member, state: Partial<Member["state"]>): Member {
   return memberSchema.parse({

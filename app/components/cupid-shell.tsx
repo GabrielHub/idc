@@ -6,6 +6,7 @@ import {
   SAVE_SCHEMA_VERSION,
   type DateFinalReport,
   type DateScenario,
+  type DateSessionStatus,
   type FollowUpAction,
   type GameConfig,
   type GameSave,
@@ -46,6 +47,7 @@ import {
   startNextShift,
   togglePlayback,
   triggerScenarioEvent,
+  type DateEngineResult,
 } from "../services/date-engine";
 import { addCardToDeck, removeCardFromDeck } from "../services/deck";
 import { applyDevSeed, clearDevSeedQueryParam, readDevSeedRequest } from "../services/dev-seeds";
@@ -184,6 +186,10 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const sessionManagerQuipIdsRef = useRef<Set<string>>(new Set());
   const [save, setSave] = useState<GameSave | null>(null);
   const saveRef = useRef<GameSave | null>(null);
+  // Inline assignment during render so getSave() sees the current save in the
+  // same tick as a setSave call. A useEffect-based update lags by one render
+  // and would let async closure handlers read a stale snapshot.
+  saveRef.current = save;
   const [currentRoom, setCurrentRoom] = useState<RoomKey>("livedate");
   const [activeDateSessionId, setActiveDateSessionId] = useState<string | null>(null);
   const [interventionText, setInterventionText] = useState("");
@@ -280,10 +286,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       mounted = false;
     };
   }, []);
-
-  useEffect(() => {
-    saveRef.current = save;
-  }, [save]);
 
   useEffect(() => {
     let mounted = true;
@@ -535,8 +537,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         ? {}
         : { managerQuipHistory: latestManagerQuipHistory }),
     };
-    saveRef.current = saveToPersist;
     await repository.saveGame(saveToPersist);
+    saveRef.current = saveToPersist;
     setSave(saveToPersist);
   }
 
@@ -609,6 +611,28 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     const triggerKey = OUTCOME_QUIP_TRIGGER_KEYS[report.outcome];
     if (triggerKey === undefined) return;
     dispatchManagerQuip({ triggerKey, surfaceKey: sessionId });
+  }
+
+  function dispatchPostDateQuips(input: {
+    previousStatus: DateSessionStatus;
+    previousSave: GameSave;
+    result: DateEngineResult;
+  }): void {
+    const { previousStatus, previousSave, result } = input;
+    const sessionId = result.session.id;
+    const transitionTrigger: ManagerQuipTriggerKey | null =
+      previousStatus === "active" && result.session.status === "completed"
+        ? "date.ended"
+        : previousStatus === "active" && result.session.status === "ended_early"
+          ? "date.ended-early"
+          : null;
+    if (transitionTrigger !== null) {
+      dispatchManagerQuip({ triggerKey: transitionTrigger, surfaceKey: sessionId });
+      dispatchOutcomeQuip(result.session.finalReport, sessionId);
+      dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
+      play("report");
+    }
+    processManagerQuipSaveDiff(previousSave, result.save);
   }
 
   function dispatchBrittleTrajectoryIfChanged(
@@ -819,19 +843,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           (event) => applyStreamEvent(event),
         );
         await persist(result.save);
-        const nextStatus = result.session.status;
-        if (previousStatus === "active" && nextStatus === "completed") {
-          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        } else if (previousStatus === "active" && nextStatus === "ended_early") {
-          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        }
-        processManagerQuipSaveDiff(previousSave, result.save);
+        dispatchPostDateQuips({ previousStatus, previousSave, result });
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
           setNoticeMessage(result.warningMessages[0] ?? null);
@@ -874,19 +886,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           (event) => applyStreamEvent(event),
         );
         await persist(result.save);
-        const nextStatus = result.session.status;
-        if (previousStatus === "active" && nextStatus === "completed") {
-          dispatchManagerQuip({ triggerKey: "date.ended", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        } else if (previousStatus === "active" && nextStatus === "ended_early") {
-          dispatchManagerQuip({ triggerKey: "date.ended-early", surfaceKey: sessionId });
-          dispatchOutcomeQuip(result.session.finalReport, sessionId);
-          dispatchBrittleTrajectoryIfChanged(previousSave, result.save, result.session.pairId);
-          play("report");
-        }
-        processManagerQuipSaveDiff(previousSave, result.save);
+        dispatchPostDateQuips({ previousStatus, previousSave, result });
         setActiveDateSessionId(result.session.id);
         if (result.warningMessages.length > 0) {
           setNoticeMessage(result.warningMessages[0] ?? null);
@@ -1409,6 +1409,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onRemoveDeckCard={handleRemoveDeckCard}
                       onClosePair={handleClosePair}
                       closureErrorMessage={closureErrorMessage}
+                      onDismissClosureError={resetClosureError}
                       onDeckOverBudgetBlocked={() =>
                         dispatchManagerQuip({
                           triggerKey: "datebook.commit.over-budget",

@@ -1361,8 +1361,8 @@ function buildMemberChatPrompt(input: MemberChatPlaygroundInput): {
     `Dealbreakers: ${member.dealbreakers.join("; ")}`,
     `Interdimensional framing: ${memberRealityFrame(member)}`,
     `Voice register: ${member.voice.register}`,
-    `Comedy mechanics: ${formatVoiceFieldList(member.voice.comedyMechanics)}`,
-    `Member-specific output constraints: ${formatVoiceFieldList(member.voice.outputConstraints)}`,
+    `Comedy mechanics: ${formatVoiceFieldList(member.voice.comedyMechanics ?? [])}`,
+    `Member-specific output constraints: ${formatVoiceFieldList(member.voice.outputConstraints ?? [])}`,
     formatMemberConversationShapes(member),
     formatMemberContrastExamples(member),
     `Comedic flavors that can color a reply when natural: ${formatVoicePatterns(member.voice.patternsUsed)}`,
@@ -1435,11 +1435,12 @@ function formatVoiceFieldList(items: readonly string[]): string {
 }
 
 function formatMemberConversationShapes(member: Member): string {
-  if (member.voice.conversationShape.length === 0) {
+  const conversationShape = member.voice.conversationShape ?? [];
+  if (conversationShape.length === 0) {
     return "Member-specific conversation shape examples: None authored.";
   }
 
-  const examples = member.voice.conversationShape.map((example, index) => {
+  const examples = conversationShape.map((example, index) => {
     const turns = example.turns
       .map(
         (turn) => `${turn.speaker === "member" ? member.firstName : "Other person"}: ${turn.text}`,
@@ -1452,11 +1453,12 @@ function formatMemberConversationShapes(member: Member): string {
 }
 
 function formatMemberContrastExamples(member: Member): string {
-  if (member.voice.contrastExamples.length === 0) {
+  const contrastExamples = member.voice.contrastExamples ?? [];
+  if (contrastExamples.length === 0) {
     return "Voice contrast examples: None authored.";
   }
 
-  const examples = member.voice.contrastExamples.map((example, index) => {
+  const examples = contrastExamples.map((example, index) => {
     const because = example.because === undefined ? "" : ` because ${example.because}`;
     return `${index + 1}. preferred "${example.preferred}" instead of "${example.tempting}"${because}`;
   });

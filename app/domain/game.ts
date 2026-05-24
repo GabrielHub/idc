@@ -134,10 +134,10 @@ const memberVoiceGuidanceSchema = z.string().min(1).max(360);
 
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),
-  comedyMechanics: z.array(memberVoiceGuidanceSchema).max(8).default([]),
-  outputConstraints: z.array(memberVoiceGuidanceSchema).max(12).default([]),
-  conversationShape: z.array(memberConversationShapeExampleSchema).max(3).default([]),
-  contrastExamples: z.array(memberContrastExampleSchema).max(3).default([]),
+  comedyMechanics: z.array(memberVoiceGuidanceSchema).max(8).optional(),
+  outputConstraints: z.array(memberVoiceGuidanceSchema).max(12).optional(),
+  conversationShape: z.array(memberConversationShapeExampleSchema).max(3).optional(),
+  contrastExamples: z.array(memberContrastExampleSchema).max(3).optional(),
   patternsUsed: z.array(voicePatternSchema).min(1).max(4),
   patternsRefused: z.array(voicePatternSchema).min(2),
   tics: z.array(z.string().min(1)).min(3).max(7),

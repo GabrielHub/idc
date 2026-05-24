@@ -51,10 +51,6 @@ export const baiWenshu: Member = {
   voice: {
     register:
       "performed cultivator with native manosphere-podcast corruption leaks. Unbroken commitment to the persona, no winking. Pop-philosophy delivered with the gravitas of revealed truth. Under pressure, manosphere phrasing surfaces as if the vocabulary is yours, not quoted. You catch each leak and re-flourish; the recovery is the joke.",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "corrupted_romance",
       "poetic_literary",

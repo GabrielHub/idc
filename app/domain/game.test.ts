@@ -82,7 +82,7 @@ describe("game domain schemas", () => {
     );
   });
 
-  it("defaults structured voice fields on legacy member voices", () => {
+  it("accepts member voices without the optional structured fields", () => {
     const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const legacyMembers = save.members.map((member) => {
       const {
@@ -108,10 +108,10 @@ describe("game domain schemas", () => {
       throw new Error("Expected seed members.");
     }
 
-    expect(firstMember.voice.comedyMechanics).toEqual([]);
-    expect(firstMember.voice.outputConstraints).toEqual([]);
-    expect(firstMember.voice.conversationShape).toEqual([]);
-    expect(firstMember.voice.contrastExamples).toEqual([]);
+    expect(firstMember.voice.comedyMechanics).toBeUndefined();
+    expect(firstMember.voice.outputConstraints).toBeUndefined();
+    expect(firstMember.voice.conversationShape).toBeUndefined();
+    expect(firstMember.voice.contrastExamples).toBeUndefined();
   });
 
   it("defaults judge agreement and open loop proposals", () => {

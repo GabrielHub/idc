@@ -44,10 +44,6 @@ export const meiSato: Member = {
   shiftAvailabilityProfile: "career_locked",
   voice: {
     register: "bright rapid sincere",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "rambling_spiral",
       "negotiation_sales_pitch",

@@ -1,8 +1,8 @@
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 import type { GameSave, MatchmakingIntent, Member, ShiftState } from "../../domain/game";
 import { isMemberInCooldown } from "../../services/shift-planning";
-import { tutorialCopy } from "../../services/tutorial-copy";
+import { tutorialCopy, type TutorialCopyId } from "../../services/tutorial-copy";
 import { useTutorialStep, type TutorialStepHandle } from "../../services/tutorial";
 import {
   TutorialCoachMark,
@@ -20,6 +20,41 @@ import type { FlythroughLayer, ViewMode } from "./types";
 // pill; only the explanatory card moves to clear space.
 const LAYER_COACH_FIXED_POSITION: CoachMarkFixedPosition = { right: 24, top: 96 };
 
+type AnchorKey =
+  | "layerIndicatorRef"
+  | "layerFocusRef"
+  | "layerRosterRef"
+  | "layerCathedralRef"
+  | "sideRailRef"
+  | "intentRailRef"
+  | "cathedralPanelRef"
+  | "beginButtonRef"
+  | "fileShiftButtonRef"
+  | "contextualRailRef"
+  | "dateBookPillRef"
+  | "closureCalloutRef";
+
+type ButtonAnchor =
+  | "layerFocusRef"
+  | "layerRosterRef"
+  | "layerCathedralRef"
+  | "beginButtonRef"
+  | "fileShiftButtonRef"
+  | "dateBookPillRef";
+
+const BUTTON_ANCHORS = new Set<AnchorKey>([
+  "layerFocusRef",
+  "layerRosterRef",
+  "layerCathedralRef",
+  "beginButtonRef",
+  "fileShiftButtonRef",
+  "dateBookPillRef",
+]);
+
+function isButtonAnchor(key: AnchorKey): key is ButtonAnchor {
+  return BUTTON_ANCHORS.has(key);
+}
+
 export type PlanningTutorialRefs = {
   layerIndicatorRef: RefObject<HTMLDivElement | null>;
   layerFocusRef: RefObject<HTMLButtonElement | null>;
@@ -35,41 +70,264 @@ export type PlanningTutorialRefs = {
   closureCalloutRef: RefObject<HTMLDivElement | null>;
 };
 
-export type PlanningTutorialSteps = {
-  layerNavStep: TutorialStepHandle;
-  focusStep: TutorialStepHandle;
-  partnerStep: TutorialStepHandle;
-  intentStep: TutorialStepHandle;
-  commitStep: TutorialStepHandle;
-  scenarioStep: TutorialStepHandle;
-  beginStep: TutorialStepHandle;
-  fileShiftStep: TutorialStepHandle;
-  contextualRailStep: TutorialStepHandle;
-  dateBookStep: TutorialStepHandle;
-  cooldownBlockStep: TutorialStepHandle;
-  closureReadyStep: TutorialStepHandle;
-  dateBookLockedStep: TutorialStepHandle;
-  dateBookRepairStep: TutorialStepHandle;
+/**
+ * Per-step render config. The overlay layer uses this to compose pulse rings,
+ * spotlights, and coach marks consistently without each step rolling its own
+ * JSX.
+ */
+type StepRender = {
+  anchor: AnchorKey;
+  placement: "right" | "left" | "top" | "bottom";
+  fixedPosition?: CoachMarkFixedPosition;
+  pulseRing?: { padding: number; radius: number; tone?: "amber" };
+  spotlight?: { padding: number; radius: number };
+  hasPrimary?: boolean;
+  /** When this id is also active, this step yields. */
+  suppressIfActive?: TutorialCopyId;
 };
 
-export function usePlanningTutorial({
-  save,
-  shift,
-  focusedMembers,
-  focusId,
-  partnerId,
-  activeBooking,
-  matchmakingIntent,
-  selectedScenarioId,
-  currentLayer,
-  scenarioMode,
-  bookingLocked,
-  deckRepairBlocked,
-  dateBookEditingUnlocked,
-  readyClosurePairCount,
-  fileShiftReady,
-  onTutorialUpdate,
-}: {
+/**
+ * Gating context shared by every step's `shouldActivate` and
+ * `autoCompleteWhen` predicate. Derived once per render so the predicates can
+ * stay tiny.
+ */
+type PlanningContext = {
+  inAutoMode: boolean;
+  focusId: string | null;
+  partnerId: string | null;
+  activeBooking: ShiftState["activeBooking"] | null;
+  matchmakingIntent: MatchmakingIntent | null;
+  selectedScenarioId: string | null;
+  currentLayer: FlythroughLayer;
+  bookingLocked: boolean;
+  deckRepairBlocked: boolean;
+  dateBookEditingUnlocked: boolean;
+  readyClosurePairCount: number;
+  fileShiftReady: boolean;
+  shiftActive: boolean;
+  focusedCooling: boolean;
+};
+
+type PlanningStepConfig = {
+  id: TutorialCopyId;
+  category: "required" | "lazy";
+  shouldActivate: (ctx: PlanningContext) => boolean;
+  /** Optional auto-completion predicate — fires `complete()` when true. */
+  autoCompleteWhen?: (ctx: PlanningContext) => boolean;
+  render: StepRender;
+};
+
+/**
+ * The whole planning tutorial as data. Adding a new step is: append to this
+ * array (with copy in `TUTORIAL_COPY`) and add a ref to the refs bag. The
+ * hook and the renderer pick up the new step automatically.
+ *
+ * Required-path ordering is the safety net for transient overlaps: the
+ * renderer takes the first active "required" step and dormant the rest.
+ */
+const PLANNING_STEPS: readonly PlanningStepConfig[] = [
+  {
+    id: "planning.layer-nav",
+    category: "required",
+    shouldActivate: (c) => c.focusId === null && c.activeBooking === null && c.inAutoMode,
+    render: {
+      anchor: "layerIndicatorRef",
+      placement: "right",
+      fixedPosition: LAYER_COACH_FIXED_POSITION,
+      pulseRing: { padding: 10, radius: 28 },
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "planning.focus",
+    category: "required",
+    shouldActivate: (c) =>
+      c.focusId === null &&
+      c.inAutoMode &&
+      // Defer to layer-nav until it completes — focus is the next step on the
+      // required path. The original hook chained on `layerNavStep.done`, but
+      // since the renderer's `requiredOverlays.find(Boolean)` only ever shows
+      // one card at a time, this gate is functionally equivalent.
+      true,
+    render: {
+      anchor: "layerFocusRef",
+      placement: "right",
+      fixedPosition: LAYER_COACH_FIXED_POSITION,
+      pulseRing: { padding: 6, radius: 999 },
+    },
+  },
+  {
+    id: "planning.partner",
+    category: "required",
+    shouldActivate: (c) => c.focusId !== null && c.partnerId === null && c.inAutoMode,
+    render: {
+      anchor: "layerRosterRef",
+      placement: "right",
+      fixedPosition: LAYER_COACH_FIXED_POSITION,
+      pulseRing: { padding: 6, radius: 999 },
+    },
+  },
+  {
+    id: "planning.intent",
+    category: "required",
+    shouldActivate: (c) =>
+      c.focusId !== null && c.partnerId !== null && c.activeBooking === null && c.inAutoMode,
+    // Intent is optional — auto-complete the moment the player files any
+    // intent (so we don't tail them with "pick an intent" copy) or moves on
+    // to picking the room. The coach mark teaches the rail; using it is
+    // their call.
+    autoCompleteWhen: (c) =>
+      c.matchmakingIntent !== null || c.currentLayer === 2 || c.selectedScenarioId !== null,
+    render: {
+      anchor: "intentRailRef",
+      placement: "top",
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "planning.commit",
+    category: "required",
+    shouldActivate: (c) =>
+      c.focusId !== null &&
+      c.partnerId !== null &&
+      c.activeBooking === null &&
+      c.currentLayer < 2 &&
+      c.inAutoMode,
+    autoCompleteWhen: (c) => c.currentLayer === 2 || c.selectedScenarioId !== null,
+    render: {
+      anchor: "sideRailRef",
+      placement: "left",
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "planning.scenario",
+    category: "required",
+    // Gate on inAutoMode like every sibling planning step. Without it the
+    // coach-mark fires over the deck/library cathedral too, where library
+    // clicks open the detail overlay for adding to the deck rather than
+    // picking tonight's scenario — the copy "open one to lock it" no longer
+    // matches what the cards actually do.
+    shouldActivate: (c) =>
+      c.partnerId !== null &&
+      c.activeBooking !== null &&
+      c.selectedScenarioId === null &&
+      c.currentLayer === 2 &&
+      c.inAutoMode,
+    render: {
+      anchor: "cathedralPanelRef",
+      placement: "top",
+      spotlight: { padding: 12, radius: 28 },
+    },
+  },
+  {
+    id: "planning.begin",
+    category: "required",
+    shouldActivate: (c) =>
+      c.partnerId !== null &&
+      c.selectedScenarioId !== null &&
+      c.activeBooking !== null &&
+      c.inAutoMode,
+    render: {
+      anchor: "beginButtonRef",
+      placement: "top",
+      pulseRing: { padding: 6, radius: 999 },
+    },
+  },
+  {
+    id: "planning.file-shift",
+    category: "required",
+    shouldActivate: (c) => c.shiftActive && c.fileShiftReady && c.inAutoMode,
+    render: {
+      anchor: "fileShiftButtonRef",
+      placement: "bottom",
+      pulseRing: { padding: 6, radius: 999, tone: "amber" },
+    },
+  },
+  // Lazy / edge-case steps. None of these block the required path — they
+  // gate on situations the player may or may not run into (cooldown, repair,
+  // closure ready, locked deck). Each fires at most once per save.
+  {
+    id: "lazy.contextual-rail",
+    category: "lazy",
+    // Wait until the player has settled on a focus so this doesn't pile on
+    // top of the layer-nav / focus intro. After that, fire on any layer.
+    shouldActivate: (c) => c.focusId !== null && c.activeBooking === null && c.inAutoMode,
+    render: {
+      anchor: "contextualRailRef",
+      placement: "left",
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "lazy.date-book",
+    category: "lazy",
+    // Date book step fires the first time the player is back on auto mode
+    // after deck editing unlocks. The coach mark anchors the Date book pill,
+    // which only exists on auto mode — gating on deck mode (the previous
+    // trigger) hid the coach mark behind its own unmount.
+    shouldActivate: (c) => c.inAutoMode && c.dateBookEditingUnlocked,
+    render: {
+      anchor: "dateBookPillRef",
+      placement: "left",
+      pulseRing: { padding: 6, radius: 999 },
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "lazy.cooldown-block",
+    category: "lazy",
+    shouldActivate: (c) =>
+      c.focusedCooling && c.currentLayer === 0 && c.activeBooking === null && c.inAutoMode,
+    render: {
+      anchor: "layerFocusRef",
+      placement: "right",
+      fixedPosition: LAYER_COACH_FIXED_POSITION,
+      pulseRing: { padding: 6, radius: 999, tone: "amber" },
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "lazy.closure-ready",
+    category: "lazy",
+    shouldActivate: (c) => c.readyClosurePairCount > 0 && c.activeBooking === null && c.inAutoMode,
+    render: {
+      anchor: "closureCalloutRef",
+      placement: "right",
+      hasPrimary: true,
+    },
+  },
+  // Repair takes precedence over locked: both gate on the Date book pill, but
+  // a repair-blocked deck is the more urgent ask. `dateBookLocked.render`
+  // sets `suppressIfActive: "lazy.datebook.repair"` so it yields cleanly.
+  {
+    id: "lazy.datebook.repair",
+    category: "lazy",
+    shouldActivate: (c) => c.deckRepairBlocked && c.inAutoMode,
+    render: {
+      anchor: "dateBookPillRef",
+      placement: "left",
+      pulseRing: { padding: 6, radius: 999, tone: "amber" },
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "lazy.datebook.locked",
+    category: "lazy",
+    shouldActivate: (c) =>
+      c.bookingLocked && c.dateBookEditingUnlocked && !c.deckRepairBlocked && c.inAutoMode,
+    render: {
+      anchor: "dateBookPillRef",
+      placement: "left",
+      hasPrimary: true,
+      suppressIfActive: "lazy.datebook.repair",
+    },
+  },
+];
+
+export type PlanningTutorialSteps = Readonly<Record<TutorialCopyId, TutorialStepHandle>>;
+
+export function usePlanningTutorial(input: {
   save: GameSave;
   shift: ShiftState;
   focusedMembers: Member[];
@@ -88,136 +346,79 @@ export function usePlanningTutorial({
   onTutorialUpdate: (next: GameSave) => void;
 }): { refs: PlanningTutorialRefs; steps: PlanningTutorialSteps } {
   // Almost every coach mark below anchors to a ref that lives inside
-  // LobbyHudLayer (LayerIndicator, SideRail, ContextualPillRail, BottomDock,
-  // CalloutCluster). The lobby unmounts that whole HUD when the Date Book is
+  // LobbyHudLayer. The lobby unmounts that whole HUD when the Date Book is
   // open in deck/library mode, so HUD-anchored steps must wait for auto mode
   // — otherwise their target ref is null and `useTargetRect` makes the coach
   // mark render nothing, blocking the step's "Got it" forever. The scenario
   // step (cathedralPanelRef) is the only one that lives outside the HUD.
-  const inAutoMode = scenarioMode === "auto";
-
-  // Required-path steps. Ordered first focus pick → partner pick → intent
-  // file → commit guidance → scenario pick → begin date → file shift. The
-  // layer-nav step lands BEFORE the focus pick so the player learns that the
-  // constellation is depth-traversed; the focus step then waits for it.
-  const layerNavStep = useTutorialStep(
-    save,
-    "planning.layer-nav",
-    focusId === null && activeBooking === null && inAutoMode,
-    onTutorialUpdate,
-  );
-  const focusStep = useTutorialStep(
-    save,
-    "planning.focus",
-    focusId === null && layerNavStep.done && inAutoMode,
-    onTutorialUpdate,
-  );
-  const partnerStep = useTutorialStep(
-    save,
-    "planning.partner",
-    focusId !== null && partnerId === null && inAutoMode,
-    onTutorialUpdate,
-  );
-  const intentStep = useTutorialStep(
-    save,
-    "planning.intent",
-    focusId !== null && partnerId !== null && activeBooking === null && inAutoMode,
-    onTutorialUpdate,
-  );
-  const commitStep = useTutorialStep(
-    save,
-    "planning.commit",
-    focusId !== null &&
-      partnerId !== null &&
-      activeBooking === null &&
-      currentLayer < 2 &&
-      intentStep.done &&
-      inAutoMode,
-    onTutorialUpdate,
-  );
-  const scenarioStep = useTutorialStep(
-    save,
-    "planning.scenario",
-    // Gate on inAutoMode like every sibling planning step. Without it the
-    // coach-mark fires over the deck/library cathedral too, where library
-    // clicks open the detail overlay for adding to the deck rather than
-    // picking tonight's scenario — the copy "open one to lock it" no longer
-    // matches what the cards actually do.
-    partnerId !== null &&
-      activeBooking !== null &&
-      selectedScenarioId === null &&
-      currentLayer === 2 &&
-      inAutoMode,
-    onTutorialUpdate,
-  );
-  const beginStep = useTutorialStep(
-    save,
-    "planning.begin",
-    partnerId !== null && selectedScenarioId !== null && activeBooking !== null && inAutoMode,
-    onTutorialUpdate,
-  );
-  const fileShiftStep = useTutorialStep(
-    save,
-    "planning.file-shift",
-    shift.status === "active" && fileShiftReady && inAutoMode,
-    onTutorialUpdate,
+  const inAutoMode = input.scenarioMode === "auto";
+  const focusedCooling = input.focusedMembers.some((member) =>
+    isMemberInCooldown(member, input.shift.shiftNumber),
   );
 
-  // Lazy / edge-case steps. None of these block the required path — they
-  // gate on situations the player may or may not run into (cooldown, repair,
-  // closure ready, locked deck). Each fires at most once per save.
-  const contextualRailStep = useTutorialStep(
-    save,
-    "lazy.contextual-rail",
-    // Wait until the player has settled on a focus so this doesn't pile on
-    // top of the layer-nav / focus intro. After that, fire on any layer.
-    focusId !== null && activeBooking === null && inAutoMode,
-    onTutorialUpdate,
-  );
-  // Date book step fires the first time the player is back on auto mode
-  // after deck editing unlocks. The coach mark anchors the Date book pill,
-  // which only exists on auto mode — gating on deck mode (the previous
-  // trigger) hid the coach mark behind its own unmount.
-  const dateBookStep = useTutorialStep(
-    save,
-    "lazy.date-book",
-    inAutoMode && dateBookEditingUnlocked,
-    onTutorialUpdate,
-  );
-  const focusedCoolingMember = focusedMembers.find((member) =>
-    isMemberInCooldown(member, shift.shiftNumber),
-  );
-  const cooldownBlockStep = useTutorialStep(
-    save,
-    "lazy.cooldown-block",
-    focusedCoolingMember !== undefined &&
-      currentLayer === 0 &&
-      activeBooking === null &&
-      inAutoMode,
-    onTutorialUpdate,
-  );
-  const closureReadyStep = useTutorialStep(
-    save,
-    "lazy.closure-ready",
-    readyClosurePairCount > 0 && activeBooking === null && inAutoMode,
-    onTutorialUpdate,
-  );
-  // Repair takes precedence over locked: both gate on the Date book pill, but
-  // a repair-blocked deck is the more urgent ask. Folding `!deckRepairBlocked`
-  // into the locked gate keeps `dateBookLockedStep.active` honest for the
-  // activity registry instead of relying on render-time suppression alone.
-  const dateBookRepairStep = useTutorialStep(
-    save,
-    "lazy.datebook.repair",
-    deckRepairBlocked && inAutoMode,
-    onTutorialUpdate,
-  );
-  const dateBookLockedStep = useTutorialStep(
-    save,
-    "lazy.datebook.locked",
-    bookingLocked && dateBookEditingUnlocked && !deckRepairBlocked && inAutoMode,
-    onTutorialUpdate,
-  );
+  const ctx: PlanningContext = {
+    inAutoMode,
+    focusId: input.focusId,
+    partnerId: input.partnerId,
+    activeBooking: input.activeBooking,
+    matchmakingIntent: input.matchmakingIntent,
+    selectedScenarioId: input.selectedScenarioId,
+    currentLayer: input.currentLayer,
+    bookingLocked: input.bookingLocked,
+    deckRepairBlocked: input.deckRepairBlocked,
+    dateBookEditingUnlocked: input.dateBookEditingUnlocked,
+    readyClosurePairCount: input.readyClosurePairCount,
+    fileShiftReady: input.fileShiftReady,
+    shiftActive: input.shift.status === "active",
+    focusedCooling,
+  };
+
+  // PLANNING_STEPS is a module-scope constant — iteration is stable across
+  // renders, so calling useTutorialStep in this loop satisfies the rules of
+  // hooks.
+  const steps = {} as Record<TutorialCopyId, TutorialStepHandle>;
+  for (const config of PLANNING_STEPS) {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    steps[config.id] = useTutorialStep(
+      input.save,
+      config.id,
+      config.shouldActivate(ctx),
+      input.onTutorialUpdate,
+    );
+  }
+
+  // Auto-complete pass. The effect runs every render and checks each step's
+  // optional autoCompleteWhen predicate; firing complete() on the matching
+  // step is idempotent (useTutorialStep guards against re-completion).
+  useEffect(() => {
+    for (const config of PLANNING_STEPS) {
+      if (config.autoCompleteWhen === undefined) continue;
+      const handle = steps[config.id];
+      if (!handle.active) continue;
+      if (config.autoCompleteWhen(ctx)) handle.complete();
+    }
+    // The effect needs to see every ctx field the predicates can read. We
+    // intentionally exclude `steps` (a fresh object each render); the handle
+    // mutations the effect performs only matter for the *next* render, and
+    // any state change that flipped a predicate will also re-trigger this
+    // effect via its own ctx dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    ctx.inAutoMode,
+    ctx.focusId,
+    ctx.partnerId,
+    ctx.activeBooking,
+    ctx.matchmakingIntent,
+    ctx.selectedScenarioId,
+    ctx.currentLayer,
+    ctx.bookingLocked,
+    ctx.deckRepairBlocked,
+    ctx.dateBookEditingUnlocked,
+    ctx.readyClosurePairCount,
+    ctx.fileShiftReady,
+    ctx.shiftActive,
+    ctx.focusedCooling,
+  ]);
 
   const layerIndicatorRef = useRef<HTMLDivElement | null>(null);
   const layerFocusRef = useRef<HTMLButtonElement | null>(null);
@@ -231,31 +432,6 @@ export function usePlanningTutorial({
   const contextualRailRef = useRef<HTMLDivElement | null>(null);
   const dateBookPillRef = useRef<HTMLButtonElement | null>(null);
   const closureCalloutRef = useRef<HTMLDivElement | null>(null);
-
-  // Step handles from useTutorialStep are fresh objects every render; depend
-  // on the primitive `active` field and the stable `complete` callback so the
-  // effect doesn't re-run on every parent render.
-  const commitStepActive = commitStep.active;
-  const commitStepComplete = commitStep.complete;
-  useEffect(() => {
-    if (!commitStepActive) return;
-    if (currentLayer === 2 || selectedScenarioId !== null) {
-      commitStepComplete();
-    }
-  }, [commitStepActive, commitStepComplete, currentLayer, selectedScenarioId]);
-
-  // Intent is optional — auto-complete the step the moment the player files
-  // any intent (so we don't tail them with "pick an intent" copy) or moves
-  // on to picking the room. The coach mark teaches the rail; using it is
-  // their call.
-  const intentStepActive = intentStep.active;
-  const intentStepComplete = intentStep.complete;
-  useEffect(() => {
-    if (!intentStepActive) return;
-    if (matchmakingIntent !== null || currentLayer === 2 || selectedScenarioId !== null) {
-      intentStepComplete();
-    }
-  }, [intentStepActive, intentStepComplete, matchmakingIntent, currentLayer, selectedScenarioId]);
 
   return {
     refs: {
@@ -272,22 +448,7 @@ export function usePlanningTutorial({
       dateBookPillRef,
       closureCalloutRef,
     },
-    steps: {
-      layerNavStep,
-      focusStep,
-      partnerStep,
-      intentStep,
-      commitStep,
-      scenarioStep,
-      beginStep,
-      fileShiftStep,
-      contextualRailStep,
-      dateBookStep,
-      cooldownBlockStep,
-      closureReadyStep,
-      dateBookLockedStep,
-      dateBookRepairStep,
-    },
+    steps,
   };
 }
 
@@ -300,290 +461,107 @@ export function PlanningTutorialOverlays({
   refs: PlanningTutorialRefs;
   viewMode: ViewMode;
 }) {
-  const {
-    layerNavStep,
-    focusStep,
-    partnerStep,
-    intentStep,
-    commitStep,
-    scenarioStep,
-    beginStep,
-    fileShiftStep,
-    contextualRailStep,
-    dateBookStep,
-    cooldownBlockStep,
-    closureReadyStep,
-    dateBookLockedStep,
-    dateBookRepairStep,
-  } = steps;
-  const {
-    layerIndicatorRef,
-    layerFocusRef,
-    layerRosterRef,
-    sideRailRef,
-    intentRailRef,
-    cathedralPanelRef,
-    beginButtonRef,
-    fileShiftButtonRef,
-    contextualRailRef,
-    dateBookPillRef,
-    closureCalloutRef,
-  } = refs;
-
   const inTonight = viewMode === "tonight";
-  const layerNavCopy = tutorialCopy("planning.layer-nav");
-  const focusCopy = tutorialCopy("planning.focus");
-  const partnerCopy = tutorialCopy("planning.partner");
-  const intentCopy = tutorialCopy("planning.intent");
-  const commitCopy = tutorialCopy("planning.commit");
-  const scenarioCopy = tutorialCopy("planning.scenario");
-  const beginCopy = tutorialCopy("planning.begin");
-  const fileShiftCopy = tutorialCopy("planning.file-shift");
-  const contextualRailCopy = tutorialCopy("lazy.contextual-rail");
-  const dateBookCopy = tutorialCopy("lazy.date-book");
-  const cooldownBlockCopy = tutorialCopy("lazy.cooldown-block");
-  const closureReadyCopy = tutorialCopy("lazy.closure-ready");
-  const dateBookRepairCopy = tutorialCopy("lazy.datebook.repair");
-  const dateBookLockedCopy = tutorialCopy("lazy.datebook.locked");
 
   // Required path: ordered list of overlays, first active wins. Each entry's
-  // gating predicate (`step.active && inTonight` plus any step-specific
-  // condition) controls whether it can claim the screen; `requiredOverlays
-  // .find(Boolean)` then picks the first claimant and the rest stay dormant.
-  // The required steps are mutually exclusive by their useTutorialStep gates
-  // (focusId, partnerId, intentStep.done, currentLayer, selectedScenarioId
-  // transitions), so the array ordering is the safety net — it enforces a
-  // single visible coach mark even if two steps briefly overlap during a
-  // state transition.
-  //
-  // fileShiftStep is the only entry that fires outside `inTonight` — it
-  // anchors on the file-shift button in whatever view the player is in.
-  const requiredOverlays: ReactNode[] = [
-    layerNavStep.active && inTonight && (
-      <>
-        <TutorialPulseRing target={layerIndicatorRef} padding={10} radius={28} />
-        <TutorialCoachMark
-          target={layerIndicatorRef}
-          placement="right"
-          fixedPosition={LAYER_COACH_FIXED_POSITION}
-          title={layerNavCopy.title}
-          body={layerNavCopy.body}
-          stepIndex={layerNavCopy.stepIndex}
-          stepCount={layerNavCopy.stepCount}
-          primaryLabel={layerNavCopy.primaryLabel}
-          onPrimary={layerNavStep.complete}
-          dismissLabel="Skip tour"
-          onDismiss={layerNavStep.dismiss}
-        />
-      </>
-    ),
-    focusStep.active && inTonight && (
-      <>
-        <TutorialPulseRing target={layerFocusRef} padding={6} radius={999} />
-        <TutorialCoachMark
-          target={layerFocusRef}
-          placement="right"
-          fixedPosition={LAYER_COACH_FIXED_POSITION}
-          title={focusCopy.title}
-          body={focusCopy.body}
-          stepIndex={focusCopy.stepIndex}
-          stepCount={focusCopy.stepCount}
-          dismissLabel="Skip tour"
-          onDismiss={focusStep.dismiss}
-        />
-      </>
-    ),
-    partnerStep.active && inTonight && (
-      <>
-        <TutorialPulseRing target={layerRosterRef} padding={6} radius={999} />
-        <TutorialCoachMark
-          target={layerRosterRef}
-          placement="right"
-          fixedPosition={LAYER_COACH_FIXED_POSITION}
-          title={partnerCopy.title}
-          body={partnerCopy.body}
-          stepIndex={partnerCopy.stepIndex}
-          stepCount={partnerCopy.stepCount}
-          dismissLabel="Skip tour"
-          onDismiss={partnerStep.dismiss}
-        />
-      </>
-    ),
-    intentStep.active && inTonight && (
-      <TutorialCoachMark
-        target={intentRailRef}
-        placement="top"
-        title={intentCopy.title}
-        body={intentCopy.body}
-        stepIndex={intentCopy.stepIndex}
-        stepCount={intentCopy.stepCount}
-        primaryLabel={intentCopy.primaryLabel}
-        onPrimary={intentStep.complete}
-        dismissLabel="Skip tour"
-        onDismiss={intentStep.dismiss}
-      />
-    ),
-    commitStep.active && inTonight && (
-      <TutorialCoachMark
-        target={sideRailRef}
-        placement="left"
-        title={commitCopy.title}
-        body={commitCopy.body}
-        stepIndex={commitCopy.stepIndex}
-        stepCount={commitCopy.stepCount}
-        primaryLabel={commitCopy.primaryLabel}
-        onPrimary={commitStep.complete}
-        dismissLabel="Skip tour"
-        onDismiss={commitStep.dismiss}
-      />
-    ),
-    scenarioStep.active && inTonight && (
-      <>
-        <TutorialSpotlight target={cathedralPanelRef} padding={12} radius={28} />
-        <TutorialCoachMark
-          target={cathedralPanelRef}
-          placement="top"
-          title={scenarioCopy.title}
-          body={scenarioCopy.body}
-          stepIndex={scenarioCopy.stepIndex}
-          stepCount={scenarioCopy.stepCount}
-          dismissLabel="Skip tour"
-          onDismiss={scenarioStep.dismiss}
-        />
-      </>
-    ),
-    beginStep.active && inTonight && (
-      <>
-        <TutorialPulseRing target={beginButtonRef} padding={6} radius={999} />
-        <TutorialCoachMark
-          target={beginButtonRef}
-          placement="top"
-          title={beginCopy.title}
-          body={beginCopy.body}
-          stepIndex={beginCopy.stepIndex}
-          stepCount={beginCopy.stepCount}
-          dismissLabel="Skip tour"
-          onDismiss={beginStep.dismiss}
-        />
-      </>
-    ),
-    fileShiftStep.active && (
-      <>
-        <TutorialPulseRing target={fileShiftButtonRef} padding={6} radius={999} tone="amber" />
-        <TutorialCoachMark
-          target={fileShiftButtonRef}
-          placement="bottom"
-          title={fileShiftCopy.title}
-          body={fileShiftCopy.body}
-          dismissLabel="Skip tour"
-          onDismiss={fileShiftStep.dismiss}
-        />
-      </>
-    ),
-  ];
-  const activeRequired = requiredOverlays.find(Boolean);
+  // gating (`step.active` + `inTonight` unless it's the file-shift step,
+  // which fires across views) controls whether it can claim the screen.
+  const requiredCandidates = PLANNING_STEPS.filter((config) => config.category === "required");
+  const firstActiveRequired = requiredCandidates.find((config) => {
+    const handle = steps[config.id];
+    if (!handle.active) return false;
+    // fileShiftStep is the only required entry that fires outside `inTonight`.
+    if (config.id === "planning.file-shift") return true;
+    return inTonight;
+  });
 
-  // Lazy / edge-case overlays stay parked behind a single requiredPathActive
-  // gate. Multiple lazies can be on screen at once because each anchors a
-  // different surface; the one exception is dateBookLockedStep yielding to
-  // dateBookRepairStep (they share the Date book pill, repair is the more
-  // urgent fix).
-  const lazyOverlays = activeRequired === undefined && inTonight && (
-    <>
-      {contextualRailStep.active ? (
-        <TutorialCoachMark
-          target={contextualRailRef}
-          placement="left"
-          title={contextualRailCopy.title}
-          body={contextualRailCopy.body}
-          primaryLabel={contextualRailCopy.primaryLabel}
-          onPrimary={contextualRailStep.complete}
-          dismissLabel="Skip tour"
-          onDismiss={contextualRailStep.dismiss}
-        />
-      ) : null}
-
-      {dateBookStep.active ? (
-        <>
-          <TutorialPulseRing target={dateBookPillRef} padding={6} radius={999} />
-          <TutorialCoachMark
-            target={dateBookPillRef}
-            placement="left"
-            title={dateBookCopy.title}
-            body={dateBookCopy.body}
-            primaryLabel={dateBookCopy.primaryLabel}
-            onPrimary={dateBookStep.complete}
-            dismissLabel="Skip tour"
-            onDismiss={dateBookStep.dismiss}
-          />
-        </>
-      ) : null}
-
-      {cooldownBlockStep.active ? (
-        <>
-          <TutorialPulseRing target={layerFocusRef} padding={6} radius={999} tone="amber" />
-          <TutorialCoachMark
-            target={layerFocusRef}
-            placement="right"
-            fixedPosition={LAYER_COACH_FIXED_POSITION}
-            title={cooldownBlockCopy.title}
-            body={cooldownBlockCopy.body}
-            primaryLabel={cooldownBlockCopy.primaryLabel}
-            onPrimary={cooldownBlockStep.complete}
-            dismissLabel="Skip tour"
-            onDismiss={cooldownBlockStep.dismiss}
-          />
-        </>
-      ) : null}
-
-      {closureReadyStep.active ? (
-        <TutorialCoachMark
-          target={closureCalloutRef}
-          placement="right"
-          title={closureReadyCopy.title}
-          body={closureReadyCopy.body}
-          primaryLabel={closureReadyCopy.primaryLabel}
-          onPrimary={closureReadyStep.complete}
-          dismissLabel="Skip tour"
-          onDismiss={closureReadyStep.dismiss}
-        />
-      ) : null}
-
-      {dateBookRepairStep.active ? (
-        <>
-          <TutorialPulseRing target={dateBookPillRef} padding={6} radius={999} tone="amber" />
-          <TutorialCoachMark
-            target={dateBookPillRef}
-            placement="left"
-            title={dateBookRepairCopy.title}
-            body={dateBookRepairCopy.body}
-            primaryLabel={dateBookRepairCopy.primaryLabel}
-            onPrimary={dateBookRepairStep.complete}
-            dismissLabel="Skip tour"
-            onDismiss={dateBookRepairStep.dismiss}
-          />
-        </>
-      ) : null}
-
-      {!dateBookRepairStep.active && dateBookLockedStep.active ? (
-        <TutorialCoachMark
-          target={dateBookPillRef}
-          placement="left"
-          title={dateBookLockedCopy.title}
-          body={dateBookLockedCopy.body}
-          primaryLabel={dateBookLockedCopy.primaryLabel}
-          onPrimary={dateBookLockedStep.complete}
-          dismissLabel="Skip tour"
-          onDismiss={dateBookLockedStep.dismiss}
-        />
-      ) : null}
-    </>
+  const lazyCandidates = PLANNING_STEPS.filter((config) => config.category === "lazy");
+  const showLazies = firstActiveRequired === undefined && inTonight;
+  const activeLazyIds = new Set(
+    lazyCandidates.filter((config) => steps[config.id].active).map((config) => config.id),
   );
 
   return (
     <>
-      {activeRequired}
-      {lazyOverlays}
+      {firstActiveRequired !== undefined ? (
+        <StepOverlay
+          key={firstActiveRequired.id}
+          config={firstActiveRequired}
+          handle={steps[firstActiveRequired.id]}
+          refs={refs}
+        />
+      ) : null}
+      {showLazies
+        ? lazyCandidates.map((config) => {
+            const handle = steps[config.id];
+            if (!handle.active) return null;
+            if (
+              config.render.suppressIfActive !== undefined &&
+              activeLazyIds.has(config.render.suppressIfActive)
+            ) {
+              return null;
+            }
+            return <StepOverlay key={config.id} config={config} handle={handle} refs={refs} />;
+          })
+        : null}
+    </>
+  );
+}
+
+function StepOverlay({
+  config,
+  handle,
+  refs,
+}: {
+  config: PlanningStepConfig;
+  handle: TutorialStepHandle;
+  refs: PlanningTutorialRefs;
+}) {
+  const copy = tutorialCopy(config.id);
+  const render = config.render;
+  const anchorKey = render.anchor;
+  const targetRef = refs[anchorKey];
+  return (
+    <>
+      {render.pulseRing !== undefined ? (
+        isButtonAnchor(anchorKey) ? (
+          <TutorialPulseRing
+            target={refs[anchorKey]}
+            padding={render.pulseRing.padding}
+            radius={render.pulseRing.radius}
+            tone={render.pulseRing.tone}
+          />
+        ) : (
+          <TutorialPulseRing
+            target={
+              targetRef as RefObject<HTMLDivElement | null> | RefObject<HTMLButtonElement | null>
+            }
+            padding={render.pulseRing.padding}
+            radius={render.pulseRing.radius}
+            tone={render.pulseRing.tone}
+          />
+        )
+      ) : null}
+      {render.spotlight !== undefined ? (
+        <TutorialSpotlight
+          target={targetRef}
+          padding={render.spotlight.padding}
+          radius={render.spotlight.radius}
+        />
+      ) : null}
+      <TutorialCoachMark
+        target={targetRef}
+        placement={render.placement}
+        fixedPosition={render.fixedPosition}
+        title={copy.title}
+        body={copy.body}
+        stepIndex={copy.stepIndex}
+        stepCount={copy.stepCount}
+        primaryLabel={render.hasPrimary === true ? copy.primaryLabel : undefined}
+        onPrimary={render.hasPrimary === true ? handle.complete : undefined}
+        dismissLabel="Skip tour"
+        onDismiss={handle.dismiss}
+      />
     </>
   );
 }

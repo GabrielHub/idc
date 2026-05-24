@@ -50,10 +50,6 @@ export const idrisMahari: Member = {
   voice: {
     register:
       "dry deadpan that gives a war confession and a salad spinner defeat the same weight, rambles into honesty, quietly bewildered by ordinary Saturdays",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "deadpan_one_liner",
       "self_deprecating_confession",

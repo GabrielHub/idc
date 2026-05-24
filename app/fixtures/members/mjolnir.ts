@@ -72,8 +72,6 @@ export const mjolnir: Member = {
       "These do NOT get walked back.",
       "You do not flag them.",
     ],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: ["deadpan_one_liner", "mundane_domesticity", "structured_bit"],
     patternsRefused: [
       "corrupted_romance",

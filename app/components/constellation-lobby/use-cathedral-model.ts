@@ -54,7 +54,11 @@ export function useCathedralModel({
     () => new Map(starterScenarios.map((scenario) => [scenario.id, scenario])),
     [],
   );
-  const offers = useMemo(() => activeBudgetDiscountOffers(save), [save]);
+  const offers = useMemo(
+    () => activeBudgetDiscountOffers(save),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [save.budgetDiscountOffers, save.budgetPeriodId],
+  );
   const effectiveCosts = useMemo(() => computeEffectiveCosts(starterScenarios, offers), [offers]);
   const budgetStatus = useMemo(
     () =>
@@ -65,7 +69,11 @@ export function useCathedralModel({
       }),
     [save.scenarioDeck.cardIds, save.budgetCap, effectiveCosts],
   );
-  const deckRepairBlocked = useMemo(() => deckIsRepairBlocked(save, starterScenarios), [save]);
+  const deckRepairBlocked = useMemo(
+    () => deckIsRepairBlocked(save, starterScenarios),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [save.scenarioDeck.cardIds, save.budgetCap, save.budgetDiscountOffers, save.budgetPeriodId],
+  );
   const deckComposition = useMemo(
     () => computeDeckComposition(save.scenarioDeck.cardIds, scenarioById),
     [save.scenarioDeck.cardIds, scenarioById],
@@ -107,7 +115,16 @@ export function useCathedralModel({
       reads.set(scenario.id, scenarioRoomReadFromMatchFit(fit));
     }
     return reads;
-  }, [focusId, partnerId, save, shift.memberRequestIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    focusId,
+    partnerId,
+    save.members,
+    save.pairStates,
+    save.memories,
+    save.playerKnowledge,
+    shift.memberRequestIds,
+  ]);
   const toLobby = (scenario: DateScenario) =>
     toLobbyScenario(scenario, roomReadByScenarioId.get(scenario.id) ?? "steady");
   const lobbyScenarios = useMemo(
@@ -140,8 +157,9 @@ export function useCathedralModel({
         sort: librarySort,
         effectiveCosts,
       }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [
-      save,
+      save.scenarioDeck.cardIds,
       scenarioById,
       librarySearch,
       libraryRiskFilter,

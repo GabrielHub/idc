@@ -1,4 +1,3 @@
-import { createElement, type ReactElement } from "react";
 import { renderToString } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
@@ -6,17 +5,17 @@ import { gameSaveSchema, memberSchema, type GameSave, type Member } from "../../
 import { createSeedGameSave, getActiveShift } from "../../services/game-seed";
 import type { TutorialStepHandle } from "../../services/tutorial";
 import { resolvePortraitPalette } from "../portrait-palette";
+import { renderLobbyHoverCard } from "./hover-card-renderer";
 import type { StarMark } from "./types";
-import { useHoverCardRenderer } from "./use-hover-card-renderer";
 
 // Regression for the playtest bug where a focused member in cooldown was still
 // selectable as lead from the hover card; the engine then threw "One of the
 // members is still in cooldown from a recent date." only at Begin date. The
 // card must surface the gate up-front: cooling badge + view-case CTA, never
 // make-lead.
-describe("useHoverCardRenderer cooldown gating", () => {
+describe("renderLobbyHoverCard cooldown gating", () => {
   it("blocks make-lead and shows the cooling badge when the focused member is in cooldown", () => {
-    const { save, shift } = buildSaveWithCoolingFocus();
+    const { save, shift } = buildSaveWithFocusedJenna({ cooling: true });
     const jenna = save.members.find((member) => member.id === "jenna-pike");
     expect(jenna).toBeDefined();
 
@@ -41,13 +40,6 @@ describe("useHoverCardRenderer cooldown gating", () => {
   });
 });
 
-function buildSaveWithCoolingFocus(): {
-  save: GameSave;
-  shift: ReturnType<typeof getActiveShift>;
-} {
-  return buildSaveWithFocusedJenna({ cooling: true });
-}
-
 function buildSaveWithFocusedJenna({ cooling }: { cooling: boolean }): {
   save: GameSave;
   shift: ReturnType<typeof getActiveShift>;
@@ -70,7 +62,6 @@ function buildSaveWithFocusedJenna({ cooling }: { cooling: boolean }): {
           state: { ...baseState, lastDateShift: 1 },
         });
       }
-      // Drop lastDateShift completely so isMemberInCooldown returns false.
       const { lastDateShift: _drop, ...stateWithoutLastDate } = baseState;
       return memberSchema.parse({
         ...member,
@@ -91,10 +82,8 @@ function renderHoverCardFor({
   shift: ReturnType<typeof getActiveShift>;
   member: Member;
 }): string {
-  let rendered: ReactElement | null = null;
-
-  function Probe() {
-    const render = useHoverCardRenderer({
+  const rendered = renderLobbyHoverCard(
+    {
       save,
       focusedSet: new Set(save.focusedMemberIds),
       revealAllMemberDetails: false,
@@ -110,21 +99,13 @@ function renderHoverCardFor({
       shiftNumber: shift.shiftNumber,
       focusStep: noopStep,
       partnerStep: noopStep,
-      onAddFocus: undefined,
       openCaseAndDismiss: () => {},
-      setFocusId: () => {},
-      setPartnerId: () => {},
-      setActiveStarId: () => {},
-    });
-    rendered = render({ star: buildStarFor(member) });
-    return null;
-  }
-
-  renderToString(createElement(Probe));
-
-  if (rendered === null) {
-    throw new Error("Expected hover card render to produce an element.");
-  }
+      onMakeLead: () => {},
+      onMakePartner: () => {},
+      onMakeFocus: undefined,
+    },
+    buildStarFor(member),
+  );
 
   return renderToString(rendered);
 }

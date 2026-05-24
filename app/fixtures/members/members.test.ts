@@ -38,10 +38,12 @@ function memberDesignText(member: Member): string {
     ...member.dealbreakers,
     ...member.secrets,
     member.voice.register,
-    ...member.voice.comedyMechanics,
-    ...member.voice.outputConstraints,
-    ...member.voice.conversationShape.flatMap((example) => example.turns.map((turn) => turn.text)),
-    ...member.voice.contrastExamples.flatMap((example) => [
+    ...(member.voice.comedyMechanics ?? []),
+    ...(member.voice.outputConstraints ?? []),
+    ...(member.voice.conversationShape ?? []).flatMap((example) =>
+      example.turns.map((turn) => turn.text),
+    ),
+    ...(member.voice.contrastExamples ?? []).flatMap((example) => [
       example.tempting,
       example.preferred,
       example.because ?? "",

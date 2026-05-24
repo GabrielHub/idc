@@ -1,8 +1,9 @@
 import { type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
+import { formatHeightShort, profileSnippetFor } from "../../services/member-display";
 import { caseFileNumber } from "../member-card-atoms";
-import { avatarSrcsetFor, formatHeightShort, profileSnippetFor, withAlpha } from "./math";
+import { avatarSrcsetFor, withAlpha } from "./math";
 import type { StarMark } from "./types";
 
 export type HoverDetailCtaVariant =

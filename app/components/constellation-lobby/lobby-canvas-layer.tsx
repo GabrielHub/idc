@@ -4,7 +4,7 @@ import * as THREE from "three";
 
 import type { Member } from "../../domain/game";
 import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
-import { Scene, type RenderHoverCard } from "./canvas-convention";
+import { Scene, type RenderHoverCard, type SceneArchiveProps } from "./canvas-convention";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import type { LayerNavigationMode } from "./layer-access";
 import type {
@@ -127,13 +127,17 @@ export function LobbyCanvasLayer({
             rosterSubview={rosterSubview}
             pairMoodByPartnerId={pairMoodByPartnerId}
             viewMode={viewMode}
-            archiveData={archiveData}
-            archiveSelection={archiveSelection}
-            archiveIsolation={archiveIsolation}
-            onArchiveEdgeClick={onArchivePairSelect}
-            renderArchiveEdgeTooltip={(edge) => (
-              <ArchiveEdgeTooltip edge={edge} memberById={memberById} />
-            )}
+            archive={
+              {
+                data: archiveData,
+                selection: archiveSelection,
+                isolation: archiveIsolation,
+                onEdgeClick: onArchivePairSelect,
+                renderEdgeTooltip: (edge) => (
+                  <ArchiveEdgeTooltip edge={edge} memberById={memberById} />
+                ),
+              } satisfies SceneArchiveProps
+            }
           />
         </Suspense>
       </Canvas>

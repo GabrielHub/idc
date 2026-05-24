@@ -108,6 +108,8 @@ export const TUTORIAL_COPY = {
   },
 } satisfies Partial<Record<TutorialStepId, TutorialCopy>>;
 
-export function tutorialCopy(id: keyof typeof TUTORIAL_COPY): TutorialCopy {
+export type TutorialCopyId = keyof typeof TUTORIAL_COPY;
+
+export function tutorialCopy(id: TutorialCopyId): TutorialCopy {
   return TUTORIAL_COPY[id];
 }

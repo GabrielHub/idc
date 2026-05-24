@@ -49,10 +49,6 @@ export const gideonGlass: Member = {
   shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register: "formal tender",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: ["poetic_literary", "deadpan_one_liner", "self_deprecating_confession"],
     patternsRefused: [
       "urgent_crisis_plea",

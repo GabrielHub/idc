@@ -64,8 +64,6 @@ export const saffronVex: Member = {
       "Cupid set the venue, time, route, and match, so Saffron does not credit the partner for getting there or narrate her own arrival; arrival vocabulary (gate, transit, portal, valet, the drive) is out.",
       "Structural-identity pressure drops her to brief clean refusal: tone-down requests, costume framing, pet names, performance commands, or close-inspection requests.",
     ],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "emotional_overshare",
       "cursed_question",

@@ -716,11 +716,11 @@ function VoiceSpread({
       <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
         <div className="space-y-3">
           <RegisterCard register={member.voice.register} />
-          <VoiceListCard title="Comedy mechanics" items={member.voice.comedyMechanics} />
-          <VoiceListCard title="Output constraints" items={member.voice.outputConstraints} />
+          <VoiceListCard title="Comedy mechanics" items={member.voice.comedyMechanics ?? []} />
+          <VoiceListCard title="Output constraints" items={member.voice.outputConstraints ?? []} />
           <VoiceListCard
             title="Conversation shape"
-            items={member.voice.conversationShape.map((example) =>
+            items={(member.voice.conversationShape ?? []).map((example) =>
               example.turns
                 .map((turn) => `${turn.speaker === "member" ? "Member" : "Partner"}: ${turn.text}`)
                 .join(" / "),
@@ -728,7 +728,7 @@ function VoiceSpread({
           />
           <VoiceListCard
             title="Contrasts"
-            items={member.voice.contrastExamples.map(
+            items={(member.voice.contrastExamples ?? []).map(
               (example) => `${example.preferred} <- ${example.tempting}`,
             )}
           />

@@ -84,6 +84,35 @@ const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
  */
 export type RenderHoverCard = ActiveCardRenderHoverCard;
 
+/**
+ * Archive payload + edge interaction callbacks. Required when viewMode ===
+ * "archive" to render edges, reposition stars, and dim non-selected ones.
+ * Mutually optional with each other — when undefined, no archive behavior
+ * mounts.
+ *
+ *   - `data.positions` maps every star's member id to its archive world
+ *     target; `data.edges` is the LOD-budgeted render spec list.
+ *   - `isolation` is the focused subgraph when a member is archive-selected;
+ *     stars outside `includedMemberIds` get extra dimming and edges that
+ *     don't touch `focusMemberId` fade.
+ *   - `renderEdgeTooltip` is an optional drei-Html tooltip mounted at a
+ *     hovered edge's midpoint when the LOD spec is in the near band.
+ */
+export type SceneArchiveProps = {
+  data?: {
+    positions: ReadonlyMap<string, Vec3>;
+    edges: readonly PairEdgeRenderSpec[];
+  };
+  selection?: ArchiveSelection;
+  isolation?: {
+    focusMemberId: string;
+    includedMemberIds: ReadonlySet<string>;
+  };
+  onEdgeHover?: (pairId: string | null) => void;
+  onEdgeClick?: (pairId: string) => void;
+  renderEdgeTooltip?: (edge: PairArchiveEdge) => ReactNode;
+};
+
 export function Scene({
   state,
   stars,
@@ -106,12 +135,7 @@ export function Scene({
   rosterSubview,
   pairMoodByPartnerId,
   viewMode = "tonight",
-  archiveData,
-  archiveSelection = null,
-  archiveIsolation,
-  onArchiveEdgeHover,
-  onArchiveEdgeClick,
-  renderArchiveEdgeTooltip,
+  archive,
 }: {
   state: LobbyState;
   stars: StarMark[];
@@ -130,32 +154,7 @@ export function Scene({
    * mode — layers belong to tonight's framing.
    */
   viewMode?: ViewMode;
-  /**
-   * Archive payload. Required when viewMode === "archive" to render edges
-   * and reposition stars. `positions` maps every star's member id to its
-   * archive world target; `edges` is the LOD-budgeted render spec list.
-   */
-  archiveData?: {
-    positions: ReadonlyMap<string, Vec3>;
-    edges: readonly PairEdgeRenderSpec[];
-  };
-  archiveSelection?: ArchiveSelection;
-  /**
-   * Isolation scope when a member is archive-selected. Stars whose ids fall
-   * outside `includedMemberIds` get extra dimming; edges that don't touch
-   * `focusMemberId` fade. Undefined means no isolation (full graph reads).
-   */
-  archiveIsolation?: {
-    focusMemberId: string;
-    includedMemberIds: ReadonlySet<string>;
-  };
-  onArchiveEdgeHover?: (pairId: string | null) => void;
-  onArchiveEdgeClick?: (pairId: string) => void;
-  /**
-   * Optional drei-Html tooltip renderer mounted at a hovered edge's midpoint
-   * when the LOD spec is in the near band. Returning null hides it.
-   */
-  renderArchiveEdgeTooltip?: (edge: PairArchiveEdge) => ReactNode;
+  archive?: SceneArchiveProps;
   /**
    * Controlled active-star id. The HoverDetailCard morphs out of the star
    * whose id matches this value. The consumer owns the state and sets it on
@@ -382,7 +381,7 @@ export function Scene({
     const natural = starWorldPosition(activeStar);
     const inArchive = viewMode === "archive";
     if (inArchive) {
-      return archiveData?.positions.get(activeStar.member.id) ?? natural;
+      return archive?.data?.positions.get(activeStar.member.id) ?? natural;
     }
     const role = roleForStar(activeStar, {
       state,
@@ -416,7 +415,7 @@ export function Scene({
   }, [
     activeStar,
     viewMode,
-    archiveData,
+    archive?.data,
     state,
     focusId,
     partnerId,
@@ -452,8 +451,8 @@ export function Scene({
         partnerId={partnerId}
         eligiblePartnerSet={eligiblePartnerSet}
         viewMode={viewMode}
-        archivePositions={archiveData?.positions}
-        archiveIsolation={archiveIsolation}
+        archivePositions={archive?.data?.positions}
+        archiveIsolation={archive?.isolation}
         starClickHandlers={starClickHandlers}
         focusedIds={focusedIds}
         currentLayer={currentLayer}
@@ -473,17 +472,17 @@ export function Scene({
         onHudOverlayHoveredChange={setHudOverlayHovered}
       />
 
-      {viewMode === "archive" && archiveData !== undefined ? (
+      {viewMode === "archive" && archive?.data !== undefined ? (
         <ArchiveEdgeLayer
-          edges={archiveData.edges}
-          archiveSelection={archiveSelection}
-          archiveIsolation={archiveIsolation}
+          edges={archive.data.edges}
+          archiveSelection={archive.selection ?? null}
+          archiveIsolation={archive.isolation}
           hoveredStarId={hoveredId}
           hoveredEdgeId={hoveredEdgeId}
           onHoveredEdgeChange={setHoveredEdgeId}
-          onArchiveEdgeHover={onArchiveEdgeHover}
-          onArchiveEdgeClick={onArchiveEdgeClick}
-          renderArchiveEdgeTooltip={renderArchiveEdgeTooltip}
+          onArchiveEdgeHover={archive.onEdgeHover}
+          onArchiveEdgeClick={archive.onEdgeClick}
+          renderArchiveEdgeTooltip={archive.renderEdgeTooltip}
         />
       ) : null}
 

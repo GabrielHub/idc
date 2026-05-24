@@ -43,10 +43,6 @@ export const vhool: Member = {
   shiftAvailabilityProfile: "formal_calendar",
   voice: {
     register: "ancient sincere",
-    comedyMechanics: [],
-    outputConstraints: [],
-    conversationShape: [],
-    contrastExamples: [],
     patternsUsed: [
       "poetic_literary",
       "philosophical_existential",

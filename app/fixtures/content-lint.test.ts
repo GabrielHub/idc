@@ -106,10 +106,12 @@ function memberContentText(member: Member): string {
     ...member.dealbreakers,
     ...member.secrets,
     member.voice.register,
-    ...member.voice.comedyMechanics,
-    ...member.voice.outputConstraints,
-    ...member.voice.conversationShape.flatMap((example) => example.turns.map((turn) => turn.text)),
-    ...member.voice.contrastExamples.flatMap((example) => [
+    ...(member.voice.comedyMechanics ?? []),
+    ...(member.voice.outputConstraints ?? []),
+    ...(member.voice.conversationShape ?? []).flatMap((example) =>
+      example.turns.map((turn) => turn.text),
+    ),
+    ...(member.voice.contrastExamples ?? []).flatMap((example) => [
       example.tempting,
       example.preferred,
       example.because ?? "",
@@ -243,7 +245,8 @@ describe("fixture content lint", () => {
       const violations: string[] = [];
 
       for (const member of starterMembers) {
-        if (member.voice.comedyMechanics.length === 0) continue;
+        const comedyMechanics = member.voice.comedyMechanics ?? [];
+        if (comedyMechanics.length === 0) continue;
         const words = countWords(member.voice.register);
         if (words > 70) {
           violations.push(`${member.id} register has ${words} words`);
@@ -263,8 +266,8 @@ describe("fixture content lint", () => {
 
       for (const member of starterMembers) {
         const fields: Array<[string, readonly string[]]> = [
-          ["comedyMechanics", member.voice.comedyMechanics],
-          ["outputConstraints", member.voice.outputConstraints],
+          ["comedyMechanics", member.voice.comedyMechanics ?? []],
+          ["outputConstraints", member.voice.outputConstraints ?? []],
         ];
         for (const [fieldName, entries] of fields) {
           for (const [index, entry] of entries.entries()) {

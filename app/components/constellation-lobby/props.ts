@@ -42,6 +42,7 @@ export type ConstellationLobbyProps = {
   onRemoveDeckCard: (cardId: string) => void;
   onClosePair?: (input: { pairId: string; ready: ReadyClosurePair }) => Promise<boolean>;
   closureErrorMessage?: string | null;
+  onDismissClosureError?: () => void;
   onCompleteShift?: () => void;
   onOpenClosures?: () => void;
   onOpenFollowUps?: () => void;

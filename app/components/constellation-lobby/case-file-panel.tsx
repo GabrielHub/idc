@@ -28,7 +28,7 @@ import { MemberIntelBoard } from "../member-details-modal";
 import { paletteToCssVars, resolvePortraitPalette } from "../portrait-palette";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
 import { readKindLabel } from "../date-view-transcript";
-import { formatHeightShort } from "./math";
+import { formatHeightShort } from "../../services/member-display";
 
 export type CaseFilePanelProps = {
   member: Member;

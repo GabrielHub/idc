@@ -31,25 +31,22 @@ import { buildLobbyStars } from "./star-model";
 import { useArchiveView } from "./use-archive-view";
 import { useCathedralModel } from "./use-cathedral-model";
 import { useCaseFileAction } from "./use-case-file-action";
-import { useClosureQueue } from "./use-closure-queue";
-import { useHoverCardRenderer } from "./use-hover-card-renderer";
+import { renderLobbyHoverCard, type HoverCardContext } from "./hover-card-renderer";
 import { useLobbyOverlays } from "./use-lobby-overlays";
 import { useLobbyCallouts } from "./use-lobby-callouts";
 import { useLobbyReselect } from "./use-lobby-reselect";
-import { useLobbyPlanningState } from "./use-lobby-planning-state";
-import { useRosterFold } from "./use-roster-fold";
+import { useLobbyState } from "./lobby-reducer";
+import { deriveRosterFold } from "./roster-fold";
 import { useRosterKeyNavigation } from "./use-roster-key-navigation";
-import { useShiftFilingState } from "./use-shift-filing-state";
+import { deriveShiftFilingState } from "./shift-filing-state";
 import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import type { ArchiveSelection, FlythroughLayer, RosterSubview, StarMark, ViewMode } from "./types";
-import { CathedralPanel, type CathedralMode, type RiskFilter, type SortMode } from "./cathedral";
+import { CathedralPanel, type RiskFilter, type SortMode } from "./cathedral";
 import { EMPTY_READY_CLOSURE_IDS, type ConstellationLobbyProps } from "./props";
-import { isLayerEnabled, normalizeLayer, type LayerNavigationMode } from "./layer-access";
-
-type ScenarioMode = CathedralMode;
+import type { LayerNavigationMode } from "./layer-access";
 
 export function ConstellationLobby({
   save,
@@ -70,6 +67,7 @@ export function ConstellationLobby({
   onRemoveDeckCard,
   onClosePair,
   closureErrorMessage = null,
+  onDismissClosureError,
   onCompleteShift,
   onOpenClosures,
   onOpenFollowUps,
@@ -88,33 +86,43 @@ export function ConstellationLobby({
   const activeBooking = shift.activeBooking ?? null;
 
   const cathedralScrollRef = useRef<HTMLDivElement | null>(null);
+  const { fileShiftReady, fileShiftBlockedReason, noDatesThisShift, shiftBriefRows } = useMemo(
+    () =>
+      deriveShiftFilingState({
+        save,
+        shift,
+        readyClosurePairCount,
+        pendingFollowUpCount,
+      }),
+    [save, shift, readyClosurePairCount, pendingFollowUpCount],
+  );
+
   /**
-   * Flythrough layer the player has scrolled into. 0 = focus cases, 1 =
-   * tonight's eligibles, 2 = cathedral / scenarios. The Scene mounts a wheel
-   * handler that calls `setCurrentLayer` per scroll tick, throttled so a
-   * single wheel notch advances one layer. Declared above the tutorial gates
-   * so `planning.commit` / `planning.scenario` can key off the layer.
+   * One reducer owns the planning flow: booking selection (focus / partner /
+   * intent / scenario), the cathedral mode (auto / deck / library), and the
+   * flythrough layer (0/1/2). External activeBooking changes flow in via
+   * `syncBooking`. See `lobby-reducer.ts` for the full transition table.
    */
-  const [currentLayer, setCurrentLayer] = useState<FlythroughLayer>(0);
-  const { fileShiftReady, fileShiftBlockedReason, noDatesThisShift, shiftBriefRows } =
-    useShiftFilingState({
-      save,
-      shift,
-      readyClosurePairCount,
-      pendingFollowUpCount,
-    });
-  const [scenarioMode, setScenarioMode] = useState<ScenarioMode>("auto");
+  const { projection, dispatch } = useLobbyState({
+    activeBooking,
+    focusedMemberIds: save.focusedMemberIds,
+  });
+  const {
+    focusId,
+    partnerId,
+    matchmakingIntent,
+    selectedScenarioId,
+    lobbyState,
+    scenarioMode,
+    currentLayer,
+  } = projection;
   const layerNavigationMode: LayerNavigationMode =
     scenarioMode !== "auto" ? "free" : activeBooking !== null ? "committed" : "planning";
-  useEffect(() => {
-    setCurrentLayer((current) => normalizeLayer(current, layerNavigationMode));
-  }, [layerNavigationMode]);
   const handleLayerSelect = useCallback(
     (layer: FlythroughLayer) => {
-      if (!isLayerEnabled(layer, layerNavigationMode)) return;
-      setCurrentLayer(layer);
+      dispatch({ type: "selectLayer", layer, navigationMode: layerNavigationMode });
     },
-    [layerNavigationMode],
+    [dispatch, layerNavigationMode],
   );
   /**
    * Roster-slab subview controls which cohort the constellation spotlights on
@@ -128,21 +136,15 @@ export function ConstellationLobby({
     () => buildLobbyStars(save.members, shift, focusedMembers),
     [save.members, shift, focusedMembers],
   );
-  const {
-    focusId,
-    setFocusId,
-    partnerId,
-    setPartnerId,
-    matchmakingIntent,
-    setMatchmakingIntent,
-    selectedScenarioId,
-    setSelectedScenarioId,
-    lobbyState,
-    focusStar,
-    partnerStar,
-    committedPairId,
-    resetBookingSelection,
-  } = useLobbyPlanningState({ save, activeBooking, stars, onCancelBooking });
+  const focusStar = useMemo(
+    () => (focusId === null ? undefined : stars.find((star) => star.member.id === focusId)),
+    [stars, focusId],
+  );
+  const partnerStar = useMemo(
+    () => (partnerId === null ? undefined : stars.find((star) => star.member.id === partnerId)),
+    [stars, partnerId],
+  );
+  const committedPairId = activeBooking !== null ? activeBooking.pairId : null;
 
   const [openCaseMemberId, setOpenCaseMemberId] = useState<string | null>(null);
   // Active star whose `HoverDetailCard` is morphed open. Click-driven (not
@@ -295,14 +297,18 @@ export function ConstellationLobby({
     dateBookPillRef,
     closureCalloutRef,
   } = planningTutorial.refs;
-  const { focusStep, partnerStep, commitStep, scenarioStep, beginStep, fileShiftStep } =
-    planningTutorial.steps;
+  const focusStep = planningTutorial.steps["planning.focus"];
+  const partnerStep = planningTutorial.steps["planning.partner"];
+  const commitStep = planningTutorial.steps["planning.commit"];
+  const scenarioStep = planningTutorial.steps["planning.scenario"];
+  const beginStep = planningTutorial.steps["planning.begin"];
+  const fileShiftStep = planningTutorial.steps["planning.file-shift"];
 
   useEffect(() => {
     if (scenarioMode !== "auto" || selectedScenarioId === null) return;
     if (flythroughScenariosForLayer.some((scenario) => scenario.id === selectedScenarioId)) return;
-    setSelectedScenarioId(null);
-  }, [flythroughScenariosForLayer, scenarioMode, selectedScenarioId]);
+    dispatch({ type: "selectScenario", scenarioId: null });
+  }, [dispatch, flythroughScenariosForLayer, scenarioMode, selectedScenarioId]);
 
   const handleCommitPair = () => {
     if (isActionPending) return;
@@ -329,67 +335,38 @@ export function ConstellationLobby({
     });
   };
 
-  // Single reset for any "drop the in-flight selection" path. `dropFocus`
-  // distinguishes the focus-X click (which also clears the focused case)
-  // from the partner-X / Cancel-pair click (which only unwinds back to the
-  // partner picker). Centralising avoids the drift that crept in when the
-  // three call sites grew independently.
-  const clearBookingSelection = useCallback(
-    ({ dropFocus = false }: { dropFocus?: boolean } = {}) => {
-      resetBookingSelection({ dropFocus });
-      setScenarioMode("auto");
-      // The cathedral detail overlay is resolved from `expandedDoorId` via
-      // useCathedralModel — leaving it set keeps the detail panel mounted
-      // over an empty lobby after cancel. Clear it here so the cancel path
-      // is symmetric with closeDateBook / handleDateBookNavToggle.
-      setExpandedDoorId(null);
-      // Dropping focus collapses lobbyState to "idle"; the auto-advance
-      // effect below only handles focus_selected / committed_pair, so the
-      // player would otherwise stay on layer 1 with no focus picker visible.
-      if (dropFocus) setCurrentLayer(0);
-    },
-    [resetBookingSelection],
-  );
-  const handleCancelPair = useCallback(() => clearBookingSelection(), [clearBookingSelection]);
-  const handleClearFocus = useCallback(
-    () => clearBookingSelection({ dropFocus: true }),
-    [clearBookingSelection],
-  );
+  // Cancellation has two paths: the reducer cleans up the in-flight booking
+  // selection (focus / partner / intent / scenario / layer / scenarioMode);
+  // and when an external activeBooking is live, the parent's
+  // `onCancelBooking` mutates the save (the new activeBooking=null then flows
+  // back through syncBooking next render). The expandedDoorId is owned
+  // outside the reducer so we still clear it here for symmetry with
+  // closeDateBook / handleDateBookNavToggle.
+  const handleCancelPair = useCallback(() => {
+    dispatch({ type: "cancelPair" });
+    setExpandedDoorId(null);
+    if (activeBooking !== null) onCancelBooking();
+  }, [activeBooking, dispatch, onCancelBooking]);
+  const handleClearFocus = useCallback(() => {
+    dispatch({ type: "cancelPair", dropFocus: true });
+    setExpandedDoorId(null);
+    if (activeBooking !== null) onCancelBooking();
+  }, [activeBooking, dispatch, onCancelBooking]);
   const handleClearPartner = handleCancelPair;
-
-  // Choose the layer to return to when leaving the cathedral / date book.
-  // Layer 0 is the focus picker, 1 is the roster (where partners are picked),
-  // and 2 is the cathedral itself. Without this mapping the old code dumped
-  // partner_selected / focus_selected players back to layer 0 even though
-  // their pair was being assembled on layer 1.
-  const cathedralExitLayer: FlythroughLayer =
-    lobbyState === "committed_pair" || lobbyState === "scenario_chosen"
-      ? 2
-      : lobbyState === "focus_selected" || lobbyState === "partner_selected"
-        ? 1
-        : 0;
 
   const handleDateBookNavToggle = () => {
     if (dateBookDisabledReason !== undefined) return;
-    setScenarioMode((current) => {
-      if (current === "auto") {
-        // Entering the deck warps the camera into the cathedral so the door
-        // array reads as the active surface, not a popover.
-        setCurrentLayer(2);
-        setExpandedDoorId(null);
-        return "deck";
-      }
-      if (current === "deck") {
-        setCurrentLayer(2);
-        setExpandedDoorId(null);
-        return "library";
-      }
-      // library → auto: leave the cathedral; the lobby state decides which
-      // member-layer slab the camera should return to.
-      setCurrentLayer(cathedralExitLayer);
-      setExpandedDoorId(null);
-      return "auto";
-    });
+    // Three-mode cycle: auto → deck → library → auto. The reducer drives
+    // currentLayer in each transition; expandedDoorId is parent-owned so we
+    // clear it here.
+    setExpandedDoorId(null);
+    if (scenarioMode === "auto") {
+      dispatch({ type: "openDateBook", mode: "deck" });
+    } else if (scenarioMode === "deck") {
+      dispatch({ type: "openDateBook", mode: "library" });
+    } else {
+      dispatch({ type: "closeDateBook" });
+    }
   };
 
   /**
@@ -401,27 +378,15 @@ export function ConstellationLobby({
    */
   const closeDateBook = useCallback(() => {
     if (scenarioMode === "auto") return;
-    setScenarioMode("auto");
     setExpandedDoorId(null);
-    setCurrentLayer(cathedralExitLayer);
-  }, [scenarioMode, cathedralExitLayer]);
+    dispatch({ type: "closeDateBook" });
+  }, [dispatch, scenarioMode]);
 
   // Deck / library mode reads as a dedicated screen — the surrounding HUD
   // (chrome pills, layer dots, focus/partner rail, callouts, bottom dock,
   // contextual pill rail) recedes so the cathedral panel owns the frame.
   // The panel's own "← Close" button is the way back out.
   const dateBookOpen = scenarioMode !== "auto";
-
-  // Auto-advance the flythrough as the booking assembles: focus pick warps to
-  // the roster slab so the partner picker opens, and a committed pair warps to
-  // the cathedral so the player picks tonight's scenario inside the nave
-  // instead of through a floating overlay. Before commit, layers 0/1 remain
-  // available; after commit, the cathedral owns navigation until the date
-  // resolves.
-  useEffect(() => {
-    if (lobbyState === "focus_selected") setCurrentLayer(1);
-    if (lobbyState === "committed_pair") setCurrentLayer(2);
-  }, [lobbyState]);
 
   const handleOpenClosures = useCallback(() => {
     const firstReady = readyClosurePairs[0];
@@ -437,12 +402,27 @@ export function ConstellationLobby({
     onOpenFollowUps?.();
   }, [onOpenFollowUps, openNotesOverlay]);
 
-  const {
-    readyPair: closureReadyPair,
-    readyPairIndex: closureReadyPairIndex,
-    openPrevious: openPreviousClosure,
-    openNext: openNextClosure,
-  } = useClosureQueue({ closurePairId, readyClosurePairs, setClosurePairId });
+  const closureReadyPairIndex =
+    closurePairId === null
+      ? -1
+      : readyClosurePairs.findIndex((ready) => ready.pairState.id === closurePairId);
+  const closureReadyPair =
+    closureReadyPairIndex < 0 ? null : (readyClosurePairs[closureReadyPairIndex] ?? null);
+  const openPreviousClosure = useCallback(() => {
+    if (closureReadyPairIndex <= 0) return;
+    setClosurePairId(readyClosurePairs[closureReadyPairIndex - 1]?.pairState.id ?? null);
+  }, [closureReadyPairIndex, readyClosurePairs, setClosurePairId]);
+  const openNextClosure = useCallback(() => {
+    if (closureReadyPairIndex < 0 || closureReadyPairIndex >= readyClosurePairs.length - 1) return;
+    setClosurePairId(readyClosurePairs[closureReadyPairIndex + 1]?.pairState.id ?? null);
+  }, [closureReadyPairIndex, readyClosurePairs, setClosurePairId]);
+  // The closure error message is owned by the parent shell, so panel-local
+  // transitions (close, Previous, Next) leak the prior pair's error into the
+  // next view if we don't clear it here. Dismiss whenever the active pair
+  // changes; a fresh confirm attempt will re-populate the error if it fails.
+  useEffect(() => {
+    onDismissClosureError?.();
+  }, [closurePairId, onDismissClosureError]);
 
   // ===========================================================================
   // Roster fold derived state — folded affordances that used to live in the
@@ -459,13 +439,27 @@ export function ConstellationLobby({
     unavailabilityReasonById,
     filteredMembers,
     filterMatchedIds,
-  } = useRosterFold({
-    save,
-    shift,
-    filterState,
-    revealAllMemberDetails,
-    readyClosureMemberIds,
-  });
+  } = useMemo(
+    () =>
+      deriveRosterFold({
+        save,
+        shift,
+        filterState,
+        revealAllMemberDetails,
+        readyClosureMemberIds,
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      save.focusedMemberIds,
+      save.members,
+      save.playerKnowledge,
+      shift.availablePartnerMemberIds,
+      shift.shiftNumber,
+      filterState,
+      revealAllMemberDetails,
+      readyClosureMemberIds,
+    ],
+  );
 
   // Drop partnerId if it's no longer in eligiblePartnerIds (status flipped to
   // closed, cooldown entry, focused-set mutation). Without this the Begin
@@ -475,8 +469,8 @@ export function ConstellationLobby({
     if (activeBooking !== null) return;
     if (partnerId === null) return;
     if (eligiblePartnerIds.has(partnerId)) return;
-    setPartnerId(null);
-  }, [activeBooking, partnerId, eligiblePartnerIds]);
+    dispatch({ type: "cancelPair" });
+  }, [activeBooking, dispatch, partnerId, eligiblePartnerIds]);
 
   // Fire the manager-quip "deck over budget" trigger on the false→true
   // transition. Tracks the previous value via ref so the dispatch happens
@@ -570,7 +564,36 @@ export function ConstellationLobby({
     setOpenCaseMemberId(memberId);
   }, []);
 
-  const renderHoverCard = useHoverCardRenderer({
+  const handleMakeLead = useCallback(
+    (memberId: string) => {
+      dispatch({ type: "selectFocus", memberId });
+      setActiveStarId(null);
+    },
+    [dispatch],
+  );
+  const handleMakePartner = useCallback(
+    (memberId: string) => {
+      dispatch({ type: "selectPartner", memberId });
+      setActiveStarId(null);
+    },
+    [dispatch],
+  );
+  const handleMakeFocus = useMemo(
+    () =>
+      onAddFocus === undefined
+        ? undefined
+        : (memberId: string) => {
+            onAddFocus(memberId);
+            // Set this member as the lead only if there's no current lead —
+            // mirrors the previous `setFocusId((current) => current ?? id)`
+            // pattern that preserved an existing pick when the player added
+            // more focused members.
+            if (focusId === null) dispatch({ type: "selectFocus", memberId });
+            setActiveStarId(null);
+          },
+    [dispatch, focusId, onAddFocus],
+  );
+  const hoverCardContext: HoverCardContext = {
     save,
     focusedSet,
     revealAllMemberDetails,
@@ -582,12 +605,13 @@ export function ConstellationLobby({
     shiftNumber: shift.shiftNumber,
     focusStep,
     partnerStep,
-    onAddFocus,
     openCaseAndDismiss,
-    setFocusId,
-    setPartnerId,
-    setActiveStarId,
-  });
+    onMakeLead: handleMakeLead,
+    onMakePartner: handleMakePartner,
+    onMakeFocus: handleMakeFocus,
+  };
+  const renderHoverCard = ({ star }: { star: StarMark }) =>
+    renderLobbyHoverCard(hoverCardContext, star);
 
   const { openCaseMember, caseFilePrimaryAction } = useCaseFileAction({
     save,
@@ -626,7 +650,7 @@ export function ConstellationLobby({
       <IntentRail
         selectedIntent={matchmakingIntent}
         locked={activeBooking !== null}
-        onSelect={setMatchmakingIntent}
+        onSelect={(intent) => dispatch({ type: "setIntent", intent })}
       />
     );
 
@@ -662,14 +686,9 @@ export function ConstellationLobby({
   ]);
 
   const openDeckFromCallout = useCallback(() => {
-    setScenarioMode("deck");
-    // Without this the HUD unmounts (dateBookOpen = scenarioMode !== "auto")
-    // but CathedralPanel.open evaluates `currentLayer === 2` to false on the
-    // first paint after a click from layer 0/1, leaving the player on an
-    // empty constellation field.
-    setCurrentLayer(2);
     setExpandedDoorId(null);
-  }, []);
+    dispatch({ type: "openDateBook", mode: "deck" });
+  }, [dispatch]);
   const callouts = useLobbyCallouts({
     deckRepairBlocked,
     readyClosurePairCount,
@@ -712,7 +731,9 @@ export function ConstellationLobby({
   const handleDoorClick = (id: string) => {
     if (scenarioMode === "auto") {
       if (scenarioStep.active) scenarioStep.complete();
-      setSelectedScenarioId((current) => (current === id ? null : id));
+      // Toggle: clicking the already-selected scenario clears it.
+      const nextId = selectedScenarioId === id ? null : id;
+      dispatch({ type: "selectScenario", scenarioId: nextId });
       return;
     }
     setExpandedDoorId((current) => (current === id ? null : id));
