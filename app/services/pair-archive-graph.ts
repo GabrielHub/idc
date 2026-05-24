@@ -1,5 +1,5 @@
 /* ====================================================================
- * Pair Board layout helpers
+ * Pair archive graph helpers
  *
  * Pure functions: graph derivation from gameplay state, radial-by-degree
  * placement, deterministic per-pair curvature, and
@@ -13,23 +13,23 @@
  * ==================================================================== */
 
 import type { MemoryRecord, Member, PairEdge } from "../domain/game";
-import { hashSeedUint32, pushIntoBucket } from "../services/utils";
+import { hashSeedUint32, pushIntoBucket } from "./utils";
 
-type PairBoardPoint = {
+export type PairArchivePoint = {
   x: number;
   y: number;
 };
 
-export type PairBoardNode = {
+export type PairArchiveNode = {
   member: Member;
   degree: number;
   ringColor: string;
-  basePosition: PairBoardPoint;
+  basePosition: PairArchivePoint;
   driftSeed: number;
   ringTier: 0 | 1 | 2;
 };
 
-export type PairBoardEdge = {
+export type PairArchiveEdge = {
   pairId: string;
   a: string;
   b: string;
@@ -41,28 +41,28 @@ export type PairBoardEdge = {
   curvature: number;
 };
 
-type PairBoardNodeNoteSummary = {
+type PairArchiveNodeNoteSummary = {
   topImportance: 1 | 2 | 3 | 4 | 5;
   latestNoteAt: number;
 };
 
-type PairBoardGraphMeta = {
+type PairArchiveGraphMeta = {
   filedPairs: number;
   isolatedMembers: Member[];
 };
 
-export type PairBoardGraph = {
-  nodes: PairBoardNode[];
-  edges: PairBoardEdge[];
-  nodeById: Map<string, PairBoardNode>;
-  edgeById: Map<string, PairBoardEdge>;
+export type PairArchiveGraph = {
+  nodes: PairArchiveNode[];
+  edges: PairArchiveEdge[];
+  nodeById: Map<string, PairArchiveNode>;
+  edgeById: Map<string, PairArchiveEdge>;
   notesByPair: Map<string, MemoryRecord[]>;
-  incidentEdgesByNode: Map<string, PairBoardEdge[]>;
-  nodeNoteSummaryByNode: Map<string, PairBoardNodeNoteSummary>;
-  meta: PairBoardGraphMeta;
+  incidentEdgesByNode: Map<string, PairArchiveEdge[]>;
+  nodeNoteSummaryByNode: Map<string, PairArchiveNodeNoteSummary>;
+  meta: PairArchiveGraphMeta;
 };
 
-export type DerivePairGraphOptions = {
+export type DerivePairArchiveGraphOptions = {
   minDegree: number;
 };
 
@@ -75,12 +75,12 @@ const DEGREE_THRESHOLD_MIDDLE = 2;
 
 const PI2 = Math.PI * 2;
 
-export function derivePairGraph(
+export function derivePairArchiveGraph(
   members: readonly Member[],
   pairEdges: readonly PairEdge[],
   memories: readonly MemoryRecord[],
-  options: DerivePairGraphOptions,
-): PairBoardGraph {
+  options: DerivePairArchiveGraphOptions,
+): PairArchiveGraph {
   const memberById = new Map(members.map((member) => [member.id, member]));
 
   const filedNotesByPair = new Map<string, MemoryRecord[]>();
@@ -91,7 +91,7 @@ export function derivePairGraph(
     pushIntoBucket(filedNotesByPair, memory.pairId, memory);
   }
 
-  const allEdges: PairBoardEdge[] = [];
+  const allEdges: PairArchiveEdge[] = [];
   let filedPairCount = 0;
 
   for (const pair of pairEdges) {
@@ -138,7 +138,7 @@ export function derivePairGraph(
   // no-op and the post-filter degree map equals the pre-filter one.
   const filtersOut = minDegreeThreshold > 1;
 
-  let visibleEdges: PairBoardEdge[];
+  let visibleEdges: PairArchiveEdge[];
   let visibleDegree: Map<string, number>;
   if (filtersOut) {
     const visibleMemberIds = new Set<string>();
@@ -160,8 +160,8 @@ export function derivePairGraph(
     visibleDegree = degreeByMember;
   }
 
-  const incidentEdgesByNode = new Map<string, PairBoardEdge[]>();
-  const nodeNoteSummaryByNode = new Map<string, PairBoardNodeNoteSummary>();
+  const incidentEdgesByNode = new Map<string, PairArchiveEdge[]>();
+  const nodeNoteSummaryByNode = new Map<string, PairArchiveNodeNoteSummary>();
   for (const edge of visibleEdges) {
     pushIntoBucket(incidentEdgesByNode, edge.a, edge);
     pushIntoBucket(incidentEdgesByNode, edge.b, edge);
@@ -193,9 +193,9 @@ export function derivePairGraph(
 }
 
 function rollupNoteSummary(
-  bucket: Map<string, PairBoardNodeNoteSummary>,
+  bucket: Map<string, PairArchiveNodeNoteSummary>,
   memberId: string,
-  edge: PairBoardEdge,
+  edge: PairArchiveEdge,
 ): void {
   const existing = bucket.get(memberId);
   if (existing === undefined) {
@@ -215,9 +215,9 @@ function rollupNoteSummary(
 
 function layoutRadialByDegree(
   members: readonly Member[],
-  edges: readonly PairBoardEdge[],
+  edges: readonly PairArchiveEdge[],
   degreeByMember: Map<string, number>,
-): PairBoardNode[] {
+): PairArchiveNode[] {
   if (members.length === 0) return [];
 
   const sorted = [...members].sort((left, right) => {
@@ -237,7 +237,7 @@ function layoutRadialByDegree(
   // within their tier so the eye reads pairings as physical proximity. We
   // walk edges in importance order and snap whichever endpoint still has a
   // free slot in its tier next to the partner.
-  const positions = new Map<string, PairBoardPoint>();
+  const positions = new Map<string, PairArchivePoint>();
   const ringTierByMember = new Map<string, 0 | 1 | 2>();
   const sortedEdges = [...edges].sort((left, right) => right.topImportance - left.topImportance);
 
@@ -351,11 +351,11 @@ function clampImportance(value: number): 1 | 2 | 3 | 4 | 5 {
   return Math.max(1, Math.min(5, Math.round(value))) as 1 | 2 | 3 | 4 | 5;
 }
 
-export function edgeStrokeWidth(edge: PairBoardEdge): number {
+export function edgeStrokeWidth(edge: PairArchiveEdge): number {
   return 1.5 + edge.topImportance * 0.55;
 }
 
-export function edgeBaseOpacity(edge: PairBoardEdge): number {
+export function edgeBaseOpacity(edge: PairArchiveEdge): number {
   const healthShare = Math.max(0, Math.min(1, edge.health / 100));
   return 0.34 + healthShare * 0.5;
 }
@@ -373,18 +373,6 @@ export function describeRecency(latestNoteAt: number, now: number): string {
   const weeks = Math.round(days / 7);
   return `filed ${weeks}w ago`;
 }
-
-/**
- * Pair-board selection — moved here from the deleted SVG renderer so the
- * notes-view-helpers seeding helper + its tests still compile. The
- * constellation lobby keeps a richer ArchiveSelection in its own types;
- * this one stays narrow because it only seeds initial open state.
- */
-type ActivePairBoardSelection =
-  | { kind: "node"; memberId: string }
-  | { kind: "edge"; pairId: string };
-
-export type PairBoardSelection = ActivePairBoardSelection | { kind: "none" };
 
 /**
  * Split a long note body into a lead sentence + trailing tail so cards and

@@ -1,6 +1,6 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
-import type { PairBoardEdge } from "../pair-board-layout";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import { PairEdgeMesh } from "./pair-edge-mesh";
 import type { ArchiveSelection } from "./types";
@@ -27,7 +27,7 @@ export function ArchiveEdgeLayer({
   onHoveredEdgeChange: Dispatch<SetStateAction<string | null>>;
   onArchiveEdgeHover?: (pairId: string | null) => void;
   onArchiveEdgeClick?: (pairId: string) => void;
-  renderArchiveEdgeTooltip?: (edge: PairBoardEdge) => ReactNode;
+  renderArchiveEdgeTooltip?: (edge: PairArchiveEdge) => ReactNode;
 }) {
   return (
     <>

@@ -44,6 +44,10 @@ export const venus: Member = {
   shiftAvailabilityProfile: "busy_public",
   voice: {
     register: "imperious cocky",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: [
       "negotiation_sales_pitch",
       "deadpan_one_liner",

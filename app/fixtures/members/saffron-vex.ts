@@ -44,6 +44,7 @@ export const saffronVex: Member = {
     "The hoard is larger than she lets on in conversation. It is not in this realm. She has not described it to anyone, including her sibling. The hoard is private and the privacy is not anxiety, it is preference.",
   ],
   tags: ["non_human", "sincerity_seeking", "weirdness_native"],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register:
       "enthusiastic-noticer wit in a young dragon's polymorphed human form. fast, warm, present, specific, modern contractions on.",

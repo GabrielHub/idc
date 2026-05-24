@@ -1,4 +1,5 @@
 import type { DateScenario, Member, ShiftState } from "../../domain/game";
+import type { ScenarioRoomRead } from "../../services/match-fit";
 import { createSeededRandom } from "../../services/utils";
 import { isMemberInCooldown } from "../../services/shift-planning";
 import { getMemberAuraConfig } from "../member-aura-registry";
@@ -89,7 +90,10 @@ function availabilityForMember(member: Member, shift: ShiftState): StarAvailabil
   return "ready";
 }
 
-export function toLobbyScenario(scenario: DateScenario): LobbyScenario {
+export function toLobbyScenario(
+  scenario: DateScenario,
+  roomRead: ScenarioRoomRead = "steady",
+): LobbyScenario {
   return {
     id: scenario.id,
     title: scenario.title,
@@ -100,8 +104,11 @@ export function toLobbyScenario(scenario: DateScenario): LobbyScenario {
       intimacy: riskToNumber(scenario.card.intimacy),
       chaos: riskToNumber(scenario.card.chaos),
     },
-    // TODO(constellation-lobby-room-folds): wire to real room read derivation.
-    roomRead: "steady",
+    // Computed by the caller via evaluateMatchFit + scenarioRoomReadFromMatchFit
+    // when the focus / partner / pair context is available; "steady" is the
+    // safe default when no pair is selected (library mode, scenario library
+    // pre-pair).
+    roomRead,
   };
 }
 

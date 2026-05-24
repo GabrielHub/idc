@@ -26,6 +26,7 @@ export function CathedralPanel({
   scrollRef,
   deckBookShards,
   libraryFilter,
+  composeWarnings,
 }: {
   open: boolean;
   mode: CathedralMode;
@@ -41,6 +42,13 @@ export function CathedralPanel({
   scrollRef?: Ref<HTMLDivElement>;
   deckBookShards?: DeckBookShards;
   libraryFilter?: LibraryFilterControls;
+  /**
+   * Deck composition advisories (no low-pressure cards, no high-pressure
+   * cards, etc.). Surfaced as amber "Heads up" pills under the shards row
+   * in deck mode so the player notices imbalanced decks before they commit
+   * a pair.
+   */
+  composeWarnings?: readonly string[];
 }) {
   const enterDuration = reducedMotion ? 0.001 : 0.36;
   const filterRow = libraryFilter === undefined ? null : <CathedralFilterRow {...libraryFilter} />;
@@ -65,6 +73,7 @@ export function CathedralPanel({
               deckBookShards={deckBookShards}
               onClose={onClose}
               filterRow={filterRow}
+              composeWarnings={composeWarnings}
             />
             <div ref={scrollRef} className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
               {doors.length === 0 ? (
@@ -95,12 +104,14 @@ function CathedralHeader({
   deckBookShards,
   onClose,
   filterRow,
+  composeWarnings,
 }: {
   mode: CathedralMode;
   doorCount: number;
   deckBookShards?: DeckBookShards;
   onClose?: () => void;
   filterRow?: ReactNode;
+  composeWarnings?: readonly string[];
 }) {
   const title =
     mode === "auto" ? "Tonight's draw" : mode === "deck" ? "Deck composition" : "Scenario library";
@@ -141,9 +152,30 @@ function CathedralHeader({
             </button>
           )}
           {showShards ? <DeckShardsRow shards={deckBookShards} /> : null}
+          {composeWarnings === undefined || composeWarnings.length === 0 ? null : (
+            <DeckWarningsRow warnings={composeWarnings} />
+          )}
         </div>
       </div>
       {filterRow}
+    </div>
+  );
+}
+
+function DeckWarningsRow({ warnings }: { warnings: readonly string[] }) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      {warnings.map((warning) => (
+        <div
+          key={warning}
+          className="aura-liquid-glass aura-liquid-glass-amber rounded-full px-3 py-1 leading-tight"
+        >
+          <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
+            heads up
+          </span>
+          <span className="ml-1.5 font-display text-label text-aura-amber">{warning}</span>
+        </div>
+      ))}
     </div>
   );
 }

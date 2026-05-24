@@ -13,7 +13,7 @@ import {
   visibleMemoryTagLabels,
 } from "./notes-format";
 import { paletteForMemory, type ScopePalette } from "./notes-palette";
-import { splitLead } from "./pair-board-layout";
+import { splitLead } from "../services/pair-archive-graph";
 
 export type NotesCardDeps = {
   memberById: Map<string, Member>;

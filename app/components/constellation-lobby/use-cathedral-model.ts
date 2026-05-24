@@ -6,8 +6,20 @@ import {
   computeEffectiveCosts,
   deriveDeckBudgetStatus,
 } from "../../services/budget";
-import { deckIsRepairBlocked, drawHandForBooking, unlockedScenarioIds } from "../../services/deck";
+import {
+  deckIsRepairBlocked,
+  drawHandForBooking,
+  softComposeWarnings,
+  unlockedScenarioIds,
+} from "../../services/deck";
 import { starterScenarios } from "../../fixtures";
+import {
+  evaluateMatchFit,
+  scenarioRoomReadFromMatchFit,
+  type ScenarioRoomRead,
+} from "../../services/match-fit";
+import { getPairProjectionFromSave, materializePairEdge } from "../../services/relationship-index";
+import { makePairId } from "../../services/game-seed";
 import type { CathedralMode, RiskFilter, SortMode } from "./cathedral";
 import { computeDeckComposition } from "./deck-composition";
 import { buildCathedralDoors, filterScenarioLibrary } from "./scenario-doors";
@@ -18,6 +30,8 @@ export function useCathedralModel({
   shift,
   drawnScenarios,
   previewPairId,
+  focusId,
+  partnerId,
   scenarioMode,
   librarySearch,
   libraryRiskFilter,
@@ -28,6 +42,14 @@ export function useCathedralModel({
   shift: ShiftState;
   drawnScenarios: readonly DateScenario[];
   previewPairId: string | null;
+  /**
+   * Focus + partner ids when both are picked. Used to evaluate the room read
+   * per scenario via evaluateMatchFit. When either is null the cathedral
+   * falls back to the neutral "steady" read because no pair context exists
+   * yet.
+   */
+  focusId: string | null;
+  partnerId: string | null;
   scenarioMode: CathedralMode;
   librarySearch: string;
   libraryRiskFilter: RiskFilter;
@@ -54,7 +76,45 @@ export function useCathedralModel({
     () => computeDeckComposition(save.scenarioDeck.cardIds, scenarioById),
     [save.scenarioDeck.cardIds, scenarioById],
   );
-  const lobbyScenarios = useMemo(() => drawnScenarios.map(toLobbyScenario), [drawnScenarios]);
+  // Soft advisories for the deck (no-low-pressure, no-high-pressure, etc.).
+  // Surfaced by the cathedral header so the player sees the same heads-up
+  // pills the old DateBookHeader rendered.
+  const deckComposeWarnings = useMemo(
+    () => softComposeWarnings(save.scenarioDeck, starterScenarios),
+    [save.scenarioDeck],
+  );
+  // Per-scenario room read for the current pair. When focus + partner are
+  // both picked we resolve the pair (persisted or projected), then run
+  // evaluateMatchFit per scenario and project the result to the player-safe
+  // Room Read pip ("steady" / "promising" / "volatile"). Without a pair
+  // there's no context for the read, so every scenario falls back to "steady".
+  const roomReadByScenarioId = useMemo<ReadonlyMap<string, ScenarioRoomRead>>(() => {
+    if (focusId === null || partnerId === null) return new Map();
+    const focusMember = save.members.find((m) => m.id === focusId);
+    const partnerMember = save.members.find((m) => m.id === partnerId);
+    if (focusMember === undefined || partnerMember === undefined) return new Map();
+    const pairId = makePairId(focusId, partnerId);
+    const projection = getPairProjectionFromSave(save, pairId);
+    if (projection === undefined) return new Map();
+    const pairState = materializePairEdge(projection);
+    const reads = new Map<string, ScenarioRoomRead>();
+    for (const scenario of starterScenarios) {
+      const fit = evaluateMatchFit({
+        members: [focusMember, partnerMember],
+        scenario,
+        pairState,
+      });
+      reads.set(scenario.id, scenarioRoomReadFromMatchFit(fit));
+    }
+    return reads;
+  }, [focusId, partnerId, save]);
+  const toLobby = (scenario: DateScenario) =>
+    toLobbyScenario(scenario, roomReadByScenarioId.get(scenario.id) ?? "steady");
+  const lobbyScenarios = useMemo(
+    () => drawnScenarios.map(toLobby),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [drawnScenarios, roomReadByScenarioId],
+  );
   const flythroughScenariosForLayer = useMemo(
     () =>
       buildAutoModeScenarios({
@@ -63,8 +123,16 @@ export function useCathedralModel({
         shiftNumber: shift.shiftNumber,
         previewPairId,
         scenarioById,
-      }).map(toLobbyScenario),
-    [drawnScenarios, save.scenarioDeck, shift.shiftNumber, previewPairId, scenarioById],
+      }).map(toLobby),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      drawnScenarios,
+      save.scenarioDeck,
+      shift.shiftNumber,
+      previewPairId,
+      scenarioById,
+      roomReadByScenarioId,
+    ],
   );
 
   const unlockedLibraryIds = useMemo(
@@ -125,6 +193,7 @@ export function useCathedralModel({
     budgetStatus,
     deckRepairBlocked,
     deckComposition,
+    deckComposeWarnings,
     lobbyScenarios,
     flythroughScenariosForLayer,
     filteredLibrary,

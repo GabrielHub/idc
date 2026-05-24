@@ -49,6 +49,10 @@ export const aldricValeMarsh: Member = {
   shiftAvailabilityProfile: "formal_calendar",
   voice: {
     register: "knightly ardent",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: [
       "poetic_literary",
       "negotiation_sales_pitch",

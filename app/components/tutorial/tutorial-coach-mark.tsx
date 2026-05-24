@@ -12,7 +12,7 @@ import { useTargetRect, type TutorialTarget } from "./use-target-rect";
 
 export type CoachMarkPlacement = "top" | "bottom" | "left" | "right";
 
-type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
+export type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
 
 /**
  * Pixel offsets from the viewport edge. When supplied, the coach mark pins

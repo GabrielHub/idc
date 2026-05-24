@@ -45,6 +45,7 @@ export const mjolnir: Member = {
     "He does not know what worthy looks like in this century. He thinks he will know when he sees it. He is afraid he might not, and that the years of looking are the price of the form.",
   ],
   tags: ["non_human", "grief_sensitive", "weirdness_native", "sincerity_seeking"],
+  shiftAvailabilityProfile: "weird_erratic",
   voice: {
     register:
       "Sincere declamatory cadence in a Norse-adjacent warhammer newly embodied. Mixed contractions; the voice is the voice of an ancient weapon that has decided to talk like a person, often slightly oversized for the moment without noticing.",

@@ -1,9 +1,10 @@
 import { useCallback, type Dispatch, type SetStateAction } from "react";
 
-import type { GameSave, ShiftState } from "../../domain/game";
+import type { ActiveDateBooking, GameSave } from "../../domain/game";
 import { FOCUS_CASE_LIMIT, FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
 import { resolveFocusSelectionAffordance } from "../../services/focus-selection-affordance";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
+import type { ShiftPartnerUnavailableReason } from "../../services/shift-availability";
 import type { TutorialStepHandle } from "../../services/tutorial";
 import { caseFileNumber } from "../member-card-atoms";
 import { HoverDetailCard, type HoverDetailCtaVariant } from "./hover-detail-card";
@@ -18,6 +19,7 @@ export function useHoverCardRenderer({
   partnerId,
   activeBooking,
   eligiblePartnerIds,
+  unavailabilityReasonById,
   shiftNumber,
   focusStep,
   partnerStep,
@@ -32,8 +34,15 @@ export function useHoverCardRenderer({
   revealAllMemberDetails: boolean;
   focusId: string | null;
   partnerId: string | null;
-  activeBooking: ShiftState["activeBooking"] | null;
+  activeBooking: ActiveDateBooking | null;
   eligiblePartnerIds: ReadonlySet<string>;
+  /**
+   * Per-member unavailability reason from `classifyShiftPartners` /
+   * `shiftPartnerUnavailableReason`. Surfaced on off-tonight stars so the
+   * hover card explains *why* the partner is unbookable (career-locked,
+   * off-rotation, cooldown, etc.) without reopening a separate roster rail.
+   */
+  unavailabilityReasonById: ReadonlyMap<string, ShiftPartnerUnavailableReason>;
   /**
    * Active shift number, used to evaluate `isMemberInCooldown(member, …)`.
    * Cooldown blocks Make-lead / Make-focus from the card so the engine's
@@ -49,6 +58,14 @@ export function useHoverCardRenderer({
   setPartnerId: Dispatch<SetStateAction<string | null>>;
   setActiveStarId: Dispatch<SetStateAction<string | null>>;
 }) {
+  // useTutorialStep returns a fresh `{ active, complete, … }` object every
+  // render; passing the whole handle into deps defeats this memo and rebuilds
+  // renderHoverCard on every parent render. Destructure to primitives /
+  // stable callbacks so the deps array can compare with Object.is.
+  const focusStepActive = focusStep.active;
+  const focusStepComplete = focusStep.complete;
+  const partnerStepActive = partnerStep.active;
+  const partnerStepComplete = partnerStep.complete;
   return useCallback(
     ({ star }: { star: StarMark }) => {
       const member = star.member;
@@ -79,7 +96,7 @@ export function useHoverCardRenderer({
       if (focusAffordance.canMakeLead) {
         ctaVariant = "make_lead";
         onPrimaryAction = () => {
-          if (focusStep.active) focusStep.complete();
+          if (focusStepActive) focusStepComplete();
           setFocusId(member.id);
           setActiveStarId(null);
         };
@@ -89,7 +106,7 @@ export function useHoverCardRenderer({
       } else if (isPartnerCandidate) {
         ctaVariant = "make_partner";
         onPrimaryAction = () => {
-          if (partnerStep.active) partnerStep.complete();
+          if (partnerStepActive) partnerStepComplete();
           setPartnerId(member.id);
           setActiveStarId(null);
         };
@@ -110,12 +127,23 @@ export function useHoverCardRenderer({
           onAddFocus === undefined
             ? undefined
             : () => {
-                if (focusStep.active) focusStep.complete();
+                if (focusStepActive) focusStepComplete();
                 onAddFocus(member.id);
                 setFocusId((current) => current ?? member.id);
                 setActiveStarId(null);
               };
       }
+
+      // Resolve a single blockReason string, preferring the affordance reason
+      // (in-flight cooldown copy is more specific) and falling back to the
+      // shift-availability reason so the player sees *why* an off-tonight or
+      // career-locked partner is unbookable.
+      const unavailabilityReason = unavailabilityReasonById.get(member.id);
+      const blockReason =
+        focusAffordance.blockReason ??
+        (unavailabilityReason === undefined
+          ? undefined
+          : unavailabilityReasonCopy(unavailabilityReason));
 
       return (
         <HoverDetailCard
@@ -129,7 +157,7 @@ export function useHoverCardRenderer({
           onPrimaryAction={onPrimaryAction}
           onOpenCase={() => openCaseAndDismiss(member.id)}
           recentNotesSlot={<RecentNotesSlot memberId={member.id} memories={save.memories} />}
-          blockReason={focusAffordance.blockReason}
+          blockReason={blockReason}
         />
       );
     },
@@ -144,13 +172,31 @@ export function useHoverCardRenderer({
       partnerId,
       activeBooking,
       eligiblePartnerIds,
+      unavailabilityReasonById,
       shiftNumber,
       openCaseAndDismiss,
-      focusStep,
-      partnerStep,
+      focusStepActive,
+      focusStepComplete,
+      partnerStepActive,
+      partnerStepComplete,
       setFocusId,
       setPartnerId,
       setActiveStarId,
     ],
   );
+}
+
+function unavailabilityReasonCopy(reason: ShiftPartnerUnavailableReason): string {
+  switch (reason) {
+    case "focus_case":
+      return "Currently a focus case";
+    case "cooldown":
+      return "In cooldown until next shift";
+    case "closed":
+      return "File is closed";
+    case "quit":
+      return "Quit the program";
+    case "off_shift":
+      return "Off-rotation this shift";
+  }
 }

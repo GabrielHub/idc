@@ -1,10 +1,7 @@
 import type { Member, MemoryRecord, PairState, PlayerKnowledgeRecord } from "../domain/game";
 import { CLOSURE_NEAR_MISS_TAG } from "../services/date-engine";
-import type { PairBoardSelection } from "./pair-board-layout";
 
 export type NotesScopeFilter = "all" | "pairs" | "scenarios";
-
-type HasIdLookup = { has(id: string): boolean };
 
 export type PairFocusInitialFilter = {
   scopeFilter: NotesScopeFilter;
@@ -18,19 +15,6 @@ export function derivePairFocusInitialFilter(
     return null;
   }
   return { scopeFilter: "pairs", selectedPairId: pairFocusId };
-}
-
-export function resolveInitialPairBoardSelection(
-  initialEdgePairId: string | null | undefined,
-  edges: HasIdLookup,
-): PairBoardSelection {
-  if (initialEdgePairId === null || initialEdgePairId === undefined) {
-    return { kind: "none" };
-  }
-  if (!edges.has(initialEdgePairId)) {
-    return { kind: "none" };
-  }
-  return { kind: "edge", pairId: initialEdgePairId };
 }
 
 export type PairDossier = {

@@ -43,6 +43,10 @@ export const kadeSumner: Member = {
   shiftAvailabilityProfile: "busy_public",
   voice: {
     register: "stream of consciousness chat speak",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: [
       "stream_of_consciousness",
       "callback_rematch_reference",

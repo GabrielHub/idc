@@ -1,0 +1,191 @@
+import type { Dispatch, SetStateAction } from "react";
+import type { Texture } from "three";
+
+import {
+  computeLayerZOffset,
+  computeRosterCohort,
+  computeStarFlythroughLayer,
+  flythroughMemberSlabActivity,
+  FOCUS_MARKER_SCALE,
+  pairPartnerPosition,
+  resolveClusterPosition,
+  roleForStar,
+} from "./math";
+import { buildFocusMarkerOverlay, StarSprite } from "./star-sprite";
+import type {
+  FlythroughLayer,
+  LobbyState,
+  RosterSubview,
+  StarFlythroughLayer,
+  StarClickHandlers,
+  StarMark,
+  Vec3,
+  ViewMode,
+} from "./types";
+
+const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
+
+export function StarField({
+  state,
+  stars,
+  focusStar,
+  focusId,
+  partnerId,
+  eligiblePartnerSet,
+  viewMode,
+  archivePositions,
+  archiveIsolation,
+  starClickHandlers,
+  focusedIds,
+  currentLayer,
+  focusOrder,
+  rosterLeadOrder,
+  rosterSubview,
+  offTonightSet,
+  textures,
+  flareTexture,
+  haloTexture,
+  rimLightTexture,
+  showAuras,
+  reducedMotion,
+  hoveredId,
+  activeStarId,
+  onHoveredIdChange,
+  onHudOverlayHoveredChange,
+}: {
+  state: LobbyState;
+  stars: readonly StarMark[];
+  focusStar: StarMark | undefined;
+  focusId: string | undefined;
+  partnerId: string | undefined;
+  eligiblePartnerSet: ReadonlySet<string>;
+  viewMode: ViewMode;
+  archivePositions?: ReadonlyMap<string, Vec3>;
+  archiveIsolation?: {
+    focusMemberId: string;
+    includedMemberIds: ReadonlySet<string>;
+  };
+  starClickHandlers?: StarClickHandlers;
+  focusedIds?: ReadonlySet<string>;
+  currentLayer?: FlythroughLayer;
+  focusOrder: readonly string[];
+  rosterLeadOrder: readonly string[];
+  rosterSubview?: RosterSubview;
+  offTonightSet?: ReadonlySet<string>;
+  textures: Record<string, Texture>;
+  flareTexture: Texture | null;
+  haloTexture: Texture | null;
+  rimLightTexture: Texture | null;
+  showAuras: boolean;
+  reducedMotion: boolean;
+  hoveredId: string | null;
+  activeStarId: string | null;
+  onHoveredIdChange: Dispatch<SetStateAction<string | null>>;
+  onHudOverlayHoveredChange: (hovered: boolean) => void;
+}) {
+  return (
+    <>
+      {stars.map((star) => {
+        const role = roleForStar(star, {
+          state,
+          focusId,
+          partnerId,
+          eligiblePartnerIds: eligiblePartnerSet,
+        });
+        const inArchive = viewMode === "archive";
+        const archivePos = inArchive ? (archivePositions?.get(star.member.id) ?? null) : null;
+        if (inArchive && archivePos === null) return null;
+
+        const overridePos = inArchive
+          ? archivePos
+          : role === "partner" && focusStar
+            ? pairPartnerPosition(focusStar)
+            : null;
+        const flythroughLayer: StarFlythroughLayer | undefined = inArchive
+          ? undefined
+          : focusedIds === undefined
+            ? undefined
+            : computeStarFlythroughLayer(star.member.id, { focusedIds });
+        const cohort =
+          !inArchive && flythroughLayer === 1
+            ? computeRosterCohort(star.member.id, {
+                eligibleIds: eligiblePartnerSet,
+                offTonightIds: offTonightSet ?? EMPTY_OFF_TONIGHT_IDS,
+              })
+            : undefined;
+        const isFocusMarker =
+          !inArchive && role === "focus" && state === "focus_selected" && currentLayer === 1;
+        const slabActivity = isFocusMarker
+          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
+          : inArchive || flythroughLayer === undefined || currentLayer === undefined
+            ? undefined
+            : flythroughMemberSlabActivity(
+                flythroughLayer,
+                currentLayer,
+                cohort,
+                rosterSubview ?? "eligibles",
+              );
+        const lensFilteredOut =
+          starClickHandlers?.filterMatchedIds !== undefined &&
+          !starClickHandlers.filterMatchedIds.has(star.member.id);
+        const archiveIsolated =
+          inArchive &&
+          archiveIsolation !== undefined &&
+          !archiveIsolation.includedMemberIds.has(star.member.id);
+        const clusterPosition = resolveClusterPosition({
+          memberId: star.member.id,
+          role,
+          state,
+          flythroughLayer,
+          currentLayer,
+          focusOrder,
+          rosterLeadOrder,
+          inArchive,
+          rosterSubview,
+        });
+
+        return (
+          <StarSprite
+            key={star.member.id}
+            star={star}
+            role={role}
+            state={state}
+            overridePos={overridePos}
+            layerZOffset={inArchive ? 0 : computeLayerZOffset(role, state)}
+            texture={textures[star.member.id]}
+            flareTexture={flareTexture}
+            haloTexture={haloTexture}
+            rimLightTexture={rimLightTexture}
+            showAura={showAuras}
+            reducedMotion={reducedMotion}
+            filteredOut={lensFilteredOut || archiveIsolated}
+            hovered={hoveredId === star.member.id}
+            cardOpen={activeStarId === star.member.id}
+            flythroughLayer={flythroughLayer}
+            slabActivity={slabActivity}
+            clusterPosition={clusterPosition}
+            renderOverlay={buildFocusMarkerOverlay({
+              role,
+              state,
+              star,
+              onClearFocus: starClickHandlers?.onClearFocus,
+              onHoverChange: onHudOverlayHoveredChange,
+            })}
+            onHoverEnter={() => onHoveredIdChange(star.member.id)}
+            onHoverLeave={() => onHoveredIdChange(null)}
+            onClick={
+              starClickHandlers?.onStarClick === undefined
+                ? undefined
+                : (event) => starClickHandlers.onStarClick?.(star, event)
+            }
+            onDoubleClick={
+              starClickHandlers?.onStarDoubleClick === undefined
+                ? undefined
+                : (event) => starClickHandlers.onStarDoubleClick?.(star, event)
+            }
+          />
+        );
+      })}
+    </>
+  );
+}

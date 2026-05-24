@@ -9,16 +9,16 @@ import {
 } from "../domain/game";
 import { bradyStrait, jennaPike, vhool } from "../fixtures/members";
 import { makePairId, sortMemberIds } from "../services/game-seed";
-import { derivePairGraph } from "./pair-board-layout";
+import { derivePairArchiveGraph } from "./pair-archive-graph";
 
 const BOARD_MEMBERS = [jennaPike, vhool, bradyStrait];
 
-describe("derivePairGraph", () => {
+describe("derivePairArchiveGraph", () => {
   it("leaves unfiled pair edges off the board", () => {
     const filedPair = buildPairState(jennaPike, vhool);
     const unfiledPair = buildPairState(jennaPike, bradyStrait);
 
-    const graph = derivePairGraph(
+    const graph = derivePairArchiveGraph(
       BOARD_MEMBERS,
       [filedPair, unfiledPair],
       [buildPairMemory(filedPair)],
@@ -34,7 +34,7 @@ describe("derivePairGraph", () => {
   });
 
   it("returns an empty board when pair edges have no public notes", () => {
-    const graph = derivePairGraph(
+    const graph = derivePairArchiveGraph(
       BOARD_MEMBERS,
       [buildPairState(jennaPike, vhool), buildPairState(jennaPike, bradyStrait)],
       [],
@@ -52,7 +52,7 @@ describe("derivePairGraph", () => {
   it("ignores pair notes without materialized edges", () => {
     const filedPair = buildPairState(jennaPike, vhool);
 
-    const graph = derivePairGraph(BOARD_MEMBERS, [], [buildPairMemory(filedPair)], {
+    const graph = derivePairArchiveGraph(BOARD_MEMBERS, [], [buildPairMemory(filedPair)], {
       minDegree: 1,
     });
 
@@ -65,7 +65,7 @@ describe("derivePairGraph", () => {
     const firstPair = buildPairState(jennaPike, vhool);
     const secondPair = buildPairState(jennaPike, bradyStrait);
 
-    const graph = derivePairGraph(
+    const graph = derivePairArchiveGraph(
       BOARD_MEMBERS,
       [firstPair, secondPair],
       [buildPairMemory(firstPair), buildPairMemory(secondPair)],

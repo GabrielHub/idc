@@ -51,6 +51,10 @@ export const mrWhiskers: Member = {
   shiftAvailabilityProfile: "career_locked",
   voice: {
     register: "business irritated",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: ["negotiation_sales_pitch", "deadpan_one_liner", "rambling_spiral"],
     patternsRefused: [
       "stream_of_consciousness",

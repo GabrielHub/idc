@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
@@ -169,19 +170,32 @@ export function useTutorialStep(
 
   useTutorialActivityRegistration(id, active);
 
+  // Route `save` and `onUpdate` through refs so the returned `complete` /
+  // `dismiss` callbacks stay stable across renders. Downstream consumers
+  // (e.g. use-hover-card-renderer, planning-tutorial's coach-mark effects)
+  // pass them straight into useCallback / useEffect deps; an unstable
+  // identity defeats those memos and re-runs the effects on every save
+  // persist.
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+
   const complete = useCallback(() => {
-    if (!save) return;
-    const next = withStepCompleted(save, id);
-    if (next === save) return;
-    onUpdate(next);
-  }, [save, id, onUpdate]);
+    const current = saveRef.current;
+    if (!current) return;
+    const next = withStepCompleted(current, id);
+    if (next === current) return;
+    onUpdateRef.current(next);
+  }, [id]);
 
   const dismiss = useCallback(() => {
-    if (!save) return;
-    const next = withTourDismissed(save);
-    if (next === save) return;
-    onUpdate(next);
-  }, [save, onUpdate]);
+    const current = saveRef.current;
+    if (!current) return;
+    const next = withTourDismissed(current);
+    if (next === current) return;
+    onUpdateRef.current(next);
+  }, []);
 
   return { active, done, complete, dismiss };
 }

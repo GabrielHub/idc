@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { DateScenario } from "../../domain/game";
@@ -20,6 +20,21 @@ export function CathedralDetailOverlay({
   note?: string;
   onClose: () => void;
 }) {
+  // Own the ESC dismiss locally — the lobby's window-level ESC handler
+  // early-returns in auto mode (it only fires when the date book is open),
+  // so without this listener pressing Escape over an auto-mode info-glyph
+  // peek does nothing and the overlay blocks the Begin button.
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [open, onClose]);
+
   const { card, publicBrief, director, judgeRubric } = scenario;
   return (
     <AnimatePresence>

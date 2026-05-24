@@ -46,7 +46,25 @@ export function ActiveCardAnchor({
       return;
     }
     setRenderedStar(activeStar);
-    setRenderedPos({ x: activePosX, y: activePosY ?? 0, z: activePosZ ?? 0 });
+    const nextY = activePosY ?? 0;
+    const nextZ = activePosZ ?? 0;
+    // Skip the setRenderedPos call when coords haven't moved. The setter
+    // would otherwise allocate a fresh {x,y,z} object identity each pass,
+    // causing one extra commit of the entire portal subtree per
+    // activeStar change (the effect re-runs because renderedStar is in
+    // deps, then the equality-but-not-identity check on the new object
+    // schedules a no-op render).
+    setRenderedPos((current) => {
+      if (
+        current !== null &&
+        current.x === activePosX &&
+        current.y === nextY &&
+        current.z === nextZ
+      ) {
+        return current;
+      }
+      return { x: activePosX, y: nextY, z: nextZ };
+    });
   }, [activeStar, activePosX, activePosY, activePosZ, renderedStar]);
 
   if (renderedStar === null || renderedPos === null) return null;

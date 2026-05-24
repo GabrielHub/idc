@@ -138,7 +138,12 @@ export function usePlanningTutorial({
   const scenarioStep = useTutorialStep(
     save,
     "planning.scenario",
-    partnerId !== null && selectedScenarioId === null && currentLayer === 2,
+    // Gate on inAutoMode like every sibling planning step. Without it the
+    // coach-mark fires over the deck/library cathedral too, where library
+    // clicks open the detail overlay for adding to the deck rather than
+    // picking tonight's scenario — the copy "open one to lock it" no longer
+    // matches what the cards actually do.
+    partnerId !== null && selectedScenarioId === null && currentLayer === 2 && inAutoMode,
     onTutorialUpdate,
   );
   const beginStep = useTutorialStep(

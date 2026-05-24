@@ -68,7 +68,12 @@ export function useRosterKeyNavigation({
 }
 
 function directionFromKey(key: string): 1 | -1 | null {
-  if (key === "ArrowRight" || key === "ArrowDown") return 1;
-  if (key === "ArrowLeft" || key === "ArrowUp") return -1;
+  // ArrowDown / ArrowUp belong to useLayerNavigation (flythrough layer
+  // advance); responding to them here too produced a double-fire that both
+  // advanced the layer and shifted activeStarId on a single keystroke. The
+  // roster slab is read horizontally — ArrowLeft / ArrowRight cycle the
+  // cohort, vertical scroll moves between layers.
+  if (key === "ArrowRight") return 1;
+  if (key === "ArrowLeft") return -1;
   return null;
 }

@@ -15,8 +15,8 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 
-import type { PairBoardEdge } from "../pair-board-layout";
-import { edgeBaseOpacity, edgeStrokeWidth } from "../pair-board-layout";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
+import { edgeBaseOpacity, edgeStrokeWidth } from "../../services/pair-archive-graph";
 import { classifyEdgeLod, type EdgeLodSpec } from "./edge-lod";
 import type { Vec3 } from "./types";
 
@@ -25,7 +25,7 @@ type Line2 = {
 };
 
 export type PairEdgeMeshProps = {
-  edge: PairBoardEdge;
+  edge: PairArchiveEdge;
   from: Vec3;
   to: Vec3;
   control: Vec3;

@@ -11,13 +11,13 @@ import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, resolvePortraitPalette } from "./portrait-palette";
 import { TutorialCoachMark } from "./tutorial";
 
-type MemberDetailsAction = {
+export type MemberDetailsAction = {
   label: string;
   onClick: () => void;
   disabled?: boolean;
 };
 
-type MemberDetailsModalProps = {
+export type MemberDetailsModalProps = {
   member: Member;
   playerKnowledge: readonly PlayerKnowledgeRecord[];
   revealAllDetails?: boolean;

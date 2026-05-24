@@ -5,17 +5,21 @@
  * outer-tier members recede, isolated members ring the periphery so they
  * stay legible without crowding the constellation.
  *
- * Pure: takes the graph derived by pair-board-layout.derivePairGraph and a
+ * Pure: takes the graph derived by pair-archive-graph.derivePairArchiveGraph and a
  * star, returns a world-space target. The lobby's StarSprite lerps from its
  * tonight-mode target to this one over the mode transition.
  */
 
 import { hashSeedUint32 } from "../../services/utils";
-import type { PairBoardEdge, PairBoardGraph, PairBoardNode } from "../pair-board-layout";
+import type {
+  PairArchiveEdge,
+  PairArchiveGraph,
+  PairArchiveNode,
+} from "../../services/pair-archive-graph";
 import type { Vec3 } from "./types";
 
 export type PairEdgeRenderSpec = {
-  edge: PairBoardEdge;
+  edge: PairArchiveEdge;
   from: Vec3;
   to: Vec3;
   control: Vec3;
@@ -45,7 +49,7 @@ const ISOLATED_RING_RADIUS = 0.55;
 
 export function computeArchiveStarPosition(
   memberId: string,
-  graph: PairBoardGraph,
+  graph: PairArchiveGraph,
   isolatedIndex: number | null,
 ): Vec3 {
   const node = graph.nodeById.get(memberId);
@@ -58,7 +62,7 @@ export function computeArchiveStarPosition(
   return isolatedRingPosition(memberId, isolatedIndex, graph.meta.isolatedMembers.length);
 }
 
-function nodeWorldPosition(node: PairBoardNode): Vec3 {
+function nodeWorldPosition(node: PairArchiveNode): Vec3 {
   return {
     x: (node.basePosition.x - 0.5) * ARCHIVE_X_SCALE,
     y: (node.basePosition.y - 0.5) * ARCHIVE_Y_SCALE,
@@ -88,7 +92,7 @@ function isolatedRingPosition(memberId: string, index: number, total: number): V
  * the position map (e.g. a member dropped from the graph) are skipped.
  */
 export function buildArchiveEdgeSpecs(
-  edges: readonly PairBoardEdge[],
+  edges: readonly PairArchiveEdge[],
   positions: ReadonlyMap<string, Vec3>,
 ): PairEdgeRenderSpec[] {
   const specs: PairEdgeRenderSpec[] = [];

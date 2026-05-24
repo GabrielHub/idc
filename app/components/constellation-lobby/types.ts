@@ -6,6 +6,8 @@
  * than the spike — focus → partner → committed → scenario → begin.
  */
 
+import type { ThreeEvent } from "@react-three/fiber";
+
 import type { Member } from "../../domain/game";
 import type { PortraitPalette } from "../portrait-palette";
 import type { MemberAuraConfig } from "../member-aura-registry";
@@ -106,5 +108,21 @@ export type ArchiveSelection =
   | { kind: "pair"; pairId: string }
   | { kind: "member"; memberId: string }
   | null;
+
+export type StarClickHandlers = {
+  onStarClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
+  onStarDoubleClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
+  /** Eligible partner ids for focus-selected hover affordances. */
+  eligiblePartnerIds?: ReadonlySet<string>;
+  /** Stars not in this set get extra dimming. Used by the lens filter. */
+  filterMatchedIds?: ReadonlySet<string>;
+  /**
+   * Drops the current focus selection. When provided AND this is the focus
+   * star AND state === "focus_selected", the star renders an inline "Focus"
+   * pill with an X dismiss button so the player can swap without leaving the
+   * field for the side rail.
+   */
+  onClearFocus?: () => void;
+};
 
 export type Vec3 = { x: number; y: number; z: number };

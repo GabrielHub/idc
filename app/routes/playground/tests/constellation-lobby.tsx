@@ -94,6 +94,7 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
           drawnScenarios={drawnScenarios}
           isActionPending={false}
           bookingLocked={activeShift.activeBooking !== undefined}
+          aiReady={true}
           readyClosurePairCount={readyClosurePairs.length}
           readyClosurePairs={readyClosurePairs}
           readyClosurePairIds={readyClosurePairIds}

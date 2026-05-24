@@ -11,7 +11,7 @@
  *      build time so the per-frame work stays bounded.
  */
 
-import type { PairBoardEdge } from "../pair-board-layout";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 
 type EdgeLodBand = "near" | "mid" | "far";
 
@@ -35,7 +35,7 @@ const MID_THRESHOLD = 22;
 const FAR_BAND_MIN_IMPORTANCE = 3;
 
 export function classifyEdgeLod(
-  edge: PairBoardEdge,
+  edge: PairArchiveEdge,
   cameraDistance: number,
   isHovered: boolean,
   isSelected: boolean,
@@ -91,9 +91,9 @@ export function classifyEdgeLod(
  * pairs survive. Pure — runs once per archive-mode mount.
  */
 export function applyImportanceBudget(
-  edges: readonly PairBoardEdge[],
+  edges: readonly PairArchiveEdge[],
   budget: number = EDGE_BUDGET,
-): readonly PairBoardEdge[] {
+): readonly PairArchiveEdge[] {
   if (edges.length <= budget) return edges;
   const sorted = [...edges].sort((a, b) => {
     if (b.topImportance !== a.topImportance) return b.topImportance - a.topImportance;

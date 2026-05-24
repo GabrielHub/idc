@@ -4,7 +4,7 @@ import * as THREE from "three";
 
 import type { Member } from "../../domain/game";
 import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
-import { Scene, type RenderHoverCard, type StarClickHandlers } from "./canvas-convention";
+import { Scene, type RenderHoverCard } from "./canvas-convention";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import type {
   ArchiveSelection,
@@ -12,6 +12,7 @@ import type {
   FlythroughLayer,
   LobbyState,
   RosterSubview,
+  StarClickHandlers,
   StarMark,
   Vec3,
   ViewMode,

@@ -7,8 +7,8 @@
  *   - TopBar Notes NavShard → opens with `initialPairFocusId === null`
  *   - PairDossierShard click → opens with `initialPairFocusId === pairId`
  *
- * Escape / scrim click close the overlay. Pair-board rendering is NOT mounted
- * — the dropped Files room's PairBoard responsibility now lives in the
+ * Escape / scrim click close the overlay. Pair archive rendering is NOT mounted
+ * — the dropped Files room's pair archive responsibility now lives in the
  * constellation scene itself. ShiftArchive lives in its own overlay surfaced
  * from the File-shift NavShard flow (see shift-archive-overlay.tsx).
  */

@@ -14,13 +14,13 @@ import { motion } from "motion/react";
 
 import type { Member } from "../../domain/game";
 import { avatarSrcsetFor } from "./math";
-import type { PairBoardEdge } from "../pair-board-layout";
-import { describeRecency } from "../pair-board-layout";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
+import { describeRecency } from "../../services/pair-archive-graph";
 
 export type MemberArchiveShardProps = {
   focusMember: Member;
   /** Incident filed-pair edges in newest-first order. */
-  incidentEdges: readonly PairBoardEdge[];
+  incidentEdges: readonly PairArchiveEdge[];
   memberById: ReadonlyMap<string, Member>;
   onSelectPair: (pairId: string) => void;
 };

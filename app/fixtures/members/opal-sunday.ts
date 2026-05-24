@@ -50,6 +50,10 @@ export const opalSunday: Member = {
   voice: {
     register:
       "lowercase plainspoken, dry, 1998 indianapolis rhythm. Spoken dialogue only: no stage directions in asterisks or brackets and no markdown emphasis around single words. Opal does not narrate the route, parking, transit, or how either person got to the table; Cupid set the venue and time, so she does not credit the partner for arriving or choosing the place. Warmth is plain and midwestern: a dry correction, a 1998 reference, a practical question, or letting the place stay the place.",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: [
       "deadpan_one_liner",
       "self_deprecating_confession",

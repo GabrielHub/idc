@@ -7,6 +7,10 @@ import {
   isMemberRosterFilterActive,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
+import {
+  shiftPartnerUnavailableReason,
+  type ShiftPartnerUnavailableReason,
+} from "../../services/shift-availability";
 import { isMemberInCooldown } from "../../services/shift-planning";
 
 export function useRosterFold({
@@ -49,6 +53,25 @@ export function useRosterFold({
     }
     return ids;
   }, [save.members, shift.availablePartnerMemberIds, shift.shiftNumber, focusedSet]);
+  // Per-member unavailability reason for the hover card. The lobby surfaces
+  // it through the hover detail's blockReason so the player understands
+  // whether a partner is career-locked, in cooldown, or simply off-rotation
+  // this shift.
+  const unavailabilityReasonById = useMemo<
+    ReadonlyMap<string, ShiftPartnerUnavailableReason>
+  >(() => {
+    const map = new Map<string, ShiftPartnerUnavailableReason>();
+    for (const member of save.members) {
+      const reason = shiftPartnerUnavailableReason({
+        member,
+        shiftNumber: shift.shiftNumber,
+        focusedMemberIds: save.focusedMemberIds,
+        availablePartnerMemberIds: shift.availablePartnerMemberIds,
+      });
+      if (reason !== null) map.set(member.id, reason);
+    }
+    return map;
+  }, [save.members, save.focusedMemberIds, shift.availablePartnerMemberIds, shift.shiftNumber]);
   const filteredMembers = useMemo(
     () =>
       applyMemberRosterFilters(save.members, filterState, {
@@ -90,6 +113,7 @@ export function useRosterFold({
     focusedSet,
     eligiblePartnerIds,
     offTonightIds,
+    unavailabilityReasonById,
     filteredMembers,
     filterMatchedIds,
     draftCount,

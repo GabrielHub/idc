@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { GameSave } from "../../domain/game";
-import { derivePairGraph } from "../pair-board-layout";
+import { derivePairArchiveGraph, type PairArchiveGraph } from "../../services/pair-archive-graph";
 import { buildArchiveEdgeSpecs, computeArchiveStarPosition } from "./archive-layout";
 import { applyImportanceBudget } from "./edge-lod";
 import {
@@ -10,6 +10,19 @@ import {
   computeFlythroughCameraTarget,
 } from "./math";
 import type { ArchiveSelection, FlythroughLayer, StarMark, Vec3, ViewMode } from "./types";
+
+// Sentinel returned when viewMode !== "archive" so the derived memos below
+// don't churn on every unrelated save mutation. Same reference each render.
+const EMPTY_PAIR_GRAPH: PairArchiveGraph = {
+  nodes: [],
+  edges: [],
+  nodeById: new Map(),
+  edgeById: new Map(),
+  notesByPair: new Map(),
+  incidentEdgesByNode: new Map(),
+  nodeNoteSummaryByNode: new Map(),
+  meta: { filedPairs: 0, isolatedMembers: [] },
+};
 
 export function useArchiveView({
   save,
@@ -24,9 +37,16 @@ export function useArchiveView({
   currentLayer: FlythroughLayer;
   focusStar: StarMark | undefined;
 }) {
+  // Only derive the pair graph when the player is actually in archive view —
+  // otherwise every save persist (intent file, scenario pick, knowledge gain)
+  // recomputed it and produced a fresh `cameraTarget` reference even though
+  // the tonight branch of the memo never reads archiveGraph.
   const archiveGraph = useMemo(
-    () => derivePairGraph(save.members, save.pairStates, save.memories, { minDegree: 1 }),
-    [save.members, save.pairStates, save.memories],
+    () =>
+      viewMode === "archive"
+        ? derivePairArchiveGraph(save.members, save.pairStates, save.memories, { minDegree: 1 })
+        : EMPTY_PAIR_GRAPH,
+    [viewMode, save.members, save.pairStates, save.memories],
   );
 
   // Only paired members (those in archiveGraph.nodes) get an archive position.

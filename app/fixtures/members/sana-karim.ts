@@ -44,6 +44,10 @@ export const sanaKarim: Member = {
   shiftAvailabilityProfile: "soft_schedule",
   voice: {
     register: "tired flat dry, contractions normal, clipped declarative cadence",
+    comedyMechanics: [],
+    outputConstraints: [],
+    conversationShape: [],
+    contrastExamples: [],
     patternsUsed: ["mundane_domesticity", "self_deprecating_confession", "emotional_overshare"],
     patternsRefused: [
       "urgent_crisis_plea",

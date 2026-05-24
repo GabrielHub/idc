@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 
 import type { GameSave, Member } from "../../domain/game";
-import type { PairBoardGraph } from "../pair-board-layout";
+import type { PairArchiveGraph } from "../../services/pair-archive-graph";
 import { MemberArchiveShard } from "./member-archive-shard";
 import { PairDossierShard } from "./pair-dossier-shard";
 import type { ArchiveSelection } from "./types";
@@ -19,7 +19,7 @@ export function LobbyDossierSlot({
 }: {
   save: GameSave;
   memberById: ReadonlyMap<string, Member>;
-  archiveGraph: PairBoardGraph;
+  archiveGraph: PairArchiveGraph;
   archiveSelection: ArchiveSelection;
   committedPairId: string | null;
   readyClosurePairIds: ReadonlySet<string>;

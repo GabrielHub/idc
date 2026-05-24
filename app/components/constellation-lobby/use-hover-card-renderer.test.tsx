@@ -106,6 +106,7 @@ function renderHoverCardFor({
       partnerId: null,
       activeBooking: null,
       eligiblePartnerIds: new Set(),
+      unavailabilityReasonById: new Map(),
       shiftNumber: shift.shiftNumber,
       focusStep: noopStep,
       partnerStep: noopStep,

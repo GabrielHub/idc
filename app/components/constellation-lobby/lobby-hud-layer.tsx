@@ -1,4 +1,4 @@
-import { type ReactNode, type Ref } from "react";
+import { type ReactNode } from "react";
 
 import {
   isMemberRosterFilterActive,
@@ -25,6 +25,7 @@ export function LobbyHudLayer({
   lobbyState,
   selectedScenarioId,
   isActionPending,
+  aiReady,
   shiftBriefRows,
   scenarioMode,
   bookingLocked,
@@ -76,6 +77,7 @@ export function LobbyHudLayer({
   lobbyState: LobbyState;
   selectedScenarioId: string | null;
   isActionPending: boolean;
+  aiReady: boolean;
   shiftBriefRows: readonly ShiftBriefRowData[];
   scenarioMode: CathedralMode;
   bookingLocked: boolean;
@@ -133,12 +135,12 @@ export function LobbyHudLayer({
       />
       <CalloutCluster
         callouts={[...callouts]}
-        calloutRefs={{ "closures-ready": refs.closureCalloutRef as Ref<HTMLDivElement> }}
+        calloutRefs={{ "closures-ready": refs.closureCalloutRef }}
       />
       <BottomDock
         state={lobbyState}
         selectedScenarioId={selectedScenarioId}
-        beginDisabled={isActionPending}
+        beginDisabled={isActionPending || !aiReady}
         onBeginDate={onBeginDate}
         onCancelPair={onCancelPair}
         beginButtonRef={refs.beginButtonRef}

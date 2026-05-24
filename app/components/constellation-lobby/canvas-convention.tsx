@@ -21,7 +21,6 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
-import { type ThreeEvent } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import { Bloom, DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
@@ -36,12 +35,9 @@ import { PairConnector3D, PartnerSpoke } from "./canvas-connectors";
 import { ParticleField } from "./particle-field";
 import {
   computeLayerZOffset,
-  computeRosterCohort,
   computeStarFlythroughLayer,
-  flythroughMemberSlabActivity,
   flythroughStarZ,
   FOCUS_MARKER_POSITION,
-  FOCUS_MARKER_SCALE,
   pairPartnerPosition,
   partnerRingPosition,
   resolveClusterPosition,
@@ -55,19 +51,19 @@ import type {
   FlythroughLayer,
   LobbyState,
   RosterSubview,
-  StarFlythroughLayer,
+  StarClickHandlers,
   StarMark,
   Vec3,
   ViewMode,
 } from "./types";
-import type { PairBoardEdge } from "../pair-board-layout";
+import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import { buildFlareTexture, buildRimLightTexture, buildSoftSparkleTexture } from "./textures";
-import { StarSprite, buildFocusMarkerOverlay } from "./star-sprite";
+import { StarField } from "./star-field";
 import { useLayerNavigation } from "./use-layer-navigation";
 
-const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
 const EMPTY_ELIGIBLE_PARTNER_IDS: ReadonlySet<string> = new Set();
+const EMPTY_OFF_TONIGHT_IDS: ReadonlySet<string> = new Set();
 
 // Types are shared with the production lobby — see
 // app/components/constellation-lobby/types.ts. World-space scale constants
@@ -86,28 +82,6 @@ const EMPTY_ELIGIBLE_PARTNER_IDS: ReadonlySet<string> = new Set();
  * it with the per-member key that AnimatePresence needs to detect swaps.
  */
 export type RenderHoverCard = ActiveCardRenderHoverCard;
-
-/**
- * Optional callbacks the production lobby uses to drive focus picking, swap
- * targeting, reselect-mode toggling, and case-file zoom from star pointer
- * events. The spike does not need any of these (it cycles state via the
- * production lobby controls).
- */
-export type StarClickHandlers = {
-  onStarClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
-  onStarDoubleClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
-  /** Eligible partner ids for focus-selected hover affordances. */
-  eligiblePartnerIds?: ReadonlySet<string>;
-  /** Stars not in this set get extra dimming. Used by the lens filter. */
-  filterMatchedIds?: ReadonlySet<string>;
-  /**
-   * Drops the current focus selection. When provided AND this is the focus
-   * star AND state === "focus_selected", the star renders an inline "Focus"
-   * pill with an X dismiss button so the player can swap without leaving the
-   * field for the side rail.
-   */
-  onClearFocus?: () => void;
-};
 
 export function Scene({
   state,
@@ -179,7 +153,7 @@ export function Scene({
    * Optional drei-Html tooltip renderer mounted at a hovered edge's midpoint
    * when the LOD spec is in the near band. Returning null hides it.
    */
-  renderArchiveEdgeTooltip?: (edge: PairBoardEdge) => ReactNode;
+  renderArchiveEdgeTooltip?: (edge: PairArchiveEdge) => ReactNode;
   /**
    * Controlled active-star id. The HoverDetailCard morphs out of the star
    * whose id matches this value. The consumer owns the state and sets it on
@@ -369,7 +343,7 @@ export function Scene({
 
   // Iteration order of focusedIds matches save.focusedMemberIds; the index
   // drives the centered 2x2 cluster on layer 0.
-  const focusOrder = useMemo(
+  const focusOrder = useMemo<readonly string[]>(
     () => (focusedIds === undefined ? [] : Array.from(focusedIds)),
     [focusedIds],
   );
@@ -380,7 +354,7 @@ export function Scene({
   // construction (which walks save.members in roster order), giving each
   // member a stable slot across renders. Falls back to empty when the player
   // isn't on layer 1 so the cluster releases as they scroll between layers.
-  const rosterLeadOrder = useMemo(() => {
+  const rosterLeadOrder = useMemo<readonly string[]>(() => {
     if (currentLayer !== 1) return [];
     const set =
       rosterSubview === "off_tonight"
@@ -461,132 +435,34 @@ export function Scene({
 
       <ParticleField count={620} />
 
-      {stars.map((star) => {
-        const role = roleForStar(star, {
-          state,
-          focusId,
-          partnerId,
-          eligiblePartnerIds: eligiblePartnerSet,
-        });
-        // Archive mode overrides position via the per-member archive map; it
-        // also disables flythrough slab / cluster / role-Z stacking so the
-        // graph layout reads cleanly without tonight-mode framing.
-        const inArchive = viewMode === "archive";
-        const archivePos = inArchive ? (archiveData?.positions.get(star.member.id) ?? null) : null;
-        // Archive only positions members that have a filed-note pair. Skip
-        // the rest so the constellation reads as the pair graph it actually
-        // is, not the entire roster ringing an empty center.
-        if (inArchive && archivePos === null) return null;
-        const overridePos = inArchive
-          ? archivePos
-          : role === "partner" && focusStar
-            ? pairPartnerPosition(focusStar)
-            : null;
-        const layerZOffset = inArchive ? 0 : computeLayerZOffset(role, state);
-        const lensFilteredOut =
-          starClickHandlers?.filterMatchedIds !== undefined &&
-          !starClickHandlers.filterMatchedIds.has(star.member.id);
-        // Archive isolation: when a member is selected, stars outside the
-        // member + partners scope dim alongside any lens filtering already
-        // active. Same `filteredOut` channel — the visual treatment composes.
-        const archiveIsolated =
-          inArchive &&
-          archiveIsolation !== undefined &&
-          !archiveIsolation.includedMemberIds.has(star.member.id);
-        const filteredOut = lensFilteredOut || archiveIsolated;
-        // Flythrough slab membership. Each star lives on exactly one of the
-        // two member slabs (0 focus, 1 roster). Eligible vs off-tonight is a
-        // per-star cohort within slab 1 — the roster subview toggle picks
-        // which cohort leads the eye. Archive mode opts out entirely.
-        const flythroughLayer: StarFlythroughLayer | undefined = inArchive
-          ? undefined
-          : focusedIds === undefined
-            ? undefined
-            : computeStarFlythroughLayer(star.member.id, { focusedIds });
-        const cohort =
-          !inArchive && flythroughLayer === 1
-            ? computeRosterCohort(star.member.id, {
-                eligibleIds: eligiblePartnerSet,
-                offTonightIds: offTonightSet ?? EMPTY_OFF_TONIGHT_IDS,
-              })
-            : undefined;
-        // Focus marker pin: once the player has committed a focus and
-        // scrolled past the picker, the focus star would otherwise be
-        // culled by the off-slab activity drop. Pin it to a visible
-        // top-center slot so the inline focus pill anchored to it stays
-        // on-screen and the hover connector to eligible partners has a
-        // stable origin.
-        const isFocusMarker =
-          !inArchive && role === "focus" && state === "focus_selected" && currentLayer === 1;
-        const slabActivity = isFocusMarker
-          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
-          : inArchive || flythroughLayer === undefined || currentLayer === undefined
-            ? undefined
-            : flythroughMemberSlabActivity(
-                flythroughLayer,
-                currentLayer,
-                cohort,
-                rosterSubview ?? "eligibles",
-              );
-        // Cluster layouts: layer 0 packs focused leads into a centered grid,
-        // layer 1 packs the active roster cohort (eligibles or off-tonight,
-        // depending on subview) into a viewport-fitting grid so every pickable
-        // face fits on screen. Both release on layer / subview change so the
-        // natural field returns. Archive mode never clusters — it owns its own
-        // layout.
-        const clusterPosition = resolveClusterPosition({
-          memberId: star.member.id,
-          role,
-          state,
-          flythroughLayer,
-          currentLayer,
-          focusOrder,
-          rosterLeadOrder,
-          inArchive,
-          rosterSubview,
-        });
-        return (
-          <StarSprite
-            key={star.member.id}
-            star={star}
-            role={role}
-            state={state}
-            overridePos={overridePos}
-            layerZOffset={layerZOffset}
-            texture={textures[star.member.id]}
-            flareTexture={flareTexture}
-            haloTexture={haloTexture}
-            rimLightTexture={rimLightTexture}
-            showAura={showAuras}
-            reducedMotion={reducedMotion}
-            filteredOut={filteredOut}
-            hovered={hoveredId === star.member.id}
-            cardOpen={activeStarId === star.member.id}
-            flythroughLayer={flythroughLayer}
-            slabActivity={slabActivity}
-            clusterPosition={clusterPosition}
-            renderOverlay={buildFocusMarkerOverlay({
-              role,
-              state,
-              star,
-              onClearFocus: starClickHandlers?.onClearFocus,
-              onHoverChange: setHudOverlayHovered,
-            })}
-            onHoverEnter={() => setHoveredId(star.member.id)}
-            onHoverLeave={() => setHoveredId(null)}
-            onClick={
-              starClickHandlers?.onStarClick === undefined
-                ? undefined
-                : (event) => starClickHandlers.onStarClick?.(star, event)
-            }
-            onDoubleClick={
-              starClickHandlers?.onStarDoubleClick === undefined
-                ? undefined
-                : (event) => starClickHandlers.onStarDoubleClick?.(star, event)
-            }
-          />
-        );
-      })}
+      <StarField
+        state={state}
+        stars={stars}
+        focusStar={focusStar}
+        focusId={focusId}
+        partnerId={partnerId}
+        eligiblePartnerSet={eligiblePartnerSet}
+        viewMode={viewMode}
+        archivePositions={archiveData?.positions}
+        archiveIsolation={archiveIsolation}
+        starClickHandlers={starClickHandlers}
+        focusedIds={focusedIds}
+        currentLayer={currentLayer}
+        focusOrder={focusOrder}
+        rosterLeadOrder={rosterLeadOrder}
+        rosterSubview={rosterSubview}
+        offTonightSet={offTonightSet}
+        textures={textures}
+        flareTexture={flareTexture}
+        haloTexture={haloTexture}
+        rimLightTexture={rimLightTexture}
+        showAuras={showAuras}
+        reducedMotion={reducedMotion}
+        hoveredId={hoveredId}
+        activeStarId={activeStarId}
+        onHoveredIdChange={setHoveredId}
+        onHudOverlayHoveredChange={setHudOverlayHovered}
+      />
 
       {viewMode === "archive" && archiveData !== undefined ? (
         <ArchiveEdgeLayer

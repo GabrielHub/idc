@@ -1,11 +1,11 @@
 import type { Member } from "../../domain/game";
-import { describeRecency, type PairBoardEdge } from "../pair-board-layout";
+import { describeRecency, type PairArchiveEdge } from "../../services/pair-archive-graph";
 
 export function ArchiveEdgeTooltip({
   edge,
   memberById,
 }: {
-  edge: PairBoardEdge;
+  edge: PairArchiveEdge;
   memberById: ReadonlyMap<string, Member>;
 }) {
   const a = memberById.get(edge.a);

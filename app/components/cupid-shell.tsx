@@ -208,6 +208,16 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const dateAbortControllerRef = useRef<AbortController | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
   const releaseNotesCheckCompleteRef = useRef(false);
+  const onboardingWarpTimerRef = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (onboardingWarpTimerRef.current !== null) {
+        window.clearTimeout(onboardingWarpTimerRef.current);
+        onboardingWarpTimerRef.current = null;
+      }
+    },
+    [],
+  );
   const isActionPending = pendingAction !== null;
   const releaseNotesForModal = useMemo(
     () => listReleaseNotesForModal({ currentVersion: APP_VERSION }),
@@ -218,11 +228,18 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [],
   );
   const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
-  const { closureErrorMessage, handleClosePair } = useClosureFiling({
-    save,
+  const tryActionRef = useRef<typeof tryAction | null>(null);
+  tryActionRef.current = tryAction;
+  const getSave = useCallback(() => saveRef.current, []);
+  const runClosureAction = useCallback(
+    (run: () => Promise<void>) => tryActionRef.current?.("closure", run) ?? Promise.resolve(false),
+    [],
+  );
+  const { closureErrorMessage, handleClosePair, resetClosureError } = useClosureFiling({
+    getSave,
     gatewayApiKey,
     refreshLocalAiStatus,
-    runClosureAction: (run) => tryAction("closure", run),
+    runClosureAction,
     persist,
     dispatchManagerQuip,
     processManagerQuipSaveDiff,
@@ -1044,9 +1061,12 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     scenarioDeckCardIds: string[];
   }) {
     if (save === null) return;
-    setOnboardingWarping(true);
-    window.setTimeout(() => setOnboardingWarping(false), 1200);
-    tryAction("focusCase", async () => {
+    // Gate the warp animation on validation success. The previous version
+    // fired the 1.2 s warp unconditionally and could leave the player staring
+    // at a finished animation with no room transition when
+    // completeInitialOnboarding threw on a bad payload (stale focus id,
+    // unknown deck card).
+    const succeeded = await tryAction("focusCase", async () => {
       const withBudgetPeriod = completeInitialOnboarding({
         save,
         focusedMemberIds: payload.focusedMemberIds,
@@ -1056,8 +1076,17 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         companyGoals,
       });
       await persist(withBudgetPeriod);
-      setCurrentRoom("livedate");
     });
+    if (!succeeded) return;
+    setOnboardingWarping(true);
+    setCurrentRoom("livedate");
+    if (onboardingWarpTimerRef.current !== null) {
+      window.clearTimeout(onboardingWarpTimerRef.current);
+    }
+    onboardingWarpTimerRef.current = window.setTimeout(() => {
+      onboardingWarpTimerRef.current = null;
+      setOnboardingWarping(false);
+    }, 1200);
   }
 
   async function handleAddFocus(memberId: string) {
@@ -1121,6 +1150,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setCurrentRoom("livedate");
     sessionManagerQuipIdsRef.current = new Set();
     setActiveManagerQuip(null);
+    resetClosureError();
   }
 
   async function handleResetSave() {
@@ -1339,6 +1369,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       drawnScenarios={drawnScenarios}
                       isActionPending={isActionPending}
                       bookingLocked={activeShift.activeBooking !== undefined}
+                      aiReady={save.config.aiSetupComplete && localAiStatus.status === "ready"}
                       readyClosurePairCount={readyClosurePairs.length}
                       readyClosurePairs={readyClosurePairs}
                       readyClosurePairIds={readyClosurePairIds}
@@ -1351,6 +1382,13 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onRemoveDeckCard={handleRemoveDeckCard}
                       onClosePair={handleClosePair}
                       closureErrorMessage={closureErrorMessage}
+                      onDeckOverBudgetBlocked={() =>
+                        dispatchManagerQuip({
+                          triggerKey: "datebook.commit.over-budget",
+                          surfaceKey: "lobby.deck",
+                          bypassTutorialGate: true,
+                        })
+                      }
                       onCompleteShift={handleCompleteShift}
                       onOpenDateSession={setActiveDateSessionId}
                       onAddFocus={handleAddFocus}
