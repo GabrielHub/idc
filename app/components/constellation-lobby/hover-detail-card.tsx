@@ -17,8 +17,6 @@ export type HoverDetailCardProps = {
   snippet?: string;
   fileNumber?: string;
   heightInInches?: number;
-  sealedCount?: number;
-  knownCount?: number;
   statusBadge?: "active" | "focus" | "closed" | "quit";
   swapPenalty?: number;
   ctaVariant?: HoverDetailCtaVariant;
@@ -31,16 +29,19 @@ const MORPH_PORTRAIT_FINAL_SIZE_PX = 48;
 const MORPH_START_DIAMETER_PX = MORPH_PORTRAIT_FINAL_SIZE_PX;
 const MORPH_FINAL_WIDTH_PX = 340;
 const MORPH_FINAL_PADDING_PX = 16;
+// Pop the portrait above the card edge by half its height so the card body
+// doesn't have to budget vertical space for the full 48px avatar.
+const MORPH_PORTRAIT_POP_PX = MORPH_PORTRAIT_FINAL_SIZE_PX / 2;
 const MORPH_FINAL_OFFSET_X_PX = -(MORPH_FINAL_WIDTH_PX / 2);
-const MORPH_FINAL_OFFSET_Y_PX = -(MORPH_FINAL_PADDING_PX + MORPH_PORTRAIT_FINAL_SIZE_PX / 2);
+// Final card top sits at the star anchor; the portrait straddles the edge so
+// its center stays on the star while the card extends only downward.
+const MORPH_FINAL_OFFSET_Y_PX = 0;
 
 export function HoverDetailCard({
   star,
   snippet,
   fileNumber,
   heightInInches,
-  sealedCount,
-  knownCount,
   statusBadge,
   swapPenalty,
   ctaVariant = "make_focus",
@@ -63,7 +64,7 @@ export function HoverDetailCard({
   const statusPillClass = (() => {
     if (statusBadge === "closed") return "bg-emerald-500/15 text-emerald-200 ring-emerald-300/30";
     if (statusBadge === "quit") return "bg-rose-500/15 text-rose-200 ring-rose-300/30";
-    if (statusBadge === "focus") return "bg-aura-rose/20 text-aura-rose ring-aura-rose/30";
+    if (statusBadge === "focus") return "bg-aura-rose/85 text-aura-paper ring-aura-rose/40";
     return "";
   })();
 
@@ -98,7 +99,10 @@ export function HoverDetailCard({
               width: MORPH_FINAL_WIDTH_PX,
               height: "auto",
               borderRadius: 16,
-              padding: MORPH_FINAL_PADDING_PX,
+              paddingTop: 0,
+              paddingRight: MORPH_FINAL_PADDING_PX,
+              paddingBottom: MORPH_FINAL_PADDING_PX,
+              paddingLeft: MORPH_FINAL_PADDING_PX,
               x: MORPH_FINAL_OFFSET_X_PX,
               y: MORPH_FINAL_OFFSET_Y_PX,
             }
@@ -107,7 +111,10 @@ export function HoverDetailCard({
               width: MORPH_START_DIAMETER_PX,
               height: MORPH_START_DIAMETER_PX,
               borderRadius: MORPH_START_DIAMETER_PX / 2,
-              padding: 0,
+              paddingTop: 0,
+              paddingRight: 0,
+              paddingBottom: 0,
+              paddingLeft: 0,
               x: -MORPH_START_DIAMETER_PX / 2,
               y: -MORPH_START_DIAMETER_PX / 2,
             }
@@ -117,7 +124,10 @@ export function HoverDetailCard({
         width: MORPH_FINAL_WIDTH_PX,
         height: "auto",
         borderRadius: 16,
-        padding: MORPH_FINAL_PADDING_PX,
+        paddingTop: 0,
+        paddingRight: MORPH_FINAL_PADDING_PX,
+        paddingBottom: MORPH_FINAL_PADDING_PX,
+        paddingLeft: MORPH_FINAL_PADDING_PX,
         x: MORPH_FINAL_OFFSET_X_PX,
         y: MORPH_FINAL_OFFSET_Y_PX,
       }}
@@ -128,7 +138,10 @@ export function HoverDetailCard({
               width: MORPH_START_DIAMETER_PX,
               height: MORPH_START_DIAMETER_PX,
               borderRadius: MORPH_START_DIAMETER_PX / 2,
-              padding: 0,
+              paddingTop: 0,
+              paddingRight: 0,
+              paddingBottom: 0,
+              paddingLeft: 0,
               x: -MORPH_START_DIAMETER_PX / 2,
               y: -MORPH_START_DIAMETER_PX / 2,
               transition: layoutTransition,
@@ -139,7 +152,7 @@ export function HoverDetailCard({
         position: "absolute",
         top: 0,
         left: 0,
-        overflow: "hidden",
+        overflow: "visible",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -158,15 +171,18 @@ export function HoverDetailCard({
               boxShadow: reducedMotion
                 ? `0 0 0 1.5px ${portraitAccent}, 0 0 18px ${withAlpha(portraitAccent, 0.5)}`
                 : `0 0 0 1.5px ${portraitAccent}, 0 0 26px ${withAlpha(portraitAccent, 0.7)}`,
+              marginTop: reducedMotion ? -MORPH_PORTRAIT_POP_PX : 0,
             }}
             animate={{
               boxShadow: `0 0 0 1.5px ${portraitAccent}, 0 0 18px ${withAlpha(portraitAccent, 0.5)}`,
+              marginTop: -MORPH_PORTRAIT_POP_PX,
             }}
             exit={
               reducedMotion
                 ? undefined
                 : {
                     boxShadow: `0 0 0 1.5px ${portraitAccent}, 0 0 26px ${withAlpha(portraitAccent, 0.7)}`,
+                    marginTop: 0,
                     transition: layoutTransition,
                   }
             }
@@ -197,14 +213,14 @@ export function HoverDetailCard({
             transition={contentTransition}
             className="mt-3 w-full min-w-0 text-center leading-tight"
           >
-            <div className="font-mono text-micro uppercase tracking-[0.22em] text-aura-rose/85">
+            <div className="font-mono text-micro uppercase tracking-[0.22em] text-rose-100/95">
               // {resolvedFileNumber.toLowerCase()}
             </div>
             <div className="mt-0.5 truncate font-display text-display-sm text-aura-paper">
               {member.firstName}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1.5">
-              <span className="aura-liquid-glass rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-white/70">
+              <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-white/70 ring-1 ring-white/15">
                 {formatHeightShort(resolvedHeight)}
               </span>
               {statusLabel === null ? null : (
@@ -212,11 +228,6 @@ export function HoverDetailCard({
                   className={`rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] ring-1 ${statusPillClass}`}
                 >
                   {statusLabel}
-                </span>
-              )}
-              {sealedCount === undefined && knownCount === undefined ? null : (
-                <span className="aura-liquid-glass rounded-full px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-white/70">
-                  {knownCount ?? 0} read · {sealedCount ?? 0} sealed
                 </span>
               )}
             </div>
@@ -248,7 +259,7 @@ export function HoverDetailCard({
             </button>
           </div>
           {ctaVariant === "swap_into_focus" && swapPenalty !== undefined ? (
-            <p className="mt-2 text-center font-mono text-micro uppercase tracking-[0.18em] text-aura-rose/85">
+            <p className="mt-2 text-center font-mono text-micro uppercase tracking-[0.18em] text-rose-200">
               Dropped case loses {swapPenalty} retention
             </p>
           ) : null}

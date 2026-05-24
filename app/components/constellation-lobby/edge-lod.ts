@@ -13,7 +13,7 @@
 
 import type { PairBoardEdge } from "../pair-board-layout";
 
-export type EdgeLodBand = "near" | "mid" | "far";
+type EdgeLodBand = "near" | "mid" | "far";
 
 export type EdgeLodSpec = {
   band: EdgeLodBand;
@@ -25,7 +25,7 @@ export type EdgeLodSpec = {
 };
 
 /** Max edges drawn at once. Beyond this, low-importance edges drop out. */
-export const EDGE_BUDGET = 80;
+const EDGE_BUDGET = 80;
 
 /** Distance-band thresholds (camera-to-midpoint distance, world units). */
 const NEAR_THRESHOLD = 12;

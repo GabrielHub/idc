@@ -9,48 +9,93 @@ import type { LobbyState, StarMark } from "./types";
 export function SideRail({
   focus,
   partner,
+  intentSlot,
   pairDossierSlot,
   containerRef,
+  onClearFocus,
+  onClearPartner,
 }: {
   focus: StarMark | undefined;
   partner: StarMark | undefined;
+  intentSlot?: ReactNode;
   pairDossierSlot?: ReactNode;
   containerRef?: Ref<HTMLDivElement>;
+  onClearFocus?: () => void;
+  onClearPartner?: () => void;
 }) {
+  // Pair cards only mount once a partner is locked in — until then the
+  // inline focus pill on the focused star handles the selection feedback
+  // (see canvas-convention.tsx StarSprite). The cards live in the bottom-
+  // center band so they sit above the BottomDock's right-corner CTAs
+  // without occluding the scenario cards or the constellation field.
+  const showPairCards = focus !== undefined && partner !== undefined;
   return (
     <div
       ref={containerRef}
-      className="pointer-events-none absolute right-6 top-[88px] z-30 flex w-[280px] flex-col gap-3"
+      className="pointer-events-none absolute inset-x-0 bottom-24 z-30 flex flex-col items-center gap-3 px-6"
     >
       <AnimatePresence>
-        {focus !== undefined ? (
+        {showPairCards ? (
           <motion.div
-            key="focus-card"
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 24 }}
+            key="pair-row"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.32, ease: [0.22, 0.8, 0.2, 1] }}
-            className="pointer-events-auto aura-liquid-glass aura-liquid-glass-rose aura-liquid-glass-hover rounded-card px-4 py-3"
+            className="flex items-stretch justify-center gap-3"
           >
-            <RoleHeader role="focus" />
-            <MemberRow member={focus.member} palette={focus.palette} accent="#fb7185" />
-          </motion.div>
-        ) : null}
-        {partner !== undefined ? (
-          <motion.div
-            key="partner-card"
-            initial={{ opacity: 0, x: 24 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 24 }}
-            transition={{ duration: 0.32, ease: [0.22, 0.8, 0.2, 1] }}
-            className="pointer-events-auto aura-liquid-glass aura-liquid-glass-violet aura-liquid-glass-hover rounded-card px-4 py-3"
-          >
-            <RoleHeader role="partner" />
-            <MemberRow member={partner.member} palette={partner.palette} accent="#c4b5fd" />
+            <PairCard role="focus" star={focus} accent="#fb7185" onClear={onClearFocus} />
+            <PairCard role="partner" star={partner} accent="#c4b5fd" onClear={onClearPartner} />
           </motion.div>
         ) : null}
       </AnimatePresence>
-      {pairDossierSlot}
+      {intentSlot === undefined ? null : (
+        <div className="pointer-events-auto max-w-[44rem]">{intentSlot}</div>
+      )}
+      {pairDossierSlot === undefined ? null : (
+        <div className="pointer-events-auto w-[280px]">{pairDossierSlot}</div>
+      )}
+    </div>
+  );
+}
+
+function PairCard({
+  role,
+  star,
+  accent,
+  onClear,
+}: {
+  role: "focus" | "partner";
+  star: StarMark;
+  accent: string;
+  onClear?: () => void;
+}) {
+  const surface = role === "focus" ? "aura-liquid-glass-rose" : "aura-liquid-glass-violet";
+  return (
+    <div
+      className={`group pointer-events-auto aura-liquid-glass ${surface} aura-liquid-glass-hover w-[280px] rounded-card px-4 py-3`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <RoleHeader role={role} />
+        {onClear === undefined ? null : (
+          <button
+            type="button"
+            onClick={onClear}
+            aria-label={role === "focus" ? "Drop focus selection" : "Drop partner selection"}
+            className="grid size-6 cursor-pointer place-items-center rounded-full text-white/70 transition hover:bg-white/15 hover:text-aura-paper"
+          >
+            <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
+              <path
+                d="M3 3L13 13M13 3L3 13"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        )}
+      </div>
+      <MemberRow member={star.member} palette={star.palette} accent={accent} />
     </div>
   );
 }
@@ -58,7 +103,7 @@ export function SideRail({
 function RoleHeader({ role }: { role: "focus" | "partner" }) {
   return (
     <div
-      className={`flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.22em] ${role === "focus" ? "text-aura-rose" : "text-aura-violet"}`}
+      className={`flex items-center gap-1.5 font-mono text-micro uppercase tracking-[0.22em] ${role === "focus" ? "text-rose-200" : "text-violet-200"}`}
     >
       <span
         className={`h-1.5 w-1.5 rounded-full ${role === "focus" ? "bg-aura-rose" : "bg-aura-violet"}`}
@@ -81,10 +126,10 @@ function MemberRow({
     <div className="mt-2 flex items-center gap-3">
       <PortraitChip member={member} palette={palette} accent={accent} />
       <div className="min-w-0 leading-tight">
-        <div className="truncate font-display text-display-sm text-aura-paper">
+        <div className="truncate font-display text-display-sm text-aura-paper group-hover:overflow-visible group-hover:whitespace-normal">
           {member.firstName}
         </div>
-        <div className="truncate font-mono text-micro uppercase tracking-[0.16em] text-white/55">
+        <div className="truncate font-mono text-micro uppercase tracking-[0.16em] text-white/70 group-hover:overflow-visible group-hover:whitespace-normal">
           {member.origin}
         </div>
       </div>
@@ -92,7 +137,7 @@ function MemberRow({
   );
 }
 
-export function PortraitChip({
+function PortraitChip({
   member,
   palette,
   accent,
@@ -133,6 +178,7 @@ export function BottomDock({
   onCancelPair,
   beginDisabled,
   beginButtonRef,
+  briefSlot,
 }: {
   state: LobbyState;
   selectedScenarioId: string | null;
@@ -140,6 +186,12 @@ export function BottomDock({
   onCancelPair?: () => void;
   beginDisabled?: boolean;
   beginButtonRef?: Ref<HTMLButtonElement>;
+  /**
+   * Slot for the shift-brief pill. Rendered to the left of the Cancel / Begin
+   * CTAs in the same flex row so the two HUD widgets share the bottom-right
+   * corner instead of fighting for the same pixel.
+   */
+  briefSlot?: ReactNode;
 }) {
   const canBegin =
     (state === "scenario_chosen" ||
@@ -149,11 +201,12 @@ export function BottomDock({
     beginDisabled !== true;
   const showCancelPair = state === "committed_pair" || state === "scenario_chosen";
 
-  if (!showCancelPair && !canBegin) return null;
+  if (!showCancelPair && !canBegin && briefSlot === undefined) return null;
 
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-end gap-4 px-6 pb-6">
-      <div className="pointer-events-auto flex items-center gap-3">
+      <div className="pointer-events-auto flex items-end gap-3">
+        {briefSlot}
         {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
         {canBegin ? (
           <button
@@ -182,7 +235,7 @@ function ShardButton({ label, onClick }: { label: string; onClick?: () => void }
   );
 }
 
-export type CalloutTone = "rose" | "amber" | "neutral";
+type CalloutTone = "rose" | "amber" | "neutral";
 
 export type Callout = {
   id: string;

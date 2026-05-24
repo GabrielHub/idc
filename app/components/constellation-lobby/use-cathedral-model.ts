@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 
-import type { DateScenario, GameSave, ShiftState } from "../../domain/game";
+import type { DateScenario, GameSave, ScenarioDeck, ShiftState } from "../../domain/game";
 import {
   activeBudgetDiscountOffers,
   computeEffectiveCosts,
   deriveDeckBudgetStatus,
 } from "../../services/budget";
-import { deckIsRepairBlocked, unlockedScenarioIds } from "../../services/deck";
+import { deckIsRepairBlocked, drawHandForBooking, unlockedScenarioIds } from "../../services/deck";
 import { starterScenarios } from "../../fixtures";
 import type { CathedralMode, RiskFilter, SortMode } from "./cathedral";
 import { computeDeckComposition } from "./deck-composition";
@@ -17,6 +17,7 @@ export function useCathedralModel({
   save,
   shift,
   drawnScenarios,
+  previewPairId,
   scenarioMode,
   librarySearch,
   libraryRiskFilter,
@@ -26,6 +27,7 @@ export function useCathedralModel({
   save: GameSave;
   shift: ShiftState;
   drawnScenarios: readonly DateScenario[];
+  previewPairId: string | null;
   scenarioMode: CathedralMode;
   librarySearch: string;
   libraryRiskFilter: RiskFilter;
@@ -53,14 +55,17 @@ export function useCathedralModel({
     [save.scenarioDeck.cardIds, scenarioById],
   );
   const lobbyScenarios = useMemo(() => drawnScenarios.map(toLobbyScenario), [drawnScenarios]);
-  const flythroughScenariosForLayer = useMemo(() => {
-    if (lobbyScenarios.length > 0) return lobbyScenarios;
-    return save.scenarioDeck.cardIds
-      .slice(0, 3)
-      .map((id) => scenarioById.get(id))
-      .filter((scenario): scenario is DateScenario => scenario !== undefined)
-      .map(toLobbyScenario);
-  }, [lobbyScenarios, save.scenarioDeck.cardIds, scenarioById]);
+  const flythroughScenariosForLayer = useMemo(
+    () =>
+      buildAutoModeScenarios({
+        drawnScenarios,
+        deck: save.scenarioDeck,
+        shiftNumber: shift.shiftNumber,
+        previewPairId,
+        scenarioById,
+      }).map(toLobbyScenario),
+    [drawnScenarios, save.scenarioDeck, shift.shiftNumber, previewPairId, scenarioById],
+  );
 
   const unlockedLibraryIds = useMemo(
     () => unlockedScenarioIds({ closureCount: save.closureCount, shiftNumber: shift.shiftNumber }),
@@ -126,4 +131,29 @@ export function useCathedralModel({
     cathedralDoors,
     expandedScenario,
   };
+}
+
+export function buildAutoModeScenarios({
+  drawnScenarios,
+  deck,
+  shiftNumber,
+  previewPairId,
+  scenarioById,
+}: {
+  drawnScenarios: readonly DateScenario[];
+  deck: ScenarioDeck;
+  shiftNumber: number;
+  previewPairId: string | null;
+  scenarioById: ReadonlyMap<string, DateScenario>;
+}): DateScenario[] {
+  if (drawnScenarios.length > 0) return [...drawnScenarios];
+
+  const scenarioIds =
+    previewPairId === null
+      ? deck.cardIds.slice(0, 3)
+      : drawHandForBooking({ deck, shiftNumber, pairId: previewPairId });
+
+  return scenarioIds
+    .map((id) => scenarioById.get(id))
+    .filter((scenario): scenario is DateScenario => scenario !== undefined);
 }

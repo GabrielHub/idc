@@ -6,6 +6,7 @@ import { EASE_OUT_QUART, Eyebrow, MutedLabel } from "../components/dashboard-ato
 import { AiPromptLabTest } from "./playground/tests/ai-prompt-lab";
 import { AllMembersTest } from "./playground/tests/all-members";
 import { ChatBubbleGalleryTest } from "./playground/tests/chat-bubble-gallery";
+import { ConstellationLobbyTest } from "./playground/tests/constellation-lobby";
 import { DateReactionsTest } from "./playground/tests/date-reactions";
 import { HeightLineupTest } from "./playground/tests/height-lineup";
 
@@ -19,6 +20,12 @@ const PLAYGROUND_TESTS = [
     id: "all-members",
     title: "Member dossier",
     summary: "Every field on every member, with a roster rail and avatar IDs for quick switching.",
+  },
+  {
+    id: "constellation-lobby",
+    title: "Constellation lobby",
+    summary:
+      "Production lobby + pair-graph archive view, seeded at four stages (empty / few pairs / mid game / end game).",
   },
   {
     id: "date-reactions",
@@ -69,6 +76,11 @@ export default function PlaygroundRoute() {
           {activeTestId === "chat-bubbles" ? <ChatBubbleGalleryTest /> : null}
         </div>
       </div>
+
+      {/* Hoisted out of the page chrome's z-10 stacking context so its fullscreen overlay can sit above the playground top bar (z-30) and the lobby's wheel/keyboard nav can be cleanly disabled. */}
+      {activeTestId === "constellation-lobby" ? (
+        <ConstellationLobbyTest onExit={() => setActiveTestId("ai-lab")} />
+      ) : null}
     </main>
   );
 }

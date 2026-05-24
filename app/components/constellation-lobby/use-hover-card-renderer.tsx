@@ -121,8 +121,6 @@ export function useHoverCardRenderer({
           snippet={profile.publicFragments[0] ?? "Profile reads on file."}
           fileNumber={caseFileNumber(member.id)}
           heightInInches={member.characterHeightInInches}
-          sealedCount={profile.redactedBlocks.length}
-          knownCount={profile.revealedReads.length}
           statusBadge={statusBadge}
           swapPenalty={ctaVariant === "swap_into_focus" ? FOCUS_SWAP_RETENTION_PENALTY : undefined}
           ctaVariant={ctaVariant}

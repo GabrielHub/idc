@@ -6,6 +6,7 @@ import { EASE_OUT_QUART } from "../dashboard-atoms";
 type BriefStatus = "met" | "open" | "alert";
 
 export type ShiftBriefRowData = {
+  id: string;
   label: string;
   value: string;
   status: BriefStatus;
@@ -17,53 +18,54 @@ export function ShiftBriefDock({ rows }: { rows: readonly ShiftBriefRowData[] })
   const hasAlert = rows.some((row) => row.status === "alert");
 
   return (
-    // Position lives on the wrapper because `aura-liquid-glass` declares
-    // `position: relative` outside of a CSS layer — that wins the cascade
-    // against Tailwind's layered `.absolute` utility, so applying both on the
-    // same element collapses the dock into a full-width strip pinned to the
-    // top of the canvas.
-    <div className="pointer-events-none absolute bottom-6 right-6 z-30">
-      <motion.div
-        layout
-        transition={{ layout: { duration: 0.34, ease: EASE_OUT_QUART } }}
-        animate={{ borderRadius: expanded ? 18 : 9999 }}
-        className={`pointer-events-auto overflow-hidden aura-liquid-glass aura-liquid-glass-hover ${
-          expanded ? "aura-liquid-glass-rose w-[260px]" : "w-fit"
-        }`}
+    // The dock is slotted into BottomDock's flex row so it sits alongside the
+    // Begin / Cancel CTAs at the bottom-right instead of stacking on top of
+    // them. Positioning lives on the parent; this component only owns the
+    // pill chrome and its expand/collapse animation.
+    <motion.div
+      layout
+      initial={false}
+      animate={{ borderRadius: expanded ? 18 : 9999 }}
+      transition={{
+        layout: { duration: 0.32, ease: EASE_OUT_QUART },
+        borderRadius: { duration: 0.32, ease: EASE_OUT_QUART },
+      }}
+      className={`pointer-events-auto overflow-hidden aura-liquid-glass aura-liquid-glass-hover ${
+        expanded ? "w-[260px]" : "w-fit"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        aria-label={expanded ? "Collapse shift brief" : "Expand shift brief"}
+        className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper"
       >
-        <button
-          type="button"
-          onClick={() => setExpanded((value) => !value)}
-          aria-expanded={expanded}
-          aria-label={expanded ? "Collapse shift brief" : "Expand shift brief"}
-          className={`flex w-full cursor-pointer items-center gap-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper ${
-            expanded ? "px-4 pt-3 pb-2" : "px-4 py-2"
-          }`}
-        >
-          {hasAlert && !expanded ? (
-            <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" aria-hidden />
-          ) : null}
-          <span className="flex-1 text-left text-white/55">shift brief</span>
-          <ChevronGlyph open={expanded} />
-        </button>
-        <AnimatePresence initial={false}>
-          {expanded ? (
-            <motion.div
-              key="rows"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: EASE_OUT_QUART }}
-              className="space-y-2 px-4 pb-3"
-            >
+        {hasAlert && !expanded ? (
+          <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" aria-hidden />
+        ) : null}
+        <span className="flex-1 text-left text-white/55">shift brief</span>
+        <ChevronGlyph open={expanded} />
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded ? (
+          <motion.div
+            key="rows"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-2 px-4 pt-1 pb-3">
               {rows.map((row) => (
-                <BriefRow key={row.label} {...row} />
+                <BriefRow key={row.id} {...row} />
               ))}
-            </motion.div>
-          ) : null}
-        </AnimatePresence>
-      </motion.div>
-    </div>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
   );
 }
 

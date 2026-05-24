@@ -12,7 +12,7 @@ import { useTargetRect, type TutorialTarget } from "./use-target-rect";
 
 export type CoachMarkPlacement = "top" | "bottom" | "left" | "right";
 
-export type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
+type CoachMarkPortraitMode = "avatar" | "portrait" | "none";
 
 /**
  * Pixel offsets from the viewport edge. When supplied, the coach mark pins
@@ -118,7 +118,7 @@ export function TutorialCoachMark({
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
         className="relative"
       >
-        <div className="aura-glass-strong relative rounded-card">
+        <div className="aura-liquid-glass relative rounded-card">
           <GlassWatermark />
           <RegistrationCorners />
 
@@ -127,7 +127,7 @@ export function TutorialCoachMark({
 
           <div className={`relative px-5 pb-4 pt-5${usePortrait ? " pr-20" : ""}`}>
             <header className={`min-w-0${useAvatar ? " pl-14" : ""}`}>
-              <h3 className="font-display text-lead font-semibold leading-snug tracking-tight text-aura-ink">
+              <h3 className="font-display text-lead font-semibold leading-snug tracking-tight text-aura-paper">
                 {title}
               </h3>
               <span
@@ -136,7 +136,7 @@ export function TutorialCoachMark({
               />
             </header>
 
-            <div className="mt-2.5 font-sans text-label leading-relaxed text-aura-muted">
+            <div className="mt-2.5 font-sans text-label leading-relaxed text-aura-paper/80">
               {body}
             </div>
 
@@ -152,7 +152,7 @@ export function TutorialCoachMark({
                   type="button"
                   data-sfx="click"
                   onClick={onDismiss}
-                  className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint transition hover:text-aura-rose"
+                  className="cursor-pointer font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white/55 transition hover:text-aura-rose"
                 >
                   {dismissLabel}
                 </button>
@@ -192,10 +192,10 @@ function GlassWatermark() {
 function RegistrationCorners() {
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0">
-      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-aura-ink/20" />
-      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-aura-ink/20" />
-      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-aura-ink/20" />
-      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-aura-ink/20" />
+      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-white/30" />
+      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-white/30" />
+      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-white/30" />
+      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-white/30" />
     </span>
   );
 }

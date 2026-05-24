@@ -64,7 +64,7 @@ export type CathedralMode = "auto" | "deck" | "library";
  * - `kind="draw"` → tonight's drawn scenarios for the committed pair; the
  *   click flow routes through `selectedScenarioId` (BottomDock Begin date).
  */
-export type DoorKind = "deck" | "library" | "draw";
+type DoorKind = "deck" | "library" | "draw";
 
 export type DoorEntry = {
   scenario: LobbyScenario;
@@ -512,11 +512,15 @@ function CathedralCard({
       />
 
       <div className="pointer-events-none relative z-20 flex items-start justify-between gap-2 px-4 pt-3 pb-2">
-        <span
-          className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] ${tint.eyebrow}`}
-        >
-          {tag}
-        </span>
+        {tag ? (
+          <span
+            className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] drop-shadow-[0_1px_2px_rgba(0,0,0,0.65)] ${tint.eyebrow}`}
+          >
+            {tag}
+          </span>
+        ) : (
+          <span aria-hidden />
+        )}
         <div className="flex items-center gap-2">
           {entry.alreadyInDeck === true ? (
             <span className="rounded-pill border border-aura-rose/45 bg-aura-rose/25 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose backdrop-blur-md">
@@ -763,7 +767,7 @@ function roomReadTint(roomRead: LobbyScenario["roomRead"]): RoomReadTint {
 
 function topTagFor(entry: DoorEntry, mode: CathedralMode): string {
   if (entry.kind === "deck") return entry.slotLabel ?? "deck slot";
-  if (entry.kind === "draw") return mode === "auto" ? "tonight's draw" : "scenario";
+  if (entry.kind === "draw") return mode === "auto" ? "" : "scenario";
   return "library";
 }
 

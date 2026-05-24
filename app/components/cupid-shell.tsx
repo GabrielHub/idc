@@ -9,6 +9,7 @@ import {
   type FollowUpAction,
   type GameConfig,
   type GameSave,
+  type MatchmakingIntent,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
 import { APP_VERSION } from "../platform/release-identity";
@@ -27,7 +28,6 @@ import {
   type LocalAiDateStreamEvent,
 } from "../services/ai-date-engine";
 import {
-  closePair,
   getReadyClosurePairs,
   markSoftWinSeen,
   shouldShowSoftWinForActiveShift,
@@ -95,6 +95,7 @@ import { OnboardingScreen } from "./onboarding-screen";
 import { buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
+import { useClosureFiling } from "./use-closure-filing";
 import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
 import { LobbyChromePills, ShellChrome, type RoomKey } from "./shell-chrome";
@@ -217,6 +218,18 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     [],
   );
   const revealAllMemberDetails = CAN_USE_DEV_MEMBER_DETAILS_PREVIEW && devRevealAllMemberDetails;
+  const { closureErrorMessage, handleClosePair } = useClosureFiling({
+    save,
+    gatewayApiKey,
+    refreshLocalAiStatus,
+    runClosureAction: (run) => tryAction("closure", run),
+    persist,
+    dispatchManagerQuip,
+    processManagerQuipSaveDiff,
+    play,
+    setIsAiSetupOpen,
+    setErrorMessage,
+  });
   const aiStatusConfig = save?.config;
   const aiStatusConfigKey =
     aiStatusConfig === undefined
@@ -700,6 +713,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     focusMemberId: string;
     partnerMemberId: string;
     scenarioId: string;
+    matchmakingIntent?: MatchmakingIntent;
   }) {
     if (save === null) return;
     tryAction("startDate", async () => {
@@ -717,6 +731,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
           ? commitDateBooking(save, {
               focusMemberId: input.focusMemberId,
               partnerMemberId: input.partnerMemberId,
+              matchmakingIntent: input.matchmakingIntent,
             }).save
           : save;
       const result = startDateSessionFromBooking(bookingSave, { scenarioId: input.scenarioId });
@@ -998,18 +1013,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         action,
       });
       await persist(result.save);
-    });
-  }
-
-  async function handleClosePair(input: { pairId: string; summary: string }): Promise<boolean> {
-    if (save === null) return false;
-    const previousSave = save;
-    return tryAction("closure", async () => {
-      const nextSave = closePair({ save, pairId: input.pairId, summary: input.summary });
-      await persist(nextSave);
-      dispatchManagerQuip({ triggerKey: "pair.closure.confirmed", surfaceKey: input.pairId });
-      processManagerQuipSaveDiff(previousSave, nextSave);
-      play("report");
     });
   }
 
@@ -1347,6 +1350,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onAddDeckCard={handleAddDeckCard}
                       onRemoveDeckCard={handleRemoveDeckCard}
                       onClosePair={handleClosePair}
+                      closureErrorMessage={closureErrorMessage}
                       onCompleteShift={handleCompleteShift}
                       onOpenDateSession={setActiveDateSessionId}
                       onAddFocus={handleAddFocus}

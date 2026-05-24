@@ -16,13 +16,9 @@ import type { MemberCardProps, MemberCardState } from "./member-card-types";
 import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, resolvePortraitPalette } from "./portrait-palette";
 
-export { caseFileNumber, type MemberCardPill } from "./member-card-atoms";
-export type { MemberCardDensity, MemberCardProps, MemberCardState } from "./member-card-types";
-export {
-  MemberDetailsModal,
-  type MemberDetailsAction,
-  type MemberDetailsModalProps,
-} from "./member-details-modal";
+export { caseFileNumber } from "./member-card-atoms";
+export type { MemberCardProps, MemberCardState } from "./member-card-types";
+export { MemberDetailsModal } from "./member-details-modal";
 export { PendingMemberCard, rosterGridFillerClasses } from "./member-card-pending";
 
 const STATE_PILL_LABEL: Record<MemberCardState, string> = {

@@ -1,12 +1,14 @@
 import { AnimatePresence, motion } from "motion/react";
-import type { Ref } from "react";
+import { useState, type Ref } from "react";
 
+import { EASE_OUT_QUART } from "../dashboard-atoms";
 import type { FlythroughLayer, RosterSubview, ViewMode } from "./types";
 import type { CathedralMode } from "./cathedral";
 
 export function ContextualPillRail({
   scenarioMode,
   bookingLocked,
+  dateBookDisabledReason,
   deckRepairBlocked,
   currentLayer,
   rosterSubview,
@@ -29,6 +31,7 @@ export function ContextualPillRail({
 }: {
   scenarioMode: CathedralMode;
   bookingLocked: boolean;
+  dateBookDisabledReason?: string;
   deckRepairBlocked: boolean;
   currentLayer: FlythroughLayer;
   rosterSubview: RosterSubview;
@@ -55,7 +58,7 @@ export function ContextualPillRail({
   // No filed-note pairs exist yet — the archive has nothing to show, so hide
   // its entry pill entirely. The lobby auto-exits archive view in the same
   // edge case, so the pill never needs to render as a way back out.
-  const showArchivePill = archiveEdgeCount > 0;
+  const showPairsEntry = archiveEdgeCount > 0;
 
   const dateBookLabel =
     scenarioMode === "deck"
@@ -69,60 +72,63 @@ export function ContextualPillRail({
       ? "aura-liquid-glass-amber"
       : "";
 
-  const archiveLabel = inArchive ? `Pairs · ${archiveEdgeCount}` : "Pairs";
-  const archiveTone = inArchive ? "aura-liquid-glass-violet" : "";
+  const recordRows: CapsuleRow[] = [
+    { key: "notes", label: "Notes", onClick: onOpenNotes },
+    { key: "shift-archive", label: "Shift archive", onClick: onOpenShiftArchive },
+    ...(showPairsEntry
+      ? [
+          {
+            key: "pairs",
+            label: inArchive ? `Pairs · ${archiveEdgeCount}` : "Pairs",
+            active: inArchive,
+            activeSurface: "aura-liquid-glass-violet" as const,
+            onClick: onToggleArchive,
+          },
+        ]
+      : []),
+    ...(inArchive && archiveSelectionActive && onClearArchiveSelection !== undefined
+      ? [{ key: "clear-focus", label: "Clear focus", onClick: onClearArchiveSelection }]
+      : []),
+  ];
+
+  const rosterToolRows: CapsuleRow[] = [
+    {
+      key: "lens",
+      label: `Lens · ${filterActive ? "active" : "all"}`,
+      active: filterActive,
+      activeSurface: "aura-liquid-glass-violet",
+      onClick: onOpenLens,
+    },
+    ...(canReselect ? [{ key: "manage", label: "Manage cases", onClick: onToggleReselect }] : []),
+  ];
 
   return (
     <div className="pointer-events-none absolute right-6 top-5 z-30 flex flex-col items-end gap-2">
-      <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
-        {showArchivePill ? (
-          <button
-            type="button"
-            onClick={onToggleArchive}
-            aria-label={archiveLabel}
-            aria-pressed={inArchive}
-            className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${archiveTone} rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper`}
-          >
-            {archiveLabel}
-          </button>
-        ) : null}
-        {inArchive && archiveSelectionActive && onClearArchiveSelection !== undefined ? (
-          <button
-            type="button"
-            onClick={onClearArchiveSelection}
-            aria-label="Clear archive selection"
-            className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper"
-          >
-            Clear focus
-          </button>
-        ) : null}
+      <div className="pointer-events-auto flex flex-wrap items-start justify-end gap-2">
         {inArchive ? null : (
           <button
             type="button"
             onClick={onToggleDateBook}
-            disabled={bookingLocked}
-            aria-label={dateBookLabel}
+            disabled={bookingLocked || dateBookDisabledReason !== undefined}
+            aria-label={
+              dateBookDisabledReason === undefined
+                ? dateBookLabel
+                : `${dateBookLabel} blocked: ${dateBookDisabledReason}`
+            }
+            title={dateBookDisabledReason}
             className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${dateBookTone} rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro disabled:cursor-not-allowed disabled:opacity-55`}
           >
             {dateBookLabel}
           </button>
         )}
-        <button
-          type="button"
-          onClick={onOpenNotes}
-          aria-label="Open notes archive"
-          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper"
-        >
-          Notes
-        </button>
-        <button
-          type="button"
-          onClick={onOpenShiftArchive}
-          aria-label="Open shift archive"
-          className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper"
-        >
-          Archive
-        </button>
+        <CollapsibleCapsule
+          label="records"
+          ariaOpenLabel="Open records"
+          ariaCloseLabel="Collapse records"
+          containerTone={inArchive ? "aura-liquid-glass-violet" : ""}
+          statusDotClass={inArchive ? "bg-aura-violet" : null}
+          rows={recordRows}
+        />
         <button
           ref={fileShiftButtonRef}
           type="button"
@@ -148,31 +154,138 @@ export function ContextualPillRail({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.24, ease: [0.22, 0.8, 0.2, 1] }}
-            className="pointer-events-auto flex flex-wrap items-center justify-end gap-2"
+            className="pointer-events-auto flex flex-wrap items-start justify-end gap-2"
           >
             <RosterSubviewToggle subview={rosterSubview} onChange={onRosterSubviewChange} />
-            <button
-              type="button"
-              onClick={onOpenLens}
-              className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro"
-              aria-label="Open roster lens"
-            >
-              Lens · {filterActive ? "active" : "all"}
-            </button>
-            {canReselect ? (
-              <button
-                type="button"
-                onClick={onToggleReselect}
-                className="cursor-pointer rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro aura-liquid-glass aura-liquid-glass-hover"
-                aria-label="Manage cases"
-              >
-                Manage cases
-              </button>
-            ) : null}
+            <CollapsibleCapsule
+              label="tools"
+              ariaOpenLabel="Open roster tools"
+              ariaCloseLabel="Collapse roster tools"
+              statusDotClass={filterActive ? "bg-aura-rose" : null}
+              rows={rosterToolRows}
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>
     </div>
+  );
+}
+
+type CapsuleRow = {
+  key: string;
+  label: string;
+  onClick: () => void;
+  active?: boolean;
+  activeSurface?: string;
+};
+
+/**
+ * Shared chrome for the top-of-canvas pills that collapse to a chevron and
+ * expand into a column of row buttons. Used for Records (Notes / Shift
+ * archive / Pairs) and Roster tools (Lens / Manage cases). Keeps the
+ * collapse/expand motion, status-dot indicator, and row dismissal contract
+ * in one place so both pills stay visually identical.
+ */
+function CollapsibleCapsule({
+  label,
+  ariaOpenLabel,
+  ariaCloseLabel,
+  containerTone = "",
+  statusDotClass,
+  rows,
+}: {
+  label: string;
+  ariaOpenLabel: string;
+  ariaCloseLabel: string;
+  containerTone?: string;
+  statusDotClass: string | null;
+  rows: readonly CapsuleRow[];
+}) {
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <motion.div
+      layout
+      transition={{ layout: { duration: 0.34, ease: EASE_OUT_QUART } }}
+      animate={{ borderRadius: expanded ? 18 : 9999 }}
+      className={`overflow-hidden aura-liquid-glass aura-liquid-glass-hover ${containerTone} ${
+        expanded ? "w-[200px]" : "w-fit"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        aria-expanded={expanded}
+        aria-label={expanded ? ariaCloseLabel : ariaOpenLabel}
+        className={`flex w-full cursor-pointer items-center gap-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper ${
+          expanded ? "px-4 pt-2.5 pb-2" : "px-3.5 py-1.5"
+        }`}
+      >
+        {!expanded && statusDotClass !== null ? (
+          <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} aria-hidden />
+        ) : null}
+        <span className="flex-1 text-left">{label}</span>
+        <ChevronGlyph open={expanded} />
+      </button>
+      <AnimatePresence initial={false}>
+        {expanded ? (
+          <motion.div
+            key="rows"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18, ease: EASE_OUT_QUART }}
+            className="flex flex-col gap-1 px-2 pb-2"
+          >
+            {rows.map((row) => (
+              <CapsuleRowButton
+                key={row.key}
+                row={row}
+                onActivate={() => {
+                  setExpanded(false);
+                  row.onClick();
+                }}
+              />
+            ))}
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function CapsuleRowButton({ row, onActivate }: { row: CapsuleRow; onActivate: () => void }) {
+  const activeClass =
+    row.active === true
+      ? `${row.activeSurface ?? "aura-liquid-glass-violet"} text-aura-paper`
+      : "text-white/75 hover:bg-white/10 hover:text-aura-paper";
+  return (
+    <button
+      type="button"
+      onClick={onActivate}
+      aria-pressed={row.active}
+      className={`cursor-pointer rounded-full px-3 py-1.5 text-left font-mono text-micro uppercase tracking-[0.18em] transition ${activeClass}`}
+    >
+      {row.label}
+    </button>
+  );
+}
+
+function ChevronGlyph({ open }: { open: boolean }) {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 14 14"
+      fill="none"
+      className={`size-3 shrink-0 text-aura-paper/75 transition ${open ? "" : "rotate-180"}`}
+    >
+      <path
+        d="M3.5 5.5L7 9L10.5 5.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 

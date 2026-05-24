@@ -10,41 +10,28 @@
  * case-file, lens, planning-tutorial). The old spike route has been retired;
  * this file is the production owner that renders through CupidShell.
  *
- * Files fold (this iteration):
- *   - HoverDetailCard receives a recentNotesSlot via the Scene's
- *     renderHoverCard render-prop — production cards surface 1-2 most-
- *     recent player-visible memories alongside the dating-profile snippet.
- *   - SideRail's pairDossierSlot mounts the PairDossierShard when a pair
- *     is committed (focus + partner). The shard click opens the Notes
- *     glass overlay scoped to that pair.
- *   - Notes glass overlay (NotesOverlay) replaces the standalone Files
- *     room. onOpenClosures and onOpenFollowUps now open this overlay
- *     instead of routing to the dropped /files room.
- *   - Shift archive overlay (ShiftArchiveOverlay) surfaces past shifts
- *     during the File-shift flow, replacing the old Files-room archive.
- *
- * Still deliberately rough:
  *   - Planning tutorial routing completes the right steps, but visual
  *     coachmark placement on the 3D surfaces still needs a polish pass.
- *   - Closure uses a player-editable fallback summary panel until the AI
- *     generated summary affordance is reintroduced in the lobby.
  */
 
-import { Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { Canvas } from "@react-three/fiber";
-import * as THREE from "three";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useReducedMotion } from "motion/react";
 
-import { Scene } from "./canvas-convention";
-import { LayerIndicator } from "./layer-indicator";
-import { BottomDock, CalloutCluster, SideRail } from "./lobby-hud";
-import { ShiftBriefDock } from "./shift-brief-dock";
-import type { DateScenario, GameSave, Member, ShiftState } from "../../domain/game";
+import { IntentRail } from "./intent-rail";
+import { LobbyCanvasLayer } from "./lobby-canvas-layer";
+import { LobbyHudLayer } from "./lobby-hud-layer";
+import type {
+  DateScenario,
+  GameSave,
+  MatchmakingIntent,
+  Member,
+  ShiftState,
+} from "../../domain/game";
 import { starterScenarios } from "../../fixtures";
+import { dateBookEditingUnlocked } from "../../services/deck";
 import { makePairId } from "../../services/game-seed";
 import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
-  isMemberRosterFilterActive,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
 import { NotesOverlay } from "./notes-overlay";
@@ -54,8 +41,6 @@ import { ClosurePanel } from "./closure-panel";
 import { CaseFilePanel } from "./case-file-panel";
 import { LensPanel } from "./lens-panel";
 import { CaseManagerScreen } from "../case-manager-screen";
-import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
-import { ContextualPillRail } from "./contextual-pill-rail";
 import { pickHeaviestAxisLevel } from "./deck-composition";
 import { buildLobbyStars } from "./star-model";
 import { useArchiveView } from "./use-archive-view";
@@ -100,11 +85,13 @@ type ConstellationLobbyProps = {
     focusMemberId: string;
     partnerMemberId: string;
     scenarioId: string;
+    matchmakingIntent?: MatchmakingIntent;
   }) => void;
   onCancelBooking: () => void;
   onAddDeckCard: (cardId: string) => void;
   onRemoveDeckCard: (cardId: string) => void;
-  onClosePair?: (input: { pairId: string; summary: string }) => Promise<boolean>;
+  onClosePair?: (input: { pairId: string; ready: ReadyClosurePair }) => Promise<boolean>;
+  closureErrorMessage?: string | null;
   onCompleteShift?: () => void;
   /**
    * Open the Notes overlay focused on closure-ready pairs. Replaces the
@@ -141,6 +128,13 @@ type ConstellationLobbyProps = {
    * the active screen and passes the same pills through here instead.
    */
   chromeSlot?: ReactNode;
+  /**
+   * Playground escape hatch. When true, the Scene's window-level wheel and
+   * keyboard layer-advance handlers do not mount, and the body's overflow
+   * lock is skipped. LayerIndicator buttons in the HUD still advance layers.
+   * Production callers (CupidShell) leave this off.
+   */
+  disableScrollLayerNav?: boolean;
 };
 
 const EMPTY_READY_CLOSURE_IDS: ReadonlySet<string> = new Set();
@@ -161,6 +155,7 @@ export function ConstellationLobby({
   onAddDeckCard,
   onRemoveDeckCard,
   onClosePair,
+  closureErrorMessage = null,
   onCompleteShift,
   onOpenClosures,
   onOpenFollowUps,
@@ -172,6 +167,7 @@ export function ConstellationLobby({
   onRemoveFocus,
   onReselectFocus,
   chromeSlot,
+  disableScrollLayerNav = false,
 }: ConstellationLobbyProps) {
   const reducedMotion = useReducedMotion() === true;
   const activeBooking = shift.activeBooking ?? null;
@@ -194,6 +190,10 @@ export function ConstellationLobby({
   const [partnerId, setPartnerId] = useState<string | null>(
     activeBooking?.participantIds[1] ?? null,
   );
+  const [matchmakingIntent, setMatchmakingIntent] = useState<MatchmakingIntent | null>(
+    activeBooking?.matchmakingIntent ?? null,
+  );
+  const previousPairSelectionKeyRef = useRef<string | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
   /**
    * Flythrough layer the player has scrolled into. 0 = focus cases, 1 =
@@ -332,6 +332,22 @@ export function ConstellationLobby({
     () => (partnerId === null ? undefined : stars.find((s) => s.member.id === partnerId)),
     [stars, partnerId],
   );
+  const previewPairId = useMemo(
+    () =>
+      activeBooking?.pairId ??
+      (focusId === null || partnerId === null ? null : makePairId(focusId, partnerId)),
+    [activeBooking?.pairId, focusId, partnerId],
+  );
+  useEffect(() => {
+    if (activeBooking !== null) return;
+    const nextKey = focusId === null || partnerId === null ? null : makePairId(focusId, partnerId);
+    const previousKey = previousPairSelectionKeyRef.current;
+    previousPairSelectionKeyRef.current = nextKey;
+    if (previousKey !== null && previousKey !== nextKey) {
+      setMatchmakingIntent(null);
+      setSelectedScenarioId(null);
+    }
+  }, [activeBooking, focusId, partnerId]);
 
   const { archiveGraph, archivePositions, archiveEdges, archiveIsolation, cameraTarget } =
     useArchiveView({
@@ -358,18 +374,32 @@ export function ConstellationLobby({
     budgetStatus,
     deckRepairBlocked,
     deckComposition,
+    flythroughScenariosForLayer,
     cathedralDoors,
     expandedScenario,
   } = useCathedralModel({
     save,
     shift,
     drawnScenarios,
+    previewPairId,
     scenarioMode,
     librarySearch,
     libraryRiskFilter,
     librarySort,
     expandedDoorId,
   });
+  const dateBookLockedUntilFirstReport = !dateBookEditingUnlocked(save) && !deckRepairBlocked;
+  const dateBookDisabledReason = bookingLocked
+    ? "Booking active. Edits unlock after the date resolves."
+    : dateBookLockedUntilFirstReport
+      ? "Date Book edits unlock after the first date report."
+      : undefined;
+
+  useEffect(() => {
+    if (scenarioMode !== "auto" || selectedScenarioId === null) return;
+    if (flythroughScenariosForLayer.some((scenario) => scenario.id === selectedScenarioId)) return;
+    setSelectedScenarioId(null);
+  }, [flythroughScenariosForLayer, scenarioMode, selectedScenarioId]);
 
   const handleBeginDate = () => {
     if (isActionPending) return;
@@ -381,18 +411,35 @@ export function ConstellationLobby({
       focusMemberId: focusId,
       partnerMemberId: partnerId,
       scenarioId: selectedScenarioId,
+      matchmakingIntent: matchmakingIntent ?? undefined,
     });
   };
 
-  const handleCancelPair = () => {
-    setPartnerId(null);
-    setSelectedScenarioId(null);
-    setScenarioMode("auto");
-    if (activeBooking !== null) onCancelBooking();
-  };
+  // Single reset for any "drop the in-flight selection" path. `dropFocus`
+  // distinguishes the focus-X click (which also clears the focused case)
+  // from the partner-X / Cancel-pair click (which only unwinds back to the
+  // partner picker). Centralising avoids the drift that crept in when the
+  // three call sites grew independently.
+  const clearBookingSelection = useCallback(
+    ({ dropFocus = false }: { dropFocus?: boolean } = {}) => {
+      if (dropFocus) setFocusId(null);
+      setPartnerId(null);
+      setMatchmakingIntent(null);
+      setSelectedScenarioId(null);
+      setScenarioMode("auto");
+      if (activeBooking !== null) onCancelBooking();
+    },
+    [activeBooking, onCancelBooking],
+  );
+  const handleCancelPair = useCallback(() => clearBookingSelection(), [clearBookingSelection]);
+  const handleClearFocus = useCallback(
+    () => clearBookingSelection({ dropFocus: true }),
+    [clearBookingSelection],
+  );
+  const handleClearPartner = handleCancelPair;
 
   const handleDateBookNavToggle = () => {
-    if (bookingLocked) return;
+    if (dateBookDisabledReason !== undefined) return;
     setScenarioMode((current) => {
       if (current === "auto") {
         // Entering the deck warps the camera into the cathedral so the door
@@ -428,6 +475,18 @@ export function ConstellationLobby({
     setCurrentLayer(lobbyState === "committed_pair" ? 2 : 0);
   }, [scenarioMode, lobbyState]);
 
+  useEffect(() => {
+    if (activeBooking !== null) {
+      setMatchmakingIntent(activeBooking.matchmakingIntent ?? null);
+    }
+  }, [activeBooking]);
+
+  // Deck / library mode reads as a dedicated screen — the surrounding HUD
+  // (chrome pills, layer dots, focus/partner rail, callouts, bottom dock,
+  // contextual pill rail) recedes so the cathedral panel owns the frame.
+  // The panel's own "← Close" button is the way back out.
+  const dateBookOpen = scenarioMode !== "auto";
+
   // Auto-advance the flythrough as the booking assembles: focus pick warps to
   // the roster slab so the partner picker opens, and a committed pair warps to
   // the cathedral so the player picks tonight's scenario inside the nave
@@ -461,7 +520,6 @@ export function ConstellationLobby({
   const {
     readyPair: closureReadyPair,
     readyPairIndex: closureReadyPairIndex,
-    fallbackSummary: fallbackClosureSummary,
     openPrevious: openPreviousClosure,
     openNext: openNextClosure,
   } = useClosureQueue({ closurePairId, readyClosurePairs, setClosurePairId });
@@ -604,6 +662,15 @@ export function ConstellationLobby({
     />
   );
 
+  const intentSlot =
+    focusStar === undefined || partnerStar === undefined ? undefined : (
+      <IntentRail
+        selectedIntent={matchmakingIntent}
+        locked={activeBooking !== null}
+        onSelect={setMatchmakingIntent}
+      />
+    );
+
   /**
    * Deck-composition shards rendered only while the player is in date book
    * mode. The old TopBar surfaced these globally; we now keep the canvas
@@ -648,7 +715,25 @@ export function ConstellationLobby({
     onOpenDeck: openDeckFromCallout,
   });
 
-  const showCallouts = callouts.length > 0;
+  const handleCompleteShiftFromHud = useCallback(() => {
+    if (noDatesThisShift) {
+      setSkipShiftConfirmOpen(true);
+      return;
+    }
+    if (fileShiftStep.active) fileShiftStep.complete();
+    onCompleteShift?.();
+  }, [fileShiftStep, noDatesThisShift, onCompleteShift, setSkipShiftConfirmOpen]);
+  const handleToggleReselect = useCallback(() => {
+    if (lobbyMode === "reselect") {
+      cancelReselect();
+      return;
+    }
+    enterReselect();
+  }, [cancelReselect, enterReselect, lobbyMode]);
+  const handleToggleArchive = useCallback(() => {
+    setViewMode((current) => (current === "archive" ? "tonight" : "archive"));
+  }, []);
+  const handleClearArchiveSelection = useCallback(() => setArchiveSelection(null), []);
 
   /**
    * Door click routes to one of two flows. In auto mode (committed pair
@@ -696,84 +781,93 @@ export function ConstellationLobby({
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-[#1a0f2e] text-aura-paper">
-      <div className="absolute inset-0">
-        <Canvas
-          dpr={[1, 1.6]}
-          gl={{
-            antialias: true,
-            alpha: false,
-            toneMapping: THREE.ACESFilmicToneMapping,
-            powerPreference: "high-performance",
-          }}
-          camera={{ position: [0, 0, 17], fov: 38, near: 0.1, far: 80 }}
-          onPointerMissed={() => {
-            setActiveStarId(null);
-            // Clicking the canvas around the panel (or stars between cards)
-            // counts as "outside" the date book — drop deck/library back to
-            // auto so the player has a frictionless exit without hunting for
-            // the date-book pill.
-            closeDateBook();
-          }}
-        >
-          <Suspense fallback={null}>
-            <Scene
-              state={lobbyState}
-              stars={stars}
-              focusStar={focusStar}
-              partnerStar={partnerStar}
-              cameraTarget={cameraTarget}
-              showAuras={true}
-              showParallax={true}
-              reducedMotion={reducedMotion}
-              renderHoverCard={renderHoverCard}
-              starClickHandlers={{
-                onStarClick: handleStarClick,
-                onStarDoubleClick: handleStarDoubleClick,
-                eligiblePartnerIds,
-                filterMatchedIds,
-              }}
-              activeStarId={activeStarId}
-              onActiveStarChange={setActiveStarId}
-              currentLayer={currentLayer}
-              onLayerChange={setCurrentLayer}
-              focusedIds={focusedSet}
-              offTonightSet={offTonightIds}
-              rosterSubview={rosterSubview}
-              viewMode={viewMode}
-              archiveData={
-                viewMode === "archive"
-                  ? { positions: archivePositions, edges: archiveEdges }
-                  : undefined
-              }
-              archiveSelection={archiveSelection}
-              archiveIsolation={archiveIsolation}
-              onArchiveEdgeClick={(pairId) => setArchiveSelection({ kind: "pair", pairId })}
-              renderArchiveEdgeTooltip={(edge) => (
-                <ArchiveEdgeTooltip edge={edge} memberById={memberByIdMap} />
-              )}
-            />
-          </Suspense>
-        </Canvas>
-      </div>
-      {chromeSlot === undefined ? null : (
-        <div className="pointer-events-none absolute left-6 top-5 z-30 flex items-center gap-2">
-          <div className="pointer-events-auto flex items-center gap-2">{chromeSlot}</div>
-        </div>
-      )}
-      {viewMode === "tonight" ? (
-        <LayerIndicator
+      <LobbyCanvasLayer
+        lobbyState={lobbyState}
+        stars={stars}
+        focusStar={focusStar}
+        partnerStar={partnerStar}
+        cameraTarget={cameraTarget}
+        reducedMotion={reducedMotion}
+        renderHoverCard={renderHoverCard}
+        starClickHandlers={{
+          onStarClick: handleStarClick,
+          onStarDoubleClick: handleStarDoubleClick,
+          eligiblePartnerIds,
+          filterMatchedIds,
+          onClearFocus: handleClearFocus,
+        }}
+        activeStarId={activeStarId}
+        onActiveStarChange={setActiveStarId}
+        currentLayer={currentLayer}
+        onLayerChange={setCurrentLayer}
+        focusedIds={focusedSet}
+        offTonightSet={offTonightIds}
+        rosterSubview={rosterSubview}
+        viewMode={viewMode}
+        archiveData={
+          viewMode === "archive" ? { positions: archivePositions, edges: archiveEdges } : undefined
+        }
+        archiveSelection={archiveSelection}
+        archiveIsolation={archiveIsolation}
+        memberById={memberByIdMap}
+        onArchivePairSelect={(pairId) => setArchiveSelection({ kind: "pair", pairId })}
+        onPointerMissed={() => {
+          setActiveStarId(null);
+          closeDateBook();
+        }}
+        disableScrollLayerNav={disableScrollLayerNav}
+      />
+      {!dateBookOpen ? (
+        <LobbyHudLayer
+          chromeSlot={chromeSlot}
+          viewMode={viewMode}
           currentLayer={currentLayer}
+          refs={{
+            layerIndicatorRef,
+            layerFocusRef,
+            layerRosterRef,
+            layerCathedralRef,
+            sideRailRef,
+            beginButtonRef,
+            fileShiftButtonRef,
+          }}
+          focus={focusStar}
+          partner={partnerStar}
+          intentSlot={intentSlot}
+          pairDossierSlot={pairDossierSlot}
+          callouts={callouts}
+          lobbyState={lobbyState}
+          selectedScenarioId={selectedScenarioId}
+          isActionPending={isActionPending}
+          shiftBriefRows={shiftBriefRows}
+          scenarioMode={scenarioMode}
+          bookingLocked={bookingLocked}
+          dateBookDisabledReason={dateBookDisabledReason}
+          deckRepairBlocked={deckRepairBlocked}
+          rosterSubview={rosterSubview}
+          filterState={filterState}
+          canReselect={onReselectFocus !== undefined}
+          archiveEdgeCount={archiveEdges.length}
+          fileShiftBlockedReason={fileShiftBlockedReason}
+          archiveSelectionActive={archiveSelection !== null}
           onLayerSelect={setCurrentLayer}
-          containerRef={layerIndicatorRef}
-          layerRefs={{ 0: layerFocusRef, 1: layerRosterRef, 2: layerCathedralRef }}
+          onClearFocus={handleClearFocus}
+          onClearPartner={handleClearPartner}
+          onBeginDate={handleBeginDate}
+          onCancelPair={handleCancelPair}
+          onCompleteShift={handleCompleteShiftFromHud}
+          onOpenNotes={() => openNotesOverlay(null)}
+          onOpenShiftArchive={() => setIsShiftArchiveOpen(true)}
+          onToggleDateBook={handleDateBookNavToggle}
+          onOpenLens={() => setIsLensOpen(true)}
+          onToggleReselect={handleToggleReselect}
+          onRosterSubviewChange={setRosterSubview}
+          onToggleArchive={handleToggleArchive}
+          onClearArchiveSelection={
+            archiveSelection === null ? undefined : handleClearArchiveSelection
+          }
         />
       ) : null}
-      <SideRail
-        focus={focusStar}
-        partner={partnerStar}
-        pairDossierSlot={pairDossierSlot}
-        containerRef={sideRailRef}
-      />
       <CathedralPanel
         open={viewMode === "tonight" && currentLayer === 2}
         mode={scenarioMode}
@@ -816,16 +910,6 @@ export function ConstellationLobby({
         onRemoveDeckCard={onRemoveDeckCard}
         onClose={() => setExpandedDoorId(null)}
       />
-      {showCallouts ? <CalloutCluster callouts={callouts} /> : null}
-      <BottomDock
-        state={lobbyState}
-        selectedScenarioId={selectedScenarioId}
-        beginDisabled={isActionPending}
-        onBeginDate={handleBeginDate}
-        onCancelPair={handleCancelPair}
-        beginButtonRef={beginButtonRef}
-      />
-      <ShiftBriefDock rows={shiftBriefRows} />
       <NotesOverlay
         open={notesOverlay.open}
         memories={save.memories}
@@ -844,45 +928,10 @@ export function ConstellationLobby({
         onClose={() => setIsShiftArchiveOpen(false)}
       />
 
-      <ContextualPillRail
-        scenarioMode={scenarioMode}
-        bookingLocked={bookingLocked}
-        deckRepairBlocked={deckRepairBlocked}
-        currentLayer={currentLayer}
-        rosterSubview={rosterSubview}
-        filterActive={isMemberRosterFilterActive(filterState)}
-        canReselect={onReselectFocus !== undefined}
-        viewMode={viewMode}
-        archiveEdgeCount={archiveEdges.length}
-        fileShiftBlockedReason={fileShiftBlockedReason}
-        onCompleteShift={() => {
-          if (noDatesThisShift) {
-            setSkipShiftConfirmOpen(true);
-            return;
-          }
-          if (fileShiftStep.active) fileShiftStep.complete();
-          onCompleteShift?.();
-        }}
-        onOpenNotes={() => openNotesOverlay(null)}
-        onOpenShiftArchive={() => setIsShiftArchiveOpen(true)}
-        onToggleDateBook={handleDateBookNavToggle}
-        onOpenLens={() => setIsLensOpen(true)}
-        onToggleReselect={() => (lobbyMode === "reselect" ? cancelReselect() : enterReselect())}
-        onRosterSubviewChange={setRosterSubview}
-        onToggleArchive={() =>
-          setViewMode((current) => (current === "archive" ? "tonight" : "archive"))
-        }
-        onClearArchiveSelection={
-          archiveSelection === null ? undefined : () => setArchiveSelection(null)
-        }
-        archiveSelectionActive={archiveSelection !== null}
-        fileShiftButtonRef={fileShiftButtonRef}
-      />
-
       <ClosurePanel
         readyPair={closureReadyPair}
-        defaultSummary={fallbackClosureSummary}
         isActionPending={isActionPending}
+        errorMessage={closureErrorMessage}
         queuePosition={closureReadyPairIndex < 0 ? undefined : closureReadyPairIndex + 1}
         queueTotal={readyClosurePairs.length === 0 ? undefined : readyClosurePairs.length}
         onPrevious={closureReadyPairIndex > 0 ? openPreviousClosure : undefined}

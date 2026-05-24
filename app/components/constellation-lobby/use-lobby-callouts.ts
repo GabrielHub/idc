@@ -46,7 +46,7 @@ export function useLobbyCallouts({
           readyClosurePairCount === 1
             ? "One pair is ready to close"
             : `${readyClosurePairCount} pairs are ready to close`,
-        body: "File a placeholder closure summary before the next shift.",
+        body: "Generate and file the closure summary before the next shift.",
         action: { label: "File closure", onClick: onOpenClosures },
       });
     }

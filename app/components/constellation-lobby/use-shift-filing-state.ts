@@ -1,7 +1,15 @@
 import { useMemo } from "react";
 
 import type { GameSave, ShiftState } from "../../domain/game";
-import { pendingFollowUpSessionsForShift, sessionBelongsToShift } from "../../services/date-engine";
+import { companyGoals, memberRequests } from "../../fixtures";
+import {
+  buildGoalProgressSnapshots,
+  buildShiftGoalMetrics,
+  fallbackGoalProgress,
+  pendingFollowUpSessionsForShift,
+  sessionBelongsToShift,
+  deriveHotRequestId,
+} from "../../services/date-engine";
 import type { ShiftBriefRowData } from "./shift-brief-dock";
 
 export function useShiftFilingState({
@@ -51,18 +59,77 @@ export function useShiftFilingState({
   }, [pendingFollowUps.length, shift.activeBooking, shiftSessions]);
 
   const noDatesThisShift = shiftSessions.length === 0;
+  const leadAskRow = useMemo<ShiftBriefRowData>(() => {
+    const leadRequestId = deriveHotRequestId(shift);
+    const leadRequest =
+      leadRequestId === undefined
+        ? undefined
+        : memberRequests.find((request) => request.id === leadRequestId);
+    const member =
+      leadRequest === undefined
+        ? undefined
+        : save.members.find((candidate) => candidate.id === leadRequest.memberId);
+
+    if (leadRequest === undefined || member === undefined) {
+      return { id: "lead-ask", label: "Lead ask", value: "None queued", status: "met" };
+    }
+
+    return {
+      id: "lead-ask",
+      label: "Lead ask",
+      value: `${member.firstName}: ${trimBriefValue(leadRequest.text)}`,
+      status: "open",
+    };
+  }, [save.members, shift]);
+
+  const goalRows = useMemo<ShiftBriefRowData[]>(() => {
+    const goals = shift.companyGoalIds
+      .map((goalId) => companyGoals.find((goal) => goal.id === goalId))
+      .filter((goal): goal is (typeof companyGoals)[number] => goal !== undefined);
+    if (goals.length === 0) {
+      return [{ id: "goals", label: "Goals", value: "None assigned", status: "met" }];
+    }
+
+    const metrics = buildShiftGoalMetrics({
+      shift,
+      dateSessions: save.dateSessions,
+      members: save.members,
+    });
+    const snapshots = buildGoalProgressSnapshots({
+      goals,
+      shiftStatus: shift.status,
+      metrics,
+      shiftReport: shift.report,
+    });
+    const snapshotById = new Map(snapshots.map((snapshot) => [snapshot.goalId, snapshot] as const));
+    const metGoalCount = snapshots.filter((snapshot) => snapshot.status === "met").length;
+    const hasMissedGoal = snapshots.some((snapshot) => snapshot.status === "missed");
+    return [
+      {
+        id: "goals",
+        label: "Goals",
+        value: `${metGoalCount} / ${goals.length} clear`,
+        status: hasMissedGoal ? "alert" : metGoalCount === goals.length ? "met" : "open",
+      },
+      ...goals.map((goal) => {
+        const progress = snapshotById.get(goal.id) ?? fallbackGoalProgress(goal);
+        return {
+          id: `goal-${goal.id}`,
+          label: trimBriefValue(progress.label, 24),
+          value: trimBriefValue(goal.title),
+          status:
+            progress.status === "met" ? "met" : progress.status === "missed" ? "alert" : "open",
+        } satisfies ShiftBriefRowData;
+      }),
+    ];
+  }, [save.dateSessions, save.members, shift]);
 
   const shiftBriefRows = useMemo<ShiftBriefRowData[]>(
     () => [
+      leadAskRow,
+      ...goalRows,
       {
-        label: "Goals",
-        value:
-          shift.companyGoalIds.length === 0
-            ? "None assigned"
-            : `${shift.companyGoalIds.length} active`,
-        status: shift.companyGoalIds.length === 0 ? "met" : "open",
-      },
-      {
+        id: "closure",
         label: "Closure",
         value:
           readyClosurePairCount === 0
@@ -71,17 +138,19 @@ export function useShiftFilingState({
         status: readyClosurePairCount > 0 ? "alert" : "met",
       },
       {
+        id: "follow-up",
         label: "Follow-up",
         value: pendingFollowUpCount === 0 ? "Clear" : `${pendingFollowUpCount} due`,
         status: pendingFollowUpCount > 0 ? "alert" : "met",
       },
       {
+        id: "file-shift",
         label: "File shift",
         value: fileShiftBlockedReason === undefined ? "Ready" : "Blocked",
         status: fileShiftBlockedReason === undefined ? "met" : "open",
       },
     ],
-    [fileShiftBlockedReason, pendingFollowUpCount, readyClosurePairCount, shift.companyGoalIds],
+    [fileShiftBlockedReason, goalRows, leadAskRow, pendingFollowUpCount, readyClosurePairCount],
   );
 
   return {
@@ -90,4 +159,9 @@ export function useShiftFilingState({
     noDatesThisShift,
     shiftBriefRows,
   };
+}
+
+function trimBriefValue(value: string, maxLength: number = 54): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength - 1).trimEnd()}...`;
 }

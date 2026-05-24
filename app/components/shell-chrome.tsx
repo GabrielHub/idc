@@ -5,9 +5,6 @@ export type RoomKey = "livedate";
 const CHROME_PILL_CLASS =
   "cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose";
 
-const LOBBY_CHROME_PILL_CLASS =
-  "cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3.5 py-1.5 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper transition";
-
 export function ShellChrome({
   isDateViewActive,
   shiftNumber,
@@ -152,31 +149,42 @@ export function LobbyChromePills({
   onDevRevealAllMemberDetailsChange: (enabled: boolean) => void;
   onOpenReleaseNotes: () => void;
 }) {
+  const aiDotClass =
+    aiStatusLabel === "ready"
+      ? "bg-aura-emerald"
+      : aiStatusLabel === "checking"
+        ? "bg-aura-amber"
+        : aiStatusLabel === "setup"
+          ? "bg-aura-amber"
+          : "bg-aura-rose";
   return (
     <>
       <button
         type="button"
         onClick={onPunchOut}
         data-sfx="click"
-        className={LOBBY_CHROME_PILL_CLASS}
+        aria-label="Punch out of shift"
+        title="Punch out"
+        className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full p-2 inline-flex items-center justify-center text-aura-paper transition"
       >
-        ← Punch out
+        <PunchOutGlyph />
       </button>
-      <div className="aura-liquid-glass rounded-full px-3 py-1.5 inline-flex items-center gap-2">
-        <span className="aura-pulse h-2 w-2 rounded-full bg-aura-rose" />
-        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-paper">
-          shift {String(shiftNumber).padStart(2, "0")} · live
-        </span>
-      </div>
-      <MutedIndicator variant="glass" />
       <button
         type="button"
         onClick={onOpenAiSetup}
         data-sfx="click"
-        className={LOBBY_CHROME_PILL_CLASS}
+        aria-label={`Shift ${String(shiftNumber).padStart(2, "0")} live · AI ${aiStatusLabel} · open AI setup`}
+        title={`AI · ${aiStatusLabel}`}
+        className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3 py-1.5 inline-flex items-center gap-2 transition"
       >
-        ai · {aiStatusLabel}
+        <span className="aura-pulse h-2 w-2 rounded-full bg-aura-rose" />
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-paper">
+          shift {String(shiftNumber).padStart(2, "0")} · live
+        </span>
+        <span className="mx-0.5 h-3 w-px bg-white/15" aria-hidden />
+        <span className={`h-1.5 w-1.5 rounded-full ${aiDotClass}`} aria-hidden />
       </button>
+      <MutedIndicator variant="glass" />
       <SettingsMenu
         isActionPending={isActionPending}
         getDiagnostics={getDiagnostics}
@@ -195,5 +203,19 @@ export function LobbyChromePills({
         onOpenReleaseNotes={onOpenReleaseNotes}
       />
     </>
+  );
+}
+
+function PunchOutGlyph() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="size-4">
+      <path
+        d="M9.5 4 6 8l3.5 4M6 8h7M3 3v10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

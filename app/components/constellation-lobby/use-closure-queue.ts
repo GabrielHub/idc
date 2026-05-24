@@ -1,6 +1,5 @@
 import { useCallback, useMemo, type Dispatch, type SetStateAction } from "react";
 
-import { buildFallbackClosureSummary } from "../../services/closure-summary";
 import type { ReadyClosurePair } from "../../services/closures";
 
 export function useClosureQueue({
@@ -28,17 +27,6 @@ export function useClosureQueue({
     [closurePairId, readyClosurePairs],
   );
 
-  const fallbackSummary = useMemo(
-    () =>
-      readyPair === null
-        ? ""
-        : buildFallbackClosureSummary({
-            participants: readyPair.participants,
-            pairState: readyPair.pairState,
-          }),
-    [readyPair],
-  );
-
   const openPrevious = useCallback(() => {
     if (readyPairIndex <= 0) return;
     setClosurePairId(readyClosurePairs[readyPairIndex - 1]?.pairState.id ?? null);
@@ -52,7 +40,6 @@ export function useClosureQueue({
   return {
     readyPair,
     readyPairIndex,
-    fallbackSummary,
     openPrevious,
     openNext,
   };

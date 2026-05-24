@@ -11,13 +11,13 @@ import { MemberAuraLayer } from "./member-aura";
 import { paletteToCssVars, resolvePortraitPalette } from "./portrait-palette";
 import { TutorialCoachMark } from "./tutorial";
 
-export type MemberDetailsAction = {
+type MemberDetailsAction = {
   label: string;
   onClick: () => void;
   disabled?: boolean;
 };
 
-export type MemberDetailsModalProps = {
+type MemberDetailsModalProps = {
   member: Member;
   playerKnowledge: readonly PlayerKnowledgeRecord[];
   revealAllDetails?: boolean;
@@ -335,6 +335,9 @@ type IntelThemeTokens = {
   sealedBar: string;
   readTile: string;
   readText: string;
+  cellTitleText: string;
+  sealedLabelText: string;
+  readLabelText: string;
 };
 
 const INTEL_THEME_TOKENS: Record<IntelBoardTheme, IntelThemeTokens> = {
@@ -350,6 +353,9 @@ const INTEL_THEME_TOKENS: Record<IntelBoardTheme, IntelThemeTokens> = {
     sealedBar: "bg-aura-hairline",
     readTile: "aura-glass",
     readText: "text-aura-ink/85",
+    cellTitleText: "text-aura-rose/80",
+    sealedLabelText: "text-aura-rose/80",
+    readLabelText: "text-aura-rose",
   },
   glass: {
     shell: "aura-liquid-glass",
@@ -357,12 +363,15 @@ const INTEL_THEME_TOKENS: Record<IntelBoardTheme, IntelThemeTokens> = {
     cell: "aura-liquid-glass",
     bodyText: "text-white/85",
     mutedText: "text-white/55",
-    pillBg: "bg-aura-rose/15",
-    pillRing: "ring-aura-rose/30",
-    pillText: "text-aura-rose",
+    pillBg: "bg-rose-300/15",
+    pillRing: "ring-rose-300/40",
+    pillText: "text-rose-200",
     sealedBar: "bg-white/15",
     readTile: "aura-liquid-glass",
     readText: "text-white/85",
+    cellTitleText: "text-rose-300/90",
+    sealedLabelText: "text-rose-300/75",
+    readLabelText: "text-rose-300",
   },
 };
 
@@ -483,7 +492,9 @@ function IntelCell({
 }) {
   return (
     <article className={`min-h-[6.5rem] p-3 ${tokens.cell} ${className}`}>
-      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/80">
+      <p
+        className={`font-mono text-micro font-semibold uppercase tracking-[0.22em] ${tokens.cellTitleText}`}
+      >
         {title}
       </p>
       {children}
@@ -515,7 +526,7 @@ function IntelList({
   );
 }
 
-export function FiledReadSummary({
+function FiledReadSummary({
   reads,
   theme = "paper",
 }: {
@@ -527,7 +538,9 @@ export function FiledReadSummary({
     <ul className="mt-2 grid gap-1.5">
       {reads.map((read) => (
         <li key={read.id} className={`rounded-tile px-2.5 py-1.5 ${tokens.readTile}`}>
-          <p className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-rose">
+          <p
+            className={`font-mono text-micro font-semibold uppercase tracking-[0.2em] ${tokens.readLabelText}`}
+          >
             {readKindLabel(read)}
           </p>
           <p className={`mt-1 text-label leading-snug ${tokens.readText}`}>{read.readText}</p>
@@ -537,7 +550,7 @@ export function FiledReadSummary({
   );
 }
 
-export function SealedLines({
+function SealedLines({
   lineCount,
   theme = "paper",
 }: {
@@ -557,7 +570,9 @@ export function SealedLines({
           />
         ))}
       </div>
-      <p className="mt-3 font-mono text-micro uppercase tracking-[0.2em] text-aura-rose/80">
+      <p
+        className={`mt-3 font-mono text-micro uppercase tracking-[0.2em] ${tokens.sealedLabelText}`}
+      >
         sealed
       </p>
     </>

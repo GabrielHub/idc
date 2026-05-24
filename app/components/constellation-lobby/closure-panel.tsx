@@ -1,25 +1,18 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import {
-  CLOSURE_SUMMARY_MAX_LENGTH,
-  ClosureSummaryValidationError,
-  validateClosureSummary,
-  type ReadyClosurePair,
-} from "../../services/closures";
+import type { ReadyClosurePair } from "../../services/closures";
 import { starterScenarios } from "../../fixtures/scenarios";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 import { joinPairFirstNames } from "../notes-format";
 
-export type ClosurePanelConfirmInput = {
+type ClosurePanelConfirmInput = {
   pairId: string;
-  summary: string;
   ready: ReadyClosurePair;
 };
 
 export type ClosurePanelProps = {
   readyPair: ReadyClosurePair | null;
-  defaultSummary?: string;
   isActionPending?: boolean;
   errorMessage?: string | null;
   queuePosition?: number;
@@ -32,7 +25,6 @@ export type ClosurePanelProps = {
 
 export function ClosurePanel({
   readyPair,
-  defaultSummary = "",
   isActionPending = false,
   errorMessage,
   queuePosition,
@@ -43,9 +35,7 @@ export function ClosurePanel({
   onConfirm,
 }: ClosurePanelProps) {
   const open = readyPair !== null;
-  const [summary, setSummary] = useState(defaultSummary);
   const [isConfirming, setIsConfirming] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const mountedRef = useRef(true);
   const pairLabel = readyPair === null ? "ready pair" : formatPairLabel(readyPair);
   const scenarioTitle = readyPair === null ? "Date file" : getScenarioTitle(readyPair);
@@ -63,23 +53,12 @@ export function ClosurePanel({
     isActionPending ||
     onNext === undefined ||
     (queuePosition !== undefined && queueTotal !== undefined && queuePosition >= queueTotal);
-  const placeholder = useMemo(() => {
-    if (readyPair === null) {
-      return "Draft the closure note the archive will file for this pair.";
-    }
-
-    const [first, second] = readyPair.participants;
-    return `${first.firstName} and ${second.firstName} are ready to leave together. Write the archive note here.`;
-  }, [readyPair]);
-  const validationMessage = getClosureSummaryIssue(summary);
-  const confirmDisabled =
-    readyPair === null || isActionPending || isConfirming || validationMessage !== null;
+  const confirmDisabled = readyPair === null || isActionPending || isConfirming;
 
   useEffect(() => {
     if (!open) return;
-    setSummary(defaultSummary);
     setIsConfirming(false);
-  }, [defaultSummary, open, readyPair?.pairState.id]);
+  }, [open, readyPair?.pairState.id]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -101,15 +80,6 @@ export function ClosurePanel({
     return () => window.removeEventListener("keydown", handler);
   }, [open, onClose]);
 
-  useEffect(() => {
-    if (!open) return;
-    const node = textareaRef.current;
-    if (node === null) return;
-    node.focus();
-    const cursorAt = node.value.length;
-    node.setSelectionRange(cursorAt, cursorAt);
-  }, [open, readyPair?.pairState.id]);
-
   async function confirmClosure() {
     if (readyPair === null || confirmDisabled) return;
 
@@ -117,7 +87,6 @@ export function ClosurePanel({
     try {
       await onConfirm({
         pairId: readyPair.pairState.id,
-        summary: summary.trim(),
         ready: readyPair,
       });
     } finally {
@@ -224,34 +193,9 @@ export function ClosurePanel({
                 </div>
               )}
 
-              <label className="flex flex-col gap-2">
-                <span className="font-mono text-sm uppercase tracking-[0.22em] text-white/55">
-                  summary note
-                </span>
-                <textarea
-                  ref={textareaRef}
-                  value={summary}
-                  maxLength={CLOSURE_SUMMARY_MAX_LENGTH}
-                  rows={6}
-                  onChange={(event) => setSummary(event.target.value)}
-                  placeholder={placeholder}
-                  aria-describedby="closure-summary-status"
-                  className="aura-liquid-glass-ink min-h-40 w-full resize-none rounded-card border border-white/10 bg-white/10 px-4 py-3 text-sm leading-relaxed text-aura-paper outline-none transition placeholder:text-white/40 focus:border-aura-rose/55 focus:bg-white/15"
-                />
-              </label>
-
-              <div
-                id="closure-summary-status"
-                className="flex flex-wrap items-center justify-between gap-2 text-sm"
-              >
-                <p className={validationMessage === null ? "text-white/55" : "text-aura-amber"}>
-                  {summary.trim().length === 0
-                    ? "Draft or paste the player-facing closure note."
-                    : (validationMessage ?? "Ready to file.")}
-                </p>
-                <span className="font-mono text-sm tabular-nums text-white/45">
-                  {summary.length} / {CLOSURE_SUMMARY_MAX_LENGTH}
-                </span>
+              <div className="rounded-card border border-white/10 bg-white/10 px-4 py-4 text-sm leading-relaxed text-white/72">
+                Cupid will generate the player-facing closure summary from the pair file, validate
+                it, then file it as the permanent pair memory.
               </div>
 
               {errorMessage === undefined || errorMessage === null ? null : (
@@ -309,23 +253,4 @@ function getScenarioTitle(readyPair: ReadyClosurePair): string {
 
 function formatOutcome(outcome: ReadyClosurePair["finalReport"]["outcome"]): string {
   return outcome.replaceAll("_", " ");
-}
-
-function getClosureSummaryIssue(summary: string): string | null {
-  const trimmed = summary.trim();
-
-  if (trimmed.length === 0) {
-    return "Closure summary is required.";
-  }
-
-  try {
-    validateClosureSummary(trimmed);
-    return null;
-  } catch (error) {
-    if (error instanceof ClosureSummaryValidationError) {
-      return error.message;
-    }
-
-    return "Closure summary cannot be filed.";
-  }
 }

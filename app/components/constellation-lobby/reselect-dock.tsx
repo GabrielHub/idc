@@ -10,7 +10,7 @@
 
 import { motion } from "motion/react";
 
-import { FOCUS_CASE_LIMIT, FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
+import { FOCUS_CASE_LIMIT } from "../../services/focus-cases";
 import type { Member } from "../../domain/game";
 
 export type ReselectDockProps = {
@@ -122,7 +122,3 @@ function ReselectTally({ count }: { count: number }) {
 function Divider() {
   return <span aria-hidden className="h-5 w-px bg-white/15" />;
 }
-
-// Re-export the swap penalty so consumers can show the value next to drops
-// without re-importing from focus-cases.
-export { FOCUS_SWAP_RETENTION_PENALTY };

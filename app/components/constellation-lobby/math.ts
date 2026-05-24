@@ -106,7 +106,7 @@ export const FLYTHROUGH_LAYER_Z: Record<StarFlythroughLayer, number> = {
 const FOCUS_CLUSTER_SPACING_X = 5.2;
 const FOCUS_CLUSTER_SPACING_Y = 3.6;
 
-export function focusClusterPosition(index: number, total: number): Vec3 {
+function focusClusterPosition(index: number, total: number): Vec3 {
   if (total <= 0) return { x: 0, y: 0, z: 0 };
   const clamped = Math.max(0, Math.min(index, total - 1));
   if (total === 1) return { x: 0, y: 0, z: 0 };
@@ -120,6 +120,72 @@ export function focusClusterPosition(index: number, total: number): Vec3 {
     y: (0.5 - row) * FOCUS_CLUSTER_SPACING_Y,
     z: 0,
   };
+}
+
+/**
+ * Pinned focus marker position when state === "focus_selected" and the
+ * player has scrolled past the focus-picker layer. Without this, the focus
+ * star sits at its random natural field position and the slab-activity
+ * culling on the off-axis slab drops its opacity to 0 — the inline focus
+ * pill (anchored to the focus star's render target) then projects off-
+ * screen. Pinning to a top-center slot above the roster cluster keeps the
+ * focus star and its pill visible, and gives the hover connector a stable
+ * anchor for the focus → eligible-partner line. The z is overwritten by
+ * the slab-z lookup in resolveStarRenderTarget — it lives on the focus
+ * slab (z ≈ 6) at runtime, so the value here is a placeholder.
+ */
+export const FOCUS_MARKER_POSITION: Vec3 = { x: 0, y: 1.05, z: 0 };
+
+/**
+ * Scale multiplier applied to the focus star when it's pinned to the
+ * focus marker slot. Smaller than the layer-0 hero size so the avatar
+ * reads as a compact "selected" indicator above the roster cluster
+ * without crowding the eligible-partner picker grid below.
+ */
+export const FOCUS_MARKER_SCALE = 0.7;
+
+/**
+ * Single dispatcher for a star's tonight-mode cluster slot. Returns the
+ * focus marker pin when the focus star is parked on layer 1, the layer-0
+ * focus cluster slot for a focused lead currently on layer 0, the layer-1
+ * roster cluster slot for an eligible/off-tonight lead currently on layer
+ * 1, or `null` to fall back to the star's natural field position.
+ * Archive mode bypasses clustering entirely — callers pass `inArchive` so
+ * the helper can short-circuit instead of every callsite re-checking.
+ */
+export function resolveClusterPosition(input: {
+  memberId: string;
+  role: StarRole;
+  state: LobbyState;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  currentLayer: FlythroughLayer | undefined;
+  focusOrder: readonly string[];
+  rosterLeadOrder: readonly string[];
+  inArchive?: boolean;
+}): Vec3 | null {
+  const {
+    memberId,
+    role,
+    state,
+    flythroughLayer,
+    currentLayer,
+    focusOrder,
+    rosterLeadOrder,
+    inArchive = false,
+  } = input;
+  if (inArchive) return null;
+  if (role === "focus" && state === "focus_selected" && currentLayer === 1) {
+    return FOCUS_MARKER_POSITION;
+  }
+  if (flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0) {
+    const idx = focusOrder.indexOf(memberId);
+    if (idx >= 0) return focusClusterPosition(idx, focusOrder.length);
+  }
+  if (flythroughLayer === 1 && currentLayer === 1 && rosterLeadOrder.length > 0) {
+    const idx = rosterLeadOrder.indexOf(memberId);
+    if (idx >= 0) return rosterClusterPosition(idx, rosterLeadOrder.length);
+  }
+  return null;
 }
 
 /**
@@ -189,7 +255,7 @@ export function rosterClusterPosition(index: number, total: number): Vec3 {
  * camera bias-tracks that star at archive depth so its incident edges stay
  * in view (slightly farther back than the tonight-mode focus dolly).
  */
-export const ARCHIVE_CAMERA_Z = 22;
+const ARCHIVE_CAMERA_Z = 22;
 
 export function computeArchiveCameraTarget(input: {
   pairMidpoint?: Vec3;

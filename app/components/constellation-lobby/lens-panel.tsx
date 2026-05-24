@@ -25,12 +25,7 @@ import {
   MEMBER_CLOSURE_FILTER_OPTIONS,
   MEMBER_FOCUS_FILTER_OPTIONS,
   MEMBER_STATUS_FILTER_OPTIONS,
-  type MemberAttentionFilter,
-  type MemberAvailabilityFilter,
-  type MemberClosureFilter,
-  type MemberFocusFilter,
   type MemberRosterFilterState,
-  type MemberStatusFilter,
 } from "../../services/member-roster-filter";
 
 export type LensPanelProps = {
@@ -241,10 +236,6 @@ function ChipGroup<T extends string>({
   );
 }
 
-// Exported so the same filter chips can be reused by other lobby surfaces in
-// follow-up work (e.g. Files agent's recent-notes drawer).
-export type { ChipGroupOption };
-
 function SearchIcon() {
   return (
     <svg
@@ -260,19 +251,3 @@ function SearchIcon() {
     </svg>
   );
 }
-
-// Re-export the underlying type so consumers of this panel only need a single
-// import for both component and shape.
-export type { MemberRosterFilterState } from "../../services/member-roster-filter";
-
-// Unused but exported for parity with the spike's filter constants — keeps
-// the import discoverable for the lobby integrator if/when they need to seed
-// a default lens state from outside this file.
-export type {
-  MemberAttentionFilter,
-  MemberAvailabilityFilter,
-  MemberClosureFilter,
-  MemberFocusFilter,
-  MemberStatusFilter,
-};
-export { DEFAULT_MEMBER_ROSTER_FILTER_STATE } from "../../services/member-roster-filter";

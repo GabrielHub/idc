@@ -700,12 +700,12 @@ venus: {
               def: (
                 <>
                   The primary room. Setup happens inside this room and has three states. (1)
-                  Planning: a three-step booking flow (focus case, partner, date plan) rendered by{" "}
-                  <DocCode>app/components/pre-date-canvas.tsx</DocCode>. Sticky bottom dock carries
-                  the Begin date CTA. (2) Active date: the live date UI takes the canvas full-bleed,
-                  floating nav hides, and pacing controls live in the transport footer. (3) Wrap:
-                  FinalReportPanel stays mounted, the header back button returns to Live Date
-                  planning.
+                  Planning: the constellation lobby renders focus cases, partner selection, the
+                  date-book cathedral, optional intent, and the sticky Begin date dock from{" "}
+                  <DocCode>app/components/constellation-lobby/index.tsx</DocCode>. (2) Active date:
+                  the live date UI takes the canvas full-bleed, floating nav hides, and pacing
+                  controls live in the transport footer. (3) Wrap: FinalReportPanel stays mounted,
+                  the header back button returns to Live Date planning.
                 </>
               ),
             },

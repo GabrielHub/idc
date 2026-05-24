@@ -199,7 +199,7 @@ export function CaseFilePanel({
                 <Portrait member={member} variant="row" />
               </div>
               <div className="min-w-0 leading-tight">
-                <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-rose/85">
+                <p className="font-mono text-micro uppercase tracking-[0.22em] text-rose-300/85">
                   // file.{fileNumber.toLowerCase()}
                 </p>
                 <h2 className="mt-1 font-display text-xl font-semibold text-aura-paper">
@@ -209,7 +209,7 @@ export function CaseFilePanel({
             </div>
 
             <header className="hidden md:block">
-              <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose/85">
+              <p className="font-mono text-micro uppercase tracking-[0.24em] text-rose-300/85">
                 // file.{fileNumber.toLowerCase()}
               </p>
               <h2 className="mt-2 font-display text-4xl font-semibold leading-tight tracking-tight text-aura-paper">
@@ -231,7 +231,7 @@ export function CaseFilePanel({
             </header>
 
             <section className="aura-liquid-glass mt-6 rounded-3xl px-5 py-4">
-              <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose/85">
+              <p className="font-mono text-micro uppercase tracking-[0.24em] text-rose-300/85">
                 // public profile
               </p>
               <div className="mt-2 space-y-2 text-body leading-relaxed text-white/90">
@@ -251,7 +251,7 @@ export function CaseFilePanel({
             />
 
             <section className="aura-liquid-glass mt-6 rounded-3xl px-5 py-4">
-              <p className="font-mono text-micro uppercase tracking-[0.24em] text-aura-rose/85">
+              <p className="font-mono text-micro uppercase tracking-[0.24em] text-rose-300/85">
                 // filed reads
               </p>
               {profile.revealedReads.length === 0 ? (
@@ -266,7 +266,7 @@ export function CaseFilePanel({
                 <ul className="mt-3 space-y-2">
                   {otherReads.map((read) => (
                     <li key={read.id} className="aura-liquid-glass rounded-2xl p-3">
-                      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+                      <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-rose-300">
                         {readKindLabel(read)}
                       </p>
                       <p className="mt-1 text-label leading-snug text-white/85">{read.readText}</p>

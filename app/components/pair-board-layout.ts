@@ -2,10 +2,10 @@
  * Pair Board layout helpers
  *
  * Pure functions: graph derivation from gameplay state, radial-by-degree
- * placement, bezier control points, deterministic per-pair curvature, and
+ * placement, deterministic per-pair curvature, and
  * a stable hash for drift seeds. No React, no DOM, no side effects, so
- * this file is trivially unit-testable and the visual layer in
- * pair-board.tsx stays focused on render and interaction.
+ * this file is trivially unit-testable and the archive constellation visual
+ * layer stays focused on render and interaction.
  *
  * Coordinates are normalized to a unit square (0..1). The renderer
  * multiplies by the live container size at paint time, so the layout is
@@ -15,7 +15,7 @@
 import type { MemoryRecord, Member, PairEdge } from "../domain/game";
 import { hashSeedUint32, pushIntoBucket } from "../services/utils";
 
-export type PairBoardPoint = {
+type PairBoardPoint = {
   x: number;
   y: number;
 };
@@ -41,12 +41,12 @@ export type PairBoardEdge = {
   curvature: number;
 };
 
-export type PairBoardNodeNoteSummary = {
+type PairBoardNodeNoteSummary = {
   topImportance: 1 | 2 | 3 | 4 | 5;
   latestNoteAt: number;
 };
 
-export type PairBoardGraphMeta = {
+type PairBoardGraphMeta = {
   filedPairs: number;
   isolatedMembers: Member[];
 };
@@ -213,7 +213,7 @@ function rollupNoteSummary(
   }
 }
 
-export function layoutRadialByDegree(
+function layoutRadialByDegree(
   members: readonly Member[],
   edges: readonly PairBoardEdge[],
   degreeByMember: Map<string, number>,
@@ -338,68 +338,6 @@ export function layoutRadialByDegree(
   });
 }
 
-export function bezierMidpoint(
-  a: PairBoardPoint,
-  b: PairBoardPoint,
-  curvature: number,
-): PairBoardPoint {
-  const control = bezierControlPoint(a, b, curvature);
-  return {
-    x: 0.25 * a.x + 0.5 * control.x + 0.25 * b.x,
-    y: 0.25 * a.y + 0.5 * control.y + 0.25 * b.y,
-  };
-}
-
-export function bezierControlPoint(
-  a: PairBoardPoint,
-  b: PairBoardPoint,
-  curvature: number,
-): PairBoardPoint {
-  const mx = (a.x + b.x) * 0.5;
-  const my = (a.y + b.y) * 0.5;
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const nx = -dy / length;
-  const ny = dx / length;
-  const offset = curvature * 0.18;
-  return {
-    x: mx + nx * offset,
-    y: my + ny * offset,
-  };
-}
-
-export function bezierPathD(
-  a: PairBoardPoint,
-  b: PairBoardPoint,
-  curvature: number,
-  width: number,
-  height: number,
-): string {
-  const control = bezierControlPoint(a, b, curvature);
-  const ax = a.x * width;
-  const ay = a.y * height;
-  const bx = b.x * width;
-  const by = b.y * height;
-  const cx = control.x * width;
-  const cy = control.y * height;
-  return `M ${ax.toFixed(2)} ${ay.toFixed(2)} Q ${cx.toFixed(2)} ${cy.toFixed(2)} ${bx.toFixed(2)} ${by.toFixed(2)}`;
-}
-
-export function pointAlongBezier(
-  a: PairBoardPoint,
-  b: PairBoardPoint,
-  curvature: number,
-  t: number,
-): PairBoardPoint {
-  const control = bezierControlPoint(a, b, curvature);
-  const oneMinusT = 1 - t;
-  return {
-    x: oneMinusT * oneMinusT * a.x + 2 * oneMinusT * t * control.x + t * t * b.x,
-    y: oneMinusT * oneMinusT * a.y + 2 * oneMinusT * t * control.y + t * t * b.y,
-  };
-}
-
 function deterministicCurvature(seed: string): number {
   // Map 0..1 to -1..1 with sign deterministic per pair so two parallel pairs bow apart.
   return hashUnit(seed) * 2 - 1;
@@ -422,26 +360,6 @@ export function edgeBaseOpacity(edge: PairBoardEdge): number {
   return 0.34 + healthShare * 0.5;
 }
 
-// Radii are matched 1:1 to Portrait component variants so the avatar
-// inside the bubble fills its frame the same way the rest of the app
-// renders members. Portrait sizing is fixed at the variant level
-// (thumb=48, row=64, card=96), so any other radius would either crop
-// the image or leave a hollow ring. Keep these in lockstep with the
-// PortraitVariant chosen in pair-board.tsx::PairNode.
-export function nodeBaseRadius(degree: number): number {
-  if (degree >= 4) return 48;
-  if (degree >= 2) return 32;
-  return 24;
-}
-
-export type PairBoardNodePortraitVariant = "thumb" | "row" | "card";
-
-export function nodePortraitVariant(degree: number): PairBoardNodePortraitVariant {
-  if (degree >= 4) return "card";
-  if (degree >= 2) return "row";
-  return "thumb";
-}
-
 export function describeRecency(latestNoteAt: number, now: number): string {
   if (latestNoteAt === 0) return "no notes filed";
   const ms = Math.max(0, now - latestNoteAt);
@@ -462,7 +380,7 @@ export function describeRecency(latestNoteAt: number, now: number): string {
  * constellation lobby keeps a richer ArchiveSelection in its own types;
  * this one stays narrow because it only seeds initial open state.
  */
-export type ActivePairBoardSelection =
+type ActivePairBoardSelection =
   | { kind: "node"; memberId: string }
   | { kind: "edge"; pairId: string };
 

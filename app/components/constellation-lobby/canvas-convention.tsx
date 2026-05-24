@@ -35,13 +35,14 @@ import {
   computeStarFlythroughLayer,
   flythroughLayerDirectionFromKey,
   flythroughMemberSlabActivity,
-  focusClusterPosition,
+  FOCUS_MARKER_POSITION,
+  FOCUS_MARKER_SCALE,
   haloColorForStar,
   intensityForRole,
   pairPartnerPosition,
+  resolveClusterPosition,
   resolveStarRenderTarget,
   roleForStar,
-  rosterClusterPosition,
   sizeForStar3D,
   starWorldPosition,
 } from "./math";
@@ -60,6 +61,7 @@ import type {
 import type { PairBoardEdge } from "../pair-board-layout";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import { HoverDetailCard } from "./hover-detail-card";
+import { FocusSelectionMarker } from "./focus-selection-marker";
 import { PairEdgeMesh } from "./pair-edge-mesh";
 import {
   buildBackdropTexture,
@@ -101,6 +103,13 @@ export type StarClickHandlers = {
   eligiblePartnerIds?: ReadonlySet<string>;
   /** Stars not in this set get extra dimming. Used by the lens filter. */
   filterMatchedIds?: ReadonlySet<string>;
+  /**
+   * Drops the current focus selection. When provided AND this is the focus
+   * star AND state === "focus_selected", the star renders an inline "Focus"
+   * pill with an X dismiss button so the player can swap without leaving the
+   * field for the side rail.
+   */
+  onClearFocus?: () => void;
 };
 
 function isEditableEventTarget(target: EventTarget | null): boolean {
@@ -222,6 +231,18 @@ export function Scene({
   // Archive-mode hover state for the constellation edges. Drives the hover
   // halo on PairEdgeMesh and the midpoint Html tooltip mount.
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
+  // Set true while the pointer is over an in-scene HTML overlay (today, the
+  // inline focus-pill that anchors to the focus star). The pill captures
+  // pointer events, so the canvas's `state.pointer` freezes — leaving camera
+  // parallax to lerp the world-anchored pill across the screen and produce a
+  // shake feedback loop. Suppressing parallax while the overlay is hovered
+  // breaks the loop. Idle sway is left alone so the field still feels alive.
+  const [hudOverlayHovered, setHudOverlayHovered] = useState(false);
+  useEffect(() => {
+    // Reset if the pill unmounts under the cursor — pointer-leave won't fire
+    // and the camera would stay frozen otherwise.
+    if (state !== "focus_selected") setHudOverlayHovered(false);
+  }, [state]);
 
   // Esc dismisses the active card. Both the spike route and the production
   // wrapper get this for free.
@@ -375,7 +396,16 @@ export function Scene({
   const haloTexture = useMemo(() => buildSoftSparkleTexture(), []);
   const rimLightTexture = useMemo(() => buildRimLightTexture(), []);
 
-  const focusPos = focusStar ? starWorldPosition(focusStar) : null;
+  // When focus is pinned to the layer-1 marker slot, the connector and DOF
+  // target should originate from the pinned position too — otherwise the
+  // hover connector to an eligible partner draws from an off-screen anchor
+  // (the focus star's random natural field point).
+  const focusPinned = state === "focus_selected" && currentLayer === 1;
+  const focusPos = focusStar
+    ? focusPinned
+      ? FOCUS_MARKER_POSITION
+      : starWorldPosition(focusStar)
+    : null;
   const partnerNatural = partnerStar ? starWorldPosition(partnerStar) : null;
   const partnerCompressed = focusStar ? pairPartnerPosition(focusStar) : null;
   // stars.find returns `undefined`, not `null`, so we normalize to a single
@@ -463,20 +493,15 @@ export function Scene({
       focusedIds === undefined
         ? undefined
         : computeStarFlythroughLayer(activeStar.member.id, { focusedIds });
-    const focusClusterIdx =
-      flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0
-        ? focusOrder.indexOf(activeStar.member.id)
-        : -1;
-    const rosterClusterIdx =
-      flythroughLayer === 1 && currentLayer === 1 && rosterLeadOrder.length > 0
-        ? rosterLeadOrder.indexOf(activeStar.member.id)
-        : -1;
-    const clusterPosition =
-      focusClusterIdx >= 0
-        ? focusClusterPosition(focusClusterIdx, focusOrder.length)
-        : rosterClusterIdx >= 0
-          ? rosterClusterPosition(rosterClusterIdx, rosterLeadOrder.length)
-          : null;
+    const clusterPosition = resolveClusterPosition({
+      memberId: activeStar.member.id,
+      role,
+      state,
+      flythroughLayer,
+      currentLayer,
+      focusOrder,
+      rosterLeadOrder,
+    });
     return resolveStarRenderTarget({
       natural,
       overridePos,
@@ -503,7 +528,7 @@ export function Scene({
     <>
       <CameraRig
         target={cameraTarget}
-        parallax={showParallax && activeStarId === null}
+        parallax={showParallax && activeStarId === null && !hudOverlayHovered}
         reducedMotion={reducedMotion}
       />
       <SceneBackground />
@@ -562,8 +587,17 @@ export function Scene({
                 offTonightIds: offTonightSet ?? EMPTY_OFF_TONIGHT_IDS,
               })
             : undefined;
-        const slabActivity =
-          inArchive || flythroughLayer === undefined || currentLayer === undefined
+        // Focus marker pin: once the player has committed a focus and
+        // scrolled past the picker, the focus star would otherwise be
+        // culled by the off-slab activity drop. Pin it to a visible
+        // top-center slot so the inline focus pill anchored to it stays
+        // on-screen and the hover connector to eligible partners has a
+        // stable origin.
+        const isFocusMarker =
+          !inArchive && role === "focus" && state === "focus_selected" && currentLayer === 1;
+        const slabActivity = isFocusMarker
+          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
+          : inArchive || flythroughLayer === undefined || currentLayer === undefined
             ? undefined
             : flythroughMemberSlabActivity(
                 flythroughLayer,
@@ -577,20 +611,16 @@ export function Scene({
         // face fits on screen. Both release on layer / subview change so the
         // natural field returns. Archive mode never clusters — it owns its own
         // layout.
-        const focusClusterIdx =
-          !inArchive && flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0
-            ? focusOrder.indexOf(star.member.id)
-            : -1;
-        const rosterClusterIdx =
-          !inArchive && flythroughLayer === 1 && currentLayer === 1 && rosterLeadOrder.length > 0
-            ? rosterLeadOrder.indexOf(star.member.id)
-            : -1;
-        const clusterPosition =
-          focusClusterIdx >= 0
-            ? focusClusterPosition(focusClusterIdx, focusOrder.length)
-            : rosterClusterIdx >= 0
-              ? rosterClusterPosition(rosterClusterIdx, rosterLeadOrder.length)
-              : null;
+        const clusterPosition = resolveClusterPosition({
+          memberId: star.member.id,
+          role,
+          state,
+          flythroughLayer,
+          currentLayer,
+          focusOrder,
+          rosterLeadOrder,
+          inArchive,
+        });
         return (
           <StarSprite
             key={star.member.id}
@@ -611,6 +641,13 @@ export function Scene({
             flythroughLayer={flythroughLayer}
             slabActivity={slabActivity}
             clusterPosition={clusterPosition}
+            renderOverlay={buildFocusMarkerOverlay({
+              role,
+              state,
+              star,
+              onClearFocus: starClickHandlers?.onClearFocus,
+              onHoverChange: setHudOverlayHovered,
+            })}
             onHoverEnter={() => setHoveredId(star.member.id)}
             onHoverLeave={() => setHoveredId(null)}
             onClick={
@@ -726,7 +763,7 @@ export function Scene({
  * the field always feels alive).
  * ========================================================================== */
 
-export function CameraRig({
+function CameraRig({
   target,
   parallax,
   reducedMotion,
@@ -778,7 +815,7 @@ export function CameraRig({
  * a soft front-light when active.
  * ========================================================================== */
 
-export function Lights({
+function Lights({
   state,
   focusStar,
   partnerStar,
@@ -838,7 +875,7 @@ export function Lights({
  * camera distance.
  * ========================================================================== */
 
-export function SceneBackground() {
+function SceneBackground() {
   const texture = useMemo(() => buildBackdropTexture(), []);
   return <primitive attach="background" object={texture} />;
 }
@@ -849,7 +886,41 @@ export function SceneBackground() {
  * frame so role transitions feel mechanical free.
  * ========================================================================== */
 
-export function StarSprite({
+type StarOverlayMetrics = {
+  avatarRadius: number;
+  haloSize: number;
+};
+
+type StarOverlayRenderer = (metrics: StarOverlayMetrics) => ReactNode;
+
+function buildFocusMarkerOverlay({
+  role,
+  state,
+  star,
+  onClearFocus,
+  onHoverChange,
+}: {
+  role: StarRole;
+  state: LobbyState;
+  star: StarMark;
+  onClearFocus?: () => void;
+  onHoverChange: (hovered: boolean) => void;
+}): StarOverlayRenderer | undefined {
+  if (role !== "focus" || state !== "focus_selected" || onClearFocus === undefined) {
+    return undefined;
+  }
+
+  return ({ avatarRadius }) => (
+    <FocusSelectionMarker
+      member={star.member}
+      avatarRadius={avatarRadius}
+      onClearFocus={onClearFocus}
+      onHoverChange={onHoverChange}
+    />
+  );
+}
+
+function StarSprite({
   star,
   role,
   state,
@@ -867,6 +938,7 @@ export function StarSprite({
   flythroughLayer,
   slabActivity,
   clusterPosition = null,
+  renderOverlay,
   onHoverEnter,
   onHoverLeave,
   onClick,
@@ -922,6 +994,12 @@ export function StarSprite({
    * after a focus is committed.
    */
   clusterPosition?: Vec3 | null;
+  /**
+   * Optional world-anchored HTML overlay rendered inside the billboard after
+   * the generic hover label. Feature-specific controls live in their own
+   * modules and enter StarSprite through this narrow slot.
+   */
+  renderOverlay?: StarOverlayRenderer;
   onHoverEnter: () => void;
   onHoverLeave: () => void;
   onClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -1359,8 +1437,9 @@ export function StarSprite({
             card isn't already morphing out of it). Anchored just below the
             halo so the face stays unobstructed. Html with `center` keeps the
             tooltip readable at constant pixel size regardless of the star's
-            world scale. */}
-        {hovered && !cardOpen ? (
+            world scale. Suppressed when a feature overlay occupies this
+            same anchor so the two affordances don't stack. */}
+        {hovered && !cardOpen && renderOverlay === undefined ? (
           <Html
             position={[0, -haloSize * 0.78, 0.12]}
             zIndexRange={[50, 0]}
@@ -1372,6 +1451,7 @@ export function StarSprite({
             </div>
           </Html>
         ) : null}
+        {renderOverlay?.({ avatarRadius: sizing.avatarRadius, haloSize })}
       </Billboard>
     </group>
   );
@@ -1383,7 +1463,7 @@ export function StarSprite({
  * pair, slightly thicker with rose->violet color blend.
  * ========================================================================== */
 
-export function HoverConnector({ from, to }: { from: Vec3; to: Vec3 }) {
+function HoverConnector({ from, to }: { from: Vec3; to: Vec3 }) {
   const points = useMemo(
     () => [
       new THREE.Vector3(from.x, from.y, from.z + 0.15),
@@ -1406,7 +1486,7 @@ export function HoverConnector({ from, to }: { from: Vec3; to: Vec3 }) {
   );
 }
 
-export function PairConnector3D({ from, to }: { from: Vec3; to: Vec3 }) {
+function PairConnector3D({ from, to }: { from: Vec3; to: Vec3 }) {
   const points = useMemo(
     () => [
       new THREE.Vector3(from.x, from.y, from.z + 0.2),

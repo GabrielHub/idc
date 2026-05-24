@@ -47,7 +47,6 @@ export function LayerIndicator({
         {layers.map((layer) => {
           const active = layer === currentLayer;
           const label = FLYTHROUGH_LAYER_LABELS[layer];
-          const toneClass = active ? "aura-liquid-glass-rose" : "";
           return (
             <button
               key={layer}
@@ -55,7 +54,7 @@ export function LayerIndicator({
               type="button"
               onClick={() => onLayerSelect(layer)}
               aria-label={`Jump to layer ${layer + 1}: ${label}`}
-              className={`aura-liquid-glass ${toneClass} flex cursor-pointer items-center rounded-full px-2 py-2`}
+              className="aura-liquid-glass flex cursor-pointer items-center rounded-full px-2 py-2"
             >
               <span
                 className={`h-2 w-2 flex-shrink-0 rounded-full transition-colors ${

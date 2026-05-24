@@ -82,10 +82,6 @@ function isolatedRingPosition(memberId: string, index: number, total: number): V
   };
 }
 
-export function archiveEdgeEndpointPosition(node: PairBoardNode): Vec3 {
-  return nodeWorldPosition(node);
-}
-
 /**
  * Build the world-space render specs for every visible edge in the graph,
  * given the per-member archive positions. Edges whose endpoints aren't in
@@ -112,7 +108,7 @@ export function buildArchiveEdgeSpecs(
  * deterministic curvature) lifts the midpoint off the chord; we keep Z
  * planar between the two endpoints so the curve bows in the XY plane.
  */
-export function archiveEdgeMidpoint(
+function archiveEdgeMidpoint(
   from: Vec3,
   to: Vec3,
   curvature: number,
