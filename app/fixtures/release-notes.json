@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.4",
+    "date": "2026-05-25",
+    "headline": "Cupid opens the constellation lobby.",
+    "summary": "Gameplay test alpha. Replaces the separate roster, date book, notes, and pair board surfaces with a layered constellation lobby, splits booking into Commit and Begin, and tightens AI setup readiness before live dates.",
+    "sections": [
+      {
+        "title": "Constellation lobby",
+        "items": [
+          "Members now live in a parallax starfield with hover details, case files, pair archive links, recent notes, and scenario planning arranged as layered lobby views.",
+          "The old roster room, pair board, notes view, and pre-date canvas are retired in favor of the Date Book, Files, Records, and cathedral planning layers inside one lobby.",
+          "Star rendering, hover-card movement, archive layout, and lobby math have focused coverage so the constellation can keep changing without losing hit targets or visual anchors."
+        ]
+      },
+      {
+        "title": "Booking flow",
+        "items": [
+          "Date planning now separates Commit from Begin: operators lock a booking first, then start the live session when AI readiness and the chosen plan are clear.",
+          "The cathedral scenario layer stays gated until a booking is committed, keeping scenario choice and launch state easier to read.",
+          "Records are gated until the first shift has filed history, so fresh saves no longer open into an empty archive."
+        ]
+      },
+      {
+        "title": "AI setup",
+        "items": [
+          "AI setup is decoupled from the Begin action so model readiness can be checked without warming the date flow at the wrong moment.",
+          "Gateway model choices now include DeepSeek V4 Pro with catalog-owned cost labels and clearer setup status copy.",
+          "Onboarding and tutorial copy point new operators through the constellation lobby and the updated booking sequence."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.3",
     "date": "2026-05-22",
     "headline": "Cupid opens Fred Stavropoulos's case file.",
