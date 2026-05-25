@@ -478,7 +478,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     nextStatus,
     isEndingEarly,
   });
-  const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
+  const nextPlaybackState = nextStatus === "active" ? "paused" : "ended";
   const privateStateByCharacter = applyJudgeToPrivateDateState(
     session,
     judgeSnapshot,
@@ -598,7 +598,7 @@ async function cutDateShortWithLocalAiInternal(
   });
 
   if (!canCutDateShort(session)) {
-    throw new Error("Cupid can cut a date short after two filed reads while the date is paused.");
+    throw new Error("Cupid can file a date after two filed reads while the date is paused.");
   }
 
   const scenario = requireScenario(session.scenarioId);
@@ -1683,7 +1683,7 @@ function createLocalAiFallbackMemoryRecord({
       : `${report.summary} ${report.statSummary}`;
   const cutShortNote =
     session.endReason === "player_cut_short"
-      ? " Cupid cut the date short and filed the final read as part of the case note."
+      ? " Cupid filed the date early and included the final read in the case note."
       : "";
   const text = `${summary}${cutShortNote} Recommended follow-up: ${followUp}. Cupid filed a basic case note after the memory clerk missed the structured form.`;
   const embedding = createDeterministicEmbedding(text);

@@ -21,14 +21,12 @@ export function IntentRail({
 }) {
   const hint =
     selectedIntent === null
-      ? "Optional booking read"
+      ? "Read (optional)"
       : `Filed as ${MATCHMAKING_INTENT_SHORT_LABEL[selectedIntent].toLowerCase()}`;
 
   return (
-    <div className="aura-liquid-glass flex flex-wrap items-center justify-center gap-2 rounded-full px-3 py-2">
-      <span className="px-1 font-mono text-micro uppercase tracking-[0.18em] text-white/55">
-        {hint}
-      </span>
+    <div className="aura-liquid-glass flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2">
+      <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">{hint}</span>
       {MATCHMAKING_INTENTS.map((intent) => {
         const picked = selectedIntent === intent;
         if (locked && !picked) return null;

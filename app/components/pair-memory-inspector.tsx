@@ -1,6 +1,14 @@
 import { useMemo, useRef, useState } from "react";
 
-import type { GameSave, Member, OpenLoop, PairAgreement, PairState } from "../domain/game";
+import type {
+  GameSave,
+  Member,
+  MemberRequest,
+  OpenLoop,
+  PairAgreement,
+  PairState,
+} from "../domain/game";
+import { memberRequests } from "../fixtures";
 import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
 import { TutorialCoachMark } from "./tutorial";
 
@@ -180,6 +188,21 @@ export function PairMemoryInspector({
     [members],
   );
 
+  const currentAsks = useMemo<Array<{ member: Member; request: MemberRequest }>>(() => {
+    if (pairState === undefined) return [];
+    const out: Array<{ member: Member; request: MemberRequest }> = [];
+    for (const memberId of pairState.participantIds) {
+      const member = memberById.get(memberId);
+      if (member === undefined) continue;
+      const requestId = member.state.currentRequestId;
+      if (requestId === undefined) continue;
+      const request = memberRequests.find((candidate) => candidate.id === requestId);
+      if (request === undefined) continue;
+      out.push({ member, request });
+    }
+    return out;
+  }, [pairState, memberById]);
+
   if (pairState === undefined) return null;
 
   const activeAgreements = pairState.agreements.filter((entry) => entry.status === "active");
@@ -222,48 +245,67 @@ export function PairMemoryInspector({
         </div>
       </header>
 
-      {collapsed ? null : (
-        <div
-          id="pair-memory-inspector-body"
-          className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 py-4"
-        >
-          <InspectorSection
-            label="active agreements"
-            count={activeAgreements.length}
-            emptyMessage="No active agreements filed yet."
+      <div
+        className={`grid transition-[grid-template-rows] duration-300 ease-out ${
+          collapsed ? "grid-rows-[0fr]" : "min-h-0 flex-1 grid-rows-[1fr]"
+        }`}
+        aria-hidden={collapsed}
+      >
+        <div className="min-h-0 overflow-hidden">
+          <div
+            id="pair-memory-inspector-body"
+            className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto px-4 py-4"
           >
-            <ul className="flex flex-col gap-2">
-              {activeAgreements.map((agreement) => (
-                <AgreementCard key={agreement.id} agreement={agreement} />
-              ))}
-            </ul>
-          </InspectorSection>
+            <InspectorSection
+              label="current asks"
+              count={currentAsks.length}
+              emptyMessage="No standing asks on the table for either dater."
+            >
+              <ul className="flex flex-col gap-2">
+                {currentAsks.map(({ member, request }) => (
+                  <MemberAskCard key={request.id} member={member} request={request} />
+                ))}
+              </ul>
+            </InspectorSection>
 
-          <InspectorSection
-            label="open loops"
-            count={openLoops.length}
-            emptyMessage="No open loops on this pair."
-          >
-            <ul className="flex flex-col gap-2">
-              {openLoops.map((loop) => (
-                <OpenLoopCard key={loop.id} openLoop={loop} />
-              ))}
-            </ul>
-          </InspectorSection>
+            <InspectorSection
+              label="active agreements"
+              count={activeAgreements.length}
+              emptyMessage="No active agreements filed yet."
+            >
+              <ul className="flex flex-col gap-2">
+                {activeAgreements.map((agreement) => (
+                  <AgreementCard key={agreement.id} agreement={agreement} />
+                ))}
+              </ul>
+            </InspectorSection>
 
-          <InspectorSection
-            label="recent changes"
-            count={timeline.length}
-            emptyMessage="No status changes filed yet."
-          >
-            <ul className="flex flex-col gap-2">
-              {timeline.map((entry) => (
-                <TimelineRow key={entry.id} entry={entry} />
-              ))}
-            </ul>
-          </InspectorSection>
+            <InspectorSection
+              label="open loops"
+              count={openLoops.length}
+              emptyMessage="No open loops on this pair."
+            >
+              <ul className="flex flex-col gap-2">
+                {openLoops.map((loop) => (
+                  <OpenLoopCard key={loop.id} openLoop={loop} />
+                ))}
+              </ul>
+            </InspectorSection>
+
+            <InspectorSection
+              label="recent changes"
+              count={timeline.length}
+              emptyMessage="No status changes filed yet."
+            >
+              <ul className="flex flex-col gap-2">
+                {timeline.map((entry) => (
+                  <TimelineRow key={entry.id} entry={entry} />
+                ))}
+              </ul>
+            </InspectorSection>
+          </div>
         </div>
-      )}
+      </div>
 
       {firstAgreementStep.active ? (
         <TutorialCoachMark
@@ -275,6 +317,7 @@ export function PairMemoryInspector({
           onPrimary={firstAgreementStep.complete}
           dismissLabel="Skip tour"
           onDismiss={firstAgreementStep.dismiss}
+          textTone="dark"
         />
       ) : null}
     </aside>
@@ -295,13 +338,13 @@ function InspectorSection({
   return (
     <section className="flex min-w-0 flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
-        <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted">
           // {label}
         </p>
-        <span className="font-mono text-micro tabular-nums text-aura-faint">{count}</span>
+        <span className="font-mono text-micro tabular-nums text-aura-muted">{count}</span>
       </div>
       {count === 0 ? (
-        <p className="rounded-chip border border-dashed border-aura-hairline-strong bg-white/45 px-3 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+        <p className="rounded-chip border border-dashed border-aura-hairline-strong bg-white/70 px-3 py-2 text-label text-aura-muted">
           {emptyMessage}
         </p>
       ) : (
@@ -309,6 +352,37 @@ function InspectorSection({
       )}
     </section>
   );
+}
+
+function MemberAskCard({ member, request }: { member: Member; request: MemberRequest }) {
+  const { namePrefix, remainder } = splitMemberAskName(member, request.text);
+  return (
+    <li className="rounded-chip border border-aura-hairline bg-white/65 px-3 py-2">
+      <p className="text-label leading-snug text-aura-ink">
+        {namePrefix === null ? null : (
+          <>
+            <span className="font-mono font-semibold uppercase tracking-[0.22em] text-aura-rose">
+              {namePrefix}
+            </span>{" "}
+          </>
+        )}
+        {remainder}
+      </p>
+    </li>
+  );
+}
+
+function splitMemberAskName(
+  member: Member,
+  text: string,
+): { namePrefix: string | null; remainder: string } {
+  for (const candidate of [member.name, member.firstName]) {
+    const prefix = `${candidate} `;
+    if (text.startsWith(prefix)) {
+      return { namePrefix: candidate, remainder: text.slice(prefix.length) };
+    }
+  }
+  return { namePrefix: null, remainder: text };
 }
 
 function AgreementCard({ agreement }: { agreement: PairAgreement }) {
@@ -349,7 +423,7 @@ function TimelineRow({ entry }: { entry: PairMemoryTimelineEntry }) {
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-1.5">
           <StatusPill label={meta.label} tone={meta.tone} />
-          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
+          <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
             {kindPrefix}
           </span>
         </div>
@@ -392,7 +466,7 @@ function SourceMeta({
   const time = formatClockTime(createdAt);
   const session = dateSessionId === undefined ? null : shortSessionTag(dateSessionId);
   return (
-    <span className="font-mono text-micro tabular-nums text-aura-faint">
+    <span className="font-mono text-micro tabular-nums text-aura-muted">
       {session === null ? time : `${time} · ${session}`}
     </span>
   );

@@ -1754,6 +1754,7 @@ describe("AI date engine orchestration", () => {
     expect(runningSession.judgeSnapshots).toHaveLength(1);
     const firstJudgeSnapshot = runningSession.judgeSnapshots[0];
     expect(runningSession.currentTurn).toBe(6);
+    expect(runningSession.playbackState).toBe("paused");
     expect(firstJudgeSnapshot).toBeDefined();
     if (firstJudgeSnapshot === undefined) {
       throw new Error("Expected first judge snapshot after completed judge cadence window.");
@@ -1781,7 +1782,7 @@ describe("AI date engine orchestration", () => {
     expect(judgePrompts[1]).toContain("line 12 response");
   });
 
-  it("lets Cupid cut a paused date short after two judge reads and files a final read", async () => {
+  it("lets Cupid file a paused long date after two judge reads and adds a final read", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-cut-short-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -1818,7 +1819,7 @@ describe("AI date engine orchestration", () => {
       },
       judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
         judgePrompts.push(packet.prompt);
-        const isCutShortRead = packet.prompt.includes("cut-short decision");
+        const isCutShortRead = packet.prompt.includes("file-date decision");
 
         return judgeSnapshotSchema.parse({
           id: `judge-${dateSessionId}-${exchangeIndex}`,
@@ -1846,10 +1847,10 @@ describe("AI date engine orchestration", () => {
           shouldEndEarly: false,
           endSentiment: isCutShortRead ? "negative" : null,
           notableMoments: isCutShortRead
-            ? ["Cupid cut the room short after line 12."]
+            ? ["Cupid filed the room early after line 12."]
             : ["Cupid filed the exchange."],
           playerSummary: isCutShortRead
-            ? "Cupid cut the room short before the warm thread settled."
+            ? "Cupid filed the room early before the warm thread settled."
             : "Cupid filed the exchange.",
           memoryCandidates: [],
         });
@@ -1865,7 +1866,7 @@ describe("AI date engine orchestration", () => {
             pairId: started.session.pairId,
             scenarioId: started.session.scenarioId,
             dateSessionId: started.session.id,
-            text: "Cupid cut the date short after Jenna and Vhool reached line 12.",
+            text: "Cupid filed the date early after Jenna and Vhool reached line 12.",
             tags: ["date_summary", "cut_short"],
             importance: 4,
           }),
@@ -1912,24 +1913,24 @@ describe("AI date engine orchestration", () => {
     expect(result.session.endSentiment).toBe("negative");
     expect(result.session.playbackState).toBe("ended");
     expect(result.session.judgeSnapshots).toHaveLength(3);
-    expect(result.session.transcript.at(-1)?.text).toContain("cut the date short");
+    expect(result.session.transcript.at(-1)?.text).toContain("filed the date early");
     expect(result.session.finalReport).toBeDefined();
     expect(result.session.finalReport?.memoryRecordIds).toContain(
       `memory-${result.session.id}-jenna-pike-cut-short`,
     );
-    expect(judgePrompts.at(-1)).toContain("cut-short decision");
+    expect(judgePrompts.at(-1)).toContain("file-date decision");
     expect(judgePrompts.at(-1)).toContain("operator action, not a member action");
     expect(judgePrompts.at(-1)).toContain("line 12 response");
-    expect(summarizerPrompts[0]).toContain("Cupid cut this date short");
+    expect(summarizerPrompts[0]).toContain("Cupid filed this date early");
     expect(
       result.save.shifts.find((shift) => shift.id === result.save.activeShiftId)?.activeBooking,
     ).toBeUndefined();
     expect(
       result.save.members.find((member) => member.id === "jenna-pike")?.state.lastDateShift,
     ).toBe(1);
-    expect(result.save.memories.some((memory) => memory.text.includes("cut the date short"))).toBe(
-      true,
-    );
+    expect(
+      result.save.memories.some((memory) => memory.text.includes("filed the date early")),
+    ).toBe(true);
     expect(
       result.save.memories.some(
         (memory) =>
@@ -1940,7 +1941,7 @@ describe("AI date engine orchestration", () => {
     ).toBe(true);
   });
 
-  it("records a budget cut when cut short makes a participant quit", async () => {
+  it("records a budget cut when filing early makes a participant quit", async () => {
     const repository = new LocalGameRepository(
       new MemorySaveStore(),
       "ai-cut-short-budget-cut-test",
@@ -1982,7 +1983,7 @@ describe("AI date engine orchestration", () => {
         };
       },
       judgeDateExchange: async ({ packet, dateSessionId, exchangeIndex }) => {
-        const isCutShortRead = packet.prompt.includes("cut-short decision");
+        const isCutShortRead = packet.prompt.includes("file-date decision");
 
         return judgeSnapshotSchema.parse({
           id: `judge-${dateSessionId}-${exchangeIndex}`,
@@ -1997,7 +1998,7 @@ describe("AI date engine orchestration", () => {
             ? ["Cupid stopped the date before the file stabilized."]
             : ["Cupid filed a routine read."],
           playerSummary: isCutShortRead
-            ? "Cupid cut the date short on a bad read."
+            ? "Cupid filed the date early on a bad read."
             : "Cupid filed a routine read.",
           memoryCandidates: [],
         });
@@ -2163,7 +2164,7 @@ describe("AI date engine orchestration", () => {
     ).toBe(true);
   });
 
-  it("keeps cut short locked until two judge reads exist", async () => {
+  it("keeps file date locked until two judge reads exist", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-cut-short-locked-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",

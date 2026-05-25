@@ -31,7 +31,7 @@ import {
 } from "./active-card-anchor";
 import { ArchiveEdgeLayer } from "./archive-edge-layer";
 import { CameraRig, Lights, SceneBackground } from "./canvas-environment";
-import { PairConnector3D, PartnerSpoke, PlanningPairEdge } from "./canvas-connectors";
+import { PartnerSpoke } from "./canvas-connectors";
 import { ParticleField } from "./particle-field";
 import {
   computeLayerZOffset,
@@ -130,6 +130,7 @@ export function Scene({
   currentLayer,
   onLayerChange,
   layerNavigationMode,
+  flythroughLayers,
   cathedralScrollRef,
   focusedIds,
   offTonightSet,
@@ -137,7 +138,6 @@ export function Scene({
   pairMoodByPartnerId,
   viewMode = "tonight",
   archive,
-  planningPairs,
 }: {
   state: LobbyState;
   stars: StarMark[];
@@ -175,6 +175,7 @@ export function Scene({
   currentLayer?: FlythroughLayer;
   onLayerChange?: (next: FlythroughLayer) => void;
   layerNavigationMode?: LayerNavigationMode;
+  flythroughLayers?: readonly FlythroughLayer[];
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   /**
    * Member ids that live on the focus slab (slab 0). Everyone else lives on
@@ -205,18 +206,6 @@ export function Scene({
    * get a spoke, but in the steady violet color band.
    */
   pairMoodByPartnerId?: ReadonlyMap<string, number>;
-  /**
-   * Pair edges to render as faint constellation lines in tonight (planning)
-   * view. One entry per persisted pair the player has formed. Edges fade
-   * during archive mode (which mounts its own ArchiveEdgeLayer). Endpoints
-   * resolve to each member's natural field position, so the line stays
-   * visible even while individual avatars are pulled into cluster slots.
-   */
-  planningPairs?: ReadonlyArray<{
-    pairId: string;
-    participantIds: readonly [string, string];
-    health: number;
-  }>;
 }) {
   // Hover drives the visual hover bump on `StarSprite` and the eligible-
   // partner connector in `focus_selected`. It no longer opens the card —
@@ -268,10 +257,10 @@ export function Scene({
 
   useLayerNavigation({
     currentLayer,
-    viewMode,
     cathedralScrollRef,
     onLayerChange,
     navigationMode: layerNavigationMode,
+    layers: flythroughLayers,
   });
 
   const sources = useMemo(
@@ -331,35 +320,18 @@ export function Scene({
       ? FOCUS_MARKER_POSITION
       : starWorldPosition(focusStar)
     : null;
-  const partnerNatural = partnerStar ? starWorldPosition(partnerStar) : null;
-  const partnerCompressed = focusStar ? pairPartnerPosition(focusStar) : null;
   const activeStar =
     activeStarId === null
       ? undefined
       : (stars.find((s) => s.member.id === activeStarId) ?? undefined);
 
-  const pairConnectorEndpoint =
-    state === "committed_pair" || state === "scenario_chosen"
-      ? partnerCompressed
-      : state === "partner_selected"
-        ? partnerNatural
-        : null;
-
   const eligiblePartnerSet = starClickHandlers?.eligiblePartnerIds ?? EMPTY_ELIGIBLE_PARTNER_IDS;
 
   const dofTarget = useMemo(() => {
     if (state === "idle" || state === "callout_heavy") return new THREE.Vector3(0, 0, 0);
-    const target = state === "focus_selected" ? focusPos : (pairConnectorEndpoint ?? focusPos);
-    if (target === null) return new THREE.Vector3(0, 0, 0);
-    if (state === "focus_selected" || !focusPos || !pairConnectorEndpoint) {
-      return new THREE.Vector3(target.x, target.y, target.z);
-    }
-    return new THREE.Vector3(
-      (focusPos.x + pairConnectorEndpoint.x) / 2,
-      (focusPos.y + pairConnectorEndpoint.y) / 2,
-      (focusPos.z + pairConnectorEndpoint.z) / 2,
-    );
-  }, [state, focusPos, pairConnectorEndpoint]);
+    if (focusPos === null) return new THREE.Vector3(0, 0, 0);
+    return new THREE.Vector3(focusPos.x, focusPos.y, focusPos.z);
+  }, [state, focusPos]);
 
   const focusId = focusStar?.member.id;
   const partnerId = partnerStar?.member.id;
@@ -507,19 +479,6 @@ export function Scene({
         />
       ) : null}
 
-      {viewMode === "tonight" && planningPairs !== undefined && planningPairs.length > 0 ? (
-        <PlanningPairEdges
-          pairs={planningPairs}
-          stars={stars}
-          hoveredStarId={hoveredId}
-          activeStarId={activeStarId}
-        />
-      ) : null}
-
-      {viewMode === "tonight" && pairConnectorEndpoint !== null && focusPos !== null ? (
-        <PairConnector3D from={focusPos} to={pairConnectorEndpoint} />
-      ) : null}
-
       {viewMode === "tonight" &&
       state === "focus_selected" &&
       isRosterFlythroughLayer(currentLayer) &&
@@ -566,61 +525,6 @@ export function Scene({
         />
         <Vignette eskil={false} offset={0.28} darkness={0.62} />
       </EffectComposer>
-    </>
-  );
-}
-
-/**
- * Faint constellation lines between members in `pairStates`. Endpoints
- * anchor to each star's natural field position (`starWorldPosition`) so the
- * lines stay visible across cluster/slab transitions. A pair edge brightens
- * when either of its participants is hovered or active so the player can
- * trace which partner an avatar is connected to.
- */
-function PlanningPairEdges({
-  pairs,
-  stars,
-  hoveredStarId,
-  activeStarId,
-}: {
-  pairs: ReadonlyArray<{
-    pairId: string;
-    participantIds: readonly [string, string];
-    health: number;
-  }>;
-  stars: readonly StarMark[];
-  hoveredStarId: string | null;
-  activeStarId: string | null;
-}) {
-  const starById = useMemo(() => {
-    const map = new Map<string, StarMark>();
-    for (const star of stars) map.set(star.member.id, star);
-    return map;
-  }, [stars]);
-
-  return (
-    <>
-      {pairs.map((pair) => {
-        const starA = starById.get(pair.participantIds[0]);
-        const starB = starById.get(pair.participantIds[1]);
-        if (starA === undefined || starB === undefined) return null;
-        const from = starWorldPosition(starA);
-        const to = starWorldPosition(starB);
-        const highlighted =
-          hoveredStarId === pair.participantIds[0] ||
-          hoveredStarId === pair.participantIds[1] ||
-          activeStarId === pair.participantIds[0] ||
-          activeStarId === pair.participantIds[1];
-        return (
-          <PlanningPairEdge
-            key={pair.pairId}
-            from={from}
-            to={to}
-            health={pair.health}
-            highlighted={highlighted}
-          />
-        );
-      })}
     </>
   );
 }

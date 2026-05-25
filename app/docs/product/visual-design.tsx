@@ -177,7 +177,7 @@ export const sections: DocSectionEntry[] = [
         </P>
         <P>
           The live date footer can show exact Date Health, turn count, Cupid read count, nudge
-          slots, scene slots, and the cut short transport action after it unlocks. The cut short
+          slots, scene slots, and the file date transport action after it unlocks. The file date
           affordance needs tooltip copy because it is a consequential pacing command: Cupid files a
           final read, resolves the date, and puts both members into cooldown. Final reports, notes,
           brief panels, and follow-up actions should use nonnumeric outcome and intent copy.

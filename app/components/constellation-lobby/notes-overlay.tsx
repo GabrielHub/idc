@@ -206,7 +206,7 @@ export function NotesOverlay({
             transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
             className="absolute inset-x-6 inset-y-6 isolate flex flex-col overflow-hidden rounded-card bg-[#07041a] text-aura-paper lg:inset-x-12 lg:inset-y-10"
           >
-            <AmbientMesh />
+            <AmbientMesh containment="absolute" />
 
             <button
               type="button"

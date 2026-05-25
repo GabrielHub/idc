@@ -12,7 +12,7 @@ import type {
   StarMark,
   StarRole,
 } from "./types";
-import { isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER } from "./types";
+import { FLYTHROUGH_LAYERS, isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER } from "./types";
 
 /**
  * Cohort within the roster slab. Stars on the roster slab still belong to
@@ -85,11 +85,12 @@ export function flythroughMemberSlabActivity(
 export function advanceFlythroughLayer(
   current: FlythroughLayer,
   direction: 1 | -1,
+  layers: readonly FlythroughLayer[] = FLYTHROUGH_LAYERS,
 ): FlythroughLayer {
-  const next = current + direction;
-  if (next <= 0) return 0;
-  if (next >= SCENARIO_FLYTHROUGH_LAYER) return SCENARIO_FLYTHROUGH_LAYER;
-  return next as FlythroughLayer;
+  const currentIndex = layers.indexOf(current);
+  if (currentIndex === -1) return layers[0] ?? current;
+  const nextIndex = Math.max(0, Math.min(layers.length - 1, currentIndex + direction));
+  return layers[nextIndex] ?? current;
 }
 
 export function flythroughLayerDirectionFromKey(code: string): 1 | -1 | null {

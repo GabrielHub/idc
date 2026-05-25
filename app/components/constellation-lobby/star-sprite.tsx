@@ -189,9 +189,21 @@ export function StarSprite({
         flythroughLayer,
         layerZOffset,
       });
-      const targetX = target.x + driftX;
-      const targetY = target.y + driftY;
       const targetZ = target.z + presentation.zLift;
+      // zLift dollies a hovered background star toward the camera. Without
+      // compensation, perspective projection drags the star outward from the
+      // camera's view axis — the avatar slides away from the cursor and the
+      // hit plane shifts past it, causing hover flicker. Scale the camera
+      // offset by the distance ratio so the projected screen position is
+      // preserved across the lift.
+      const distZOld = s.camera.position.z - target.z;
+      const distZNew = s.camera.position.z - targetZ;
+      const xyCompensation =
+        presentation.zLift === 0 || distZOld <= 0 || distZNew <= 0 ? 1 : distZNew / distZOld;
+      const compensatedX = s.camera.position.x + (target.x - s.camera.position.x) * xyCompensation;
+      const compensatedY = s.camera.position.y + (target.y - s.camera.position.y) * xyCompensation;
+      const targetX = compensatedX + driftX;
+      const targetY = compensatedY + driftY;
 
       const moveLerp = reducedMotion ? 1 : 1 - Math.pow(0.0008, delta);
       const pos = groupRef.current.position;

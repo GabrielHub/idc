@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import type { JudgeSnapshot } from "../domain/game";
-import { buildReactionSignals } from "./date-view-transcript";
+import type { DateSession, JudgeSnapshot } from "../domain/game";
+import { memberRequests, starterMembers } from "../fixtures";
+import { buildAskEvidenceId } from "../services/player-knowledge";
+import {
+  buildLeadAskStatus,
+  buildNudgeSuggestions,
+  buildReactionSignals,
+} from "./date-view-transcript";
 
 const LEFT_MEMBER_ID = "left-member";
 const RIGHT_MEMBER_ID = "right-member";
@@ -45,6 +51,40 @@ describe("date view reaction signals", () => {
   });
 });
 
+describe("date view lead ask status", () => {
+  const request = memberRequests.find((candidate) => candidate.memberId === "jenna-pike");
+
+  if (request === undefined) {
+    throw new Error("Expected Jenna request fixture.");
+  }
+
+  it("marks the live lead ask as drifting until Cupid files evidence", () => {
+    const session = makeDateSession({
+      focusRequestId: request.id,
+      judgeSnapshots: [makeJudgeSnapshot({})],
+    });
+
+    expect(buildLeadAskStatus(session, starterMembers)?.kind).toBe("drifting");
+    expect(
+      buildNudgeSuggestions(session.judgeSnapshots, buildLeadAskStatus(session, starterMembers))[0],
+    ).toContain("lead ask");
+  });
+
+  it("marks the live lead ask as covered when Cupid uses ask evidence", () => {
+    const session = makeDateSession({
+      focusRequestId: request.id,
+      judgeSnapshots: [
+        {
+          ...makeJudgeSnapshot({}),
+          usedEvidenceIds: [buildAskEvidenceId(request.memberId, request.id, "covered")],
+        },
+      ],
+    });
+
+    expect(buildLeadAskStatus(session, starterMembers)?.kind).toBe("covered");
+  });
+});
+
 function makeJudgeSnapshot({
   dateHealthDelta = 0,
   statDeltas = {},
@@ -71,5 +111,34 @@ function makeJudgeSnapshot({
     agreementUpdates: [],
     openLoopCandidates: [],
     openLoopUpdates: [],
+  };
+}
+
+function makeDateSession(overrides: Partial<DateSession>): DateSession {
+  return {
+    id: "date-test",
+    pairId: "pair-test",
+    scenarioId: "temporal-coffee-shop",
+    focusMemberId: "jenna-pike",
+    focusRequestId: undefined,
+    turnLimit: 12,
+    currentTurn: 6,
+    dateHealth: 55,
+    status: "active",
+    runtimeMode: "local_ai",
+    participants: ["jenna-pike", "vhool"],
+    transcript: [],
+    privateStateByCharacter: {
+      "jenna-pike": { mood: 50, comfort: 50, intent: "hold the date conversation" },
+      vhool: { mood: 50, comfort: 50, intent: "hold the date conversation" },
+    },
+    judgeSnapshots: [],
+    eventDraft: { offered: [], picked: [] },
+    eventsTriggered: [],
+    playbackState: "paused",
+    endSentiment: null,
+    endReason: null,
+    interventions: [],
+    ...overrides,
   };
 }

@@ -11,20 +11,23 @@ import {
   type PlayerKnowledgeRecord,
   type PortraitMood,
 } from "../domain/game";
+import { findScenarioEventById } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
 import { EASE_OUT_QUART, LiveDot, pad2 } from "./dashboard-atoms";
 import { ChatStream } from "./date-view-chat-stream";
 import { DraftScreen } from "./date-view-draft-screen";
 import { FinalReportFooter } from "./date-view-final-report";
 import { DateFooter } from "./date-view-footer";
+import { DateStageLayer } from "./date-stage-layer";
 import { selectPortraitMood } from "./date-presentation-signals";
-import { DaterStandee, type ReactionSignal } from "./date-reactions";
+import { DaterStandee, type ReactionSignal, type StandeeSpeakState } from "./date-reactions";
 import {
   resolveDatePlaybackUiState,
   type PendingDateAction,
   type PlaybackIntent,
 } from "./date-view-shared";
 import {
+  buildLeadAskStatus,
   buildTranscriptItems,
   buildNudgeSuggestions,
   buildReactionSignals,
@@ -147,9 +150,29 @@ export function DateView({
         : buildReactionSignals(session.judgeSnapshots, leftMember.id, rightMember.id),
     [session.judgeSnapshots, leftMember, rightMember],
   );
+  const speakingMemberId = useMemo<string | null>(() => {
+    if (streamingDrafts.length === 0) {
+      return null;
+    }
+    const streaming = streamingDrafts.find((draft) => draft.status === "streaming");
+    return (streaming ?? streamingDrafts[streamingDrafts.length - 1]).speakerId;
+  }, [streamingDrafts]);
+  const leftSpeakState: StandeeSpeakState =
+    speakingMemberId === null
+      ? "idle"
+      : speakingMemberId === leftMember?.id
+        ? "speaking"
+        : "listening";
+  const rightSpeakState: StandeeSpeakState =
+    speakingMemberId === null
+      ? "idle"
+      : speakingMemberId === rightMember?.id
+        ? "speaking"
+        : "listening";
+  const leadAskStatus = useMemo(() => buildLeadAskStatus(session, members), [session, members]);
   const nudgeSuggestions = useMemo(
-    () => buildNudgeSuggestions(session.judgeSnapshots),
-    [session.judgeSnapshots],
+    () => buildNudgeSuggestions(session.judgeSnapshots, leadAskStatus),
+    [session.judgeSnapshots, leadAskStatus],
   );
   const latestJudge = session.judgeSnapshots.at(-1);
   const leftMood =
@@ -169,6 +192,27 @@ export function DateView({
   }, [session.playbackState, draftEventsAutoStep]);
 
   const [openMember, setOpenMember] = useState<Member | null>(null);
+  const [nudgeComposerOpen, setNudgeComposerOpen] = useState(false);
+  const [sceneConfirmId, setSceneConfirmId] = useState<string | null>(null);
+  const [cutShortConfirmOpen, setCutShortConfirmOpen] = useState(false);
+  const nextSceneEventId = useMemo(() => {
+    if (scenario === undefined) {
+      return null;
+    }
+
+    return (
+      (session.eventDraft.picked ?? []).find(
+        (eventId) =>
+          !session.eventsTriggered.includes(eventId) &&
+          findScenarioEventById(scenario, eventId) !== undefined,
+      ) ?? null
+    );
+  }, [scenario, session.eventDraft.picked, session.eventsTriggered]);
+  const judgeActionsEnabled =
+    session.status === "active" &&
+    playbackUiState.isPaused &&
+    !playbackUiState.playbackBusy &&
+    pendingDateAction === null;
 
   const judgeNoteGate = session.judgeSnapshots.length > 0;
   const judgeNoteStep = useTutorialStep(save, "date.judge-note", judgeNoteGate, onTutorialUpdate);
@@ -185,12 +229,15 @@ export function DateView({
   return (
     <>
       <ScenarioBackdropLayer scenarioId={scenario?.id} microMotion="drift-pointer" />
+      <DateStageLayer />
       {leftMember !== undefined && rightMember !== undefined ? (
         <DateStandeeFrame
           leftMember={leftMember}
           rightMember={rightMember}
           leftMood={leftMood}
           rightMood={rightMood}
+          leftSpeakState={leftSpeakState}
+          rightSpeakState={rightSpeakState}
           reactions={reactionSignals}
           onOpenMember={setOpenMember}
         />
@@ -235,6 +282,21 @@ export function DateView({
               pendingDateAction={pendingDateAction}
               isJudgePending={isJudgePending}
               playbackUiState={playbackUiState}
+              judgeDecisionActions={{
+                visible: judgeActionsEnabled,
+                canWhisper: canIntervene,
+                canDropScene: nextSceneEventId !== null,
+                canFileDate: canCutShort,
+                canAdvance,
+                onWhisper: () => setNudgeComposerOpen(true),
+                onDropScene: () => {
+                  if (nextSceneEventId !== null) {
+                    setSceneConfirmId(nextSceneEventId);
+                  }
+                },
+                onFileDate: () => setCutShortConfirmOpen(true),
+                onAdvance: () => onAdvance(2),
+              }}
             />
           )}
         </div>
@@ -253,8 +315,15 @@ export function DateView({
             pendingDateAction={pendingDateAction}
             playbackUiState={playbackUiState}
             nudgeSuggestions={nudgeSuggestions}
+            leadAskStatus={leadAskStatus}
+            nudgeComposerOpen={nudgeComposerOpen}
+            sceneConfirmId={sceneConfirmId}
+            cutShortConfirmOpen={cutShortConfirmOpen}
             save={save}
             onTutorialUpdate={onTutorialUpdate}
+            onNudgeComposerOpenChange={setNudgeComposerOpen}
+            onSceneConfirmIdChange={setSceneConfirmId}
+            onCutShortConfirmOpenChange={setCutShortConfirmOpen}
             onInterventionTextChange={onInterventionTextChange}
             onInterventionTargetChange={onInterventionTargetChange}
             onAdvance={onAdvance}
@@ -275,6 +344,7 @@ export function DateView({
             save={save}
             onTutorialUpdate={onTutorialUpdate}
             onFollowUp={onFollowUp}
+            onBack={onBack}
           />
         )}
 
@@ -298,6 +368,7 @@ export function DateView({
             onPrimary={judgeNoteStep.complete}
             dismissLabel="Skip tour"
             onDismiss={judgeNoteStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -393,6 +464,8 @@ function DateStandeeFrame({
   rightMember,
   leftMood,
   rightMood,
+  leftSpeakState,
+  rightSpeakState,
   reactions,
   onOpenMember,
 }: {
@@ -400,27 +473,35 @@ function DateStandeeFrame({
   rightMember: Member;
   leftMood: PortraitMood;
   rightMood: PortraitMood;
+  leftSpeakState: StandeeSpeakState;
+  rightSpeakState: StandeeSpeakState;
   reactions: ReactionSignal[];
   onOpenMember: (member: Member) => void;
 }) {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 hidden overflow-hidden xl:block">
-      <DaterStandee
-        member={leftMember}
-        placement="bottom-left"
-        mood={leftMood}
-        reactions={reactions.filter((reaction) => reaction.side === "left")}
-        onClick={() => onOpenMember(leftMember)}
-        className="absolute bottom-0 left-0 h-[92vh] w-72 2xl:w-96"
-      />
-      <DaterStandee
-        member={rightMember}
-        placement="bottom-right"
-        mood={rightMood}
-        reactions={reactions.filter((reaction) => reaction.side === "right")}
-        onClick={() => onOpenMember(rightMember)}
-        className="absolute bottom-0 right-0 h-[92vh] w-72 2xl:w-96"
-      />
+      <div className="date-portrait-parallax absolute bottom-0 left-0 h-[92vh] w-72 will-change-transform 2xl:w-96">
+        <DaterStandee
+          member={leftMember}
+          placement="bottom-left"
+          mood={leftMood}
+          speakState={leftSpeakState}
+          reactions={reactions.filter((reaction) => reaction.side === "left")}
+          onClick={() => onOpenMember(leftMember)}
+          className="size-full"
+        />
+      </div>
+      <div className="date-portrait-parallax absolute bottom-0 right-0 h-[92vh] w-72 will-change-transform 2xl:w-96">
+        <DaterStandee
+          member={rightMember}
+          placement="bottom-right"
+          mood={rightMood}
+          speakState={rightSpeakState}
+          reactions={reactions.filter((reaction) => reaction.side === "right")}
+          onClick={() => onOpenMember(rightMember)}
+          className="size-full"
+        />
+      </div>
     </div>
   );
 }

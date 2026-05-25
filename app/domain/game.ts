@@ -8,6 +8,8 @@ export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:e4b";
 export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
+export const DEFAULT_DATE_MESSAGE_LIMIT = 12;
+export const LEGACY_DEFAULT_DATE_MESSAGE_LIMIT = 24;
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
 const CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL = "google/gemini-3.1-flash-lite";
@@ -742,7 +744,7 @@ export const dateSessionSchema = z.object({
   scenarioId: scenarioIdSchema,
   focusMemberId: memberIdSchema.optional(),
   focusRequestId: z.string().min(1).optional(),
-  turnLimit: z.number().int().min(2).default(24),
+  turnLimit: z.number().int().min(2).default(DEFAULT_DATE_MESSAGE_LIMIT),
   currentTurn: z.number().int().min(0),
   dateHealth: scoreSchema,
   status: dateSessionStatusSchema,
@@ -998,7 +1000,7 @@ export const gameConfigSchema = z.preprocess(
     ollamaBaseURL: z.string().min(1).default(DEFAULT_OLLAMA_BASE_URL),
     gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
     aiSetupComplete: z.boolean().default(false),
-    defaultDateMessageLimit: z.number().int().min(2).default(24),
+    defaultDateMessageLimit: z.number().int().min(2).default(DEFAULT_DATE_MESSAGE_LIMIT),
     shiftDateSlots: z.number().int().min(1).default(1),
   }),
 );

@@ -68,7 +68,7 @@ export function StatusGauges({
 
 function GaugeLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="block font-mono text-micro font-semibold uppercase leading-none tracking-[0.22em] text-aura-faint">
+    <span className="block font-mono text-micro font-semibold uppercase leading-none tracking-[0.22em] text-aura-muted">
       {children}
     </span>
   );
@@ -240,11 +240,12 @@ function ScenesGauge({
           const dropped = droppedSet.has(eventId);
           const interactive = enabled && !dropped && event !== undefined;
           const title = event?.title ?? "Scene";
+          const tactic = event === undefined ? "Scene" : sceneTacticalLabel(event);
           const ariaLabel = dropped
-            ? `${title} dropped.`
+            ? `${tactic} scene ${title} dropped.`
             : interactive
-              ? `Preview scene: ${title}.`
-              : `${title}. Pause and stop streaming to drop.`;
+              ? `Preview ${tactic} scene: ${title}.`
+              : `${tactic} scene ${title}. Pause and stop streaming to drop.`;
           return (
             <button
               key={eventId}
@@ -256,7 +257,7 @@ function ScenesGauge({
                 onTriggerEvent(eventId);
               }}
               aria-label={ariaLabel}
-              title={title}
+              title={`${tactic}: ${title}`}
               className={`grid size-5 cursor-pointer place-items-center rounded transition disabled:cursor-not-allowed ${
                 dropped
                   ? "text-aura-emerald/80"
@@ -287,4 +288,30 @@ function ScenesGauge({
       </span>
     </GaugeColumn>
   );
+}
+
+export function sceneTacticalLabel(event: ScenarioEvent): string {
+  const text = [event.title, event.event, event.characterVisibleText, event.directorInstruction]
+    .join(" ")
+    .toLowerCase();
+
+  if (/\b(private|privacy|quiet|booth|alone|corner)\b/u.test(text)) {
+    return "Privacy";
+  }
+  if (/\b(repair|soften|apolog|recover|steady|help)\b/u.test(text)) {
+    return "Recover";
+  }
+  if (/\b(deadline|closing|clock|time|late|interrupt)\b/u.test(text)) {
+    return "Pressure";
+  }
+  if (/\b(public|crowd|recognize|photo|audience|watched)\b/u.test(text)) {
+    return "Exposure";
+  }
+  if (/\b(choice|choose|decide|offer|option)\b/u.test(text)) {
+    return "Choice";
+  }
+
+  if (event.kind === "reveal") return "Surface";
+  if (event.kind === "provocation") return "Test";
+  return "Settle";
 }

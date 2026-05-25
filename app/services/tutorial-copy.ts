@@ -69,8 +69,8 @@ export const TUTORIAL_COPY = {
     primaryLabel: "Got it",
   },
   "lazy.cut-short": {
-    title: "Cut short, file the read",
-    body: "Cupid has seen enough to score this one. Cut short ends the date, files one final read, and sends both members to cooldown. Use it when the room is going nowhere fast.",
+    title: "File the date",
+    body: "Cupid has seen enough to score this one. Filing ends the date, adds one final read, and sends both members to cooldown. Use it when the room has already told you what it is.",
     primaryLabel: "Got it",
   },
   "lazy.datebook.locked": {

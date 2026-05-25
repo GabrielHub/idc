@@ -80,6 +80,7 @@ export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
   1: 11,
   2: 10.6,
   3: 4,
+  4: 22,
 };
 
 /**

@@ -308,7 +308,7 @@ export function DeckCoverageBlock({
             >
               <span className={tokens.body}>{member?.firstName ?? entry.focusMemberId}</span>
               <span className={`font-mono text-micro uppercase tracking-[0.18em] ${statusTone}`}>
-                {entry.status} · {entry.label}
+                {entry.label}
               </span>
             </li>
           );

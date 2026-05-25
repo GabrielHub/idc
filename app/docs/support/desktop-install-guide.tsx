@@ -37,7 +37,7 @@ export const sections: DocSectionEntry[] = [
         items={[
           "A standalone desktop window. No browser tab, no Node server.",
           "File saves stored under your user app data directory.",
-          "Runtime AI through your local Ollama or a Vercel AI Gateway key you enter in app.",
+          "Runtime AI through the On this computer route with local Ollama or the Cloud route with a Vercel AI Gateway key you enter in app.",
         ]}
       />
     ),
@@ -47,11 +47,9 @@ export const sections: DocSectionEntry[] = [
     title: "Pick a provider",
     body: (
       <>
-        <P>You need one. Cupid will not book a date until the AI desk reads ready.</P>
-        <DocSubsection id="provider-ollama" title="Option A: Ollama (local, private)">
-          <P>
-            The local route. Prompts, character data, and date transcripts stay on your machine.
-          </P>
+        <P>Pick where dates run. Cupid checks the connection before the first date.</P>
+        <DocSubsection id="provider-ollama" title="Option A: On this computer">
+          <P>Free and private. Date prompts and transcripts stay on this machine.</P>
           <DocSteps
             items={[
               <span key="install">
@@ -86,7 +84,7 @@ export const sections: DocSectionEntry[] = [
             ]}
           />
         </DocSubsection>
-        <DocSubsection id="provider-gateway" title="Option B: Vercel AI Gateway (cloud)">
+        <DocSubsection id="provider-gateway" title="Option B: Cloud">
           <P>
             The cloud route. Date prompts, character context, and transcripts are sent through the
             native Vercel AI Gateway endpoint and forwarded to the model provider you choose. Use
@@ -96,16 +94,24 @@ export const sections: DocSectionEntry[] = [
             items={[
               "Get a Gateway key from your Vercel project settings.",
               <span key="paste">
-                Open AI setup inside the app, switch the desk to Cloud, and paste the key into the
-                api key field.
+                Open AI setup inside the app, choose Cloud, and paste the key into the api key
+                field.
               </span>,
               <span key="model">
                 The default chat model is <DocCode>deepseek/deepseek-v4-flash</DocCode> with{" "}
                 <DocCode>high</DocCode> reasoning. The Cloud selector also exposes{" "}
+                <DocCode>deepseek/deepseek-v4-pro</DocCode>,{" "}
                 <DocCode>google/gemini-3.1-flash-lite</DocCode>,{" "}
                 <DocCode>anthropic/claude-haiku-4.5</DocCode>,{" "}
                 <DocCode>minimax/minimax-m2.7</DocCode>, <DocCode>alibaba/qwen3.5-flash</DocCode>,{" "}
                 <DocCode>zai/glm-4.7-flash</DocCode>, and <DocCode>openai/gpt-5.4-nano</DocCode>.
+              </span>,
+              <span key="save">
+                Choose <Strong>Save and connect</Strong> to save the setup and run the readiness
+                check. If a key is already saved, use <Strong>Check saved key</Strong> to verify it
+                without replacing it, or paste a replacement and use{" "}
+                <Strong>Check pasted key</Strong>. Changed settings stay pending until Cupid saves
+                and verifies the connection.
               </span>,
               <span key="storage">
                 The key is stored in the OS credential store on this device, outside save files and
@@ -116,9 +122,10 @@ export const sections: DocSectionEntry[] = [
               </span>,
               <span key="reason">
                 Gateway reasoning is locked per model so date behavior stays comparable. DeepSeek V4
-                Flash uses <DocCode>high</DocCode>; Gemini 3.1 Flash Lite uses{" "}
-                <DocCode>medium</DocCode>; GPT 5.4 Nano uses <DocCode>none</DocCode>; models without
-                a stable Gateway reasoning control use <DocCode>off</DocCode>.
+                Flash uses <DocCode>high</DocCode>; DeepSeek V4 Pro uses <DocCode>xhigh</DocCode>;
+                Gemini 3.1 Flash Lite uses <DocCode>medium</DocCode>; GPT 5.4 Nano uses{" "}
+                <DocCode>none</DocCode>; models without a stable Gateway reasoning control use{" "}
+                <DocCode>off</DocCode>.
               </span>,
             ]}
           />
@@ -126,8 +133,8 @@ export const sections: DocSectionEntry[] = [
       </>
     ),
     subsections: [
-      { id: "provider-ollama", title: "Option A: Ollama (local, private)" },
-      { id: "provider-gateway", title: "Option B: Vercel AI Gateway (cloud)" },
+      { id: "provider-ollama", title: "Option A: On this computer" },
+      { id: "provider-gateway", title: "Option B: Cloud" },
     ],
   },
   {
@@ -191,7 +198,7 @@ export const sections: DocSectionEntry[] = [
           "Punch in. Cupid issues your badge and seeds the roster.",
           "Open AI setup from the splash hint or the top shell button.",
           <span key="save">
-            Pick a provider, fill the fields, and <Strong>Save and verify</Strong>. Wait for the
+            Pick a provider, fill the fields, and <Strong>Save and connect</Strong>. Wait for the
             readiness check.
           </span>,
           "Once the desk reads ready, pick four focus cases, then book a date from the Live Date screen.",

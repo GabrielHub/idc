@@ -24,6 +24,8 @@ export type ReactionSignal = {
   intensity: ReactionIntensity;
 };
 
+export type StandeeSpeakState = "speaking" | "listening" | "idle";
+
 export const REACTION_KINDS: readonly ReactionKind[] = [
   "spark",
   "love",
@@ -176,11 +178,48 @@ const SWARM_COUNT: Record<ReactionIntensity, number> = {
   3: 7,
 };
 
+const SPEAK_STATE_TRANSITION = { duration: 0.52, ease: EASE_OUT_QUART } as const;
+
+function resolveSpeakAnimation(
+  speakState: StandeeSpeakState,
+  placement: ReactionPlacement,
+): {
+  scale: number;
+  x: number;
+  rotateY: number;
+  filter: string;
+} {
+  const isLeft = placement === "bottom-left";
+  if (speakState === "speaking") {
+    return {
+      scale: 1.028,
+      x: isLeft ? 6 : -6,
+      rotateY: isLeft ? -1.6 : 1.6,
+      filter: "saturate(1.05) brightness(1.02)",
+    };
+  }
+  if (speakState === "listening") {
+    return {
+      scale: 0.984,
+      x: 0,
+      rotateY: 0,
+      filter: "saturate(0.85) brightness(0.94)",
+    };
+  }
+  return {
+    scale: 1,
+    x: 0,
+    rotateY: 0,
+    filter: "saturate(1) brightness(1)",
+  };
+}
+
 export function DaterStandee({
   member,
   placement,
   reactions,
   mood = "neutral",
+  speakState = "idle",
   className = "",
   onClick,
 }: {
@@ -188,6 +227,7 @@ export function DaterStandee({
   placement: ReactionPlacement;
   reactions: ReactionSignal[];
   mood?: PortraitMood;
+  speakState?: StandeeSpeakState;
   className?: string;
   onClick?: () => void;
 }) {
@@ -219,12 +259,18 @@ export function DaterStandee({
   );
 
   const portraitContainerClass = `absolute inset-x-0 bottom-0 aspect-[887/1774] origin-bottom ${heightScale.className} transition-transform duration-[420ms] ease-[cubic-bezier(0.2,0.8,0.2,1)]`;
+  const speakAnimation = resolveSpeakAnimation(speakState, placement);
 
   return (
-    <div className={className}>
+    <div className={`dater-standee-perspective ${className}`}>
       <span aria-hidden className={baseGlow} />
       <MoodAmbientGlow mood={mood} />
-      <div className={`relative size-full ${shadowClass}`}>
+      <SpeakingRimGlow speakState={speakState} placement={placement} />
+      <motion.div
+        className={`dater-standee-motion-root relative size-full ${shadowClass}`}
+        animate={speakAnimation}
+        transition={SPEAK_STATE_TRANSITION}
+      >
         {onClick === undefined ? (
           <div className={portraitContainerClass}>{portraitInner}</div>
         ) : (
@@ -240,8 +286,35 @@ export function DaterStandee({
           </button>
         )}
         <ReactionStream reactions={reactions} placement={placement} />
-      </div>
+      </motion.div>
     </div>
+  );
+}
+
+function SpeakingRimGlow({
+  speakState,
+  placement,
+}: {
+  speakState: StandeeSpeakState;
+  placement: ReactionPlacement;
+}) {
+  const isLeft = placement === "bottom-left";
+  const toneClass = isLeft ? "dater-speaking-rim-left" : "dater-speaking-rim-right";
+
+  return (
+    <AnimatePresence mode="sync">
+      {speakState === "speaking" ? (
+        <motion.span
+          key="rim"
+          aria-hidden
+          className={`pointer-events-none absolute -inset-x-16 -inset-y-24 -z-10 ${toneClass}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.55, ease: EASE_OUT_QUART }}
+        />
+      ) : null}
+    </AnimatePresence>
   );
 }
 

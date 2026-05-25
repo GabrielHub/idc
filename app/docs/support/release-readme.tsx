@@ -69,8 +69,8 @@ export const sections: DocSectionEntry[] = [
                 Click <Strong>Clock in</Strong>.
               </span>,
               <span key="ai">
-                Open <Strong>AI setup</Strong> when prompted and choose either local Ollama or Cloud
-                Gateway.
+                Open <Strong>AI setup</Strong> when prompted and choose either On this computer or
+                Cloud.
               </span>,
             ]}
           />
@@ -90,8 +90,8 @@ export const sections: DocSectionEntry[] = [
                 Click <Strong>Clock in</Strong>.
               </span>,
               <span key="ai">
-                Open <Strong>AI setup</Strong> when prompted and choose either local Ollama or Cloud
-                Gateway.
+                Open <Strong>AI setup</Strong> when prompted and choose either On this computer or
+                Cloud.
               </span>,
             ]}
           />
@@ -108,19 +108,25 @@ export const sections: DocSectionEntry[] = [
     title: "AI setup",
     body: (
       <>
-        <P>IDC needs one AI provider before you can book dates.</P>
+        <P>Pick where dates run. Cupid checks the connection before the first date.</P>
         <DocList
           items={[
             <span key="local">
-              <Strong>Local:</Strong> install Ollama, keep it running, and ask the team which model
-              to pull for this build.
+              <Strong>On this computer:</Strong> install Ollama, keep it running, and pull a chat
+              model plus <DocCode>embeddinggemma</DocCode>. Date prompts and transcripts stay on
+              this machine.
             </span>,
             <span key="cloud">
               <Strong>Cloud:</Strong> use a Vercel AI Gateway key from the team or your own Vercel
-              project.
+              project. Date prompts and transcripts leave the machine through Vercel AI Gateway to
+              the chosen model.
             </span>,
           ]}
         />
+        <P>
+          Choose <Strong>Save and connect</Strong> after filling the setup. For Cloud, a saved key
+          can be checked later without pasting it again.
+        </P>
         <P>The app does not include a no-AI date mode.</P>
       </>
     ),
@@ -156,7 +162,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             "A screenshot of the error.",
             "What you clicked right before it happened.",
-            "Your provider choice: Ollama or Cloud Gateway.",
+            "Your provider choice: On this computer or Cloud.",
           ]}
         />
         <P>

@@ -19,6 +19,18 @@ type ChatStreamAnimation = {
   transition: { duration: number; ease: typeof EASE_OUT_QUART; delay: number };
 };
 
+export type JudgeDecisionActions = {
+  visible: boolean;
+  canWhisper: boolean;
+  canDropScene: boolean;
+  canFileDate: boolean;
+  canAdvance: boolean;
+  onWhisper: () => void;
+  onDropScene: () => void;
+  onFileDate: () => void;
+  onAdvance: () => void;
+};
+
 export function splitMemberMessageBubbles(text: string): string[] {
   const normalized = text.replace(/\r\n?/g, "\n").trim();
 
@@ -39,6 +51,7 @@ export function ChatStream({
   pendingDateAction,
   isJudgePending,
   playbackUiState,
+  judgeDecisionActions,
 }: {
   items: TranscriptItem[];
   session: DateSession;
@@ -46,6 +59,7 @@ export function ChatStream({
   pendingDateAction: PendingDateAction | null;
   isJudgePending: boolean;
   playbackUiState: DatePlaybackUiState;
+  judgeDecisionActions?: JudgeDecisionActions;
 }) {
   const listRef = useRef<HTMLOListElement | null>(null);
   const tailRef = useRef<HTMLDivElement | null>(null);
@@ -122,6 +136,13 @@ export function ChatStream({
               previous={previous}
               index={index}
               leftMemberId={leftMemberId}
+              judgeDecisionActions={
+                item.tone === "judge" &&
+                item.id === `turn-judge-${session.judgeSnapshots.at(-1)?.exchangeIndex}` &&
+                judgeDecisionActions?.visible === true
+                  ? judgeDecisionActions
+                  : undefined
+              }
             />
           );
         })}
@@ -180,11 +201,13 @@ function ChatStreamItem({
   previous,
   index,
   leftMemberId,
+  judgeDecisionActions,
 }: {
   item: TranscriptItem;
   previous: TranscriptItem | undefined;
   index: number;
   leftMemberId: string | undefined;
+  judgeDecisionActions?: JudgeDecisionActions;
 }) {
   const animation: ChatStreamAnimation = {
     initial: { opacity: 0, y: 10 },
@@ -217,7 +240,7 @@ function ChatStreamItem({
   }
 
   if (item.tone === "judge") {
-    return <JudgeNote item={item} animation={animation} />;
+    return <JudgeNote item={item} animation={animation} decisionActions={judgeDecisionActions} />;
   }
 
   return <SystemNote item={item} animation={animation} />;
@@ -385,7 +408,15 @@ function CupidPin({ item, animation }: { item: TranscriptItem; animation: ChatSt
   );
 }
 
-function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatStreamAnimation }) {
+function JudgeNote({
+  item,
+  animation,
+  decisionActions,
+}: {
+  item: TranscriptItem;
+  animation: ChatStreamAnimation;
+  decisionActions?: JudgeDecisionActions;
+}) {
   const reveals = item.reveals ?? [];
   const hasReveals = reveals.length > 0;
 
@@ -419,8 +450,71 @@ function JudgeNote({ item, animation }: { item: TranscriptItem; animation: ChatS
             ))}
           </ul>
         ) : null}
+
+        {decisionActions === undefined ? null : (
+          <JudgeDecisionRow decisionActions={decisionActions} />
+        )}
       </div>
     </motion.li>
+  );
+}
+
+function JudgeDecisionRow({ decisionActions }: { decisionActions: JudgeDecisionActions }) {
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-aura-hairline pt-3">
+      <span className="font-mono text-label font-semibold uppercase tracking-[0.2em] text-aura-faint">
+        next
+      </span>
+      <JudgeActionButton
+        label="Whisper"
+        enabled={decisionActions.canWhisper}
+        onClick={decisionActions.onWhisper}
+      />
+      <JudgeActionButton
+        label="Drop scene"
+        enabled={decisionActions.canDropScene}
+        onClick={decisionActions.onDropScene}
+      />
+      <JudgeActionButton
+        label="File date"
+        enabled={decisionActions.canFileDate}
+        onClick={decisionActions.onFileDate}
+      />
+      <JudgeActionButton
+        label="Advance"
+        enabled={decisionActions.canAdvance}
+        onClick={decisionActions.onAdvance}
+        primary
+      />
+    </div>
+  );
+}
+
+function JudgeActionButton({
+  label,
+  enabled,
+  primary = false,
+  onClick,
+}: {
+  label: string;
+  enabled: boolean;
+  primary?: boolean;
+  onClick: () => void;
+}) {
+  const tone = primary
+    ? "bg-aura-ink text-white enabled:hover:bg-aura-rose"
+    : "border border-aura-hairline bg-white/60 text-aura-ink enabled:hover:border-aura-rose/40 enabled:hover:bg-white";
+
+  return (
+    <button
+      type="button"
+      data-sfx={enabled ? "click" : undefined}
+      disabled={!enabled}
+      onClick={onClick}
+      className={`inline-flex min-h-9 cursor-pointer items-center rounded-pill px-3 font-mono text-label font-semibold uppercase tracking-[0.16em] transition disabled:cursor-not-allowed disabled:opacity-40 ${tone}`}
+    >
+      {label}
+    </button>
   );
 }
 

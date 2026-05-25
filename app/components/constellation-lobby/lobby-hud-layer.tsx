@@ -17,6 +17,7 @@ export function LobbyHudLayer({
   chromeSlot,
   viewMode,
   currentLayer,
+  flythroughLayers,
   layerNavigationMode,
   refs,
   focus,
@@ -59,6 +60,7 @@ export function LobbyHudLayer({
   chromeSlot?: ReactNode;
   viewMode: ViewMode;
   currentLayer: FlythroughLayer;
+  flythroughLayers?: readonly FlythroughLayer[];
   layerNavigationMode: LayerNavigationMode;
   refs: Pick<
     PlanningTutorialRefs,
@@ -118,19 +120,18 @@ export function LobbyHudLayer({
           <div className="pointer-events-auto flex items-center gap-2">{chromeSlot}</div>
         </div>
       )}
-      {viewMode === "tonight" ? (
-        <LayerIndicator
-          currentLayer={currentLayer}
-          onLayerSelect={onLayerSelect}
-          navigationMode={layerNavigationMode}
-          containerRef={refs.layerIndicatorRef}
-          layerRefs={{
-            0: refs.layerFocusRef,
-            1: refs.layerRosterRef,
-            3: refs.layerCathedralRef,
-          }}
-        />
-      ) : null}
+      <LayerIndicator
+        currentLayer={currentLayer}
+        onLayerSelect={onLayerSelect}
+        navigationMode={layerNavigationMode}
+        layers={flythroughLayers}
+        containerRef={refs.layerIndicatorRef}
+        layerRefs={{
+          0: refs.layerFocusRef,
+          1: refs.layerRosterRef,
+          3: refs.layerCathedralRef,
+        }}
+      />
       <SideRail
         focus={focus}
         partner={partner}
@@ -170,7 +171,7 @@ export function LobbyHudLayer({
         viewMode={viewMode}
         archiveEdgeCount={archiveEdgeCount}
         fileShiftBlockedReason={fileShiftBlockedReason}
-        showRecords={hasFiledShift}
+        showRecords={hasFiledShift || archiveEdgeCount > 0}
         onCompleteShift={onCompleteShift}
         onOpenNotes={onOpenNotes}
         onOpenShiftArchive={onOpenShiftArchive}
