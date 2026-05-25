@@ -109,7 +109,7 @@ A Vite plugin fails the build if portrait source files land under `public/assets
 
 ## Releases
 
-`.github/workflows/release-desktop.yml` is the normal desktop release path. It runs from pushed `v*` tags or manual dispatch, validates release readiness with `vp run release:check`, builds the Windows installer, signs updater artifacts from GitHub secrets, creates the versioned prerelease, uploads the player README and package assets, and refreshes the `desktop-alpha` updater channel.
+`.github/workflows/release-desktop.yml` is the normal desktop release path. It runs from pushed `v*` tags or manual dispatch, validates release readiness with `vp run release:check`, builds the Windows installer on a Windows runner, builds the macOS universal DMG and updater archive on a macOS runner, signs updater artifacts from GitHub secrets, creates the versioned prerelease, uploads the player README and package assets, and refreshes the `desktop-alpha` updater channel.
 
 `vp run tauri:build` remains the local release gate for desktop packaging because it includes `vp check`, type generation, TypeScript, tests, desktop bundle verification, and Tauri packaging. Local release builds need `TAURI_SIGNING_PRIVATE_KEY` set to the updater private key path or contents so the updater artifacts are signed.
 
@@ -121,7 +121,7 @@ Desktop updates use Tauri's signed static JSON updater pattern. The app checks:
 https://github.com/GabrielHub/idc/releases/download/desktop-alpha/latest.json
 ```
 
-Each versioned GitHub prerelease owns the installer, checksum, `.sig`, and a copy of `latest.json`. The fixed `desktop-alpha` GitHub release owns the active updater channel by replacing only `latest.json`.
+Each versioned GitHub prerelease owns the Windows installer, macOS DMG, updater archives, checksums, `.sig` files, and a copy of `latest.json`. The fixed `desktop-alpha` GitHub release owns the active updater channel by replacing only `latest.json`, with platform entries for Windows, Apple Silicon Macs, and Intel Macs.
 
 Installed desktop builds check for updates once after launch and expose a manual Settings, Updates check. If a signed update is available, the settings button shows an Update badge. Installation always waits for the player to choose Install.
 

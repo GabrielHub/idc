@@ -9,7 +9,6 @@ import {
   DocSubsection,
   DocTable,
   P,
-  Strong,
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
@@ -39,12 +38,13 @@ export const sections: DocSectionEntry[] = [
         <P>Installed desktop builds check a fixed public GitHub release asset:</P>
         <DocCodeBlock>{`https://github.com/GabrielHub/idc/releases/download/desktop-alpha/latest.json`}</DocCodeBlock>
         <P>
-          Each versioned prerelease, for example <DocCode>v0.1.5</DocCode>, owns the installable
-          artifacts: the NSIS installer, player README, <DocCode>.sha256</DocCode>,{" "}
-          <DocCode>.sig</DocCode>, and a copy of <DocCode>latest.json</DocCode>. The{" "}
-          <DocCode>desktop-alpha</DocCode> release is the update channel. It should only contain the
-          current <DocCode>latest.json</DocCode>, which points to the installer on the versioned
-          prerelease.
+          Each versioned prerelease, for example <DocCode>v1.0.6</DocCode>, owns the installable
+          artifacts: the Windows NSIS installer, macOS universal DMG, macOS updater archive, player
+          README, <DocCode>.sha256</DocCode>, <DocCode>.sig</DocCode>, and a copy of{" "}
+          <DocCode>latest.json</DocCode>. The <DocCode>desktop-alpha</DocCode> release is the update
+          channel. It should only contain the current <DocCode>latest.json</DocCode>, with platform
+          entries for Windows, Apple Silicon Macs, and Intel Macs that point back to assets on the
+          versioned prerelease.
         </P>
         <P>
           The app checks for updates once after launch and exposes a manual Settings, Updates check.
@@ -68,15 +68,16 @@ export const sections: DocSectionEntry[] = [
         <P>
           A desktop release exists only after both public GitHub surfaces are correct: the versioned
           prerelease has the installable assets, and <DocCode>desktop-alpha</DocCode> has the
-          current <DocCode>latest.json</DocCode> that points at that versioned installer. A passing
-          preflight, a pushed tag, or a GitHub run that is waiting on the protected environment is a
-          release attempt, not a shareable release.
+          current <DocCode>latest.json</DocCode> that points at the versioned platform artifacts. A
+          passing preflight, a pushed tag, or a GitHub run that is waiting on the protected
+          environment is a release attempt, not a shareable release.
         </P>
         <DocList
           items={[
             <span key="versioned">
-              Versioned prerelease: <DocCode>vX.Y.Z</DocCode> owns the installer, player README,
-              checksum, signature, updater manifest copy, and GitHub release notes.
+              Versioned prerelease: <DocCode>vX.Y.Z</DocCode> owns the Windows installer, macOS DMG,
+              macOS updater archive, player README, checksums, signatures, updater manifest copy,
+              and GitHub release notes.
             </span>,
             <span key="channel">
               Update channel: <DocCode>desktop-alpha</DocCode> owns the current
@@ -97,7 +98,7 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          The last three failed release runs exposed separate gaps. Keep these linked here so future
+          Recorded failed release runs exposed separate gaps. Keep these linked here so future
           release debugging starts from evidence instead of folklore with a clipboard.
         </P>
         <DocTable
@@ -143,7 +144,24 @@ export const sections: DocSectionEntry[] = [
               </span>,
               <span key="guard">
                 The workflow doc now treats environment approval and final asset verification as the
-                release gate. A tag is not shareable until the Windows job finishes.
+                release gate. A tag is not shareable until every platform publish job finishes and
+                verifies its assets.
+              </span>,
+            ],
+            [
+              <DocLink key="run" to="https://github.com/GabrielHub/idc/actions/runs/26382428309">
+                v1.0.6 run 26382428309
+              </DocLink>,
+              <span key="failure">
+                The macOS universal app and DMG built successfully, then{" "}
+                <DocCode>Prepare macOS release assets</DocCode> failed because the workflow used{" "}
+                <DocCode>--no-sign</DocCode>. That skipped Tauri updater signing, leaving no{" "}
+                <DocCode>IDC.app.tar.gz.sig</DocCode> to merge into <DocCode>latest.json</DocCode>.
+              </span>,
+              <span key="guard">
+                The macOS job now uses ad-hoc app signing with{" "}
+                <DocCode>bundle.macOS.signingIdentity = "-"</DocCode>, so the app bundle does not
+                require an Apple certificate but the updater archive is still signed.
               </span>,
             ],
           ]}
@@ -159,10 +177,11 @@ export const sections: DocSectionEntry[] = [
         <P>
           The default release path is <DocCode>.github/workflows/release-desktop.yml</DocCode>. It
           runs on pushed <DocCode>v*</DocCode> tags or by manual dispatch with a tag. The workflow
-          builds the Windows desktop package, signs updater artifacts using GitHub environment
-          secrets, creates or updates the versioned prerelease, uploads the player README, checksum,
-          signature, and <DocCode>latest.json</DocCode>, then updates the fixed{" "}
-          <DocCode>desktop-alpha</DocCode> updater channel.
+          builds the Windows desktop package on a Windows runner, publishes and verifies those
+          assets, then builds the macOS universal package on a macOS runner. The macOS job uses
+          ad-hoc app signing and the shared Tauri updater key, uploads the DMG, updater archive,
+          checksum, signature, and merged <DocCode>latest.json</DocCode>, then updates the fixed{" "}
+          <DocCode>desktop-alpha</DocCode> updater channel with Windows and Darwin platform entries.
         </P>
         <P>
           The <DocCode>desktop-release</DocCode> environment and updater signing secret are already
@@ -174,11 +193,13 @@ export const sections: DocSectionEntry[] = [
           the signing environment. Before those heavier checks, it runs{" "}
           <DocCode>node scripts/verify-release-readiness.mjs</DocCode> to validate release identity,
           catalog coverage, rendered GitHub notes, rendered updater notes, and temporary updater
-          manifest shape without secrets. The publish job renders public release notes from{" "}
+          manifest shape without secrets. The Windows publish job renders public release notes from{" "}
           <DocCode>app/fixtures/release-notes.json</DocCode>, adds the installer name, SHA256
           checksum, and player install notes, then uses the same catalog entry for the updater
-          manifest notes. For extra operator notes, use manual dispatch and fill the{" "}
-          <DocCode>release_notes</DocCode> input.
+          manifest notes. The macOS publish job downloads that manifest and adds{" "}
+          <DocCode>darwin-aarch64</DocCode> and <DocCode>darwin-x86_64</DocCode> entries that both
+          point at the universal updater archive. For extra operator notes, use manual dispatch and
+          fill the <DocCode>release_notes</DocCode> input.
         </P>
         <DocSubsection id="normal-release-flow" title="Normal release flow">
           <DocSteps
@@ -230,16 +251,20 @@ git push origin main`}</DocCodeBlock>
 git push origin "v\${version}"`}</DocCodeBlock>
               </span>,
               <span key="approve">
-                Open GitHub Actions. If the preflight job passes, approve the{" "}
+                Open GitHub Actions. If the preflight job passes, approve the first{" "}
                 <DocCode>desktop-release</DocCode> environment job and wait for{" "}
-                <DocCode>Build and publish Windows</DocCode> to finish. Until that job completes,
-                the tag is still an attempt and should not be shared.
+                <DocCode>Build and publish Windows</DocCode> to finish. Then approve the second{" "}
+                <DocCode>desktop-release</DocCode> environment job for{" "}
+                <DocCode>Build and publish macOS universal</DocCode>. Until both jobs complete, the
+                tag is still an attempt and should not be shared.
               </span>,
               <span key="verify">
                 Verify the versioned prerelease and the <DocCode>desktop-alpha</DocCode> release
-                exist. The workflow already checks the uploaded README, checksum, signature, and
-                updater manifest, but GitHub should show the assets before you share the release
-                link.
+                exist. The workflow already checks the uploaded README, Windows installer, macOS
+                DMG, updater archive, checksums, signatures, and updater manifest. GitHub should
+                show those assets, and <DocCode>desktop-alpha/latest.json</DocCode> should include{" "}
+                <DocCode>windows-x86_64</DocCode>, <DocCode>darwin-aarch64</DocCode>, and{" "}
+                <DocCode>darwin-x86_64</DocCode> before you share the release link.
               </span>,
             ]}
           />
@@ -283,6 +308,9 @@ git push origin "v\${version}"`}</DocCodeBlock>
       <>
         <DocCallout variant="warn">
           Use this only when GitHub Actions is unavailable or you need to debug packaging locally.
+          Manual release assembly is per platform: Windows artifacts come from a Windows machine,
+          and macOS artifacts come from a macOS machine. The automated GitHub workflow is the only
+          normal path that builds and publishes both platforms in one release run.
         </DocCallout>
         <DocSteps
           items={[
@@ -352,8 +380,11 @@ vp run updater:manifest`}</DocCodeBlock>
   --installer "IDC_$($version)_x64-setup.exe" \`
   --sha256 $hash \`
   --output "src-tauri\\target\\release\\bundle\\nsis\\release-notes-v$version.md"`}</DocCodeBlock>
-              The renderer adds the unsigned Windows build warning, AI provider requirement, SHA256
-              checksum, and <DocCode>release-readme.md</DocCode> attachment note.
+              The renderer adds the unsigned alpha warning, AI provider requirement, SHA256
+              checksum, and <DocCode>release-readme.md</DocCode> attachment note. If you are
+              assembling a manual cross-platform release, create the macOS DMG and updater archive
+              on macOS, sign the updater archive with the same Tauri updater key, and merge the
+              Darwin platform entries into <DocCode>latest.json</DocCode> before upload.
             </span>,
             <span key="tag">
               Commit, tag, and push.
@@ -393,10 +424,13 @@ if ($LASTEXITCODE -ne 0) {
               Verify the published release and updater channel.
               <DocCodeBlock language="powershell">{`gh release view "v\${version}" --repo GabrielHub/idc
 gh release view "desktop-alpha" --repo GabrielHub/idc`}</DocCodeBlock>
-              Confirm prerelease: true, the installer asset, the player README asset, the{" "}
-              <DocCode>.sha256</DocCode> asset, the <DocCode>.sig</DocCode> asset, and that{" "}
-              <DocCode>latest.json</DocCode> on <DocCode>desktop-alpha</DocCode> points at the new
-              versioned installer URL.
+              Confirm prerelease: true, the Windows installer asset, the macOS DMG if this was a
+              cross-platform manual release, the player README asset, the <DocCode>
+                .sha256
+              </DocCode>{" "}
+              assets, the <DocCode>.sig</DocCode> assets, and that <DocCode>latest.json</DocCode> on{" "}
+              <DocCode>desktop-alpha</DocCode> points at the new versioned Windows and macOS
+              artifact URLs.
             </span>,
           ]}
         />
@@ -410,9 +444,14 @@ gh release view "desktop-alpha" --repo GabrielHub/idc`}</DocCodeBlock>
       <>
         <P>On Windows, the shareable installer is written to:</P>
         <DocCodeBlock>{`src-tauri/target/release/bundle/nsis/IDC_<version>_x64-setup.exe`}</DocCodeBlock>
+        <P>On the GitHub macOS runner, the shareable DMG and updater archive are written to:</P>
+        <DocCodeBlock>{`src-tauri/target/universal-apple-darwin/release/bundle/dmg/IDC_<version>_universal.dmg
+src-tauri/target/universal-apple-darwin/release/bundle/macos/IDC.app.tar.gz`}</DocCodeBlock>
         <DocCallout variant="info">
-          macOS <Strong>.app</Strong> and <Strong>.dmg</Strong> artifacts must be built on macOS.
-          The Windows machine only produces the Windows installer.
+          The release workflow creates both platforms in one GitHub run, but native packaging still
+          happens on platform-specific runners: Windows produces the NSIS installer, and macOS
+          produces the universal DMG plus the signed updater archive. The macOS app is ad-hoc signed
+          for now, not Developer ID notarized.
         </DocCallout>
         <DocList
           items={[

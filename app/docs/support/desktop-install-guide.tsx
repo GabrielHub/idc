@@ -143,7 +143,7 @@ export const sections: DocSectionEntry[] = [
           <P>Windows PowerShell:</P>
           <DocCodeBlock language="powershell">{`Get-FileHash .\\IDC_<version>_x64-setup.exe -Algorithm SHA256`}</DocCodeBlock>
           <P>macOS terminal:</P>
-          <DocCodeBlock language="bash">{`shasum -a 256 IDC_<version>_x64.dmg`}</DocCodeBlock>
+          <DocCodeBlock language="bash">{`shasum -a 256 IDC_<version>_universal.dmg`}</DocCodeBlock>
           <P>
             Compare the printed value to the one in the release notes. If they differ, do not run
             the file. Ask the team for a fresh link.
@@ -164,7 +164,7 @@ export const sections: DocSectionEntry[] = [
         <DocSubsection id="install-macos" title="macOS">
           <DocSteps
             items={[
-              "Download the DMG or app bundle from the release link.",
+              "Download the universal DMG from the release link.",
               "Drag IDC.app into Applications.",
               <span key="first-run">
                 The first launch will be blocked because the build is unsigned. Right click the app,
@@ -261,7 +261,8 @@ export const sections: DocSectionEntry[] = [
         <P>
           Cupid checks for updates once after launch. If a signed GitHub release is available, the
           settings button shows an Update badge. Open Settings, Updates, then choose Install.
-          Windows shows a passive installer progress window, then the app relaunches.
+          Windows shows a passive installer progress window, then the app relaunches. macOS applies
+          the signed updater archive, then relaunches the app.
         </P>
         <P>
           You can also open Settings, Updates, then Check for update at any time. Cupid never
@@ -339,7 +340,7 @@ export const sections: DocSectionEntry[] = [
       <DocCallout variant="warn">
         <DocList
           items={[
-            "Unsigned builds. You will see SmartScreen and Gatekeeper warnings until the team ships signed releases.",
+            "Unsigned/ad-hoc signed builds. You will see SmartScreen and Gatekeeper warnings until the team ships fully signed and notarized releases.",
             "Custom Ollama or Gateway hostnames are not supported. The desktop HTTP scope is fixed to localhost Ollama and the default Vercel AI Gateway. Custom hosts need a build with an updated scope.",
             "Gateway keys are stored in the OS credential store, but a compromised renderer or compromised device account can still misuse the key while Cupid is running.",
             "The playground route is not present in desktop builds. It only exists in the browser dev shell.",

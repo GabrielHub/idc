@@ -39,8 +39,7 @@ export const sections: DocSectionEntry[] = [
             Windows: download <DocCode>IDC_&lt;version&gt;_x64-setup.exe</DocCode>.
           </span>,
           <span key="mac">
-            macOS: download the <DocCode>.dmg</DocCode> or <DocCode>.app</DocCode> build if one is
-            listed for this release.
+            macOS: download <DocCode>IDC_&lt;version&gt;_universal.dmg</DocCode>.
           </span>,
           <span key="extras">
             You do not need the source code, <DocCode>latest.json</DocCode>, <DocCode>.sig</DocCode>
@@ -80,7 +79,7 @@ export const sections: DocSectionEntry[] = [
           <DocSteps
             items={[
               <span key="dmg">
-                Open the downloaded <DocCode>.dmg</DocCode> or app bundle.
+                Open the downloaded <DocCode>IDC_&lt;version&gt;_universal.dmg</DocCode>.
               </span>,
               "Drag IDC into Applications if prompted.",
               <span key="gatekeeper">
@@ -141,7 +140,8 @@ export const sections: DocSectionEntry[] = [
           notes and a few recent versions. You can reopen it from Settings.
         </P>
         <DocCallout variant="warn">
-          If update install fails, download the newest installer from the release page and run it.
+          If update install fails, download the newest Windows installer or macOS DMG from the
+          release page and run it.
         </DocCallout>
       </>
     ),

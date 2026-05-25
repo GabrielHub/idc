@@ -5,7 +5,7 @@ IDC is a private alpha desktop game. The app is unsigned for now, so Windows or 
 ## What to download
 
 - Windows: download `IDC_<version>_x64-setup.exe`.
-- macOS: download the `.dmg` or `.app` build if one is listed for this release.
+- macOS: download `IDC_<version>_universal.dmg`.
 - You do not need the source code, `latest.json`, `.sig`, or `.sha256` files unless the team asks for them.
 
 ## Install
@@ -20,7 +20,7 @@ IDC is a private alpha desktop game. The app is unsigned for now, so Windows or 
 
 ### macOS
 
-1. Open the downloaded `.dmg` or app bundle.
+1. Open the downloaded `IDC_<version>_universal.dmg`.
 2. Drag IDC into Applications if prompted.
 3. On first launch, macOS may block the app because it is unsigned. Right click IDC, choose **Open**, then confirm.
 4. Click **Clock in**.
@@ -41,7 +41,7 @@ IDC checks for updates after launch. If an update appears in Settings, choose **
 
 After an update, IDC opens a **What's new** modal with the current patch notes and a few recent versions. You can reopen it from Settings.
 
-If update install fails, download the newest installer from the release page and run it.
+If update install fails, download the newest Windows installer or macOS DMG from the release page and run it.
 
 ## Getting help
 
