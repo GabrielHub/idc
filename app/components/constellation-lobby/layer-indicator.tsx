@@ -5,10 +5,10 @@ import { layerDisabledReason, type LayerNavigationMode } from "./layer-access";
 import { FLYTHROUGH_LAYERS, type FlythroughLayer } from "./types";
 
 const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
-  0: "Focused cases",
-  1: "Eligibles",
-  2: "Off tonight",
-  3: "Pick venue",
+  0: "Pick a lead",
+  1: "Pick a partner",
+  2: "See who's off",
+  3: "Pick a venue",
 };
 
 export function LayerIndicator({

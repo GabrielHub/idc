@@ -26,6 +26,7 @@ import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
+import { hasAnyFiledShift } from "../../services/shift-planning";
 import { pickHeaviestAxisLevel } from "./deck-composition";
 import { buildLobbyStars } from "./star-model";
 import { useArchiveMode } from "./use-archive-mode";
@@ -842,6 +843,7 @@ export function ConstellationLobby({
           archiveEdgeCount={archiveEdges.length}
           fileShiftBlockedReason={fileShiftBlockedReason}
           archiveSelectionActive={archiveSelection !== null}
+          hasFiledShift={hasAnyFiledShift(save)}
           onLayerSelect={handleLayerSelect}
           layerNavigationMode={layerNavigationMode}
           onClearFocus={activeBooking === null ? handleClearFocus : undefined}

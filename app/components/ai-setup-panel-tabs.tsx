@@ -128,13 +128,15 @@ export function OllamaSetupTab({
           {GPU_RECOMMENDATION_PROFILES.map((profile) => (
             <li
               key={profile.id}
-              className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-3 py-2 first:pt-1 last:pb-1"
+              className="grid grid-cols-[5.5rem_minmax(0,1fr)_auto] items-center gap-3 py-1.5 first:pt-1 last:pb-1"
             >
               <span className="font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
                 {profile.vram}
               </span>
-              <p className="min-w-0 text-label leading-snug text-aura-muted">{profile.examples}</p>
-              <div className="flex flex-wrap justify-end gap-1">
+              <p className="min-w-0 truncate text-label leading-snug text-aura-muted">
+                {profile.examples}
+              </p>
+              <div className="flex flex-nowrap justify-end gap-1">
                 {profile.modelIds.map((modelId) => (
                   <button
                     key={modelId}

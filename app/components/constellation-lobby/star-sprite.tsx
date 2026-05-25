@@ -7,8 +7,10 @@ import {
   haloColorForStar,
   intensityForRole,
   resolveStarRenderTarget,
+  resolveStarPresentation,
   sizeForStar3D,
   starWorldPosition,
+  type StarSlabActivity,
 } from "./math";
 import { FocusSelectionMarker } from "./focus-selection-marker";
 import { featherAvatarShader } from "./textures";
@@ -101,7 +103,7 @@ export function StarSprite({
   /**
    * Per-star multipliers driven by the currentLayer vs this star's slab.
    */
-  slabActivity?: { intensityMultiplier: number; scaleMultiplier: number };
+  slabActivity?: StarSlabActivity;
   /**
    * Layer picker override. When non-null, the star lerps to this position.
    */
@@ -136,6 +138,29 @@ export function StarSprite({
     () => intensityForRole(role, star.tier, state),
     [role, star.tier, state],
   );
+  const presentation = useMemo(
+    () =>
+      resolveStarPresentation({
+        tier: star.tier,
+        role,
+        clustered: clusterPosition !== null,
+        hovered,
+        slabActivity,
+        baseIntensity: intensity,
+        filteredOut,
+        avatarRadius: sizing.avatarRadius,
+      }),
+    [
+      clusterPosition,
+      filteredOut,
+      hovered,
+      intensity,
+      role,
+      sizing.avatarRadius,
+      slabActivity,
+      star.tier,
+    ],
+  );
   const haloSize = useMemo(() => {
     const reach =
       role === "focus" || role === "partner"
@@ -150,6 +175,7 @@ export function StarSprite({
 
   useFrame((s, delta) => {
     const t = s.clock.elapsedTime;
+    const inCluster = clusterPosition !== null;
 
     if (groupRef.current !== null) {
       const driftAmp = role === "focus" || role === "partner" ? 0.045 : 0.075;
@@ -165,7 +191,7 @@ export function StarSprite({
       });
       const targetX = target.x + driftX;
       const targetY = target.y + driftY;
-      const targetZ = target.z;
+      const targetZ = target.z + presentation.zLift;
 
       const moveLerp = reducedMotion ? 1 : 1 - Math.pow(0.0008, delta);
       const pos = groupRef.current.position;
@@ -174,26 +200,19 @@ export function StarSprite({
       pos.z = THREE.MathUtils.lerp(pos.z, targetZ, moveLerp);
 
       const scaleLerp = reducedMotion ? 1 : 1 - Math.pow(0.002, delta);
-      const slabScale = slabActivity?.scaleMultiplier ?? 1;
       const hoverBoost = hovered ? 1.25 : 1;
       scaleRef.current = THREE.MathUtils.lerp(
         scaleRef.current,
-        sizing.scale * slabScale * hoverBoost,
+        sizing.scale * presentation.slabScale * hoverBoost,
         scaleLerp,
       );
       groupRef.current.scale.setScalar(scaleRef.current);
     }
 
-    const slabIntensity = slabActivity?.intensityMultiplier ?? 1;
-    const inCluster = clusterPosition !== null;
-    const isProminent = inCluster || slabIntensity >= 0.9;
-
-    const keepFullAvatar = role === "focus" || role === "partner" || inCluster;
-    const targetAvatarScale = keepFullAvatar ? 1 : hovered ? 1.1 : 0.38;
     const avatarSubgroupLerp = reducedMotion ? 1 : 1 - Math.pow(0.0018, delta);
     avatarSubgroupScaleRef.current = THREE.MathUtils.lerp(
       avatarSubgroupScaleRef.current,
-      targetAvatarScale,
+      presentation.avatarScale,
       avatarSubgroupLerp,
     );
     if (avatarSubgroupRef.current !== null) {
@@ -201,13 +220,9 @@ export function StarSprite({
     }
 
     if (avatarMatRef.current !== null) {
-      const filterMultiplier = filteredOut ? 0.32 : 1;
-      const targetOpacity = isProminent
-        ? filterMultiplier
-        : intensity * filterMultiplier * slabIntensity;
       avatarMatRef.current.opacity = THREE.MathUtils.lerp(
         avatarMatRef.current.opacity,
-        targetOpacity,
+        presentation.avatarOpacity,
         Math.min(1, delta * 5),
       );
       const desat =
@@ -245,7 +260,7 @@ export function StarSprite({
       const auraGate = showAura ? 1 : 0.4;
       haloMatRef.current.opacity = THREE.MathUtils.lerp(
         haloMatRef.current.opacity,
-        haloBase * haloMix * auraGate * slabIntensity * hoverIgnite,
+        haloBase * haloMix * auraGate * presentation.slabIntensity * hoverIgnite,
         Math.min(1, delta * 5),
       );
 
@@ -266,7 +281,7 @@ export function StarSprite({
                       : 0.42;
         rimMatRef.current.opacity = THREE.MathUtils.lerp(
           rimMatRef.current.opacity,
-          rimBase * haloMix * auraGate * slabIntensity * hoverIgnite,
+          rimBase * haloMix * auraGate * presentation.slabIntensity * hoverIgnite,
           Math.min(1, delta * 5),
         );
       }
@@ -276,7 +291,7 @@ export function StarSprite({
       const flareBase = role === "eligible" ? 0.22 : 0;
       flareMatRef.current.opacity = THREE.MathUtils.lerp(
         flareMatRef.current.opacity,
-        flareBase * (0.85 + slow * 0.3) * slabIntensity,
+        flareBase * (0.85 + slow * 0.3) * presentation.slabIntensity,
         Math.min(1, delta * 5),
       );
     }
@@ -287,7 +302,10 @@ export function StarSprite({
 
     if (groupRef.current !== null) {
       const avatarOpacity = avatarMatRef.current?.opacity ?? 0;
-      const shouldRender = !cardOpen && avatarOpacity > 0.01;
+      const haloOpacity = haloMatRef.current?.opacity ?? 0;
+      // Halo alone keeps a dormant background dot visible — without this gate
+      // the whole sprite culls once the avatar fades out.
+      const shouldRender = !cardOpen && (avatarOpacity > 0.01 || haloOpacity > 0.01);
       if (groupRef.current.visible !== shouldRender) {
         groupRef.current.visible = shouldRender;
       }
@@ -352,7 +370,7 @@ export function StarSprite({
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
         >
-          <circleGeometry args={[sizing.avatarRadius, 24]} />
+          <circleGeometry args={[presentation.hitRadius, 24]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
 

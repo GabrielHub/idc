@@ -69,8 +69,8 @@ export function ShiftSkipConfirm({
 
             <div className="px-6 py-5">
               <p className="text-sm leading-relaxed text-white/75">
-                No dates were booked this shift. Filing now closes the shift as-is and advances the
-                clock — there is no way to come back and run a date for it.
+                This shift went empty. Filing closes it as-is and rolls the clock forward. No
+                reruns.
               </p>
             </div>
 

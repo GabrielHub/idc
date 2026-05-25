@@ -341,7 +341,8 @@ const FIRST_TIME_FLOW: FlowPhase[] = [
         id: "lazy.contextual-rail",
         surface:
           "Constellation lobby · ContextualPillRail (top-right cluster + top-center roster controls)",
-        trigger: "Lobby is open with at least one focus case picked.",
+        trigger:
+          "Lobby is in auto mode with at least one focus case picked, no active booking, and the player has filed at least one shift (so the Records pill is visible).",
         completesOn: "The Got it button.",
         target: "coach-only",
         placement: "left",

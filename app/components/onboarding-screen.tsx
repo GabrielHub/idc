@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from "react";
 
 import type { DateScenario, GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import { FOCUS_CASE_LIMIT } from "../services/focus-cases";
+import { createOnboardingDeckPrefillIds } from "../services/deck";
 import {
   applyMemberRosterFilters,
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
@@ -47,7 +48,7 @@ export function OnboardingScreen({
 }: OnboardingScreenProps) {
   const [phase, setPhase] = useState<OnboardingPhase>("focus");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [deckIds, setDeckIds] = useState<string[]>([]);
+  const [deckIds, setDeckIds] = useState<string[]>(() => createOnboardingDeckPrefillIds(scenarios));
   const [filterState, setFilterState] = useState<MemberRosterFilterState>(
     DEFAULT_MEMBER_ROSTER_FILTER_STATE,
   );

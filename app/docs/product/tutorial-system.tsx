@@ -12,6 +12,18 @@ import {
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
+import { TUTORIAL_COPY } from "../../services/tutorial-copy";
+
+const planningTutorialStepIds = [
+  "planning.layer-nav",
+  "planning.focus",
+  "planning.partner",
+  "planning.intent",
+  "planning.commit",
+  "planning.scenario",
+  "planning.begin",
+  "planning.file-shift",
+] as const;
 
 export const meta: DocMeta = {
   slug: "product/tutorial-system",
@@ -25,9 +37,10 @@ export const meta: DocMeta = {
 export const lede = (
   <>
     The tutorial is a surface-owned orientation layer for the first booked date. It teaches the
-    player to pick focus cases, draft the Date Book, commit a two-member booking, choose one room,
-    run the date, read Cupid's analysis, file a follow-up, and close the shift. It points at shipped
-    UI. It does not replace gameplay systems or carry hidden state.
+    player to hire focus cases, draft the starter Date Book, navigate the lobby layers, pick the
+    lead and partner, file an optional matchmaking intent, commit the pair, choose one room, run the
+    date, read Cupid's analysis, file a follow-up, and close the shift. It points at shipped UI. It
+    does not replace gameplay systems or carry hidden state.
   </>
 );
 
@@ -93,8 +106,10 @@ export const sections: DocSectionEntry[] = [
             ],
             [
               "Planning",
-              <DocCode key="ids">planning.focus / partner / commit / scenario / begin</DocCode>,
-              "Teach the two-member booking spine and the three-card hand after commit.",
+              <DocCode key="ids">
+                layer-nav / focus / partner / intent / commit / scenario / begin
+              </DocCode>,
+              "Teach the seven-step lobby path: layer navigation, focus lead, eligible partner, optional intent, pair commit, room pick, and Begin.",
             ],
             [
               "Live date",
@@ -114,6 +129,31 @@ export const sections: DocSectionEntry[] = [
               "One-time marks for roster swaps, Date Book locks, repair blocks, cooldowns, closures, and pair files.",
             ],
           ]}
+        />
+        <P>
+          The shipped lobby tutorial sequence is the planning ids below. The first seven progress
+          numbers (1 / 7 … 7 / 7) drive the player from layer navigation to Begin date; the eighth,{" "}
+          <DocCode>planning.file-shift</DocCode>, fires after the date as part of the wrap phase and
+          renders without a progress counter. Their numbers and text come from{" "}
+          <DocCode>TUTORIAL_COPY</DocCode>; keep this order aligned with{" "}
+          <DocCode>tutorialStepIdSchema</DocCode> and the planning renderer.
+        </P>
+        <DocTable
+          headers={["Order", "Step id", "Shipped copy contract"]}
+          rows={planningTutorialStepIds.map((id) => {
+            const copy = TUTORIAL_COPY[id];
+            const orderText =
+              copy.stepIndex !== undefined && copy.stepCount !== undefined
+                ? `${copy.stepIndex + 1} / ${copy.stepCount}`
+                : "wrap";
+            return [
+              orderText,
+              <DocCode key={id}>{id}</DocCode>,
+              <span key={`${id}-copy`}>
+                <Strong>{copy.title}</Strong> — {copy.body}
+              </span>,
+            ];
+          })}
         />
         <DocCallout variant="warn" title="Save merges matter">
           <P>

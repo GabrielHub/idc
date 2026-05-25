@@ -73,7 +73,7 @@ function buildLeadAskRow(save: GameSave, shift: ShiftState): ShiftBriefRowData {
   return {
     id: "lead-ask",
     label: "Lead ask",
-    value: `${leadMember.firstName}: ${trimBriefValue(leadRequest.text)}`,
+    value: trimBriefValue(`${leadMember.firstName}: ${leadRequest.text}`),
     status: "open",
   };
 }

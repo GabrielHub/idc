@@ -17,6 +17,7 @@ import {
   haloColorForStar,
   intensityForRole,
   pairPartnerPosition,
+  resolveStarPresentation,
   resolveStarRenderTarget,
   ringColorForRole,
   roleForStar,
@@ -330,6 +331,51 @@ describe("intensityForRole", () => {
     expect(intensityForRole("dim", "foreground", "idle")).toBeGreaterThan(
       intensityForRole("dim", "foreground", "focus_selected"),
     );
+  });
+});
+
+describe("resolveStarPresentation", () => {
+  it("keeps dormant background stars as visible hit targets without avatar opacity", () => {
+    const presentation = resolveStarPresentation({
+      tier: "background",
+      role: "dim",
+      clustered: false,
+      hovered: false,
+      slabActivity: { intensityMultiplier: 0.2, scaleMultiplier: 0.4 },
+      baseIntensity: 0.24,
+      filteredOut: false,
+      avatarRadius: 0.11,
+    });
+
+    expect(presentation.avatarOpacity).toBe(0);
+    expect(presentation.avatarScale).toBe(0);
+    // Hit radius floor is tuned to stay just under half the world-space
+    // FIELD_BG_TO_BG_SPACING so neighbouring background dots don't share a
+    // hit plane (which would steal each other's pointer events). The exact
+    // value lives in math-render.ts; this test pins the floor against the
+    // tiny visible avatar so future changes either bump both together or
+    // make the divergence intentional.
+    expect(presentation.hitRadius).toBeGreaterThan(0.11);
+    expect(presentation.hitRadius).toBeLessThanOrEqual(0.24);
+    expect(presentation.slabIntensity).toBe(1);
+    expect(presentation.slabScale).toBe(1);
+  });
+
+  it("promotes hovered background stars to full avatars above the parallax field", () => {
+    const presentation = resolveStarPresentation({
+      tier: "background",
+      role: "dim",
+      clustered: false,
+      hovered: true,
+      slabActivity: { intensityMultiplier: 0.2, scaleMultiplier: 0.4 },
+      baseIntensity: 0.24,
+      filteredOut: false,
+      avatarRadius: 0.11,
+    });
+
+    expect(presentation.avatarOpacity).toBe(1);
+    expect(presentation.avatarScale).toBe(1);
+    expect(presentation.zLift).toBe(1.8);
   });
 });
 

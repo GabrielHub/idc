@@ -36,13 +36,13 @@ export function ShiftBriefDock({ rows }: { rows: readonly ShiftBriefRowData[] })
         type="button"
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
-        aria-label={expanded ? "Collapse shift brief" : "Expand shift brief"}
+        aria-label={expanded ? "Collapse goals" : "Expand goals"}
         className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper"
       >
         {hasAlert && !expanded ? (
           <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" aria-hidden />
         ) : null}
-        <span className="flex-1 text-left text-white/55">shift brief</span>
+        <span className="flex-1 text-left text-white/55">goals</span>
         <ChevronGlyph open={expanded} />
       </button>
       <AnimatePresence initial={false}>

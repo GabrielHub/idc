@@ -4,6 +4,7 @@ import { DECK_SIZE_MAX, DECK_SIZE_MIN, STARTER_BUDGET_CAP } from "../domain/game
 import { starterScenarios } from "../fixtures";
 import {
   addCardToDeck,
+  createOnboardingDeckPrefillIds,
   createDraftedScenarioDeck,
   createInitialScenarioDeck,
   createStarterScenarioDeck,
@@ -11,6 +12,7 @@ import {
   drawHand,
   drawHandForBooking,
   listLibraryCards,
+  onboardingDeckTutorialPickId,
   removeCardFromDeck,
   SCENARIO_HAND_SIZE,
   STARTER_CATALOG_IDS,
@@ -32,6 +34,28 @@ describe("deck service", () => {
     expect(
       deck.cardIds.reduce((sum, id) => sum + (effectiveCosts[id] ?? 0), 0),
     ).toBeLessThanOrEqual(STARTER_BUDGET_CAP);
+  });
+
+  it("prefills onboarding one card short with the first starter card left open", () => {
+    const prefillIds = createOnboardingDeckPrefillIds(starterScenarios);
+    const tutorialPickId = onboardingDeckTutorialPickId(starterScenarios);
+
+    if (tutorialPickId === undefined) throw new Error("starter deck is empty");
+    expect(tutorialPickId).toBe(STARTER_DECK_IDS[0]);
+    expect(prefillIds).toEqual(STARTER_DECK_IDS.slice(1));
+    expect(prefillIds).toHaveLength(DECK_SIZE_MIN - 1);
+    expect(prefillIds).not.toContain(tutorialPickId);
+
+    const completedDraft = createDraftedScenarioDeck({
+      cardIds: [tutorialPickId, ...prefillIds],
+      catalog: starterScenarios,
+      catalogIds: STARTER_CATALOG_IDS,
+      budgetCap: STARTER_BUDGET_CAP,
+      effectiveCosts: computeEffectiveCosts(starterScenarios, []),
+    });
+
+    expect(completedDraft.cardIds).toEqual(STARTER_DECK_IDS);
+    expect(completedDraft.cardIds).toHaveLength(DECK_SIZE_MIN);
   });
 
   it("createDraftedScenarioDeck enforces size and budget gates", () => {

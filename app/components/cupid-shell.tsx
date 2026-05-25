@@ -508,10 +508,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
         setIsAiSetupOpen(true);
         throw new Error("AI setup is required before Cupid commits a pair.");
       }
-      const status = await refreshLocalAiStatus();
-      if (status.status !== "ready") {
-        throw new Error(status.message);
-      }
       const result = commitDateBooking(save, input);
       await persist(result.save);
     });

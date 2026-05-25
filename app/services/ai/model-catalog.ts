@@ -212,22 +212,21 @@ export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
     id: "vram-8gb",
     label: "8GB cards",
     vram: "8GB",
-    examples: "RTX 4060 · RTX 5060 · RTX 3060 (8GB) · RTX 3050 · RTX 3060 Ti · RTX 3070",
+    examples: "RTX 4060 · RTX 5060 · RTX 3060 (8GB) · RTX 3070",
     modelIds: ["gemma4:e2b"],
   },
   {
     id: "vram-12gb",
     label: "10–12GB cards",
     vram: "10–12GB",
-    examples: "RTX 3060 (12GB) · RTX 5070 · RTX 4070 · RTX 4070 Super · RTX 3080 (10GB)",
+    examples: "RTX 5070 · RTX 4070 · RTX 3060 (12GB) · RTX 3080",
     modelIds: ["gemma4:e2b", "gemma4:e4b"],
   },
   {
     id: "vram-16gb",
     label: "16GB cards",
     vram: "16GB",
-    examples:
-      "RTX 5070 Ti · RTX 5080 · RTX 4060 Ti (16GB) · RTX 5060 Ti (16GB) · RTX 4070 Ti Super · RX 7800 XT · RX 9070 XT",
+    examples: "RTX 5080 · RTX 5070 Ti · RTX 4070 Ti Super · RX 9070 XT · RX 7800 XT",
     modelIds: ["gemma4:e4b"],
   },
   {
@@ -248,7 +247,7 @@ export const GPU_RECOMMENDATION_PROFILES: GpuRecommendationProfile[] = [
     id: "apple-silicon",
     label: "Apple Silicon",
     vram: "Unified memory",
-    examples: "M1 / M2 / M3 / M4 (system RAM doubles as VRAM)",
+    examples: "M1 · M2 · M3 · M4 (RAM doubles as VRAM)",
     modelIds: ["gemma4:e2b", "gemma4:e4b", "gemma4:26b"],
   },
 ];

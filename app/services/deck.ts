@@ -82,6 +82,25 @@ export function createInitialScenarioDeck(scenarios: readonly DateScenario[]): S
   });
 }
 
+export function sortedStarterCatalog(scenarios: readonly DateScenario[]): DateScenario[] {
+  const starterIds = new Set(STARTER_CATALOG_IDS);
+  return scenarios
+    .filter((scenario) => starterIds.has(scenario.id))
+    .sort((a, b) => a.card.cost - b.card.cost);
+}
+
+export function onboardingDeckTutorialPickId(
+  scenarios: readonly DateScenario[],
+): string | undefined {
+  const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
+  return STARTER_DECK_IDS.find((id) => scenarioIds.has(id));
+}
+
+export function createOnboardingDeckPrefillIds(scenarios: readonly DateScenario[]): string[] {
+  const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
+  return STARTER_DECK_IDS.filter((id) => scenarioIds.has(id)).slice(1);
+}
+
 export function createStarterScenarioDeck(scenarios: readonly DateScenario[]): ScenarioDeck {
   return createDraftedScenarioDeck({
     cardIds: STARTER_DECK_IDS,

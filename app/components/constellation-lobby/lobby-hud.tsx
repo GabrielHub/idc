@@ -182,7 +182,9 @@ export function BottomDock({
   onBeginDate,
   onCancelPair,
   commitDisabled,
+  commitDisabledReason,
   beginDisabled,
+  beginDisabledReason,
   beginButtonRef,
   briefSlot,
 }: {
@@ -192,7 +194,9 @@ export function BottomDock({
   onBeginDate?: () => void;
   onCancelPair?: () => void;
   commitDisabled?: boolean;
+  commitDisabledReason?: string;
   beginDisabled?: boolean;
+  beginDisabledReason?: string;
   beginButtonRef?: Ref<HTMLButtonElement>;
   /**
    * Slot for the shift-brief pill. Rendered to the left of the Cancel / Begin
@@ -201,17 +205,21 @@ export function BottomDock({
    */
   briefSlot?: ReactNode;
 }) {
-  const canCommit =
-    state === "partner_selected" && onCommitPair !== undefined && commitDisabled !== true;
-  const canBegin =
-    state === "scenario_chosen" &&
-    selectedScenarioId !== null &&
-    onBeginDate !== undefined &&
-    beginDisabled !== true;
+  const showCommit = state === "partner_selected" && onCommitPair !== undefined;
+  const showBegin =
+    state === "scenario_chosen" && selectedScenarioId !== null && onBeginDate !== undefined;
+  const commitBlocked = commitDisabled === true;
+  const beginBlocked = beginDisabled === true;
+  const showCommitReason = showCommit && commitBlocked && commitDisabledReason !== undefined;
+  const showBeginReason = showBegin && beginBlocked && beginDisabledReason !== undefined;
   const showCancelPair = state === "partner_selected";
-  const lockedPair = state === "committed_pair" || state === "scenario_chosen";
+  // The "Pair locked" hint is redundant when a more specific block reason is
+  // showing alongside; the reason supersedes it. Otherwise (e.g. plain idle on
+  // scenario_chosen with no block) keep the lock notice.
+  const lockedPair =
+    (state === "committed_pair" || state === "scenario_chosen") && !showBeginReason;
 
-  if (!showCancelPair && !canCommit && !canBegin && !lockedPair && briefSlot === undefined) {
+  if (!showCancelPair && !showCommit && !showBegin && !lockedPair && briefSlot === undefined) {
     return null;
   }
 
@@ -221,21 +229,27 @@ export function BottomDock({
         {briefSlot}
         {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
         {lockedPair ? <ShardLabel label="Pair locked" /> : null}
-        {canCommit ? (
+        {showCommitReason ? <ShardLabel label={commitDisabledReason} /> : null}
+        {showCommit ? (
           <button
             type="button"
+            disabled={commitBlocked}
+            title={commitDisabledReason}
             onClick={onCommitPair}
-            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm"
+            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
           >
             Commit pair
           </button>
         ) : null}
-        {canBegin ? (
+        {showBeginReason ? <ShardLabel label={beginDisabledReason} /> : null}
+        {showBegin ? (
           <button
             ref={beginButtonRef}
             type="button"
+            disabled={beginBlocked}
+            title={beginDisabledReason}
             onClick={onBeginDate}
-            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm"
+            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
           >
             Begin date
           </button>

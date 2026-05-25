@@ -456,7 +456,13 @@ export function Scene({
 
       <Lights state={state} focusStar={focusStar} partnerStar={partnerStar} />
 
-      <ParticleField count={620} />
+      {/*
+       * Members themselves now serve as the parallax starfield — background
+       * tier renders as glowing pinhead dots until hovered. A thinned
+       * decorative dust pass stays behind them to keep the deep sky from
+       * reading too sparse between members.
+       */}
+      <ParticleField count={140} />
 
       <StarField
         state={state}

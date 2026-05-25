@@ -23,6 +23,7 @@ export function ContextualPillRail({
   archiveEdgeCount,
   archiveSelectionActive,
   fileShiftBlockedReason,
+  showRecords,
   onCompleteShift,
   onOpenNotes,
   onOpenShiftArchive,
@@ -48,6 +49,7 @@ export function ContextualPillRail({
   archiveEdgeCount: number;
   archiveSelectionActive: boolean;
   fileShiftBlockedReason?: string;
+  showRecords: boolean;
   onCompleteShift: () => void;
   onOpenNotes: () => void;
   onOpenShiftArchive: () => void;
@@ -121,14 +123,16 @@ export function ContextualPillRail({
               {dateBookLabel}
             </button>
           )}
-          <CollapsibleCapsule
-            label="records"
-            ariaOpenLabel="Open records"
-            ariaCloseLabel="Collapse records"
-            containerTone={inArchive ? "aura-liquid-glass-violet" : ""}
-            statusDotClass={inArchive ? "bg-aura-violet" : null}
-            rows={recordRows}
-          />
+          {showRecords ? (
+            <CollapsibleCapsule
+              label="records"
+              ariaOpenLabel="Open records"
+              ariaCloseLabel="Collapse records"
+              containerTone={inArchive ? "aura-liquid-glass-violet" : ""}
+              statusDotClass={inArchive ? "bg-aura-violet" : null}
+              rows={recordRows}
+            />
+          ) : null}
           <button
             ref={fileShiftButtonRef}
             type="button"
@@ -139,10 +143,14 @@ export function ContextualPillRail({
                 ? "File shift"
                 : `File shift blocked: ${fileShiftBlockedReason}`
             }
-            title={fileShiftBlockedReason}
-            className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover aura-liquid-glass-amber rounded-full px-3.5 py-1.5 font-mono text-sm uppercase tracking-[0.18em] text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
+            title={
+              fileShiftBlockedReason === undefined
+                ? "File shift"
+                : `File shift blocked: ${fileShiftBlockedReason}`
+            }
+            className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover aura-liquid-glass-amber grid size-9 place-items-center rounded-full text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
           >
-            {fileShiftBlockedReason === undefined ? "File shift" : "Shift blocked"}
+            <FileShiftGlyph />
           </button>
         </div>
       </div>
@@ -328,6 +336,27 @@ function FilterGlyph() {
     <svg aria-hidden viewBox="0 0 16 16" fill="none" className="size-3.5 text-aura-paper">
       <path
         d="M2.25 3.5h11.5L9.5 8.6v4.4l-3-1.4V8.6L2.25 3.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function FileShiftGlyph() {
+  return (
+    <svg aria-hidden viewBox="0 0 16 16" fill="none" className="size-4 text-aura-paper">
+      <path
+        d="M3 4l-1 5.5v3a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-3L13 4z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <path
+        d="M2 9.5h3.5l1 1.5h3l1-1.5H14"
         stroke="currentColor"
         strokeWidth="1.4"
         strokeLinejoin="round"

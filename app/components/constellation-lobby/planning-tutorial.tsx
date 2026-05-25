@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 
 import type { GameSave, MatchmakingIntent, Member, ShiftState } from "../../domain/game";
-import { isMemberInCooldown } from "../../services/shift-planning";
+import { hasAnyFiledShift, isMemberInCooldown } from "../../services/shift-planning";
 import { tutorialCopy, type TutorialCopyId } from "../../services/tutorial-copy";
 import { useTutorialStep, type TutorialStepHandle } from "../../services/tutorial";
 import {
@@ -89,6 +89,7 @@ type PlanningContext = {
   fileShiftReady: boolean;
   shiftActive: boolean;
   focusedCooling: boolean;
+  hasFiledShift: boolean;
 };
 
 type PlanningStepConfig = {
@@ -236,9 +237,12 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
   {
     id: "lazy.contextual-rail",
     category: "lazy",
-    // Wait until the player has settled on a focus so this doesn't pile on
-    // top of the layer-nav / focus intro. After that, fire on any layer.
-    shouldActivate: (c) => c.focusId !== null && c.activeBooking === null && c.inAutoMode,
+    // Holds until the player has filed their first shift. Before that, the
+    // Records pill is hidden (Notes/Shift archive/Pairs have nothing to show),
+    // so the overview would point at a missing target. After the first file,
+    // the pill renders and we can teach the cluster on the next quiet beat.
+    shouldActivate: (c) =>
+      c.hasFiledShift && c.focusId !== null && c.activeBooking === null && c.inAutoMode,
     render: {
       anchor: "contextualRailRef",
       placement: "left",
@@ -379,6 +383,7 @@ export function usePlanningTutorial(input: {
     fileShiftReady: input.fileShiftReady,
     shiftActive: input.shift.status === "active",
     focusedCooling,
+    hasFiledShift: hasAnyFiledShift(input.save),
   };
 
   const steps = usePlanningStepHandles(input.save, ctx, input.onTutorialUpdate);

@@ -15,6 +15,28 @@ export type StarSizing = {
   scale: number;
 };
 
+export type StarSlabActivity = {
+  intensityMultiplier: number;
+  scaleMultiplier: number;
+};
+
+export type StarPresentation = {
+  avatarOpacity: number;
+  avatarScale: number;
+  hitRadius: number;
+  slabIntensity: number;
+  slabScale: number;
+  zLift: number;
+};
+
+/**
+ * Floor for the invisible hit plane so background pinhead dots stay grabbable.
+ * Capped just under half of the minimum world-space distance between adjacent
+ * background dots (FIELD_BG_TO_BG_SPACING=4 × WORLD_Y_SCALE=0.12 ≈ 0.48), so
+ * neighbouring hit planes don't overlap and steal each other's pointer events.
+ */
+const MIN_STAR_HIT_RADIUS = 0.22;
+
 export function sizeForStar3D(tier: StarTier, role: StarRole, state: LobbyState): StarSizing {
   if (role === "focus")
     return { avatarRadius: 0.62, haloRadius: 0.82, sparkRadius: 0.075, flareSize: 4.6, scale: 1 };
@@ -55,6 +77,58 @@ export function intensityForRole(role: StarRole, tier: StarTier, state: LobbySta
   if (tier === "foreground") return 0.62;
   if (tier === "mid") return 0.42;
   return 0.24;
+}
+
+export function resolveStarPresentation({
+  tier,
+  role,
+  clustered,
+  hovered,
+  slabActivity,
+  baseIntensity,
+  filteredOut,
+  avatarRadius,
+}: {
+  tier: StarTier;
+  role: StarRole;
+  clustered: boolean;
+  hovered: boolean;
+  slabActivity: StarSlabActivity | undefined;
+  baseIntensity: number;
+  filteredOut: boolean;
+  avatarRadius: number;
+}): StarPresentation {
+  const forceAvatar = role === "focus" || role === "partner";
+  const ineligibleRole =
+    role === "ineligible_closed" ||
+    role === "ineligible_off_shift" ||
+    role === "ineligible_cooling";
+  // Only generic "dim" members participate in the parallax background field.
+  // Ineligible roles keep their normal slab treatment so their dim visual
+  // contract (cooled-off, closed, off-shift) reads even on background tier.
+  const parallaxBackground = tier === "background" && !clustered && !forceAvatar && role === "dim";
+  const dormantDot = parallaxBackground && !hovered;
+  const slabIntensity = parallaxBackground ? 1 : (slabActivity?.intensityMultiplier ?? 1);
+  const slabScale = parallaxBackground ? 1 : (slabActivity?.scaleMultiplier ?? 1);
+  // Hover promotes a star to full opacity so a dormant dot reveals as a crisp
+  // portrait. Ineligible roles keep their dim floor on hover — full opacity
+  // would erase the "unavailable" signal.
+  const prominent = clustered || slabIntensity >= 0.9 || (hovered && !ineligibleRole);
+  const fullAvatar = forceAvatar || clustered || (hovered && !ineligibleRole);
+  const filterMultiplier = filteredOut ? 0.32 : 1;
+
+  return {
+    avatarOpacity: dormantDot
+      ? 0
+      : prominent
+        ? filterMultiplier
+        : baseIntensity * filterMultiplier * slabIntensity,
+    avatarScale: dormantDot ? 0 : fullAvatar ? 1 : 0.38,
+    hitRadius: Math.max(avatarRadius, MIN_STAR_HIT_RADIUS),
+    slabIntensity,
+    slabScale,
+    zLift: hovered && tier === "background" && !clustered ? 1.8 : 0,
+  };
 }
 
 export function ringColorForRole(

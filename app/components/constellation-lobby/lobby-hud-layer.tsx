@@ -39,6 +39,7 @@ export function LobbyHudLayer({
   archiveEdgeCount,
   fileShiftBlockedReason,
   archiveSelectionActive,
+  hasFiledShift,
   onLayerSelect,
   onClearFocus,
   onClearPartner,
@@ -93,6 +94,7 @@ export function LobbyHudLayer({
   archiveEdgeCount: number;
   fileShiftBlockedReason?: string;
   archiveSelectionActive: boolean;
+  hasFiledShift: boolean;
   onLayerSelect: (layer: FlythroughLayer) => void;
   onClearFocus?: () => void;
   onClearPartner?: () => void;
@@ -147,7 +149,9 @@ export function LobbyHudLayer({
         state={lobbyState}
         selectedScenarioId={selectedScenarioId}
         beginDisabled={isActionPending || !aiReady}
-        commitDisabled={isActionPending || !aiReady}
+        beginDisabledReason={!aiReady ? "AI not ready" : isActionPending ? "Working…" : undefined}
+        commitDisabled={isActionPending}
+        commitDisabledReason={isActionPending ? "Working…" : undefined}
         onCommitPair={onCommitPair}
         onBeginDate={onBeginDate}
         onCancelPair={onCancelPair}
@@ -166,6 +170,7 @@ export function LobbyHudLayer({
         viewMode={viewMode}
         archiveEdgeCount={archiveEdgeCount}
         fileShiftBlockedReason={fileShiftBlockedReason}
+        showRecords={hasFiledShift}
         onCompleteShift={onCompleteShift}
         onOpenNotes={onOpenNotes}
         onOpenShiftArchive={onOpenShiftArchive}

@@ -4,7 +4,7 @@ import { useMemo, useRef } from "react";
 import { DECK_SIZE_MAX, DECK_SIZE_MIN, STARTER_BUDGET_CAP } from "../domain/game";
 import type { DateScenario, GameSave, Member, PlayerKnowledgeRecord } from "../domain/game";
 import { computeEffectiveCosts, currentDeckSpend } from "../services/budget";
-import { STARTER_CATALOG_IDS } from "../services/deck";
+import { onboardingDeckTutorialPickId, sortedStarterCatalog } from "../services/deck";
 import { useTutorialStep } from "../services/tutorial";
 import { AmbientMesh } from "./ambient-mesh";
 import {
@@ -56,16 +56,13 @@ export function DeckDraftStep({
   onCloseMember: () => void;
   playerKnowledge: readonly PlayerKnowledgeRecord[];
 }) {
-  const catalog = useMemo(() => {
-    const ids = new Set(STARTER_CATALOG_IDS);
-    return scenarios.filter((scenario) => ids.has(scenario.id));
-  }, [scenarios]);
-
-  const effectiveCosts = useMemo(() => computeEffectiveCosts(catalog, []), [catalog]);
+  const sortedCatalog = useMemo(() => sortedStarterCatalog(scenarios), [scenarios]);
+  const effectiveCosts = useMemo(() => computeEffectiveCosts(sortedCatalog, []), [sortedCatalog]);
   const deckIdSet = useMemo(() => new Set(deckIds), [deckIds]);
   const spend = useMemo(() => currentDeckSpend(deckIds, effectiveCosts), [deckIds, effectiveCosts]);
   const remaining = STARTER_BUDGET_CAP - spend;
   const deckSize = deckIds.length;
+  const tutorialPickId = useMemo(() => onboardingDeckTutorialPickId(scenarios), [scenarios]);
 
   const focusedMembers = useMemo(
     () =>
@@ -77,11 +74,7 @@ export function DeckDraftStep({
 
   const canConfirm =
     deckSize >= DECK_SIZE_MIN && deckSize <= DECK_SIZE_MAX && spend <= STARTER_BUDGET_CAP;
-
-  const sortedCatalog = useMemo(
-    () => [...catalog].sort((a, b) => a.card.cost - b.card.cost),
-    [catalog],
-  );
+  const needsFirstTutorialPick = tutorialPickId !== undefined && !deckIdSet.has(tutorialPickId);
 
   const firstScenarioCardRef = useRef<HTMLElement | null>(null);
   const rightmostExpandRef = useRef<HTMLButtonElement | null>(null);
@@ -90,7 +83,7 @@ export function DeckDraftStep({
   const deckPickStep = useTutorialStep(
     save,
     "onboarding.deck.pick",
-    deckSize === 0,
+    needsFirstTutorialPick,
     onTutorialUpdate,
   );
   const deckExpandStep = useTutorialStep(
@@ -102,7 +95,7 @@ export function DeckDraftStep({
   const deckStartStep = useTutorialStep(
     save,
     "onboarding.deck.start",
-    canConfirm,
+    deckPickStep.done && canConfirm,
     onTutorialUpdate,
   );
 
@@ -111,7 +104,7 @@ export function DeckDraftStep({
       onChangeDeck(deckIds.filter((id) => id !== scenarioId));
       return;
     }
-    const incoming = catalog.find((scenario) => scenario.id === scenarioId);
+    const incoming = sortedCatalog.find((scenario) => scenario.id === scenarioId);
     if (incoming === undefined) return;
     if (deckSize >= DECK_SIZE_MAX) return;
     const incomingCost = effectiveCosts[scenarioId] ?? incoming.card.cost;
@@ -157,7 +150,7 @@ export function DeckDraftStep({
                   size="tile"
                   state={inDeck ? "selected" : cantFit ? "disabled" : "default"}
                   effectiveCost={cost}
-                  cardRef={index === 0 ? firstScenarioCardRef : undefined}
+                  cardRef={scenario.id === tutorialPickId ? firstScenarioCardRef : undefined}
                   expandButtonRef={isRightmostInFirstRow ? rightmostExpandRef : undefined}
                   onClick={() => toggleCard(scenario.id)}
                   onExpand={() => {

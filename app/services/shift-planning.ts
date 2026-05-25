@@ -1,4 +1,4 @@
-import { type GoalMetric, type Member, type ShiftState } from "../domain/game";
+import { type GameSave, type GoalMetric, type Member, type ShiftState } from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
 import { buildRandomSeed, shuffledBySeed } from "./utils";
 
@@ -162,6 +162,15 @@ function resolveMembers(members: readonly Member[], memberIds: readonly string[]
 
 function isMemberActiveForShift(member: Member): boolean {
   return member.state.status === "active";
+}
+
+/**
+ * True once any shift on the save has been filed (status: "completed"). Used
+ * to gate UI that only meaningfully exists after the first shift wrap — e.g.
+ * the lobby Records pill and the lazy.contextual-rail tutorial.
+ */
+export function hasAnyFiledShift(save: GameSave): boolean {
+  return save.shifts.some((entry) => entry.status === "completed");
 }
 
 function seededOrderById<TValue extends { id: string }>(
