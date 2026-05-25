@@ -1,5 +1,29 @@
 [
   {
+    "version": "1.0.5",
+    "date": "2026-05-25",
+    "headline": "Cupid steadies the lobby handoff.",
+    "summary": "Gameplay test alpha. Includes the constellation lobby release work plus follow-up fixes for date-session restore, hidden-info leak detection, and star aura rendering.",
+    "sections": [
+      {
+        "title": "Restore behavior",
+        "items": [
+          "Reloading the app now restores an active date first, then only falls back to a completed date from the current active shift.",
+          "Completed dates from already filed shifts no longer reopen when a new shift starts.",
+          "Smoke coverage now pins the active-shift restore rule across shift rollover."
+        ]
+      },
+      {
+        "title": "Guardrails",
+        "items": [
+          "Hidden-info leak detection now ignores low-signal private trigrams made only from common words, reducing false blocks on ordinary date phrasing.",
+          "The leak guard still requires distinctive private tokens before a hidden phrase match can block output.",
+          "Constellation aura colors now strip rgba alpha before they are handed to Three color parsing, keeping member halos renderable."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.4",
     "date": "2026-05-25",
     "headline": "Cupid opens the constellation lobby.",
