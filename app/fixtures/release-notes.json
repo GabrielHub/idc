@@ -1,5 +1,28 @@
 [
   {
+    "version": "1.0.6",
+    "date": "2026-05-25",
+    "headline": "Cupid opens the Mac release lane.",
+    "summary": "Desktop test alpha. Adds macOS release packaging alongside the existing Windows release path and fixes the desktop docs build so the shared tutorial catalog can prerender cleanly.",
+    "sections": [
+      {
+        "title": "Desktop releases",
+        "items": [
+          "The release workflow now builds a macOS universal app and DMG in addition to the Windows installer.",
+          "macOS updater metadata is merged into latest.json for both Apple Silicon and Intel Macs.",
+          "Release verification now checks the Mac archive, signature, checksum, and updater platform entries before publishing completes."
+        ]
+      },
+      {
+        "title": "Build reliability",
+        "items": [
+          "Tutorial docs now read shipped coach-mark copy during render instead of at module initialization, avoiding the desktop prerender cycle that blocked Mac packaging.",
+          "The local desktop build path verifies the same prerender behavior before the release workflow spends time bundling native packages."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.5",
     "date": "2026-05-25",
     "headline": "Cupid steadies the lobby handoff.",

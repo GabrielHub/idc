@@ -12,7 +12,7 @@ import {
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
-import { TUTORIAL_COPY } from "../../services/tutorial-copy";
+import { tutorialCopy } from "../../services/tutorial-copy";
 
 const planningTutorialStepIds = [
   "planning.layer-nav",
@@ -138,23 +138,7 @@ export const sections: DocSectionEntry[] = [
           <DocCode>TUTORIAL_COPY</DocCode>; keep this order aligned with{" "}
           <DocCode>tutorialStepIdSchema</DocCode> and the planning renderer.
         </P>
-        <DocTable
-          headers={["Order", "Step id", "Shipped copy contract"]}
-          rows={planningTutorialStepIds.map((id) => {
-            const copy = TUTORIAL_COPY[id];
-            const orderText =
-              copy.stepIndex !== undefined && copy.stepCount !== undefined
-                ? `${copy.stepIndex + 1} / ${copy.stepCount}`
-                : "wrap";
-            return [
-              orderText,
-              <DocCode key={id}>{id}</DocCode>,
-              <span key={`${id}-copy`}>
-                <Strong>{copy.title}</Strong> — {copy.body}
-              </span>,
-            ];
-          })}
-        />
+        <PlanningTutorialStepTable />
         <DocCallout variant="warn" title="Save merges matter">
           <P>
             Completing a tutorial step often happens in the same click as a gameplay action. Shell
@@ -326,4 +310,26 @@ export const sections: DocSectionEntry[] = [
 
 export default function TutorialSystemProductDoc() {
   return <DocPage meta={meta} sections={sections} lede={lede} />;
+}
+
+function PlanningTutorialStepTable() {
+  return (
+    <DocTable
+      headers={["Order", "Step id", "Shipped copy contract"]}
+      rows={planningTutorialStepIds.map((id) => {
+        const copy = tutorialCopy(id);
+        const orderText =
+          copy.stepIndex !== undefined && copy.stepCount !== undefined
+            ? `${copy.stepIndex + 1} / ${copy.stepCount}`
+            : "wrap";
+        return [
+          orderText,
+          <DocCode key={id}>{id}</DocCode>,
+          <span key={`${id}-copy`}>
+            <Strong>{copy.title}</Strong> — {copy.body}
+          </span>,
+        ];
+      })}
+    />
+  );
 }
