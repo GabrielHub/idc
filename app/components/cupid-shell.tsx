@@ -34,6 +34,7 @@ import {
   clearActiveBooking,
   commitDateBooking,
   completeShift,
+  getRestorableDateSession,
   isCampaignLost,
   pickScenarioEvents,
   startDateSessionFromBooking,
@@ -267,10 +268,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             : "Cupid reset an outdated local save. The previous file is preserved as a .bak file.",
         );
       }
-      const restoredSession =
-        nextSave.dateSessions.find((s) => s.status === "active") ??
-        nextSave.dateSessions.at(-1) ??
-        null;
+      const restoredSession = getRestorableDateSession(nextSave);
       setActiveDateSessionId(restoredSession?.id ?? null);
     }
     void loadSave();

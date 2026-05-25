@@ -9,6 +9,7 @@ const ALEX = requireMember("alex-yoon");
 const GIDEON = requireMember("gideon-glass");
 const OPAL = requireMember("opal-sunday");
 const VHOOL = requireMember("vhool");
+const MARCUS = requireMember("marcus-pellish");
 
 function requireMember(id: string): Member {
   const member = starterMembers.find((entry) => entry.id === id);
@@ -29,6 +30,14 @@ describe("hidden info guard", () => {
 
     expect(leak?.field).toBe("bio");
     expect(leak?.matchKind).toBe("phrase");
+  });
+
+  it("ignores low-signal hidden bio trigrams made of common words", () => {
+    expect(
+      detectHiddenInfoLeak("Your correspondent has been told the bark is louder than the bite.", [
+        MARCUS,
+      ]),
+    ).toBeNull();
   });
 
   it("detects hidden identity labels on case-file surfaces", () => {

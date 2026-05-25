@@ -228,7 +228,11 @@ function computeLeakProfile(member: Member): LeakProfile {
 
   for (const source of hiddenTextSources(member)) {
     for (const phrase of ngramSet(source.text, LEAK_PHRASE_TOKEN_COUNT)) {
-      if (publicPhrases.has(phrase) || containsOnlyCommonTokens(phrase)) {
+      if (
+        publicPhrases.has(phrase) ||
+        containsOnlyCommonTokens(phrase) ||
+        !containsDistinctiveHiddenToken(phrase)
+      ) {
         continue;
       }
       if (!phrases.has(phrase)) {
@@ -313,4 +317,11 @@ function normalizeTokens(text: string): string[] {
 function containsOnlyCommonTokens(phrase: string): boolean {
   const tokens = phrase.split(" ");
   return tokens.every((token) => COMMON_TOKENS.has(token) || token.length < MIN_LEAK_TOKEN_LENGTH);
+}
+
+function containsDistinctiveHiddenToken(phrase: string): boolean {
+  const tokens = phrase.split(" ");
+  return tokens.some(
+    (token) => token.length >= MIN_SINGLE_LABEL_LENGTH && !COMMON_TOKENS.has(token),
+  );
 }

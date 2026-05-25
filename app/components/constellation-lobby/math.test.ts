@@ -428,6 +428,15 @@ describe("haloColorForStar", () => {
     expect(haloColorForStar("dim", palette, SAMPLE_AURA)).toBe(SAMPLE_AURA.tint.primary);
   });
 
+  it("strips alpha from rgba aura colors before handing them to Three", () => {
+    const translucentAura: MemberAuraConfig = {
+      kind: "godray",
+      tint: { primary: "rgba(255, 224, 168, 0.55)", glow: "rgba(255, 220, 160, 0.35)" },
+    };
+
+    expect(haloColorForStar("eligible", palette, translucentAura)).toBe("rgb(255, 224, 168)");
+  });
+
   it("falls back to the palette accent when no aura is registered", () => {
     expect(haloColorForStar("eligible", palette, undefined)).toBe(palette.accent);
     expect(haloColorForStar("dim", palette, undefined)).toBe(palette.accent);

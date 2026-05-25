@@ -186,6 +186,14 @@ export function haloColorForStar(
 ): string {
   if (role === "focus") return "#fb7185";
   if (role === "partner") return "#c4b5fd";
-  if (aura !== undefined) return aura.tint.primary;
+  if (aura !== undefined) return withoutAlpha(aura.tint.primary);
   return palette.accent;
+}
+
+function withoutAlpha(color: string): string {
+  const channels = color.match(/\d+(?:\.\d+)?/g);
+  if (channels !== null && color.startsWith("rgba") && channels.length === 4) {
+    return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
+  }
+  return color;
 }

@@ -3010,6 +3010,23 @@ export function pendingFollowUpSessionsForShift(
   );
 }
 
+export function getRestorableDateSession(save: GameSave): DateSession | null {
+  const activeSession = save.dateSessions.find((session) => session.status === "active");
+  if (activeSession !== undefined) return activeSession;
+
+  const activeShift = getActiveShift(save);
+  if (activeShift === undefined) return null;
+
+  for (let index = save.dateSessions.length - 1; index >= 0; index -= 1) {
+    const session = save.dateSessions[index];
+    if (session !== undefined && sessionBelongsToShift(session, activeShift.shiftNumber)) {
+      return session;
+    }
+  }
+
+  return null;
+}
+
 function buildJudgeSummary(
   dateHealthDelta: number,
   repeatPenalty: number,

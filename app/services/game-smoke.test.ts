@@ -17,6 +17,7 @@ import {
   clearActiveBooking,
   commitDateBooking,
   completeShift,
+  getRestorableDateSession,
   isCampaignLost,
   isMemberRetained,
   startDateSessionFromBooking,
@@ -648,6 +649,59 @@ describe("IDC playable smoke path", () => {
     // The new flow does not pre-draw a hand. The hand is drawn when the player
     // commits a pair.
     expect(result.shift.drawnScenarioIds).toEqual([]);
+  });
+
+  it("does not restore a completed date from an already filed shift", () => {
+    const baseSave = createSeedGameSave();
+    const focused = baseSave.members
+      .filter(canBeFocusCase)
+      .slice(0, 4)
+      .map((m) => m.id);
+    const firstMemberId = focused[0];
+    const secondMemberId = focused[1];
+    if (firstMemberId === undefined || secondMemberId === undefined) {
+      throw new Error("Expected enough focusable members for restore test.");
+    }
+    const withFocus = selectInitialFocusCases(baseSave, focused);
+    const activeShiftIndex = withFocus.shifts.findIndex(
+      (shift) => shift.id === withFocus.activeShiftId,
+    );
+    const priorSession = dateSessionSchema.parse({
+      id: `date-1-1-${makePairId(firstMemberId, secondMemberId)}`,
+      pairId: makePairId(firstMemberId, secondMemberId),
+      scenarioId: "park-loop-with-a-dog",
+      focusMemberId: firstMemberId,
+      turnLimit: 30,
+      currentTurn: 12,
+      dateHealth: 80,
+      status: "completed",
+      runtimeMode: "local_ai",
+      participants: [firstMemberId, secondMemberId],
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: [] },
+      eventsTriggered: [],
+      playbackState: "ended",
+      endSentiment: "positive",
+      endReason: "natural_wrap",
+      interventions: [],
+    });
+    const closed = gameSaveSchema.parse({
+      ...withFocus,
+      dateSessions: [priorSession],
+      shifts: withFocus.shifts.map((shift, index) =>
+        index === activeShiftIndex
+          ? { ...shift, status: "completed" as const, completedAt: new Date().toISOString() }
+          : shift,
+      ),
+    });
+
+    expect(getRestorableDateSession(closed)?.id).toBe(priorSession.id);
+
+    const nextShiftSave = startNextShift(closed).save;
+
+    expect(getRestorableDateSession(nextShiftSave)).toBeNull();
   });
 
   it("hydrates historical partner rosters against their own featured cases", () => {
