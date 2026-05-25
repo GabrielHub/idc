@@ -359,13 +359,13 @@ jobs:
         shell: bash
         run: vp install
 
-      - name: Build unsigned macOS package
+      - name: Build ad-hoc signed macOS package
         shell: bash
         run: |
           set -euo pipefail
 
           vp run build:desktop
-          vp exec tauri build --ci --no-sign --target universal-apple-darwin --bundles app,dmg --config '{ "build": { "beforeBuildCommand": "" } }'
+          vp exec tauri build --ci --target universal-apple-darwin --bundles app,dmg --config '{ "build": { "beforeBuildCommand": "" }, "bundle": { "macOS": { "signingIdentity": "-" } } }'
 
       - name: Prepare macOS release assets
         id: assets
