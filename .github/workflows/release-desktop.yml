@@ -288,3 +288,230 @@ jobs:
           if ([string]::IsNullOrWhiteSpace($windowsUpdate.signature)) {
             throw "latest.json is missing the Windows signature"
           }
+
+  macos:
+    name: Build and publish macOS universal
+    runs-on: macos-15
+    needs: windows
+    environment: desktop-release
+
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+
+    steps:
+      - name: Checkout release ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Setup Vite Plus
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          node-version: "24"
+          cache: true
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Release tag must look like v0.2.1. Got: $RELEASE_TAG" >&2
+            exit 1
+          fi
+
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          expected_tag="v${version}"
+          if [[ "$RELEASE_TAG" != "$expected_tag" ]]; then
+            echo "Release tag $RELEASE_TAG does not match package.json version $version. Expected $expected_tag." >&2
+            exit 1
+          fi
+
+      - name: Prepare updater signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]]; then
+            echo "Missing GitHub secret TAURI_SIGNING_PRIVATE_KEY." >&2
+            exit 1
+          fi
+
+          key_path="$RUNNER_TEMP/idc-updater.key"
+          printf '%s' "$TAURI_SIGNING_PRIVATE_KEY" > "$key_path"
+          echo "TAURI_SIGNING_PRIVATE_KEY=$key_path" >> "$GITHUB_ENV"
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Cache Rust build
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install dependencies
+        shell: bash
+        run: vp install
+
+      - name: Build unsigned macOS package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          vp run build:desktop
+          vp exec tauri build --ci --no-sign --target universal-apple-darwin --bundles app,dmg --config '{ "build": { "beforeBuildCommand": "" } }'
+
+      - name: Prepare macOS release assets
+        id: assets
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
+          bundle_dir="src-tauri/target/universal-apple-darwin/release/bundle"
+          dmg="$(find "$bundle_dir/dmg" -maxdepth 1 -type f -name "*.dmg" | sort | head -n 1)"
+          app_tar="$(find "$bundle_dir/macos" -maxdepth 1 -type f -name "*.app.tar.gz" | sort | head -n 1)"
+
+          if [[ -z "$dmg" || ! -f "$dmg" ]]; then
+            echo "Missing macOS dmg artifact under $bundle_dir/dmg." >&2
+            exit 1
+          fi
+          if [[ -z "$app_tar" || ! -f "$app_tar" ]]; then
+            echo "Missing macOS updater artifact under $bundle_dir/macos." >&2
+            exit 1
+          fi
+
+          app_signature="${app_tar}.sig"
+          checksum="${dmg}.sha256"
+          manifest_dir="$RUNNER_TEMP/idc-release-manifest"
+          manifest="$manifest_dir/latest.json"
+
+          if [[ ! -f "$app_signature" ]]; then
+            echo "Missing macOS updater signature: $app_signature" >&2
+            exit 1
+          fi
+
+          hash="$(shasum -a 256 "$dmg" | awk '{print $1}')"
+          printf '%s  %s\n' "$hash" "$(basename "$dmg")" > "$checksum"
+
+          mkdir -p "$manifest_dir"
+          gh release download "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "latest.json" \
+            --dir "$manifest_dir" \
+            --clobber
+
+          MANIFEST="$manifest" \
+            APP_SIGNATURE="$app_signature" \
+            APP_TAR_NAME="$(basename "$app_tar")" \
+            ASSET_BASE_URL="https://github.com/$GITHUB_REPOSITORY/releases/download/$RELEASE_TAG" \
+            node <<'NODE'
+          const { readFileSync, writeFileSync } = require("node:fs");
+
+          const manifestPath = process.env.MANIFEST;
+          const signaturePath = process.env.APP_SIGNATURE;
+          const appTarName = process.env.APP_TAR_NAME;
+          const assetBaseUrl = process.env.ASSET_BASE_URL;
+
+          const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+          const signature = readFileSync(signaturePath, "utf8").trim();
+          if (signature.length === 0) {
+            throw new Error(`Updater signature is empty: ${signaturePath}`);
+          }
+
+          const update = {
+            signature,
+            url: `${assetBaseUrl}/${appTarName}`,
+          };
+          manifest.platforms = {
+            ...manifest.platforms,
+            "darwin-aarch64": update,
+            "darwin-x86_64": update,
+          };
+
+          writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+          NODE
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "dmg=$dmg" >> "$GITHUB_OUTPUT"
+          echo "app_tar=$app_tar" >> "$GITHUB_OUTPUT"
+          echo "app_signature=$app_signature" >> "$GITHUB_OUTPUT"
+          echo "checksum=$checksum" >> "$GITHUB_OUTPUT"
+          echo "manifest=$manifest" >> "$GITHUB_OUTPUT"
+
+      - name: Publish macOS assets
+        shell: bash
+        env:
+          DMG: ${{ steps.assets.outputs.dmg }}
+          APP_TAR: ${{ steps.assets.outputs.app_tar }}
+          APP_SIGNATURE: ${{ steps.assets.outputs.app_signature }}
+          CHECKSUM: ${{ steps.assets.outputs.checksum }}
+          MANIFEST: ${{ steps.assets.outputs.manifest }}
+        run: |
+          set -euo pipefail
+
+          gh release upload "$RELEASE_TAG" \
+            "$DMG" \
+            "$CHECKSUM" \
+            "$APP_TAR" \
+            "$APP_SIGNATURE" \
+            "$MANIFEST" \
+            --repo "$GITHUB_REPOSITORY" \
+            --clobber
+
+          gh release upload "desktop-alpha" "$MANIFEST" --repo "$GITHUB_REPOSITORY" --clobber
+
+      - name: Verify published macOS release
+        shell: bash
+        env:
+          VERSION: ${{ steps.assets.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          dir="$RUNNER_TEMP/idc-macos-release-check"
+          mkdir -p "$dir"
+
+          gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY"
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.dmg" --dir "$dir" --clobber
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.app.tar.gz" --dir "$dir" --clobber
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.app.tar.gz.sig" --dir "$dir" --clobber
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --pattern "*.dmg.sha256" --dir "$dir" --clobber
+          gh release download "desktop-alpha" --repo "$GITHUB_REPOSITORY" --pattern "latest.json" --dir "$dir" --clobber
+
+          if ! find "$dir" -maxdepth 1 -type f -name "*.dmg" | grep -q .; then
+            echo "Published release is missing a macOS dmg." >&2
+            exit 1
+          fi
+          if ! find "$dir" -maxdepth 1 -type f -name "*.app.tar.gz" | grep -q .; then
+            echo "Published release is missing a macOS updater tarball." >&2
+            exit 1
+          fi
+
+          MANIFEST="$dir/latest.json" VERSION="$VERSION" RELEASE_TAG="$RELEASE_TAG" node <<'NODE'
+          const { readFileSync } = require("node:fs");
+
+          const manifest = JSON.parse(readFileSync(process.env.MANIFEST, "utf8"));
+          if (manifest.version !== process.env.VERSION) {
+            throw new Error(`latest.json version ${manifest.version} does not match ${process.env.VERSION}`);
+          }
+
+          for (const platform of ["darwin-aarch64", "darwin-x86_64"]) {
+            const update = manifest.platforms?.[platform];
+            if (typeof update?.signature !== "string" || update.signature.trim().length === 0) {
+              throw new Error(`latest.json is missing the ${platform} signature.`);
+            }
+            if (
+              typeof update.url !== "string" ||
+              !update.url.includes(`/releases/download/${process.env.RELEASE_TAG}/`) ||
+              !update.url.endsWith(".app.tar.gz")
+            ) {
+              throw new Error(`latest.json points ${platform} at the wrong artifact: ${update?.url}`);
+            }
+          }
+          NODE
