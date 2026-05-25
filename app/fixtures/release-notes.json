@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.7",
+    "date": "2026-05-25",
+    "headline": "Cupid polishes the constellation shift.",
+    "summary": "Gameplay test alpha. Refines the constellation lobby, live date surface, and AI setup path after the lobby-date-view pass landed on main.",
+    "sections": [
+      {
+        "title": "Constellation lobby",
+        "items": [
+          "Lobby navigation, layer access, planning tutorial behavior, and starfield presentation have tighter tests and cleaner anchors.",
+          "The constellation canvas drops stale connector work and shares parallax pointer behavior through a reusable hook.",
+          "Case, records, notes, and scenario planning surfaces keep their operations-dashboard rhythm while preserving clearer focus movement."
+        ]
+      },
+      {
+        "title": "Live date surface",
+        "items": [
+          "Date reactions, transcript handling, footer controls, gauges, final reports, and stage layering receive a coordinated polish pass.",
+          "Transcript tests now cover the updated date-view presentation rules so member turns, interventions, and reports stay readable.",
+          "Scenario backdrops, shell chrome, and pair-memory inspection have cleaner layout behavior around active bookings."
+        ]
+      },
+      {
+        "title": "AI setup and docs",
+        "items": [
+          "AI setup copy, playground coverage, and setup status behavior line up with the current booking and readiness flow.",
+          "Desktop install and release support docs now match the merged macOS and updater guidance.",
+          "Smoke coverage includes the new seed and restore expectations from the lobby and date-view pass."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.6",
     "date": "2026-05-25",
     "headline": "Cupid opens the Mac release lane.",
