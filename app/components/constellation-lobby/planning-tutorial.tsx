@@ -106,10 +106,10 @@ type PlanningStepConfig = {
  * array (with copy in `TUTORIAL_COPY`) and add a ref to the refs bag. The
  * hook and the renderer pick up the new step automatically.
  *
- * Required-path ordering is the safety net for transient overlaps: the
- * renderer takes the first active "required" step and dormant the rest.
+ * Ordering is the safety net for transient overlaps: the renderer takes the
+ * first active required step, then queues lazy steps one at a time.
  */
-const PLANNING_STEPS: readonly PlanningStepConfig[] = [
+const PLANNING_STEPS = [
   {
     id: "planning.layer-nav",
     category: "required",
@@ -314,9 +314,11 @@ const PLANNING_STEPS: readonly PlanningStepConfig[] = [
       suppressIfActive: "lazy.datebook.repair",
     },
   },
-];
+] satisfies readonly PlanningStepConfig[];
 
-export type PlanningTutorialSteps = Readonly<Record<TutorialCopyId, TutorialStepHandle>>;
+type PlanningStepId = (typeof PLANNING_STEPS)[number]["id"];
+
+export type PlanningTutorialSteps = Readonly<Record<PlanningStepId, TutorialStepHandle>>;
 
 /**
  * Iterates the module-frozen `PLANNING_STEPS` array and calls `useTutorialStep`
@@ -331,7 +333,7 @@ function usePlanningStepHandles(
   ctx: PlanningContext,
   onUpdate: (next: GameSave) => void,
 ): PlanningTutorialSteps {
-  const steps = {} as Record<TutorialCopyId, TutorialStepHandle>;
+  const steps = {} as Record<PlanningStepId, TutorialStepHandle>;
   for (const config of PLANNING_STEPS) {
     // eslint-disable-next-line react-hooks/rules-of-hooks
     steps[config.id] = useTutorialStep(save, config.id, config.shouldActivate(ctx), onUpdate);
@@ -462,6 +464,26 @@ export function PlanningTutorialOverlays({
   refs: PlanningTutorialRefs;
   viewMode: ViewMode;
 }) {
+  const overlayIds = selectPlanningTutorialOverlayIds({ steps, viewMode });
+
+  return (
+    <>
+      {overlayIds.map((id) => {
+        const config = PLANNING_STEPS.find((candidate) => candidate.id === id);
+        if (config === undefined) return null;
+        return <StepOverlay key={id} config={config} handle={steps[id]} refs={refs} />;
+      })}
+    </>
+  );
+}
+
+export function selectPlanningTutorialOverlayIds({
+  steps,
+  viewMode,
+}: {
+  steps: PlanningTutorialSteps;
+  viewMode: ViewMode;
+}): readonly PlanningStepId[] {
   const inTonight = viewMode === "tonight";
 
   // Required path: ordered list of overlays, first active wins. Each entry's
@@ -476,37 +498,28 @@ export function PlanningTutorialOverlays({
     return inTonight;
   });
 
+  if (firstActiveRequired !== undefined) {
+    return [firstActiveRequired.id];
+  }
+
   const lazyCandidates = PLANNING_STEPS.filter((config) => config.category === "lazy");
-  const showLazies = firstActiveRequired === undefined && inTonight;
+  if (!inTonight) return [];
+
   const activeLazyIds = new Set(
     lazyCandidates.filter((config) => steps[config.id].active).map((config) => config.id),
   );
+  const firstActiveLazy = lazyCandidates.find((config) => {
+    if (!steps[config.id].active) return false;
+    if (
+      config.render.suppressIfActive !== undefined &&
+      activeLazyIds.has(config.render.suppressIfActive)
+    ) {
+      return false;
+    }
+    return true;
+  });
 
-  return (
-    <>
-      {firstActiveRequired !== undefined ? (
-        <StepOverlay
-          key={firstActiveRequired.id}
-          config={firstActiveRequired}
-          handle={steps[firstActiveRequired.id]}
-          refs={refs}
-        />
-      ) : null}
-      {showLazies
-        ? lazyCandidates.map((config) => {
-            const handle = steps[config.id];
-            if (!handle.active) return null;
-            if (
-              config.render.suppressIfActive !== undefined &&
-              activeLazyIds.has(config.render.suppressIfActive)
-            ) {
-              return null;
-            }
-            return <StepOverlay key={config.id} config={config} handle={handle} refs={refs} />;
-          })
-        : null}
-    </>
-  );
+  return firstActiveLazy === undefined ? [] : [firstActiveLazy.id];
 }
 
 function StepOverlay({

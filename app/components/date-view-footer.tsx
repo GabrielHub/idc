@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 
 import type { DateScenario, DateSession, GameSave, Member } from "../domain/game";
 import {
@@ -10,15 +10,17 @@ import {
 } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
 import { tutorialCopy } from "../services/tutorial-copy";
-import { EASE_OUT_QUART, Tooltip } from "./dashboard-atoms";
+import { EASE_OUT_QUART } from "./dashboard-atoms";
 import { StatusGauges } from "./date-view-gauges";
 import {
   CutShortConfirmModal,
   CutShortIcon,
+  type FileDateModalCopy,
   NudgeComposerModal,
   SceneConfirmModal,
 } from "./date-view-modals";
 import type { DatePlaybackUiState, PendingDateAction, PlaybackIntent } from "./date-view-shared";
+import type { LeadAskStatus } from "./date-view-transcript";
 import type { SfxCue } from "./sfx-provider";
 import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
 
@@ -35,8 +37,15 @@ export function DateFooter({
   pendingDateAction,
   playbackUiState,
   nudgeSuggestions,
+  leadAskStatus,
+  nudgeComposerOpen,
+  sceneConfirmId,
+  cutShortConfirmOpen,
   save,
   onTutorialUpdate,
+  onNudgeComposerOpenChange,
+  onSceneConfirmIdChange,
+  onCutShortConfirmOpenChange,
   onInterventionTextChange,
   onInterventionTargetChange,
   onAdvance,
@@ -58,8 +67,15 @@ export function DateFooter({
   pendingDateAction: PendingDateAction | null;
   playbackUiState: DatePlaybackUiState;
   nudgeSuggestions: string[];
+  leadAskStatus: LeadAskStatus | null;
+  nudgeComposerOpen: boolean;
+  sceneConfirmId: string | null;
+  cutShortConfirmOpen: boolean;
   save: GameSave;
   onTutorialUpdate: (next: GameSave) => void;
+  onNudgeComposerOpenChange: (open: boolean) => void;
+  onSceneConfirmIdChange: (eventId: string | null) => void;
+  onCutShortConfirmOpenChange: (open: boolean) => void;
   onInterventionTextChange: (text: string) => void;
   onInterventionTargetChange: (memberId: string) => void;
   onAdvance: (turnCount: 1 | 2) => void;
@@ -82,10 +98,6 @@ export function DateFooter({
     canAdvance &&
     scenario !== undefined &&
     picks.some((eventId) => !session.eventsTriggered.includes(eventId));
-
-  const [composerOpen, setComposerOpen] = useState(false);
-  const [sceneConfirmId, setSceneConfirmId] = useState<string | null>(null);
-  const [cutShortConfirmOpen, setCutShortConfirmOpen] = useState(false);
 
   const statusGaugesRef = useRef<HTMLDivElement | null>(null);
   const transportClusterRef = useRef<HTMLDivElement | null>(null);
@@ -112,6 +124,7 @@ export function DateFooter({
     playbackBusy,
     pauseRequested,
   });
+  const fileDateCopy = resolveFileDateCopy(session);
   const cutShortButtonEnabled = cutShortStatus.enabled;
   const cutShortStep = useTutorialStep(
     save,
@@ -125,24 +138,24 @@ export function DateFooter({
 
   // Conditions can flip from parent state, so close the composer when it stops being valid.
   useEffect(() => {
-    if (composerOpen && !nudgeButtonEnabled) {
-      setComposerOpen(false);
+    if (nudgeComposerOpen && !nudgeButtonEnabled) {
+      onNudgeComposerOpenChange(false);
     }
-  }, [composerOpen, nudgeButtonEnabled]);
+  }, [nudgeComposerOpen, nudgeButtonEnabled, onNudgeComposerOpenChange]);
 
   // Same idea for the scene preview: drops can disable or the scene can fire from elsewhere.
   useEffect(() => {
     if (sceneConfirmId === null) return;
     if (!dropsEnabled || session.eventsTriggered.includes(sceneConfirmId)) {
-      setSceneConfirmId(null);
+      onSceneConfirmIdChange(null);
     }
-  }, [sceneConfirmId, dropsEnabled, session.eventsTriggered]);
+  }, [sceneConfirmId, dropsEnabled, session.eventsTriggered, onSceneConfirmIdChange]);
 
   useEffect(() => {
     if (cutShortConfirmOpen && !cutShortButtonEnabled) {
-      setCutShortConfirmOpen(false);
+      onCutShortConfirmOpenChange(false);
     }
-  }, [cutShortButtonEnabled, cutShortConfirmOpen]);
+  }, [cutShortButtonEnabled, cutShortConfirmOpen, onCutShortConfirmOpenChange]);
 
   const pendingSceneEvent = useMemo(() => {
     if (sceneConfirmId === null || scenario === undefined) return undefined;
@@ -153,34 +166,34 @@ export function DateFooter({
 
   const openComposer = () => {
     if (!nudgeButtonEnabled) return;
-    setComposerOpen(true);
+    onNudgeComposerOpenChange(true);
   };
-  const closeComposer = () => setComposerOpen(false);
+  const closeComposer = () => onNudgeComposerOpenChange(false);
   const fileNudge = () => {
     onIntervene();
-    setComposerOpen(false);
+    onNudgeComposerOpenChange(false);
   };
 
   const openSceneConfirm = (eventId: string) => {
     if (!dropsEnabled) return;
     if (session.eventsTriggered.includes(eventId)) return;
-    setSceneConfirmId(eventId);
+    onSceneConfirmIdChange(eventId);
   };
-  const closeSceneConfirm = () => setSceneConfirmId(null);
+  const closeSceneConfirm = () => onSceneConfirmIdChange(null);
   const confirmSceneDrop = () => {
     if (sceneConfirmId === null) return;
     onTriggerEvent(sceneConfirmId);
-    setSceneConfirmId(null);
+    onSceneConfirmIdChange(null);
   };
   const openCutShortConfirm = () => {
     if (!cutShortButtonEnabled) return;
-    setCutShortConfirmOpen(true);
+    onCutShortConfirmOpenChange(true);
   };
-  const closeCutShortConfirm = () => setCutShortConfirmOpen(false);
+  const closeCutShortConfirm = () => onCutShortConfirmOpenChange(false);
   const confirmCutShort = () => {
     if (!cutShortButtonEnabled) return;
     onCutShort();
-    setCutShortConfirmOpen(false);
+    onCutShortConfirmOpenChange(false);
   };
 
   const playbackHandlerRef = useRef<() => void>(() => undefined);
@@ -216,7 +229,7 @@ export function DateFooter({
         className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
       >
         <div className="relative mx-auto w-full max-w-3xl">
-          <div className="peer aura-liquid-glass pointer-events-auto flex w-full items-stretch gap-3 rounded-card px-3 py-2.5 text-aura-ink lg:gap-5 lg:px-5 lg:py-3">
+          <div className="peer aura-liquid-glass pointer-events-auto flex w-full items-stretch gap-3 rounded-pill px-3 py-2.5 text-aura-ink lg:gap-5 lg:px-5 lg:py-3">
             <StatusGauges
               dateHealth={session.dateHealth}
               displayedCurrentTurn={displayedCurrentTurn}
@@ -271,13 +284,14 @@ export function DateFooter({
               interventionSlotAvailable={interventionSlotAvailable}
               dropsEnabled={dropsEnabled}
               cutShortStatus={cutShortStatus}
+              leadAskStatus={leadAskStatus}
               pendingDateAction={pendingDateAction}
             />
           </div>
         </div>
       </motion.footer>
       <AnimatePresence>
-        {composerOpen ? (
+        {nudgeComposerOpen ? (
           <NudgeComposerModal
             key="nudge-composer-modal"
             participants={participants}
@@ -306,6 +320,7 @@ export function DateFooter({
           <CutShortConfirmModal
             key="cut-short-confirm-modal"
             participants={participants}
+            copy={fileDateCopy}
             canCutShort={cutShortButtonEnabled}
             onConfirm={confirmCutShort}
             onClose={closeCutShortConfirm}
@@ -327,6 +342,7 @@ export function DateFooter({
             onPrimary={footerHealthStep.complete}
             dismissLabel="Skip tour"
             onDismiss={footerHealthStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -343,6 +359,7 @@ export function DateFooter({
             stepCount={footerTransportCopy.stepCount}
             dismissLabel="Skip tour"
             onDismiss={footerTransportStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -362,6 +379,7 @@ export function DateFooter({
             }}
             dismissLabel="Skip tour"
             onDismiss={nudgeComposeStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -381,6 +399,7 @@ export function DateFooter({
             onPrimary={cutShortStep.complete}
             dismissLabel="Skip tour"
             onDismiss={cutShortStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -394,7 +413,6 @@ type CutShortStatus = {
   kind: CutShortStatusKind;
   enabled: boolean;
   buttonAriaLabel: string;
-  tooltipMessage: string;
   chipProgress?: string;
 };
 
@@ -414,45 +432,89 @@ function resolveCutShortStatus({
   const filedReads = session.judgeSnapshots.length;
   const requiredReads = MIN_JUDGE_READS_BEFORE_CUT_SHORT;
   const readProgress = `${Math.min(filedReads, requiredReads)}/${requiredReads}`;
+  const readGateMet = session.status === "active" && filedReads >= requiredReads;
 
-  if (filedReads < requiredReads || !canCutShort) {
-    const tooltipMessage = `Cut short unlocks after ${requiredReads} Cupid reads. Filed so far: ${readProgress}.`;
+  if (!readGateMet) {
     return {
       kind: "locked",
       enabled: false,
-      buttonAriaLabel: `Cut short locked. ${tooltipMessage}`,
-      tooltipMessage,
+      buttonAriaLabel: `File date locked. File date unlocks after ${requiredReads} Cupid reads. Filed so far: ${readProgress}.`,
       chipProgress: readProgress,
     };
   }
 
   if (playbackBusy || pauseRequested) {
-    const tooltipMessage = "Cut short waits for the current beat to finish.";
     return {
       kind: "busy",
       enabled: false,
-      buttonAriaLabel: tooltipMessage,
-      tooltipMessage,
+      buttonAriaLabel: "File date waits for the current beat to finish.",
     };
   }
 
   if (!isPaused) {
-    const tooltipMessage = "Pause the date before cutting it short.";
     return {
       kind: "needs-pause",
       enabled: false,
-      buttonAriaLabel: tooltipMessage,
-      tooltipMessage,
+      buttonAriaLabel: "Pause the date before filing it.",
     };
   }
 
-  const tooltipMessage =
-    "Cut the date short. Cupid files one final read and sends both members to cooldown.";
+  if (!canCutShort) {
+    return {
+      kind: "busy",
+      enabled: false,
+      buttonAriaLabel: "File date waits for the current beat to finish.",
+    };
+  }
+
   return {
     kind: "ready",
     enabled: true,
-    buttonAriaLabel: tooltipMessage,
-    tooltipMessage,
+    buttonAriaLabel: `${resolveFileDateCopy(session).ctaLabel}. Cupid files one final read and sends both members to cooldown.`,
+  };
+}
+
+function resolveFileDateCopy(session: DateSession): FileDateModalCopy {
+  const latestJudge = session.judgeSnapshots.at(-1);
+  const strainDelta = latestJudge?.statDeltas.strain ?? 0;
+  const conflictDelta = latestJudge?.statDeltas.conflict ?? 0;
+  const sparkDelta = latestJudge?.statDeltas.spark ?? 0;
+  const chemistryDelta = latestJudge?.statDeltas.chemistry ?? 0;
+  const trustDelta = latestJudge?.statDeltas.trust ?? 0;
+  const dateDelta = latestJudge?.dateHealthDelta ?? 0;
+  const trouble =
+    latestJudge?.shouldEndEarly === true ||
+    dateDelta <= -4 ||
+    strainDelta >= 4 ||
+    conflictDelta >= 4;
+  const warm = dateDelta >= 4 || sparkDelta >= 3 || chemistryDelta >= 3 || trustDelta >= 3;
+
+  if (trouble) {
+    return {
+      title: "File protected exit",
+      body: "Cupid files one final read while the room is still legible.",
+      consequence:
+        "A protected exit can soften a bad room. If the transcript already crossed a line, Cupid still lets the final read name it.",
+      ctaLabel: "File exit",
+    };
+  }
+
+  if (warm) {
+    return {
+      title: "File promising read",
+      body: "Cupid files one final read before a warm thread gets overworked.",
+      consequence:
+        "A clean early filing can preserve momentum. If someone feels interrupted, the final read will say so.",
+      ctaLabel: "File promise",
+    };
+  }
+
+  return {
+    title: "File the date",
+    body: "Cupid files one final read from the evidence on screen.",
+    consequence:
+      "A protected exit can soften a bad room. An interrupted warm room can still sting. Cupid lets the final read decide which filing cabinet gets louder.",
+    ctaLabel: "File date",
   };
 }
 
@@ -462,6 +524,7 @@ function DirectorSlate({
   interventionSlotAvailable,
   dropsEnabled,
   cutShortStatus,
+  leadAskStatus,
   pendingDateAction,
 }: {
   isPaused: boolean;
@@ -469,6 +532,7 @@ function DirectorSlate({
   interventionSlotAvailable: boolean;
   dropsEnabled: boolean;
   cutShortStatus: CutShortStatus;
+  leadAskStatus: LeadAskStatus | null;
   pendingDateAction: PendingDateAction | null;
 }) {
   if (pauseRequested) {
@@ -504,13 +568,19 @@ function DirectorSlate({
           </span>
         </span>
         <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
+        {leadAskStatus !== null ? (
+          <>
+            <LeadAskSlateChip status={leadAskStatus} />
+            <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
+          </>
+        ) : null}
         <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
           <SlateActionChip kind="whisper" enabled={interventionSlotAvailable} label="Whisper" />
           <SlateActionChip kind="scene" enabled={dropsEnabled} label="Drop scene" />
           <SlateActionChip
             kind="cut"
             enabled={cutShortStatus.enabled}
-            label="Cut short"
+            label="File date"
             progress={cutShortStatus.chipProgress}
           />
           <SlateActionChip kind="advance" enabled label="Advance beat" />
@@ -522,7 +592,7 @@ function DirectorSlate({
   const rollingCopy =
     pendingDateAction === "advanceExchange"
       ? "Date in motion · pause to direct"
-      : "Autoplay rolling · pause to direct";
+      : "Autoplay rolling · pauses at reads";
 
   return (
     <div
@@ -539,6 +609,27 @@ function DirectorSlate({
         {rollingCopy}
       </span>
     </div>
+  );
+}
+
+function LeadAskSlateChip({ status }: { status: LeadAskStatus }) {
+  const tone =
+    status.kind === "covered"
+      ? "border-aura-emerald/35 bg-aura-emerald/10 text-aura-emerald"
+      : status.kind === "raised"
+        ? "border-aura-amber/45 bg-aura-amber/10 text-aura-amber"
+        : status.kind === "drifting"
+          ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
+          : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
+
+  return (
+    <span
+      title={status.detail}
+      className={`inline-flex max-w-[22rem] items-center gap-1.5 truncate rounded-pill border px-2 py-0.5 font-mono text-label font-semibold uppercase tracking-[0.16em] ${tone}`}
+    >
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+      <span className="truncate">{status.label}</span>
+    </span>
   );
 }
 
@@ -654,21 +745,15 @@ function TransportCluster({
     <div ref={containerRef} className="flex shrink-0 items-center gap-1.5">
       {isPaused && !pauseRequested ? (
         <>
-          <Tooltip
-            message={cutShortStatus.tooltipMessage}
-            placement="top-center"
-            messageClassName={cutShortStatus.enabled ? "text-aura-violet" : "text-aura-muted"}
+          <TransportButton
+            kind="cut"
+            disabled={!cutShortStatus.enabled || cutShortBusy}
+            onClick={onCutShort}
+            ariaLabel={cutShortStatus.buttonAriaLabel}
+            buttonRef={cutButtonRef}
           >
-            <TransportButton
-              kind="cut"
-              disabled={!cutShortStatus.enabled || cutShortBusy}
-              onClick={onCutShort}
-              ariaLabel={cutShortStatus.buttonAriaLabel}
-              buttonRef={cutButtonRef}
-            >
-              <CutShortIcon />
-            </TransportButton>
-          </Tooltip>
+            <CutShortIcon />
+          </TransportButton>
           <TransportButton
             kind="ghost"
             disabled={!canAdvance}

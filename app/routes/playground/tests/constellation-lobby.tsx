@@ -100,7 +100,6 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
           isActionPending={false}
           bookingLocked={activeShift.activeBooking !== undefined}
           aiReady={true}
-          readyClosurePairCount={readyClosurePairs.length}
           readyClosurePairs={readyClosurePairs}
           readyClosurePairIds={readyClosurePairIds}
           readyClosureMemberIds={readyClosureMemberIds}

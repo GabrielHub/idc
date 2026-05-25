@@ -259,8 +259,7 @@ export function AiPromptLabTest() {
     const nextBase = {
       provider,
       model: defaults.chatModel,
-      reasoningLevel:
-        mode === "memberChat" && provider === "gateway" ? "none" : defaults.reasoningLevel,
+      reasoningLevel: defaults.reasoningLevel,
     };
 
     if (mode === "dateConversation") {

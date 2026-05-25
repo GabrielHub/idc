@@ -33,6 +33,7 @@ export function LobbyCanvasLayer({
   currentLayer,
   onLayerChange,
   layerNavigationMode,
+  flythroughLayers,
   cathedralScrollRef,
   focusedIds,
   offTonightSet,
@@ -46,7 +47,6 @@ export function LobbyCanvasLayer({
   onArchivePairSelect,
   onPointerMissed,
   disableScrollLayerNav = false,
-  planningPairs,
 }: {
   lobbyState: LobbyState;
   stars: StarMark[];
@@ -61,6 +61,7 @@ export function LobbyCanvasLayer({
   currentLayer: FlythroughLayer;
   onLayerChange: (layer: FlythroughLayer) => void;
   layerNavigationMode?: LayerNavigationMode;
+  flythroughLayers?: readonly FlythroughLayer[];
   cathedralScrollRef?: RefObject<HTMLDivElement | null>;
   focusedIds: ReadonlySet<string>;
   offTonightSet: ReadonlySet<string>;
@@ -91,16 +92,6 @@ export function LobbyCanvasLayer({
    * through the HUD layer, so layer navigation still works.
    */
   disableScrollLayerNav?: boolean;
-  /**
-   * Persisted pair edges. Scene renders these as faint constellation lines
-   * in tonight (planning) view so the player can see relationships at a
-   * glance without flipping to the archive.
-   */
-  planningPairs?: ReadonlyArray<{
-    pairId: string;
-    participantIds: readonly [string, string];
-    health: number;
-  }>;
 }) {
   return (
     <div className="absolute inset-0">
@@ -132,6 +123,7 @@ export function LobbyCanvasLayer({
             currentLayer={currentLayer}
             onLayerChange={disableScrollLayerNav ? undefined : onLayerChange}
             layerNavigationMode={layerNavigationMode}
+            flythroughLayers={flythroughLayers}
             cathedralScrollRef={cathedralScrollRef}
             focusedIds={focusedIds}
             offTonightSet={offTonightSet}
@@ -149,7 +141,6 @@ export function LobbyCanvasLayer({
                 ),
               } satisfies SceneArchiveProps
             }
-            planningPairs={planningPairs}
           />
         </Suspense>
       </Canvas>

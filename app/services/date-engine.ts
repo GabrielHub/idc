@@ -2,6 +2,7 @@ import {
   activeDateBookingSchema,
   dateFinalReportSchema,
   dateSessionSchema,
+  DEFAULT_DATE_MESSAGE_LIMIT,
   gameSaveSchema,
   judgeSnapshotSchema,
   memoryRecordSchema,
@@ -148,7 +149,7 @@ export type DateEngineResult = {
   session: DateSession;
 };
 
-const CHARACTER_TURN_LIMIT = 24;
+const CHARACTER_TURN_LIMIT = DEFAULT_DATE_MESSAGE_LIMIT;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
 export const JUDGE_TURN_INTERVAL = 6;
 export const MAX_NUDGES_PER_DATE = 3;
@@ -541,7 +542,7 @@ export function canCutDateShort(session: DateSession): boolean {
   return session.judgeSnapshots.length >= MIN_JUDGE_READS_BEFORE_CUT_SHORT;
 }
 
-const CUT_SHORT_SYSTEM_MESSAGE_TEXT = "Cupid cut the date short and filed one final read.";
+const CUT_SHORT_SYSTEM_MESSAGE_TEXT = "Cupid filed the date early and added one final read.";
 
 export function createCutShortSystemMessage(session: DateSession, createdAt: string): DateMessage {
   return {
@@ -1152,7 +1153,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     nextStatus,
     isEndingEarly,
   });
-  const nextPlaybackState = nextStatus === "active" ? session.playbackState : "ended";
+  const nextPlaybackState = nextStatus === "active" ? "paused" : "ended";
   const privateStateByCharacter = applyJudgeToPrivateDateState(
     session,
     judgeSnapshot,
@@ -2431,7 +2432,7 @@ export function createCutShortMemberMemoryRecords(
     const partner = members.find((candidate) => candidate.id !== member.id);
     const moodDelta = finalJudge?.memberMoodDeltas[member.id] ?? 0;
     const reaction = formatCutShortPrivateReaction(moodDelta);
-    const text = `${member.name} privately remembers ${scenario.title} as a date Cupid cut short with ${partner?.name ?? "their date partner"}. The final read filed their reaction as ${reaction}.`;
+    const text = `${member.name} privately remembers ${scenario.title} as a date Cupid filed early with ${partner?.name ?? "their date partner"}. The final read filed their reaction as ${reaction}.`;
     const embedding = createDeterministicEmbedding(text);
 
     return memoryRecordSchema.parse({
@@ -2959,7 +2960,7 @@ function scoreGoal(goalId: string, metrics: Record<GoalMetric, number>): ShiftGo
     status: met ? "met" : "missed",
     progress,
     target: goal.target,
-    summary: met ? `${goal.title}: met.` : `${goal.title}: missed.`,
+    summary: goal.title,
   };
 }
 
@@ -3125,16 +3126,17 @@ function buildShiftSummary({
   skipped: boolean;
   leadOutcome: ShiftRequestAskOutcome | undefined;
 }): string {
+  const moodLabel = `Member Mood ${memberMoodDelta > 0 ? `+${memberMoodDelta}` : memberMoodDelta}.`;
   if (skipped) {
     const leadLine =
       leadOutcome === "ignored"
         ? "Lead ask sat; mood penalty applied."
         : "No lead ask penalty applied.";
-    return `Roster skipped. ${leadLine} Member Mood delta ${memberMoodDelta}. Filing.`;
+    return `Roster skipped. ${leadLine} ${moodLabel}`;
   }
 
   const completedLabel = completedDates === 1 ? "date" : "dates";
-  return `${completedDates} ${completedLabel} completed. ${earlyEndedDates} ended early. Member Mood delta ${memberMoodDelta}. Filing.`;
+  return `${completedDates} ${completedLabel} completed, ${earlyEndedDates} ended early. ${moodLabel}`;
 }
 
 const OUTCOME_RANK: Record<DateFinalReport["outcome"], number> = {
@@ -3318,15 +3320,15 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
 
 function finalReportStatusLine(session: DateSession, outcome: DateFinalReport["outcome"]): string {
   if (session.endReason === "player_cut_short" && outcome === "second_date") {
-    return "Cupid cut the room short on a warm read and filed it as efficient.";
+    return "Cupid filed the room early on a warm read and marked it efficient.";
   }
 
   if (session.endReason === "player_cut_short" && outcome === "early_end") {
-    return "Cupid cut the room short after the file turned loud. Standard cleanup is on schedule.";
+    return "Cupid filed the room early after the file turned loud. Standard cleanup is on schedule.";
   }
 
   if (session.endReason === "player_cut_short") {
-    return "Cupid cut the room short and filed the consequence on the final read.";
+    return "Cupid filed the room early and logged the consequence on the final read.";
   }
 
   if (session.status === "ended_early" && session.endSentiment === "positive") {
@@ -3526,11 +3528,11 @@ function formatOutcomeForMemory(outcome: DateFinalReport["outcome"] | undefined)
 
 function privateDateMemoryLabel(session: DateSession): string {
   if (session.endReason === "player_cut_short" && session.finalReport?.outcome === "second_date") {
-    return "a date Cupid cut short on a warm read";
+    return "a date Cupid filed early on a warm read";
   }
 
   if (session.endReason === "player_cut_short") {
-    return "a date Cupid cut short after a final read";
+    return "a date Cupid filed early after a final read";
   }
 
   if (session.status === "ended_early") {

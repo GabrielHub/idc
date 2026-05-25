@@ -447,11 +447,13 @@ describe("advanceFlythroughLayer", () => {
   it("advances one layer per call when scrolling deeper", () => {
     expect(advanceFlythroughLayer(0, 1)).toBe(1);
     expect(advanceFlythroughLayer(1, 1)).toBe(2);
-    expect(advanceFlythroughLayer(2, 1)).toBe(3);
+    expect(advanceFlythroughLayer(2, 1)).toBe(4);
+    expect(advanceFlythroughLayer(4, 1)).toBe(3);
   });
 
   it("reverses one layer per call when scrolling back out", () => {
-    expect(advanceFlythroughLayer(3, -1)).toBe(2);
+    expect(advanceFlythroughLayer(3, -1)).toBe(4);
+    expect(advanceFlythroughLayer(4, -1)).toBe(2);
     expect(advanceFlythroughLayer(2, -1)).toBe(1);
     expect(advanceFlythroughLayer(1, -1)).toBe(0);
   });

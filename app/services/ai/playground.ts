@@ -213,7 +213,7 @@ export const DEFAULT_MEMBER_CHAT_SETTINGS = {
   action: "generate",
   provider: "gateway",
   model: modelDefaultsForProvider("gateway").chatModel,
-  reasoningLevel: "none",
+  reasoningLevel: modelDefaultsForProvider("gateway").reasoningLevel,
   temperature: 0.8,
   topP: 0.95,
   topK: 64,
@@ -1288,7 +1288,7 @@ function buildPlaygroundSession({
       input.includeCurrentAsk && speaker.state.currentRequestId !== undefined
         ? speaker.state.currentRequestId
         : undefined,
-    turnLimit: 24,
+    turnLimit: 12,
     currentTurn,
     dateHealth,
     status: "active",

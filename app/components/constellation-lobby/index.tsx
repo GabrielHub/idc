@@ -21,6 +21,7 @@ import { IntentRail } from "./intent-rail";
 import { LobbyCanvasLayer } from "./lobby-canvas-layer";
 import { LobbyHudLayer } from "./lobby-hud-layer";
 import { dateBookEditingUnlocked } from "../../services/deck";
+import { derivePairArchiveGraph } from "../../services/pair-archive-graph";
 import { makePairId } from "../../services/game-seed";
 import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
@@ -29,7 +30,6 @@ import {
 import { hasAnyFiledShift } from "../../services/shift-planning";
 import { pickHeaviestAxisLevel } from "./deck-composition";
 import { buildLobbyStars } from "./star-model";
-import { useArchiveMode } from "./use-archive-mode";
 import { useArchiveView } from "./use-archive-view";
 import { useCathedralModel } from "./use-cathedral-model";
 import { useCaseFileAction } from "./use-case-file-action";
@@ -47,12 +47,17 @@ import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import {
+  FLYTHROUGH_LAYERS,
+  OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER,
+  PAIR_GRAPH_FLYTHROUGH_LAYER,
   SCENARIO_FLYTHROUGH_LAYER,
   flythroughLayerForRosterSubview,
   rosterSubviewForFlythroughLayer,
+  type ArchiveSelection,
   type FlythroughLayer,
   type RosterSubview,
   type StarMark,
+  type ViewMode,
 } from "./types";
 import { CathedralPanel } from "./cathedral";
 import { EMPTY_READY_CLOSURE_IDS, type ConstellationLobbyProps } from "./props";
@@ -245,14 +250,32 @@ export function ConstellationLobby({
     setScenarioMode,
   } = useDateBookState({ scenarioMode, dispatch, isOverlayOpen, disabled: bookingLocked });
 
-  // Archive view: stars re-flow into a pair-graph layout and constellation
-  // edges etch between paired stars. Orthogonal to LobbyState — the player
-  // can flip in/out of archive regardless of focus/partner selection. The
-  // hook owns the viewMode + selection state and the "tonight clears the
-  // archive selection" effect; the no-edges exit-guard lives below because
-  // it depends on derived archive data.
-  const { viewMode, archiveSelection, setArchiveSelection, toggleArchive, clearArchiveSelection } =
-    useArchiveMode();
+  const archivePairCount = useMemo(
+    () =>
+      derivePairArchiveGraph(save.members, save.pairStates, save.memories, { minDegree: 1 }).edges
+        .length,
+    [save.members, save.pairStates, save.memories],
+  );
+  const flythroughLayers = useMemo(
+    () =>
+      archivePairCount > 0
+        ? FLYTHROUGH_LAYERS
+        : FLYTHROUGH_LAYERS.filter((layer) => layer !== PAIR_GRAPH_FLYTHROUGH_LAYER),
+    [archivePairCount],
+  );
+  const viewMode: ViewMode =
+    archivePairCount > 0 && currentLayer === PAIR_GRAPH_FLYTHROUGH_LAYER ? "archive" : "tonight";
+  const [archiveSelection, setArchiveSelection] = useState<ArchiveSelection>(null);
+  const clearArchiveSelection = useCallback(() => setArchiveSelection(null), []);
+  const handleToggleArchiveLayer = useCallback(() => {
+    const layer =
+      viewMode === "archive"
+        ? layerNavigationMode === "planning"
+          ? OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER
+          : SCENARIO_FLYTHROUGH_LAYER
+        : PAIR_GRAPH_FLYTHROUGH_LAYER;
+    dispatch({ type: "selectLayer", layer, navigationMode: layerNavigationMode });
+  }, [dispatch, layerNavigationMode, viewMode]);
 
   const { archivePositions, archiveEdges, archiveIsolation, cameraTarget, incidentEdgesByNode } =
     useArchiveView({
@@ -263,32 +286,24 @@ export function ConstellationLobby({
       focusStar,
     });
 
-  // The Pairs pill is hidden when no filed-note pairs exist. If the player is
-  // somehow in archive view as that count drops to zero (e.g. last note edited
-  // out), kick them back to tonight so they don't get stranded with no way
-  // out.
-  const hasArchiveEdges = archiveEdges.length > 0;
+  // Pair graph is a flythrough layer. If the underlying notes disappear while
+  // the player is on it, return to the nearest planning layer so they are not
+  // stranded on an empty graph.
   useEffect(() => {
-    if (viewMode === "archive" && !hasArchiveEdges) {
-      // useArchiveMode exposes `toggleArchive` but no direct setter — calling
-      // it flips the mode regardless of current state. Guarded by the if so
-      // this only fires while we're actually stuck in archive.
-      toggleArchive();
+    if (currentLayer === PAIR_GRAPH_FLYTHROUGH_LAYER && archivePairCount === 0) {
+      dispatch({
+        type: "selectLayer",
+        layer:
+          layerNavigationMode === "planning"
+            ? OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER
+            : SCENARIO_FLYTHROUGH_LAYER,
+        navigationMode: layerNavigationMode,
+      });
     }
-  }, [viewMode, hasArchiveEdges, toggleArchive]);
-
-  // Planning-view pair edges: faint constellation lines between every
-  // persisted pair (note-filed or not) so the player sees relationships at
-  // a glance without flipping to the Records archive.
-  const planningPairs = useMemo(
-    () =>
-      save.pairStates.map((pair) => ({
-        pairId: pair.id,
-        participantIds: pair.participantIds,
-        health: pair.stats.relationshipHealth,
-      })),
-    [save.pairStates],
-  );
+  }, [archivePairCount, currentLayer, dispatch, layerNavigationMode]);
+  useEffect(() => {
+    if (viewMode === "tonight") setArchiveSelection(null);
+  }, [viewMode]);
 
   const {
     effectiveCosts,
@@ -785,6 +800,7 @@ export function ConstellationLobby({
         currentLayer={currentLayer}
         onLayerChange={handleLayerSelect}
         layerNavigationMode={layerNavigationMode}
+        flythroughLayers={flythroughLayers}
         cathedralScrollRef={cathedralScrollRef}
         focusedIds={focusedSet}
         offTonightSet={offTonightIds}
@@ -803,13 +819,13 @@ export function ConstellationLobby({
           closeDateBook();
         }}
         disableScrollLayerNav={disableScrollLayerNav || dateBookOpen}
-        planningPairs={planningPairs}
       />
       {!dateBookOpen ? (
         <LobbyHudLayer
           chromeSlot={chromeSlot?.()}
           viewMode={viewMode}
           currentLayer={currentLayer}
+          flythroughLayers={flythroughLayers}
           refs={{
             layerIndicatorRef,
             layerFocusRef,
@@ -840,7 +856,7 @@ export function ConstellationLobby({
           rosterSubview={rosterSubview}
           filterState={filterState}
           canReselect={onReselectFocus !== undefined}
-          archiveEdgeCount={archiveEdges.length}
+          archiveEdgeCount={archivePairCount}
           fileShiftBlockedReason={fileShiftBlockedReason}
           archiveSelectionActive={archiveSelection !== null}
           hasFiledShift={hasAnyFiledShift(save)}
@@ -858,7 +874,7 @@ export function ConstellationLobby({
           onOpenLens={() => setIsLensOpen(true)}
           onToggleReselect={handleToggleReselect}
           onRosterSubviewChange={handleRosterSubviewChange}
-          onToggleArchive={toggleArchive}
+          onToggleArchive={handleToggleArchiveLayer}
           onClearArchiveSelection={archiveSelection === null ? undefined : clearArchiveSelection}
         />
       ) : null}

@@ -6,12 +6,14 @@ import type {
   Member,
   PlayerKnowledgeRecord,
 } from "../domain/game";
+import { memberRequests } from "../fixtures";
 import {
   exchangeIndexForTurn,
   formatCupidInterventionText,
   isCutShortSystemMessage,
 } from "../services/date-engine";
 import { collectRecentSpeakerLines, hasNearDuplicateRecentLine } from "../services/date-prompts";
+import { classifyFocusAskOutcomeFromSession } from "../services/shift-request-assessment";
 import type { ReactionIntensity, ReactionKind, ReactionSignal } from "./date-reactions";
 
 export type StreamingDraftMessage = {
@@ -40,6 +42,68 @@ export type TranscriptItem = {
 const STREAMING_ECHO_GUARD_COUNT = 3;
 const STREAMING_ECHO_PREFIX_MIN_LENGTH = 8;
 const STREAMING_ECHO_JACCARD_THRESHOLD = 0.6;
+
+export type LeadAskStatusKind = "waiting" | "drifting" | "covered" | "raised";
+
+export type LeadAskStatus = {
+  kind: LeadAskStatusKind;
+  label: string;
+  detail: string;
+  requestText: string;
+};
+
+export function buildLeadAskStatus(
+  session: DateSession,
+  members: readonly Member[],
+): LeadAskStatus | null {
+  const requestId = session.focusRequestId;
+  if (requestId === undefined) {
+    return null;
+  }
+
+  const request = memberRequests.find((candidate) => candidate.id === requestId);
+  if (request === undefined) {
+    return null;
+  }
+
+  const memberName =
+    members.find((member) => member.id === request.memberId)?.firstName ?? "Focus case";
+
+  if (session.judgeSnapshots.length === 0) {
+    return {
+      kind: "waiting",
+      label: "lead ask waiting",
+      detail: `${memberName}: ${request.text}`,
+      requestText: request.text,
+    };
+  }
+
+  const outcome = classifyFocusAskOutcomeFromSession(session, request.memberId, request.id);
+  if (outcome === "covered") {
+    return {
+      kind: "covered",
+      label: "lead ask covered",
+      detail: `${memberName}: ${request.text}`,
+      requestText: request.text,
+    };
+  }
+
+  if (outcome === "raised") {
+    return {
+      kind: "raised",
+      label: "room blocked ask",
+      detail: `${memberName}: ${request.text}`,
+      requestText: request.text,
+    };
+  }
+
+  return {
+    kind: "drifting",
+    label: "lead ask drifting",
+    detail: `${memberName}: ${request.text}`,
+    requestText: request.text,
+  };
+}
 
 export function buildTranscriptItems(
   session: DateSession,
@@ -293,13 +357,32 @@ export function buildReactionSignals(
   return signals;
 }
 
-export function buildNudgeSuggestions(judgeSnapshots: readonly JudgeSnapshot[]): string[] {
+export function buildNudgeSuggestions(
+  judgeSnapshots: readonly JudgeSnapshot[],
+  leadAskStatus: LeadAskStatus | null = null,
+): string[] {
   const latestJudge = judgeSnapshots.at(-1);
   const baseSuggestions = [
     "Share something they don't know about you yet.",
     "Tell them about a favorite song or movie.",
     "Ask one specific follow-up before changing topic.",
   ];
+
+  if (leadAskStatus?.kind === "drifting") {
+    return [
+      "Return to the lead ask with one direct question.",
+      "Ask one specific follow-up before changing topic.",
+      "Ground the room in a practical choice both people can answer.",
+    ];
+  }
+
+  if (leadAskStatus?.kind === "raised") {
+    return [
+      "Name the room problem and offer a smaller way in.",
+      "Ask one specific follow-up before changing topic.",
+      "Let the partner choose the next small plan.",
+    ];
+  }
 
   if (latestJudge === undefined) {
     return baseSuggestions;

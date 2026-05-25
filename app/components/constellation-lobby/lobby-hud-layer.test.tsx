@@ -84,6 +84,18 @@ describe("LobbyHudLayer Records pill gating", () => {
 
     expect(html).toContain("Open records");
   });
+
+  it("shows the Records pill when pair graph records exist before shift filing", () => {
+    const html = renderHud({
+      aiReady: true,
+      lobbyState: "partner_selected",
+      hasFiledShift: false,
+      archiveEdgeCount: 1,
+      viewMode: "tonight",
+    });
+
+    expect(html).toContain("Open records");
+  });
 });
 
 function renderHud({
@@ -92,6 +104,7 @@ function renderHud({
   lobbyState,
   selectedScenarioId = null,
   hasFiledShift = false,
+  archiveEdgeCount = 0,
   viewMode = "archive",
 }: {
   aiReady: boolean;
@@ -99,6 +112,7 @@ function renderHud({
   lobbyState: LobbyState;
   selectedScenarioId?: string | null;
   hasFiledShift?: boolean;
+  archiveEdgeCount?: number;
   viewMode?: "archive" | "tonight";
 }): string {
   const currentLayer: FlythroughLayer = 1;
@@ -135,7 +149,7 @@ function renderHud({
       rosterSubview="eligibles"
       filterState={DEFAULT_MEMBER_ROSTER_FILTER_STATE}
       canReselect={false}
-      archiveEdgeCount={0}
+      archiveEdgeCount={archiveEdgeCount}
       archiveSelectionActive={false}
       hasFiledShift={hasFiledShift}
       onLayerSelect={() => undefined}

@@ -18,6 +18,7 @@ import {
 import type { AiGenerationOptions, AiRuntimeConfig, GeneratedTextResult } from "./model-service";
 import { SAVE_SCHEMA_VERSION } from "../../domain/game";
 import { PLAYGROUND_SEED_PACKS } from "./playground-seeds";
+import { modelDefaultsForProvider } from "./model-catalog";
 
 type DatePlaygroundRuntimeInput = Parameters<
   DatePlaygroundGenerationRuntime["generateCharacterTurn"]
@@ -179,6 +180,30 @@ describe("member chat playground retry pipeline", () => {
       retryReason: "markup",
     },
   ];
+
+  it("defaults Gateway member chat to the catalog reasoning level", () => {
+    expect(DEFAULT_MEMBER_CHAT_SETTINGS.provider).toBe("gateway");
+    expect(DEFAULT_MEMBER_CHAT_SETTINGS.model).toBe(modelDefaultsForProvider("gateway").chatModel);
+    expect(DEFAULT_MEMBER_CHAT_SETTINGS.reasoningLevel).toBe(
+      modelDefaultsForProvider("gateway").reasoningLevel,
+    );
+  });
+
+  it("passes Gateway DeepSeek reasoning through to member chat generation", async () => {
+    const runtime = new QueuedMemberChatRuntime([cleanReply]);
+
+    await runPlaygroundMemberChat(DEFAULT_MEMBER_CHAT_SETTINGS, runtime);
+
+    expect(runtime.calls).toHaveLength(1);
+    expect(runtime.calls[0]?.config).toMatchObject({
+      aiProvider: "gateway",
+      chatModel: "deepseek/deepseek-v4-flash",
+      reasoningLevel: "high",
+    });
+    expect(runtime.calls[0]?.options).not.toMatchObject({
+      deepseekRoleplayThinking: false,
+    });
+  });
 
   for (const retryCase of retryCases) {
     it(`recovers from ${retryCase.name} replies on retry`, async () => {

@@ -275,7 +275,7 @@ export const sections: DocSectionEntry[] = [
             items={[
               <span key="open">
                 Lead with a single tag to set the mood for the whole line:{" "}
-                <DocCode>{`[tired] Cut short. Could be efficiency, could be a bailout.`}</DocCode>
+                <DocCode>{`[tired] Filed early. Could be efficiency, could be a bailout.`}</DocCode>
               </span>,
               <span key="inline">
                 Drop a second tag inline only when the line pivots. Two tags is the comfortable

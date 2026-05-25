@@ -25,7 +25,7 @@ import {
 export { buildDiagnosticsSnapshot };
 export type { DiagnosticsSnapshot };
 
-export type ChromeVariant = "cream" | "glass";
+export type ChromeVariant = "cream" | "glass" | "glass-ink";
 
 export function MutedIndicator({ variant = "cream" }: { variant?: ChromeVariant } = {}) {
   const { isEnabled, setEnabled } = useSfx();
@@ -35,7 +35,7 @@ export function MutedIndicator({ variant = "cream" }: { variant?: ChromeVariant 
   }
 
   const surfaceClass =
-    variant === "glass"
+    variant === "glass" || variant === "glass-ink"
       ? "aura-liquid-glass aura-liquid-glass-hover text-aura-rose"
       : "border border-aura-hairline bg-white text-aura-rose hover:border-aura-rose/30";
 
@@ -64,8 +64,10 @@ export function AudioSettingsMenu({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
   const panelSurfaceClass =
-    variant === "glass" ? "aura-liquid-glass aura-liquid-glass-ink" : "aura-glass-strong";
-  const panelThemeAttr = variant === "glass" ? "dark" : undefined;
+    variant === "glass" || variant === "glass-ink"
+      ? "aura-liquid-glass aura-liquid-glass-ink"
+      : "aura-glass-strong";
+  const panelThemeAttr = variant === "glass" || variant === "glass-ink" ? "dark" : undefined;
 
   useEffect(() => {
     if (!isOpen) {
@@ -378,8 +380,10 @@ export function SettingsMenu({
     : "Settings";
   const popoverAlignmentClass = align === "left" ? "left-0" : "right-0";
   const panelSurfaceClass =
-    variant === "glass" ? "aura-liquid-glass aura-liquid-glass-ink" : "aura-glass-strong";
-  const panelThemeAttr = variant === "glass" ? "dark" : undefined;
+    variant === "glass" || variant === "glass-ink"
+      ? "aura-liquid-glass aura-liquid-glass-ink"
+      : "aura-glass-strong";
+  const panelThemeAttr = variant === "glass" || variant === "glass-ink" ? "dark" : undefined;
 
   return (
     <div ref={wrapperRef} className="relative">
@@ -529,7 +533,11 @@ function SettingsTriggerButton({
       ? `aura-liquid-glass aura-liquid-glass-hover text-aura-paper ${
           isOpen ? "aura-liquid-glass-rose" : ""
         }`
-      : "border border-aura-hairline bg-white text-aura-muted hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink";
+      : variant === "glass-ink"
+        ? `aura-liquid-glass aura-liquid-glass-hover text-aura-ink ${
+            isOpen ? "aura-liquid-glass-rose" : ""
+          }`
+        : "border border-aura-hairline bg-white text-aura-muted hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink";
 
   return (
     <button

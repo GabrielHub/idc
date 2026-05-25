@@ -977,13 +977,13 @@ export function buildJudgePromptPacket({
     ? [
         "",
         "<cut_short_rules>",
-        "Cupid, the player operator, chose to cut this date short now.",
+        "Cupid, the player operator, chose to file this date now.",
         "Treat the final System line as operator action, not a member action.",
-        "Judge the pending exchange and the interruption together.",
+        "Judge the pending exchange and the filing decision together.",
         "Recent character lines may already have Cupid filings. Use them as context for the exit, not as an excuse to double-file old moves.",
         "A pressured member may be relieved. A warmed member may be disappointed. Score each member mood separately.",
         "shouldEndEarly only means the transcript itself required a stop, even without the operator call.",
-        "playerSummary should mention the cut-short decision when it changes the read.",
+        "playerSummary should mention the file-date decision when it changes the read.",
         "</cut_short_rules>",
       ]
     : [];
@@ -1002,11 +1002,11 @@ export function buildJudgePromptPacket({
         "- statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, and spark. Each value must be an integer from -8 to 8. Do not set strain or relationshipHealth; Cupid derives them from the other pair stats.",
         `- memberMoodDeltas must include exactly these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         isPlayerCutShort
-          ? "- shouldEndEarly is true only when the transcript requires the date to stop even without Cupid cutting it short."
+          ? "- shouldEndEarly is true only when the transcript requires the date to stop even without Cupid filing it early."
           : "- shouldEndEarly is true only when the exchange requires the date to stop now.",
         "- Omit earlyEndReason unless shouldEndEarly is true.",
         isPlayerCutShort
-          ? '- endSentiment may be "positive", "negative", or null. Use it for the whole exit mood after Cupid cuts the date short, even when shouldEndEarly is false.'
+          ? '- endSentiment may be "positive", "negative", or null. Use it for the whole exit mood after Cupid files the date early, even when shouldEndEarly is false.'
           : '- endSentiment must be "positive" when the pair is leaving together (escalation, going home together, sealed connection), "negative" when they are storming out or shutting it down, or null when shouldEndEarly is false.',
         "- notableMoments must contain 1 to 3 short strings, each anchored in a concrete scene detail.",
         "- playerSummary must be one short Cupid corporate sentence. Name a concrete pair detail or move. Skip therapy-speak, consulting jargon, and AI slop.",
@@ -1076,7 +1076,7 @@ export function buildJudgePromptPacket({
         "<task>",
         `Current exchange index: ${currentExchangeIndex}.`,
         isPlayerCutShort
-          ? "Analyze this pending exchange and Cupid's cut-short decision while respecting prior filings and current deterministic state."
+          ? "Analyze this pending exchange and Cupid's file-date decision while respecting prior filings and current deterministic state."
           : "Analyze only this pending exchange while respecting prior filings and current deterministic state.",
         "</task>",
         "",
@@ -1187,7 +1187,7 @@ export function buildSummarizerPromptPacket({
       "- Store how the pair treated each other only when the transcript shows the move: who asked, refused, trusted, dodged, softened, or followed up.",
       ...(session.endReason === "player_cut_short"
         ? [
-            "- Cupid cut this date short. Include at least one memory that records the cut-short decision and any member reaction the final Cupid summary or transcript supports.",
+            "- Cupid filed this date early. Include at least one memory that records the filing decision and any member reaction the final Cupid summary or transcript supports.",
           ]
         : []),
       "- Drop obvious contradictions, one-off non sequiturs, hidden secrets stated as fact, future events, and gameplay effects unless deterministic state already confirmed them.",

@@ -8,6 +8,7 @@ import {
   SCENARIO_EVENT_KIND_CHIP_CLASS,
   SCENARIO_EVENT_KIND_COLUMN_META,
 } from "./date-view-draft-screen";
+import { sceneTacticalLabel } from "./date-view-gauges";
 import type { SfxCue } from "./sfx-provider";
 
 const NUDGE_MAX_CHARS = 240;
@@ -390,6 +391,7 @@ export function SceneConfirmModal({
   const meta = SCENARIO_EVENT_KIND_COLUMN_META[event.kind];
   const chipClass = SCENARIO_EVENT_KIND_CHIP_CLASS[event.kind];
   const slotLabel = pickIndex >= 0 ? `scene ${pad2(pickIndex + 1)} of 03` : "scene preview";
+  const tactic = sceneTacticalLabel(event);
 
   return (
     <ModalShell
@@ -430,6 +432,9 @@ export function SceneConfirmModal({
           >
             {meta.label}
           </span>
+          <span className="rounded-full border border-aura-hairline bg-white/65 px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-ink">
+            {tactic}
+          </span>
           <span className="text-label text-aura-muted">{meta.blurb}</span>
         </div>
         <h2 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink lg:text-display-md">
@@ -461,11 +466,13 @@ export function SceneConfirmModal({
 
 export function CutShortConfirmModal({
   participants,
+  copy,
   canCutShort,
   onConfirm,
   onClose,
 }: {
   participants: Member[];
+  copy: FileDateModalCopy;
   canCutShort: boolean;
   onConfirm: () => void;
   onClose: () => void;
@@ -501,14 +508,14 @@ export function CutShortConfirmModal({
 
   return (
     <ModalShell
-      ariaLabel="Cut the date short"
-      closeLabel="Close cut short confirmation"
+      ariaLabel="File the date"
+      closeLabel="Close file date confirmation"
       size="md"
       onClose={onClose}
       footer={
         <>
           <p className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint lg:whitespace-nowrap">
-            <span className="text-aura-muted">Enter</span> to cut ·{" "}
+            <span className="text-aura-muted">Enter</span> to file ·{" "}
             <span className="text-aura-muted">Esc</span> to close
           </p>
           <div className="flex shrink-0 items-center gap-3">
@@ -518,10 +525,10 @@ export function CutShortConfirmModal({
               data-sfx="primary"
               onClick={onConfirm}
               disabled={!canCutShort}
-              aria-label="Cut the date short"
+              aria-label={copy.ctaLabel}
               className={MODAL_PRIMARY_CTA_CLASS}
             >
-              <span>Cut short</span>
+              <span>{copy.ctaLabel}</span>
               <CutShortIcon />
             </button>
           </div>
@@ -531,24 +538,28 @@ export function CutShortConfirmModal({
       <header className="flex flex-col gap-3">
         <Eyebrow>{"// operator.exit"}</Eyebrow>
         <h2 className="font-display text-display-sm font-semibold tracking-tight text-aura-ink lg:text-display-md">
-          Cut the room short
+          {copy.title}
         </h2>
         <p className="aura-accent text-lead text-aura-muted">
-          Cupid files one final read from the evidence on screen. The date resolves now, unused
-          scenes stay unused, and {participantLine} enter cooldown.
+          {copy.body} The date resolves now, unused scenes stay unused, and {participantLine} enter
+          cooldown.
         </p>
       </header>
 
       <section className="flex flex-col gap-3 rounded-chip border border-aura-amber/35 bg-aura-amber/10 px-4 py-3">
         <Eyebrow>{"// consequence"}</Eyebrow>
-        <p className="text-body leading-relaxed text-aura-ink/85">
-          A protected exit can soften a bad room. An interrupted warm room can still sting. Cupid
-          lets the final read decide which filing cabinet gets louder.
-        </p>
+        <p className="text-body leading-relaxed text-aura-ink/85">{copy.consequence}</p>
       </section>
     </ModalShell>
   );
 }
+
+export type FileDateModalCopy = {
+  title: string;
+  body: string;
+  consequence: string;
+  ctaLabel: string;
+};
 
 function suggestionLabel(suggestion: string): string {
   if (suggestion.includes("Share something")) {
@@ -573,6 +584,14 @@ function suggestionLabel(suggestion: string): string {
 
   if (suggestion.includes("small plan")) {
     return "Hand the wheel";
+  }
+
+  if (suggestion.includes("lead ask")) {
+    return "Return to ask";
+  }
+
+  if (suggestion.includes("room problem")) {
+    return "Shrink room";
   }
 
   return "Ground it";

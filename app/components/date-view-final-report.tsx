@@ -85,6 +85,7 @@ export function FinalReportFooter({
   save,
   onTutorialUpdate,
   onFollowUp,
+  onBack,
 }: {
   report: DateFinalReport;
   session: DateSession;
@@ -93,11 +94,12 @@ export function FinalReportFooter({
   save: GameSave;
   onTutorialUpdate: (next: GameSave) => void;
   onFollowUp: (action: FollowUpAction) => void;
+  onBack: () => void;
 }) {
   const sentimentBadge = describeEndSentiment(session);
   const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
   const filed = report.appliedFollowUp;
-  const followUpSectionRef = useRef<HTMLElement | null>(null);
+  const actionColumnRef = useRef<HTMLElement | null>(null);
   const focusMember =
     session.focusMemberId === undefined
       ? null
@@ -118,38 +120,37 @@ export function FinalReportFooter({
       className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
     >
       <div className="relative mx-auto w-full max-w-5xl">
-        <div className="aura-liquid-glass pointer-events-auto grid w-full gap-4 rounded-card px-4 py-4 text-aura-ink lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-5 lg:px-6 lg:py-5">
-          <FinalReportSummarySection
-            report={report}
-            sentimentBadge={sentimentBadge}
-            focusMember={focusMember}
-          />
-          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
-          <FinalReportReadsSection reads={revealedThisDate} />
-          <span aria-hidden className="hidden w-px self-stretch bg-aura-hairline/70 lg:block" />
-          <FinalReportFollowUpSection
-            recommended={report.recommendedFollowUp}
-            filed={filed}
-            isActionPending={isActionPending}
-            sectionRef={followUpSectionRef}
-            onFollowUp={(action) => {
-              if (followUpStep.active) followUpStep.complete();
-              onFollowUp(action);
-            }}
-          />
+        <div className="aura-liquid-glass pointer-events-auto flex w-full flex-col gap-3 rounded-card px-4 py-4 text-aura-ink lg:gap-4 lg:px-6 lg:py-5">
+          <FinalReportHeaderRow sentimentBadge={sentimentBadge} />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:gap-6">
+            <FinalReportSummarySection report={report} focusMember={focusMember} />
+            <FinalReportActionColumn
+              sectionRef={actionColumnRef}
+              recommended={report.recommendedFollowUp}
+              filed={filed}
+              isActionPending={isActionPending}
+              onFollowUp={(action) => {
+                if (followUpStep.active) followUpStep.complete();
+                onFollowUp(action);
+              }}
+              onBack={onBack}
+            />
+          </div>
+          {revealedThisDate.length === 0 ? null : <FinalReportReadsRow reads={revealedThisDate} />}
         </div>
       </div>
 
       {followUpStep.active ? (
         <>
-          <TutorialSpotlight target={followUpSectionRef} />
+          <TutorialSpotlight target={actionColumnRef} />
           <TutorialCoachMark
-            target={followUpSectionRef}
+            target={actionColumnRef}
             placement="top"
             title="File one follow-up"
             body="Encourage if the file ran warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs distance. Let It Sit if nothing fits, but the shift won't close until every date has one on file."
             dismissLabel="Skip tour"
             onDismiss={followUpStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}
@@ -157,13 +158,25 @@ export function FinalReportFooter({
   );
 }
 
+function FinalReportHeaderRow({ sentimentBadge }: { sentimentBadge: EndSentimentBadge }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Eyebrow>// final report</Eyebrow>
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${sentimentBadge.tone}`}
+      >
+        <span aria-hidden className={`size-1.5 rounded-full ${sentimentBadge.dot}`} />
+        {sentimentBadge.label}
+      </span>
+    </div>
+  );
+}
+
 function FinalReportSummarySection({
   report,
-  sentimentBadge,
   focusMember,
 }: {
   report: DateFinalReport;
-  sentimentBadge: EndSentimentBadge;
   focusMember: Member | null;
 }) {
   const caseLead = focusMember?.state.recentDateResult;
@@ -173,66 +186,53 @@ function FinalReportSummarySection({
       : undefined;
   return (
     <section className="flex min-w-0 flex-col gap-2">
-      <div className="flex flex-wrap items-center gap-2">
-        <Eyebrow>// final report</Eyebrow>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-pill px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] ${sentimentBadge.tone}`}
-        >
-          <span aria-hidden className={`size-1.5 rounded-full ${sentimentBadge.dot}`} />
-          {sentimentBadge.label}
-        </span>
-      </div>
       {caseLead === undefined || caseLead.length === 0 ? null : (
-        <p className="text-label font-semibold leading-snug text-aura-ink">{caseLead}</p>
-      )}
-      {intentNote === undefined ? null : (
-        <p className="text-label leading-snug text-aura-ink/85">{intentNote}</p>
+        <p className="text-base font-semibold leading-snug text-aura-ink">{caseLead}</p>
       )}
       <p className="text-label leading-snug text-aura-ink/90">{report.summary}</p>
-      <p className="mt-1 text-sm leading-snug text-aura-muted">{report.statSummary}</p>
-    </section>
-  );
-}
-
-function FinalReportReadsSection({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
-  return (
-    <section className="flex min-w-0 flex-col gap-2">
-      <Eyebrow>// filed reads</Eyebrow>
-      {reads.length === 0 ? (
-        <p className="text-label text-aura-muted">
-          Cupid filed the exchange. Nothing new on this pair yet.
-        </p>
-      ) : (
-        <ul className="flex max-h-32 flex-col gap-1.5 overflow-y-auto pr-1">
-          {reads.map((read) => (
-            <li
-              key={read.id}
-              className="rounded-chip bg-white/55 px-2.5 py-1.5 ring-1 ring-aura-hairline"
-            >
-              <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
-                {readKindLabel(read)}
-              </p>
-              <p className="mt-0.5 text-label leading-snug text-aura-ink/85">{read.readText}</p>
-            </li>
-          ))}
-        </ul>
+      {intentNote === undefined ? null : (
+        <p className="text-sm italic leading-snug text-aura-muted">{intentNote}</p>
       )}
+      <p className="text-sm leading-snug text-aura-muted">{report.statSummary}</p>
     </section>
   );
 }
 
-function FinalReportFollowUpSection({
+function FinalReportReadsRow({ reads }: { reads: readonly PlayerKnowledgeRecord[] }) {
+  return (
+    <section className="flex min-w-0 flex-col gap-2 border-t border-aura-hairline/70 pt-3">
+      <Eyebrow>// filed reads</Eyebrow>
+      <ul className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+        {reads.map((read) => (
+          <li
+            key={read.id}
+            className="rounded-chip bg-white/55 px-2.5 py-1.5 ring-1 ring-aura-hairline"
+          >
+            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose">
+              {readKindLabel(read)}
+            </p>
+            <p className="mt-0.5 text-label leading-snug text-aura-ink/85">{read.readText}</p>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function FinalReportActionColumn({
+  sectionRef,
   recommended,
   filed,
   isActionPending,
-  sectionRef,
   onFollowUp,
+  onBack,
 }: {
+  sectionRef?: React.Ref<HTMLElement>;
   recommended: FollowUpAction;
   filed: FollowUpAction | undefined;
   isActionPending: boolean;
-  sectionRef?: React.Ref<HTMLElement>;
   onFollowUp: (action: FollowUpAction) => void;
+  onBack: () => void;
 }) {
   return (
     <section ref={sectionRef} className="flex min-w-0 flex-col gap-2">
@@ -260,7 +260,17 @@ function FinalReportFollowUpSection({
             />
           ))}
         </div>
-      ) : null}
+      ) : (
+        <button
+          type="button"
+          data-sfx="click"
+          onClick={onBack}
+          disabled={isActionPending}
+          className="aura-liquid-cta mt-auto w-full cursor-pointer rounded-pill px-5 py-3 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Return to dispatch
+        </button>
+      )}
     </section>
   );
 }

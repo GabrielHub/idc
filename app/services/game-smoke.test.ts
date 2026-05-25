@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   dateSessionSchema,
+  DEFAULT_DATE_MESSAGE_LIMIT,
   gameSaveSchema,
+  LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
 } from "../domain/game";
@@ -721,6 +723,22 @@ describe("IDC playable smoke path", () => {
     const result = hydrateFixtureOwnedMemberData(save);
 
     expect(result.save.shifts[0]?.availablePartnerMemberIds).toContain(oldPartnerId);
+  });
+
+  it("hydrates legacy date length defaults for existing saves", () => {
+    const seed = createSeedGameSave();
+    const save = gameSaveSchema.parse({
+      ...seed,
+      config: {
+        ...seed.config,
+        defaultDateMessageLimit: LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
+      },
+    });
+
+    const result = hydrateFixtureOwnedMemberData(save);
+
+    expect(result.dirty).toBe(true);
+    expect(result.save.config.defaultDateMessageLimit).toBe(DEFAULT_DATE_MESSAGE_LIMIT);
   });
 
   it("generates first-period discounts from selected onboarding focus cases", () => {

@@ -177,7 +177,7 @@ export function DraftScreen({
                         aria-pressed={selected}
                         disabled={isActionPending}
                         onClick={() => togglePick(event.id)}
-                        className={`aura-liquid-glass aura-liquid-glass-hover flex h-40 w-full flex-col gap-3 overflow-hidden rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                        className={`aura-liquid-glass aura-liquid-glass-hover flex min-h-40 w-full flex-col gap-3 rounded-card px-5 py-5 text-left transition disabled:cursor-not-allowed disabled:opacity-50 ${
                           selected
                             ? "aura-liquid-glass-rose cursor-pointer ring-2 ring-aura-rose/55 shadow-cta"
                             : "cursor-pointer shadow-card hover:ring-1 hover:ring-aura-violet/30"
@@ -227,6 +227,7 @@ export function DraftScreen({
             body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never plays them for you."
             dismissLabel="Skip tour"
             onDismiss={draftStep.dismiss}
+            textTone="dark"
           />
         </>
       ) : null}

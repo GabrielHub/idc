@@ -9,6 +9,7 @@ const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
   1: "Pick a partner",
   2: "See who's off",
   3: "Pick a venue",
+  4: "Pair graph",
 };
 
 export function LayerIndicator({
@@ -17,14 +18,15 @@ export function LayerIndicator({
   navigationMode = "free",
   containerRef,
   layerRefs,
+  layers = FLYTHROUGH_LAYERS,
 }: {
   currentLayer: FlythroughLayer;
   onLayerSelect: (layer: FlythroughLayer) => void;
   navigationMode?: LayerNavigationMode;
   containerRef?: Ref<HTMLDivElement>;
   layerRefs?: Partial<Record<FlythroughLayer, Ref<HTMLButtonElement>>>;
+  layers?: readonly FlythroughLayer[];
 }) {
-  const layers = FLYTHROUGH_LAYERS;
   const [isHovering, setIsHovering] = useState(false);
   const [showOnLayerChange, setShowOnLayerChange] = useState(false);
   const mountedRef = useRef(false);
@@ -48,7 +50,7 @@ export function LayerIndicator({
         onMouseEnter={() => setIsHovering(true)}
         onMouseLeave={() => setIsHovering(false)}
       >
-        {layers.map((layer) => {
+        {layers.map((layer, index) => {
           const active = layer === currentLayer;
           const label = FLYTHROUGH_LAYER_LABELS[layer];
           const disabledReason = layerDisabledReason(layer, navigationMode);
@@ -63,8 +65,8 @@ export function LayerIndicator({
               title={disabledReason}
               aria-label={
                 disabled
-                  ? `Layer ${layer + 1}: ${label} locked. ${disabledReason}`
-                  : `Jump to layer ${layer + 1}: ${label}`
+                  ? `Layer ${index + 1}: ${label} locked. ${disabledReason}`
+                  : `Jump to layer ${index + 1}: ${label}`
               }
               className="aura-liquid-glass flex cursor-pointer items-center rounded-full px-2 py-2 disabled:cursor-not-allowed disabled:opacity-45"
             >
@@ -83,7 +85,7 @@ export function LayerIndicator({
                 transition={{
                   duration: 0.26,
                   ease: [0.22, 1, 0.36, 1],
-                  delay: expanded ? layer * 0.06 : (layers.length - 1 - layer) * 0.04,
+                  delay: expanded ? index * 0.06 : (layers.length - 1 - index) * 0.04,
                 }}
                 className="overflow-hidden whitespace-nowrap"
               >

@@ -1,5 +1,7 @@
 import {
+  DEFAULT_DATE_MESSAGE_LIMIT,
   DEFAULT_TUTORIAL_STATE,
+  LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
   gameConfigSchema,
   gameSaveSchema,
   memberSchema,
@@ -127,7 +129,12 @@ export type HydrateFixtureOwnedMemberDataResult = {
 export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwnedMemberDataResult {
   const fixtureMembers = STARTER_FIXTURE_MEMBERS;
   const savedMembersById = new Map(save.members.map((member) => [member.id, member] as const));
+  const config = hydrateGameConfigDefaults(save.config);
   let dirty = false;
+
+  if (config !== save.config) {
+    dirty = true;
+  }
 
   const hydratedFixtureMembers = fixtureMembers.map((fixtureMember) => {
     const savedMember = savedMembersById.get(fixtureMember.id);
@@ -188,6 +195,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   return {
     save: gameSaveSchema.parse({
       ...save,
+      config,
       members,
       pairStates: pairResult.pairStates,
       dateSessions: dateSessionResult.items,
@@ -197,6 +205,17 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
     }),
     dirty: true,
   };
+}
+
+function hydrateGameConfigDefaults(config: GameConfig): GameConfig {
+  if (config.defaultDateMessageLimit !== LEGACY_DEFAULT_DATE_MESSAGE_LIMIT) {
+    return config;
+  }
+
+  return gameConfigSchema.parse({
+    ...config,
+    defaultDateMessageLimit: DEFAULT_DATE_MESSAGE_LIMIT,
+  });
 }
 
 function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): boolean {

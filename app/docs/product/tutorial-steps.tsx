@@ -313,7 +313,7 @@ function getFirstTimeFlow(): FlowPhase[] {
       badge: "06",
       tone: "slate",
       caption:
-        "These never fire on the required path. They wait for an edge case (a swap, a budget cut, a cooldown, a closure, a cut-short unlock, a first deck open, a first lobby explore) and explain it once.",
+        "These never fire on the required path. They wait for an edge case (a swap, a budget cut, a cooldown, a closure, a file-date unlock on a longer date, a first deck open, a first lobby explore) and explain it once.",
       steps: [
         {
           id: "lazy.contextual-rail",
@@ -338,9 +338,9 @@ function getFirstTimeFlow(): FlowPhase[] {
         },
         {
           id: "lazy.cut-short",
-          surface: "Live date · cut short transport button",
-          trigger: "Date is paused and Cupid has filed at least five reads (cut short is enabled).",
-          completesOn: "Clicking Cut short, or the Got it button.",
+          surface: "Live date · file date transport button",
+          trigger: "Date is paused and Cupid has filed at least two reads (file date is enabled).",
+          completesOn: "Clicking File date, or the Got it button.",
           target: "pulse-ring",
           placement: "top",
           ...tutorialCopy("lazy.cut-short"),

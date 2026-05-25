@@ -66,22 +66,24 @@ export type CameraTarget = {
 };
 
 /**
- * Discrete depth layer the player has scrolled into. Scrolling down advances
- * the layer 0 -> 1 -> 2 -> 3 (clamped). 0 = focus cases pulled forward, 1 =
- * eligible partners on the roster slab, 2 = off-tonight members on the same
- * roster slab, 3 = the scenarios layer where date plans render as 3D card
- * meshes inside the canvas.
+ * Discrete depth layer the player has scrolled into. 0 = focus cases pulled
+ * forward, 1 = eligible partners on the roster slab, 2 = off-tonight members
+ * on the same roster slab, 3 = the scenarios layer where date plans render as
+ * 3D card meshes inside the canvas, 4 = the pair graph once relationship
+ * records exist.
  */
-export type FlythroughLayer = 0 | 1 | 2 | 3;
+export type FlythroughLayer = 0 | 1 | 2 | 3 | 4;
 
 export const FOCUS_FLYTHROUGH_LAYER: FlythroughLayer = 0;
 export const ELIGIBLE_ROSTER_FLYTHROUGH_LAYER: FlythroughLayer = 1;
 export const OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER: FlythroughLayer = 2;
 export const SCENARIO_FLYTHROUGH_LAYER: FlythroughLayer = 3;
+export const PAIR_GRAPH_FLYTHROUGH_LAYER: FlythroughLayer = 4;
 export const FLYTHROUGH_LAYERS: readonly FlythroughLayer[] = [
   FOCUS_FLYTHROUGH_LAYER,
   ELIGIBLE_ROSTER_FLYTHROUGH_LAYER,
   OFF_TONIGHT_ROSTER_FLYTHROUGH_LAYER,
+  PAIR_GRAPH_FLYTHROUGH_LAYER,
   SCENARIO_FLYTHROUGH_LAYER,
 ];
 

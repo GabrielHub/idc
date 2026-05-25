@@ -19,7 +19,7 @@ React 19, React Router 7, TypeScript, Tailwind v4, Zod, AI SDK with `ai-sdk-olla
 - Rust and the Tauri 2 platform prerequisites for desktop work
 - GitHub CLI (`gh`) for publishing test releases
 - The Tauri updater signing private key when packaging a release
-- One AI provider for playable dates:
+- One AI route for playable dates:
   - Ollama running locally with a chat model and `embeddinggemma`, or
   - A Vercel AI Gateway key entered in the app
 - Python 3 with `bria-rmbg` only if you run the portrait cutout script
@@ -67,10 +67,14 @@ Playwright is the primary UI regression surface. Assume the dev server is alread
 
 ## AI Setup
 
-AI setup runs in app, not in a server route. The setup panel lets the player choose:
+AI setup runs in app, not in a server route. The setup panel says "Pick where dates run. Cupid checks the connection before the first date." It lets the player choose:
 
-- Ollama on this PC. Default URL is `http://127.0.0.1:11434`, default chat model is `gemma4:e4b`, and default embedding model is `embeddinggemma`. The catalog ships heavier and lighter alternatives for different VRAM tiers.
-- Vercel AI Gateway. Default URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash` with locked high reasoning, and default embedding model is `google/gemini-embedding-2`. Gateway selector cost labels come from `app/fixtures/gateway-model-costs.json`; refresh them with `vp run benchmark:gateway-costs`.
+- On this computer. Default Ollama URL is `http://127.0.0.1:11434`, default chat model is `gemma4:e4b`, and default embedding model is `embeddinggemma`. The catalog ships heavier and lighter alternatives for different VRAM tiers.
+- Cloud. Default Gateway URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash` with locked high reasoning, and default embedding model is `google/gemini-embedding-2`. Gateway selector cost labels come from `app/fixtures/gateway-model-costs.json`; refresh them with `vp run benchmark:gateway-costs`.
+
+Gateway chat models are `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-pro`, `google/gemini-3.1-flash-lite`, `anthropic/claude-haiku-4.5`, `minimax/minimax-m2.7`, `alibaba/qwen3.5-flash`, `zai/glm-4.7-flash`, and `openai/gpt-5.4-nano`. Gateway reasoning is locked per model: DeepSeek V4 Flash uses `high`, DeepSeek V4 Pro uses `xhigh`, Gemini 3.1 Flash Lite uses `medium`, GPT 5.4 Nano uses `none`, and models without a stable Gateway reasoning control use `off`.
+
+The primary setup action is `Save and connect`, which saves the draft config, checks readiness, then marks setup complete only after a ready check. Gateway can also check a pasted key or check the saved key without replacing it.
 
 The implementation uses AI SDK v6 `createGateway` from `ai` for Vercel AI Gateway. The old OpenAI-compatible provider path is only supported as a saved default URL migration.
 

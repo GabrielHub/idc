@@ -80,7 +80,7 @@ import { useClosureFiling } from "./use-closure-filing";
 import { CHECKING_LOCAL_AI_STATUS, useAiSetupStatus } from "./use-ai-setup-status";
 import { CampaignLossModal } from "./campaign-loss-modal";
 import { SoftWinCutscene } from "./soft-win-cutscene";
-import { LobbyChromePills, ShellChrome } from "./shell-chrome";
+import { GlassChromePills, ShellChrome } from "./shell-chrome";
 import {
   getReleaseNoteByVersion,
   hasReleaseNotesEligibleSaveProgress,
@@ -999,11 +999,11 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   const aiStatusLabel = save.config.aiSetupComplete ? localAiStatus.status : "setup";
   const isDateViewActive = activeSession !== null;
   /**
-   * The constellation lobby owns its own chrome (Punch out / AI / settings as
-   * glass pills floating on the canvas) so we suppress the cream
-   * `ShellChrome` header when it's the active screen.
+   * The constellation lobby and the live date view both render the glass
+   * `GlassChromePills` over their own canvas, so the cream `ShellChrome`
+   * header only shows when no shift is active (home screen).
    */
-  const isLobbyViewActive = activeShift !== null && activeSession === null;
+  const isShiftActive = activeShift !== null;
 
   return (
     <>
@@ -1038,10 +1038,9 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
             className="relative isolate min-h-screen w-full"
           >
             <AmbientMesh />
-            {isLobbyViewActive ? null : (
+            {isShiftActive ? null : (
               <ShellChrome
-                isDateViewActive={isDateViewActive}
-                shiftNumber={activeShift?.shiftNumber ?? 1}
+                shiftNumber={1}
                 aiStatusLabel={aiStatusLabel}
                 isActionPending={isActionPending}
                 getDiagnostics={getDiagnostics}
@@ -1061,6 +1060,35 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                 onOpenReleaseNotes={handleOpenReleaseNotes}
               />
             )}
+            {isDateViewActive && activeShift !== null ? (
+              <div
+                aria-label="Live date controls"
+                className="fixed left-4 top-4 z-40 flex items-center gap-2 lg:left-8 lg:top-6"
+              >
+                <GlassChromePills
+                  shiftNumber={activeShift.shiftNumber}
+                  aiStatusLabel={aiStatusLabel}
+                  isActionPending={isActionPending}
+                  getDiagnostics={getDiagnostics}
+                  canExportSave={save !== null}
+                  canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                  devRevealAllMemberDetails={revealAllMemberDetails}
+                  variant="glass-ink"
+                  onPunchOut={onPunchOut}
+                  onBack={() => setActiveDateSessionId(null)}
+                  onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                  onReset={handleResetSave}
+                  onResetOrientation={() => {
+                    void handleResetOrientation();
+                  }}
+                  onExportSave={handleExportSave}
+                  onImportSave={handleImportSave}
+                  onCopyDiagnostics={handleCopyDiagnostics}
+                  onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                  onOpenReleaseNotes={handleOpenReleaseNotes}
+                />
+              </div>
+            ) : null}
 
             <AnimatePresence mode="wait">
               <motion.main
@@ -1147,7 +1175,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onRemoveFocus={handleRemoveFocus}
                       onReselectFocus={handleReselectFocus}
                       chromeSlot={(opts) => (
-                        <LobbyChromePills
+                        <GlassChromePills
                           shiftNumber={activeShift.shiftNumber}
                           aiStatusLabel={aiStatusLabel}
                           isActionPending={isActionPending}
