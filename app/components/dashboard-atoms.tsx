@@ -797,11 +797,11 @@ type TooltipPlacement =
 
 const TOOLTIP_REVEAL_Y = {
   rest: "translate-y-1",
-  active: "group-hover:translate-y-0 group-focus-within:translate-y-0",
+  active: "group-hover/tooltip:translate-y-0 group-focus-within/tooltip:translate-y-0",
 } as const;
 const TOOLTIP_REVEAL_X = {
   rest: "translate-x-1",
-  active: "group-hover:translate-x-0 group-focus-within:translate-x-0",
+  active: "group-hover/tooltip:translate-x-0 group-focus-within/tooltip:translate-x-0",
 } as const;
 
 const TOOLTIP_PLACEMENT: Record<
@@ -840,11 +840,11 @@ export function Tooltip({
   const placementClass = TOOLTIP_PLACEMENT[placement];
 
   return (
-    <span className={`group relative inline-flex ${className}`}>
+    <span className={`group/tooltip relative inline-flex ${className}`}>
       {children}
       <span
         role="tooltip"
-        className={`pointer-events-none absolute z-30 w-max max-w-xs rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover:opacity-100 group-focus-within:opacity-100 ${placementClass.position} ${placementClass.rest} ${placementClass.active}`}
+        className={`pointer-events-none absolute z-30 w-max max-w-xs rounded-card border border-aura-hairline bg-white/95 px-3.5 py-2 opacity-0 shadow-card backdrop-blur-sm transition duration-200 group-hover/tooltip:opacity-100 group-focus-within/tooltip:opacity-100 ${placementClass.position} ${placementClass.rest} ${placementClass.active}`}
       >
         <span className={`aura-accent block text-label leading-snug ${messageClassName}`}>
           {message}

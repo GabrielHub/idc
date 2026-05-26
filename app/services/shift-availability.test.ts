@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  dateSessionSchema,
   memberSchema,
   type GameSave,
   type Member,
@@ -13,6 +14,7 @@ import {
   availabilityProfileForMember,
   hydrateAvailablePartnerMemberIds,
   isMemberOnTonightBoard,
+  selectShiftFollowUpPartnerMemberIds,
   selectShiftPartnerMemberIds,
   shiftPartnerUnavailableReason,
   SHIFT_PARTNER_SLATE_SIZE,
@@ -125,6 +127,125 @@ describe("shift partner availability", () => {
     expect(hydrated[0]).toBe(persistedPartnerId);
     expect(hydrated).not.toContain(FOCUS_IDS[0]);
     expect(hydrated).not.toContain("missing-member");
+  });
+
+  it("reserves priority partners ahead of the logistics slate", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
+    const baseline = selectShiftPartnerMemberIds({
+      members: save.members,
+      focusedMemberIds: save.focusedMemberIds,
+      shiftNumber: 1,
+    });
+    const priorityPartner = save.members.find(
+      (member) =>
+        member.state.status === "active" &&
+        !save.focusedMemberIds.includes(member.id) &&
+        !baseline.includes(member.id),
+    );
+
+    if (priorityPartner === undefined) {
+      throw new Error("Expected an off-slate active partner.");
+    }
+
+    const slate = selectShiftPartnerMemberIds({
+      members: save.members,
+      focusedMemberIds: save.focusedMemberIds,
+      shiftNumber: 1,
+      priorityPartnerMemberIds: [priorityPartner.id],
+    });
+
+    expect(slate).toHaveLength(SHIFT_PARTNER_SLATE_SIZE);
+    expect(slate[0]).toBe(priorityPartner.id);
+  });
+
+  it("keeps priority partners when repairing a full persisted slate", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
+    const baseline = selectShiftPartnerMemberIds({
+      members: save.members,
+      focusedMemberIds: save.focusedMemberIds,
+      shiftNumber: 1,
+    });
+    const priorityPartner = save.members.find(
+      (member) =>
+        member.state.status === "active" &&
+        !save.focusedMemberIds.includes(member.id) &&
+        !baseline.includes(member.id),
+    );
+
+    if (priorityPartner === undefined) {
+      throw new Error("Expected an off-slate active partner.");
+    }
+
+    const hydrated = hydrateAvailablePartnerMemberIds({
+      shift: {
+        ...getActiveShift(save),
+        availablePartnerMemberIds: baseline,
+      },
+      members: save.members,
+      focusedMemberIds: save.focusedMemberIds,
+      priorityPartnerMemberIds: [priorityPartner.id],
+    });
+
+    expect(hydrated).toHaveLength(SHIFT_PARTNER_SLATE_SIZE);
+    expect(hydrated[0]).toBe(priorityPartner.id);
+    expect(hydrated).toContain(priorityPartner.id);
+  });
+
+  it("selects each focus case's latest eligible prior date partner after cooldown", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), [
+      "noah-kim",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const members = save.members.map((member) =>
+      member.id === "noah-kim" || member.id === "jenna-pike"
+        ? withState(member, { lastDateShift: 1 })
+        : member,
+    );
+    const session = dateSession({
+      participants: ["noah-kim", "jenna-pike"],
+      appliedFollowUp: "encourage",
+    });
+
+    expect(
+      selectShiftFollowUpPartnerMemberIds({
+        members,
+        focusedMemberIds: save.focusedMemberIds,
+        dateSessions: [session],
+        shiftNumber: 2,
+      }),
+    ).toEqual([]);
+    expect(
+      selectShiftFollowUpPartnerMemberIds({
+        members,
+        focusedMemberIds: save.focusedMemberIds,
+        dateSessions: [session],
+        shiftNumber: 3,
+      }),
+    ).toEqual(["jenna-pike"]);
+  });
+
+  it("does not reserve pairs whose follow-up closed the romantic lane", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), [
+      "noah-kim",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const session = dateSession({
+      participants: ["noah-kim", "jenna-pike"],
+      appliedFollowUp: "mark_bad_fit",
+    });
+
+    expect(
+      selectShiftFollowUpPartnerMemberIds({
+        members: save.members,
+        focusedMemberIds: save.focusedMemberIds,
+        dateSessions: [session],
+        shiftNumber: 3,
+      }),
+    ).toEqual([]);
   });
 
   it("reports partner unavailability reasons in player-facing buckets", () => {
@@ -252,6 +373,46 @@ function withState(member: Member, state: Partial<Member["state"]>): Member {
     state: {
       ...member.state,
       ...state,
+    },
+  });
+}
+
+function dateSession({
+  participants,
+  appliedFollowUp,
+}: {
+  participants: [string, string];
+  appliedFollowUp: "encourage" | "mark_bad_fit";
+}) {
+  return dateSessionSchema.parse({
+    id: `date-1-1-pair-${participants[0]}-${participants[1]}-temporal-coffee-shop`,
+    pairId: `pair-${participants[0]}-${participants[1]}`,
+    scenarioId: "temporal-coffee-shop",
+    turnLimit: 12,
+    currentTurn: 12,
+    dateHealth: 70,
+    status: "completed" as const,
+    runtimeMode: "local_ai" as const,
+    participants,
+    transcript: [],
+    privateStateByCharacter: {},
+    judgeSnapshots: [],
+    eventDraft: { offered: [], picked: [] },
+    eventsTriggered: [],
+    playbackState: "ended" as const,
+    endSentiment: null,
+    interventions: [],
+    finalReport: {
+      id: `final-${participants[0]}-${participants[1]}`,
+      dateSessionId: `date-1-1-pair-${participants[0]}-${participants[1]}-temporal-coffee-shop`,
+      completedAt: "2026-05-05T12:30:00.000Z",
+      outcome: "second_date" as const,
+      summary: "Cupid filed a follow-up booking test.",
+      statSummary: "Case read: follow-up booking test.",
+      recommendedFollowUp: "encourage" as const,
+      appliedFollowUp,
+      memoryRecordIds: [],
+      readyToClose: false,
     },
   });
 }

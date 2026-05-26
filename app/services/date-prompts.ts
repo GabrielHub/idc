@@ -348,7 +348,7 @@ function formatCharacterFormatSection(member: Member): string[] {
   const lines = [
     "",
     "<format>",
-    "The UI sends one message at a time, but in the fiction you are speaking across the table. Most messages stay plain. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at three visible blocks. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare.",
+    "The UI sends one message at a time, but in the fiction you are speaking across the table. Default to one compact visible block. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at two visible blocks, but do not aim for the cap. No visible block should read like a paragraph; if a thought needs more than three clauses, cut it and hand the floor back. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare and must earn the space.",
   ];
 
   const outputConstraints = member.voice.outputConstraints ?? [];
@@ -444,6 +444,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     ``,
     `<state>`,
     `Tonight: ${formatPromptCharacterState(characterState, member)}.`,
+    ...formatCharacterPressureGuidance(characterState),
     ...formatCharacterMemorySection(memoryPack, partner),
     ...formatCharacterPairContextSection(pairState, pairTrajectory, pairSpotlight, partner),
     `</state>`,
@@ -779,6 +780,38 @@ function formatPromptCharacterState(state: PromptCharacterState, member: Member)
   ].join(", ");
 }
 
+function formatCharacterPressureGuidance(state: PromptCharacterState): string[] {
+  const intent = cleanMemberFacingText(state.intent).trim().toLowerCase();
+
+  if (intent === "protect the boundary" || state.mood < 30 || state.comfort < 30) {
+    return [
+      "Use that state as behavior, not decoration.",
+      "If the latest line crosses a guard or makes the date feel bad, cool down, refuse, redirect, or end the exchange in your own voice.",
+      "Do not keep flirting to be polite.",
+    ];
+  }
+
+  if (state.mood < 50 || state.comfort < 50 || intent === "slow down and read the room") {
+    return [
+      "Use that state as behavior, not decoration.",
+      "Unease means warmth has to be earned. Confusion, irritation, guarded humor, shorter answers, or a clean boundary are valid replies.",
+      "Do not default to flirtation unless the latest line gives you a concrete reason.",
+    ];
+  }
+
+  if (intent === "lean into the attraction") {
+    return [
+      "Use that state as behavior, not decoration.",
+      "Attraction can show, but keep it specific to the latest line and your own guards.",
+    ];
+  }
+
+  return [
+    "Use that state as behavior, not decoration.",
+    "Steady does not mean automatically flirty. Match the latest line, your guards, and the room.",
+  ];
+}
+
 const CUPID_ACCLIMATED_TAGS: ReadonlySet<string> = new Set([
   "non_human",
   "reality_displaced",
@@ -923,6 +956,7 @@ export function buildJudgePromptPacket({
     "- playerSummary names the move that mattered, in Cupid corporate voice. Specific actor, specific action.",
     "- notableMoments anchor in concrete scene details from the exchange.",
     "- dateHealthDelta reflects the room. Each memberMoodDelta reflects that member's specific affect, independent of the room.",
+    "- Dating success is not the default. Confusion, guardedness, anger, overload, and hard refusal are normal outcomes when the exchange supports them.",
     "- Agency verbs only attach to a member when the transcript shows the move.",
     "- agreementCandidates and openLoopCandidates surface only what this exchange actually created.",
     "</success_criteria>",
@@ -964,6 +998,19 @@ export function buildJudgePromptPacket({
     '  openLoopCandidates: [{ text: "Vhool\'s promised soup is still incoming." }]',
     "Why: Specific actor names. Concrete move (a held joke, a self-flag). No role inversion (Jenna did not defer, she chose to hold the joke). Moods reflect each member's own affect.",
     "</worked_example>",
+    "",
+    "<friction_example>",
+    "Input exchange:",
+    "  Jenna Pike: I need this to stay normal. Please do not recruit me.",
+    "  Vhool: A clean refusal is useful data. I can offer a smaller contract.",
+    "Resulting analysis (key fields, not full shape):",
+    '  playerSummary: "Jenna named the recruiting boundary. Vhool kept negotiating."',
+    '  notableMoments: ["Jenna asked not to be recruited.", "Vhool reframed the refusal as contract data."]',
+    "  dateHealthDelta: -6",
+    "  statDeltas: { conflict: 4, trust: -3, spark: 0 }",
+    "  memberMoodDeltas: { jenna-pike: -5, vhool: 0 }",
+    "Why: A boundary was named, then pressure continued. Do not add spark because the line is clever. The pressured member cools or gets angry; the other member can stay neutral.",
+    "</friction_example>",
   ].join("\n");
   const candidates = revealCandidates ?? [];
   const candidateLines = formatRevealCandidatesForPrompt(candidates);
@@ -1030,6 +1077,9 @@ export function buildJudgePromptPacket({
         "- Date Health describes the room. Each memberMoodDelta describes that specific member's visible affect, scored independently.",
         "- Positive memberMoodDeltas attach to the member who personally seems warmed, amused, attracted, reassured, or leaning in.",
         "- Negative memberMoodDeltas attach to the member who seems confused, guarded, embarrassed, angry, or overloaded.",
+        "- Spark and chemistry are not generic approval. Raise them only for visible attraction, reciprocal flirtation, delighted interest, or a successful repair that creates pull.",
+        "- Do not compensate a negative memberMoodDelta with spark because the partner was charming, clever, or date-coded. If a member reacts badly to flirtation, pressure, or weirdness, keep that member negative.",
+        "- Confusion, anger, overload, and crash-out pressure are first-class reads. Use conflict or stability movement when the exchange makes the room less safe or less steady.",
         "- Use 0 for a member when the exchange gives no specific evidence that their affect changed. One member can be warmed while the other is guarded; the two scores can diverge.",
         "- Raise conflict when the exchange creates irritation, pressure, public discomfort, or a boundary crossing. Lower stability when the pressure makes the pair less steady.",
         "- When an early end trigger is visibly met, set shouldEndEarly true even when Date Health remains above zero.",

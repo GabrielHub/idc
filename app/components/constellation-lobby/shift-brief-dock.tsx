@@ -13,7 +13,7 @@ export type ShiftBriefRowData = {
 };
 
 export function ShiftBriefDock({ rows }: { rows: readonly ShiftBriefRowData[] }) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const hasAlert = rows.some((row) => row.status === "alert");
 

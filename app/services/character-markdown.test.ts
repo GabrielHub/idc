@@ -161,9 +161,9 @@ describe("sanitizeCharacterMarkdownInput", () => {
     expect(result.abuses.filter((abuse) => abuse.kind === "repeated_heading").length).toBe(2);
   });
 
-  it("caps visible blocks to three", () => {
+  it("caps visible blocks to two", () => {
     const result = sanitizeCharacterMarkdownInput("a.\n\nb.\n\nc.\n\nd.");
-    expect(result.text.split("\n\n")).toHaveLength(3);
+    expect(result.text.split("\n\n")).toHaveLength(2);
     expect(result.abuses.map((entry) => entry.kind)).toContain("block_overflow");
   });
 

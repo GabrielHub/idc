@@ -6,6 +6,7 @@ import {
   applyDeepSeekRoleplayThinkingMode,
   defaultMaxOutputTokensForProvider,
   defaultRequestTimeoutMsForProvider,
+  generateCharacterTurn,
   judgeDateExchange,
   ollamaThinkForReasoningLevel,
   parseOllamaModelInventory,
@@ -79,6 +80,15 @@ function textGenerationResult(text: string): MinimalGenerateTextResult {
   return { text };
 }
 
+function characterGenerationResult(text: string) {
+  return {
+    text,
+    steps: [],
+    totalUsage: {},
+    warnings: [],
+  };
+}
+
 function outputGenerationResult(output: unknown): MinimalGenerateTextResult {
   return { text: "", output };
 }
@@ -125,6 +135,23 @@ describe("AI model service", () => {
   it("leaves Gateway output unbounded unless a caller sets an explicit cap", () => {
     expect(defaultMaxOutputTokensForProvider("ollama", 32)).toBe(32);
     expect(defaultMaxOutputTokensForProvider("gateway", 32)).toBeUndefined();
+  });
+
+  it("caps Gateway character replies at the performer boundary", async () => {
+    aiMocks.generateText.mockResolvedValueOnce(characterGenerationResult("short line."));
+
+    await generateCharacterTurn({
+      packet: {
+        system: "perform Alex",
+        prompt: "preview",
+        messages: [{ role: "user", content: "How was work?" }],
+      },
+      config: gatewayConfig,
+    });
+
+    expect(aiMocks.generateText).toHaveBeenCalledWith(
+      expect.objectContaining({ maxOutputTokens: 320 }),
+    );
   });
 
   it("gives Gateway requests a longer default timeout", () => {

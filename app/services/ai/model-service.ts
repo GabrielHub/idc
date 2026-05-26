@@ -63,7 +63,7 @@ import {
   type OllamaModelSummary,
 } from "./model-catalog";
 
-const OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS = 480;
+const CHARACTER_MAX_OUTPUT_TOKENS = 320;
 const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 520;
 const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS = 220;
@@ -300,11 +300,7 @@ export async function generateCharacterTurn({
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
     ...withOptionalMaxOutputTokens(
-      generationOptions.maxOutputTokens ??
-        defaultMaxOutputTokensForProvider(
-          runtimeConfig.aiProvider,
-          OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS,
-        ),
+      generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
     ),
     generationOptions,
     tools,
@@ -342,11 +338,7 @@ export async function streamCharacterTurn({
     modelId: runtimeConfig.chatModel,
     config: runtimeConfig,
     ...withOptionalMaxOutputTokens(
-      generationOptions.maxOutputTokens ??
-        defaultMaxOutputTokensForProvider(
-          runtimeConfig.aiProvider,
-          OLLAMA_CHARACTER_MAX_OUTPUT_TOKENS,
-        ),
+      generationOptions.maxOutputTokens ?? CHARACTER_MAX_OUTPUT_TOKENS,
     ),
     generationOptions,
     abortSignal,

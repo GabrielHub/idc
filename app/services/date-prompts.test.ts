@@ -110,6 +110,8 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("Useful Markdown shapes: I said *almost* normal.");
     expect(ownerPacket.prompt).toContain("At most one move in a normal message");
     expect(ownerPacket.prompt).toContain("No em dashes or en dashes.");
+    expect(ownerPacket.prompt).toContain("Cap a message at two visible blocks");
+    expect(ownerPacket.prompt).toContain("No visible block should read like a paragraph");
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
     expect(ownerPacket.prompt).not.toContain("Output contract:");
@@ -219,6 +221,66 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain("<conversation_shape>");
     expect(packet.prompt).not.toContain("<contrastive_examples>");
     expect(packet.prompt).not.toContain("A: You haven't asked me anything yet.");
+  });
+
+  it("surfaces compact chat cadence constraints for everyday human voices", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "noah-kim",
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "noah-kim",
+      firstMemberId: "noah-kim",
+      secondMemberId: "jenna-pike",
+      scenarioId: "long-afternoon-pool-bar",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find(
+      (candidate) => candidate.id === "long-afternoon-pool-bar",
+    );
+    const noah = started.save.members.find((member) => member.id === "noah-kim");
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("noah-kim", "jenna-pike"));
+
+    if (
+      scenario === undefined ||
+      noah === undefined ||
+      jenna === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const memoryPack = {
+      self: [],
+      pair: [],
+      scenario: [],
+      recentTranscript: started.session.transcript,
+    };
+    const noahPacket = buildCharacterPromptPacket({
+      member: noah,
+      partner: jenna,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack,
+    });
+    const jennaPacket = buildCharacterPromptPacket({
+      member: jenna,
+      partner: noah,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack,
+    });
+
+    expect(noahPacket.prompt).toContain("Default to one compact visible block.");
+    expect(noahPacket.prompt).toContain("Phone-screen fit matters");
+    expect(noahPacket.prompt).toContain("under about 45 words");
+    expect(noahPacket.prompt).toContain("Never three blocks in ordinary warm table talk.");
+    expect(jennaPacket.prompt).toContain("One compact visible block is the default.");
+    expect(jennaPacket.prompt).toContain("under about 35 words");
+    expect(jennaPacket.prompt).toContain("She does not interview by stacking questions.");
   });
 
   it("adds memory search guidance only when runtime search is available", () => {
@@ -425,6 +487,9 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("mood is rough");
     expect(packet.prompt).toContain("comfort with this date is bad");
     expect(packet.prompt).toContain("current intent is protect the boundary");
+    expect(packet.prompt).toContain("Use that state as behavior, not decoration.");
+    expect(packet.prompt).toContain("cool down, refuse, redirect, or end the exchange");
+    expect(packet.prompt).toContain("Do not keep flirting to be polite.");
   });
 
   it("labels first turn visual attachments in the final user message", () => {
@@ -1307,6 +1372,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
       members: [jenna, vhool],
       revealCandidates: [],
     });
+    const fullPrompt = `${packet.system}\n${packet.prompt}`;
 
     expect(packet.prompt).toContain("dateHealthDelta must be an integer from -18 to 14.");
     expect(packet.prompt).toContain("<scoring_guidance>");
@@ -1314,6 +1380,10 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     expect(packet.prompt).toContain("agreement update notes");
     expect(packet.prompt).toContain("open loop update notes");
     expect(packet.prompt).toContain("Use -1 to -3 for mild drift");
+    expect(fullPrompt).toContain("Dating success is not the default.");
+    expect(packet.prompt).toContain("Spark and chemistry are not generic approval.");
+    expect(packet.prompt).toContain("Confusion, anger, overload, and crash-out pressure");
+    expect(fullPrompt).toContain("Do not add spark because the line is clever.");
     expect(packet.prompt).toContain("Scenario pressure: risk");
     expect(packet.prompt).toContain("Early end triggers:");
     for (const trigger of scenario.director.earlyEndTriggers) {

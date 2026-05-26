@@ -28,7 +28,7 @@ import {
 } from "../services/closures";
 import {
   addCupidIntervention,
-  applyFollowUpAction,
+  applyFollowUpActionAndMaybeCompleteShift,
   canAddCupidIntervention,
   canCutDateShort,
   clearActiveBooking,
@@ -73,7 +73,7 @@ import {
 import { ConstellationLobby } from "./constellation-lobby";
 import { CosmicWarpOverlay } from "./cosmic-warp-overlay";
 import { OnboardingScreen } from "./onboarding-screen";
-import { buildDiagnosticsSnapshot } from "./settings-menu";
+import { SettingsMenu, buildDiagnosticsSnapshot } from "./settings-menu";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { useSfx, type SfxCue } from "./sfx-provider";
 import { useClosureFiling } from "./use-closure-filing";
@@ -783,11 +783,20 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   async function handleFollowUp(action: FollowUpAction) {
     if (save === null || activeSession === null) return;
     await tryAction("followUp", async () => {
-      const result = applyFollowUpAction(save, {
+      const result = applyFollowUpActionAndMaybeCompleteShift(save, {
         dateSessionId: activeSession.id,
         action,
       });
       await persist(result.save);
+      if (result.completedShiftReport === undefined) return;
+
+      setActiveDateSessionId(null);
+      dispatchManagerQuip({
+        triggerKey: "shift.ended",
+        surfaceKey: result.completedShiftReport.id,
+      });
+      processManagerQuipSaveDiff(result.saveBeforeShiftCompletion ?? save, result.save);
+      play("report");
     });
   }
 
@@ -1027,6 +1036,30 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
               onTutorialUpdate={handleTutorialUpdate}
               onConfirm={handleConfirmOnboarding}
             />
+            <div
+              aria-label="Onboarding settings"
+              className="fixed right-4 top-4 z-40 lg:right-8 lg:top-6"
+            >
+              <SettingsMenu
+                isActionPending={isActionPending}
+                getDiagnostics={getDiagnostics}
+                canExportSave={save !== null}
+                canUseDevMemberDetailsPreview={CAN_USE_DEV_MEMBER_DETAILS_PREVIEW}
+                devRevealAllMemberDetails={revealAllMemberDetails}
+                align="right"
+                variant="cream"
+                onOpenAiSetup={() => setIsAiSetupOpen(true)}
+                onReset={handleResetSave}
+                onResetOrientation={() => {
+                  void handleResetOrientation();
+                }}
+                onExportSave={handleExportSave}
+                onImportSave={handleImportSave}
+                onCopyDiagnostics={handleCopyDiagnostics}
+                onDevRevealAllMemberDetailsChange={handleDevRevealAllMemberDetailsChange}
+                onOpenReleaseNotes={handleOpenReleaseNotes}
+              />
+            </div>
             {errorMessage !== null ? (
               <ErrorBanner message={errorMessage} onDismiss={() => setErrorMessage(null)} />
             ) : null}

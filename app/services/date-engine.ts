@@ -92,7 +92,10 @@ import {
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
-import { selectShiftPartnerMemberIds } from "./shift-availability";
+import {
+  selectShiftFollowUpPartnerMemberIds,
+  selectShiftPartnerMemberIds,
+} from "./shift-availability";
 import {
   assessShiftRequests,
   classifyFocusAskOutcomeFromSession,
@@ -148,6 +151,11 @@ export type FollowUpInput = {
 export type DateEngineResult = {
   save: GameSave;
   session: DateSession;
+};
+
+export type FollowUpActionResult = DateEngineResult & {
+  completedShiftReport?: ShiftReport;
+  saveBeforeShiftCompletion?: GameSave;
 };
 
 const CHARACTER_TURN_LIMIT = DEFAULT_DATE_MESSAGE_LIMIT;
@@ -1351,6 +1359,45 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
   return { save: nextSave, session: updatedSession };
 }
 
+export function applyFollowUpActionAndMaybeCompleteShift(
+  save: GameSave,
+  input: FollowUpInput,
+): FollowUpActionResult {
+  const followUpResult = applyFollowUpAction(save, input);
+
+  if (!shouldAutoCompleteShift(followUpResult.save)) {
+    return followUpResult;
+  }
+
+  const shiftResult = completeShift(followUpResult.save);
+  return {
+    save: shiftResult.save,
+    session: followUpResult.session,
+    completedShiftReport: shiftResult.report,
+    saveBeforeShiftCompletion: followUpResult.save,
+  };
+}
+
+export function shouldAutoCompleteShift(save: GameSave): boolean {
+  const activeShift = getActiveShift(save);
+  if (activeShift.status !== "active") return false;
+  if (activeShift.activeBooking !== undefined) return false;
+  if (activeShift.dateSlotsUsed < activeShift.dateSlotsTotal) return false;
+
+  const shiftDateSessions = save.dateSessions.filter((session) =>
+    sessionBelongsToShift(session, activeShift.shiftNumber),
+  );
+  const completedDates = shiftDateSessions.filter((session) => session.status !== "active");
+
+  if (completedDates.length === 0) return false;
+  if (shiftDateSessions.some((session) => session.status === "active")) return false;
+
+  return completedDates.every(
+    (session) =>
+      session.finalReport !== undefined && session.finalReport.appliedFollowUp !== undefined,
+  );
+}
+
 export function completeShift(
   save: GameSave,
   now = new Date(),
@@ -1847,6 +1894,12 @@ export function startNextShift(
     featuredMemberIds,
     shiftNumber: nextShiftNumber,
   });
+  const followUpPartnerMemberIds = selectShiftFollowUpPartnerMemberIds({
+    members: save.members,
+    focusedMemberIds: featuredMemberIds,
+    dateSessions: save.dateSessions,
+    shiftNumber: nextShiftNumber,
+  });
   const nextShift = shiftStateSchema.parse({
     id: `shift-${nextShiftNumber}`,
     shiftNumber: nextShiftNumber,
@@ -1858,6 +1911,7 @@ export function startNextShift(
       members: save.members,
       focusedMemberIds: featuredMemberIds,
       shiftNumber: nextShiftNumber,
+      priorityPartnerMemberIds: followUpPartnerMemberIds,
     }),
     drawnScenarioIds: [],
     companyGoalIds,

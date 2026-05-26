@@ -30,6 +30,7 @@ import {
 } from "./shift-planning";
 import {
   hydrateAvailablePartnerMemberIds,
+  selectShiftFollowUpPartnerMemberIds,
   selectShiftPartnerMemberIds,
 } from "./shift-availability";
 import { derivePairStats } from "./pair-stats";
@@ -178,7 +179,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
 
   const shiftsResult = mapWithDirty(
     save.shifts,
-    (shift) => hydrateShift(shift, members),
+    (shift) => hydrateShift(shift, members, dateSessionResult.items),
     shiftsEqual,
   );
   if (shiftsResult.dirty) dirty = true;
@@ -305,8 +306,21 @@ function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
   return scenarioDeck;
 }
 
-function hydrateShift(shift: ShiftState, members: Member[]): ShiftState {
+function hydrateShift(
+  shift: ShiftState,
+  members: Member[],
+  dateSessions: readonly DateSession[],
+): ShiftState {
   const featuredMemberIds = hydrateFeaturedMemberIds({ shift, members });
+  const followUpPartnerMemberIds =
+    shift.status === "active"
+      ? selectShiftFollowUpPartnerMemberIds({
+          members,
+          focusedMemberIds: featuredMemberIds,
+          dateSessions,
+          shiftNumber: shift.shiftNumber,
+        })
+      : [];
   return shiftStateSchema.parse({
     ...shift,
     featuredMemberIds,
@@ -314,6 +328,7 @@ function hydrateShift(shift: ShiftState, members: Member[]): ShiftState {
       shift,
       members,
       focusedMemberIds: featuredMemberIds,
+      priorityPartnerMemberIds: followUpPartnerMemberIds,
     }),
     drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
   });

@@ -10,12 +10,22 @@ import {
 } from "../domain/game";
 import {
   applyFollowUpAction,
+  applyFollowUpActionAndMaybeCompleteShift,
+  commitDateBooking,
   completeShift,
   pendingFollowUpSessionsForShift,
   previewFollowUpEffects,
+  shouldAutoCompleteShift,
+  startNextShift,
 } from "./date-engine";
 import { MEMBER_QUIT_BUDGET_CUT } from "./budget";
-import { createSeedGameSave, hydrateFixtureOwnedMemberData } from "./game-seed";
+import {
+  createSeedGameSave,
+  getActiveShift,
+  hydrateFixtureOwnedMemberData,
+  makePairId,
+} from "./game-seed";
+import { selectShiftPartnerMemberIds } from "./shift-availability";
 
 const OUTCOMES: readonly DateFinalReport["outcome"][] = [
   "second_date",
@@ -285,7 +295,10 @@ describe("outcome aware follow-up preview", () => {
 });
 
 describe("shift closure follow-up gate", () => {
-  function buildSaveWithCompletedShiftSession(filed: boolean) {
+  function buildSaveWithCompletedShiftSession(
+    filed: boolean,
+    shiftSlots: { used: number; total: number } = { used: 1, total: 1 },
+  ) {
     const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
     const activeShift = seed.shifts.find((shift) => shift.id === seed.activeShiftId);
     if (activeShift === undefined) {
@@ -322,13 +335,20 @@ describe("shift closure follow-up gate", () => {
         readyToClose: false,
       },
     });
-    return gameSaveSchema.parse({
+    const rawSave = gameSaveSchema.parse({
       ...seed,
       shifts: seed.shifts.map((shift) =>
-        shift.id === activeShift.id ? { ...shift, dateSlotsUsed: 1 } : shift,
+        shift.id === activeShift.id
+          ? { ...shift, dateSlotsUsed: shiftSlots.used, dateSlotsTotal: shiftSlots.total }
+          : shift,
       ),
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== session.pairId),
+        buildPairState(),
+      ],
       dateSessions: [...seed.dateSessions, session],
     });
+    return hydrateFixtureOwnedMemberData(rawSave).save;
   }
 
   it("reports the pending sessions for the active shift", () => {
@@ -354,5 +374,123 @@ describe("shift closure follow-up gate", () => {
     const save = buildSaveWithCompletedShiftSession(true);
 
     expect(() => completeShift(save)).not.toThrow();
+  });
+
+  it("auto-completes only when the final shift slot has a filed follow-up", () => {
+    expect(shouldAutoCompleteShift(buildSaveWithCompletedShiftSession(false))).toBe(false);
+    expect(shouldAutoCompleteShift(buildSaveWithCompletedShiftSession(true))).toBe(true);
+    expect(
+      shouldAutoCompleteShift(buildSaveWithCompletedShiftSession(true, { used: 1, total: 2 })),
+    ).toBe(false);
+  });
+
+  it("can file the final follow-up and completed shift as one service result", () => {
+    const save = buildSaveWithCompletedShiftSession(false);
+    const session = save.dateSessions.at(-1);
+
+    if (session === undefined) {
+      throw new Error("Expected completed date session.");
+    }
+
+    const result = applyFollowUpActionAndMaybeCompleteShift(save, {
+      dateSessionId: session.id,
+      action: "repair",
+    });
+
+    expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
+    expect(result.completedShiftReport).toBeDefined();
+    expect(result.saveBeforeShiftCompletion?.activeShiftId).toBe(save.activeShiftId);
+    expect(getActiveShift(result.save).status).toBe("completed");
+  });
+
+  it("opens a booking path for the latest follow-up partner once cooldown clears", () => {
+    const focusedMemberIds = ["noah-kim", "vhool", "sienna-bae", "kade-sumner"];
+    const focusMemberId = focusedMemberIds[0];
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const membersAfterDate = seed.members.map((member) =>
+      member.id === focusMemberId
+        ? { ...member, state: { ...member.state, lastDateShift: 1 } }
+        : member,
+    );
+    const baselineShiftThreeSlate = selectShiftPartnerMemberIds({
+      members: membersAfterDate,
+      focusedMemberIds,
+      shiftNumber: 3,
+    });
+    const followUpPartner = membersAfterDate.find(
+      (member) =>
+        member.state.status === "active" &&
+        !focusedMemberIds.includes(member.id) &&
+        !baselineShiftThreeSlate.includes(member.id),
+    );
+
+    if (followUpPartner === undefined || focusMemberId === undefined) {
+      throw new Error("Expected an active off-slate partner for the follow-up regression.");
+    }
+
+    const pairId = makePairId(focusMemberId, followUpPartner.id);
+    const priorSession = dateSessionSchema.parse({
+      id: `date-1-1-${pairId}-temporal-coffee-shop`,
+      pairId,
+      scenarioId: "temporal-coffee-shop",
+      focusMemberId,
+      turnLimit: 12,
+      currentTurn: 12,
+      dateHealth: 70,
+      status: "completed",
+      runtimeMode: "local_ai",
+      participants: [focusMemberId, followUpPartner.id],
+      transcript: [],
+      privateStateByCharacter: {},
+      judgeSnapshots: [],
+      eventDraft: { offered: [], picked: [] },
+      eventsTriggered: [],
+      playbackState: "ended",
+      endSentiment: null,
+      interventions: [],
+      finalReport: {
+        id: "final-follow-up-booking",
+        dateSessionId: `date-1-1-${pairId}-temporal-coffee-shop`,
+        completedAt: "2026-05-05T12:30:00.000Z",
+        outcome: "second_date",
+        summary: "Cupid filed enough signal to warrant another booking.",
+        statSummary: "Case read: second booking signal.",
+        recommendedFollowUp: "encourage",
+        appliedFollowUp: "encourage",
+        memoryRecordIds: [],
+        readyToClose: false,
+      },
+    });
+    const shiftTwo = {
+      ...getActiveShift(seed),
+      id: "shift-2",
+      shiftNumber: 2,
+      status: "completed" as const,
+      featuredMemberIds: focusedMemberIds,
+      availablePartnerMemberIds: [],
+      completedAt: "2026-05-05T13:00:00.000Z",
+    };
+    const readyForShiftThree = gameSaveSchema.parse({
+      ...seed,
+      focusedMemberIds,
+      members: membersAfterDate.map((member) =>
+        member.id === followUpPartner.id
+          ? { ...member, state: { ...member.state, lastDateShift: 1 } }
+          : member,
+      ),
+      shifts: [shiftTwo],
+      activeShiftId: shiftTwo.id,
+      dateSessions: [priorSession],
+    });
+
+    const { save: shiftThreeSave, shift } = startNextShift(readyForShiftThree);
+
+    expect(shift.availablePartnerMemberIds).toContain(followUpPartner.id);
+    expect(() =>
+      commitDateBooking(shiftThreeSave, {
+        focusMemberId,
+        partnerMemberId: followUpPartner.id,
+      }),
+    ).not.toThrow();
   });
 });

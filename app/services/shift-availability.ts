@@ -1,4 +1,4 @@
-import type { Member, ShiftAvailabilityProfile, ShiftState } from "../domain/game";
+import type { DateSession, Member, ShiftAvailabilityProfile, ShiftState } from "../domain/game";
 import { createNamespacedRandom, randomIndex } from "./utils";
 import { isMemberInCooldown } from "./shift-planning";
 
@@ -14,6 +14,14 @@ export type ShiftPartnerUnavailableReason =
 export type SelectShiftPartnerMemberIdsInput = {
   members: readonly Member[];
   focusedMemberIds: readonly string[];
+  shiftNumber: number;
+  priorityPartnerMemberIds?: readonly string[];
+};
+
+export type SelectShiftFollowUpPartnerMemberIdsInput = {
+  members: readonly Member[];
+  focusedMemberIds: readonly string[];
+  dateSessions: readonly DateSession[];
   shiftNumber: number;
 };
 
@@ -58,6 +66,7 @@ export function selectShiftPartnerMemberIds({
   members,
   focusedMemberIds,
   shiftNumber,
+  priorityPartnerMemberIds = [],
 }: SelectShiftPartnerMemberIdsInput): string[] {
   const focusedSet = new Set(focusedMemberIds);
   const candidates = members
@@ -89,19 +98,70 @@ export function selectShiftPartnerMemberIds({
     return [];
   }
 
-  return selectWithCompositionPreferences(candidates, targetCount).map(
+  const priorityCandidates = selectPriorityCandidates(candidates, priorityPartnerMemberIds);
+
+  return selectWithCompositionPreferences(candidates, targetCount, priorityCandidates).map(
     (candidate) => candidate.member.id,
   );
+}
+
+export function selectShiftFollowUpPartnerMemberIds({
+  members,
+  focusedMemberIds,
+  dateSessions,
+  shiftNumber,
+}: SelectShiftFollowUpPartnerMemberIdsInput): string[] {
+  const memberById = new Map(members.map((member) => [member.id, member] as const));
+  const focusedSet = new Set(focusedMemberIds);
+  const selected = new Set<string>();
+  const partnerIds: string[] = [];
+
+  for (const focusMemberId of focusedMemberIds) {
+    const focusMember = memberById.get(focusMemberId);
+    if (focusMember === undefined || focusMember.state.status !== "active") continue;
+    if (isMemberInCooldown(focusMember, shiftNumber)) continue;
+
+    const candidateSessions = dateSessions
+      .filter(
+        (session) =>
+          session.participants.includes(focusMemberId) &&
+          session.status !== "active" &&
+          session.finalReport !== undefined &&
+          session.finalReport.appliedFollowUp !== "mark_bad_fit",
+      )
+      .sort((first, second) =>
+        (second.finalReport?.completedAt ?? "").localeCompare(first.finalReport?.completedAt ?? ""),
+      );
+
+    for (const session of candidateSessions) {
+      const partnerId = session.participants.find((memberId) => memberId !== focusMemberId);
+      if (partnerId === undefined || selected.has(partnerId) || focusedSet.has(partnerId)) {
+        continue;
+      }
+
+      const partner = memberById.get(partnerId);
+      if (partner === undefined || partner.state.status !== "active") continue;
+      if (isMemberInCooldown(partner, shiftNumber)) continue;
+
+      selected.add(partnerId);
+      partnerIds.push(partnerId);
+      break;
+    }
+  }
+
+  return partnerIds;
 }
 
 export function hydrateAvailablePartnerMemberIds({
   shift,
   members,
   focusedMemberIds,
+  priorityPartnerMemberIds = [],
 }: {
   shift: ShiftState;
   members: readonly Member[];
   focusedMemberIds: readonly string[];
+  priorityPartnerMemberIds?: readonly string[];
 }): string[] {
   const eligible = eligiblePartnerMemberIds({
     persistedMemberIds: shift.availablePartnerMemberIds,
@@ -118,6 +178,7 @@ export function hydrateAvailablePartnerMemberIds({
     members,
     focusedMemberIds,
     shiftNumber: shift.shiftNumber,
+    priorityPartnerMemberIds,
     persistedMemberIds: eligible,
   });
 }
@@ -126,19 +187,32 @@ export function repairShiftPartnerMemberIds({
   members,
   focusedMemberIds,
   shiftNumber,
+  priorityPartnerMemberIds = [],
   persistedMemberIds,
 }: SelectShiftPartnerMemberIdsInput & { persistedMemberIds: readonly string[] }): string[] {
   const expectedCount = Math.min(
     SHIFT_PARTNER_SLATE_SIZE,
     eligiblePartnerCount({ members, focusedMemberIds, shiftNumber }),
   );
-  if (persistedMemberIds.length >= expectedCount) {
-    return persistedMemberIds.slice(0, expectedCount);
+  const prioritizedIds = eligiblePriorityPartnerMemberIds({
+    members,
+    focusedMemberIds,
+    shiftNumber,
+    priorityPartnerMemberIds,
+  });
+  const repaired = mergePartnerIds(prioritizedIds, persistedMemberIds, expectedCount);
+
+  if (repaired.length >= expectedCount) {
+    return repaired;
   }
 
-  const seen = new Set(persistedMemberIds);
-  const repaired = [...persistedMemberIds];
-  for (const memberId of selectShiftPartnerMemberIds({ members, focusedMemberIds, shiftNumber })) {
+  const seen = new Set(repaired);
+  for (const memberId of selectShiftPartnerMemberIds({
+    members,
+    focusedMemberIds,
+    shiftNumber,
+    priorityPartnerMemberIds,
+  })) {
     if (repaired.length >= expectedCount) break;
     if (seen.has(memberId)) continue;
     seen.add(memberId);
@@ -146,6 +220,74 @@ export function repairShiftPartnerMemberIds({
   }
 
   return repaired;
+}
+
+function selectPriorityCandidates(
+  candidates: readonly Candidate[],
+  priorityPartnerMemberIds: readonly string[],
+): Candidate[] {
+  const candidatesById = new Map(candidates.map((candidate) => [candidate.member.id, candidate]));
+  const selected = new Set<string>();
+  const priorityCandidates: Candidate[] = [];
+
+  for (const memberId of priorityPartnerMemberIds) {
+    if (selected.has(memberId)) continue;
+    const candidate = candidatesById.get(memberId);
+    if (candidate === undefined) continue;
+    selected.add(memberId);
+    priorityCandidates.push(candidate);
+  }
+
+  return priorityCandidates;
+}
+
+function eligiblePriorityPartnerMemberIds({
+  members,
+  focusedMemberIds,
+  shiftNumber,
+  priorityPartnerMemberIds,
+}: Required<SelectShiftPartnerMemberIdsInput>): string[] {
+  const memberById = new Map(members.map((member) => [member.id, member] as const));
+  const focusedSet = new Set(focusedMemberIds);
+  const selected = new Set<string>();
+  const eligibleIds: string[] = [];
+
+  for (const memberId of priorityPartnerMemberIds) {
+    if (selected.has(memberId)) continue;
+    const member = memberById.get(memberId);
+    if (member === undefined || member.state.status !== "active") continue;
+    if (focusedSet.has(member.id)) continue;
+    if (isMemberInCooldown(member, shiftNumber)) continue;
+    selected.add(memberId);
+    eligibleIds.push(memberId);
+  }
+
+  return eligibleIds;
+}
+
+function mergePartnerIds(
+  priorityPartnerMemberIds: readonly string[],
+  partnerMemberIds: readonly string[],
+  limit: number,
+): string[] {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const memberId of priorityPartnerMemberIds) {
+    if (merged.length >= limit) break;
+    if (seen.has(memberId)) continue;
+    seen.add(memberId);
+    merged.push(memberId);
+  }
+
+  for (const memberId of partnerMemberIds) {
+    if (merged.length >= limit) break;
+    if (seen.has(memberId)) continue;
+    seen.add(memberId);
+    merged.push(memberId);
+  }
+
+  return merged;
 }
 
 export function shiftPartnerUnavailableReason({
@@ -265,31 +407,62 @@ function stateLogisticsScore(member: Member): number {
 
 /**
  * Selects up to `targetCount` candidates with soft caps on profile and
- * identity composition. First pass honors PROFILE_CAP / IDENTITY_CAP; second
- * pass tops up from remaining candidates without caps when the slate would
- * otherwise come up short. The caps are preferences, not invariants — when
- * the eligible pool is thin, fill order beats composition.
+ * identity composition. `reservedIds` are pre-locked picks (e.g., follow-up
+ * priorities) that contribute to PROFILE_CAP / IDENTITY_CAP accounting so the
+ * remaining slate is balanced around them. When the eligible pool is too thin
+ * to satisfy the caps, fill order beats composition.
  */
 function selectWithCompositionPreferences(
   candidates: readonly Candidate[],
   targetCount: number,
+  priorityCandidates: readonly Candidate[] = [],
 ): Candidate[] {
-  const cappedPass = selectRespectingCaps(candidates, targetCount);
+  const reservedIds = new Set(priorityCandidates.map((candidate) => candidate.member.id));
+  const reservedOrder = new Map(
+    priorityCandidates.map((candidate, index) => [candidate.member.id, index] as const),
+  );
+  const cappedPass = selectRespectingCaps(candidates, targetCount, priorityCandidates, reservedIds);
   const selected =
     cappedPass.length < targetCount
       ? topUpRemaining(cappedPass, candidates, targetCount)
       : cappedPass;
 
-  return [...selected].sort((first, second) => first.index - second.index);
+  // Reserved priorities lead the slate (preserving their input order), then
+  // the rest follow in score order so the slate stays stable for the player.
+  const reserved = selected
+    .filter((candidate) => reservedIds.has(candidate.member.id))
+    .sort(
+      (first, second) =>
+        (reservedOrder.get(first.member.id) ?? 0) - (reservedOrder.get(second.member.id) ?? 0),
+    );
+  const rest = [...selected]
+    .filter((candidate) => !reservedIds.has(candidate.member.id))
+    .sort((first, second) => first.index - second.index);
+  return [...reserved, ...rest];
 }
 
-function selectRespectingCaps(candidates: readonly Candidate[], targetCount: number): Candidate[] {
+function selectRespectingCaps(
+  candidates: readonly Candidate[],
+  targetCount: number,
+  priorityCandidates: readonly Candidate[],
+  reservedIds: ReadonlySet<string>,
+): Candidate[] {
   const selected: Candidate[] = [];
   const profileCounts = new Map<ShiftAvailabilityProfile, number>();
   const identityCounts = new Map<Candidate["identity"], number>();
 
+  // Reserved priorities are locked into the slate first and count against the
+  // composition caps so the remaining picks stay balanced around them.
+  for (const candidate of priorityCandidates) {
+    if (selected.length >= targetCount) break;
+    selected.push(candidate);
+    profileCounts.set(candidate.profile, (profileCounts.get(candidate.profile) ?? 0) + 1);
+    identityCounts.set(candidate.identity, (identityCounts.get(candidate.identity) ?? 0) + 1);
+  }
+
   for (const candidate of candidates) {
     if (selected.length >= targetCount) break;
+    if (reservedIds.has(candidate.member.id)) continue;
     const profileCount = profileCounts.get(candidate.profile) ?? 0;
     const identityCount = identityCounts.get(candidate.identity) ?? 0;
     if (profileCount >= PROFILE_CAP || identityCount >= IDENTITY_CAP) continue;

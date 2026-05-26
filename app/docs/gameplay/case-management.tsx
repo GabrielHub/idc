@@ -89,6 +89,13 @@ export const sections: DocSectionEntry[] = [
           cooldown, closed file, cancelled membership, or off shift.
         </P>
         <P>
+          Follow-up continuity gets a reserved path through that logistics board. When a focused
+          case has a latest prior date with an active, non-focused partner, that partner is pinned
+          into the first legal post-cooldown roster so the player can book the next date instead of
+          waiting for random availability. Filing <Strong>Mark Bad Fit</Strong> is the explicit
+          exception because it closes the romantic lane.
+        </P>
+        <P>
           Each shift surfaces one current request per focused member. One of those four requests is
           the <Strong>lead ask</Strong> — the request the shift is graded on — and the other three
           sit in the queue as waiting-room pressure rather than unaddressed homework: they roll

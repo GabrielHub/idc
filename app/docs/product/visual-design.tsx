@@ -424,7 +424,7 @@ export const sections: DocSectionEntry[] = [
             Lists, links, images, raw HTML, code, tables, math, Mermaid, blockquotes, footnotes, and
             task syntax are rejected before persistence by the character sanitizer in{" "}
             <DocCode>app/services/character-markdown.ts</DocCode>. The renderer caps a single
-            message at three visible blocks after cleanup. In the live date stream, the chat lane
+            message at two visible blocks after cleanup. In the live date stream, the chat lane
             splits newline-separated blocks into a tight bubble run before handing each segment to
             the renderer. The heading beat lands inside the existing bubble width and tail; it never
             widens the transcript lane or introduces semantic <DocCode>h1</DocCode> through{" "}

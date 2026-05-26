@@ -296,11 +296,11 @@ export function describeMarkupAbuse(kind: MarkupAbuseKind): string {
     case "italic_stage_direction":
       return "Speaker emitted italic stage direction instead of spoken text.";
     case "block_overflow":
-      return "Speaker emitted more than three visible blocks in one message.";
+      return "Speaker emitted more than two visible blocks in one message.";
   }
 }
 
-const MAX_VISIBLE_BLOCKS = 3;
+const MAX_VISIBLE_BLOCKS = 2;
 const MAX_BLANK_LINE_RUN = 1;
 
 export function sanitizeCharacterMarkdownInput(text: string): {

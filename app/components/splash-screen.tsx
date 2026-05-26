@@ -20,6 +20,7 @@ import { errorToMessage } from "../services/utils";
 import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { EASE_OUT_QUART, LiveDot } from "./dashboard-atoms";
 import { ReleaseNotesModal } from "./release-notes-modal";
+import { AudioSettingsMenu } from "./settings-menu";
 import { ActionStack } from "./splash/action-stack";
 import { EditorialColumn } from "./splash/editorial-column";
 import { RiffleStack } from "./splash/riffle-stack";
@@ -383,7 +384,10 @@ function deriveAiBoot(save: GameSave | null, status: AiSetupStatus): AiBootState
 
 function SplashBootstrap() {
   return (
-    <div className="grid min-h-screen place-items-center bg-aura-bg text-aura-ink">
+    <div className="relative grid min-h-screen place-items-center bg-aura-bg text-aura-ink">
+      <div className="fixed right-4 top-4 z-30 lg:right-8 lg:top-6">
+        <AudioSettingsMenu />
+      </div>
       <div className="flex flex-col items-center gap-3">
         <LiveDot tone="amber" />
         <p className="font-mono text-micro font-semibold uppercase tracking-[0.32em] text-aura-rose">

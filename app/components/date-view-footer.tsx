@@ -10,7 +10,7 @@ import {
 } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
 import { tutorialCopy } from "../services/tutorial-copy";
-import { EASE_OUT_QUART } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Tooltip } from "./dashboard-atoms";
 import { StatusGauges } from "./date-view-gauges";
 import {
   CutShortConfirmModal,
@@ -229,7 +229,7 @@ export function DateFooter({
         className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
       >
         <div className="relative mx-auto w-full max-w-3xl">
-          <div className="peer aura-liquid-glass pointer-events-auto flex w-full items-stretch gap-3 rounded-pill px-3 py-2.5 text-aura-ink lg:gap-5 lg:px-5 lg:py-3">
+          <div className="aura-liquid-glass pointer-events-auto flex w-full items-stretch gap-3 rounded-pill px-3 py-2.5 text-aura-ink lg:gap-5 lg:px-5 lg:py-3">
             <StatusGauges
               dateHealth={session.dateHealth}
               displayedCurrentTurn={displayedCurrentTurn}
@@ -249,6 +249,7 @@ export function DateFooter({
               nudgeRef={nudgeButtonRef}
               onTriggerEvent={openSceneConfirm}
             />
+            {leadAskStatus === null ? null : <LeadAskChip status={leadAskStatus} />}
             <span aria-hidden className="flex-1" />
             <span aria-hidden className="w-px self-stretch bg-aura-hairline" />
             <TransportCluster
@@ -275,17 +276,6 @@ export function DateFooter({
                 if (footerTransportStep.active) footerTransportStep.complete();
                 togglePlayback();
               }}
-            />
-          </div>
-          <div className="pointer-events-none absolute inset-x-0 bottom-full mb-2 flex translate-y-1 justify-center opacity-0 transition duration-200 ease-out peer-hover:translate-y-0 peer-hover:opacity-100 peer-focus-within:translate-y-0 peer-focus-within:opacity-100">
-            <DirectorSlate
-              isPaused={isPaused}
-              pauseRequested={pauseRequested}
-              interventionSlotAvailable={interventionSlotAvailable}
-              dropsEnabled={dropsEnabled}
-              cutShortStatus={cutShortStatus}
-              leadAskStatus={leadAskStatus}
-              pendingDateAction={pendingDateAction}
             />
           </div>
         </div>
@@ -474,6 +464,33 @@ function resolveCutShortStatus({
   };
 }
 
+function LeadAskChip({ status }: { status: LeadAskStatus }) {
+  const tone =
+    status.kind === "covered"
+      ? "border-aura-emerald/35 bg-aura-emerald/10 text-aura-emerald"
+      : status.kind === "raised"
+        ? "border-aura-amber/45 bg-aura-amber/10 text-aura-amber"
+        : status.kind === "drifting"
+          ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
+          : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
+
+  return (
+    <Tooltip
+      message={status.detail}
+      placement="top-center"
+      messageClassName="text-aura-ink"
+      className="self-center"
+    >
+      <span
+        className={`inline-flex max-w-[14rem] items-center gap-1.5 truncate rounded-pill border px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] ${tone}`}
+      >
+        <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
+        <span className="truncate">{status.label}</span>
+      </span>
+    </Tooltip>
+  );
+}
+
 function resolveFileDateCopy(session: DateSession): FileDateModalCopy {
   const latestJudge = session.judgeSnapshots.at(-1);
   const strainDelta = latestJudge?.statDeltas.strain ?? 0;
@@ -518,190 +535,6 @@ function resolveFileDateCopy(session: DateSession): FileDateModalCopy {
   };
 }
 
-function DirectorSlate({
-  isPaused,
-  pauseRequested,
-  interventionSlotAvailable,
-  dropsEnabled,
-  cutShortStatus,
-  leadAskStatus,
-  pendingDateAction,
-}: {
-  isPaused: boolean;
-  pauseRequested: boolean;
-  interventionSlotAvailable: boolean;
-  dropsEnabled: boolean;
-  cutShortStatus: CutShortStatus;
-  leadAskStatus: LeadAskStatus | null;
-  pendingDateAction: PendingDateAction | null;
-}) {
-  if (pauseRequested) {
-    return (
-      <div
-        role="status"
-        aria-label="Pause filed. Finishing this beat."
-        className="aura-liquid-glass aura-liquid-glass-amber inline-flex items-center gap-2 rounded-pill px-3.5 py-1.5"
-      >
-        <span aria-hidden className="inline-flex items-center gap-1">
-          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/55 [animation-delay:0ms]" />
-          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/65 [animation-delay:180ms]" />
-          <span className="aura-typing-dot size-1.5 rounded-full bg-aura-amber/75 [animation-delay:360ms]" />
-        </span>
-        <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-amber">
-          Pause filed. Finishing this beat.
-        </span>
-      </div>
-    );
-  }
-
-  if (isPaused) {
-    return (
-      <div
-        role="status"
-        aria-label="Held. Paused for direction."
-        className="aura-liquid-glass aura-liquid-glass-rose inline-flex max-w-[calc(100vw-2rem)] flex-wrap items-center justify-center gap-2.5 rounded-pill px-3.5 py-1.5 lg:max-w-3xl"
-      >
-        <span className="inline-flex items-center gap-1.5">
-          <span className="aura-pulse size-1.5 rounded-full bg-aura-rose" />
-          <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-rose">
-            Held
-          </span>
-        </span>
-        <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
-        {leadAskStatus !== null ? (
-          <>
-            <LeadAskSlateChip status={leadAskStatus} />
-            <span aria-hidden className="h-3 w-px bg-aura-rose/30" />
-          </>
-        ) : null}
-        <span className="inline-flex flex-wrap items-center justify-center gap-1.5">
-          <SlateActionChip kind="whisper" enabled={interventionSlotAvailable} label="Whisper" />
-          <SlateActionChip kind="scene" enabled={dropsEnabled} label="Drop scene" />
-          <SlateActionChip
-            kind="cut"
-            enabled={cutShortStatus.enabled}
-            label="File date"
-            progress={cutShortStatus.chipProgress}
-          />
-          <SlateActionChip kind="advance" enabled label="Advance beat" />
-        </span>
-      </div>
-    );
-  }
-
-  const rollingCopy =
-    pendingDateAction === "advanceExchange"
-      ? "Date in motion · pause to direct"
-      : "Autoplay rolling · pauses at reads";
-
-  return (
-    <div
-      role="status"
-      aria-label={rollingCopy}
-      className="aura-liquid-glass aura-liquid-glass-violet inline-flex items-center gap-2 rounded-pill px-3.5 py-1.5"
-    >
-      <span aria-hidden className="inline-flex items-center gap-1">
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/55 [animation-delay:0ms]" />
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/65 [animation-delay:180ms]" />
-        <span className="aura-typing-dot size-1.5 rounded-full bg-aura-violet/75 [animation-delay:360ms]" />
-      </span>
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-violet">
-        {rollingCopy}
-      </span>
-    </div>
-  );
-}
-
-function LeadAskSlateChip({ status }: { status: LeadAskStatus }) {
-  const tone =
-    status.kind === "covered"
-      ? "border-aura-emerald/35 bg-aura-emerald/10 text-aura-emerald"
-      : status.kind === "raised"
-        ? "border-aura-amber/45 bg-aura-amber/10 text-aura-amber"
-        : status.kind === "drifting"
-          ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
-          : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
-
-  return (
-    <span
-      title={status.detail}
-      className={`inline-flex max-w-[22rem] items-center gap-1.5 truncate rounded-pill border px-2 py-0.5 font-mono text-label font-semibold uppercase tracking-[0.16em] ${tone}`}
-    >
-      <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-current" />
-      <span className="truncate">{status.label}</span>
-    </span>
-  );
-}
-
-function SlateActionChip({
-  kind,
-  enabled,
-  label,
-  progress,
-}: {
-  kind: "whisper" | "scene" | "advance" | "cut";
-  enabled: boolean;
-  label: string;
-  progress?: string;
-}) {
-  const tone = !enabled
-    ? "border-aura-hairline-strong/50 bg-white/40 text-aura-faint"
-    : kind === "whisper"
-      ? "border-aura-rose/35 bg-aura-rose/10 text-aura-rose"
-      : kind === "cut"
-        ? "border-aura-amber/40 bg-aura-amber/10 text-aura-amber"
-        : "border-aura-violet/35 bg-aura-violet/10 text-aura-violet";
-
-  return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-pill border px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ${tone}`}
-    >
-      <SlateChipIcon kind={kind} />
-      <span>{label}</span>
-      {progress ? <span className="opacity-70">{progress}</span> : null}
-    </span>
-  );
-}
-
-function SlateChipIcon({ kind }: { kind: "whisper" | "scene" | "advance" | "cut" }) {
-  if (kind === "whisper") {
-    return (
-      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
-        <path
-          d="M6 10.4 C6 10.4 1.4 7.7 1.4 4.6 C1.4 3.1 2.55 1.95 4.05 1.95 C4.95 1.95 5.65 2.45 6 3.2 C6.35 2.45 7.05 1.95 7.95 1.95 C9.45 1.95 10.6 3.1 10.6 4.6 C10.6 7.7 6 10.4 6 10.4 Z"
-          fill="currentColor"
-        />
-      </svg>
-    );
-  }
-  if (kind === "scene") {
-    return (
-      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
-        <path d="M6 1.2 L10.8 6 L6 10.8 L1.2 6 Z" fill="currentColor" />
-      </svg>
-    );
-  }
-  if (kind === "cut") {
-    return (
-      <svg viewBox="0 0 12 12" aria-hidden className="size-2.5">
-        <path
-          d="M2 6.2 L7.7 1.8 M2.4 2.4 L9.6 9.6 M4.3 10.2 L10 5.8"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.25"
-          strokeLinecap="round"
-        />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 14 14" aria-hidden className="size-2.5">
-      <path d="M2.5 2.5 L9 7 L2.5 11.5 Z" fill="currentColor" />
-      <rect x="9.6" y="2.5" width="1.7" height="9" rx="0.7" fill="currentColor" />
-    </svg>
-  );
-}
-
 function TransportCluster({
   isPlaying,
   isPaused,
@@ -742,41 +575,66 @@ function TransportCluster({
       ? "Pause autoplay (space)"
       : "Start autoplay (space)";
   return (
-    <div ref={containerRef} className="flex shrink-0 items-center gap-1.5">
+    <div ref={containerRef} className="flex shrink-0 items-center gap-2.5 pl-1">
       {isPaused && !pauseRequested ? (
         <>
-          <TransportButton
-            kind="cut"
-            disabled={!cutShortStatus.enabled || cutShortBusy}
-            onClick={onCutShort}
-            ariaLabel={cutShortStatus.buttonAriaLabel}
-            buttonRef={cutButtonRef}
+          <Tooltip
+            message={
+              cutShortStatus.enabled
+                ? "File a final read now and send the date to cooldown."
+                : cutShortStatus.buttonAriaLabel
+            }
+            placement="top-center"
+            messageClassName="text-aura-ink"
           >
-            <CutShortIcon />
-          </TransportButton>
-          <TransportButton
-            kind="ghost"
-            disabled={!canAdvance}
-            onClick={() => onAdvance(2)}
-            ariaLabel={advanceTip}
-          >
-            <AdvanceIcon />
-          </TransportButton>
+            <TransportButton
+              kind="cut"
+              disabled={!cutShortStatus.enabled || cutShortBusy}
+              onClick={onCutShort}
+              ariaLabel={cutShortStatus.buttonAriaLabel}
+              buttonRef={cutButtonRef}
+            >
+              <CutShortIcon />
+            </TransportButton>
+          </Tooltip>
+          <Tooltip message={advanceTip} placement="top-center" messageClassName="text-aura-ink">
+            <TransportButton
+              kind="ghost"
+              disabled={!canAdvance}
+              onClick={() => onAdvance(2)}
+              ariaLabel={advanceTip}
+            >
+              <AdvanceIcon />
+            </TransportButton>
+          </Tooltip>
         </>
       ) : null}
       {isPaused && isStreaming ? (
-        <TransportButton kind="stop" disabled={false} onClick={onCancel} ariaLabel="Stop streaming">
-          <StopIcon />
-        </TransportButton>
+        <Tooltip
+          message="Stop the current streaming beat."
+          placement="top-center"
+          messageClassName="text-aura-ink"
+        >
+          <TransportButton
+            kind="stop"
+            disabled={false}
+            onClick={onCancel}
+            ariaLabel="Stop streaming"
+          >
+            <StopIcon />
+          </TransportButton>
+        </Tooltip>
       ) : null}
-      <TransportButton
-        kind={isPlaying && !pauseRequested ? "ghost-active" : "primary"}
-        disabled={playbackBusy}
-        onClick={onTogglePlayback}
-        ariaLabel={playTip}
-      >
-        {isPlaying && !pauseRequested ? <PauseIcon /> : <PlayIcon />}
-      </TransportButton>
+      <Tooltip message={playTip} placement="top-center" messageClassName="text-aura-ink">
+        <TransportButton
+          kind={isPlaying && !pauseRequested ? "ghost-active" : "primary"}
+          disabled={playbackBusy}
+          onClick={onTogglePlayback}
+          ariaLabel={playTip}
+        >
+          {isPlaying && !pauseRequested ? <PauseIcon /> : <PlayIcon />}
+        </TransportButton>
+      </Tooltip>
     </div>
   );
 }

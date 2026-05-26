@@ -225,6 +225,8 @@ export function DateView({
     const found = document.querySelector<HTMLElement>("[data-judge-note-anchor]");
     setJudgeNoteAnchor((prev) => (prev === found ? prev : found));
   }, [judgeNoteStep.active, session.judgeSnapshots.length]);
+  const contentBottomPadding =
+    session.finalReport === undefined ? "pb-40 lg:pb-44" : "pb-[30rem] lg:pb-[22rem]";
 
   return (
     <>
@@ -261,7 +263,7 @@ export function DateView({
         />
 
         <div
-          className={`relative z-10 mx-auto w-full px-6 pt-6 pb-40 lg:px-10 lg:pb-44 ${
+          className={`relative z-10 mx-auto w-full px-6 pt-6 lg:px-10 ${contentBottomPadding} ${
             session.playbackState === "drafting" ? "max-w-2xl 2xl:max-w-6xl" : "max-w-3xl"
           }`}
         >

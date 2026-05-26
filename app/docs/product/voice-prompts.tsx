@@ -108,8 +108,8 @@ export const sections: DocSectionEntry[] = [
             ]}
           />
           <P>
-            The renderer caps a reply at three visible blocks after cleanup. Whole-line italic
-            actions such as <DocCode>*sighs*</DocCode> are markup abuse and get stripped.
+            The renderer caps a reply at two visible blocks after cleanup. Whole-line italic actions
+            such as <DocCode>*sighs*</DocCode> are markup abuse and get stripped.
           </P>
         </DocSubsection>
         <DocSubsection id="cupid-intervention" title="Cupid Intervention">
@@ -162,6 +162,7 @@ export const sections: DocSectionEntry[] = [
             "Role block: the member's name and first name.",
             "Task: produce one spoken reply grounded in the latest partner line.",
             "Identity and state: bio, needs, preferences, dealbreakers, private pressure, current mood, memories, agreements, open loops, and pair trajectory.",
+            "State pressure: low mood, bad comfort, and boundary-protection intent must change behavior. Cooling, confusion, refusal, or ending the exchange are valid member replies when the latest line supports them.",
             "Voice flavor: compact register, comedy mechanics, tics, selected sample buckets, optional member-specific conversation shape, and optional contrast examples.",
             "Shared scene: Cupid set the match, route, venue, and time; this is the pair's current date through Cupid.",
             "Venue frame: location, room feel, director rules, partner profile, portrait cues, and heights.",
@@ -174,6 +175,11 @@ export const sections: DocSectionEntry[] = [
           prompts. Do not expose pattern taxonomy as a checklist the model must satisfy. The prompt
           should describe who the member is, what they protect, and the conversation they are
           inside.
+        </DocCallout>
+        <DocCallout variant="note">
+          Runtime prompts must not treat dating success as the default. Flirtation and attraction
+          require concrete exchange evidence; confusion, anger, overload, and crash-out pressure are
+          first-class reads when member guards or scenario pressure fire.
         </DocCallout>
       </>
     ),

@@ -1,6 +1,9 @@
 import { gameSaveSchema, shiftStateSchema, type GameSave, type Member } from "../domain/game";
 import { applyMemberQuitBudgetCut } from "./budget";
-import { hydrateAvailablePartnerMemberIds } from "./shift-availability";
+import {
+  hydrateAvailablePartnerMemberIds,
+  selectShiftFollowUpPartnerMemberIds,
+} from "./shift-availability";
 import { selectFeaturedMemberRequestIds } from "./shift-planning";
 import { clampScore } from "./utils";
 
@@ -225,6 +228,15 @@ export function syncActiveShiftFocusCases(save: GameSave): GameSave {
   const activeFocusedMemberIds = save.focusedMemberIds.filter((memberId) =>
     activeMemberIds.has(memberId),
   );
+  const followUpPartnerMemberIds =
+    activeShift.status === "active"
+      ? selectShiftFollowUpPartnerMemberIds({
+          members: save.members,
+          focusedMemberIds: activeFocusedMemberIds,
+          dateSessions: save.dateSessions,
+          shiftNumber: activeShift.shiftNumber,
+        })
+      : [];
   const updatedShift = shiftStateSchema.parse({
     ...activeShift,
     featuredMemberIds: activeFocusedMemberIds,
@@ -232,6 +244,7 @@ export function syncActiveShiftFocusCases(save: GameSave): GameSave {
       shift: activeShift,
       members: save.members,
       focusedMemberIds: activeFocusedMemberIds,
+      priorityPartnerMemberIds: followUpPartnerMemberIds,
     }),
     memberRequestIds: selectFeaturedMemberRequestIds({
       members: save.members,
