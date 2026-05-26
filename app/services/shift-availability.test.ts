@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   dateSessionSchema,
   memberSchema,
+  pairStateSchema,
   type GameSave,
   type Member,
+  type PairState,
   type ShiftAvailabilityProfile,
 } from "../domain/game";
 import { starterMembers } from "../fixtures";
@@ -14,7 +16,7 @@ import {
   availabilityProfileForMember,
   hydrateAvailablePartnerMemberIds,
   isMemberOnTonightBoard,
-  selectShiftFollowUpPartnerMemberIds,
+  selectShiftFollowUpReservations,
   selectShiftPartnerMemberIds,
   shiftPartnerUnavailableReason,
   SHIFT_PARTNER_SLATE_SIZE,
@@ -191,7 +193,7 @@ describe("shift partner availability", () => {
     expect(hydrated).toContain(priorityPartner.id);
   });
 
-  it("selects each focus case's latest eligible prior date partner after cooldown", () => {
+  it("selects each focus case's latest pursue partner within the ripeness window even while cooling", () => {
     const save = selectInitialFocusCases(createSeedGameSave(), [
       "noah-kim",
       "vhool",
@@ -205,24 +207,24 @@ describe("shift partner availability", () => {
     );
     const session = dateSession({
       participants: ["noah-kim", "jenna-pike"],
-      appliedFollowUp: "encourage",
+      appliedFollowUp: "pursue",
     });
 
     expect(
-      selectShiftFollowUpPartnerMemberIds({
+      selectShiftFollowUpReservations({
         members,
         focusedMemberIds: save.focusedMemberIds,
         dateSessions: [session],
         shiftNumber: 2,
-      }),
-    ).toEqual([]);
+      }).map((reservation) => reservation.partnerMemberId),
+    ).toEqual(["jenna-pike"]);
     expect(
-      selectShiftFollowUpPartnerMemberIds({
+      selectShiftFollowUpReservations({
         members,
         focusedMemberIds: save.focusedMemberIds,
         dateSessions: [session],
         shiftNumber: 3,
-      }),
+      }).map((reservation) => reservation.partnerMemberId),
     ).toEqual(["jenna-pike"]);
   });
 
@@ -235,17 +237,49 @@ describe("shift partner availability", () => {
     ]);
     const session = dateSession({
       participants: ["noah-kim", "jenna-pike"],
-      appliedFollowUp: "mark_bad_fit",
+      appliedFollowUp: "close",
     });
 
     expect(
-      selectShiftFollowUpPartnerMemberIds({
+      selectShiftFollowUpReservations({
         members: save.members,
         focusedMemberIds: save.focusedMemberIds,
         dateSessions: [session],
         shiftNumber: 3,
       }),
     ).toEqual([]);
+  });
+
+  it("does not surface a partner whose lane is closed with an active focus case", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), [
+      "noah-kim",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const closedPair = pairState({
+      participantIds: ["noah-kim", "jenna-pike"],
+      laneStatus: "closed",
+    });
+
+    const slate = selectShiftPartnerMemberIds({
+      members: save.members,
+      focusedMemberIds: save.focusedMemberIds,
+      shiftNumber: 3,
+      pairStates: [closedPair],
+      priorityPartnerMemberIds: ["jenna-pike"],
+    });
+
+    expect(slate).not.toContain("jenna-pike");
+    expect(
+      shiftPartnerUnavailableReason({
+        member: requireMember(save, "jenna-pike"),
+        shiftNumber: 3,
+        focusedMemberIds: save.focusedMemberIds,
+        availablePartnerMemberIds: slate,
+        pairStates: [closedPair],
+      }),
+    ).toBe("closed_lane");
   });
 
   it("reports partner unavailability reasons in player-facing buckets", () => {
@@ -382,7 +416,7 @@ function dateSession({
   appliedFollowUp,
 }: {
   participants: [string, string];
-  appliedFollowUp: "encourage" | "mark_bad_fit";
+  appliedFollowUp: "pursue" | "close";
 }) {
   return dateSessionSchema.parse({
     id: `date-1-1-pair-${participants[0]}-${participants[1]}-temporal-coffee-shop`,
@@ -409,10 +443,38 @@ function dateSession({
       outcome: "second_date" as const,
       summary: "Cupid filed a follow-up booking test.",
       statSummary: "Case read: follow-up booking test.",
-      recommendedFollowUp: "encourage" as const,
+      recommendedFollowUp: "pursue" as const,
       appliedFollowUp,
       memoryRecordIds: [],
       readyToClose: false,
     },
+  });
+}
+
+function pairState({
+  participantIds,
+  laneStatus = "open",
+}: {
+  participantIds: [string, string];
+  laneStatus?: PairState["laneStatus"];
+}): PairState {
+  return pairStateSchema.parse({
+    id: `pair-${participantIds[0]}-${participantIds[1]}`,
+    participantIds,
+    laneStatus,
+    stats: {
+      chemistry: 50,
+      trust: 50,
+      stability: 50,
+      conflict: 50,
+      weirdnessTolerance: 50,
+      spark: 50,
+      strain: 50,
+      relationshipHealth: 50,
+    },
+    completedDateIds: [],
+    scenarioUseCounts: {},
+    agreements: [],
+    openLoops: [],
   });
 }

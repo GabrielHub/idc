@@ -99,7 +99,7 @@ export const sections: DocSectionEntry[] = [
               </span>,
               <span key="model">
                 The default chat model is <DocCode>deepseek/deepseek-v4-flash</DocCode> with{" "}
-                <DocCode>high</DocCode> reasoning. The Cloud selector also exposes{" "}
+                <DocCode>xhigh</DocCode> reasoning. The Cloud selector also exposes{" "}
                 <DocCode>deepseek/deepseek-v4-pro</DocCode>,{" "}
                 <DocCode>google/gemini-3.1-flash-lite</DocCode>,{" "}
                 <DocCode>anthropic/claude-haiku-4.5</DocCode>,{" "}
@@ -122,10 +122,9 @@ export const sections: DocSectionEntry[] = [
               </span>,
               <span key="reason">
                 Gateway reasoning is locked per model so date behavior stays comparable. DeepSeek V4
-                Flash uses <DocCode>high</DocCode>; DeepSeek V4 Pro uses <DocCode>xhigh</DocCode>;
-                Gemini 3.1 Flash Lite uses <DocCode>medium</DocCode>; GPT 5.4 Nano uses{" "}
-                <DocCode>none</DocCode>; models without a stable Gateway reasoning control use{" "}
-                <DocCode>off</DocCode>.
+                Flash and DeepSeek V4 Pro use <DocCode>xhigh</DocCode>; Gemini 3.1 Flash Lite uses{" "}
+                <DocCode>medium</DocCode>; GPT 5.4 Nano uses <DocCode>none</DocCode>; models without
+                a stable Gateway reasoning control use <DocCode>off</DocCode>.
               </span>,
             ]}
           />

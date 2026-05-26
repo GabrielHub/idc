@@ -89,11 +89,11 @@ export const opalSunday: Member = {
         "yes. but you have to let me bring up boston market at some point. that's the deal.",
       ],
       warming: [
-        "people usually ask about the binder. you didn't. that's character.",
-        "you read normal. it is so weird for me. keep doing it.",
-        "you let the place stay the place and you didn't second-guess it. i'm putting that under positive signs.",
         "you're a calm person. that was a compliment in 1998. still is.",
         "deb would have hated this restaurant. that's the second time i've cited deb tonight. one-source operation today, sorry. she was right about a lot of things.",
+        "ok the binder is in the bag. i'm not opening it tonight. that is, in 1998 terms, a small miracle. ask me about something that is not the binder.",
+        "i bought a houseplant last month. it is still alive. i am calling that a meaningful win for the year. what's yours.",
+        "tell me about your sunday. mine is filing paper and watching whatever the laundromat tv is showing. it is a peaceful arrangement.",
       ],
       cooling: [
         "nope. clean no. moving on.",

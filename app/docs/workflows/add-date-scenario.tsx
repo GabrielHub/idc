@@ -213,7 +213,12 @@ export const sections: DocSectionEntry[] = [
     title: "Event requirements",
     body: (
       <>
-        <P>Every scenario ships exactly nine events: 3 ambient, 3 provocation, 3 reveal.</P>
+        <P>
+          Every scenario ships exactly nine events: 3 ambient, 3 provocation, 3 reveal. Events are
+          real shifts in the room, not whispers of ambient flavor. When the player drops one, the
+          next character turn must visibly engage with it. Author each event as something that can
+          move the mood or direction of the date.
+        </P>
         <P>Each event needs:</P>
         <DocList
           items={[
@@ -221,20 +226,27 @@ export const sections: DocSectionEntry[] = [
               <DocCode>id</DocCode>: unique within the scenario.
             </span>,
             <span key="title">
-              <DocCode>title</DocCode>: short event title.
+              <DocCode>title</DocCode>: short event title shown on the pick card and gauge button.
+              Plain phrase, no em dashes.
             </span>,
             <span key="kind">
               <DocCode>kind</DocCode>: <DocCode>ambient</DocCode>, <DocCode>provocation</DocCode>,
               or <DocCode>reveal</DocCode>.
             </span>,
-            <span key="ev">
-              <DocCode>event</DocCode>: internal event description.
+            <span key="pitch">
+              <DocCode>pitch</DocCode>: one sentence shown to the player at pick time. State plainly
+              what dropping this event will do to the date in player vocabulary. No em dashes, no
+              stat numbers, no fixture-only jargon.
             </span>,
-            <span key="visible">
-              <DocCode>characterVisibleText</DocCode>: what the characters can observe.
+            <span key="beat">
+              <DocCode>beat</DocCode>: plain prose narration that lands in the transcript when the
+              player drops the event. Describe what shifts in the room. No bracketed stage
+              directions, no asterisks, no quoted dialogue from third parties.
             </span>,
             <span key="director">
-              <DocCode>directorInstruction</DocCode>: prompt instruction for the next performer.
+              <DocCode>directorBeat</DocCode>: explicit instruction for the next character turn,
+              wired into the system prompt. Tell the LLM what the responding character must do or
+              choose. The kind suffix is appended automatically.
             </span>,
           ]}
         />
@@ -242,26 +254,41 @@ export const sections: DocSectionEntry[] = [
         <DocList
           items={[
             <span key="ambient">
-              <Strong>ambient:</Strong> environmental texture. It can be noticed or ignored.
+              <Strong>ambient:</Strong> the room shifts in a quiet way. The character must let it
+              color their next beat even if they do not name it directly.
             </span>,
             <span key="provocation">
-              <Strong>provocation:</Strong> physical interruption. The next speaker must react
-              before resuming.
+              <Strong>provocation:</Strong> a physical interruption. The character must register and
+              react before resuming.
             </span>,
             <span key="reveal">
-              <Strong>reveal:</Strong> lets existing member context, filed reads, or pair history
-              surface. It must not invent new biography.
+              <Strong>reveal:</Strong> something honest surfaces. The character engages with it from
+              what they already know about themselves or the pair. It must not invent new biography.
             </span>,
           ]}
         />
+        <DocCallout variant="danger" title="Beat copy hygiene">
+          <P>
+            The <DocCode>beat</DocCode> string is appended to the transcript as plain prose and seen
+            by the character LLM. Authoring choices leak straight into character replies.
+          </P>
+          <DocList
+            items={[
+              "No em dashes anywhere in pitch, beat, or title. They are user-facing.",
+              "No bracketed stage directions like [she tilts] and no asterisk-wrapped actions like *folds hands*. Both leak as narration in character replies.",
+              "Third-party figures (servers, hosts, crowds, machines, creatures) may act in the beat but must not be quoted speaking. Quoted dialogue from a non-character introduces an invisible speaker the model will start answering.",
+              "Italic emphasis with single asterisks around words is fine when needed for rendering. Action wraps are not.",
+              "Keep the beat to plain prose: what just shifted in the room. The character's reaction belongs to the next turn, not to the beat copy.",
+            ]}
+          />
+        </DocCallout>
         <DocCallout variant="danger" title="No continuing offstage speakers">
           <P>
             Offstage people, announcements, hosts, servers, machines, creatures, crowds, and other
-            environmental sources must not become a continuing third speaker. If an event text
-            includes an utterance, sign, label, voice, or role, the{" "}
-            <DocCode>directorInstruction</DocCode> must explicitly prevent that source from being
-            voiced as continuing dialogue. <DocCode>scenarios.test.ts</DocCode> checks common
-            violations.
+            environmental sources must not become a continuing third speaker. If a beat references
+            an utterance, sign, label, voice, or role, the <DocCode>directorBeat</DocCode> must
+            explicitly prevent that source from being voiced as continuing dialogue.{" "}
+            <DocCode>scenarios.test.ts</DocCode> checks common violations.
           </P>
         </DocCallout>
       </>

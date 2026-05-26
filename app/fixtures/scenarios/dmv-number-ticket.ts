@@ -43,91 +43,91 @@ export const dmvNumberTicket: DateScenario = {
         id: "dmv-number-ticket-event-1",
         title: "Form check",
         kind: "reveal",
-        event: "A box on the form has been left blank.",
-        characterVisibleText:
-          "The form on the lap has eighteen boxes. The line for previous address is empty. A clipboard pen is chained to the counter ten feet away.",
-        directorInstruction:
-          "Use the small lapse to surface care, control, or deferral without scoring it.",
+        pitch:
+          "Surface a blank box for the previous address with the pen chained ten feet away. Surfaces care, control, or deferral in the small lapse.",
+        beat: "The form on the lap has eighteen boxes. The line for previous address is empty. A clipboard pen is chained to the counter ten feet away.",
+        directorBeat:
+          "Something on the form is not filled in. Note it aloud, get up for the pen, hand the form to your date for a missing detail, or shrug and let it be. Show how you handle small admin.",
       },
       {
         id: "dmv-number-ticket-event-2",
         title: "Board jumps",
         kind: "reveal",
-        event: "The display board moves three numbers in a row, then stops.",
-        characterVisibleText:
-          "The board reads B 50. Their ticket says B 63. The clerk at window two has stood up. The printer behind the counter starts and stops.",
-        directorInstruction:
-          "Let the wait open a window. A real question is cheaper here than across a table. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Jump the board three numbers in a row and stall. Surfaces whether either uses the small window for a real question.",
+        beat: "The board reads B 50. Their ticket says B 63. The clerk at window two has stood up. The printer behind the counter starts and stops.",
+        directorBeat:
+          "The line just gave you time. Ask the real question you have been carrying, comment on the printer, hand the form to your date for review, or sit still. Use the window. Do not voice the clerks.",
       },
       {
         id: "dmv-number-ticket-event-3",
         title: "Number called",
         kind: "provocation",
-        event: "Their number lights up on the board.",
-        characterVisibleText:
-          "The board reads B 63. Window four has its light on. Two minutes of patience are visibly available.",
-        directorInstruction:
-          "Push the pair to handle the window together or to step apart on purpose. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Light B 63 at window four. Forces a clean call: walk it together or split off on purpose.",
+        beat: "The board reads B 63. Window four has its light on. Two minutes of patience are visibly available.",
+        directorBeat:
+          "Your turn just came up. Stand and walk it with your date, ask them to wait in the chair, hand the form across, or take only what you need. Move. Do not voice the clerk.",
       },
       {
         id: "dmv-number-ticket-event-4",
         title: "Window two reopens",
         kind: "ambient",
-        event: "A clerk returns to window two with a fresh stack.",
-        characterVisibleText:
-          "A clerk in a blue cardigan sits down at window two and slides a fresh stack of forms onto the counter. The light over window two blinks on.",
-        directorInstruction:
-          "Allow the small relief without scoring it. The wait got two minutes shorter. The clerk does not speak.",
+        pitch:
+          "Sit a clerk back at window two with a fresh stack. Surfaces a small relief in the wait.",
+        beat: "A clerk in a blue cardigan sits down at window two and slides a fresh stack of forms onto the counter. The light over window two blinks on.",
+        directorBeat:
+          "The wait just got shorter. Notice it, comment to your date, slide the form across to check it again, or sit quiet with the relief. Do not voice the clerk.",
       },
       {
         id: "dmv-number-ticket-event-5",
         title: "Form drop in row D",
         kind: "ambient",
-        event: "Someone in row D drops a stapled form.",
-        characterVisibleText:
-          "A man in row D drops a stapled form. Two pages slide under his neighbor's chair. He reaches across without speaking and the neighbor leans back to give him room.",
-        directorInstruction:
-          "Let the small kindness in row D land or be missed. The pair can use it either way. Do not voice the row D pair.",
+        pitch:
+          "Drop a stapled form in row D and have a stranger lean back to give room. Surfaces whether the pair lets the small kindness land or misses it.",
+        beat: "A man in row D drops a stapled form. Two pages slide under his neighbor's chair. He reaches across without speaking and the neighbor leans back to give him room.",
+        directorBeat:
+          "A small piece of grace just happened in the next row. Notice it, comment to your date, use it as a beat to soften your tone, or let it pass. Do not voice the row D pair.",
       },
       {
         id: "dmv-number-ticket-event-6",
         title: "Pen tether",
         kind: "ambient",
-        event: "The chained pen swings on its tether at the counter.",
-        characterVisibleText:
-          "The clipboard pen on its tether swings against the counter, then settles. The chain has a kink in it. No one is using the pen.",
-        directorInstruction:
-          "Use the small mechanical detail to ease pressure between two real questions.",
+        pitch:
+          "Swing the chained pen on its tether against the counter. Surfaces a small mechanical detail that can ease pressure.",
+        beat: "The clipboard pen on its tether swings against the counter, then settles. The chain has a kink in it. No one is using the pen.",
+        directorBeat:
+          "Something small is fidgeting at the counter. Use it as a breath, comment on the chain, ask your date a real question while the pen swings, or sit quiet. Take advantage of the lull.",
       },
       {
         id: "dmv-number-ticket-event-7",
         title: "Board jumps again",
         kind: "provocation",
-        event: "The display board jumps two more numbers in a row.",
-        characterVisibleText:
-          "The board reads B 65, then B 67. Window five rolls its number forward. The printer behind the counter starts again.",
-        directorInstruction:
-          "Push the pair to use the gift of time now or lose it. The next jump may be theirs. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Jump the board two more numbers. Forces using the time before the next jump is theirs.",
+        beat: "The board reads B 65, then B 67. Window five rolls its number forward. The printer behind the counter starts again.",
+        directorBeat:
+          "Time is moving. Say the real thing now, ask the question you have been carrying, give your date the form to fix one line, or accept that the moment will pass. Speak before the next jump. Do not voice the board.",
       },
       {
         id: "dmv-number-ticket-event-8",
         title: "Lobby cuts out",
         kind: "reveal",
-        event: "The lobby music cuts out for half a beat.",
-        characterVisibleText:
-          "The lobby music drops for half a beat. The fluorescent overhead hums. The song cuts back in mid-song. No one looks up.",
-        directorInstruction:
-          "Let the silence open a clean window for one of them to ask the small thing.",
+        pitch:
+          "Drop the lobby music for half a beat with the fluorescent hum underneath. Opens a clean window for one of them to ask the small thing.",
+        beat: "The lobby music drops for half a beat. The fluorescent overhead hums. The song cuts back in mid-song. No one looks up.",
+        directorBeat:
+          "The room just got quiet for a beat. Ask the small honest thing in the silence, glance at your date, or notice the hum. Do not waste the gap.",
       },
       {
         id: "dmv-number-ticket-event-9",
         title: "Window light kills",
         kind: "provocation",
-        event: "Window four's light kills and the line jumps.",
-        characterVisibleText:
-          "The light over window four cuts to dark. The board jumps to B 70. The clerk at window four stands and walks toward the back hall. Their ticket reads B 63.",
-        directorInstruction:
-          "Push for a clean call: flag a different window, hold for a reopen, or take a number again. The board will not back up. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Kill window four's light and skip the board to B 70. Forces a clean call: flag a different window, hold for reopen, or take a new number.",
+        beat: "The light over window four cuts to dark. The board jumps to B 70. The clerk at window four stands and walks toward the back hall. Their ticket reads B 63.",
+        directorBeat:
+          "Your window just closed on you. Walk to a different window, ask the floor for help, take a new number, or step out of the room. Make the call out loud. Do not voice the clerks.",
       },
     ],
     earlyEndTriggers: [

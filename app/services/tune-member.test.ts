@@ -84,6 +84,33 @@ describe("createTuneSession", () => {
       createTuneSession({ focusMemberId: SAMPLE_FOCUS_ID, scenarioId: "made-up-place" }),
     ).toThrow(/Unknown scenario/);
   });
+
+  it("accepts a focusRequestId that belongs to the focus member", () => {
+    const session = createTuneSession({
+      focusMemberId: "jenna-pike",
+      focusRequestId: "request-jenna-normal-date",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+    expect(session.focusRequestId).toBe("request-jenna-normal-date");
+  });
+
+  it("rejects an unknown focusRequestId", () => {
+    expect(() =>
+      createTuneSession({
+        focusMemberId: "jenna-pike",
+        focusRequestId: "request-does-not-exist",
+      }),
+    ).toThrow(/Unknown focus request id/);
+  });
+
+  it("rejects a focusRequestId that belongs to a different member", () => {
+    expect(() =>
+      createTuneSession({
+        focusMemberId: "jenna-pike",
+        focusRequestId: "request-meridian-no-followups",
+      }),
+    ).toThrow(/belongs to meridian-vale/);
+  });
 });
 
 describe("transcript builders", () => {
@@ -297,6 +324,30 @@ describe("previewMemberTurnPacket", () => {
     expect(preview.dateSession.participants).toContain(SAMPLE_PARTNER_ID);
     expect(preview.pairState.completedDateIds).toEqual([]);
     expect(preview.packet.system).toContain("first");
+  });
+
+  it("injects a <focus> block when the session pins a focus request", () => {
+    const session = createTuneSession({
+      focusMemberId: "jenna-pike",
+      partnerMemberId: SAMPLE_PARTNER_ID,
+      scenarioId: SAMPLE_SCENARIO_ID,
+      focusRequestId: "request-jenna-normal-date",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+    const preview = previewMemberTurnPacket(session);
+
+    expect(preview.focusRequest?.id).toBe("request-jenna-normal-date");
+    expect(preview.packet.system).toContain("<focus>");
+    expect(preview.packet.system).toContain(
+      "What you most want to come out of tonight: Jenna wants a date that does not involve prophecy",
+    );
+  });
+
+  it("omits the <focus> block when no focus request is pinned", () => {
+    const session = newSession();
+    const preview = previewMemberTurnPacket(session);
+    expect(preview.focusRequest).toBeUndefined();
+    expect(preview.packet.system).not.toContain("<focus>");
   });
 });
 

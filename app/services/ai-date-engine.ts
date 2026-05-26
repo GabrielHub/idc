@@ -86,7 +86,7 @@ import {
   detectHiddenInfoLeak,
   type HiddenInfoLeak,
 } from "./hidden-info-guard";
-import { applyMatchFitToJudgeSnapshot, evaluateMatchFit } from "./match-fit";
+import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, type MatchFitResult } from "./match-fit";
 import { applyCompletedDatePairMemoryEffects, applyJudgePairMemoryEffects } from "./pair-memory";
 import {
   applyJudgeReveals,
@@ -351,6 +351,7 @@ async function advanceDateExchangeWithLocalAiInternal(
       partner,
       scenario,
       pairState,
+      matchFit,
       focusRequest,
       partnerKnowledge: visibleReadsForMember(save, partner.id),
       createdAt: timestamp,
@@ -382,6 +383,12 @@ async function advanceDateExchangeWithLocalAiInternal(
   const exchangeMessages = transcript.filter(
     (message) =>
       message.kind === "character" &&
+      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
+  );
+  const exchangeSceneMessages = transcript.filter(
+    (message) =>
+      message.kind === "scenario" &&
+      message.sourceEventId !== undefined &&
       exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
   );
   const pendingRevealMessages = messagesSinceLastJudge(session, transcript);
@@ -437,6 +444,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     scenario,
     exchangeMessages,
+    exchangeSceneMessages,
     exchangeIndex,
     members,
     revealCandidates: eligibleCandidates,
@@ -836,6 +844,7 @@ async function createLocalAiCharacterMessage({
   partner,
   scenario,
   pairState,
+  matchFit,
   focusRequest,
   partnerKnowledge,
   createdAt,
@@ -850,6 +859,7 @@ async function createLocalAiCharacterMessage({
   partner: Member;
   scenario: DateScenario;
   pairState: PairState;
+  matchFit: MatchFitResult | undefined;
   focusRequest: MemberRequest | undefined;
   partnerKnowledge: readonly PlayerKnowledgeRecord[];
   createdAt: string;
@@ -906,6 +916,7 @@ async function createLocalAiCharacterMessage({
         memoryPack: promptInputs.memoryPack,
         focusRequest,
         partnerKnowledge,
+        matchFit,
         memorySearchAvailable: true,
         repetitionRetry,
         rhythmRetry,
@@ -1488,6 +1499,7 @@ async function createLocalAiJudgeSnapshot({
   pairState,
   scenario,
   exchangeMessages,
+  exchangeSceneMessages,
   exchangeIndex,
   members,
   revealCandidates,
@@ -1499,6 +1511,7 @@ async function createLocalAiJudgeSnapshot({
   pairState: PairState;
   scenario: DateScenario;
   exchangeMessages: DateMessage[];
+  exchangeSceneMessages?: readonly DateMessage[];
   exchangeIndex: number;
   members: Member[];
   revealCandidates?: readonly RevealCandidate[];
@@ -1510,6 +1523,7 @@ async function createLocalAiJudgeSnapshot({
       session,
       pairState,
       exchangeMessages,
+      exchangeSceneMessages,
       exchangeIndex,
       members,
       revealCandidates,
@@ -1707,23 +1721,9 @@ function createLocalAiFallbackMemoryRecord({
 }
 
 function formatFallbackFollowUp(action: FollowUpAction): string {
-  if (action === "encourage") {
-    return "Encourage";
-  }
-
-  if (action === "cool_down") {
-    return "Cool down";
-  }
-
-  if (action === "mark_bad_fit") {
-    return "Mark bad fit";
-  }
-
-  if (action === "let_it_sit") {
-    return "Let it sit";
-  }
-
-  return "Repair";
+  if (action === "cool_down") return "Cool down";
+  if (action === "close") return "Close";
+  return "Pursue";
 }
 
 async function createLocalAiMemoryRecords({
@@ -2192,6 +2192,11 @@ function stripUnbalancedDoubleQuotes(text: string): string {
   return text.replace(/"/g, "");
 }
 
+// Sentence-starting verbs that are almost always stage direction rather than
+// dialogue. Transitive verbs like "puts", "picks", "drops", "pulls" were
+// removed because they legitimately open spoken lines ("Holds true.", "Drops
+// by Tuesday."). The italic-wrapped variants in
+// character-markdown.ITALIC_STAGE_DIRECTION_VERBS still catch the wider list.
 const BARE_ACTION_VERBS = [
   "laughs",
   "smiles",
@@ -2207,6 +2212,16 @@ const BARE_ACTION_VERBS = [
   "grimaces",
   "breathes",
   "swallows",
+  "grabs",
+  "pours",
+  "sips",
+  "tilts",
+  "gestures",
+  "folds",
+  "crosses",
+  "waves",
+  "rubs",
+  "scratches",
 ] as const;
 
 const FIRST_PERSON_ACTION_VERBS: readonly { base: string; ing: string }[] = [

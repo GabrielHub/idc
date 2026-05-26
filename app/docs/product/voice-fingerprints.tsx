@@ -119,7 +119,7 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "sampleMessages",
-              def: "Greeting, hingeBits, warming, cooling, and crashingOut examples. Greetings are sit-down openers. Hinge bits are pre-date app-message flavor. In-date buckets are rhythm references, not lines to copy.",
+              def: "Greeting, hingeBits, warming, cooling, and crashingOut examples. Greeting samples surface in the runtime prompt on sit-down openers. CrashingOut samples surface only as fire attractors when date health is low and a dealbreaker is about to fire. HingeBits, warming, and cooling banks are authoring artifacts and test data; they do not flow into the in-date prompt. Carry voice through register, comedyMechanics, and tics — not banks the model treats as compliance targets.",
             },
           ]}
         />

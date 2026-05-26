@@ -44,90 +44,91 @@ export const memoryCourseDinner: DateScenario = {
         id: "memory-course-dinner-event-1",
         title: "Soup memory",
         kind: "reveal",
-        event: "The cover lifts off the first bowl.",
-        characterVisibleText:
-          "The cover lifts off the bowl. The soup tastes like a kitchen where someone once asked a careful question.",
-        directorInstruction: "Invite a modest memory without forcing confession.",
+        pitch:
+          "Lift the cover off a soup that tastes like a kitchen where someone once asked a careful question. Surfaces a modest memory without forcing confession.",
+        beat: "The cover lifts off the bowl. The soup tastes like a kitchen where someone once asked a careful question.",
+        directorBeat:
+          "The soup is doing personnel work. Name the small memory it pulls, ask your date what they taste, sit with the bowl, or change the topic. Speak only from what you already carry.",
       },
       {
         id: "memory-course-dinner-event-2",
         title: "Plate slide",
         kind: "provocation",
-        event: "The main plates land hard and slide toward the last listener.",
-        characterVisibleText:
-          "Two plates land between them with a clear scrape. After a beat they slide a full hand toward the listener of the last line, edging cutlery toward the table edge.",
-        directorInstruction:
-          "Push the listener to settle the cutlery aloud or pass the slide back. The motion needs a physical answer before the next line.",
+        pitch:
+          "Land both plates hard and slide them a full hand toward the last listener, with cutlery near the edge. Forces a physical answer.",
+        beat: "Two plates land between them with a clear scrape. After a beat they slide a full hand toward the listener of the last line, edging cutlery toward the table edge.",
+        directorBeat:
+          "The table just judged a listener. Steady the cutlery, slide the plates back to center, comment on the move, or accept the slide. Use your hands in your next beat.",
       },
       {
         id: "memory-course-dinner-event-3",
         title: "Dessert receipt",
         kind: "reveal",
-        event: "Dessert arrives with a receipt listing one thing each member avoided.",
-        characterVisibleText:
-          "Dessert lands between them with a receipt titled: items left unsaid. The line items are short and printed in the same ink as the menu.",
-        directorInstruction:
-          "Let the pair decide whether one item is worth saying now. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Land dessert with a receipt titled items left unsaid in the menu's ink. Forces a stance on whether one item is worth saying now.",
+        beat: "Dessert lands between them with a receipt titled: items left unsaid. The line items are short and printed in the same ink as the menu.",
+        directorBeat:
+          "A short list of unsaid things is on the table. Pick one to name aloud, hand the receipt across, ask your date if they want to share one, or fold it shut. Decide cleanly. Do not voice the receipt.",
       },
       {
         id: "memory-course-dinner-event-4",
         title: "Bread course",
         kind: "reveal",
-        event: "A small bread course arrives between bowls.",
-        characterVisibleText:
-          "A small wooden board lands between them. Two slices of dark bread, a pat of butter, and a tag that reads: a kitchen that hosted children, briefly.",
-        directorInstruction:
-          "Invite a smaller, lighter memory. Do not press for a wound. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Slide a wooden board with dark bread, butter, and a tag: a kitchen that hosted children, briefly. Forces a smaller, lighter memory.",
+        beat: "A small wooden board lands between them. Two slices of dark bread, a pat of butter, and a tag that reads: a kitchen that hosted children, briefly.",
+        directorBeat:
+          "The tag is asking for something small and warm. Offer one line about a kitchen you remember, ask your date about theirs, tear off a piece and pass it across, or set the tag aside. Stay honest. Do not voice the tag.",
       },
       {
         id: "memory-course-dinner-event-5",
         title: "Carafe spill",
         kind: "provocation",
-        event: "The water carafe refills past the rim and spills toward the receipt.",
-        characterVisibleText:
-          "The carafe refills past the rim. Water beads, sheets across the linen, and reaches the items-left-unsaid receipt at one corner. The receipt darkens at the edge.",
-        directorInstruction:
-          "Push for a physical save before the receipt blurs out. A clean reset of the table or a deliberate let-it-soak both count as answers.",
+        pitch:
+          "Refill the water carafe past the rim toward the items-left-unsaid receipt at one corner. Forces a physical save or a deliberate soak.",
+        beat: "The carafe refills past the rim. Water beads, sheets across the linen, and reaches the items-left-unsaid receipt at one corner. The receipt darkens at the edge.",
+        directorBeat:
+          "The receipt is about to blur. Save it with a napkin, deliberately let it soak, ask your date if they want it preserved, or lift it to dry. Pick and act in this beat.",
       },
       {
         id: "memory-course-dinner-event-6",
         title: "Salt cellar",
         kind: "ambient",
-        event: "A small salt cellar slides toward the older speaker of the two.",
-        characterVisibleText:
-          "The salt cellar slides on its own toward whichever of them last named a place. A small spoon sits in it. The lid is engraved with a single year.",
-        directorInstruction:
-          "Use the small movement to test whether attention to old details counts as care here.",
+        pitch:
+          "Slide a small engraved salt cellar toward whichever named a place last. Surfaces attention to old details as care.",
+        beat: "The salt cellar slides on its own toward whichever of them last named a place. A small spoon sits in it. The lid is engraved with a single year.",
+        directorBeat:
+          "A small heirloom is at your elbow. Pick up the spoon, read the year aloud, ask your date what year is on theirs, or push it back. Show the small attention.",
       },
       {
         id: "memory-course-dinner-event-7",
         title: "Plates rebalance",
         kind: "ambient",
-        event: "Plates shift again toward the listener of the last line.",
-        characterVisibleText:
-          "Both plates slide one inch toward whoever was listened to last. The tilt is mild. The empty water carafe is replaced without a word.",
-        directorInstruction:
-          "Reward steady listening. The plates are not strict, but they are watching.",
+        pitch:
+          "Shift both plates one inch toward the last listener with a fresh carafe arriving. Surfaces whether steady listening is honored.",
+        beat: "Both plates slide one inch toward whoever was listened to last. The tilt is mild. The empty water carafe is replaced without a word.",
+        directorBeat:
+          "The table is rewarding the listener. Notice the shift, ask your date a real follow-up, eat from the side that came to you, or push the plates back. Honor the listening.",
       },
       {
         id: "memory-course-dinner-event-8",
         title: "Empty third seat",
         kind: "ambient",
-        event: "The empty third seat at the alcove softens at its edge.",
-        characterVisibleText:
-          "The empty third seat at the alcove edge softens for a beat. A thin line of light eases along the back of it. No one is there. The light returns to normal.",
-        directorInstruction:
-          "Allow each member to register the small absence privately. Do not voice the absence.",
+        pitch:
+          "Soften the empty third seat's edge for a beat with a thin line of light along the back. Surfaces a small private absence the pair registers but does not voice.",
+        beat: "The empty third seat at the alcove edge softens for a beat. A thin line of light eases along the back of it. No one is there. The light returns to normal.",
+        directorBeat:
+          "Something quiet just passed the empty seat. Sit with it, glance at your date, comment on the light without dramatizing it, or look back at your plate. Do not voice the absence.",
       },
       {
         id: "memory-course-dinner-event-9",
         title: "Final tray surge",
         kind: "provocation",
-        event: "A late tray slides into the alcove with a single covered course.",
-        characterVisibleText:
-          "A wheeled tray rolls itself into the alcove and stops a hand from the table. A single domed plate is on it. The wheels lock with a hard click and the lid lifts halfway, then waits.",
-        directorInstruction:
-          "Push for a clean call: take the dish, send it back, or close out the tasting. The tray will not retreat without an answer.",
+        pitch:
+          "Roll a late tray into the alcove with a single domed plate. Forces a clean call: take, send back, or close out.",
+        beat: "A wheeled tray rolls itself into the alcove and stops a hand from the table. A single domed plate is on it. The wheels lock with a hard click and the lid lifts halfway, then waits.",
+        directorBeat:
+          "An extra course just locked in next to your table. Take the dish, send it back, close out the tasting, or ask your date what they want. The tray will not retreat without an answer.",
       },
     ],
     earlyEndTriggers: [

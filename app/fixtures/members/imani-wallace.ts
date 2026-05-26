@@ -88,8 +88,8 @@ export const imaniWallace: Member = {
         "ok dont judge me. dont JUDGE me. ok so technically im a big rom com k drama girl, like big, like ive seen crash landing on you four times, i sob every time, the piano scene??",
         "im also a twice stan and im just gonna say it, im a nayeon girl, ive been to two shows, one in newark, one in jersey, anyway tell me one embarrassing thing about u and we are even",
         "the pothos is doing great, shes my longest current relationship, im not gonna put that in the profile but you should know",
-        "ok wait u read pachinko?? im being normal about this. im being normal about it. ok continue",
-        "i love that u just asked a real question, ive been answering shift work to every guy for a year and a half and this is a first :)",
+        "ok wait u read pachinko?? which part wrecked u, i need the chapter, the line, all of it",
+        "ive been answering shift work to every guy for a year and a half. tonight im gonna try the real version and see what happens :)",
         "yeah the jobs fine!!, benefits are great, i get pto, my mom thinks i should write a book and im not doing that, anyway have u been to that bagel place by the L",
       ],
       cooling: [

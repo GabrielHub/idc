@@ -44,88 +44,91 @@ export const countyFairFriday: DateScenario = {
         id: "county-fair-friday-event-1",
         title: "Funnel cake delivery",
         kind: "reveal",
-        event: "A paper plate of funnel cake lands at their corner of the bench.",
-        characterVisibleText:
-          "A paper plate of funnel cake slides onto their corner of the bench. Powdered sugar drifts onto the wood. One plastic fork is wedged in the side.",
-        directorInstruction: "Use the food to surface generosity, decisiveness, or deferral.",
+        pitch:
+          "Slide a funnel cake plate onto the corner of the bench. Forces a small generosity, decisiveness, or deferral on the first share.",
+        beat: "A paper plate of funnel cake slides onto their corner of the bench. Powdered sugar drifts onto the wood. One plastic fork is wedged in the side.",
+        directorBeat:
+          "Sugar just landed between you. Tear off a piece for your date, claim the fork, push the plate to the middle, or eat first. Use your hands in your next beat.",
       },
       {
         id: "county-fair-friday-event-2",
         title: "4-H placard",
         kind: "reveal",
-        event: "A volunteer flips a fresh placard on the goat pen rail in their sightline.",
-        characterVisibleText:
-          "The placard at the goat pen now lists eight names in marker. One goat has a ribbon. The llama is named Greg. Greg is staring at their bench.",
-        directorInstruction:
-          "Let the placard slow the pair. A member who reads names is not the same as a member who looks past. The volunteer does not speak.",
+        pitch:
+          "Flip a fresh placard on the goat pen with named animals. Surfaces whether either reads the names or looks past.",
+        beat: "The placard at the goat pen now lists eight names in marker. One goat has a ribbon. The llama is named Greg. Greg is staring at their bench.",
+        directorBeat:
+          "A llama named Greg is looking at you. Read names aloud, point Greg out to your date, comment on the ribbon, or look past entirely. Show whether you notice these things. Do not voice the volunteer or Greg.",
       },
       {
         id: "county-fair-friday-event-3",
         title: "Ferris wheel lights",
         kind: "provocation",
-        event: "The ferris wheel behind them swings into a synced light cycle.",
-        characterVisibleText:
-          "The ferris wheel lights cycle blue, white, blue across their bench. The carousel music shifts a half step. The line at the funnel cake stand thins out.",
-        directorInstruction: "Push the pair toward a clear next step before the lights cycle off.",
+        pitch:
+          "Sync the ferris wheel into a blue and white cycle across the bench. Forces a clear next step before the lights cycle off.",
+        beat: "The ferris wheel lights cycle blue, white, blue across their bench. The carousel music shifts a half step. The line at the funnel cake stand thins out.",
+        directorBeat:
+          "The fair just lit up around you. Propose the wheel, suggest a different ride, comment on the light, or stay at the bench and name why. Move on it.",
       },
       {
         id: "county-fair-friday-event-4",
         title: "Wristband cinch",
         kind: "ambient",
-        event: "A wristband loosens on one wrist.",
-        characterVisibleText:
-          "One bright orange wristband has stretched away from a wrist. The adhesive tab is curling. The other wristband is tight enough to leave a mark.",
-        directorInstruction: "Use the small fidget to surface care or self-containment.",
+        pitch:
+          "Loosen one wristband while the other leaves a mark. Surfaces care or self-containment in the small fidget.",
+        beat: "One bright orange wristband has stretched away from a wrist. The adhesive tab is curling. The other wristband is tight enough to leave a mark.",
+        directorBeat:
+          "Something small is uneven about your wrists. Tighten yours, ask your date about theirs, offer to fix it, or ignore it. Show how you handle small care.",
       },
       {
         id: "county-fair-friday-event-5",
         title: "Pet show call",
         kind: "ambient",
-        event: "A PA announcement names the pet show in the 4-H pen.",
-        characterVisibleText:
-          "The PA crackles and announces the small animal show in the 4-H pen at nine. Greg the llama has not moved. The placard volunteer flips a second page on the rail.",
-        directorInstruction:
-          "Let one member volunteer attention to the pen. Let the other choose to follow or stay. Do not voice the PA as a continuing speaker.",
+        pitch:
+          "Crackle a PA call for the small animal show at nine. Surfaces whether either splits attention toward the pen or stays at the bench.",
+        beat: "The PA crackles and announces the small animal show in the 4-H pen at nine. Greg the llama has not moved. The placard volunteer flips a second page on the rail.",
+        directorBeat:
+          "The fair just told you something is happening. Walk toward the pen, propose going together, stay seated and say why, or invite your date to go without you. Pick a move. Do not voice the PA.",
       },
       {
         id: "county-fair-friday-event-6",
         title: "Lemonade mix-up",
         kind: "reveal",
-        event: "A volunteer brings two lemonade cups to the wrong bench.",
-        characterVisibleText:
-          "A volunteer in a 4-H polo sets two paper cups of pink lemonade on their bench. The receipt taped to one cup names a different last name. The volunteer has already turned back to the line.",
-        directorInstruction:
-          "Use the small windfall to test honesty over convenience without scoring it. The volunteer does not speak.",
+        pitch:
+          "Land two lemonades at the wrong bench with a different last name on the tape. Forces a stance on honesty over convenience.",
+        beat: "A volunteer in a 4-H polo sets two paper cups of pink lemonade on their bench. The receipt taped to one cup names a different last name. The volunteer has already turned back to the line.",
+        directorBeat:
+          "Free cups are in front of you that are not yours. Drink, flag the volunteer back, walk one cup over to the right bench, or sit with the question. Be visible about your choice. Do not voice the volunteer.",
       },
       {
         id: "county-fair-friday-event-7",
         title: "Tilt-a-whirl pause",
         kind: "ambient",
-        event: "The tilt-a-whirl pauses for a safety check.",
-        characterVisibleText:
-          "The tilt-a-whirl rolls to a slow stop two rows over. A teenager in a yellow vest waves a flashlight at one of the cars. Riders stay in their seats.",
-        directorInstruction:
-          "Let the pair register the wait without commenting on it. The bench can hold the silence.",
+        pitch:
+          "Stop the tilt-a-whirl mid-cycle for a safety check. Surfaces whether the pair registers the wait quietly or talks through it.",
+        beat: "The tilt-a-whirl rolls to a slow stop two rows over. A teenager in a yellow vest waves a flashlight at one of the cars. Riders stay in their seats.",
+        directorBeat:
+          "Something slowed down at the fair. Notice it with your date, drop a line about the riders sitting it out, or let the bench hold the silence. Do not invent a hero moment with the teenager.",
       },
       {
         id: "county-fair-friday-event-8",
         title: "Last hour bell",
         kind: "provocation",
-        event: "A handbell announces the midway's last hour.",
-        characterVisibleText:
-          "A volunteer at the gate rings a small handbell. The crowd thins by a row. The 4-H pen lights cut from white to amber.",
-        directorInstruction:
-          "Push for a clear next step before the wristbands time out at the gate. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Ring the handbell at the gate to mark the midway's last hour. Forces a clean next step before wristbands expire.",
+        beat: "A volunteer at the gate rings a small handbell. The crowd thins by a row. The 4-H pen lights cut from white to amber.",
+        directorBeat:
+          "The fair is closing in an hour. Pick a last ride, propose walking the row once, settle the trash and stay, or stand to leave. Speak the plan now. Do not voice the bell.",
       },
       {
         id: "county-fair-friday-event-9",
         title: "Greg loose",
         kind: "provocation",
-        event: "The llama nudges the pen latch open and steps onto the path.",
-        characterVisibleText:
-          "Greg the llama leans on the pen latch. The latch slips and Greg steps a slow two paces onto the midway path between their bench and the funnel cake line. The placard volunteer is on the far side of the pen.",
-        directorInstruction:
-          "Push for a clean physical move: clear a path for Greg, flag the volunteer, or hold the bench. The llama will not return to the pen on its own. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pop the pen latch and walk Greg the llama onto the path between you and the line. Forces a clean physical move.",
+        beat: "Greg the llama leans on the pen latch. The latch slips and Greg steps a slow two paces onto the midway path between their bench and the funnel cake line. The placard volunteer is on the far side of the pen.",
+        directorBeat:
+          "A llama is now between you and the rest of the midway. Clear a path for Greg, flag the volunteer, stand to corral him, or hold the bench and laugh. Move your body or your voice. Do not voice the volunteer or Greg.",
       },
     ],
     earlyEndTriggers: [

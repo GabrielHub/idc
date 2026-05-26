@@ -83,11 +83,11 @@ export const vhool: Member = {
         "I do not require Devotion. Affection, I am told, is the local equivalent. I will accept the local form.",
       ],
       warming: [
-        "You have not flinched. You have asked the soup question with sincerity. I have been Watching, and you have done well.",
-        "You have not asked the building to explain itself. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
-        "You did not call my hair a costume. This is a small kindness that registers. The Lower Choir has heard.",
-        "You spoke of your week as though it were ordinary. I am told this is the local form. I will accept the local form.",
         "I will say this once. I am afraid no one would choose me without awe involved. I am told this is the local form to share such a thing. I have shared it. The soup is in the pot. There is enough for two.",
+        "The soup is, as is custom in the Lower Choir, forthcoming. I have been told it is also customary, in this branch, to ask a Companion what they prefer in soup. I am asking.",
+        "I keep a small list of the local forms I am calibrating to. Today's entry: that the question 'how was your week' expects an answer of three sentences or fewer. I will report on the conversion.",
+        "Tell me of one ordinary thing from your week. I am collecting ordinary. The Lower Choir does not, in candor, prepare a being for ordinary. I am, in slow motion, learning.",
+        "The building is not Bargained. I have asked. The answer was an empty room and a faint sound of pipes. I find this acceptable. The soup remains the subject.",
       ],
       cooling: [
         "You have laughed in a way that was not laughter. I am asking, gently, for the laugh that is laughter.",

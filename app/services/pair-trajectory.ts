@@ -45,7 +45,8 @@ export function derivePairTrajectory({
     0,
   );
   const hasRecentRepair = recentSessions.some(
-    (session) => session.finalReport?.appliedFollowUp === "repair",
+    (session) =>
+      session.finalReport?.appliedFollowUp === "pursue" && sessionHasRepairPressure(session),
   );
   const hasRecentSecondDate = recentSessions.some(
     (session) => session.finalReport?.outcome === "second_date",
@@ -139,6 +140,17 @@ export function derivePairTrajectory({
     judgeGuidance: "Use the exchange evidence, not expected chemistry.",
     subnotes,
   };
+}
+
+function sessionHasRepairPressure(session: DateSession): boolean {
+  const lastJudge = session.judgeSnapshots.at(-1);
+  return (
+    session.status === "ended_early" ||
+    session.finalReport?.outcome === "early_end" ||
+    lastJudge?.shouldEndEarly === true ||
+    lastJudge?.usedEvidenceIds.some((id) => id.includes(":boundary:")) === true ||
+    lastJudge?.agreementUpdates.some((update) => update.status === "broken") === true
+  );
 }
 
 function buildTrajectorySubnotes({

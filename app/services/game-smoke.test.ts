@@ -567,7 +567,7 @@ describe("IDC playable smoke path", () => {
         outcome: "bad_fit" as const,
         summary: "Test summary.",
         statSummary: "Test stat summary.",
-        recommendedFollowUp: "mark_bad_fit" as const,
+        recommendedFollowUp: "close" as const,
         memoryRecordIds: [],
         readyToClose: false,
       },
@@ -599,7 +599,7 @@ describe("IDC playable smoke path", () => {
       },
       {
         dateSessionId: session.id,
-        action: "mark_bad_fit",
+        action: "close",
       },
     );
 

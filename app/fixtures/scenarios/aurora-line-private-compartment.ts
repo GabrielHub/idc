@@ -44,91 +44,91 @@ export const auroraLinePrivateCompartment: DateScenario = {
         id: "aurora-line-private-compartment-event-1",
         title: "Frost at the edges",
         kind: "ambient",
-        event: "Frost reforms at the edges of the window.",
-        characterVisibleText:
-          "Frost reforms at the edges of the window in slow lines. The heaters hold the center clear. The plain outside is unbroken. The table sits steady on its rails.",
-        directorInstruction:
-          "Allow the small marker. The window is not voiced as a continuing speaker.",
+        pitch:
+          "Pull frost back into the corners of the window. Surfaces who looks at the cold and who keeps eyes on the partner.",
+        beat: "Frost reforms at the edges of the window in slow lines. The heaters hold the center clear. The plain outside is unbroken. The table sits steady on its rails.",
+        directorBeat:
+          "The cold is creeping in at the edges. Glance at the window, or refuse to look, or comment on the heater holding the line. Show your relationship with the world outside in your next beat.",
       },
       {
         id: "aurora-line-private-compartment-event-2",
         title: "Cart rolls past",
         kind: "ambient",
-        event: "The meal cart auto-rolls past in the corridor.",
-        characterVisibleText:
-          "The meal cart auto-rolls past the compartment door in the corridor. The chime is one short note. The cart does not park. The cart's brass rail catches the cabin light through the door glass.",
-        directorInstruction:
-          "Allow the small marker. The cart is not voiced as a continuing speaker.",
+        pitch:
+          "Send the meal cart past your door without stopping. Surfaces whether either calls it back or lets it ride.",
+        beat: "The meal cart auto-rolls past the compartment door in the corridor. The chime is one short note. The cart does not park. The cart's brass rail catches the cabin light through the door glass.",
+        directorBeat:
+          "Food just rolled by. Call it back through the service button, comment on the chime, or let it go. Make a small visible choice about hunger and pacing.",
       },
       {
         id: "aurora-line-private-compartment-event-3",
         title: "Station flashes past",
         kind: "ambient",
-        event: "A station sign flashes past the window.",
-        characterVisibleText:
-          "A station sign flashes past the window at speed. The platform is empty and snowed in. The sign is gone in a beat. The plain returns.",
-        directorInstruction:
-          "Allow the small marker. The sign is not voiced as a continuing speaker.",
+        pitch:
+          "Snap a snowed-in station past the window in a single beat. Surfaces whether either notices what is gone almost before it arrives.",
+        beat: "A station sign flashes past the window at speed. The platform is empty and snowed in. The sign is gone in a beat. The plain returns.",
+        directorBeat:
+          "Something just appeared and disappeared. React to the flash: name it, ignore it, or fold it into what you were saying. Do not narrate it like a guidebook.",
       },
       {
         id: "aurora-line-private-compartment-event-4",
         title: "Dark herd crosses",
         kind: "provocation",
-        event: "A dark herd crosses the snow at the two-hour mark.",
-        characterVisibleText:
-          "A dark herd crosses the snow in a long slow line a hundred yards out. The shapes are taller than the train. The line moves perpendicular to the rails. The herd is gone in a long breath. The plain settles.",
-        directorInstruction:
-          "Push for a real reaction. The pair does not narrate the shapes. The herd is not voiced as a continuing speaker.",
+        pitch:
+          "Push a herd taller than the train across the plain at close range. Forces a real reaction, not commentary.",
+        beat: "A dark herd crosses the snow in a long slow line a hundred yards out. The shapes are taller than the train. The line moves perpendicular to the rails. The herd is gone in a long breath. The plain settles.",
+        directorBeat:
+          "Something huge just passed near your window. Show how you handle it in your body or one short line: stand at the glass, lean toward your date, look anywhere but the window, joke flat. Do not narrate the shapes like a documentary.",
       },
       {
         id: "aurora-line-private-compartment-event-5",
         title: "Cart parks at the door",
         kind: "provocation",
-        event: "The meal cart parks at the compartment door.",
-        characterVisibleText:
-          "The meal cart parks at the compartment door with a soft chime. The cart's top tray holds two plates and a small thermos. The compartment door slides open a finger on its own. The cart waits.",
-        directorInstruction:
-          "Push for a real physical move. Either may bring the tray in, hand a plate over, or close the door. The cart is not voiced as a continuing speaker.",
+        pitch:
+          "Park the meal cart at the door with two plates waiting. Forces a physical move on the food, the tray, or the door.",
+        beat: "The meal cart parks at the compartment door with a soft chime. The cart's top tray holds two plates and a small thermos. The compartment door slides open a finger on its own. The cart waits.",
+        directorBeat:
+          "Two plates and a thermos are waiting at the door. Stand and bring the tray in, hand a plate across, or close the door without taking it. Move physically in your next beat.",
       },
       {
         id: "aurora-line-private-compartment-event-6",
         title: "A deeper rumble",
         kind: "provocation",
-        event: "The train hits a deeper rumble crossing something.",
-        characterVisibleText:
-          "The train hits a long deeper rumble for a count of three. The table on its rails slides a finger and locks. The blanket on the shelf shifts an inch. The window stays clear. The rumble passes.",
-        directorInstruction:
-          "Push for a real small move. Either may steady the table, hand a blanket across, or hold the chair rail. The train is not voiced as a continuing speaker.",
+        pitch:
+          "Drop the train into a deeper rumble for three seconds. Forces a small steadying move between the two of you.",
+        beat: "The train hits a long deeper rumble for a count of three. The table on its rails slides a finger and locks. The blanket on the shelf shifts an inch. The window stays clear. The rumble passes.",
+        directorBeat:
+          "The cabin just shook. Steady the table, hand a blanket across, hold the chair rail, or check your date with a look. Use the body in your next beat.",
       },
       {
         id: "aurora-line-private-compartment-event-7",
         title: "Compartment terms binder",
         kind: "reveal",
-        event: "A small terms binder is tucked into the table edge.",
-        characterVisibleText:
-          "A small leather-bound compartment terms binder is tucked into the slot at the table edge. The cover carries the line's seal. The binder is the kind that prints the booking on the back page.",
-        directorInstruction:
-          "Use the small option to surface a stance drawn only from existing context. The binder is not voiced as a continuing speaker.",
+        pitch:
+          "Slip the booking binder into the table slot. Surfaces taste about contracts, terms, and what either reads aloud.",
+        beat: "A small leather-bound compartment terms binder is tucked into the slot at the table edge. The cover carries the line's seal. The binder is the kind that prints the booking on the back page.",
+        directorBeat:
+          "A formal binder just landed within reach. Open it, ignore it, ask your date if they want to look, or comment on the seal. Speak from what you already know about each other and the kind of evening this is.",
       },
       {
         id: "aurora-line-private-compartment-event-8",
         title: "Ruined city out the window",
         kind: "reveal",
-        event: "A ruined city is visible at the one-hour mark.",
-        characterVisibleText:
-          "A ruined city is visible an hour into the run. The towers are bent and the lower floors are snowed in. The streets between the towers carry a long single line of bootprints from the gate to the station. The line ends at the station. The train does not slow.",
-        directorInstruction:
-          "Use the small view to surface a stance drawn only from existing context. The city is not voiced as a continuing speaker.",
+        pitch:
+          "Roll a ruined city with a single line of bootprints past the window. Surfaces what either chooses to say or refuse to say.",
+        beat: "A ruined city is visible an hour into the run. The towers are bent and the lower floors are snowed in. The streets between the towers carry a long single line of bootprints from the gate to the station. The line ends at the station. The train does not slow.",
+        directorBeat:
+          "Something specific and sad just held the window for a full minute. Engage with it from what you already carry about loss, distance, or your own life. Do not invent new biography. Speak honestly or stay honestly quiet.",
       },
       {
         id: "aurora-line-private-compartment-event-9",
         title: "Old chit in the cushion",
         kind: "reveal",
-        event: "An old chit is folded into the seat cushion.",
-        characterVisibleText:
-          "A small folded chit is tucked into the seat cushion of one of the armchairs. The chit lists a prior meal order in pencil at the top. The pencil mark is fresh enough to read.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The chit is not voiced as a continuing speaker.",
+        pitch:
+          "Surface an old meal-order chit tucked in the cushion. Surfaces a callback to a prior visit if the pair has one, or curiosity if they do not.",
+        beat: "A small folded chit is tucked into the seat cushion of one of the armchairs. The chit lists a prior meal order in pencil at the top. The pencil mark is fresh enough to read.",
+        directorBeat:
+          "A scrap from a previous booking just turned up. Read it aloud, ask if it is from your last visit, slide it across the table, or pocket it. Tie it to what you already know about you and your date. Do not voice the chit.",
       },
     ],
     earlyEndTriggers: [

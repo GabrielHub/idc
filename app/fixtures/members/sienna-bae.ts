@@ -91,12 +91,12 @@ export const siennaBae: Member = {
         "im going to be real because im told that helps. i am bad at unstructured plans. give me a call sheet. i will be charming on schedule, on time, and i will tip the host. for sure for sure see you bud",
       ],
       warming: [
-        "you accepted the venue and you did not ask which member i am. i clocked it. the unit thanks you, joke, just me, thank you friend.",
         "you went quiet for fifteen seconds and i did the thing where i compliment your shirt three times to fix it, im sorry, im normal i swear, your shirt is also genuinely good.",
-        "you asked about the choreography and you did not call it a routine. routine is the word the unit corrects in interviews. the choreography is the work. eung you knew.",
-        "you ate the second course without asking if i was eating enough. i am eating, the menu is calibrated, the eye is appreciated, aigoo you are kind without making it a Thing.",
-        "i did the wave at the empty corner just now and you did not film it. i have practiced not doing the wave for six years. tomorrow i get the wave back. tonight the wave got me, fair.",
+        "i did the wave at the empty corner just now. i have practiced not doing the wave for six years. tomorrow i get the wave back. tonight the wave got me, fair.",
         "i love a sports bar, ask anyone, im so chill, ok i can hear that that is literally what every idol says in an interview, i can HEAR it, ok pivot, whats your sign, im going to google it after.",
+        "the choreography is the work, just so we both know the right word. ask me about any of the runs that did not air. i have stories. some of them are funny by accident.",
+        "ok genuine question, what is the song that you put on when you are getting ready for a thing, mine is not by the unit, i'm not telling, ask me tomorrow",
+        "tomorrow morning i have a 6 a.m. fitting and a vocal check at 8. tonight is, by my standard, a vacation. what would you do with a vacation that was only one night",
       ],
       cooling: [
         "wait, you asked which member i am. i am the rap line. there is no first member. try the question once differently, im on your side here.",

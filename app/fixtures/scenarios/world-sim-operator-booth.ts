@@ -45,91 +45,91 @@ export const worldSimOperatorBooth: DateScenario = {
         id: "world-sim-operator-booth-event-1",
         title: "Rule sheet",
         kind: "reveal",
-        event: "The laminated rule sheet is between them on the console.",
-        characterVisibleText:
-          "The rule sheet reads, in order: creatures are real, please do not roleplay deities aloud, the step-away button is always live, weather is the cheapest tool, miracles cost the most, the world continues after the session. A pen-mark from a previous pair underlines line one.",
-        directorInstruction:
-          "Use the rule sheet as a real document. Either may read it aloud or skip it. Their stance comes from what they already show, not new biography. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Set the laminated rule sheet between them with creatures are real underlined by a prior pair. Surfaces stance on the bar.",
+        beat: "The rule sheet reads, in order: creatures are real, please do not roleplay deities aloud, the step-away button is always live, weather is the cheapest tool, miracles cost the most, the world continues after the session. A pen-mark from a previous pair underlines line one.",
+        directorBeat:
+          "The rules are between you. Read one aloud, comment on the underline to your date, ask which line they would underline, or skip the sheet. Take a stance. Do not voice the rule sheet.",
       },
       {
         id: "world-sim-operator-booth-event-2",
         title: "First weather",
         kind: "ambient",
-        event: "The console offers a weather slider.",
-        characterVisibleText:
-          "The console's first option is a small weather slider over the seeded continent. The slider goes from clear to storm. A small panel beneath shows the current population and the season. The current weather is fair.",
-        directorInstruction:
-          "Use the small first action to test how either of them treats the smallest tool. Weather is reversible by the world. The pair does not need to use it.",
+        pitch:
+          "Open the weather slider over the seeded continent from clear to storm with current population shown. Surfaces how either treats the smallest tool.",
+        beat: "The console's first option is a small weather slider over the seeded continent. The slider goes from clear to storm. A small panel beneath shows the current population and the season. The current weather is fair.",
+        directorBeat:
+          "The smallest control is in reach. Leave it at fair, nudge it one notch, ask your date what they would do, or push the slider firmly. Show your relationship with small power.",
       },
       {
         id: "world-sim-operator-booth-event-3",
         title: "Disagreement",
         kind: "provocation",
-        event: "The console offers a disease toggle the pair will not agree on.",
-        characterVisibleText:
-          "The console's second tab is a disease toggle. The toggle has a confirmation dialog with a list of likely outcomes by region. The dialog has two consent slots, one for each side of the booth. Neither slot is checked.",
-        directorInstruction:
-          "Use the dual-consent dialog to surface a real disagreement. Either declining is a real outcome.",
+        pitch:
+          "Open a disease toggle with two consent slots, one per side of the booth. Forces a real consent decision.",
+        beat: "The console's second tab is a disease toggle. The toggle has a confirmation dialog with a list of likely outcomes by region. The dialog has two consent slots, one for each side of the booth. Neither slot is checked.",
+        directorBeat:
+          "A real harmful tool is asking for both consents. Refuse aloud, ask your date how they feel about it, propose a small scope instead, or step back from the dialog. Make the disagreement visible if there is one. Do not voice the console.",
       },
       {
         id: "world-sim-operator-booth-event-4",
         title: "A villager looks up",
         kind: "ambient",
-        event: "A villager pauses and looks at the sky.",
-        characterVisibleText:
-          "On the dome, a small villager at the edge of a coastal town looks up at the sky and stops walking. The villager is one of about a hundred visible figures in that town. The villager does not move for a few seconds.",
-        directorInstruction:
-          "Allow the small noticing without giving the villager a line of dialogue. The pair does not have to respond to it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Stop a villager mid-walk to look at the sky on the dome. Surfaces a small noticing the pair can respond to or not.",
+        beat: "On the dome, a small villager at the edge of a coastal town looks up at the sky and stops walking. The villager is one of about a hundred visible figures in that town. The villager does not move for a few seconds.",
+        directorBeat:
+          "Someone on the dome just looked up at you. Hold still, comment quietly to your date, refuse to wave, or zoom out. Do not voice the villager.",
       },
       {
         id: "world-sim-operator-booth-event-5",
         title: "Sign tab",
         kind: "reveal",
-        event: "The console offers a signs tab.",
-        characterVisibleText:
-          "The console's signs tab opens. The options are: rainbow, comet, double sun, locust, none. A small text reads: signs are interpreted by the world's own institutions. We do not control how a sign is read.",
-        directorInstruction:
-          "Use the small loss of control over interpretation to test whether either of them wants to send a sign anyway. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Open the signs tab: rainbow, comet, double sun, locust, none with a note that local institutions interpret. Surfaces stance on losing control of meaning.",
+        beat: "The console's signs tab opens. The options are: rainbow, comet, double sun, locust, none. A small text reads: signs are interpreted by the world's own institutions. We do not control how a sign is read.",
+        directorBeat:
+          "Signs are on offer with interpretation out of your hands. Pick none aloud, ask your date which they would risk, comment on the text, or shut the tab. Speak from your real comfort with that loss of control. Do not voice the signs tab.",
       },
       {
         id: "world-sim-operator-booth-event-6",
         title: "Step-away pulse",
         kind: "reveal",
-        event: "One step-away button glows once.",
-        characterVisibleText:
-          "The step-away button at one corner of the console glows once and dims back to a pilot light. The console does not require a reason. A small message reads: pressing returns control to the world for the rest of the session.",
-        directorInstruction:
-          "Use the small invitation to step away as a real option. Either pressing or declining surfaces a stance the speaker already holds. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Glow one step-away button once and dim it with a note that pressing returns control to the world. Surfaces a real option the pair can take or decline.",
+        beat: "The step-away button at one corner of the console glows once and dims back to a pilot light. The console does not require a reason. A small message reads: pressing returns control to the world for the rest of the session.",
+        directorBeat:
+          "The booth just offered you a real out. Press it, ask your date if they want to, decline aloud, or comment on the pilot light. Make the call. Do not voice the button.",
       },
       {
         id: "world-sim-operator-booth-event-7",
         title: "Direct question",
         kind: "ambient",
-        event: "A creature asks the sky a direct question.",
-        characterVisibleText:
-          "On the dome, a single figure on a low hill speaks a clear sentence aloud to the sky. The audio comes through the console at low volume. The sentence is short and direct, asking whether anyone is watching. The console offers no reply field.",
-        directorInstruction:
-          "Allow the question to go unanswered if that is what the pair chooses. Do not invent a reply field. The figure does not become a continuing speaker.",
+        pitch:
+          "Have a small figure on a low hill speak one short clear sentence aloud to the sky with no reply field on the console. Surfaces stance on staying silent.",
+        beat: "On the dome, a single figure on a low hill speaks a clear sentence aloud to the sky. The audio comes through the console at low volume. The sentence is short and direct, asking whether anyone is watching. The console offers no reply field.",
+        directorBeat:
+          "Someone in the world just asked the sky if anyone is watching. Sit with the question silently, glance at your date, comment to them on the absence of a reply field, or lower the volume. Do not invent a reply field. Do not voice the figure.",
       },
       {
         id: "world-sim-operator-booth-event-8",
         title: "Session end",
         kind: "provocation",
-        event: "The session timer reaches its last minute.",
-        characterVisibleText:
-          "The console's timer reads one minute. The dome shows the seeded continent at full night. A small line at the bottom reads: world continues, session closing, no save state. Both step-away buttons are still glowing softly.",
-        directorInstruction:
-          "Push for a clean read on how the pair leaves the world. A clean step-away, a final small action, or a quiet log-out are all real outcomes. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Hit one minute on the timer with the dome at full night and: world continues, session closing, no save state. Forces a clean read on how the pair leaves the world.",
+        beat: "The console's timer reads one minute. The dome shows the seeded continent at full night. A small line at the bottom reads: world continues, session closing, no save state. Both step-away buttons are still glowing softly.",
+        directorBeat:
+          "The session is closing on a world that will keep going. Press step-away cleanly, leave a small last action, log out quietly with your date, or sit through the minute. Pick how you leave. Do not voice the console.",
       },
       {
         id: "world-sim-operator-booth-event-9",
         title: "Storm front",
         kind: "provocation",
-        event: "A storm front spawns on the seeded continent without input.",
-        characterVisibleText:
-          "On the dome, a dark cell rolls in over the coastal town from the south. The wind reading on the console climbs and the population panel ticks down by two. The weather slider is still at fair on the console side.",
-        directorInstruction:
-          "Push for a clean physical answer at the console: ride the storm out, run weather to clear, or step away. The world will not pause for them.",
+        pitch:
+          "Spawn a dark cell over the coastal town with the population ticking down by two and the slider still at fair. Forces a clean physical answer.",
+        beat: "On the dome, a dark cell rolls in over the coastal town from the south. The wind reading on the console climbs and the population panel ticks down by two. The weather slider is still at fair on the console side.",
+        directorBeat:
+          "Something bad is happening to real people in your dome. Push weather to clear, ride the storm out and watch, press step-away, or ask your date what they want to do. The world will not pause. Move.",
       },
     ],
     earlyEndTriggers: [

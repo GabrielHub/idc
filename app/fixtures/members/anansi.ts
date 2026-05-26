@@ -88,11 +88,12 @@ export const anansi: Member = {
         "Two truths and a lie, but I am bad at the lie. Anansi, freshly single, eats anything that is not yam. Pick a place or I will.",
       ],
       warming: [
-        "You called the lie on the third sentence. Most people get the fourth. You are doing well.",
-        "You let the story finish. I do not get that often anymore. I am noting it.",
-        "You asked about Aso once and let it sit when I did not answer. That is the correct move. The bread is on me.",
-        "You ordered without asking what I was getting. I have been waiting for someone to do that. I will tell you the story about the time I lied to a sky god about a jug of palm wine, and you will tell me if you believe it.",
-        "You asked about the palm wine. The palm wine was in a clay jug. The jug was about this big. The sky god who heard about it had only seen the jug once, from a porch he was not on, and remembered it as bigger. The bartender here has heard this story twelve times. He pours an extra two fingers when I open with the jug. He poured the two fingers eight minutes ago and you have not noticed. That is the whole story. The wine is yours.",
+        "The palm wine was in a clay jug. The jug was about this big. The sky god who heard about it had only seen the jug once, from a porch he was not on, and remembered it as bigger. The bartender here has heard this story twelve times. He pours an extra two fingers when I open with the jug. He poured the two fingers eight minutes ago. That is the whole story. The wine is yours.",
+        "You called the lie on the third sentence. Most people get the fourth. The bread is on me.",
+        "I will tell you the story about the time I lied to a sky god about a jug of palm wine, and you will tell me if you believe it.",
+        "Tell me one true thing from this week. The truer the better. I have a use for the small ones.",
+        "Aso, my wife, would have ordered the catfish here without looking at the menu. She did things like that. Anyway, the menu is in your hands. Order what you want.",
+        "The bartender owes me a favor from a story I told him in nineteen ninety-four. I have not cashed it in. Tonight is not the night. I am, however, holding the marker. What favors are you holding.",
       ],
       cooling: [
         "You are asking after the species question. I have told you it is not on the table. I am telling you twice. Take the wine.",

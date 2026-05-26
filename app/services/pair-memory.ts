@@ -571,7 +571,14 @@ export function applyFollowUpPairMemoryEffects({
     );
   }
 
-  if (action === "repair") {
+  if (action === "pursue") {
+    if (outcome === "second_date") {
+      pushOpenLoopFollowUp(
+        "Whether the pair follows through on the next booking without overexplaining it.",
+        "Follow-up filed next-booking momentum.",
+        3,
+      );
+    }
     if (brokenAgreements.length > 0 || boundaryPressure) {
       pushAgreementFollowUp(
         "Repair stays slow before another booking.",
@@ -590,22 +597,6 @@ export function applyFollowUpPairMemoryEffects({
       pushOpenLoopFollowUp(
         "Whether time away lets the pair return without reopening the same pressure.",
         "Follow-up filed cooling space.",
-        3,
-      );
-    }
-  } else if (action === "encourage") {
-    if (outcome === "second_date") {
-      pushOpenLoopFollowUp(
-        "Whether the pair follows through on the next booking without overexplaining it.",
-        "Follow-up filed next-booking momentum.",
-        3,
-      );
-    }
-  } else if (action === "let_it_sit") {
-    if (boundaryPressure || activeOpenLoops.length > 0 || brokenAgreements.length > 0) {
-      pushOpenLoopFollowUp(
-        "Whether the pair surfaces what Cupid left sitting between bookings.",
-        "Follow-up left the file sitting.",
         3,
       );
     }

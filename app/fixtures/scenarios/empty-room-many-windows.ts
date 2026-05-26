@@ -44,90 +44,91 @@ export const emptyRoomManyWindows: DateScenario = {
         id: "empty-room-many-windows-event-1",
         title: "First settle",
         kind: "ambient",
-        event: "Both members find a place in the room.",
-        characterVisibleText:
-          "Two cushions sit on the wooden floor at the center of the room. Six windows are mounted around the walls. A small brass plate under each window names the city: Lagos, Reykjavik, Tokyo, Mexico City, Paris, Buenos Aires. The ambient leaks at low volume from each.",
-        directorInstruction:
-          "Open the date with a small physical choice. Either may take a cushion, walk to a window, or stand. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Anchor the cushions in the center with all six city plates labeled around the room. Forces a small physical choice on where to start.",
+        beat: "Two cushions sit on the wooden floor at the center of the room. Six windows are mounted around the walls. A small brass plate under each window names the city: Lagos, Reykjavik, Tokyo, Mexico City, Paris, Buenos Aires. The ambient leaks at low volume from each.",
+        directorBeat:
+          "Pick where to be in this room. Take a cushion, walk to a window, gesture your date toward one of the plates, or stand a beat to choose. Move your body into a position. Do not voice the plates.",
       },
       {
         id: "empty-room-many-windows-event-2",
         title: "Plates and counters",
         kind: "reveal",
-        event: "Each brass plate has a small counter under the city name.",
-        characterVisibleText:
-          "Each brass plate has a small worn counter under the city name. The counter shows the number of bookings that have stood at this window. The Lagos counter reads four hundred and twelve. The Reykjavik counter reads thirty one. The other counters sit between those two.",
-        directorInstruction:
-          "Use the small numbers to surface taste, drawn from each member's existing context. Either may pick the most-stood-at window, the least, or neither. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface visit counters under each plate, from Lagos at four hundred and twelve to Reykjavik at thirty-one. Surfaces taste in which window pulls either of you.",
+        beat: "Each brass plate has a small worn counter under the city name. The counter shows the number of bookings that have stood at this window. The Lagos counter reads four hundred and twelve. The Reykjavik counter reads thirty one. The other counters sit between those two.",
+        directorBeat:
+          "The numbers are telling you which views are well loved. Comment on one, ask your date which pulls them, walk to the least visited, or shrug at the lot. Speak only from what you already carry. Do not voice the plates.",
       },
       {
         id: "empty-room-many-windows-event-3",
         title: "Aurora over Reykjavik",
         kind: "ambient",
-        event: "The Reykjavik window picks up an aurora.",
-        characterVisibleText:
-          "The Reykjavik window dims as night moves in. A pale green ribbon lifts off the horizon and walks across the dark. The harbor wind is a soft hum under it. The light reaches the room in a faint cool wash.",
-        directorInstruction:
-          "Allow the view to be present without being topic. Either may turn or not.",
+        pitch:
+          "Lift a green ribbon across the Reykjavik horizon as night moves in. Surfaces whether either turns or stays still.",
+        beat: "The Reykjavik window dims as night moves in. A pale green ribbon lifts off the horizon and walks across the dark. The harbor wind is a soft hum under it. The light reaches the room in a faint cool wash.",
+        directorBeat:
+          "Something rare is happening at one window. Turn to it, point it out to your date, sit with the wash of cool light, or keep facing whoever you are with. Show what your attention is for.",
       },
       {
         id: "empty-room-many-windows-event-4",
         title: "Paris rain",
         kind: "reveal",
-        event: "The Paris window picks up rain.",
-        characterVisibleText:
-          "The Paris window is at dusk. Rain starts on the cobblestones and lifts into a soft hiss in the room. The cafe across the way has its sidewalk chairs already inside for the night. The street lamp is on.",
-        directorInstruction:
-          "Use the small weather change to surface a comfort drawn from existing context. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Drop dusk rain on the Paris cobblestones and slip the cafe chairs inside. Surfaces a small comfort drawn from existing context.",
+        beat: "The Paris window is at dusk. Rain starts on the cobblestones and lifts into a soft hiss in the room. The cafe across the way has its sidewalk chairs already inside for the night. The street lamp is on.",
+        directorBeat:
+          "A small civic rhythm just played out. Comment on the chairs going in, ask your date if they have walked this kind of street, sit and listen to the hiss, or move to another window. Speak from what you already carry.",
       },
       {
         id: "empty-room-many-windows-event-5",
         title: "Tokyo evening",
         kind: "ambient",
-        event: "The Tokyo window slips from evening to night.",
-        characterVisibleText:
-          "The Tokyo window holds an early evening side street. A vending machine glows a steady blue. A bicycle passes the frame once and the wheel hum stays a few beats after. The street lamp clicks on as the light dims.",
-        directorInstruction: "Allow the small transition. The pair does not need to comment on it.",
+        pitch:
+          "Click on the Tokyo street lamp as the light dims and a bicycle passes the frame. Surfaces whether the pair lets a small transition be enough.",
+        beat: "The Tokyo window holds an early evening side street. A vending machine glows a steady blue. A bicycle passes the frame once and the wheel hum stays a few beats after. The street lamp clicks on as the light dims.",
+        directorBeat:
+          "The light changed. Comment on the lamp, listen to the wheel hum, point at the vending machine glow, or stay where you are. Do not narrate the side street like a guidebook.",
       },
       {
         id: "empty-room-many-windows-event-6",
         title: "Lagos market peak",
         kind: "provocation",
-        event: "The Lagos window peaks in volume.",
-        characterVisibleText:
-          "The Lagos window's market is at midday. The volume climbs as a stall right at the window opens its tarp wide. The market sound holds at a real volume for a beat. A vendor sets a tray of fruit on the stall and turns to the next person in line without looking up.",
-        directorInstruction:
-          "Push for a small physical answer: move closer, move to another window, or sit through it. The vendor does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Peak the Lagos volume as a stall opens its tarp wide. Forces a small physical answer: move closer, move away, or sit through it.",
+        beat: "The Lagos window's market is at midday. The volume climbs as a stall right at the window opens its tarp wide. The market sound holds at a real volume for a beat. A vendor sets a tray of fruit on the stall and turns to the next person in line without looking up.",
+        directorBeat:
+          "One window is suddenly loud. Move closer to it, move to a quieter window, comment on the surge, or check your date. Make a body choice. Do not voice the vendor.",
       },
       {
         id: "empty-room-many-windows-event-7",
         title: "Mexico City music",
         kind: "reveal",
-        event: "The Mexico City window picks up a song.",
-        characterVisibleText:
-          "The Mexico City window is mid-afternoon. A radio across the courtyard switches on. A song carries in at low volume. The melody is recognizable from the street and not from the room. The counter on the brass plate has not changed.",
-        directorInstruction:
-          "Use the small song to surface a comfort drawn from existing context. The radio is not voiced as a continuing speaker.",
+        pitch:
+          "Carry a low radio melody across the Mexico City courtyard. Surfaces a small comfort drawn only from what either already carries.",
+        beat: "The Mexico City window is mid-afternoon. A radio across the courtyard switches on. A song carries in at low volume. The melody is recognizable from the street and not from the room. The counter on the brass plate has not changed.",
+        directorBeat:
+          "A song just drifted into the room. Hum if you know it, ask your date if they recognize it, comment on the cross-courtyard sound, or sit with the music. Speak only from your own register.",
       },
       {
         id: "empty-room-many-windows-event-8",
         title: "Buenos Aires gust",
         kind: "provocation",
-        event: "The Buenos Aires window pushes a gust against the booking glass.",
-        characterVisibleText:
-          "A gust pushes against the booking glass at the Buenos Aires window. The curtain on the city side lifts and falls. A loose newspaper page lifts in the street and settles past the frame. The other five windows are unchanged.",
-        directorInstruction:
-          "Push for a small physical adjustment in the room: a glance, a shift on the cushion, a hand on the floor. The street does not enter the room.",
+        pitch:
+          "Push a gust against the Buenos Aires booking glass with a curtain lift on the city side. Forces a small physical adjustment.",
+        beat: "A gust pushes against the booking glass at the Buenos Aires window. The curtain on the city side lifts and falls. A loose newspaper page lifts in the street and settles past the frame. The other five windows are unchanged.",
+        directorBeat:
+          "Something physical just happened at one window. Glance, shift on the cushion, put a hand on the floor, or stand. Do not let the gust pass without a body response.",
       },
       {
         id: "empty-room-many-windows-event-9",
         title: "Ten-minute chime",
         kind: "provocation",
-        event: "A soft chime marks ten minutes left on the booking.",
-        characterVisibleText:
-          "A soft chime sounds in the room. A small panel under the door shows ten minutes remaining. The six windows are unchanged. The door is unlocked from this side and the latch is still soft.",
-        directorInstruction:
-          "Push for a clean exit choice. The pair leaves together or one of them moves first. Either is the right answer if it is honest. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Chime ten minutes left under the door panel. Forces a clean exit choice from the cushions.",
+        beat: "A soft chime sounds in the room. A small panel under the door shows ten minutes remaining. The six windows are unchanged. The door is unlocked from this side and the latch is still soft.",
+        directorBeat:
+          "Ten minutes left in the booking. Pick a last window, stand up to leave together, ask your date which they want to end on, or sit through to the latch. Make the call.",
       },
     ],
     earlyEndTriggers: [

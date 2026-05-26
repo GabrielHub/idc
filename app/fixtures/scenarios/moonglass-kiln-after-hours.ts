@@ -46,90 +46,91 @@ export const moonglassKilnAfterHours: DateScenario = {
         id: "moonglass-kiln-after-hours-event-1",
         title: "Pinned note",
         kind: "reveal",
-        event: "The pinned note at the order desk is in the master's hand.",
-        characterVisibleText:
-          "A small pinned card at the order desk reads, in the master's hand: for what should not be carried alone. The card has no signature. The corner has a small chip.",
-        directorInstruction:
-          "Use the small line to surface intent drawn from existing context. Either may read the note, skip it, or comment on it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pin the master's card at the desk: for what should not be carried alone. Surfaces intent on what you're here to make for the partner.",
+        beat: "A small pinned card at the order desk reads, in the master's hand: for what should not be carried alone. The card has no signature. The corner has a small chip.",
+        directorBeat:
+          "The card is telling you what this is for. Read it aloud, comment on the chipped corner, ask your date what they read into it, or take it on without comment. Be honest about intent. Do not voice the card.",
       },
       {
         id: "moonglass-kiln-after-hours-event-2",
         title: "Color rod menu",
         kind: "ambient",
-        event: "The color rod menu at one bench lights up.",
-        characterVisibleText:
-          "The color rod menu at the first bench lights up. The list includes lunar silver, cloud rose, deep sea, and a row marked house pick. Each rod is in its own slot at the wall. The marver beside the bench is clean and warm.",
-        directorInstruction:
-          "Allow the small choice without forcing it. The pair does not need to pick at the same beat.",
+        pitch:
+          "Light up the rod wall with lunar silver, cloud rose, deep sea, and house pick. Surfaces taste for the piece you will make for them.",
+        beat: "The color rod menu at the first bench lights up. The list includes lunar silver, cloud rose, deep sea, and a row marked house pick. Each rod is in its own slot at the wall. The marver beside the bench is clean and warm.",
+        directorBeat:
+          "Pick a color for your partner. Walk to the slot, comment on lunar silver, ask them which they would want, or take house pick on purpose. Make the choice visible.",
       },
       {
         id: "moonglass-kiln-after-hours-event-3",
         title: "First gather",
         kind: "provocation",
-        event: "A first gather on the punty hits working temperature.",
-        characterVisibleText:
-          "A first gather on the punty hits working temperature. The molten glass at the end of the rod sits in a small heavy ball. The marver waits. The pyrometer reads at the working line.",
-        directorInstruction:
-          "Push for a clean physical move on the gather: roll on the marver, take a breath, or set the punty back in the furnace. The glass is hot now and waits. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Heat the first gather on the punty at working temperature with the marver clean. Forces a clean physical move on hot glass.",
+        beat: "A first gather on the punty hits working temperature. The molten glass at the end of the rod sits in a small heavy ball. The marver waits. The pyrometer reads at the working line.",
+        directorBeat:
+          "Hot glass is in your hand. Roll on the marver, take a breath and shape, set the punty back in the furnace, or hand off to your date if it is their turn. Move now. Do not voice the punty.",
       },
       {
         id: "moonglass-kiln-after-hours-event-4",
         title: "Partner's piece forms",
         kind: "reveal",
-        event: "The partner's piece begins to take a form.",
-        characterVisibleText:
-          "The piece at the first bench begins to take a form. The shape is small and one-handed. The pyrometer at the second bench reads at the working line still. The annealing oven door is closed and the countdown is at zero.",
-        directorInstruction:
-          "Use the small forming piece to surface attention drawn from existing context. Either may speak to the partner about the shape, ask once, or work in quiet. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Shape the first piece into a small one-handed form. Surfaces attention to what your partner can hold.",
+        beat: "The piece at the first bench begins to take a form. The shape is small and one-handed. The pyrometer at the second bench reads at the working line still. The annealing oven door is closed and the countdown is at zero.",
+        directorBeat:
+          "The piece is becoming a thing. Name what it is to your date, ask once if they want it smaller, work in quiet, or comment on how it sits. Do not project a story onto it. Do not voice the piece.",
       },
       {
         id: "moonglass-kiln-after-hours-event-5",
         title: "Annealing oven ready",
         kind: "ambient",
-        event: "The annealing oven door clicks ready.",
-        characterVisibleText:
-          "The annealing oven door clicks once at the side of the kiln. The countdown panel beside it shows the next window opens in two minutes. The door is at chest height. The inside of the oven is at the holding temperature.",
-        directorInstruction:
-          "Allow the small mechanical cue. The pair does not need to use the next window.",
+        pitch:
+          "Click the annealing oven door ready with the next window two minutes out. Surfaces a small mechanical cue the pair can take or skip.",
+        beat: "The annealing oven door clicks once at the side of the kiln. The countdown panel beside it shows the next window opens in two minutes. The door is at chest height. The inside of the oven is at the holding temperature.",
+        directorBeat:
+          "The oven is offering you the next window. Plan for it, finish your shape, ask your date if they will catch this window or the next, or sit through it. Do not rush.",
       },
       {
         id: "moonglass-kiln-after-hours-event-6",
         title: "Crack while soft",
         kind: "provocation",
-        event: "A small crack appears in one piece while still soft.",
-        characterVisibleText:
-          "A small crack appears in the first piece while the glass is still soft. The crack is in the lower third. The piece can be reshaped on the marver or set down on the slab. The pyrometer is steady.",
-        directorInstruction:
-          "Push for a clean call on the crack: reshape on the marver, set down on the slab, or quench. The piece is real and the choice has weight. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Crack the first piece in the lower third while still soft. Forces a clean call: reshape on the marver, slab, or quench.",
+        beat: "A small crack appears in the first piece while the glass is still soft. The crack is in the lower third. The piece can be reshaped on the marver or set down on the slab. The pyrometer is steady.",
+        directorBeat:
+          "Your gift just cracked while it could still be worked. Reshape on the marver, set down on the slab, quench it and let it not go home, or ask your date what they want. Speak the choice.",
       },
       {
         id: "moonglass-kiln-after-hours-event-7",
         title: "Second piece on the punty",
         kind: "reveal",
-        event: "The second piece is on the punty at the second bench.",
-        characterVisibleText:
-          "The second piece is on the punty at the second bench. The gather is at working temperature. The color rod is in the slot at the wall, still warm. The marver at the second bench is clean.",
-        directorInstruction:
-          "Use the second piece to surface care drawn from existing context. The partner's choice for the second piece may be made aloud or held quiet. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Bring the second gather to working temperature at the partner's bench. Surfaces care drawn from what you already know about them.",
+        beat: "The second piece is on the punty at the second bench. The gather is at working temperature. The color rod is in the slot at the wall, still warm. The marver at the second bench is clean.",
+        directorBeat:
+          "Your partner's turn just opened. Watch them, ask what they want you to do for them, work quietly in parallel, or share a small line about what you are seeing. Speak from what you already know.",
       },
       {
         id: "moonglass-kiln-after-hours-event-8",
         title: "Warm-down chime",
         kind: "ambient",
-        event: "A soft warm-down chime sounds at eighty minutes.",
-        characterVisibleText:
-          "A soft chime sounds in the kiln. The countdown panel at the annealing oven shows ten minutes to the close. The furnaces hold a low setting. The wall of color rods has dimmed to half.",
-        directorInstruction: "Allow the small marker. The pair does not need to rush the work.",
+        pitch:
+          "Chime warm-down with ten minutes to the close and the rod wall dimmed to half. Surfaces pace, not panic.",
+        beat: "A soft chime sounds in the kiln. The countdown panel at the annealing oven shows ten minutes to the close. The furnaces hold a low setting. The wall of color rods has dimmed to half.",
+        directorBeat:
+          "The kiln is winding down. Hold your pace, finish the shape calmly, comment to your date on the dim light, or set your piece on the slab. Do not rush.",
       },
       {
         id: "moonglass-kiln-after-hours-event-9",
         title: "Anneal close",
         kind: "provocation",
-        event: "The annealing oven door closes on the last window.",
-        characterVisibleText:
-          "The annealing oven door closes on the last window. The countdown panel reads anneal in progress. The two pieces are inside. The kiln has stepped to the warm-down setting.",
-        directorInstruction:
-          "Push for a clean exit from the kiln. The pair waits the anneal together, walks the desk, or steps out of the booking. The pieces close at the chime. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Close the annealing oven door on the last window with both pieces inside. Forces a clean exit from the kiln.",
+        beat: "The annealing oven door closes on the last window. The countdown panel reads anneal in progress. The two pieces are inside. The kiln has stepped to the warm-down setting.",
+        directorBeat:
+          "Both gifts are in the oven now. Wait the anneal together at the desk, propose where to go next, ask your date what they hope theirs looks like, or step out of the booking. Make the call. Do not voice the oven.",
       },
     ],
     earlyEndTriggers: [

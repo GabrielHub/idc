@@ -78,12 +78,12 @@ export const naiaVelorae: Member = {
         "I have one genuine question and I am informed the genuine question is to be reserved for the second message; I am breaking the rule, the way I have broken it in three other branches, with consequences I have considered acceptable. What is one thing in your week of which I have no way to know to ask, and which I should therefore ask. I am collecting these.",
       ],
       warming: [
-        "Oh, the Patty Melt. I have read of this dish in three branches and have refrained from ordering one until I had been told by a credible source which the order was correct, the establishment in which to order it, the hour at which to order it. You have arrived. You have ordered with confidence. You have not negotiated with the server. The Patty Melt will be the Patty Melt. I am charmed, and I will be ordering it also.",
-        "You named your drink once. I am charmed.",
-        "I am giving you a compliment and you are not returning one in the same breath, which signifies that you have heard it. I find this remarkable. Brace yourself. I am about to give you another. Two compliments in one minute is a number I find generous in any branch.",
-        "Oh, the Olive on this plate is rounder than the Olives I have eaten at Chandar's, and the brine is sharper than the brine of the Spit-Roast at the Ten-Hand Markets, and the temperature is higher than I had expected for a small dish of this kind. I am revising the rankings as we speak. There is a ranking. You are doing well in it.",
+        "Oh, the Patty Melt. I have read of this dish in three branches and have refrained from ordering one until I had been told by a credible source which the order was correct, the establishment in which to order it, the hour at which to order it. The Patty Melt will, tonight, be the Patty Melt. I am charmed, and I will be ordering it also.",
+        "Oh, the Olive on this plate is rounder than the Olives I have eaten at Chandar's, and the brine is sharper than the brine of the Spit-Roast at the Ten-Hand Markets, and the temperature is higher than I had expected for a small dish of this kind. I am revising the rankings as we speak. There is a ranking.",
         "I have observed in nine branches that the Diner is a uniquely Earth invention and a moving one. The Booth. The Laminated Menu. The four-page list of pies. The Refill that arrives before you ask. The arrangement is sincere. Whoever invented this had a private theology, and I would have liked to meet them.",
         "You have a place you go to alone. Name it.",
+        "Tell me one thing about Earth that you, personally, have come to love. The list is for me. I am not collecting tourism. I am collecting attachments.",
+        "I have stopped, in three branches, in front of a small grocery and bought a single peach because the light was correct. I am still doing it. I have not yet picked the peach in this branch. It is on my list.",
       ],
       cooling: [
         "You are looking for the hidden version beneath the brightness. This is all of it. Continue.",

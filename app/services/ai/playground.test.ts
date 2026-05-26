@@ -198,7 +198,7 @@ describe("member chat playground retry pipeline", () => {
     expect(runtime.calls[0]?.config).toMatchObject({
       aiProvider: "gateway",
       chatModel: "deepseek/deepseek-v4-flash",
-      reasoningLevel: "high",
+      reasoningLevel: "xhigh",
     });
     expect(runtime.calls[0]?.options).not.toMatchObject({
       deepseekRoleplayThinking: false,

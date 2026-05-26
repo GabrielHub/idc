@@ -23,6 +23,9 @@ const EXIT_OK = 0;
 const EXIT_ERROR = 1;
 const EXIT_BAD_ARGS = 2;
 const SESSION_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/;
+const DEFAULT_TUNE_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
+const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
+const DEFAULT_TUNE_DEEPSEEK_REASONING_LEVEL = "xhigh";
 
 loadDevelopmentEnv();
 
@@ -254,6 +257,7 @@ async function runStart(args) {
       partnerMemberId: parsed.partnerMemberId,
       scenarioId: parsed.scenarioId,
       openerSide: parsed.focusOpens ? "focus" : "partner",
+      focusRequestId: parsed.focusRequestId,
     });
     const name = parsed.name ?? defaultSessionName(parsed.focusMemberId);
     saveSession(name, session);
@@ -262,6 +266,10 @@ async function runStart(args) {
     const focus = tune.findMemberById(session.focusMemberId);
     const partner = tune.findMemberById(session.partnerMemberId);
     const scenario = tune.findScenarioById(session.scenarioId);
+    const focusRequest =
+      session.focusRequestId === undefined
+        ? undefined
+        : tune.findMemberRequestById(session.focusRequestId);
 
     process.stdout.write(
       [
@@ -270,6 +278,9 @@ async function runStart(args) {
         `  Partner:  ${partner.name} (${partner.id})   <- you play this side`,
         `  Scenario: ${scenario.title} (${scenario.id})`,
         `  Opens:    ${session.openerSide}`,
+        focusRequest === undefined
+          ? `  Request:  (none — pass --focus-request <id> to inject a <focus> block)`
+          : `  Request:  ${focusRequest.id} — ${focusRequest.text}`,
         "",
         session.openerSide === "partner"
           ? `Next: \`tune say "<your opener>"\` to begin.`
@@ -289,7 +300,7 @@ function defaultSessionName(focusMemberId) {
 function parseStartArgs(args) {
   if (args.length === 0) {
     throw new Error(
-      "Usage: tune start <focusMemberId> [--partner <id>] [--scenario <id>] [--name <name>] [--focus-opens]",
+      "Usage: tune start <focusMemberId> [--partner <id>] [--scenario <id>] [--name <name>] [--focus-opens] [--focus-request <id>]",
     );
   }
   if (args[0].startsWith("--")) {
@@ -301,6 +312,7 @@ function parseStartArgs(args) {
     scenarioId: undefined,
     name: undefined,
     focusOpens: false,
+    focusRequestId: undefined,
   };
   for (let index = 1; index < args.length; index += 1) {
     const token = args[index];
@@ -319,6 +331,10 @@ function parseStartArgs(args) {
         break;
       case "--focus-opens":
         result.focusOpens = true;
+        break;
+      case "--focus-request":
+        result.focusRequestId = requireFlagValue(args, index);
+        index += 1;
         break;
       default:
         throw new Error(`Unknown start flag: ${token}`);
@@ -586,12 +602,19 @@ async function runShow(args) {
     const focus = tune.findMemberById(session.focusMemberId);
     const partner = tune.findMemberById(session.partnerMemberId);
     const scenario = tune.findScenarioById(session.scenarioId);
+    const focusRequest =
+      session.focusRequestId === undefined
+        ? undefined
+        : tune.findMemberRequestById(session.focusRequestId);
 
     const header = [
       `Session: ${name}`,
       `  Focus:    ${focus.name} (${focus.id})`,
       `  Partner:  ${partner.name} (${partner.id})`,
       `  Scenario: ${scenario.title} (${scenario.id})`,
+      focusRequest === undefined
+        ? `  Request:  (none)`
+        : `  Request:  ${focusRequest.id} — ${focusRequest.text}`,
       `  Messages: ${session.messages.length}`,
     ].join("\n");
 
@@ -633,8 +656,9 @@ function parseShowArgs(args) {
 async function generateAndPrint(name, sessionBeforeReply, tune, options) {
   const focus = tune.findMemberById(sessionBeforeReply.focusMemberId);
   const generationOptions = resolveGenerationOptions(options.generationOptions ?? {});
+  const runtimeConfig = resolveRuntimeConfig(options.config ?? {});
   const result = await tune.generateFocusMemberReply(sessionBeforeReply, {
-    config: resolveRuntimeConfig(options.config ?? {}),
+    config: runtimeConfig,
     generationOptions,
   });
   saveSession(name, result.session);
@@ -653,6 +677,9 @@ async function generateAndPrint(name, sessionBeforeReply, tune, options) {
 
   const stats = [
     `model: ${result.modelId} (${result.providerMode})`,
+    runtimeConfig.reasoningLevel === undefined
+      ? null
+      : `reasoning: ${runtimeConfig.reasoningLevel}`,
     `tokens approx: ${result.approximatePromptTokens}`,
     generationOptions.deepseekRoleplayThinking === true
       ? "deepseek roleplay thinking: on"
@@ -785,7 +812,20 @@ function resolveRuntimeConfig(overrides) {
     config.aiProvider = "gateway";
   }
 
+  if (config.aiProvider === "gateway") {
+    if (config.chatModel === undefined) {
+      config.chatModel = DEFAULT_TUNE_GATEWAY_CHAT_MODEL;
+    }
+    if (config.reasoningLevel === undefined && isDeepSeekV4TuneModel(config.chatModel)) {
+      config.reasoningLevel = DEFAULT_TUNE_DEEPSEEK_REASONING_LEVEL;
+    }
+  }
+
   return config;
+}
+
+function isDeepSeekV4TuneModel(modelId) {
+  return modelId === DEFAULT_TUNE_GATEWAY_CHAT_MODEL || modelId === DEEPSEEK_V4_PRO_MODEL;
 }
 
 function isTruthyFlag(value) {
@@ -834,9 +874,13 @@ function printHelp() {
       "  vp run tune -- <command> [args]",
       "",
       "Commands:",
-      "  start <focusId> [--partner <id>] [--scenario <id>] [--name <n>] [--focus-opens]",
+      "  start <focusId> [--partner <id>] [--scenario <id>] [--name <n>] [--focus-opens] [--focus-request <id>]",
       "      Initialize a new tune session and make it active.",
       "      Defaults: partner=alex-yoon, scenario=diner-eleven-pm, opener=partner.",
+      "      Pass --focus-request <id> to inject the member's `What you most want to come out",
+      "      of tonight` ask — gameplay always injects this, so omitting it makes the focus",
+      "      member read more reactive and less goal-oriented than in real dates. The request",
+      "      id must belong to the focus member; see app/fixtures/goals/member-requests.ts.",
       "",
       `  say "<text>" [--no-reply] [--show-prompt] [--show-system] [--session <name>] [ai options]`,
       "      Record a partner line (you) and generate the focus member's reply.",
@@ -881,10 +925,11 @@ function printHelp() {
       "",
       "AI options for say, turn, and retry:",
       "  --provider <name>       ollama | gateway",
-      "  --chat-model <id>       Override chat model",
+      "  --chat-model <id>       Override chat model; Gateway defaults to deepseek/deepseek-v4-flash",
       "  --gateway-key <key>     Vercel AI Gateway key",
       "  --gateway-base-url <u>  Override Gateway base URL",
       "  --reasoning <level>     off | none | minimal | low | medium | high | xhigh",
+      "                          DeepSeek V4 tuning defaults to xhigh, sent as max effort",
       "  --timeout-ms <ms>       Request timeout",
       "  --deepseek-roleplay-thinking",
       "                          Enable DeepSeek role-immersion marker for performer turns",
@@ -894,8 +939,8 @@ function printHelp() {
       "Environment:",
       "  Loaded from shell env and git-ignored .env.local at the repo root.",
       "  TUNE_PROVIDER           ollama | gateway",
-      "  TUNE_CHAT_MODEL         Chat model id",
-      "  TUNE_REASONING_LEVEL    Reasoning level",
+      "  TUNE_CHAT_MODEL         Chat model id; Gateway default is deepseek/deepseek-v4-flash",
+      "  TUNE_REASONING_LEVEL    Reasoning level; DeepSeek V4 default is xhigh",
       "  TUNE_TIMEOUT_MS         Request timeout",
       "  TUNE_DEEPSEEK_ROLEPLAY_THINKING=1",
       "                          Enable or disable the DeepSeek performer marker (1/0, true/false)",

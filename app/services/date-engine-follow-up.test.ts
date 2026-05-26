@@ -35,10 +35,11 @@ const OUTCOMES: readonly DateFinalReport["outcome"][] = [
   "early_end",
 ];
 const ACTIONS: readonly FollowUpAction[] = followUpActionSchema.options;
+const JENNA_VHOOL_PAIR_ID = makePairId("jenna-pike", "vhool");
 
 function buildPairState() {
   return pairStateSchema.parse({
-    id: "pair-jenna-pike-vhool",
+    id: JENNA_VHOOL_PAIR_ID,
     participantIds: ["jenna-pike", "vhool"],
     stats: {
       chemistry: 50,
@@ -75,7 +76,7 @@ function buildPairState() {
 function buildSession(outcome?: DateFinalReport["outcome"]) {
   return dateSessionSchema.parse({
     id: "date-session-follow-up",
-    pairId: "pair-jenna-pike-vhool",
+    pairId: JENNA_VHOOL_PAIR_ID,
     scenarioId: "temporal-coffee-shop",
     turnLimit: 24,
     currentTurn: 4,
@@ -101,7 +102,7 @@ function buildSession(outcome?: DateFinalReport["outcome"]) {
             outcome,
             summary: "Cupid filed a follow-up test.",
             statSummary: "Case read: follow-up test.",
-            recommendedFollowUp: "repair",
+            recommendedFollowUp: "pursue",
             memoryRecordIds: [],
             readyToClose: false,
           },
@@ -124,7 +125,7 @@ describe("outcome aware follow-up preview", () => {
   );
 
   it("rejects follow-up previews before a final outcome exists", () => {
-    expect(() => previewFollowUpEffects(buildPairState(), buildSession(), "repair")).toThrow(
+    expect(() => previewFollowUpEffects(buildPairState(), buildSession(), "pursue")).toThrow(
       "Follow-up actions require a completed date report.",
     );
   });
@@ -144,7 +145,7 @@ describe("outcome aware follow-up preview", () => {
 
     const result = applyFollowUpAction(save, {
       dateSessionId: session.id,
-      action: "repair",
+      action: "pursue",
     });
     const updatedPair = result.save.pairStates.find((candidate) => candidate.id === pairState.id);
 
@@ -152,7 +153,7 @@ describe("outcome aware follow-up preview", () => {
       true,
     );
     expect(result.save.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
-    expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
+    expect(result.session.finalReport?.appliedFollowUp).toBe("pursue");
   });
 
   it("repairs duplicate active pair memory before follow-up resolution persists", () => {
@@ -201,7 +202,7 @@ describe("outcome aware follow-up preview", () => {
     const hydrated = hydrateFixtureOwnedMemberData(save).save;
     const result = applyFollowUpAction(hydrated, {
       dateSessionId: session.id,
-      action: "mark_bad_fit",
+      action: "close",
     });
     const updatedPair = result.save.pairStates.find((candidate) => candidate.id === pairState.id);
 
@@ -217,47 +218,43 @@ describe("outcome aware follow-up preview", () => {
     expect(updatedPair?.openLoops.find((entry) => entry.id === "loop-duplicate")?.status).toBe(
       "dropped",
     );
+    expect(updatedPair?.laneStatus).toBe("closed");
     expect(result.save.memories.filter((memory) => memory.tags.includes("follow_up"))).toHaveLength(
       2,
     );
   });
 
-  it("penalizes let_it_sit harder when strain was left unaddressed", () => {
-    const preview = previewFollowUpEffects(
-      buildPairState(),
-      buildSession("early_end"),
-      "let_it_sit",
-    );
-
-    expect(preview.reasons).toContain("strain left unaddressed");
-    expect(preview.statDeltas.conflict).toBeGreaterThan(0);
-    expect(preview.memberDeltas.retention).toBeLessThan(0);
-  });
-
-  it("penalizes let_it_sit lightly when there is no strain or warmth to act on", () => {
-    const calmPair = pairStateSchema.parse({
-      id: "pair-calm",
-      participantIds: ["jenna-pike", "vhool"],
-      stats: {
-        chemistry: 50,
-        trust: 55,
-        stability: 60,
-        conflict: 20,
-        weirdnessTolerance: 55,
-        spark: 45,
-        strain: 25,
-        relationshipHealth: 60,
-      },
-      completedDateIds: [],
-      scenarioUseCounts: {},
-      agreements: [],
-      openLoops: [],
+  it("blocks future bookings for a closed romantic lane", () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const activeShift = getActiveShift(seed);
+    const closedPair = pairStateSchema.parse({
+      ...buildPairState(),
+      laneStatus: "closed",
     });
-    const preview = previewFollowUpEffects(calmPair, buildSession("mixed"), "let_it_sit");
+    const save = gameSaveSchema.parse({
+      ...seed,
+      focusedMemberIds: ["jenna-pike"],
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== closedPair.id),
+        closedPair,
+      ],
+      shifts: [
+        {
+          ...activeShift,
+          featuredMemberIds: ["jenna-pike"],
+          availablePartnerMemberIds: ["vhool"],
+          followUpReservations: [],
+        },
+      ],
+      activeShiftId: activeShift.id,
+    });
 
-    expect(preview.reasons).toContain("filed without action");
-    expect(preview.memberDeltas.retention).toBeLessThan(0);
-    expect(preview.statDeltas.spark ?? 0).toBeGreaterThanOrEqual(-2);
+    expect(() =>
+      commitDateBooking(save, {
+        focusMemberId: "jenna-pike",
+        partnerMemberId: "vhool",
+      }),
+    ).toThrow("Cupid closed the romantic lane between these members.");
   });
 
   it("records a budget cut when follow-up makes a member quit", () => {
@@ -280,7 +277,7 @@ describe("outcome aware follow-up preview", () => {
 
     const result = applyFollowUpAction(save, {
       dateSessionId: session.id,
-      action: "mark_bad_fit",
+      action: "close",
     });
     const updatedMember = result.save.members.find((member) => member.id === "jenna-pike");
 
@@ -305,8 +302,8 @@ describe("shift closure follow-up gate", () => {
       throw new Error("Expected an active shift in the seed save.");
     }
     const session = dateSessionSchema.parse({
-      id: `date-${activeShift.shiftNumber}-1-pair-jenna-pike-vhool-temporal-coffee-shop`,
-      pairId: "pair-jenna-pike-vhool",
+      id: `date-${activeShift.shiftNumber}-1-${JENNA_VHOOL_PAIR_ID}-temporal-coffee-shop`,
+      pairId: JENNA_VHOOL_PAIR_ID,
       scenarioId: "temporal-coffee-shop",
       turnLimit: 24,
       currentTurn: 4,
@@ -324,13 +321,13 @@ describe("shift closure follow-up gate", () => {
       interventions: [],
       finalReport: {
         id: "final-gate-test",
-        dateSessionId: `date-${activeShift.shiftNumber}-1-pair-jenna-pike-vhool-temporal-coffee-shop`,
+        dateSessionId: `date-${activeShift.shiftNumber}-1-${JENNA_VHOOL_PAIR_ID}-temporal-coffee-shop`,
         completedAt: "2026-05-05T12:30:00.000Z",
         outcome: "mixed",
         summary: "Cupid filed a follow-up gate test.",
         statSummary: "Case read: gate test.",
-        recommendedFollowUp: "repair",
-        appliedFollowUp: filed ? "let_it_sit" : undefined,
+        recommendedFollowUp: "pursue",
+        appliedFollowUp: filed ? "pursue" : undefined,
         memoryRecordIds: [],
         readyToClose: false,
       },
@@ -394,16 +391,16 @@ describe("shift closure follow-up gate", () => {
 
     const result = applyFollowUpActionAndMaybeCompleteShift(save, {
       dateSessionId: session.id,
-      action: "repair",
+      action: "pursue",
     });
 
-    expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
+    expect(result.session.finalReport?.appliedFollowUp).toBe("pursue");
     expect(result.completedShiftReport).toBeDefined();
     expect(result.saveBeforeShiftCompletion?.activeShiftId).toBe(save.activeShiftId);
     expect(getActiveShift(result.save).status).toBe("completed");
   });
 
-  it("opens a booking path for the latest follow-up partner once cooldown clears", () => {
+  it("opens the exact booking path for the latest follow-up partner while cooling", () => {
     const focusedMemberIds = ["noah-kim", "vhool", "sienna-bae", "kade-sumner"];
     const focusMemberId = focusedMemberIds[0];
     const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
@@ -455,8 +452,8 @@ describe("shift closure follow-up gate", () => {
         outcome: "second_date",
         summary: "Cupid filed enough signal to warrant another booking.",
         statSummary: "Case read: second booking signal.",
-        recommendedFollowUp: "encourage",
-        appliedFollowUp: "encourage",
+        recommendedFollowUp: "pursue",
+        appliedFollowUp: "pursue",
         memoryRecordIds: [],
         readyToClose: false,
       },
@@ -475,7 +472,7 @@ describe("shift closure follow-up gate", () => {
       focusedMemberIds,
       members: membersAfterDate.map((member) =>
         member.id === followUpPartner.id
-          ? { ...member, state: { ...member.state, lastDateShift: 1 } }
+          ? { ...member, state: { ...member.state, lastDateShift: 2 } }
           : member,
       ),
       shifts: [shiftTwo],
@@ -486,6 +483,17 @@ describe("shift closure follow-up gate", () => {
     const { save: shiftThreeSave, shift } = startNextShift(readyForShiftThree);
 
     expect(shift.availablePartnerMemberIds).toContain(followUpPartner.id);
+    expect(shift.followUpReservations).toContainEqual({
+      focusMemberId,
+      partnerMemberId: followUpPartner.id,
+      sourceDateSessionId: priorSession.id,
+    });
+    expect(() =>
+      commitDateBooking(shiftThreeSave, {
+        focusMemberId: focusedMemberIds[1] ?? "",
+        partnerMemberId: followUpPartner.id,
+      }),
+    ).toThrow("One of the members is still in cooldown from a recent date.");
     expect(() =>
       commitDateBooking(shiftThreeSave, {
         focusMemberId,

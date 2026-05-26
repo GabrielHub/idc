@@ -1,13 +1,34 @@
-import type { DateSession, Member, ShiftAvailabilityProfile, ShiftState } from "../domain/game";
+import type {
+  DateSession,
+  Member,
+  PairState,
+  ShiftAvailabilityProfile,
+  ShiftFollowUpReservation,
+  ShiftState,
+} from "../domain/game";
 import { createNamespacedRandom, randomIndex } from "./utils";
-import { isMemberInCooldown } from "./shift-planning";
+import { dateSessionShiftNumber, isMemberInCooldown } from "./shift-planning";
 
 export const SHIFT_PARTNER_SLATE_SIZE = 8;
+
+// How many shifts back a `pursue` filing stays warm enough to bypass cooldown
+// on the previous partner. Filings older than this fall back to normal
+// scheduling.
+export const FOLLOW_UP_RIPENESS_SHIFTS = 2;
+
+function isPursueWithinRipeness(session: DateSession, currentShiftNumber: number): boolean {
+  if (session.finalReport?.appliedFollowUp !== "pursue") return false;
+  const sessionShift = dateSessionShiftNumber(session);
+  if (sessionShift === null) return false;
+  const shiftsSince = currentShiftNumber - sessionShift;
+  return shiftsSince >= 1 && shiftsSince <= FOLLOW_UP_RIPENESS_SHIFTS;
+}
 
 export type ShiftPartnerUnavailableReason =
   | "focus_case"
   | "cooldown"
   | "closed"
+  | "closed_lane"
   | "quit"
   | "off_shift";
 
@@ -16,12 +37,24 @@ export type SelectShiftPartnerMemberIdsInput = {
   focusedMemberIds: readonly string[];
   shiftNumber: number;
   priorityPartnerMemberIds?: readonly string[];
+  cooldownExemptMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
 };
 
-export type SelectShiftFollowUpPartnerMemberIdsInput = {
+function isCooldownBlocking(
+  member: Member,
+  shiftNumber: number,
+  cooldownExemptIds: ReadonlySet<string>,
+): boolean {
+  if (cooldownExemptIds.has(member.id)) return false;
+  return isMemberInCooldown(member, shiftNumber);
+}
+
+export type SelectShiftFollowUpReservationsInput = {
   members: readonly Member[];
   focusedMemberIds: readonly string[];
   dateSessions: readonly DateSession[];
+  pairStates?: readonly PairState[];
   shiftNumber: number;
 };
 
@@ -30,6 +63,8 @@ export type ShiftPartnerAvailabilityReasonInput = {
   shiftNumber: number;
   focusedMemberIds: readonly string[];
   availablePartnerMemberIds: readonly string[];
+  cooldownExemptMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
 };
 
 const PROFILE_BASE_SCORE: Record<ShiftAvailabilityProfile, number> = {
@@ -67,14 +102,18 @@ export function selectShiftPartnerMemberIds({
   focusedMemberIds,
   shiftNumber,
   priorityPartnerMemberIds = [],
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: SelectShiftPartnerMemberIdsInput): string[] {
   const focusedSet = new Set(focusedMemberIds);
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
   const candidates = members
     .filter(
       (member) =>
         member.state.status === "active" &&
         !focusedSet.has(member.id) &&
-        !isMemberInCooldown(member, shiftNumber),
+        !hasClosedLaneWithFocus(member.id, focusedSet, pairStates) &&
+        !isCooldownBlocking(member, shiftNumber, cooldownExemptSet),
     )
     .map((member) => {
       const profile = availabilityProfileForMember(member);
@@ -105,51 +144,96 @@ export function selectShiftPartnerMemberIds({
   );
 }
 
-export function selectShiftFollowUpPartnerMemberIds({
+export function selectShiftFollowUpReservations({
   members,
   focusedMemberIds,
   dateSessions,
+  pairStates = [],
   shiftNumber,
-}: SelectShiftFollowUpPartnerMemberIdsInput): string[] {
+}: SelectShiftFollowUpReservationsInput): ShiftFollowUpReservation[] {
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   const focusedSet = new Set(focusedMemberIds);
-  const selected = new Set<string>();
-  const partnerIds: string[] = [];
+
+  // Collect every eligible (focus, partner, session) candidate, then award
+  // reservations globally by session recency. When two focuses share a pursue
+  // partner, the most recent pursue wins regardless of focus iteration order.
+  type Candidate = {
+    focusMemberId: string;
+    partnerMemberId: string;
+    session: DateSession;
+    completedAt: string;
+  };
+  const candidates: Candidate[] = [];
 
   for (const focusMemberId of focusedMemberIds) {
     const focusMember = memberById.get(focusMemberId);
     if (focusMember === undefined || focusMember.state.status !== "active") continue;
-    if (isMemberInCooldown(focusMember, shiftNumber)) continue;
+    const focusOnlySet = new Set([focusMemberId]);
 
-    const candidateSessions = dateSessions
-      .filter(
-        (session) =>
-          session.participants.includes(focusMemberId) &&
-          session.status !== "active" &&
-          session.finalReport !== undefined &&
-          session.finalReport.appliedFollowUp !== "mark_bad_fit",
-      )
-      .sort((first, second) =>
-        (second.finalReport?.completedAt ?? "").localeCompare(first.finalReport?.completedAt ?? ""),
-      );
+    const eligibleSessions = dateSessions.filter(
+      (session) =>
+        session.participants.includes(focusMemberId) &&
+        session.status !== "active" &&
+        session.finalReport !== undefined &&
+        isPursueWithinRipeness(session, shiftNumber),
+    );
 
-    for (const session of candidateSessions) {
+    for (const session of eligibleSessions) {
       const partnerId = session.participants.find((memberId) => memberId !== focusMemberId);
-      if (partnerId === undefined || selected.has(partnerId) || focusedSet.has(partnerId)) {
-        continue;
-      }
-
+      if (partnerId === undefined || focusedSet.has(partnerId)) continue;
       const partner = memberById.get(partnerId);
       if (partner === undefined || partner.state.status !== "active") continue;
-      if (isMemberInCooldown(partner, shiftNumber)) continue;
+      if (hasClosedLaneWithFocus(partner.id, focusOnlySet, pairStates)) continue;
 
-      selected.add(partnerId);
-      partnerIds.push(partnerId);
-      break;
+      candidates.push({
+        focusMemberId,
+        partnerMemberId: partnerId,
+        session,
+        completedAt: session.finalReport?.completedAt ?? "",
+      });
     }
   }
 
-  return partnerIds;
+  candidates.sort((first, second) => second.completedAt.localeCompare(first.completedAt));
+
+  const claimedPartners = new Set<string>();
+  const claimedFocuses = new Set<string>();
+  const reservations: ShiftFollowUpReservation[] = [];
+  for (const candidate of candidates) {
+    if (claimedPartners.has(candidate.partnerMemberId)) continue;
+    if (claimedFocuses.has(candidate.focusMemberId)) continue;
+    claimedPartners.add(candidate.partnerMemberId);
+    claimedFocuses.add(candidate.focusMemberId);
+    reservations.push({
+      focusMemberId: candidate.focusMemberId,
+      partnerMemberId: candidate.partnerMemberId,
+      sourceDateSessionId: candidate.session.id,
+    });
+  }
+
+  return reservations;
+}
+
+export function followUpPartnerMemberIds(
+  reservations: readonly ShiftFollowUpReservation[],
+): string[] {
+  return reservations.map((reservation) => reservation.partnerMemberId);
+}
+
+export function hasFollowUpReservation({
+  reservations,
+  focusMemberId,
+  partnerMemberId,
+}: {
+  reservations: readonly ShiftFollowUpReservation[];
+  focusMemberId: string;
+  partnerMemberId: string;
+}): boolean {
+  return reservations.some(
+    (reservation) =>
+      reservation.focusMemberId === focusMemberId &&
+      reservation.partnerMemberId === partnerMemberId,
+  );
 }
 
 export function hydrateAvailablePartnerMemberIds({
@@ -157,17 +241,23 @@ export function hydrateAvailablePartnerMemberIds({
   members,
   focusedMemberIds,
   priorityPartnerMemberIds = [],
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: {
   shift: ShiftState;
   members: readonly Member[];
   focusedMemberIds: readonly string[];
   priorityPartnerMemberIds?: readonly string[];
+  cooldownExemptMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
 }): string[] {
   const eligible = eligiblePartnerMemberIds({
     persistedMemberIds: shift.availablePartnerMemberIds,
     members,
     focusedMemberIds,
     shiftNumber: shift.shiftNumber,
+    cooldownExemptMemberIds,
+    pairStates,
   });
 
   if (shift.status !== "active") {
@@ -179,6 +269,8 @@ export function hydrateAvailablePartnerMemberIds({
     focusedMemberIds,
     shiftNumber: shift.shiftNumber,
     priorityPartnerMemberIds,
+    cooldownExemptMemberIds,
+    pairStates,
     persistedMemberIds: eligible,
   });
 }
@@ -188,17 +280,27 @@ export function repairShiftPartnerMemberIds({
   focusedMemberIds,
   shiftNumber,
   priorityPartnerMemberIds = [],
+  cooldownExemptMemberIds = [],
+  pairStates = [],
   persistedMemberIds,
 }: SelectShiftPartnerMemberIdsInput & { persistedMemberIds: readonly string[] }): string[] {
   const expectedCount = Math.min(
     SHIFT_PARTNER_SLATE_SIZE,
-    eligiblePartnerCount({ members, focusedMemberIds, shiftNumber }),
+    eligiblePartnerCount({
+      members,
+      focusedMemberIds,
+      shiftNumber,
+      cooldownExemptMemberIds,
+      pairStates,
+    }),
   );
   const prioritizedIds = eligiblePriorityPartnerMemberIds({
     members,
     focusedMemberIds,
     shiftNumber,
     priorityPartnerMemberIds,
+    cooldownExemptMemberIds,
+    pairStates,
   });
   const repaired = mergePartnerIds(prioritizedIds, persistedMemberIds, expectedCount);
 
@@ -212,6 +314,8 @@ export function repairShiftPartnerMemberIds({
     focusedMemberIds,
     shiftNumber,
     priorityPartnerMemberIds,
+    cooldownExemptMemberIds,
+    pairStates,
   })) {
     if (repaired.length >= expectedCount) break;
     if (seen.has(memberId)) continue;
@@ -246,9 +350,12 @@ function eligiblePriorityPartnerMemberIds({
   focusedMemberIds,
   shiftNumber,
   priorityPartnerMemberIds,
+  cooldownExemptMemberIds,
+  pairStates,
 }: Required<SelectShiftPartnerMemberIdsInput>): string[] {
   const memberById = new Map(members.map((member) => [member.id, member] as const));
   const focusedSet = new Set(focusedMemberIds);
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
   const selected = new Set<string>();
   const eligibleIds: string[] = [];
 
@@ -257,7 +364,8 @@ function eligiblePriorityPartnerMemberIds({
     const member = memberById.get(memberId);
     if (member === undefined || member.state.status !== "active") continue;
     if (focusedSet.has(member.id)) continue;
-    if (isMemberInCooldown(member, shiftNumber)) continue;
+    if (hasClosedLaneWithFocus(member.id, focusedSet, pairStates)) continue;
+    if (isCooldownBlocking(member, shiftNumber, cooldownExemptSet)) continue;
     selected.add(memberId);
     eligibleIds.push(memberId);
   }
@@ -295,11 +403,17 @@ export function shiftPartnerUnavailableReason({
   shiftNumber,
   focusedMemberIds,
   availablePartnerMemberIds,
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: ShiftPartnerAvailabilityReasonInput): ShiftPartnerUnavailableReason | null {
   if (member.state.status === "closed") return "closed";
   if (member.state.status === "quit") return "quit";
   if (focusedMemberIds.includes(member.id)) return "focus_case";
-  if (isMemberInCooldown(member, shiftNumber)) return "cooldown";
+  if (hasClosedLaneWithFocus(member.id, new Set(focusedMemberIds), pairStates)) {
+    return "closed_lane";
+  }
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
+  if (isCooldownBlocking(member, shiftNumber, cooldownExemptSet)) return "cooldown";
   if (!availablePartnerMemberIds.includes(member.id)) return "off_shift";
   return null;
 }
@@ -309,10 +423,15 @@ export function isMemberOnTonightBoard({
   shiftNumber,
   focusedMemberIds,
   availablePartnerMemberIds,
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: ShiftPartnerAvailabilityReasonInput): boolean {
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
+  const focusedSet = new Set(focusedMemberIds);
   return (
     member.state.status === "active" &&
-    !isMemberInCooldown(member, shiftNumber) &&
+    (focusedSet.has(member.id) || !hasClosedLaneWithFocus(member.id, focusedSet, pairStates)) &&
+    !isCooldownBlocking(member, shiftNumber, cooldownExemptSet) &&
     (focusedMemberIds.includes(member.id) || availablePartnerMemberIds.includes(member.id))
   );
 }
@@ -333,11 +452,15 @@ export function classifyShiftPartners({
   shiftNumber,
   focusedMemberIds,
   availablePartnerMemberIds,
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: {
   members: readonly Member[];
   shiftNumber: number;
   focusedMemberIds: readonly string[];
   availablePartnerMemberIds: readonly string[];
+  cooldownExemptMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
 }): ShiftPartnerClassification {
   const available: Member[] = [];
   const unavailable: ShiftPartnerClassification["unavailable"] = [];
@@ -348,6 +471,8 @@ export function classifyShiftPartners({
       shiftNumber,
       focusedMemberIds,
       availablePartnerMemberIds,
+      cooldownExemptMemberIds,
+      pairStates,
     });
     if (reason === null) {
       available.push(member);
@@ -496,13 +621,17 @@ function eligiblePartnerCount({
   members,
   focusedMemberIds,
   shiftNumber,
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: SelectShiftPartnerMemberIdsInput): number {
   const focusedSet = new Set(focusedMemberIds);
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
   return members.filter(
     (member) =>
       member.state.status === "active" &&
       !focusedSet.has(member.id) &&
-      !isMemberInCooldown(member, shiftNumber),
+      !hasClosedLaneWithFocus(member.id, focusedSet, pairStates) &&
+      !isCooldownBlocking(member, shiftNumber, cooldownExemptSet),
   ).length;
 }
 
@@ -517,14 +646,19 @@ function eligiblePartnerMemberIds({
   members,
   focusedMemberIds,
   shiftNumber,
+  cooldownExemptMemberIds = [],
+  pairStates = [],
 }: {
   persistedMemberIds: readonly string[];
   members: readonly Member[];
   focusedMemberIds: readonly string[];
   shiftNumber: number;
+  cooldownExemptMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
 }): string[] {
   const membersById = new Map(members.map((member) => [member.id, member] as const));
   const focusedSet = new Set(focusedMemberIds);
+  const cooldownExemptSet = new Set(cooldownExemptMemberIds);
   const seen = new Set<string>();
   const validIds: string[] = [];
 
@@ -534,12 +668,26 @@ function eligiblePartnerMemberIds({
     if (member === undefined) continue;
     if (member.state.status !== "active") continue;
     if (focusedSet.has(member.id)) continue;
-    if (isMemberInCooldown(member, shiftNumber)) continue;
+    if (hasClosedLaneWithFocus(member.id, focusedSet, pairStates)) continue;
+    if (isCooldownBlocking(member, shiftNumber, cooldownExemptSet)) continue;
     seen.add(memberId);
     validIds.push(memberId);
   }
 
   return validIds;
+}
+
+function hasClosedLaneWithFocus(
+  memberId: string,
+  focusedSet: ReadonlySet<string>,
+  pairStates: readonly PairState[],
+): boolean {
+  return pairStates.some(
+    (pairState) =>
+      pairState.laneStatus === "closed" &&
+      pairState.participantIds.includes(memberId) &&
+      pairState.participantIds.some((participantId) => focusedSet.has(participantId)),
+  );
 }
 
 function identityForMember(member: Member): Candidate["identity"] {

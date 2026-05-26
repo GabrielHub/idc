@@ -281,6 +281,7 @@ describe("pairEnteredBrittleTrajectory", () => {
     return {
       id: "pair-a",
       participantIds: ["member-a", "member-b"],
+      laneStatus: "open",
       stats: {
         chemistry: 60,
         trust: 60,

@@ -234,7 +234,7 @@ describe("applyDateFinalReportToMembers ask-state prefix", () => {
       outcome,
       summary: "summary",
       statSummary: "stat",
-      recommendedFollowUp: outcome === "second_date" ? "encourage" : "repair",
+      recommendedFollowUp: "pursue",
       memoryRecordIds: [],
     });
     return dateSessionSchema.parse({
@@ -315,8 +315,8 @@ describe("applyDateFinalReportToMembers ask-state prefix", () => {
         outcome: "second_date",
         summary: "summary",
         statSummary: "stat",
-        recommendedFollowUp: "encourage",
-        appliedFollowUp: "encourage",
+        recommendedFollowUp: "pursue",
+        appliedFollowUp: "pursue",
         memoryRecordIds: [],
       }),
     });
@@ -587,8 +587,8 @@ describe("completeShift hot-only penalty gating", () => {
         outcome: "second_date",
         summary: "summary",
         statSummary: "stat",
-        recommendedFollowUp: "encourage",
-        appliedFollowUp: "encourage",
+        recommendedFollowUp: "pursue",
+        appliedFollowUp: "pursue",
         memoryRecordIds: [],
       }),
     });

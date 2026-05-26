@@ -87,10 +87,11 @@ export const nawalMarrash: Member = {
         "Wednesday evenings I throw bowls. The instructor says my shoulders are too tense. She is correct. My second mug last month was better than the first. I will accept the word progress, cautiously.",
       ],
       warming: [
-        "You did not ask about the post. The small favor of leaving it closed is one I notice. The previous Cupid match asked for forty minutes, with follow-up questions. Pass the bread.",
-        "You said you wish you were home, and I am hearing that you are tired. I am not the Office. The Office is closed. The wine is fine, we can finish it, we do not have to finish it.",
         "I gave you 'I do not know yet' and you took it as an answer. Most do not. Halim the bookkeeper used to say half the Desk's work was teaching people that 'I do not know yet' was a complete sentence. He was right. He is also dead, of a cold, in 1947. I am still here. Continue.",
-        "You ordered the wine I would have ordered. At the Desk this would have been a coincidence to file. The Desk is dismantled. I will let the coincidence pass.",
+        "The Office is closed. I will remind myself of this once per dinner. I am training the reflex. Pass the bread.",
+        "Tell me what you would do tomorrow if the calendar were empty. I am collecting answers. Mine, in candor, would involve a quiet walk and a fig.",
+        "Halim and I were two of fourteen at the Desk in our last year. The other twelve are accounted for. I will not be elaborating. Order the second course.",
+        "The wine is acceptable. I would have ordered it had you not. The Office filed coincidences. The Desk is dismantled. I will let this one pass.",
       ],
       cooling: [
         "You have asked me to grant a wish. I no longer hold that Office. I also would not. Pick the wine.",

@@ -39,6 +39,14 @@ function runTune(args: readonly string[]): Promise<TuneRun> {
 }
 
 describe("tune-member CLI", () => {
+  it("documents Gateway DeepSeek tuning defaults", async () => {
+    const result = await runTune(["--help"]);
+
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Gateway defaults to deepseek/deepseek-v4-flash");
+    expect(result.stdout).toContain("DeepSeek V4 tuning defaults to xhigh");
+  });
+
   it("rejects missing start flag values before creating a tune session", async () => {
     const result = await runTune(["start", "cassie-conners", "--partner"]);
 
@@ -53,5 +61,12 @@ describe("tune-member CLI", () => {
     expect(result.stderr).toContain(
       "Tune session names may use letters, numbers, dots, underscores, and hyphens only.",
     );
+  });
+
+  it("rejects a --focus-request flag without a value", async () => {
+    const result = await runTune(["start", "cassie-conners", "--focus-request"]);
+
+    expect(result.code).toBe(1);
+    expect(result.stderr).toContain("--focus-request requires a value.");
   });
 });

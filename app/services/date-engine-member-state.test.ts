@@ -65,7 +65,7 @@ describe("date engine member state", () => {
     }).finalReport;
 
     expect(report?.outcome).toBe("bad_fit");
-    expect(report?.recommendedFollowUp).toBe("mark_bad_fit");
+    expect(report?.recommendedFollowUp).toBe("close");
   });
 
   it("can produce asymmetric member mood deltas from deterministic evidence", () => {

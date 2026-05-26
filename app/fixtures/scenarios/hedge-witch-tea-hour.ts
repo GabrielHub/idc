@@ -44,91 +44,91 @@ export const hedgeWitchTeaHour: DateScenario = {
         id: "hedge-witch-tea-hour-event-1",
         title: "Kettle hum",
         kind: "ambient",
-        event: "The iron kettle hums on its hook.",
-        characterVisibleText:
-          "The iron kettle hums on its hook above the hearth. The hum holds a single low note. The handle is angled toward the room. The water inside is at a steady simmer.",
-        directorInstruction:
-          "Allow the small marker. The kettle is not voiced as a continuing speaker.",
+        pitch:
+          "Hold the iron kettle on a single low hum above the hearth. Surfaces whether either reaches for the handle or sits with the warmth.",
+        beat: "The iron kettle hums on its hook above the hearth. The hum holds a single low note. The handle is angled toward the room. The water inside is at a steady simmer.",
+        directorBeat:
+          "The kettle is ready and pointed at you. Lift it down, gesture your date toward it, comment on the hum, or settle on a stool first. Make the small move.",
       },
       {
         id: "hedge-witch-tea-hour-event-2",
         title: "Whisk in the bowl",
         kind: "ambient",
-        event: "The bone-handled whisk hums alone in a bowl.",
-        characterVisibleText:
-          "The bone-handled whisk is set in a small ceramic bowl on the worktable. The whisk hums quietly. The bowl is empty. The handle is steady at the rim.",
-        directorInstruction:
-          "Allow the small detail. The whisk is not voiced as a continuing speaker.",
+        pitch:
+          "Run the bone whisk on its own in an empty ceramic bowl. Surfaces a small wonder without making the magic a topic.",
+        beat: "The bone-handled whisk is set in a small ceramic bowl on the worktable. The whisk hums quietly. The bowl is empty. The handle is steady at the rim.",
+        directorBeat:
+          "Something small is doing its own work. Watch it, ask your date if they want matcha, comment on the steady rim, or move on to the kettle. Do not turn the whisk into a speech.",
       },
       {
         id: "hedge-witch-tea-hour-event-3",
         title: "Forest sound",
         kind: "ambient",
-        event: "Forest sound comes through the door.",
-        characterVisibleText:
-          "A small wave of forest sound comes through the door. A single bird high up, a low wind in the canopy, the small scratch of something small at the path. The door holds. The window is fogged at the top corners.",
-        directorInstruction:
-          "Allow the small marker. The forest sound is not voiced as a continuing speaker.",
+        pitch:
+          "Carry a small wave of forest sound through the closed door. Surfaces who notices the outside and who keeps eyes inside.",
+        beat: "A small wave of forest sound comes through the door. A single bird high up, a low wind in the canopy, the small scratch of something small at the path. The door holds. The window is fogged at the top corners.",
+        directorBeat:
+          "The forest just brushed your door. Glance at the fog, comment on the bird, ask your date if they heard the scratch, or stay inside the warmth. Show what you choose to attend to.",
       },
       {
         id: "hedge-witch-tea-hour-event-4",
         title: "Green jar tips",
         kind: "provocation",
-        event: "A green jar on the shelf tips a finger and settles.",
-        characterVisibleText:
-          "A small green jar on the high shelf tips a finger and settles back. The lid stays on. The chalk label on the jar holds a single word in the witch's hand. The note on the door warned about the green jars.",
-        directorInstruction:
-          "Push for a real small move. Either may steady the jar, leave it, or move it down. The jar is not voiced as a continuing speaker.",
+        pitch:
+          "Tip a chalk-labeled green jar a finger on the high shelf with the door note warning about it. Forces a real small move on safety.",
+        beat: "A small green jar on the high shelf tips a finger and settles back. The lid stays on. The chalk label on the jar holds a single word in the witch's hand. The note on the door warned about the green jars.",
+        directorBeat:
+          "Something the witch warned about just shifted. Steady it, move it down to the worktable, comment on the warning, or leave it. Take the small precaution or pointedly skip it.",
       },
       {
         id: "hedge-witch-tea-hour-event-5",
         title: "Pearl barrel lid pops",
         kind: "provocation",
-        event: "The lid of the pearl barrel pops open on its own.",
-        characterVisibleText:
-          "The lid of the tapioca pearl barrel pops a quarter open on its own and stays. The pearls inside are still. The barrel is in reach of both stools. The tank next to the barrel is calm.",
-        directorInstruction:
-          "Push for a real next move. Either may close the lid, scoop a serving, or wait. The barrel is not voiced as a continuing speaker.",
+        pitch:
+          "Pop the tapioca pearl barrel lid a quarter open in reach of both stools. Forces a clean choice: close, scoop, or wait.",
+        beat: "The lid of the tapioca pearl barrel pops a quarter open on its own. The pearls inside are still. The barrel is in reach of both stools. The tank next to the barrel is calm.",
+        directorBeat:
+          "The barrel just invited you in. Close the lid, scoop a small portion for tea, ask your date if they want pearls, or pretend it did not happen. Pick.",
       },
       {
         id: "hedge-witch-tea-hour-event-6",
         title: "Kettle pours unbidden",
         kind: "provocation",
-        event: "The kettle pours unbidden into a single cup.",
-        characterVisibleText:
-          "The kettle tips on its hook and pours a single steady stream into one of the two wooden cups on the worktable. The cup fills to the proper line. The kettle resets. The second cup is empty.",
-        directorInstruction:
-          "Push for a real choice. Either may pour for the partner, leave the second cup empty, or move the full cup across. The kettle is not voiced as a continuing speaker.",
+        pitch:
+          "Tip the kettle to fill only one of two wooden cups. Forces a real choice: pour for the partner, leave the second cup empty, or hand the full cup across.",
+        beat: "The kettle tips on its hook and pours a single steady stream into one of the two wooden cups on the worktable. The cup fills to the proper line. The kettle resets. The second cup is empty.",
+        directorBeat:
+          "One cup got served and the other did not. Slide the full cup to your date, pour the second yourself, comment on the kettle's pick, or keep what you have. Show care or claim.",
       },
       {
         id: "hedge-witch-tea-hour-event-7",
         title: "Moodboard teapots",
         kind: "reveal",
-        event: "The moodboard teapots stand on the long shelf.",
-        characterVisibleText:
-          "The long shelf above the worktable holds the moodboard teapots in a row. Each teapot has a chalk label in the witch's hand: steady, weeping, sworn, half-asleep, plain. The labels face the room. The teapots are within reach of both stools.",
-        directorInstruction:
-          "Use the small option to surface a stance drawn only from existing context. Either may pick a teapot or leave the shelf. The teapots are not voiced as continuing speakers.",
+        pitch:
+          "Line the mood-labeled teapots on the shelf in clear sight: steady, weeping, sworn, half-asleep, plain. Surfaces taste drawn only from what you already carry.",
+        beat: "The long shelf above the worktable holds the moodboard teapots in a row. Each teapot has a chalk label in the witch's hand: steady, weeping, sworn, half-asleep, plain. The labels face the room. The teapots are within reach of both stools.",
+        directorBeat:
+          "Pick a teapot the way you would pick a mood. Take steady, ask your date which fits them, point at half-asleep, or grab plain on purpose. Speak from your own register. Do not voice the teapots.",
       },
       {
         id: "hedge-witch-tea-hour-event-8",
         title: "Foraging note on the door",
         kind: "reveal",
-        event: "The witch's foraging note holds on the inside of the door.",
-        characterVisibleText:
-          "A small paper note hangs on the inside of the door at eye level. The note is in the same chalky hand as the labels. The note lists what the witch is foraging for and the hour mark for her return. The hour mark is after the booking ends.",
-        directorInstruction:
-          "Use the small note to surface a stance drawn only from existing context. The note is not voiced as a continuing speaker.",
+        pitch:
+          "Hang the witch's foraging note on the inside of the door with a return hour past the booking. Surfaces a stance on her absence.",
+        beat: "A small paper note hangs on the inside of the door at eye level. The note is in the same chalky hand as the labels. The note lists what the witch is foraging for and the hour mark for her return. The hour mark is after the booking ends.",
+        directorBeat:
+          "The witch is gone for the whole booking. Read the note aloud, comment on what she is foraging, ask your date what they think of being unsupervised, or shrug and pour tea. Engage with the empty hut.",
       },
       {
         id: "hedge-witch-tea-hour-event-9",
         title: "A jar with prior dregs",
         kind: "reveal",
-        event: "A small jar on the worktable holds prior dregs.",
-        characterVisibleText:
-          "A small clear jar sits on the worktable behind the cups. The jar holds tea dregs from a prior steeping. A chalk note on the jar carries two short letters at the top. The letters are fresh enough to read.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The jar is not voiced as a continuing speaker.",
+        pitch:
+          "Set a clear jar with prior tea dregs and two short chalk letters at the top on the worktable. Surfaces a callback for repeat pairs or curiosity for first visits.",
+        beat: "A small clear jar sits on the worktable behind the cups. The jar holds tea dregs from a prior steeping. A chalk note on the jar carries two short letters at the top. The letters are fresh enough to read.",
+        directorBeat:
+          "Two letters in chalk are sitting where you can see them. Read them aloud, ask your date if they recognize the initials, claim the jar if they are yours, or set it back. Tie it to what you already know. Do not voice the jar.",
       },
     ],
     earlyEndTriggers: [

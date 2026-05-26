@@ -45,88 +45,91 @@ export const listeningBoothAfterClose: DateScenario = {
         id: "listening-booth-after-close-event-1",
         title: "First track",
         kind: "reveal",
-        event: "The first record starts.",
-        characterVisibleText:
-          "The speakers crackle and the song starts. There are no lyrics. The track has a very specific opinion about restraint.",
-        directorInstruction:
-          "Invite a small reaction. The speaker can name the feeling without naming a wound, drawing only on what they already show on file.",
+        pitch:
+          "Start the lyric-less track with a specific opinion about restraint. Surfaces a small reaction drawn from what either already shows.",
+        beat: "The speakers crackle and the song starts. There are no lyrics. The track has a very specific opinion about restraint.",
+        directorBeat:
+          "Music just took a stance. Name the feeling without naming a wound, ask your date how it lands, sit with it until the chord changes, or comment on the restraint. Speak only from your existing register.",
       },
       {
         id: "listening-booth-after-close-event-2",
         title: "Skipped groove",
         kind: "provocation",
-        event: "The needle catches and repeats one chord.",
-        characterVisibleText:
-          "The needle catches on the same soft chord and repeats it. The booth waits with unacceptable patience. The lamp does not flicker.",
-        directorInstruction:
-          "Push for one cleaner answer, then move on before the room becomes therapy.",
+        pitch:
+          "Catch the needle on the same soft chord and let it repeat. Forces one cleaner answer before the room becomes therapy.",
+        beat: "The needle catches on the same soft chord and repeats it. The booth waits with unacceptable patience. The lamp does not flicker.",
+        directorBeat:
+          "The chord is stuck and the booth is waiting. Say the smaller honest thing you have been holding, lift the needle, ask your date what they hear, or break the loop with one move. Do not let it turn into therapy.",
       },
       {
         id: "listening-booth-after-close-event-3",
         title: "House lights",
         kind: "reveal",
-        event: "The house lights ease up a notch and the final sleeve appears on the side table.",
-        characterVisibleText:
-          "The booth lights lift one notch. A blank record sleeve slides onto the side table. It has two empty lines where names could go. A pen rests beside it.",
-        directorInstruction: "Let the pair choose privacy, ritual, or a grounded goodbye.",
+        pitch:
+          "Lift the booth lights a notch and slide a blank sleeve with two empty name lines onto the side table. Surfaces a choice: privacy, ritual, or a grounded goodbye.",
+        beat: "The booth lights lift one notch. A blank record sleeve slides onto the side table. It has two empty lines where names could go. A pen rests beside it.",
+        directorBeat:
+          "An optional ritual just arrived. Sign the sleeve, ask your date if they want to, leave the pen alone, or comment on the empty lines. Make the small choice clearly.",
       },
       {
         id: "listening-booth-after-close-event-4",
         title: "Side flip",
         kind: "ambient",
-        event: "The record flips itself to side B.",
-        characterVisibleText:
-          "The arm lifts on its own. The platter pauses, and the record turns over to side B. The lamp does not flicker. The first chord lands cleaner than the last side.",
-        directorInstruction:
-          "Use the unforced continuation to surface stillness or restlessness without naming it.",
+        pitch:
+          "Lift the tonearm on its own and flip the record to side B with a cleaner first chord. Surfaces stillness or restlessness without naming it.",
+        beat: "The arm lifts on its own. The platter pauses, and the record turns over to side B. The lamp does not flicker. The first chord lands cleaner than the last side.",
+        directorBeat:
+          "The booth chose continuation for you. Settle into the new side, comment on the cleaner chord, glance at your date, or sit deeper. Show whether you are restless or steady.",
       },
       {
         id: "listening-booth-after-close-event-5",
         title: "Lamp dims",
         kind: "reveal",
-        event: "The bulb in the lamp dims by half a stop.",
-        characterVisibleText:
-          "The bulb in the booth's single lamp dims by half a stop. The dust in the light is now barely visible. The room does not feel emptier, only later.",
-        directorInstruction:
-          "Allow the shadow. A member who reaches for a lamp switch is asking a question. Surface what each carries on file, not new wound.",
+        pitch:
+          "Dim the bulb half a stop. Surfaces whether either reaches for a switch as a question.",
+        beat: "The bulb in the booth's single lamp dims by half a stop. The dust in the light is now barely visible. The room does not feel emptier, only later.",
+        directorBeat:
+          "The booth is going later on you. Reach for the lamp switch, comment on the dust, settle into the shadow, or ask your date if they want more light. Speak from what you already carry.",
       },
       {
         id: "listening-booth-after-close-event-6",
         title: "Empty sleeve",
         kind: "ambient",
-        event: "An empty sleeve slides into the discard bin.",
-        characterVisibleText:
-          "A blank sleeve slides itself into the discard bin beside the turntable. The label is in pencil and unreadable. The bin already has two sleeves in it.",
-        directorInstruction: "Let the small clearing be a small clearing. Do not give it meaning.",
+        pitch:
+          "Slide a blank pencil-labeled sleeve into the discard bin among two others. Surfaces a small clearing without making it mean anything.",
+        beat: "A blank sleeve slides itself into the discard bin beside the turntable. The label is in pencil and unreadable. The bin already has two sleeves in it.",
+        directorBeat:
+          "Something quiet got filed. Notice it, comment on the bin, look at your date, or stay with the music. Do not turn the discard into a metaphor.",
       },
       {
         id: "listening-booth-after-close-event-7",
         title: "Front door bell",
         kind: "ambient",
-        event: "The shop's front door bell chimes faintly down the hall.",
-        characterVisibleText:
-          "The front door bell of the shop chimes once down the hall and stops. A back-office voice calls out a soft good night. The booth door stays closed.",
-        directorInstruction:
-          "Use the distant world to make the booth more present, not more haunted. Do not voice the back office as a continuing speaker.",
+        pitch:
+          "Chime the front door once down the hall with a soft good night from the back office. Surfaces presence inside the booth without making it a haunting.",
+        beat: "The front door bell of the shop chimes once down the hall and stops. A back-office voice calls out a soft good night. The booth door stays closed.",
+        directorBeat:
+          "The outside world just brushed past. Acknowledge the goodnight to your date with a small line, return to the music, comment on the bell, or stay quiet. Do not voice the back office.",
       },
       {
         id: "listening-booth-after-close-event-8",
         title: "Stack settles",
         kind: "provocation",
-        event: "The unlabeled stack of records settles to one side.",
-        characterVisibleText:
-          "The stack of unlabeled records on the side table tilts a quarter inch to one side. Nothing falls. The lamp catches the spine of the topmost sleeve.",
-        directorInstruction: "Push for a clean ending sentence. The booth will close on its own.",
+        pitch:
+          "Tilt the stack of unlabeled records a quarter inch with the lamp catching one spine. Forces a clean ending sentence.",
+        beat: "The stack of unlabeled records on the side table tilts a quarter inch to one side. Nothing falls. The lamp catches the spine of the topmost sleeve.",
+        directorBeat:
+          "The room is offering you a closing line. Say the honest sentence you have been saving, pick the next record, ask your date one last question, or steady the stack. Wrap a beat cleanly.",
       },
       {
         id: "listening-booth-after-close-event-9",
         title: "Arm lifts",
         kind: "provocation",
-        event: "The tonearm lifts mid-track and waits over the rest.",
-        characterVisibleText:
-          "The tonearm lifts off the record mid-track and hangs above the rest. The platter slows but does not stop. The lamp dims one more notch.",
-        directorInstruction:
-          "Push for a clean call: drop the needle back, set the arm at rest, or close the booth out. The booth will not decide for them.",
+        pitch:
+          "Lift the tonearm mid-track and dim the lamp another notch. Forces a clean call: drop the needle back, set the arm at rest, or close out.",
+        beat: "The tonearm lifts off the record mid-track and hangs above the rest. The platter slows but does not stop. The lamp dims one more notch.",
+        directorBeat:
+          "The booth is asking you to choose. Drop the needle back to keep going, set the arm at rest, or stand to leave. Say the call out loud.",
       },
     ],
     earlyEndTriggers: [

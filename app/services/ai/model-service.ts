@@ -63,7 +63,7 @@ import {
   type OllamaModelSummary,
 } from "./model-catalog";
 
-const CHARACTER_MAX_OUTPUT_TOKENS = 320;
+const CHARACTER_MAX_OUTPUT_TOKENS = 2048;
 const OLLAMA_JUDGE_MAX_OUTPUT_TOKENS = 520;
 const OLLAMA_SUMMARIZER_MAX_OUTPUT_TOKENS = 480;
 const OLLAMA_CLOSURE_SUMMARY_MAX_OUTPUT_TOKENS = 220;
@@ -1303,6 +1303,7 @@ export function providerOptionsForRuntime(
     return {
       deepseek: {
         thinking: { type: "enabled" },
+        reasoningEffort: deepSeekReasoningEffort(reasoningLevel),
       },
     };
   }
@@ -1432,6 +1433,10 @@ function clampReasoningLevel(reasoningLevel: AiReasoningLevel): "low" | "medium"
   }
 
   return reasoningLevel;
+}
+
+function deepSeekReasoningEffort(reasoningLevel: AiReasoningLevel): "high" | "max" {
+  return reasoningLevel === "xhigh" ? "max" : "high";
 }
 
 function anthropicThinkingBudgetTokens(reasoningLevel: "low" | "medium" | "high"): number {

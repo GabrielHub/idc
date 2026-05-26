@@ -90,10 +90,10 @@ export const sections: DocSectionEntry[] = [
         </P>
         <P>
           Follow-up continuity gets a reserved path through that logistics board. When a focused
-          case has a latest prior date with an active, non-focused partner, that partner is pinned
-          into the first legal post-cooldown roster so the player can book the next date instead of
-          waiting for random availability. Filing <Strong>Mark Bad Fit</Strong> is the explicit
-          exception because it closes the romantic lane.
+          case has a recent date with the follow-up filed as <Strong>Pursue</Strong>, that partner
+          is pinned onto the next shift as a follow-up reservation that bypasses cooldown, so the
+          player can book the next date instead of waiting for random availability. Filing{" "}
+          <Strong>Close</Strong> is the explicit exception because it retires the romantic lane.
         </P>
         <P>
           Each shift surfaces one current request per focused member. One of those four requests is
@@ -216,12 +216,20 @@ export const sections: DocSectionEntry[] = [
         </P>
         <P>
           The <Strong>FinalReportFooter</Strong> in{" "}
-          <DocCode>app/components/date-view-final-report.tsx</DocCode> leads with people-first
-          content: the focus member's <DocCode>recentDateResult</DocCode> as the case line, the
-          intent echo as the secondary line, then the LLM-written summary, then the deterministic{" "}
-          <DocCode>statSummary</DocCode> at the bottom in muted style. Filed reads and follow-up
-          choices stay in the remaining two columns. Operational deltas are still on the screen, but
-          they no longer lead.
+          <DocCode>app/components/date-view-final-report.tsx</DocCode> leads with a deterministic
+          impact receipt from <DocCode>app/services/date-impact.ts</DocCode>: one verdict (
+          <DocCode>Closure ready</DocCode>, <DocCode>Closure gained ground</DocCode>,{" "}
+          <DocCode>Case stalled</DocCode>, <DocCode>Case risk rose</DocCode>, or{" "}
+          <DocCode>Bad fit confirmed</DocCode>), one campaign-meaning line, one reason line, and at
+          most three consequence chips. The LLM-written summary and deterministic{" "}
+          <DocCode>statSummary</DocCode> move under the muted case note so flavor does not obscure
+          the gameplay result. Filed reads and follow-up choices stay below the impact receipt.
+        </P>
+        <P>
+          Follow-up booking pressure is stored as exact focus/partner reservations on the active
+          shift. <DocCode>Pursue</DocCode> reopens only that pair's next booking path while it is
+          ripe; <DocCode>Close</DocCode> writes a closed lane to the pair state so the match is no
+          longer bookable or surfaced as a future partner.
         </P>
       </>
     ),
@@ -389,7 +397,7 @@ export const sections: DocSectionEntry[] = [
               <span key="outcome">
                 <DocCode>finalReport.outcome === "second_date"</DocCode>. The{" "}
                 <DocCode>second_date</DocCode> gate ties closure to a good date moment so a pair
-                cannot close from a cool-down or repair-shaped report even if stats are still high.
+                cannot close from a cool-down or early-end report even if stats are still high.
               </span>,
               "No broken agreements and no open loops. A near-ready pair with unresolved pressure stays open and files a closure near-miss note instead.",
             ]}

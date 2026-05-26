@@ -45,91 +45,91 @@ export const colosseumBoxFour: DateScenario = {
         id: "colosseum-box-four-event-1",
         title: "Banner unfurls",
         kind: "ambient",
-        event: "The day's banner unfurls on the far wall.",
-        characterVisibleText:
-          "The day's banner unfurls down the far wall of the arena. The banner lists two bouts in clean lettering. The first bout is at the top. The crowd noise climbs a notch.",
-        directorInstruction:
-          "Allow the small marker. The banner is not voiced as a continuing speaker.",
+        pitch:
+          "Unfurl the day's banner with two named bouts on the far wall. Surfaces who reads the schedule and who keeps quiet.",
+        beat: "The day's banner unfurls down the far wall of the arena. The banner lists two bouts in clean lettering. The first bout is at the top. The crowd noise climbs a notch.",
+        directorBeat:
+          "The day's program just hung itself in front of you. Read the lineup, comment to your date on what you see, or stay quiet and let the roar carry. Do not voice the banner.",
       },
       {
         id: "colosseum-box-four-event-2",
         title: "First clash",
         kind: "provocation",
-        event: "The first bout opens at the east gate.",
-        characterVisibleText:
-          "The gate at the east end opens. Two combatants walk to the center of the sand. The shorter combatant takes the high guard. The first clash lands. The crowd roar climbs.",
-        directorInstruction:
-          "Push for a real read on the bout. The pair does not narrate the strikes. The combatants do not speak and are not voiced as continuing speakers.",
+        pitch:
+          "Open the bout at the east gate with the first strike landing. Forces a real read on the fight without narrating the strikes.",
+        beat: "The gate at the east end opens. Two combatants walk to the center of the sand. The shorter combatant takes the high guard. The first clash lands. The crowd roar climbs.",
+        directorBeat:
+          "Two people are now fighting for real below you. React in your body or one short line: lean forward, look at your date, set your jaw, or hold your breath. Do not narrate the strikes. Do not voice the combatants.",
       },
       {
         id: "colosseum-box-four-event-3",
         title: "Horn at the rail",
         kind: "reveal",
-        event: "The horn at the rail glints in the afternoon light.",
-        characterVisibleText:
-          "The horn at the rail glints once in the afternoon light. A small placard under it reads: one sound per bout, dedicates the coin. The clay urn holds a single coin. The first bout is at the third minute.",
-        directorInstruction:
-          "Use the small option to surface stance drawn from existing context. Either may take the horn at the right moment or leave it. The horn does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Catch the horn in the afternoon light with its dedication placard. Surfaces stance on the coin and the loser's family.",
+        beat: "The horn at the rail glints once in the afternoon light. A small placard under it reads: one sound per bout, dedicates the coin. The clay urn holds a single coin. The first bout is at the third minute.",
+        directorBeat:
+          "You can dedicate a coin if you choose to. Reach for the horn, ask your date if they want to, leave it on the hook, or comment on the placard. Speak from what you already feel about the cost of this. Do not voice the horn.",
       },
       {
         id: "colosseum-box-four-event-4",
         title: "Long quiet between rounds",
         kind: "ambient",
-        event: "The crowd settles into a long quiet between rounds.",
-        characterVisibleText:
-          "The combatants step back to the marks. The crowd settles into a long quiet between rounds. The sand has dark spots where it should not. The horn on its hook has not moved.",
-        directorInstruction:
-          "Allow the quiet. The bout is in a held breath. The pair does not need to fill it.",
+        pitch:
+          "Drop a long quiet between rounds with dark spots on the sand. Surfaces whether either fills the held breath or sits inside it.",
+        beat: "The combatants step back to the marks. The crowd settles into a long quiet between rounds. The sand has dark spots where it should not. The horn on its hook has not moved.",
+        directorBeat:
+          "The arena is holding its breath. Sit with the quiet, take your date's hand, glance away from the sand, or speak one short honest sentence. Do not fill the silence.",
       },
       {
         id: "colosseum-box-four-event-5",
         title: "A combatant falls",
         kind: "provocation",
-        event: "One combatant falls and does not rise.",
-        characterVisibleText:
-          "The shorter combatant takes a clean strike and goes down on the sand. The other combatant steps back. The combatant on the sand does not rise. The crowd roar climbs and falls.",
-        directorInstruction:
-          "Push for a real reaction. The fight is over. The combatants do not speak and are not voiced as continuing speakers.",
+        pitch:
+          "Land the strike that ends the bout. Forces a real reaction to a death you just watched.",
+        beat: "The shorter combatant takes a clean strike and goes down on the sand. The other combatant steps back. The combatant on the sand does not rise. The crowd roar climbs and falls.",
+        directorBeat:
+          "Someone just died in front of you. React the way you actually would: shut your eyes, take your date's wrist, sit still, or look at the horn. Do not perform a moral position. Do not voice the combatants.",
       },
       {
         id: "colosseum-box-four-event-6",
         title: "Coin in the urn",
         kind: "reveal",
-        event: "The coin in the urn is still in place.",
-        characterVisibleText:
-          "The clay urn holds the single coin. The horn at the rail is on the hook. The bout is closed. The next bout is on the banner.",
-        directorInstruction:
-          "Use the small choice to surface care drawn from existing context. Either may dedicate the coin or leave it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Sit the coin in the urn at the rail. Forces a clean stance on dedicating it or leaving it.",
+        beat: "The clay urn holds the single coin. The horn at the rail is on the hook. The bout is closed. The next bout is on the banner.",
+        directorBeat:
+          "The coin is right there and so is the horn. Dedicate it, leave it, ask your date which they want, or refuse the choice. Whatever you do, do not perform indifference. Do not voice the urn.",
       },
       {
         id: "colosseum-box-four-event-7",
         title: "Carry off in silence",
         kind: "ambient",
-        event: "The fallen combatant is carried off in silence.",
-        characterVisibleText:
-          "The fallen combatant is lifted from the sand by two figures from the east gate. The lift is steady and the line off the sand is straight. The sand is raked once and the next mark is laid down.",
-        directorInstruction:
-          "Allow the small ritual. The figures do not address the pair and are not voiced as continuing speakers.",
+        pitch:
+          "Lift the fallen combatant cleanly off the sand and rake the next mark. Surfaces whether either honors the small ritual.",
+        beat: "The fallen combatant is lifted from the sand by two figures from the east gate. The lift is steady and the line off the sand is straight. The sand is raked once and the next mark is laid down.",
+        directorBeat:
+          "A body is being carried out below you. Honor the lift in your body or your line: stand, lower your head, take your date's hand, or simply watch. Do not narrate the carry. Do not voice the figures.",
       },
       {
         id: "colosseum-box-four-event-8",
         title: "Second bout opens",
         kind: "provocation",
-        event: "The second bout opens at the east gate.",
-        characterVisibleText:
-          "The east gate opens for the second bout. Two new combatants walk to the marks. The afternoon light has shifted a degree. The horn at the rail is on the hook. The urn has its coin.",
-        directorInstruction:
-          "Push for a real read on whether the pair stays through the second bout, leaves the box now, or sits the second bout out at the back of the box. The combatants do not speak and are not voiced as continuing speakers.",
+        pitch:
+          "Open the east gate for the second bout with the light shifted a degree. Forces a clean call: stay, leave, or sit it out at the back of the box.",
+        beat: "The east gate opens for the second bout. Two new combatants walk to the marks. The afternoon light has shifted a degree. The horn at the rail is on the hook. The urn has its coin.",
+        directorBeat:
+          "Another fight is starting. Stay at the rail, ask your date if they want to leave, sit it out at the back of the box, or stand to go. Name the call clearly. Do not voice the combatants.",
       },
       {
         id: "colosseum-box-four-event-9",
         title: "Last call",
         kind: "reveal",
-        event: "A small chime under the urn sounds once at the third minute.",
-        characterVisibleText:
-          "The bout is at the third minute. The shorter combatant has the lower guard. The horn on the hook has not moved. A small chime under the urn sounds once and stops.",
-        directorInstruction:
-          "Use the small chime to surface what the pair wants drawn from existing context. Either may take the horn, leave it, or stand to leave the box. The chime is not voiced as a continuing speaker.",
+        pitch:
+          "Sound a small chime under the urn at the third minute. Surfaces a clean stance on the horn, the coin, or the exit.",
+        beat: "The bout is at the third minute. The shorter combatant has the lower guard. The horn on the hook has not moved. A small chime under the urn sounds once and stops.",
+        directorBeat:
+          "The arena is asking for a final decision. Take the horn, leave it, stand to go, or check what your date wants. Speak from what you actually feel. Do not voice the chime.",
       },
     ],
     earlyEndTriggers: [

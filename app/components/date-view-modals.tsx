@@ -443,13 +443,13 @@ export function SceneConfirmModal({
       </header>
 
       <section className="flex flex-col gap-2">
-        <Eyebrow>{"// the beat"}</Eyebrow>
-        <p className="text-body leading-relaxed text-aura-ink">{event.event}</p>
+        <Eyebrow>{"// effect"}</Eyebrow>
+        <p className="text-body leading-relaxed text-aura-ink">{event.pitch}</p>
       </section>
 
       <section className="flex flex-col gap-2">
-        <Eyebrow>{"// what they see"}</Eyebrow>
-        <p className="text-body leading-relaxed text-aura-ink/85">{event.characterVisibleText}</p>
+        <Eyebrow>{"// what hits the table"}</Eyebrow>
+        <p className="text-body leading-relaxed text-aura-ink/85">{event.beat}</p>
       </section>
 
       {!canDrop ? (

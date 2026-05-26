@@ -44,91 +44,91 @@ export const wetMarketThreeSeas: DateScenario = {
         id: "wet-market-three-seas-event-1",
         title: "A leap at the tank wall",
         kind: "ambient",
-        event: "A fish leaps once in the live tank wall.",
-        characterVisibleText:
-          "A pale fish leaps once in the third tank along the wall. The water settles. The other tanks hold steady. The two long-handled nets are still on their hooks.",
-        directorInstruction:
-          "Allow the small marker. The tank does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Leap a pale fish once in the third tank with the nets still on their hooks. Surfaces a small marker the pair can claim or skip.",
+        beat: "A pale fish leaps once in the third tank along the wall. The water settles. The other tanks hold steady. The two long-handled nets are still on their hooks.",
+        directorBeat:
+          "Something live just moved in the tank wall. Point it out, comment on the nets, ask your date if they want to try the angling pool, or move past. Make a small choice. Do not voice the tank.",
       },
       {
         id: "wet-market-three-seas-event-2",
         title: "Smoke drift",
         kind: "ambient",
-        event: "Smoke drifts past from the grill row.",
-        characterVisibleText:
-          "A short ribbon of smoke drifts across the aisle from one of the hot stones at the back. The smell is familiar and not. The stone in front of the pair is unlit.",
-        directorInstruction:
-          "Allow the small invitation. The grill is not voiced as a continuing speaker.",
+        pitch:
+          "Drift a short ribbon of smoke from the grill row past the pair with their own stone unlit. Surfaces a small invitation.",
+        beat: "A short ribbon of smoke drifts across the aisle from one of the hot stones at the back. The smell is familiar and not. The stone in front of the pair is unlit.",
+        directorBeat:
+          "A smell just crossed your face from the grill row. Name what it pulls up, ask your date if they want to head there, or stay on the tank wall. Speak from your own register.",
       },
       {
         id: "wet-market-three-seas-event-3",
         title: "A chit blows past",
         kind: "ambient",
-        event: "A printed chit blows past the pair on the floor.",
-        characterVisibleText:
-          "A small printed chit blows past their shoes on the wet floor. The chit lists a catch and a price in a script that is not local. The chit settles against a tank base.",
-        directorInstruction:
-          "Allow the small marker. The chit is not voiced as a continuing speaker.",
+        pitch:
+          "Blow a non-local chit past the pair's shoes to settle at a tank base. Surfaces a small foreign marker.",
+        beat: "A small printed chit blows past their shoes on the wet floor. The chit lists a catch and a price in a script that is not local. The chit settles against a tank base.",
+        directorBeat:
+          "A stranger's chit is at your feet. Pick it up, read the script aloud, ask your date if they recognize it, or step over it. Make the small read.",
       },
       {
         id: "wet-market-three-seas-event-4",
         title: "Strike at the angling pool",
         kind: "provocation",
-        event: "The angling pool surges at one of the rods.",
-        characterVisibleText:
-          "The angling pool surges at the rod on the right. The line goes tight and the bucket beside the stool tips a finger. The rod handle is in reach. The water under the surge is darker than the rest of the pool.",
-        directorInstruction:
-          "Push for a real move. Either may set the rod, ease the line, or step back. The pool does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Surge the angling pool at the right rod with the line tight and the bucket tipping. Forces a real move on the rod.",
+        beat: "The angling pool surges at the rod on the right. The line goes tight and the bucket beside the stool tips a finger. The rod handle is in reach. The water under the surge is darker than the rest of the pool.",
+        directorBeat:
+          "A real strike is on the line. Set the rod, ease it, ask your date to take it, or step back. Move now. Do not voice the pool.",
       },
       {
         id: "wet-market-three-seas-event-5",
         title: "Stone flare",
         kind: "provocation",
-        event: "The hot stone in front of the pair flares to ready.",
-        characterVisibleText:
-          "The hot stone in front of the pair flares once. A small red light at the corner of the two-top turns steady. The tongs at the table hang on a side rail. Whatever lands on the stone in the next minute will cook.",
-        directorInstruction:
-          "Push for a real next move. The pair may bring something over, wait, or move on. The stone is not voiced as a continuing speaker.",
+        pitch:
+          "Flare the hot stone in front of the pair to ready with the corner light steady. Forces a real next move at the grill.",
+        beat: "The hot stone in front of the pair flares once. A small red light at the corner of the two-top turns steady. The tongs at the table hang on a side rail. Whatever lands on the stone in the next minute will cook.",
+        directorBeat:
+          "The grill is ready. Bring something from the tank, ask your date what they want cooked, decline and step away, or pick up the tongs. The minute is counting. Do not voice the stone.",
       },
       {
         id: "wet-market-three-seas-event-6",
         title: "Knife on a stubborn oyster",
         kind: "provocation",
-        event: "A shucking knife slips against a stubborn oyster.",
-        characterVisibleText:
-          "The shucking knife slips on the hinge of an oyster on the rail. The oyster stays shut. The chained handle hits the rail. The towel under the oyster is dry.",
-        directorInstruction:
-          "Push for a real physical move. Either may take the knife, hand it over, or set it down. The oyster is not voiced as a continuing speaker.",
+        pitch:
+          "Slip a shucking knife on an oyster hinge with the chain hitting the rail. Forces a real physical move on the knife.",
+        beat: "The shucking knife slips on the hinge of an oyster on the rail. The oyster stays shut. The chained handle hits the rail. The towel under the oyster is dry.",
+        directorBeat:
+          "A real knife and a real oyster need a hand. Take the knife and reset, hand it across to your date, or step back. Use your hands. Do not voice the oyster.",
       },
       {
         id: "wet-market-three-seas-event-7",
         title: "A scale prints a chit",
         kind: "reveal",
-        event: "The scale prints a chit naming the sea of origin.",
-        characterVisibleText:
-          "The scale at the weighing station prints a small chit for a recent catch. The chit lists the catch by weight and names the sea by full name. One of the three is on the chit.",
-        directorInstruction:
-          "Use the named sea to surface a small honest reaction drawn only from existing context. The chit is not voiced as a continuing speaker.",
+        pitch:
+          "Print a chit at the scale naming the full sea of origin for the catch. Surfaces a small honest reaction drawn from existing context.",
+        beat: "The scale at the weighing station prints a small chit for a recent catch. The chit lists the catch by weight and names the sea by full name. One of the three is on the chit.",
+        directorBeat:
+          "A specific sea just got named on a small slip. Read it aloud, ask your date if they know that water, comment on the weight, or set the chit aside. Stay honest. Do not voice the scale.",
       },
       {
         id: "wet-market-three-seas-event-8",
         title: "A tasting cup is offered",
         kind: "reveal",
-        event: "A vendor extends a small tasting cup.",
-        characterVisibleText:
-          "A vendor at the corner stall extends a small clay cup of broth across the rail without looking up. The cup sits on the rail. The broth is steaming. The vendor steps back to the cleaver.",
-        directorInstruction:
-          "Use the small offering to surface care drawn only from existing context. Either may take the cup or leave it. The vendor does not speak and is not voiced as a continuing speaker.",
+        pitch:
+          "Extend a small clay cup of steaming broth across the rail without a word from the corner vendor. Surfaces care drawn only from existing context.",
+        beat: "A vendor at the corner stall extends a small clay cup of broth across the rail without looking up. The cup sits on the rail. The broth is steaming. The vendor steps back to the cleaver.",
+        directorBeat:
+          "A small free taste is on the rail for you. Take it, hand it to your date, decline politely, or comment to your date on the steam. Show how you receive care from a stranger. Do not voice the vendor.",
       },
       {
         id: "wet-market-three-seas-event-9",
         title: "Old chit on the bulletin",
         kind: "reveal",
-        event: "An old chit on the bulletin lists both names.",
-        characterVisibleText:
-          "The bulletin near the weighing station holds a small wall of old chits. One pinned chit lists a recent catch with both their first names in pencil at the top. The pencil mark is fresh enough to read.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The bulletin is not voiced as a continuing speaker.",
+        pitch:
+          "Pin an old chit on the bulletin near the scale with both their first names in pencil. Surfaces a callback for repeat pairs or curiosity for first visits.",
+        beat: "The bulletin near the weighing station holds a small wall of old chits. One pinned chit lists a recent catch with both their first names in pencil at the top. The pencil mark is fresh enough to read.",
+        directorBeat:
+          "Your names are on the bulletin already. Read the chit aloud, ask your date if they remember the catch, comment on the pencil mark, or pin it back. Tie it to what you already know. Do not voice the bulletin.",
       },
     ],
     earlyEndTriggers: [

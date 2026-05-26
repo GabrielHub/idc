@@ -104,7 +104,7 @@ function buildDateSession(overrides: Partial<DateSession> = {}): DateSession {
       outcome: "second_date",
       summary: "Cupid filed a completed date.",
       statSummary: "Case read: pair memory test.",
-      recommendedFollowUp: "encourage",
+      recommendedFollowUp: "pursue",
       memoryRecordIds: [],
       readyToClose: false,
     },
@@ -490,7 +490,7 @@ describe("pair memory effects", () => {
     const repaired = applyFollowUpPairMemoryEffects({
       pairState,
       session: buildDateSession({ status: "ended_early" }),
-      action: "repair",
+      action: "pursue",
       timestamp: NOW,
     });
     const markedBadFit = applyFollowUpPairMemoryEffects({
@@ -498,7 +498,7 @@ describe("pair memory effects", () => {
       session: buildDateSession({
         finalReport: { ...buildDateSession().finalReport!, outcome: "bad_fit" },
       }),
-      action: "mark_bad_fit",
+      action: "close",
       timestamp: NOW,
     });
 

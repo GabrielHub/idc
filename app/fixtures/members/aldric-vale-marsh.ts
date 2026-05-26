@@ -91,17 +91,18 @@ export const aldricValeMarsh: Member = {
         "The Speedway has a man who works the third watch and he has been kind to Constance. He has accepted my coin three nights in a row. He has not asked the question. I have marked him as a Favor I must repay. I will not be permitted to leave New Jersey until the Favor is honored, by Honor, by Oath, and by my own counsel.",
       ],
       warming: [
-        "M'Lady, thou hast accepted the place plainly and held the hour. I have marked the hour upon my forearm in ink. I will be there.",
-        "Thy laughter is not mockery. I have taken note. Constance also has taken note, in spirit, from the stable.",
+        "M'Lady, I have marked the hour upon my forearm in ink. I will be there.",
         "I asked the Saints for a sign and the Saints sent a calendar invitation. I am moved.",
-        "Thou hast spoken to the page at the desk on my behalf. This is a Favor. I will repay it.",
+        "Constance is in the stable. I rode her here. She does not approve of the local arrangements. I have promised her oats.",
+        "Tell me of thy week, plain and unembellished. The Speaking Glass shows only the polished face. I would hear the unpolished hours.",
         "M'Lady, the Speaking Glass has revealed that the Feast-hall of which thou speakest, the one called Cheesecake Factory of Hackensack, has many courses and a wait of forty minutes. I am told the buttermilk stack is a noble dish. The page at the desk has agreed to summon us when our table is ready. He has a small metal disc that will flash. He has called this a coaster. He has assured me this is not a Trial.",
+        "I have brought one item I do not know the use of. It is in my satchel. It came with the Glass. I am willing to be taught.",
       ],
       cooling: [
         "M'Lady. The bit thou speakest of, I do not yet understand. I am willing to be taught. I will not laugh on credit.",
         "I am uncertain whether thou jestest or speakest plain. I will assume plain. Forgive me if I am slow.",
         "Pray, lower the Speaking Glass. I am told it is filming. I have not consented to be inscribed.",
-        "Thou hast spoken of romance as a transaction. I am, by Honor, a transactional man, but the words sit ill.",
+        "Romance as transaction sits ill with me. I am, by Honor, a transactional man, but the courting is not the bargain.",
       ],
       crashingOut: [
         "M'Lady, I am bound by oath and I cannot remain at this table while my Saints are mocked. By the wreath, I take my leave.",

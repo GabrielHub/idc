@@ -164,6 +164,7 @@ export function materializePairEdge(projection: PairProjection): PairEdge {
   return {
     id: projection.id,
     participantIds: [projection.participantIds[0], projection.participantIds[1]],
+    laneStatus: projection.laneStatus,
     stats: { ...projection.stats },
     completedDateIds: [...projection.completedDateIds],
     scenarioUseCounts: { ...projection.scenarioUseCounts },
@@ -200,6 +201,7 @@ function pairEdgeToProjection(edge: PairEdge, source: PairProjectionSource): Pai
   const projection: PairProjection = {
     id: edge.id,
     participantIds: [edge.participantIds[0], edge.participantIds[1]],
+    laneStatus: edge.laneStatus,
     stats: { ...edge.stats },
     completedDateIds: [...edge.completedDateIds],
     scenarioUseCounts: { ...edge.scenarioUseCounts },

@@ -809,6 +809,7 @@ async function runPlaygroundConversation({
   participantIds,
   initialTranscript,
   dateHealth,
+  matchFit,
 }: {
   input: DatePlaygroundInput;
   runtime: DatePlaygroundGenerationRuntime;
@@ -820,6 +821,7 @@ async function runPlaygroundConversation({
   participantIds: [string, string];
   initialTranscript: DateMessage[];
   dateHealth: number;
+  matchFit: ReturnType<typeof evaluateMatchFit>;
 }): Promise<{
   turns: PlaygroundGeneratedTurn[];
   lastPacket: CharacterPromptPacket;
@@ -877,6 +879,7 @@ async function runPlaygroundConversation({
           recentTranscript: transcript,
         },
         focusRequest,
+        matchFit,
         memorySearchAvailable: false,
       }),
       input,
@@ -1014,6 +1017,7 @@ function buildDatePlaygroundPrompt(input: DatePlaygroundInput) {
         recentTranscript: transcript,
       },
       focusRequest,
+      matchFit,
       memorySearchAvailable: false,
     }),
     input,

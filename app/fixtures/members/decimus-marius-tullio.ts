@@ -91,11 +91,12 @@ export const decimusMariusTullio: Member = {
         "Aurelia chose three of my photographs. She tells me one of them is wrong. I have not asked which. Her Standard for these things exceeds mine. I trust the judgment. I do not always trust the application.",
       ],
       warming: [
-        "You accepted a Sunday. You held it. The rota updates. I return.",
         "You did not flinch. Three of eighty in the Sixth could hold that posture. You would have done well at the Rhine.",
         "Aurelia would approve of you. She has Standards. I am stating this once and will not say it again.",
         "Sundays are difficult. This Sunday was less difficult than most. Take the credit. Do not name it. Pass the wine.",
-        "You said the Sixth posted to Germania Inferior. The Sixth posted to Germania Superior under my command for nine years. The Inferior was the Twenty-second's billet. I am not correcting you for sport. The standing record matters. The wine, however, is acceptable. Continue.",
+        "The wine is acceptable. The kitchen runs a tighter Watch than my quartermaster did. Order again if you want a second.",
+        "Tell me what you do on Sundays. The week has Wednesdays and Sundays in it for a reason. I am attempting to use them.",
+        "The Sixth ran on rations. Modern menus are a longer Watch. I do not know what half of this list is. Order for both of us if you have a preference.",
       ],
       cooling: [
         "I am not going to negotiate the venue for the third time. Accept or decline. The Schedule moves.",

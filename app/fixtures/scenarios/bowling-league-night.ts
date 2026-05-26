@@ -43,89 +43,91 @@ export const bowlingLeagueNight: DateScenario = {
         id: "bowling-league-night-event-1",
         title: "Ball return",
         kind: "ambient",
-        event: "The ball return delivers a ball with a thud they can feel through the bench.",
-        characterVisibleText:
-          "The ball return rumbles and a house ball rolls up. The thud carries through the bench. The lane line glow flickers once.",
-        directorInstruction:
-          "Use the small noise to surface how each member treats their turn in front of the other.",
+        pitch:
+          "Rumble a house ball up the return loud enough to feel through the bench. Surfaces who takes the next frame and how they walk to the line.",
+        beat: "The ball return rumbles and a house ball rolls up. The thud carries through the bench. The lane line glow flickers once.",
+        directorBeat:
+          "A ball is at the rack and the lane is asking for a turn. Pick it up, hand the ball to your date, comment on the thud, or wave them up first. Take a stance on whose frame this is.",
       },
       {
         id: "bowling-league-night-event-2",
         title: "Strike next door",
         kind: "reveal",
-        event: "Lane 6 lights up with a strike celebration.",
-        characterVisibleText:
-          "Lane 6 erupts. A strike animation runs across the scoreboard above lane 7 by mistake. Their column reads two columns of zeros.",
-        directorInstruction:
-          "Use the borrowed noise to surface competitiveness, generosity, or deflection drawn from each member's existing register. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Bleed a stranger's strike celebration onto your scoreboard. Surfaces competitiveness, generosity, or deflection.",
+        beat: "Lane 6 erupts. A strike animation runs across the scoreboard above lane 7 by mistake. Their column reads two columns of zeros.",
+        directorBeat:
+          "Someone else's win just lit up your screen. React how you actually do: cheer along, deflect with a joke, point at your own zeros, or use the noise to push your date to bowl bigger. Stay honest about competing. Do not voice the scoreboard.",
       },
       {
         id: "bowling-league-night-event-3",
         title: "Pinsetter pause",
         kind: "provocation",
-        event: "The pinsetter on lane 7 stops mid-cycle.",
-        characterVisibleText:
-          "The pinsetter freezes mid-rack with three pins still hanging. The bench light blinks. A small wait icon appears on the scoreboard.",
-        directorInstruction:
-          "Push the pair to share the wait or peel apart toward separate distractions. The wait demands a move.",
+        pitch:
+          "Freeze the pinsetter mid-rack and put a wait icon on the screen. Forces a clean choice on sharing the wait or peeling apart.",
+        beat: "The pinsetter freezes mid-rack with three pins still hanging. The bench light blinks. A small wait icon appears on the scoreboard.",
+        directorBeat:
+          "Time just stopped on the lane. Sit on the bench with your date, get up to check the screen, comment on the broken rack, or check your phone alone. Make the wait visible. Do not voice the lane staff.",
       },
       {
         id: "bowling-league-night-event-4",
         title: "Lace gives",
         kind: "ambient",
-        event: "A rental shoe lace gives mid-knot.",
-        characterVisibleText:
-          "The lace on a rented shoe lets go in the middle of a knot. The other shoe is already tied. The bench is barely wide enough for the retie.",
-        directorInstruction: "Use the small repair to surface care or impatience.",
+        pitch:
+          "Snap a rental shoe lace mid-knot on the bench. Surfaces care or impatience in the small repair.",
+        beat: "The lace on a rented shoe lets go in the middle of a knot. The other shoe is already tied. The bench is barely wide enough for the retie.",
+        directorBeat:
+          "Something small just broke. Tie it without comment, ask your date to help with the angle, laugh about the rental, or grumble at the bench. Show care or impatience in your hands.",
       },
       {
         id: "bowling-league-night-event-5",
         title: "League pass",
         kind: "ambient",
-        event: "A league bowler walks the gap behind the bench.",
-        characterVisibleText:
-          "A bowler in a custom shirt walks behind their bench. The shirt reads Strike Force Tuesday. He nods once at lane 7 and keeps moving.",
-        directorInstruction:
-          "Allow a tiny social moment that the pair can ignore or honor. The bowler does not speak.",
+        pitch:
+          "Send a league bowler in a custom shirt past the bench with a single nod. Surfaces whether the pair honors the social moment or skips it.",
+        beat: "A bowler in a custom shirt walks behind their bench. The shirt reads Strike Force Tuesday. He nods once at lane 7 and keeps moving.",
+        directorBeat:
+          "Someone just acknowledged your lane. Nod back, ignore him, comment to your date about the shirt, or use the pass to riff. Take a small social stance. Do not voice the bowler.",
       },
       {
         id: "bowling-league-night-event-6",
         title: "Concession run",
         kind: "reveal",
-        event: "A tray of hot dogs and a pitcher lands at the bench corner.",
-        characterVisibleText:
-          "A tray slides onto the corner of their bench. Two hot dogs in foil, one pitcher of beer, two paper cups. A folded check sits under the pitcher.",
-        directorInstruction:
-          "Let the pair eat or not. Either reads as a real choice in front of league chaperones.",
+        pitch:
+          "Land hot dogs and a pitcher at the bench with the check underneath. Surfaces a choice about eating, sharing, and who reaches for the bill.",
+        beat: "A tray slides onto the corner of their bench. Two hot dogs in foil, one pitcher of beer, two paper cups. A folded check sits under the pitcher.",
+        directorBeat:
+          "Food just landed with a check tucked under it. Pour, push the foil toward your date, comment on the order, or reach for the check. Eat or stall, but engage with the tray.",
       },
       {
         id: "bowling-league-night-event-7",
         title: "Spare lights",
         kind: "reveal",
-        event: "Their lane finally records a spare.",
-        characterVisibleText:
-          "The scoreboard above lane 7 records a 7-pin spare. The animation runs once across their column. The bench light goes back to steady.",
-        directorInstruction: "Use the small win to test how each member receives credit.",
+        pitch:
+          "Land a real 7-pin spare on the scoreboard. Surfaces how either receives credit when something small finally works.",
+        beat: "The scoreboard above lane 7 records a 7-pin spare. The animation runs once across their column. The bench light goes back to steady.",
+        directorBeat:
+          "Something good just happened on the board. Own it, brush it off, hand it to your date, or compare it to the league. Show how you take a small win.",
       },
       {
         id: "bowling-league-night-event-8",
         title: "House lights",
         kind: "provocation",
-        event: "House lights dim as the league wraps.",
-        characterVisibleText:
-          "The house lights dim by one notch. Two lanes shut down their scoreboards. The ball return on lane 7 is still warm.",
-        directorInstruction:
-          "Push for a clean exit or a stretched stay before the lanes close out.",
+        pitch:
+          "Dim the house lights a notch as the league wraps. Forces a clean exit call or a stretched stay.",
+        beat: "The house lights dim by one notch. Two lanes shut down their scoreboards. The ball return on lane 7 is still warm.",
+        directorBeat:
+          "The room is starting to close. Settle the bench, call one more frame, propose a next stop, or stand to leave together. Name the move.",
       },
       {
         id: "bowling-league-night-event-9",
         title: "Lane lights kill",
         kind: "provocation",
-        event: "Lane 7's overhead bank goes dark mid-frame.",
-        characterVisibleText:
-          "The overhead light bank on lane 7 cuts to half and then to dark. The pins at the far end are still visible by the lane line glow. The scoreboard logs the frame as incomplete.",
-        directorInstruction:
-          "Push for a clean choice: bowl by the lane glow, log the frame as is, or rack out and head to the bench. The desk will not reset without an answer.",
+        pitch:
+          "Cut the overhead bank to dark mid-frame. Forces a clean call on bowling by glow, logging incomplete, or racking out.",
+        beat: "The overhead light bank on lane 7 cuts to half and then to dark. The pins at the far end are still visible by the lane line glow. The scoreboard logs the frame as incomplete.",
+        directorBeat:
+          "Your lane just went dim. Roll the ball by the glow anyway, walk to the desk, sit on the bench and call it, or laugh it off and pack the shoes. Pick a play and make it.",
       },
     ],
     earlyEndTriggers: [

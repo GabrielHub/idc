@@ -335,9 +335,7 @@ function ScenesGauge({
 }
 
 export function sceneTacticalLabel(event: ScenarioEvent): string {
-  const text = [event.title, event.event, event.characterVisibleText, event.directorInstruction]
-    .join(" ")
-    .toLowerCase();
+  const text = [event.title, event.pitch, event.beat, event.directorBeat].join(" ").toLowerCase();
 
   if (/\b(private|privacy|quiet|booth|alone|corner)\b/u.test(text)) {
     return "Privacy";

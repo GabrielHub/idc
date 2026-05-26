@@ -150,7 +150,7 @@ describe("AI model service", () => {
     });
 
     expect(aiMocks.generateText).toHaveBeenCalledWith(
-      expect.objectContaining({ maxOutputTokens: 320 }),
+      expect.objectContaining({ maxOutputTokens: 2048 }),
     );
   });
 
@@ -186,11 +186,13 @@ describe("AI model service", () => {
     expect(providerOptionsForRuntime(gatewayConfig, "deepseek/deepseek-v4-flash")).toEqual({
       deepseek: {
         thinking: { type: "enabled" },
+        reasoningEffort: "max",
       },
     });
     expect(providerOptionsForRuntime(gatewayConfig, "deepseek/deepseek-v4-pro")).toEqual({
       deepseek: {
         thinking: { type: "enabled" },
+        reasoningEffort: "max",
       },
     });
     expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-sonnet-4.6")).toBeUndefined();
@@ -238,6 +240,7 @@ describe("AI model service", () => {
     expect(providerOptionsForRuntime(noneConfig, "deepseek/deepseek-v4-flash")).toEqual({
       deepseek: {
         thinking: { type: "enabled" },
+        reasoningEffort: "max",
       },
     });
     expect(providerOptionsForRuntime(noneConfig, "xai/grok-4.3")).toBeUndefined();

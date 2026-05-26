@@ -14,7 +14,7 @@ import {
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
   checkCupidCorporateCopy,
-  formatDirectorInstructionWithKindSuffix,
+  formatDirectorBeatWithKindSuffix,
   hasNearDuplicateRecentLine,
   pickSamplesForTurn,
   SCENARIO_EVENT_KIND_SUFFIXES,
@@ -104,14 +104,17 @@ describe("date prompt assembly", () => {
       "- Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     );
     expect(ownerPacket.prompt).toContain("<format>");
-    expect(ownerPacket.prompt).toContain(
-      "The UI sends one message at a time, but in the fiction you are speaking across the table.",
-    );
-    expect(ownerPacket.prompt).toContain("Useful Markdown shapes: I said *almost* normal.");
-    expect(ownerPacket.prompt).toContain("At most one move in a normal message");
+    expect(ownerPacket.prompt).toContain("You are speaking across a table.");
+    expect(ownerPacket.prompt).toContain("*italic* for a stressed word you would say aloud");
+    expect(ownerPacket.prompt).toContain("Italic that names what your body is doing");
     expect(ownerPacket.prompt).toContain("No em dashes or en dashes.");
-    expect(ownerPacket.prompt).toContain("Cap a message at two visible blocks");
-    expect(ownerPacket.prompt).toContain("No visible block should read like a paragraph");
+    expect(ownerPacket.prompt).not.toContain("answer what they just said");
+    expect(ownerPacket.prompt).not.toContain("Useful shapes:");
+    expect(ownerPacket.prompt).not.toContain("At most one Markdown move");
+    expect(ownerPacket.prompt).not.toContain("Default to one compact visible block");
+    expect(ownerPacket.prompt).not.toContain("not narrating the exchange from above");
+    expect(ownerPacket.prompt).not.toContain("read like a paragraph");
+    expect(ownerPacket.prompt).not.toContain("Length varies with the moment");
     expect(ownerPacket.prompt).not.toContain("Character card:");
     expect(ownerPacket.prompt).not.toContain("Personality in conversation:");
     expect(ownerPacket.prompt).not.toContain("Output contract:");
@@ -274,7 +277,7 @@ describe("date prompt assembly", () => {
       memoryPack,
     });
 
-    expect(noahPacket.prompt).toContain("Default to one compact visible block.");
+    expect(noahPacket.prompt).toContain("one compact visible block is the default");
     expect(noahPacket.prompt).toContain("Phone-screen fit matters");
     expect(noahPacket.prompt).toContain("under about 45 words");
     expect(noahPacket.prompt).toContain("Never three blocks in ordinary warm table talk.");
@@ -489,7 +492,8 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("current intent is protect the boundary");
     expect(packet.prompt).toContain("Use that state as behavior, not decoration.");
     expect(packet.prompt).toContain("cool down, refuse, redirect, or end the exchange");
-    expect(packet.prompt).toContain("Do not keep flirting to be polite.");
+    expect(packet.prompt).not.toContain("Do not keep flirting to be polite.");
+    expect(packet.prompt).not.toContain("Do not default to flirtation");
   });
 
   it("labels first turn visual attachments in the final user message", () => {
@@ -815,9 +819,10 @@ describe("date prompt assembly", () => {
       },
     });
 
-    expect(packet.prompt).toContain(`This just happened: ${event.characterVisibleText}`);
-    expect(packet.prompt).not.toContain(event.directorInstruction);
-    expect(packet.prompt).not.toContain(SCENARIO_EVENT_KIND_SUFFIXES[event.kind]);
+    expect(packet.prompt).toContain(`This just happened: ${event.beat}`);
+    expect(packet.prompt).toContain(event.directorBeat);
+    expect(packet.prompt).toContain(SCENARIO_EVENT_KIND_SUFFIXES[event.kind]);
+    expect(packet.prompt).toContain("<scene_directive>");
     expect(packet.prompt).not.toContain("Live room event:");
     expect(packet.prompt).not.toContain("Live room pressure:");
   });
@@ -1214,8 +1219,8 @@ describe("date prompt assembly", () => {
     );
   });
 
-  it("selects samples without looping on known collision seeds", () => {
-    const { greetings, voiceFlavor } = pickSamplesForTurn({
+  it("returns greetings on opening turn and no fire attractors at healthy date health", () => {
+    const { greetings, fireAttractors } = pickSamplesForTurn({
       sampleMessages: {
         greeting: ["greeting 1", "greeting 2", "greeting 3", "greeting 4"],
         hingeBits: ["hinge 1", "hinge 2", "hinge 3", "hinge 4"],
@@ -1230,14 +1235,11 @@ describe("date prompt assembly", () => {
 
     expect(greetings).toHaveLength(2);
     expect(new Set(greetings).size).toBe(2);
-    expect(voiceFlavor).toHaveLength(2);
-    expect(new Set(voiceFlavor).size).toBe(2);
-    expect(voiceFlavor.filter((sample) => sample.startsWith("hinge"))).toHaveLength(1);
-    expect(voiceFlavor.filter((sample) => sample.startsWith("warming"))).toHaveLength(1);
+    expect(fireAttractors).toHaveLength(0);
   });
 
-  it("uses in-date examples instead of greeting examples after the speaker has spoken", () => {
-    const { greetings, voiceFlavor } = pickSamplesForTurn({
+  it("drops greetings and stays silent on flavor samples on a healthy continuing turn", () => {
+    const { greetings, fireAttractors } = pickSamplesForTurn({
       sampleMessages: {
         greeting: ["greeting 1", "greeting 2", "greeting 3", "greeting 4"],
         hingeBits: ["hinge 1", "hinge 2", "hinge 3", "hinge 4"],
@@ -1251,10 +1253,26 @@ describe("date prompt assembly", () => {
     });
 
     expect(greetings).toHaveLength(0);
-    expect(voiceFlavor).toHaveLength(4);
-    expect(voiceFlavor.filter((sample) => sample.startsWith("hinge"))).toHaveLength(1);
-    expect(voiceFlavor.filter((sample) => sample.startsWith("warming"))).toHaveLength(2);
-    expect(voiceFlavor.filter((sample) => sample.startsWith("cooling"))).toHaveLength(1);
+    expect(fireAttractors).toHaveLength(0);
+  });
+
+  it("surfaces one crash-out attractor when date health falls below the fire threshold", () => {
+    const { greetings, fireAttractors } = pickSamplesForTurn({
+      sampleMessages: {
+        greeting: ["greeting 1", "greeting 2"],
+        hingeBits: ["hinge 1", "hinge 2"],
+        warming: ["warming 1", "warming 2"],
+        cooling: ["cooling 1", "cooling 2"],
+        crashingOut: ["crash 1", "crash 2", "crash 3"],
+      },
+      dateHealth: 20,
+      isOpeningTurn: false,
+      seed: "date-1:9:venus",
+    });
+
+    expect(greetings).toHaveLength(0);
+    expect(fireAttractors).toHaveLength(1);
+    expect(fireAttractors[0]?.startsWith("crash")).toBe(true);
   });
 
   it("asks the summarizer to preserve accepted soft canon", () => {
@@ -2085,7 +2103,7 @@ describe("character prompt repetition guard", () => {
 
 describe("scenario event kind suffixes", () => {
   const expectedSuffixes: Record<ScenarioEventKind, string> = {
-    ambient: "Treat this as ambient texture",
+    ambient: "The room just shifted in a quiet way",
     provocation: "This is a physical interruption",
     reveal: "This puts something honest into the open",
   };
@@ -2098,18 +2116,15 @@ describe("scenario event kind suffixes", () => {
   );
 
   it("appends the suffix without trailing punctuation creating doubles", () => {
-    const formatted = formatDirectorInstructionWithKindSuffix(
-      "Push for a clean answer",
-      "provocation",
-    );
+    const formatted = formatDirectorBeatWithKindSuffix("Push for a clean answer", "provocation");
 
     expect(formatted.startsWith("Push for a clean answer.")).toBe(true);
     expect(formatted).toContain("This is a physical interruption.");
   });
 
-  it("does not mutate director instructions that already end with punctuation", () => {
+  it("does not mutate director beats that already end with punctuation", () => {
     const original = "Push for a clean answer.";
-    const formatted = formatDirectorInstructionWithKindSuffix(original, "provocation");
+    const formatted = formatDirectorBeatWithKindSuffix(original, "provocation");
 
     expect(formatted).toContain("Push for a clean answer. ");
     expect(formatted.split(".. ").length).toBe(1);
@@ -2139,7 +2154,7 @@ describe("scenario event kind suffixes", () => {
       throw new Error("Expected drafted event to exist on the fixture.");
     }
 
-    const originalInstruction = event.directorInstruction;
+    const originalDirectorBeat = event.directorBeat;
     const triggered = triggerScenarioEvent(started.save, {
       dateSessionId: started.session.id,
       eventId,
@@ -2149,7 +2164,7 @@ describe("scenario event kind suffixes", () => {
     const refreshed = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const refreshedEvent = refreshed?.director.events.find((candidate) => candidate.id === eventId);
 
-    expect(refreshedEvent?.directorInstruction).toBe(originalInstruction);
+    expect(refreshedEvent?.directorBeat).toBe(originalDirectorBeat);
 
     const sessionFromSave = triggered.save.dateSessions.find(
       (candidate) => candidate.id === started.session.id,

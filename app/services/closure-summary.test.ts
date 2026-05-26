@@ -64,7 +64,7 @@ function makeReady(save: GameSave) {
       outcome: "second_date",
       summary: "Jenna and Sana completed Park Loop With A Dog. Second booking signal is strong.",
       statSummary: "Case read: the pair left with mutual signal.",
-      recommendedFollowUp: "encourage",
+      recommendedFollowUp: "pursue",
       memoryRecordIds: [],
       readyToClose: true,
     },

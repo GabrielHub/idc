@@ -155,6 +155,21 @@ describe("sanitizeCharacterMarkdownInput", () => {
     expect(result.abuses.map((entry) => entry.kind)).toContain("italic_stage_direction");
   });
 
+  it("removes italic body-action spans for puts, grabs, and similar verbs", () => {
+    const cases = [
+      "*puts feet down* okay.",
+      "*grabs coffee* sure.",
+      "yeah *sips* go on.",
+      "alright *taps the table* fair.",
+      "fine *folds arms* whatever.",
+    ];
+    for (const input of cases) {
+      const result = sanitizeCharacterMarkdownInput(input);
+      expect(result.abuses.map((entry) => entry.kind)).toContain("italic_stage_direction");
+      expect(result.text).not.toMatch(/\*[a-z]/i);
+    }
+  });
+
   it("keeps only the first heading and downgrades the rest", () => {
     const result = sanitizeCharacterMarkdownInput("# one.\n\n## two.\n\n### three.");
     expect(result.text.split("\n\n")[0]).toBe("# one.");

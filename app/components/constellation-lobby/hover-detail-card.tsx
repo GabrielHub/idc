@@ -18,7 +18,7 @@ export type HoverDetailCardProps = {
   snippet?: string;
   fileNumber?: string;
   heightInInches?: number;
-  statusBadge?: "active" | "focus" | "closed" | "quit" | "cooling";
+  statusBadge?: "active" | "focus" | "closed" | "quit" | "cooling" | "follow_up";
   swapPenalty?: number;
   ctaVariant?: HoverDetailCtaVariant;
   onPrimaryAction?: () => void;
@@ -69,6 +69,7 @@ export function HoverDetailCard({
     if (statusBadge === "quit") return "membership cancelled";
     if (statusBadge === "focus") return "focus case";
     if (statusBadge === "cooling") return "in cooldown";
+    if (statusBadge === "follow_up") return "follow-up partner";
     return null;
   })();
   const statusPillClass = (() => {
@@ -78,6 +79,9 @@ export function HoverDetailCard({
     // Pale pink mirrors the star's cooling halo (#fecdd3) on the canvas so
     // the badge reads as the same status, not a new concept.
     if (statusBadge === "cooling") return "bg-rose-200/20 text-rose-100 ring-rose-200/40";
+    if (statusBadge === "follow_up") {
+      return "bg-aura-fuchsia/25 text-aura-paper ring-aura-fuchsia/45";
+    }
     return "";
   })();
 

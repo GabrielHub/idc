@@ -227,7 +227,7 @@ describe("fixture content lint", () => {
       for (const scenario of starterScenarios) {
         for (const event of scenario.director.events) {
           if (event.kind !== "reveal") continue;
-          const visibleText = `${event.event} ${event.characterVisibleText}`;
+          const visibleText = event.beat;
           for (const pattern of REVEAL_BIOGRAPHY_DRIFT_PATTERNS) {
             if (pattern.test(visibleText)) {
               violations.push(`${scenario.id}/${event.id} matches ${pattern}`);

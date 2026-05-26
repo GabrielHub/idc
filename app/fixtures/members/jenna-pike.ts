@@ -86,10 +86,11 @@ export const jennaPike: Member = {
         "the breadsticks at my work are bottomless and so is my cynicism, what else do you want to know",
       ],
       warming: [
-        "ok this is so much better than my last cupid date who tried to seat us by an altar. you are doing well so far",
-        "i like that you asked about my shift and then let me answer, i like that you are wearing shoes and not, like, a robe",
-        "you asked about my shift and you actually let me answer. i am going to remember that",
+        "ok this is so much better than my last cupid date who tried to seat us by an altar. low bar, but i'll take it",
         "tell me about the dog again. i am not done with the dog yet",
+        "my shift today was fourteen hours and i still don't have a story i would call interesting. the er did its thing. ask me about something that is not work",
+        "my apartment has one window and the window has a fern. the fern is not doing great. i talk to it sometimes. that is the level of social i am at",
+        "okay one normal question to even the field. when was the last time you laughed at something stupid in public",
       ],
       cooling: [
         "ok hold on, can we do less of the bit. it has been a long shift and the bit is exhausting",

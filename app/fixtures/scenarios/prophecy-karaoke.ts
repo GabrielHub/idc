@@ -44,91 +44,91 @@ export const prophecyKaraoke: DateScenario = {
         id: "prophecy-karaoke-event-1",
         title: "First prediction",
         kind: "provocation",
-        event: "The screen loads a custom breakup title.",
-        characterVisibleText:
-          "The screen displays: Track 01, We Drift Apart Over Scheduling. The tablet has not been touched. A small countdown reads ten seconds.",
-        directorInstruction:
-          "Let the pair decide whether to laugh, object, or panic. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Load track one as We Drift Apart Over Scheduling with a ten-second countdown. Forces a clean stance: laugh, object, or panic.",
+        beat: "The screen displays: Track 01, We Drift Apart Over Scheduling. The tablet has not been touched. A small countdown reads ten seconds.",
+        directorBeat:
+          "The machine just predicted your future on a track title. Laugh out loud, name the prediction back, refuse the song, or grab the tablet. Take a stance now. Do not voice the screen.",
       },
       {
         id: "prophecy-karaoke-event-2",
         title: "Duet demand",
         kind: "provocation",
-        event: "The room locks the next menu behind a duet.",
-        characterVisibleText:
-          "The tablet message reads: duet required for compliance review. The two-mic icons pulse. The next-track menu is greyed out.",
-        directorInstruction:
-          "Use the duet choice to test cooperation. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Lock the next menu behind a required duet with two pulsing mic icons. Forces a real cooperation choice.",
+        beat: "The tablet message reads: duet required for compliance review. The two-mic icons pulse. The next-track menu is greyed out.",
+        directorBeat:
+          "The room is asking the two of you to do something together. Pick up both mics, ask your date if they will sing with you, refuse the compliance demand, or pass the tablet across. Make the cooperation visible. Do not voice the tablet.",
       },
       {
         id: "prophecy-karaoke-event-3",
         title: "Encore correction",
         kind: "reveal",
-        event: "The screen offers one encore where they can rename the future.",
-        characterVisibleText:
-          "The encore screen opens a blank title field and waits. The cursor blinks. Behind it the previous track titles fade by one shade.",
-        directorInstruction:
-          "Give the pair a chance to reject the predicted ending. The next words come from what each member already wants, not new biography.",
+        pitch:
+          "Open the encore screen with a blank title field and a blinking cursor. Surfaces a chance to reject the predicted ending.",
+        beat: "The encore screen opens a blank title field and waits. The cursor blinks. Behind it the previous track titles fade by one shade.",
+        directorBeat:
+          "You can rewrite what the machine said about you. Type a new title, ask your date what they would name your future, leave it blank on purpose, or close the screen. Speak only from what you actually want.",
       },
       {
         id: "prophecy-karaoke-event-4",
         title: "Volume nudges up",
         kind: "ambient",
-        event: "The room volume rises by itself.",
-        characterVisibleText:
-          "The room speakers nudge the volume up two notches. The screen displays: ambient pressure level adjusted. The tablet shows a small unmute icon.",
-        directorInstruction:
-          "Use the small ambient pressure to test whether either of them flinches at being heard. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Nudge the room volume up two notches with an ambient pressure level adjusted note. Surfaces whether either flinches at being heard.",
+        beat: "The room speakers nudge the volume up two notches. The screen displays: ambient pressure level adjusted. The tablet shows a small unmute icon.",
+        directorBeat:
+          "The room just got louder. Mute it, accept the higher volume, comment on the pressure to your date, or sing into it. Show whether being heard rattles you. Do not voice the speakers.",
       },
       {
         id: "prophecy-karaoke-event-5",
         title: "Mic feedback",
         kind: "ambient",
-        event: "One mic squelches once on the table.",
-        characterVisibleText:
-          "One of the two mics on the table squelches and goes quiet. The tablet displays: feedback adjusted, voice still welcome. Neither member has picked it up.",
-        directorInstruction:
-          "Let the small noise pass without explanation. The mic is still there. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Squelch one mic and silence it with a note: feedback adjusted, voice still welcome. Surfaces small noise without explanation.",
+        beat: "One of the two mics on the table squelches and goes quiet. The tablet displays: feedback adjusted, voice still welcome. Neither member has picked it up.",
+        directorBeat:
+          "A mic just gave up on you. Pick the other one up, ignore the squelch, comment to your date on the still-welcome line, or laugh. Do not voice the mic.",
       },
       {
         id: "prophecy-karaoke-event-6",
         title: "Score reveal",
         kind: "reveal",
-        event: "The screen flashes a score for honesty.",
-        characterVisibleText:
-          "The screen flashes a number: 78 honesty score, last recorded by this room. The tablet displays: machine has weak evidence and strong opinions.",
-        directorInstruction:
-          "Allow the pair to mock the score together or to sit with it without contesting it. Each draws on their own prior tells, not invented history. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Flash a 78 honesty score with a note: machine has weak evidence and strong opinions. Surfaces whether the pair mocks it together or sits with it.",
+        beat: "The screen flashes a number: 78 honesty score, last recorded by this room. The tablet displays: machine has weak evidence and strong opinions.",
+        directorBeat:
+          "The room is scoring you on what it does not know. Mock the number with your date, dispute it, ignore it, or sit with the read. Speak only from your own tells. Do not voice the screen.",
       },
       {
         id: "prophecy-karaoke-event-7",
         title: "Lights cycle",
         kind: "ambient",
-        event: "The room lights cycle warm and back.",
-        characterVisibleText:
-          "The room lights cycle warm for two beats and return to normal. The tablet displays: mood lighting suggested by the machine, please disregard.",
-        directorInstruction:
-          "Use the small staged moment to test whether either of them performs for the room or for the partner. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Cycle the room lights warm and back with a please-disregard note. Surfaces whether either performs for the room or the partner.",
+        beat: "The room lights cycle warm for two beats and return to normal. The tablet displays: mood lighting suggested by the machine, please disregard.",
+        directorBeat:
+          "The room just staged a romance moment at you. Laugh, lean in to your date inside the staged warmth, comment on the disregard note, or face the screen instead of the partner. Be honest about who you are facing. Do not voice the tablet.",
       },
       {
         id: "prophecy-karaoke-event-8",
         title: "Tablet timeout",
         kind: "provocation",
-        event: "The tablet asks if they are still here.",
-        characterVisibleText:
-          "The tablet displays: still in this room? A small countdown reads thirty seconds. The room lights are level. The mics are at rest.",
-        directorInstruction:
-          "Push for a clean answer to the room. Either staying or leaving is the right answer. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pop a tablet timeout: still in this room? with a thirty-second countdown. Forces a clean answer to the room.",
+        beat: "The tablet displays: still in this room? A small countdown reads thirty seconds. The room lights are level. The mics are at rest.",
+        directorBeat:
+          "Thirty seconds to decide. Tap yes and stay, tap no and leave, ask your date which they want, or sit out the timeout. Pick. Do not voice the tablet.",
       },
       {
         id: "prophecy-karaoke-event-9",
         title: "Verdict slip",
         kind: "reveal",
-        event: "The tablet prints a slip naming each member's likely role in the breakup.",
-        characterVisibleText:
-          "A small thermal slip slides out of the tablet seam. Two lines: who tends to leave first, who tends to stay too long. Both lines have been auto-filled with the seat positions, not names.",
-        directorInstruction:
-          "Let either member dispute, accept, or rewrite the slip in their own voice. Use only what the speaker already shows on file, not anything new. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Print a thermal slip naming each seat as who tends to leave first or stay too long. Surfaces dispute, accept, or rewrite in your own voice.",
+        beat: "A small thermal slip slides out of the tablet seam. Two lines: who tends to leave first, who tends to stay too long. Both lines have been auto-filled with the seat positions, not names.",
+        directorBeat:
+          "The machine just labeled the two of you. Dispute aloud, accept and joke about it, rewrite the lines, or tear the slip up. Speak only from what you already show. Do not voice the slip.",
       },
     ],
     earlyEndTriggers: [

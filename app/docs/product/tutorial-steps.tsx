@@ -262,7 +262,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           target: "spotlight",
           placement: "top",
           title: "File one follow-up",
-          body: "Encourage if the file ran warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs distance. Let It Sit if nothing fits, but the shift won't close until every date has one on file.",
+          body: "Pursue keeps this pair warm and bypasses their next-shift cooldown. Cool Down pauses without closing the lane. Close retires the romantic lane permanently. The shift won't close until every completed date has one filed.",
         },
         {
           id: "planning.file-shift",

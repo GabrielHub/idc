@@ -44,91 +44,91 @@ export const messHallAuriga: DateScenario = {
         id: "mess-hall-auriga-event-1",
         title: "Tray settle",
         kind: "ambient",
-        event: "Both trays settle on the booth's mag plate.",
-        characterVisibleText:
-          "Both trays click softly to the booth surface as the magnets engage. The meatloaf is warm. The green beans are slightly overcooked. The cup of water at each tray is the right temperature.",
-        directorInstruction:
-          "Open the meal without ceremony. Let either of them lead the first line.",
+        pitch:
+          "Click both trays to the booth's mag plate with warm meatloaf and right-temperature water. Surfaces who leads the first line.",
+        beat: "Both trays click softly to the booth surface as the magnets engage. The meatloaf is warm. The green beans are slightly overcooked. The cup of water at each tray is the right temperature.",
+        directorBeat:
+          "The meal just locked in. Pick up the fork, say one honest thing, ask your date how their day on the deck went, or comment on the beans. Start.",
       },
       {
         id: "mess-hall-auriga-event-2",
         title: "Window flicker",
         kind: "ambient",
-        event: "The window's star feed reloads.",
-        characterVisibleText:
-          "The window beside the booth flickers once and reloads. The same starfield comes back. A small caption at the bottom corner reads: external feed nominal. The next booth does not look up.",
-        directorInstruction:
-          "Treat the moment as routine. Do not mistake it for an omen. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Reload the starfield in a flicker with a nominal caption. Surfaces routine, not omen.",
+        beat: "The window beside the booth flickers once and reloads. The same starfield comes back. A small caption at the bottom corner reads: external feed nominal. The next booth does not look up.",
+        directorBeat:
+          "Routine maintenance just happened in your peripheral. Notice it without dramatizing it, ask your date if they ever look out the window, or stay on the food. Do not turn it into an omen. Do not voice the caption.",
       },
       {
         id: "mess-hall-auriga-event-3",
         title: "Pairing card",
         kind: "reveal",
-        event: "A pairing card surfaces on the booth surface.",
-        characterVisibleText:
-          "A small text card glows on the booth surface between their trays. It reads: rotation match, Tuesday week 12, no further obligation. Two thumbprint pads sit below the text.",
-        directorInstruction:
-          "Let the small bureaucratic acknowledgment test how each of them holds being assigned. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Glow a pairing card between the trays with two thumbprint pads: rotation match, no further obligation. Surfaces a stance on being assigned.",
+        beat: "A small text card glows on the booth surface between their trays. It reads: rotation match, Tuesday week 12, no further obligation. Two thumbprint pads sit below the text.",
+        directorBeat:
+          "The ship just acknowledged you as paired tonight. Read the line aloud, comment on no further obligation, ask your date what they make of it, or press your thumb to the pad. Take a stance. Do not voice the card.",
       },
       {
         id: "mess-hall-auriga-event-4",
         title: "Ration cookie",
         kind: "reveal",
-        event: "Two ration cookies arrive on a small plate.",
-        characterVisibleText:
-          "A small plate slides up the table from the booth's center slot. Two oat cookies sit on it. A small card reads: rotation pair courtesy. Both cookies are the same size.",
-        directorInstruction:
-          "Use the small offering to test small generosity. Either may take, leave, or split. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface two equal-size oat cookies on a courtesy plate. Forces a small generosity decision.",
+        beat: "A small plate slides up the table from the booth's center slot. Two oat cookies sit on it. A small card reads: rotation pair courtesy. Both cookies are the same size.",
+        directorBeat:
+          "Two cookies are between you. Slide one to your date, eat yours first, comment on the equal size, or leave them. Show the small care. Do not voice the card.",
       },
       {
         id: "mess-hall-auriga-event-5",
         title: "Generational shift",
         kind: "reveal",
-        event: "An announcement passes through the deck speakers.",
-        characterVisibleText:
-          "The deck speakers pass a routine generational shift announcement at low volume. The text scrolls along the wall: archive update, week 12, ancestor logs available. Nobody at any booth turns to read it.",
-        directorInstruction:
-          "Use the routine cue to surface whether either of them treats their own life as part of a long record. Do not voice the deck speakers as continuing dialogue.",
+        pitch:
+          "Scroll a low-volume archive update announcement along the wall. Surfaces whether either treats their life as part of a long record.",
+        beat: "The deck speakers pass a routine generational shift announcement at low volume. The text scrolls along the wall: archive update, week 12, ancestor logs available. Nobody at any booth turns to read it.",
+        directorBeat:
+          "The ship just filed a week and offered to show you the logs. Comment on the archive, ask your date what they would put in it, mention what you know about your own line, or let it scroll past. Speak only from what you already carry. Do not voice the speakers.",
       },
       {
         id: "mess-hall-auriga-event-6",
         title: "Window dim",
         kind: "ambient",
-        event: "The starfield dims a notch as the ship rotates.",
-        characterVisibleText:
-          "The window dims a single notch as the ship rotates a degree on its spin axis. The starfield slides slowly to the left. The lights at booth 14 hold steady.",
-        directorInstruction:
-          "Allow the slow movement. The pair does not need to comment on it for it to do its work.",
+        pitch:
+          "Dim the starfield a notch and slide it left as the ship rotates a degree. Surfaces whether the pair lets slow movement work without commentary.",
+        beat: "The window dims a single notch as the ship rotates a degree on its spin axis. The starfield slides slowly to the left. The lights at booth 14 hold steady.",
+        directorBeat:
+          "The view just adjusted on you. Stay focused on your date, comment briefly on the spin, lean toward the window, or eat through it. Do not narrate the rotation.",
       },
       {
         id: "mess-hall-auriga-event-7",
         title: "Tray return",
         kind: "provocation",
-        event: "The next booth over clears their trays.",
-        characterVisibleText:
-          "The two younger crew at the next booth stand and walk their trays to the return slot. They nod at booth 14 once on the way past. The mess is now thinner. A staff member begins wiping a far table.",
-        directorInstruction:
-          "Push for the next move from one of them. The mess is not closing yet, but the room has begun the slow turn. The next booth does not speak.",
+        pitch:
+          "Stand the next booth's two younger crew, walk their trays out, and have them nod once at booth 14. Forces a next move.",
+        beat: "The two younger crew at the next booth stand and walk their trays to the return slot. They nod at booth 14 once on the way past. The mess is now thinner. A staff member begins wiping a far table.",
+        directorBeat:
+          "Other people just left around you. Nod back, comment on the thinning room, ask your date if they want to stay, or pace your meal. Pick a move. Do not voice the crew.",
       },
       {
         id: "mess-hall-auriga-event-8",
         title: "Closing chime",
         kind: "provocation",
-        event: "The mess closing chime sounds at low volume.",
-        characterVisibleText:
-          "A soft chime passes through the deck speakers. The wall scroll updates: mess closing in fifteen minutes. The window holds. The cookies, if untaken, are still on the small plate.",
-        directorInstruction:
-          "Push for a clean answer to the chime. Either staying through the closing minutes or walking back to quarters is the right answer. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pass a soft closing chime and scroll the wall with fifteen minutes left. Forces a clean call on staying or walking.",
+        beat: "A soft chime passes through the deck speakers. The wall scroll updates: mess closing in fifteen minutes. The window holds. The cookies, if untaken, are still on the small plate.",
+        directorBeat:
+          "The mess is calling time. Stay through to night-cycle, ask your date what they want to do after, take the cookies, or stand. Speak the call. Do not voice the chime.",
       },
       {
         id: "mess-hall-auriga-event-9",
         title: "Lights to night",
         kind: "provocation",
-        event: "The mess shifts to night-cycle lighting.",
-        characterVisibleText:
-          "The deck lights cycle from mealtime warm to night-cycle blue. Two booths over, the trays clear themselves into the return chute. The mag plate under their trays clicks once to release.",
-        directorInstruction:
-          "Push for a clean physical move: rack out and walk back to quarters, take the cookies, or hold the booth as the mess clears.",
+        pitch:
+          "Cycle the deck to night-blue with the mag plate releasing and other booths clearing themselves. Forces a clean physical move.",
+        beat: "The deck lights cycle from mealtime warm to night-cycle blue. Two booths over, the trays clear themselves into the return chute. The mag plate under their trays clicks once to release.",
+        directorBeat:
+          "The room turned blue and the magnets let your trays go. Rack out and walk back to quarters, take the cookies, propose where to go now, or hold the booth a beat longer. Move.",
       },
     ],
     earlyEndTriggers: [

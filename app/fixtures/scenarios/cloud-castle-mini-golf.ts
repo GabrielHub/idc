@@ -44,91 +44,91 @@ export const cloudCastleMiniGolf: DateScenario = {
         id: "cloud-castle-mini-golf-event-1",
         title: "Hole 1",
         kind: "ambient",
-        event: "The first tee opens the round.",
-        characterVisibleText:
-          "Hole 1 is a flat par three on stone. Two pink balls sit on the tee. The cup is twenty feet ahead. The two scorecards and two pencils are within reach. Neither pencil has been picked up yet.",
-        directorInstruction:
-          "Open the round with a small concrete choice: who tees first, who keeps score, who carries the pencils.",
+        pitch:
+          "Open the round at a flat par three. Forces a small concrete choice on who tees first and who keeps score.",
+        beat: "Hole 1 is a flat par three on stone. Two pink balls sit on the tee. The cup is twenty feet ahead. The two scorecards and two pencils are within reach. Neither pencil has been picked up yet.",
+        directorBeat:
+          "The round is about to start. Tee up, hand the putter across, claim the scorecard, or wave your date to go first. Set a small rule for how this round runs.",
       },
       {
         id: "cloud-castle-mini-golf-event-2",
         title: "Cloud-floor",
         kind: "ambient",
-        event: "Hole 4 begins on cloud-floor.",
-        characterVisibleText:
-          "Hole 4 begins on cloud-floor. The surface is springy underfoot and squeaks lightly with each step. The cup sits in a small stone island a few steps in. Their footprints behind them have already smoothed out.",
-        directorInstruction:
-          "Use the unfamiliar surface to test the difference between curiosity and bravado.",
+        pitch:
+          "Open hole 4 on springy cloud-floor that squeaks underfoot. Surfaces whether either turns the surface into a curiosity or a stunt.",
+        beat: "Hole 4 begins on cloud-floor. The surface is springy underfoot and squeaks lightly with each step. The cup sits in a small stone island a few steps in. Their footprints behind them have already smoothed out.",
+        directorBeat:
+          "The ground is doing something strange. Bounce on it lightly, point at the smoothed footprints, comment to your date about the squeak, or play the hole straight. Do not turn it into a dare.",
       },
       {
         id: "cloud-castle-mini-golf-event-3",
         title: "Narrow parapet",
         kind: "reveal",
-        event: "Hole 7 runs along a narrow stone parapet.",
-        characterVisibleText:
-          "Hole 7 is a long par three on a parapet two arms wide. The drop on the right is open sky. A short rope along the left holds for balance. The cup is at the far end, set into the wall.",
-        directorInstruction:
-          "Use the narrow path to surface whether either of them positions for the partner's safety without making a show of it.",
+        pitch:
+          "Run hole 7 along a narrow parapet with an open-sky drop on the right. Surfaces whether either positions for the partner's safety without making it a show.",
+        beat: "Hole 7 is a long par three on a parapet two arms wide. The drop on the right is open sky. A short rope along the left holds for balance. The cup is at the far end, set into the wall.",
+        directorBeat:
+          "There is a real drop on one side. Move along the rope side, offer your date the inside line, hold their elbow at the turn, or trust them to walk it alone. Show care without making it a rescue.",
       },
       {
         id: "cloud-castle-mini-golf-event-4",
         title: "Turn fountain",
         kind: "reveal",
-        event: "The water fountain at the turn is between holes 9 and 10.",
-        characterVisibleText:
-          "Between holes 9 and 10, a small stone fountain sits in an alcove. A stack of paper cups is in a dispenser on the wall. The fountain handle is cold to the touch. The path is empty in both directions.",
-        directorInstruction:
-          "Use the small pause to surface small care. Either may fill, drink first, or hand a cup across.",
+        pitch:
+          "Land the stone fountain and cup dispenser at the turn between 9 and 10. Surfaces small care: fill a cup, drink first, or pass it across.",
+        beat: "Between holes 9 and 10, a small stone fountain sits in an alcove. A stack of paper cups is in a dispenser on the wall. The fountain handle is cold to the touch. The path is empty in both directions.",
+        directorBeat:
+          "Water is in reach and the round is paused. Fill two cups, hand one to your date, drink first, or skip the pause. Make the small gesture or skip it cleanly.",
       },
       {
         id: "cloud-castle-mini-golf-event-5",
         title: "Wind on twelve",
         kind: "provocation",
-        event: "Hole 12 has a steady crosswind.",
-        characterVisibleText:
-          "Hole 12 is a par three on stone with a steady wind across the line. A small windsock at the cup is full. The first putt drifts left of the cup by half a length. The scorecard has space for a second stroke.",
-        directorInstruction:
-          "Push for a clean call: take the stroke, ask for a do-over, or give the partner the line.",
+        pitch:
+          "Push a steady crosswind across hole 12 that drifts the first putt off line. Forces a clean call on the stroke, a do-over, or handing the line over.",
+        beat: "Hole 12 is a par three on stone with a steady wind across the line. A small windsock at the cup is full. The first putt drifts left of the cup by half a length. The scorecard has space for a second stroke.",
+        directorBeat:
+          "The wind just took your shot. Take the stroke as written, ask for a do-over, give your date a clean line, or play it from where it lies. Be visible about your scoring.",
       },
       {
         id: "cloud-castle-mini-golf-event-6",
         title: "Windmill",
         kind: "provocation",
-        event: "Hole 14 is the windmill.",
-        characterVisibleText:
-          "Hole 14 is the windmill, set on stone. The blades turn at a steady speed. The opening at the base is small. The cup is on the far side. A small placard reads no dispute the windmill.",
-        directorInstruction:
-          "Push for one direct moment about timing and turn order. Either may take the first try. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Plant the windmill on hole 14 with a small opening and a no-dispute placard. Forces a clean moment on timing and turn order.",
+        beat: "Hole 14 is the windmill, set on stone. The blades turn at a steady speed. The opening at the base is small. The cup is on the far side. A small placard reads no dispute the windmill.",
+        directorBeat:
+          "The classic obstacle is in front of you. Time your stroke, hand the putter to your date to try first, joke about the placard, or call your shot. Make timing visible. Do not voice the windmill placard.",
       },
       {
         id: "cloud-castle-mini-golf-event-7",
         title: "Hole 17",
         kind: "reveal",
-        event: "The scorecard count narrows on hole 17.",
-        characterVisibleText:
-          "Hole 17 is a short par two on cloud-floor. The scorecard shows a close round, one ahead by two strokes. A pencil mark on the card has been smudged at hole 11. The smudge is recoverable if either of them wants to revisit it.",
-        directorInstruction:
-          "Use the smudge to surface whether either of them rewrites the count or leaves it.",
+        pitch:
+          "Surface a recoverable smudge on hole 11's pencil mark with a close round in the balance. Forces a stance on rewriting history or leaving it.",
+        beat: "Hole 17 is a short par two on cloud-floor. The scorecard shows a close round, one ahead by two strokes. A pencil mark on the card has been smudged at hole 11. The smudge is recoverable if either of them wants to revisit it.",
+        directorBeat:
+          "Your scorecard has a smudge you could fix. Leave it, rewrite it down, rewrite it up, or call your date over to look at it together. Be transparent about what you did. Do not voice the card.",
       },
       {
         id: "cloud-castle-mini-golf-event-8",
         title: "Putter bin",
         kind: "provocation",
-        event: "Hole 18 ends at the putter drop bin.",
-        characterVisibleText:
-          "Hole 18 is a flat par three on stone. The cup sits a few feet from the drop bin. Two pink balls go into a small return chute. A slot at the bin takes the scorecards. The exit gate is just past it.",
-        directorInstruction:
-          "Push for a clean exit. The pair tallies, drops the putters, and walks out together or apart. Either is the right answer if it is honest.",
+        pitch:
+          "End at the drop bin and chute at hole 18. Forces a clean tally and exit, together or separately.",
+        beat: "Hole 18 is a flat par three on stone. The cup sits a few feet from the drop bin. Two pink balls go into a small return chute. A slot at the bin takes the scorecards. The exit gate is just past it.",
+        directorBeat:
+          "The round is closing. Tally the scorecard out loud, drop the putters, walk out together, or split off through the gate. Pick the move.",
       },
       {
         id: "cloud-castle-mini-golf-event-9",
         title: "Cloud thinning",
         kind: "ambient",
-        event: "A patch of cloud-floor thins to translucent under one foot.",
-        characterVisibleText:
-          "A patch of cloud-floor thins under one foot. Open sky shows through for a beat before the cloud knits itself back. The squeak underfoot is the same as before.",
-        directorInstruction:
-          "Allow the small thinning. The cloud holds. The pair does not need to make it a stunt or a story.",
+        pitch:
+          "Thin a patch of cloud-floor under one foot for a beat. Surfaces whether either treats the moment as a stunt or a small wonder.",
+        beat: "A patch of cloud-floor thins under one foot. Open sky shows through for a beat before the cloud knits itself back. The squeak underfoot is the same as before.",
+        directorBeat:
+          "The floor just went translucent for a heartbeat. Step off, look down with your date, comment on the knit, or play the next stroke without breaking stride. Do not turn it into a dare or a test of nerves.",
       },
     ],
     earlyEndTriggers: [

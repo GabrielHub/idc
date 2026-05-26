@@ -6,38 +6,73 @@ import type {
   DateSession,
   FollowUpAction,
   GameSave,
-  Member,
   PlayerKnowledgeRecord,
 } from "../domain/game";
-import { intentEchoLine } from "../services/matchmaking-intent";
+import {
+  buildDateImpactReceipt,
+  type DateImpactReceipt,
+  type DateImpactVerdict,
+} from "../services/date-impact";
 import { useTutorialStep } from "../services/tutorial";
-import { EASE_OUT_QUART, Eyebrow, Tooltip } from "./dashboard-atoms";
+import { EASE_OUT_QUART, Eyebrow } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
 import { TutorialCoachMark, TutorialSpotlight } from "./tutorial";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
-  encourage: "Encourage",
+  pursue: "Pursue",
   cool_down: "Cool Down",
-  repair: "Repair",
-  mark_bad_fit: "Mark Bad Fit",
-  let_it_sit: "Let It Sit",
+  close: "Close",
 };
 
-const FOLLOW_UP_PROJECTIONS: Record<FollowUpAction, string> = {
-  encourage: "Tell Cupid to pursue the opening while the file is warm.",
-  cool_down: "Give the pair room before the next booking.",
-  repair: "Send a careful follow-up before rebooking pressure returns.",
-  mark_bad_fit: "Close the romantic lane and keep the operational note.",
-  let_it_sit: "File no action. Cupid lets the pair drift until the next booking.",
+type FollowUpCopy = {
+  headline: string;
+  detail: string;
+  flag?: string;
 };
 
-const FOLLOW_UP_ORDER: readonly FollowUpAction[] = [
-  "encourage",
-  "cool_down",
-  "repair",
-  "mark_bad_fit",
-  "let_it_sit",
-];
+const FOLLOW_UP_COPY: Record<FollowUpAction, FollowUpCopy> = {
+  pursue: {
+    headline: "Lock in a follow-up booking with this partner.",
+    detail:
+      "Cupid lets this pair skip the cooldown on the next shift, so you can rebook them while the file is still warm.",
+  },
+  cool_down: {
+    headline: "Pause this pair without closing the lane.",
+    detail:
+      "They return to the normal rotation. Cooldown applies, and Cupid stops nudging toward a follow-up booking.",
+  },
+  close: {
+    headline: "Close the romantic lane between this pair.",
+    detail:
+      "Active agreements retire and open loops drop. Cupid stops surfacing them as a match in future shifts.",
+    flag: "permanent",
+  },
+};
+
+const FOLLOW_UP_ORDER: readonly FollowUpAction[] = ["pursue", "cool_down", "close"];
+
+const IMPACT_TONE: Record<DateImpactVerdict, { pill: string; dot: string }> = {
+  ready_to_close: {
+    pill: "bg-emerald-50/90 text-emerald-700 ring-1 ring-emerald-500/35",
+    dot: "bg-aura-emerald",
+  },
+  closer_to_win: {
+    pill: "bg-emerald-50/85 text-emerald-700 ring-1 ring-emerald-500/30",
+    dot: "bg-aura-emerald",
+  },
+  no_real_progress: {
+    pill: "bg-white/70 text-aura-muted ring-1 ring-aura-hairline",
+    dot: "bg-aura-faint",
+  },
+  closer_to_loss: {
+    pill: "bg-amber-50/85 text-aura-amber ring-1 ring-amber-500/30",
+    dot: "bg-aura-amber",
+  },
+  bad_fit: {
+    pill: "bg-rose-50/85 text-aura-rose ring-1 ring-rose-500/30",
+    dot: "bg-aura-rose",
+  },
+};
 
 type EndSentimentBadge = { label: string; tone: string; dot: string };
 
@@ -100,10 +135,12 @@ export function FinalReportFooter({
   const revealedThisDate = playerKnowledge.filter((record) => record.dateSessionId === session.id);
   const filed = report.appliedFollowUp;
   const actionColumnRef = useRef<HTMLElement | null>(null);
-  const focusMember =
-    session.focusMemberId === undefined
-      ? null
-      : (save.members.find((member) => member.id === session.focusMemberId) ?? null);
+  const impact = buildDateImpactReceipt({
+    report,
+    session,
+    save,
+    filedReadCount: revealedThisDate.length,
+  });
   const followUpStep = useTutorialStep(
     save,
     "date.followup",
@@ -119,24 +156,22 @@ export function FinalReportFooter({
       transition={{ duration: 0.42, ease: EASE_OUT_QUART }}
       className="pointer-events-none fixed inset-x-0 bottom-4 z-30 px-4 lg:bottom-6 lg:px-8"
     >
-      <div className="relative mx-auto w-full max-w-5xl">
-        <div className="aura-liquid-glass pointer-events-auto flex w-full flex-col gap-3 rounded-card px-4 py-4 text-aura-ink lg:gap-4 lg:px-6 lg:py-5">
+      <div className="relative mx-auto w-full max-w-3xl">
+        <div className="aura-liquid-glass pointer-events-auto flex w-full flex-col gap-4 rounded-card px-5 py-5 text-aura-ink lg:gap-5 lg:px-7 lg:py-6">
           <FinalReportHeaderRow sentimentBadge={sentimentBadge} />
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] lg:gap-6">
-            <FinalReportSummarySection report={report} focusMember={focusMember} />
-            <FinalReportActionColumn
-              sectionRef={actionColumnRef}
-              recommended={report.recommendedFollowUp}
-              filed={filed}
-              isActionPending={isActionPending}
-              onFollowUp={(action) => {
-                if (followUpStep.active) followUpStep.complete();
-                onFollowUp(action);
-              }}
-              onBack={onBack}
-            />
-          </div>
+          <FinalReportImpactSection impact={impact} report={report} />
           {revealedThisDate.length === 0 ? null : <FinalReportReadsRow reads={revealedThisDate} />}
+          <FinalReportActionColumn
+            sectionRef={actionColumnRef}
+            recommended={report.recommendedFollowUp}
+            filed={filed}
+            isActionPending={isActionPending}
+            onFollowUp={(action) => {
+              if (followUpStep.active) followUpStep.complete();
+              onFollowUp(action);
+            }}
+            onBack={onBack}
+          />
         </div>
       </div>
 
@@ -147,7 +182,7 @@ export function FinalReportFooter({
             target={actionColumnRef}
             placement="top"
             title="File one follow-up"
-            body="Encourage if the file ran warm. Cool Down if the room ran hot. Repair after a breach. Mark Bad Fit when the pair needs distance. Let It Sit if nothing fits, but the shift won't close until every date has one on file."
+            body="Pursue keeps this pair warm and bypasses their next-shift cooldown. Cool Down pauses without closing the lane. Close retires the romantic lane permanently. Pick one to close the shift."
             dismissLabel="Skip tour"
             onDismiss={followUpStep.dismiss}
             textTone="dark"
@@ -172,28 +207,52 @@ function FinalReportHeaderRow({ sentimentBadge }: { sentimentBadge: EndSentiment
   );
 }
 
-function FinalReportSummarySection({
+function FinalReportImpactSection({
+  impact,
   report,
-  focusMember,
 }: {
+  impact: DateImpactReceipt;
   report: DateFinalReport;
-  focusMember: Member | null;
 }) {
-  const caseLead = focusMember?.state.recentDateResult;
-  const intentNote =
-    report.matchmakingIntent !== undefined && report.intentOutcome !== undefined
-      ? intentEchoLine(report.matchmakingIntent, report.intentOutcome)
-      : undefined;
+  const tone = IMPACT_TONE[impact.verdict];
+
   return (
-    <section className="flex min-w-0 flex-col gap-2">
-      {caseLead === undefined || caseLead.length === 0 ? null : (
-        <p className="text-base font-semibold leading-snug text-aura-ink">{caseLead}</p>
-      )}
-      <p className="text-label leading-snug text-aura-ink/90">{report.summary}</p>
-      {intentNote === undefined ? null : (
-        <p className="text-sm italic leading-snug text-aura-muted">{intentNote}</p>
-      )}
-      <p className="text-sm leading-snug text-aura-muted">{report.statSummary}</p>
+    <section className="flex min-w-0 flex-col gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] ${tone.pill}`}
+        >
+          <span aria-hidden className={`size-1.5 rounded-full ${tone.dot}`} />
+          {impact.verdictLabel}
+        </span>
+        <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-faint">
+          Next: <span className="text-aura-rose">{impact.nextAction}</span>
+        </span>
+      </div>
+
+      <div className="space-y-1">
+        <p className="text-base font-semibold leading-snug text-aura-ink">
+          {impact.campaignMeaning}
+        </p>
+        <p className="text-sm leading-snug text-aura-muted">{impact.reason}</p>
+      </div>
+
+      <ul className="grid gap-1.5 sm:grid-cols-3">
+        {impact.consequences.map((consequence) => (
+          <li
+            key={consequence}
+            className="min-w-0 rounded-chip bg-white/50 px-2.5 py-1.5 text-sm leading-snug text-aura-ink/85 ring-1 ring-aura-hairline"
+          >
+            {consequence}
+          </li>
+        ))}
+      </ul>
+
+      <div className="border-t border-aura-hairline/70 pt-3">
+        <Eyebrow>// case note</Eyebrow>
+        <p className="mt-1 text-sm leading-snug text-aura-muted">{report.summary}</p>
+        <p className="mt-1 text-sm leading-snug text-aura-muted">{report.statSummary}</p>
+      </div>
     </section>
   );
 }
@@ -235,9 +294,12 @@ function FinalReportActionColumn({
   onBack: () => void;
 }) {
   return (
-    <section ref={sectionRef} className="flex min-w-0 flex-col gap-2">
+    <section
+      ref={sectionRef}
+      className="flex min-w-0 flex-col gap-3 border-t border-aura-hairline/70 pt-4"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <Eyebrow>// follow-up</Eyebrow>
+        <Eyebrow>// file the follow-up</Eyebrow>
         {filed === undefined ? (
           <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
             Recommended: <span className="text-aura-rose">{FOLLOW_UP_LABELS[recommended]}</span>
@@ -249,9 +311,9 @@ function FinalReportActionColumn({
         )}
       </div>
       {filed === undefined ? (
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-2">
           {FOLLOW_UP_ORDER.map((action) => (
-            <FollowUpActionButton
+            <FollowUpActionCard
               key={action}
               action={action}
               isRecommended={action === recommended}
@@ -266,7 +328,7 @@ function FinalReportActionColumn({
           data-sfx="click"
           onClick={onBack}
           disabled={isActionPending}
-          className="aura-liquid-cta mt-auto w-full cursor-pointer rounded-pill px-5 py-3 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
+          className="aura-liquid-cta mt-2 w-full cursor-pointer rounded-pill px-5 py-3 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
         >
           Return to dispatch
         </button>
@@ -275,7 +337,7 @@ function FinalReportActionColumn({
   );
 }
 
-function FollowUpActionButton({
+function FollowUpActionCard({
   action,
   isRecommended,
   disabled,
@@ -287,33 +349,41 @@ function FollowUpActionButton({
   onSelect: () => void;
 }) {
   const label = FOLLOW_UP_LABELS[action];
-  const projection = FOLLOW_UP_PROJECTIONS[action];
-  const baseClass =
-    "relative flex w-full cursor-pointer items-center gap-2 whitespace-nowrap rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition disabled:cursor-not-allowed disabled:opacity-40";
+  const copy = FOLLOW_UP_COPY[action];
   const toneClass = isRecommended
-    ? "bg-gradient-to-r from-aura-rose/15 via-aura-fuchsia/12 to-aura-violet/15 text-aura-rose ring-1 ring-aura-rose/45 hover:ring-aura-rose/70 hover:shadow-cta"
-    : "aura-liquid-glass text-aura-muted hover:text-aura-ink";
+    ? "bg-gradient-to-br from-aura-rose/10 via-aura-fuchsia/8 to-aura-violet/10 ring-aura-rose/45 hover:ring-aura-rose/70 hover:shadow-cta"
+    : "aura-liquid-glass hover:ring-aura-ink/20";
 
   return (
-    <Tooltip message={projection} placement="top-center" className="w-full">
-      <button
-        type="button"
-        data-sfx="click"
-        disabled={disabled}
-        onClick={onSelect}
-        aria-label={`${label}. ${projection}`}
-        className={`${baseClass} ${toneClass}`}
-      >
+    <button
+      type="button"
+      data-sfx="click"
+      disabled={disabled}
+      onClick={onSelect}
+      aria-label={`${label}. ${copy.headline} ${copy.detail}`}
+      className={`group relative flex w-full cursor-pointer flex-col gap-1 rounded-card px-4 py-3 text-left ring-1 transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClass}`}
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="font-display text-base font-semibold text-aura-ink">{label}</span>
         {isRecommended ? (
-          <svg viewBox="0 0 12 12" className="size-3 shrink-0 text-aura-rose" aria-hidden>
-            <path
-              d="M6 1.4 L7.4 4.6 L10.8 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.2 5 L4.6 4.6 Z"
-              fill="currentColor"
-            />
-          </svg>
+          <span className="inline-flex items-center gap-1 rounded-pill bg-aura-rose/15 px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose">
+            <svg viewBox="0 0 12 12" className="size-2.5 shrink-0" aria-hidden>
+              <path
+                d="M6 1.4 L7.4 4.6 L10.8 5 L8.3 7.3 L8.9 10.6 L6 9 L3.1 10.6 L3.7 7.3 L1.2 5 L4.6 4.6 Z"
+                fill="currentColor"
+              />
+            </svg>
+            Recommended
+          </span>
         ) : null}
-        <span>{label}</span>
-      </button>
-    </Tooltip>
+        {copy.flag === undefined ? null : (
+          <span className="rounded-pill bg-rose-50/80 px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-aura-rose ring-1 ring-rose-500/30">
+            {copy.flag}
+          </span>
+        )}
+      </div>
+      <p className="text-sm leading-snug text-aura-ink/85">{copy.headline}</p>
+      <p className="text-sm leading-snug text-aura-muted">{copy.detail}</p>
+    </button>
   );
 }

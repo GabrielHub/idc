@@ -44,91 +44,91 @@ export const softLaunchPhotoWall: DateScenario = {
         id: "soft-launch-photo-wall-event-1",
         title: "Release form",
         kind: "provocation",
-        event: "The release form on the clipboard waits between them.",
-        characterVisibleText:
-          "The release form on the clipboard has both names misspelled. A pink pen rests on top. The signature line is highlighted.",
-        directorInstruction:
-          "Force a consent check. The next speaker should ask, decline, or correct without steamrolling.",
+        pitch:
+          "Set the release form on the table with both names misspelled, a highlighted signature line, and a pink pen. Forces a real consent check.",
+        beat: "The release form on the clipboard has both names misspelled. A pink pen rests on top. The signature line is highlighted.",
+        directorBeat:
+          "A release form is asking for your name. Read the misspellings aloud, ask your date if they want to sign, decline cleanly, or correct the names with the pen. Do not steamroll either way.",
       },
       {
         id: "soft-launch-photo-wall-event-2",
         title: "Ring lights up",
         kind: "reveal",
-        event: "The ring lights warm up. A line begins to form behind the wall.",
-        characterVisibleText:
-          "Three ring lights glow on. The wall reads authentic connection in vinyl lettering. A line of three couples forms behind the wall.",
-        directorInstruction:
-          "Use public attention to surface whether the pair acts together or splits, drawn from each member's existing stance on being seen. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Warm three ring lights with a line of three couples forming behind the AUTHENTIC CONNECTION wall. Surfaces team or split based on each member's stance on being seen.",
+        beat: "Three ring lights glow on. The wall reads authentic connection in vinyl lettering. A line of three couples forms behind the wall.",
+        directorBeat:
+          "The room is now lit and watching. Move with your date toward the wall, hold the table, comment on the vinyl, or ask if they want the photo. Speak only from your existing stance on visibility. Do not voice the line.",
       },
       {
         id: "soft-launch-photo-wall-event-3",
         title: "Caption draft",
         kind: "reveal",
-        event: "A tablet displays a draft caption.",
-        characterVisibleText:
-          "A tablet on the table displays a caption draft: love wins the soft launch. The post button pulses. A staffer's hand sets a gift bag at the corner of the table and withdraws.",
-        directorInstruction:
-          "Let the pair revise, refuse, or reclaim the public story. Staff hands do not speak. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Display a caption draft on the tablet: love wins the soft launch with a pulsing post button and a gift bag placed by a hand. Forces a revise, refuse, or reclaim.",
+        beat: "A tablet on the table displays a caption draft: love wins the soft launch. The post button pulses. A staffer's hand sets a gift bag at the corner of the table and withdraws.",
+        directorBeat:
+          "Someone wrote a future caption about you. Revise the line, refuse to be summarized, hand the tablet to your date for theirs, or hit cancel. Do not voice the staffer.",
       },
       {
         id: "soft-launch-photo-wall-event-4",
         title: "Gift bag drops",
         kind: "ambient",
-        event: "A second branded gift bag is set at the table corner.",
-        characterVisibleText:
-          "A second pink branded gift bag lands at the table corner. Tissue paper sticks out at an angle. A small QR code on the handle is angled toward the table.",
-        directorInstruction:
-          "Use the soft pressure of free goods to test whether either of them owes the brand a smile.",
+        pitch:
+          "Plant a second pink branded gift bag with tissue paper and a QR code angled at the table. Forces a stance on whether the pair owes the brand a smile.",
+        beat: "A second pink branded gift bag lands at the table corner. Tissue paper sticks out at an angle. A small QR code on the handle is angled toward the table.",
+        directorBeat:
+          "Free goods are stacking up. Slide the bag aside, comment on the QR code to your date, accept it with a smile that costs you nothing, or refuse aloud. Make the small choice visible.",
       },
       {
         id: "soft-launch-photo-wall-event-5",
         title: "Caption revises",
         kind: "ambient",
-        event: "The tablet caption revises itself.",
-        characterVisibleText:
-          "The caption on the tablet revises itself once: two early adopters of love. The post button pulses faster. A small character counter starts ticking down.",
-        directorInstruction:
-          "Let the small auto-revision pass as ambient brand churn. The pair does not need to answer it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Auto-revise the caption to two early adopters of love with the post button pulsing faster. Surfaces ambient brand churn that does not need an answer.",
+        beat: "The caption on the tablet revises itself once: two early adopters of love. The post button pulses faster. A small character counter starts ticking down.",
+        directorBeat:
+          "The brand is editing you in real time. Comment on the new framing, ignore the pulsing button, ask your date how they feel about being early adopters, or kill the screen. Do not let it post on autopilot. Do not voice the tablet.",
       },
       {
         id: "soft-launch-photo-wall-event-6",
         title: "Other couple flashes",
         kind: "reveal",
-        event: "A flash from the next couple lands on the photo wall.",
-        characterVisibleText:
-          "A flash bursts from the photo wall as another couple poses. They laugh easily. Their release form is signed and clipped to the wall behind them.",
-        directorInstruction:
-          "Use the easy success of strangers to surface what the pair already wants. Do not voice the other couple.",
+        pitch:
+          "Burst a flash from another couple on the photo wall with their signed release clipped behind them. Surfaces what the pair already wants.",
+        beat: "A flash bursts from the photo wall as another couple poses. They laugh easily. Their release form is signed and clipped to the wall behind them.",
+        directorBeat:
+          "Someone else just did the photo thing easily. Notice it without judging it, comment to your date on the ease, ask if you want that, or look back at your table. Speak only from your own register. Do not voice the couple.",
       },
       {
         id: "soft-launch-photo-wall-event-7",
         title: "Branded napkin",
         kind: "ambient",
-        event: "A branded cocktail napkin lands under one elbow.",
-        characterVisibleText:
-          "A staffer's hand slides a branded napkin under one elbow and withdraws. The logo across the napkin is the same logo behind the photo wall. The release form is still half-signed.",
-        directorInstruction:
-          "Allow the small reminder. The brand is everywhere; they can choose how much to be in it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Slide a branded napkin under one elbow with the same logo as the photo wall and the release still half-signed. Surfaces a small reminder of the brand's reach.",
+        beat: "A staffer's hand slides a branded napkin under one elbow and withdraws. The logo across the napkin is the same logo behind the photo wall. The release form is still half-signed.",
+        directorBeat:
+          "The brand is at your elbow. Move it aside, dab a drink with it, comment on the logo to your date, or ignore the touch. Show how much of the brand you accept. Do not voice the staffer.",
       },
       {
         id: "soft-launch-photo-wall-event-8",
         title: "Letter falls",
         kind: "provocation",
-        event: "One vinyl letter peels off the photo wall.",
-        characterVisibleText:
-          "One vinyl letter peels off the photo wall and falls onto the floor. The wall now reads: authentic onnection. A staffer is already three tables away with another release form.",
-        directorInstruction:
-          "Push for a clean exit from the brand or a clean stay inside it on their own terms. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Peel a vinyl letter off the photo wall so it reads AUTHENTIC ONNECTION. Forces a clean call: exit the brand or stay on your terms.",
+        beat: "One vinyl letter peels off the photo wall and falls onto the floor. The wall now reads: authentic onnection. A staffer is already three tables away with another release form.",
+        directorBeat:
+          "The set just glitched. Laugh out loud with your date about the broken word, propose leaving, name what authentic actually means to you, or sign the release on your terms. Speak the call. Do not voice the wall.",
       },
       {
         id: "soft-launch-photo-wall-event-9",
         title: "Camera pivots",
         kind: "provocation",
-        event: "A wall-mounted camera swivels onto the bistro table.",
-        characterVisibleText:
-          "A small wall-mounted camera by the photo wall swivels on its mount until the lens is aimed at their bistro table. A red recording dot lights below the lens. The release form is still half-signed.",
-        directorInstruction:
-          "Push for a physical answer: cover the lens, walk out of frame, sign the release, or kill the post. The camera will not look away first.",
+        pitch:
+          "Swivel a wall-mounted camera onto the bistro table with a red recording light on. Forces a physical answer.",
+        beat: "A small wall-mounted camera by the photo wall swivels on its mount until the lens is aimed at their bistro table. A red recording dot lights below the lens. The release form is still half-signed.",
+        directorBeat:
+          "A lens is now pointed at you. Cover it, walk out of frame, sign the release because you decide to, or kill the post and pocket the bag. Move physically in this beat. Do not voice the camera.",
       },
     ],
     earlyEndTriggers: [

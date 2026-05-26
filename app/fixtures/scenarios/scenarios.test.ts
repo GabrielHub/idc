@@ -75,9 +75,9 @@ function scenarioDesignText(scenario: (typeof starterScenarios)[number]): string
     ...scenario.director.events.flatMap((event) => [
       event.id,
       event.title,
-      event.event,
-      event.characterVisibleText,
-      event.directorInstruction,
+      event.pitch,
+      event.beat,
+      event.directorBeat,
     ]),
   ].join("\n");
 }
@@ -127,11 +127,9 @@ describe("scenario fixtures", () => {
 
     for (const scenario of starterScenarios) {
       for (const event of scenario.director.events) {
-        const visibleEventText = `${event.event} ${event.characterVisibleText}`;
-
         if (
-          eventHasOffstageCue(visibleEventText) &&
-          !NO_CONTINUING_SPEAKER_PATTERN.test(event.directorInstruction)
+          eventHasOffstageCue(event.beat) &&
+          !NO_CONTINUING_SPEAKER_PATTERN.test(event.directorBeat)
         ) {
           violations.push(`${scenario.id}/${event.id}`);
         }
@@ -191,9 +189,8 @@ describe("scenario fixtures", () => {
           continue;
         }
 
-        const visibleEventText = `${event.event} ${event.characterVisibleText}`;
         const hasBiographyDrift = REVEAL_BIOGRAPHY_DRIFT_PATTERNS.some((pattern) =>
-          pattern.test(visibleEventText),
+          pattern.test(event.beat),
         );
 
         if (hasBiographyDrift) {

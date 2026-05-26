@@ -45,91 +45,91 @@ export const vivariumWingTinyResidents: DateScenario = {
         id: "vivarium-wing-tiny-residents-event-1",
         title: "Apartment block",
         kind: "ambient",
-        event: "Dinner hour is on inside the apartment block habitat.",
-        characterVisibleText:
-          "Inside case six, the apartment block at one-twentieth scale has its windows on at the dinner hour. A small figure carries a plate from one room to another. A small dog moves under a table. A miniature street lamp clicks on at the corner.",
-        directorInstruction:
-          "Let the small ordinary domestic detail land. Either of them may comment quietly, or stay silent. Do not voice the residents.",
+        pitch:
+          "Light the apartment-block windows at dinner hour with a small figure carrying a plate and a dog under a table. Surfaces small domestic detail without forcing a story.",
+        beat: "Inside case six, the apartment block at one-twentieth scale has its windows on at the dinner hour. A small figure carries a plate from one room to another. A small dog moves under a table. A miniature street lamp clicks on at the corner.",
+        directorBeat:
+          "An ordinary evening is happening at one-twentieth scale beside you. Comment quietly to your date, watch in silence, or step closer. Do not voice the residents.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-2",
         title: "House rules",
         kind: "reveal",
-        event: "A small placard reads the wing's rules.",
-        characterVisibleText:
-          "A placard at waist height between the cases lists the wing's rules. The lines read: do not tap, do not feed, do not speak above a whisper, do not name residents, please do not photograph faces.",
-        directorInstruction:
-          "Use the rules as a real bar. Either of them may follow them, push them, or note them aloud. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Plant a waist-high placard listing the wing's real rules. Surfaces a real bar without forcing perfect compliance.",
+        beat: "A placard at waist height between the cases lists the wing's rules. The lines read: do not tap, do not feed, do not speak above a whisper, do not name residents, please do not photograph faces.",
+        directorBeat:
+          "The rules are right there. Read them aloud, lower your voice if you have not, comment on the no-naming rule to your date, or nod and walk past. Do not voice the placard.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-3",
         title: "Farming village",
         kind: "ambient",
-        event: "The small farming village habitat is at evening chores.",
-        characterVisibleText:
-          "Across the aisle in case seven, a farming village at one-twentieth scale is at evening chores. A small barn door is open. A small figure walks a small bucket toward a small well. A child-sized figure runs, stops, and looks at a small dog.",
-        directorInstruction:
-          "Allow the small life. The pair does not need to interpret it. Do not voice the villagers.",
+        pitch:
+          "Run a small farming village at evening chores with a barn door open and a child-figure pausing to look at a small dog. Surfaces a small life that does not need interpretation.",
+        beat: "Across the aisle in case seven, a farming village at one-twentieth scale is at evening chores. A small barn door is open. A small figure walks a small bucket toward a small well. A child-sized figure runs, stops, and looks at a small dog.",
+        directorBeat:
+          "A village evening is doing its ordinary work next to you. Watch for a beat, share a quiet line with your date, or move on quietly. Do not voice the villagers.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-4",
         title: "Tiny dating app",
         kind: "reveal",
-        event: "A tiny phone screen is visible inside one apartment.",
-        characterVisibleText:
-          "Inside one apartment in case six, a small figure holds a tiny phone. The screen shows a small dating profile. The interface is recognizable. The figure swipes once and sets the phone down.",
-        directorInstruction:
-          "Use the small mirror to surface whether either of them laughs at it, sits with it, or feels seen by it. Draw on each member's existing register.",
+        pitch:
+          "Show a small figure holding a tiny recognizable dating app screen and swiping once. Surfaces whether the pair laughs, sits with it, or feels seen.",
+        beat: "Inside one apartment in case six, a small figure holds a tiny phone. The screen shows a small dating profile. The interface is recognizable. The figure swipes once and sets the phone down.",
+        directorBeat:
+          "You just watched a tiny version of what you are doing. Laugh quietly with your date, sit with the parallel, comment on the swipe, or look away. Speak from what you already carry. Do not voice the figure.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-5",
         title: "Glass close",
         kind: "provocation",
-        event: "Either member is close enough to the glass to tap it.",
-        characterVisibleText:
-          "The walkway brings them close to case six. The glass is at chest height. A small smudge from a previous visitor is on the glass, just below a window where a small figure is reading. The placard rule is in the periphery.",
-        directorInstruction:
-          "Use the proximity to test whether either of them honors the rule when nobody is watching. The choice is physical.",
+        pitch:
+          "Bring the walkway close enough to tap the chest-height glass with a smudge below a window where a figure is reading. Forces a real choice on the rule.",
+        beat: "The walkway brings them close to case six. The glass is at chest height. A small smudge from a previous visitor is on the glass, just below a window where a small figure is reading. The placard rule is in the periphery.",
+        directorBeat:
+          "Your hand can reach the glass. Refuse the tap aloud, step back from the case, comment to your date on the smudge, or honor the rule without naming it. Pick. Do not voice the figure.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-6",
         title: "Small loss",
         kind: "ambient",
-        event: "A small funeral procession passes inside the village habitat.",
-        characterVisibleText:
-          "Across the aisle, a small funeral procession passes between two small houses in case seven. The procession is six figures long. A small bell is rung once. The day has continued in the rest of the village.",
-        directorInstruction:
-          "Allow the small loss. Do not invent a reason. The pair does not have to say anything.",
+        pitch:
+          "Pass a small six-figure funeral procession with a single bell ring inside the village habitat. Surfaces a small grief that does not invent a reason.",
+        beat: "Across the aisle, a small funeral procession passes between two small houses in case seven. The procession is six figures long. A small bell is rung once. The day has continued in the rest of the village.",
+        directorBeat:
+          "A small loss is moving through the village. Lower your voice, glance and look away, take your date's hand quietly, or stay still. Do not invent a reason. Do not voice the procession.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-7",
         title: "Snack pouch",
         kind: "provocation",
-        event: "A vending pouch in a coat pocket holds a single peanut.",
-        characterVisibleText:
-          "A small vending pouch from the museum lobby is in a coat pocket. The pouch is labeled visitor snack and contains a single peanut. A line at the bottom of the label reads: not for the residents. The lid of case six has a small access hatch on its top edge.",
-        directorInstruction:
-          "Use the small temptation to test whether either of them treats the rule as a real rule. The hatch is in arm's reach. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface a museum-lobby visitor-snack pouch in a coat pocket with one peanut and a hatch on the case lid within arm's reach. Forces a real choice on the rule.",
+        beat: "A small vending pouch from the museum lobby is in a coat pocket. The pouch is labeled visitor snack and contains a single peanut. A line at the bottom of the label reads: not for the residents. The lid of case six has a small access hatch on its top edge.",
+        directorBeat:
+          "A test of the rule is in your pocket. Keep the peanut to yourself, comment on the hatch to your date, refuse the temptation aloud, or pocket the pouch deeper. Be visible about the call. Do not voice the snack pouch.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-8",
         title: "Closing chime",
         kind: "provocation",
-        event: "A soft closing chime sounds in the wing.",
-        characterVisibleText:
-          "A soft chime passes through the wing speaker. The placards near the exit light up dimly. The apartment block windows are still on the dinner hour. The walkway behind them is empty.",
-        directorInstruction:
-          "Push for a clean exit. The pair leaves the wing the way they came in. The way they leave shows what the visit cost or gave them.",
+        pitch:
+          "Sound a soft closing chime in the wing with the apartment block still at dinner hour and the walkway behind them empty. Forces a clean exit.",
+        beat: "A soft chime passes through the wing speaker. The placards near the exit light up dimly. The apartment block windows are still on the dinner hour. The walkway behind them is empty.",
+        directorBeat:
+          "The wing is closing on you. Walk out the way you came, propose a last quiet look with your date, or stand a beat longer. Show whether the visit cost or gave you something.",
       },
       {
         id: "vivarium-wing-tiny-residents-event-9",
         title: "Resident at the window",
         kind: "reveal",
-        event: "A small resident sits at a window facing the walkway.",
-        characterVisibleText:
-          "In case six, a small figure sits at the window facing the walkway. They are reading a small book. The small dog is on the rug at their feet. The figure cannot see out and is not aware of being seen.",
-        directorInstruction:
-          "Use the small private moment to surface what either of them carries about being witnessed without consent. Draw only on each member's existing register. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Sit a small figure reading at a window facing the walkway, unaware of being seen. Surfaces what either carries about being witnessed without consent.",
+        beat: "In case six, a small figure sits at the window facing the walkway. They are reading a small book. The small dog is on the rug at their feet. The figure cannot see out and is not aware of being seen.",
+        directorBeat:
+          "A private moment is right in front of you. Step out of the window's line, sit with the asymmetry, comment quietly to your date about being watched without consent, or look away. Speak only from your own register. Do not voice the figure.",
       },
     ],
     earlyEndTriggers: [

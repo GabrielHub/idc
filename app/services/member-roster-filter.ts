@@ -1,4 +1,4 @@
-import type { Member, PlayerKnowledgeRecord } from "../domain/game";
+import type { Member, PairState, PlayerKnowledgeRecord } from "../domain/game";
 import { caseFileNumber } from "../components/member-card";
 import { getMemberQuitRiskStatus } from "./date-engine";
 import { sortMembersByCuratedRosterOrder } from "./member-roster-order";
@@ -88,6 +88,8 @@ export const MEMBER_STATUS_FILTER_OPTIONS: ReadonlyArray<{
 export type MemberRosterFilterContext = {
   focusedMemberIds?: readonly string[];
   availablePartnerMemberIds?: readonly string[];
+  followUpPartnerMemberIds?: readonly string[];
+  pairStates?: readonly PairState[];
   activeShiftNumber?: number;
   readyClosureMemberIds?: ReadonlySet<string>;
 };
@@ -106,18 +108,24 @@ export function matchesAvailabilityFilter(
   member: Member,
   availability: MemberAvailabilityFilter,
   activeShiftNumber: number | undefined,
-  options: Pick<MemberRosterFilterContext, "focusedMemberIds" | "availablePartnerMemberIds"> = {},
+  options: Pick<
+    MemberRosterFilterContext,
+    "focusedMemberIds" | "availablePartnerMemberIds" | "followUpPartnerMemberIds" | "pairStates"
+  > = {},
 ): boolean {
   if (availability === "all") return true;
   if (member.state.status !== "active") return false;
   if (activeShiftNumber === undefined) return false;
-  const inCooldown = isMemberInCooldown(member, activeShiftNumber);
+  const followUpExempt = options.followUpPartnerMemberIds?.includes(member.id) ?? false;
+  const inCooldown = isMemberInCooldown(member, activeShiftNumber) && !followUpExempt;
   if (availability === "cooldown") return inCooldown;
   return isMemberOnTonightBoard({
     member,
     shiftNumber: activeShiftNumber,
     focusedMemberIds: options.focusedMemberIds ?? [],
     availablePartnerMemberIds: options.availablePartnerMemberIds ?? [],
+    cooldownExemptMemberIds: options.followUpPartnerMemberIds ?? [],
+    pairStates: options.pairStates ?? [],
   });
 }
 
@@ -187,6 +195,8 @@ export function applyMemberRosterFilters(
       matchesAvailabilityFilter(member, filterState.availability, options.activeShiftNumber, {
         focusedMemberIds: options.focusedMemberIds,
         availablePartnerMemberIds: options.availablePartnerMemberIds,
+        followUpPartnerMemberIds: options.followUpPartnerMemberIds,
+        pairStates: options.pairStates,
       }) &&
       matchesAttentionFilter(member, filterState.attention) &&
       matchesClosureFilter(member, filterState.closure, options.readyClosureMemberIds) &&

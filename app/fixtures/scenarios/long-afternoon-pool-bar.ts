@@ -45,91 +45,91 @@ export const longAfternoonPoolBar: DateScenario = {
         id: "long-afternoon-pool-bar-event-1",
         title: "AR menu lifts",
         kind: "ambient",
-        event: "The AR menu lifts off the bar.",
-        characterVisibleText:
-          "The AR menu lifts off the bar in a soft glow. The list is short and the note at the top reads: house pick today, on the bar. Two stools sit at the self-mix station. The drone tray is parked behind the bar.",
-        directorInstruction:
-          "Open the date with a small choice. Either may sit, walk to the bar, or take a lounger. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Float the AR menu off the bar with a note: house pick today, on the bar. Forces a small choice on where to start.",
+        beat: "The AR menu lifts off the bar in a soft glow. The list is short and the note at the top reads: house pick today, on the bar. Two stools sit at the self-mix station. The drone tray is parked behind the bar.",
+        directorBeat:
+          "The menu is asking for an opening move. Walk to the bar, take a lounger, ask your date what they want first, or sit on a stool. Pick a position in the room. Do not voice the menu.",
       },
       {
         id: "long-afternoon-pool-bar-event-2",
         title: "Tasting board",
         kind: "reveal",
-        event: "A drone tray drops a tasting board on the lounger table.",
-        characterVisibleText:
-          "The drone tray drifts over with a tasting board, sets it on the small table between the loungers, and returns to the bar. The board has six small bites, labeled in clean type, with two of them flagged house favorite. A folded card on the board reads share.",
-        directorInstruction:
-          "Use the small offering to surface taste and care drawn from existing context. The drone does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Drift a drone tray over to drop a six-bite tasting board with two house favorites flagged and a card reading share. Surfaces taste and care.",
+        beat: "The drone tray drifts over with a tasting board, sets it on the small table between the loungers, and returns to the bar. The board has six small bites, labeled in clean type, with two of them flagged house favorite. A folded card on the board reads share.",
+        directorBeat:
+          "Small bites just landed between you. Push the board toward your date, claim the house favorite, ask which one they want first, or hold off entirely. Do not voice the drone.",
       },
       {
         id: "long-afternoon-pool-bar-event-3",
         title: "Pool temperature notch",
         kind: "ambient",
-        event: "The pool temperature notch lights at the cabana.",
-        characterVisibleText:
-          "A small temperature notch lights up on the cabana wall. The notch shows the pool at the current setting and a slow dial to warm or cool. The dial is at body warm. The pool is still.",
-        directorInstruction:
-          "Allow the small control without making it a deal. The pair does not need to set it.",
+        pitch:
+          "Light up a pool-temp notch on the cabana wall at body warm. Surfaces whether either reaches for the dial.",
+        beat: "A small temperature notch lights up on the cabana wall. The notch shows the pool at the current setting and a slow dial to warm or cool. The dial is at body warm. The pool is still.",
+        directorBeat:
+          "A small control is at your fingertip. Adjust it, comment on body warm, ask your date what they want, or leave it alone. Do not turn the dial into a deal.",
       },
       {
         id: "long-afternoon-pool-bar-event-4",
         title: "Salt and citrus",
         kind: "reveal",
-        event: "A small breeze brings salt and citrus into the pavilion.",
-        characterVisibleText:
-          "A small breeze moves through the pavilion. The air carries salt off the sea and citrus from a low planter at the rail. The breeze passes and the air is still again. The sun does not move.",
-        directorInstruction:
-          "Use the small sense detail to surface comfort drawn from existing context. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Move a small breeze through with salt and citrus. Surfaces a small honest comfort from what each already carries.",
+        beat: "A small breeze moves through the pavilion. The air carries salt off the sea and citrus from a low planter at the rail. The breeze passes and the air is still again. The sun does not move.",
+        directorBeat:
+          "A specific smell just touched you. Name it to your date, comment on the planter, breathe and stay quiet, or stretch into it. Speak from what you actually feel.",
       },
       {
         id: "long-afternoon-pool-bar-event-5",
         title: "Alien bird",
         kind: "ambient",
-        event: "An alien bird crosses the cliff once.",
-        characterVisibleText:
-          "A long-winged alien bird crosses the cliff from the south. The wing color is a deep teal. The bird does not call. It passes the pavilion in a slow line and is gone past the cabana roof.",
-        directorInstruction:
-          "Allow the small living detail. The pair does not need to track the bird.",
+        pitch:
+          "Cross a long-winged teal alien bird past the cabana roof. Surfaces who watches and who keeps eyes inside.",
+        beat: "A long-winged alien bird crosses the cliff from the south. The wing color is a deep teal. The bird does not call. It passes the pavilion in a slow line and is gone past the cabana roof.",
+        directorBeat:
+          "A piece of the alien world just crossed your view. Point at it, comment to your date on the teal, watch it without speaking, or keep your eyes on them. Do not voice the bird.",
       },
       {
         id: "long-afternoon-pool-bar-event-6",
         title: "Bar self-mix",
         kind: "provocation",
-        event: "The bar prompts a self-mix.",
-        characterVisibleText:
-          "The AR menu pulses softly. A small line under the bar reads: two drinks pending, your call. The self-mix station has its first jiggers set out. A small card on the bar reads taste, do not measure.",
-        directorInstruction:
-          "Push for a clean small action at the bar. Either may mix, ask the partner what they want, or hand the call to the partner. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pulse the menu with: two drinks pending, your call, and a card reading taste, do not measure. Forces a clean action at the bar.",
+        beat: "The AR menu pulses softly. A small line under the bar reads: two drinks pending, your call. The self-mix station has its first jiggers set out. A small card on the bar reads taste, do not measure.",
+        directorBeat:
+          "Two drinks are waiting on you. Mix them both, ask your date what they want, hand the call across, or pour by taste. Decide and move. Do not voice the menu.",
       },
       {
         id: "long-afternoon-pool-bar-event-7",
         title: "Pool step",
         kind: "reveal",
-        event: "The shallow end of the pool warms a touch under the foot.",
-        characterVisibleText:
-          "The shallow end of the pool sits at the cabana side. A small step leads in. The water at the step is a touch warmer than the rest of the pool. The pool is at chest height at the deep end and ankle height at the step.",
-        directorInstruction:
-          "Use the small physical option to surface closeness drawn from existing context. Either may step in, sit at the edge, or stay at the lounger. The pool is not a stage.",
+        pitch:
+          "Warm the shallow pool step a touch above the rest. Surfaces closeness drawn from existing context.",
+        beat: "The shallow end of the pool sits at the cabana side. A small step leads in. The water at the step is a touch warmer than the rest of the pool. The pool is at chest height at the deep end and ankle height at the step.",
+        directorBeat:
+          "The water is inviting you in. Sit at the edge, step in to your ankles, ask your date if they want to swim, or stay on the lounger. Show the closeness you already feel.",
       },
       {
         id: "long-afternoon-pool-bar-event-8",
         title: "Twenty-minute notch",
         kind: "provocation",
-        event: "The AR menu drops a twenty-minute notch.",
-        characterVisibleText:
-          "The AR menu drops a small twenty-minute notch on the right of the panel. The sun has not moved. The cabana curtains have not stirred. The drone tray is parked behind the bar with two empty glasses on it.",
-        directorInstruction:
-          "Push for a clean call on the remaining time: a last bite, a swim, or a clean walk back to the bar. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Drop a twenty-minute notch on the menu with the sun still motionless. Forces a clean call on the remaining time.",
+        beat: "The AR menu drops a small twenty-minute notch on the right of the panel. The sun has not moved. The cabana curtains have not stirred. The drone tray is parked behind the bar with two empty glasses on it.",
+        directorBeat:
+          "Twenty minutes left. Pick a last bite, propose a swim, ask your date what they want to end on, or sit with the time. Use the window.",
       },
       {
         id: "long-afternoon-pool-bar-event-9",
         title: "Closing chime",
         kind: "provocation",
-        event: "A soft closing chime sounds from the pavilion.",
-        characterVisibleText:
-          "A soft closing chime sounds in the pavilion. The AR menu folds down to a small line that reads: thank you, your booking is closed. The drone tray returns to its dock. The sun has not moved.",
-        directorInstruction:
-          "Push for a clean exit from the pavilion. The pair walks out together or one moves first. Either is the right answer if it is honest. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Chime closed, fold the AR menu, and dock the drone tray with the sun still up. Forces a clean exit.",
+        beat: "A soft closing chime sounds in the pavilion. The AR menu folds down to a small line that reads: thank you, your booking is closed. The drone tray returns to its dock. The sun has not moved.",
+        directorBeat:
+          "The booking just closed under a sun that did not move. Stand to walk out together, propose what you want next, ask your date which last beat they want, or take a final breath of the air. Move. Do not voice the chime.",
       },
     ],
     earlyEndTriggers: [

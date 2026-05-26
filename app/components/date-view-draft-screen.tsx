@@ -192,8 +192,8 @@ export function DraftScreen({
                         <h3 className="line-clamp-2 font-display text-display-sm font-semibold leading-tight text-black">
                           {event.title}
                         </h3>
-                        <p className="line-clamp-2 text-label leading-relaxed text-black">
-                          {event.event}
+                        <p className="line-clamp-3 text-label leading-relaxed text-black">
+                          {event.pitch}
                         </p>
                       </button>
                     </motion.li>

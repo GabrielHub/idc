@@ -44,91 +44,91 @@ export const pilgrimageMercySpine: DateScenario = {
         id: "pilgrimage-mercy-spine-event-1",
         title: "Ranger booth",
         kind: "reveal",
-        event: "The petition form is on the clipboard at the booth.",
-        characterVisibleText:
-          "A clipboard rests on the booth counter. The top form has two blank lines for the wish, two signature blocks, and a small block at the bottom that reads: filed jointly or not filed. The pen is uncapped. The ranger is two seats over with a thermos.",
-        directorInstruction:
-          "Let the form set the bar. Neither member has to fill it. The ranger does not speak.",
+        pitch:
+          "Set the petition clipboard on the booth counter with two wish lines, two signature blocks, and: filed jointly or not filed. Forces the bar without forcing a fill.",
+        beat: "A clipboard rests on the booth counter. The top form has two blank lines for the wish, two signature blocks, and a small block at the bottom that reads: filed jointly or not filed. The pen is uncapped. The ranger is two seats over with a thermos.",
+        directorBeat:
+          "The form is right there. Pick up the pen, comment on the joint filing rule, ask your date if they want to try, or walk past it for now. Take a stance on the bar. Do not voice the ranger.",
       },
       {
         id: "pilgrimage-mercy-spine-event-2",
         title: "First marker",
         kind: "reveal",
-        event: "The first trail marker stands at the base of rib eight.",
-        characterVisibleText:
-          "A small wooden marker reads marker one, ten percent. The trail past it climbs at a comfortable angle. A faint slow drum pulses through the rock under their feet, twice a minute.",
-        directorInstruction:
-          "Use the long walk to surface what either of them actually wants but has not said. Draw on each member's existing brief. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Plant marker one ten percent up at the base of rib eight with a slow drum twice a minute. Surfaces what either of you actually wants but has not said.",
+        beat: "A small wooden marker reads marker one, ten percent. The trail past it climbs at a comfortable angle. A faint slow drum pulses through the rock under their feet, twice a minute.",
+        directorBeat:
+          "Ninety percent of the trail is still ahead. Use the long walk: name a want, ask your date what they would put on the form, or stay quiet and pace with the drum. Speak only from your own register. Do not voice the marker.",
       },
       {
         id: "pilgrimage-mercy-spine-event-3",
         title: "Other pair",
         kind: "ambient",
-        event: "Another pair passes on their way down with the form unsigned.",
-        characterVisibleText:
-          "Two other pilgrims pass on their way down the trail. The lead pilgrim carries a clipboard. The petition form clipped to it has both signature lines blank. They nod at the pair and keep walking.",
-        directorInstruction:
-          "Allow the small benchmark moment. The pair may use it or set it aside. Do not voice the other pilgrims.",
+        pitch:
+          "Pass two other pilgrims on their way down carrying a clipboard with both signature lines blank. Surfaces a small benchmark.",
+        beat: "Two other pilgrims pass on their way down the trail. The lead pilgrim carries a clipboard. The petition form clipped to it has both signature lines blank. They nod at the pair and keep walking.",
+        directorBeat:
+          "Someone else just walked back without filing. Nod, comment quietly to your date on the unsigned form, or sit with what that means for you. Do not voice the pilgrims.",
       },
       {
         id: "pilgrimage-mercy-spine-event-4",
         title: "Resting bench",
         kind: "reveal",
-        event: "A resting bench cut from the god's bone sits between markers four and five.",
-        characterVisibleText:
-          "A bench sits in a notch between two ribs. The bench is carved from a chip of bone. A small plaque reads: bench five, intended for a quiet exchange. A bottle of water has been left by a previous pair.",
-        directorInstruction:
-          "Use the bench to invite a single direct sentence about what each of them might actually want. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Carve a bench from a chip of bone in a notch with a plaque: intended for a quiet exchange. Forces one direct sentence about what either actually wants.",
+        beat: "A bench sits in a notch between two ribs. The bench is carved from a chip of bone. A small plaque reads: bench five, intended for a quiet exchange. A bottle of water has been left by a previous pair.",
+        directorBeat:
+          "The bench is asking for one direct line. Sit, name a want aloud, ask your date theirs, or hand them the water and listen. Stay honest. Do not voice the plaque.",
       },
       {
         id: "pilgrimage-mercy-spine-event-5",
         title: "Heart drum",
         kind: "ambient",
-        event: "The drum under the rock skips a beat.",
-        characterVisibleText:
-          "The slow drum under the trail pauses by half a beat and resumes. A sparrow on a rock blinks once. The petition form on the clipboard is still blank.",
-        directorInstruction:
-          "Treat the small skip as ordinary weather. The deity is asleep. The pair does not need to comment on it.",
+        pitch:
+          "Skip the drum under the trail by half a beat with a sparrow's single blink. Surfaces small weather without forcing comment.",
+        beat: "The slow drum under the trail pauses by half a beat and resumes. A sparrow on a rock blinks once. The petition form on the clipboard is still blank.",
+        directorBeat:
+          "The deity's pulse just shifted a hair. Treat it as weather, comment briefly, or carry on the climb. Do not invent an omen.",
       },
       {
         id: "pilgrimage-mercy-spine-event-6",
         title: "Summit approach",
         kind: "provocation",
-        event: "The summit cairn comes into view above marker eight.",
-        characterVisibleText:
-          "The summit cairn comes into view at the top of the spine, a stack of small stones at chest height. A flat slate rests on top with a slot for the form. The trail past marker eight gentles toward it.",
-        directorInstruction:
-          "Push for a real exchange before the cairn. The wish has to fit in one shared sentence.",
+        pitch:
+          "Bring the cairn into view past marker eight with the slate ready and the trail gentling. Forces a real exchange before the cairn.",
+        beat: "The summit cairn comes into view at the top of the spine, a stack of small stones at chest height. A flat slate rests on top with a slot for the form. The trail past marker eight gentles toward it.",
+        directorBeat:
+          "The cairn is in sight. Test the shared sentence aloud with your date, name what you each actually want, or admit you do not have one. The wish has to fit in one shared sentence.",
       },
       {
         id: "pilgrimage-mercy-spine-event-7",
         title: "Cairn slot",
         kind: "provocation",
-        event: "The slate on the cairn opens its slot.",
-        characterVisibleText:
-          "At the cairn, the slate's small slot opens with a soft click. The clipboard pen is still uncapped. The wish lines on the form are still blank. The drum is steady.",
-        directorInstruction:
-          "Push for a clean physical move at the cairn: file a shared wish, hold the form back, or step aside together. The slot will close after a beat.",
+        pitch:
+          "Click the slate's slot open at the cairn with the pen uncapped and the form still blank. Forces a clean physical move before it closes.",
+        beat: "At the cairn, the slate's small slot opens with a soft click. The clipboard pen is still uncapped. The wish lines on the form are still blank. The drum is steady.",
+        directorBeat:
+          "The slot is open. Write the shared wish and file it, hold the form back, ask your date one last time if this is the wish they mean, or step aside together. Do not stall through the closing beat.",
       },
       {
         id: "pilgrimage-mercy-spine-event-8",
         title: "Descent",
         kind: "provocation",
-        event: "The form is filed or pocketed and the trail begins descending.",
-        characterVisibleText:
-          "The clipboard is in one of their hands as the trail begins back down. The form is either in the slot or still on the board. The drum is unchanged. The ranger booth is forty minutes back the way they came.",
-        directorInstruction:
-          "Push for a clean read on whether the pair shares the descent the way they shared the climb. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Start back down with the clipboard in one of their hands and the booth forty minutes back. Forces a clean read on sharing the descent.",
+        beat: "The clipboard is in one of their hands as the trail begins back down. The form is either in the slot or still on the board. The drum is unchanged. The ranger booth is forty minutes back the way they came.",
+        directorBeat:
+          "The walk home is starting. Take or give the clipboard, comment on the choice you just made, ask your date how they feel about it, or pace the descent quiet. Make the read. Do not voice the drum.",
       },
       {
         id: "pilgrimage-mercy-spine-event-9",
         title: "Wind through ribs",
         kind: "ambient",
-        event: "A slow wind crosses between two ribs over the trail.",
-        characterVisibleText:
-          "A slow wind funnels between rib seven and rib eight and carries across the trail. The clipboard pages lift and settle. The drum continues its slow count.",
-        directorInstruction:
-          "Allow the wind. The pair does not need to interpret it. The walk continues at its own pace.",
+        pitch:
+          "Funnel a slow wind between rib seven and rib eight with the clipboard pages lifting and settling. Surfaces a small breath that does not need interpretation.",
+        beat: "A slow wind funnels between rib seven and rib eight and carries across the trail. The clipboard pages lift and settle. The drum continues its slow count.",
+        directorBeat:
+          "Wind just crossed your path. Hold the clipboard steady, comment on the rib gap, or carry on at the same pace. Do not invent meaning for the breeze.",
       },
     ],
     earlyEndTriggers: [

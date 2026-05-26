@@ -44,91 +44,91 @@ export const dimSumAndThenSome: DateScenario = {
         id: "dim-sum-and-then-some-event-1",
         title: "Bun cart rolls by",
         kind: "ambient",
-        event: "The bun cart rolls past the table on its loop.",
-        characterVisibleText:
-          "The bun cart rolls past the table on its loop with all five lids closed. The cart turns at the next corner of the courtyard and continues the loop. No basket is opened.",
-        directorInstruction:
-          "Allow the small marker. The cart is not voiced as a continuing speaker.",
+        pitch:
+          "Roll the bun cart past with all lids closed. Surfaces whether either flags it or lets it pass.",
+        beat: "The bun cart rolls past the table on its loop with all five lids closed. The cart turns at the next corner of the courtyard and continues the loop. No basket is opened.",
+        directorBeat:
+          "A cart of buns just went by without stopping. Wave it back, comment on the lids staying shut, ask your date what they want, or let it go. Make the small claim or refusal visible.",
       },
       {
         id: "dim-sum-and-then-some-event-2",
         title: "Kettle refill",
         kind: "ambient",
-        event: "The brass kettle tips and refills a cup on its own.",
-        characterVisibleText:
-          "The brass kettle on the table tips on its hook without a hand. A steady stream fills the cup that emptied first. The kettle resets at its angle. The second cup is still full.",
-        directorInstruction:
-          "Allow the small magic. The kettle is not voiced as a continuing speaker.",
+        pitch:
+          "Tip the brass kettle on its hook to refill whichever cup emptied first. Surfaces who notices the small magic.",
+        beat: "The brass kettle on the table tips on its hook without a hand. A steady stream fills the cup that emptied first. The kettle resets at its angle. The second cup is still full.",
+        directorBeat:
+          "The kettle just served itself for you. Watch it, comment to your date on the gesture, sip and say nothing, or wave it off. Do not narrate the magic like a guidebook.",
       },
       {
         id: "dim-sum-and-then-some-event-3",
         title: "Lantern sway",
         kind: "ambient",
-        event: "The red lantern above the table sways without a wind.",
-        characterVisibleText:
-          "The red lantern hanging above the table sways a hand's width and settles. The other lanterns in the courtyard hold steady. The lattice in front of the table does not move.",
-        directorInstruction:
-          "Allow the small marker. The lantern is not voiced as a continuing speaker.",
+        pitch:
+          "Sway only your red lantern a hand's width while the others hold steady. Surfaces a small private signal between you.",
+        beat: "The red lantern hanging above the table sways a hand's width and settles. The other lanterns in the courtyard hold steady. The lattice in front of the table does not move.",
+        directorBeat:
+          "Your lantern just moved. Glance up, point it out to your date, sit with the small omen, or comment on the stillness around you. Stay honest about how it feels.",
       },
       {
         id: "dim-sum-and-then-some-event-4",
         title: "Cart pause, char siu bao",
         kind: "provocation",
-        event: "The bun cart pauses at the table and a steamer lid lifts.",
-        characterVisibleText:
-          "The bun cart stops at the edge of the table. The cart attendant lifts the lid on a steamer of char siu bao and stands with the lid in one hand. The attendant nods once and waits at the cart.",
-        directorInstruction:
-          "Push for a real choice. Either may take the basket, decline the offer, or wave at a different cart. The attendant does not speak and is not voiced as a continuing speaker.",
+        pitch:
+          "Stop the bun cart at the table with the steamer lid lifted. Forces a clean choice on the basket, decline, or pivot to another cart.",
+        beat: "The bun cart stops at the edge of the table. The cart attendant lifts the lid on a steamer of char siu bao and stands with the lid in one hand. The attendant nods once and waits at the cart.",
+        directorBeat:
+          "A waiting attendant has a steamer open in front of you. Take the basket, decline aloud, wave for a different cart, or ask your date what they want. Do not freeze. Do not voice the attendant.",
       },
       {
         id: "dim-sum-and-then-some-event-5",
         title: "Lotus parcel ember",
         kind: "provocation",
-        event: "A lotus leaf parcel is set on the table by a passing cart.",
-        characterVisibleText:
-          "A wrapped lotus leaf parcel is set on the table by the passing rice cart. The string ties part under the heat of a hand. When the leaves fold back, a small dull ember sits on top of the rice. The ember does not catch.",
-        directorInstruction:
-          "Push for a real move. Either may eat the parcel, lift the ember off, or set the parcel aside. The cart is not voiced as a continuing speaker.",
+        pitch:
+          "Set down a lotus parcel and have its leaves unfurl to reveal a small dull ember on the rice. Forces a clean choice: eat, lift the ember, or set the parcel aside.",
+        beat: "A wrapped lotus leaf parcel is set on the table by the passing rice cart. The string ties part under the heat of a hand. When the leaves fold back, a small dull ember sits on top of the rice. The ember does not catch.",
+        directorBeat:
+          "Something strange is on your rice. Pluck the ember off and continue, hand the parcel across, push it aside, or comment on the heat. Pick and own it.",
       },
       {
         id: "dim-sum-and-then-some-event-6",
         title: "A har gow holds a note",
         kind: "provocation",
-        event: "A har gow basket arrives and the top dumpling holds a single low note.",
-        characterVisibleText:
-          "A small bamboo basket of har gow arrives at the table. When the lid lifts, the top dumpling on the front row holds a single low note. The note does not change pitch. The other dumplings sit quiet on the wax paper.",
-        directorInstruction:
-          "Push for a real choice. Either may eat the singing dumpling, halve it, or set the basket aside. The dumpling is not voiced as a continuing speaker.",
+        pitch:
+          "Open a har gow basket where the top dumpling holds one low constant note. Forces a clean choice on eating it, halving it, or setting it aside.",
+        beat: "A small bamboo basket of har gow arrives at the table. When the lid lifts, the top dumpling on the front row holds a single low note. The note does not change pitch. The other dumplings sit quiet on the wax paper.",
+        directorBeat:
+          "One of your dumplings is singing. Eat it without comment, halve it with your date, ask if they hear it, or push the basket aside. Do not voice the dumpling.",
       },
       {
         id: "dim-sum-and-then-some-event-7",
         title: "Chit teapot",
         kind: "reveal",
-        event: "The chit teapot at the side now holds a paper chit naming each source.",
-        characterVisibleText:
-          "The small teapot at the side of the table is now warm. Inside, a folded paper chit lists each dish on a line of its own. The line for the buns names a hill upcoast where the herds run larger than the local kind. The line for the dumplings names a bay where the catch sang. The line for the rice parcel names the year of the gate. The line for the sweets names the chef's home. The chit is unsigned.",
-        directorInstruction:
-          "Use the chit to surface a small honest reaction drawn only from existing context. The chit is not voiced as a continuing speaker.",
+        pitch:
+          "Warm the side teapot to reveal a chit naming each dish's source by hill, bay, year, and home. Surfaces a stance drawn from what you already know.",
+        beat: "The small teapot at the side of the table is now warm. Inside, a folded paper chit lists each dish on a line of its own. The line for the buns names a hill upcoast where the herds run larger than the local kind. The line for the dumplings names a bay where the catch sang. The line for the rice parcel names the year of the gate. The line for the sweets names the chef's home. The chit is unsigned.",
+        directorBeat:
+          "A list of sources just appeared in the teapot. Read one line aloud, ask your date which they recognize, fold the chit closed, or set it back. Speak only from what you already carry. Do not voice the chit.",
       },
       {
         id: "dim-sum-and-then-some-event-8",
         title: "Steamer base stamp",
         kind: "reveal",
-        event: "The base of an empty steamer carries an ink stamp from the chef's source.",
-        characterVisibleText:
-          "When the empty steamer at the top of the stack is lifted off, the base shows a small ink stamp pressed into the bamboo. The stamp is in the same hand as the chit. The stamp names a city that does not sit on the local map.",
-        directorInstruction:
-          "Use the small stamp to surface a stance drawn only from existing context. The stamp is not voiced as a continuing speaker.",
+        pitch:
+          "Lift the top steamer to reveal an ink stamp naming a city not on the local map. Surfaces stance on the strangeness.",
+        beat: "When the empty steamer at the top of the stack is lifted off, the base shows a small ink stamp pressed into the bamboo. The stamp is in the same hand as the chit. The stamp names a city that does not sit on the local map.",
+        directorBeat:
+          "There is a city named on the bottom of your steamer. Read it aloud, ask your date if they have heard of it, comment on the hand that wrote it, or set the steamer back down. Stay honest.",
       },
       {
         id: "dim-sum-and-then-some-event-9",
         title: "Old chit in the chopstick holder",
         kind: "reveal",
-        event: "An old paper chit sits in the chopstick holder from a prior visit.",
-        characterVisibleText:
-          "A small folded chit sits in the chopstick holder at the corner of the table. The chit lists a prior order in pencil. Both their first initials sit at the top of the chit in the same hand.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The chit is not voiced as a continuing speaker.",
+        pitch:
+          "Tuck a folded prior-visit chit into the chopstick holder with both first initials at the top. Surfaces a small callback or curiosity.",
+        beat: "A small folded chit sits in the chopstick holder at the corner of the table. The chit lists a prior order in pencil. Both their first initials sit at the top of the chit in the same hand.",
+        directorBeat:
+          "A chit with your initials is in the chopstick holder. Read the prior order, ask your date if they remember it, slide it across, or pocket it. Tie it to something you already know about you and them.",
       },
     ],
     earlyEndTriggers: [

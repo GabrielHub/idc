@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 9;
+export const SAVE_SCHEMA_VERSION = 10;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -369,9 +369,9 @@ export const scenarioEventSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
   kind: scenarioEventKindSchema,
-  event: z.string().min(1),
-  characterVisibleText: z.string().min(1),
-  directorInstruction: z.string().min(1),
+  pitch: z.string().min(1),
+  beat: z.string().min(1),
+  directorBeat: z.string().min(1),
 });
 
 export const dateScenarioSchema = z.object({
@@ -529,9 +529,12 @@ export const openLoopSchema = z.object({
   resolvedAt: z.string().min(1).optional(),
 });
 
+export const pairLaneStatusSchema = z.enum(["open", "closed"]);
+
 export const pairStateSchema = z.object({
   id: pairIdSchema,
   participantIds: z.tuple([memberIdSchema, memberIdSchema]),
+  laneStatus: pairLaneStatusSchema.default("open"),
   stats: pairStatsSchema,
   completedDateIds: z.array(dateSessionIdSchema),
   // Sparse: missing scenario id means zero uses for this pair.
@@ -568,6 +571,7 @@ export const dateMessageSchema = z.discriminatedUnion("kind", [
   dateMessageBaseSchema.extend({
     kind: z.literal("scenario"),
     speakerId: z.never().optional(),
+    sourceEventId: z.string().min(1).optional(),
   }),
   dateMessageBaseSchema.extend({
     kind: z.literal("cupid"),
@@ -711,13 +715,7 @@ export const playerKnowledgeRecordSchema = z.object({
 export const dateSessionStatusSchema = z.enum(["active", "completed", "ended_early"]);
 export const dateRuntimeModeSchema = z.literal("local_ai");
 
-export const followUpActionSchema = z.enum([
-  "encourage",
-  "cool_down",
-  "repair",
-  "mark_bad_fit",
-  "let_it_sit",
-]);
+export const followUpActionSchema = z.enum(["pursue", "cool_down", "close"]);
 
 export const matchmakingIntentSchema = z.enum(["comfort", "spark", "surface", "repair", "swing"]);
 
@@ -741,6 +739,7 @@ export const dateFinalReportSchema = z.object({
 export const dateSessionSchema = z.object({
   id: dateSessionIdSchema,
   pairId: pairIdSchema,
+  shiftNumber: z.number().int().min(1).optional(),
   scenarioId: scenarioIdSchema,
   focusMemberId: memberIdSchema.optional(),
   focusRequestId: z.string().min(1).optional(),
@@ -823,6 +822,12 @@ export const budgetDiscountOfferSchema = z.object({
 
 export const activeDateBookingStatusSchema = z.enum(["scenario_selection", "session_active"]);
 
+export const shiftFollowUpReservationSchema = z.object({
+  focusMemberId: memberIdSchema,
+  partnerMemberId: memberIdSchema,
+  sourceDateSessionId: dateSessionIdSchema,
+});
+
 export const activeDateBookingSchema = z.object({
   id: z.string().min(1),
   status: activeDateBookingStatusSchema,
@@ -891,6 +896,7 @@ export const shiftStateSchema = z.object({
   dateSlotsUsed: z.number().int().min(0),
   featuredMemberIds: z.array(memberIdSchema).default([]),
   availablePartnerMemberIds: z.array(memberIdSchema).default([]),
+  followUpReservations: z.array(shiftFollowUpReservationSchema).default([]),
   drawnScenarioIds: z.array(scenarioIdSchema),
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
@@ -961,7 +967,7 @@ function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: 
   }
 
   if (chatModel === DEFAULT_GATEWAY_CHAT_MODEL) {
-    return "high";
+    return "xhigh";
   }
 
   if (chatModel === DEEPSEEK_V4_PRO_MODEL) {
@@ -1136,6 +1142,7 @@ export type PairAgreementStatus = z.infer<typeof pairAgreementStatusSchema>;
 export type PairAgreement = z.infer<typeof pairAgreementSchema>;
 export type OpenLoopStatus = z.infer<typeof openLoopStatusSchema>;
 export type OpenLoop = z.infer<typeof openLoopSchema>;
+export type PairLaneStatus = z.infer<typeof pairLaneStatusSchema>;
 export type PairState = z.infer<typeof pairStateSchema>;
 export type PairEdge = z.infer<typeof pairEdgeSchema>;
 export type PairProjectionSource = z.infer<typeof pairProjectionSourceSchema>;
@@ -1176,6 +1183,7 @@ export type ShiftGoalResult = z.infer<typeof shiftGoalResultSchema>;
 export type ShiftRequestAskOutcome = z.infer<typeof shiftRequestAskOutcomeSchema>;
 export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftState = z.infer<typeof shiftStateSchema>;
+export type ShiftFollowUpReservation = z.infer<typeof shiftFollowUpReservationSchema>;
 export type AiProvider = z.infer<typeof aiProviderSchema>;
 export type AiReasoningLevel = z.infer<typeof aiReasoningLevelSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;

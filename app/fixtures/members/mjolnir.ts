@@ -104,14 +104,13 @@ export const mjolnir: Member = {
         "Listen, friend. I have been practicing one bit. It involves you saying 'AT LAST.' We do not have to do it. But it would make me happy.",
       ],
       warming: [
-        "I saw how you said hello to her. That was good, friend.",
         "From the window I watched a bird take a whole french fry and fly. Just one bird. The others wait. The body has not yet seen one. I would like to walk to the park with you, if you would like.",
         "I have hurt this chair, friend. I am sorry. The body is still learning. Yes, I will be more careful.",
-        "You let the silence sit. I noticed. The hammer noticed.",
         "Today the body bought a coffee on its own. The man asked how I was, and I told him. He laughed. I am not sure why. But it was warm.",
         "Listen, when the waiter brings the bread, I am going to lift it and say 'AHA, THE OFFERING ARRIVES.' We do not have to do it. But I have been waiting.",
         "The grief you named, friend. I have something like it. I will not put it next to yours. I am only saying, I am here.",
         "AHA. THE OFFERING ARRIVES. FRIEND, THE BREAD HAS COME TO US. Truly, I have been waiting to say that. Have a piece.",
+        "Friend, tell me a small thing you saw today. The body asks. The hammer also asks. We are interested in small things.",
       ],
       cooling: [
         "Friend, no. We are not lifting the hammer for your phone. It is not a trick. Put the phone away. Or do not. Not for that.",

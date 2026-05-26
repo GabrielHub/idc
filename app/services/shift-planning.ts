@@ -1,4 +1,10 @@
-import { type GameSave, type GoalMetric, type Member, type ShiftState } from "../domain/game";
+import {
+  type DateSession,
+  type GameSave,
+  type GoalMetric,
+  type Member,
+  type ShiftState,
+} from "../domain/game";
 import { companyGoals, memberRequests } from "../fixtures/goals";
 import { buildRandomSeed, shuffledBySeed } from "./utils";
 
@@ -116,6 +122,15 @@ export function isMemberInCooldown(member: Member, currentShift: number): boolea
     return false;
   }
   return member.state.lastDateShift >= currentShift - 1;
+}
+
+export function dateSessionShiftNumber(session: DateSession): number | null {
+  if (session.shiftNumber !== undefined) {
+    return session.shiftNumber;
+  }
+
+  const match = /^date-(\d+)-/.exec(session.id);
+  return match === null ? null : Number(match[1]);
 }
 
 function resolveCurrentMemberRequest(member: Member) {

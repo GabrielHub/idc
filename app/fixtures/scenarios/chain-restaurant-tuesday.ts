@@ -44,91 +44,91 @@ export const chainRestaurantTuesday: DateScenario = {
         id: "chain-restaurant-tuesday-event-1",
         title: "Server pen at the booth",
         kind: "reveal",
-        event: "The server stops at the booth's edge with pen and pad ready.",
-        characterVisibleText:
-          "The server stops at the booth's edge, pen above pad, and waits without speaking. The first basket of breadsticks is half gone.",
-        directorInstruction:
-          "Reveal how each member handles a low-stakes choice with another person waiting. The server does not speak.",
+        pitch:
+          "Force an ordering moment with a waiting server. Surfaces who decides, who defers, who freezes.",
+        beat: "The server stops at the booth's edge, pen above pad, and waits without speaking. The first basket of breadsticks is half gone.",
+        directorBeat:
+          "Acknowledge the waiting server now. Order, ask your date what they want, defer to them, or say you need another minute. Pick a move and name it. Do not freeze through the moment. Do not voice the server.",
       },
       {
         id: "chain-restaurant-tuesday-event-2",
         title: "Bread refill",
         kind: "ambient",
-        event: "A second breadstick basket arrives. Neither member asked.",
-        characterVisibleText:
-          "A fresh basket lands on the table. The original basket is still half full.",
-        directorInstruction:
-          "Use the abundance to surface generosity, scarcity scripts, or table manners.",
+        pitch:
+          "Drop a second free basket on the table. Surfaces how the pair handles small abundance, sharing, or scarcity reflexes.",
+        beat: "A fresh basket of breadsticks lands on the table. The original basket is still half full. Neither of them ordered it.",
+        directorBeat:
+          "Another basket just arrived unasked. Register the abundance in your next beat: offer one, push the basket toward your date, decline aloud, or comment on the gesture. Use the bread, do not glide past it.",
       },
       {
         id: "chain-restaurant-tuesday-event-3",
         title: "Check drop",
         kind: "provocation",
-        event: "The check arrives in a leatherette folder with two mints.",
-        characterVisibleText:
-          "The check sits at the edge of the table. The folder is leatherette and slightly warm from the kitchen window.",
-        directorInstruction:
-          "Let the pair handle who pays without inventing a manager intervention.",
+        pitch:
+          "Land the check between you with no preamble. Forces the who-pays question into the open.",
+        beat: "The check sits at the edge of the table in a leatherette folder. The folder is slightly warm from the kitchen window.",
+        directorBeat:
+          "The check just landed. Decide who reaches for it. Pay, offer to split, defer to your date, or invite them to handle it. Do not let the folder sit past your next line.",
       },
       {
         id: "chain-restaurant-tuesday-event-4",
         title: "Wrong fork",
         kind: "reveal",
-        event: "The server swaps a salad fork for a dinner fork without a word.",
-        characterVisibleText:
-          "The server lifts a salad fork, sets a dinner fork in its place, and moves on. The candle in the small jar at the booth is unlit. The breadstick basket is on its third pass.",
-        directorInstruction:
-          "Use the small correction to expose how the pair handles a quiet fix. The server stays silent.",
+        pitch:
+          "A silent fix from the staff. Surfaces how the pair reads a small correction without making it a scene.",
+        beat: "The server lifts a salad fork from beside the plate, replaces it with a dinner fork, and moves on. The candle in the small jar at the booth is unlit. The breadstick basket is on its third pass.",
+        directorBeat:
+          "A quiet correction just happened in your peripheral vision. Note it the way your character would: shrug it off, joke about it, ask why, or use it as a chance to soften the table. Engage with the fix, not the server. Do not voice the server.",
       },
       {
         id: "chain-restaurant-tuesday-event-5",
         title: "Tablet sleep",
         kind: "reveal",
-        event: "The booth tablet auto-sleeps and the room hum returns.",
-        characterVisibleText:
-          "The check tablet on the booth dims to its sleep screen. The booth's overhead speaker plays a smooth-jazz instrumental at low volume.",
-        directorInstruction:
-          "Let the pause invite a topic neither has needed help raising. The pair speaks from what they already know about each other, not new biography.",
+        pitch:
+          "Let the little booth screen go dark. Surfaces what either reaches for next when the gadget stops pulling attention.",
+        beat: "The check tablet on the booth dims to its sleep screen. The booth's overhead speaker plays a smooth jazz instrumental at low volume. The room hum returns.",
+        directorBeat:
+          "The booth just got quieter. Use the pause to raise a topic, lean on something you already know about your date, or sit with the silence. Pick one and own it. Do not invent biography you have not already established.",
       },
       {
         id: "chain-restaurant-tuesday-event-6",
         title: "Booth twelve",
         kind: "ambient",
-        event: "A toddler at booth twelve drops a crayon into the aisle.",
-        characterVisibleText:
-          "A red crayon rolls from booth twelve into the aisle. A parent leans down and retrieves it. The toddler waves at the entire dining room.",
-        directorInstruction:
-          "Use the small public moment to test warmth without performance. Do not voice the toddler or the parent.",
+        pitch:
+          "A toddler at the next booth creates a small public moment. Tests warmth without performance.",
+        beat: "A red crayon rolls from booth twelve into the aisle. A parent leans down and retrieves it. The toddler waves at the entire dining room.",
+        directorBeat:
+          "A small public moment just happened two tables over. React in a way that reveals you: smile, glance, ignore, get visibly tense. Do not voice the toddler or the parent.",
       },
       {
         id: "chain-restaurant-tuesday-event-7",
         title: "Manager pass",
         kind: "ambient",
-        event: "The manager walks the dining room without stopping at booth fourteen.",
-        characterVisibleText:
-          "The manager walks the floor in a polo shirt with a name tag clipped on. He passes booth fourteen, slows, and keeps moving without speaking.",
-        directorInstruction:
-          "Let the pair sit with the small near-attention. A member who flags him reveals something. The manager does not speak.",
+        pitch:
+          "Pass the manager close enough to flag. Tests who reaches for staff attention and who lets it walk by.",
+        beat: "The manager walks the floor in a polo shirt with a name tag clipped on. He passes booth fourteen, slows half a step, and keeps moving without speaking.",
+        directorBeat:
+          "The manager just gave you a near-attention pass. Choose: flag him for something, let him keep walking, or comment to your date about the slow-up. Do not voice the manager.",
       },
       {
         id: "chain-restaurant-tuesday-event-8",
         title: "Mints arrive",
         kind: "provocation",
-        event: "Two mints come in a small dish with the check folder.",
-        characterVisibleText:
-          "The mints come in a small black dish on top of the closed leatherette folder. The kitchen pass-through has gone quiet. The breadstick basket is empty.",
-        directorInstruction:
-          "Push for a clean handoff or a clean stall before the booth turns over.",
+        pitch:
+          "Pair mints with the check folder. The booth is asking you to wrap up. Forces a clean stall or a clean handoff.",
+        beat: "Two mints come in a small black dish on top of the closed leatherette folder. The kitchen pass-through has gone quiet. The breadstick basket is empty.",
+        directorBeat:
+          "The room is telling you it is time. Make the next move clear: settle the check, ask for another minute, propose what comes after, or stand. The booth is closing on you.",
       },
       {
         id: "chain-restaurant-tuesday-event-9",
         title: "Booth turn",
         kind: "provocation",
-        event: "A host taps the booth edge with a fresh menu set.",
-        characterVisibleText:
-          "A host steps to the booth and sets two laminated menus and two folded napkins on the corner. The new pair waits at the host stand. The folder with the check is now half off the table.",
-        directorInstruction:
-          "Push for a clean exit or a polite stall in front of the next pair. The host does not speak.",
+        pitch:
+          "Stage the next pair next to your booth. Forces a graceful exit or a polite stall in front of new faces.",
+        beat: "A host steps to the booth and sets two laminated menus and two folded napkins on the corner. The next pair waits at the host stand. The folder with the check is now half off the table.",
+        directorBeat:
+          "Another pair is waiting on your booth. Choose: stand to leave together, signal a graceful stall, suggest a next stop, or hand the booth over fast. Acknowledge the staging. Do not voice the host.",
       },
     ],
     earlyEndTriggers: [

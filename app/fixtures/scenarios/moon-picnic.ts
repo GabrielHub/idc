@@ -44,91 +44,91 @@ export const moonPicnic: DateScenario = {
         id: "moon-picnic-event-1",
         title: "Quilt corners",
         kind: "ambient",
-        event: "The quilt settles on the platform.",
-        characterVisibleText:
-          "The quilt is down. All four magnetic corners are locked to the platform. The basket sits in the center. A small tray slides out of the basket holding two sealed sandwich cases. Each case is labeled with a first name.",
-        directorInstruction:
-          "Open the date with a small physical setup. Either may unseal a case first or wait for the partner.",
+        pitch:
+          "Magnet-lock the quilt corners with two name-labeled sandwich cases in the basket tray. Forces a small physical opening move.",
+        beat: "The quilt is down. All four magnetic corners are locked to the platform. The basket sits in the center. A small tray slides out of the basket holding two sealed sandwich cases. Each case is labeled with a first name.",
+        directorBeat:
+          "The picnic is set. Unseal your case, slide your date's to them, comment on the labels, or wait for them to move first. Pick a small physical opening.",
       },
       {
         id: "moon-picnic-event-2",
         title: "First bite",
         kind: "reveal",
-        event: "A visor seal opens for a first bite.",
-        characterVisibleText:
-          "The lower visor seal opens for a bite and closes between bites. The sandwich is cut thin enough to fit. A crumb leaves the bread, drifts, and settles slowly on the quilt. The other visor has not opened yet.",
-        directorInstruction:
-          "Use the small mechanic to surface whether either of them notices the partner's first bite without staring.",
+        pitch:
+          "Open the visor bubble for one bite as a crumb drifts and settles on the quilt. Surfaces whether either notices the partner's first bite without staring.",
+        beat: "The lower visor seal opens for a bite and closes between bites. The sandwich is cut thin enough to fit. A crumb leaves the bread, drifts, and settles slowly on the quilt. The other visor has not opened yet.",
+        directorBeat:
+          "The visor mechanic just put a small show on. Notice it once and look away, comment on the crumb, ask your date what they got, or eat your own without comment. Do not stare.",
       },
       {
         id: "moon-picnic-event-3",
         title: "Earth at the angle",
         kind: "ambient",
-        event: "Earth sits over the right shoulder at a fixed angle.",
-        characterVisibleText:
-          "Earth sits over the right shoulder of both members at the same fixed angle. It does not move. The blue is the blue from the postcards. Neither member has turned to look at it yet.",
-        directorInstruction:
-          "Allow the view to be present without being topic. Either may turn to look or not.",
+        pitch:
+          "Hold Earth at a fixed angle over both right shoulders. Surfaces who turns to look and who keeps eyes inside the picnic.",
+        beat: "Earth sits over the right shoulder of both members at the same fixed angle. It does not move. The blue is the blue from the postcards. Neither member has turned to look at it yet.",
+        directorBeat:
+          "Home is hanging in your sky. Turn to it, comment to your date on the blue, keep eyes on them, or share a glance and look away. Show what your attention is for.",
       },
       {
         id: "moon-picnic-event-4",
         title: "Tether",
         kind: "provocation",
-        event: "The shared tether tightens a quarter inch.",
-        characterVisibleText:
-          "The thin shared tether between their suit belts tightens a quarter inch as one of them shifts weight. The clip on the platform is solid. The other end of the tether is solid. The line is not in either lap.",
-        directorInstruction:
-          "Push for a physical adjustment so the partner is not pulled. The shift demands a real move before the next line.",
+        pitch:
+          "Tighten the shared tether a quarter inch as one of you shifts weight. Forces a physical adjustment.",
+        beat: "The thin shared tether between their suit belts tightens a quarter inch as one of them shifts weight. The clip on the platform is solid. The other end of the tether is solid. The line is not in either lap.",
+        directorBeat:
+          "Your line just pulled on your date. Shift back to free them, comment on the small tug, ask if they want more room, or adjust the slack. Use your body in this beat.",
       },
       {
         id: "moon-picnic-event-5",
         title: "Thermos",
         kind: "reveal",
-        event: "The squeeze thermos comes out of the basket.",
-        characterVisibleText:
-          "A squeeze thermos with a long flexible spout sits in a clip on the basket. The spout fits the visor seal. There is one thermos. The label reads warm.",
-        directorInstruction:
-          "Use the shared object to surface how either of them offers it across the quilt. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface a single squeeze thermos with a visor-fit spout labeled warm. Forces a small offering across the quilt.",
+        beat: "A squeeze thermos with a long flexible spout sits in a clip on the basket. The spout fits the visor seal. There is one thermos. The label reads warm.",
+        directorBeat:
+          "One thermos for two of you. Offer it across, take a sip first, ask your date what they want, or hand them the spout. Make the small generosity visible. Do not voice the thermos.",
       },
       {
         id: "moon-picnic-event-6",
         title: "Footprints at the edge",
         kind: "ambient",
-        event: "Past boot marks are visible at the platform edge.",
-        characterVisibleText:
-          "Two old sets of boot prints are pressed into the regolith just past the platform's edge. The prints are different sizes. They have not moved in the time the platform has been there. No wind reaches them.",
-        directorInstruction:
-          "Allow the small evidence of past visitors. The pair does not need to invent a story for them.",
+        pitch:
+          "Show two old sets of different-size boot prints frozen in the regolith past the edge. Surfaces a small evidence of past visitors without inventing a story.",
+        beat: "Two old sets of boot prints are pressed into the regolith just past the platform's edge. The prints are different sizes. They have not moved in the time the platform has been there. No wind reaches them.",
+        directorBeat:
+          "Someone was here before you. Notice the prints, comment to your date on the two sizes, sit with the small evidence, or look elsewhere. Do not invent a story.",
       },
       {
         id: "moon-picnic-event-7",
         title: "Two cookies",
         kind: "reveal",
-        event: "A small tin of two cookies opens inside the basket.",
-        characterVisibleText:
-          "A small round tin pops its lid in the basket. Two cookies sit inside, one slightly larger than the other. A note in the tin reads share. The visor seal can fit a cookie.",
-        directorInstruction:
-          "Use the small choice to surface whether either of them takes the larger cookie or offers it across the quilt. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pop a small tin with two cookies, one slightly larger, and a note: share. Forces a clean choice on who takes the larger.",
+        beat: "A small round tin pops its lid in the basket. Two cookies sit inside, one slightly larger than the other. A note in the tin reads share. The visor seal can fit a cookie.",
+        directorBeat:
+          "Two cookies are unequal in your basket. Hand the larger across, claim it for yourself with a comment, ask your date which they want, or split the bigger one in half. Speak to the choice. Do not voice the tin.",
       },
       {
         id: "moon-picnic-event-8",
         title: "Retract chime",
         kind: "provocation",
-        event: "The platform sounds a soft chime to begin retraction.",
-        characterVisibleText:
-          "A soft chime comes through the suit speakers. The platform has begun a slow retract toward the dome airlock. The basket clips itself shut. The quilt corners release on a delay.",
-        directorInstruction:
-          "Push for a clean exit. The pair packs out together, or one of them takes the lead. Either is right if it is honest.",
+        pitch:
+          "Chime the platform into slow retraction with the basket clipping shut and a delayed quilt release. Forces a clean exit.",
+        beat: "A soft chime comes through the suit speakers. The platform has begun a slow retract toward the dome airlock. The basket clips itself shut. The quilt corners release on a delay.",
+        directorBeat:
+          "The platform is taking you home. Stand together, pack the last cookie, ask your date what they want to take, or walk to the airlock without a word. Honor the timing.",
       },
       {
         id: "moon-picnic-event-9",
         title: "Suit warning",
         kind: "provocation",
-        event: "A suit climate light blinks amber on one of them.",
-        characterVisibleText:
-          "A small amber light blinks on the chest plate of one suit. The visor heads-up reads: climate within tolerance, manual check advised. The other suit reads green.",
-        directorInstruction:
-          "Push for a clean physical answer: check the seal together, run the manual, or call the platform back early. The amber will not clear without a touch. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Blink an amber climate light on one suit with a manual check advised note. Forces a clean physical answer.",
+        beat: "A small amber light blinks on the chest plate of one suit. The visor heads-up reads: climate within tolerance, manual check advised. The other suit reads green.",
+        directorBeat:
+          "One suit just flagged something small. Check the seal together, run the manual, call the platform back early, or trust the tolerance line and stay. Touch the suit in this beat. Do not voice the suit.",
       },
     ],
     earlyEndTriggers: [

@@ -163,8 +163,14 @@ export const sections: DocSectionEntry[] = [
           Runtime voice must be verified against the AI character pipeline before lock or major
           re-lock.
         </P>
-        <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-partner-id> --name <session-name> --focus-opens
+        <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-partner-id> --name <session-name> --focus-opens --focus-request <request-id>
 vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
+        <P>
+          Pass <DocCode>--focus-request</DocCode> with one of the member&apos;s ids from{" "}
+          <DocCode>app/fixtures/goals/member-requests.ts</DocCode>. Gameplay always injects a
+          request, so omitting it makes the audited voice read more reactive and less goal-oriented
+          than in real dates.
+        </P>
         <DocSteps
           items={[
             "Pick one warm pairing and one boundary-pressure pairing from the roster.",

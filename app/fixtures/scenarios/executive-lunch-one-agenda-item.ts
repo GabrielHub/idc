@@ -44,91 +44,91 @@ export const executiveLunchOneAgendaItem: DateScenario = {
         id: "executive-lunch-one-agenda-item-event-1",
         title: "Agenda card",
         kind: "reveal",
-        event: "The blank agenda card waits between them.",
-        characterVisibleText:
-          "The card on the table reads: one agenda item, please. The pen is too expensive for this restaurant.",
-        directorInstruction:
-          "Let the next speaker name a real topic or admit they need a minute. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Land the printed agenda card asking for one topic with the expensive pen on top. Forces a real topic or an honest admission that one is not ready.",
+        beat: "The card on the table reads: one agenda item, please. The pen is too expensive for this restaurant.",
+        directorBeat:
+          "The card is asking for a topic. Name it out loud, say you need a minute, ask your date to go first, or set the pen back down. Take a stance. Do not voice the card.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-2",
         title: "Water refill",
         kind: "ambient",
-        event: "The server stops to refill water and steps back without speaking.",
-        characterVisibleText:
-          "Water fills both glasses to the rim. The server lingers a second longer than expected, then steps back two paces.",
-        directorInstruction:
-          "Use the pause to test decisiveness without rewarding dominance. The server does not speak.",
+        pitch:
+          "Refill both glasses and have the server linger half a beat longer than expected. Surfaces decisiveness without rewarding dominance.",
+        beat: "Water fills both glasses to the rim. The server lingers a second longer than expected, then steps back two paces.",
+        directorBeat:
+          "Someone is waiting on you without asking. Order, send them off with a thank you, glance at your date for a cue, or sit with the linger. Make the small decision visible. Do not voice the server.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-3",
         title: "Calendar hold",
         kind: "provocation",
-        event: "The check arrives with a tentative second hold penciled on the receipt.",
-        characterVisibleText:
-          "The receipt slides onto the table. A small line at the bottom reads: tentative hold, next Wednesday, 12:30.",
-        directorInstruction:
-          "Push the pair to accept, decline, or revise the hold with adult clarity. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Slide the receipt onto the table with a penciled tentative hold for next Wednesday at twelve thirty. Forces an adult call on accepting, declining, or revising the hold.",
+        beat: "The receipt slides onto the table. A small line at the bottom reads: tentative hold, next Wednesday, 12:30.",
+        directorBeat:
+          "A second meeting is being offered. Accept it on the receipt, decline cleanly, propose a different day, or say you need to check. Speak directly. Do not voice the receipt.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-4",
         title: "Bread basket",
         kind: "reveal",
-        event: "A small bread basket arrives without being asked for.",
-        characterVisibleText:
-          "A small bread basket lands on the table. Two crisp slices of focaccia, a pat of cold butter, and a folded linen napkin. The basket is the kind that disappears if neither person eats from it.",
-        directorInstruction:
-          "Use the quiet hospitality to surface ease or the inability to accept ease.",
+        pitch:
+          "Land a small bread basket the table did not order. Surfaces ease or the inability to accept ease.",
+        beat: "A small bread basket lands on the table. Two crisp slices of focaccia, a pat of cold butter, and a folded linen napkin. The basket is the kind that disappears if neither person eats from it.",
+        directorBeat:
+          "A small gift just landed. Pick a slice, push it toward your date, decline aloud, or comment on the timing. Show whether you can accept ease.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-5",
         title: "Sommelier pass",
         kind: "ambient",
-        event: "The sommelier pauses near the table with a list and moves on.",
-        characterVisibleText:
-          "The sommelier reads the table for half a breath, holds the wine list against his arm, and moves to the next two-top. The agenda card has not moved. The pen has not been picked up.",
-        directorInstruction:
-          "Let the missed offer go unmentioned. The next sentence is the agenda item. The sommelier does not speak.",
+        pitch:
+          "Drift the sommelier past the table with the wine list held against his arm. Surfaces whether either lets the missed offer go.",
+        beat: "The sommelier reads the table for half a breath, holds the wine list against his arm, and moves to the next two-top. The agenda card has not moved. The pen has not been picked up.",
+        directorBeat:
+          "He almost stopped and did not. Let it go and stay with the agenda, comment on the read, ask your date if they want wine, or flag him back. Speak from your actual register. Do not voice the sommelier.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-6",
         title: "One vibration",
         kind: "provocation",
-        event: "One phone on the table vibrates once.",
-        characterVisibleText:
-          "One phone on the corner of the table vibrates once and stops. The screen shows nothing visible. The other phone is in a coat draped over the chair.",
-        directorInstruction:
-          "Use the small interruption to test how the addressee handles a calendar trespass at lunch.",
+        pitch:
+          "Vibrate one phone on the table corner once and stop. Forces a stance on calendar trespass at lunch.",
+        beat: "One phone on the corner of the table vibrates once and stops. The screen shows nothing visible. The other phone is in a coat draped over the chair.",
+        directorBeat:
+          "Someone outside the room just reached for your time. Flip the phone face down, glance at the screen, comment to your date about boundaries, or ignore it entirely. Make the call clean.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-7",
         title: "Plates clear",
         kind: "ambient",
-        event: "Plates are cleared in one quiet pass.",
-        characterVisibleText:
-          "A server clears both plates in one efficient pass. Crumbs are swept off the cloth with a small folder. The pen on the agenda card has not moved.",
-        directorInstruction:
-          "Let the table be as clean as the question. The agenda card is now visible from any angle. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Sweep the plates and crumbs cleanly in one pass. Surfaces whether the agenda card now reads as the obvious next move.",
+        beat: "A server clears both plates in one efficient pass. Crumbs are swept off the cloth with a small folder. The pen on the agenda card has not moved.",
+        directorBeat:
+          "The table is empty of food and the card is in plain sight. Pick up the pen, restate the topic, ask your date for theirs, or look at the time. Use the cleared space. Do not voice the card.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-8",
         title: "Next reservation",
         kind: "provocation",
-        event: "The host walks past with a tablet showing the table's next seating.",
-        characterVisibleText:
-          "The host walks past with a small tablet. The screen shows table 12 has a 1:30 reservation under another last name. The host does not stop to mention it.",
-        directorInstruction:
-          "Push for a clear close. Lunch will end on time whether the date does or not. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Walk the host past with a tablet showing table twelve is booked at one-thirty. Forces a clear close.",
+        beat: "The host walks past with a small tablet. The screen shows table 12 has a 1:30 reservation under another last name. The host does not stop to mention it.",
+        directorBeat:
+          "Your table has a clock on it now. Settle the second hold, propose a clean close, ask your date one final question, or stand. Lunch ends on time whether the date does or not. Do not voice the host.",
       },
       {
         id: "executive-lunch-one-agenda-item-event-9",
         title: "Pen ink test",
         kind: "reveal",
-        event: "The expensive pen rolls into reach with a small ink mark already on the cap.",
-        characterVisibleText:
-          "The pen rolls a quarter inch toward whichever speaker has the lighter touch. A small ink mark on the cap is in the same color as the calendar hold line on the receipt.",
-        directorInstruction:
-          "Use the small invitation to surface what either of them already wants from the second meeting. Draw on existing register, not new biography.",
+        pitch:
+          "Roll the pen toward the lighter-touch speaker with an ink mark matching the calendar hold line. Surfaces what either already wants from a second meeting.",
+        beat: "The pen rolls a quarter inch toward whichever speaker has the lighter touch. A small ink mark on the cap is in the same color as the calendar hold line on the receipt.",
+        directorBeat:
+          "The pen has been invited toward someone. Pick it up and sign the hold, hand it to your date, write a counter-offer, or set it back. Speak from what you already want, not new biography.",
       },
     ],
     earlyEndTriggers: [

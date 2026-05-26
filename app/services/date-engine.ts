@@ -6,6 +6,7 @@ import {
   gameSaveSchema,
   judgeSnapshotSchema,
   memoryRecordSchema,
+  pairStateSchema,
   shiftReportSchema,
   shiftStateSchema,
   type ActiveDateBooking,
@@ -87,13 +88,16 @@ import {
 } from "./budget";
 import { drawHandForBooking } from "./deck";
 import {
+  dateSessionShiftNumber,
   isMemberInCooldown,
   pickNextMemberRequestId,
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
 import {
-  selectShiftFollowUpPartnerMemberIds,
+  followUpPartnerMemberIds,
+  hasFollowUpReservation,
+  selectShiftFollowUpReservations,
   selectShiftPartnerMemberIds,
 } from "./shift-availability";
 import {
@@ -210,10 +214,20 @@ function assertPairBookable({
   if (save.focusedMemberIds.includes(partnerMember.id)) {
     throw new Error("Focus cases cannot be matched with each other this shift.");
   }
-  if (
-    isMemberInCooldown(focusMember, activeShift.shiftNumber) ||
-    isMemberInCooldown(partnerMember, activeShift.shiftNumber)
-  ) {
+  const pairId = makePairId(focusMember.id, partnerMember.id);
+  const pairState = save.pairStates.find((candidate) => candidate.id === pairId);
+  if (pairState?.laneStatus === "closed") {
+    throw new Error("Cupid closed the romantic lane between these members.");
+  }
+  const followUpExempt = hasFollowUpReservation({
+    reservations: activeShift.followUpReservations,
+    focusMemberId: focusMember.id,
+    partnerMemberId: partnerMember.id,
+  });
+  const focusBlocked = isMemberInCooldown(focusMember, activeShift.shiftNumber) && !followUpExempt;
+  const partnerBlocked =
+    isMemberInCooldown(partnerMember, activeShift.shiftNumber) && !followUpExempt;
+  if (focusBlocked || partnerBlocked) {
     throw new Error("One of the members is still in cooldown from a recent date.");
   }
   if (!activeShift.availablePartnerMemberIds.includes(partnerMember.id)) {
@@ -439,6 +453,7 @@ export function startDateSessionFromBooking(
   const session = dateSessionSchema.parse({
     id: sessionId,
     pairId: booking.pairId,
+    shiftNumber: activeShift.shiftNumber,
     scenarioId: scenario.id,
     focusMemberId: focusMember.id,
     focusRequestId: focusRequest?.id,
@@ -850,9 +865,7 @@ function scoreScenarioEventForPair(
   trajectoryState: ReturnType<typeof derivePairTrajectory>["state"],
   openLoopCount: number,
 ): number {
-  const text = [event.title, event.event, event.characterVisibleText, event.directorInstruction]
-    .join(" ")
-    .toLowerCase();
+  const text = [event.title, event.pitch, event.beat, event.directorBeat].join(" ").toLowerCase();
   let score = 0;
 
   if (trajectoryState === "brittle") {
@@ -975,12 +988,9 @@ export function triggerScenarioEvent(
     throw new Error(`Scenario event ${input.eventId} not found in scenario ${scenario.id}.`);
   }
 
-  const eventMessage = createNonCharacterMessage(
-    session,
-    "scenario",
-    event.characterVisibleText,
-    timestamp,
-  );
+  const eventMessage = createNonCharacterMessage(session, "scenario", event.beat, timestamp, {
+    sourceEventId: event.id,
+  });
   const updatedSession = dateSessionSchema.parse({
     ...session,
     transcript: [...session.transcript, eventMessage],
@@ -1331,7 +1341,10 @@ export function applyFollowUpAction(save: GameSave, input: FollowUpInput): DateE
     action: input.action,
     timestamp,
   });
-  const updatedPairState = pairMemoryResult.pairState;
+  const updatedPairState = pairStateSchema.parse({
+    ...pairMemoryResult.pairState,
+    laneStatus: input.action === "close" ? "closed" : pairMemoryResult.pairState.laneStatus,
+  });
   const updatedSession = dateSessionSchema.parse({
     ...session,
     finalReport: dateFinalReportSchema.parse({
@@ -1894,12 +1907,14 @@ export function startNextShift(
     featuredMemberIds,
     shiftNumber: nextShiftNumber,
   });
-  const followUpPartnerMemberIds = selectShiftFollowUpPartnerMemberIds({
+  const followUpReservations = selectShiftFollowUpReservations({
     members: save.members,
     focusedMemberIds: featuredMemberIds,
     dateSessions: save.dateSessions,
+    pairStates: save.pairStates,
     shiftNumber: nextShiftNumber,
   });
+  const followUpPartnerIds = followUpPartnerMemberIds(followUpReservations);
   const nextShift = shiftStateSchema.parse({
     id: `shift-${nextShiftNumber}`,
     shiftNumber: nextShiftNumber,
@@ -1911,8 +1926,11 @@ export function startNextShift(
       members: save.members,
       focusedMemberIds: featuredMemberIds,
       shiftNumber: nextShiftNumber,
-      priorityPartnerMemberIds: followUpPartnerMemberIds,
+      priorityPartnerMemberIds: followUpPartnerIds,
+      cooldownExemptMemberIds: followUpPartnerIds,
+      pairStates: save.pairStates,
     }),
+    followUpReservations,
     drawnScenarioIds: [],
     companyGoalIds,
     memberRequestIds,
@@ -1973,16 +1991,22 @@ export function createNonCharacterMessage(
   kind: "scenario" | "cupid" | "system",
   text: string,
   createdAt: string,
+  extra?: { sourceEventId?: string },
 ): DateMessage {
-  return {
+  const base = {
     id: `${session.id}-msg-${session.transcript.length}`,
     dateSessionId: session.id,
-    kind,
     turnIndex: session.currentTurn,
     sequenceIndex: session.transcript.length,
     text,
     createdAt,
   };
+
+  if (kind === "scenario") {
+    return { ...base, kind: "scenario", sourceEventId: extra?.sourceEventId };
+  }
+
+  return { ...base, kind };
 }
 
 function deterministicCharacterText({
@@ -2018,7 +2042,7 @@ function deterministicCharacterText({
   }
 
   if (eventHint !== undefined && turnIndex % 4 === 0) {
-    return `${speaker.name} looks at ${partner.name}. ${eventHint.characterVisibleText} I can work with this if we stay specific.${interventionLine}`;
+    return `${speaker.name} looks at ${partner.name}. ${eventHint.beat} I can work with this if we stay specific.${interventionLine}`;
   }
 
   if (speaker.tags.includes("weirdness_native")) {
@@ -2899,11 +2923,21 @@ function resolveFollowUpEffects(
   const openLoopCount = listUniqueOpenLoops(pairState).length;
   const reasons: string[] = [`outcome:${outcome}`];
 
-  if (action === "encourage") {
+  if (action === "pursue") {
+    const repairShape = boundaryPressure || brokenAgreementCount > 0;
+    if (repairShape) {
+      if (boundaryPressure) reasons.push("boundary repair");
+      if (brokenAgreementCount > 0) reasons.push("agreement repair");
+      return {
+        statDeltas: { trust: 10, stability: 5, conflict: -9, spark: 1 },
+        memberDeltas: { retention: 10, mood: 4, burnout: -4 },
+        reasons,
+      };
+    }
+
     const positive = outcome === "second_date";
     if (positive) reasons.push("warm file");
-    else reasons.push("encourage against caution");
-
+    else reasons.push("pursue against caution");
     return {
       statDeltas: positive
         ? { chemistry: 7, trust: 4, stability: 1, spark: 7 }
@@ -2930,58 +2964,17 @@ function resolveFollowUpEffects(
     };
   }
 
-  if (action === "repair") {
-    if (boundaryPressure) reasons.push("boundary repair");
-    if (brokenAgreementCount > 0) reasons.push("agreement repair");
-
-    return {
-      statDeltas:
-        boundaryPressure || brokenAgreementCount > 0
-          ? { trust: 10, stability: 5, conflict: -9, spark: 1 }
-          : { trust: 7, stability: 4, conflict: -6 },
-      memberDeltas:
-        boundaryPressure || brokenAgreementCount > 0
-          ? { retention: 10, mood: 4, burnout: -4 }
-          : { retention: 8, mood: 3, burnout: -3 },
-      reasons,
-    };
-  }
-
-  if (action === "mark_bad_fit") {
-    const protective = outcome === "bad_fit" || outcome === "early_end" || highStrain;
-    if (protective) reasons.push("protective bad fit filing");
-    else reasons.push("premature bad fit filing");
-
-    return {
-      statDeltas: protective
-        ? { chemistry: -8, trust: -1, stability: 5, conflict: -3, spark: -10 }
-        : { chemistry: -6, trust: -3, stability: 1, conflict: 4, spark: -8 },
-      memberDeltas: protective
-        ? { retention: 7, mood: 1, burnout: -2 }
-        : { retention: -3, mood: -2, burnout: 2 },
-      reasons,
-    };
-  }
-
-  const missedRepair = boundaryPressure || brokenAgreementCount > 0 || highStrain;
-  const missedWarmth = outcome === "second_date";
-  const openLoopsLingering = openLoopCount > 0;
-  if (missedRepair) reasons.push("strain left unaddressed");
-  else if (missedWarmth) reasons.push("warmth left on the table");
-  else if (openLoopsLingering) reasons.push("open loops untouched");
-  else reasons.push("filed without action");
+  const protective = outcome === "bad_fit" || outcome === "early_end" || highStrain;
+  if (protective) reasons.push("protective close");
+  else reasons.push("premature close");
 
   return {
-    statDeltas: missedRepair
-      ? { chemistry: -3, trust: -2, stability: -3, conflict: 3, spark: -2 }
-      : missedWarmth
-        ? { chemistry: -2, trust: -1, stability: -1, spark: -4 }
-        : { chemistry: -1, trust: -1, stability: -1, conflict: 1, spark: -1 },
-    memberDeltas: missedRepair
-      ? { retention: -3, mood: -2, burnout: 1 }
-      : missedWarmth
-        ? { retention: -2, mood: -1, burnout: 1 }
-        : { retention: -1, mood: -1, burnout: 1 },
+    statDeltas: protective
+      ? { chemistry: -8, trust: -1, stability: 5, conflict: -3, spark: -10 }
+      : { chemistry: -6, trust: -3, stability: 1, conflict: 4, spark: -8 },
+    memberDeltas: protective
+      ? { retention: 7, mood: 1, burnout: -2 }
+      : { retention: -3, mood: -2, burnout: 2 },
     reasons,
   };
 }
@@ -3044,7 +3037,7 @@ function shiftSessionPrefix(shiftNumber: number): string {
 }
 
 export function sessionBelongsToShift(session: DateSession, shiftNumber: number): boolean {
-  return session.id.startsWith(shiftSessionPrefix(shiftNumber));
+  return dateSessionShiftNumber(session) === shiftNumber;
 }
 
 function hasActiveDateInShift(save: GameSave, shiftNumber: number): boolean {
@@ -3327,19 +3320,9 @@ function formatPairNames(session: DateSession, memberById: ReadonlyMap<string, M
 }
 
 function followUpForOutcome(outcome: DateFinalReport["outcome"]): FollowUpAction {
-  if (outcome === "second_date") {
-    return "encourage";
-  }
-
-  if (outcome === "cool_down") {
-    return "cool_down";
-  }
-
-  if (outcome === "early_end") {
-    return "repair";
-  }
-
-  return outcome === "bad_fit" ? "mark_bad_fit" : "repair";
+  if (outcome === "cool_down") return "cool_down";
+  if (outcome === "bad_fit") return "close";
+  return "pursue";
 }
 
 function isBadFitOutcome(stats: PairStats): boolean {

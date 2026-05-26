@@ -186,7 +186,13 @@ function dispatchOutcomeQuip(
   sessionId: string,
 ): void {
   if (report === undefined) return;
-  const triggerKey = OUTCOME_QUIP_TRIGGER_KEYS[report.outcome];
+  // Filing Close on a non-bad_fit outcome retires the romantic lane on the
+  // player's own call. Route to the bad-fit quip pool so the manager doesn't
+  // celebrate the lane the player just chose to kill.
+  const triggerKey =
+    report.appliedFollowUp === "close" && report.outcome !== "bad_fit"
+      ? "date.outcome.bad-fit"
+      : OUTCOME_QUIP_TRIGGER_KEYS[report.outcome];
   if (triggerKey === undefined) return;
   dispatchManagerQuip({ triggerKey, surfaceKey: sessionId });
 }

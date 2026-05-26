@@ -87,9 +87,9 @@ export const venus: Member = {
       warming: [
         "Three compliments unsolicited and I have counted. Correct. Continue.",
         "First in the toast. The maitre d noted it, the room knows.",
-        "Vulcan has not come up once. I will not punish good behavior. I will reward it. Subtly. Later.",
-        "My advice on love has been asked for and I am, technically, qualified. A verdict by dessert.",
         "The maitre d named me first in a group of four. Four, not three. The bar is full. The lighting is three-quarter power and still flattering. The toast was led with my name and the count is up to five. The evening, on the metrics, is good.",
+        "Order me the second course. I have a preference. I will not name it. The compliment is in your choosing rightly.",
+        "Cupid is the only other deity in the room with mortals. I will note this once. He owes me a favor from a Tuesday in 1923. I have not cashed it in. Tonight, perhaps.",
       ],
       cooling: [
         "You have suggested I might be the problem. I will assume you misspoke. I will give you one occasion to apologize.",

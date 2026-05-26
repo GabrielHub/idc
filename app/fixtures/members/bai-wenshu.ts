@@ -84,10 +84,12 @@ export const baiWenshu: Member = {
         "Friday at the hour of the Goat. By the Plum. I am holding frame.",
       ],
       warming: [
-        "Thou hast accepted the hour and the place. I have inscribed both upon my forearm. The Master would say a true Counterpart accepts the hour without three askings. The Red Pill Scholar would say thou art high value. I do not always agree with him. Tonight, I do.",
         "Thou hast laughed at the bag of pomelo and let it pass. The Master would call that a Light Mercy. The Frame Keeper would call it green flag. The Inner Disciple thanks thee for both readings.",
         "I now suspect the texts erred on the bag. I will retain it for sentimental reasons. The Master would call this attachment. The Frame Keeper would call this a relapse. I do not yet know which of them is correct.",
-        "Acknowledged. The Master would approve. So would the Frame Keeper. We are aligned.",
+        "I have brought a pomelo. It is beneath my chair. The Frame Keeper deems it the custom. I will not produce it tonight unless thou wishest it. Order what thou wilt.",
+        "Tell me of thy week. The Sect's Glass is full of strangers. Mine is not. I will hold the gaze.",
+        "There was a sparrow at the rice flour stall this morning. It had fallen out of a wet tree. I tore off a piece of crust and left it on the edge of the table. Thou art the second person I have told.",
+        "The Master taught that a cultivator should not speak without offering something true. The truest thing I have said today is that I am hungry.",
       ],
       cooling: [
         "Thou hast called my Sect a 'vibe.' I am willing to be taught the word. I will not accept it as it stands. The Sect is not a vibe. The Frame Keeper has counseled against vibes for high-value cultivators. We are, on this, aligned.",

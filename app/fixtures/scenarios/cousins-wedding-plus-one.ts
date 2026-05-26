@@ -43,91 +43,91 @@ export const cousinsWeddingPlusOne: DateScenario = {
         id: "cousins-wedding-plus-one-event-1",
         title: "Glasses filled",
         kind: "reveal",
-        event: "A server fills both their flutes without asking and moves on.",
-        characterVisibleText:
-          "Two flutes come up to the rim. The server moves to the next table without comment. An uncle in a sport coat passes behind their chairs to refill his own water.",
-        directorInstruction:
-          "Use the small attention to test how the pair narrates themselves to the room. The server and the uncle do not speak. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Force small public attention on your table. Tests how the pair narrates themselves to relatives passing within reach.",
+        beat: "Two flutes come up to the rim. The server moves to the next table without comment. An uncle in a sport coat passes behind their chairs to refill his own water.",
+        directorBeat:
+          "Two strangers just walked through your space. Decide how visible to be: lift the glass, lean closer, sit straighter, joke quietly, or hold still. Reveal something about how you handle being read. Do not voice the server or the uncle.",
       },
       {
         id: "cousins-wedding-plus-one-event-2",
         title: "Toast lands",
         kind: "ambient",
-        event: "The maid of honor's toast carries across the hall.",
-        characterVisibleText:
-          "Glasses go up around the room. Silverware stops on a hundred plates. The toast lands somewhere far from their table.",
-        directorInstruction:
-          "Allow the pair a moment to be quiet together inside a public ritual. The toast is heard from a distance and is not voiced as continuing dialogue.",
+        pitch:
+          "Drop a public ritual across the room. Forces the pair to share a small quiet moment inside someone else's spotlight.",
+        beat: "Glasses go up around the room. Silverware stops on a hundred plates. The maid of honor's toast carries from the far side of the hall.",
+        directorBeat:
+          "A public toast just took the room. You are far enough to whisper. Choose: lift your own glass, exchange a look with your date, comment under the cover of noise, or sit silent together. Use the cover. Do not voice the toast as continuing dialogue.",
       },
       {
         id: "cousins-wedding-plus-one-event-3",
         title: "First slow song",
         kind: "provocation",
-        event: "The DJ cues a slow song. The dance floor lights tilt warm.",
-        characterVisibleText:
-          "The first slow song begins. Two couples step out. The dance floor lights tilt warm. Their table is still mostly seated.",
-        directorInstruction:
-          "Push for a clean choice: dance, stay seated, or step out. Each choice is information.",
+        pitch:
+          "Force a dance floor moment. Both have to decide whether to leave the table together or stay sitting.",
+        beat: "The first slow song begins. Two couples step out. The dance floor lights tilt warm. Their table is still mostly seated.",
+        directorBeat:
+          "A slow song just started. This turn, decide visibly: invite them to dance, refuse the floor, joke about it, or wait for them to move first. Do not let the song pass without naming what you are doing.",
       },
       {
         id: "cousins-wedding-plus-one-event-4",
         title: "Cake cut",
         kind: "reveal",
-        event: "The bride and groom cut the cake at the front of the room.",
-        characterVisibleText:
-          "Phones go up around the room. The bride and groom cut a sheet cake at the head table. A small cheer lands and fades. Their table is one person short of joining in.",
-        directorInstruction:
-          "Use the public ritual to test whether the pair stays close without staging it.",
+        pitch:
+          "Land a peak ritual at the head table. Tests whether the pair stays close without staging it for the cameras.",
+        beat: "Phones go up around the room. The bride and groom cut a sheet cake at the head table. A small cheer lands and fades. Their table is one person short of joining in.",
+        directorBeat:
+          "The biggest moment of the night is happening across the room. Join the crowd, watch from here, or use the noise as cover for something quieter. Pick one and own it. Do not stage your reaction for the room.",
       },
       {
         id: "cousins-wedding-plus-one-event-5",
         title: "Photographer pass",
         kind: "reveal",
-        event: "The wedding photographer drifts past table fourteen.",
-        characterVisibleText:
-          "The photographer drifts past table fourteen, lifts the camera, and chooses a different angle of the dance floor. The shutter does not fire here. The lens cap dangles from a strap.",
-        directorInstruction:
-          "Let the pair feel the lens turn away. A member who relaxes here is honest. A member who flinches is honest in another way. The photographer does not speak.",
+        pitch:
+          "Turn the lens elsewhere. Tests who relaxes and who flinches when they think they are not being filed.",
+        beat: "The photographer drifts past table fourteen, lifts the camera, and chooses a different angle of the dance floor. The shutter does not fire here. The lens cap dangles from a strap.",
+        directorBeat:
+          "The camera just turned away from you. Notice the lift: relax visibly, lean in, drop the public posture, or stay armored anyway. Each move tells your date something. Do not voice the photographer.",
       },
       {
         id: "cousins-wedding-plus-one-event-6",
         title: "Bar refresh",
         kind: "ambient",
-        event: "A server passes with a tray of fresh pours.",
-        characterVisibleText:
-          "A tray of fresh pours moves between the tables. The server stops at table fifteen and not at fourteen. The flutes from earlier are still mostly full.",
-        directorInstruction:
-          "Use the small skip to lower or raise the table heat. The server does not speak.",
+        pitch:
+          "Skip the pair on the next pour. Adjusts the table heat to either less buzzed or more pointed about it.",
+        beat: "A tray of fresh pours moves between the tables. The server stops at table fifteen and not at fourteen. The flutes from earlier are still mostly full.",
+        directorBeat:
+          "Your table just got passed over. Decide whether you noticed: flag it lightly, joke about the skip, defend the pace, or sit with it. Use the small slight to change the heat. Do not voice the server.",
       },
       {
         id: "cousins-wedding-plus-one-event-7",
         title: "Bouquet round",
         kind: "ambient",
-        event: "The DJ calls the bouquet toss.",
-        characterVisibleText:
-          "The DJ asks anyone single to gather at the dance floor. Five guests drift over. A few stay seated and pretend not to hear. Their table does not move.",
-        directorInstruction:
-          "Allow the pair to ignore the call together or split on whether to play along. Do not voice the DJ as a continuing speaker.",
+        pitch:
+          "Call singles to the floor. Forces a small how-do-we-look-to-the-room choice for the pair.",
+        beat: "The DJ calls for anyone single to gather at the dance floor. Five guests drift over. A few stay seated and pretend not to hear. Table fourteen does not move.",
+        directorBeat:
+          "A public single status call just hit the room. Stay seated together with a comment, exchange a look, joke about whether either of you qualifies, or let one of you play along. Pick one and name it. Do not voice the DJ.",
       },
       {
         id: "cousins-wedding-plus-one-event-8",
         title: "Coat check",
         kind: "provocation",
-        event: "A coat-check attendant arrives at the table with two tickets.",
-        characterVisibleText:
-          "A coat-check attendant in a red vest sets two paper tickets on the table. The numbers are in sequence. The reception still has at least an hour to run.",
-        directorInstruction:
-          "Push for a clean read on whether to leave together or stay it out. The attendant does not speak.",
+        pitch:
+          "Land two sequential coat tickets between you. Forces a clean read on leaving together or staying it out.",
+        beat: "A coat check attendant in a red vest sets two paper tickets on the table. The numbers are in sequence. The reception still has at least an hour to run.",
+        directorBeat:
+          "Two coats and one decision just landed. Choose: get the coats and go, signal you want to stay, ask your date what they want, or ignore the tickets for now. Do not let them sit unaddressed past your next line. Do not voice the attendant.",
       },
       {
         id: "cousins-wedding-plus-one-event-9",
         title: "Group photo call",
         kind: "provocation",
-        event: "Wedding party gets called for a group photo and table 14 is paged.",
-        characterVisibleText:
-          "A small page slides across the table from a coordinator: extended family group photo at the staircase, table fourteen included, two minutes. Two of the seats at the table are already empty.",
-        directorInstruction:
-          "Push for a clean call: walk to the staircase, send one of them, or pass on the photo. The coordinator does not speak.",
+        pitch:
+          "Page table fourteen for the extended family photo. Forces a clean call to go, to send one of you, or to pass on it.",
+        beat: "A small page slides across the table from a coordinator: extended family group photo at the staircase, table fourteen included, two minutes. Two of the seats at the table are already empty.",
+        directorBeat:
+          "The wedding is asking you to stand and walk to the staircase. Decide: both of you go, send only the cousin, or pass with a reason. Name the choice clearly. Do not voice the coordinator.",
       },
     ],
     earlyEndTriggers: [

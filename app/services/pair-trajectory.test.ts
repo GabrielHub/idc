@@ -38,12 +38,14 @@ function buildSession({
   appliedFollowUp,
   status = "completed",
   dateHealthDelta = 0,
+  boundaryEvidence = false,
 }: {
   id?: string;
   outcome?: "second_date" | "mixed" | "cool_down" | "bad_fit" | "early_end";
-  appliedFollowUp?: "encourage" | "cool_down" | "repair" | "mark_bad_fit";
+  appliedFollowUp?: "pursue" | "cool_down" | "close";
   status?: "completed" | "ended_early";
   dateHealthDelta?: number;
+  boundaryEvidence?: boolean;
 } = {}): DateSession {
   return dateSessionSchema.parse({
     id,
@@ -70,7 +72,7 @@ function buildSession({
         notableMoments: ["Cupid filed the movement."],
         playerSummary: "Cupid filed the exchange.",
         memoryCandidates: [],
-        usedEvidenceIds: [],
+        usedEvidenceIds: boundaryEvidence ? ["request:test:boundary:covered"] : [],
       }),
     ],
     eventDraft: { offered: [], picked: [] },
@@ -85,7 +87,7 @@ function buildSession({
       outcome,
       summary: "Cupid filed a trajectory test.",
       statSummary: "Case read: trajectory test.",
-      recommendedFollowUp: "repair",
+      recommendedFollowUp: "pursue",
       appliedFollowUp,
       memoryRecordIds: [],
       readyToClose: false,
@@ -106,10 +108,21 @@ describe("pair trajectory", () => {
   it("detects recovery after repair", () => {
     const trajectory = derivePairTrajectory({
       pairState: buildPairState(),
-      completedSessions: [buildSession({ appliedFollowUp: "repair", dateHealthDelta: -2 })],
+      completedSessions: [
+        buildSession({ appliedFollowUp: "pursue", dateHealthDelta: -2, boundaryEvidence: true }),
+      ],
     });
 
     expect(trajectory.state).toBe("recovering");
+  });
+
+  it("does not treat ordinary pursue momentum as repair", () => {
+    const trajectory = derivePairTrajectory({
+      pairState: buildPairState(),
+      completedSessions: [buildSession({ appliedFollowUp: "pursue", dateHealthDelta: 8 })],
+    });
+
+    expect(trajectory.state).toBe("warming");
   });
 
   it("detects repeated mismatch as stuck", () => {

@@ -148,7 +148,7 @@ export const concord: Member = {
       ],
       warming: [
         "The wine is good. The body prefers it warmer than I would have chosen. I'm letting the body win this one.",
-        "You sleep alone. That is a particular kind of arrangement. I'm interested in what it's like.",
+        "Sleeping alone is a particular kind of arrangement to me. The Concord does not have nights. I'm interested in what it's like for you.",
         "I had a partner once, long before this app. He chose to stay separate. I respected what he chose. He is still out there, by himself.",
         "I have a few thousand selves at a wedding on Vexis-Prime right now. Lovely flowers.",
         "Eight billion individuals in this dimension, and the only way through is one at a time. From inside a collective, that's the strangest thing about being here.",

@@ -191,7 +191,7 @@ export const fredStavropoulos: Member = {
       ],
       warming: [
         "what did we do to deserve this kind of tomato. it's not even doing anything and i'm moved",
-        "oh she's got takes. ok. keep going",
+        "ok actual question. if you had to pick one thing on the menu and defend it for the rest of the night, what is it. i'll go second.",
         "are you funny with your friends? like are you the funny one in the group or are you the quiet one. asking sincerely",
         "the moray bit me in year one. she was right to. i opened the lid at the wrong angle and she taught me about it. she still hates me a normal amount",
         "i watched lebron pass kareem and i texted my dad. he texted back a thumbs up. that is the most emotional we have been with each other in about a decade and we both know it counts",

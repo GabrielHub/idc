@@ -5,6 +5,7 @@ import {
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
 import {
+  followUpPartnerMemberIds,
   shiftPartnerUnavailableReason,
   type ShiftPartnerUnavailableReason,
 } from "../../services/shift-availability";
@@ -17,6 +18,7 @@ export type RosterFold = {
   unavailabilityReasonById: ReadonlyMap<string, ShiftPartnerUnavailableReason>;
   filteredMembers: readonly Member[];
   filterMatchedIds: ReadonlySet<string> | undefined;
+  followUpPartnerIds: ReadonlySet<string>;
 };
 
 /**
@@ -40,12 +42,15 @@ export function deriveRosterFold({
 }): RosterFold {
   const focusedSet = new Set(save.focusedMemberIds);
   const availableSet = new Set(shift.availablePartnerMemberIds);
+  const followUpPartnerIds = new Set(followUpPartnerMemberIds(shift.followUpReservations));
   const eligiblePartnerIds = new Set<string>();
   const offTonightIds = new Set<string>();
   for (const member of save.members) {
     if (member.state.status !== "active") continue;
     if (focusedSet.has(member.id)) continue;
-    if (isMemberInCooldown(member, shift.shiftNumber)) continue;
+    if (isMemberInCooldown(member, shift.shiftNumber) && !followUpPartnerIds.has(member.id)) {
+      continue;
+    }
     if (availableSet.has(member.id)) eligiblePartnerIds.add(member.id);
     else offTonightIds.add(member.id);
   }
@@ -61,6 +66,8 @@ export function deriveRosterFold({
       shiftNumber: shift.shiftNumber,
       focusedMemberIds: save.focusedMemberIds,
       availablePartnerMemberIds: shift.availablePartnerMemberIds,
+      cooldownExemptMemberIds: [...followUpPartnerIds],
+      pairStates: save.pairStates,
     });
     if (reason !== null) unavailabilityReasonById.set(member.id, reason);
   }
@@ -70,6 +77,8 @@ export function deriveRosterFold({
     revealAllMemberDetails,
     focusedMemberIds: save.focusedMemberIds,
     availablePartnerMemberIds: shift.availablePartnerMemberIds,
+    followUpPartnerMemberIds: [...followUpPartnerIds],
+    pairStates: save.pairStates,
     activeShiftNumber: shift.shiftNumber,
     readyClosureMemberIds,
   });
@@ -84,5 +93,6 @@ export function deriveRosterFold({
     unavailabilityReasonById,
     filteredMembers,
     filterMatchedIds,
+    followUpPartnerIds,
   };
 }

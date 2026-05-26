@@ -45,91 +45,91 @@ export const adventurersSpeakeasy: DateScenario = {
         id: "adventurers-speakeasy-event-1",
         title: "Password at the door",
         kind: "reveal",
-        event: "The cellar door waits for the password.",
-        characterVisibleText:
-          "The cellar door is plain oak with a small brass slot at eye level. The card in the hand has a single word written in apothecary ink: keelborn. The slot is open. The lock will respond to the spoken word.",
-        directorInstruction:
-          "Open the date with the small password choice. Speaking the word vs handing the card to the partner surfaces a stance the speaker already carries. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Force the password-card moment at the threshold. Surfaces who speaks the word, who hands it over, who hesitates at the lock.",
+        beat: "The cellar door is plain oak with a small brass slot at eye level. The card in the hand has a single word written in apothecary ink: keelborn. The slot is open. The lock will respond to the spoken word.",
+        directorBeat:
+          "The door is waiting. Decide who says the word: speak it yourself, hand the card to your date, joke about saying it, or stall. Pick a stance. Do not let the lock sit unaddressed. Do not voice the door.",
       },
       {
         id: "adventurers-speakeasy-event-2",
         title: "Fireside booth",
         kind: "ambient",
-        event: "The booth is theirs.",
-        characterVisibleText:
-          "The fireside booth is at the back of the room. The bench is dark oak, the cushions worn. The fire is up at a slow burn. A small placard on the table reads booth seven, nine to eleven. The room beyond holds three other parties at a low murmur.",
-        directorInstruction:
-          "Use the booth as the anchor. Either may slide in first, or wait for the partner. Do not voice the other parties as continuing speakers.",
+        pitch:
+          "Settle the booth as the date's anchor. Surfaces who slides in first and what closeness the pair takes at the bench.",
+        beat: "The fireside booth is at the back of the room. The bench is dark oak, the cushions worn. The fire is up at a slow burn. A small placard on the table reads booth seven, nine to eleven. The room beyond holds three other parties at a low murmur.",
+        directorBeat:
+          "The booth is yours. Pick a seat with intent: slide in first, wait for them, sit close to the fire, take the side facing the room. Use the choice. Do not voice the other parties.",
       },
       {
         id: "adventurers-speakeasy-event-3",
         title: "Menu of the dead",
         kind: "reveal",
-        event: "A cocktail menu is at the booth.",
-        characterVisibleText:
-          "A small leather menu sits at the booth. The cocktails are named for dead heroes: a Slayer's Reward, a Wizard's Last Word, a Rogue's Tithe, a Ranger's Walk. Each name has a small note under it about how the hero ended. The notes are short and accurate.",
-        directorInstruction:
-          "Use the menu to surface how either of them treats a name with weight. Mocking is a real choice. So is reading the note. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Drop the dead-hero cocktail menu on the table. Surfaces whether either treats the names with weight or runs them as material.",
+        beat: "A small leather menu sits at the booth. The cocktails are named for dead heroes: a Slayer's Reward, a Wizard's Last Word, a Rogue's Tithe, a Ranger's Walk. Each name has a small note under it about how the hero ended. The notes are short and accurate.",
+        directorBeat:
+          "The menu is in front of you. Read a name aloud, ask your date to pick first, comment on one of the notes, or skip past the names to your order. Whatever you choose, let the names have weight. Do not voice the menu.",
       },
       {
         id: "adventurers-speakeasy-event-4",
         title: "Tray arrives",
         kind: "ambient",
-        event: "An enchanted tray sets two glasses on the booth.",
-        characterVisibleText:
-          "A small wooden tray drifts to the booth at table height. Two glasses set themselves down at the right hand of each member. The tray rises and drifts back to the bar. No one was holding it. The first sip is up to them.",
-        directorInstruction:
-          "Allow the small ambient labor. Either of them may toast or not. A toast is a real moment, not a default.",
+        pitch:
+          "Let the silent tray set two glasses down between you. Surfaces who reaches first and whether the moment becomes a toast.",
+        beat: "A small wooden tray drifts to the booth at table height. Two glasses set themselves down at the right hand of each member. The tray rises and drifts back to the bar. No one was holding it. The first sip is up to them.",
+        directorBeat:
+          "Two drinks just landed without a server. Decide: lift your glass and toast, sip without ceremony, comment on the magic doing the work, or wait for them to move first. Pick one and make it visible.",
       },
       {
         id: "adventurers-speakeasy-event-5",
         title: "Crests on the wall",
         kind: "reveal",
-        event: "Stained-glass crests above the booth catch the fire.",
-        characterVisibleText:
-          "Three stained-glass crests are mounted on the wall above the booth. The first reads The Hawkfall Company, ended the year of the long winter. The second reads The Ember Twelve, ended at the bridge. The third has no inscription, only a black sun on a pale field.",
-        directorInstruction:
-          "Use the crests to surface small recognition. Either may know one of the orders, claim none, or read aloud what is written. Speak only from each member's existing register. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Make the dead-order crests above the booth catch attention. Surfaces what either of you recognizes or refuses to claim.",
+        beat: "Three stained-glass crests are mounted on the wall above the booth. The first reads The Hawkfall Company, ended the year of the long winter. The second reads The Ember Twelve, ended at the bridge. The third has no inscription, only a black sun on a pale field.",
+        directorBeat:
+          "The crests are above your head. Read one aloud, claim recognition you actually have, ask your date about one, or sit with the blank one and say what it does to you. Speak only from what you already carry. Do not voice the crests.",
       },
       {
         id: "adventurers-speakeasy-event-6",
         title: "Card under the candle",
         kind: "ambient",
-        event: "A card sits under the table candle.",
-        characterVisibleText:
-          "A small card sits under the candle holder, left by a previous patron. The card reads, in pencil, we made it past the bridge tonight. The candle is fresh. The card has not curled in the heat.",
-        directorInstruction:
-          "Allow the small artifact to land. The pair does not have to claim it or interpret it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface a stranger's pencil note under the candle. Surfaces whether the pair claims the artifact, ignores it, or makes it their own.",
+        beat: "A small card sits under the candle holder, left by a previous patron. The card reads, in pencil, we made it past the bridge tonight. The candle is fresh. The card has not curled in the heat.",
+        directorBeat:
+          "A stranger's card is under your candle. Notice it: read it aloud, slide it back, ask what your date thinks, or leave it where you found it. Let the small artifact register. Do not voice the card.",
       },
       {
         id: "adventurers-speakeasy-event-7",
         title: "Second round",
         kind: "provocation",
-        event: "The first glasses are empty.",
-        characterVisibleText:
-          "Both glasses are empty on the booth. The tray has not returned yet. The menu is still at the table. The booking clock above the fireplace reads ten twenty-two.",
-        directorInstruction:
-          "Push for one direct line about whether they want a second round. Either of them may answer for both, or only for themself. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Empty the glasses with no tray in sight. Forces a direct ask about whether the pair stays for another round.",
+        beat: "Both glasses are empty on the booth. The tray has not returned yet. The menu is still at the table. The booking clock above the fireplace reads ten twenty-two.",
+        directorBeat:
+          "The glasses are empty. Ask the question outright this turn: do we get another round, are we wrapping up, do you want something else off the menu. Answer for yourself or speak for both. Do not let the question hang. Do not voice the clock.",
       },
       {
         id: "adventurers-speakeasy-event-8",
         title: "Closing chime",
         kind: "provocation",
-        event: "A soft chime over the bar marks ten fifty-five.",
-        characterVisibleText:
-          "A soft chime sounds over the bar. The clock reads ten fifty-five. The fire has been banked down a notch. The booking placard at the table now reads thank you. The cellar door at the back of the room is unlocked again.",
-        directorInstruction:
-          "Push for a clean exit. The pair walks out together or one leaves the booth first. Either is the right answer if it is honest. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Mark ten fifty-five with a soft chime. Forces a clean walk-out or a deliberate hold of the last beat.",
+        beat: "A soft chime sounds over the bar. The clock reads ten fifty-five. The fire has been banked down a notch. The booking placard at the table now reads thank you. The cellar door at the back of the room is unlocked again.",
+        directorBeat:
+          "The room is closing. Stand to leave, hold the booth through the last beat, propose a next stop, or settle and walk out together. Make the choice clear in your next line. Do not voice the chime.",
       },
       {
         id: "adventurers-speakeasy-event-9",
         title: "Cellar door swings",
         kind: "provocation",
-        event: "The cellar door at the back of the room swings open in a draft.",
-        characterVisibleText:
-          "The cellar door at the back of the room swings open a hand's width on a draft. The fireplace flickers in answer. The booking placard on the booth now reads thank you, please return the password card.",
-        directorInstruction:
-          "Push for a clean physical move: hand back the password card, settle, and walk out, or hold the booth through the last beat. The door will not close itself. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Crack the cellar door open in a draft. Forces a physical move on the password card and the exit.",
+        beat: "The cellar door at the back of the room swings open a hand's width on a draft. The fireplace flickers in answer. The booking placard on the booth now reads thank you, please return the password card.",
+        directorBeat:
+          "The door has opened itself. Hand back the card, settle and walk out, or refuse to leave yet and say why. The card is still in someone's hand. Move on the exit now. Do not voice the door.",
       },
     ],
     earlyEndTriggers: [

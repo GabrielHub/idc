@@ -31,6 +31,12 @@ export type HoverCardContext = {
    */
   unavailabilityReasonById: ReadonlyMap<string, ShiftPartnerUnavailableReason>;
   /**
+   * Members surfaced as follow-up partners for this shift. Used to show a
+   * "follow-up" badge on the hover card so the player knows the cooldown is
+   * being bypassed because they filed Pursue on a recent date.
+   */
+  followUpPartnerIds: ReadonlySet<string>;
+  /**
    * Active shift number, used to evaluate `isMemberInCooldown(member, …)`.
    * Cooldown blocks Make-lead / Make-focus from the card so the engine's
    * post-commit throw at `commitDateBooking` never has to be the first
@@ -67,6 +73,7 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
     activeBooking,
     eligiblePartnerIds,
     unavailabilityReasonById,
+    followUpPartnerIds,
     shiftNumber,
     focusStep,
     partnerStep,
@@ -88,6 +95,7 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
     partnerId,
     activeBooking,
     shiftNumber,
+    followUpExempt: followUpPartnerIds.has(member.id),
   });
   const isPartnerCandidate =
     focusId !== null &&
@@ -125,13 +133,17 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
       ? undefined
       : unavailabilityReasonCopy(unavailabilityReason));
 
+  // Follow-up partners win the badge over the affordance default so the
+  // player sees *why* a member who would normally be in cooldown is bookable.
+  const statusBadge = followUpPartnerIds.has(member.id) ? "follow_up" : affordance.statusBadge;
+
   return (
     <HoverDetailCard
       star={star}
       snippet={profile.publicFragments[0] ?? "Profile reads on file."}
       fileNumber={caseFileNumber(member.id)}
       heightInInches={member.characterHeightInInches}
-      statusBadge={affordance.statusBadge}
+      statusBadge={statusBadge}
       swapPenalty={swapPenalty}
       ctaVariant={ctaVariant}
       onPrimaryAction={onPrimaryAction}
@@ -218,6 +230,8 @@ function unavailabilityReasonCopy(reason: ShiftPartnerUnavailableReason): string
       return "In cooldown until next shift";
     case "closed":
       return "File is closed";
+    case "closed_lane":
+      return "Romantic lane closed";
     case "quit":
       return "Quit the program";
     case "off_shift":

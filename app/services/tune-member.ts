@@ -14,6 +14,7 @@ import {
   type DateSession,
   type JudgeSnapshot,
   type Member,
+  type MemberRequest,
   type PairState,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
@@ -32,7 +33,7 @@ import {
   type AiRuntimeConfig,
   type GeneratedTextResult,
 } from "./ai/model-service";
-import { requirePairState } from "./date-engine";
+import { findMemberRequestById, requirePairState } from "./date-engine";
 import { createSeedGameSave } from "./game-seed";
 import {
   ensureScenarioInDeck,
@@ -83,6 +84,7 @@ export type TuneSessionPersisted = {
   partnerMemberId: string;
   scenarioId: string;
   openerSide: "partner" | "focus";
+  focusRequestId?: string;
   messages: TuneTranscriptMessage[];
   lastPromptSystem?: string;
   notes?: string;
@@ -93,6 +95,7 @@ export type TuneSessionInput = {
   partnerMemberId?: string;
   scenarioId?: string;
   openerSide?: "partner" | "focus";
+  focusRequestId?: string;
   now?: Date;
 };
 
@@ -111,6 +114,8 @@ export function findMemberById(memberId: string): Member | undefined {
 export function findScenarioById(scenarioId: string): DateScenario | undefined {
   return starterScenarios.find((scenario) => scenario.id === scenarioId);
 }
+
+export { findMemberRequestById };
 
 function requireMemberForTune(memberId: string, role: "focus" | "partner"): Member {
   const member = findMemberById(memberId);
@@ -139,6 +144,7 @@ export function createTuneSession(input: TuneSessionInput): TuneSessionPersisted
   requireScenarioForTune(scenarioId);
   const openerSide = input.openerSide ?? "partner";
   const createdAt = (input.now ?? new Date()).toISOString();
+  const focusRequestId = resolveFocusRequestId(input.focusRequestId, focusMember.id);
 
   return {
     schemaVersion: TUNE_SCHEMA_VERSION,
@@ -147,8 +153,28 @@ export function createTuneSession(input: TuneSessionInput): TuneSessionPersisted
     partnerMemberId: partnerMember.id,
     scenarioId,
     openerSide,
+    ...(focusRequestId === undefined ? {} : { focusRequestId }),
     messages: [],
   };
+}
+
+function resolveFocusRequestId(
+  focusRequestId: string | undefined,
+  focusMemberId: string,
+): string | undefined {
+  if (focusRequestId === undefined) {
+    return undefined;
+  }
+  const request = findMemberRequestById(focusRequestId);
+  if (request === undefined) {
+    throw new Error(`Unknown focus request id: ${focusRequestId}`);
+  }
+  if (request.memberId !== focusMemberId) {
+    throw new Error(
+      `Focus request "${focusRequestId}" belongs to ${request.memberId}, not focus member ${focusMemberId}.`,
+    );
+  }
+  return request.id;
 }
 
 export function appendPartnerLine(
@@ -328,6 +354,7 @@ type ReconstructedContext = {
   scenario: DateScenario;
   pairState: PairState;
   dateSession: DateSession;
+  focusRequest: MemberRequest | undefined;
 };
 
 function reconstructContext(session: TuneSessionPersisted): ReconstructedContext {
@@ -364,12 +391,15 @@ function reconstructContext(session: TuneSessionPersisted): ReconstructedContext
     playbackState: "playing",
   });
 
+  const focusRequest = findMemberRequestById(session.focusRequestId);
+
   return {
     focusMember,
     partnerMember,
     scenario,
     pairState,
     dateSession,
+    focusRequest,
   };
 }
 
@@ -488,6 +518,7 @@ export type TunePacketPreview = {
   scenario: DateScenario;
   pairState: PairState;
   dateSession: DateSession;
+  focusRequest: MemberRequest | undefined;
 };
 
 export function previewMemberTurnPacket(session: TuneSessionPersisted): TunePacketPreview {
@@ -499,6 +530,7 @@ export function previewMemberTurnPacket(session: TuneSessionPersisted): TunePack
     session: context.dateSession,
     pairState: context.pairState,
     memoryPack: { ...EMPTY_MEMORY_PACK, recentTranscript: context.dateSession.transcript },
+    focusRequest: context.focusRequest,
   });
   return { ...context, packet };
 }

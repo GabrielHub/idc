@@ -48,7 +48,7 @@ describe("desktop runtime URL policy", () => {
       chatModel: DEFAULT_GATEWAY_CHAT_MODEL,
       embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
       gatewayBaseURL: DEFAULT_GATEWAY_BASE_URL,
-      reasoningLevel: "high",
+      reasoningLevel: "xhigh",
     });
   });
 });

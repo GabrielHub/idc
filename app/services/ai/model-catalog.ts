@@ -111,7 +111,7 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     label: "DeepSeek V4 Flash",
     provider: "gateway",
     brand: "deepseek",
-    recommendedReasoningLevel: "high",
+    recommendedReasoningLevel: "xhigh",
     reasoningSupported: true,
     cost: gatewayModelCost("deepseek/deepseek-v4-flash"),
   },
@@ -260,7 +260,7 @@ export function modelDefaultsForProvider(
       aiProvider: provider,
       chatModel: DEFAULT_GATEWAY_CHAT_MODEL,
       embeddingModel: DEFAULT_GATEWAY_EMBEDDING_MODEL,
-      reasoningLevel: "high",
+      reasoningLevel: "xhigh",
     };
   }
 

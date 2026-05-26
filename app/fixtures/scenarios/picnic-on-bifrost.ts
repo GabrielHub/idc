@@ -44,91 +44,91 @@ export const picnicOnBifrost: DateScenario = {
         id: "picnic-on-bifrost-event-1",
         title: "Overlapping stars",
         kind: "ambient",
-        event: "Stars from several cosmologies overlap above the blanket.",
-        characterVisibleText:
-          "The stars above the blanket sit in two and three at once. One bright cluster is two clusters depending on which eye is dominant. The sky between holds steady against the bridge light.",
-        directorInstruction:
-          "Allow the small marker. The stars are not voiced as continuing speakers.",
+        pitch:
+          "Set stars from several cosmologies overlapping in two and three at once above the blanket. Surfaces small wonder without making the sky a topic.",
+        beat: "The stars above the blanket sit in two and three at once. One bright cluster is two clusters depending on which eye is dominant. The sky between holds steady against the bridge light.",
+        directorBeat:
+          "Two skies are doing the work of one. Notice them, comment on the doubled cluster, ask your date which they see, or stay quiet under the layering. Do not narrate the sky like a star map.",
       },
       {
         id: "picnic-on-bifrost-event-2",
         title: "Surface warms",
         kind: "ambient",
-        event: "The bridge surface warms a degree under the blanket.",
-        characterVisibleText:
-          "The surface under the blanket warms a single degree. The warmth comes from below, not from above. The blanket holds the heat at the corners.",
-        directorInstruction:
-          "Allow the small detail. The bridge is not voiced as a continuing speaker.",
+        pitch:
+          "Warm the bridge surface a degree from below under the blanket. Surfaces a small physical comfort that does not need narration.",
+        beat: "The surface under the blanket warms a single degree. The warmth comes from below, not from above. The blanket holds the heat at the corners.",
+        directorBeat:
+          "The bridge just got warmer under you. Lean back into it, comment to your date on the corners holding the heat, or stay quiet with the change. Do not turn the warmth into a metaphor.",
       },
       {
         id: "picnic-on-bifrost-event-3",
         title: "Soft hum underfoot",
         kind: "ambient",
-        event: "A soft hum rises from under the bridge surface.",
-        characterVisibleText:
-          "A soft low hum rises from under the bridge surface on a slow pulse. The hum is at the edge of hearing. The basket does not shift. The thermos holds steady.",
-        directorInstruction:
-          "Allow the small pulse. The bridge is not voiced as a continuing speaker.",
+        pitch:
+          "Pulse a low hum from under the bridge surface at the edge of hearing. Surfaces presence without forcing comment.",
+        beat: "A soft low hum rises from under the bridge surface on a slow pulse. The hum is at the edge of hearing. The basket does not shift. The thermos holds steady.",
+        directorBeat:
+          "Something far below is keeping time. Listen for it, mention it to your date once, or let it ride under your breath. Do not voice the bridge.",
       },
       {
         id: "picnic-on-bifrost-event-4",
         title: "Bridge curves catch the eye",
         kind: "provocation",
-        event: "The bridge curves rise and fall at the edge of vision.",
-        characterVisibleText:
-          "The bridge curves up and down at the edge of vision to other worlds. The curve at the upper edge brightens for a beat as a world surface flashes through cloud. The curve at the lower edge dims to a deep blue. The flat segment under the blanket holds.",
-        directorInstruction:
-          "Push for a real small move. Either may look, name a world below, or hold the eye on the blanket. The bridge is not voiced as a continuing speaker.",
+        pitch:
+          "Brighten the upper curve as a world surface flashes through cloud, and dim the lower to deep blue. Forces a real small move on looking or staying on the blanket.",
+        beat: "The bridge curves up and down at the edge of vision to other worlds. The curve at the upper edge brightens for a beat as a world surface flashes through cloud. The curve at the lower edge dims to a deep blue. The flat segment under the blanket holds.",
+        directorBeat:
+          "The bridge just showed you two of the worlds it connects. Look up, look down, name one to your date, or hold your eyes on the blanket. Do not let the scale push you into a speech.",
       },
       {
         id: "picnic-on-bifrost-event-5",
         title: "A figure passes below",
         kind: "provocation",
-        event: "A small winged figure passes far below.",
-        characterVisibleText:
-          "A small winged figure passes far below the lower curve at a long angle. The wingspan is wider than the bridge edge. The figure does not climb. The figure is gone past the rail in a count of four.",
-        directorInstruction:
-          "Push for a real reaction. The pair does not narrate the flight. The figure is not voiced as a continuing speaker.",
+        pitch:
+          "Pass a small winged figure with a wingspan wider than the bridge edge far below in four counts. Forces a real reaction, not narration.",
+        beat: "A small winged figure passes far below the lower curve at a long angle. The wingspan is wider than the bridge edge. The figure does not climb. The figure is gone past the rail in a count of four.",
+        directorBeat:
+          "Something with wings just crossed under you. React in body or one short line: hold still, take your date's hand, comment quietly, or look down. Do not narrate the flight.",
       },
       {
         id: "picnic-on-bifrost-event-6",
         title: "Constellation shifts",
         kind: "provocation",
-        event: "A constellation shifts mid-look.",
-        characterVisibleText:
-          "A constellation directly above the blanket holds for a long count and then resettles into a different shape. The new shape sits in a different cosmology. The change holds. The other clusters do not move.",
-        directorInstruction:
-          "Push for a real reaction. The pair does not narrate the change. The constellation is not voiced as a continuing speaker.",
+        pitch:
+          "Resettle a constellation directly above the blanket into a shape from a different cosmology. Forces a real reaction.",
+        beat: "A constellation directly above the blanket holds for a long count and then resettles into a different shape. The new shape sits in a different cosmology. The change holds. The other clusters do not move.",
+        directorBeat:
+          "Your sky just rewrote itself. Comment on the change to your date, ask which cosmology they see now, sit still with it, or close your eyes. Speak from what you already carry.",
       },
       {
         id: "picnic-on-bifrost-event-7",
         title: "Folded note in the basket",
         kind: "reveal",
-        event: "A folded note rests in the basket lid.",
-        characterVisibleText:
-          "A folded note rests in the basket lid. The fold is clean. The paper carries one short line in a careful hand. The note has not been opened.",
-        directorInstruction:
-          "Use the small option to surface a stance drawn only from existing context. Either may open the note or leave it. The note is not voiced as a continuing speaker.",
+        pitch:
+          "Place a clean-folded note with one short line in a careful hand in the basket lid. Surfaces a stance on opening or leaving.",
+        beat: "A folded note rests in the basket lid. The fold is clean. The paper carries one short line in a careful hand. The note has not been opened.",
+        directorBeat:
+          "A small note is waiting on you. Open it and read aloud, hand it to your date, leave it folded, or comment on the careful hand. Make the small choice. Do not voice the note.",
       },
       {
         id: "picnic-on-bifrost-event-8",
         title: "Watchman at his post",
         kind: "reveal",
-        event: "The watchman holds at his post at the far end.",
-        characterVisibleText:
-          "The watchman holds at his post at the far end of the bridge. The figure is small at this distance. The stance has not changed since the start of the booking. The watchman is too far off for the pair to read a face.",
-        directorInstruction:
-          "Use the far figure to surface a stance drawn only from existing context. The watchman does not approach and is not voiced as a continuing speaker.",
+        pitch:
+          "Hold the watchman at his post at the far end of the bridge, too small to read a face. Surfaces a stance from what either already carries.",
+        beat: "The watchman holds at his post at the far end of the bridge. The figure is small at this distance. The stance has not changed since the start of the booking. The watchman is too far off for the pair to read a face.",
+        directorBeat:
+          "You can see him and he is not approaching. Comment on the distance, ask your date what they make of being watched gently, or look away and back to the blanket. Do not voice the watchman.",
       },
       {
         id: "picnic-on-bifrost-event-9",
         title: "A small coin in the basket",
         kind: "reveal",
-        event: "A small coin sits in the basket pocket.",
-        characterVisibleText:
-          "A small worn coin sits in the basket pocket between the two cups. The coin carries a date and a small mark on the rim. The mark is from the prior visit. The date is recent.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The coin is not voiced as a continuing speaker.",
+        pitch:
+          "Tuck a small worn coin with a recent date and a prior-visit mark into the basket pocket. Surfaces callback for repeat pairs or curiosity for first visits.",
+        beat: "A small worn coin sits in the basket pocket between the two cups. The coin carries a date and a small mark on the rim. The mark is from the prior visit. The date is recent.",
+        directorBeat:
+          "A small artifact of your prior bridge sits between the cups. Pick it up, read the date aloud, ask your date if they remember leaving it, or set it back. Tie it to what you already know.",
       },
     ],
     earlyEndTriggers: [

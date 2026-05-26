@@ -44,91 +44,91 @@ export const beachWhereSeaIsAbove: DateScenario = {
         id: "beach-where-sea-is-above-event-1",
         title: "Mackerel school",
         kind: "ambient",
-        event: "A small school of mackerel passes overhead.",
-        characterVisibleText:
-          "A small school of mackerel cuts a clean line across the sea overhead at chair height. The line moves left to right. The school is gone in a few breaths. The water settles.",
-        directorInstruction:
-          "Allow the small marker. The school is not voiced as a continuing speaker.",
+        pitch:
+          "Run a school of mackerel across the sea-ceiling at chair height. Surfaces who looks up and who keeps their eyes on the company.",
+        beat: "A small school of mackerel cuts a clean line across the sea overhead at chair height. The line moves left to right. The school is gone in a few breaths. The water settles.",
+        directorBeat:
+          "Fish just crossed your sky. Glance up, refuse to look, point them out to your date, or comment on the line and angle. Show whether you are the kind who watches the world or watches the person across from you.",
       },
       {
         id: "beach-where-sea-is-above-event-2",
         title: "Sun below",
         kind: "ambient",
-        event: "The sun sits below at horizon level.",
-        characterVisibleText:
-          "The sun sits below the chairs at horizon level. The light comes up through the dry seabed at a shallow angle and warms the front of both shoes. The sky between sun and sea is a thin band of clear air.",
-        directorInstruction:
-          "Allow the small angle. The sun is not voiced as a continuing speaker.",
+        pitch:
+          "Push the sun's warmth up through the dry seabed onto your shoes. Surfaces a small bodily comfort the pair can claim together or alone.",
+        beat: "The sun sits below the chairs at horizon level. The light comes up through the dry seabed at a shallow angle and warms the front of both shoes. The sky between sun and sea is a thin band of clear air.",
+        directorBeat:
+          "The warmth is coming from your feet up. Stretch into it, kick your shoes off, mention the heat to your date, or sit quiet with it. Acknowledge the body in your next beat. Do not voice the sun.",
       },
       {
         id: "beach-where-sea-is-above-event-3",
         title: "Kelp frond",
         kind: "ambient",
-        event: "A single kelp frond drifts down toward them and back up.",
-        characterVisibleText:
-          "A single kelp frond drifts down from the sea overhead, hangs a foot above the front of the chairs, and drifts back up into the layer. The frond is the length of a forearm. It does not break the surface.",
-        directorInstruction:
-          "Allow the small visit. The frond is not voiced as a continuing speaker.",
+        pitch:
+          "Dip a forearm-length kelp frond down toward the chairs and back up. Surfaces a small near-touch the pair can claim, decline, or ignore.",
+        beat: "A single kelp frond drifts down from the sea overhead, hangs a foot above the front of the chairs, and drifts back up into the layer. The frond is the length of a forearm. It does not break the surface.",
+        directorBeat:
+          "Something living almost touched you. Reach for it, recoil, comment to your date about it, or stay still and watch it go back. Make a small visible choice about closeness with the sea.",
       },
       {
         id: "beach-where-sea-is-above-event-4",
         title: "A drop falls",
         kind: "provocation",
-        event: "A single drop falls from the sea overhead.",
-        characterVisibleText:
-          "A single fat drop falls from the sea overhead and lands on the cooler between the chairs. The drop holds a beat before it runs. The sea above is otherwise still. The drop is cool.",
-        directorInstruction:
-          "Push for a real small move. Either may catch it, wipe it, or leave it. The drop is not voiced as a continuing speaker.",
+        pitch:
+          "Drop a single cool bead onto the cooler between you. Forces a small physical move on the drop or the question of more.",
+        beat: "A single fat drop falls from the sea overhead and lands on the cooler between the chairs. The drop holds a beat before it runs. The sea above is otherwise still. The drop is cool.",
+        directorBeat:
+          "Water just landed within reach. Wipe it, catch it on a finger, joke about whether more is coming, or scoot the chairs in. Use your hands in your next beat.",
       },
       {
         id: "beach-where-sea-is-above-event-5",
         title: "Large shape overhead",
         kind: "provocation",
-        event: "A large slow shape passes overhead.",
-        characterVisibleText:
-          "A long slow shape passes through the sea overhead from left to right. The shape is wider than the pad. The fin is not visible. The light from the sun below dims for a beat as the shape covers it and brightens again.",
-        directorInstruction:
-          "Push for a real reaction. The pair does not narrate the shape. The shape is not voiced as a continuing speaker.",
+        pitch:
+          "Slide a long shape wider than the pad through the sea above. Forces a real reaction, not a narration of what passed.",
+        beat: "A long slow shape passes through the sea overhead from left to right. The shape is wider than the pad. The fin is not visible. The light from the sun below dims for a beat as the shape covers it and brightens again.",
+        directorBeat:
+          "Something huge just dimmed the sun. React in body or one short line: take your date's wrist, hold still, laugh thinly, or look down and refuse to follow it. Do not narrate the shape like a guide.",
       },
       {
         id: "beach-where-sea-is-above-event-6",
         title: "Cooler runs low",
         kind: "provocation",
-        event: "The cooler clicks to low ice.",
-        characterVisibleText:
-          "The cooler clicks once and a small green light at the lid turns amber. The instruction card on the lid shows the low-ice mark. The handles on the cooler are within reach of both chairs.",
-        directorInstruction:
-          "Push for a real next move. Either may pour now, share the last, or call the cooler done. The cooler is not voiced as a continuing speaker.",
+        pitch:
+          "Click the cooler from green to amber. Forces a clean call on the last pour, sharing, or wrapping up.",
+        beat: "The cooler clicks once and a small green light at the lid turns amber. The instruction card on the lid shows the low-ice mark. The handles on the cooler are within reach of both chairs.",
+        directorBeat:
+          "You have one round left. Pour now, offer the last to your date, call the cooler done, or save it for later. Make the decision out loud.",
       },
       {
         id: "beach-where-sea-is-above-event-7",
         title: "Trough opens",
         kind: "reveal",
-        event: "A wave trough opens overhead and shows open sky.",
-        characterVisibleText:
-          "A trough opens in the sea overhead between two slow swells. For a long beat the chairs sit under open sky. The stars on the other side of the air are not the local stars. The trough closes.",
-        directorInstruction:
-          "Use the small window to surface a stance drawn only from existing context. Either may name the stars or leave it. The trough is not voiced as a continuing speaker.",
+        pitch:
+          "Open a brief window of stars that are not the local stars. Surfaces a stance: name what is up there, or hold the silence.",
+        beat: "A trough opens in the sea overhead between two slow swells. For a long beat the chairs sit under open sky. The stars on the other side of the air are not the local stars. The trough closes.",
+        directorBeat:
+          "Something genuinely strange just opened above you. Engage with it from what you already know about your own life or this pair, not invented biography. Name a constellation if you carry one, or sit honestly in the not-knowing.",
       },
       {
         id: "beach-where-sea-is-above-event-8",
         title: "Repeat-visitor list",
         kind: "reveal",
-        event: "The cooler card holds a small repeat-visitor list.",
-        characterVisibleText:
-          "The instruction card on the cooler lid carries a small sub-list near the bottom for repeat visitors. The list has two open lines. The card is wet at one corner from the earlier drop.",
-        directorInstruction:
-          "Use the small option to surface a stance drawn only from existing context. The card is not voiced as a continuing speaker.",
+        pitch:
+          "Surface the repeat-visitor sub-list on the cooler card. Surfaces whether the pair claims the line or leaves it blank.",
+        beat: "The instruction card on the cooler lid carries a small sub-list near the bottom for repeat visitors. The list has two open lines. The card is wet at one corner from the earlier drop.",
+        directorBeat:
+          "There are two empty signature lines on the card asking for your names. Offer to sign, ask your date if they would, decline, or joke about being recorded. Speak from how you actually feel about coming back.",
       },
       {
         id: "beach-where-sea-is-above-event-9",
         title: "A buoy drifts in",
         kind: "reveal",
-        event: "A small buoy drifts in overhead from the right.",
-        characterVisibleText:
-          "A small wooden buoy drifts into the layer overhead from the right and settles near the pad. The buoy carries two short pencil names on the side facing them. The pencil mark is fresh enough to read.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The buoy is not voiced as a continuing speaker.",
+        pitch:
+          "Drift a small wooden buoy into the layer with two pencil names on its side. Surfaces a callback for repeat pairs or open curiosity for first visits.",
+        beat: "A small wooden buoy drifts into the layer overhead from the right and settles near the pad. The buoy carries two short pencil names on the side facing them. The pencil mark is fresh enough to read.",
+        directorBeat:
+          "A small artifact just floated into your space. Read the names aloud, ask your date if they recognize either, claim them if you do, or let it drift on. Tie it to what you already know about this pair. Do not voice the buoy.",
       },
     ],
     earlyEndTriggers: [

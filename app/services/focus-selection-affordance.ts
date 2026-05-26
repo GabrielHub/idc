@@ -19,6 +19,7 @@ export function resolveFocusSelectionAffordance({
   partnerId,
   activeBooking,
   shiftNumber,
+  followUpExempt = false,
 }: {
   member: Member;
   focused: boolean;
@@ -26,10 +27,12 @@ export function resolveFocusSelectionAffordance({
   partnerId: string | null;
   activeBooking: ActiveDateBooking | null;
   shiftNumber: number;
+  followUpExempt?: boolean;
 }): FocusSelectionAffordance {
   const status = member.state.status;
   const eligibleForFocus = canBeFocusCase(member);
-  const inCooldown = status === "active" && isMemberInCooldown(member, shiftNumber);
+  const inCooldown =
+    status === "active" && !followUpExempt && isMemberInCooldown(member, shiftNumber);
   const canMakeLead =
     focused &&
     status === "active" &&

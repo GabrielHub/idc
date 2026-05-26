@@ -44,90 +44,91 @@ export const picnicOnSleepingGiant: DateScenario = {
         id: "picnic-on-sleeping-giant-event-1",
         title: "Long breath",
         kind: "ambient",
-        event: "The hill rises an inch on a long breath.",
-        characterVisibleText:
-          "The hill rises an inch under the blanket on a long breath. The basket shifts a finger. The two oaks at the shoulder lean a degree and settle. The breath rolls back out at the same pace.",
-        directorInstruction: "Allow the small rise. Aldwen is not voiced as a continuing speaker.",
+        pitch:
+          "Rise the hill an inch under the blanket on a long breath with the oaks leaning a degree. Surfaces pacing the conversation to the body under you.",
+        beat: "The hill rises an inch under the blanket on a long breath. The basket shifts a finger. The two oaks at the shoulder lean a degree and settle. The breath rolls back out at the same pace.",
+        directorBeat:
+          "Something alive is breathing under your blanket. Slow your line, comment on the shift, sit with the breath, or steady the basket. Match the pace.",
       },
       {
         id: "picnic-on-sleeping-giant-event-2",
         title: "Bird in the beard",
         kind: "ambient",
-        event: "A bird lands in the beard at the chin slope.",
-        characterVisibleText:
-          "A small brown bird lands in the beard at the chin slope above the ledge. The bird settles between two coils of beard. It does not fly off. The oak above the ledge is still.",
-        directorInstruction:
-          "Allow the small visit. The bird does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Land a small brown bird in the beard at the chin slope between two coils. Surfaces a small visit that the pair can notice or skip.",
+        beat: "A small brown bird lands in the beard at the chin slope above the ledge. The bird settles between two coils of beard. It does not fly off. The oak above the ledge is still.",
+        directorBeat:
+          "Something small chose to live here for a moment. Point it out, comment on the coils, ask your date if they see it, or stay focused. Do not voice the bird.",
       },
       {
         id: "picnic-on-sleeping-giant-event-3",
         title: "Stream at the rib",
         kind: "ambient",
-        event: "The small stream at the rib runs steady.",
-        characterVisibleText:
-          "The small stream at the rib runs steady down the slope of the chest into the moss at the lower edge of the ledge. The water is clear. The flow does not change with the breath.",
-        directorInstruction:
-          "Allow the small detail. The stream is not voiced as a continuing speaker.",
+        pitch:
+          "Run the small stream steady down the chest into the moss at the lower edge. Surfaces a small reliable detail without metaphor.",
+        beat: "The small stream at the rib runs steady down the slope of the chest into the moss at the lower edge of the ledge. The water is clear. The flow does not change with the breath.",
+        directorBeat:
+          "Water is moving past the picnic. Comment on the clear flow, listen for it under the breath, or stay with the food. Do not narrate the stream like a guide.",
       },
       {
         id: "picnic-on-sleeping-giant-event-4",
         title: "Deeper breath",
         kind: "provocation",
-        event: "A deeper breath shifts the blanket.",
-        characterVisibleText:
-          "A deeper breath comes up from under the moss. The blanket slides a hand toward the edge of the ledge. The basket tilts. The oak at the shoulder leans further than the last breath and holds.",
-        directorInstruction:
-          "Push for a real physical move. Either may catch the blanket, steady the basket, or shift the spread. Aldwen is not voiced as a continuing speaker.",
+        pitch:
+          "Slide the blanket a hand toward the edge on a deeper breath with the basket tilting and the oak leaning further. Forces a real physical save.",
+        beat: "A deeper breath comes up from under the moss. The blanket slides a hand toward the edge of the ledge. The basket tilts. The oak at the shoulder leans further than the last breath and holds.",
+        directorBeat:
+          "The hill just took a bigger breath. Catch the blanket, steady the basket, slide the spread back, or take your date's hand. Move now.",
       },
       {
         id: "picnic-on-sleeping-giant-event-5",
         title: "Oak branch creaks",
         kind: "provocation",
-        event: "An oak branch above the ledge creaks.",
-        characterVisibleText:
-          "A thick oak branch above the ledge creaks and drops a small shower of bark onto the blanket. The branch holds. The bird in the beard does not move. The shadow on the ledge shifts.",
-        directorInstruction:
-          "Push for a real small move. Either may brush the bark, step out from under, or stay. The oak is not voiced as a continuing speaker.",
+        pitch:
+          "Creak an oak branch above the ledge and drop bark onto the blanket with the bird unmoved. Forces a real small move on staying under or stepping out.",
+        beat: "A thick oak branch above the ledge creaks and drops a small shower of bark onto the blanket. The branch holds. The bird in the beard does not move. The shadow on the ledge shifts.",
+        directorBeat:
+          "The tree above you just said something. Brush the bark off, step out from under the branch, comment to your date, or trust the hold. Decide where your body is.",
       },
       {
         id: "picnic-on-sleeping-giant-event-6",
         title: "Basket lid tips",
         kind: "provocation",
-        event: "The basket lid tips closed on a rise.",
-        characterVisibleText:
-          "The basket lid tips closed on the next rise. The basket has not been opened yet. The catch is on the side away from the ledge edge. The basket holds.",
-        directorInstruction:
-          "Push for a real next move. Either may open the basket, move it, or wait through one more breath. The basket is not voiced as a continuing speaker.",
+        pitch:
+          "Tip the basket lid closed on a rise with the catch on the safe side. Forces a real next move on opening, moving, or waiting.",
+        beat: "The basket lid tips closed on the next rise. The basket has not been opened yet. The catch is on the side away from the ledge edge. The basket holds.",
+        directorBeat:
+          "The basket is asking when you start. Open it now, slide it to the center, ask your date what they want first, or wait through one more breath. Pick.",
       },
       {
         id: "picnic-on-sleeping-giant-event-7",
         title: "Foot-of-hill sign",
         kind: "reveal",
-        event: "The wooden sign at the foot of the hill is visible from the ledge.",
-        characterVisibleText:
-          "The wooden sign at the foot of the hill is visible from the ledge through a gap in the oak. The sign carries three letters and a year. The letters are weathered. The year is centuries past.",
-        directorInstruction:
-          "Use the small marker to surface a stance drawn only from existing context. The sign is not voiced as a continuing speaker.",
+        pitch:
+          "Show a weathered wooden sign with three letters and a centuries-old year through a gap in the oak. Surfaces a stance drawn from what each already carries.",
+        beat: "The wooden sign at the foot of the hill is visible from the ledge through a gap in the oak. The sign carries three letters and a year. The letters are weathered. The year is centuries past.",
+        directorBeat:
+          "An old marker is visible from the picnic. Read it aloud, comment on the year, ask your date if they have walked past it before, or leave it alone. Speak only from what you already know.",
       },
       {
         id: "picnic-on-sleeping-giant-event-8",
         title: "Moss-buried token",
         kind: "reveal",
-        event: "A small token is buried under the moss at the ledge corner.",
-        characterVisibleText:
-          "A small carved wooden token is half buried in the moss at the corner of the ledge. The token is the size of a coin. The carving is a small bird in flight. The moss has not closed over it.",
-        directorInstruction:
-          "Use the small token to surface a stance drawn only from existing context. The token is not voiced as a continuing speaker.",
+        pitch:
+          "Surface a coin-sized wooden token carved as a bird in flight half-buried in the moss at the corner. Surfaces a stance drawn from existing context.",
+        beat: "A small carved wooden token is half buried in the moss at the corner of the ledge. The token is the size of a coin. The carving is a small bird in flight. The moss has not closed over it.",
+        directorBeat:
+          "A small carving is right at the corner of your blanket. Pick it up, read the shape aloud, ask your date if they want it, or leave it where it is. Make the small choice.",
       },
       {
         id: "picnic-on-sleeping-giant-event-9",
         title: "Heart on a rock",
         kind: "reveal",
-        event: "A small carved heart is visible on a rock at the shoulder.",
-        characterVisibleText:
-          "A small heart carved into a rock at the shoulder of the hill is visible from the ledge on a long settle. The heart holds two short initials. The carving is old enough to have moss in the lines.",
-        directorInstruction:
-          "Use the small callback to surface a stance drawn only from existing context and pair history. The rock is not voiced as a continuing speaker.",
+        pitch:
+          "Show a mossed-over carved heart with two initials on the shoulder rock on a long settle. Surfaces a callback for repeat pairs or curiosity for first visits.",
+        beat: "A small heart carved into a rock at the shoulder of the hill is visible from the ledge on a long settle. The heart holds two short initials. The carving is old enough to have moss in the lines.",
+        directorBeat:
+          "Someone before you carved a heart. Read the initials aloud, ask your date if they are yours, claim it if they are, or comment on the moss in the lines. Tie it to what you already carry.",
       },
     ],
     earlyEndTriggers: [

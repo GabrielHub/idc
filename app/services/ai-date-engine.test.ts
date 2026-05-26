@@ -923,7 +923,7 @@ describe("AI date engine orchestration", () => {
     expect(result.session.playbackState).toBe("ended");
     expect(result.session.endSentiment).toBe("negative");
     expect(result.session.finalReport?.outcome).toBe("early_end");
-    expect(result.session.finalReport?.recommendedFollowUp).toBe("repair");
+    expect(result.session.finalReport?.recommendedFollowUp).toBe("pursue");
     expect(result.session.judgeSnapshots[0]?.shouldEndEarly).toBe(true);
     expect(result.session.judgeSnapshots[0]?.earlyEndReason).toContain("Jenna stopped");
     expect(generatedTurns).toBe(6);

@@ -482,6 +482,7 @@ export function ConstellationLobby({
     unavailabilityReasonById,
     filteredMembers,
     filterMatchedIds,
+    followUpPartnerIds,
   } = useMemo(
     () =>
       deriveRosterFold({
@@ -629,6 +630,7 @@ export function ConstellationLobby({
     activeBooking,
     eligiblePartnerIds,
     unavailabilityReasonById,
+    followUpPartnerIds,
     shiftNumber: shift.shiftNumber,
     focusStep,
     partnerStep,

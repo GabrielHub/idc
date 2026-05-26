@@ -83,6 +83,7 @@ export function buildBoardPairState(a: Member, b: Member, health: number): PairS
   return {
     id: makePairId(a.id, b.id),
     participantIds: sortMemberIds(a.id, b.id),
+    laneStatus: "open",
     stats: {
       chemistry: 65,
       trust: 60,

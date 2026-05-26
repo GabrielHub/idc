@@ -44,91 +44,91 @@ export const aquariumOfCryptids: DateScenario = {
         id: "aquarium-of-cryptids-event-1",
         title: "Loch tube",
         kind: "ambient",
-        event: "The long glass tube of the loch tank runs along the corridor wall.",
-        characterVisibleText:
-          "The long glass tube of the loch tank runs along the corridor wall at eye level. A wide back fin glides past once. The head stays off-frame. The water is dim and the tube hums from the chiller below.",
-        directorInstruction:
-          "Allow the small marker. The tank does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Glide a large back fin past at eye level. Surfaces whether either pauses, walks on, or comments on the body that stays mostly hidden.",
+        beat: "The long glass tube of the loch tank runs along the corridor wall at eye level. A wide back fin glides past once. The head stays off-frame. The water is dim and the tube hums from the chiller below.",
+        directorBeat:
+          "A body just moved past the glass. Stop, point, keep walking, or comment on what you can and cannot see. Notice the fin in your next beat. Do not voice the cryptid.",
       },
       {
         id: "aquarium-of-cryptids-event-2",
         title: "Salt-pressure tank",
         kind: "ambient",
-        event: "The salt-pressure tank holds at a steady pressure.",
-        characterVisibleText:
-          "The next tank holds at a higher salt pressure. The water inside is still. A robed figure sits cross-legged on the tank floor, hands folded, head bowed. The plaque under the tank lists a flooded branch year.",
-        directorInstruction:
-          "Allow the partner who lingers to linger. The figure does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Let the still robed figure in the high-pressure tank pull whoever lingers. Surfaces how the pair handles a partner who stops longer than the route asks.",
+        beat: "The next tank holds at a higher salt pressure. The water inside is still. A robed figure sits cross-legged on the tank floor, hands folded, head bowed. The plaque under the tank lists a flooded branch year.",
+        directorBeat:
+          "Someone is going to want to linger here. Choose: stop with them, wait a step ahead, ask what they are reading in it, or keep moving and trust them to catch up. Make the pacing visible. Do not voice the figure.",
       },
       {
         id: "aquarium-of-cryptids-event-3",
         title: "Drowned cathedral diorama",
         kind: "ambient",
-        event: "Eels drift through the cathedral diorama.",
-        characterVisibleText:
-          "The cathedral diorama tank holds a half-flooded nave at scale. Three eels drift through the choir loft. A small pew is canted against the rail. The water has a green cast.",
-        directorInstruction:
-          "Allow the small detail. The diorama is not voiced as a continuing speaker.",
+        pitch:
+          "Drift eels through a half-flooded cathedral diorama. Surfaces taste in what either calls out or stays quiet about.",
+        beat: "The cathedral diorama tank holds a half-flooded nave at scale. Three eels drift through the choir loft. A small pew is canted against the rail. The water has a green cast.",
+        directorBeat:
+          "A small detailed scene just landed in your field of view. Point at one piece, ask your date what catches them, sit with the green cast, or pass it without comment. Notice in your next beat. Do not voice the diorama.",
       },
       {
         id: "aquarium-of-cryptids-event-4",
         title: "Kraken juvenile",
         kind: "provocation",
-        event: "A small tentacle reaches the glass.",
-        characterVisibleText:
-          "The juvenile tank is mostly dark. A small tentacle the length of an arm reaches across the inside of the glass and holds. The skin is a slow color shift. The tank is rated for the juvenile only.",
-        directorInstruction:
-          "Push for a real physical move. Either may step back, hold the spot, or move on. The juvenile does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Press a juvenile tentacle to the glass at arm's length from the pair. Forces a real physical move: step back, hold the spot, or go closer.",
+        beat: "The juvenile tank is mostly dark. A small tentacle the length of an arm reaches across the inside of the glass and holds. The skin is a slow color shift. The tank is rated for the juvenile only.",
+        directorBeat:
+          "Something just reached for you through the glass. Move your body in your next beat: step back, lean in, put a hand near it, or pull your date away. Name the move. Do not voice the juvenile.",
       },
       {
         id: "aquarium-of-cryptids-event-5",
         title: "Leviathan eye",
         kind: "provocation",
-        event: "The leviathan eye opens and tracks.",
-        characterVisibleText:
-          "Behind three-foot glass, the partial leviathan exhibit takes up the whole far wall. One slow eye opens. The eye tracks across the corridor and settles on the pair for a beat before drifting on. The rib cage behind it does not move.",
-        directorInstruction:
-          "Push for a real reaction. The pair does not narrate the tracking. The leviathan does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Open the leviathan's eye and let it track the pair across the corridor. Forces a real reaction, not a narration.",
+        beat: "Behind three-foot glass, the partial leviathan exhibit takes up the whole far wall. One slow eye opens. The eye tracks across the corridor and settles on the pair for a beat before drifting on. The rib cage behind it does not move.",
+        directorBeat:
+          "Something the size of a building just looked at you for a count of two. React in your body or your line: laugh it off, hold still, take your date's wrist, step toward the glass, or move past faster. Do not narrate the tracking like a tour guide. Do not voice the leviathan.",
       },
       {
         id: "aquarium-of-cryptids-event-6",
         title: "Touch tank",
         kind: "provocation",
-        event: "The route ends at the touch tank.",
-        characterVisibleText:
-          "The corridor ends at a low shallow tank. The water is cool and clear. A small printed card on the rim reads: she notices. A folded sleeve of hand towels sits next to the tank. The water surface is flat.",
-        directorInstruction:
-          "Push for a real choice. Either may reach in, leave it, or move past. The tank does not address the pair and the card is not voiced as a continuing speaker.",
+        pitch:
+          "End the loop at a touch tank with a card that reads she notices. Forces a real choice: reach in, decline aloud, or move past.",
+        beat: "The corridor ends at a low shallow tank. The water is cool and clear. A small printed card on the rim reads: she notices. A folded sleeve of hand towels sits next to the tank. The water surface is flat.",
+        directorBeat:
+          "The tank is in front of you and the card is doing work. Reach in, hold your hand near the water, decline aloud, or invite your date to go first. Pick a move and own it. Do not voice the card or the tank.",
       },
       {
         id: "aquarium-of-cryptids-event-7",
         title: "A named sea",
         kind: "reveal",
-        event: "A plaque names a sea by full name.",
-        characterVisibleText:
-          "The plaque under the jellies tank carries the full name of the sea the jellies came from. The name takes two lines. The plaque carries no date.",
-        directorInstruction:
-          "Use the named sea to surface a small honest reaction drawn only from existing context. The plaque is not voiced as a continuing speaker.",
+        pitch:
+          "Surface a sea by its full name on a plaque. Pulls whatever either of you already carries about that water into the open.",
+        beat: "The plaque under the jellies tank carries the full name of the sea the jellies came from. The name takes two lines. The plaque carries no date.",
+        directorBeat:
+          "A specific sea just got named. Engage with it from what you already know about your own life or this pair, not invented biography. Read it aloud, say it means nothing to you, or let it land quietly. Stay honest.",
       },
       {
         id: "aquarium-of-cryptids-event-8",
         title: "Loop doubles",
         kind: "reveal",
-        event: "The corridor doubles a single tank in passing.",
-        characterVisibleText:
-          "The corridor loop passes the kraken tank twice on its way back. The juvenile is on the other side of the glass on the second pass. The route is otherwise the same.",
-        directorInstruction:
-          "Use the small repeat to surface how either of them holds a small return drawn from existing context. The tank is not voiced as a continuing speaker.",
+        pitch:
+          "Pass the kraken tank twice on the way back. Surfaces how either handles a small return that wasn't asked for.",
+        beat: "The corridor loop passes the kraken tank twice on its way back. The juvenile is on the other side of the glass on the second pass. The route is otherwise the same.",
+        directorBeat:
+          "You are seeing the same tank a second time. Notice the return: comment on the second look, slow down for it, or speed past. Tie it to something you already know about this pair. Do not invent new biography.",
       },
       {
         id: "aquarium-of-cryptids-event-9",
         title: "Photo strip kiosk",
         kind: "reveal",
-        event: "The photo strip kiosk holds the last booth at the exit.",
-        characterVisibleText:
-          "The photo strip kiosk sits at the corridor exit. The strip prints with two empty frames if no one stands in front of the camera. A small wooden token in the slot is good for one strip.",
-        directorInstruction:
-          "Use the small option to surface a stance drawn only from existing context. The kiosk is not voiced as a continuing speaker.",
+        pitch:
+          "Plant a photo kiosk with one strip token at the exit. Forces a stance: stage a strip together, take a solo, or walk past.",
+        beat: "The photo strip kiosk sits at the corridor exit. The strip prints with two empty frames if no one stands in front of the camera. A small wooden token in the slot is good for one strip.",
+        directorBeat:
+          "The kiosk is asking for a decision. Suggest the strip together, decline, ask if they want one, or take the token and pocket it. Speak from how you already feel about being photographed with this person.",
       },
     ],
     earlyEndTriggers: [

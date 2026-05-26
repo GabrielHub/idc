@@ -99,7 +99,8 @@ export const sections: DocSectionEntry[] = [
                 heading: "Stripped Or Avoided",
                 tone: "negative",
                 items: [
-                  "Italic actions or body language.",
+                  "Italic body actions like *puts feet down* or *grabs coffee*. Italics are for spoken stress, not what your hands or face are doing.",
+                  "Bare unscripted action sentences like Puts feet down. or Grabs the coffee. without asterisks.",
                   "Formatting every emotional word.",
                   "Lists, links, code, tables, blockquotes, raw HTML, images, and task syntax.",
                   "Messages that look like posters or structured reports.",
@@ -163,7 +164,7 @@ export const sections: DocSectionEntry[] = [
             "Task: produce one spoken reply grounded in the latest partner line.",
             "Identity and state: bio, needs, preferences, dealbreakers, private pressure, current mood, memories, agreements, open loops, and pair trajectory.",
             "State pressure: low mood, bad comfort, and boundary-protection intent must change behavior. Cooling, confusion, refusal, or ending the exchange are valid member replies when the latest line supports them.",
-            "Voice flavor: compact register, comedy mechanics, tics, selected sample buckets, optional member-specific conversation shape, and optional contrast examples.",
+            "Voice flavor: compact register, comedy mechanics, tics, optional member-specific conversation shape, and optional contrast examples. The sit-down opener may surface two greeting samples; in-date sample banks do not flow into the prompt. A single crash-out attractor surfaces only when date health is low and a dealbreaker fire is imminent.",
             "Shared scene: Cupid set the match, route, venue, and time; this is the pair's current date through Cupid.",
             "Venue frame: location, room feel, director rules, partner profile, portrait cues, and heights.",
             "Format and invariants: spoken conversation at a table, no labels, no stage directions, no dash punctuation, no parroting, no answering private notes aloud, plus member-specific output constraints.",

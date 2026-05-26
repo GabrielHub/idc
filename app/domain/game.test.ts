@@ -22,6 +22,7 @@ describe("game domain schemas", () => {
       scenarioUseCounts: {},
     });
 
+    expect(parsedPairState.laneStatus).toBe("open");
     expect(parsedPairState.agreements).toEqual([]);
     expect(parsedPairState.openLoops).toEqual([]);
   });

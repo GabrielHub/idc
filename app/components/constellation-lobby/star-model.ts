@@ -1,5 +1,6 @@
 import type { DateScenario, Member, ShiftState } from "../../domain/game";
 import type { ScenarioRoomRead } from "../../services/match-fit";
+import { followUpPartnerMemberIds } from "../../services/shift-availability";
 import { createSeededRandom } from "../../services/utils";
 import { isMemberInCooldown } from "../../services/shift-planning";
 import { getMemberAuraConfig } from "../member-aura-registry";
@@ -167,7 +168,8 @@ function availabilityForMember(member: Member, shift: ShiftState): StarAvailabil
   const status = member.state.status;
   if (status === "closed") return "closed";
   if (status === "quit") return "closed";
-  if (isMemberInCooldown(member, shift.shiftNumber)) return "cooling";
+  const followUpExempt = followUpPartnerMemberIds(shift.followUpReservations).includes(member.id);
+  if (isMemberInCooldown(member, shift.shiftNumber) && !followUpExempt) return "cooling";
   const isFocused = shift.activeBooking?.focusMemberId === member.id;
   if (!isFocused && !shift.availablePartnerMemberIds.includes(member.id)) {
     return "off_shift";

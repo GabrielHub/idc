@@ -232,14 +232,15 @@ export const sections: DocSectionEntry[] = [
     title: "Follow-up resolver",
     body: (
       <P>
-        Five follow-up actions: Encourage, Cool Down, Repair, Mark Bad Fit, and Let It Sit. The
-        resolver is outcome-aware: effects depend on the final outcome, recent Cupid pressure,
-        boundary reads, agreement or loop status, and current pair stats. Follow-up actions remain
-        one-time per final report. They may move pair stats and member state, create repair
-        agreements, create return-later loops, retire agreements, or drop open loops. Let It Sit
-        files no action and applies a small drift — the resolver penalizes it harder when strain or
-        warmth was left on the table. A shift will not close until every completed date has a
-        follow-up filed, so Let It Sit is the explicit opt-out rather than an implicit skip.
+        Three follow-up actions: Pursue, Cool Down, and Close. The resolver is outcome-aware:
+        effects depend on the final outcome, recent Cupid pressure, boundary reads, agreement or
+        loop status, and current pair stats. Follow-up actions remain one-time per final report.
+        Pursue keeps the file warm and reserves the partner against next-shift cooldown; on boundary
+        or broken-agreement pressure it also files a repair agreement. Cool Down pauses the pair
+        without closing the lane. Close retires the romantic lane permanently: active agreements
+        retire, open loops drop, and <DocCode>laneStatus</DocCode> flips to{" "}
+        <DocCode>closed</DocCode>. A shift will not close until every completed date has a follow-up
+        filed.
       </P>
     ),
   },

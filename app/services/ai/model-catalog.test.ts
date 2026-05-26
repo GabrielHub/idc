@@ -37,7 +37,7 @@ describe("AI model catalog", () => {
 
     expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
     expect(config.embeddingModel).toBe("google/gemini-embedding-2");
-    expect(config.reasoningLevel).toBe("high");
+    expect(config.reasoningLevel).toBe("xhigh");
     expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
   });
 
@@ -48,7 +48,7 @@ describe("AI model catalog", () => {
         chatModel: "deepseek/deepseek-v4-flash",
         reasoningLevel: "medium",
       }).reasoningLevel,
-    ).toBe("high");
+    ).toBe("xhigh");
     expect(
       gameConfigSchema.parse({
         aiProvider: "gateway",
@@ -143,12 +143,12 @@ describe("AI model catalog", () => {
 
   it("keeps Gateway choices narrow and disables reasoning where no Gateway knob is exposed", () => {
     expect(isGatewayChatModel(modelDefaultsForProvider("gateway").chatModel)).toBe(true);
-    expect(modelDefaultsForProvider("gateway").reasoningLevel).toBe("high");
-    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "off")).toBe("high");
-    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "none")).toBe("high");
-    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "minimal")).toBe("high");
-    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "high")).toBe("high");
-    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("high");
+    expect(modelDefaultsForProvider("gateway").reasoningLevel).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "off")).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "none")).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "minimal")).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "high")).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-pro", "high")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("anthropic/claude-haiku-4.5", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("minimax/minimax-m2.7", "high")).toBe("off");

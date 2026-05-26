@@ -83,12 +83,12 @@ export const maeve: Member = {
         "I've written and not sent four messages on this platform. This is the fifth, and you're reading it, so I appear to have learned something. Or to have run out of patience with myself. Either way, here we are.",
       ],
       warming: [
-        "Your hand on the stem of the glass. You've been holding it for a while now, but not drinking, and I'm wondering whether it's the wine or the company. I'd accept either answer.",
-        "You let that sentence end where it ended, and I noticed. Most don't. I'm going to order us another bottle in gratitude, if you'll permit me, and we can let the rest of the evening discover itself.",
-        "That laugh came late, half a second or so, give or take. I've been collecting half-seconds this week, in my way, and yours is the best one. Don't ask what I do with them. It's a small profession.",
+        "I've been collecting half-seconds this week, in my way. Yours was the best one I've encountered today. Don't ask what I do with them. It's a small profession.",
         "Have you noticed the waitress hasn't checked on us in some time. I think we've passed a test she gives, though I've stopped trying to learn what the tests are.",
-        "You almost said something a moment ago, and I caught the edge of it. If you'd like to tell me what it was I'll listen, but you don't have to. The almost is a fine course on its own, late autumn vintage, the bite back was clean.",
-        "I should tell you, Imelda read your last reply at her counter on Tuesday and she's calling you 'the tall one'. Her opinions are weather, mild this week. She likes you so far. Don't be too flattered.",
+        "I should tell you, Imelda read your last reply at her counter on Tuesday and she's calling you 'the tall one'. Her opinions are weather, mild this week. Don't be too flattered.",
+        "Order us another bottle, if you'll permit me, and we can let the rest of the evening discover itself. I'm fond of the late autumn vintages.",
+        "There's a chair at my kitchen table I haven't sat in for some years. I sit in the other one. I'd like to hear what your kitchen looks like, if you're willing. The smaller details, not the floor plan.",
+        "Tell me one ordinary thing about Tuesday. Tuesdays are my favorite. They contain almost nothing, and almost nothing is exactly what I'd like to know.",
       ],
       cooling: [
         "Oh, 'holding space'. I haven't heard that one in a few years, mostly because I asked for it not to be said at me, and I'm asking again now. Different vocabulary, same evening, if you're willing.",

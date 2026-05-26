@@ -44,91 +44,91 @@ export const driveInLastReel: DateScenario = {
         id: "drive-in-last-reel-event-1",
         title: "First scene",
         kind: "reveal",
-        event: "The screen lands on a scene only one of them recognizes.",
-        characterVisibleText:
-          "The screen settles into a kitchen at evening. The light through the window matches a warmth already present in one member's supplied context. The other member has never seen this kitchen.",
-        directorInstruction:
-          "Let the recognizing member choose to share or not, drawn only from their own brief and filed history.",
+        pitch:
+          "Settle the screen on a kitchen only one of them recognizes. Forces a stance on sharing the memory or holding it.",
+        beat: "The screen settles into a kitchen at evening. The light through the window matches a warmth already present in one member's supplied context. The other member has never seen this kitchen.",
+        directorBeat:
+          "Something on the screen is yours or your date's. If you recognize it, name what you see in plain terms or hold the silence. If you do not, ask one open question or wait. Speak only from what you already carry.",
       },
       {
         id: "drive-in-last-reel-event-2",
         title: "Concession bot",
         kind: "reveal",
-        event: "The concession bot rolls up to the driver window.",
-        characterVisibleText:
-          "A small wheeled cart rolls up to the driver window with two paper cups already on its tray. Each cup has a neat concession label. The cart waits.",
-        directorInstruction:
-          "If a label becomes specific, map it only to supplied preferences, filed reads, or pair history. Keep it generic when no supplied context fits. Do not voice the cart or label as a continuing speaker.",
+        pitch:
+          "Roll the concession cart to the window with two labeled cups. Forces a small read on whether the labels land or feel generic.",
+        beat: "A small wheeled cart rolls up to the driver window with two paper cups already on its tray. Each cup has a neat concession label. The cart waits.",
+        directorBeat:
+          "A drink is offered to each of you. Take yours, hand your date theirs, comment on the label if it fits something already true about you, or set it down. Do not invent biography off the cup.",
       },
       {
         id: "drive-in-last-reel-event-3",
         title: "Reel switch",
         kind: "reveal",
-        event: "The film cuts to a scene the other member recognizes.",
-        characterVisibleText:
-          "The reel changes mid-shot. The screen now shows a backseat view of a summer road trip. A dog's ears are visible at the bottom of the frame, but no name is supplied.",
-        directorInstruction:
-          "Trade the spotlight. Let the second member volunteer or hold their memory in private. Use only what the partner already shows on file.",
+        pitch:
+          "Cut mid-shot to a backseat summer road trip. Forces a trade: the other member volunteers a memory or holds it.",
+        beat: "The reel changes mid-shot. The screen now shows a backseat view of a summer road trip. A dog's ears are visible at the bottom of the frame, but no name is supplied.",
+        directorBeat:
+          "The screen just turned toward your date. Ask one open question about it, share what you see, or sit and let them speak first. Speak only from what they already show on file.",
       },
       {
         id: "drive-in-last-reel-event-4",
         title: "Speaker box",
         kind: "ambient",
-        event: "The window speaker crackles a single line of audio.",
-        characterVisibleText:
-          "The metal speaker hung on the door crackles. A single line of dialogue plays from a film neither of them has seen. The line is, you can love a place after it ends. The audio cuts back to silence.",
-        directorInstruction:
-          "Let the line land without the pair turning it into a thesis. Either may answer it or not. The film does not become a continuing speaker.",
+        pitch:
+          "Crackle a single line of audio: you can love a place after it ends. Surfaces whether either answers the line or lets it sit.",
+        beat: "The metal speaker hung on the door crackles. A single line of dialogue plays from a film neither of them has seen. The line is, you can love a place after it ends. The audio cuts back to silence.",
+        directorBeat:
+          "A sentence just landed in the car. Answer it honestly in one line, repeat it, ask your date what it does to them, or sit with it. Do not turn it into a thesis. The film does not become a continuing speaker.",
       },
       {
         id: "drive-in-last-reel-event-5",
         title: "Other cars",
         kind: "ambient",
-        event: "Headlights of other cars flicker across row B.",
-        characterVisibleText:
-          "Three cars in row B turn their headlights on and off in sequence and go dark again. The far end of row C is empty. A small dust devil walks across the salt and quits.",
-        directorInstruction:
-          "Use the small social signal to test whether either of them performs for an audience that is not really there. Other cars do not speak.",
+        pitch:
+          "Flicker headlights across row B in a small sequence. Surfaces whether either performs for an audience that is not really there.",
+        beat: "Three cars in row B turn their headlights on and off in sequence and go dark again. The far end of row C is empty. A small dust devil walks across the salt and quits.",
+        directorBeat:
+          "Someone is signaling at the edge of your vision. Look once and look back, comment to your date about how few cars there are, sit still, or wave. Do not put on a show for an empty lot.",
       },
       {
         id: "drive-in-last-reel-event-6",
         title: "Shared frame",
         kind: "provocation",
-        event: "The screen splits into two frames, one for each member.",
-        characterVisibleText:
-          "The screen cuts in half by a soft line down the center. The left half holds one member's frame, the right half the other's. The frames are different rooms. The audio carries from both at once and stays low.",
-        directorInstruction:
-          "Push for one direct question across the bench seat about a memory neither has used to score points.",
+        pitch:
+          "Split the screen down the middle with different rooms on each side. Forces one direct question across the bench about a memory neither used to score.",
+        beat: "The screen cuts in half by a soft line down the center. The left half holds one member's frame, the right half the other's. The frames are different rooms. The audio carries from both at once and stays low.",
+        directorBeat:
+          "Your memory and your date's are on the same screen now. Ask one honest question across the bench about the room on the other side. Do not score with it. Speak only from what is already known.",
       },
       {
         id: "drive-in-last-reel-event-7",
         title: "Popcorn cools",
         kind: "ambient",
-        event: "The popcorn on the dashboard cools at a noticeable rate.",
-        characterVisibleText:
-          "The two paper boats of popcorn on the dashboard go from warm to room temperature. A small ring of butter has marked the paper at the bottom of each boat. Neither has eaten more than a handful.",
-        directorInstruction:
-          "Use the small domestic detail to test whether either of them takes care of the other without being asked.",
+        pitch:
+          "Cool the popcorn on the dashboard while neither has eaten. Surfaces small care without being asked.",
+        beat: "The two paper boats of popcorn on the dashboard go from warm to room temperature. A small ring of butter has marked the paper at the bottom of each boat. Neither has eaten more than a handful.",
+        directorBeat:
+          "The food is going to waste. Push a boat to your date, take a handful and offer one across, comment on the cold, or leave them. Show whether you tend to the small things.",
       },
       {
         id: "drive-in-last-reel-event-8",
         title: "End of reel",
         kind: "provocation",
-        event: "The screen cues a final scene before the credits.",
-        characterVisibleText:
-          "The screen lands on a porch at dusk. Two empty chairs face the same direction. A glass of water sweats on the rail. The credits roll script is already loaded in the corner of the frame, paused.",
-        directorInstruction:
-          "Push for a clean response: stay through the credits or name a clean exit. Either is the right answer if it is honest.",
+        pitch:
+          "Land on a porch at dusk with two empty chairs and a paused credits script. Forces a clean stay or a clean exit.",
+        beat: "The screen lands on a porch at dusk. Two empty chairs face the same direction. A glass of water sweats on the rail. The credits roll script is already loaded in the corner of the frame, paused.",
+        directorBeat:
+          "The film is about to end. Stay through the credits with your date, propose leaving, ask them which they want, or hold the bench seat in silence. Name the call.",
       },
       {
         id: "drive-in-last-reel-event-9",
         title: "Salt wind kicks",
         kind: "provocation",
-        event: "A strong dry wind rocks the car and lifts dust onto the windshield.",
-        characterVisibleText:
-          "A dry wind comes hard across the salt. The car rocks once on its springs. A film of pale dust settles on the windshield and the speaker box swings on its cord.",
-        directorInstruction:
-          "Push for a physical answer: roll the windows up, swap the speaker side, or call the lot done. The wind does not stop on its own for several beats.",
+        pitch:
+          "Rock the car once with a hard dry wind and dust the windshield. Forces a physical answer on the cabin.",
+        beat: "A dry wind comes hard across the salt. The car rocks once on its springs. A film of pale dust settles on the windshield and the speaker box swings on its cord.",
+        directorBeat:
+          "The car just moved under you. Roll the windows up, swap the speaker side, brace against the door, or call the lot done. Take a physical action this turn.",
       },
     ],
     earlyEndTriggers: [

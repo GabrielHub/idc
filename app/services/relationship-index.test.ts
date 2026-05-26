@@ -206,7 +206,7 @@ function buildCompletedSession({
       outcome: readyToClose ? "second_date" : "mixed",
       summary: "The pair filed a result with the office.",
       statSummary: "Cupid filed a player safe summary.",
-      recommendedFollowUp: "encourage",
+      recommendedFollowUp: "pursue",
       memoryRecordIds: [],
       readyToClose,
     },

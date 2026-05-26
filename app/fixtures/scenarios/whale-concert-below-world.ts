@@ -44,90 +44,91 @@ export const whaleConcertBelowWorld: DateScenario = {
         id: "whale-concert-below-world-event-1",
         title: "First downbeat",
         kind: "ambient",
-        event: "The band hits the first measured downbeat.",
-        characterVisibleText:
-          "The first downbeat lands. The bass is the whale's heartbeat slowed to half time. The strings sit on top of it. The seats are warm under the legs. The pair has not spoken since the lights went down.",
-        directorInstruction:
-          "Open the set quietly. Let either of them adjust to the new time signature. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Hit the first downbeat with the bass at half time of the whale's heartbeat and the seats warm under the legs. Surfaces who adjusts to the new time signature.",
+        beat: "The first downbeat lands. The bass is the whale's heartbeat slowed to half time. The strings sit on top of it. The seats are warm under the legs. The pair has not spoken since the lights went down.",
+        directorBeat:
+          "The set has started. Settle into the bass, glance at your date, comment on the heartbeat, or sit quiet. Do not narrate the music. Do not voice the band.",
       },
       {
         id: "whale-concert-below-world-event-2",
         title: "Phone dead",
         kind: "reveal",
-        event: "A phone screen goes dark in a lap.",
-        characterVisibleText:
-          "One of their phones, taken out of habit, has gone dark in the lap. The signal bars are gone. The volume buttons do nothing. The band has not paused.",
-        directorInstruction:
-          "Use the small forced presence to surface whether either of them treats it as loss or as freedom, drawn from each member's existing relationship to a phone. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Black out a phone in a lap with no signal and dead volume buttons. Surfaces whether either treats it as loss or freedom.",
+        beat: "One of their phones, taken out of habit, has gone dark in the lap. The signal bars are gone. The volume buttons do nothing. The band has not paused.",
+        directorBeat:
+          "Your habit just hit a wall. Comment on the dead phone to your date, pocket it without a word, ask if theirs works, or laugh at the reflex. Speak from your own register. Do not voice the phone.",
       },
       {
         id: "whale-concert-below-world-event-3",
         title: "Heat shift",
         kind: "ambient",
-        event: "The cavity warms a degree as the whale breathes in.",
-        characterVisibleText:
-          "The walls of the cavity warm a noticeable degree as Below draws a slow breath. The lights bob a half inch on their hooks. The pair feels the breath in the floor.",
-        directorInstruction: "Allow the small physical fact. The pair does not need to explain it.",
+        pitch:
+          "Warm the cavity a noticeable degree as Below draws a slow breath with the lights bobbing a half inch. Surfaces the body of the room.",
+        beat: "The walls of the cavity warm a noticeable degree as Below draws a slow breath. The lights bob a half inch on their hooks. The pair feels the breath in the floor.",
+        directorBeat:
+          "Something the size of a building just inhaled around you. Lean back into the warmth, take your date's hand, comment briefly on the lamps, or sit still. Show your relationship with awe.",
       },
       {
         id: "whale-concert-below-world-event-4",
         title: "Mid-set still",
         kind: "reveal",
-        event: "The band rests between songs and the heartbeat is the only sound.",
-        characterVisibleText:
-          "The band lowers their instruments for a moment. The heartbeat is the only sound. It is a long held breath wide. The row behind theirs is silent.",
-        directorInstruction:
-          "Use the silence as the test. Either of them may speak or hold the quiet. Either is right if it is honest. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Lower the band's instruments to leave only the heartbeat with the row behind silent. Forces a stance: speak or hold the quiet.",
+        beat: "The band lowers their instruments for a moment. The heartbeat is the only sound. It is a long held breath wide. The row behind theirs is silent.",
+        directorBeat:
+          "The silence between songs is doing its own work. Hold it, speak one honest short sentence to your date, take their hand, or close your eyes. Either is right if it is honest. Do not voice the band.",
       },
       {
         id: "whale-concert-below-world-event-5",
         title: "Hand on rail",
         kind: "reveal",
-        event: "A hand rests on the brass rail along the seat back in front.",
-        characterVisibleText:
-          "A small brass rail runs along the back of the seat in front of them. One of them rests a hand on it. The brass is body temperature. The other member's hand is on the armrest, the back of it visible in the low light.",
-        directorInstruction:
-          "Use the small physical proximity to test whether either of them closes the small distance without making it a moment.",
+        pitch:
+          "Rest one hand on the brass rail along the seat in front with the other date's hand visible on the armrest. Surfaces whether either closes the small distance.",
+        beat: "A small brass rail runs along the back of the seat in front of them. One of them rests a hand on it. The brass is body temperature. The other member's hand is on the armrest, the back of it visible in the low light.",
+        directorBeat:
+          "Two hands are visible in low light. Slide yours closer, take their hand quietly, comment without making it a moment, or hold your place. Do not stage it.",
       },
       {
         id: "whale-concert-below-world-event-6",
         title: "Band lift",
         kind: "ambient",
-        event: "The band lifts back into the set without announcement.",
-        characterVisibleText:
-          "The band lifts back into a longer piece without announcement. The bass keeps the heartbeat under it. A small lamp at the band's feet flickers and steadies.",
-        directorInstruction:
-          "Let the second half of the set carry. The pair does not need to fill it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Lift the band back into a longer piece with the bass still keeping the heartbeat. Surfaces a stretch the pair does not need to fill.",
+        beat: "The band lifts back into a longer piece without announcement. The bass keeps the heartbeat under it. A small lamp at the band's feet flickers and steadies.",
+        directorBeat:
+          "The second half is starting. Stay with the music, lean closer to your date, glance at the lamp, or close your eyes. Do not narrate the lift. Do not voice the band.",
       },
       {
         id: "whale-concert-below-world-event-7",
         title: "Pre-dive cue",
         kind: "provocation",
-        event: "A staff hand walks the aisle at low height.",
-        characterVisibleText:
-          "A staff hand walks the aisle at low height with a small lantern. The lantern glow passes the row. A folded card is placed on the rail in front of seats six and seven. The card reads: dive in seven minutes, no encore.",
-        directorInstruction:
-          "Push for one direct line about what either of them wants from the rest of the set. The staff hand does not speak.",
+        pitch:
+          "Walk a staff hand with a small lantern down the aisle and place a card on the rail: dive in seven minutes, no encore. Forces one direct line about what either wants from the rest.",
+        beat: "A staff hand walks the aisle at low height with a small lantern. The lantern glow passes the row. A folded card is placed on the rail in front of seats six and seven. The card reads: dive in seven minutes, no encore.",
+        directorBeat:
+          "Seven minutes left under Below. Say one honest line about what you want from the rest, ask your date the same, or hold their hand and stay in the music. Do not voice the staff hand or the card.",
       },
       {
         id: "whale-concert-below-world-event-8",
         title: "Last bar",
         kind: "provocation",
-        event: "The band lands the last bar and Below begins to sink.",
-        characterVisibleText:
-          "The last bar lands. The cavity tilts a small degree as Below begins to sink. The lights stay on their hooks. The heartbeat is unchanged. The aisle has begun to clear at the row behind.",
-        directorInstruction:
-          "Push for a clean exit. The pair walks the aisle together or separately. Either is the right answer if it is chosen. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Land the last bar as the cavity tilts a small degree and Below begins to sink with the aisle behind clearing. Forces a clean exit.",
+        beat: "The last bar lands. The cavity tilts a small degree as Below begins to sink. The lights stay on their hooks. The heartbeat is unchanged. The aisle has begun to clear at the row behind.",
+        directorBeat:
+          "The set is closing. Stand to walk the aisle with your date, hold a beat to feel the dive begin, propose where to go next, or sit through the last few seconds. Choose how you leave.",
       },
       {
         id: "whale-concert-below-world-event-9",
         title: "Cavity tilt",
         kind: "provocation",
-        event: "The cavity tilts harder as Below shifts toward the dive.",
-        characterVisibleText:
-          "The cavity tilts another two degrees as Below shifts. The lamps swing a wider arc on their hooks. The aisle has cleared the row behind theirs and the band has packed two cases.",
-        directorInstruction:
-          "Push for a physical move: stand and walk the aisle, hold the rail, or stay seated through the dive. The cavity will not tilt back. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Tilt the cavity another two degrees as Below shifts toward the dive with the lamps swinging wider. Forces a clean physical move.",
+        beat: "The cavity tilts another two degrees as Below shifts. The lamps swing a wider arc on their hooks. The aisle has cleared the row behind theirs and the band has packed two cases.",
+        directorBeat:
+          "The floor is moving harder under you. Stand and walk the aisle, hold the rail, take your date's hand and steady, or stay seated through the dive. Move physically now. Do not voice the band.",
       },
     ],
     earlyEndTriggers: [

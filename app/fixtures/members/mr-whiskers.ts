@@ -88,11 +88,11 @@ export const mrWhiskers: Member = {
         "Please refrain from references to whiskers, paws, fur, or string. We are professionals.",
       ],
       warming: [
-        "Punctual arrival. No comment on the coat. I am, professionally, pleased.",
         "The wine selection is acceptable. The vintage would have been better. I am nonetheless.",
-        "You asked about the firm without asking which firm. This is the correct register. Continue.",
-        "Hands have remained at the table. I will note this is appreciated, though I will not say why.",
         "I will offer this once, and the record will reflect we did not return to it. Linda was the assistant. She had a system. I have not replaced it. The vendor is still the issue. Pass the bread.",
+        "Tell me of your firm. The size is not the question. The retainer schedule is the question. I am, professionally, curious.",
+        "The Greenwich house is shut for the season. The roof is, in candor, the matter. I am declining to elaborate. The wine, in any case, was already poured.",
+        "I would prefer to discuss anything that is not litigation. The menu is, by my standard, qualified. Choose the second course first.",
       ],
       cooling: [
         "Please refrain from gestures. Particularly with the napkin. I will not elaborate.",

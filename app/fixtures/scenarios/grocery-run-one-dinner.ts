@@ -44,90 +44,91 @@ export const groceryRunOneDinner: DateScenario = {
         id: "grocery-run-one-dinner-event-1",
         title: "Pasta shelf",
         kind: "reveal",
-        event: "Six boxes on the shelf all qualify under the recipe.",
-        characterVisibleText:
-          "Six boxes are at eye level. All of them are short shapes. One has a coupon sticker. The recipe just says short.",
-        directorInstruction:
-          "Use the choice to expose how the pair compromises or stalls. Each draws on what they already show on file. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Line up six qualifying boxes at eye level with one on a coupon sticker. Surfaces how the pair compromises or stalls.",
+        beat: "Six boxes are at eye level. All of them are short shapes. One has a coupon sticker. The recipe just says short.",
+        directorBeat:
+          "Pick one. Grab the coupon box, ask your date which shape they like, defer to them, or pull two and propose one each. Make the call. Do not voice the shelf.",
       },
       {
         id: "grocery-run-one-dinner-event-2",
         title: "Optional ingredient",
         kind: "reveal",
-        event: "An optional item is on the same row at eye level.",
-        characterVisibleText:
-          "The optional ingredient sits two feet from the pasta. The shelf tag is pink for sale. The recipe line for it has a parenthetical.",
-        directorInstruction: "Negotiate inclusion without turning it into a referendum.",
+        pitch:
+          "Drop the optional item two feet from the pasta on a sale tag. Forces a small negotiation without a referendum.",
+        beat: "The optional ingredient sits two feet from the pasta. The shelf tag is pink for sale. The recipe line for it has a parenthetical.",
+        directorBeat:
+          "The parenthetical is asking a question. Toss it in the cart, ask your date if they want it, skip it cleanly, or check the price. Pick and move.",
       },
       {
         id: "grocery-run-one-dinner-event-3",
         title: "Intercom",
         kind: "provocation",
-        event: "An intercom announcement passes overhead.",
-        characterVisibleText:
-          "An intercom voice announces a price check on a different aisle. Cart wheels rattle past the end of the row. Their cart still has only the recipe inside.",
-        directorInstruction:
-          "Use the cue to push for a small shared decision before they leave the aisle. Do not voice the intercom as a continuing speaker.",
+        pitch:
+          "Roll an intercom price check past the aisle with their cart still empty. Forces a shared call before they leave the row.",
+        beat: "An intercom voice announces a price check on a different aisle. Cart wheels rattle past the end of the row. Their cart still has only the recipe inside.",
+        directorBeat:
+          "Time to move. Throw the pasta and the tomatoes in, ask your date the missing call, propose splitting the recipe between aisles, or commit to one box. Decide. Do not voice the intercom.",
       },
       {
         id: "grocery-run-one-dinner-event-4",
         title: "Cart squeak",
         kind: "ambient",
-        event: "Their cart squeaks as it shifts a few inches.",
-        characterVisibleText:
-          "Their cart squeaks once as a hand bumps it. The recipe page slides a quarter inch and resettles against the handle. The basket below the cart is still empty.",
-        directorInstruction:
-          "Let the small fidget read as nerves or as patience without naming it.",
+        pitch:
+          "Squeak the cart and slide the recipe page a quarter inch. Surfaces nerves or patience without naming it.",
+        beat: "Their cart squeaks once as a hand bumps it. The recipe page slides a quarter inch and resettles against the handle. The basket below the cart is still empty.",
+        directorBeat:
+          "Something small fidgeted in your hands. Steady the page, comment on the squeak, ask your date how they want to split this, or just pick a box. Show your tension or your ease.",
       },
       {
         id: "grocery-run-one-dinner-event-5",
         title: "Sample tray",
         kind: "reveal",
-        event: "An employee passes with a tray of small sample cups.",
-        characterVisibleText:
-          "An employee in a green polo passes the end of the aisle with a tray of small paper cups. Two stayed unfilled. The smell is herbed cheese.",
-        directorInstruction:
-          "Use the small offer to surface generosity, deferral, or a tiny shared appetite drawn from each member's existing register. The employee does not speak.",
+        pitch:
+          "Walk an herbed cheese sample tray past with two cups unfilled. Forces a small generosity, deferral, or shared appetite.",
+        beat: "An employee in a green polo passes the end of the aisle with a tray of small paper cups. Two stayed unfilled. The smell is herbed cheese.",
+        directorBeat:
+          "A small free thing is two steps away. Walk over and grab two, ask your date if they want a try, comment on the smell, or stay at the cart. Speak only from your own register. Do not voice the employee.",
       },
       {
         id: "grocery-run-one-dinner-event-6",
         title: "Promo tag flap",
         kind: "ambient",
-        event: "A pink promo tag flutters under the AC vent.",
-        characterVisibleText:
-          "The pink promo tag on the optional ingredient flutters under the AC vent. The shelf is bare on one side. A handwritten correction shows the price changed since lunch.",
-        directorInstruction:
-          "Let the small detail catch one of them. The other can choose to look.",
+        pitch:
+          "Flutter the pink promo tag with a handwritten price correction. Surfaces whether either notices the small detail.",
+        beat: "The pink promo tag on the optional ingredient flutters under the AC vent. The shelf is bare on one side. A handwritten correction shows the price changed since lunch.",
+        directorBeat:
+          "Someone updated the price by hand. Point it out, comment on the bare shelf, ask your date if they want the optional anyway, or move on. Notice the small mark.",
       },
       {
         id: "grocery-run-one-dinner-event-7",
         title: "Cart pass",
         kind: "ambient",
-        event: "Another shopper passes their cart in the aisle.",
-        characterVisibleText:
-          "Another shopper drives a full cart past theirs and slows to read the same shelf. He nods, picks the second cheapest box, and moves on. His cart already has two prepared rotisserie chickens.",
-        directorInstruction:
-          "Allow a small benchmark moment. Either member may use it or leave it. Do not voice the shopper.",
+        pitch:
+          "Pass another shopper's full cart past with two rotisserie chickens. Surfaces a small benchmark moment.",
+        beat: "Another shopper drives a full cart past theirs and slows to read the same shelf. He nods, picks the second cheapest box, and moves on. His cart already has two prepared rotisserie chickens.",
+        directorBeat:
+          "Someone else just made the decision faster than you. Match the move, comment on the rotisseries, defend why you are slower, or ignore him. Be honest about your pace. Do not voice the shopper.",
       },
       {
         id: "grocery-run-one-dinner-event-8",
         title: "End cap reset",
         kind: "provocation",
-        event: "An employee resets an end cap of canned tomatoes.",
-        characterVisibleText:
-          "An employee on her knees stacks cans of tomatoes onto a low end cap two strides away. She does not look up. A sleeve of paper price tags is tucked under one arm.",
-        directorInstruction:
-          "Push for one final pasta and one shared decision. The aisle will close on time. The employee does not speak.",
+        pitch:
+          "Stack a tomatoes end cap two strides away as the aisle nears close. Forces one final pasta and one shared decision.",
+        beat: "An employee on her knees stacks cans of tomatoes onto a low end cap two strides away. She does not look up. A sleeve of paper price tags is tucked under one arm.",
+        directorBeat:
+          "The aisle is being reset around you. Grab the box, propose the cart leaves now, ask your date for the last call, or step out of the employee's way. Commit. Do not voice the employee.",
       },
       {
         id: "grocery-run-one-dinner-event-9",
         title: "Cart roll",
         kind: "provocation",
-        event: "The cart rolls a few feet down the aisle on its own.",
-        characterVisibleText:
-          "The aisle floor has a slight slope toward the dairy end. The cart starts to roll on its own and is two strides down the aisle before either has it. The recipe page lifts and falls back against the handle.",
-        directorInstruction:
-          "Push for a physical save and a clear restart of the choice. The cart will not stop without a hand on the bar.",
+        pitch:
+          "Slope the floor enough to roll the cart two strides on its own. Forces a physical save and a clean restart.",
+        beat: "The aisle floor has a slight slope toward the dairy end. The cart starts to roll on its own and is two strides down the aisle before either has it. The recipe page lifts and falls back against the handle.",
+        directorBeat:
+          "Your cart is escaping. Catch it, laugh with your date, hand them the recipe, or just walk it down the slope. Take the body action now.",
       },
     ],
     earlyEndTriggers: [

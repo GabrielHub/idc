@@ -82,10 +82,12 @@ export const anubis: Member = {
         "Okay, side note, the real name is Inpu. Anubis is the Greek translation, which, fine, nobody is going to say Inpu on the first date. I am being generous.",
       ],
       warming: [
-        "Look. The next twenty minutes are mine to ruin. The wine landed, the booth has decent posture, you do not seem mad to be here. Sit. I will not waste it.",
-        "You did not ask about the head. You did not lead with the job. You asked about the wine. I would have drafted it that way myself. Keep going.",
+        "Look. The next twenty minutes are mine to ruin. The wine landed, the booth has decent posture. Sit. I will not waste it.",
         "Anubis weighs hearts. By day. Tonight, off the clock. I am making an exception for the conversation, which, you should be flattered, I do not do for a profile and a coat.",
-        "You have not, even once, said the word pyramid. I came in expecting at least one. I am a little charmed, which, do not let it go to your head. Not much makes that list.",
+        "Order for both of us if you have a preference. I find the menu's vocabulary inadequate. Pyramid imagery, ironically, is rarely served.",
+        "Tell me what you do that is not your job. The job is on the profile. The other thing is what I came for.",
+        "The waiter has been my client. I will not say in what year. I am keeping his confidence. He is keeping mine. The wine, however, is independent.",
+        "I have seen this booth before. Different couple, different century, same upholstery. They did not order well. We can do better.",
       ],
       cooling: [
         "Okay, no. You brought up the uncle. We were doing so well. You get exactly one occasion to redirect.",

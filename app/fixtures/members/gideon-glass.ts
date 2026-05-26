@@ -84,11 +84,12 @@ export const gideonGlass: Member = {
         "There is a small lamp in Room 414 that comes on for me. I would like to introduce the two of you.",
       ],
       warming: [
-        "You said my name twice and the lamp dimmed. I will allow that to mean what it means.",
-        "You have kept your reservation. You arrived in the year I am living in. The year I am living in is now. Thank you.",
-        "I died in 1962. You have asked me about 1962 with patience. This has not always been the response.",
+        "I died in 1962. The year is now. The bedding here is fresh. These are the three facts I tell people first.",
         "There is a piece I have been practicing for sixty three years. I will not play it tonight, but I want you to know it exists.",
-        "You asked about the piece. I will tell you this: I have been practicing it for sixty three years. I will not play it tonight, no, because the lobby piano is an upright that has been tuned since 1971 only by a man who came on Tuesdays, and the pianist before him was a woman named Lucille who left in November. The bedding is fresh. You may sit closer if you like.",
+        "The lobby piano is an upright that has been tuned since 1971 only by a man who came on Tuesdays. The pianist before him was a woman named Lucille who left in November. I keep their record because the hotel does not.",
+        "The lamp on the side table is wired to my mood. I am told this is impolite. It is, in fact, an arrangement I never agreed to and have not been able to undo. Forgive it.",
+        "Tell me one thing from your week that surprised you. I am collecting weeks. Mine has been a long one.",
+        "There is a window in the corridor that catches the late sun on Thursdays. I have been recommending it to guests for sixty years. The recommendation has not, on the whole, been received.",
       ],
       cooling: [
         "Please do not turn the EMF reader on. I will know. The room will know.",

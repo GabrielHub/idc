@@ -69,6 +69,7 @@ function buildPairState({
   return {
     id: makePairId(participantIds[0], participantIds[1]),
     participantIds,
+    laneStatus: "open",
     stats,
     completedDateIds,
     scenarioUseCounts: allScenarioUseCounts,
@@ -85,7 +86,7 @@ function buildFinalReport(overrides: Partial<DateFinalReport> = {}): DateFinalRe
     outcome: "second_date",
     summary: "Test pair completed a strong date.",
     statSummary: "Case read: the pair left with mutual signal.",
-    recommendedFollowUp: "encourage",
+    recommendedFollowUp: "pursue",
     memoryRecordIds: [],
     readyToClose: true,
     ...overrides,

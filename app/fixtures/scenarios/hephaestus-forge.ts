@@ -44,90 +44,91 @@ export const hephaestusForge: DateScenario = {
         id: "hephaestus-forge-event-1",
         title: "Pinned note",
         kind: "reveal",
-        event: "The pinned note at the order desk is in clean handwriting.",
-        characterVisibleText:
-          "A small pinned card sits at the edge of the order desk. The card reads, in clean handwriting: make what you'll carry. The card is unsigned. The corner has a small forge mark in soot.",
-        directorInstruction:
-          "Use the small note to surface intent drawn from existing context. Either may read the note, skip it, or comment on it. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Pin the god's note at the desk edge: make what you'll carry. Surfaces intent on what either of you is actually here to make.",
+        beat: "A small pinned card sits at the edge of the order desk. The card reads, in clean handwriting: make what you'll carry. The card is unsigned. The corner has a small forge mark in soot.",
+        directorBeat:
+          "The god left you a clear instruction. Read it aloud, comment on what you would carry, ask your date what they would, or set the card down without taking it on. Be honest about intent. Do not voice the card.",
       },
       {
         id: "hephaestus-forge-event-2",
         title: "Material menu",
         kind: "ambient",
-        event: "The clay tablet shows a list of materials.",
-        characterVisibleText:
-          "The clay tablet at the desk shows a list of materials: bronze, steel, iron, brass, copper, glass, bone, and one row marked god's stock. Each entry has a small note beside it on heat profile and weight. The tablet does not require a selection yet.",
-        directorInstruction:
-          "Allow the menu to be present without demanding action. The pair does not need to decide first. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Light up the clay tablet's material list with god's stock as one row. Surfaces taste without forcing a decision.",
+        beat: "The clay tablet at the desk shows a list of materials: bronze, steel, iron, brass, copper, glass, bone, and one row marked god's stock. Each entry has a small note beside it on heat profile and weight. The tablet does not require a selection yet.",
+        directorBeat:
+          "Materials are on offer. Tap one, ask your date which they prefer, comment on the god's stock row, or step back from the tablet. Engage with the menu, do not freeze. Do not voice the tablet.",
       },
       {
         id: "hephaestus-forge-event-3",
         title: "Intake form",
         kind: "provocation",
-        event: "An intake form prints from the desk slot.",
-        characterVisibleText:
-          "An intake form prints from a slot on the desk. The form has a use-of-force clause and a small consent box for each commission. A pen rests in a holder at the desk. The first slab has begun to glow a notch hotter.",
-        directorInstruction:
-          "Push for a real read of the form. Either may sign for their own slab, refuse to sign, or pass the pen across the desk. The form is real. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Print an intake form with a use-of-force clause and consent boxes. Forces a real read on signing or refusing.",
+        beat: "An intake form prints from a slot on the desk. The form has a use-of-force clause and a small consent box for each commission. A pen rests in a holder at the desk. The first slab has begun to glow a notch hotter.",
+        directorBeat:
+          "A real contract is in front of you. Sign for your own slab, refuse to sign aloud, ask your date what they think of the clause, or pass the pen across. Make the call cleanly.",
       },
       {
         id: "hephaestus-forge-event-4",
         title: "Wall inscription",
         kind: "reveal",
-        event: "A small inscription appears on the forge wall.",
-        characterVisibleText:
-          "A small inscription appears on the forge wall above the coals, in the same clean handwriting as the pinned note. The inscription reads: a weapon is a contract with a hand. The line holds for a beat and fades back into the soot. The coals are unchanged.",
-        directorInstruction:
-          "Use the small line to surface honesty about intent drawn from existing context. Either may take it as a marker or not. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Surface a small soot inscription above the coals: a weapon is a contract with a hand. Surfaces honesty about intent.",
+        beat: "A small inscription appears on the forge wall above the coals, in the same clean handwriting as the pinned note. The inscription reads: a weapon is a contract with a hand. The line holds for a beat and fades back into the soot. The coals are unchanged.",
+        directorBeat:
+          "A line about hands and weapons just landed. Speak honestly to it: agree, disagree, ask your date what they read, or refuse to comment. Do not turn it into a speech. Do not voice the inscription.",
       },
       {
         id: "hephaestus-forge-event-5",
         title: "First slab heat",
         kind: "ambient",
-        event: "The first slab reaches working temperature.",
-        characterVisibleText:
-          "The first slab reaches working temperature. A small pyrometer at the corner of the slab sits at the working line. The tongs at the slab's edge rest on a hook. The coals run a steady white at the back of the chamber.",
-        directorInstruction:
-          "Allow the slab to be ready. The pair does not need to start at the same beat.",
+        pitch:
+          "Bring the first slab to working temperature with the pyrometer at the line. Surfaces who steps forward first.",
+        beat: "The first slab reaches working temperature. A small pyrometer at the corner of the slab sits at the working line. The tongs at the slab's edge rest on a hook. The coals run a steady white at the back of the chamber.",
+        directorBeat:
+          "The slab is hot and waiting. Step to it, hand the tongs to your date, comment on the heat, or hang back. Show whether the work pulls you.",
       },
       {
         id: "hephaestus-forge-event-6",
         title: "First item lands",
         kind: "provocation",
-        event: "A finished item lands on the first slab still hot.",
-        characterVisibleText:
-          "A finished item from the first commission lands on the slab still hot. The shape matches what the tablet was asked for. The slab carries it forward on the slow conveyor toward the quench. The quench is ten paces from the desk.",
-        directorInstruction:
-          "Push for a clean call on the item: carry it out, quench it, or leave it on the slab. The forge does not press the choice. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Land a finished commission still hot on the first slab with the conveyor moving toward the quench. Forces a clean call: carry, quench, or leave.",
+        beat: "A finished item from the first commission lands on the slab still hot. The shape matches what the tablet was asked for. The slab carries it forward on the slow conveyor toward the quench. The quench is ten paces from the desk.",
+        directorBeat:
+          "Something real is on the slab and moving. Lift it off and carry it out, walk it to the quench, leave it on the conveyor, or ask your date to choose. Name what you do with the weight.",
       },
       {
         id: "hephaestus-forge-event-7",
         title: "Second slab waits",
         kind: "reveal",
-        event: "The second slab waits at working temperature.",
-        characterVisibleText:
-          "The second slab is at working temperature. The clay tablet at the desk holds the second commission slot open. The tongs at the second slab are still on the hook. The pyrometer reads at the working line.",
-        directorInstruction:
-          "Use the waiting slab to surface what the other member is asking for, drawn from existing context. The second commission is a real choice and may be declined. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Open the second slab and commission slot. Surfaces what the other member wants, including a real refusal.",
+        beat: "The second slab is at working temperature. The clay tablet at the desk holds the second commission slot open. The tongs at the second slab are still on the hook. The pyrometer reads at the working line.",
+        directorBeat:
+          "Your date's slab is open. Ask what they want to make, offer a suggestion, share the tongs, or stand back if they decline. Do not project. Speak from what they have already shown. Do not voice the tablet.",
       },
       {
         id: "hephaestus-forge-event-8",
         title: "Coals settle",
         kind: "ambient",
-        event: "The coals settle a notch.",
-        characterVisibleText:
-          "The coals at the back of the chamber settle a small notch. The roar of the bellows softens for a beat. The slabs hold their temperature. The pinned note is still at the desk edge.",
-        directorInstruction: "Allow the small lull. The forge does not need the pair to fill it.",
+        pitch:
+          "Soften the coals and bellows for a beat. Surfaces whether the pair lets the lull pass without filling it.",
+        beat: "The coals at the back of the chamber settle a small notch. The roar of the bellows softens for a beat. The slabs hold their temperature. The pinned note is still at the desk edge.",
+        directorBeat:
+          "The forge just got quieter. Use the small breath: glance at your date, ask the real question while it is calm, or sit with the lull. Do not invent noise to fill it.",
       },
       {
         id: "hephaestus-forge-event-9",
         title: "Quench tray",
         kind: "provocation",
-        event: "The quench tray opens at the back of the chamber.",
-        characterVisibleText:
-          "The quench tray opens at the back of the chamber. The tray has two slots, one for each commission. A small card on the tray reads: what is quenched is unmade. The first item is still on the slab. The second slab is still open.",
-        directorInstruction:
-          "Push for a clean choice on each item: carry out, quench, or leave on the slab. The booking closes at the next chime. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Open the quench tray with two slots and a card: what is quenched is unmade. Forces a clean choice per item.",
+        beat: "The quench tray opens at the back of the chamber. The tray has two slots, one for each commission. A small card on the tray reads: what is quenched is unmade. The first item is still on the slab. The second slab is still open.",
+        directorBeat:
+          "Each item now has a decision: carry out, quench unmade, or leave on the slab. Walk one to the tray, ask your date what they want for theirs, take both with you, or refuse to use the quench. Name each call. Do not voice the card.",
       },
     ],
     earlyEndTriggers: [

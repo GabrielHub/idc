@@ -24,13 +24,15 @@ import { starterMembers, starterScenarios } from "../fixtures";
 import { createInitialScenarioDeck } from "./deck";
 import { normalizePairStateActiveMemoryDuplicates } from "./pair-memory-state";
 import {
+  dateSessionShiftNumber,
   hydrateFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
   selectShiftCompanyGoalIds,
 } from "./shift-planning";
 import {
+  followUpPartnerMemberIds,
   hydrateAvailablePartnerMemberIds,
-  selectShiftFollowUpPartnerMemberIds,
+  selectShiftFollowUpReservations,
   selectShiftPartnerMemberIds,
 } from "./shift-availability";
 import { derivePairStats } from "./pair-stats";
@@ -65,7 +67,9 @@ export function createSeedGameSave(
       members,
       focusedMemberIds,
       shiftNumber: 1,
+      pairStates: [],
     }),
+    followUpReservations: [],
     drawnScenarioIds: [],
     companyGoalIds: selectShiftCompanyGoalIds({
       members,
@@ -174,12 +178,12 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   const pairResult = hydratePairStates(save.pairStates, members, save.updatedAt);
   if (pairResult.dirty) dirty = true;
 
-  const dateSessionResult = mapWithDirty(save.dateSessions, hydrateDateSessionScenarioId);
+  const dateSessionResult = mapWithDirty(save.dateSessions, hydrateDateSession);
   if (dateSessionResult.dirty) dirty = true;
 
   const shiftsResult = mapWithDirty(
     save.shifts,
-    (shift) => hydrateShift(shift, members, dateSessionResult.items),
+    (shift) => hydrateShift(shift, members, dateSessionResult.items, pairResult.pairStates),
     shiftsEqual,
   );
   if (shiftsResult.dirty) dirty = true;
@@ -268,6 +272,7 @@ function shiftsEqual(before: ShiftState, after: ShiftState): boolean {
   return (
     arraysShallowEqual(before.featuredMemberIds, after.featuredMemberIds) &&
     arraysShallowEqual(before.availablePartnerMemberIds, after.availablePartnerMemberIds) &&
+    deepEqualByJson(before.followUpReservations, after.followUpReservations) &&
     arraysShallowEqual(before.drawnScenarioIds, after.drawnScenarioIds)
   );
 }
@@ -310,17 +315,20 @@ function hydrateShift(
   shift: ShiftState,
   members: Member[],
   dateSessions: readonly DateSession[],
+  pairStates: readonly PairState[],
 ): ShiftState {
   const featuredMemberIds = hydrateFeaturedMemberIds({ shift, members });
-  const followUpPartnerMemberIds =
+  const followUpReservations =
     shift.status === "active"
-      ? selectShiftFollowUpPartnerMemberIds({
+      ? selectShiftFollowUpReservations({
           members,
           focusedMemberIds: featuredMemberIds,
           dateSessions,
+          pairStates,
           shiftNumber: shift.shiftNumber,
         })
       : [];
+  const followUpPartnerIds = followUpPartnerMemberIds(followUpReservations);
   return shiftStateSchema.parse({
     ...shift,
     featuredMemberIds,
@@ -328,8 +336,11 @@ function hydrateShift(
       shift,
       members,
       focusedMemberIds: featuredMemberIds,
-      priorityPartnerMemberIds: followUpPartnerMemberIds,
+      priorityPartnerMemberIds: followUpPartnerIds,
+      cooldownExemptMemberIds: followUpPartnerIds,
+      pairStates,
     }),
+    followUpReservations,
     drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
   });
 }
@@ -356,10 +367,15 @@ function normalizeScenarioIds(scenarioIds: readonly string[]): string[] {
   return normalizedScenarioIds;
 }
 
-function hydrateDateSessionScenarioId(session: DateSession): DateSession {
+function hydrateDateSession(session: DateSession): DateSession {
   const scenarioId = normalizeStarterScenarioId(session.scenarioId);
+  const shiftNumber = dateSessionShiftNumber(session);
+  const nextSession =
+    shiftNumber === null || session.shiftNumber === shiftNumber
+      ? session
+      : { ...session, shiftNumber };
 
-  return scenarioId === session.scenarioId ? session : { ...session, scenarioId };
+  return scenarioId === nextSession.scenarioId ? nextSession : { ...nextSession, scenarioId };
 }
 
 function hydrateMemoryScenarioId(memory: MemoryRecord): MemoryRecord {
@@ -395,6 +411,7 @@ export function buildPairProjection(first: Member, second: Member): PairProjecti
   const projection: PairProjection = {
     id: makePairId(aId, bId),
     participantIds,
+    laneStatus: "open",
     stats: createInitialPairStats(a, b),
     completedDateIds: [],
     scenarioUseCounts: {},

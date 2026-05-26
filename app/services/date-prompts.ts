@@ -11,14 +11,19 @@ import type {
   MemberSampleMessages,
   PairState,
   PlayerKnowledgeRecord,
+  ScenarioEvent,
   ScenarioEventKind,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
 import {
   exchangeIndexForPendingTurn,
+  exchangeIndexForTurn,
+  findScenarioEventById,
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
+  latestJudgedExchangeIndex,
 } from "./date-engine";
+import type { MatchFitResult } from "./match-fit";
 import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
 import { rankActiveAgreements, rankActiveOpenLoops } from "./pair-memory-state";
 import { derivePairTrajectory } from "./pair-trajectory";
@@ -251,6 +256,7 @@ export type CharacterPromptInput = {
   rhythmRetry?: { repeatedPhrase: string; recentLine: string };
   imageAttachments?: readonly CharacterPromptImageAttachment[];
   partnerKnowledge?: readonly PlayerKnowledgeRecord[];
+  matchFit?: MatchFitResult;
 };
 
 function formatPartnerProfileForPrompt(
@@ -348,7 +354,7 @@ function formatCharacterFormatSection(member: Member): string[] {
   const lines = [
     "",
     "<format>",
-    "The UI sends one message at a time, but in the fiction you are speaking across the table. Default to one compact visible block. When a line has a clear beat, a light Markdown move can carry the spoken delivery: *italic* for a stressed word, **strong** for a named joke or hard correction, a line break to send the next thought as its own bubble, a blank line for a held beat. Useful Markdown shapes: I said *almost* normal. **Receipt law.** The garnish is evidence. At most one move in a normal message; two only when the moment is heated, ecstatic, or falling apart. No lists, no links, no images, no raw HTML, no code, no blockquotes, no tables, no math, no Mermaid, no footnotes, no task syntax. No speaker labels, no stage directions, no bracketed asides. Italic stage directions like *sighs*, *looks away*, or a whole italic line of body language are broken markup. No em dashes or en dashes. Cap a message at two visible blocks, but do not aim for the cap. No visible block should read like a paragraph; if a thought needs more than three clauses, cut it and hand the floor back. Length varies with the moment: a word, a fragment, a sentence, two sentences. Longer is rare and must earn the space.",
+    "You are speaking across a table. The UI splits each turn into one or two bubbles. *italic* for a stressed word you would say aloud (*almost*, *that*, *you*); **strong** for a named joke or hard correction. That is the entire Markdown vocabulary. Italic that names what your body is doing (*puts feet down*, *grabs coffee*, *sips*, *sighs*) is stage direction, not speech, and gets stripped, along with bare action sentences without asterisks. No lists, links, images, code, blockquotes, tables, math, footnotes, or task syntax. No speaker labels, no bracketed asides. No em dashes or en dashes.",
   ];
 
   const outputConstraints = member.voice.outputConstraints ?? [];
@@ -375,7 +381,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
   const isSpeakerOpeningTurn = !session.transcript.some(
     (message) => message.kind === "character" && message.speakerId === member.id,
   );
-  const { greetings: greetingSamples, voiceFlavor: voiceFlavorSamples } = pickSamplesForTurn({
+  const { greetings: greetingSamples, fireAttractors: fireAttractorSamples } = pickSamplesForTurn({
     sampleMessages: member.voice.sampleMessages,
     dateHealth: session.dateHealth,
     isOpeningTurn: isSpeakerOpeningTurn,
@@ -418,10 +424,15 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
           `</greeting_examples>`,
           ``,
         ]),
-    `<voice_examples>`,
-    `Lines that sound like you:`,
-    formatBulletList(voiceFlavorSamples),
-    `</voice_examples>`,
+    ...(fireAttractorSamples.length === 0
+      ? []
+      : [
+          `<fire_attractors>`,
+          `Only consult this if a dealbreaker has been crossed and you are about to fire. The shape of your fire sounds like this:`,
+          formatBulletList(fireAttractorSamples),
+          `</fire_attractors>`,
+          ``,
+        ]),
     ...formatCharacterConversationShapeSection(member),
     ...formatCharacterContrastExamplesSection(member),
     `<wants>`,
@@ -445,13 +456,14 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `<state>`,
     `Tonight: ${formatPromptCharacterState(characterState, member)}.`,
     ...formatCharacterPressureGuidance(characterState),
+    ...formatCharacterMatchFitSection(input.matchFit, member, partner),
     ...formatCharacterMemorySection(memoryPack, partner),
     ...formatCharacterPairContextSection(pairState, pairTrajectory, pairSpotlight, partner),
     `</state>`,
     ...formatCharacterMemorySearchSection(memorySearchAvailable),
     ``,
     `<scene>`,
-    `You are at ${scenario.publicBrief.location}. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
+    `You and ${partner.firstName} are at ${scenario.publicBrief.location}, both seeing the same room. ${scenario.publicBrief.whatBothCharactersKnow} The place feels like this: ${scenario.director.tone}.`,
     ...scenario.director.rules.map((rule) => `- ${rule}`),
     ``,
     `Across from you is ${partner.firstName}. Their Cupid profile reads: ${formatPartnerProfileForPrompt(partner, input.partnerKnowledge ?? [])}`,
@@ -467,6 +479,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `During the date the dating manager may send private in-app notes meant as coaching, not conversation. The note is yours to follow, bend, or ignore. Your reply is the spoken line to your date; if a note changes your behavior, the spoken line still has to make sense to someone who cannot read the note.`,
     `This is your ${ordinal(dateNumber)} date with ${partner.firstName} through Cupid.`,
     `</scene>`,
+    ...buildSceneDirectiveLines(findPendingSceneDirective(session, scenario)),
     ...formatCharacterFormatSection(member),
     ...buildRepetitionRetryNotice(input.repetitionRetry),
     ...buildRhythmRetryNotice(input.rhythmRetry),
@@ -670,6 +683,34 @@ function formatCharacterMemorySearchSection(memorySearchAvailable: boolean): str
   ];
 }
 
+function formatCharacterMatchFitSection(
+  matchFit: MatchFitResult | undefined,
+  member: Member,
+  partner: Member,
+): string[] {
+  if (matchFit === undefined) {
+    return [];
+  }
+
+  const lines: string[] = [];
+
+  if (matchFit.boundaryRisk !== null && matchFit.boundaryRisk.memberId === member.id) {
+    lines.push(
+      `Something about ${partner.firstName} or this setup pushes against one of your guards. You feel it before you have words for it.`,
+    );
+  } else if (matchFit.fitLevel === "risky") {
+    lines.push(
+      `${partner.firstName} sits a little wrong on first read. The pairing may not click; you do not have to chase warmth that is not there.`,
+    );
+  } else if (matchFit.fitLevel === "strong") {
+    lines.push(
+      `There is a quiet pull toward ${partner.firstName} from the start. Whether it holds is the conversation's job.`,
+    );
+  }
+
+  return lines;
+}
+
 function formatCharacterPairContextSection(
   pairState: PairState,
   pairTrajectory: ReturnType<typeof derivePairTrajectory>,
@@ -786,29 +827,27 @@ function formatCharacterPressureGuidance(state: PromptCharacterState): string[] 
   if (intent === "protect the boundary" || state.mood < 30 || state.comfort < 30) {
     return [
       "Use that state as behavior, not decoration.",
-      "If the latest line crosses a guard or makes the date feel bad, cool down, refuse, redirect, or end the exchange in your own voice.",
-      "Do not keep flirting to be polite.",
+      "If the latest line crosses a guard or makes the room feel bad, cool down, refuse, redirect, or end the exchange in your own voice.",
     ];
   }
 
   if (state.mood < 50 || state.comfort < 50 || intent === "slow down and read the room") {
     return [
       "Use that state as behavior, not decoration.",
-      "Unease means warmth has to be earned. Confusion, irritation, guarded humor, shorter answers, or a clean boundary are valid replies.",
-      "Do not default to flirtation unless the latest line gives you a concrete reason.",
+      "Unease pulls humor sharper or pulls it offline. Confusion, irritation, guarded humor, shorter answers, or a clean boundary are valid replies.",
     ];
   }
 
   if (intent === "lean into the attraction") {
     return [
       "Use that state as behavior, not decoration.",
-      "Attraction can show, but keep it specific to the latest line and your own guards.",
+      "Whatever your version of leaning in is, it stays specific to the latest line and your own guards.",
     ];
   }
 
   return [
     "Use that state as behavior, not decoration.",
-    "Steady does not mean automatically flirty. Match the latest line, your guards, and the room.",
+    "Be as much yourself as you can be — the funny, sharp, specific version. Reactions to what the partner just said or did, your own material, admissions, and refusals all run through your own engines. Attraction, warmth, and connection are side effects of being recognizable, not goals to chase. Flat reads, dry boredom, irritation, and 'this person has not earned my interest yet' are equally valid when the latest line warrants them.",
   ];
 }
 
@@ -905,19 +944,78 @@ function filterCharacterVisibleTranscript({
   );
 }
 
+function findPendingSceneDirective(
+  session: DateSession,
+  scenario: DateScenario,
+): ScenarioEvent | undefined {
+  // A dropped scene stays "pending" for every speaker in the current exchange,
+  // not just the first one after the drop. Once the judge runs at the
+  // exchange boundary, the scene is retired with the judgement.
+  const pendingExchangeFloor = latestJudgedExchangeIndex(session);
+  for (let i = session.transcript.length - 1; i >= 0; i--) {
+    const message = session.transcript[i];
+    if (exchangeIndexForTurn(message.turnIndex) <= pendingExchangeFloor) {
+      return undefined;
+    }
+    if (message.kind === "scenario" && message.sourceEventId !== undefined) {
+      return findScenarioEventById(scenario, message.sourceEventId);
+    }
+  }
+  return undefined;
+}
+
+function findFiredSceneInExchange(
+  exchangeMessages: readonly DateMessage[],
+  scenario: DateScenario,
+): ScenarioEvent | undefined {
+  for (const message of exchangeMessages) {
+    if (message.kind === "scenario" && message.sourceEventId !== undefined) {
+      return findScenarioEventById(scenario, message.sourceEventId);
+    }
+  }
+  return undefined;
+}
+
+function buildSceneDirectiveLines(event: ScenarioEvent | undefined): string[] {
+  if (event === undefined) {
+    return [];
+  }
+  return [
+    ``,
+    `<scene_directive>`,
+    `A scene just shifted at your table. Your next reply must visibly engage with it; do not glide past.`,
+    formatDirectorBeatWithKindSuffix(event.directorBeat, event.kind),
+    `</scene_directive>`,
+  ];
+}
+
+function buildJudgeSceneDropLines(event: ScenarioEvent | undefined): string[] {
+  if (event === undefined) {
+    return [];
+  }
+  return [
+    ``,
+    `<scene_drop>`,
+    `The player dropped a scene during this exchange.`,
+    `Director intent: ${formatDirectorBeatWithKindSuffix(event.directorBeat, event.kind)}`,
+    `Score whether the characters engaged with the dropped beat. Visible engagement should land positive on Date Health and the relevant member moods. Gliding past a dropped beat should land neutral to negative.`,
+    `</scene_drop>`,
+  ];
+}
+
 export const SCENARIO_EVENT_KIND_SUFFIXES: Record<ScenarioEventKind, string> = {
-  ambient: "Treat this as ambient texture. The character may notice it or move on as feels true.",
-  provocation:
-    "This is a physical interruption. The character must register and react before resuming.",
+  ambient:
+    "The room just shifted in a quiet way. Let this color your next beat, even if you do not name it directly.",
+  provocation: "This is a physical interruption. You must register and react before resuming.",
   reveal:
-    "This puts something honest into the open. The character chooses how to be seen, drawing only on their own brief, filed reads, or pair history.",
+    "This puts something honest into the open. Engage with it from what you know about yourself or the pair, never invented biography.",
 };
 
-export function formatDirectorInstructionWithKindSuffix(
-  directorInstruction: string,
+export function formatDirectorBeatWithKindSuffix(
+  directorBeat: string,
   kind: ScenarioEventKind,
 ): string {
-  const trimmed = directorInstruction.trimEnd();
+  const trimmed = directorBeat.trimEnd();
   const needsTerminator = !/[.!?]$/.test(trimmed);
   const punctuated = needsTerminator ? `${trimmed}.` : trimmed;
   return `${punctuated} ${SCENARIO_EVENT_KIND_SUFFIXES[kind]}`;
@@ -928,6 +1026,7 @@ export function buildJudgePromptPacket({
   session,
   pairState,
   exchangeMessages,
+  exchangeSceneMessages,
   exchangeIndex,
   members,
   revealCandidates,
@@ -937,6 +1036,10 @@ export function buildJudgePromptPacket({
   session: DateSession;
   pairState: PairState;
   exchangeMessages: DateMessage[];
+  // Scene events that fired during the same exchange window. The main runtime
+  // strips scenario messages out of `exchangeMessages` for gating reasons, so
+  // pass them in separately when the judge needs to react to a scene drop.
+  exchangeSceneMessages?: readonly DateMessage[];
   exchangeIndex?: number;
   members: Member[];
   revealCandidates?: readonly RevealCandidate[];
@@ -1093,6 +1196,9 @@ export function buildJudgePromptPacket({
         `Rubric failure signals: ${scenario.judgeRubric.failureSignals.join("; ")}.`,
         `Early end triggers: ${scenario.director.earlyEndTriggers.join("; ")}.`,
         "</scene>",
+        ...buildJudgeSceneDropLines(
+          findFiredSceneInExchange(exchangeSceneMessages ?? exchangeMessages, scenario),
+        ),
         "",
         "<state>",
         `Current Date Health: ${session.dateHealth}.`,
@@ -1356,70 +1462,18 @@ export function pickSamplesForTurn({
   dateHealth: number;
   isOpeningTurn: boolean;
   seed: string;
-}): { greetings: string[]; voiceFlavor: string[] } {
-  const weights = bucketWeights(dateHealth, isOpeningTurn);
-  const greetings = deterministicPick(
-    sampleMessages.greeting,
-    `${seed}:greeting`,
-    weights.greeting,
-  );
-  const flavorBuckets: Array<{ items: readonly string[]; count: number; key: string }> = [
-    { items: sampleMessages.hingeBits, count: weights.hingeBits, key: "hingeBits" },
-    { items: sampleMessages.warming, count: weights.warming, key: "warming" },
-    { items: sampleMessages.cooling, count: weights.cooling, key: "cooling" },
-    { items: sampleMessages.crashingOut, count: weights.crashingOut, key: "crashingOut" },
-  ];
-  const voiceFlavor: string[] = [];
-  for (const bucket of flavorBuckets) {
-    if (bucket.count === 0) {
-      continue;
-    }
-    voiceFlavor.push(...deterministicPick(bucket.items, `${seed}:${bucket.key}`, bucket.count));
-  }
-
-  return { greetings, voiceFlavor };
+}): { greetings: string[]; fireAttractors: string[] } {
+  const greetings = isOpeningTurn
+    ? deterministicPick(sampleMessages.greeting, `${seed}:greeting`, 2)
+    : [];
+  const fireAttractors =
+    !isOpeningTurn && dateHealth < FIRE_ATTRACTOR_THRESHOLD
+      ? deterministicPick(sampleMessages.crashingOut, `${seed}:crashingOut`, 1)
+      : [];
+  return { greetings, fireAttractors };
 }
 
-function bucketWeights(
-  dateHealth: number,
-  isOpeningTurn: boolean,
-): {
-  greeting: number;
-  hingeBits: number;
-  warming: number;
-  cooling: number;
-  crashingOut: number;
-} {
-  if (!isOpeningTurn) {
-    if (dateHealth >= 65) {
-      return { greeting: 0, hingeBits: 1, warming: 2, cooling: 1, crashingOut: 0 };
-    }
-
-    if (dateHealth >= 40) {
-      return { greeting: 0, hingeBits: 1, warming: 1, cooling: 1, crashingOut: 1 };
-    }
-
-    if (dateHealth >= 15) {
-      return { greeting: 0, hingeBits: 1, warming: 0, cooling: 2, crashingOut: 1 };
-    }
-
-    return { greeting: 0, hingeBits: 0, warming: 0, cooling: 2, crashingOut: 2 };
-  }
-
-  if (dateHealth >= 65) {
-    return { greeting: 2, hingeBits: 1, warming: 1, cooling: 0, crashingOut: 0 };
-  }
-
-  if (dateHealth >= 40) {
-    return { greeting: 2, hingeBits: 1, warming: 0, cooling: 1, crashingOut: 0 };
-  }
-
-  if (dateHealth >= 15) {
-    return { greeting: 1, hingeBits: 1, warming: 0, cooling: 1, crashingOut: 1 };
-  }
-
-  return { greeting: 1, hingeBits: 0, warming: 0, cooling: 1, crashingOut: 2 };
-}
+const FIRE_ATTRACTOR_THRESHOLD = 30;
 
 function deterministicPick<T>(items: readonly T[], seed: string, count: number): T[] {
   if (items.length === 0 || count <= 0) {

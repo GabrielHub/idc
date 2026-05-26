@@ -45,91 +45,91 @@ export const bankHeist1920sEscapeRoom: DateScenario = {
         id: "bank-heist-1920s-escape-room-event-1",
         title: "Lobby clock",
         kind: "reveal",
-        event: "The lobby clock reads three twenty-seven.",
-        characterVisibleText:
-          "The wall clock reads three twenty-seven. The clock ticks once per second and is clean and accurate. The closing bell is at four. The lobby is at low business.",
-        directorInstruction:
-          "Use the small timer to surface a stance on the clock drawn from existing context. Either may take the clock as a marker or not. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Anchor the clock at three twenty-seven. Surfaces who runs the time and who treats the bell as someone else's problem.",
+        beat: "The wall clock reads three twenty-seven. The clock ticks once per second and is clean and accurate. The closing bell is at four. The lobby is at low business.",
+        directorBeat:
+          "The clock is now a character in your night. Name the time aloud, set a pace, ask your date for a plan, or signal you are not on the clock. Take a stance on the bell. Do not voice the lobby.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-2",
         title: "Teller stamp",
         kind: "ambient",
-        event: "A teller stamps a deposit at the counter.",
-        characterVisibleText:
-          "A teller at the counter stamps a deposit. The stamp lands twice and the teller files the slip in a small drawer. The teller does not look up. The next person at the counter is a child on tiptoes with a coin in hand.",
-        directorInstruction:
-          "Allow the small background work. The teller and the next person do not address the pair and are not voiced as continuing speakers.",
+        pitch:
+          "Set the lobby's everyday rhythm with a teller stamp and a child at the counter. Surfaces whether the pair stays cool inside ordinary cover.",
+        beat: "A teller at the counter stamps a deposit. The stamp lands twice and the teller files the slip in a small drawer. The teller does not look up. The next person at the counter is a child on tiptoes with a coin in hand.",
+        directorBeat:
+          "The bank is humming on around you. Use the cover: drift toward the vault, lower your voice, pretend to fill a slip, or comment on the child. Show how you blend in your next beat. Do not voice the teller or the child.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-3",
         title: "Side window ladder",
         kind: "ambient",
-        event: "A window cleaner's ladder rests against the side window.",
-        characterVisibleText:
-          "A window cleaner's ladder rests against the side window of the bank. The ladder is empty. The lobby side of the window has a latch that is not closed all the way. The clock has ticked to three thirty-one.",
-        directorInstruction:
-          "Allow the small unfinished detail. The pair does not need to act on it.",
+        pitch:
+          "Plant an empty cleaner's ladder and an unlatched side window. Surfaces whether either of you treats it as a backup exit or ignores it.",
+        beat: "A window cleaner's ladder rests against the side window of the bank. The ladder is empty. The lobby side of the window has a latch that is not closed all the way. The clock has ticked to three thirty-one.",
+        directorBeat:
+          "Someone left an exit half-open. Note it aloud, file it as a backup, dismiss it, or close the latch on your way past. Show whether you are the kind who hoards options or the kind who trusts the front door.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-4",
         title: "Newspaper fold",
         kind: "ambient",
-        event: "The older man folds his newspaper.",
-        characterVisibleText:
-          "The older man at the side bench folds his newspaper in half, then in quarters. He sets the paper on the bench beside him and rests his hands on his knees. The bench is between the lobby door and the archway to the vault.",
-        directorInstruction:
-          "Allow the small background detail. The older man does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Set an older man folding his paper across the archway. Surfaces whether the pair reads him as obstacle, audience, or harmless.",
+        beat: "The older man at the side bench folds his newspaper in half, then in quarters. He sets the paper on the bench beside him and rests his hands on his knees. The bench is between the lobby door and the archway to the vault.",
+        directorBeat:
+          "Someone is sitting near your route. Read him: keep walking, slow down, glance over, comment to your date about him under your breath, or change the angle of approach. Make the read visible. Do not voice him.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-5",
         title: "Vault dial",
         kind: "reveal",
-        event: "The vault dial clicks once when the right number passes.",
-        characterVisibleText:
-          "The vault dial sits in the archway at the back. The dial clicks once when the right first number passes under the line. A small notice above the door reads: three numbers, then the lever. The lever is solid brass.",
-        directorInstruction:
-          "Use the small puzzle moment to surface coordination drawn from existing context. Either may take the dial, hold the lever, or call the next number. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Click the vault dial on the first right number. Surfaces who calls the next number, who holds the lever, who runs point.",
+        beat: "The vault dial sits in the archway at the back. The dial clicks once when the right first number passes under the line. A small notice above the door reads: three numbers, then the lever. The lever is solid brass.",
+        directorBeat:
+          "A puzzle just opened in front of you. Take the dial, hold the lever, call the next number, or hand it to your date. Coordinate visibly in your next beat. Do not voice the notice.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-6",
         title: "Closing loop",
         kind: "provocation",
-        event: "A guard begins his closing-time loop.",
-        characterVisibleText:
-          "A bank guard at the lobby corner begins a closing-time loop. The loop follows a fixed line from the entrance to the vault archway and back. His pocket watch is in his hand. The first pass takes thirty seconds.",
-        directorInstruction:
-          "Push for a clean physical answer to the loop: time the door, hold a step at the archway, or back into the lobby. The guard does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Send the guard onto a thirty-second loop between the door and the vault. Forces a clean choice on timing the gap.",
+        beat: "A bank guard at the lobby corner begins a closing-time loop. The loop follows a fixed line from the entrance to the vault archway and back. His pocket watch is in his hand. The first pass takes thirty seconds.",
+        directorBeat:
+          "You now have a thirty-second window. Time the gap, hold a step at the archway, back into the lobby, or break and run the dial through the loop. Pick the play and call it. Do not voice the guard.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-7",
         title: "Prize box",
         kind: "reveal",
-        event: "The booked prize box is in the back row of the vault.",
-        characterVisibleText:
-          "The back row of the vault holds a small wooden prize box with the booking stamp on the lid. The cash drawers are at the front rows. A small card under the box reads: chosen for you, take and leave, no audit. The vault keeps its temperature.",
-        directorInstruction:
-          "Use the small prize to surface taste and intent drawn from existing context. Either may take the box, take the cash instead, or leave both. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Land the booked prize box in the back row beside open cash drawers. Forces a clean read on what either of you actually wants out of this.",
+        beat: "The back row of the vault holds a small wooden prize box with the booking stamp on the lid. The cash drawers are at the front rows. A small card under the box reads: chosen for you, take and leave, no audit. The vault keeps your temperature.",
+        directorBeat:
+          "Two things are within reach: the prize you came for and the cash that is real. Take the box, take the cash, take both, or leave it all and say why. Pick and say it. Do not voice the card.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-8",
         title: "Alarm test",
         kind: "provocation",
-        event: "An alarm test runs for one second.",
-        characterVisibleText:
-          "An alarm test runs for one second through the lobby. The bell sounds once and stops. The teller does not look up. The clock reads three fifty-three. The guard is on his second loop.",
-        directorInstruction:
-          "Push for a clean call on the time left: commit to the vault, fall back to the door, or pull out. The bell does not address the pair and is not voiced as a continuing speaker.",
+        pitch:
+          "Run a one-second alarm bell at three fifty-three. Forces a commit, fall back, or pull out call.",
+        beat: "An alarm test runs for one second through the lobby. The bell sounds once and stops. The teller does not look up. The clock reads three fifty-three. The guard is on his second loop.",
+        directorBeat:
+          "Seven minutes left and the bell just spooked you. Commit to the vault, fall back to the door, or call the pull. Name the call clearly and act on it. Do not voice the alarm.",
       },
       {
         id: "bank-heist-1920s-escape-room-event-9",
         title: "Closing bell",
         kind: "provocation",
-        event: "The closing bell rings at four.",
-        characterVisibleText:
-          "The closing bell rings at four. The teller closes the deposit drawer and pulls the counter gate. The guard stops at the archway. The escape room recall pulse takes hold at the edge of the lobby.",
-        directorInstruction:
-          "Push for a clean exit from the bank: with the prize, with the cash, with both, or with neither. The recall takes the pair at the bell. Do not voice any background person or cue as a continuing speaker.",
+        pitch:
+          "Ring the closing bell at four with the recall pulse forming at the door. Forces a clean exit with the prize, with cash, with both, or with neither.",
+        beat: "The closing bell rings at four. The teller closes the deposit drawer and pulls the counter gate. The guard stops at the archway. The escape room recall pulse takes hold at the edge of the lobby.",
+        directorBeat:
+          "Time is up and the recall is here. Walk to the pulse with the prize, with the cash, with both, or with empty hands. Name what you are carrying out. Do not voice the bell or the guard.",
       },
     ],
     earlyEndTriggers: [
