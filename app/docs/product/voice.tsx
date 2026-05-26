@@ -26,8 +26,11 @@ export const lede = (
     rule. Member fixture authoring lives in{" "}
     <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Runtime prompt
     surfaces and model quirks live in{" "}
-    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Gameplay data fields
-    live in <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
+    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Curated external
+    references live in{" "}
+    <DocLink to="/docs/product/voice-references">Voice source references</DocLink>. Gameplay data
+    fields live in{" "}
+    <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
   </>
 );
 
@@ -59,6 +62,10 @@ export const sections: DocSectionEntry[] = [
               <Strong>Runtime voice surfaces:</Strong> dating profiles, opening messages, transcript
               prompts, Markdown rendering, Cupid reports, scenario event kinds, and recurring LLM
               quirks.
+            </span>,
+            <span key="references">
+              <Strong>Voice source references:</Strong> curated source notes and corpus references
+              under <DocCode>docs/reference/</DocCode> for future member voice work.
             </span>,
             <span key="fields">
               <Strong>Member fields and tags:</Strong> fixture fields, hidden tags, member request

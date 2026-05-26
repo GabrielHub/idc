@@ -45,7 +45,9 @@ export const sections: DocSectionEntry[] = [
             <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink> for bio,
             voice, sample banks, output invariants, and dealbreakers;{" "}
             <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the controlled
-            pattern catalog.
+            pattern catalog;{" "}
+            <DocLink to="/docs/product/voice-references">Voice source references</DocLink> for
+            curated external reference corpora.
           </span>,
           <span key="runtime">
             <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for profile
@@ -147,7 +149,7 @@ export const sections: DocSectionEntry[] = [
           "Check dealbreakers for tiers: structural-identity boundary vs lower friction.",
           "Author semantic equivalents for structural triggers that partners may wrap in different vocabulary.",
           "Use sample variance for high-pressure crashingOut triggers so one canonical line does not become the only answer.",
-          "If the member uses a real-person or texting corpus, translate traits into spoken date dialogue before writing the fixture.",
+          "If the member uses a real-person, bit-compilation, or texting corpus, read the curated source notes and translate traits into spoken date dialogue before writing the fixture.",
         ]}
       />
     ),
