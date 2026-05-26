@@ -77,6 +77,12 @@ describe("AI date text sanitation", () => {
     expect(sanitized.endsWith("...")).toBe(false);
     expect(sanitized).toContain("keeps the table human");
   });
+
+  it("surfaces non-English performer text instead of treating it as an error", () => {
+    expect(sanitizeCharacterText("（看向桌上空白的议程卡）好。我喜欢准时。", "Sera Vohn")).toBe(
+      "（看向桌上空白的议程卡）好。我喜欢准时。",
+    );
+  });
 });
 
 describe("AI date engine orchestration", () => {

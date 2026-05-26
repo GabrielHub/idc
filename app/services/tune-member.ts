@@ -84,6 +84,7 @@ export type TuneSessionPersisted = {
   partnerMemberId: string;
   scenarioId: string;
   openerSide: "partner" | "focus";
+  partnerControl?: "manual" | "ai";
   focusRequestId?: string;
   messages: TuneTranscriptMessage[];
   lastPromptSystem?: string;
@@ -95,9 +96,12 @@ export type TuneSessionInput = {
   partnerMemberId?: string;
   scenarioId?: string;
   openerSide?: "partner" | "focus";
+  partnerControl?: "manual" | "ai";
   focusRequestId?: string;
   now?: Date;
 };
+
+export type TuneSpeakerRole = "focus" | "partner";
 
 export function listAvailableMembers(): readonly Member[] {
   return starterMembers;
@@ -153,6 +157,7 @@ export function createTuneSession(input: TuneSessionInput): TuneSessionPersisted
     partnerMemberId: partnerMember.id,
     scenarioId,
     openerSide,
+    partnerControl: input.partnerControl ?? "manual",
     ...(focusRequestId === undefined ? {} : { focusRequestId }),
     messages: [],
   };
@@ -177,11 +182,20 @@ function resolveFocusRequestId(
   return request.id;
 }
 
+export function partnerControlOf(session: TuneSessionPersisted): "manual" | "ai" {
+  return session.partnerControl ?? "manual";
+}
+
 export function appendPartnerLine(
   session: TuneSessionPersisted,
   text: string,
   now: Date = new Date(),
 ): TuneSessionPersisted {
+  if (partnerControlOf(session) === "ai") {
+    throw new Error(
+      "Partner is AI-controlled in this session; manual partner lines are not accepted.",
+    );
+  }
   const trimmed = text.trim();
   if (trimmed.length === 0) {
     throw new Error("Partner line cannot be empty.");
@@ -282,13 +296,14 @@ export function appendCupidNote(
   };
 }
 
-function appendFocusMemberReply(
+function appendGeneratedCharacterReply(
   session: TuneSessionPersisted,
+  speakerId: string,
   text: string,
   systemPrompt: string,
   now: Date = new Date(),
 ): TuneSessionPersisted {
-  assertCanAppendCharacterLine(session, session.focusMemberId);
+  assertCanAppendCharacterLine(session, speakerId);
   return {
     ...session,
     lastPromptSystem: systemPrompt,
@@ -296,7 +311,7 @@ function appendFocusMemberReply(
       ...session.messages,
       {
         kind: "character",
-        speakerId: session.focusMemberId,
+        speakerId,
         text,
         createdAt: now.toISOString(),
       },
@@ -308,11 +323,7 @@ function assertCanAppendCharacterLine(session: TuneSessionPersisted, speakerId: 
   const lastCharacter = findLastCharacterMessage(session);
 
   if (lastCharacter?.speakerId === speakerId) {
-    const command =
-      speakerId === session.focusMemberId
-        ? "`tune retry` to replace the last focus reply or `tune say` to answer it"
-        : "`tune turn` to generate the focus member's reply";
-    throw new Error(`Cannot append two consecutive turns for ${speakerId}. Use ${command}.`);
+    throw new Error(`Cannot append two consecutive turns for ${speakerId}.`);
   }
 }
 
@@ -330,15 +341,19 @@ function findLastCharacterMessage(
   return undefined;
 }
 
-export function dropLastFocusMemberReply(session: TuneSessionPersisted): TuneSessionPersisted {
+export function dropLastReply(session: TuneSessionPersisted): TuneSessionPersisted {
   const lastMessage = session.messages[session.messages.length - 1];
 
-  if (
-    lastMessage === undefined ||
-    lastMessage.kind !== "character" ||
-    lastMessage.speakerId !== session.focusMemberId
-  ) {
-    throw new Error("Last tune message is not a focus member reply. Run `tune turn` first.");
+  if (lastMessage === undefined || lastMessage.kind !== "character") {
+    throw new Error("Last tune message is not a character reply.");
+  }
+
+  // In manual partner sessions the partner line is the user's own input; refuse
+  // to drop it so retry can never silently destroy something the AI did not write.
+  if (partnerControlOf(session) !== "ai" && lastMessage.speakerId === session.partnerMemberId) {
+    throw new Error(
+      "Last message is the manual partner line; only generated replies can be retried.",
+    );
   }
 
   return {
@@ -513,26 +528,48 @@ function clampDateHealth(value: number): number {
 
 export type TunePacketPreview = {
   packet: CharacterPromptPacket;
-  focusMember: Member;
-  partnerMember: Member;
+  speakerMember: Member;
+  otherMember: Member;
   scenario: DateScenario;
   pairState: PairState;
   dateSession: DateSession;
   focusRequest: MemberRequest | undefined;
 };
 
-export function previewMemberTurnPacket(session: TuneSessionPersisted): TunePacketPreview {
+export function nextLiveSpeakerRole(session: TuneSessionPersisted): TuneSpeakerRole {
+  const last = findLastCharacterMessage(session);
+  if (last === undefined) {
+    return session.openerSide;
+  }
+  return last.speakerId === session.focusMemberId ? "partner" : "focus";
+}
+
+export function previewMemberTurnPacket(
+  session: TuneSessionPersisted,
+  options: { speakerRole?: TuneSpeakerRole } = {},
+): TunePacketPreview {
   const context = reconstructContext(session);
+  const speakerRole = options.speakerRole ?? "focus";
+  const speakerMember = speakerRole === "focus" ? context.focusMember : context.partnerMember;
+  const otherMember = speakerRole === "focus" ? context.partnerMember : context.focusMember;
   const packet = buildCharacterPromptPacket({
-    member: context.focusMember,
-    partner: context.partnerMember,
+    member: speakerMember,
+    partner: otherMember,
     scenario: context.scenario,
     session: context.dateSession,
     pairState: context.pairState,
     memoryPack: { ...EMPTY_MEMORY_PACK, recentTranscript: context.dateSession.transcript },
     focusRequest: context.focusRequest,
   });
-  return { ...context, packet };
+  return {
+    packet,
+    speakerMember,
+    otherMember,
+    scenario: context.scenario,
+    pairState: context.pairState,
+    dateSession: context.dateSession,
+    focusRequest: context.focusRequest,
+  };
 }
 
 export type TuneGenerationResult = {
@@ -552,17 +589,28 @@ export type TuneGenerationResult = {
 export type GenerateOptions = {
   config?: Partial<AiRuntimeConfig>;
   generationOptions?: AiGenerationOptions;
+  speakerRole?: TuneSpeakerRole;
   now?: Date;
 };
 
-export async function generateFocusMemberReply(
+export async function generateMemberReply(
   session: TuneSessionPersisted,
   options: GenerateOptions = {},
 ): Promise<TuneGenerationResult> {
-  assertCanAppendCharacterLine(session, session.focusMemberId);
-  const preview = previewMemberTurnPacket(session);
+  const speakerRole = options.speakerRole ?? "focus";
+  if (partnerControlOf(session) !== "ai" && speakerRole === "partner") {
+    throw new Error(
+      "Partner is manually-controlled in this session; partner replies cannot be auto-generated.",
+    );
+  }
+  const speakerId = speakerRole === "focus" ? session.focusMemberId : session.partnerMemberId;
+  assertCanAppendCharacterLine(session, speakerId);
+  const preview = previewMemberTurnPacket(session, { speakerRole });
   const warningMessages: string[] = [];
-  const recentSpeakerLines = collectRecentFocusLines(preview.dateSession, preview.focusMember.id);
+  const recentSpeakerLines = collectRecentSpeakerLines(
+    preview.dateSession,
+    preview.speakerMember.id,
+  );
 
   const config = options.config ?? {};
   const generationOptions = options.generationOptions;
@@ -577,7 +625,7 @@ export async function generateFocusMemberReply(
         packet,
         config,
         generationOptions,
-        speakerName: preview.focusMember.name,
+        speakerName: preview.speakerMember.name,
       });
       return { attempt, retriedForVisibility: false };
     } catch (error) {
@@ -586,13 +634,13 @@ export async function generateFocusMemberReply(
       }
 
       warningMessages.push(
-        `${preview.focusMember.name} returned an empty line; retried with visibility guard.`,
+        `${preview.speakerMember.name} returned an empty line; retried with visibility guard.`,
       );
       const retry = await runOnce({
         packet: withCharacterVisibilityRetryGuard(packet),
         config,
         generationOptions,
-        speakerName: preview.focusMember.name,
+        speakerName: preview.speakerMember.name,
       });
       return { attempt: retry, retriedForVisibility: true };
     }
@@ -611,7 +659,9 @@ export async function generateFocusMemberReply(
     recentLines: recentSpeakerLines,
   });
   if (initialNearDup !== null) {
-    warningMessages.push(`Near-duplicate detected; asked ${preview.focusMember.name} to rewrite.`);
+    warningMessages.push(
+      `Near-duplicate detected; asked ${preview.speakerMember.name} to rewrite.`,
+    );
     const retryPacket = buildRetryPacket(preview.packet, {
       repetitionRetry: initialNearDup,
     });
@@ -626,7 +676,7 @@ export async function generateFocusMemberReply(
     });
     if (repeatedApproval !== null) {
       warningMessages.push(
-        `Repeated approval phrase detected; asked ${preview.focusMember.name} to rewrite.`,
+        `Repeated approval phrase detected; asked ${preview.speakerMember.name} to rewrite.`,
       );
       const retryPacket = buildRetryPacket(preview.packet, {
         rhythmRetry: repeatedApproval,
@@ -638,8 +688,9 @@ export async function generateFocusMemberReply(
     }
   }
 
-  const updatedSession = appendFocusMemberReply(
+  const updatedSession = appendGeneratedCharacterReply(
     session,
+    preview.speakerMember.id,
     chosen.text,
     preview.packet.system,
     options.now,
@@ -713,10 +764,10 @@ async function runOnce({
   return { text, raw };
 }
 
-function collectRecentFocusLines(session: DateSession, focusMemberId: string): string[] {
+function collectRecentSpeakerLines(session: DateSession, speakerId: string): string[] {
   const lines: string[] = [];
   for (const message of session.transcript) {
-    if (message.kind === "character" && message.speakerId === focusMemberId) {
+    if (message.kind === "character" && message.speakerId === speakerId) {
       lines.push(message.text);
     }
   }
@@ -736,7 +787,9 @@ export function formatTranscriptForReading(
       const label =
         message.speakerId === session.focusMemberId
           ? `${context.focusName} (focus)`
-          : `${context.partnerName} (you)`;
+          : partnerControlOf(session) === "ai"
+            ? `${context.partnerName} (AI partner)`
+            : `${context.partnerName} (you)`;
       lines.push(`${label}: ${message.text}`);
     } else if (message.kind === "scenario") {
       lines.push(`[event] ${message.text}`);

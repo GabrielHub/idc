@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 
 import { createServer, loadEnv } from "vite";
 
+import { printTuneMemberHelp } from "./tune-member-help.mjs";
+
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const PROJECT_ROOT = resolve(dirname(SCRIPT_PATH), "..");
 const TUNE_DIR = resolve(PROJECT_ROOT, ".claude-tmp/tune");
@@ -59,7 +61,7 @@ async function main() {
   }
 
   if (args.length === 0 || args[0] === "--help" || args[0] === "-h" || args[0] === "help") {
-    printHelp();
+    printTuneMemberHelp();
     process.exit(EXIT_OK);
   }
 
@@ -90,6 +92,9 @@ async function main() {
       break;
     case "turn":
       await runTurn(rest);
+      break;
+    case "auto":
+      await runAuto(rest);
       break;
     case "retry":
       await runRetry(rest);
@@ -195,6 +200,10 @@ function requireActiveSessionName() {
   return name;
 }
 
+function partnerControlOf(session) {
+  return session.partnerControl ?? "manual";
+}
+
 async function runListMembers() {
   await withTuneModule((tune) => {
     const members = tune.listAvailableMembers();
@@ -257,6 +266,7 @@ async function runStart(args) {
       partnerMemberId: parsed.partnerMemberId,
       scenarioId: parsed.scenarioId,
       openerSide: parsed.focusOpens ? "focus" : "partner",
+      partnerControl: parsed.partnerControl,
       focusRequestId: parsed.focusRequestId,
     });
     const name = parsed.name ?? defaultSessionName(parsed.focusMemberId);
@@ -275,16 +285,21 @@ async function runStart(args) {
       [
         `Session "${name}" started.`,
         `  Focus:    ${focus.name} (${focus.id})`,
-        `  Partner:  ${partner.name} (${partner.id})   <- you play this side`,
+        partnerControlOf(session) === "ai"
+          ? `  Partner:  ${partner.name} (${partner.id})   <- AI-generated in auto mode`
+          : `  Partner:  ${partner.name} (${partner.id})   <- you play this side`,
         `  Scenario: ${scenario.title} (${scenario.id})`,
+        `  Mode:     ${partnerControlOf(session) === "ai" ? "AI controls both members" : "manual partner control"}`,
         `  Opens:    ${session.openerSide}`,
         focusRequest === undefined
           ? `  Request:  (none — pass --focus-request <id> to inject a <focus> block)`
           : `  Request:  ${focusRequest.id} — ${focusRequest.text}`,
         "",
-        session.openerSide === "partner"
-          ? `Next: \`tune say "<your opener>"\` to begin.`
-          : `Next: \`tune turn\` to make ${focus.firstName} open.`,
+        partnerControlOf(session) === "ai"
+          ? `Next: \`tune auto --turns 2\` to run live-like AI turns.`
+          : session.openerSide === "partner"
+            ? `Next: \`tune say "<your opener>"\` to begin.`
+            : `Next: \`tune turn\` to make ${focus.firstName} open.`,
       ].join("\n") + "\n",
     );
   });
@@ -300,7 +315,7 @@ function defaultSessionName(focusMemberId) {
 function parseStartArgs(args) {
   if (args.length === 0) {
     throw new Error(
-      "Usage: tune start <focusMemberId> [--partner <id>] [--scenario <id>] [--name <name>] [--focus-opens] [--focus-request <id>]",
+      "Usage: tune start <focusMemberId> [--partner <id>] [--scenario <id>] [--name <name>] [--focus-opens] [--ai-partner] [--focus-request <id>]",
     );
   }
   if (args[0].startsWith("--")) {
@@ -312,6 +327,7 @@ function parseStartArgs(args) {
     scenarioId: undefined,
     name: undefined,
     focusOpens: false,
+    partnerControl: "manual",
     focusRequestId: undefined,
   };
   for (let index = 1; index < args.length; index += 1) {
@@ -332,6 +348,12 @@ function parseStartArgs(args) {
       case "--focus-opens":
         result.focusOpens = true;
         break;
+      case "--ai-partner":
+        result.partnerControl = "ai";
+        break;
+      case "--manual-partner":
+        result.partnerControl = "manual";
+        break;
       case "--focus-request":
         result.focusRequestId = requireFlagValue(args, index);
         index += 1;
@@ -343,10 +365,75 @@ function parseStartArgs(args) {
   return result;
 }
 
+async function runAuto(args) {
+  const parsed = parseAutoArgs(args);
+  const name = parsed.session ?? requireActiveSessionName();
+  let session = loadSession(name);
+  if (partnerControlOf(session) !== "ai") {
+    throw new Error(
+      "`tune auto` is only meaningful in AI partner sessions. Start with `tune start --ai-partner`.",
+    );
+  }
+  await withTuneModule(async (tune) => {
+    for (let index = 0; index < parsed.turns; index += 1) {
+      const result = await tune.generateMemberReply(session, {
+        config: resolveRuntimeConfig(parsed.config),
+        generationOptions: resolveGenerationOptions(parsed.generationOptions),
+        speakerRole: tune.nextLiveSpeakerRole(session),
+      });
+      session = result.session;
+      saveSession(name, session);
+      printGenerationResult(result, parsed);
+    }
+  });
+}
+
+function parseAutoArgs(args) {
+  const result = {
+    turns: 1,
+    showPrompt: false,
+    showSystem: false,
+    session: undefined,
+    config: {},
+    generationOptions: {},
+  };
+  for (let index = 0; index < args.length; index += 1) {
+    const token = args[index];
+    if (token === "--turns") {
+      const value = requireFlagValue(args, index);
+      const parsed = Number(value);
+      if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 24) {
+        throw new Error("--turns must be an integer from 1 to 24.");
+      }
+      result.turns = parsed;
+      index += 1;
+    } else if (token === "--show-prompt") {
+      result.showPrompt = true;
+    } else if (token === "--show-system") {
+      result.showSystem = true;
+    } else if (token === "--session") {
+      result.session = requireFlagValue(args, index);
+      index += 1;
+    } else if (isGenerationOptionFlag(token)) {
+      readGenerationOptionFlag(token, result.generationOptions);
+    } else if (isRuntimeConfigFlag(token)) {
+      index = readRuntimeConfigFlag(args, index, result.config);
+    } else {
+      throw new Error(`Unknown auto flag: ${token}`);
+    }
+  }
+  return result;
+}
+
 async function runSay(args) {
   const parsed = parseSayArgs(args);
   const name = parsed.session ?? requireActiveSessionName();
   const session = loadSession(name);
+  if (partnerControlOf(session) === "ai") {
+    throw new Error(
+      "`tune say` is only meaningful in manual partner sessions. Use `tune auto` to drive the AI partner instead.",
+    );
+  }
   await withTuneModule(async (tune) => {
     const withPartner = tune.appendPartnerLine(session, parsed.text);
     saveSession(name, withPartner);
@@ -399,6 +486,11 @@ async function runTurn(args) {
   const parsed = parseTurnArgs(args);
   const name = parsed.session ?? requireActiveSessionName();
   const session = loadSession(name);
+  if (partnerControlOf(session) === "ai") {
+    throw new Error(
+      "`tune turn` forces a focus reply; in AI partner sessions use `tune auto` instead.",
+    );
+  }
   await withTuneModule(async (tune) => {
     await generateAndPrint(name, session, tune, parsed);
   });
@@ -437,9 +529,18 @@ async function runRetry(args) {
   const name = parsed.session ?? requireActiveSessionName();
   const session = loadSession(name);
   await withTuneModule(async (tune) => {
-    const withoutLastReply = tune.dropLastFocusMemberReply(session);
-    saveSession(name, withoutLastReply);
-    await generateAndPrint(name, withoutLastReply, tune, parsed);
+    const withoutLastReply = tune.dropLastReply(session);
+    const speakerRole =
+      partnerControlOf(withoutLastReply) === "ai"
+        ? tune.nextLiveSpeakerRole(withoutLastReply)
+        : "focus";
+    const result = await tune.generateMemberReply(withoutLastReply, {
+      config: resolveRuntimeConfig(parsed.config),
+      generationOptions: resolveGenerationOptions(parsed.generationOptions),
+      speakerRole,
+    });
+    saveSession(name, result.session);
+    printGenerationResult(result, parsed);
   });
 }
 
@@ -553,7 +654,9 @@ async function runPreview(args) {
   const name = parsed.session ?? requireActiveSessionName();
   const session = loadSession(name);
   await withTuneModule((tune) => {
-    const preview = tune.previewMemberTurnPacket(session);
+    const speakerRole =
+      partnerControlOf(session) === "ai" ? tune.nextLiveSpeakerRole(session) : undefined;
+    const preview = tune.previewMemberTurnPacket(session, { speakerRole });
     if (parsed.section === "system") {
       process.stdout.write(`${preview.packet.system}\n`);
     } else if (parsed.section === "thread") {
@@ -612,6 +715,7 @@ async function runShow(args) {
       `  Focus:    ${focus.name} (${focus.id})`,
       `  Partner:  ${partner.name} (${partner.id})`,
       `  Scenario: ${scenario.title} (${scenario.id})`,
+      `  Mode:     ${partnerControlOf(session) === "ai" ? "AI controls both members" : "manual partner control"}`,
       focusRequest === undefined
         ? `  Request:  (none)`
         : `  Request:  ${focusRequest.id} — ${focusRequest.text}`,
@@ -654,15 +758,22 @@ function parseShowArgs(args) {
 }
 
 async function generateAndPrint(name, sessionBeforeReply, tune, options) {
-  const focus = tune.findMemberById(sessionBeforeReply.focusMemberId);
   const generationOptions = resolveGenerationOptions(options.generationOptions ?? {});
   const runtimeConfig = resolveRuntimeConfig(options.config ?? {});
-  const result = await tune.generateFocusMemberReply(sessionBeforeReply, {
+  const result = await tune.generateMemberReply(sessionBeforeReply, {
     config: runtimeConfig,
     generationOptions,
+    speakerRole: "focus",
   });
   saveSession(name, result.session);
+  printGenerationResult(result, {
+    ...options,
+    runtimeConfig,
+    generationOptions,
+  });
+}
 
+function printGenerationResult(result, options) {
   if (options.showSystem) {
     process.stdout.write(
       `--- system prompt ---\n${result.preview.packet.system}\n--- end system prompt ---\n\n`,
@@ -673,8 +784,10 @@ async function generateAndPrint(name, sessionBeforeReply, tune, options) {
     );
   }
 
-  process.stdout.write(`${focus.firstName}: ${result.replyText}\n`);
+  process.stdout.write(`${result.preview.speakerMember.firstName}: ${result.replyText}\n`);
 
+  const generationOptions = options.generationOptions ?? {};
+  const runtimeConfig = options.runtimeConfig ?? resolveRuntimeConfig(options.config ?? {});
   const stats = [
     `model: ${result.modelId} (${result.providerMode})`,
     runtimeConfig.reasoningLevel === undefined
@@ -859,108 +972,4 @@ function formatPartnerEcho(session, tune) {
     return "(partner line recorded)\n";
   }
   return `${partner.firstName} (you): ${lastMessage.text}\n`;
-}
-
-function printHelp() {
-  process.stdout.write(
-    [
-      "Member voice tuning rig.",
-      "",
-      "You play the partner. The focus member is AI-generated against the same",
-      "prompt pipeline gameplay uses. Sessions live under .claude-tmp/tune/.",
-      "",
-      "Usage:",
-      "  node scripts/tune-member.mjs <command> [args]",
-      "  vp run tune -- <command> [args]",
-      "",
-      "Commands:",
-      "  start <focusId> [--partner <id>] [--scenario <id>] [--name <n>] [--focus-opens] [--focus-request <id>]",
-      "      Initialize a new tune session and make it active.",
-      "      Defaults: partner=alex-yoon, scenario=diner-eleven-pm, opener=partner.",
-      "      Pass --focus-request <id> to inject the member's `What you most want to come out",
-      "      of tonight` ask — gameplay always injects this, so omitting it makes the focus",
-      "      member read more reactive and less goal-oriented than in real dates. The request",
-      "      id must belong to the focus member; see app/fixtures/goals/member-requests.ts.",
-      "",
-      `  say "<text>" [--no-reply] [--show-prompt] [--show-system] [--session <name>] [ai options]`,
-      "      Record a partner line (you) and generate the focus member's reply.",
-      "",
-      "  turn [--show-prompt] [--show-system] [--session <name>] [ai options]",
-      "      Generate the focus member's next turn without adding a partner line.",
-      "      Useful when --focus-opens or after `event`/`nudge`.",
-      "",
-      "  retry [--show-prompt] [--show-system] [--session <name>] [ai options]",
-      "      Drop the latest focus reply and generate it again from the prior transcript.",
-      "      Use this after editing the focus member fixture.",
-      "",
-      "  preview [--system | --thread | --prompt] [--session <name>]",
-      "      Build the next member turn's packet and print it without calling the AI.",
-      "      Useful for inspecting what the model would see after fixture edits.",
-      "",
-      `  event "<text>" [--session <name>]`,
-      "      Insert a scenario beat the focus member will see in-thread.",
-      "",
-      `  nudge "<text>" [--session <name>]`,
-      "      Add a private Cupid coaching note targeting the focus member.",
-      "",
-      `  judge <delta> [--note "<text>"] [--session <name>]`,
-      "      Insert a manual judge snapshot. Delta is an integer in [-50, 50]; negative cools the date,",
-      "      positive warms it. The snapshot feeds dateHealth and pair-trajectory derivation, so it",
-      "      shifts the focus member's sample weighting on the next turn.",
-      "",
-      "  show [--prompt] [--name <n> | --session <n>]",
-      "      Print the active transcript, or with --prompt the last system prompt.",
-      "",
-      "  sessions",
-      "      List all sessions on disk. The active one is marked with `*`.",
-      "",
-      "  use <name>",
-      "      Make a session active for subsequent commands.",
-      "",
-      "  members",
-      "      Print available member ids and names.",
-      "",
-      "  scenarios",
-      "      Print available scenario ids and titles.",
-      "",
-      "AI options for say, turn, and retry:",
-      "  --provider <name>       ollama | gateway",
-      "  --chat-model <id>       Override chat model; Gateway defaults to deepseek/deepseek-v4-flash",
-      "  --gateway-key <key>     Vercel AI Gateway key",
-      "  --gateway-base-url <u>  Override Gateway base URL",
-      "  --reasoning <level>     off | none | minimal | low | medium | high | xhigh",
-      "                          DeepSeek V4 tuning defaults to xhigh, sent as max effort",
-      "  --timeout-ms <ms>       Request timeout",
-      "  --deepseek-roleplay-thinking",
-      "                          Enable DeepSeek role-immersion marker for performer turns",
-      "  --no-deepseek-roleplay-thinking",
-      "                          Disable the DeepSeek performer marker for A/B tuning",
-      "",
-      "Environment:",
-      "  Loaded from shell env and git-ignored .env.local at the repo root.",
-      "  TUNE_PROVIDER           ollama | gateway",
-      "  TUNE_CHAT_MODEL         Chat model id; Gateway default is deepseek/deepseek-v4-flash",
-      "  TUNE_REASONING_LEVEL    Reasoning level; DeepSeek V4 default is xhigh",
-      "  TUNE_TIMEOUT_MS         Request timeout",
-      "  TUNE_DEEPSEEK_ROLEPLAY_THINKING=1",
-      "                          Enable or disable the DeepSeek performer marker (1/0, true/false)",
-      "  AI_GATEWAY_API_KEY      Gateway key. If set, tune defaults to gateway.",
-      "  AI_GATEWAY_BASE_URL     Gateway base URL",
-      "",
-      "Typical loop:",
-      "  printf 'AI_GATEWAY_API_KEY=<key>\\n' > .env.local",
-      "  vp run tune -- start cassie-conners --partner alex-yoon",
-      `  vp run tune -- say "hey, you actually showed up"`,
-      "  # read response, edit app/fixtures/members/cassie-conners.ts",
-      "  vp run tune -- retry   # re-run the last focus reply with the updated fixture",
-      "",
-      "Parallel sessions:",
-      "  `start` sets a single active session pointer (.claude-tmp/tune/active.txt). When running two",
-      "  tune sessions side by side (e.g. two partner-play subagents), pass --session <name> on every",
-      "  command after start (say/turn/retry/event/nudge/judge/preview/show) so each caller targets its",
-      "  own session and never touches the shared pointer. Omitting --session falls back to the active",
-      "  pointer, which is last-write-wins across parallel starts.",
-      "",
-    ].join("\n"),
-  );
 }

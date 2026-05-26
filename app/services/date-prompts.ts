@@ -354,7 +354,7 @@ function formatCharacterFormatSection(member: Member): string[] {
   const lines = [
     "",
     "<format>",
-    "You are speaking across a table. The UI splits each turn into one or two bubbles. *italic* for a stressed word you would say aloud (*almost*, *that*, *you*); **strong** for a named joke or hard correction. That is the entire Markdown vocabulary. Italic that names what your body is doing (*puts feet down*, *grabs coffee*, *sips*, *sighs*) is stage direction, not speech, and gets stripped, along with bare action sentences without asterisks. No lists, links, images, code, blockquotes, tables, math, footnotes, or task syntax. No speaker labels, no bracketed asides. No em dashes or en dashes.",
+    "You are speaking across a table. The UI splits each turn into one or two bubbles. *italic* for a stressed word you would say aloud (*almost*, *that*, *you*); **strong** for a named joke or hard correction. That is the entire Markdown vocabulary. Italics are for spoken stress only; bubbles contain spoken words, not narrated actions. No lists, links, images, code, blockquotes, tables, math, footnotes, or task syntax. No speaker labels, no bracketed asides. No em dashes or en dashes.",
   ];
 
   const outputConstraints = member.voice.outputConstraints ?? [];

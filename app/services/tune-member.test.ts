@@ -17,13 +17,14 @@ vi.mock("./ai/model-service", async (importOriginal) => {
 import {
   appendCupidNote,
   appendDirectorEvent,
-  dropLastFocusMemberReply,
   appendPartnerLine,
   createTuneSession,
   DEFAULT_TUNE_PARTNER_ID,
   DEFAULT_TUNE_SCENARIO_ID,
+  dropLastReply,
   formatTranscriptForReading,
-  generateFocusMemberReply,
+  generateMemberReply,
+  nextLiveSpeakerRole,
   previewMemberTurnPacket,
 } from "./tune-member";
 
@@ -65,8 +66,19 @@ describe("createTuneSession", () => {
     expect(session.partnerMemberId).toBe(DEFAULT_TUNE_PARTNER_ID);
     expect(session.scenarioId).toBe(DEFAULT_TUNE_SCENARIO_ID);
     expect(session.openerSide).toBe("partner");
+    expect(session.partnerControl).toBe("manual");
     expect(session.messages).toEqual([]);
     expect(session.schemaVersion).toBe(1);
+  });
+
+  it("can mark the partner as AI-controlled for live-like tuning", () => {
+    const session = createTuneSession({
+      focusMemberId: SAMPLE_FOCUS_ID,
+      partnerControl: "ai",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+
+    expect(session.partnerControl).toBe("ai");
   });
 
   it("rejects an unknown member id", () => {
@@ -136,6 +148,15 @@ describe("transcript builders", () => {
     expect(() => appendPartnerLine(session, "one more thing")).toThrow(/consecutive turns/);
   });
 
+  it("rejects manual partner lines in AI partner sessions", () => {
+    const session = {
+      ...newSession(),
+      partnerControl: "ai" as const,
+    };
+
+    expect(() => appendPartnerLine(session, "hey there")).toThrow(/AI-controlled/);
+  });
+
   it("appends a director event as a scenario message", () => {
     const session = newSession();
     const next = appendDirectorEvent(session, "waiter drops a glass behind us");
@@ -162,7 +183,7 @@ describe("transcript builders", () => {
   });
 });
 
-describe("dropLastFocusMemberReply", () => {
+describe("dropLastReply", () => {
   it("removes the last generated focus reply so fixture edits can be retried", () => {
     const session = newSession();
     const withPartner = appendPartnerLine(session, "hey there");
@@ -180,19 +201,52 @@ describe("dropLastFocusMemberReply", () => {
       ],
     };
 
-    const next = dropLastFocusMemberReply(withFocusReply);
+    const next = dropLastReply(withFocusReply);
 
     expect(next.messages).toEqual(withPartner.messages);
     expect(next.lastPromptSystem).toBeUndefined();
   });
 
-  it("rejects retry when the latest message is still the partner", () => {
+  it("refuses to drop a manual partner line in manual mode", () => {
     const session = appendPartnerLine(newSession(), "hey there");
-    expect(() => dropLastFocusMemberReply(session)).toThrow(/not a focus member reply/);
+    expect(() => dropLastReply(session)).toThrow(/manual partner line/);
+  });
+
+  it("drops an AI partner reply in AI partner mode", () => {
+    const session = {
+      ...newSession(),
+      partnerControl: "ai" as const,
+      lastPromptSystem: "previous system prompt",
+      messages: [
+        {
+          kind: "character" as const,
+          speakerId: SAMPLE_PARTNER_ID,
+          text: "I usually panic-order coffee.",
+          createdAt: "2026-05-16T12:01:00.000Z",
+        },
+      ],
+    };
+
+    const next = dropLastReply(session);
+
+    expect(next.messages).toEqual([]);
+    expect(next.lastPromptSystem).toBeUndefined();
+  });
+
+  it("rejects retrying a non-character event", () => {
+    const session = appendDirectorEvent(newSession(), "phone buzzes");
+    expect(() => dropLastReply(session)).toThrow(/not a character reply/);
   });
 });
 
-describe("generateFocusMemberReply", () => {
+describe("generateMemberReply", () => {
+  it("rejects generating a partner reply in manual partner sessions", async () => {
+    await expect(generateMemberReply(newSession(), { speakerRole: "partner" })).rejects.toThrow(
+      /manually-controlled/,
+    );
+    expect(modelServiceMocks.generateCharacterTurn).not.toHaveBeenCalled();
+  });
+
   it("rejects two consecutive focus replies before calling the model", async () => {
     const session = {
       ...newSession(),
@@ -212,7 +266,7 @@ describe("generateFocusMemberReply", () => {
       ],
     };
 
-    await expect(generateFocusMemberReply(session)).rejects.toThrow(/consecutive turns/);
+    await expect(generateMemberReply(session)).rejects.toThrow(/consecutive turns/);
   });
 
   it("retries an empty focus reply with the visibility guard", async () => {
@@ -221,7 +275,7 @@ describe("generateFocusMemberReply", () => {
       .mockResolvedValueOnce(generatedText("i can answer that without narrating the chair."));
     const session = appendPartnerLine(newSession(), "hey there");
 
-    const result = await generateFocusMemberReply(session, {
+    const result = await generateMemberReply(session, {
       now: new Date("2026-05-16T12:02:00.000Z"),
     });
 
@@ -239,7 +293,7 @@ describe("generateFocusMemberReply", () => {
     );
     const session = appendPartnerLine(newSession(), "hey there");
 
-    await generateFocusMemberReply(session, {
+    await generateMemberReply(session, {
       generationOptions: { deepseekRoleplayThinking: true },
     });
 
@@ -249,6 +303,59 @@ describe("generateFocusMemberReply", () => {
       }),
     );
   });
+
+  it("starts with the partner when the session opener is partner in AI mode", async () => {
+    modelServiceMocks.generateCharacterTurn.mockResolvedValueOnce(
+      generatedText("I usually panic-order the coffee and call it discernment."),
+    );
+    const session = createTuneSession({
+      focusMemberId: SAMPLE_FOCUS_ID,
+      partnerMemberId: SAMPLE_PARTNER_ID,
+      scenarioId: SAMPLE_SCENARIO_ID,
+      partnerControl: "ai",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+
+    const result = await generateMemberReply(session, {
+      speakerRole: nextLiveSpeakerRole(session),
+      now: new Date("2026-05-16T12:01:00Z"),
+    });
+
+    expect(result.preview.speakerMember.id).toBe(SAMPLE_PARTNER_ID);
+    expect(result.session.messages[0]?.kind).toBe("character");
+    if (result.session.messages[0]?.kind === "character") {
+      expect(result.session.messages[0].speakerId).toBe(SAMPLE_PARTNER_ID);
+    }
+    expect(nextLiveSpeakerRole(result.session)).toBe("focus");
+  });
+
+  it("alternates to the focus member after an AI partner opener", async () => {
+    modelServiceMocks.generateCharacterTurn
+      .mockResolvedValueOnce(generatedText("I usually panic-order the coffee."))
+      .mockResolvedValueOnce(generatedText("That is alarmingly efficient. I respect it."));
+    const session = createTuneSession({
+      focusMemberId: SAMPLE_FOCUS_ID,
+      partnerMemberId: SAMPLE_PARTNER_ID,
+      scenarioId: SAMPLE_SCENARIO_ID,
+      partnerControl: "ai",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+
+    const withPartner = await generateMemberReply(session, {
+      speakerRole: nextLiveSpeakerRole(session),
+    });
+    const withFocus = await generateMemberReply(withPartner.session, {
+      speakerRole: nextLiveSpeakerRole(withPartner.session),
+    });
+
+    expect(withFocus.preview.speakerMember.id).toBe(SAMPLE_FOCUS_ID);
+    expect(withFocus.session.messages).toHaveLength(2);
+    const secondMessage = withFocus.session.messages[1];
+    expect(secondMessage?.kind).toBe("character");
+    if (secondMessage?.kind === "character") {
+      expect(secondMessage.speakerId).toBe(SAMPLE_FOCUS_ID);
+    }
+  });
 });
 
 describe("previewMemberTurnPacket", () => {
@@ -257,14 +364,29 @@ describe("previewMemberTurnPacket", () => {
     const opened = appendPartnerLine(session, "hey, how was your day");
     const preview = previewMemberTurnPacket(opened);
 
-    expect(preview.focusMember.id).toBe(SAMPLE_FOCUS_ID);
-    expect(preview.partnerMember.id).toBe(SAMPLE_PARTNER_ID);
+    expect(preview.speakerMember.id).toBe(SAMPLE_FOCUS_ID);
+    expect(preview.otherMember.id).toBe(SAMPLE_PARTNER_ID);
     expect(preview.scenario.id).toBe(SAMPLE_SCENARIO_ID);
     expect(preview.dateSession.currentTurn).toBe(1);
 
-    expect(preview.packet.system).toContain(preview.focusMember.firstName);
-    expect(preview.packet.system).toContain(preview.partnerMember.firstName);
+    expect(preview.packet.system).toContain(preview.speakerMember.firstName);
+    expect(preview.packet.system).toContain(preview.otherMember.firstName);
     expect(preview.packet.system).toContain(preview.scenario.publicBrief.location);
+  });
+
+  it("can build the next packet for the partner member", () => {
+    const session = createTuneSession({
+      focusMemberId: SAMPLE_FOCUS_ID,
+      partnerMemberId: SAMPLE_PARTNER_ID,
+      scenarioId: SAMPLE_SCENARIO_ID,
+      partnerControl: "ai",
+      now: new Date("2026-05-16T12:00:00Z"),
+    });
+    const preview = previewMemberTurnPacket(session, { speakerRole: "partner" });
+
+    expect(preview.speakerMember.id).toBe(SAMPLE_PARTNER_ID);
+    expect(preview.otherMember.id).toBe(SAMPLE_FOCUS_ID);
+    expect(preview.packet.system).toContain(preview.speakerMember.firstName);
   });
 
   it("threads a cupid note into the prompt as a private coaching note", () => {
@@ -364,6 +486,26 @@ describe("formatTranscriptForReading", () => {
     expect(text).toContain("Alex (you): hey there");
     expect(text).toContain("[event] phone buzzes");
     expect(text).toContain("[cupid to Cassie] ask about her week");
+  });
+
+  it("labels the partner as AI-controlled when the session uses AI partner mode", () => {
+    const session = {
+      ...newSession(),
+      partnerControl: "ai" as const,
+      messages: [
+        {
+          kind: "character" as const,
+          speakerId: SAMPLE_PARTNER_ID,
+          text: "hey there",
+          createdAt: "2026-05-16T12:01:00.000Z",
+        },
+      ],
+    };
+    const text = formatTranscriptForReading(session, {
+      focusName: "Cassie",
+      partnerName: "Alex",
+    });
+    expect(text).toContain("Alex (AI partner): hey there");
   });
 
   it("returns a placeholder when empty", () => {

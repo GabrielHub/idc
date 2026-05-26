@@ -106,8 +106,13 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("<format>");
     expect(ownerPacket.prompt).toContain("You are speaking across a table.");
     expect(ownerPacket.prompt).toContain("*italic* for a stressed word you would say aloud");
-    expect(ownerPacket.prompt).toContain("Italic that names what your body is doing");
+    expect(ownerPacket.prompt).toContain(
+      "Italics are for spoken stress only; bubbles contain spoken words, not narrated actions.",
+    );
     expect(ownerPacket.prompt).toContain("No em dashes or en dashes.");
+    expect(ownerPacket.prompt).not.toContain("*puts feet down*");
+    expect(ownerPacket.prompt).not.toContain("*grabs coffee*");
+    expect(ownerPacket.prompt).not.toContain("*sighs*");
     expect(ownerPacket.prompt).not.toContain("answer what they just said");
     expect(ownerPacket.prompt).not.toContain("Useful shapes:");
     expect(ownerPacket.prompt).not.toContain("At most one Markdown move");
