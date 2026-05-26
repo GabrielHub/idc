@@ -15,7 +15,7 @@ import {
   previewFollowUpEffects,
 } from "./date-engine";
 import { MEMBER_QUIT_BUDGET_CUT } from "./budget";
-import { createSeedGameSave } from "./game-seed";
+import { createSeedGameSave, hydrateFixtureOwnedMemberData } from "./game-seed";
 
 const OUTCOMES: readonly DateFinalReport["outcome"][] = [
   "second_date",
@@ -143,6 +143,73 @@ describe("outcome aware follow-up preview", () => {
     );
     expect(result.save.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
     expect(result.session.finalReport?.appliedFollowUp).toBe("repair");
+  });
+
+  it("repairs duplicate active pair memory before follow-up resolution persists", () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const pairState = pairStateSchema.parse({
+      ...buildPairState(),
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "Keep the garnish aisle small.",
+          status: "active",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "agreement-duplicate",
+          text: "Keep the garnish aisle small",
+          status: "active",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-kept",
+          text: "Whether Sienna's basil policy is still classified.",
+          status: "open",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+        {
+          id: "loop-duplicate",
+          text: "Whether Sienna's basil policy is still classified",
+          status: "open",
+          createdAt: "2026-05-05T11:15:00.000Z",
+        },
+      ],
+    });
+    const session = buildSession("bad_fit");
+    const save = gameSaveSchema.parse({
+      ...seed,
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== pairState.id),
+        pairState,
+      ],
+      dateSessions: [...seed.dateSessions, session],
+    });
+
+    const hydrated = hydrateFixtureOwnedMemberData(save).save;
+    const result = applyFollowUpAction(hydrated, {
+      dateSessionId: session.id,
+      action: "mark_bad_fit",
+    });
+    const updatedPair = result.save.pairStates.find((candidate) => candidate.id === pairState.id);
+
+    expect(updatedPair?.agreements.find((entry) => entry.id === "agreement-kept")?.status).toBe(
+      "retired",
+    );
+    expect(
+      updatedPair?.agreements.find((entry) => entry.id === "agreement-duplicate")?.status,
+    ).toBe("retired");
+    expect(updatedPair?.openLoops.find((entry) => entry.id === "loop-kept")?.status).toBe(
+      "dropped",
+    );
+    expect(updatedPair?.openLoops.find((entry) => entry.id === "loop-duplicate")?.status).toBe(
+      "dropped",
+    );
+    expect(result.save.memories.filter((memory) => memory.tags.includes("follow_up"))).toHaveLength(
+      2,
+    );
   });
 
   it("penalizes let_it_sit harder when strain was left unaddressed", () => {

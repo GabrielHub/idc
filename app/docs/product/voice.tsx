@@ -50,8 +50,10 @@ export const sections: DocSectionEntry[] = [
               contract for member fixtures.
             </span>,
             <span key="patterns">
-              <Strong>Voice patterns:</Strong> the controlled catalog for{" "}
-              <DocCode>patternsUsed</DocCode> and <DocCode>patternsRefused</DocCode>.
+              <Strong>Voice patterns:</Strong> two catalogs. The flavor gallery is the controlled
+              catalog for <DocCode>patternsUsed</DocCode> and <DocCode>patternsRefused</DocCode>.
+              The performance mechanics section is cross-turn cadence moves cited inside{" "}
+              <DocCode>comedyMechanics</DocCode>.
             </span>,
             <span key="prompts">
               <Strong>Runtime voice surfaces:</Strong> dating profiles, opening messages, transcript

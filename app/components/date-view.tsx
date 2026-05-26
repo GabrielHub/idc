@@ -403,7 +403,7 @@ function DateHeader({
   const canLeaveStage = session.status !== "active";
   const positionClass = isDrafting
     ? "relative mb-6 flex justify-center px-6 lg:px-10"
-    : "sticky top-3 mb-2 flex justify-center px-6 lg:top-4 lg:mb-3 lg:px-10";
+    : "relative mb-4 flex justify-center px-6 lg:mb-5 lg:px-10";
   const memberLine = participants.map((m) => m.firstName).join(" / ");
   const locationLine = scenario?.publicBrief.location;
   const detailLine = locationLine === undefined ? memberLine : `${memberLine} / ${locationLine}`;

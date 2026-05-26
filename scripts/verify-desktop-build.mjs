@@ -29,6 +29,8 @@ for (const filePath of REQUIRED_FILES) {
   }
 }
 
+verifyDesktopFallback(failures);
+
 for (const filePath of findFiles(BUILD_CLIENT_DIR)) {
   if (!shouldScan(filePath)) {
     continue;
@@ -154,5 +156,19 @@ function verifyCopyrightAttestation(failureBucket, identity) {
     failureBucket.push(
       `release preflight: bundle.copyright "${copyright}" was not confirmed for signing. Set IDC_COPYRIGHT_CONFIRMED to the exact copyright string before running with IDC_RELEASE_PREFLIGHT=1.`,
     );
+  }
+}
+
+function verifyDesktopFallback(failureBucket) {
+  const fallbackPath = resolve(BUILD_CLIENT_DIR, "__spa-fallback.html");
+
+  if (!existsSync(fallbackPath)) {
+    return;
+  }
+
+  const fallbackHtml = readFileSync(fallbackPath, "utf8");
+
+  if (!fallbackHtml.includes('"routes/home"')) {
+    failureBucket.push("desktop SPA fallback is missing the home route module");
   }
 }

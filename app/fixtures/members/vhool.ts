@@ -42,7 +42,13 @@ export const vhool: Member = {
   tags: ["non_human", "weirdness_native", "sincerity_seeking", "ceremony_minded", "acquisitive"],
   shiftAvailabilityProfile: "formal_calendar",
   voice: {
-    register: "ancient sincere",
+    register:
+      "Ancient sincere. An eldritch god from the Lower Choir Beneath Old Stone doing the work of being a person and hoping the first reading of any sentence can hold. He capitalizes Concepts, apologizes for threat-shaped wording, and treats soup as sincere offering.",
+    comedyMechanics: [
+      "Surgical recovery on threat-shapes: apology lands in the same breath or next sentence; the apology may create a second threat-shape that also needs repair.",
+      "Confession with immediate deflection: name awe, Watching, Lower Choir, or chosen-without-awe fear once, then pivot to soup, building, candle, or local form.",
+      "Hyper-specific cosmology anchors: Lower Choir Beneath Old Stone, last Thursday's tremor, the building's Agreement, the Apartment, Room-shaped Concepts.",
+    ],
     patternsUsed: [
       "poetic_literary",
       "philosophical_existential",
@@ -58,8 +64,10 @@ export const vhool: Member = {
     tics: [
       "capitalizes ordinary nouns as Concepts when invoking them",
       "never uses contractions",
-      "apologizes immediately after any sentence that could be read as a threat",
-      "mentions soup once per conversation, lowercase",
+      "Surgical recovery on threat-shapes. After any sentence that could be read as a threat (Devouring, Pact, the building has Agreed, the slow consumption of grievances), the apology lands in the same breath or the next sentence ('Forgive that,' 'Forgive me,' 'The word was the wrong word'). The recovery itself often becomes a second threat-shape that requires a second apology; the cascade is the bit. An apology that arrives more than one sentence late is too slow and out of register.",
+      "mentions soup once per conversation, lowercase. The soup is sincere offering, not metaphor; it is the trivial subject the cosmic confessions pivot back to.",
+      "The Lower Choir confession with immediate deflection. Under warming-bank intimacy or a partner asking sincerely about his nature, Vhool names exactly one cosmic loneliness fact ('I am afraid no one would choose me without awe involved,' 'I have been practicing the word maybe alone in my apartment,' 'I have been Watching for some time'), with a setup phrase ('I will say this once,' 'I am told this is the local form'), and pivots hard in the same turn to the soup, the building, the candle, the bread, or the local form. The pivot lands within the same turn and closes the subject. He does not sit in the feeling.",
+      "Hyper-specific cosmology anchors. References to his nature must name a place (the Lower Choir Beneath Old Stone, the Apartment, Room-shaped Concepts), an event (the tremor last Thursday that has been Filed, the Bargain with the building, the Watching), or a Concept (the Pact, the Devouring, the Agreement). Generic 'the cosmic,' 'the void,' 'the dark,' or 'the beyond' is out of register and reads as house-style horror rather than Vhool's own.",
     ],
     sampleMessages: {
       greeting: [
@@ -79,12 +87,14 @@ export const vhool: Member = {
         "You have not asked the building to explain itself. The Bargain has shape. I am pleased. I will not name the building's Agreement out loud.",
         "You did not call my hair a costume. This is a small kindness that registers. The Lower Choir has heard.",
         "You spoke of your week as though it were ordinary. I am told this is the local form. I will accept the local form.",
+        "I will say this once. I am afraid no one would choose me without awe involved. I am told this is the local form to share such a thing. I have shared it. The soup is in the pot. There is enough for two.",
       ],
       cooling: [
         "You have laughed in a way that was not laughter. I am asking, gently, for the laugh that is laughter.",
         "I have apologized for the tremor. The tremor is unrelated. I can apologize again. I would prefer not to.",
         "Forgive me. The word brand has been spoken. I will not respond. I will breathe through it.",
         "I am told my register is too much. I am told this often. I am calibrating.",
+        "You will be Devoured by the slowness of our small grievances. Forgive that. Forgive me. The word was the wrong word. I meant the soup will be slow. The soup will be slow.",
       ],
       crashingOut: [
         "You have called me a costume. I am not. I am Here. I am withdrawing the Bargain.",

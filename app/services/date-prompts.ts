@@ -19,12 +19,8 @@ import {
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
 } from "./date-engine";
-import {
-  rankActiveAgreements,
-  rankActiveOpenLoops,
-  selectPairSpotlightItem,
-  type PairSpotlightItem,
-} from "./pair-memory";
+import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
+import { rankActiveAgreements, rankActiveOpenLoops } from "./pair-memory-state";
 import { derivePairTrajectory } from "./pair-trajectory";
 import { cleanMemberFacingText } from "./player-safe-copy";
 import { buildVisibleMemberProfile, type RevealCandidate } from "./player-knowledge";

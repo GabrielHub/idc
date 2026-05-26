@@ -1,11 +1,19 @@
 import {
+  APICallError,
   createGateway,
   embed,
   generateText,
+  JSONParseError,
+  MissingToolResultsError,
+  NoObjectGeneratedError,
+  NoOutputGeneratedError,
   Output,
   stepCountIs,
   streamText,
   tool,
+  ToolCallRepairError,
+  TypeValidationError,
+  UnsupportedFunctionalityError,
   type JSONValue,
   type ModelMessage,
   type UserModelMessage,
@@ -144,6 +152,16 @@ export type AiRuntimeConfig = GameConfig & {
   requestTimeoutMs?: number;
   contextWindowTokens?: number;
   embeddingContextWindowTokens?: number;
+};
+
+type StructuredGenerationInput = {
+  system: string;
+  prompt: string;
+  messages?: ModelMessage[];
+  modelId: string;
+  config: AiRuntimeConfig;
+  maxOutputTokens?: number;
+  jsonRepairScope?: JsonRepairScope;
 };
 
 export type GeneratedTextResult = {
@@ -778,112 +796,92 @@ function toolTelemetryFromSteps(
 
 async function generateObjectWithModelService<TSchema extends z.ZodType>(
   schema: TSchema,
-  input: {
-    system: string;
-    prompt: string;
-    messages?: ModelMessage[];
-    modelId: string;
-    config: AiRuntimeConfig;
-    maxOutputTokens?: number;
-    jsonRepairScope?: JsonRepairScope;
-  },
+  input: StructuredGenerationInput,
 ): Promise<z.infer<TSchema>> {
-  if (input.config.aiProvider === "ollama") {
-    try {
-      return await generateJsonTextWithSchema(schema, input);
-    } catch (error) {
-      throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "ollama");
-    }
-  }
-
-  try {
-    const callSettings = {
-      model: createLanguageModel(input.modelId, input.config),
-      output: Output.object({ schema }),
-      system: input.system,
-      ...withOptionalMaxOutputTokens(input.maxOutputTokens),
-      timeout: input.config.requestTimeoutMs,
-      providerOptions: providerOptionsForRuntime(input.config, input.modelId),
-    };
-    const result =
-      input.messages === undefined
-        ? await generateText({
-            ...callSettings,
-            prompt: input.prompt,
-          })
-        : await generateText({
-            ...callSettings,
-            messages: input.messages,
-          });
-
-    return schema.parse(result.output);
-  } catch (error) {
-    throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "gateway");
-  }
+  return generateStructuredWithModelService(schema, input, Output.object({ schema }));
 }
 
 async function generateArrayWithModelService<TElementSchema extends z.ZodType>(
   elementSchema: TElementSchema,
-  input: {
-    system: string;
-    prompt: string;
-    messages?: ModelMessage[];
-    modelId: string;
-    config: AiRuntimeConfig;
-    maxOutputTokens?: number;
-    jsonRepairScope?: JsonRepairScope;
-  },
+  input: StructuredGenerationInput,
 ): Promise<Array<z.infer<TElementSchema>>> {
   const arraySchema = z.array(elementSchema);
 
-  if (input.config.aiProvider === "ollama") {
-    try {
-      return await generateJsonTextWithSchema(arraySchema, input);
-    } catch (error) {
-      throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "ollama");
-    }
+  return generateStructuredWithModelService(
+    arraySchema,
+    input,
+    Output.array({ element: elementSchema }),
+  );
+}
+
+async function generateStructuredWithModelService<TSchema extends z.ZodType>(
+  schema: TSchema,
+  input: StructuredGenerationInput,
+  nativeOutput: ReturnType<typeof Output.object> | ReturnType<typeof Output.array>,
+): Promise<z.infer<TSchema>> {
+  if (structuredOutputStrategyForRuntime(input.config, input.modelId) === "json_text") {
+    return generateJsonTextWithSchemaOrThrow(schema, input);
   }
 
   try {
-    const callSettings = {
-      model: createLanguageModel(input.modelId, input.config),
-      output: Output.array({ element: elementSchema }),
-      system: input.system,
-      ...withOptionalMaxOutputTokens(input.maxOutputTokens),
-      timeout: input.config.requestTimeoutMs,
-      providerOptions: providerOptionsForRuntime(input.config, input.modelId),
-    };
-    const result =
-      input.messages === undefined
-        ? await generateText({
-            ...callSettings,
-            prompt: input.prompt,
-          })
-        : await generateText({
-            ...callSettings,
-            messages: input.messages,
-          });
-
-    return arraySchema.parse(result.output);
+    return await generateNativeStructuredWithSchema(schema, input, nativeOutput);
   } catch (error) {
-    throw createAiError(structuredFailureMessage(input.config.aiProvider), [error], "gateway");
+    return retryStructuredGenerationAsJsonText(schema, input, error);
   }
+}
+
+async function generateNativeStructuredWithSchema<TSchema extends z.ZodType>(
+  schema: TSchema,
+  input: StructuredGenerationInput,
+  nativeOutput: ReturnType<typeof Output.object> | ReturnType<typeof Output.array>,
+): Promise<z.infer<TSchema>> {
+  const callSettings = {
+    model: createLanguageModel(input.modelId, input.config),
+    output: nativeOutput,
+    system: input.system,
+    ...withOptionalMaxOutputTokens(input.maxOutputTokens),
+    timeout: input.config.requestTimeoutMs,
+    providerOptions: providerOptionsForRuntime(input.config, input.modelId),
+  };
+  const result =
+    input.messages === undefined
+      ? await generateText({
+          ...callSettings,
+          prompt: input.prompt,
+        })
+      : await generateText({
+          ...callSettings,
+          messages: input.messages,
+        });
+
+  return schema.parse(result.output);
+}
+
+function structuredOutputStrategyForRuntime(
+  config: AiRuntimeConfig,
+  modelId: string,
+): "native" | "json_text" {
+  if (config.aiProvider === "ollama") {
+    return "json_text";
+  }
+
+  return gatewaySupportsNativeStructuredOutput(modelId) ? "native" : "json_text";
+}
+
+function gatewaySupportsNativeStructuredOutput(modelId: string): boolean {
+  return providerIdFromGatewayModelId(modelId) !== "alibaba";
 }
 
 async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
   schema: TSchema,
-  input: {
-    system: string;
-    prompt: string;
-    messages?: ModelMessage[];
-    modelId: string;
-    config: AiRuntimeConfig;
-    maxOutputTokens?: number;
-    jsonRepairScope?: JsonRepairScope;
-  },
+  input: StructuredGenerationInput,
 ): Promise<z.infer<TSchema>> {
+  const model =
+    input.config.aiProvider === "ollama"
+      ? createJsonLanguageModel(input.modelId, input.config)
+      : createLanguageModel(input.modelId, input.config, { temperature: 0.2 });
   const callSettings = {
-    model: createJsonLanguageModel(input.modelId, input.config),
+    model,
     system: [
       input.system,
       "",
@@ -892,6 +890,7 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
     ...withOptionalMaxOutputTokens(input.maxOutputTokens),
     temperature: 0.2,
     timeout: input.config.requestTimeoutMs,
+    providerOptions: providerOptionsForRuntime(input.config, input.modelId),
   };
   const result =
     input.messages === undefined
@@ -907,6 +906,106 @@ async function generateJsonTextWithSchema<TSchema extends z.ZodType>(
 
   return schema.parse(parsedJson);
 }
+
+async function generateJsonTextWithSchemaOrThrow<TSchema extends z.ZodType>(
+  schema: TSchema,
+  input: StructuredGenerationInput,
+): Promise<z.infer<TSchema>> {
+  try {
+    return await generateJsonTextWithSchema(schema, input);
+  } catch (error) {
+    throw createAiError(
+      structuredFailureMessage(input.config.aiProvider),
+      [error],
+      input.config.aiProvider,
+    );
+  }
+}
+
+async function retryStructuredGenerationAsJsonText<TSchema extends z.ZodType>(
+  schema: TSchema,
+  input: StructuredGenerationInput,
+  primaryError: unknown,
+): Promise<z.infer<TSchema>> {
+  if (!shouldRetryStructuredGenerationAsJsonText(primaryError)) {
+    throw createAiError(
+      structuredFailureMessage(input.config.aiProvider),
+      [primaryError],
+      "gateway",
+    );
+  }
+
+  try {
+    return await generateJsonTextWithSchema(schema, input);
+  } catch (fallbackError) {
+    throw createAiError(
+      structuredFailureMessage(input.config.aiProvider),
+      [primaryError, fallbackError],
+      "gateway",
+    );
+  }
+}
+
+function shouldRetryStructuredGenerationAsJsonText(error: unknown): boolean {
+  return hasRetryableStructuredGenerationError(error, 0);
+}
+
+function hasRetryableStructuredGenerationError(error: unknown, depth: number): boolean {
+  if (depth > 4) {
+    return false;
+  }
+
+  return (
+    error instanceof z.ZodError ||
+    NoObjectGeneratedError.isInstance(error) ||
+    NoOutputGeneratedError.isInstance(error) ||
+    JSONParseError.isInstance(error) ||
+    TypeValidationError.isInstance(error) ||
+    MissingToolResultsError.isInstance(error) ||
+    ToolCallRepairError.isInstance(error) ||
+    UnsupportedFunctionalityError.isInstance(error) ||
+    isUnsupportedNativeStructuredOutputFailure(error) ||
+    (isRecord(error) && hasRetryableStructuredGenerationError(error.cause, depth + 1))
+  );
+}
+
+function isUnsupportedNativeStructuredOutputFailure(error: unknown): boolean {
+  if (!APICallError.isInstance(error) || (error.statusCode !== 400 && error.statusCode !== 422)) {
+    return false;
+  }
+
+  const detailText = [error.message, error.responseBody, structuredFailureDetailPart(error.data)]
+    .filter((value): value is string => value !== undefined)
+    .join("\n")
+    .toLowerCase();
+
+  return UNSUPPORTED_NATIVE_STRUCTURED_OUTPUT_MARKERS.some((marker) => detailText.includes(marker));
+}
+
+function structuredFailureDetailPart(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return errorToMessage(value);
+  }
+}
+
+const UNSUPPORTED_NATIVE_STRUCTURED_OUTPUT_MARKERS = [
+  "unsupported response_format",
+  "unsupported response format",
+  "response_format json_schema",
+  "response format json_schema",
+  "json_schema is not supported",
+  "json schema is not supported",
+];
 
 type OllamaProvider = ReturnType<typeof createOllama>;
 type GatewayProvider = ReturnType<typeof createGateway>;

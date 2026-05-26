@@ -11,6 +11,7 @@ import {
   type PlayerKnowledgeRecord,
 } from "../domain/game";
 import { makePairId } from "./game-seed";
+import { listUniqueActiveAgreements, listUniqueOpenLoops } from "./pair-memory-state";
 import { deriveJudgeSnapshotPairStatDeltas } from "./pair-stats";
 import { clamp } from "./utils";
 
@@ -1069,16 +1070,14 @@ function pairHistoryScore(
 function pairMemoryScore(pairState: PairState, ruleHits: string[]): AuthoredScore {
   let scoreDelta = 0;
   let pressureDelta = 0;
-  const activeAgreementCount = pairState.agreements.filter(
-    (agreement) => agreement.status === "active",
-  ).length;
+  const activeAgreementCount = listUniqueActiveAgreements(pairState).length;
   const honoredAgreementCount = pairState.agreements.filter(
     (agreement) => agreement.status === "honored",
   ).length;
   const brokenAgreementCount = pairState.agreements.filter(
     (agreement) => agreement.status === "broken",
   ).length;
-  const openLoopCount = pairState.openLoops.filter((loop) => loop.status === "open").length;
+  const openLoopCount = listUniqueOpenLoops(pairState).length;
   const resolvedLoopCount = pairState.openLoops.filter((loop) => loop.status === "resolved").length;
 
   if (activeAgreementCount > 0) {

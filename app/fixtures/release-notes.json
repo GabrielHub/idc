@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.8",
+    "date": "2026-05-25",
+    "headline": "Cupid sharpens memory and model handling.",
+    "summary": "Gameplay test alpha. Improves structured AI generation, pair-memory cleanup, voice authoring guidance, onboarding deck flow, and desktop build preflight coverage.",
+    "sections": [
+      {
+        "title": "AI and date reliability",
+        "items": [
+          "Gateway structured output now falls back to schema-bounded JSON text when a provider rejects native object output.",
+          "Model-service errors preserve more useful failure detail across native structured output, JSON parsing, and validation paths.",
+          "Date follow-up logic, hidden-info checks, and pending action handling have tighter tests around repeated or blocked operations."
+        ]
+      },
+      {
+        "title": "Pair memory",
+        "items": [
+          "Active agreements and open loops now dedupe by cleaned player-safe text before they drive spotlights, match fit, trajectory, and follow-up pressure.",
+          "Existing saves normalize duplicate active pair-memory entries during fixture hydration instead of letting repeated loops stack forever.",
+          "Pair-memory ranking and cleanup helpers now share one service path so date prompts and scoring read the same state."
+        ]
+      },
+      {
+        "title": "Voice and release prep",
+        "items": [
+          "Voice docs now separate single-bubble flavor patterns from cross-turn performance mechanics for fixture authors.",
+          "Selected member fixtures gain clearer comedy mechanics, concrete anchors, and sample lines for their authored voice engines.",
+          "Desktop build verification now checks the prepared SPA fallback and keeps the desktop release task on the same prepare-and-verify path."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.7",
     "date": "2026-05-25",
     "headline": "Cupid polishes the constellation shift.",

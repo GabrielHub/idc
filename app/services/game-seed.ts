@@ -22,6 +22,7 @@ import {
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
 import { createInitialScenarioDeck } from "./deck";
+import { normalizePairStateActiveMemoryDuplicates } from "./pair-memory-state";
 import {
   hydrateFeaturedMemberIds,
   selectFeaturedMemberRequestIds,
@@ -169,7 +170,7 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
     dirty = true;
   }
 
-  const pairResult = hydratePairStates(save.pairStates, members);
+  const pairResult = hydratePairStates(save.pairStates, members, save.updatedAt);
   if (pairResult.dirty) dirty = true;
 
   const dateSessionResult = mapWithDirty(save.dateSessions, hydrateDateSessionScenarioId);
@@ -408,6 +409,7 @@ export function freezePairProjection(projection: PairProjection): PairProjection
 function hydratePairStates(
   savedPairStates: PairState[],
   members: Member[],
+  timestamp: string,
 ): { pairStates: PairState[]; dirty: boolean } {
   const memberIds = new Set(members.map((member) => member.id));
   let dirty = false;
@@ -419,16 +421,18 @@ function hydratePairStates(
       dirty = true;
       continue;
     }
-    const counts = hydrateScenarioUseCounts(pair.scenarioUseCounts);
-    const stats = derivePairStats(pair.stats);
-    const statsChanged = !pairStatsEqual(stats, pair.stats);
-    const countsChanged = counts !== pair.scenarioUseCounts;
+    const normalizedPair = normalizePairStateActiveMemoryDuplicates(pair, timestamp);
+    const counts = hydrateScenarioUseCounts(normalizedPair.scenarioUseCounts);
+    const stats = derivePairStats(normalizedPair.stats);
+    const statsChanged = !pairStatsEqual(stats, normalizedPair.stats);
+    const countsChanged = counts !== normalizedPair.scenarioUseCounts;
+    const normalizedChanged = normalizedPair !== pair;
 
-    if (!countsChanged && !statsChanged) {
+    if (!countsChanged && !statsChanged && !normalizedChanged) {
       kept.push(pair);
     } else {
       dirty = true;
-      kept.push({ ...pair, stats, scenarioUseCounts: counts });
+      kept.push({ ...normalizedPair, stats, scenarioUseCounts: counts });
     }
   }
 

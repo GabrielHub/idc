@@ -213,15 +213,16 @@ function buildLeakProfile(member: Member): LeakProfile {
 }
 
 function computeLeakProfile(member: Member): LeakProfile {
-  const publicCorpus = [
+  const publicLabelCorpus = [
     member.datingProfile,
     member.visualDescription,
     member.name,
     member.firstName,
   ].join(" \n ");
-  const publicPhrases = ngramSet(publicCorpus, LEAK_PHRASE_TOKEN_COUNT);
-  const publicLabelPhrases = ngramSet(publicCorpus, LABEL_PHRASE_TOKEN_COUNT);
-  const publicTokens = wordSet(publicCorpus);
+  const publicTextCorpus = [publicLabelCorpus, ...sampleMessageCorpus(member)].join(" \n ");
+  const publicPhrases = ngramSet(publicTextCorpus, LEAK_PHRASE_TOKEN_COUNT);
+  const publicLabelPhrases = ngramSet(publicLabelCorpus, LABEL_PHRASE_TOKEN_COUNT);
+  const publicTokens = wordSet(publicLabelCorpus);
   const phrases = new Map<string, HiddenInfoLeakField>();
   const labelPhrases = new Map<string, HiddenInfoLeakField>();
   const labels = new Map<string, HiddenInfoLeakField>();
@@ -269,6 +270,16 @@ function computeLeakProfile(member: Member): LeakProfile {
   }
 
   return { phrases, labelPhrases, labels };
+}
+
+function sampleMessageCorpus(member: Member): string[] {
+  return [
+    ...member.voice.sampleMessages.greeting,
+    ...member.voice.sampleMessages.hingeBits,
+    ...member.voice.sampleMessages.warming,
+    ...member.voice.sampleMessages.cooling,
+    ...member.voice.sampleMessages.crashingOut,
+  ];
 }
 
 function hiddenTextSources(member: Member): Array<{ text: string; field: HiddenInfoLeakField }> {

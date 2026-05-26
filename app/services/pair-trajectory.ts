@@ -1,5 +1,6 @@
 import type { DateSession, PairState } from "../domain/game";
 import { CLOSURE_THRESHOLD } from "./closures";
+import { listUniqueActiveAgreements, listUniqueOpenLoops } from "./pair-memory-state";
 
 export type PairTrajectoryState =
   | "steady"
@@ -25,13 +26,11 @@ export function derivePairTrajectory({
   currentSession?: DateSession;
   completedSessions?: readonly DateSession[];
 }): PairTrajectory {
-  const activeAgreements = pairState.agreements.filter(
-    (agreement) => agreement.status === "active",
-  );
+  const activeAgreements = listUniqueActiveAgreements(pairState);
   const brokenAgreements = pairState.agreements.filter(
     (agreement) => agreement.status === "broken",
   );
-  const openLoops = pairState.openLoops.filter((loop) => loop.status === "open");
+  const openLoops = listUniqueOpenLoops(pairState);
   const resolvedLoops = pairState.openLoops.filter((loop) => loop.status === "resolved");
   const recentSessions = completedSessions
     .filter((session) => session.pairId === pairState.id && session.finalReport !== undefined)

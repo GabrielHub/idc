@@ -36,18 +36,18 @@ describe("deck service", () => {
     ).toBeLessThanOrEqual(STARTER_BUDGET_CAP);
   });
 
-  it("prefills onboarding one card short with the first starter card left open", () => {
+  it("prefills onboarding with the minimum legal starter deck", () => {
     const prefillIds = createOnboardingDeckPrefillIds(starterScenarios);
     const tutorialPickId = onboardingDeckTutorialPickId(starterScenarios);
 
     if (tutorialPickId === undefined) throw new Error("starter deck is empty");
     expect(tutorialPickId).toBe(STARTER_DECK_IDS[0]);
-    expect(prefillIds).toEqual(STARTER_DECK_IDS.slice(1));
-    expect(prefillIds).toHaveLength(DECK_SIZE_MIN - 1);
-    expect(prefillIds).not.toContain(tutorialPickId);
+    expect(prefillIds).toEqual(STARTER_DECK_IDS);
+    expect(prefillIds).toHaveLength(DECK_SIZE_MIN);
+    expect(prefillIds).toContain(tutorialPickId);
 
     const completedDraft = createDraftedScenarioDeck({
-      cardIds: [tutorialPickId, ...prefillIds],
+      cardIds: prefillIds,
       catalog: starterScenarios,
       catalogIds: STARTER_CATALOG_IDS,
       budgetCap: STARTER_BUDGET_CAP,

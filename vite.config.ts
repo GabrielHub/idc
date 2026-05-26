@@ -34,8 +34,9 @@ export default defineConfig({
         cache: false,
       },
       "build:desktop": {
-        command: "react-router build --mode desktop && node scripts/verify-desktop-build.mjs",
-        input: [{ auto: true }, "!build/**", "!node_modules/.vite/task-cache/**"],
+        command:
+          "react-router build --mode desktop && node scripts/prepare-desktop-build.mjs && node scripts/verify-desktop-build.mjs",
+        cache: false,
       },
       "portrait:cutout": {
         command: "python3 scripts/portraits/remove_background.py",
@@ -113,6 +114,11 @@ export default defineConfig({
               name: "motion-vendor",
               test: /node_modules[\\/]motion[\\/]/,
               priority: 40,
+            },
+            {
+              name: "three-vendor",
+              test: /node_modules[\\/](?:three|@react-three|postprocessing)[\\/]/,
+              priority: 35,
             },
             {
               name: "ai-vendor",

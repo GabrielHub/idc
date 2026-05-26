@@ -169,6 +169,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     readStoredDevMemberDetailsPreview,
   );
   const dateAbortControllerRef = useRef<AbortController | null>(null);
+  const pendingActionRef = useRef<PendingAction | null>(null);
   const stopAfterCurrentTurnRef = useRef(false);
   const releaseNotesCheckCompleteRef = useRef(false);
   const onboardingWarpTimerRef = useRef<number | null>(null);
@@ -480,7 +481,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
   }
 
   async function tryAction(kind: PendingAction, run: () => Promise<void>): Promise<boolean> {
-    if (isActionPending) return false;
+    if (pendingActionRef.current !== null) return false;
+    pendingActionRef.current = kind;
     setPendingAction(kind);
     setErrorMessage(null);
     setNoticeMessage(null);
@@ -491,6 +493,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       setErrorMessage(errorToMessage(error));
       return false;
     } finally {
+      pendingActionRef.current = null;
       setPendingAction(null);
     }
   }

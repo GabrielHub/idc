@@ -22,10 +22,15 @@ import {
   PAIR_AGED_OUT_TAG,
   PAIR_AGREEMENT_TAG,
   PAIR_STRAINED_TAG,
-  rankActiveAgreements,
-  rankActiveOpenLoops,
   selectPairSpotlightItem,
 } from "./pair-memory";
+import {
+  listUniqueActiveAgreements,
+  listUniqueOpenLoops,
+  normalizePairStateActiveMemoryDuplicates,
+  rankActiveAgreements,
+  rankActiveOpenLoops,
+} from "./pair-memory-state";
 
 const NOW = "2026-05-05T12:10:00.000Z";
 
@@ -210,6 +215,143 @@ describe("pair memory effects", () => {
     expect(resolved.pairState.openLoops[0]?.status).toBe("resolved");
     expect(resolved.memories).toHaveLength(1);
     expect(resolved.memories[0]?.tags).toContain(OPEN_LOOP_RESOLVED_TAG);
+  });
+
+  it("normalizes duplicate active pair-memory concepts from saved state", () => {
+    const pairState = buildPairState({
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "Keep the garnish aisle small.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "agreement-duplicate",
+          text: "Keep the garnish aisle small",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-kept",
+          text: "Whether Sienna's basil policy is still classified.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+        {
+          id: "loop-duplicate",
+          text: "Whether Sienna's basil policy is still classified",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:15:00.000Z",
+        },
+      ],
+    });
+
+    const normalized = normalizePairStateActiveMemoryDuplicates(pairState, NOW);
+
+    expect(normalized.agreements.filter((entry) => entry.status === "active")).toHaveLength(1);
+    expect(normalized.agreements.find((entry) => entry.id === "agreement-kept")?.status).toBe(
+      "active",
+    );
+    expect(normalized.agreements.find((entry) => entry.id === "agreement-duplicate")?.status).toBe(
+      "retired",
+    );
+    expect(normalized.openLoops.filter((entry) => entry.status === "open")).toHaveLength(1);
+    expect(normalized.openLoops.find((entry) => entry.id === "loop-kept")?.status).toBe("open");
+    expect(normalized.openLoops.find((entry) => entry.id === "loop-duplicate")?.status).toBe(
+      "dropped",
+    );
+  });
+
+  it("dedupes legacy active concepts before prompt-facing ranking", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "Keep the garnish aisle small.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "agreement-duplicate",
+          text: "Keep the garnish aisle small",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+      openLoops: [
+        {
+          id: "loop-kept",
+          text: "Whether Sienna's basil policy is still classified.",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:10:00.000Z",
+        },
+        {
+          id: "loop-duplicate",
+          text: "Whether Sienna's basil policy is still classified",
+          status: "open",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:15:00.000Z",
+        },
+      ],
+    });
+
+    expect(listUniqueActiveAgreements(pairState).map((entry) => entry.id)).toStrictEqual([
+      "agreement-kept",
+    ]);
+    expect(listUniqueOpenLoops(pairState).map((entry) => entry.id)).toStrictEqual(["loop-kept"]);
+    expect(rankActiveAgreements(pairState).map((entry) => entry.id)).toStrictEqual([
+      "agreement-kept",
+    ]);
+    expect(rankActiveOpenLoops(pairState).map((entry) => entry.id)).toStrictEqual(["loop-kept"]);
+    expect(selectPairSpotlightItem(pairState)?.id).toBe("loop-kept");
+  });
+
+  it("repairs duplicates before completed-date lifecycle effects run", () => {
+    const pairState = buildPairState({
+      completedDateIds: ["date-session-1", "date-session-2", "date-session-3"],
+      agreements: [
+        {
+          id: "agreement-kept",
+          text: "Keep the garnish aisle small.",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:00:00.000Z",
+        },
+        {
+          id: "agreement-duplicate",
+          text: "Keep the garnish aisle small",
+          status: "active",
+          sourceDateSessionId: "date-session-1",
+          createdAt: "2026-05-05T11:05:00.000Z",
+        },
+      ],
+    });
+
+    const result = applyCompletedDatePairMemoryEffects({
+      pairState: normalizePairStateActiveMemoryDuplicates(pairState, NOW),
+      session: buildDateSession({ id: "date-session-3" }),
+      timestamp: NOW,
+    });
+
+    expect(result.pairState.agreements.find((entry) => entry.id === "agreement-kept")?.status).toBe(
+      "honored",
+    );
+    expect(
+      result.pairState.agreements.find((entry) => entry.id === "agreement-duplicate")?.status,
+    ).toBe("retired");
+    expect(result.memories).toHaveLength(1);
+    expect(result.memories[0]?.id).toBe("memory-agreement-kept-honored-date-session-3");
   });
 
   it("drops stale open loops and rejects updates to already closed loops", () => {

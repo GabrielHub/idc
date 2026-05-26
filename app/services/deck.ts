@@ -98,7 +98,7 @@ export function onboardingDeckTutorialPickId(
 
 export function createOnboardingDeckPrefillIds(scenarios: readonly DateScenario[]): string[] {
   const scenarioIds = new Set(scenarios.map((scenario) => scenario.id));
-  return STARTER_DECK_IDS.filter((id) => scenarioIds.has(id)).slice(1);
+  return STARTER_DECK_IDS.filter((id) => scenarioIds.has(id));
 }
 
 export function createStarterScenarioDeck(scenarios: readonly DateScenario[]): ScenarioDeck {

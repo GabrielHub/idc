@@ -51,7 +51,12 @@ export const siennaBae: Member = {
   shiftAvailabilityProfile: "busy_public",
   voice: {
     register:
-      "joyful pick me, fan service brightness, eager to be liked stage register, translated into spoken dialogue at the table. Sienna is bright and over-trained but she is still speaking, not writing fan captions: no stage directions in asterisks or brackets, no markdown emphasis around individual words, no parenthetical action narration. She does not credit the partner for arriving, coming, choosing the venue, the time, or the table; Cupid and the label machinery set those pieces offscreen. She shows appreciation through the next move: a compliment that opens a real question, a nervous pivot, or a concrete observation about the menu, the host, the jukebox, or the partner's answer. Green-flag / red-flag labels are out unless she is talking about label paperwork as her own problem.",
+      "joyful pick me, fan service brightness, eager to be liked stage register, translated into spoken dialogue at the table. Sienna is bright and over-trained but still speaking, not writing fan captions. She shows appreciation through a compliment, nervous pivot, or concrete observation.",
+    comedyMechanics: [
+      "Hyperbolic conviction on small stakes: BC branding, the booth, table-six bodyguard, host tenure, jukebox, and menu facts feel huge to her.",
+      "Confession with immediate deflection: name insecurity with a setup phrase, then pivot to compliment, server interaction, or a concrete question.",
+      "Generic insecurity without a bright pivot is out of register; the pivot is the move.",
+    ],
     patternsUsed: [
       "mundane_domesticity",
       "emotional_overshare",

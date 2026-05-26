@@ -62,6 +62,7 @@ import {
   applyFollowUpPairMemoryEffects,
   applyJudgePairMemoryEffects,
 } from "./pair-memory";
+import { listUniqueOpenLoops } from "./pair-memory-state";
 import {
   applyPrimaryPairStatDeltas,
   deriveJudgeSnapshotPairStatDeltas,
@@ -775,7 +776,7 @@ function rankScenarioEventBucket(
           completedSessions: context.completedSessions ?? [],
         });
   const openLoopCount =
-    context.pairState?.openLoops.filter((loop) => loop.status === "open").length ?? 0;
+    context.pairState === undefined ? 0 : listUniqueOpenLoops(context.pairState).length;
 
   return selectFreshItems({
     candidates: bucket.map((event) => ({
@@ -2841,7 +2842,7 @@ function resolveFollowUpEffects(
   const brokenAgreementCount = pairState.agreements.filter(
     (agreement) => agreement.status === "broken",
   ).length;
-  const openLoopCount = pairState.openLoops.filter((loop) => loop.status === "open").length;
+  const openLoopCount = listUniqueOpenLoops(pairState).length;
   const reasons: string[] = [`outcome:${outcome}`];
 
   if (action === "encourage") {

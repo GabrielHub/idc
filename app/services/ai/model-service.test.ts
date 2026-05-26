@@ -1,16 +1,98 @@
-import { describe, expect, it } from "vitest";
+import { APICallError, JSONParseError, MissingToolResultsError } from "ai";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gameConfigSchema } from "../../domain/game";
 import {
   applyDeepSeekRoleplayThinkingMode,
   defaultMaxOutputTokensForProvider,
   defaultRequestTimeoutMsForProvider,
+  judgeDateExchange,
   ollamaThinkForReasoningLevel,
   parseOllamaModelInventory,
   providerOptionsForRuntime,
+  summarizeDateMemories,
+  type AiRuntimeConfig,
 } from "./model-service";
 
+const aiMocks = vi.hoisted(() => ({
+  createGateway: vi.fn(() => ({
+    embeddingModel: vi.fn((modelId: string) => ({ modelId, provider: "gateway-embedding" })),
+    languageModel: vi.fn((modelId: string) => ({ modelId, provider: "gateway-language" })),
+  })),
+  generateText: vi.fn(),
+}));
+
+vi.mock("ai", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("ai")>();
+
+  return {
+    ...actual,
+    createGateway: aiMocks.createGateway,
+    generateText: aiMocks.generateText,
+  };
+});
+
+type MinimalGenerateTextResult = {
+  output?: unknown;
+  text: string;
+};
+
+const gatewayConfig = {
+  aiProvider: "gateway",
+  chatModel: "google/gemini-3.1-flash-lite",
+  gatewayApiKey: "test-gateway-key",
+  requestTimeoutMs: 1_000,
+} satisfies Partial<AiRuntimeConfig>;
+
+const judgeOutput = {
+  dateHealthDelta: 0,
+  statDeltas: {},
+  memberMoodDeltas: {
+    "alex-yoon": 0,
+    vhool: 0,
+  },
+  shouldEndEarly: false,
+  endSentiment: null,
+  notableMoments: ["Alex and Vhool kept the table steady."],
+  playerSummary: "Cupid filed a steady exchange.",
+  memoryCandidates: [],
+  usedEvidenceIds: [],
+  agreementCandidates: [],
+  agreementUpdates: [],
+  openLoopCandidates: [],
+  openLoopUpdates: [],
+};
+
+const memoryCandidate = {
+  scope: "pair",
+  visibility: "public",
+  subjectIds: ["alex-yoon", "vhool"],
+  pairId: "alex-yoon__vhool",
+  scenarioId: "temporal-coffee-shop",
+  dateSessionId: "date-1",
+  text: "Alex and Vhool agreed the table stayed manageable.",
+  tags: ["date_summary", "interaction"],
+  importance: 3,
+};
+
+function textGenerationResult(text: string): MinimalGenerateTextResult {
+  return { text };
+}
+
+function outputGenerationResult(output: unknown): MinimalGenerateTextResult {
+  return { text: "", output };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
 describe("AI model service", () => {
+  beforeEach(() => {
+    aiMocks.createGateway.mockClear();
+    aiMocks.generateText.mockReset();
+  });
+
   it("parses Ollama tags and running model status for recommended families", () => {
     const inventory = parseOllamaModelInventory(
       {
@@ -187,5 +269,91 @@ describe("AI model service", () => {
         enabled: true,
       }).prompt,
     ).toBe("hello");
+  });
+
+  it("falls back to Gateway JSON text when native object output fails schema validation", async () => {
+    aiMocks.generateText
+      .mockResolvedValueOnce(outputGenerationResult({ dateHealthDelta: "not a number" }))
+      .mockResolvedValueOnce(textGenerationResult(JSON.stringify(judgeOutput)));
+
+    const result = await judgeDateExchange({
+      packet: { system: "Score the exchange.", prompt: "Alex and Vhool talked." },
+      dateSessionId: "date-1",
+      exchangeIndex: 0,
+      config: gatewayConfig,
+    });
+
+    expect(result.playerSummary).toBe("Cupid filed a steady exchange.");
+    expect(aiMocks.generateText).toHaveBeenCalledTimes(2);
+    expect(aiMocks.generateText).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ output: expect.anything() }),
+    );
+
+    const secondCallInput = aiMocks.generateText.mock.calls[1]?.[0];
+    expect(isRecord(secondCallInput) && "output" in secondCallInput).toBe(false);
+    expect(isRecord(secondCallInput) ? secondCallInput.system : "").toContain(
+      "Return valid JSON only.",
+    );
+  });
+
+  it("falls back to Gateway JSON text when native array output fails JSON parsing", async () => {
+    aiMocks.generateText
+      .mockRejectedValueOnce(
+        new JSONParseError({
+          text: "{",
+          cause: new SyntaxError("Unexpected end of JSON input"),
+        }),
+      )
+      .mockResolvedValueOnce(textGenerationResult(JSON.stringify([memoryCandidate])));
+
+    const result = await summarizeDateMemories(
+      { system: "Summarize memories.", prompt: "Alex and Vhool finished a date." },
+      gatewayConfig,
+    );
+
+    expect(result).toEqual([memoryCandidate]);
+    expect(aiMocks.generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to Gateway JSON text when native object output loses tool results", async () => {
+    aiMocks.generateText
+      .mockRejectedValueOnce(new MissingToolResultsError({ toolCallIds: ["structured-output"] }))
+      .mockResolvedValueOnce(textGenerationResult(`Result:\n${JSON.stringify(judgeOutput)}`));
+
+    const result = await judgeDateExchange({
+      packet: { system: "Score the exchange.", prompt: "Alex and Vhool talked." },
+      dateSessionId: "date-1",
+      exchangeIndex: 0,
+      config: gatewayConfig,
+    });
+
+    expect(result.notableMoments).toEqual(["Alex and Vhool kept the table steady."]);
+    expect(aiMocks.generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it("falls back to Gateway JSON text when a provider rejects native structured schema", async () => {
+    aiMocks.generateText
+      .mockRejectedValueOnce(
+        new APICallError({
+          message: "Provider rejected response_format json_schema.",
+          url: "https://gateway.example/language-model",
+          requestBodyValues: {},
+          statusCode: 400,
+          responseBody: "Unsupported response_format schema.",
+          isRetryable: false,
+        }),
+      )
+      .mockResolvedValueOnce(textGenerationResult(JSON.stringify(judgeOutput)));
+
+    const result = await judgeDateExchange({
+      packet: { system: "Score the exchange.", prompt: "Alex and Vhool talked." },
+      dateSessionId: "date-1",
+      exchangeIndex: 0,
+      config: gatewayConfig,
+    });
+
+    expect(result.dateSessionId).toBe("date-1");
+    expect(aiMocks.generateText).toHaveBeenCalledTimes(2);
   });
 });

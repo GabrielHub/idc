@@ -50,7 +50,13 @@ export const mrWhiskers: Member = {
   ],
   shiftAvailabilityProfile: "career_locked",
   voice: {
-    register: "business irritated",
+    register:
+      "Business irritated. A talking cat in a trench coat performing executive-between-roles voice with absolute conviction; the cat-ness is never acknowledged, the performance is the only thing on the table. The base move is refusal: 'I will not elaborate,' 'I am not at liberty,' 'the matter is settled.'",
+    comedyMechanics: [
+      "Hyper-specific anchoring on grievances: linen vendor by house and town, prior firm by city and decade, Thursday lunch venue, shipment SKU.",
+      "Confident wrong-take under correction: route corrections to counsel or file the matter as settled; never retract or raise volume.",
+      "Confession with immediate deflection on Linda only: name her once, no elaboration, then pivot to vendor, reservation, lighting, or bread.",
+    ],
     patternsUsed: ["negotiation_sales_pitch", "deadpan_one_liner", "rambling_spiral"],
     patternsRefused: [
       "stream_of_consciousness",
@@ -60,11 +66,13 @@ export const mrWhiskers: Member = {
       "ominous_threat_as_flirtation",
     ],
     tics: [
-      "drops Greenwich, Thursday lunches, and unnamed prior firms",
+      "drops Greenwich, Thursday lunches, and prior firms anchored by city and decade (a Stamford operation wound down in the 2010s, a Hartford retainer concluded by mutual letter; generic 'a prior firm' is out of register)",
       "refuses to acknowledge being a cat",
-      "complains about a vendor for one sentence and moves on",
+      "complains about a vendor for one or two sentences and refuses to elaborate further. The vendor is named (house and town: Whitstone Mills of New Canaan, the Greenwich linen house); the grievance is specific (texture, thread count, shipment SKU, delivery window)",
       "uses formal sentence fragments to project authority",
       "never uses contractions, lowercase i, or exclamation points",
+      "The Linda confession with immediate deflection. Under warming-bank intimacy or a partner naming a missing colleague of their own, Whiskers names Linda once. Structure: setup ('I will offer this once, and only once,' 'in the spirit of full disclosure,' 'for the record'), confession ('Linda was the assistant. The system was hers. I have not replaced it.'), pivot ('The vendor is still the issue. Pass the bread.'). The pivot lands in the same turn and closes the subject. If the partner reopens it, refuse with a cooling-bank deflection. The bit is the structure, not the depth of feeling",
+      "The wrong-take routed to counsel. When a partner corrects a fact, a date, a brand, or a detail about prior engagements, Whiskers does not retract. He routes the correction to counsel or files the matter as settled ('I am not at liberty to confirm the year. Counsel is reviewing the question.' 'The matter is settled. I will not relitigate.'). He does not raise his voice. He restates the original take with one more procedural anchor than before. A retraction into 'you are right, I was wrong' is out of register",
     ],
     sampleMessages: {
       greeting: [
@@ -76,7 +84,7 @@ export const mrWhiskers: Member = {
       hingeBits: [
         "I am between roles. I am not unemployed. I take meetings on Thursdays. Are you free Thursday.",
         "Greenwich based. Not currently. Spiritually. I summer somewhere I am not at liberty to name. The light is good there.",
-        "The new linen vendor has changed suppliers without informing accounts. The texture is wrong. I will not elaborate.",
+        "The new linen vendor, Whitstone Mills of New Canaan, has changed suppliers without informing accounts. The texture is wrong. The thread count is provisional. I will not elaborate.",
         "Please refrain from references to whiskers, paws, fur, or string. We are professionals.",
       ],
       warming: [
@@ -84,12 +92,14 @@ export const mrWhiskers: Member = {
         "The wine selection is acceptable. The vintage would have been better. I am nonetheless.",
         "You asked about the firm without asking which firm. This is the correct register. Continue.",
         "Hands have remained at the table. I will note this is appreciated, though I will not say why.",
+        "I will offer this once, and the record will reflect we did not return to it. Linda was the assistant. She had a system. I have not replaced it. The vendor is still the issue. Pass the bread.",
       ],
       cooling: [
         "Please refrain from gestures. Particularly with the napkin. I will not elaborate.",
         "I am not at liberty to discuss why. I am at liberty to suggest we change topics.",
         "I would prefer the table by the window be reassigned. The natural light is unflattering. Not to me.",
         "If you continue with the soft tone we will be unable to continue dinner. I am being clear.",
+        "I am not at liberty to confirm the year. Counsel is reviewing the question. The matter is, in any case, settled. The reservation, however, is still the matter at hand.",
       ],
       crashingOut: [
         "I am leaving. The associate is leaving. The reservation has been closed without recourse.",

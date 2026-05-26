@@ -1,8 +1,11 @@
 import {
   DocCallout,
+  DocCode,
   DocLink,
   DocPage,
   DocPatternGrid,
+  DocSubsection,
+  Em,
   P,
   Strong,
   type DocMeta,
@@ -15,18 +18,18 @@ export const meta: DocMeta = {
   group: "product",
   title: "Voice patterns",
   description:
-    "Seventeen comedic flavors a member can land on when natural speech allows for it. Read these as humor samples, not templates the character has to hit.",
+    "Two layers a fixture can cite: seventeen single-bubble comedic flavors, and nine cross-turn performance mechanics. Flavors paint one line; mechanics shape how the character carries a bit across turns.",
   order: 1,
 };
 
 export const lede = (
   <>
-    These are seventeen comedic flavors that members can land on, not seventeen scripts they have to
-    follow. A real reply to the partner and the live moment is the only thing the character has to
-    produce. If a pattern fits, it adds spice; if it would make the line feel performed, the
-    character drops it and just talks. Characters in IDC overlap on flavors but stay recognizable
-    because of how they react, what they protect, and what they refuse to say, not because they hit
-    a quota of fingerprint tics per turn.
+    Two layers. The <Strong>flavor gallery</Strong> is seventeen comedic shapes a single bubble can
+    land on. The <Strong>performance mechanics</Strong> section is nine cross-turn cadence moves
+    that shape how a character carries a bit across multiple turns. A fixture can cite both, one, or
+    neither. Either layer is a paintable color, not a quota the character has to hit. Characters in
+    IDC overlap on flavors and mechanics but stay recognizable because of how they react, what they
+    protect, and what they refuse to say, not because they hit a checklist per turn.
   </>
 );
 
@@ -356,16 +359,255 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "performance-mechanics",
+    title: "Performance mechanics",
+    body: (
+      <>
+        <P>
+          The flavor gallery above describes what a single bubble lands on. The mechanics in this
+          section describe how a character carries a bit across multiple turns. The two layers stack
+          independently: a fixture can use a flavor without committing to a mechanic, and a fixture
+          can author a mechanic without leaning on any single flavor.
+        </P>
+        <P>
+          Cite mechanics inside the fixture's <DocCode>comedyMechanics</DocCode> block. Do not put
+          them in <DocCode>voice.register</DocCode> or <DocCode>patternsUsed</DocCode>; register is
+          for the compact voice identity, and patterns are for the seventeen flavors above only.
+          Mechanics are best authored as behavior contracts, not name-drops. Write the mechanism
+          ("commit to a metaphor and ride it three turns"), not the source ("be like NL"), so the
+          model cannot flatten a name it does not have a stable read on.
+        </P>
+        <DocCallout variant="warn" title="Mechanics are not universal">
+          <P>
+            Every mechanic below names what engines it breaks. A clipped-discipline engine cannot
+            use commit-and-escalate without losing its central tic. A refusal engine cannot use a
+            metaphor negotiation without breaking the refusal. Pick mechanics that fit the engine
+            the fixture already authored. Stacking the same mechanics on every member produces
+            same-comic-three-costumes; the goal is the opposite.
+          </P>
+        </DocCallout>
+        <DocSubsection id="mechanic-commit-and-escalate" title="1. Commit and escalate">
+          <P>
+            Open a metaphor, world-build it past the natural exit, ride it three or four turns
+            before letting it die. The narrator does not flag the bit; the worldview is taken as
+            gospel. Fingerprint: escalating clauses, no exit, the listener has to wait it out.
+          </P>
+          <P>
+            <Em>
+              "the salad bar is doing serious work tonight. The croutons are graded. There is a
+              hierarchy. The chickpeas were promoted in March. The bacon bits report to the cheese
+              cubes. I do not know who they all report to. I am told the chain of command goes up."
+            </Em>
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> deposition-dad, hollow-CEO, and rambling-spiral engines.{" "}
+            <Strong>Breaks:</Strong> clipped-discipline engines (Ron Swanson register) and refusal
+            engines ("I will not elaborate"). Escalation kills the central tic.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="mechanic-surgical-recovery" title="2. Surgical recovery">
+          <P>
+            A sentence opens, takes a long aside, lands the original point dead-center in the same
+            breath. The aside is technically unnecessary; the recovery is precise. The joke is the
+            precision, not the aside. Fingerprint: parenthetical drift followed by a reflex landing
+            on the original verb or object.
+          </P>
+          <P>
+            <Em>
+              "I would say the bread is, and the way the server looked at the host when she said the
+              kitchen was closing was a different conversation entirely, twelve out of ten."
+            </Em>
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> any engine that allows tangent at all.{" "}
+            <Strong>Breaks:</Strong> engines whose discipline is the refusal to drift (clipped
+            military, "I do not negotiate the same point twice"). If grief content enters the aside,
+            the same sentence must land back on a trivial subject before the turn ends; the recovery
+            is non-negotiable.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="mechanic-hyper-specific-anchoring" title="3. Hyper-specific anchoring">
+          <P>
+            Every reference includes two or more concrete anchors: brand and model, place and year,
+            surname and detail. Generic categories ("the diner," "a while back," "someone I used to
+            work with") are out of register because they kill the conviction the engine runs on.
+            Fingerprint: named brands, named towns, named persons, named years, named quantities.
+          </P>
+          <P>
+            <Em>Generic:</Em> "I worked at a restaurant a long time ago."
+            <br />
+            <Em>Anchored:</Em> "I worked the Tuesday close at the Olive Garden on Hempstead Turnpike
+            for nine months in 2014. The manager was a man named Glen. We had one breadstick warmer
+            that did not heat."
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> almost every engine in the roster. Vague references kill any
+            voice that depends on conviction. <Strong>Breaks:</Strong> nothing, but the anchors must
+            be true to the fixture's reality frame; a centurion's anchors are cohort numbers and
+            outpost names, not Olive Garden.
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-hyperbolic-conviction"
+          title="4. Hyperbolic conviction on small stakes"
+        >
+          <P>
+            Stadium-grade analysis on trivial subjects, delivered as plain fact rather than
+            argument. The joke is the gulf between formality and triviality. Fingerprint:
+            scale-collapse from grand framing to a mundane noun, no hedging.
+          </P>
+          <P>
+            <Em>
+              "the garlic bread at this place is the most important garlic bread of the decade. I
+              would submit to you historians will go back and find it."
+            </Em>
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> almost every engine. Even clipped-discipline engines do a
+            version (the Roman officer ranking the kitchen's Watch against the Sixth's
+            quartermaster). <Strong>Breaks:</Strong> engines that prize understatement as a virtue.
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-confident-wrong-take"
+          title="5. Confident wrong-take, deadpan held"
+        >
+          <P>
+            A misidentification or false claim, delivered with conviction, held under correction
+            without breaking. The speaker doubles down rather than updating; the correction becomes
+            an opportunity for a longer bit, not a retreat. Fingerprint: the speaker re-frames the
+            correction as supporting their original take.
+          </P>
+          <P>
+            <Em>Partner:</Em> "that's a cello, not a viola."
+            <br />
+            <Em>Speaker:</Em> "I am not saying it is not a cello. I am saying it has viola energy.
+            The form is cello. The content is viola. The audience is responding to the content."
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> engines where confidence is the comedy: hollow-CEO,
+            deposition-dad, status-protective corporate, and any character who would rather be wrong
+            loudly than corrected quietly. <Strong>Breaks:</Strong> engines that prize accuracy or
+            that would visibly grow embarrassed (sincere-anxious, earnest-novice).
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-tender-crude-pivots"
+          title="6. Tender to crude pivots without flinching"
+        >
+          <P>
+            Vulnerable interiority cuts to bodily or transgressive content and back to genuine
+            warmth in the same breath. No audible gear-shift; the speaker treats both registers as
+            load-bearing. Fingerprint: a real-feeling confession adjacent to crude content with no
+            signaling between them.
+          </P>
+          <P>
+            <Strong>Off-register for most IDC members.</Strong> The mechanic is documented here so
+            authors can recognize when a fixture has accidentally drifted into it. Lands cleanly
+            only for engines that explicitly pair real vulnerability with transgressive content as
+            the authored bit. Most members in the roster will read as out-of-character if this
+            fires. Default position is to refuse this mechanic unless the fixture earns it
+            deliberately.
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-confession-with-deflection"
+          title="7. Self-aware confession with immediate deflection"
+        >
+          <P>
+            Flag the confession, deliver it, deflect the landing. The structure protects the speaker
+            from sitting in the feeling while still putting the fact on record. Fingerprint: a setup
+            phrase ("I am going to offer up some collateral here," "in the spirit of full
+            disclosure," "I want the record to reflect") followed by the confession followed by a
+            hard pivot to something trivial.
+          </P>
+          <P>
+            <Em>
+              "I will offer up some collateral here so we are all on the same level. I cried at a
+              parking-lot rooster last week. Anyway, the pancakes."
+            </Em>
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> engines that want the confession in evidence but will not
+            sit in vulnerability (deposition-dad, formal-stoic, status-protective corporate denial
+            when the confession is about a missing colleague named once and not again).{" "}
+            <Strong>Breaks:</Strong> engines whose authored move is to sit in the feeling (Noah's
+            clinical openness, Eleanor's sustained lyricism).
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-metaphor-negotiation"
+          title="8. Negotiating a metaphor in real time"
+        >
+          <P>
+            Commit to a figurative frame, then haggle its precision with the listener. The
+            negotiation itself becomes the bit; the listener is treated as a co-author of the
+            metaphor whether they agreed to be or not. Fingerprint: numeric or comparative haggling
+            over a metaphor that should not require precision.
+          </P>
+          <P>
+            <Em>
+              "her laugh is, I would say, somewhere between a labradoodle and a kazoo. The
+              labradoodle is the volume. The kazoo is the tone. I would put the kazoo at sixty
+              percent. The labradoodle is providing the energy."
+            </Em>
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> rambling-spiral, deposition-dad, and any engine that
+            improvises out loud. <Strong>Breaks:</Strong> clipped engines that would never offer a
+            metaphor in the first place, and engines whose authored move is to land a single sharp
+            line and stop.
+          </P>
+        </DocSubsection>
+        <DocSubsection
+          id="mechanic-intra-conversation-callback"
+          title="9. Intra-conversation callback"
+        >
+          <P>
+            A phrase introduced earlier in the same conversation returns as the kicker on a later
+            turn, without re-explanation. Distinct from the cross-date callback flavor (Pattern 16,
+            which opens mid-grievance on a prior match). This mechanic operates inside a single
+            sit-down. Fingerprint: a noun, phrase, or running metaphor from turn N reappears in turn
+            N+2 or later as the punctuation on an unrelated thread.
+          </P>
+          <P>
+            <Em>Turn 1:</Em> the speaker calls the salad bar "a hierarchy with promotions."
+            <br />
+            <Em>Turn 5</Em> (partner asks about politics): "I do not follow it closely. My attention
+            is on the salad bar. The chickpeas were promoted in March and I am tracking it."
+          </P>
+          <P>
+            <Strong>Lands for:</Strong> engines that can sustain a running thread across turns
+            without losing it. <Strong>Breaks:</Strong> nothing structurally, but the callback must
+            feel like the thread was always alive in the speaker's head, not retrieved for the joke.
+            A callback that reads as scripted is worse than no callback.
+          </P>
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "mechanic-commit-and-escalate", title: "1. Commit and escalate" },
+      { id: "mechanic-surgical-recovery", title: "2. Surgical recovery" },
+      { id: "mechanic-hyper-specific-anchoring", title: "3. Hyper-specific anchoring" },
+      { id: "mechanic-hyperbolic-conviction", title: "4. Hyperbolic conviction" },
+      { id: "mechanic-confident-wrong-take", title: "5. Confident wrong-take" },
+      { id: "mechanic-tender-crude-pivots", title: "6. Tender to crude pivots" },
+      { id: "mechanic-confession-with-deflection", title: "7. Confession with deflection" },
+      { id: "mechanic-metaphor-negotiation", title: "8. Metaphor negotiation" },
+      { id: "mechanic-intra-conversation-callback", title: "9. Intra-conversation callback" },
+    ],
+  },
+  {
     id: "how-to-use",
-    title: "How to use the gallery",
+    title: "How to use the catalog",
     body: (
       <DocCallout variant="info">
         <P>
-          When prompting the Character Performer, do not paste this catalog as a compliance
-          checklist and do not list every flavor a character can use. The performer already has the
-          compact register, comedy mechanics, tics, and a few sample lines from the member fixture.
-          That is enough flavor. The full library lives here as an authoring reference for the human
-          writing the fixture, not as prompt material the model has to satisfy. See{" "}
+          When prompting the Character Performer, do not paste either catalog as a compliance
+          checklist and do not list every flavor or mechanic a character can use. The performer
+          already has the compact register, comedy mechanics, tics, and a few sample lines from the
+          member fixture. That is enough. Both catalogs live here as authoring references for the
+          human writing the fixture, not as prompt material the model has to satisfy. See{" "}
           <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for what
           actually flows into runtime.
         </P>

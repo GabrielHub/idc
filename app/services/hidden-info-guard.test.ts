@@ -40,6 +40,15 @@ describe("hidden info guard", () => {
     ).toBeNull();
   });
 
+  it("allows prompt-visible sample message phrasing", () => {
+    expect(
+      detectHiddenInfoLeak(
+        "If you had told me at the four-thirty service call this morning that this couch had rules, I would have called you a fool.",
+        [MARCUS],
+      ),
+    ).toBeNull();
+  });
+
   it("detects hidden identity labels on case-file surfaces", () => {
     const leak = detectHiddenInfoLeak(`Origin filed as ${OPAL.origin}.`, [OPAL], {
       includeSingleLabels: true,

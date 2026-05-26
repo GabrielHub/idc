@@ -86,16 +86,17 @@ export function DeckDraftStep({
     needsFirstTutorialPick,
     onTutorialUpdate,
   );
+  const deckPickSatisfied = deckPickStep.done || !needsFirstTutorialPick;
   const deckExpandStep = useTutorialStep(
     save,
     "onboarding.deck.expand",
-    deckPickStep.done && deckSize > 0 && !canConfirm,
+    deckPickSatisfied && deckSize > 0 && !canConfirm,
     onTutorialUpdate,
   );
   const deckStartStep = useTutorialStep(
     save,
     "onboarding.deck.start",
-    deckPickStep.done && canConfirm,
+    deckPickSatisfied && canConfirm,
     onTutorialUpdate,
   );
 
