@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.9",
+    "date": "2026-05-27",
+    "headline": "Cupid tightens follow-ups and the shift desk.",
+    "summary": "Gameplay test alpha. Refines follow-up reservations and auto-closure, rewrites scenario beats, improves shift brief and HUD affordances, and expands voice tuning support.",
+    "sections": [
+      {
+        "title": "Case flow",
+        "items": [
+          "Follow-up candidates now collapse into clearer requests with reservation handling so repeat bookings stop competing for unavailable partners.",
+          "Shift availability can reserve follow-up partners and auto-close shifts when the desk has no useful dates left to book.",
+          "Date reports and relationship impact handling have stronger tests around follow-up outcomes, trajectory, and closure pressure."
+        ]
+      },
+      {
+        "title": "Date content and voice",
+        "items": [
+          "Scenario beats across the library were rewritten with clearer openings, interruptions, and stakes for runtime date prompts.",
+          "Brady Strait and Sera Vohn receive refreshed voice fixtures, with broader roster voice constraints and safer character Markdown cleanup.",
+          "The tuning rig can run an AI partner mode, expose richer help, and validate the new voice-review paths in tests."
+        ]
+      },
+      {
+        "title": "Lobby and docs",
+        "items": [
+          "The shift brief dock now groups active, filed, closed, and blocked work more clearly while preserving Date Book launch gating.",
+          "Lobby HUD tooltips, intent rail behavior, star hover details, and planning tutorial copy get focused polish.",
+          "Voice-source reference docs and member and scenario workflow guidance now give fixture authors more concrete examples."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.8",
     "date": "2026-05-25",
     "headline": "Cupid sharpens memory and model handling.",
