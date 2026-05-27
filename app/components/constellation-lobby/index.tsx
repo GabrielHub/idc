@@ -111,7 +111,7 @@ export function ConstellationLobby({
     );
   }, [focusedMembers, readyClosurePairs]);
   const readyClosurePairCount = focusedReadyClosurePairs.length;
-  const { fileShiftReady, fileShiftBlockedReason, noDatesThisShift, shiftBriefRows } = useMemo(
+  const { fileShiftReady, fileShiftBlockedReason, noDatesThisShift, shiftBrief } = useMemo(
     () =>
       deriveShiftFilingState({
         save,
@@ -327,6 +327,7 @@ export function ConstellationLobby({
     expandedDoorId,
   });
   const dateBookEditingIsUnlocked = dateBookEditingUnlocked(save);
+  const showDateBook = dateBookEditingIsUnlocked || deckRepairBlocked;
   const dateBookLockedUntilFirstReport = !dateBookEditingIsUnlocked && !deckRepairBlocked;
   const dateBookDisabledReason = bookingLocked
     ? "Booking active. Edits unlock after the date resolves."
@@ -850,8 +851,9 @@ export function ConstellationLobby({
           selectedScenarioId={selectedScenarioId}
           isActionPending={isActionPending}
           aiReady={aiReady}
-          shiftBriefRows={shiftBriefRows}
+          shiftBrief={shiftBrief}
           scenarioMode={scenarioMode}
+          showDateBook={showDateBook}
           bookingLocked={bookingLocked}
           dateBookDisabledReason={dateBookDisabledReason}
           deckRepairBlocked={deckRepairBlocked}

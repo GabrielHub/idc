@@ -173,7 +173,12 @@ export function StarField({
               state,
               star,
               onClearFocus: starClickHandlers?.onClearFocus,
-              onHoverChange: onHudOverlayHoveredChange,
+              onHoverChange: (hovered) => {
+                onHudOverlayHoveredChange(hovered);
+                onHoveredIdChange((current) =>
+                  hovered ? star.member.id : current === star.member.id ? null : current,
+                );
+              },
             })}
             onHoverEnter={() => onHoveredIdChange(star.member.id)}
             onHoverLeave={() => onHoveredIdChange(null)}

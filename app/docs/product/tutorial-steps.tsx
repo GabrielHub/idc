@@ -330,7 +330,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           id: "lazy.date-book",
           surface: "Constellation lobby · ContextualPillRail Date book pill",
           trigger:
-            "Lobby is on auto mode after the first date report is filed (deck editing is unlocked). Yields to lazy.contextual-rail so the broader pill overview lands first; deck/library mode unmounts the HUD so the auto gate keeps the coach mark anchored to a visible pill.",
+            "Lobby is on auto mode after the first date report is filed (deck editing is unlocked), with no active booking and no repair-blocked deck. Yields to lazy.contextual-rail so the broader pill overview lands first; deck/library mode unmounts the HUD so the auto gate keeps the coach mark anchored to a visible pill.",
           completesOn: "The Got it button.",
           target: "pulse-ring",
           placement: "left",

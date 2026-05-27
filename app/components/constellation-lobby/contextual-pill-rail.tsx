@@ -12,6 +12,7 @@ import type { CathedralMode } from "./cathedral";
 
 export function ContextualPillRail({
   scenarioMode,
+  showDateBook,
   bookingLocked,
   dateBookDisabledReason,
   deckRepairBlocked,
@@ -38,6 +39,7 @@ export function ContextualPillRail({
   dateBookPillRef,
 }: {
   scenarioMode: CathedralMode;
+  showDateBook: boolean;
   bookingLocked: boolean;
   dateBookDisabledReason?: string;
   deckRepairBlocked: boolean;
@@ -106,7 +108,7 @@ export function ContextualPillRail({
     <>
       <div ref={containerRef} className="pointer-events-none absolute right-6 top-5 z-30">
         <div className="pointer-events-auto flex flex-wrap items-start justify-end gap-2">
-          {inArchive ? null : (
+          {inArchive || !showDateBook ? null : (
             <button
               ref={dateBookPillRef}
               type="button"
@@ -175,7 +177,7 @@ export function ContextualPillRail({
               <FilterGlyph />
             </RoundIconButton>
             {canReselect ? (
-              <RoundIconButton label="Edit case picks" onClick={onToggleReselect}>
+              <RoundIconButton label="Swap cases" onClick={onToggleReselect}>
                 <EditGlyph />
               </RoundIconButton>
             ) : null}
@@ -396,6 +398,7 @@ function RosterSubviewToggle({
       <button
         type="button"
         onClick={() => onChange("eligibles")}
+        title="Show tonight's eligible partners"
         className={`cursor-pointer rounded-full px-3 py-0.5 font-mono text-micro uppercase tracking-[0.18em] transition ${
           subview === "eligibles"
             ? "aura-liquid-glass-rose text-aura-paper"
@@ -408,6 +411,7 @@ function RosterSubviewToggle({
       <button
         type="button"
         onClick={() => onChange("off_tonight")}
+        title="Show members on rest tonight"
         className={`cursor-pointer rounded-full px-3 py-0.5 font-mono text-micro uppercase tracking-[0.18em] transition ${
           subview === "off_tonight"
             ? "aura-liquid-glass-rose text-aura-paper"

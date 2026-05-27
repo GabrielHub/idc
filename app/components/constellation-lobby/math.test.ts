@@ -22,6 +22,7 @@ import {
   ringColorForRole,
   roleForStar,
   rosterClusterPosition,
+  shouldUsePartnerRingLayout,
   sizeForStar3D,
   starWorldPosition,
   withAlpha,
@@ -612,6 +613,15 @@ describe("rosterClusterPosition", () => {
     const last = rosterClusterPosition(11, 12);
     const clamped = rosterClusterPosition(99, 12);
     expect(clamped).toEqual(last);
+  });
+});
+
+describe("shouldUsePartnerRingLayout", () => {
+  it("keeps the partner orbit only for small cohorts", () => {
+    expect(shouldUsePartnerRingLayout(1)).toBe(false);
+    expect(shouldUsePartnerRingLayout(2)).toBe(true);
+    expect(shouldUsePartnerRingLayout(6)).toBe(true);
+    expect(shouldUsePartnerRingLayout(7)).toBe(false);
   });
 });
 

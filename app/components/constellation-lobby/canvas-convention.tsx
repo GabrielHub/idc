@@ -43,6 +43,8 @@ import {
   resolveClusterPosition,
   resolveStarRenderTarget,
   roleForStar,
+  rosterClusterPosition,
+  shouldUsePartnerRingLayout,
   starWorldPosition,
 } from "./math";
 import {
@@ -216,10 +218,9 @@ export function Scene({
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
   // Set true while the pointer is over an in-scene HTML overlay (today, the
   // inline focus-pill that anchors to the focus star). The pill captures
-  // pointer events, so the canvas's `state.pointer` freezes — leaving camera
-  // parallax to lerp the world-anchored pill across the screen and produce a
-  // shake feedback loop. Suppressing parallax while the overlay is hovered
-  // breaks the loop. Idle sway is left alone so the field still feels alive.
+  // pointer events, so the canvas's `state.pointer` freezes. Keeping this as
+  // a belt-and-suspenders freeze prevents the camera from resuming mid-hover
+  // if another overlay path starts using parallax again.
   const [hudOverlayHovered, setHudOverlayHovered] = useState(false);
   useEffect(() => {
     // Reset if the pill unmounts under the cursor — pointer-leave won't fire
@@ -315,6 +316,8 @@ export function Scene({
   // hover connector to an eligible partner draws from an off-screen anchor
   // (the focus star's random natural field point).
   const focusPinned = state === "focus_selected" && isRosterFlythroughLayer(currentLayer);
+  const focusSelectionOverlayMounted =
+    state === "focus_selected" && starClickHandlers?.onClearFocus !== undefined;
   const focusPos = focusStar
     ? focusPinned
       ? FOCUS_MARKER_POSITION
@@ -419,7 +422,7 @@ export function Scene({
     <>
       <CameraRig
         target={cameraTarget}
-        parallax={showParallax && activeStarId === null}
+        parallax={showParallax && activeStarId === null && !focusSelectionOverlayMounted}
         freezeParallax={hudOverlayHovered}
         reducedMotion={reducedMotion}
       />
@@ -500,8 +503,14 @@ export function Scene({
               y: focusPos.y,
               z: flythroughStarZ(0),
             };
-            const ring = partnerRingPosition(index, rosterLeadOrder.length);
-            const partnerEnd: Vec3 = { x: ring.x, y: ring.y, z: flythroughStarZ(1) };
+            const rosterPosition = shouldUsePartnerRingLayout(rosterLeadOrder.length)
+              ? partnerRingPosition(index, rosterLeadOrder.length)
+              : rosterClusterPosition(index, rosterLeadOrder.length);
+            const partnerEnd: Vec3 = {
+              x: rosterPosition.x,
+              y: rosterPosition.y,
+              z: flythroughStarZ(1),
+            };
             const health = pairMoodByPartnerId?.get(hoveredId) ?? 50;
             return (
               <PartnerSpoke from={focusSpokeOrigin} to={partnerEnd} health={health} highlighted />

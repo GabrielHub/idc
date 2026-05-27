@@ -9,7 +9,7 @@ import type { LayerNavigationMode } from "./layer-access";
 import { LayerIndicator } from "./layer-indicator";
 import { BottomDock, CalloutCluster, SideRail, type Callout } from "./lobby-hud";
 import type { PlanningTutorialRefs } from "./planning-tutorial";
-import { ShiftBriefDock, type ShiftBriefRowData } from "./shift-brief-dock";
+import { ShiftBriefDock, type ShiftBriefData } from "./shift-brief-dock";
 import type { CathedralMode } from "./cathedral";
 import type { FlythroughLayer, LobbyState, RosterSubview, StarMark, ViewMode } from "./types";
 
@@ -29,8 +29,9 @@ export function LobbyHudLayer({
   selectedScenarioId,
   isActionPending,
   aiReady,
-  shiftBriefRows,
+  shiftBrief,
   scenarioMode,
+  showDateBook,
   bookingLocked,
   dateBookDisabledReason,
   deckRepairBlocked,
@@ -85,8 +86,9 @@ export function LobbyHudLayer({
   selectedScenarioId: string | null;
   isActionPending: boolean;
   aiReady: boolean;
-  shiftBriefRows: readonly ShiftBriefRowData[];
+  shiftBrief: ShiftBriefData;
   scenarioMode: CathedralMode;
+  showDateBook: boolean;
   bookingLocked: boolean;
   dateBookDisabledReason?: string;
   deckRepairBlocked: boolean;
@@ -157,10 +159,11 @@ export function LobbyHudLayer({
         onBeginDate={onBeginDate}
         onCancelPair={onCancelPair}
         beginButtonRef={refs.beginButtonRef}
-        briefSlot={<ShiftBriefDock rows={shiftBriefRows} />}
+        briefSlot={<ShiftBriefDock data={shiftBrief} />}
       />
       <ContextualPillRail
         scenarioMode={scenarioMode}
+        showDateBook={showDateBook}
         bookingLocked={bookingLocked}
         dateBookDisabledReason={dateBookDisabledReason}
         deckRepairBlocked={deckRepairBlocked}

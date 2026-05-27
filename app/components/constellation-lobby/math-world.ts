@@ -71,14 +71,16 @@ export function resolveStarRenderTarget(input: {
 /**
  * Per-layer world Z position the camera dollies toward in the flythrough.
  * Layer 0 sits where the default idle camera does (z=17); layers 1 and 2
- * punch forward so the two roster cohorts sit under the lens. Layer 3
+ * punch forward so the two roster cohorts sit under the lens, but stay far
+ * enough back that the fitted roster cluster keeps portrait halos in frame.
+ * Layer 3
  * (scenarios) lands at z=4 so the scenario card meshes sitting at z ≈ -1
  * read as the foreground "wall" the player just zoomed up against.
  */
 export const FLYTHROUGH_CAMERA_Z: Record<FlythroughLayer, number> = {
   0: 17,
-  1: 11,
-  2: 10.6,
+  1: 14,
+  2: 13.6,
   3: 4,
   4: 22,
 };
@@ -143,10 +145,10 @@ export const FOCUS_MARKER_SCALE = 0.7;
  * layer, or `null` to fall back to the star's natural field position.
  *
  * When state === "focus_selected" AND the player is in the "eligibles"
- * subview, eligible partners arrange in a ring around the centered focus
- * marker (`partnerRingPosition`) instead of the rectangular roster grid —
- * the focus is the gravity well of its own constellation, partners orbit.
- * Off-tonight subview keeps the grid (no focus context).
+ * subview with a small partner set, eligible partners arrange in a ring
+ * around the centered focus marker (`partnerRingPosition`). Larger partner
+ * sets keep the rectangular roster grid so the canvas frames every available
+ * member instead of clipping the top and bottom of the orbit.
  *
  * Archive mode bypasses clustering entirely — callers pass `inArchive` so
  * the helper can short-circuit instead of every callsite re-checking.
@@ -189,7 +191,7 @@ export function resolveClusterPosition(input: {
     const idx = rosterLeadOrder.indexOf(memberId);
     if (idx >= 0) {
       const useRing = state === "focus_selected" && rosterSubview === "eligibles";
-      return useRing
+      return useRing && shouldUsePartnerRingLayout(rosterLeadOrder.length)
         ? partnerRingPosition(idx, rosterLeadOrder.length)
         : rosterClusterPosition(idx, rosterLeadOrder.length);
     }
@@ -213,6 +215,11 @@ export function resolveClusterPosition(input: {
 const PARTNER_RING_BASE_RADIUS = 3.0;
 const PARTNER_RING_PER_PARTNER = 0.12;
 const PARTNER_RING_MAX_RADIUS = 4.0;
+const PARTNER_RING_MAX_MEMBERS = 6;
+
+export function shouldUsePartnerRingLayout(total: number): boolean {
+  return total > 1 && total <= PARTNER_RING_MAX_MEMBERS;
+}
 
 export function partnerRingPosition(index: number, total: number): Vec3 {
   if (total <= 0) return { x: 0, y: 0, z: 0 };

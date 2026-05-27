@@ -62,6 +62,13 @@ type StepRender = {
   anchor: AnchorKey;
   placement: "right" | "left" | "top" | "bottom";
   fixedPosition?: CoachMarkFixedPosition;
+  /**
+   * Distance in px between the coach mark and its anchor's edge. Defaults to
+   * the TutorialCoachMark default (24). Bump this when a step's anchor sits
+   * in a busy band (e.g. the intent rail with pair cards stacked above) so
+   * the card clears its sibling HUD widgets.
+   */
+  offset?: number;
   pulseRing?: { padding: number; radius: number; tone?: "amber" };
   spotlight?: { padding: number; radius: number };
   hasPrimary?: boolean;
@@ -167,6 +174,13 @@ const PLANNING_STEPS = [
     render: {
       anchor: "intentRailRef",
       placement: "top",
+      // The intent rail lives in the SideRail flex column with the focus +
+      // partner pair cards stacked directly above it. The default 24px offset
+      // lands the coach mark inside that pair-card band. Bumping to 156 clears
+      // a 100px pair card + 12px row gap + breathing room, and the pulse ring
+      // keeps the visual link to the rail intact while the card floats higher.
+      offset: 156,
+      pulseRing: { padding: 8, radius: 999 },
       hasPrimary: true,
     },
   },
@@ -256,7 +270,8 @@ const PLANNING_STEPS = [
     // after deck editing unlocks. The coach mark anchors the Date book pill,
     // which only exists on auto mode. Yields to lazy.contextual-rail so the
     // broader pill overview lands first.
-    shouldActivate: (c) => c.inAutoMode && c.dateBookEditingUnlocked,
+    shouldActivate: (c) =>
+      c.inAutoMode && c.dateBookEditingUnlocked && c.activeBooking === null && !c.deckRepairBlocked,
     render: {
       anchor: "dateBookPillRef",
       placement: "left",
@@ -555,6 +570,7 @@ function StepOverlay({
         target={targetRef}
         placement={render.placement}
         fixedPosition={render.fixedPosition}
+        offset={render.offset}
         title={copy.title}
         body={copy.body}
         stepIndex={copy.stepIndex}

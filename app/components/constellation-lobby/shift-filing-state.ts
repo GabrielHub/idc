@@ -1,13 +1,13 @@
 import type { GameSave, ShiftState } from "../../domain/game";
 import { pendingFollowUpSessionsForShift, sessionBelongsToShift } from "../../services/date-engine";
-import { buildShiftBriefRows } from "./build-shift-brief-rows";
-import type { ShiftBriefRowData } from "./shift-brief-dock";
+import { buildShiftBriefData } from "./build-shift-brief-rows";
+import type { ShiftBriefData } from "./shift-brief-dock";
 
 export type ShiftFilingState = {
   fileShiftReady: boolean;
   fileShiftBlockedReason: string | undefined;
   noDatesThisShift: boolean;
-  shiftBriefRows: readonly ShiftBriefRowData[];
+  shiftBrief: ShiftBriefData;
 };
 
 /**
@@ -48,7 +48,7 @@ export function deriveShiftFilingState({
 
   const noDatesThisShift = shiftSessions.length === 0;
 
-  const shiftBriefRows = buildShiftBriefRows({
+  const shiftBrief = buildShiftBriefData({
     save,
     shift,
     readyClosurePairCount,
@@ -60,6 +60,6 @@ export function deriveShiftFilingState({
     fileShiftReady,
     fileShiftBlockedReason,
     noDatesThisShift,
-    shiftBriefRows,
+    shiftBrief,
   };
 }

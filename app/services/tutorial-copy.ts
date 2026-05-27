@@ -64,8 +64,8 @@ export const TUTORIAL_COPY = {
     primaryLabel: "Got it",
   },
   "lazy.date-book": {
-    title: "Three modes, one pill",
-    body: "Date book cycles three modes. Auto shows tonight's drawn hand after commit. Deck edits what Cupid draws from (stay under the budget cap). Library browses the full shelf to add new rooms.",
+    title: "Date Book is unlocked",
+    body: "Now that Cupid has one filed report, this pill opens the Date Book. Auto shows tonight's draw after commit. Deck edits what Cupid draws from, and Library browses the shelf to add rooms while staying under budget.",
     primaryLabel: "Got it",
   },
   "lazy.cut-short": {

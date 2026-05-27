@@ -98,6 +98,59 @@ describe("LobbyHudLayer Records pill gating", () => {
   });
 });
 
+describe("LobbyHudLayer Date Book pill gating", () => {
+  it("hides the Date Book pill before deck editing unlocks", () => {
+    const html = renderHud({
+      aiReady: true,
+      lobbyState: "partner_selected",
+      viewMode: "tonight",
+      showDateBook: false,
+      dateBookDisabledReason: "Date Book edits unlock after the first date report.",
+    });
+
+    expect(html).not.toContain("Date book");
+  });
+
+  it("shows the Date Book pill after deck editing unlocks", () => {
+    const html = renderHud({
+      aiReady: true,
+      lobbyState: "partner_selected",
+      viewMode: "tonight",
+      showDateBook: true,
+    });
+
+    expect(html).toContain("Date book");
+  });
+
+  it("keeps the visible Date Book pill disabled while a booking is active", () => {
+    const html = renderHud({
+      aiReady: true,
+      lobbyState: "scenario_chosen",
+      selectedScenarioId: "orbital-tea-room",
+      viewMode: "tonight",
+      showDateBook: true,
+      bookingLocked: true,
+    });
+    const dateBookButton = findButtonByLabel(html, "Date book");
+
+    expect(hasDisabledAttribute(dateBookButton)).toBe(true);
+  });
+});
+
+describe("LobbyHudLayer focus swap affordance", () => {
+  it("surfaces the reselect action as visible swap copy on roster layers", () => {
+    const html = renderHud({
+      aiReady: true,
+      lobbyState: "focus_selected",
+      viewMode: "tonight",
+      canReselect: true,
+    });
+
+    expect(html).toContain("Swap cases");
+    expect(findButtonByLabel(html, "Swap cases")).toBeDefined();
+  });
+});
+
 function renderHud({
   aiReady,
   isActionPending = false,
@@ -106,6 +159,10 @@ function renderHud({
   hasFiledShift = false,
   archiveEdgeCount = 0,
   viewMode = "archive",
+  showDateBook = true,
+  bookingLocked = false,
+  dateBookDisabledReason,
+  canReselect = false,
 }: {
   aiReady: boolean;
   isActionPending?: boolean;
@@ -114,6 +171,10 @@ function renderHud({
   hasFiledShift?: boolean;
   archiveEdgeCount?: number;
   viewMode?: "archive" | "tonight";
+  showDateBook?: boolean;
+  bookingLocked?: boolean;
+  dateBookDisabledReason?: string;
+  canReselect?: boolean;
 }): string {
   const currentLayer: FlythroughLayer = 1;
 
@@ -142,13 +203,23 @@ function renderHud({
       selectedScenarioId={selectedScenarioId}
       isActionPending={isActionPending}
       aiReady={aiReady}
-      shiftBriefRows={[]}
+      shiftBrief={{
+        leadAsk: { kind: "empty" },
+        goals: { summary: "None assigned", summaryStatus: "met", items: [] },
+        gates: {
+          closure: { value: "None ready", status: "met" },
+          followUp: { value: "Clear", status: "met" },
+          fileShift: { value: "Ready", status: "met" },
+        },
+      }}
       scenarioMode="auto"
-      bookingLocked={false}
+      showDateBook={showDateBook}
+      bookingLocked={bookingLocked}
+      dateBookDisabledReason={dateBookDisabledReason}
       deckRepairBlocked={false}
       rosterSubview="eligibles"
       filterState={DEFAULT_MEMBER_ROSTER_FILTER_STATE}
-      canReselect={false}
+      canReselect={canReselect}
       archiveEdgeCount={archiveEdgeCount}
       archiveSelectionActive={false}
       hasFiledShift={hasFiledShift}
@@ -169,19 +240,20 @@ function renderHud({
 }
 
 /**
- * Pull the first `<button …>…</button>` tag whose inner content (visible
- * text + any nested element text) contains `label`. Tolerates icon
- * wrappers, attribute reordering, and whitespace differences — when a
- * designer adds a span around the label, the test should still find it
- * instead of breaking with a brittle regex anchor.
+ * Pull the first `<button …>…</button>` tag whose inner content matches
+ * `label`, falling back to the button's `aria-label` for icon-only buttons
+ * (e.g. the roster Swap cases pill, which carries its label as an aria
+ * attribute rather than visible text).
  */
 function findButtonByLabel(html: string, label: string): string {
   const buttonRegex = /<button\b[^>]*>([\s\S]*?)<\/button>/g;
+  const target = normalize(label);
   for (const match of html.matchAll(buttonRegex)) {
+    const tag = match[0];
     const inner = stripTags(match[1] ?? "");
-    if (normalize(inner) === normalize(label)) {
-      return match[0];
-    }
+    if (normalize(inner) === target) return tag;
+    const ariaLabel = /\saria-label="([^"]*)"/.exec(tag)?.[1];
+    if (ariaLabel !== undefined && normalize(ariaLabel) === target) return tag;
   }
   throw new Error(`Expected to find button "${label}".`);
 }

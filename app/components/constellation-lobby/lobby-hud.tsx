@@ -199,9 +199,10 @@ export function BottomDock({
   beginDisabledReason?: string;
   beginButtonRef?: Ref<HTMLButtonElement>;
   /**
-   * Slot for the shift-brief pill. Rendered to the left of the Cancel / Begin
-   * CTAs in the same flex row so the two HUD widgets share the bottom-right
-   * corner instead of fighting for the same pixel.
+   * Slot for the shift-brief pill. Sits inline with the Cancel / Begin CTAs in
+   * the bottom-right cluster, except when both Cancel and Commit render
+   * (partner_selected) — there the brief stacks above the button row so the
+   * wide CTAs aren't crowded and the brief fills the empty vertical space.
    */
   briefSlot?: ReactNode;
 }) {
@@ -223,38 +224,53 @@ export function BottomDock({
     return null;
   }
 
+  const stackBriefAbove = showCancelPair && showCommit;
+
+  const ctaRow = (
+    <>
+      {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
+      {lockedPair ? <ShardLabel label="Pair locked" /> : null}
+      {showCommitReason ? <ShardLabel label={commitDisabledReason} /> : null}
+      {showCommit ? (
+        <button
+          type="button"
+          disabled={commitBlocked}
+          title={commitDisabledReason}
+          onClick={onCommitPair}
+          className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Commit pair
+        </button>
+      ) : null}
+      {showBeginReason ? <ShardLabel label={beginDisabledReason} /> : null}
+      {showBegin ? (
+        <button
+          ref={beginButtonRef}
+          type="button"
+          disabled={beginBlocked}
+          title={beginDisabledReason}
+          onClick={onBeginDate}
+          className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
+        >
+          Begin date
+        </button>
+      ) : null}
+    </>
+  );
+
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-0 z-30 flex items-end justify-end gap-4 px-6 pb-6">
-      <div className="pointer-events-auto flex items-end gap-3">
-        {briefSlot}
-        {showCancelPair ? <ShardButton label="Cancel pair" onClick={onCancelPair} /> : null}
-        {lockedPair ? <ShardLabel label="Pair locked" /> : null}
-        {showCommitReason ? <ShardLabel label={commitDisabledReason} /> : null}
-        {showCommit ? (
-          <button
-            type="button"
-            disabled={commitBlocked}
-            title={commitDisabledReason}
-            onClick={onCommitPair}
-            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            Commit pair
-          </button>
-        ) : null}
-        {showBeginReason ? <ShardLabel label={beginDisabledReason} /> : null}
-        {showBegin ? (
-          <button
-            ref={beginButtonRef}
-            type="button"
-            disabled={beginBlocked}
-            title={beginDisabledReason}
-            onClick={onBeginDate}
-            className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            Begin date
-          </button>
-        ) : null}
-      </div>
+      {stackBriefAbove ? (
+        <div className="pointer-events-auto flex flex-col items-end gap-3">
+          {briefSlot}
+          <div className="flex items-end gap-3">{ctaRow}</div>
+        </div>
+      ) : (
+        <div className="pointer-events-auto flex items-end gap-3">
+          {briefSlot}
+          {ctaRow}
+        </div>
+      )}
     </div>
   );
 }
@@ -272,7 +288,7 @@ function ShardButton({ label, onClick }: { label: string; onClick?: () => void }
     <button
       type="button"
       onClick={onClick}
-      className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-5 py-2.5 font-display text-label text-aura-paper"
+      className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-7 py-3 font-display text-display-sm text-aura-paper"
     >
       {label}
     </button>
