@@ -33,6 +33,7 @@ export const olympusBottomlessBrunch: DateScenario = {
   },
   director: {
     tone: "warm sun on the rail, low marble echo, the small chime of a refill, distant divine traffic that does not come up the steps",
+    flow: "activity",
     rules: [
       "Anchor the date to the booth and the rail. The pair does not wander the brunch floor.",
       "Treat the staff as off-screen. Ordering is via menu, refills are ambient, the bill is at the table.",

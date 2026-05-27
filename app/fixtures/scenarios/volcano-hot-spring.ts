@@ -33,6 +33,7 @@ export const volcanoHotSpring: DateScenario = {
   },
   director: {
     tone: "deep mineral heat, the soft pop of stone behind the vent, the steam smell, no other visitors",
+    flow: "conversation",
     rules: [
       "Anchor the date to the pool and the deck. The pair does not leave the spring house.",
       "Treat the lava as awe, not threat. The vent is protected. The pool is safe.",

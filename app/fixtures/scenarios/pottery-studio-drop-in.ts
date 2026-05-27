@@ -34,6 +34,7 @@ export const potteryStudioDropIn: DateScenario = {
   },
   director: {
     tone: "wet clay, a slow-running tap, a kiln humming behind a curtain",
+    flow: "activity",
     rules: [
       "Anchor the date to the shared workbench. The pair does not relocate to the wheel or the photo wall.",
       "Treat the clay as real clay. It collapses if it is overworked.",

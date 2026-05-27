@@ -1,7 +1,10 @@
 import { motion } from "motion/react";
 
 import type { Member } from "../domain/game";
+import { isMemberActive } from "../services/date-engine";
+import { riskZoneForMember } from "../services/member-feedback";
 import { buildVisibleMemberProfile } from "../services/player-knowledge";
+import { AuraTooltip } from "./aura-tooltip";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
 import {
   caseFileNumber,
@@ -262,9 +265,12 @@ function InfoOverlay({
                 <h3 className="truncate font-display text-base font-semibold leading-tight tracking-tight">
                   {member.firstName}
                 </h3>
-                <p className="mt-0.5 font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
-                  {STATE_PILL_LABEL[state]}
-                </p>
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                  <p className="font-mono text-micro uppercase tracking-[0.2em] text-aura-faint">
+                    {STATE_PILL_LABEL[state]}
+                  </p>
+                  <RiskZoneBadge member={member} />
+                </div>
               </div>
               <HeightChip heightInInches={member.characterHeightInInches} />
             </div>
@@ -285,6 +291,26 @@ function InfoOverlay({
         ) : null}
       </div>
     </div>
+  );
+}
+
+function RiskZoneBadge({ member }: { member: Member }) {
+  if (!isMemberActive(member)) return null;
+  const risk = riskZoneForMember(member);
+  if (risk.zone === "steady") return null;
+  const surface =
+    risk.zone === "at-risk"
+      ? "bg-rose-100 text-rose-700 ring-rose-300"
+      : "bg-amber-100 text-amber-700 ring-amber-300";
+  return (
+    <AuraTooltip placement="top" label={risk.rationale}>
+      <span
+        className={`pointer-events-auto inline-flex cursor-help items-center gap-1 rounded-pill px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] ring-1 ${surface}`}
+      >
+        <span aria-hidden className="size-1 rounded-full bg-current" />
+        {risk.label}
+      </span>
+    </AuraTooltip>
   );
 }
 

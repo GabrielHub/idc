@@ -1,7 +1,12 @@
 import { useMemo } from "react";
 
-import type { GameSave, ShiftState } from "../../domain/game";
-import { pendingFollowUpSessionsForShift } from "../../services/date-engine";
+import {
+  MEMBER_RETENTION_WARNING_THRESHOLD,
+  type GameSave,
+  type ShiftState,
+} from "../../domain/game";
+import { isMemberActive, pendingFollowUpSessionsForShift } from "../../services/date-engine";
+import { riskZoneForMember } from "../../services/member-feedback";
 import type { Callout } from "./lobby-hud";
 
 export function useLobbyCallouts({
@@ -48,6 +53,26 @@ export function useLobbyCallouts({
             : `${readyClosurePairCount} pairs are ready to close`,
         body: "Generate and file the closure summary before the next shift.",
         action: { label: "File closure", onClick: onOpenClosures },
+      });
+    }
+    const atRiskMembers = save.members.filter(
+      (member) => isMemberActive(member) && riskZoneForMember(member).zone === "at-risk",
+    );
+    if (atRiskMembers.length > 0) {
+      const names = atRiskMembers
+        .slice(0, 3)
+        .map((member) => member.firstName)
+        .join(", ");
+      const extra = atRiskMembers.length > 3 ? ` and ${atRiskMembers.length - 3} more` : "";
+      items.push({
+        id: "cases-at-risk",
+        tone: "rose",
+        eyebrow: "cases at risk",
+        title:
+          atRiskMembers.length === 1
+            ? `${atRiskMembers[0].firstName} may quit the app`
+            : `${atRiskMembers.length} cases may quit the app`,
+        body: `Confidence below ${MEMBER_RETENTION_WARNING_THRESHOLD} for ${names}${extra}. Cover their lead ask and avoid focus swaps to recover.`,
       });
     }
     if (onOpenDateSession !== undefined) {

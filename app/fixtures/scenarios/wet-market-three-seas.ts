@@ -33,6 +33,7 @@ export const wetMarketThreeSeas: DateScenario = {
   },
   director: {
     tone: "wet concrete, the low clatter of ice, the rolling chiller hum, a salt smell that does not match the hall, the steady tap of a cleaver one stall over",
+    flow: "activity",
     rules: [
       "Anchor the date to aisle six. The pair does not leave the aisle.",
       "Treat the catch as real catch. The fish do not become a metaphor.",

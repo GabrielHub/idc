@@ -34,6 +34,7 @@ export const openHouseSunday: DateScenario = {
   },
   director: {
     tone: "vanilla candle drifting from inside, soft sound of someone running a faucet upstairs, soft outdoor air",
+    flow: "activity",
     rules: [
       "Anchor the date to the back deck. The pair does not return to the kitchen, the bedrooms, or the front lawn.",
       "Treat the house as a real house. Do not let it become a portal, a haunting, or a trap.",

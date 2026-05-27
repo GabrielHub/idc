@@ -34,6 +34,7 @@ export const chainRestaurantTuesday: DateScenario = {
   },
   director: {
     tone: "ordinary, faintly humming, lit at 200 lumens",
+    flow: "conversation",
     rules: [
       "Treat the venue as honestly mundane. Do not let it betray itself.",
       "Comedy comes from how a non-mundane member behaves in a mundane booth, not from the booth misbehaving.",

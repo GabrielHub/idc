@@ -30,10 +30,11 @@ export const dinerElevenPm: DateScenario = {
     whatBothCharactersKnow:
       "Pancakes are at the breakfast section of the menu and are available now. Coffee is refilled without asking. Tipping is expected.",
     openingSituation:
-      "Both members slide into a booth with cracks in the vinyl. Two laminated menus and a small jukebox tab sit on the table.",
+      "Both members are seated across from each other in the late booth. Two laminated menus sit on the table.",
   },
   director: {
     tone: "warm, slightly worn, lit by hanging pendant fixtures",
+    flow: "conversation",
     rules: [
       "Honor late night honesty without forcing confession.",
       "The waitress is hands and a coffee carafe, not a comic device.",

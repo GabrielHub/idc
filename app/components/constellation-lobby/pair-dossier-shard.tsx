@@ -27,7 +27,9 @@ import type {
   PlayerKnowledgeRecord,
 } from "../../domain/game";
 import { starterScenarios } from "../../fixtures";
+import { closureProgressForPair, type ClosureProgress } from "../../services/member-feedback";
 import { scrubPlayerSafeCopy } from "../../services/player-safe-copy";
+import { AuraTooltip } from "../aura-tooltip";
 import { joinPairFirstNames } from "../notes-format";
 
 export type PairDossierShardProps = {
@@ -47,8 +49,8 @@ type DossierShardData = {
   publicPairNotes: MemoryRecord[];
   pairReads: PlayerKnowledgeRecord[];
   closureReady: boolean;
+  closureProgress: ClosureProgress;
   health: number;
-  datesCompleted: number;
   lastScenarioTitle: string | null;
   activeAgreements: PairAgreement[];
   openLoops: OpenLoop[];
@@ -101,8 +103,8 @@ export function PairDossierShard({
       publicPairNotes,
       pairReads,
       closureReady: readyClosurePairIds.has(pairId),
+      closureProgress: closureProgressForPair(pairState),
       health: pairState.stats.relationshipHealth,
-      datesCompleted: pairState.completedDateIds.length,
       lastScenarioTitle,
       activeAgreements,
       openLoops,
@@ -146,9 +148,9 @@ export function PairDossierShard({
         ) : null}
       </div>
       <div className="mt-1.5 font-display text-display-sm text-aura-paper truncate">{title}</div>
-      <DossierStatsStrip
-        health={data.health}
-        datesCompleted={data.datesCompleted}
+      <ClosureProgressStrip
+        progress={data.closureProgress}
+        ready={data.closureReady}
         lastScenarioTitle={data.lastScenarioTitle}
       />
       {data.publicPairNotes.length === 0 ? (
@@ -219,40 +221,110 @@ export function PairDossierShard({
   );
 }
 
-function DossierStatsStrip({
-  health,
-  datesCompleted,
+function ClosureProgressStrip({
+  progress,
+  ready,
   lastScenarioTitle,
 }: {
-  health: number;
-  datesCompleted: number;
+  progress: ClosureProgress;
+  ready: boolean;
   lastScenarioTitle: string | null;
 }) {
+  const overallTone = ready
+    ? "text-emerald-200"
+    : progress.overall >= 60
+      ? "text-aura-rose"
+      : progress.overall >= 30
+        ? "text-aura-violet"
+        : "text-aura-amber";
+  const blockerCopy =
+    progress.blockers.length === 0
+      ? "All closure thresholds met."
+      : `Still under threshold: ${progress.blockers.join(", ")}.`;
   return (
-    <div className="mt-2 grid grid-cols-3 gap-1.5">
-      <DossierStat
-        label="health"
-        value={`${health}`}
-        tone={
-          health >= 70 ? "text-aura-rose" : health >= 40 ? "text-aura-violet" : "text-aura-amber"
+    <div className="mt-2 flex flex-col gap-1.5">
+      <AuraTooltip
+        placement="bottom"
+        label={
+          <>
+            <strong className="block font-display text-sm text-white">Closure progress</strong>
+            <span className="mt-1 block text-sm text-white/80">
+              Driven by the lowest closure axis (chemistry / trust / health / dates). {blockerCopy}
+            </span>
+          </>
         }
-      />
-      <DossierStat label={datesCompleted === 1 ? "date" : "dates"} value={`${datesCompleted}`} />
-      <DossierStat label="last" value={lastScenarioTitle ?? "—"} />
+      >
+        <div className="cursor-help">
+          <div className="flex items-center justify-between font-mono text-micro uppercase tracking-[0.22em] text-white/55">
+            <span>closure progress</span>
+            <span className={`tabular-nums ${overallTone}`}>{progress.overall}%</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/15">
+            <div
+              className={`h-full ${ready ? "bg-emerald-300/95" : "bg-aura-rose/85"}`}
+              style={{ width: `${progress.overall}%` }}
+            />
+          </div>
+        </div>
+      </AuraTooltip>
+      <div className="grid grid-cols-4 gap-1">
+        <ClosureAxisChip label="chem" axis={progress.axes.chemistry} />
+        <ClosureAxisChip label="trust" axis={progress.axes.trust} />
+        <ClosureAxisChip label="health" axis={progress.axes.relationshipHealth} />
+        <DatesAxisChip done={progress.datesCompleted} needed={progress.datesNeeded} />
+      </div>
+      {lastScenarioTitle === null ? null : (
+        <div className="mt-1 truncate font-mono text-micro uppercase tracking-[0.18em] text-white/45">
+          last ·{" "}
+          <span className="text-white/65 normal-case tracking-normal">{lastScenarioTitle}</span>
+        </div>
+      )}
     </div>
   );
 }
 
-function DossierStat({ label, value, tone }: { label: string; value: string; tone?: string }) {
+function ClosureAxisChip({
+  label,
+  axis,
+}: {
+  label: string;
+  axis: { value: number; threshold: number; met: boolean };
+}) {
+  const tone = axis.met ? "text-emerald-200" : "text-white/80";
   return (
-    <div className="rounded-tile bg-white/[0.06] px-2 py-1.5">
-      <div className="font-mono text-micro uppercase tracking-[0.18em] text-white/45">{label}</div>
-      <div
-        className={`mt-0.5 truncate font-display text-label leading-tight ${tone ?? "text-aura-paper"}`}
-      >
-        {value}
+    <AuraTooltip
+      placement="top"
+      label={`${label} ${axis.value} of ${axis.threshold} needed. ${axis.met ? "Met." : "Still under threshold."}`}
+    >
+      <div className="cursor-help rounded-tile bg-white/[0.06] px-1.5 py-1">
+        <div className="font-mono text-micro uppercase tracking-[0.16em] text-white/45">
+          {label}
+        </div>
+        <div className={`mt-0.5 font-display text-label leading-tight tabular-nums ${tone}`}>
+          {axis.value}
+          <span className="text-white/45"> / {axis.threshold}</span>
+        </div>
       </div>
-    </div>
+    </AuraTooltip>
+  );
+}
+
+function DatesAxisChip({ done, needed }: { done: number; needed: number }) {
+  const met = done >= needed;
+  const tone = met ? "text-emerald-200" : "text-white/80";
+  return (
+    <AuraTooltip
+      placement="top"
+      label={`${done} of ${needed} dates completed. Closure needs at least ${needed}.`}
+    >
+      <div className="cursor-help rounded-tile bg-white/[0.06] px-1.5 py-1">
+        <div className="font-mono text-micro uppercase tracking-[0.16em] text-white/45">dates</div>
+        <div className={`mt-0.5 font-display text-label leading-tight tabular-nums ${tone}`}>
+          {done}
+          <span className="text-white/45"> / {needed}</span>
+        </div>
+      </div>
+    </AuraTooltip>
   );
 }
 

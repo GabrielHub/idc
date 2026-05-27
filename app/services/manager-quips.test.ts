@@ -1,10 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 
-import type { GameSave, ManagerQuipHistoryRecord, PairState } from "../domain/game";
 import {
-  MANAGER_QUIP_CATALOG,
-  MANAGER_RETENTION_WARNING_THRESHOLD,
-} from "../fixtures/manager-quips";
+  MEMBER_RETENTION_WARNING_THRESHOLD,
+  type GameSave,
+  type ManagerQuipHistoryRecord,
+  type PairState,
+} from "../domain/game";
+import { MANAGER_QUIP_CATALOG } from "../fixtures/manager-quips";
 import { createSeedGameSave } from "./game-seed";
 import {
   appendManagerQuipHistory,
@@ -337,7 +339,7 @@ describe("save diff detectors", () => {
         member.id === targetId
           ? {
               ...member,
-              state: { ...member.state, retention: MANAGER_RETENTION_WARNING_THRESHOLD },
+              state: { ...member.state, retention: MEMBER_RETENTION_WARNING_THRESHOLD },
             }
           : member,
       ),
@@ -348,7 +350,7 @@ describe("save diff detectors", () => {
         member.id === targetId
           ? {
               ...member,
-              state: { ...member.state, retention: MANAGER_RETENTION_WARNING_THRESHOLD - 3 },
+              state: { ...member.state, retention: MEMBER_RETENTION_WARNING_THRESHOLD - 3 },
             }
           : member,
       ),

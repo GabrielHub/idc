@@ -9,10 +9,14 @@ import {
   resolveStarRenderTarget,
   resolveStarPresentation,
   sizeForStar3D,
+  starHitRadiusFloorForCanvasScale,
   starWorldPosition,
+  type HaloRiskTone,
   type StarSlabActivity,
 } from "./math";
 import { FocusSelectionMarker } from "./focus-selection-marker";
+import { isMemberActive } from "../../services/date-engine";
+import { riskZoneForMember } from "../../services/member-feedback";
 import { featherAvatarShader } from "./textures";
 import type { LobbyState, StarFlythroughLayer, StarMark, StarRole, Vec3 } from "./types";
 
@@ -67,6 +71,7 @@ export function StarSprite({
   cardOpen = false,
   flythroughLayer,
   slabActivity,
+  canvasScale = 1,
   clusterPosition = null,
   renderOverlay,
   onHoverEnter,
@@ -104,6 +109,8 @@ export function StarSprite({
    * Per-star multipliers driven by the currentLayer vs this star's slab.
    */
   slabActivity?: StarSlabActivity;
+  /** Canvas-derived multiplier for world-space avatar and halo geometry. */
+  canvasScale?: number;
   /**
    * Layer picker override. When non-null, the star lerps to this position.
    */
@@ -128,10 +135,17 @@ export function StarSprite({
   const avatarSubgroupScaleRef = useRef(0.38);
 
   const natural = useMemo(() => starWorldPosition(star), [star]);
-  const sizing = useMemo(() => sizeForStar3D(star.tier, role, state), [star.tier, role, state]);
+  const sizing = useMemo(
+    () => sizeForStar3D(star.tier, role, state, canvasScale),
+    [canvasScale, star.tier, role, state],
+  );
+  const riskTone: HaloRiskTone = useMemo(() => {
+    if (!isMemberActive(star.member)) return "steady";
+    return riskZoneForMember(star.member).zone;
+  }, [star.member]);
   const haloColor = useMemo(
-    () => haloColorForStar(role, star.palette, star.aura),
-    [role, star.palette, star.aura],
+    () => haloColorForStar(role, star.palette, star.aura, riskTone),
+    [role, star.palette, star.aura, riskTone],
   );
   const flareColor = useMemo(() => (role === "focus" ? "#ffd5a3" : "#dec8ff"), [role]);
   const intensity = useMemo(
@@ -149,6 +163,7 @@ export function StarSprite({
         baseIntensity: intensity,
         filteredOut,
         avatarRadius: sizing.avatarRadius,
+        hitRadiusFloor: starHitRadiusFloorForCanvasScale(canvasScale),
       }),
     [
       clusterPosition,
@@ -157,6 +172,7 @@ export function StarSprite({
       intensity,
       role,
       sizing.avatarRadius,
+      canvasScale,
       slabActivity,
       star.tier,
     ],
@@ -267,7 +283,11 @@ export function StarSprite({
                   : role === "ineligible_closed"
                     ? 0.32
                     : 0.62;
-      const haloMix = reducedMotion ? 1 : 0.78 + slow * 0.22 + twinkle * 0.32;
+      const haloMix = reducedMotion
+        ? 1
+        : riskTone === "at-risk"
+          ? 0.5 + slow * 0.5 + twinkle * 0.32
+          : 0.78 + slow * 0.22 + twinkle * 0.32;
       const hoverIgnite = hovered ? 1.25 : 1;
       const auraGate = showAura ? 1 : 0.4;
       haloMatRef.current.opacity = THREE.MathUtils.lerp(

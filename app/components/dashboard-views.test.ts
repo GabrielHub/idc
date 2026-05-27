@@ -142,10 +142,10 @@ describe("dashboard transcript presentation", () => {
       focusMemberId: "gideon-glass",
       firstMemberId: "gideon-glass",
       secondMemberId: "jenna-pike",
-      scenarioId: "museum-exhibit-mixup",
+      scenarioId: "temporal-coffee-shop",
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
-    const scenario = starterScenarios.find((candidate) => candidate.id === "museum-exhibit-mixup");
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const members = started.save.members.filter((member): member is Member =>
       started.session.participants.includes(member.id),
     );
@@ -197,6 +197,7 @@ describe("dashboard transcript presentation", () => {
     const session = dateSessionSchema.parse({
       ...started.session,
       currentTurn: 6,
+      judgeTurnInterval: 6,
       transcript: [...started.session.transcript, ...characterMessages],
       judgeSnapshots: [judgeSnapshot],
     });
@@ -218,10 +219,10 @@ describe("dashboard transcript presentation", () => {
       focusMemberId: "gideon-glass",
       firstMemberId: "gideon-glass",
       secondMemberId: "jenna-pike",
-      scenarioId: "museum-exhibit-mixup",
+      scenarioId: "temporal-coffee-shop",
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
-    const scenario = starterScenarios.find((candidate) => candidate.id === "museum-exhibit-mixup");
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
     const members = started.save.members.filter((member): member is Member =>
       started.session.participants.includes(member.id),
     );

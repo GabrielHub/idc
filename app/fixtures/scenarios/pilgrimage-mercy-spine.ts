@@ -33,6 +33,7 @@ export const pilgrimageMercySpine: DateScenario = {
   },
   director: {
     tone: "slow drum under the stone, cool air on warm rock, mild altitude, sparse other pilgrims",
+    flow: "activity",
     rules: [
       "Anchor the date to the trail, ranger booth, and summit cairn. Do not detour onto the god's flanks.",
       "Treat the god as asleep. The deity is scenery and weather, not a speaker.",

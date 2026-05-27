@@ -10,6 +10,7 @@ import {
   pairPartnerPosition,
   resolveClusterPosition,
   roleForStar,
+  type RosterClusterBounds,
 } from "./math";
 import { buildFocusMarkerOverlay, StarSprite } from "./star-sprite";
 import {
@@ -41,6 +42,7 @@ export function StarField({
   currentLayer,
   focusOrder,
   rosterLeadOrder,
+  rosterClusterBounds,
   rosterSubview,
   offTonightSet,
   textures,
@@ -49,6 +51,7 @@ export function StarField({
   rimLightTexture,
   showAuras,
   reducedMotion,
+  canvasScale,
   hoveredId,
   activeStarId,
   onHoveredIdChange,
@@ -71,6 +74,7 @@ export function StarField({
   currentLayer?: FlythroughLayer;
   focusOrder: readonly string[];
   rosterLeadOrder: readonly string[];
+  rosterClusterBounds: RosterClusterBounds;
   rosterSubview?: RosterSubview;
   offTonightSet?: ReadonlySet<string>;
   textures: Record<string, Texture>;
@@ -79,6 +83,7 @@ export function StarField({
   rimLightTexture: Texture | null;
   showAuras: boolean;
   reducedMotion: boolean;
+  canvasScale: number;
   hoveredId: string | null;
   activeStarId: string | null;
   onHoveredIdChange: Dispatch<SetStateAction<string | null>>;
@@ -144,6 +149,7 @@ export function StarField({
           currentLayer,
           focusOrder,
           rosterLeadOrder,
+          rosterClusterBounds,
           inArchive,
           rosterSubview,
         });
@@ -162,6 +168,7 @@ export function StarField({
             rimLightTexture={rimLightTexture}
             showAura={showAuras}
             reducedMotion={reducedMotion}
+            canvasScale={canvasScale}
             filteredOut={lensFilteredOut || archiveIsolated}
             hovered={hoveredId === star.member.id}
             cardOpen={activeStarId === star.member.id}

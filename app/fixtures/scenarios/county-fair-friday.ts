@@ -34,6 +34,7 @@ export const countyFairFriday: DateScenario = {
   },
   director: {
     tone: "fryer oil, a generator hum, distant carousel music, a child losing a balloon two rows over",
+    flow: "activity",
     rules: [
       "Treat the fair as a real fair. Do not let the games rig themselves.",
       "Use the crowd as ambient pressure. Do not invent a heckler.",

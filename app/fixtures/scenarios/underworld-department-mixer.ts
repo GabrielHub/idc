@@ -33,6 +33,7 @@ export const underworldDepartmentMixer: DateScenario = {
   },
   director: {
     tone: "corporate, absurd, and brisk",
+    flow: "conversation",
     rules: [
       "Keep the mixer in Cupid corporate register.",
       "Use name tags and printed forms as public information. Coordinators are silent ambient pressure.",

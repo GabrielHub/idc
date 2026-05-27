@@ -1,3 +1,5 @@
+import { MEMBER_RETENTION_WARNING_THRESHOLD } from "../domain/game";
+
 export type ManagerQuipCadence = "rare" | "regular" | "episodic";
 
 export type ManagerQuipTriggerKey =
@@ -24,8 +26,6 @@ export interface ManagerQuipTriggerGroup {
   summary: string;
   cadence: ManagerQuipCadence;
 }
-
-export const MANAGER_RETENTION_WARNING_THRESHOLD = 25;
 
 export const MANAGER_QUIP_TRIGGER_GROUPS: ManagerQuipTriggerGroup[] = [
   {
@@ -97,7 +97,7 @@ export const MANAGER_QUIP_TRIGGER_GROUPS: ManagerQuipTriggerGroup[] = [
   },
   {
     key: "member.retention.warning",
-    label: `Retention below ${MANAGER_RETENTION_WARNING_THRESHOLD}`,
+    label: `Retention below ${MEMBER_RETENTION_WARNING_THRESHOLD}`,
     summary: "A focused case dipped into the danger zone after a date.",
     cadence: "regular",
   },

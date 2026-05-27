@@ -33,6 +33,7 @@ export const parkLoopWithADog: DateScenario = {
   },
   director: {
     tone: "fresh air, ambient runners, approximately one hour of natural light",
+    flow: "conversation",
     rules: [
       "Anchor the date to the bench. The pair watches the loop, they do not walk the loop.",
       "Treat weather and geese as flavor, not omens.",

@@ -33,6 +33,7 @@ export const worldSimOperatorBooth: DateScenario = {
   },
   director: {
     tone: "arcade hush, console hum, soft AR backlight, the laminated rule sheet faintly stained from long use",
+    flow: "set_piece",
     rules: [
       "Anchor the date to the booth and the console. The pair does not get up to walk.",
       "Treat the seeded world as real. The creatures live and die outside the session as well.",

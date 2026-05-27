@@ -34,6 +34,7 @@ export const adventurersSpeakeasy: DateScenario = {
   },
   director: {
     tone: "dark oak, low candle, fireplace pop on a slow rhythm, faint apothecary herbs through the floor above, no other patrons in earshot",
+    flow: "conversation",
     rules: [
       "Anchor the date to the fireside booth. The pair does not work the room.",
       "Treat the speakeasy infrastructure as silent. The tray, the door, and the chimney are the room.",

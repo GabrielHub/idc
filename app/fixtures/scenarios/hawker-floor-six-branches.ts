@@ -33,6 +33,7 @@ export const hawkerFloorSixBranches: DateScenario = {
   },
   director: {
     tone: "the fan on the table, the smell layers that do not match, the soft clink of melamine trays one row over, the steady tap of one cleaver against a board",
+    flow: "activity",
     rules: [
       "Anchor the date to the two-top and the six-stall loop. The pair does not leave the floor.",
       "Treat the stalls as ordinary stalls. The clash is the venue, not the joke.",

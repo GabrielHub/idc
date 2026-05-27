@@ -33,6 +33,7 @@ export const dimSumAndThenSome: DateScenario = {
   },
   director: {
     tone: "the soft knock of bamboo on bamboo, the steady tap of a cleaver from behind the beaded curtain, the warm steam from a passing cart, the brass smell of the kettle, lantern light that does not match the hour outside",
+    flow: "activity",
     rules: [
       "Anchor the date to the courtyard table. The pair does not leave the table.",
       "Treat the carts as ordinary carts. The source of an ingredient is the room, not a bit.",

@@ -6,6 +6,12 @@ import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 import { RISK_DOT_TONE, RISK_SHORT, RISK_TEXT_TONE } from "./scenario-card";
+import {
+  SCENARIO_FLOW_BLURB,
+  SCENARIO_FLOW_DOT_TONE,
+  SCENARIO_FLOW_LABEL,
+  SCENARIO_FLOW_TEXT_TONE,
+} from "./scenario-flow";
 import { TutorialCoachMark } from "./tutorial";
 
 export type ScenarioDetailsAction = {
@@ -100,10 +106,8 @@ export function ScenarioDetailsModal({
                 {scenario.publicBrief.location}
               </p>
 
-              <div className="mt-5 flex flex-wrap items-center gap-2">
-                <VibeChip label="Risk" tone={scenario.card.risk} />
-                <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
-                <VibeChip label="Chaos" tone={scenario.card.chaos} />
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <FlowHeroBadge flow={scenario.director.flow} />
                 {statusLabel === undefined ? null : (
                   <span className="aura-glass-strong inline-flex items-center gap-1.5 rounded-pill border border-amber-400/70 px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-amber-800">
                     {statusLabel}
@@ -132,6 +136,10 @@ export function ScenarioDetailsModal({
                   </p>
                 </section>
 
+                <DetailSection label={`Plays as · ${SCENARIO_FLOW_LABEL[scenario.director.flow]}`}>
+                  {SCENARIO_FLOW_BLURB[scenario.director.flow]}
+                </DetailSection>
+
                 <DetailSection label="Room constraints">
                   <BulletList items={scenario.director.rules} tone="rose" />
                 </DetailSection>
@@ -144,6 +152,14 @@ export function ScenarioDetailsModal({
                   items={scenario.judgeRubric.successSignals}
                 />
                 <SignalList label="Avoid" tone="rose" items={scenario.judgeRubric.failureSignals} />
+
+                <DetailSection label="Vibe meters">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <VibeChip label="Risk" tone={scenario.card.risk} />
+                    <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
+                    <VibeChip label="Chaos" tone={scenario.card.chaos} />
+                  </div>
+                </DetailSection>
 
                 <DetailSection label="What both know">
                   {scenario.publicBrief.whatBothCharactersKnow}
@@ -217,6 +233,26 @@ function VibeChip({ label, tone }: { label: string; tone: "low" | "medium" | "hi
       <span aria-hidden className={`size-1.5 rounded-full ${RISK_DOT_TONE[tone]}`} />
       <span className="text-aura-ink">{label}</span>
       <span className={RISK_TEXT_TONE[tone]}>{RISK_SHORT[tone]}</span>
+    </span>
+  );
+}
+
+function FlowHeroBadge({ flow }: { flow: DateScenario["director"]["flow"] }) {
+  return (
+    <span
+      title={SCENARIO_FLOW_BLURB[flow]}
+      aria-label={`Flow: ${SCENARIO_FLOW_LABEL[flow]}. ${SCENARIO_FLOW_BLURB[flow]}`}
+      className="inline-flex items-center gap-3 rounded-pill border border-aura-hairline bg-white/85 px-4 py-2 shadow-[0_4px_18px_-6px_rgba(15,23,42,0.18)]"
+    >
+      <span aria-hidden className={`size-2.5 rounded-full ${SCENARIO_FLOW_DOT_TONE[flow]}`} />
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-muted">
+        Plays as
+      </span>
+      <span
+        className={`font-mono text-label font-semibold uppercase tracking-[0.2em] ${SCENARIO_FLOW_TEXT_TONE[flow]}`}
+      >
+        {SCENARIO_FLOW_LABEL[flow]}
+      </span>
     </span>
   );
 }

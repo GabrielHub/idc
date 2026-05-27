@@ -33,6 +33,7 @@ export const hedgeWitchTeaHour: DateScenario = {
   },
   director: {
     tone: "the low hum of the kettle, the soft warmth of the hearth, the moss smell from outside the door, a forest quiet that the hut keeps at a polite distance",
+    flow: "conversation",
     rules: [
       "Anchor the date to the hut. The pair does not leave the door during the booking.",
       "Treat the witch as gone for the booking. She does not return.",

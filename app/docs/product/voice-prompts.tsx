@@ -78,6 +78,24 @@ export const sections: DocSectionEntry[] = [
             background color. The live conversation wins over pattern satisfaction.
           </P>
         </DocSubsection>
+        <DocSubsection id="member-chat" title="Member Chat">
+          <P>
+            The member-chat playground uses the same fixture voice fields, but it is not the live
+            date prompt. <DocCode>buildMemberChatPrompt</DocCode> in{" "}
+            <DocCode>app/services/ai/playground.ts</DocCode> frames a private one-on-one Cupid chat
+            before a date. It produces plain conversational text, not a transcript bubble with
+            Markdown.
+          </P>
+          <DocList
+            items={[
+              "Answer the latest tester message first. Do not summarize the whole profile unless asked.",
+              "Use one complete sentence under 190 characters, or two very short sentences only when needed.",
+              "No Markdown, bullets, speaker labels, physical stage directions, narration, system text, em dashes, or en dashes.",
+              "Secrets, state, and tooling stay private. They can color subtext, but the member does not confess hidden data just because it is in the prompt.",
+              "Sample banks are rhythm references only. Do not copy old facts unless the current chat earns them.",
+            ]}
+          />
+        </DocSubsection>
         <DocSubsection id="member-markdown-subset" title="Member Message Markdown Subset">
           <P>
             Member bubbles render a hardened Markdown subset. Use formatting as spoken typography,
@@ -142,6 +160,7 @@ export const sections: DocSectionEntry[] = [
       { id: "dating-profile-blurb", title: "Dating Profile Blurb" },
       { id: "opening-message", title: "Opening Message" },
       { id: "in-date-transcript", title: "In-Date Transcript" },
+      { id: "member-chat", title: "Member Chat" },
       { id: "member-markdown-subset", title: "Member Message Markdown Subset" },
       { id: "cupid-intervention", title: "Cupid Intervention" },
       { id: "member-request", title: "Member Request" },
@@ -167,6 +186,7 @@ export const sections: DocSectionEntry[] = [
             "Voice flavor: compact register, comedy mechanics, tics, optional member-specific conversation shape, and optional contrast examples. The sit-down opener may surface two greeting samples; in-date sample banks do not flow into the prompt. A single crash-out attractor surfaces only when date health is low and a dealbreaker fire is imminent.",
             "Shared scene: Cupid set the match, route, venue, and time; this is the pair's current date through Cupid.",
             "Venue frame: location, room feel, director rules, partner profile, portrait cues, and heights.",
+            "Date play: members may propose or commit to small in-room moves as spoken dialogue, such as ordering, pouring, pressing, handing over, waiting, refusing, or asking before acting. The same block keeps stage directions, partner-control, hidden menus, and invented offscreen consequences out.",
             "Format and invariants: spoken conversation at a table, no labels, no stage directions, no dash punctuation, no parroting, no answering private notes aloud, plus member-specific output constraints.",
             "Retry guards and attachment notices only when needed.",
           ]}
@@ -181,6 +201,33 @@ export const sections: DocSectionEntry[] = [
           Runtime prompts must not treat dating success as the default. Flirtation and attraction
           require concrete exchange evidence; confusion, anger, overload, and crash-out pressure are
           first-class reads when member guards or scenario pressure fire.
+        </DocCallout>
+      </>
+    ),
+  },
+  {
+    id: "member-chat-packet",
+    title: "Member Chat Packet",
+    body: (
+      <>
+        <P>
+          The playground member-chat prompt is a pre-date voice probe. It is useful for fixture
+          tuning because it reads the full member fixture without date scene pressure, pair memory,
+          interventions, or judge state.
+        </P>
+        <DocList
+          items={[
+            "System frame: speak as the member in a private one-on-one Cupid chat with a real person.",
+            "Context: origin, species, reality status, bio, dating profile, needs, preferences, dealbreakers, reality frame, voice register, mechanics, constraints, conversation shapes, contrast examples, tics, samples, and secrets.",
+            "Output target: one easy-to-answer message that makes a single conversational move.",
+            "Format: plain text only. The member-chat path intentionally forbids Markdown even though live date bubbles accept the small spoken-typography subset.",
+            "Use it to catch profile-recital drift, off-voice tics, hidden-info leakage, and chat-app artifacts before running a full date tune session.",
+          ]}
+        />
+        <DocCallout variant="warn">
+          Do not use member-chat output as proof that the live performer prompt is locked. Live date
+          behavior still needs <DocCode>vp run tune</DocCode> coverage because scene pressure, pair
+          state, Cupid coaching, samples, and transcript rhythm change the model's choices.
         </DocCallout>
       </>
     ),
@@ -231,11 +278,19 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "Room narration",
-              def: "When the partner leaves silence, the model fills with venue color. Mitigate by naming what the character does with silence and by giving positive actionable carve-outs.",
+              def: "When the partner leaves silence, the model fills with venue color. Mitigate with an outcome-first live-date contract: the line should advance the date through an answer, follow-up, choice, refusal, or visible reaction, with the flow mode deciding whether the venue recedes behind conversation or becomes an activity/pressure/set-piece engine.",
             },
             {
               term: "Partner-labeling as receipt",
-              def: "The model labels the partner as a green flag or a kind of date. Mitigate by modeling engagement as a move: real question, own-material, callback, admission, or choice.",
+              def: "The model labels the partner as a green flag, smart, respectful, valid, or a kind of date. Mitigate by modeling engagement as a move: real question, own-material, callback, tease, admission, or choice. During tuning, treat generic positivity as a miss even when the line is pleasant.",
+            },
+            {
+              term: "Profile receipt",
+              def: "The model repeats a partner's full name, job, species, or profile label as proof it recognized the setup. Mitigate by treating names and profile facts as context for the next move, not as acknowledgments. After introductions, prefer first names, pronouns, or the concrete thing the partner just did.",
+            },
+            {
+              term: "Action block leakage",
+              def: "Activity and set-piece prompts can make the model append bracketed body movement or private rationale after a spoken line. Mitigate by keeping the live-date contract on bubble text only: physical movement must become a spoken offer, instruction, or commitment the partner can answer.",
             },
             {
               term: "Worked-example recital",

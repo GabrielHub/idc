@@ -28,6 +28,47 @@ import { getPairProjectionFromSave } from "./relationship-index";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 
 describe("date prompt assembly", () => {
+  function buildOpeningPromptForScenario(scenarioId: string): string {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+      "vhool",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId,
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
+    const jenna = started.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = started.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(started.save, makePairId("jenna-pike", "vhool"));
+
+    if (
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error(`Expected prompt fixture setup for ${scenarioId}.`);
+    }
+
+    return buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    }).prompt;
+  }
+
   it("only gives the focused member their own ask", () => {
     const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -104,6 +145,18 @@ describe("date prompt assembly", () => {
       "- Loops happen at the table. Do not pull the pair out of the chair or skip ahead in the day.",
     );
     expect(ownerPacket.prompt).toContain("<format>");
+    expect(ownerPacket.prompt).toContain("<live_date_turn>");
+    expect(ownerPacket.prompt).toContain("Success means the reply advances this date");
+    expect(ownerPacket.prompt).toContain("The newest partner move outranks room analysis.");
+    expect(ownerPacket.prompt).toContain("Finish the conversational move inside this line.");
+    expect(ownerPacket.prompt).toContain("Stay inside the current scene inventory.");
+    expect(ownerPacket.prompt).toContain("Warmth is not a verdict on the partner's line.");
+    expect(ownerPacket.prompt).toContain("do not mirror that shape");
+    expect(ownerPacket.prompt).toContain("Use names and profile facts as social context");
+    expect(ownerPacket.prompt).toContain("Names are for address, not material");
+    expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");
+    expect(ownerPacket.prompt).toContain("Let the venue fall behind the person across from you.");
+    expect(ownerPacket.prompt).toContain("Opening turn: start the date, not the room tour.");
     expect(ownerPacket.prompt).toContain("You are speaking across a table.");
     expect(ownerPacket.prompt).toContain("*italic* for a stressed word you would say aloud");
     expect(ownerPacket.prompt).toContain(
@@ -132,6 +185,23 @@ describe("date prompt assembly", () => {
       /\b(Date Health|gameplay|transcript)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
+  });
+
+  it("adapts the live date contract to scenario flow", () => {
+    const conversationPrompt = buildOpeningPromptForScenario("diner-eleven-pm");
+    const activityPrompt = buildOpeningPromptForScenario("dinosaur-bbq-all-you-can-eat");
+    const pressurePrompt = buildOpeningPromptForScenario("rook-to-e4");
+    const setPiecePrompt = buildOpeningPromptForScenario("pulse-check");
+
+    expect(conversationPrompt).toContain("<flow_mode>conversation</flow_mode>");
+    expect(conversationPrompt).toContain("Let the venue fall behind the person across from you.");
+    expect(conversationPrompt).toContain("answer the social move underneath it and pivot");
+    expect(activityPrompt).toContain("<flow_mode>activity</flow_mode>");
+    expect(activityPrompt).toContain("Keep the conversation alive while the activity happens");
+    expect(pressurePrompt).toContain("<flow_mode>pressure</flow_mode>");
+    expect(pressurePrompt).toContain("parking in analysis is not");
+    expect(setPiecePrompt).toContain("<flow_mode>set_piece</flow_mode>");
+    expect(setPiecePrompt).toContain("React to the visible change and name a next move");
   });
 
   it("renders structured voice fields and member-specific examples", () => {
@@ -830,6 +900,76 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("<scene_directive>");
     expect(packet.prompt).not.toContain("Live room event:");
     expect(packet.prompt).not.toContain("Live room pressure:");
+  });
+
+  it("keeps live room events pending when they land after a judge boundary", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "jenna-pike",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "jenna-pike",
+      firstMemberId: "jenna-pike",
+      secondMemberId: "vhool",
+      scenarioId: "temporal-coffee-shop",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const firstExchange = advanceDateExchange(started.save, { dateSessionId: started.session.id });
+    const secondExchange = advanceDateExchange(firstExchange.save, {
+      dateSessionId: started.session.id,
+    });
+    const thirdExchange = advanceDateExchange(secondExchange.save, {
+      dateSessionId: started.session.id,
+    });
+    const eventId = thirdExchange.session.eventDraft.picked?.[1];
+    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
+    const jenna = thirdExchange.save.members.find((member) => member.id === "jenna-pike");
+    const vhool = thirdExchange.save.members.find((member) => member.id === "vhool");
+    const pairState = getPairProjectionFromSave(
+      thirdExchange.save,
+      makePairId("jenna-pike", "vhool"),
+    );
+
+    if (
+      eventId === undefined ||
+      scenario === undefined ||
+      jenna === undefined ||
+      vhool === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected post-judge event prompt fixture setup.");
+    }
+
+    const event = scenario.director.events.find((candidate) => candidate.id === eventId);
+    const triggered = triggerScenarioEvent(thirdExchange.save, {
+      dateSessionId: thirdExchange.session.id,
+      eventId,
+      now: new Date("2026-05-05T12:08:00.000Z"),
+    });
+
+    if (event === undefined) {
+      throw new Error("Expected drafted event fixture.");
+    }
+
+    expect(thirdExchange.session.currentTurn).toBe(6);
+    expect(thirdExchange.session.judgeSnapshots).toHaveLength(1);
+
+    const packet = buildCharacterPromptPacket({
+      member: jenna,
+      partner: vhool,
+      scenario,
+      session: triggered.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: triggered.session.transcript,
+      },
+    });
+
+    expect(packet.prompt).toContain(`This just happened: ${event.beat}`);
+    expect(packet.prompt).toContain(event.directorBeat);
+    expect(packet.prompt).toContain("<scene_directive>");
   });
 
   it("keeps scenario and Cupid notes out of the latest line to answer", () => {

@@ -33,6 +33,7 @@ export const emptyRoomManyWindows: DateScenario = {
   },
   director: {
     tone: "the soft mixed ambient of six cities at low volume, the warm wood of the floor, the slight pressure on the ears of being many places at once",
+    flow: "conversation",
     rules: [
       "Anchor the date to the room and the cushions. The pair does not walk through any window.",
       "Treat the six cities as live but unrelated to the pair. The cities are themselves, not metaphors.",

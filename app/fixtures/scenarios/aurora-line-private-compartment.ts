@@ -33,6 +33,7 @@ export const auroraLinePrivateCompartment: DateScenario = {
   },
   director: {
     tone: "the steady hum of the train under the rails, the warm cabin against the cold beyond the glass, the small clicks of the table on its rails, no wind reaching them",
+    flow: "conversation",
     rules: [
       "Anchor the date to compartment 14. The pair does not leave the compartment.",
       "Treat the frozen world outside as fact. The ice is not a metaphor.",

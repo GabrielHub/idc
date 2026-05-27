@@ -56,6 +56,7 @@ export type LobbyScenario = {
   cost: number;
   axes: { risk: number; intimacy: number; chaos: number };
   roomRead: "steady" | "promising" | "volatile";
+  flow: "conversation" | "activity" | "pressure" | "set_piece";
 };
 
 export type CameraTarget = {

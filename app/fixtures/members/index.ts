@@ -12,6 +12,7 @@ import { cassieConners } from "./cassie-conners";
 import { chaYusung } from "./cha-yusung";
 import { concord } from "./concord";
 import { cthala } from "./cthala";
+import { daivenPatel } from "./daiven-patel";
 import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { derekHalsey } from "./derek-halsey";
 import { eleanorAsh } from "./eleanor-ash";
@@ -27,6 +28,7 @@ import { junieMarrow } from "./junie-marrow";
 import { kadeSumner } from "./kade-sumner";
 import { maeve } from "./maeve";
 import { marcusPellish } from "./marcus-pellish";
+import { marleeHines } from "./marlee-hines";
 import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
@@ -38,19 +40,21 @@ import { noahKim } from "./noah-kim";
 import { opalSunday } from "./opal-sunday";
 import { reaver } from "./reaver";
 import { rostin } from "./rostin";
+import { ruby } from "./ruby";
 import { ryanDoyle } from "./ryan-doyle";
 import { saffronVex } from "./saffron-vex";
 import { sanaKarim } from "./sana-karim";
 import { seraVohn } from "./sera-vohn";
 import { siennaBae } from "./sienna-bae";
 import { tashaRell } from "./tasha-rell";
+import { toastimusCroutonVance } from "./toastimus-crouton-vance";
 import { tobyWenz } from "./toby-wenz";
 import { venus } from "./venus";
 import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(48)
+  .length(52)
   .parse([
     jennaPike,
     meridianVale,
@@ -100,6 +104,10 @@ export const starterMembers = memberSchema
     concord,
     rostin,
     fredStavropoulos,
+    marleeHines,
+    ruby,
+    toastimusCroutonVance,
+    daivenPatel,
   ]);
 
 export {
@@ -116,6 +124,7 @@ export {
   chaYusung,
   concord,
   cthala,
+  daivenPatel,
   decimusMariusTullio,
   derekHalsey,
   eleanorAsh,
@@ -131,6 +140,7 @@ export {
   kadeSumner,
   maeve,
   marcusPellish,
+  marleeHines,
   meiSato,
   meridianVale,
   miraPark,
@@ -142,12 +152,14 @@ export {
   opalSunday,
   reaver,
   rostin,
+  ruby,
   ryanDoyle,
   saffronVex,
   sanaKarim,
   seraVohn,
   siennaBae,
   tashaRell,
+  toastimusCroutonVance,
   tobyWenz,
   venus,
   vhool,

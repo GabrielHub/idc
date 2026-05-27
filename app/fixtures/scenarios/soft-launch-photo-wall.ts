@@ -34,6 +34,7 @@ export const softLaunchPhotoWall: DateScenario = {
   },
   director: {
     tone: "bright, performative, crowded, with too much branded enthusiasm",
+    flow: "pressure",
     rules: [
       "Make consent visible. Pressure comes from the room, not from a staffer's voice.",
       "Keep brand staff as silent ambient pressure. They place items, they do not address the pair.",

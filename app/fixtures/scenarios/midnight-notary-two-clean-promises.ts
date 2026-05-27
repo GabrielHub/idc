@@ -34,6 +34,7 @@ export const midnightNotaryTwoCleanPromises: DateScenario = {
   },
   director: {
     tone: "bureaucratic ceremony, brass desk lamp, one stamp pad doing too much work",
+    flow: "pressure",
     rules: [
       "Keep promises voluntary and specific.",
       "Do not let the scene imply fate, vows, or permanent binding.",

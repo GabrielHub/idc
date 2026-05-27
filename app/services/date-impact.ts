@@ -8,6 +8,7 @@ import type {
 } from "../domain/game";
 import { memberRequests } from "../fixtures";
 import { CLOSURE_THRESHOLD } from "./closures";
+import type { DateStatChange } from "./date-stat-change";
 import { classifyFocusAskOutcomeFromSession } from "./shift-request-assessment";
 
 export type DateImpactVerdict =
@@ -24,6 +25,7 @@ export type DateImpactReceipt = {
   reason: string;
   nextAction: string;
   consequences: string[];
+  statChange: DateStatChange | undefined;
 };
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
@@ -61,6 +63,7 @@ export function buildDateImpactReceipt({
       askOutcome,
       filedReadCount,
     }),
+    statChange: report.statChange,
   };
 }
 

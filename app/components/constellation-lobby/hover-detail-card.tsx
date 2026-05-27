@@ -2,6 +2,8 @@ import { type ReactNode } from "react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { formatHeightShort, profileSnippetFor } from "../../services/member-display";
+import { riskZoneForMember, type RiskTone } from "../../services/member-feedback";
+import { AuraTooltip } from "../aura-tooltip";
 import { caseFileNumber } from "../member-card-atoms";
 import { avatarSrcsetFor, withAlpha } from "./math";
 import type { StarMark } from "./types";
@@ -256,6 +258,7 @@ export function HoverDetailCard({
           exit={reducedMotion ? { opacity: 0 } : { opacity: 0, transition: { duration: 0.1 } }}
           transition={contentTransition}
         >
+          {member.state.status === "active" ? <MemberFeedbackStrip member={member} /> : null}
           <p className="mt-3 line-clamp-3 font-sans text-label text-white/85">{resolvedSnippet}</p>
           {recentNotesSlot}
           <div className="mt-3 flex items-center justify-center gap-2">
@@ -288,5 +291,75 @@ export function HoverDetailCard({
         </motion.div>
       </div>
     </motion.div>
+  );
+}
+
+const RISK_BAR_TONE: Record<RiskTone, string> = {
+  emerald: "bg-emerald-300/95",
+  amber: "bg-amber-300/95",
+  rose: "bg-rose-300/95",
+};
+
+const RISK_LABEL_TONE: Record<RiskTone, string> = {
+  emerald: "text-emerald-100",
+  amber: "text-amber-100",
+  rose: "text-rose-100",
+};
+
+function MemberFeedbackStrip({ member }: { member: StarMark["member"] }) {
+  const risk = riskZoneForMember(member);
+  const retention = member.state.retention;
+  const mood = member.state.mood;
+  const burnout = member.state.burnout;
+  return (
+    <div className="mt-3 grid grid-cols-[auto_1fr_auto] items-center gap-x-2 gap-y-1.5">
+      <AuraTooltip
+        placement="left"
+        label={
+          <>
+            <strong className="block font-display text-sm text-white">
+              Confidence — {risk.label}
+            </strong>
+            <span className="mt-1 block text-sm text-white/80">{risk.rationale}</span>
+          </>
+        }
+      >
+        <span
+          className={`cursor-help font-mono text-sm uppercase tracking-[0.18em] ${RISK_LABEL_TONE[risk.tone]}`}
+        >
+          Confidence
+        </span>
+      </AuraTooltip>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className={`h-full ${RISK_BAR_TONE[risk.tone]}`} style={{ width: `${retention}%` }} />
+      </div>
+      <span className="font-mono text-sm tabular-nums text-white/90">{retention}</span>
+
+      <AuraTooltip
+        placement="left"
+        label="Mood is how the member is feeling about the app today. Comfortable matches and met asks lift it; rough dates and surprise conflict drag it down."
+      >
+        <span className="cursor-help font-mono text-sm uppercase tracking-[0.18em] text-white/70">
+          Mood
+        </span>
+      </AuraTooltip>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className="h-full bg-fuchsia-300/90" style={{ width: `${mood}%` }} />
+      </div>
+      <span className="font-mono text-sm tabular-nums text-white/90">{mood}</span>
+
+      <AuraTooltip
+        placement="left"
+        label="Burnout climbs after long, high-strain dates and after rapid focus rotation. High burnout slows confidence recovery."
+      >
+        <span className="cursor-help font-mono text-sm uppercase tracking-[0.18em] text-white/70">
+          Burnout
+        </span>
+      </AuraTooltip>
+      <div className="h-1.5 overflow-hidden rounded-full bg-white/15">
+        <div className="h-full bg-orange-300/85" style={{ width: `${burnout}%` }} />
+      </div>
+      <span className="font-mono text-sm tabular-nums text-white/90">{burnout}</span>
+    </div>
   );
 }

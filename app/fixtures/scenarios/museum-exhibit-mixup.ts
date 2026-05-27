@@ -32,6 +32,7 @@ export const museumExhibitMixup: DateScenario = {
   },
   director: {
     tone: "clinical, quiet, and increasingly personal",
+    flow: "set_piece",
     rules: [
       "Keep public embarrassment controlled and emotionally fair.",
       "Use exhibit labels and pedestals as pressure. Do not voice an audio guide as a third speaker.",

@@ -33,6 +33,7 @@ export const capitalShipWarDinner: DateScenario = {
   },
   director: {
     tone: "low engine hum through the deck, the reinforced glass at full silence, candlelight, distant smoke columns visible through the window",
+    flow: "pressure",
     rules: [
       "Anchor the date to window table 4. The pair does not walk the deck.",
       "Treat the war as real and ongoing. Death and serious injury are never the joke.",

@@ -29,6 +29,12 @@ export type StarPresentation = {
   zLift: number;
 };
 
+export type CanvasAvatarScaleInput = {
+  width: number;
+  height: number;
+  dpr: number;
+};
+
 /**
  * Floor for the invisible hit plane so background pinhead dots stay grabbable.
  * Capped just under half of the minimum world-space distance between adjacent
@@ -36,31 +42,75 @@ export type StarPresentation = {
  * neighbouring hit planes don't overlap and steal each other's pointer events.
  */
 const MIN_STAR_HIT_RADIUS = 0.22;
+const MIN_RESPONSIVE_AVATAR_SCALE = 0.72;
+const MAX_RESPONSIVE_AVATAR_SCALE = 1.12;
+const BASE_CANVAS_WIDTH = 1920;
+const BASE_CANVAS_HEIGHT = 1080;
 
-export function sizeForStar3D(tier: StarTier, role: StarRole, state: LobbyState): StarSizing {
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function avatarScaleForCanvas({ width, height, dpr }: CanvasAvatarScaleInput): number {
+  if (width <= 0 || height <= 0) return 1;
+  const widthFit = width / BASE_CANVAS_WIDTH;
+  const heightFit = height / BASE_CANVAS_HEIGHT;
+  const shortSideFit = Math.sqrt(Math.min(widthFit, heightFit));
+  const aspect = width / height;
+  const narrowAspectPenalty = aspect < 1.45 ? clampNumber(aspect / 1.45, 0.82, 1) : 1;
+  const lowDensityPenalty = dpr < 1.25 ? 0.98 : 1;
+  return clampNumber(
+    shortSideFit * narrowAspectPenalty * lowDensityPenalty,
+    MIN_RESPONSIVE_AVATAR_SCALE,
+    MAX_RESPONSIVE_AVATAR_SCALE,
+  );
+}
+
+export function starHitRadiusFloorForCanvasScale(canvasScale: number): number {
+  return clampNumber(MIN_STAR_HIT_RADIUS * canvasScale, 0.16, MIN_STAR_HIT_RADIUS);
+}
+
+function scaleStarSizing(sizing: StarSizing, canvasScale: number): StarSizing {
+  return {
+    avatarRadius: sizing.avatarRadius * canvasScale,
+    haloRadius: sizing.haloRadius * canvasScale,
+    sparkRadius: sizing.sparkRadius * canvasScale,
+    flareSize: sizing.flareSize * canvasScale,
+    scale: sizing.scale,
+  };
+}
+
+export function sizeForStar3D(
+  tier: StarTier,
+  role: StarRole,
+  state: LobbyState,
+  canvasScale = 1,
+): StarSizing {
+  const scale = clampNumber(canvasScale, MIN_RESPONSIVE_AVATAR_SCALE, MAX_RESPONSIVE_AVATAR_SCALE);
+  let sizing: StarSizing;
   if (role === "focus")
-    return { avatarRadius: 0.62, haloRadius: 0.82, sparkRadius: 0.075, flareSize: 4.6, scale: 1 };
-  if (role === "partner")
-    return { avatarRadius: 0.52, haloRadius: 0.7, sparkRadius: 0.065, flareSize: 3.8, scale: 1 };
-  if (role === "eligible")
-    return { avatarRadius: 0.38, haloRadius: 0.5, sparkRadius: 0.05, flareSize: 2.2, scale: 1 };
-  if (role === "ineligible_cooling")
-    return { avatarRadius: 0.24, haloRadius: 0.3, sparkRadius: 0.03, flareSize: 1, scale: 1 };
-  if (role === "ineligible_off_shift" || role === "ineligible_closed") {
-    return { avatarRadius: 0.2, haloRadius: 0.26, sparkRadius: 0.025, flareSize: 1, scale: 1 };
-  }
-  if (state === "idle") {
+    sizing = { avatarRadius: 0.62, haloRadius: 0.82, sparkRadius: 0.075, flareSize: 4.6, scale: 1 };
+  else if (role === "partner")
+    sizing = { avatarRadius: 0.52, haloRadius: 0.7, sparkRadius: 0.065, flareSize: 3.8, scale: 1 };
+  else if (role === "eligible")
+    sizing = { avatarRadius: 0.38, haloRadius: 0.5, sparkRadius: 0.05, flareSize: 2.2, scale: 1 };
+  else if (role === "ineligible_cooling")
+    sizing = { avatarRadius: 0.24, haloRadius: 0.3, sparkRadius: 0.03, flareSize: 1, scale: 1 };
+  else if (role === "ineligible_off_shift" || role === "ineligible_closed") {
+    sizing = { avatarRadius: 0.2, haloRadius: 0.26, sparkRadius: 0.025, flareSize: 1, scale: 1 };
+  } else if (state === "idle") {
     if (tier === "foreground")
-      return { avatarRadius: 0.3, haloRadius: 0.38, sparkRadius: 0.045, flareSize: 1, scale: 1 };
-    if (tier === "mid")
-      return { avatarRadius: 0.19, haloRadius: 0.24, sparkRadius: 0.032, flareSize: 1, scale: 1 };
-    return { avatarRadius: 0.11, haloRadius: 0.14, sparkRadius: 0.022, flareSize: 1, scale: 1 };
-  }
-  if (tier === "foreground")
-    return { avatarRadius: 0.26, haloRadius: 0.32, sparkRadius: 0.04, flareSize: 1, scale: 1 };
-  if (tier === "mid")
-    return { avatarRadius: 0.17, haloRadius: 0.22, sparkRadius: 0.028, flareSize: 1, scale: 1 };
-  return { avatarRadius: 0.11, haloRadius: 0.15, sparkRadius: 0.02, flareSize: 1, scale: 1 };
+      sizing = { avatarRadius: 0.3, haloRadius: 0.38, sparkRadius: 0.045, flareSize: 1, scale: 1 };
+    else if (tier === "mid")
+      sizing = { avatarRadius: 0.19, haloRadius: 0.24, sparkRadius: 0.032, flareSize: 1, scale: 1 };
+    else
+      sizing = { avatarRadius: 0.11, haloRadius: 0.14, sparkRadius: 0.022, flareSize: 1, scale: 1 };
+  } else if (tier === "foreground")
+    sizing = { avatarRadius: 0.26, haloRadius: 0.32, sparkRadius: 0.04, flareSize: 1, scale: 1 };
+  else if (tier === "mid")
+    sizing = { avatarRadius: 0.17, haloRadius: 0.22, sparkRadius: 0.028, flareSize: 1, scale: 1 };
+  else sizing = { avatarRadius: 0.11, haloRadius: 0.15, sparkRadius: 0.02, flareSize: 1, scale: 1 };
+  return scaleStarSizing(sizing, scale);
 }
 
 export function intensityForRole(role: StarRole, tier: StarTier, state: LobbyState): number {
@@ -88,6 +138,7 @@ export function resolveStarPresentation({
   baseIntensity,
   filteredOut,
   avatarRadius,
+  hitRadiusFloor = MIN_STAR_HIT_RADIUS,
 }: {
   tier: StarTier;
   role: StarRole;
@@ -97,6 +148,7 @@ export function resolveStarPresentation({
   baseIntensity: number;
   filteredOut: boolean;
   avatarRadius: number;
+  hitRadiusFloor?: number;
 }): StarPresentation {
   const forceAvatar = role === "focus" || role === "partner";
   const ineligibleRole =
@@ -124,7 +176,7 @@ export function resolveStarPresentation({
         ? filterMultiplier
         : baseIntensity * filterMultiplier * slabIntensity,
     avatarScale: dormantDot ? 0 : fullAvatar ? 1 : 0.38,
-    hitRadius: Math.max(avatarRadius, MIN_STAR_HIT_RADIUS),
+    hitRadius: Math.max(avatarRadius, hitRadiusFloor),
     slabIntensity,
     slabScale,
     zLift: hovered && tier === "background" && !clustered ? 1.8 : 0,
@@ -179,13 +231,22 @@ export function withAlpha(color: string, alpha: number): string {
   return color;
 }
 
+export type HaloRiskTone = "steady" | "cooling" | "at-risk";
+
+const RISK_HALO_COLOR: Record<Exclude<HaloRiskTone, "steady">, string> = {
+  cooling: "#f59e0b",
+  "at-risk": "#f43f5e",
+};
+
 export function haloColorForStar(
   role: StarRole,
   palette: PortraitPalette,
   aura: MemberAuraConfig | undefined,
+  riskTone: HaloRiskTone = "steady",
 ): string {
   if (role === "focus") return "#fb7185";
   if (role === "partner") return "#c4b5fd";
+  if (riskTone !== "steady") return RISK_HALO_COLOR[riskTone];
   if (aura !== undefined) return withoutAlpha(aura.tint.primary);
   return palette.accent;
 }

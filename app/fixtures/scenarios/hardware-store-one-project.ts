@@ -33,6 +33,7 @@ export const hardwareStoreOneProject: DateScenario = {
   },
   director: {
     tone: "fluorescent overhead, sawdust on the floor, a paint mixer running two aisles over",
+    flow: "activity",
     rules: [
       "Anchor the date to aisle 18. The pair does not march through the store.",
       "Treat the bracket as a real object with a real fix. Do not turn it into a metaphor for the relationship.",

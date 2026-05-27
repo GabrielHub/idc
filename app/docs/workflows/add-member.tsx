@@ -122,6 +122,10 @@ export const sections: DocSectionEntry[] = [
               <Strong>State:</Strong> mood, openness, burnout, retention, currentRequestId,
               recentDateResult, status.
             </span>,
+            <span key="availability">
+              <Strong>Availability:</Strong> choose a <DocCode>shiftAvailabilityProfile</DocCode>{" "}
+              that follows from the member premise and current roster pacing.
+            </span>,
             <span key="visual">
               <Strong>Visual:</Strong> keep <DocCode>visualDescription</DocCode> neutral and point
               portrait references at their conventional future paths. Use{" "}
@@ -175,6 +179,7 @@ vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
           items={[
             "Pick one warm pairing and one boundary-pressure pairing from the roster.",
             "Use a named session for every run. Pass the session name on every command after start.",
+            "Use the member-chat playground as a quick pre-date probe for profile-recital drift, hidden-info leakage, and chat-app artifacts. Do not treat it as a substitute for the live date prompt.",
             "Surface a readable window: up to six focus-member turns plus the partner lines that prompted them.",
             "Read both speakers. Partner drift is still fixture evidence.",
             "Patch the smallest correct surface: fixture register, tic, sample bank, prompt scaffold, or content lint.",
@@ -240,6 +245,42 @@ vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
           </span>,
         ]}
       />
+    ),
+  },
+  {
+    id: "asset-handoff",
+    title: "Asset Handoff",
+    body: (
+      <>
+        <P>
+          Member creation may ship with pending portrait paths, but approved assets need the current
+          UX handoff before the member is considered visually complete.
+        </P>
+        <DocSteps
+          items={[
+            <span key="workflow">
+              Follow{" "}
+              <DocLink to="/docs/workflows/visual-asset-iteration">Visual asset iteration</DocLink>{" "}
+              for portrait, avatar, and expression-variant generation. Keep image work separate from
+              fixture writing until a source image is approved.
+            </span>,
+            "After approval, land source images under assets-source/portraits/<member-id>/ and runtime cutouts under public/assets/portraits/<member-id>/.",
+            <span key="scripts">
+              Run <DocCode>vp run portrait:cutout</DocCode>,{" "}
+              <DocCode>vp run portrait:resize-avatars</DocCode>,{" "}
+              <DocCode>vp run portrait:standee-footing</DocCode>, and{" "}
+              <DocCode>vp run portrait:palettes</DocCode> after approved source changes.
+            </span>,
+            <span key="height">
+              Use the Height lineup and{" "}
+              <DocLink to="/docs/product/character-heights">Character heights</DocLink> before
+              finalizing <DocCode>characterHeightInInches</DocCode> or{" "}
+              <DocCode>standeeRenderHeightInInches</DocCode>.
+            </span>,
+            "Review the member details, constellation lobby, live date standee, and Chat bubble gallery when presentation hooks or assets change.",
+          ]}
+        />
+      </>
     ),
   },
   {

@@ -76,7 +76,14 @@ export function PairEdgeMesh({
     mountHitSleeve: true,
   }));
 
-  const baseWidth = edgeStrokeWidth(edge) * 0.6;
+  const progressRatio = Math.min(1, Math.max(0, edge.closureProgress / 100));
+  // Re-centered around the prior 1.0 multiplier so steady-progress edges keep
+  // their old thickness; early-progress edges dim slightly, ready edges bolden
+  // slightly. Edges that still carry closure blockers cap below the ready boost
+  // so the constellation reads "not yet ready" before the dossier confirms it.
+  const blockerPenalty = edge.closureBlockers.length > 0 ? 0.92 : 1.0;
+  const progressBoost = 0.85 + progressRatio * 0.3;
+  const baseWidth = edgeStrokeWidth(edge) * 0.6 * progressBoost * blockerPenalty;
   const baseOpacity = edgeBaseOpacity(edge);
   const color = colorForHealth(edge.health, isHovered || isSelected);
 

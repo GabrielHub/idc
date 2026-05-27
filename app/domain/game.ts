@@ -9,6 +9,8 @@ export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
 export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
 export const DEFAULT_DATE_MESSAGE_LIMIT = 12;
+export const DEFAULT_JUDGE_TURN_INTERVAL = 6;
+export const MEMBER_RETENTION_WARNING_THRESHOLD = 25;
 export const LEGACY_DEFAULT_DATE_MESSAGE_LIMIT = 24;
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
@@ -365,6 +367,8 @@ export const SCENARIO_EVENT_KINDS = scenarioEventKindSchema.options;
 export const SCENARIO_EVENTS_PER_KIND = 3;
 export const SCENARIO_EVENT_TOTAL = SCENARIO_EVENTS_PER_KIND * SCENARIO_EVENT_KINDS.length;
 
+export const scenarioFlowSchema = z.enum(["conversation", "activity", "pressure", "set_piece"]);
+
 export const scenarioEventSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -395,6 +399,7 @@ export const dateScenarioSchema = z.object({
   }),
   director: z.object({
     tone: z.string().min(1),
+    flow: scenarioFlowSchema,
     rules: z.array(z.string().min(1)).min(1),
     events: z
       .array(scenarioEventSchema)
@@ -734,6 +739,25 @@ export const dateFinalReportSchema = z.object({
   appliedFollowUp: followUpActionSchema.optional(),
   memoryRecordIds: z.array(memoryIdSchema),
   readyToClose: z.boolean().default(false),
+  statChange: z
+    .object({
+      pair: z.partialRecord(relationshipStatSchema, deltaSchema),
+      members: z.record(
+        memberIdSchema,
+        z.object({
+          mood: deltaSchema,
+          retention: deltaSchema,
+          burnout: deltaSchema,
+        }),
+      ),
+    })
+    .optional(),
+});
+
+export const memberStateSnapshotSchema = z.object({
+  mood: scoreSchema,
+  retention: scoreSchema,
+  burnout: scoreSchema,
 });
 
 export const dateSessionSchema = z.object({
@@ -744,6 +768,9 @@ export const dateSessionSchema = z.object({
   focusMemberId: memberIdSchema.optional(),
   focusRequestId: z.string().min(1).optional(),
   turnLimit: z.number().int().min(2).default(DEFAULT_DATE_MESSAGE_LIMIT),
+  judgeTurnInterval: z.number().int().min(2).max(12).optional(),
+  initialPairStats: pairStatsSchema.optional(),
+  initialMemberStates: z.record(memberIdSchema, memberStateSnapshotSchema).optional(),
   currentTurn: z.number().int().min(0),
   dateHealth: scoreSchema,
   status: dateSessionStatusSchema,
@@ -1007,6 +1034,7 @@ export const gameConfigSchema = z.preprocess(
     gatewayBaseURL: z.string().min(1).default(DEFAULT_GATEWAY_BASE_URL),
     aiSetupComplete: z.boolean().default(false),
     defaultDateMessageLimit: z.number().int().min(2).default(DEFAULT_DATE_MESSAGE_LIMIT),
+    dateMessageLimitOverride: z.number().int().min(2).optional(),
     shiftDateSlots: z.number().int().min(1).default(1),
   }),
 );
@@ -1127,6 +1155,7 @@ export type ShiftAvailabilityProfile = z.infer<typeof shiftAvailabilityProfileSc
 export type ScenarioTag = z.infer<typeof scenarioTagSchema>;
 export type RelationshipStat = z.infer<typeof relationshipStatSchema>;
 export type ScenarioEventKind = z.infer<typeof scenarioEventKindSchema>;
+export type ScenarioFlow = z.infer<typeof scenarioFlowSchema>;
 export type ScenarioEvent = z.infer<typeof scenarioEventSchema>;
 export type DateScenario = z.infer<typeof dateScenarioSchema>;
 export type EventDraft = z.infer<typeof eventDraftSchema>;
@@ -1163,6 +1192,8 @@ export type JudgeOpenLoopUpdate = z.infer<typeof judgeOpenLoopUpdateSchema>;
 export type DateSessionStatus = z.infer<typeof dateSessionStatusSchema>;
 export type DateRuntimeMode = z.infer<typeof dateRuntimeModeSchema>;
 export type DateFinalReport = z.infer<typeof dateFinalReportSchema>;
+export type DateStatChange = NonNullable<DateFinalReport["statChange"]>;
+export type MemberStateSnapshot = z.infer<typeof memberStateSnapshotSchema>;
 export type DateSession = z.infer<typeof dateSessionSchema>;
 export type FollowUpAction = z.infer<typeof followUpActionSchema>;
 export type MatchmakingIntent = z.infer<typeof matchmakingIntentSchema>;

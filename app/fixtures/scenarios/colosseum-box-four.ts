@@ -33,6 +33,7 @@ export const colosseumBoxFour: DateScenario = {
   },
   director: {
     tone: "the low steady roar of the crowd, the sun on the stone, the smell of dust and oil, the box quiet against the size of the building",
+    flow: "pressure",
     rules: [
       "Anchor the date to box four. The pair does not leave the box during a bout.",
       "Treat the violence as fact. The fight is not spectacle for the pair to riff on.",

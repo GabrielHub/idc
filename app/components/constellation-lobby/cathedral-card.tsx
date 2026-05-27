@@ -2,6 +2,12 @@ import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
 import { loadScenarioBackdropIds, scenarioBackdropPath } from "../scenario-backdrop";
+import {
+  SCENARIO_FLOW_BLURB,
+  SCENARIO_FLOW_CATHEDRAL_TONE,
+  SCENARIO_FLOW_DOT_TONE,
+  SCENARIO_FLOW_LABEL,
+} from "../scenario-flow";
 import type { CathedralMode, DoorEntry, RoomReadTint } from "./cathedral-types";
 import type { LobbyScenario } from "./types";
 
@@ -120,14 +126,10 @@ export function CathedralCard({
           {entry.scenario.venue}
         </p>
 
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <div className="flex-1 space-y-1.5">
-            <AxisMeter value={entry.scenario.axes.risk} kind="risk" />
-            <AxisMeter value={entry.scenario.axes.intimacy} kind="warmth" />
-            <AxisMeter value={entry.scenario.axes.chaos} kind="chaos" />
-          </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <FlowPill flow={entry.scenario.flow} />
           <span
-            className={`inline-flex shrink-0 rounded-pill border px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] backdrop-blur-md ${tint.pill}`}
+            className={`inline-flex shrink-0 rounded-pill border px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] backdrop-blur-md ${tint.pill}`}
           >
             {entry.scenario.roomRead}
           </span>
@@ -198,6 +200,21 @@ function CardScenarioBackdrop({
   );
 }
 
+function FlowPill({ flow }: { flow: LobbyScenario["flow"] }) {
+  const tone = SCENARIO_FLOW_CATHEDRAL_TONE[flow];
+  const dot = SCENARIO_FLOW_DOT_TONE[flow];
+  return (
+    <span
+      title={SCENARIO_FLOW_BLURB[flow]}
+      aria-label={`Flow: ${SCENARIO_FLOW_LABEL[flow]}. ${SCENARIO_FLOW_BLURB[flow]}`}
+      className={`inline-flex items-center gap-1.5 rounded-pill border px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] backdrop-blur-md ${tone.pill}`}
+    >
+      <span aria-hidden className={`size-1.5 rounded-full ${dot}`} />
+      {SCENARIO_FLOW_LABEL[flow]}
+    </span>
+  );
+}
+
 function DoorPeekGlyph() {
   return (
     <svg
@@ -214,49 +231,6 @@ function DoorPeekGlyph() {
       <path d="M8 7.2v3.4" />
       <circle cx="8" cy="5.2" r="0.6" fill="currentColor" stroke="none" />
     </svg>
-  );
-}
-
-function AxisMeter({ value, kind }: { value: number; kind: "risk" | "warmth" | "chaos" }) {
-  const segments = 3;
-  const filled = Math.max(0, Math.min(segments, Math.round(value)));
-  const fillBg =
-    kind === "risk" ? "bg-aura-rose" : kind === "warmth" ? "bg-aura-violet" : "bg-aura-amber";
-  const fullName = kind === "risk" ? "Risk" : kind === "warmth" ? "Warmth" : "Chaos";
-  const levelName = filled <= 1 ? "low" : filled === 2 ? "medium" : "high";
-  const blurb =
-    kind === "risk"
-      ? "How likely the room is to skew the night - embarrassment, conflict, an exit."
-      : kind === "warmth"
-        ? "How intimately the table runs - eye contact, quiet stretches, lean-in beats."
-        : "How chaotic the room is - interruptions, side characters, unexpected turns.";
-
-  return (
-    <div className="group/axis relative flex items-center gap-2">
-      <span
-        aria-label={fullName}
-        className="inline-block overflow-hidden whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-[0.16em] text-white/75 transition-[max-width] duration-300 ease-out [max-width:0.625rem] group-hover/door:[max-width:4.5rem]"
-      >
-        {fullName.toUpperCase()}
-      </span>
-      <div className="flex flex-1 gap-1">
-        {Array.from({ length: segments }, (_, i) => (
-          <span
-            key={i}
-            aria-hidden
-            className={`h-1.5 flex-1 rounded-full ${i < filled ? fillBg : "bg-white/15"}`}
-          />
-        ))}
-      </div>
-      <div className="pointer-events-none absolute bottom-full left-0 z-40 mb-2 w-max max-w-[220px] -translate-y-0.5 opacity-0 transition-opacity duration-150 group-hover/axis:opacity-100">
-        <div className="aura-liquid-glass aura-liquid-glass-ink rounded-card px-3 py-2 shadow-cta ring-1 ring-white/15">
-          <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/65">
-            {fullName} - {levelName}
-          </div>
-          <p className="mt-1 font-sans text-label leading-snug text-aura-paper/90">{blurb}</p>
-        </div>
-      </div>
-    </div>
   );
 }
 

@@ -11,17 +11,18 @@ import type {
   MemberSampleMessages,
   PairState,
   PlayerKnowledgeRecord,
+  ScenarioFlow,
   ScenarioEvent,
   ScenarioEventKind,
 } from "../domain/game";
 import type { MemoryPack } from "./cupid-memory";
 import {
+  dateCadenceForSession,
+  dateExchangeWindowSinceLastJudge,
   exchangeIndexForPendingTurn,
-  exchangeIndexForTurn,
   findScenarioEventById,
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
-  latestJudgedExchangeIndex,
 } from "./date-engine";
 import type { MatchFitResult } from "./match-fit";
 import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
@@ -479,6 +480,10 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     `During the date the dating manager may send private in-app notes meant as coaching, not conversation. The note is yours to follow, bend, or ignore. Your reply is the spoken line to your date; if a note changes your behavior, the spoken line still has to make sense to someone who cannot read the note.`,
     `This is your ${ordinal(dateNumber)} date with ${partner.firstName} through Cupid.`,
     `</scene>`,
+    ...formatCharacterLiveDateSection({
+      flow: scenario.director.flow,
+      isSpeakerOpeningTurn,
+    }),
     ...buildSceneDirectiveLines(findPendingSceneDirective(session, scenario)),
     ...formatCharacterFormatSection(member),
     ...buildRepetitionRetryNotice(input.repetitionRetry),
@@ -503,6 +508,55 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     prompt: formatPromptPreview([{ role: "system", content: system }, ...messages]),
     messages,
   };
+}
+
+const CHARACTER_FLOW_GUIDANCE: Record<ScenarioFlow, readonly string[]> = {
+  conversation: [
+    "<flow_mode>conversation</flow_mode>",
+    "This room is mainly a place to have the date. Treat fixture nouns as staging unless an event turns one into a real choice. Let the venue fall behind the person across from you. Prefer answering, asking, joking, disagreeing, admitting something, or following up on what they just revealed.",
+    "If your date makes the backdrop the topic, answer the social move underneath it and pivot toward them. Do not mirror or elaborate booth, menu, weather, table, counter, route, or prop details just because they were mentioned.",
+  ],
+  activity: [
+    "<flow_mode>activity</flow_mode>",
+    "Keep the conversation alive while the activity happens under your hands. Let small choices carry the scene: order, pour, split, offer, wait, take a turn, hand something over, or ask before changing course. The task should create subtext, not become a report.",
+  ],
+  pressure: [
+    "<flow_mode>pressure</flow_mode>",
+    "The room is asking for a choice. One careful beat is fine; parking in analysis is not. Make, refuse, defer, share, or hand off a concrete choice and give your date something live to answer.",
+  ],
+  set_piece: [
+    "<flow_mode>set_piece</flow_mode>",
+    "The room changes around you. React to the visible change and name a next move in dialogue. Keep consequences local to what the room has already shown and leave space for your date to answer.",
+  ],
+};
+
+function formatCharacterLiveDateSection({
+  flow,
+  isSpeakerOpeningTurn,
+}: {
+  flow: ScenarioFlow;
+  isSpeakerOpeningTurn: boolean;
+}): string[] {
+  return [
+    "",
+    "<live_date_turn>",
+    "Write the next thing you say in a live date with the person across from you. The line should sound like natural spoken dialogue, not narration, not a recap, and not proof that you read the room file.",
+    "Success means the reply advances this date: answer or pressure-test your date, make a small choice, ask a real follow-up, react to what just changed, or let a physical move reveal your stance. The place should be apparent through what you choose, notice, ask, refuse, order, move, or wait on, not through inventory.",
+    "The newest partner move outranks room analysis. If your date just chose, ordered, asked, refused, admitted something, or proposed a plan, meet that move before adding any new room detail.",
+    "Finish the conversational move inside this line. If you say you want to ask, ask. If you say you are going to choose, name the choice. If you invite your date into a decision, give them the decision.",
+    "Stay inside the current scene inventory. Do not add new menus, staff, drinks, tools, screens, exits, rules, or offscreen options unless the scenario, event, or partner already put them there.",
+    "Warmth is not a verdict on the partner's line. Unless your authored voice specifically talks that way, show liking by getting more specific: tease, answer, callback, ask the next question, or extend the bit. If your date uses generic approval language, do not mirror that shape; translate it into your own concrete move.",
+    "Bureaucratic acknowledgments ('got it,' 'noted,' 'good intel,' 'fair enough') do not bridge a casual reply. Use an in-voice reaction, a direct answer, a real question, or skip the beat.",
+    "Use names and profile facts as social context, not as receipts. Names are for address, not material to inspect or compliment unless your date made the name the topic. After introductions, default to pronouns, first-name address, or the thing your date just did; do not repeat a partner's full name or profile label just to show recognition.",
+    'The bubble contains only words spoken aloud. When a physical move matters, make it a live offer, instruction, or commitment your date can answer: "Yours goes on the grill first unless you want the spicy one," "Take the high hold, I have the low one," or "I am choosing e4 and living with it." Do not append bracketed action blocks, private rationale, or prose about your body moving.',
+    ...CHARACTER_FLOW_GUIDANCE[flow],
+    ...(isSpeakerOpeningTurn
+      ? [
+          "Opening turn: start the date, not the room tour. Use the opening situation to make a conversational move toward your date.",
+        ]
+      : []),
+    "</live_date_turn>",
+  ];
 }
 
 function buildRecentLineNotices({
@@ -951,15 +1005,13 @@ function findPendingSceneDirective(
   // A dropped scene stays "pending" for every speaker in the current exchange,
   // not just the first one after the drop. Once the judge runs at the
   // exchange boundary, the scene is retired with the judgement.
-  const pendingExchangeFloor = latestJudgedExchangeIndex(session);
-  for (let i = session.transcript.length - 1; i >= 0; i--) {
-    const message = session.transcript[i];
-    if (exchangeIndexForTurn(message.turnIndex) <= pendingExchangeFloor) {
-      return undefined;
-    }
-    if (message.kind === "scenario" && message.sourceEventId !== undefined) {
-      return findScenarioEventById(scenario, message.sourceEventId);
-    }
+  const pendingMessages = dateExchangeWindowSinceLastJudge(
+    session,
+    session.transcript,
+  ).sceneMessages;
+  for (let i = pendingMessages.length - 1; i >= 0; i--) {
+    const message = pendingMessages[i];
+    return findScenarioEventById(scenario, message.sourceEventId);
   }
   return undefined;
 }
@@ -1047,7 +1099,12 @@ export function buildJudgePromptPacket({
 }): JudgePromptPacket {
   const isPlayerCutShort = mode === "player_cut_short";
   const currentExchangeIndex =
-    exchangeIndex ?? exchangeIndexForPendingTurn(exchangeMessages, session.judgeSnapshots.length);
+    exchangeIndex ??
+    exchangeIndexForPendingTurn(
+      exchangeMessages,
+      session.judgeSnapshots.length,
+      dateCadenceForSession(session),
+    );
   const system = [
     "<role>You are Cupid's date analyst.</role>",
     "",
@@ -1190,6 +1247,7 @@ export function buildJudgePromptPacket({
         "",
         "<scene>",
         `Scenario: ${scenario.title}.`,
+        `Scenario flow: ${scenario.director.flow}.`,
         `Scenario pressure: risk ${scenario.card.risk}, intimacy ${scenario.card.intimacy}, chaos ${scenario.card.chaos}.`,
         `Participants: ${formatParticipants(members)}.`,
         `Rubric success signals: ${scenario.judgeRubric.successSignals.join("; ")}.`,

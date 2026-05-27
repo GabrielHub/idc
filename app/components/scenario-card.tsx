@@ -1,9 +1,15 @@
 import { motion } from "motion/react";
 import { type Ref, useState } from "react";
 
-import type { DateScenario } from "../domain/game";
+import type { DateScenario, ScenarioFlow } from "../domain/game";
 import type { ScenarioRoomRead } from "../services/match-fit";
 import { scenarioBackdropPath } from "./scenario-backdrop";
+import {
+  SCENARIO_FLOW_BLURB,
+  SCENARIO_FLOW_DOT_TONE,
+  SCENARIO_FLOW_LABEL,
+  SCENARIO_FLOW_TEXT_TONE,
+} from "./scenario-flow";
 
 export const RISK_DOT_TONE = {
   low: "bg-emerald-500",
@@ -21,18 +27,6 @@ export const RISK_SHORT = {
   low: "LOW",
   medium: "MED",
   high: "HIGH",
-} as const;
-
-const AXIS_SHORT_LABEL = {
-  risk: "Risk",
-  intimacy: "Intim",
-  chaos: "Chaos",
-} as const;
-
-const AXIS_FULL_LABEL = {
-  risk: "Risk",
-  intimacy: "Intimacy",
-  chaos: "Chaos",
 } as const;
 
 const ROOM_READ_LABEL: Record<ScenarioRoomRead, string> = {
@@ -120,7 +114,7 @@ export function ScenarioCard({
         onClick={interactive ? onClick : undefined}
         disabled={!interactive}
         aria-pressed={isSelected || undefined}
-        aria-label={`${scenario.title} · ${scenario.card.risk} risk date plan`}
+        aria-label={`${scenario.title} · ${SCENARIO_FLOW_LABEL[scenario.director.flow]} date plan`}
         data-sfx={interactive ? "click" : undefined}
         className="absolute inset-0 z-30 cursor-pointer text-left disabled:cursor-not-allowed disabled:opacity-100"
       >
@@ -139,7 +133,6 @@ export function ScenarioCard({
         }`}
       >
         <div className="flex items-center gap-1.5">
-          <RiskBadge risk={scenario.card.risk} isTile={isTile} />
           {roomRead === undefined ? null : <RoomReadPip read={roomRead} isTile={isTile} />}
         </div>
         <div className="flex items-center justify-end gap-1.5">
@@ -156,9 +149,8 @@ export function ScenarioCard({
 
       {isTile ? (
         <TileNamePlate
-          title={scenario.title}
+          scenario={scenario}
           cost={effectiveCost ?? scenario.card.cost}
-          baseCost={scenario.card.cost}
           showCost={showCost}
         />
       ) : isCompact ? (
@@ -175,6 +167,23 @@ export function ScenarioCard({
         />
       )}
     </motion.article>
+  );
+}
+
+function FlowBadge({ flow, size }: { flow: ScenarioFlow; size: ScenarioCardSize }) {
+  const dotSize = size === "tile" ? "size-1.5" : "size-2";
+  const padding =
+    size === "tile" ? "px-2 py-0.5" : size === "compact" ? "px-2.5 py-1" : "px-3 py-1.5";
+  const labelSize = size === "full" ? "text-label" : "text-micro";
+  return (
+    <span
+      title={SCENARIO_FLOW_BLURB[flow]}
+      aria-label={`Flow: ${SCENARIO_FLOW_LABEL[flow]}. ${SCENARIO_FLOW_BLURB[flow]}`}
+      className={`inline-flex items-center gap-2 rounded-pill border border-aura-hairline bg-white/85 font-mono font-semibold uppercase tracking-[0.18em] shadow-[0_2px_8px_-4px_rgba(15,23,42,0.12)] ${labelSize} ${padding}`}
+    >
+      <span aria-hidden className={`${dotSize} rounded-full ${SCENARIO_FLOW_DOT_TONE[flow]}`} />
+      <span className={SCENARIO_FLOW_TEXT_TONE[flow]}>{SCENARIO_FLOW_LABEL[flow]}</span>
+    </span>
   );
 }
 
@@ -306,19 +315,6 @@ function CardEdgeFrame({
   );
 }
 
-function RiskBadge({ risk, isTile }: { risk: "low" | "medium" | "high"; isTile: boolean }) {
-  return (
-    <span
-      className={`aura-glass-strong inline-flex items-center gap-1.5 rounded-full font-mono text-micro font-semibold uppercase tracking-[0.22em] ${
-        RISK_TEXT_TONE[risk]
-      } ${isTile ? "px-1.5 py-0.5" : "px-2 py-0.5"}`}
-    >
-      <span aria-hidden className={`size-1.5 rounded-full ${RISK_DOT_TONE[risk]}`} />
-      {RISK_SHORT[risk]}
-    </span>
-  );
-}
-
 function CornerStatus({
   selected,
   inHand,
@@ -398,26 +394,23 @@ function ScenarioExpandGlyph() {
 }
 
 function TileNamePlate({
-  title,
+  scenario,
   cost,
-  baseCost,
   showCost,
 }: {
-  title: string;
+  scenario: DateScenario;
   cost: number;
-  baseCost: number;
   showCost: boolean;
 }) {
   return (
-    <div className="relative z-20 mt-auto px-2.5 pb-2.5 pt-1">
+    <div className="relative z-20 mt-auto flex flex-col gap-1.5 px-2.5 pb-2.5 pt-1">
       <h3 className="max-w-[70%] font-serif text-[17px] font-semibold italic uppercase leading-[1.05] tracking-[0.01em] text-aura-ink line-clamp-3 [text-shadow:0_1px_2px_rgba(255,253,249,0.95),0_0_14px_rgba(255,253,249,0.85),0_0_28px_rgba(255,253,249,0.55)]">
-        {title}
+        {scenario.title}
       </h3>
-      {showCost ? (
-        <div className="mt-1.5 flex justify-end">
-          <CostChip cost={cost} baseCost={baseCost} isTile={true} />
-        </div>
-      ) : null}
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <FlowBadge flow={scenario.director.flow} size="tile" />
+        {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={true} /> : null}
+      </div>
     </div>
   );
 }
@@ -440,8 +433,8 @@ function CompactNamePlate({
         {scenario.title}
       </h3>
       <p className="text-sm leading-[1.4] text-aura-muted line-clamp-2">{scenario.card.summary}</p>
-      <div className="mt-auto flex items-end justify-between gap-2 pt-1">
-        <MeterRow card={scenario.card} />
+      <div className="mt-auto flex items-center justify-between gap-2 pt-1">
+        <FlowBadge flow={scenario.director.flow} size="compact" />
         {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}
       </div>
     </div>
@@ -466,45 +459,10 @@ function FullNamePlate({
         {scenario.title}
       </h3>
       <p className="text-sm leading-[1.45] text-aura-muted line-clamp-3">{scenario.card.summary}</p>
-      <div className="mt-auto flex items-end justify-between gap-2">
-        <MeterRow card={scenario.card} />
+      <div className="mt-auto flex items-center justify-between gap-2">
+        <FlowBadge flow={scenario.director.flow} size="full" />
         {showCost ? <CostChip cost={cost} baseCost={scenario.card.cost} isTile={false} /> : null}
       </div>
-    </div>
-  );
-}
-
-function MeterRow({
-  card,
-}: {
-  card: {
-    risk: "low" | "medium" | "high";
-    intimacy: "low" | "medium" | "high";
-    chaos: "low" | "medium" | "high";
-  };
-}) {
-  const items = [
-    { key: "risk" as const, tone: card.risk },
-    { key: "intimacy" as const, tone: card.intimacy },
-    { key: "chaos" as const, tone: card.chaos },
-  ];
-  return (
-    <div className="flex items-stretch gap-1.5">
-      {items.map((item) => (
-        <span
-          key={item.key}
-          className="flex flex-1 flex-col items-center gap-1 rounded-[10px] border border-aura-hairline/70 bg-white/80 px-1.5 py-1.5 font-mono text-micro uppercase leading-none tracking-[0.14em] shadow-[0_2px_8px_-4px_rgba(15,23,42,0.08)]"
-          title={`${AXIS_FULL_LABEL[item.key]}: ${RISK_SHORT[item.tone]}`}
-        >
-          <span className="text-aura-faint">{AXIS_SHORT_LABEL[item.key]}</span>
-          <span
-            className={`inline-flex items-center gap-1 font-semibold ${RISK_TEXT_TONE[item.tone]}`}
-          >
-            <span aria-hidden className={`size-1.5 rounded-full ${RISK_DOT_TONE[item.tone]}`} />
-            {RISK_SHORT[item.tone]}
-          </span>
-        </span>
-      ))}
     </div>
   );
 }

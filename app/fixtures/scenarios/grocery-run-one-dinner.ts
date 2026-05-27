@@ -34,6 +34,7 @@ export const groceryRunOneDinner: DateScenario = {
   },
   director: {
     tone: "ordinary errand, bright overhead lighting, cart wheels rattling",
+    flow: "activity",
     rules: [
       "Anchor the date to aisle 7. The pair does not march through the store.",
       "Use shelf decisions as low-stakes proxies for shared life.",

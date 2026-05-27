@@ -34,6 +34,7 @@ export const moonglassKilnAfterHours: DateScenario = {
   },
   director: {
     tone: "the steady roar of two furnaces at low setting, warm dry air, the faint metal smell, the soft hiss of a piece coming off the punty",
+    flow: "activity",
     rules: [
       "Anchor the date to the two benches and the order desk. The pair does not wander the kiln.",
       "Treat the kiln as automated. The master is not here and does not return during the session.",

@@ -34,6 +34,7 @@ export const executiveLunchOneAgendaItem: DateScenario = {
   },
   director: {
     tone: "polished, punctual, low volume, with quiet silverware and controlled lighting",
+    flow: "conversation",
     rules: [
       "Let professionalism read as intimacy for members who value competence.",
       "Keep the room efficient without turning the date into a meeting.",

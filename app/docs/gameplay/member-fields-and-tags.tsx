@@ -49,6 +49,17 @@ export const sections: DocSectionEntry[] = [
               ),
             },
             {
+              term: "height fields",
+              def: (
+                <>
+                  <DocCode>characterHeightInInches</DocCode> is the player-facing profile height for
+                  the member's date-surface form. <DocCode>standeeRenderHeightInInches</DocCode> is
+                  the render tuning value used by date standees. Authoring and calibration rules
+                  live in <DocLink to="/docs/product/character-heights">Character heights</DocLink>.
+                </>
+              ),
+            },
+            {
               term: "bio",
               def: (
                 <>
@@ -94,6 +105,44 @@ export const sections: DocSectionEntry[] = [
                     Member voice authoring
                   </DocLink>
                   .
+                </>
+              ),
+            },
+            {
+              term: "portraits",
+              def: (
+                <>
+                  Runtime asset references for neutral portrait and avatar, plus optional flirty,
+                  confused, and angry full-body variants. Conventional paths may be committed before
+                  files exist when the asset is marked <DocCode>model: "pending"</DocCode>. Approved
+                  asset rules live in{" "}
+                  <DocLink to="/docs/product/image-style">Image style and asset pipeline</DocLink>.
+                </>
+              ),
+            },
+            {
+              term: "chatBubble",
+              def: (
+                <>
+                  Optional focused-side live date bubble presentation. Every non-human member should
+                  declare one; ordinary humans may intentionally use the house default. The enum
+                  axes and examples live in{" "}
+                  <DocLink to="/docs/product/visual-design#per-member-chat-bubbles">
+                    Visual design
+                  </DocLink>
+                  .
+                </>
+              ),
+            },
+            {
+              term: "shiftAvailabilityProfile",
+              def: (
+                <>
+                  Deterministic scheduling flavor for shift planning. Use one of{" "}
+                  <DocCode>steady</DocCode>, <DocCode>busy_public</DocCode>,{" "}
+                  <DocCode>career_locked</DocCode>, <DocCode>soft_schedule</DocCode>,{" "}
+                  <DocCode>formal_calendar</DocCode>, or <DocCode>weird_erratic</DocCode>. It should
+                  follow from the member premise, not from temporary balancing needs.
                 </>
               ),
             },

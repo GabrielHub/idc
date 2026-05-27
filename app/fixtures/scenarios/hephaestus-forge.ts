@@ -33,6 +33,7 @@ export const hephaestusForge: DateScenario = {
   },
   director: {
     tone: "the steady roar of automated bellows, the white heat of the coals, the faint metal smell, the clean stone floor",
+    flow: "set_piece",
     rules: [
       "Anchor the date to the order desk and the two slabs. The pair does not wander the forge.",
       "Treat the forge as automated. Hephaestus is not here and does not return during the session.",

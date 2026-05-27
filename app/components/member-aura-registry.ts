@@ -95,6 +95,14 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "godray",
     tint: { primary: "rgba(232, 200, 240, 0.5)", glow: "rgba(218, 184, 232, 0.32)" },
   },
+  "marlee-hines": {
+    kind: "godray",
+    tint: { primary: "rgba(220, 222, 228, 0.55)", glow: "rgba(196, 200, 212, 0.34)" },
+  },
+  "daiven-patel": {
+    kind: "godray",
+    tint: { primary: "rgba(244, 152, 100, 0.55)", glow: "rgba(220, 96, 88, 0.34)" },
+  },
 
   "gideon-glass": {
     kind: "ectoplasm",
@@ -219,6 +227,10 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     kind: "prism",
     tint: { primary: "rgba(252, 196, 204, 0.65)", glow: "rgba(168, 220, 232, 0.55)" },
   },
+  ruby: {
+    kind: "prism",
+    tint: { primary: "rgba(232, 200, 232, 0.62)", glow: "rgba(248, 220, 188, 0.5)" },
+  },
 
   "imani-wallace": {
     kind: "petal",
@@ -233,6 +245,11 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
   anubis: {
     kind: "pulse",
     tint: { primary: "rgba(212, 165, 116, 0.6)", glow: "rgba(164, 113, 72, 0.5)" },
+  },
+
+  "toastimus-crouton-vance": {
+    kind: "ember",
+    tint: { primary: "rgba(252, 222, 168, 0.55)", glow: "rgba(245, 200, 130, 0.4)" },
   },
 };
 

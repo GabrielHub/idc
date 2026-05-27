@@ -33,6 +33,7 @@ export const phantomDoorbellSuite: DateScenario = {
   },
   director: {
     tone: "soft hotel lighting, recycled air, faint hallway hum, the suite trying to seem normal",
+    flow: "set_piece",
     rules: [
       "Treat each interruption as a thing the room does, not a person at the door.",
       "Never voice a hallway visitor. The hallway stays empty.",

@@ -179,6 +179,11 @@ export const sections: DocSectionEntry[] = [
             <span key="director">
               <DocCode>director.tone</DocCode>: scene pressure and texture for prompts.
             </span>,
+            <span key="flow">
+              <DocCode>director.flow</DocCode>: one of <DocCode>conversation</DocCode>,{" "}
+              <DocCode>activity</DocCode>, <DocCode>pressure</DocCode>, or{" "}
+              <DocCode>set_piece</DocCode>. This sets the default date length and judge cadence.
+            </span>,
             <span key="rules">
               <DocCode>director.rules</DocCode>: at least one hard scene rule.
             </span>,
@@ -209,6 +214,49 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "flow",
+    title: "Flow",
+    body: (
+      <>
+        <P>
+          Pick the date flow from what the room asks the pair to do. Do not add custom turn counts
+          to individual fixtures. The runtime resolves the preset into a saved{" "}
+          <DocCode>turnLimit</DocCode> and <DocCode>judgeTurnInterval</DocCode> when the session
+          starts. Test and debug harnesses that need a fixed length should set{" "}
+          <DocCode>dateMessageLimitOverride</DocCode>; <DocCode>defaultDateMessageLimit</DocCode>{" "}
+          remains the legacy setting and should not be used to express "pick exactly the default
+          number."
+        </P>
+        <DocList
+          items={[
+            <span key="conversation">
+              <Strong>conversation:</Strong> twelve turns, judge every six. Use for diners, bars,
+              quiet rooms, benches, transit compartments, and rooms where the main test is talking
+              or sitting with attention. The opening situation should establish seating and
+              immediate shared context, not load the first prompt with prop details the model will
+              echo.
+            </span>,
+            <span key="activity">
+              <Strong>activity:</Strong> fourteen turns, judge every four. Use for meals with shared
+              handling, crafts, errands, games, and task dates where members should make repeated
+              small choices.
+            </span>,
+            <span key="pressure">
+              <Strong>pressure:</Strong> eight turns, judge every four. Use for moral dilemmas,
+              public exposure, prophecy, command decisions, and rooms where drifting would weaken
+              the premise.
+            </span>,
+            <span key="set-piece">
+              <Strong>set_piece:</Strong> sixteen turns, judge every four. Use for evolving rooms,
+              escape-room structures, loops, performances, and action dates with multiple physical
+              beats.
+            </span>,
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "event-requirements",
     title: "Event requirements",
     body: (
@@ -217,7 +265,14 @@ export const sections: DocSectionEntry[] = [
           Every scenario ships exactly nine events: 3 ambient, 3 provocation, 3 reveal. Events are
           real shifts in the room, not whispers of ambient flavor. When the player drops one, the
           next character turn must visibly engage with it. Author each event as something that can
-          move the mood or direction of the date.
+          move the mood or direction of the date. An event should change the live situation, not
+          merely make an unused prop available.
+        </P>
+        <P>
+          Pressure and set-piece events need a consequence on arrival. "The controller is lifted,
+          but nothing has moved" leaves the performers waiting for permission. "The first move has
+          already cost a pawn" gives them something to reason about, react to, and answer in
+          dialogue.
         </P>
         <P>Each event needs:</P>
         <DocList

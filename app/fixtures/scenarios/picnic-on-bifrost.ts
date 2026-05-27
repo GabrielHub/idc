@@ -33,6 +33,7 @@ export const picnicOnBifrost: DateScenario = {
   },
   director: {
     tone: "the soft hum of a cosmic surface, the warmth from below the bridge, the long quiet of a high road, the stars overlapping in two and three at once",
+    flow: "conversation",
     rules: [
       "Anchor the date to the flat segment. The pair does not walk along the bridge.",
       "Treat the watchman as a horizon detail. He does not approach.",

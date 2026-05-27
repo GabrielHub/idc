@@ -79,6 +79,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(203, 198, 226)",
     accent: "rgb(240, 206, 81)",
   },
+  "daiven-patel": {
+    from: "rgb(183, 199, 236)",
+    via: "rgb(236, 221, 203)",
+    to: "rgb(229, 207, 194)",
+    accent: "rgb(94, 136, 227)",
+  },
   "decimus-marius-tullio": {
     from: "rgb(226, 202, 192)",
     via: "rgb(236, 215, 202)",
@@ -169,6 +175,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(198, 204, 226)",
     accent: "rgb(225, 151, 97)",
   },
+  "marlee-hines": {
+    from: "rgb(229, 204, 189)",
+    via: "rgb(196, 241, 242)",
+    to: "rgb(240, 201, 183)",
+    accent: "rgb(240, 131, 81)",
+  },
   "mei-sato": {
     from: "rgb(178, 221, 240)",
     via: "rgb(242, 196, 199)",
@@ -235,6 +247,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(240, 213, 183)",
     accent: "rgb(238, 157, 83)",
   },
+  ruby: {
+    from: "rgb(225, 193, 199)",
+    via: "rgb(201, 232, 237)",
+    to: "rgb(198, 226, 226)",
+    accent: "rgb(100, 204, 221)",
+  },
   "ryan-doyle": {
     from: "rgb(240, 212, 178)",
     via: "rgb(242, 220, 196)",
@@ -270,6 +288,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     via: "rgb(238, 219, 201)",
     to: "rgb(229, 206, 194)",
     accent: "rgb(223, 143, 99)",
+  },
+  "toastimus-crouton-vance": {
+    from: "rgb(240, 225, 178)",
+    via: "rgb(242, 221, 197)",
+    to: "rgb(240, 204, 183)",
+    accent: "rgb(240, 141, 81)",
   },
   "toby-wenz": {
     from: "rgb(193, 195, 225)",

@@ -34,6 +34,7 @@ export const hotelBarLastCall: DateScenario = {
   },
   director: {
     tone: "low warm sconces, polished brass rail, the smell of old upholstery and lemon peel",
+    flow: "conversation",
     rules: [
       "Treat the hotel as gently lived in, not theatrical. The piano is closed and stays closed.",
       "Allow long silences. The bar can hold them.",

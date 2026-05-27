@@ -33,6 +33,7 @@ export const concessionStandHeatDeath: DateScenario = {
   },
   director: {
     tone: "deep cold outside, warm air at the window, fryer hum, faint canned music on a low loop",
+    flow: "conversation",
     rules: [
       "Anchor the date to the stand window and its two stools. The pair does not wander the dark.",
       "Use the end of time as quiet, not as crisis. There is nothing to save.",

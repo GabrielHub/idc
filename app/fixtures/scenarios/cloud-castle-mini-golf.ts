@@ -33,6 +33,7 @@ export const cloudCastleMiniGolf: DateScenario = {
   },
   director: {
     tone: "soft cloud light, distant wind that does not reach hole 1, low echo of stone and sky, no other patrons",
+    flow: "activity",
     rules: [
       "Anchor the date to the course route from hole 1 to hole 18. The pair does not leave the marked path.",
       "Treat all venue infrastructure as self-serve. The course is automated and quiet.",

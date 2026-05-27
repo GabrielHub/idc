@@ -33,6 +33,7 @@ export const dinosaurBbqAllYouCanEat: DateScenario = {
   },
   director: {
     tone: "warm grill smoke, the smell of marinade, the soft thump of a far carnivore call, distant brontosaur low note, the steady vent fan over the table",
+    flow: "activity",
     rules: [
       "Anchor the date to grill table 6 and the platform. The pair does not approach the fence.",
       "Treat the kitchen as a wall track and the floor as staff-free. Refills are tablet orders.",

@@ -22,6 +22,7 @@ import {
   getRestorableDateSession,
   isCampaignLost,
   isMemberRetained,
+  SCENARIO_FLOW_SETTINGS,
   startDateSessionFromBooking,
   startNextShift,
 } from "./date-engine";
@@ -44,8 +45,102 @@ import { mulberry32 } from "./utils";
 
 describe("IDC playable smoke path", () => {
   it("validates the starter fixture counts", () => {
-    expect(starterMembers).toHaveLength(48);
-    expect(starterScenarios).toHaveLength(56);
+    expect(starterMembers).toHaveLength(52);
+    expect(starterScenarios).toHaveLength(63);
+  });
+
+  it("resolves scenario flow into persisted date length and judge cadence", () => {
+    const cases = [
+      { scenarioId: "temporal-coffee-shop", flow: "conversation" },
+      { scenarioId: "dinosaur-bbq-all-you-can-eat", flow: "activity" },
+      { scenarioId: "rook-to-e4", flow: "pressure" },
+      { scenarioId: "pulse-check", flow: "set_piece" },
+    ] as const;
+
+    for (const { scenarioId, flow } of cases) {
+      const started = startAndDraftDateSession(
+        withFeaturedMembers(createSeedGameSave(), ["jenna-pike", "sana-karim"]),
+        {
+          focusMemberId: "jenna-pike",
+          firstMemberId: "jenna-pike",
+          secondMemberId: "sana-karim",
+          scenarioId,
+        },
+      );
+
+      expect(started.session.turnLimit).toBe(SCENARIO_FLOW_SETTINGS[flow].turnLimit);
+      expect(started.session.judgeTurnInterval).toBe(
+        SCENARIO_FLOW_SETTINGS[flow].judgeTurnInterval,
+      );
+    }
+  });
+
+  it("keeps explicit non-default date length config as a test and debug override", () => {
+    const save = createSeedGameSave();
+    const started = startAndDraftDateSession(
+      withFeaturedMembers(
+        gameSaveSchema.parse({
+          ...save,
+          config: { ...save.config, defaultDateMessageLimit: 2 },
+        }),
+        ["jenna-pike", "sana-karim"],
+      ),
+      {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "sana-karim",
+        scenarioId: "dinosaur-bbq-all-you-can-eat",
+      },
+    );
+
+    expect(started.session.turnLimit).toBe(2);
+    expect(started.session.judgeTurnInterval).toBe(
+      SCENARIO_FLOW_SETTINGS.activity.judgeTurnInterval,
+    );
+  });
+
+  it("keeps an explicit date length override even when the value matches the old default", () => {
+    const save = createSeedGameSave();
+    const started = startAndDraftDateSession(
+      withFeaturedMembers(
+        gameSaveSchema.parse({
+          ...save,
+          config: { ...save.config, dateMessageLimitOverride: 12 },
+        }),
+        ["jenna-pike", "sana-karim"],
+      ),
+      {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "sana-karim",
+        scenarioId: "dinosaur-bbq-all-you-can-eat",
+      },
+    );
+
+    expect(started.session.turnLimit).toBe(12);
+    expect(started.session.judgeTurnInterval).toBe(
+      SCENARIO_FLOW_SETTINGS.activity.judgeTurnInterval,
+    );
+  });
+
+  it("uses scenario judge cadence while advancing active dates", () => {
+    const started = startAndDraftDateSession(
+      withFeaturedMembers(createSeedGameSave(), ["jenna-pike", "sana-karim"]),
+      {
+        focusMemberId: "jenna-pike",
+        firstMemberId: "jenna-pike",
+        secondMemberId: "sana-karim",
+        scenarioId: "dinosaur-bbq-all-you-can-eat",
+      },
+    );
+
+    const firstPair = advanceDateExchange(started.save, { dateSessionId: started.session.id });
+    expect(firstPair.session.currentTurn).toBe(2);
+    expect(firstPair.session.judgeSnapshots).toHaveLength(0);
+
+    const secondPair = advanceDateExchange(firstPair.save, { dateSessionId: started.session.id });
+    expect(secondPair.session.currentTurn).toBe(4);
+    expect(secondPair.session.judgeSnapshots).toHaveLength(1);
   });
 
   it("seeds a save with the pre-onboarding fallback deck and no drawn hand", async () => {

@@ -3,6 +3,7 @@ import {
   dateFinalReportSchema,
   dateSessionSchema,
   DEFAULT_DATE_MESSAGE_LIMIT,
+  DEFAULT_JUDGE_TURN_INTERVAL,
   gameSaveSchema,
   judgeSnapshotSchema,
   memoryRecordSchema,
@@ -15,6 +16,7 @@ import {
   type DateFinalReport,
   type DateMessage,
   type DateScenario,
+  type DateStatChange,
   type DeckCoverageEntry,
   type DateSessionEndReason,
   type EndSentiment,
@@ -27,6 +29,7 @@ import {
   type JudgeSnapshot,
   type MatchmakingIntent,
   type Member,
+  type MemberStateSnapshot,
   type MemoryRecord,
   type PairState,
   type PairStats,
@@ -34,7 +37,10 @@ import {
   type PlaybackState,
   type ScenarioEvent,
   type ScenarioEventKind,
+  type ScenarioFlow,
+  RELATIONSHIP_STATS,
   SCENARIO_EVENT_KINDS,
+  type RelationshipStat,
   type ScenarioTag,
   type ShiftGoalResult,
   type ShiftReport,
@@ -162,9 +168,8 @@ export type FollowUpActionResult = DateEngineResult & {
   saveBeforeShiftCompletion?: GameSave;
 };
 
-const CHARACTER_TURN_LIMIT = DEFAULT_DATE_MESSAGE_LIMIT;
 const CHARACTER_TURNS_PER_EXCHANGE = 2;
-export const JUDGE_TURN_INTERVAL = 6;
+export const JUDGE_TURN_INTERVAL = DEFAULT_JUDGE_TURN_INTERVAL;
 export const MAX_NUDGES_PER_DATE = 3;
 export const MIN_JUDGE_READS_BEFORE_CUT_SHORT = 2;
 export const EVENT_DRAFT_OFFERED_PER_KIND = 2;
@@ -173,13 +178,80 @@ export const EVENT_DRAFT_PICKED = 3;
 export const CLOSURE_NEAR_MISS_TAG = "closure_near_miss";
 export { CLIENT_LOSS_LIMIT_BASE, CLOSURE_THRESHOLD, clientLossLimit };
 
+export type DateCadence = {
+  turnLimit: number;
+  judgeTurnInterval: number;
+};
+
+export type ScenarioFlowSettings = DateCadence;
+
+const DEFAULT_DATE_CADENCE: DateCadence = {
+  turnLimit: DEFAULT_DATE_MESSAGE_LIMIT,
+  judgeTurnInterval: JUDGE_TURN_INTERVAL,
+};
+
+export const SCENARIO_FLOW_SETTINGS: Record<ScenarioFlow, ScenarioFlowSettings> = {
+  conversation: { turnLimit: DEFAULT_DATE_MESSAGE_LIMIT, judgeTurnInterval: JUDGE_TURN_INTERVAL },
+  activity: { turnLimit: 14, judgeTurnInterval: 4 },
+  pressure: { turnLimit: 8, judgeTurnInterval: 4 },
+  set_piece: { turnLimit: 16, judgeTurnInterval: 4 },
+};
+
+export function resolveScenarioFlowSettings(
+  scenario: DateScenario,
+  config: Pick<GameSave["config"], "dateMessageLimitOverride" | "defaultDateMessageLimit">,
+): ScenarioFlowSettings {
+  const base = SCENARIO_FLOW_SETTINGS[scenario.director.flow];
+  const configuredLimit =
+    config.dateMessageLimitOverride ??
+    (config.defaultDateMessageLimit === DEFAULT_DATE_MESSAGE_LIMIT
+      ? undefined
+      : config.defaultDateMessageLimit);
+  const turnLimit = configuredLimit === undefined ? base.turnLimit : configuredLimit;
+
+  return {
+    turnLimit,
+    judgeTurnInterval: base.judgeTurnInterval,
+  };
+}
+
+export function dateCadenceForSession(
+  session: Pick<DateSession, "turnLimit" | "judgeTurnInterval" | "scenarioId">,
+): DateCadence {
+  return {
+    turnLimit: session.turnLimit,
+    judgeTurnInterval:
+      session.judgeTurnInterval ?? fallbackJudgeIntervalForScenarioId(session.scenarioId),
+  };
+}
+
+function fallbackJudgeIntervalForScenarioId(scenarioId: string): number {
+  const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
+  if (scenario === undefined) return JUDGE_TURN_INTERVAL;
+  return SCENARIO_FLOW_SETTINGS[scenario.director.flow].judgeTurnInterval;
+}
+
+function memberStateSnapshot(member: Member): MemberStateSnapshot {
+  return {
+    mood: member.state.mood,
+    retention: member.state.retention,
+    burnout: member.state.burnout,
+  };
+}
+
+function memberStateSnapshotsFor(members: readonly Member[]): Record<string, MemberStateSnapshot> {
+  return Object.fromEntries(
+    members.map((member) => [member.id, memberStateSnapshot(member)] as const),
+  );
+}
+
 export type OutcomeStateDeltas = {
   retention: number;
   mood: number;
   burnout: number;
 };
 
-const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDeltas> = {
+export const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDeltas> = {
   second_date: { retention: 2, mood: 3, burnout: -2 },
   mixed: { retention: -3, mood: -1, burnout: 1 },
   cool_down: { retention: -7, mood: -4, burnout: 4 },
@@ -445,6 +517,7 @@ export function startDateSessionFromBooking(
     pairState,
     completedSessions: save.dateSessions,
   });
+  const flowSettings = resolveScenarioFlowSettings(scenario, save.config);
   const draftIsTrivial = eventDraft.offered.length <= EVENT_DRAFT_PICKED;
   const initialEventDraft: EventDraft = draftIsTrivial
     ? { offered: eventDraft.offered, picked: [...eventDraft.offered] }
@@ -457,7 +530,10 @@ export function startDateSessionFromBooking(
     scenarioId: scenario.id,
     focusMemberId: focusMember.id,
     focusRequestId: focusRequest?.id,
-    turnLimit: save.config.defaultDateMessageLimit ?? CHARACTER_TURN_LIMIT,
+    turnLimit: flowSettings.turnLimit,
+    judgeTurnInterval: flowSettings.judgeTurnInterval,
+    initialPairStats: pairState.stats,
+    initialMemberStates: memberStateSnapshotsFor([focusMember, otherMember]),
     currentTurn: 0,
     dateHealth: clampScore(startingDateHealth(pairState) + matchFit.startingDateHealthDelta),
     status: "active",
@@ -676,8 +752,11 @@ export function isAtExchangeBoundary(currentTurn: number): boolean {
   return currentTurn % CHARACTER_TURNS_PER_EXCHANGE === 0;
 }
 
-export function isAtJudgeBoundary(currentTurn: number): boolean {
-  return currentTurn > 0 && currentTurn % JUDGE_TURN_INTERVAL === 0;
+export function isAtJudgeBoundary(
+  currentTurn: number,
+  cadence: Pick<DateCadence, "judgeTurnInterval"> = DEFAULT_DATE_CADENCE,
+): boolean {
+  return currentTurn > 0 && currentTurn % cadence.judgeTurnInterval === 0;
 }
 
 export function addCupidIntervention(save: GameSave, input: InterventionInput): DateEngineResult {
@@ -1057,6 +1136,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   const transcript = [...session.transcript];
   let currentTurn = session.currentTurn;
   const turnCount = input.turnCount ?? CHARACTER_TURNS_PER_EXCHANGE;
+  const cadence = dateCadenceForSession(session);
 
   for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
@@ -1073,21 +1153,16 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     );
     currentTurn += 1;
 
-    if (isAtJudgeBoundary(currentTurn)) {
+    if (isAtJudgeBoundary(currentTurn, cadence)) {
       break;
     }
   }
 
-  const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);
-  const exchangeMessages = transcript.filter(
-    (message) =>
-      message.kind === "character" &&
-      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
-  );
-  const pendingRevealMessages = messagesSinceLastJudge(session, transcript);
+  const exchangeWindow = dateExchangeWindowSinceLastJudge(session, transcript);
+  const exchangeMessages = exchangeWindow.characterMessages;
   const shouldJudgeExchange = shouldJudgePendingExchange({
     currentTurn,
-    turnLimit: session.turnLimit,
+    cadence,
     exchangeMessages,
   });
 
@@ -1106,7 +1181,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     return { save: nextSave, session: updatedSession };
   }
 
-  const exchangeIndex = exchangeIndexForTurn(currentTurn);
+  const exchangeIndex = exchangeIndexForTurn(currentTurn, cadence);
   const matchFit = evaluateMatchFit({
     members,
     scenario,
@@ -1138,7 +1213,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
   });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
-    exchangeMessages: pendingRevealMessages,
+    exchangeMessages: exchangeWindow.messages,
   });
   const deterministicAcceptedIds = selectDeterministicRevealIds({
     candidates: eligibleCandidates,
@@ -1250,15 +1325,25 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           finalSession,
           getActiveShift(save).shiftNumber,
         );
-  const shiftsAfterCompletion =
+  const finalSessionWithStatChange = attachFinalReportStatChange(
+    finalSession,
     finalSession.finalReport === undefined
+      ? undefined
+      : computeAppliedDateStatChange({
+          session: finalSession,
+          finalPairStats: completedPairMemoryResult.pairState.stats,
+          finalMembers,
+        }),
+  );
+  const shiftsAfterCompletion =
+    finalSessionWithStatChange.finalReport === undefined
       ? save.shifts
       : clearActiveBookingForShift(save.shifts, save.activeShiftId);
   const saveWithCompletedDate = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
     pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
-    dateSessions: replaceById(save.dateSessions, finalSession),
+    dateSessions: replaceById(save.dateSessions, finalSessionWithStatChange),
     memories: finalMemories,
     playerKnowledge: revealResult.save.playerKnowledge,
     shifts: shiftsAfterCompletion,
@@ -1272,7 +1357,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     }),
   );
 
-  return { save: nextSave, session: finalSession };
+  return { save: nextSave, session: finalSessionWithStatChange };
 }
 
 export function clearActiveBookingForShift(
@@ -2353,6 +2438,64 @@ export function linkFinalReportMemoryRecords(
   });
 }
 
+export function attachFinalReportStatChange(
+  session: DateSession,
+  statChange: DateStatChange | undefined,
+): DateSession {
+  if (session.finalReport === undefined || statChange === undefined) {
+    return session;
+  }
+
+  const finalReport: DateFinalReport = dateFinalReportSchema.parse({
+    ...session.finalReport,
+    statChange,
+  });
+
+  return dateSessionSchema.parse({
+    ...session,
+    finalReport,
+  });
+}
+
+export function computeAppliedDateStatChange({
+  session,
+  finalPairStats,
+  finalMembers,
+}: {
+  session: DateSession;
+  finalPairStats: PairStats;
+  finalMembers: readonly Member[];
+}): DateStatChange | undefined {
+  if (session.initialPairStats === undefined || session.initialMemberStates === undefined) {
+    return undefined;
+  }
+
+  const pair: Partial<Record<RelationshipStat, number>> = {};
+  for (const stat of RELATIONSHIP_STATS) {
+    const delta = finalPairStats[stat] - session.initialPairStats[stat];
+    if (delta !== 0) {
+      pair[stat] = delta;
+    }
+  }
+
+  const finalMemberById = new Map(finalMembers.map((member) => [member.id, member] as const));
+  const members: DateStatChange["members"] = {};
+  for (const memberId of session.participants) {
+    const initial = session.initialMemberStates[memberId];
+    const finalMember = finalMemberById.get(memberId);
+    if (initial === undefined || finalMember === undefined) {
+      continue;
+    }
+    members[memberId] = {
+      mood: finalMember.state.mood - initial.mood,
+      retention: finalMember.state.retention - initial.retention,
+      burnout: finalMember.state.burnout - initial.burnout,
+    };
+  }
+
+  return { pair, members };
+}
+
 function mergeMemoryRecordIds(currentIds: readonly string[], nextIds: readonly string[]): string[] {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -3102,19 +3245,25 @@ function buildJudgeSummary(
 
 export function shouldJudgePendingExchange({
   currentTurn,
-  turnLimit,
+  cadence = DEFAULT_DATE_CADENCE,
   exchangeMessages,
 }: {
   currentTurn: number;
-  turnLimit: number;
+  cadence?: DateCadence;
   exchangeMessages: DateMessage[];
 }): boolean {
   if (exchangeMessages.length === 0) {
     return false;
   }
 
-  return isAtJudgeBoundary(currentTurn) || currentTurn >= turnLimit;
+  return isAtJudgeBoundary(currentTurn, cadence) || currentTurn >= cadence.turnLimit;
 }
+
+export type DateExchangeWindow = {
+  messages: DateMessage[];
+  characterMessages: DateMessage[];
+  sceneMessages: DateMessage[];
+};
 
 export function latestJudgedExchangeIndex(session: DateSession): number {
   return session.judgeSnapshots.reduce(
@@ -3128,6 +3277,7 @@ export function messagesSinceLastJudge(
   transcript: readonly DateMessage[],
 ): DateMessage[] {
   const lastJudgedExchange = latestJudgedExchangeIndex(session);
+  const cadence = dateCadenceForSession(session);
 
   if (lastJudgedExchange < 0) {
     return transcript.filter((message) => message.sequenceIndex > 0);
@@ -3137,20 +3287,38 @@ export function messagesSinceLastJudge(
     .filter(
       (message) =>
         message.kind === "character" &&
-        exchangeIndexForTurn(message.turnIndex) <= lastJudgedExchange,
+        exchangeIndexForTurn(message.turnIndex, cadence) <= lastJudgedExchange,
     )
     .reduce((latest, message) => Math.max(latest, message.sequenceIndex), 0);
 
   return transcript.filter((message) => message.sequenceIndex > judgedSequenceCutoff);
 }
 
-export function exchangeIndexForTurn(turnIndex: number): number {
-  return Math.max(0, Math.ceil(turnIndex / JUDGE_TURN_INTERVAL) - 1);
+export function dateExchangeWindowSinceLastJudge(
+  session: DateSession,
+  transcript: readonly DateMessage[],
+): DateExchangeWindow {
+  const messages = messagesSinceLastJudge(session, transcript);
+  return {
+    messages,
+    characterMessages: messages.filter((message) => message.kind === "character"),
+    sceneMessages: messages.filter(
+      (message) => message.kind === "scenario" && message.sourceEventId !== undefined,
+    ),
+  };
+}
+
+export function exchangeIndexForTurn(
+  turnIndex: number,
+  cadence: Pick<DateCadence, "judgeTurnInterval"> = DEFAULT_DATE_CADENCE,
+): number {
+  return Math.max(0, Math.ceil(turnIndex / cadence.judgeTurnInterval) - 1);
 }
 
 export function exchangeIndexForPendingTurn(
   exchangeMessages: readonly DateMessage[],
   fallbackExchangeIndex: number,
+  cadence: Pick<DateCadence, "judgeTurnInterval"> = DEFAULT_DATE_CADENCE,
 ): number {
   const firstCharacterMessage = exchangeMessages.find((message) => message.kind === "character");
 
@@ -3158,7 +3326,7 @@ export function exchangeIndexForPendingTurn(
     return fallbackExchangeIndex;
   }
 
-  return exchangeIndexForTurn(firstCharacterMessage.turnIndex);
+  return exchangeIndexForTurn(firstCharacterMessage.turnIndex, cadence);
 }
 
 function buildShiftSummary({

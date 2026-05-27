@@ -32,6 +32,7 @@ export const temporalCoffeeShop: DateScenario = {
   },
   director: {
     tone: "lightly disorienting and service-industry procedural",
+    flow: "conversation",
     rules: [
       "Keep the scene readable even when time glitches.",
       "Use temporal confusion to reveal how each member handles uncertainty.",

@@ -1,10 +1,12 @@
 import { dateScenarioSchema } from "../../domain/game";
 import { adventurersSpeakeasy } from "./adventurers-speakeasy";
+import { allHat } from "./all-hat";
 import { aquariumOfCryptids } from "./aquarium-of-cryptids";
 import { auroraLinePrivateCompartment } from "./aurora-line-private-compartment";
 import { bankHeist1920sEscapeRoom } from "./bank-heist-1920s-escape-room";
 import { beachWhereSeaIsAbove } from "./beach-where-sea-is-above";
 import { bowlingLeagueNight } from "./bowling-league-night";
+import { brickByBrick } from "./brick-by-brick";
 import { buildABearEmptyMall } from "./build-a-bear-empty-mall";
 import { cableCarAcrossBiomes } from "./cable-car-across-biomes";
 import { capitalShipWarDinner } from "./capital-ship-war-dinner";
@@ -38,6 +40,7 @@ import { midnightNotaryTwoCleanPromises } from "./midnight-notary-two-clean-prom
 import { moonPicnic } from "./moon-picnic";
 import { moonglassKilnAfterHours } from "./moonglass-kiln-after-hours";
 import { museumExhibitMixup } from "./museum-exhibit-mixup";
+import { notTheBees } from "./not-the-bees";
 import { olympusBottomlessBrunch } from "./olympus-bottomless-brunch";
 import { openHouseSunday } from "./open-house-sunday";
 import { parkLoopWithADog } from "./park-loop-with-a-dog";
@@ -47,18 +50,22 @@ import { picnicOnSleepingGiant } from "./picnic-on-sleeping-giant";
 import { pilgrimageMercySpine } from "./pilgrimage-mercy-spine";
 import { potteryStudioDropIn } from "./pottery-studio-drop-in";
 import { prophecyKaraoke } from "./prophecy-karaoke";
+import { pulseCheck } from "./pulse-check";
+import { rookToE4 } from "./rook-to-e4";
 import { softLaunchPhotoWall } from "./soft-launch-photo-wall";
+import { tapWater } from "./tap-water";
 import { temporalCoffeeShop } from "./temporal-coffee-shop";
 import { underworldDepartmentMixer } from "./underworld-department-mixer";
 import { vivariumWingTinyResidents } from "./vivarium-wing-tiny-residents";
 import { volcanoHotSpring } from "./volcano-hot-spring";
 import { wetMarketThreeSeas } from "./wet-market-three-seas";
+import { wetPaint } from "./wet-paint";
 import { whaleConcertBelowWorld } from "./whale-concert-below-world";
 import { worldSimOperatorBooth } from "./world-sim-operator-booth";
 
 export const starterScenarios = dateScenarioSchema
   .array()
-  .length(56)
+  .length(63)
   .parse([
     temporalCoffeeShop,
     museumExhibitMixup,
@@ -116,15 +123,24 @@ export const starterScenarios = dateScenarioSchema
     picnicOnBifrost,
     hedgeWitchTeaHour,
     dimSumAndThenSome,
+    allHat,
+    tapWater,
+    wetPaint,
+    pulseCheck,
+    notTheBees,
+    rookToE4,
+    brickByBrick,
   ]);
 
 export {
   adventurersSpeakeasy,
+  allHat,
   aquariumOfCryptids,
   auroraLinePrivateCompartment,
   bankHeist1920sEscapeRoom,
   beachWhereSeaIsAbove,
   bowlingLeagueNight,
+  brickByBrick,
   buildABearEmptyMall,
   cableCarAcrossBiomes,
   capitalShipWarDinner,
@@ -158,6 +174,7 @@ export {
   moonPicnic,
   moonglassKilnAfterHours,
   museumExhibitMixup,
+  notTheBees,
   olympusBottomlessBrunch,
   openHouseSunday,
   parkLoopWithADog,
@@ -167,12 +184,16 @@ export {
   pilgrimageMercySpine,
   potteryStudioDropIn,
   prophecyKaraoke,
+  pulseCheck,
+  rookToE4,
   softLaunchPhotoWall,
+  tapWater,
   temporalCoffeeShop,
   underworldDepartmentMixer,
   vivariumWingTinyResidents,
   volcanoHotSpring,
   wetMarketThreeSeas,
+  wetPaint,
   whaleConcertBelowWorld,
   worldSimOperatorBooth,
 };

@@ -34,6 +34,7 @@ export const longAfternoonPoolBar: DateScenario = {
   },
   director: {
     tone: "warm dry air, salt and citrus, no wind to fight, the very low hum of the cliff fan, the slow lap of the pool water",
+    flow: "conversation",
     rules: [
       "Anchor the date to the pavilion. The pair does not climb the rail or leave the cliff.",
       "Keep risk low and chaos low. This is a real comfort booking.",

@@ -8,6 +8,7 @@ import type {
 } from "../domain/game";
 import { memberRequests } from "../fixtures";
 import {
+  dateCadenceForSession,
   exchangeIndexForTurn,
   formatCupidInterventionText,
   isCutShortSystemMessage,
@@ -153,7 +154,7 @@ export function buildTranscriptItems(
       continue;
     }
 
-    const exchangeIndex = exchangeIndexForTurn(message.turnIndex);
+    const exchangeIndex = exchangeIndexForTurn(message.turnIndex, dateCadenceForSession(session));
     const previous = lastSequenceByExchange.get(exchangeIndex) ?? 0;
     if (message.sequenceIndex > previous) {
       lastSequenceByExchange.set(exchangeIndex, message.sequenceIndex);

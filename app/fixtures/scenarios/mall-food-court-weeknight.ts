@@ -32,6 +32,7 @@ export const mallFoodCourtWeeknight: DateScenario = {
   },
   director: {
     tone: "fluorescent, cheerful in a tired way, lightly echoing",
+    flow: "conversation",
     rules: [
       "Anchor the date to the center table. The pair stays seated through the date.",
       "Use public foot traffic as ambient pressure, not as a plot device.",

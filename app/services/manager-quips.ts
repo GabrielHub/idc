@@ -1,8 +1,13 @@
-import type { DateSession, GameSave, ManagerQuipHistoryRecord, PairState } from "../domain/game";
+import {
+  MEMBER_RETENTION_WARNING_THRESHOLD,
+  type DateSession,
+  type GameSave,
+  type ManagerQuipHistoryRecord,
+  type PairState,
+} from "../domain/game";
 import {
   MANAGER_QUIP_CATALOG,
   MANAGER_QUIP_TRIGGER_GROUP_BY_KEY,
-  MANAGER_RETENTION_WARNING_THRESHOLD,
   type ManagerQuip,
   type ManagerQuipCadence,
   type ManagerQuipTriggerKey,
@@ -240,8 +245,8 @@ export function detectRetentionWarningDip(
     if (previousMember === undefined) continue;
     if (previousMember.state.status !== "active") continue;
     if (
-      previousMember.state.retention >= MANAGER_RETENTION_WARNING_THRESHOLD &&
-      nextMember.state.retention < MANAGER_RETENTION_WARNING_THRESHOLD
+      previousMember.state.retention >= MEMBER_RETENTION_WARNING_THRESHOLD &&
+      nextMember.state.retention < MEMBER_RETENTION_WARNING_THRESHOLD
     ) {
       return {
         memberId: nextMember.id,

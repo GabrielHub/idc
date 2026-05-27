@@ -34,6 +34,7 @@ export const bankHeist1920sEscapeRoom: DateScenario = {
   },
   director: {
     tone: "the wood floor of a 1923 lobby, the tick of the wall clock, the murmur of low business, the slow pull of a ceiling fan",
+    flow: "set_piece",
     rules: [
       "Anchor the date to the lobby and the vault archway. The pair does not leave the bank.",
       "Treat tellers and bank-goers as background. They do not address the pair and are not voiced as continuing speakers.",

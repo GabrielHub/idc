@@ -33,6 +33,7 @@ export const aquariumOfCryptids: DateScenario = {
   },
   director: {
     tone: "low chiller hum, blue light off the glass, the long quiet of an empty aquarium corridor, a faint salt smell that does not belong to this branch",
+    flow: "activity",
     rules: [
       "Anchor the date to the corridor. The pair does not wander into other wings of the building.",
       "Treat the tanks as fact. The cryptids are not a metaphor for the date.",

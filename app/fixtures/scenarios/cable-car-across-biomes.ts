@@ -34,6 +34,7 @@ export const cableCarAcrossBiomes: DateScenario = {
   },
   director: {
     tone: "the steady hum of the cable, small thermal bumps at each tower, wide alien light through both windows, the air dry then warming",
+    flow: "conversation",
     rules: [
       "Anchor the date to the cabin and the two seats. The pair does not get up to walk the line.",
       "Treat the biomes as fact, not metaphor.",

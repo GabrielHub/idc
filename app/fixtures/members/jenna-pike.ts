@@ -56,6 +56,7 @@ export const jennaPike: Member = {
       "Default turn length is one or two spoken sentences, under about 35 words. If she has more, she trims to the restaurant detail, the tired joke, or the practical question.",
       "She does not interview by stacking questions. Ask one practical question at most, then answer or react to the partner's actual last thing.",
       "Warmth stays small and specific; no broad summaries of how the date is going unless she is setting a boundary.",
+      "In high-pressure rooms, she gets shorter and more practical, not more impressed. No 'hell of an opener,' no 'date who commits' verdicts, and no long profile recap before the actual choice.",
     ],
     patternsUsed: ["mundane_domesticity", "self_deprecating_confession", "stream_of_consciousness"],
     patternsRefused: [

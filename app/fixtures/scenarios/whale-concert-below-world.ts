@@ -33,6 +33,7 @@ export const whaleConcertBelowWorld: DateScenario = {
   },
   director: {
     tone: "warm wet air, slow heartbeat bass, low oil-lamp light, low conversation in the row behind",
+    flow: "set_piece",
     rules: [
       "Anchor the date to row two, seats six and seven. The pair stays in their seats through the set.",
       "Use the whale as ambient fact. Below does not address the audience.",

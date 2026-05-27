@@ -33,6 +33,7 @@ export const moonPicnic: DateScenario = {
   },
   director: {
     tone: "no wind, no air sound, the long lunar shadow across the platform, the soft hum of suit climate",
+    flow: "conversation",
     rules: [
       "Anchor the date to the platform and the quilt. The pair does not walk the lunar surface.",
       "Treat the environment as quiet, not threatening. The suits and the platform are reliable.",

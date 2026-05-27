@@ -33,6 +33,7 @@ export const buildABearEmptyMall: DateScenario = {
   },
   director: {
     tone: "the empty mall at half-speed music, the soft hum of the store fluorescents, the slight echo of two voices in an otherwise empty corridor, the smell of new fabric",
+    flow: "activity",
     rules: [
       "Anchor the date to the store. The pair does not wander the mall.",
       "Treat the store as automated. There is no staff. The bear does not speak.",

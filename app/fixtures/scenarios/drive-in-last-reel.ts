@@ -33,6 +33,7 @@ export const driveInLastReel: DateScenario = {
   },
   director: {
     tone: "still air, dust on the salt, soft analog projector hum, no wind to speak of",
+    flow: "set_piece",
     rules: [
       "Anchor the date to row C, space 14. The pair does not get out and walk the lot.",
       "Use the screen to surface a personal memory the member would actually want, not a wound.",

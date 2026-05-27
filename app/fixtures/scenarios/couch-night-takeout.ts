@@ -32,6 +32,7 @@ export const couchNightTakeout: DateScenario = {
   },
   director: {
     tone: "intimate without ceremony, lit by a TV and one lamp",
+    flow: "conversation",
     rules: [
       "Anchor the date to the couch. The pair does not migrate to the kitchen, the balcony, or another room.",
       "Resist forcing a confession. Let silence count as connection.",

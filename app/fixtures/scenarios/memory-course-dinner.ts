@@ -33,6 +33,7 @@ export const memoryCourseDinner: DateScenario = {
   },
   director: {
     tone: "intimate, careful, and oddly well catered",
+    flow: "pressure",
     rules: [
       "Anchor the date to the alcove. The pair does not change tables.",
       "Keep memories emotionally specific but safe.",

@@ -33,6 +33,7 @@ export const picnicOnSleepingGiant: DateScenario = {
   },
   director: {
     tone: "the slow rise and settle of a long breath under the moss, the warm green smell of an old hill, a single bird in the oak, the small stream at the edge of hearing",
+    flow: "conversation",
     rules: [
       "Anchor the date to the picnic ledge. The pair does not walk along the giant's length.",
       "Treat Aldwen as fact and asleep. He does not wake.",

@@ -33,6 +33,7 @@ export const prophecyKaraoke: DateScenario = {
   },
   director: {
     tone: "private, tense, and faintly ridiculous",
+    flow: "pressure",
     rules: [
       "Anchor the date to room 7. The pair stays on the couch with the tablet.",
       "Never treat a prophecy as guaranteed truth.",

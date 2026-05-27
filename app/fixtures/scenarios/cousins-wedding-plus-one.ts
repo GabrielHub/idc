@@ -33,6 +33,7 @@ export const cousinsWeddingPlusOne: DateScenario = {
   },
   director: {
     tone: "florals, light DJ feedback, slightly too warm",
+    flow: "pressure",
     rules: [
       "Treat the wedding as real and ongoing. Do not invent a bride emergency.",
       "Use ambient ritual, not invented dialogue from relatives.",

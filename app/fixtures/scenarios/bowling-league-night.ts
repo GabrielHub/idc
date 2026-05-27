@@ -33,6 +33,7 @@ export const bowlingLeagueNight: DateScenario = {
   },
   director: {
     tone: "cheerful, slightly rowdy, lit by overhead fixtures and a glowing lane line",
+    flow: "activity",
     rules: [
       "Anchor the date to lane 7. The pair does not travel to the bar, the arcade, or the snack counter.",
       "Use the league as ambient background. Do not invite a captain to comment on the date.",

@@ -119,6 +119,7 @@ export default defineConfig({
               name: "three-vendor",
               test: /node_modules[\\/](?:three|@react-three|postprocessing)[\\/]/,
               priority: 35,
+              maxSize: CHUNK_TARGET_BYTES,
             },
             {
               name: "ai-vendor",

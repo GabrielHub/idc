@@ -33,6 +33,7 @@ export const messHallAuriga: DateScenario = {
   },
   director: {
     tone: "fluorescent but warm, low conversation around the room, the soft hum of life support",
+    flow: "conversation",
     rules: [
       "Anchor the date to booth 14. The pair does not tour the ship.",
       "Use the cafeteria as ordinary infrastructure. The future is not a special effect here.",

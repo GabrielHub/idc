@@ -23,6 +23,26 @@ export const WORLD_Y_SCALE = -0.12;
 /** star.z (-260..+60) -> world z (~-13..+3) — broad depth so perspective parallax actually reads. */
 export const WORLD_Z_SCALE = 0.05;
 
+/** Canvas FOV used by the constellation lobby perspective camera. */
+export const CONSTELLATION_CAMERA_FOV = 38;
+
+export type RosterClusterBounds = {
+  maxWidth: number;
+  maxHeight: number;
+};
+
+export type CanvasFrustumInput = {
+  canvasWidth: number;
+  canvasHeight: number;
+  cameraZ: number;
+  planeZ: number;
+  fov?: number;
+};
+
+export type RosterClusterBoundsInput = CanvasFrustumInput & {
+  avatarScale: number;
+};
+
 export function starWorldPosition(star: StarMark): Vec3 {
   return {
     x: (star.x - 50) * WORLD_X_SCALE,
@@ -161,6 +181,7 @@ export function resolveClusterPosition(input: {
   currentLayer: FlythroughLayer | undefined;
   focusOrder: readonly string[];
   rosterLeadOrder: readonly string[];
+  rosterClusterBounds?: RosterClusterBounds;
   inArchive?: boolean;
   rosterSubview?: RosterSubview;
 }): Vec3 | null {
@@ -172,6 +193,7 @@ export function resolveClusterPosition(input: {
     currentLayer,
     focusOrder,
     rosterLeadOrder,
+    rosterClusterBounds,
     inArchive = false,
     rosterSubview = "eligibles",
   } = input;
@@ -193,7 +215,7 @@ export function resolveClusterPosition(input: {
       const useRing = state === "focus_selected" && rosterSubview === "eligibles";
       return useRing && shouldUsePartnerRingLayout(rosterLeadOrder.length)
         ? partnerRingPosition(idx, rosterLeadOrder.length)
-        : rosterClusterPosition(idx, rosterLeadOrder.length);
+        : rosterClusterPosition(idx, rosterLeadOrder.length, rosterClusterBounds);
     }
   }
   return null;
@@ -253,6 +275,49 @@ const ROSTER_CLUSTER_MAX_WIDTH = 11;
 const ROSTER_CLUSTER_MAX_HEIGHT = 6;
 const ROSTER_CLUSTER_DEFAULT_SPACING_X = 2.8;
 const ROSTER_CLUSTER_DEFAULT_SPACING_Y = 2.5;
+const DEFAULT_ROSTER_CLUSTER_BOUNDS: RosterClusterBounds = {
+  maxWidth: ROSTER_CLUSTER_MAX_WIDTH,
+  maxHeight: ROSTER_CLUSTER_MAX_HEIGHT,
+};
+
+function clampNumber(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+export function visibleWorldSizeAtDepth({
+  canvasWidth,
+  canvasHeight,
+  cameraZ,
+  planeZ,
+  fov = CONSTELLATION_CAMERA_FOV,
+}: CanvasFrustumInput): { width: number; height: number; aspect: number } {
+  const safeWidth = canvasWidth > 0 ? canvasWidth : 1920;
+  const safeHeight = canvasHeight > 0 ? canvasHeight : 1080;
+  const aspect = safeWidth / safeHeight;
+  const distance = Math.max(0.1, Math.abs(cameraZ - planeZ));
+  const halfHeight = Math.tan((fov * Math.PI) / 180 / 2) * distance;
+  return {
+    width: halfHeight * 2 * aspect,
+    height: halfHeight * 2,
+    aspect,
+  };
+}
+
+export function rosterClusterBoundsForCanvas(input: RosterClusterBoundsInput): RosterClusterBounds {
+  const visible = visibleWorldSizeAtDepth(input);
+  const canvasScale = clampNumber(input.avatarScale, 0.72, 1.12);
+  const avatarInset = 2.2 * canvasScale;
+  const worldPackingScale = clampNumber(canvasScale, 0.8, 1.05);
+  // Cluster spans ±maxWidth/2 around x=0 with each star adding ~avatarRadius
+  // on its outward side, so the visible-width budget needs an inset on both
+  // edges, not just one.
+  const widthBudget = visible.width * 0.74 * worldPackingScale - avatarInset * 2;
+  const heightBudget = visible.height * 0.64 * worldPackingScale - avatarInset * 2;
+  return {
+    maxWidth: clampNumber(widthBudget, 7.2, 14),
+    maxHeight: clampNumber(heightBudget, 4.2, 7.2),
+  };
+}
 
 function pickRosterClusterGrid(total: number): { rows: number; cols: number } {
   if (total <= 3) return { rows: 1, cols: total };
@@ -265,18 +330,24 @@ function pickRosterClusterGrid(total: number): { rows: number; cols: number } {
   return { rows: Math.ceil(total / 5), cols: 5 };
 }
 
-export function rosterClusterPosition(index: number, total: number): Vec3 {
+export function rosterClusterPosition(
+  index: number,
+  total: number,
+  bounds: RosterClusterBounds = DEFAULT_ROSTER_CLUSTER_BOUNDS,
+): Vec3 {
   if (total <= 1) return { x: 0, y: 0, z: 0 };
   const clamped = Math.max(0, Math.min(index, total - 1));
 
   const { rows, cols } = pickRosterClusterGrid(total);
+  const maxWidth = Math.max(0, bounds.maxWidth);
+  const maxHeight = Math.max(0, bounds.maxHeight);
   const spacingX =
     cols > 1
-      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_X, ROSTER_CLUSTER_MAX_WIDTH / (cols - 1))
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_X, maxWidth / (cols - 1))
       : ROSTER_CLUSTER_DEFAULT_SPACING_X;
   const spacingY =
     rows > 1
-      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, ROSTER_CLUSTER_MAX_HEIGHT / (rows - 1))
+      ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, maxHeight / (rows - 1))
       : ROSTER_CLUSTER_DEFAULT_SPACING_Y;
 
   const col = clamped % cols;
@@ -330,7 +401,7 @@ export function computeArchiveCameraTarget(input: {
 // Canvas FOV (38°) mirrored from the lobby's <Canvas camera={fov: 38}/> config.
 // A change there must also update this constant — the fit math depends on the
 // matching vertical FOV so the bounding box fills the actual viewport.
-const ARCHIVE_FIT_HALF_FOV_TAN = Math.tan((38 * Math.PI) / 180 / 2);
+const ARCHIVE_FIT_HALF_FOV_TAN = Math.tan((CONSTELLATION_CAMERA_FOV * Math.PI) / 180 / 2);
 // Most desktop viewports are at least 16:9. We bias horizontal headroom to a
 // slightly narrower assumption so portrait-ish browser windows don't crop the
 // outer paired stars.

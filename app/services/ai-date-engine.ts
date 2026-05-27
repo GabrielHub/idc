@@ -37,6 +37,7 @@ export { DateStreamAbortedError } from "./ai/model-service";
 import { applyMemberQuitBudgetCut } from "./budget";
 import { retrieveRelevantMemories, searchCupidMemory } from "./cupid-memory";
 import {
+  attachFinalReportStatChange,
   applyJudgeToMembers,
   applyJudgeToPrivateDateState,
   applyJudgeToPairState,
@@ -46,6 +47,9 @@ import {
   createClosureNearMissMemoryRecord,
   createCutShortMemberMemoryRecords,
   createCutShortSystemMessage,
+  computeAppliedDateStatChange,
+  dateCadenceForSession,
+  dateExchangeWindowSinceLastJudge,
   exchangeIndexForTurn,
   finalizeDateSession,
   findMemberRequestById,
@@ -337,6 +341,7 @@ async function advanceDateExchangeWithLocalAiInternal(
   let currentTurn = session.currentTurn;
   let workingSession = session;
   const turnCount = input.turnCount ?? 2;
+  const cadence = dateCadenceForSession(session);
 
   for (let index = 0; index < turnCount && currentTurn < session.turnLimit; index += 1) {
     const speaker = members[currentTurn % members.length];
@@ -374,27 +379,16 @@ async function advanceDateExchangeWithLocalAiInternal(
     currentTurn += 1;
     workingSession = { ...workingSession, transcript, currentTurn };
 
-    if (input.shouldStopAfterCurrentTurn?.() === true || isAtJudgeBoundary(currentTurn)) {
+    if (input.shouldStopAfterCurrentTurn?.() === true || isAtJudgeBoundary(currentTurn, cadence)) {
       break;
     }
   }
 
-  const lastJudgedExchangeIndex = latestJudgedExchangeIndex(session);
-  const exchangeMessages = transcript.filter(
-    (message) =>
-      message.kind === "character" &&
-      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
-  );
-  const exchangeSceneMessages = transcript.filter(
-    (message) =>
-      message.kind === "scenario" &&
-      message.sourceEventId !== undefined &&
-      exchangeIndexForTurn(message.turnIndex) > lastJudgedExchangeIndex,
-  );
-  const pendingRevealMessages = messagesSinceLastJudge(session, transcript);
+  const exchangeWindow = dateExchangeWindowSinceLastJudge(session, transcript);
+  const exchangeMessages = exchangeWindow.characterMessages;
   const shouldJudgeExchange = shouldJudgePendingExchange({
     currentTurn,
-    turnLimit: session.turnLimit,
+    cadence,
     exchangeMessages,
   });
 
@@ -421,7 +415,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     };
   }
 
-  const exchangeIndex = exchangeIndexForTurn(currentTurn);
+  const exchangeIndex = exchangeIndexForTurn(currentTurn, cadence);
   if (emit !== undefined) {
     await emit({ type: "judgeStart", exchangeIndex });
   }
@@ -435,7 +429,7 @@ async function advanceDateExchangeWithLocalAiInternal(
   });
   const eligibleCandidates = filterExchangeEligibleRevealCandidates({
     candidates: revealCandidates,
-    exchangeMessages: pendingRevealMessages,
+    exchangeMessages: exchangeWindow.messages,
   });
   const localAiJudgeSnapshot = await createLocalAiJudgeSnapshot({
     runtime,
@@ -444,7 +438,7 @@ async function advanceDateExchangeWithLocalAiInternal(
     pairState,
     scenario,
     exchangeMessages,
-    exchangeSceneMessages,
+    exchangeSceneMessages: exchangeWindow.sceneMessages,
     exchangeIndex,
     members,
     revealCandidates: eligibleCandidates,
@@ -550,15 +544,25 @@ async function advanceDateExchangeWithLocalAiInternal(
           completedSession,
           getActiveShift(save).shiftNumber,
         );
-  const shiftsAfterCompletion =
+  const finalSession = attachFinalReportStatChange(
+    completedSession,
     completedSession.finalReport === undefined
+      ? undefined
+      : computeAppliedDateStatChange({
+          session: completedSession,
+          finalPairStats: completedPairMemoryResult.pairState.stats,
+          finalMembers,
+        }),
+  );
+  const shiftsAfterCompletion =
+    finalSession.finalReport === undefined
       ? save.shifts
       : clearActiveBookingForShift(save.shifts, save.activeShiftId);
   const saveWithCompletedDate = gameSaveSchema.parse({
     ...save,
     members: finalMembers,
     pairStates: replaceById(save.pairStates, completedPairMemoryResult.pairState),
-    dateSessions: replaceById(save.dateSessions, completedSession),
+    dateSessions: replaceById(save.dateSessions, finalSession),
     memories: [
       ...save.memories,
       ...pairMemoryResult.memories,
@@ -581,7 +585,7 @@ async function advanceDateExchangeWithLocalAiInternal(
 
   return {
     save: nextSave,
-    session: completedSession,
+    session: finalSession,
     runtimeMode: "local_ai",
     warningMessages,
     aiTelemetry: telemetry,
@@ -730,14 +734,22 @@ async function cutDateShortWithLocalAiInternal(
     scenario,
     timestamp,
   );
-  const finalSession = linkFinalReportMemoryRecords(
+  const finalSessionWithMemories = linkFinalReportMemoryRecords(
     completedSession,
     cutShortMemberMemories.map((memory) => memory.id),
   );
   const finalMembers = applyDateFinalReportToMembers(
     updatedMembers,
-    finalSession,
+    finalSessionWithMemories,
     getActiveShift(save).shiftNumber,
+  );
+  const finalSession = attachFinalReportStatChange(
+    finalSessionWithMemories,
+    computeAppliedDateStatChange({
+      session: finalSessionWithMemories,
+      finalPairStats: completedPairMemoryResult.pairState.stats,
+      finalMembers,
+    }),
   );
   const saveWithCutShortDate = gameSaveSchema.parse({
     ...save,
@@ -1577,7 +1589,8 @@ function messagesForCutShortJudge(
       : transcript.filter(
           (message) =>
             message.kind === "character" &&
-            exchangeIndexForTurn(message.turnIndex) === latestExchangeIndex,
+            exchangeIndexForTurn(message.turnIndex, dateCadenceForSession(session)) ===
+              latestExchangeIndex,
         );
 
   return [...recentCharacterMessages, ...sinceLastJudge];

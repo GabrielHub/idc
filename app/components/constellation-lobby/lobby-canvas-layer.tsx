@@ -7,6 +7,7 @@ import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
 import { Scene, type RenderHoverCard, type SceneArchiveProps } from "./canvas-convention";
 import type { PairEdgeRenderSpec } from "./archive-layout";
 import type { LayerNavigationMode } from "./layer-access";
+import { CONSTELLATION_CAMERA_FOV } from "./math";
 import type {
   ArchiveSelection,
   CameraTarget,
@@ -103,7 +104,7 @@ export function LobbyCanvasLayer({
           toneMapping: THREE.ACESFilmicToneMapping,
           powerPreference: "high-performance",
         }}
-        camera={{ position: [0, 0, 17], fov: 38, near: 0.1, far: 80 }}
+        camera={{ position: [0, 0, 17], fov: CONSTELLATION_CAMERA_FOV, near: 0.1, far: 80 }}
         onPointerMissed={onPointerMissed}
       >
         <Suspense fallback={null}>

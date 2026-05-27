@@ -34,6 +34,7 @@ export const listeningBoothAfterClose: DateScenario = {
   },
   director: {
     tone: "warm vinyl hiss, dust in lamplight, private without becoming solemn",
+    flow: "conversation",
     rules: [
       "Anchor the date to booth 2. The pair does not leave for the front of the store.",
       "Use music as emotional weather, not revelation.",

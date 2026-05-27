@@ -13,6 +13,7 @@
  * ==================================================================== */
 
 import type { MemoryRecord, Member, PairEdge } from "../domain/game";
+import { closureProgressForPair } from "./member-feedback";
 import { hashSeedUint32, pushIntoBucket } from "./utils";
 
 export type PairArchivePoint = {
@@ -38,6 +39,14 @@ export type PairArchiveEdge = {
   latestNote: MemoryRecord;
   latestNoteAt: number;
   health: number;
+  /** 0-100 closure progress derived from pair stats and date count. */
+  closureProgress: number;
+  /** Per-axis stats for the closure threshold readout. */
+  chemistry: number;
+  trust: number;
+  datesCompleted: number;
+  datesNeeded: number;
+  closureBlockers: string[];
   curvature: number;
 };
 
@@ -114,6 +123,7 @@ export function derivePairArchiveGraph(
       filedNotes.reduce<number>((acc, note) => Math.max(acc, note.importance), 1),
     );
 
+    const progress = closureProgressForPair(pair);
     allEdges.push({
       pairId: pair.id,
       a,
@@ -123,6 +133,12 @@ export function derivePairArchiveGraph(
       latestNote,
       latestNoteAt,
       health: pair.stats.relationshipHealth,
+      closureProgress: progress.overall,
+      chemistry: pair.stats.chemistry,
+      trust: pair.stats.trust,
+      datesCompleted: progress.datesCompleted,
+      datesNeeded: progress.datesNeeded,
+      closureBlockers: progress.blockers,
       curvature: deterministicCurvature(pair.id),
     });
   }

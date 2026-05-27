@@ -196,6 +196,7 @@ export function toLobbyScenario(
     // safe default when no pair is selected (library mode, scenario library
     // pre-pair).
     roomRead,
+    flow: scenario.director.flow,
   };
 }
 

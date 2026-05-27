@@ -34,6 +34,7 @@ export const vivariumWingTinyResidents: DateScenario = {
   },
   director: {
     tone: "low warm light, gentle ambient hum from the climate system, careful museum quiet",
+    flow: "pressure",
     rules: [
       "Anchor the date to the walkway between the apartment block and the small farming village across the aisle. The pair does not enter staff areas.",
       "Treat the residents as real. They cannot see out. They are not aware of the date.",

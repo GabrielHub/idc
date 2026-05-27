@@ -35,6 +35,7 @@ const EXPECTED_PROFILE_IDS = {
     "meridian-vale",
     "calvin-hewes",
     "mr-whiskers",
+    "marlee-hines",
   ],
   soft_schedule: [
     "aegis",
@@ -46,8 +47,10 @@ const EXPECTED_PROFILE_IDS = {
     "gabriel-tan",
     "maeve",
     "nawal-marrash",
+    "ruby",
     "toby-wenz",
     "fred-stavropoulos",
+    "daiven-patel",
   ],
   formal_calendar: [
     "aldric-vale-marsh",
@@ -58,6 +61,7 @@ const EXPECTED_PROFILE_IDS = {
     "reaver",
     "vhool",
     "naia-velorae",
+    "toastimus-crouton-vance",
   ],
   weird_erratic: [],
 } satisfies Record<ShiftAvailabilityProfile, readonly string[]>;

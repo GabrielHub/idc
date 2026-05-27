@@ -22,6 +22,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { useTexture } from "@react-three/drei";
+import { useThree } from "@react-three/fiber";
 import { Bloom, DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
@@ -38,6 +39,9 @@ import {
   computeStarFlythroughLayer,
   flythroughStarZ,
   FOCUS_MARKER_POSITION,
+  FLYTHROUGH_LAYER_Z,
+  avatarScaleForCanvas,
+  rosterClusterBoundsForCanvas,
   pairPartnerPosition,
   partnerRingPosition,
   resolveClusterPosition,
@@ -46,6 +50,7 @@ import {
   rosterClusterPosition,
   shouldUsePartnerRingLayout,
   starWorldPosition,
+  type RosterClusterBounds,
 } from "./math";
 import {
   isRosterFlythroughLayer,
@@ -209,6 +214,27 @@ export function Scene({
    */
   pairMoodByPartnerId?: ReadonlyMap<string, number>;
 }) {
+  const size = useThree((root) => root.size);
+  // viewport.dpr is reactive in r3f, unlike gl.getPixelRatio() — using it as
+  // both the read source and a memo dep means cross-monitor DPR transitions
+  // (drag between displays without resize) invalidate the avatar scale.
+  const dpr = useThree((root) => root.viewport.dpr);
+  const canvasScale = useMemo(
+    () => avatarScaleForCanvas({ width: size.width, height: size.height, dpr }),
+    [dpr, size.height, size.width],
+  );
+  const rosterClusterBounds = useMemo<RosterClusterBounds>(
+    () =>
+      rosterClusterBoundsForCanvas({
+        canvasWidth: size.width,
+        canvasHeight: size.height,
+        cameraZ: cameraTarget.position[2],
+        planeZ: FLYTHROUGH_LAYER_Z[1],
+        avatarScale: canvasScale,
+      }),
+    [cameraTarget.position[2], canvasScale, size.height, size.width],
+  );
+
   // Hover drives the visual hover bump on `StarSprite` and the eligible-
   // partner connector in `focus_selected`. It no longer opens the card —
   // that's `activeStarId`, which is click-set by the consumer.
@@ -393,6 +419,7 @@ export function Scene({
       currentLayer,
       focusOrder,
       rosterLeadOrder,
+      rosterClusterBounds,
       rosterSubview,
     });
     return resolveStarRenderTarget({
@@ -415,6 +442,7 @@ export function Scene({
     currentLayer,
     focusOrder,
     rosterLeadOrder,
+    rosterClusterBounds,
     rosterSubview,
   ]);
 
@@ -454,6 +482,7 @@ export function Scene({
         currentLayer={currentLayer}
         focusOrder={focusOrder}
         rosterLeadOrder={rosterLeadOrder}
+        rosterClusterBounds={rosterClusterBounds}
         rosterSubview={rosterSubview}
         offTonightSet={offTonightSet}
         textures={textures}
@@ -462,6 +491,7 @@ export function Scene({
         rimLightTexture={rimLightTexture}
         showAuras={showAuras}
         reducedMotion={reducedMotion}
+        canvasScale={canvasScale}
         hoveredId={hoveredId}
         activeStarId={activeStarId}
         onHoveredIdChange={setHoveredId}
@@ -505,7 +535,7 @@ export function Scene({
             };
             const rosterPosition = shouldUsePartnerRingLayout(rosterLeadOrder.length)
               ? partnerRingPosition(index, rosterLeadOrder.length)
-              : rosterClusterPosition(index, rosterLeadOrder.length);
+              : rosterClusterPosition(index, rosterLeadOrder.length, rosterClusterBounds);
             const partnerEnd: Vec3 = {
               x: rosterPosition.x,
               y: rosterPosition.y,

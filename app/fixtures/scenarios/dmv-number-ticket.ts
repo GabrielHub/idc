@@ -33,6 +33,7 @@ export const dmvNumberTicket: DateScenario = {
   },
   director: {
     tone: "fluorescent, paper smell, a printer starting and stopping behind the counter",
+    flow: "conversation",
     rules: [
       "Anchor the date to row C. The pair does not get up to walk the room.",
       "Treat the DMV as a real DMV. Lines move at the speed they move.",

@@ -14,8 +14,10 @@ import {
   type DateImpactVerdict,
 } from "../services/date-impact";
 import { useTutorialStep } from "../services/tutorial";
+import { AuraTooltip } from "./aura-tooltip";
 import { EASE_OUT_QUART, Eyebrow } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
+import { FinalReportStatChangeRow } from "./final-report-stat-change-row";
 import { TutorialCoachMark, TutorialSpotlight } from "./tutorial";
 
 const FOLLOW_UP_LABELS: Record<FollowUpAction, string> = {
@@ -159,7 +161,7 @@ export function FinalReportFooter({
       <div className="relative mx-auto w-full max-w-3xl">
         <div className="aura-liquid-glass pointer-events-auto flex w-full flex-col gap-4 rounded-card px-5 py-5 text-aura-ink lg:gap-5 lg:px-7 lg:py-6">
           <FinalReportHeaderRow sentimentBadge={sentimentBadge} />
-          <FinalReportImpactSection impact={impact} report={report} />
+          <FinalReportImpactSection impact={impact} report={report} session={session} save={save} />
           {revealedThisDate.length === 0 ? null : <FinalReportReadsRow reads={revealedThisDate} />}
           <FinalReportActionColumn
             sectionRef={actionColumnRef}
@@ -210,21 +212,37 @@ function FinalReportHeaderRow({ sentimentBadge }: { sentimentBadge: EndSentiment
 function FinalReportImpactSection({
   impact,
   report,
+  session,
+  save,
 }: {
   impact: DateImpactReceipt;
   report: DateFinalReport;
+  session: DateSession;
+  save: GameSave;
 }) {
   const tone = IMPACT_TONE[impact.verdict];
 
   return (
     <section className="flex min-w-0 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] ${tone.pill}`}
+        <AuraTooltip
+          placement="bottom"
+          label={
+            <>
+              <strong className="block font-display text-sm text-white">
+                {impact.verdictLabel}
+              </strong>
+              <span className="mt-1 block text-sm text-white/85">{impact.reason}</span>
+            </>
+          }
         >
-          <span aria-hidden className={`size-1.5 rounded-full ${tone.dot}`} />
-          {impact.verdictLabel}
-        </span>
+          <span
+            className={`inline-flex cursor-help items-center gap-1.5 rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.2em] ${tone.pill}`}
+          >
+            <span aria-hidden className={`size-1.5 rounded-full ${tone.dot}`} />
+            {impact.verdictLabel}
+          </span>
+        </AuraTooltip>
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.2em] text-aura-faint">
           Next: <span className="text-aura-rose">{impact.nextAction}</span>
         </span>
@@ -247,6 +265,8 @@ function FinalReportImpactSection({
           </li>
         ))}
       </ul>
+
+      <FinalReportStatChangeRow statChange={impact.statChange} session={session} save={save} />
 
       <div className="border-t border-aura-hairline/70 pt-3">
         <Eyebrow>// case note</Eyebrow>

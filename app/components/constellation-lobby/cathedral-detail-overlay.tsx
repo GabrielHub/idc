@@ -2,6 +2,12 @@ import { useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { DateScenario } from "../../domain/game";
+import {
+  SCENARIO_FLOW_BLURB,
+  SCENARIO_FLOW_CATHEDRAL_TONE,
+  SCENARIO_FLOW_DOT_TONE,
+  SCENARIO_FLOW_LABEL,
+} from "../scenario-flow";
 
 export function CathedralDetailOverlay({
   open,
@@ -82,11 +88,26 @@ export function CathedralDetailOverlay({
               </button>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-micro uppercase tracking-[0.18em] text-white/65">
-              <span>risk - {card.risk}</span>
-              <span>warmth - {card.intimacy}</span>
-              <span>chaos - {card.chaos}</span>
-              <span>cost - {cost}</span>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <span
+                title={SCENARIO_FLOW_BLURB[director.flow]}
+                aria-label={`Flow: ${SCENARIO_FLOW_LABEL[director.flow]}. ${SCENARIO_FLOW_BLURB[director.flow]}`}
+                className={`inline-flex items-center gap-2.5 rounded-pill border px-3.5 py-1.5 backdrop-blur-md ${SCENARIO_FLOW_CATHEDRAL_TONE[director.flow].pill}`}
+              >
+                <span
+                  aria-hidden
+                  className={`size-2 rounded-full ${SCENARIO_FLOW_DOT_TONE[director.flow]}`}
+                />
+                <span className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-white/60">
+                  Plays as
+                </span>
+                <span className="font-mono text-label font-semibold uppercase tracking-[0.2em]">
+                  {SCENARIO_FLOW_LABEL[director.flow]}
+                </span>
+              </span>
+              <span className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
+                cost - {cost}
+              </span>
             </div>
 
             <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -101,6 +122,14 @@ export function CathedralDetailOverlay({
               </p>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
+                <DetailGlassSection
+                  label={`Plays as - ${SCENARIO_FLOW_LABEL[director.flow]}`}
+                  labelClass={SCENARIO_FLOW_CATHEDRAL_TONE[director.flow].eyebrow}
+                >
+                  <p className="font-sans text-label leading-relaxed text-white/80">
+                    {SCENARIO_FLOW_BLURB[director.flow]}
+                  </p>
+                </DetailGlassSection>
                 <DetailGlassSection label="Room constraints">
                   <DetailBulletList items={director.rules} dotClass="bg-aura-rose" />
                 </DetailGlassSection>
@@ -114,6 +143,19 @@ export function CathedralDetailOverlay({
                   <p className="font-sans text-label leading-relaxed text-white/80">
                     {publicBrief.whatBothCharactersKnow}
                   </p>
+                </DetailGlassSection>
+                <DetailGlassSection label="Vibe meters">
+                  <ul className="flex flex-wrap gap-2 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white/75">
+                    <li className="rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5">
+                      risk - {card.risk}
+                    </li>
+                    <li className="rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5">
+                      warmth - {card.intimacy}
+                    </li>
+                    <li className="rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5">
+                      chaos - {card.chaos}
+                    </li>
+                  </ul>
                 </DetailGlassSection>
               </div>
 

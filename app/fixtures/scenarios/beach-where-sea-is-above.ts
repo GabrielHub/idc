@@ -33,6 +33,7 @@ export const beachWhereSeaIsAbove: DateScenario = {
   },
   director: {
     tone: "no surf sound, the sun warm from below, a faint cool from above, the long quiet of a beach with no wind, the soft slosh of a layer overhead",
+    flow: "conversation",
     rules: [
       "Anchor the date to the two-chair pad. The pair does not walk under the sea.",
       "Treat the inverted sea as fact. Fish overhead are fish overhead.",

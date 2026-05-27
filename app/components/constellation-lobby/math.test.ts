@@ -5,6 +5,7 @@ import type { MemberAuraConfig } from "../member-aura-registry";
 import { resolvePortraitPalette } from "../portrait-palette";
 import {
   advanceFlythroughLayer,
+  avatarScaleForCanvas,
   availabilityRole,
   computeFlythroughCameraTarget,
   computeLayerZOffset,
@@ -21,10 +22,13 @@ import {
   resolveStarRenderTarget,
   ringColorForRole,
   roleForStar,
+  rosterClusterBoundsForCanvas,
   rosterClusterPosition,
   shouldUsePartnerRingLayout,
   sizeForStar3D,
+  starHitRadiusFloorForCanvasScale,
   starWorldPosition,
+  visibleWorldSizeAtDepth,
   withAlpha,
   WORLD_X_SCALE,
   WORLD_Y_SCALE,
@@ -307,6 +311,37 @@ describe("sizeForStar3D", () => {
       sizeForStar3D("foreground", "dim", "idle").avatarRadius,
     );
   });
+
+  it("applies canvas scale to avatar geometry without changing role hierarchy", () => {
+    const focus = sizeForStar3D("mid", "focus", "focus_selected", 0.8);
+    const partner = sizeForStar3D("mid", "partner", "partner_selected", 0.8);
+    const defaultFocus = sizeForStar3D("mid", "focus", "focus_selected");
+
+    expect(focus.avatarRadius).toBeCloseTo(defaultFocus.avatarRadius * 0.8);
+    expect(focus.haloRadius).toBeCloseTo(defaultFocus.haloRadius * 0.8);
+    expect(focus.avatarRadius).toBeGreaterThan(partner.avatarRadius);
+  });
+});
+
+describe("avatarScaleForCanvas", () => {
+  it("keeps the design canvas near baseline scale", () => {
+    expect(avatarScaleForCanvas({ width: 1920, height: 1080, dpr: 1.6 })).toBe(1);
+  });
+
+  it("shrinks avatars on smaller laptop canvases", () => {
+    expect(avatarScaleForCanvas({ width: 1366, height: 768, dpr: 1 })).toBeLessThan(1);
+  });
+
+  it("expands avatars only within a bounded range on large canvases", () => {
+    expect(avatarScaleForCanvas({ width: 2560, height: 1440, dpr: 1.6 })).toBe(1.12);
+  });
+
+  it("keeps hit radius floors in step with scaled avatars", () => {
+    expect(starHitRadiusFloorForCanvasScale(0.72)).toBeLessThan(
+      starHitRadiusFloorForCanvasScale(1),
+    );
+    expect(starHitRadiusFloorForCanvasScale(1.12)).toBe(0.22);
+  });
 });
 
 describe("intensityForRole", () => {
@@ -360,6 +395,22 @@ describe("resolveStarPresentation", () => {
     expect(presentation.hitRadius).toBeLessThanOrEqual(0.24);
     expect(presentation.slabIntensity).toBe(1);
     expect(presentation.slabScale).toBe(1);
+  });
+
+  it("uses the canvas-scaled hit radius floor when provided", () => {
+    const presentation = resolveStarPresentation({
+      tier: "background",
+      role: "dim",
+      clustered: false,
+      hovered: false,
+      slabActivity: undefined,
+      baseIntensity: 0.24,
+      filteredOut: false,
+      avatarRadius: 0.08,
+      hitRadiusFloor: 0.16,
+    });
+
+    expect(presentation.hitRadius).toBe(0.16);
   });
 
   it("promotes hovered background stars to full avatars above the parallax field", () => {
@@ -601,6 +652,15 @@ describe("rosterClusterPosition", () => {
     expect(maxY).toBeLessThanOrEqual(3.5);
   });
 
+  it("accepts responsive bounds for narrow canvases", () => {
+    const bounds = { maxWidth: 7.2, maxHeight: 4.2 };
+    const positions = Array.from({ length: 20 }, (_, i) => rosterClusterPosition(i, 20, bounds));
+    const xs = positions.map((p) => p.x);
+    const ys = positions.map((p) => p.y);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThanOrEqual(bounds.maxWidth);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeLessThanOrEqual(bounds.maxHeight);
+  });
+
   it("keeps every cluster position on the roster slab plane (z=0 before slab snap)", () => {
     for (const total of [1, 4, 9, 12, 16]) {
       for (let i = 0; i < total; i += 1) {
@@ -613,6 +673,46 @@ describe("rosterClusterPosition", () => {
     const last = rosterClusterPosition(11, 12);
     const clamped = rosterClusterPosition(99, 12);
     expect(clamped).toEqual(last);
+  });
+});
+
+describe("viewport roster fit", () => {
+  it("computes world-space frustum size from the active camera plane", () => {
+    const wide = visibleWorldSizeAtDepth({
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+    });
+    const narrow = visibleWorldSizeAtDepth({
+      canvasWidth: 1024,
+      canvasHeight: 768,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+    });
+
+    expect(wide.height).toBeCloseTo(narrow.height);
+    expect(wide.width).toBeGreaterThan(narrow.width);
+  });
+
+  it("derives tighter roster bounds for narrow canvases", () => {
+    const wide = rosterClusterBoundsForCanvas({
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 1,
+    });
+    const narrow = rosterClusterBoundsForCanvas({
+      canvasWidth: 1024,
+      canvasHeight: 768,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 0.8,
+    });
+
+    expect(narrow.maxWidth).toBeLessThan(wide.maxWidth);
+    expect(narrow.maxHeight).toBeLessThanOrEqual(wide.maxHeight);
   });
 });
 

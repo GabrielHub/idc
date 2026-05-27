@@ -33,6 +33,7 @@ export const impossibleLostAndFound: DateScenario = {
   },
   director: {
     tone: "municipal, uncanny, automated, with one buzzing fluorescent tube",
+    flow: "set_piece",
     rules: [
       "Keep future objects suggestive, not deterministic.",
       "Do not invent major life events or secrets.",
