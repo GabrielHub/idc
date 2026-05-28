@@ -1,6 +1,5 @@
 import {
   DocCallout,
-  DocChemistryMatrix,
   DocClusterCard,
   DocLink,
   DocList,
@@ -12,6 +11,7 @@ import {
   type DocMeta,
   type DocSectionEntry,
 } from "../../components/doc-primitives";
+import { DocChemistryMatrix } from "../../components/doc-chemistry-matrix";
 
 import {
   CHEMISTRY_CLUSTERS,

@@ -11,6 +11,8 @@ type GlassChromeVariant = Extract<ChromeVariant, "glass" | "glass-ink">;
 const CHROME_PILL_CLASS =
   "cursor-pointer rounded-pill border border-aura-hairline bg-white px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-black transition hover:border-aura-rose/30 hover:text-aura-rose";
 
+const AI_SETUP_ACTION_LABEL = "Configure date AI";
+
 export function ShellChrome({
   shiftNumber,
   aiStatusLabel,
@@ -65,7 +67,7 @@ export function ShellChrome({
       <div className="flex items-center gap-2">
         <MutedIndicator variant="cream" />
         <AuraButton
-          tooltip={`Open AI setup · ${aiStatusLabel}`}
+          tooltip={`${AI_SETUP_ACTION_LABEL} · ${aiStatusLabel}`}
           tooltipPlacement="bottom"
           onClick={onOpenAiSetup}
           data-sfx="click"
@@ -177,11 +179,11 @@ export function GlassChromePills({
         <PunchOutGlyph />
       </AuraButton>
       <AuraButton
-        tooltip={`Open AI setup · ${aiStatusLabel}`}
+        tooltip={`${AI_SETUP_ACTION_LABEL} · ${aiStatusLabel}`}
         tooltipPlacement="bottom"
         onClick={onOpenAiSetup}
         data-sfx="click"
-        aria-label={`Shift ${String(shiftNumber).padStart(2, "0")} live · AI ${aiStatusLabel} · open AI setup`}
+        aria-label={`Shift ${String(shiftNumber).padStart(2, "0")} live · AI ${aiStatusLabel} · configure date AI`}
         className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3 py-1.5 inline-flex items-center gap-2 transition"
       >
         <span className="aura-pulse h-2 w-2 rounded-full bg-aura-rose" />

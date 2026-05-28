@@ -46,6 +46,7 @@ import {
 } from "../../domain/game";
 import {
   lockAiProviderBaseUrlsForRuntime,
+  normalizeGatewayBaseUrlForRuntime,
   normalizeOllamaBaseUrlForRuntime,
 } from "../../platform/runtime";
 import type {
@@ -536,6 +537,7 @@ function normalizeRuntimeConfig(config?: Partial<AiRuntimeConfig>): AiRuntimeCon
 
   return {
     ...gameConfig,
+    gatewayBaseURL: normalizeGatewayBaseUrlForRuntime(gameConfig.gatewayBaseURL),
     gatewayApiKey: normalizeOptionalSecret(config?.gatewayApiKey),
     requestTimeoutMs:
       config?.requestTimeoutMs ?? defaultRequestTimeoutMsForProvider(gameConfig.aiProvider),
@@ -1263,6 +1265,16 @@ export function providerOptionsForRuntime(
     return {
       alibaba: {
         enableThinking: false,
+      },
+    };
+  }
+
+  if (providerId === "xiaomi") {
+    return {
+      xiaomi: {
+        thinking: {
+          type: reasoningLevel === "off" || reasoningLevel === "none" ? "disabled" : "enabled",
+        },
       },
     };
   }

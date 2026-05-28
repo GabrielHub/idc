@@ -115,7 +115,7 @@ export function AuraTooltip({
     return () => window.removeEventListener("keydown", onKey);
   }, [visible]);
 
-  const wrapperClass = `${align === "block" ? "relative block" : "relative inline-flex"} ${className}`;
+  const wrapperClass = `${align === "block" ? "block" : "inline-flex"} ${className}`;
 
   return (
     <span

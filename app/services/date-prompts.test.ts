@@ -150,11 +150,13 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("The newest partner move outranks room analysis.");
     expect(ownerPacket.prompt).toContain("Finish the conversational move inside this line.");
     expect(ownerPacket.prompt).toContain("Stay inside the current scene inventory.");
+    expect(ownerPacket.prompt).toContain("Your visible affect can change with the turn");
     expect(ownerPacket.prompt).toContain(
       "Your turn is the next move in a conversation already in motion.",
     );
     expect(ownerPacket.prompt).toContain("The line lives inside the exchange");
     expect(ownerPacket.prompt).toContain("Warmth shows in the specifics you reach for");
+    expect(ownerPacket.prompt).toContain("If the impulse is to say that you noticed");
     expect(ownerPacket.prompt).toContain("Use names and profile facts as social context");
     expect(ownerPacket.prompt).toContain("Names are for address, not material");
     expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");
@@ -203,8 +205,10 @@ describe("date prompt assembly", () => {
     expect(activityPrompt).toContain("Keep the conversation alive while the activity happens");
     expect(pressurePrompt).toContain("<flow_mode>pressure</flow_mode>");
     expect(pressurePrompt).toContain("parking in analysis is not");
+    expect(pressurePrompt).toContain("actions can happen between spoken lines");
     expect(setPiecePrompt).toContain("<flow_mode>set_piece</flow_mode>");
     expect(setPiecePrompt).toContain("React to the visible change and name a next move");
+    expect(setPiecePrompt).toContain("previous spoken commitment causes a visible result");
   });
 
   it("renders structured voice fields and member-specific examples", () => {
@@ -2073,64 +2077,6 @@ describe("character prompt repetition guard", () => {
     expect(packet.prompt).not.toContain("<retry_guard>");
   });
 
-  it("adds a retry guard block when repetition feedback is supplied", () => {
-    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
-    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
-    const jenna = save.members.find((member) => member.id === "jenna-pike");
-    const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
-
-    if (
-      scenario === undefined ||
-      jenna === undefined ||
-      vhool === undefined ||
-      pairState === undefined
-    ) {
-      throw new Error("Expected prompt fixture setup.");
-    }
-
-    const repeatedLine = "Jenna keeps circling the same pizza place.";
-    const session = {
-      id: "date-session-retry",
-      pairId: pairState.id,
-      scenarioId: scenario.id,
-      focusMemberId: jenna.id,
-      turnLimit: 30,
-      currentTurn: 1,
-      dateHealth: 65,
-      status: "active" as const,
-      runtimeMode: "local_ai" as const,
-      participants: pairState.participantIds,
-      transcript: [],
-      privateStateByCharacter: {},
-      judgeSnapshots: [],
-      eventDraft: { offered: [], picked: null },
-      eventsTriggered: [],
-      playbackState: "playing" as const,
-      endSentiment: null,
-      endReason: null,
-      interventions: [],
-    };
-    const packet = buildCharacterPromptPacket({
-      member: jenna,
-      partner: vhool,
-      scenario,
-      session,
-      pairState,
-      memoryPack: {
-        self: [],
-        pair: [],
-        scenario: [],
-        recentTranscript: [],
-      },
-      repetitionRetry: { repeatedLine },
-    });
-
-    expect(packet.prompt).toContain("<retry_guard>");
-    expect(packet.prompt).toContain(repeatedLine);
-    expect(packet.prompt).toContain("Make a different conversational move.");
-  });
-
   it("adds a visibility retry guard after an empty performer line", () => {
     const packet = withCharacterVisibilityRetryGuard({
       system: "Act as Jenna Pike.",
@@ -2166,65 +2112,6 @@ describe("character prompt repetition guard", () => {
     expect(textPart?.type === "text" ? textPart.text : "").toContain(
       "previous attempt produced no usable spoken line",
     );
-  });
-
-  it("adds a rhythm retry guard after a repeated approval phrase", () => {
-    const save = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
-    const scenario = starterScenarios.find((candidate) => candidate.id === "temporal-coffee-shop");
-    const jenna = save.members.find((member) => member.id === "jenna-pike");
-    const vhool = save.members.find((member) => member.id === "vhool");
-    const pairState = getPairProjectionFromSave(save, makePairId("jenna-pike", "vhool"));
-
-    if (
-      scenario === undefined ||
-      jenna === undefined ||
-      vhool === undefined ||
-      pairState === undefined
-    ) {
-      throw new Error("Expected prompt fixture setup.");
-    }
-
-    const packet = buildCharacterPromptPacket({
-      member: jenna,
-      partner: vhool,
-      scenario,
-      session: {
-        id: "date-session-rhythm-retry",
-        pairId: pairState.id,
-        scenarioId: scenario.id,
-        focusMemberId: jenna.id,
-        turnLimit: 30,
-        currentTurn: 2,
-        dateHealth: 65,
-        status: "active",
-        runtimeMode: "local_ai",
-        participants: pairState.participantIds,
-        transcript: [],
-        privateStateByCharacter: {},
-        judgeSnapshots: [],
-        eventDraft: { offered: [], picked: null },
-        eventsTriggered: [],
-        playbackState: "playing",
-        endSentiment: null,
-        endReason: null,
-        interventions: [],
-      },
-      pairState,
-      memoryPack: {
-        self: [],
-        pair: [],
-        scenario: [],
-        recentTranscript: [],
-      },
-      rhythmRetry: {
-        repeatedPhrase: "I respect",
-        recentLine: "i respect the soup planning, honestly.",
-      },
-    });
-
-    expect(packet.prompt).toContain("<retry_guard>");
-    expect(packet.prompt).toContain('reused the approval phrase "I respect"');
-    expect(packet.prompt).toContain("Rewrite with a different sentence shape");
   });
 
   it("detects near duplicate lines via Jaccard overlap", () => {

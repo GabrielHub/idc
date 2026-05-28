@@ -61,6 +61,7 @@ export function CathedralPanel({
 }) {
   const enterDuration = reducedMotion ? 0.001 : 0.36;
   const filterRow = libraryFilter === undefined ? null : <CathedralFilterRow {...libraryFilter} />;
+  const railReserveClass = mode === "auto" ? "2xl:pr-[24rem]" : "";
   return (
     <AnimatePresence>
       {open ? (
@@ -74,7 +75,7 @@ export function CathedralPanel({
         >
           <div
             ref={containerRef}
-            className="pointer-events-auto mx-auto flex h-full max-w-[1440px] flex-col"
+            className={`pointer-events-auto mx-auto flex h-full max-w-[1440px] flex-col ${railReserveClass}`}
           >
             <CathedralHeader
               mode={mode}

@@ -28,7 +28,9 @@ export const lede = (
   <>
     This document owns IDC image asset style, portrait generation prompts, and the cutout pipeline.{" "}
     <DocLink to="/docs/product/visual-design">Visual design</DocLink> owns the Aura interface
-    direction and Tailwind theme tokens. Together they define how the world looks on screen.
+    direction and Tailwind theme tokens. Prompt-authoring rules for agent-written image prompts live
+    in <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>. Together
+    they define how the world looks on screen.
   </>
 );
 
@@ -357,9 +359,9 @@ portrait-angry.png`}</DocCodeBlock>
         <P>
           Image-generation prompts in this project follow the OpenAI image prompting guidance: write
           in a consistent order (scene then subject then key details then constraints), use labeled
-          segments instead of one long paragraph, and state exclusions explicitly. State what must
-          remain invariant when iterating, so the model does not redesign the character between
-          images.
+          segments instead of one long paragraph, and define the target pixels before constraints.
+          State what must remain invariant when iterating, so the model does not redesign the
+          character between images. Keep exclusions short and mechanical after the positive target.
         </P>
         <P>Every IDC portrait prompt has these labeled segments:</P>
         <DocDefList

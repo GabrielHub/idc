@@ -127,5 +127,6 @@ export function Lights({
 
 export function SceneBackground() {
   const texture = useMemo(() => buildBackdropTexture(), []);
+  if (texture === null) return null;
   return <primitive attach="background" object={texture} />;
 }

@@ -30,6 +30,7 @@ export function FocusSelectionMarker({
         <span>Focus · {member.firstName}</span>
         <AuraButton
           tooltip="Drop focus selection"
+          aria-label={`Drop ${member.firstName} as focus selection`}
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             event.stopPropagation();
             onClearFocus();

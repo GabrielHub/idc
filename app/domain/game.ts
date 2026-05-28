@@ -7,18 +7,19 @@ export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
 export const DEFAULT_OLLAMA_CHAT_MODEL = "gemma4:e4b";
 export const DEFAULT_OLLAMA_EMBEDDING_MODEL = "embeddinggemma";
 export const DEFAULT_GATEWAY_CHAT_MODEL = "deepseek/deepseek-v4-flash";
-export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
+export const DEFAULT_GATEWAY_EMBEDDING_MODEL = "openai/text-embedding-3-small";
 export const DEFAULT_DATE_MESSAGE_LIMIT = 12;
 export const DEFAULT_JUDGE_TURN_INTERVAL = 6;
 export const MEMBER_RETENTION_WARNING_THRESHOLD = 25;
 export const LEGACY_DEFAULT_DATE_MESSAGE_LIMIT = 24;
+const LEGACY_GATEWAY_EMBEDDING_MODEL = "google/gemini-embedding-2";
 const LEGACY_OPENAI_COMPATIBLE_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v1";
 const DEEPSEEK_V4_PRO_MODEL = "deepseek/deepseek-v4-pro";
 const CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL = "google/gemini-3.1-flash-lite";
+const XIAOMI_MIMO_V2_5_MODEL = "xiaomi/mimo-v2.5";
 const LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS: Record<string, string> = {
   "google/gemini-3-flash": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
   "google/gemini-3.1-flash-lite-preview": CURRENT_GATEWAY_GEMINI_FLASH_LITE_MODEL,
-  "moonshotai/kimi-k2.5": DEFAULT_GATEWAY_CHAT_MODEL,
   "xai/grok-4.3": DEFAULT_GATEWAY_CHAT_MODEL,
 };
 
@@ -981,7 +982,10 @@ function toGameConfigInput(value: unknown): unknown {
     ...record,
     aiProvider,
     chatModel,
-    embeddingModel: legacyEmbeddingModel ?? defaultEmbeddingModel,
+    embeddingModel: normalizeEmbeddingModel(
+      aiProvider,
+      legacyEmbeddingModel ?? defaultEmbeddingModel,
+    ),
     reasoningLevel: normalizeReasoningLevel(aiProvider, chatModel, record.reasoningLevel),
     ollamaBaseURL:
       typeof record.ollamaBaseURL === "string" ? record.ollamaBaseURL : DEFAULT_OLLAMA_BASE_URL,
@@ -995,6 +999,14 @@ function normalizeChatModel(aiProvider: unknown, modelId: string): string {
   }
 
   return LEGACY_GATEWAY_CHAT_MODEL_REPLACEMENTS[modelId] ?? modelId;
+}
+
+function normalizeEmbeddingModel(aiProvider: unknown, modelId: string): string {
+  if (aiProvider === "gateway" && modelId === LEGACY_GATEWAY_EMBEDDING_MODEL) {
+    return DEFAULT_GATEWAY_EMBEDDING_MODEL;
+  }
+
+  return modelId;
 }
 
 function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: unknown): string {
@@ -1016,6 +1028,10 @@ function normalizeReasoningLevel(aiProvider: unknown, chatModel: string, value: 
 
   if (chatModel === "openai/gpt-5.4-nano") {
     return "none";
+  }
+
+  if (chatModel === XIAOMI_MIMO_V2_5_MODEL) {
+    return "xhigh";
   }
 
   return "off";

@@ -23,7 +23,9 @@ export const lede = (
   <>
     The match fit service scores booking pressure for a pair, a scenario, pair history, and active
     member asks. It does not decide attraction, compatibility, or whether a relationship works.
-    Runtime AI owns character reaction and Cupid reads the actual exchange.
+    Runtime AI owns character reaction and Cupid reads the actual exchange. Any prompt-visible
+    match-fit context should follow{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 

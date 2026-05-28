@@ -11,6 +11,8 @@ import {
 export type RuntimePlatform = "tauri" | "browser";
 
 const DESKTOP_OLLAMA_BASE_URLS = [DEFAULT_OLLAMA_BASE_URL, "http://localhost:11434"];
+export const BROWSER_DEV_GATEWAY_PROXY_PREFIX = "/__cupid_ai_gateway";
+export const BROWSER_DEV_GATEWAY_PROXY_BASE_URL = `${BROWSER_DEV_GATEWAY_PROXY_PREFIX}/v3/ai`;
 
 let cachedRuntimePlatform: RuntimePlatform | undefined;
 
@@ -25,6 +27,10 @@ export function detectRuntimePlatform(): RuntimePlatform {
 
   cachedRuntimePlatform = isTauri() ? "tauri" : "browser";
   return cachedRuntimePlatform;
+}
+
+export function resetCachedRuntimePlatformForTesting(): void {
+  cachedRuntimePlatform = undefined;
 }
 
 export function isTauriRuntime(): boolean {
@@ -71,6 +77,18 @@ export function normalizeOllamaBaseUrlForRuntime(baseURL: string | undefined): s
     : (baseURL ?? DEFAULT_OLLAMA_BASE_URL);
 }
 
+export function normalizeGatewayBaseUrlForRuntime(baseURL: string | undefined): string {
+  const normalizedBaseURL = normalizeBaseUrl(baseURL ?? DEFAULT_GATEWAY_BASE_URL);
+
+  if (isTauriRuntime()) {
+    return DEFAULT_GATEWAY_BASE_URL;
+  }
+
+  return shouldUseBrowserDevGatewayProxy(normalizedBaseURL)
+    ? BROWSER_DEV_GATEWAY_PROXY_BASE_URL
+    : normalizedBaseURL;
+}
+
 export function normalizeDesktopOllamaBaseUrl(baseURL: string | undefined): string {
   const normalizedBaseURL = normalizeBaseUrl(baseURL ?? DEFAULT_OLLAMA_BASE_URL);
 
@@ -81,4 +99,14 @@ export function normalizeDesktopOllamaBaseUrl(baseURL: string | undefined): stri
 
 function normalizeBaseUrl(baseURL: string): string {
   return baseURL.trim().replace(/\/+$/u, "");
+}
+
+function shouldUseBrowserDevGatewayProxy(baseURL: string): boolean {
+  return baseURL === DEFAULT_GATEWAY_BASE_URL && isBrowserDevelopmentRuntime();
+}
+
+function isBrowserDevelopmentRuntime(): boolean {
+  return (
+    typeof window !== "undefined" && detectRuntimePlatform() === "browser" && import.meta.env.DEV
+  );
 }

@@ -1,9 +1,11 @@
 import ClaudeColor from "@lobehub/icons/es/Claude/components/Color";
 import DeepSeekColor from "@lobehub/icons/es/DeepSeek/components/Color";
 import GeminiColor from "@lobehub/icons/es/Gemini/components/Color";
+import KimiColor from "@lobehub/icons/es/Kimi/components/Color";
 import MinimaxColor from "@lobehub/icons/es/Minimax/components/Color";
 import OpenAIMono from "@lobehub/icons/es/OpenAI/components/Mono";
 import QwenColor from "@lobehub/icons/es/Qwen/components/Color";
+import XiaomiMiMoMono from "@lobehub/icons/es/XiaomiMiMo/components/Mono";
 import ZhipuColor from "@lobehub/icons/es/Zhipu/components/Color";
 
 import {
@@ -331,10 +333,14 @@ function renderBrandGlyph(brand: AiModelBrand) {
       return <GeminiColor size={size} />;
     case "claude":
       return <ClaudeColor size={size} />;
+    case "kimi":
+      return <KimiColor size={size} />;
     case "minimax":
       return <MinimaxColor size={size} />;
     case "qwen":
       return <QwenColor size={size} />;
+    case "xiaomi":
+      return <XiaomiMiMoMono size={size} />;
     case "zhipu":
       return <ZhipuColor size={size} />;
     case "openai":

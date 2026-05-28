@@ -22,8 +22,7 @@ export function riskZoneForMember(member: Pick<Member, "state">): RiskZoneInfo {
       zone: "at-risk",
       tone: "rose",
       label: "At risk",
-      rationale:
-        "Confidence is critical. Another rough date or missed ask will push them off the app.",
+      rationale: "Below 25. Another rough date or missed ask will push them off the app.",
     };
   }
 
@@ -33,7 +32,7 @@ export function riskZoneForMember(member: Pick<Member, "state">): RiskZoneInfo {
       tone: "amber",
       label: "Cooling off",
       rationale:
-        "Confidence is slipping. Cover their lead ask and book matches with healthy pair stats to recover.",
+        "Between 25 and 60. Cover their lead ask and book healthy matches before they slide further.",
     };
   }
 
@@ -41,7 +40,7 @@ export function riskZoneForMember(member: Pick<Member, "state">): RiskZoneInfo {
     zone: "steady",
     tone: "emerald",
     label: "Steady",
-    rationale: "Confidence is holding. Keep booking thoughtfully.",
+    rationale: "Holding above 60. Keep booking thoughtfully.",
   };
 }
 

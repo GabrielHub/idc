@@ -1,9 +1,11 @@
 import {
   DocCallout,
   DocCode,
+  DocCodeBlock,
   DocLink,
   DocList,
   DocPage,
+  DocSteps,
   DocSubsection,
   P,
   Strong,
@@ -16,7 +18,7 @@ export const meta: DocMeta = {
   group: "product",
   title: "Voice system",
   description:
-    "The map for IDC voice docs: house tone, register split, global prose rules, comedy boundaries, and where member authoring and runtime prompt rules live.",
+    "The entry point for IDC voice work: agent tuning quickstart, house tone, register split, global prose rules, comedy boundaries, and ownership of deeper voice docs.",
   order: 0,
 };
 
@@ -28,9 +30,13 @@ export const lede = (
     surfaces and model quirks live in{" "}
     <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Curated external
     references live in{" "}
-    <DocLink to="/docs/product/voice-references">Voice source references</DocLink>. Gameplay data
+    <DocLink to="/docs/product/voice-references">Voice source references</DocLink>. Prompt-authoring
+    rules for agents live in{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>. Gameplay data
     fields live in{" "}
-    <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
+    <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>. Agents
+    tuning one member should start at{" "}
+    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink>.
   </>
 );
 
@@ -43,9 +49,18 @@ export const sections: DocSectionEntry[] = [
         <P>Use the docs this way. Do not duplicate the same rule in multiple places.</P>
         <DocList
           items={[
+            <span key="tuning">
+              <Strong>Voice tuning quickstart:</Strong> the agent entry point for one-member tuning
+              passes. It tells the agent what to read, run, inspect, patch, and verify before
+              opening the deeper docs.
+            </span>,
             <span key="voice">
               <Strong>Voice system:</Strong> house tone, Cupid corporate voice, member voice
-              baseline, global prose rules, and comedy boundaries.
+              baseline, global prose rules, prompt-provider distillation, and comedy boundaries.
+            </span>,
+            <span key="prompt-authoring">
+              <Strong>Prompt authoring guidance:</Strong> provider-aligned prompt rules for any doc,
+              fixture, workflow, or runtime surface that becomes model context.
             </span>,
             <span key="fingerprints">
               <Strong>Member voice authoring:</Strong> how to write <DocCode>voice</DocCode>,{" "}
@@ -85,6 +100,216 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "voice-tuning-quickstart",
+    title: "Voice Tuning Quickstart",
+    body: (
+      <>
+        <P>
+          Use this section when an agent is asked to tune one member voice. Do not feed the full
+          voice documentation stack into the model. Start with the narrow target, inspect live
+          output, patch the smallest authored surface that teaches the failure, and rerun the same
+          pressure.
+        </P>
+        <DocCallout variant="warn" title="One member, one failure shape">
+          A tuning pass is not a rewrite pass. Name the member, the partner pressure, and the
+          observed miss before editing. If there are multiple misses, fix the highest-impact one
+          first and keep the transcript evidence with the working session, not in product docs.
+        </DocCallout>
+        <DocSteps
+          items={[
+            <span key="read">
+              Read the member fixture in <DocCode>app/fixtures/members/</DocCode>, their current
+              requests in <DocCode>app/fixtures/goals/member-requests.ts</DocCode>, and only the
+              relevant section of{" "}
+              <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Use{" "}
+              <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> only when the
+              fixture cites a pattern or the miss is pattern drift. Use{" "}
+              <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink> when
+              the fix would add prompt text, examples, negative rules, or agent instructions.
+            </span>,
+            <div key="start" className="flex flex-col gap-2">
+              Start with a live-like tune session and pass a focus request:
+              <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-or-pressure-partner-id> --name <session-name> --focus-request <request-id>`}</DocCodeBlock>
+            </div>,
+            "Drive three to six focus-member turns. Include one warm receive, one ordinary follow-up, and one boundary or boredom pressure that should reveal drift.",
+            "Judge the output against the tuning targets below. Treat pleasant generic output as a miss when it does not sound like the member.",
+            "Patch the smallest correct surface: register for the controlling engine, comedyMechanics for cross-turn behavior, tics for syntax frequency, outputConstraints for member-specific failure modes, sampleMessages for attractors, or the runtime prompt only when multiple members fail the same way.",
+            "Rerun the same transcript pressure before expanding scope. If the fix depends on a new rule, move that rule into the owning doc rather than repeating it in every fixture.",
+          ]}
+        />
+        <DocSubsection id="tuning-targets" title="Tuning Targets">
+          <DocList
+            items={[
+              "The member answers the latest partner move first. Voice colors the reply after the response is real.",
+              "The member can move across neutral, warm or flirty, confused, guarded, angry, overwhelmed, and ready-to-leave states when the transcript earns it. Polite-neutral is not the default surface.",
+              "The line is spoken at a table, not typed into a phone, unless the fixture explicitly earns the exception.",
+              "The output performs the authored engine through behavior: protection, refusal, curiosity, pressure, attachment, status, or care. It does not recite traits.",
+              "Concrete fixture facts appear only when the turn earns them. They do not become census receipt or hidden-field confession.",
+              "The member can cool, refuse, get confused, or end pressure when the transcript supports it. Attraction is not the default.",
+              "Brief receive slots become a character-specific reaction, answer, question, choice, refusal, or silence. If a line starts by announcing what the member noticed, convert the noticing into the actual reply it creates.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="state-range-and-crash-outs" title="State Range And Crash-Outs">
+          <P>
+            Every member needs enough authored pressure to leave the neutral lane. Tuning must test
+            a normal receive, a warmer or flirtier receive, a confused or guarded receive, and a
+            boundary-pressure receive. Members should be able to cool the room, get angry, crash
+            out, or end the date early when their dealbreakers, comfort, mood, or scenario pressure
+            support it.
+          </P>
+          <DocList
+            items={[
+              "Neutral: ordinary back-and-forth, curiosity, boredom, dry answers, or careful distance.",
+              "Warm or flirty: attraction expressed through the member's own engine, not generic complimenting.",
+              "Confused or guarded: shorter lines, clarifying questions, refusal to play along, visible uncertainty, or a narrower topic.",
+              "Angry or crashing out: named trigger, cadence shift, boundary, refusal, or clean close. It should sound like the member, not like a policy report.",
+              "Early end: the member can stop participating, leave the table, or make the date impossible to continue. The judge owns final early-end filing, but the performer must be allowed to produce the spoken break.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="meta-acknowledgment-drift" title="Meta-Acknowledgment Drift">
+          <P>
+            Treat meta-acknowledgment as a signal that the prompt or fixture needs a clearer target
+            move. The desired behavior is not "avoid a phrase"; it is "turn recognition into
+            action." If the model wants to announce that the member noticed, clocked, noted, or
+            registered something, rewrite the guidance so the member answers, asks, teases, chooses,
+            refuses, admits, or ends instead.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="ban-stack-audit" title="Ban Stack Audit">
+          <P>
+            Before adding another negative rule, name the replacement behavior. A ban belongs in a
+            fixture or prompt only when it protects a hard invariant and the positive target alone
+            has failed. Most voice misses should be fixed by teaching the next good move.
+          </P>
+          <DocList
+            items={[
+              "Replace generic acknowledgment bans with receive-shape targets: answer, ask, tease, choose, refuse, admit, or leave silence.",
+              "Replace narration bans with dialogue targets: make an offer, name a choice, react to the result, or give the partner something answerable.",
+              "Replace pattern bans with character-engine targets: what this member protects, wants, refuses, or finds funny in this exact turn.",
+              "Keep hard bans centralized in the owning doc, sanitizer, or content lint. Do not copy them into every fixture as local prompt noise.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="tuning-balance" title="Tuning Balance">
+          <P>
+            Do not turn tuning into an effort loop that tries to remove every imperfect line. Model
+            output is non-deterministic, and a single awkward acknowledgment, flat beat, or slightly
+            generic turn is not automatically a fixture failure. The tuning question is whether the
+            conversation repeatedly reads wrong for this member under the same pressure.
+          </P>
+          <DocList
+            items={[
+              "Fix conversation-level patterns: six turns that stay generic, a member who cannot get angry, repeated refusal to answer the latest move, or pressure scenes that never create consequences.",
+              "Do not overfit one transcript. Rerun the same pressure and look for stable drift before adding new prompt text.",
+              "Accept in-character variation. An acknowledgment can be fine when it sounds like the member and moves the exchange forward.",
+              "Keep prompts smaller after each pass when possible. If a rule only exists to prevent one unlucky sample, delete or rewrite it as a positive target.",
+              "Never fail, reject, or retry a generated member line because a string matched a disliked style pattern. Only actual generation or filing failures should block a turn.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="scenario-pressure-tuning" title="Scenario Pressure Tuning">
+          <P>
+            Voice tuning should cover at least one conversation room and one pressure, activity, or
+            set-piece room. In conversation rooms, the venue should fall behind the people. In
+            pressure rooms, actions can happen between spoken lines when a prior line committed to
+            them or an event lands. The next member reacts to the result as present scene reality,
+            but still speaks naturally.
+          </P>
+          <DocList
+            items={[
+              <span key="bad">
+                <Strong>Miss:</Strong> "I see you moved the rook and I am processing that this
+                matters."
+              </span>,
+              <span key="good">
+                <Strong>Target:</Strong> "You just killed my bishop. Like actually killed him. Are
+                these pieces alive?"
+              </span>,
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="natural-dialogue-references" title="Natural Dialogue References">
+          <P>
+            If an agent needs to recalibrate what natural conversational rhythm sounds like, use a
+            small reference sample before editing fixtures. The target is timing, turn shape,
+            interruption, compression, and specificity, not copied phrases.
+          </P>
+          <DocList
+            items={[
+              <span key="northernlion">
+                Use <DocCode>docs/reference/voice-northernlion.md</DocCode> for public, curated
+                examples of spoken riffing, premise mutation, correction, and bit recovery.
+              </span>,
+              <span key="imessage">
+                On MacBook runs, an agent may also use an available local iMessage or texting corpus
+                as a private rhythm reference for natural back-and-forth. Keep it local and
+                uncommitted.
+              </span>,
+              "Extract mechanics: how people answer directly, drop acknowledgments, interrupt themselves, make a concrete ask, flirt without announcing it, or end a thread.",
+              "Translate texting references into spoken table dialogue before writing member output. Message shorthand, private names, copied jokes, and private facts do not go into fixtures, prompts, docs, or tests.",
+            ]}
+          />
+          <P>
+            Source handling rules live in{" "}
+            <DocLink to="/docs/product/voice-references">Voice source references</DocLink>.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="provider-prompt-distillation" title="Provider Prompt Distillation">
+          <P>
+            Current provider guidance points to the same local rule: short, explicit, scoped prompt
+            packets beat giant policy dumps. OpenAI warns that highly literal instruction following
+            makes vague or contradictory prompts costly; Google emphasizes structured
+            instruction/context/task separation, consistent examples, and placing the actual task
+            after long context; Anthropic emphasizes clear direct instructions, relevant diverse
+            examples, and explicit behavior requests. The durable project contract lives in{" "}
+            <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
+          </P>
+          <DocList
+            items={[
+              "Keep one owner for each rule. Do not restate the same ban in prompt packets, fixture prose, sample banks, and docs unless that surface actually owns enforcement.",
+              "Prefer positive replacements over ban lists: answer, ask, redirect, admit, tease, refuse, choose, or close.",
+              "Treat prompt edits as hypotheses. Verify against several turns, then remove wording that only chases a one-off sample.",
+              "Use a few targeted examples only when they mirror the failure. Too many examples make the model copy format, cadence, or old facts.",
+              "Put volatile transcript context before the task, then end with the exact next action the performer must do.",
+              "Do not expose internal catalogs as checklists. Pattern names help authors, but the runtime performer needs the member's engine and the current conversation.",
+            ]}
+          />
+          <P>
+            Source docs:{" "}
+            <DocLink to="https://developers.openai.com/api/docs/guides/prompt-guidance">
+              OpenAI prompt guidance
+            </DocLink>
+            ,{" "}
+            <DocLink to="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/start/gemini-3-prompting-guide">
+              Gemini 3 prompting guide
+            </DocLink>
+            ,{" "}
+            <DocLink to="https://ai.google.dev/gemini-api/docs/prompting-strategies">
+              Gemini API prompting strategies
+            </DocLink>
+            , and{" "}
+            <DocLink to="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices">
+              Claude prompting best practices
+            </DocLink>
+            .
+          </P>
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "tuning-targets", title: "Tuning Targets" },
+      { id: "state-range-and-crash-outs", title: "State Range And Crash-Outs" },
+      { id: "meta-acknowledgment-drift", title: "Meta-Acknowledgment Drift" },
+      { id: "ban-stack-audit", title: "Ban Stack Audit" },
+      { id: "tuning-balance", title: "Tuning Balance" },
+      { id: "scenario-pressure-tuning", title: "Scenario Pressure Tuning" },
+      { id: "natural-dialogue-references", title: "Natural Dialogue References" },
+      { id: "provider-prompt-distillation", title: "Provider Prompt Distillation" },
+    ],
+  },
+  {
     id: "house-registers",
     title: "House Registers",
     body: (
@@ -119,7 +344,13 @@ export const sections: DocSectionEntry[] = [
               "Specific neurosis delivered with conviction. Random absurdity is not enough.",
               "A natural response to the partner beats any authored tic or pattern.",
               "Run-ons, fragments, lowercase, and awkward pivots are allowed when the fixture earns them.",
-              "Member voice is spoken at a table, not texted into a phone. The full contract lives in Member voice authoring.",
+              <span key="spoken">
+                Spoken-dialogue constraints live in{" "}
+                <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+                  Member voice authoring
+                </DocLink>
+                .
+              </span>,
             ]}
           />
         </DocSubsection>
@@ -142,7 +373,6 @@ export const sections: DocSectionEntry[] = [
             "Specific proper nouns beat generic categories when they are true to the character.",
             "Trust the reader. Do not explain the joke after the joke.",
             "No AI-slop words: delve, in essence, moreover, tapestry, intricate, myriad, plethora, unleash, robust filler, or not just X but also Y.",
-            "No stage directions in member speech. Member bubbles are dialogue, not theater scripts.",
             <span key="markdown">
               Member Markdown is optional spoken typography. The allowed subset lives in{" "}
               <DocLink to="/docs/product/voice-prompts#member-markdown-subset">

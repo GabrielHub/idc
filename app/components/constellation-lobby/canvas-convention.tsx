@@ -41,6 +41,7 @@ import {
   FOCUS_MARKER_POSITION,
   FLYTHROUGH_LAYER_Z,
   avatarScaleForCanvas,
+  partnerRingBoundsForCanvas,
   rosterClusterBoundsForCanvas,
   pairPartnerPosition,
   partnerRingPosition,
@@ -226,6 +227,17 @@ export function Scene({
   const rosterClusterBounds = useMemo<RosterClusterBounds>(
     () =>
       rosterClusterBoundsForCanvas({
+        canvasWidth: size.width,
+        canvasHeight: size.height,
+        cameraZ: cameraTarget.position[2],
+        planeZ: FLYTHROUGH_LAYER_Z[1],
+        avatarScale: canvasScale,
+      }),
+    [cameraTarget.position[2], canvasScale, size.height, size.width],
+  );
+  const partnerRingBounds = useMemo<RosterClusterBounds>(
+    () =>
+      partnerRingBoundsForCanvas({
         canvasWidth: size.width,
         canvasHeight: size.height,
         cameraZ: cameraTarget.position[2],
@@ -420,6 +432,7 @@ export function Scene({
       focusOrder,
       rosterLeadOrder,
       rosterClusterBounds,
+      partnerRingBounds,
       rosterSubview,
     });
     return resolveStarRenderTarget({
@@ -443,6 +456,7 @@ export function Scene({
     focusOrder,
     rosterLeadOrder,
     rosterClusterBounds,
+    partnerRingBounds,
     rosterSubview,
   ]);
 
@@ -483,6 +497,7 @@ export function Scene({
         focusOrder={focusOrder}
         rosterLeadOrder={rosterLeadOrder}
         rosterClusterBounds={rosterClusterBounds}
+        partnerRingBounds={partnerRingBounds}
         rosterSubview={rosterSubview}
         offTonightSet={offTonightSet}
         textures={textures}
@@ -534,7 +549,7 @@ export function Scene({
               z: flythroughStarZ(0),
             };
             const rosterPosition = shouldUsePartnerRingLayout(rosterLeadOrder.length)
-              ? partnerRingPosition(index, rosterLeadOrder.length)
+              ? partnerRingPosition(index, rosterLeadOrder.length, partnerRingBounds)
               : rosterClusterPosition(index, rosterLeadOrder.length, rosterClusterBounds);
             const partnerEnd: Vec3 = {
               x: rosterPosition.x,

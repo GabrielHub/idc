@@ -18,6 +18,9 @@ import {
   haloColorForStar,
   intensityForRole,
   pairPartnerPosition,
+  partnerRingBoundsForCanvas,
+  partnerRingPosition,
+  resolveClusterPosition,
   resolveStarPresentation,
   resolveStarRenderTarget,
   ringColorForRole,
@@ -414,7 +417,7 @@ describe("resolveStarPresentation", () => {
     expect(presentation.hitRadius).toBe(0.16);
   });
 
-  it("promotes hovered background stars to full avatars above the parallax field", () => {
+  it("promotes hovered background stars to enlarged avatars above the parallax field", () => {
     const presentation = resolveStarPresentation({
       tier: "background",
       role: "dim",
@@ -427,8 +430,45 @@ describe("resolveStarPresentation", () => {
     });
 
     expect(presentation.avatarOpacity).toBe(1);
-    expect(presentation.avatarScale).toBe(1);
+    expect(presentation.avatarScale).toBeGreaterThan(1);
+    expect(presentation.hitRadius).toBeGreaterThanOrEqual(0.11 * presentation.avatarScale);
     expect(presentation.zLift).toBe(1.8);
+  });
+
+  it("enlarges hovered ineligible background stars without erasing their dim state", () => {
+    const presentation = resolveStarPresentation({
+      tier: "background",
+      role: "ineligible_off_shift",
+      clustered: false,
+      hovered: true,
+      slabActivity: { intensityMultiplier: 0.18, scaleMultiplier: 1 },
+      baseIntensity: 0.38,
+      filteredOut: false,
+      avatarRadius: 0.2,
+    });
+
+    expect(presentation.avatarOpacity).toBeLessThan(1);
+    expect(presentation.avatarScale).toBeGreaterThan(1);
+    expect(presentation.hitRadius).toBeCloseTo(0.2 * presentation.avatarScale);
+  });
+
+  it("promotes hovered ineligible roster stars to full subgroup scale", () => {
+    // Off-shift members in the off-tonight roster cohort: role stays
+    // ineligible_off_shift, but the cohort makes them the active lead. The
+    // quick-action rail lives inside the avatar subgroup, so the subgroup
+    // scale must reach 1 on hover or the rail is crushed to ~38%.
+    const presentation = resolveStarPresentation({
+      tier: "foreground",
+      role: "ineligible_off_shift",
+      clustered: false,
+      hovered: true,
+      slabActivity: { intensityMultiplier: 1.1, scaleMultiplier: 1.85 },
+      baseIntensity: 0.38,
+      filteredOut: false,
+      avatarRadius: 0.38,
+    });
+
+    expect(presentation.avatarScale).toBe(1);
   });
 });
 
@@ -584,11 +624,15 @@ describe("flythroughMemberSlabActivity", () => {
     );
   });
 
-  it("slightly reduces active roster scale as the highlighted cohort grows", () => {
+  it("shrinks active roster scale as the highlighted cohort grows so hover chrome has clearance", () => {
     const smallRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 8);
-    const largeRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 20);
-    expect(largeRoster.scaleMultiplier).toBeLessThan(smallRoster.scaleMultiplier);
-    expect(largeRoster.scaleMultiplier).toBeGreaterThan(2);
+    const midRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 20);
+    const largeRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 40);
+    expect(midRoster.scaleMultiplier).toBeLessThan(smallRoster.scaleMultiplier);
+    expect(largeRoster.scaleMultiplier).toBeLessThan(midRoster.scaleMultiplier);
+    // Even the most-shrunk tier should stay above the default eligible base
+    // size — otherwise grid portraits become illegible dots.
+    expect(largeRoster.scaleMultiplier).toBeGreaterThan(0.7);
   });
 
   it("crushes non-lead intensity on layer 1 so leads pop unambiguously", () => {
@@ -775,12 +819,127 @@ describe("viewport roster fit", () => {
   });
 });
 
+describe("partnerRingBoundsForCanvas", () => {
+  it("gives the orbit a wider horizontal footprint than the rectangular grid", () => {
+    // The two layouts optimize for different shapes — the ring fans out
+    // horizontally around the focus pin, while the grid stacks vertically
+    // when the off-tonight cohort grows past a couple of rows. Width is the
+    // dimension where "more generous" still applies; height can differ
+    // because the grid uses extra rows while the ring stays compact for
+    // HUD breathing room.
+    const input = {
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 1,
+    };
+    const grid = rosterClusterBoundsForCanvas(input);
+    const ring = partnerRingBoundsForCanvas(input);
+    expect(ring.maxWidth).toBeGreaterThan(grid.maxWidth);
+  });
+
+  it("scales down with the canvas so narrow viewports get tighter orbits", () => {
+    const wide = partnerRingBoundsForCanvas({
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 1,
+    });
+    const narrow = partnerRingBoundsForCanvas({
+      canvasWidth: 1024,
+      canvasHeight: 768,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 0.8,
+    });
+    expect(narrow.maxWidth).toBeLessThan(wide.maxWidth);
+  });
+});
+
 describe("shouldUsePartnerRingLayout", () => {
-  it("keeps the partner orbit only for small cohorts", () => {
+  it("uses the partner orbit whenever there is more than one eligible partner", () => {
     expect(shouldUsePartnerRingLayout(1)).toBe(false);
     expect(shouldUsePartnerRingLayout(2)).toBe(true);
     expect(shouldUsePartnerRingLayout(6)).toBe(true);
-    expect(shouldUsePartnerRingLayout(7)).toBe(false);
+    expect(shouldUsePartnerRingLayout(7)).toBe(true);
+    expect(shouldUsePartnerRingLayout(12)).toBe(true);
+  });
+});
+
+describe("partnerRingPosition", () => {
+  it("keeps larger eligible cohorts in a focus-centered orbit instead of a grid", () => {
+    const rosterLeadOrder = Array.from({ length: 8 }, (_, index) => `member-${index}`);
+    const position = resolveClusterPosition({
+      memberId: "member-0",
+      role: "eligible",
+      state: "focus_selected",
+      flythroughLayer: 1,
+      currentLayer: 1,
+      focusOrder: ["focus"],
+      rosterLeadOrder,
+      rosterClusterBounds: { maxWidth: 9.6, maxHeight: 4.2 },
+      rosterSubview: "eligibles",
+    });
+
+    expect(position).not.toBeNull();
+    expect(position?.x).toBeCloseTo(0);
+    expect(position?.y).toBeGreaterThan(1.2);
+  });
+
+  it("fits the orbit inside responsive canvas bounds", () => {
+    const bounds = { maxWidth: 7.2, maxHeight: 4.2 };
+    const positions = Array.from({ length: 10 }, (_, index) =>
+      partnerRingPosition(index, 10, bounds),
+    );
+    const xs = positions.map((position) => Math.abs(position.x));
+    const ys = positions.map((position) => Math.abs(position.y));
+
+    expect(Math.max(...xs)).toBeLessThanOrEqual(bounds.maxWidth / 2);
+    expect(Math.max(...ys)).toBeLessThanOrEqual(bounds.maxHeight / 2);
+  });
+
+  it("uses the partnerRing bounds when one is provided alongside the grid bounds", () => {
+    const rosterLeadOrder = Array.from({ length: 7 }, (_, index) => `member-${index}`);
+    // member-2 sits past 12 o'clock, where ring x is near its maximum.
+    const args = {
+      memberId: "member-2",
+      role: "eligible" as const,
+      state: "focus_selected" as const,
+      flythroughLayer: 1 as const,
+      currentLayer: 1 as const,
+      focusOrder: ["focus"],
+      rosterLeadOrder,
+      rosterClusterBounds: { maxWidth: 9.6, maxHeight: 4.2 },
+      rosterSubview: "eligibles" as const,
+    };
+    const withGridBounds = resolveClusterPosition(args);
+    const withRingBounds = resolveClusterPosition({
+      ...args,
+      partnerRingBounds: { maxWidth: 12.6, maxHeight: 4.6 },
+    });
+
+    expect(withGridBounds).not.toBeNull();
+    expect(withRingBounds).not.toBeNull();
+    expect(Math.abs(withRingBounds!.x)).toBeGreaterThan(Math.abs(withGridBounds!.x));
+  });
+
+  it("breathes wider as the canvas allows, so 7 partners on a wide canvas pad apart", () => {
+    const bounds = partnerRingBoundsForCanvas({
+      canvasWidth: 1920,
+      canvasHeight: 1080,
+      cameraZ: FLYTHROUGH_CAMERA_Z[1],
+      planeZ: FLYTHROUGH_LAYER_Z[1],
+      avatarScale: 1,
+    });
+    const positions = Array.from({ length: 7 }, (_, index) =>
+      partnerRingPosition(index, 7, bounds),
+    );
+    const xs = positions.map((position) => position.x);
+    const ringWidth = Math.max(...xs) - Math.min(...xs);
+    // Significantly wider than the previous orbit which clamped to ~7.85 wu.
+    expect(ringWidth).toBeGreaterThan(9.5);
   });
 });
 

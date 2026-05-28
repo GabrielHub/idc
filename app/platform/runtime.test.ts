@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   DEFAULT_GATEWAY_CHAT_MODEL,
@@ -10,12 +10,20 @@ import {
   gameConfigSchema,
 } from "../domain/game";
 import {
+  BROWSER_DEV_GATEWAY_PROXY_BASE_URL,
   createDefaultGameConfigForPlatform,
   lockAiProviderBaseUrlsForDesktop,
+  normalizeGatewayBaseUrlForRuntime,
   normalizeDesktopOllamaBaseUrl,
+  resetCachedRuntimePlatformForTesting,
 } from "./runtime";
 
 describe("desktop runtime URL policy", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetCachedRuntimePlatformForTesting();
+  });
+
   it("keeps scoped Ollama hosts and normalizes trailing slashes", () => {
     expect(normalizeDesktopOllamaBaseUrl("http://localhost:11434/")).toBe("http://localhost:11434");
     expect(normalizeDesktopOllamaBaseUrl(`${DEFAULT_OLLAMA_BASE_URL}/`)).toBe(
@@ -50,5 +58,16 @@ describe("desktop runtime URL policy", () => {
       gatewayBaseURL: DEFAULT_GATEWAY_BASE_URL,
       reasoningLevel: "xhigh",
     });
+  });
+
+  it("routes only the default Gateway through the browser dev proxy", () => {
+    vi.stubGlobal("window", {});
+
+    expect(normalizeGatewayBaseUrlForRuntime(DEFAULT_GATEWAY_BASE_URL)).toBe(
+      BROWSER_DEV_GATEWAY_PROXY_BASE_URL,
+    );
+    expect(normalizeGatewayBaseUrlForRuntime("https://gateway.example/v3/ai/")).toBe(
+      "https://gateway.example/v3/ai",
+    );
   });
 });

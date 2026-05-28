@@ -6,6 +6,7 @@ import type { Plugin } from "vite";
 import { configDefaults, defineConfig } from "vite-plus";
 
 const PUBLIC_PORTRAIT_SOURCE_DIR = "public/assets/portraits/source";
+const BROWSER_DEV_GATEWAY_PROXY_PREFIX = "/__cupid_ai_gateway";
 const FORBIDDEN_DESKTOP_PATTERNS: Array<{ label: string; pattern: RegExp }> = [
   { label: "api route entries", pattern: /\/routes\/api\.[\w.-]+\.ts/ },
   { label: "playground route entries", pattern: /\/routes\/playground\.tsx/ },
@@ -20,6 +21,16 @@ const APP_VERSION = packageJson.version;
 const CHUNK_TARGET_BYTES = 420 * 1024;
 
 export default defineConfig({
+  server: {
+    proxy: {
+      [BROWSER_DEV_GATEWAY_PROXY_PREFIX]: {
+        target: "https://ai-gateway.vercel.sh",
+        changeOrigin: true,
+        secure: true,
+        rewrite: (path) => path.replace(BROWSER_DEV_GATEWAY_PROXY_PREFIX, ""),
+      },
+    },
+  },
   run: {
     tasks: {
       verify: {

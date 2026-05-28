@@ -74,10 +74,6 @@ import {
   buildJudgePromptPacket,
   buildSummarizerPromptPacket,
   checkCupidCorporateCopy,
-  collectRecentSpeakerLines,
-  hasNearDuplicateRecentLine,
-  hasRepeatedApprovalPhrase,
-  RECENT_LINE_GUARD_COUNT,
   withCharacterVisibilityRetryGuard,
   type CharacterPromptImageAttachment,
   type CharacterPromptPacket,
@@ -898,11 +894,6 @@ async function createLocalAiCharacterMessage({
     });
     const sequenceIndex = session.transcript.length;
     const turnIndex = session.currentTurn + 1;
-    const recentSpeakerLines = collectRecentSpeakerLines(
-      session.transcript,
-      speaker.id,
-      RECENT_LINE_GUARD_COUNT,
-    );
     const warningMessages: string[] = [];
     const promptInputs = await prepareCharacterPromptInputs({
       repository,
@@ -915,8 +906,6 @@ async function createLocalAiCharacterMessage({
     });
 
     async function runAttempt(
-      repetitionRetry: { repeatedLine: string } | undefined,
-      rhythmRetry: { repeatedPhrase: string; recentLine: string } | undefined,
       visibilityRetry: boolean,
     ): Promise<{ text: string; generation: GeneratedTextResult }> {
       const basePacket = buildCharacterPromptPacket({
@@ -930,8 +919,6 @@ async function createLocalAiCharacterMessage({
         partnerKnowledge,
         matchFit,
         memorySearchAvailable: true,
-        repetitionRetry,
-        rhythmRetry,
         imageAttachments: promptInputs.imageAttachments,
       });
       const packet = visibilityRetry ? withCharacterVisibilityRetryGuard(basePacket) : basePacket;
@@ -960,19 +947,18 @@ async function createLocalAiCharacterMessage({
       return { text, generation };
     }
 
-    async function runVisibleAttempt(
-      repetitionRetry: { repeatedLine: string } | undefined,
-      rhythmRetry: { repeatedPhrase: string; recentLine: string } | undefined,
-    ): Promise<{ text: string; generation: GeneratedTextResult }> {
+    async function runVisibleAttempt(): Promise<{ text: string; generation: GeneratedTextResult }> {
       try {
-        return await runAttempt(repetitionRetry, rhythmRetry, false);
+        return await runAttempt(false);
       } catch (error) {
+        // Retry only when the generated payload cannot be filed safely. Style misses
+        // belong to tuning/audit feedback, not generation rejection or rewrite loops.
         if (error instanceof HiddenInfoLeakError) {
           warningMessages.push(
             `Cupid asked ${speaker.name} to rewrite a line that echoed hidden fixture text: ${describeHiddenInfoLeak(error.leak)}.`,
           );
 
-          return runAttempt(repetitionRetry, rhythmRetry, true);
+          return runAttempt(true);
         }
 
         if (!(error instanceof EmptyPerformerMessageError)) {
@@ -983,64 +969,11 @@ async function createLocalAiCharacterMessage({
           `Cupid asked ${speaker.name} to retry an empty AI line before filing the turn.`,
         );
 
-        return runAttempt(repetitionRetry, rhythmRetry, true);
+        return runAttempt(true);
       }
     }
 
-    const projectedRecentSpeakerLines = recentSpeakerLines.map(projectMemberSpeechPlain);
-
-    let attempt = await runVisibleAttempt(undefined, undefined);
-    let attemptProjected = projectMemberSpeechPlain(attempt.text);
-    const initialRepeat = hasNearDuplicateRecentLine({
-      text: attemptProjected,
-      recentLines: projectedRecentSpeakerLines,
-    });
-
-    if (initialRepeat !== null) {
-      warningMessages.push(
-        `Cupid asked ${speaker.name} to rewrite a near duplicate line before filing the turn.`,
-      );
-      const retry = await runVisibleAttempt(initialRepeat, undefined);
-      const retryProjected = projectMemberSpeechPlain(retry.text);
-      const stillRepeats = hasNearDuplicateRecentLine({
-        text: retryProjected,
-        recentLines: projectedRecentSpeakerLines,
-      });
-
-      if (stillRepeats === null) {
-        attempt = retry;
-        attemptProjected = retryProjected;
-      } else {
-        warningMessages.push(
-          `${speaker.name} stayed on the same line after the rewrite. Cupid filed the turn anyway.`,
-        );
-      }
-    }
-
-    const repeatedApproval = hasRepeatedApprovalPhrase({
-      text: attemptProjected,
-      recentLines: projectedRecentSpeakerLines,
-    });
-
-    if (repeatedApproval !== null) {
-      warningMessages.push(
-        `Cupid asked ${speaker.name} to rewrite a repeated approval phrase before filing the turn.`,
-      );
-      const retry = await runVisibleAttempt(undefined, repeatedApproval);
-      const retryProjected = projectMemberSpeechPlain(retry.text);
-      const stillRepeats = hasRepeatedApprovalPhrase({
-        text: retryProjected,
-        recentLines: projectedRecentSpeakerLines,
-      });
-
-      if (stillRepeats === null) {
-        attempt = retry;
-      } else {
-        warningMessages.push(
-          `${speaker.name} reused the same approval phrase after the rewrite. Cupid filed the turn anyway.`,
-        );
-      }
-    }
+    const attempt = await runVisibleAttempt();
 
     const text = attempt.text;
     const generation = attempt.generation;

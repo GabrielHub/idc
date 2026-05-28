@@ -112,12 +112,19 @@ export function sizingRoleForStar({
   return activeLead ? "eligible" : role;
 }
 
+// Per-cohort scale tiers. Small cohorts (the eligibles ring) keep a hero
+// presentation. Mid-and-large cohorts (mostly off-tonight) shrink fast so
+// the grid can give each member real breathing room — important because
+// the quick-action rail and name pill surface on hover and need clearance
+// from the next member's hit plane.
 function rosterLeadScaleMultiplier(activeLeadCount: number): number {
-  if (activeLeadCount <= 12) return 2.6;
-  if (activeLeadCount <= 18) return 2.45;
-  if (activeLeadCount <= 24) return 2.25;
-  if (activeLeadCount <= 32) return 2;
-  return 1.8;
+  if (activeLeadCount <= 6) return 1.85;
+  if (activeLeadCount <= 12) return 1.7;
+  if (activeLeadCount <= 18) return 1.45;
+  if (activeLeadCount <= 24) return 1.25;
+  if (activeLeadCount <= 32) return 1.15;
+  if (activeLeadCount <= 40) return 1.05;
+  return 1;
 }
 
 export function advanceFlythroughLayer(

@@ -41,7 +41,11 @@ export const sections: DocSectionEntry[] = [
             schema, hidden tags, request tags, and ship-ready data rules.
           </span>,
           <span key="voice">
-            <DocLink to="/docs/product/voice">Voice system</DocLink> for house tone;{" "}
+            <DocLink to="/docs/product/voice#voice-tuning-quickstart">
+              Voice tuning quickstart
+            </DocLink>{" "}
+            for the agent tuning path; <DocLink to="/docs/product/voice">Voice system</DocLink> for
+            house tone;{" "}
             <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink> for bio,
             voice, sample banks, output invariants, and dealbreakers;{" "}
             <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the controlled
@@ -53,6 +57,11 @@ export const sections: DocSectionEntry[] = [
             <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink> for profile
             taglines, openers, Markdown, prompt packet shape, scenario event kinds, and model
             quirks.
+          </span>,
+          <span key="prompt-authoring">
+            <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink> before
+            adding prompt text, example banks, negative constraints, tune-agent instructions, or
+            runtime fallback behavior.
           </span>,
           <span key="knowledge">
             <DocLink to="/docs/gameplay/player-knowledge">Player knowledge</DocLink>,{" "}
@@ -165,7 +174,11 @@ export const sections: DocSectionEntry[] = [
       <>
         <P>
           Runtime voice must be verified against the AI character pipeline before lock or major
-          re-lock.
+          re-lock. Use the{" "}
+          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
+            Voice tuning quickstart
+          </DocLink>{" "}
+          as the tuning rubric; this section records the add-member workflow hook.
         </P>
         <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-partner-id> --name <session-name> --focus-opens --focus-request <request-id>
 vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
@@ -182,7 +195,7 @@ vp run tune -- say "<partner line>" --session <session-name>`}</DocCodeBlock>
             "Use the member-chat playground as a quick pre-date probe for profile-recital drift, hidden-info leakage, and chat-app artifacts. Do not treat it as a substitute for the live date prompt.",
             "Surface a readable window: up to six focus-member turns plus the partner lines that prompted them.",
             "Read both speakers. Partner drift is still fixture evidence.",
-            "Patch the smallest correct surface: fixture register, tic, sample bank, prompt scaffold, or content lint.",
+            "Patch the smallest correct surface: fixture register, tic, sample bank, prompt scaffold, or content lint. Use prompt-authoring guidance before adding broad runtime instructions.",
             "Rerun focused checks after patches. A full re-lock is required only when the character engine changed.",
           ]}
         />

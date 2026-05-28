@@ -319,9 +319,12 @@ function MemberFeedbackStrip({ member }: { member: StarMark["member"] }) {
         label={
           <>
             <strong className="block font-display text-sm text-white">
-              Confidence — {risk.label}
+              Confidence · {risk.label}
             </strong>
-            <span className="mt-1 block text-sm text-white/80">{risk.rationale}</span>
+            <span className="mt-1 block text-sm text-white/80">
+              How likely they are to stay on Cupid. Bad date outcomes drop it; second dates and
+              closures rebuild it. {risk.rationale}
+            </span>
           </>
         }
       >
@@ -338,7 +341,16 @@ function MemberFeedbackStrip({ member }: { member: StarMark["member"] }) {
 
       <AuraTooltip
         placement="left"
-        label="Mood is how the member is feeling about the app today. Comfortable matches and met asks lift it; rough dates and surprise conflict drag it down."
+        label={
+          <>
+            <strong className="block font-display text-sm text-white">Mood</strong>
+            <span className="mt-1 block text-sm text-white/80">
+              How they're feeling this shift. Rough dates and missed lead asks pull it down. Low
+              mood makes them harder to book and quicker to refuse pressure on the dates they do
+              take.
+            </span>
+          </>
+        }
       >
         <span className="cursor-help font-mono text-sm uppercase tracking-[0.18em] text-white/70">
           Mood
@@ -351,7 +363,16 @@ function MemberFeedbackStrip({ member }: { member: StarMark["member"] }) {
 
       <AuraTooltip
         placement="left"
-        label="Burnout climbs after long, high-strain dates and after rapid focus rotation. High burnout slows confidence recovery."
+        label={
+          <>
+            <strong className="block font-display text-sm text-white">Burnout</strong>
+            <span className="mt-1 block text-sm text-white/80">
+              Date fatigue. Climbs on rough dates and early ends; second dates and protective
+              close-outs bring it down. High burnout pulls them off your shift roster and flattens
+              their energy on dates they do take.
+            </span>
+          </>
+        }
       >
         <span className="cursor-help font-mono text-sm uppercase tracking-[0.18em] text-white/70">
           Burnout

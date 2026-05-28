@@ -31,8 +31,10 @@ export type AiModelBrand =
   | "deepseek"
   | "gemini"
   | "claude"
+  | "kimi"
   | "minimax"
   | "qwen"
+  | "xiaomi"
   | "zhipu"
   | "openai";
 
@@ -74,6 +76,7 @@ const gatewayModelCosts = gatewayModelCostsJson as GatewayModelCostCatalog;
 
 const REASONING_DISABLED_GATEWAY_MODEL_IDS = new Set([
   "anthropic/claude-haiku-4.5",
+  "moonshotai/kimi-k2.5",
   "minimax/minimax-m2.7",
   "alibaba/qwen3.5-flash",
   "zai/glm-4.7-flash",
@@ -82,8 +85,10 @@ const REASONING_DISABLED_GATEWAY_MODEL_IDS = new Set([
 const GATEWAY_IMAGE_INPUT_MODEL_IDS = new Set([
   "google/gemini-3.1-flash-lite",
   "anthropic/claude-haiku-4.5",
+  "moonshotai/kimi-k2.5",
   "alibaba/qwen3.5-flash",
   "openai/gpt-5.4-nano",
+  "xiaomi/mimo-v2.5",
 ]);
 
 const OLLAMA_IMAGE_INPUT_MODEL_PREFIXES = ["gemma4"] as const;
@@ -143,6 +148,15 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     cost: gatewayModelCost("anthropic/claude-haiku-4.5"),
   },
   {
+    id: "moonshotai/kimi-k2.5",
+    label: "Kimi K2.5",
+    provider: "gateway",
+    brand: "kimi",
+    recommendedReasoningLevel: "off",
+    reasoningSupported: false,
+    cost: gatewayModelCost("moonshotai/kimi-k2.5"),
+  },
+  {
     id: "minimax/minimax-m2.7",
     label: "MiniMax M2.7",
     provider: "gateway",
@@ -177,6 +191,15 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     recommendedReasoningLevel: "none",
     reasoningSupported: true,
     cost: gatewayModelCost("openai/gpt-5.4-nano"),
+  },
+  {
+    id: "xiaomi/mimo-v2.5",
+    label: "MiMo V2.5",
+    provider: "gateway",
+    brand: "xiaomi",
+    recommendedReasoningLevel: "xhigh",
+    reasoningSupported: true,
+    cost: gatewayModelCost("xiaomi/mimo-v2.5"),
   },
 ];
 

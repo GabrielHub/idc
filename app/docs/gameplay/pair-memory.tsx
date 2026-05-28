@@ -2,6 +2,7 @@ import {
   DocCallout,
   DocCode,
   DocDefList,
+  DocLink,
   DocList,
   DocPage,
   DocStateMachine,
@@ -26,7 +27,9 @@ export const lede = (
     pair state changes for retrieval and notes, but memories are not the source of truth. Runtime AI
     can propose agreement candidates, agreement updates, open loop candidates, and open loop updates
     through bounded Cupid analysis output. Game services validate ids, cap counts, dedupe concepts,
-    clamp text length, and ignore fabricated references before any save mutation.
+    clamp text length, and ignore fabricated references before any save mutation. Prompt-visible
+    memory context should follow{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 

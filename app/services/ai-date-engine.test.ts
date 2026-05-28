@@ -2436,7 +2436,7 @@ describe("AI date engine orchestration", () => {
     }
   });
 
-  it("retries the performer once when the line nearly duplicates a recent speaker line", async () => {
+  it("files a near-duplicate line instead of using a style retry guard", async () => {
     const repository = new LocalGameRepository(new MemorySaveStore(), "ai-repetition-guard-test");
     let save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
       "jenna-pike",
@@ -2457,8 +2457,6 @@ describe("AI date engine orchestration", () => {
     });
     const repeatedLine =
       "Jenna keeps circling the same pizza place across the street with the new neon sign.";
-    const correctedLine =
-      "Jenna pivots to the lemon tart at the back booth and asks Vhool to commit.";
     const transcriptWithPriorJenna = [
       ...started.session.transcript,
       dateMessageSchema.parse({
@@ -2513,13 +2511,8 @@ describe("AI date engine orchestration", () => {
           promptIncludesRetryGuard: packet.prompt.includes("<retry_guard>"),
           recentLinesPresent: packet.prompt.includes(repeatedLine),
         });
-        const text =
-          performerCalls.length === 1
-            ? "Jenna circles the same pizza place again across the street with the neon sign."
-            : correctedLine;
-
         return {
-          text,
+          text: "Jenna circles the same pizza place again across the street with the neon sign.",
           providerMode: "ollama",
           model: "fake-performer",
           stepCount: 1,
@@ -2563,14 +2556,13 @@ describe("AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:02:00.000Z"),
     });
 
-    expect(performerCalls).toHaveLength(2);
+    expect(performerCalls).toHaveLength(1);
     expect(performerCalls[0]?.promptIncludesRetryGuard).toBe(false);
     expect(performerCalls[0]?.recentLinesPresent).toBe(true);
-    expect(performerCalls[1]?.promptIncludesRetryGuard).toBe(true);
-    expect(result.session.transcript.at(-1)?.text).toBe(correctedLine);
-    expect(result.warningMessages.join(" ")).toContain(
-      "Cupid asked Jenna Pike to rewrite a near duplicate line",
+    expect(result.session.transcript.at(-1)?.text).toContain(
+      "same pizza place again across the street",
     );
+    expect(result.warningMessages.join(" ")).not.toContain("near duplicate");
   });
 
   it("retries a blank performer line before committing the turn", async () => {
@@ -2662,7 +2654,7 @@ describe("AI date engine orchestration", () => {
     );
   });
 
-  it("retries a repeated approval phrase before committing the turn", async () => {
+  it("files a repeated approval phrase instead of using a style retry guard", async () => {
     const repository = new LocalGameRepository(
       new MemorySaveStore(),
       "ai-repeated-approval-retry-test",
@@ -2726,10 +2718,7 @@ describe("AI date engine orchestration", () => {
         });
 
         return {
-          text:
-            performerCalls.length === 1
-              ? "i respect the jar strategy, that is pretty solid."
-              : "the jar strategy is strange, but warm soup is doing real work here.",
+          text: "i respect the jar strategy, that is pretty solid.",
           providerMode: "ollama",
           model: "fake-performer",
           stepCount: 1,
@@ -2763,16 +2752,11 @@ describe("AI date engine orchestration", () => {
       now: new Date("2026-05-05T12:02:00.000Z"),
     });
 
-    expect(performerCalls).toEqual([
-      { promptIncludesRhythmRetry: false },
-      { promptIncludesRhythmRetry: true },
-    ]);
+    expect(performerCalls).toEqual([{ promptIncludesRhythmRetry: false }]);
     expect(result.session.transcript.at(-1)?.text).toBe(
-      "the jar strategy is strange, but warm soup is doing real work here.",
+      "i respect the jar strategy, that is pretty solid.",
     );
-    expect(result.warningMessages.join(" ")).toContain(
-      "Cupid asked Jenna Pike to rewrite a repeated approval phrase",
-    );
+    expect(result.warningMessages.join(" ")).not.toContain("repeated approval phrase");
   });
 
   it("replaces generic judge summaries and memory text with deterministic fallbacks", async () => {

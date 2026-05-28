@@ -26,7 +26,8 @@ export const lede = (
     The player starts with incomplete case files. <DocCode>GameSave.playerKnowledge</DocCode> is the
     save-owned record of what Cupid has filed for the player. It does not live inside{" "}
     <DocCode>Member</DocCode>, because fixture-owned member data can hydrate forward while
-    preserving only member state.
+    preserving only member state. Prompt-visible visibility changes should follow{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 

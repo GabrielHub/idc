@@ -16,7 +16,7 @@ export const meta: DocMeta = {
   group: "product",
   title: "Member voice authoring",
   description:
-    "How to write member bios, voice fingerprints, sample banks, spoken-dialogue rules, output invariants, dealbreaker fire-shapes, and reality frames.",
+    "How to write member bios, voice engines, sample banks, spoken-dialogue rules, output invariants, dealbreaker fire-shapes, and reality frames.",
   order: 2,
 };
 
@@ -27,6 +27,10 @@ export const lede = (
     banks, and dealbreakers. The runtime prompt rules live in{" "}
     <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>; hidden gameplay tags
     live in <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
+    Agents doing live tuning should start with{" "}
+    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
+    come here only for the failing authoring surface. Prompt hygiene rules live in{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 
@@ -119,14 +123,24 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "sampleMessages",
-              def: "Greeting, hingeBits, warming, cooling, and crashingOut examples. Greeting samples surface in the runtime prompt on sit-down openers. CrashingOut samples surface only as fire attractors when date health is low and a dealbreaker is about to fire. HingeBits, warming, and cooling banks are authoring artifacts and test data; they do not flow into the in-date prompt. Carry voice through register, comedyMechanics, and tics — not banks the model treats as compliance targets.",
+              def: "Greeting, hingeBits, warming, cooling, and crashingOut examples. Greeting samples surface in the runtime prompt on sit-down openers. CrashingOut samples surface only as fire attractors when date health is low and a dealbreaker is about to fire. HingeBits is a legacy bucket name for compact source-style flavor lines, not a product promise that IDC dates use dating-app openers. HingeBits, warming, and cooling banks are authoring artifacts and test data; they do not flow into the in-date prompt. Carry voice through register, comedyMechanics, and tics — not banks the model treats as compliance targets.",
             },
           ]}
         />
+        <DocCallout variant="warn" title="Examples are not the voice engine">
+          A voice is the member&apos;s reaction engine: what they protect, how they answer pressure,
+          how they flirt, how they cool, and what syntax they reach for under stress. Samples only
+          illustrate that engine. If a sample reads like a pickup line, extract the humor mechanism
+          and rewrite the fixture guidance so the live date still sounds like spoken table dialogue.
+        </DocCallout>
         <DocCallout variant="info">
           If a voice problem repeats under pressure, patch the smallest authored surface that
-          teaches the bad shape: register rule, tic wording, or sample bank. Do not add a new
-          abstraction to compensate for a fixture that is teaching the wrong line.
+          teaches the bad shape: register rule, comedy mechanic, tic wording, output constraint, or
+          sample bank. The tuning sequence and provider prompt distillation live in{" "}
+          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
+            Voice tuning quickstart
+          </DocLink>
+          .
         </DocCallout>
       </>
     ),

@@ -1,4 +1,4 @@
-import { Children, Fragment, isValidElement, useMemo, useState, type ReactNode } from "react";
+import { Children, Fragment, isValidElement, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 
 import { pad2 } from "../services/utils";
@@ -898,7 +898,7 @@ export function DocFingerprint({
   patternsUsed,
   patternsRefused,
   tics,
-  sampleHingeBit,
+  sampleVoiceLine,
 }: {
   name: string;
   premise: string;
@@ -906,13 +906,13 @@ export function DocFingerprint({
   patternsUsed: string[];
   patternsRefused: string[];
   tics: string[];
-  sampleHingeBit: string;
+  sampleVoiceLine: string;
 }) {
   return (
     <article className="my-3 rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-rose-50/35 p-5">
       <header className="mb-3 flex flex-col gap-1">
         <p className="font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-          // fingerprint
+          // voice sketch
         </p>
         <h4 className="font-display text-lead font-semibold leading-tight text-aura-ink">{name}</h4>
         <p className="font-serif text-label italic leading-snug text-aura-muted">{premise}</p>
@@ -925,7 +925,7 @@ export function DocFingerprint({
           { term: "tics", def: tics.join(", ") },
         ]}
       />
-      <DocQuote attribution="hinge bit">{sampleHingeBit}</DocQuote>
+      <DocQuote attribution="source-style sample">{sampleVoiceLine}</DocQuote>
     </article>
   );
 }
@@ -936,7 +936,7 @@ export interface DocPattern {
   number: number;
   name: string;
   description: ReactNode;
-  fingerprint: string;
+  humorMarker: string;
   examples: string[];
   accent?: PatternAccent;
 }
@@ -1173,10 +1173,10 @@ function PatternSpecimen({
             <span
               className={`block font-mono text-micro font-semibold uppercase tracking-[0.28em] ${accent.fpLabel}`}
             >
-              // fingerprint
+              // humor marker
             </span>
             <span className="mt-1.5 block font-mono text-label leading-[1.55] text-aura-muted">
-              {pattern.fingerprint}
+              {pattern.humorMarker}
             </span>
           </div>
         ) : null}
@@ -1190,13 +1190,13 @@ function PatternSpecimen({
           <span
             className={`absolute -top-2.5 right-6 inline-flex items-center rounded-pill border bg-aura-paper px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.32em] ${accent.canonTag}`}
           >
-            canon
+            source
           </span>
           <p className="font-serif text-display-sm font-light italic leading-[1.4] tracking-tight text-aura-ink">
             {canonical}
           </p>
           <p className="mt-3 text-right font-mono text-micro uppercase tracking-[0.22em] text-aura-muted">
-            delivered · sample 01
+            flavor specimen · sample 01
           </p>
         </blockquote>
 
@@ -1204,7 +1204,7 @@ function PatternSpecimen({
           <div className="max-w-[38rem]">
             <div className="mb-2 flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-faint">
               <span aria-hidden className={`h-px w-4 ${accent.threadLead}`} />
-              <span>// reference reel · {pad2(references.length)} samples</span>
+              <span>// source variants · {pad2(references.length)} samples</span>
             </div>
             <ul
               className={`flex flex-col gap-1 border-l border-dotted pl-4 ${accent.threadBorder}`}
@@ -1224,303 +1224,6 @@ function PatternSpecimen({
         ) : null}
       </div>
     </section>
-  );
-}
-
-export interface ChemistryMember {
-  id: string;
-  label: string;
-  cluster: string;
-}
-
-export type ChemistryKind =
-  | "warm"
-  | "clean"
-  | "volatile"
-  | "surprise"
-  | "friction"
-  | "hard-stop"
-  | "acquisition";
-
-export interface ChemistryPair {
-  a: string;
-  b: string;
-  kind: ChemistryKind;
-  note: string;
-}
-
-const CHEMISTRY_TONE: Record<ChemistryKind, { fill: string; label: string; dot: string }> = {
-  warm: {
-    fill: "bg-rose-300/85 hover:bg-rose-400",
-    label: "Warm",
-    dot: "bg-rose-400",
-  },
-  clean: {
-    fill: "bg-emerald-300/85 hover:bg-emerald-400",
-    label: "Clean landing",
-    dot: "bg-emerald-400",
-  },
-  volatile: {
-    fill: "bg-fuchsia-400/85 hover:bg-fuchsia-500",
-    label: "Volatile warm",
-    dot: "bg-fuchsia-500",
-  },
-  surprise: {
-    fill: "bg-violet-300/85 hover:bg-violet-400",
-    label: "Surprise warm",
-    dot: "bg-violet-400",
-  },
-  friction: {
-    fill: "bg-slate-400/80 hover:bg-slate-500",
-    label: "Friction",
-    dot: "bg-slate-500",
-  },
-  "hard-stop": {
-    fill: "bg-stone-700/85 hover:bg-stone-800",
-    label: "Hard stop",
-    dot: "bg-stone-800",
-  },
-  acquisition: {
-    fill: "bg-amber-400/85 hover:bg-amber-500",
-    label: "Acquisition register",
-    dot: "bg-amber-500",
-  },
-};
-
-export function DocChemistryMatrix({
-  members,
-  pairs,
-}: {
-  members: ChemistryMember[];
-  pairs: ChemistryPair[];
-}) {
-  const [selected, setSelected] = useState<ChemistryPair | null>(null);
-  const [focusMember, setFocusMember] = useState<string | null>(null);
-
-  const orderedMembers = useMemo(() => {
-    const grouped = new Map<string, ChemistryMember[]>();
-    for (const member of members) {
-      const list = grouped.get(member.cluster) ?? [];
-      list.push(member);
-      grouped.set(member.cluster, list);
-    }
-    return Array.from(grouped.values()).flat();
-  }, [members]);
-
-  const memberById = useMemo(() => new Map(orderedMembers.map((m) => [m.id, m])), [orderedMembers]);
-
-  const pairLookup = useMemo(() => {
-    const map = new Map<string, ChemistryPair>();
-    for (const pair of pairs) {
-      const key = pairKey(pair.a, pair.b);
-      map.set(key, pair);
-    }
-    return map;
-  }, [pairs]);
-
-  const handleCellClick = (a: string, b: string) => {
-    if (a === b) return;
-    const pair = pairLookup.get(pairKey(a, b));
-    if (pair) {
-      setSelected(pair);
-      setFocusMember(null);
-      return;
-    }
-    setSelected(null);
-  };
-
-  const filteredOrderedMembers = focusMember
-    ? orderedMembers.filter(
-        (m) =>
-          m.id === focusMember ||
-          pairs.some(
-            (p) => (p.a === focusMember && p.b === m.id) || (p.b === focusMember && p.a === m.id),
-          ),
-      )
-    : orderedMembers;
-
-  return (
-    <figure className="my-3 flex flex-col gap-4">
-      <figcaption className="flex items-center gap-2 font-mono text-micro font-semibold uppercase tracking-[0.28em] text-aura-rose">
-        // roster chemistry matrix
-        {focusMember ? (
-          <Chip
-            tone="neutral"
-            onClick={() => {
-              setFocusMember(null);
-              setSelected(null);
-            }}
-          >
-            reset
-          </Chip>
-        ) : null}
-      </figcaption>
-
-      <div className="flex flex-wrap gap-2 text-micro">
-        {(Object.keys(CHEMISTRY_TONE) as ChemistryKind[]).map((kind) => (
-          <span
-            key={kind}
-            className="inline-flex items-center gap-1.5 rounded-pill border border-aura-hairline bg-white/70 px-2 py-0.5 font-mono uppercase tracking-[0.18em] text-aura-muted"
-          >
-            <span aria-hidden className={`size-2 rounded-sm ${CHEMISTRY_TONE[kind].dot}`} />
-            <span className="normal-case tracking-normal text-aura-ink">
-              {CHEMISTRY_TONE[kind].label}
-            </span>
-          </span>
-        ))}
-      </div>
-
-      <div className="overflow-x-auto rounded-card border border-aura-hairline bg-gradient-to-br from-white/82 to-aura-bg/55 p-4">
-        <div className="inline-grid gap-[1px]">
-          <ChemistryMatrixGrid
-            members={filteredOrderedMembers}
-            pairLookup={pairLookup}
-            focusMember={focusMember}
-            onCellClick={handleCellClick}
-            onMemberClick={(id) => {
-              setFocusMember((prev) => (prev === id ? null : id));
-              setSelected(null);
-            }}
-            selectedPair={selected}
-          />
-        </div>
-      </div>
-
-      <ChemistryDetail pair={selected} memberById={memberById} />
-    </figure>
-  );
-}
-
-function pairKey(a: string, b: string): string {
-  return [a, b].sort().join("|");
-}
-
-function ChemistryMatrixGrid({
-  members,
-  pairLookup,
-  focusMember,
-  selectedPair,
-  onCellClick,
-  onMemberClick,
-}: {
-  members: ChemistryMember[];
-  pairLookup: Map<string, ChemistryPair>;
-  focusMember: string | null;
-  selectedPair: ChemistryPair | null;
-  onCellClick: (a: string, b: string) => void;
-  onMemberClick: (id: string) => void;
-}) {
-  const cellSize = 22;
-  const labelSize = 130;
-  const gridTemplateColumns = `${labelSize}px repeat(${members.length}, ${cellSize}px)`;
-
-  return (
-    <div className="grid" style={{ gridTemplateColumns }}>
-      <div />
-      {members.map((member) => (
-        <button
-          key={`col-${member.id}`}
-          type="button"
-          onClick={() => onMemberClick(member.id)}
-          className="cursor-pointer origin-bottom-left -rotate-45 whitespace-nowrap py-1 text-left font-mono text-micro uppercase tracking-[0.04em] text-aura-muted hover:text-aura-rose"
-          title={member.label}
-          style={{ width: cellSize, transformOrigin: "bottom left" }}
-        >
-          {member.label}
-        </button>
-      ))}
-      {members.map((row) => (
-        <Fragment key={`row-${row.id}`}>
-          <button
-            type="button"
-            onClick={() => onMemberClick(row.id)}
-            className={`cursor-pointer truncate pr-2 text-right font-mono text-micro uppercase tracking-[0.04em] transition ${
-              focusMember === row.id ? "text-aura-rose" : "text-aura-muted hover:text-aura-rose"
-            }`}
-            style={{ height: cellSize, lineHeight: `${cellSize}px` }}
-            title={row.label}
-          >
-            {row.label}
-          </button>
-          {members.map((col) => {
-            if (row.id === col.id) {
-              return (
-                <div
-                  key={`${row.id}-${col.id}`}
-                  className="rounded-[2px] bg-aura-hairline/40"
-                  style={{ width: cellSize, height: cellSize }}
-                />
-              );
-            }
-            const pair = pairLookup.get(pairKey(row.id, col.id));
-            const isSelected =
-              selectedPair !== null &&
-              pairKey(selectedPair.a, selectedPair.b) === pairKey(row.id, col.id);
-            if (!pair) {
-              return (
-                <div
-                  key={`${row.id}-${col.id}`}
-                  className="rounded-[2px] bg-white/35"
-                  style={{ width: cellSize, height: cellSize }}
-                />
-              );
-            }
-            const tone = CHEMISTRY_TONE[pair.kind];
-            return (
-              <button
-                key={`${row.id}-${col.id}`}
-                type="button"
-                onClick={() => onCellClick(row.id, col.id)}
-                className={`group relative cursor-pointer rounded-[2px] ${tone.fill} transition ${
-                  isSelected ? "ring-2 ring-aura-ink ring-offset-1 ring-offset-aura-bg" : ""
-                }`}
-                style={{ width: cellSize, height: cellSize }}
-                title={`${row.label} × ${col.label}: ${tone.label}`}
-                aria-label={`${row.label} × ${col.label}: ${tone.label}`}
-              />
-            );
-          })}
-        </Fragment>
-      ))}
-    </div>
-  );
-}
-
-function ChemistryDetail({
-  pair,
-  memberById,
-}: {
-  pair: ChemistryPair | null;
-  memberById: Map<string, ChemistryMember>;
-}) {
-  if (!pair) {
-    return (
-      <p className="rounded-tile border border-dashed border-aura-hairline bg-white/55 px-4 py-3 font-serif text-label italic leading-snug text-aura-muted">
-        Click a cell or a member label to read the pressure note. Row × column maps to the cluster
-        sort, so warm cells concentrate along clusters and friction spreads off-diagonal.
-      </p>
-    );
-  }
-
-  const a = memberById.get(pair.a)?.label ?? pair.a;
-  const b = memberById.get(pair.b)?.label ?? pair.b;
-  const tone = CHEMISTRY_TONE[pair.kind];
-
-  return (
-    <article className="rounded-card border border-aura-hairline bg-white/72 px-5 py-4">
-      <header className="mb-2 flex flex-wrap items-center gap-2">
-        <p className="font-display text-lead font-semibold text-aura-ink">
-          {a} <span className="text-aura-faint">×</span> {b}
-        </p>
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-pill border border-aura-hairline bg-white/80 px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-ink`}
-        >
-          <span aria-hidden className={`size-2 rounded-sm ${tone.dot}`} />
-          {tone.label}
-        </span>
-      </header>
-      <p className="text-label leading-[1.65] text-aura-ink/86">{pair.note}</p>
-    </article>
   );
 }
 

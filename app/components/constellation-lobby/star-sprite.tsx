@@ -18,6 +18,7 @@ import { FocusSelectionMarker } from "./focus-selection-marker";
 import { isMemberActive } from "../../services/date-engine";
 import { riskZoneForMember } from "../../services/member-feedback";
 import { StarQuickActionRail } from "./star-quick-action-rail";
+import { shouldShowStarQuickActions } from "./star-quick-action-visibility";
 import { featherAvatarShader } from "./textures";
 import type {
   LobbyState,
@@ -148,20 +149,19 @@ export function StarSprite({
   const avatarSubgroupRef = useRef<THREE.Group>(null);
   const avatarSubgroupScaleRef = useRef(0.38);
 
-  // Latched hover for the quick-action rail: the cursor briefly crosses an
-  // unhoverable gap between the 3D hit plane and the HTML buttons, so we keep
-  // the rail mounted for a beat after `hovered` flips false. Once the cursor
-  // reaches a button, its `onPointerEnter` re-asserts `hovered` and the timer
-  // is cleared.
+  // Latched hover for the quick-action rail: the cursor briefly crosses from
+  // the 3D hit plane into HTML controls, so keep the rail mounted while either
+  // surface owns hover and for a short grace period after both release.
+  const [quickActionsHovered, setQuickActionsHovered] = useState(false);
   const [quickActionsLatched, setQuickActionsLatched] = useState(false);
   useEffect(() => {
-    if (hovered) {
+    if (hovered || quickActionsHovered) {
       setQuickActionsLatched(true);
       return;
     }
-    const timer = window.setTimeout(() => setQuickActionsLatched(false), 180);
+    const timer = window.setTimeout(() => setQuickActionsLatched(false), 360);
     return () => window.clearTimeout(timer);
-  }, [hovered]);
+  }, [hovered, quickActionsHovered]);
 
   const natural = useMemo(() => starWorldPosition(star), [star]);
   const sizing = useMemo(
@@ -217,6 +217,12 @@ export function StarSprite({
             : 1.95;
     return sizing.avatarRadius * reach;
   }, [sizingRole, sizing.avatarRadius]);
+  const showQuickActions = shouldShowStarQuickActions({
+    tier: star.tier,
+    clustered: clusterPosition !== null,
+    actions: quickActions,
+  });
+  const visibleQuickActions = showQuickActions ? quickActions : undefined;
 
   useFrame((s, delta) => {
     const t = s.clock.elapsedTime;
@@ -499,6 +505,21 @@ export function StarSprite({
               </div>
             </Html>
           ) : null}
+
+          {(hovered || quickActionsLatched) && !cardOpen && renderOverlay === undefined ? (
+            <StarQuickActionRail
+              actions={visibleQuickActions ?? []}
+              avatarRadius={sizing.avatarRadius}
+              memberName={star.member.firstName}
+              showActions={quickActionsLatched && visibleQuickActions !== undefined}
+              active={hovered || quickActionsHovered}
+              onHoverChange={(nextHovered) => {
+                setQuickActionsHovered(nextHovered);
+                onQuickActionsHoverChange(nextHovered);
+                if (nextHovered) onHoverEnter();
+              }}
+            />
+          ) : null}
         </group>
 
         {showFlare && flareTexture !== null ? (
@@ -516,32 +537,6 @@ export function StarSprite({
               toneMapped={false}
             />
           </mesh>
-        ) : null}
-
-        {hovered && !cardOpen && renderOverlay === undefined ? (
-          <Html
-            position={[0, -sizing.avatarRadius, 0.12]}
-            zIndexRange={[50, 0]}
-            className="pointer-events-none"
-          >
-            <span className="aura-liquid-glass aura-liquid-glass-ink inline-block -translate-x-1/2 -translate-y-1/2 rounded-pill px-3 py-1 font-display text-label leading-none text-aura-paper whitespace-nowrap shadow-cta">
-              {star.member.firstName}
-            </span>
-          </Html>
-        ) : null}
-        {quickActionsLatched &&
-        !cardOpen &&
-        quickActions !== undefined &&
-        quickActions.length > 0 ? (
-          <Html position={[0, 0, 0.16]} zIndexRange={[55, 0]} className="pointer-events-none">
-            <StarQuickActionRail
-              actions={quickActions}
-              onHoverChange={(nextHovered) => {
-                onQuickActionsHoverChange(nextHovered);
-                if (nextHovered) onHoverEnter();
-              }}
-            />
-          </Html>
         ) : null}
         {renderOverlay?.({ avatarRadius: sizing.avatarRadius, haloSize })}
       </Billboard>

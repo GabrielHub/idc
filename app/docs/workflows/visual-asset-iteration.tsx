@@ -50,6 +50,11 @@ export const sections: DocSectionEntry[] = [
               Check final assets against{" "}
               <DocLink to="/docs/product/image-style">Image style</DocLink> before approval.
             </span>,
+            <span key="prompt-authoring">
+              Use <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>{" "}
+              for prompt hygiene: target pixels first, one controlled change per iteration, and no
+              prompt sprawl from one bad candidate.
+            </span>,
             <span key="variation-latitude">
               Check prop exchange, perspective changes, seated poses, and mutable forms against{" "}
               <DocLink to="/docs/product/image-style#variation-latitude">

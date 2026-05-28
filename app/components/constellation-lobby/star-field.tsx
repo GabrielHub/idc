@@ -44,6 +44,7 @@ export function StarField({
   focusOrder,
   rosterLeadOrder,
   rosterClusterBounds,
+  partnerRingBounds,
   rosterSubview,
   offTonightSet,
   textures,
@@ -76,6 +77,7 @@ export function StarField({
   focusOrder: readonly string[];
   rosterLeadOrder: readonly string[];
   rosterClusterBounds: RosterClusterBounds;
+  partnerRingBounds: RosterClusterBounds;
   rosterSubview?: RosterSubview;
   offTonightSet?: ReadonlySet<string>;
   textures: Record<string, Texture>;
@@ -124,7 +126,8 @@ export function StarField({
           !inArchive &&
           role === "focus" &&
           state === "focus_selected" &&
-          isRosterFlythroughLayer(currentLayer);
+          isRosterFlythroughLayer(currentLayer) &&
+          rosterSubview === "eligibles";
         const slabActivity = isFocusMarker
           ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
           : inArchive || flythroughLayer === undefined || currentLayer === undefined
@@ -159,6 +162,7 @@ export function StarField({
           focusOrder,
           rosterLeadOrder,
           rosterClusterBounds,
+          partnerRingBounds,
           inArchive,
           rosterSubview,
         });

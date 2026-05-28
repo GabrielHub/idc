@@ -16,7 +16,8 @@ import * as THREE from "three";
  * to scene.background so it always sits behind the fog / particles without
  * being affected by camera distance.
  */
-export function buildBackdropTexture(): THREE.CanvasTexture {
+export function buildBackdropTexture(): THREE.CanvasTexture | null {
+  if (typeof document === "undefined") return null;
   const canvas = document.createElement("canvas");
   canvas.width = 2048;
   canvas.height = 1152;

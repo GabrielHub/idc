@@ -42,6 +42,7 @@ export type CanvasAvatarScaleInput = {
  * neighbouring hit planes don't overlap and steal each other's pointer events.
  */
 const MIN_STAR_HIT_RADIUS = 0.22;
+const BACKGROUND_HOVER_AVATAR_SCALE = 1.85;
 const MIN_RESPONSIVE_AVATAR_SCALE = 0.72;
 const MAX_RESPONSIVE_AVATAR_SCALE = 1.12;
 const BASE_CANVAS_WIDTH = 1920;
@@ -158,25 +159,51 @@ export function resolveStarPresentation({
   // Only generic "dim" members participate in the parallax background field.
   // Ineligible roles keep their normal slab treatment so their dim visual
   // contract (cooled-off, closed, off-shift) reads even on background tier.
-  const parallaxBackground = tier === "background" && !clustered && !forceAvatar && role === "dim";
+  const backgroundField = tier === "background" && !clustered && !forceAvatar;
+  const parallaxBackground = backgroundField && role === "dim";
   const dormantDot = parallaxBackground && !hovered;
+  const backgroundHoverAvatar = backgroundField && hovered;
   const slabIntensity = parallaxBackground ? 1 : (slabActivity?.intensityMultiplier ?? 1);
   const slabScale = parallaxBackground ? 1 : (slabActivity?.scaleMultiplier ?? 1);
   // Hover promotes a star to full opacity so a dormant dot reveals as a crisp
   // portrait. Ineligible roles keep their dim floor on hover — full opacity
   // would erase the "unavailable" signal.
   const prominent = clustered || slabIntensity >= 0.9 || (hovered && !ineligibleRole);
-  const fullAvatar = forceAvatar || clustered || (hovered && !ineligibleRole);
+  // Hover promotes the avatar subgroup to full size for every role — including
+  // ineligible cooling / off-shift / closed members. The dim opacity, desat
+  // color, and rim treatment still carry the unavailable cue; size only
+  // gates *readability* of the quick-action rail that lives inside the
+  // subgroup. Keeping the subgroup at 0.38 on hover crushes the rail to ~38%
+  // of its normal footprint, making labels and tap targets unreadable.
+  const fullAvatar = forceAvatar || clustered || hovered;
   const filterMultiplier = filteredOut ? 0.32 : 1;
+  // Hovered ineligible background stars get enlarged by BACKGROUND_HOVER_AVATAR_SCALE
+  // but their base * slab opacity is ~5-7%, so the enlarged disc reads as a
+  // barely-visible sliver. The color desaturation in star-sprite already
+  // carries the "unavailable" cue, so floor the alpha at something legible
+  // while still staying clearly below the active-state opacity.
+  const INELIGIBLE_HOVER_OPACITY_FLOOR = 0.55;
+  const dimMultiplier = baseIntensity * filterMultiplier * slabIntensity;
 
   return {
     avatarOpacity: dormantDot
       ? 0
       : prominent
         ? filterMultiplier
-        : baseIntensity * filterMultiplier * slabIntensity,
-    avatarScale: dormantDot ? 0 : fullAvatar ? 1 : 0.38,
-    hitRadius: Math.max(avatarRadius, hitRadiusFloor),
+        : backgroundHoverAvatar
+          ? Math.max(INELIGIBLE_HOVER_OPACITY_FLOOR * filterMultiplier, dimMultiplier)
+          : dimMultiplier,
+    avatarScale: dormantDot
+      ? 0
+      : backgroundHoverAvatar
+        ? BACKGROUND_HOVER_AVATAR_SCALE
+        : fullAvatar
+          ? 1
+          : 0.38,
+    hitRadius: Math.max(
+      backgroundHoverAvatar ? avatarRadius * BACKGROUND_HOVER_AVATAR_SCALE : avatarRadius,
+      hitRadiusFloor,
+    ),
     slabIntensity,
     slabScale,
     zLift: hovered && tier === "background" && !clustered ? 1.8 : 0,

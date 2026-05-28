@@ -165,7 +165,8 @@ export const sections: DocSectionEntry[] = [
           Eleven v3 is more expressive than v2 but only when you prompt it like a director. Plain
           prose with no tags gives you a flat reading even with Lyan. Every line in this catalog
           ships a <DocCode>generationScript</DocCode> with at least one tag so the catalog itself
-          documents the directed read for each line.
+          documents the directed read for each line. General prompt hygiene still applies: define
+          the delivery target before adding tags, and do not pile on tags to fix one unlucky render.
         </P>
         <DocCallout
           variant="info"
@@ -523,6 +524,10 @@ export const sections: DocSectionEntry[] = [
               The broader voice and tone canon for the game lives in{" "}
               <DocLink to="/docs/product/voice">Voice</DocLink>. The manager fingerprint should link
               back here when it lands there.
+            </span>,
+            <span key="prompt-authoring">
+              Prompt hygiene for model-facing docs and scripts lives in{" "}
+              <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
             </span>,
             <span key="audio">
               The web audio service that plays the clips lives in{" "}

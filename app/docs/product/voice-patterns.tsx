@@ -29,7 +29,12 @@ export const lede = (
     that shape how a character carries a bit across multiple turns. A fixture can cite both, one, or
     neither. Either layer is a paintable color, not a quota the character has to hit. Characters in
     IDC overlap on flavors and mechanics but stay recognizable because of how they react, what they
-    protect, and what they refuse to say, not because they hit a checklist per turn.
+    protect, and what they refuse to say, not because they hit a checklist per turn. Agents doing a
+    tuning pass should start with{" "}
+    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
+    open this catalog only when the fixture cites pattern drift or needs a specific mechanic.
+    Prompt-packaging rules live in{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 
@@ -44,7 +49,7 @@ const PATTERNS: DocPattern[] = [
         escalates the original observation. The narrator does not notice the spiral.
       </P>
     ),
-    fingerprint:
+    humorMarker:
       'anaphora ("and... and... and..."), shifting topic anchors, ungrammatical run-ons, no exit.',
     examples: [
       `"I don't know what to do with my hands in photos, and ive got too much time on my hands, and im blue collar, so my hands are quite grizzled, and I have a medical condition that makes my hands squeeze uncontrollably. I need you to help me sort out this hands situation"`,
@@ -64,7 +69,7 @@ const PATTERNS: DocPattern[] = [
         to the reader. The ask comes before the hello.
       </P>
     ),
-    fingerprint: 'caps for emphasis, time-pressure verbs ("asap", "urgent"), unexplained context.',
+    humorMarker: 'caps for emphasis, time-pressure verbs ("asap", "urgent"), unexplained context.',
     examples: [
       `"I have an onion that MUST be caramelized but I have shaky hands, hit me back asap"`,
       `"Are you familiar with birds. I have a situation."`,
@@ -77,7 +82,7 @@ const PATTERNS: DocPattern[] = [
     name: "Deadpan one-liner",
     accent: "violet",
     description: <P>Single sentence. No setup. Tone flat. The reader does the work.</P>,
-    fingerprint: "short, complete, no follow-up, no exclamation, no emoji.",
+    humorMarker: "short, complete, no follow-up, no exclamation, no emoji.",
     examples: [
       `"Honey, we have to let the wheels on the bus handle this one."`,
       `"What kind of music do you like? Me? I hate music."`,
@@ -96,7 +101,7 @@ const PATTERNS: DocPattern[] = [
         listing voice on a personal failing.
       </P>
     ),
-    fingerprint: "terms-of-service voice applied to the speaker's own inadequacy.",
+    humorMarker: "terms-of-service voice applied to the speaker's own inadequacy.",
     examples: [
       `"Looking for a wife-ish figure to open jars and laugh at my jokes. Room and board provided in a one-bedroom apartment with decent natural light."`,
       `"Riddle me this, what's tall handsome and looks good in any hat? Not me, but lmk when you find the answer"`,
@@ -113,7 +118,7 @@ const PATTERNS: DocPattern[] = [
         unearned intimacy.
       </P>
     ),
-    fingerprint: "full life sketched out before a hello.",
+    humorMarker: "full life sketched out before a hello.",
     examples: [
       `"Looking for someone to move into a Minecraft house with me. 2 bedroom, wool walls, and mid century modern furniture await us"`,
       `"I have two adult tickets to Zootopia 2 and regal is looking for a queen."`,
@@ -129,9 +134,9 @@ const PATTERNS: DocPattern[] = [
         The format is the joke. Multiple choice. Trivia. Bullet points. PowerPoint. News dispatch.
       </P>
     ),
-    fingerprint: "borrowed scaffolding from a non-romantic context.",
+    humorMarker: "borrowed scaffolding from a non-romantic context.",
     examples: [
-      `"Multiple choice a) I tell you about my hands problem. b) I tell you abt what we could build together. c) you ignore my message and I cast a nasty spell on your family d) we go out to dinner"`,
+      `"Multiple choice a) I tell you about my hands problem. b) I tell you abt what we could build together. c) you ask for the check and I cast a nasty spell on your family d) we order dinner"`,
       `"I have a PowerPoint about why we should date. It's 47 slides. There is a quiz at the end."`,
       `"If you were in an elevator with Winnie the Pooh and Pol Pot and only had 1 bullet wwyd?"`,
     ],
@@ -146,7 +151,7 @@ const PATTERNS: DocPattern[] = [
         imagination.
       </P>
     ),
-    fingerprint: "overcorrection toward calm, disclaimer that doubles as a confession.",
+    humorMarker: "overcorrection toward calm, disclaimer that doubles as a confession.",
     examples: [
       `"I'm very normal about things. I'm so normal about things that people comment on it. They say 'wow you're being so normal about this.' That's me."`,
       `"Let me sleep in your stupid t-shirt & hold your hand you dumb piece of shit"`,
@@ -165,7 +170,7 @@ const PATTERNS: DocPattern[] = [
         acceptance.
       </P>
     ),
-    fingerprint: "real diagnosis treated like a small-talk topic.",
+    humorMarker: "real diagnosis treated like a small-talk topic.",
     examples: [
       `"I haven't cried since 2019 and I'm worried it's all stored somewhere"`,
       `"I cried at a commercial for paper towels last week so emotionally I'm very available"`,
@@ -179,11 +184,11 @@ const PATTERNS: DocPattern[] = [
     accent: "violet",
     description: (
       <P>
-        A familiar pickup line wired to the wrong outlet. Setup is recognizable, payoff is the wrong
+        A stock romance line wired to the wrong outlet. Setup is recognizable, payoff is the wrong
         genre.
       </P>
     ),
-    fingerprint: "pickup line scaffolding plus a noun that breaks it.",
+    humorMarker: "stock romance scaffolding plus a noun that breaks it.",
     examples: [
       `"It brings great shame and dishonor to the men of our generation that a girl like you had to resort to this"`,
       `"I'm writing an ode to scratching and sniffing, would you like to hear it?"`,
@@ -198,7 +203,7 @@ const PATTERNS: DocPattern[] = [
     description: (
       <P>An ordinary errand framed as the actual ceiling of intimacy. Played straight.</P>
     ),
-    fingerprint: "errand plus specific noun plus the romantic claim delivered without irony.",
+    humorMarker: "errand plus specific noun plus the romantic claim delivered without irony.",
     examples: [
       `"Honestly I just need someone to go to Costco with. The samples are better when you're in love."`,
       `"Looking for someone to split a really big sandwich with."`,
@@ -216,11 +221,11 @@ const PATTERNS: DocPattern[] = [
         sincerely and is funny because of how earnest it is.
       </P>
     ),
-    fingerprint: "real lyricism plus a noun that punctures it without being dismissive.",
+    humorMarker: "real lyricism plus a noun that punctures it without being dismissive.",
     examples: [
       `"The way you hold that fish in your third photo, there's a tenderness there. A human and their bass, locked in an ancient dance."`,
       `"In another life I think we were two shopping carts that bumped into each other in a parking lot."`,
-      `"And on the seventh day, God rested, and opened Hinge, and lo, there you were, holding a margarita the size of your head."`,
+      `"And on the seventh day, God rested, and looked across the table, and lo, there you were, holding a margarita the size of your head."`,
       `"my only regret is never having named our love. For it faded, and I forgot what I could have called it"`,
     ],
   },
@@ -234,9 +239,9 @@ const PATTERNS: DocPattern[] = [
         appliance.
       </P>
     ),
-    fingerprint: "scale collapse from universe to single proper noun.",
+    humorMarker: "scale collapse from universe to single proper noun.",
     examples: [
-      `"Sometimes I stare at the ceiling and think about how every decision I've ever made led me to this app and then I think about John Goodman."`,
+      `"Sometimes I stare at the ceiling and think about how every decision I've ever made led me to this booth and then I think about John Goodman."`,
       `"Do you ever think about how we're all just bones piloting a meat suit and then you see someone's meat suit and you're like... nice suit"`,
       `"The universe is expanding and I am also expanding, mostly due to the Cheesecake Factory. We are both doing our part."`,
     ],
@@ -246,24 +251,24 @@ const PATTERNS: DocPattern[] = [
     name: "Negotiation / sales pitch",
     accent: "emerald",
     description: <P>Dating as a pitch deck. Bulleted feel without bullets. ROI tone.</P>,
-    fingerprint:
+    humorMarker:
       "business voice deployed sincerely, with at least one item that should not be on the list.",
     examples: [
-      `"Here's what I'm prepared to offer: consistent texting, above-average height, and a willingness to watch whatever you want. The ball is in your court."`,
+      `"Here's what I'm prepared to offer: consistent follow-through, above-average height, and a willingness to watch whatever you want. The ball is in your court."`,
       `"I'll be honest, my opening line conversion rate is not great, but my date-to-second-date pipeline is STRONG."`,
-      `"I have a ridiculous typing speed. like 80 WPM. The only way I can get faster is to add an extra set of hands, and I think you've got what it takes"`,
+      `"I have a ridiculous menu-reading speed. Like dangerous. The only way I can get faster is to add an extra set of hands, and I think you've got what it takes"`,
     ],
   },
   {
     number: 14,
     name: "Stream of consciousness",
     accent: "rose",
-    description: <P>The thought arrived before the message did. No greeting. No plan.</P>,
-    fingerprint: 'starts with "anyway" or "ok so" or "hi", lowercase, no punctuation discipline.',
+    description: <P>The thought arrived before the social plan did. No warmup. No map.</P>,
+    humorMarker: 'starts with "anyway" or "ok so" or "hi", lowercase, no punctuation discipline.',
     examples: [
-      `"anyway I was thinking about birds and then I saw your profile and now I'm thinking about birds AND you which is a lot for a Tuesday"`,
+      `"anyway I was thinking about birds and then you said Tuesday and now I'm thinking about birds AND Tuesday which is a lot for a Tuesday"`,
       `"ok so I don't usually do this but also I always do this but basically hi I think your face is good and I had a really big coffee today"`,
-      `"I opened this app to order food and now I'm here and I don't know what happened but you seem cool and I'm still kinda hungry"`,
+      `"I opened the menu to order food and now I'm here and I don't know what happened but you seem cool and I'm still kinda hungry"`,
     ],
   },
   {
@@ -271,11 +276,11 @@ const PATTERNS: DocPattern[] = [
     name: "Character / roleplay",
     accent: "sky",
     description: <P>Speaking in third person, or as someone else, or as a fake dispatch.</P>,
-    fingerprint: "voice shift to a fake reporter, fake friend, fake operator, fake merchant.",
+    humorMarker: "voice shift to a fake reporter, fake friend, fake operator, fake merchant.",
     examples: [
       `"DISPATCH TO ALL UNITS: we have a match in sector 7. Small dog in photo 1. Repeat, small dog in photo 1. Please advise."`,
-      `"This is actually his friend typing this. He can't text right now because he's in the bathroom crying about your profile."`,
-      `"[BREAKING NEWS] Local man sees profile so good he drops his phone in a Chipotle."`,
+      `"This is actually his friend speaking. He can't talk right now because he's in the bathroom crying about the soup special."`,
+      `"[BREAKING NEWS] Local man hears laugh so good he drops his phone in a Chipotle."`,
       `"Greetings fair traveler. I am but a humble merchant and I have wares."`,
     ],
   },
@@ -284,9 +289,9 @@ const PATTERNS: DocPattern[] = [
     name: "Callback / re-match reference",
     accent: "amber",
     description: <P>The pair has been here before. The new line opens on prior beef.</P>,
-    fingerprint: "opens mid-grievance, no orientation for the reader.",
+    humorMarker: "opens mid-grievance, no orientation for the reader.",
     examples: [
-      `"We've matched before, you told me I didn't know Matt Damon movies I KNOW Matt Damon movies my hands were just freezing"`,
+      `"We've had this table before, you told me I didn't know Matt Damon movies I KNOW Matt Damon movies my hands were just freezing"`,
       `"Hi again. The air fryer thing was a JOKE I own a cast iron we are not relitigating this"`,
       `"Round 2. You said my dog looked sad last time. He was born like that. He's medicated. Please update your file"`,
       `"I know we did this in March and you said gnocchi wrong on purpose to test me. I've been replaying it"`,
@@ -297,7 +302,7 @@ const PATTERNS: DocPattern[] = [
     name: "Cursed question",
     accent: "slate",
     description: <P>An off-topic ask that the speaker should not have posed.</P>,
-    fingerprint: "ordinary phrasing wrapped around a topic that should not be ordinary.",
+    humorMarker: "ordinary phrasing wrapped around a topic that should not be ordinary.",
     examples: [
       `"How many weeks pregnant is the perfect amount of weeks? Asking for a friend"`,
       `"At what point does a person become haunted versus just tense. Asking because of recent developments"`,
@@ -331,14 +336,15 @@ export const sections: DocSectionEntry[] = [
           performing their bit on cue.
         </P>
         <P>
-          The catalog is a library of <Strong>humor types</Strong>, not bubble cadence. Even the
-          patterns that look chat-shaped on the page (Stream of Consciousness, Urgent Crisis Plea,
-          Cursed Question) are read as humor SHAPES the character speaks at the table, not as text
-          messages the character types from a phone. See the spoken-dialogue contract in{" "}
+          The catalog is a library of <Strong>humor types</Strong>, not character-specific speaking
+          patterns. The quotes below are source-style specimens that make the comic flavor easy to
+          see in one line. Do not paste them into a fixture as in-game dialogue, and do not treat
+          their dating-app setup as part of the IDC date. Translate only the useful mechanism into
+          spoken table dialogue. The full spoken-dialogue contract lives in{" "}
           <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
             Member voice authoring
           </DocLink>{" "}
-          for the bans on laugh-tag punctuation, standalone-bubble reactions, and text shorthand.
+          .
         </P>
       </DocCallout>
     ),
@@ -349,10 +355,11 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Read the cards as a flavor library. The first quote in each card is the cleanest sample of
-          that flavor. Subsequent quotes show how it can sound when a character lets it color a
-          reply. Pull from the library only when the line a character is about to say lands there on
-          its own. Do not stretch a reply to hit one of these shapes.
+          Read the cards as a flavor library. The first quote in each card is the cleanest specimen
+          of that flavor. Subsequent quotes show nearby source variants. The useful object is the
+          humor marker, not the literal wording, pickup premise, app cadence, or opening-line shape.
+          Pull from the library only when the line a character is about to say lands there on its
+          own. Do not stretch a reply to hit one of these shapes.
         </P>
         <DocPatternGrid patterns={PATTERNS} />
       </>
@@ -390,7 +397,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             Open a metaphor, world-build it past the natural exit, ride it three or four turns
             before letting it die. The narrator does not flag the bit; the worldview is taken as
-            gospel. Fingerprint: escalating clauses, no exit, the listener has to wait it out.
+            gospel. Behavior marker: escalating clauses, no exit, the listener has to wait it out.
           </P>
           <P>
             <Em>
@@ -409,8 +416,8 @@ export const sections: DocSectionEntry[] = [
           <P>
             A sentence opens, takes a long aside, lands the original point dead-center in the same
             breath. The aside is technically unnecessary; the recovery is precise. The joke is the
-            precision, not the aside. Fingerprint: parenthetical drift followed by a reflex landing
-            on the original verb or object.
+            precision, not the aside. Behavior marker: parenthetical drift followed by a reflex
+            landing on the original verb or object.
           </P>
           <P>
             <Em>
@@ -431,7 +438,8 @@ export const sections: DocSectionEntry[] = [
             Every reference includes two or more concrete anchors: brand and model, place and year,
             surname and detail. Generic categories ("the diner," "a while back," "someone I used to
             work with") are out of register because they kill the conviction the engine runs on.
-            Fingerprint: named brands, named towns, named persons, named years, named quantities.
+            Behavior marker: named brands, named towns, named persons, named years, named
+            quantities.
           </P>
           <P>
             <Em>Generic:</Em> "I worked at a restaurant a long time ago."
@@ -453,7 +461,7 @@ export const sections: DocSectionEntry[] = [
         >
           <P>
             Stadium-grade analysis on trivial subjects, delivered as plain fact rather than
-            argument. The joke is the gulf between formality and triviality. Fingerprint:
+            argument. The joke is the gulf between formality and triviality. Behavior marker:
             scale-collapse from grand framing to a mundane noun, no hedging.
           </P>
           <P>
@@ -475,8 +483,8 @@ export const sections: DocSectionEntry[] = [
           <P>
             A misidentification or false claim, delivered with conviction, held under correction
             without breaking. The speaker doubles down rather than updating; the correction becomes
-            an opportunity for a longer bit, not a retreat. Fingerprint: the speaker re-frames the
-            correction as supporting their original take.
+            an opportunity for a longer bit, not a retreat. Behavior marker: the speaker re-frames
+            the correction as supporting their original take.
           </P>
           <P>
             <Em>Partner:</Em> "that's a cello, not a viola."
@@ -498,8 +506,8 @@ export const sections: DocSectionEntry[] = [
           <P>
             Vulnerable interiority cuts to bodily or transgressive content and back to genuine
             warmth in the same breath. No audible gear-shift; the speaker treats both registers as
-            load-bearing. Fingerprint: a real-feeling confession adjacent to crude content with no
-            signaling between them.
+            load-bearing. Behavior marker: a real-feeling confession adjacent to crude content with
+            no signaling between them.
           </P>
           <P>
             <Strong>Off-register for most IDC members.</Strong> The mechanic is documented here so
@@ -516,8 +524,8 @@ export const sections: DocSectionEntry[] = [
         >
           <P>
             Flag the confession, deliver it, deflect the landing. The structure protects the speaker
-            from sitting in the feeling while still putting the fact on record. Fingerprint: a setup
-            phrase ("I am going to offer up some collateral here," "in the spirit of full
+            from sitting in the feeling while still putting the fact on record. Behavior marker: a
+            setup phrase ("I am going to offer up some collateral here," "in the spirit of full
             disclosure," "I want the record to reflect") followed by the confession followed by a
             hard pivot to something trivial.
           </P>
@@ -542,8 +550,8 @@ export const sections: DocSectionEntry[] = [
           <P>
             Commit to a figurative frame, then haggle its precision with the listener. The
             negotiation itself becomes the bit; the listener is treated as a co-author of the
-            metaphor whether they agreed to be or not. Fingerprint: numeric or comparative haggling
-            over a metaphor that should not require precision.
+            metaphor whether they agreed to be or not. Behavior marker: numeric or comparative
+            haggling over a metaphor that should not require precision.
           </P>
           <P>
             <Em>
@@ -567,8 +575,8 @@ export const sections: DocSectionEntry[] = [
             A phrase introduced earlier in the same conversation returns as the kicker on a later
             turn, without re-explanation. Distinct from the cross-date callback flavor (Pattern 16,
             which opens mid-grievance on a prior match). This mechanic operates inside a single
-            sit-down. Fingerprint: a noun, phrase, or running metaphor from turn N reappears in turn
-            N+2 or later as the punctuation on an unrelated thread.
+            sit-down. Behavior marker: a noun, phrase, or running metaphor from turn N reappears in
+            turn N+2 or later as the punctuation on an unrelated thread.
           </P>
           <P>
             <Em>Turn 1:</Em> the speaker calls the salad bar "a hierarchy with promotions."

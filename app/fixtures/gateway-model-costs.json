@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-05-24T19:52:10.917Z",
+  "updatedAt": "2026-05-28T03:52:07.202Z",
   "pricingSource": "Vercel AI Gateway model pages",
   "benchmark": {
     "kind": "gateway-cost-smoke-date-chat",
@@ -16,7 +16,7 @@
     "deepseek/deepseek-v4-flash": {
       "inputUsdPerMillionTokens": 0.14,
       "outputUsdPerMillionTokens": 0.28,
-      "costTier": "medium",
+      "costTier": "low",
       "benchmark": {
         "measuredAt": "2026-05-21T20:02:15.363Z",
         "inputTokens": 1655,
@@ -63,6 +63,19 @@
         "totalTokens": 2073,
         "estimatedUsd": 0.002745,
         "elapsedMs": 6008
+      }
+    },
+    "moonshotai/kimi-k2.5": {
+      "inputUsdPerMillionTokens": 0.5,
+      "outputUsdPerMillionTokens": 2.8,
+      "costTier": "very-high",
+      "benchmark": {
+        "measuredAt": "2026-05-28T03:19:35.434Z",
+        "inputTokens": 1652,
+        "outputTokens": 880,
+        "totalTokens": 2532,
+        "estimatedUsd": 0.00329,
+        "elapsedMs": 30920
       }
     },
     "minimax/minimax-m2.7": {
@@ -115,6 +128,19 @@
         "totalTokens": 1889,
         "estimatedUsd": 0.00055105,
         "elapsedMs": 5559
+      }
+    },
+    "xiaomi/mimo-v2.5": {
+      "inputUsdPerMillionTokens": 0.14,
+      "outputUsdPerMillionTokens": 0.28,
+      "costTier": "medium",
+      "benchmark": {
+        "measuredAt": "2026-05-28T03:52:07.202Z",
+        "inputTokens": 1761,
+        "outputTokens": 840,
+        "totalTokens": 2601,
+        "estimatedUsd": 0.00048174,
+        "elapsedMs": 25908
       }
     }
   }

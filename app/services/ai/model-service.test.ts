@@ -197,10 +197,16 @@ describe("AI model service", () => {
     });
     expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-sonnet-4.6")).toBeUndefined();
     expect(providerOptionsForRuntime(gatewayConfig, "anthropic/claude-haiku-4.5")).toBeUndefined();
+    expect(providerOptionsForRuntime(gatewayConfig, "moonshotai/kimi-k2.5")).toBeUndefined();
     expect(providerOptionsForRuntime(gatewayConfig, "xai/grok-4.3")).toBeUndefined();
     expect(providerOptionsForRuntime(gatewayConfig, "openai/gpt-5.4-nano")).toEqual({
       openai: {
         reasoningEffort: "none",
+      },
+    });
+    expect(providerOptionsForRuntime(gatewayConfig, "xiaomi/mimo-v2.5")).toEqual({
+      xiaomi: {
+        thinking: { type: "enabled" },
       },
     });
   });
@@ -247,6 +253,11 @@ describe("AI model service", () => {
     expect(providerOptionsForRuntime(noneConfig, "alibaba/qwen3.5-flash")).toEqual({
       alibaba: {
         enableThinking: false,
+      },
+    });
+    expect(providerOptionsForRuntime(noneConfig, "xiaomi/mimo-v2.5")).toEqual({
+      xiaomi: {
+        thinking: { type: "enabled" },
       },
     });
     expect(providerOptionsForRuntime(noneConfig, "zai/glm-4.7-flash")).toBeUndefined();

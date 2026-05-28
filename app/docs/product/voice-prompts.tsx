@@ -27,7 +27,12 @@ export const lede = (
     This doc owns runtime surfaces. It explains what prompt packets contain, what each UI surface
     should sound like, which Markdown the transcript renderer accepts, and how to respond to
     recurring model quirks. Fixture authoring rules live in{" "}
-    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>.
+    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Agents doing
+    member tuning should start with{" "}
+    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
+    use this doc only when the failing surface is runtime prompt behavior. Provider-aligned rules
+    for editing prompt text live in{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 
@@ -183,24 +188,32 @@ export const sections: DocSectionEntry[] = [
             "Task: produce one spoken reply grounded in the latest partner line.",
             "Identity and state: bio, needs, preferences, dealbreakers, private pressure, current mood, memories, agreements, open loops, and pair trajectory.",
             "State pressure: low mood, bad comfort, and boundary-protection intent must change behavior. Cooling, confusion, refusal, or ending the exchange are valid member replies when the latest line supports them.",
+            "Affect range: neutral, warm or flirty, confused, guarded, angry, overwhelmed, and ready-to-leave are all valid when the turn earns them. Prompt wording should invite the right state instead of keeping every member politely neutral.",
             "Voice flavor: compact register, comedy mechanics, tics, optional member-specific conversation shape, and optional contrast examples. The sit-down opener may surface two greeting samples; in-date sample banks do not flow into the prompt. A single crash-out attractor surfaces only when date health is low and a dealbreaker fire is imminent.",
             "Shared scene: Cupid set the match, route, venue, and time; this is the pair's current date through Cupid.",
             "Venue frame: location, room feel, director rules, partner profile, portrait cues, and heights.",
             "Date play: members may propose or commit to small in-room moves as spoken dialogue, such as ordering, pouring, pressing, handing over, waiting, refusing, or asking before acting. The same block keeps stage directions, partner-control, hidden menus, and invented offscreen consequences out.",
             "Format and invariants: spoken conversation at a table, no labels, no stage directions, no dash punctuation, no parroting, no answering private notes aloud, plus member-specific output constraints.",
-            "Retry guards and attachment notices only when needed.",
+            "Visibility retry guard only for actual empty or unfileable generated output. Attachment notices only when the turn really includes attachments.",
           ]}
         />
         <DocCallout variant="danger">
           Do not paste the full voice docs or generic conversation-shape examples into runtime
           prompts. Do not expose pattern taxonomy as a checklist the model must satisfy. The prompt
           should describe who the member is, what they protect, and the conversation they are
-          inside.
+          inside. When adding or removing prompt instructions, use{" "}
+          <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
         </DocCallout>
         <DocCallout variant="note">
           Runtime prompts must not treat dating success as the default. Flirtation and attraction
           require concrete exchange evidence; confusion, anger, overload, and crash-out pressure are
           first-class reads when member guards or scenario pressure fire.
+        </DocCallout>
+        <DocCallout variant="danger" title="No style rejection loops">
+          Do not reject, rewrite, or retry generated member lines because string matching found a
+          disliked voice pattern. A bad or awkward line can happen; it is tuning evidence, not a
+          generation failure. Runtime retries are for actual filing failures such as empty output or
+          hidden-info leaks.
         </DocCallout>
       </>
     ),
@@ -226,8 +239,12 @@ export const sections: DocSectionEntry[] = [
         />
         <DocCallout variant="warn">
           Do not use member-chat output as proof that the live performer prompt is locked. Live date
-          behavior still needs <DocCode>vp run tune</DocCode> coverage because scene pressure, pair
-          state, Cupid coaching, samples, and transcript rhythm change the model's choices.
+          behavior still needs the live tuning path in{" "}
+          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
+            Voice tuning quickstart
+          </DocLink>{" "}
+          because scene pressure, pair state, Cupid coaching, samples, and transcript rhythm change
+          the model's choices.
         </DocCallout>
       </>
     ),
@@ -270,7 +287,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             {
               term: "Noted / got it default",
-              def: "The model reaches for bureaucratic acknowledgments in brief receive slots. Mitigate by adding in-voice samples that occupy that exact slot. Accept tiny residue only if it no longer reads as the character closing the turn like a chatbot.",
+              def: "The model reaches for bureaucratic acknowledgments in brief receive slots. Mitigate by giving that slot a target move in the member's own voice: answer, ask, tease, choose, refuse, admit, or stay silent.",
             },
             {
               term: "Stage directions",
@@ -283,6 +300,10 @@ export const sections: DocSectionEntry[] = [
             {
               term: "Partner-labeling as receipt",
               def: "The model labels the partner as a green flag, smart, respectful, valid, or a kind of date. Mitigate by modeling engagement as a move: real question, own-material, callback, tease, admission, or choice. During tuning, treat generic positivity as a miss even when the line is pleasant.",
+            },
+            {
+              term: "Meta-acknowledgment drift",
+              def: "The model says it noticed, clocked, registered, or will note the partner's move. Mitigate by converting recognition into the reply it creates: ask the question, make the choice, push back, flirt, refuse, or end.",
             },
             {
               term: "Profile receipt",
@@ -305,7 +326,8 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="warn" title="Content lint is the hard-rule layer">
           Hard bans on authored fixture content belong in{" "}
           <DocCode>app/fixtures/content-lint.test.ts</DocCode>. Runtime prompts should stay focused
-          on positive behavior and scene context.
+          on positive behavior and scene context, and runtime generation must not fail a member line
+          because it matched a style smell.
         </DocCallout>
       </>
     ),
@@ -341,6 +363,13 @@ export const sections: DocSectionEntry[] = [
           flash, rescue poster, formal toast, quiet corner. Do not write events for one named
           member.
         </DocCallout>
+        <DocCallout variant="note" title="Flow-specific reaction targets">
+          Conversation rooms should pull members toward questions, answers, admissions, jokes,
+          disagreement, and quiet attention. Pressure, activity, and set-piece rooms can imply
+          physical consequences between spoken lines when an event lands or a member commits to a
+          move. The performer should answer the result as present scene reality while keeping the
+          bubble natural dialogue.
+        </DocCallout>
       </>
     ),
   },
@@ -355,7 +384,14 @@ export const sections: DocSectionEntry[] = [
           "Does the prompt packet describe the member and scene instead of exposing a rule checklist?",
           "Does the fixture provide positive replacements for any recurring model quirk it is likely to trigger?",
           "Does Markdown read as spoken stress rather than stage direction?",
-          "If a systemic prompt changes, run short spot checks against already-locked voices likely to be affected.",
+          <span key="tuning">
+            If a systemic prompt changes, run short spot checks against already-locked voices likely
+            to be affected. The one-member tuning sequence lives in{" "}
+            <DocLink to="/docs/product/voice#voice-tuning-quickstart">
+              Voice tuning quickstart
+            </DocLink>
+            .
+          </span>,
         ]}
       />
     ),

@@ -103,8 +103,9 @@ export const sections: DocSectionEntry[] = [
                 <DocCode>deepseek/deepseek-v4-pro</DocCode>,{" "}
                 <DocCode>google/gemini-3.1-flash-lite</DocCode>,{" "}
                 <DocCode>anthropic/claude-haiku-4.5</DocCode>,{" "}
-                <DocCode>minimax/minimax-m2.7</DocCode>, <DocCode>alibaba/qwen3.5-flash</DocCode>,{" "}
-                <DocCode>zai/glm-4.7-flash</DocCode>, and <DocCode>openai/gpt-5.4-nano</DocCode>.
+                <DocCode>moonshotai/kimi-k2.5</DocCode>, <DocCode>minimax/minimax-m2.7</DocCode>,{" "}
+                <DocCode>alibaba/qwen3.5-flash</DocCode>, <DocCode>zai/glm-4.7-flash</DocCode>,{" "}
+                <DocCode>openai/gpt-5.4-nano</DocCode>, and <DocCode>xiaomi/mimo-v2.5</DocCode>.
               </span>,
               <span key="save">
                 Choose <Strong>Save and connect</Strong> to save the setup and run the readiness

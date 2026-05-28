@@ -55,6 +55,10 @@ export const sections: DocSectionEntry[] = [
             <DocLink to="/docs/product/voice">Voice system</DocLink> for the register and prose
             rules every scenario card and Cupid line must obey.
           </span>,
+          <span key="prompt-authoring">
+            <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink> before
+            adding event instructions, negative rules, examples, or runtime prompt pressure.
+          </span>,
           <span key="match-fit">
             <DocLink to="/docs/gameplay/match-fit">Match fit</DocLink> for tag-driven booking
             pressure and boundary risk.
@@ -243,22 +247,25 @@ export const sections: DocSectionEntry[] = [
               quiet rooms, benches, transit compartments, and rooms where the main test is talking
               or sitting with attention. The opening situation should establish seating and
               immediate shared context, not load the first prompt with prop details the model will
-              echo.
+              echo. Tune for members asking, answering, admitting, disagreeing, joking, or letting a
+              quiet beat sit.
             </span>,
             <span key="activity">
               <Strong>activity:</Strong> fourteen turns, judge every four. Use for meals with shared
               handling, crafts, errands, games, and task dates where members should make repeated
-              small choices.
+              small choices. The target is dialogue shaped by handling, not a report about handling.
             </span>,
             <span key="pressure">
               <Strong>pressure:</Strong> eight turns, judge every four. Use for moral dilemmas,
               public exposure, prophecy, command decisions, and rooms where drifting would weaken
-              the premise.
+              the premise. Actions may become real between lines when a member commits to a move or
+              an event lands; the next line should answer the consequence as dialogue.
             </span>,
             <span key="set-piece">
               <Strong>set_piece:</Strong> sixteen turns, judge every four. Use for evolving rooms,
               escape-room structures, loops, performances, and action dates with multiple physical
-              beats.
+              beats. Each beat should create something the next member can answer, choose, refuse,
+              or escalate.
             </span>,
           ]}
         />
@@ -292,6 +299,12 @@ export const sections: DocSectionEntry[] = [
           already cost a pawn" gives them something to reason about, react to, and answer in
           dialogue.
         </P>
+        <P>
+          Author pressure consequences as playable facts, not narration instructions. The target
+          response is natural dialogue that treats the consequence as already visible: a member can
+          gasp at a living chess piece, refuse the next move, take the next move, accuse the room,
+          or ask the partner what they just did.
+        </P>
         <P>Each event needs:</P>
         <DocList
           items={[
@@ -318,8 +331,8 @@ export const sections: DocSectionEntry[] = [
             </span>,
             <span key="director">
               <DocCode>directorBeat</DocCode>: explicit instruction for the next character turn,
-              wired into the system prompt. Tell the LLM what the responding character must do or
-              choose. The kind suffix is appended automatically.
+              wired into the system prompt. Tell the LLM what the responding character should do or
+              choose as a positive target. The kind suffix is appended automatically.
             </span>,
           ]}
         />
@@ -343,7 +356,8 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="danger" title="Beat copy hygiene">
           <P>
             The <DocCode>beat</DocCode> string is appended to the transcript as plain prose and seen
-            by the character LLM. Authoring choices leak straight into character replies.
+            by the character LLM. Authoring choices leak straight into character replies. Use a
+            clear result-first beat, then keep the constraint list short.
           </P>
           <DocList
             items={[

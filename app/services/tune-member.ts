@@ -21,8 +21,6 @@ import { starterMembers, starterScenarios } from "../fixtures";
 import type { MemoryPack } from "./cupid-memory";
 import {
   buildCharacterPromptPacket,
-  hasNearDuplicateRecentLine,
-  hasRepeatedApprovalPhrase,
   withCharacterVisibilityRetryGuard,
   type CharacterPromptPacket,
 } from "./date-prompts";
@@ -578,7 +576,7 @@ export type TuneGenerationResult = {
   rawText: string;
   preview: TunePacketPreview;
   retried: boolean;
-  retryReason: "near_duplicate" | "approval_phrase" | "visibility" | null;
+  retryReason: "visibility" | null;
   warningMessages: string[];
   promptCharacters: number;
   approximatePromptTokens: number;
@@ -607,10 +605,6 @@ export async function generateMemberReply(
   assertCanAppendCharacterLine(session, speakerId);
   const preview = previewMemberTurnPacket(session, { speakerRole });
   const warningMessages: string[] = [];
-  const recentSpeakerLines = collectRecentSpeakerLines(
-    preview.dateSession,
-    preview.speakerMember.id,
-  );
 
   const config = options.config ?? {};
   const generationOptions = options.generationOptions;
@@ -633,6 +627,8 @@ export async function generateMemberReply(
         throw error;
       }
 
+      // Tune sessions mirror production: retry only when the model produced no
+      // usable line. Voice/style misses should stay visible for the tuning agent.
       warningMessages.push(
         `${preview.speakerMember.name} returned an empty line; retried with visibility guard.`,
       );
@@ -653,40 +649,6 @@ export async function generateMemberReply(
   let retryReason: TuneGenerationResult["retryReason"] = firstVisibleAttempt.retriedForVisibility
     ? "visibility"
     : null;
-
-  const initialNearDup = hasNearDuplicateRecentLine({
-    text: firstAttempt.text,
-    recentLines: recentSpeakerLines,
-  });
-  if (initialNearDup !== null) {
-    warningMessages.push(
-      `Near-duplicate detected; asked ${preview.speakerMember.name} to rewrite.`,
-    );
-    const retryPacket = buildRetryPacket(preview.packet, {
-      repetitionRetry: initialNearDup,
-    });
-    const retry = await runVisibleAttempt(retryPacket);
-    chosen = retry.attempt;
-    retried = true;
-    retryReason = retry.retriedForVisibility ? "visibility" : "near_duplicate";
-  } else {
-    const repeatedApproval = hasRepeatedApprovalPhrase({
-      text: firstAttempt.text,
-      recentLines: recentSpeakerLines,
-    });
-    if (repeatedApproval !== null) {
-      warningMessages.push(
-        `Repeated approval phrase detected; asked ${preview.speakerMember.name} to rewrite.`,
-      );
-      const retryPacket = buildRetryPacket(preview.packet, {
-        rhythmRetry: repeatedApproval,
-      });
-      const retry = await runVisibleAttempt(retryPacket);
-      chosen = retry.attempt;
-      retried = true;
-      retryReason = retry.retriedForVisibility ? "visibility" : "approval_phrase";
-    }
-  }
 
   const updatedSession = appendGeneratedCharacterReply(
     session,
@@ -713,41 +675,6 @@ export async function generateMemberReply(
   };
 }
 
-function buildRetryPacket(
-  basePacket: CharacterPromptPacket,
-  guards:
-    | { repetitionRetry: { repeatedLine: string } }
-    | { rhythmRetry: { repeatedPhrase: string; recentLine: string } },
-): CharacterPromptPacket {
-  if ("repetitionRetry" in guards) {
-    const notice = [
-      "",
-      `Your previous attempt repeated a recent line: "${truncate(guards.repetitionRetry.repeatedLine)}".`,
-      "Rewrite. Different shape, different opener, different angle.",
-    ].join("\n");
-    return {
-      ...basePacket,
-      system: basePacket.system + notice,
-      prompt: basePacket.prompt + notice,
-    };
-  }
-  const notice = [
-    "",
-    `Your previous attempt reused the approval phrase "${guards.rhythmRetry.repeatedPhrase}" near "${truncate(guards.rhythmRetry.recentLine)}".`,
-    "Rewrite without that opener.",
-  ].join("\n");
-  return {
-    ...basePacket,
-    system: basePacket.system + notice,
-    prompt: basePacket.prompt + notice,
-  };
-}
-
-function truncate(text: string, max = 80): string {
-  const collapsed = text.replace(/\s+/g, " ").trim();
-  return collapsed.length <= max ? collapsed : `${collapsed.slice(0, max - 1)}…`;
-}
-
 async function runOnce({
   packet,
   config,
@@ -762,16 +689,6 @@ async function runOnce({
   const raw = await generateCharacterTurn({ packet, config, options: generationOptions });
   const text = sanitizeCharacterText(raw.text, speakerName);
   return { text, raw };
-}
-
-function collectRecentSpeakerLines(session: DateSession, speakerId: string): string[] {
-  const lines: string[] = [];
-  for (const message of session.transcript) {
-    if (message.kind === "character" && message.speakerId === speakerId) {
-      lines.push(message.text);
-    }
-  }
-  return lines.slice(-3);
 }
 
 export function formatTranscriptForReading(

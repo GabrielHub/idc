@@ -24,6 +24,10 @@ export const lede = (
     This doc owns member fixture data. Voice authoring rules live in{" "}
     <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Runtime
     surfaces live in <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>.
+    Voice tuning passes start at{" "}
+    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink>.
+    Prompt-visible field edits should follow{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 

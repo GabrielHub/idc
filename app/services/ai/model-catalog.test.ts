@@ -36,7 +36,7 @@ describe("AI model catalog", () => {
     });
 
     expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
-    expect(config.embeddingModel).toBe("google/gemini-embedding-2");
+    expect(config.embeddingModel).toBe("openai/text-embedding-3-small");
     expect(config.reasoningLevel).toBe("xhigh");
     expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
   });
@@ -77,6 +77,20 @@ describe("AI model catalog", () => {
         reasoningLevel: "xhigh",
       }).reasoningLevel,
     ).toBe("none");
+    expect(
+      gameConfigSchema.parse({
+        aiProvider: "gateway",
+        chatModel: "moonshotai/kimi-k2.5",
+        reasoningLevel: "xhigh",
+      }).reasoningLevel,
+    ).toBe("off");
+    expect(
+      gameConfigSchema.parse({
+        aiProvider: "gateway",
+        chatModel: "xiaomi/mimo-v2.5",
+        reasoningLevel: "off",
+      }).reasoningLevel,
+    ).toBe("xhigh");
   });
 
   it("accepts the expanded reasoning level set", () => {
@@ -113,15 +127,18 @@ describe("AI model catalog", () => {
     expect(
       gameConfigSchema.parse({
         aiProvider: "gateway",
-        chatModel: "moonshotai/kimi-k2.5",
-      }).chatModel,
-    ).toBe("deepseek/deepseek-v4-flash");
-    expect(
-      gameConfigSchema.parse({
-        aiProvider: "gateway",
         chatModel: "xai/grok-4.3",
       }).chatModel,
     ).toBe("deepseek/deepseek-v4-flash");
+  });
+
+  it("migrates the retired Gateway Gemini embedding model to the default", () => {
+    expect(
+      gameConfigSchema.parse({
+        aiProvider: "gateway",
+        embeddingModel: "google/gemini-embedding-2",
+      }).embeddingModel,
+    ).toBe("openai/text-embedding-3-small");
   });
 
   it("surfaces the curated Gateway choices from the Vercel catalog", () => {
@@ -130,13 +147,14 @@ describe("AI model catalog", () => {
       "deepseek/deepseek-v4-pro",
       "google/gemini-3.1-flash-lite",
       "anthropic/claude-haiku-4.5",
+      "moonshotai/kimi-k2.5",
       "minimax/minimax-m2.7",
       "alibaba/qwen3.5-flash",
       "zai/glm-4.7-flash",
       "openai/gpt-5.4-nano",
+      "xiaomi/mimo-v2.5",
     ]);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "google/gemini-3-flash")).toBe(false);
-    expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "moonshotai/kimi-k2.5")).toBe(false);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "xai/grok-4.3")).toBe(false);
     expect(GATEWAY_CHAT_MODELS.every((model) => model.brand !== undefined)).toBe(true);
   });
@@ -151,10 +169,12 @@ describe("AI model catalog", () => {
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-flash", "xhigh")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("deepseek/deepseek-v4-pro", "high")).toBe("xhigh");
     expect(gatewayReasoningLevelForModel("anthropic/claude-haiku-4.5", "high")).toBe("off");
+    expect(gatewayReasoningLevelForModel("moonshotai/kimi-k2.5", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("minimax/minimax-m2.7", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("alibaba/qwen3.5-flash", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("zai/glm-4.7-flash", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("openai/gpt-5.4-nano", "high")).toBe("none");
+    expect(gatewayReasoningLevelForModel("xiaomi/mimo-v2.5", "off")).toBe("xhigh");
   });
 
   it("marks Gateway models that accept image input", () => {
@@ -163,10 +183,12 @@ describe("AI model catalog", () => {
     expect(gatewayImageInputSupported("google/gemini-3-flash")).toBe(false);
     expect(gatewayImageInputSupported("google/gemini-3.1-flash-lite")).toBe(true);
     expect(gatewayImageInputSupported("anthropic/claude-haiku-4.5")).toBe(true);
+    expect(gatewayImageInputSupported("moonshotai/kimi-k2.5")).toBe(true);
     expect(gatewayImageInputSupported("minimax/minimax-m2.7")).toBe(false);
     expect(gatewayImageInputSupported("alibaba/qwen3.5-flash")).toBe(true);
     expect(gatewayImageInputSupported("zai/glm-4.7-flash")).toBe(false);
     expect(gatewayImageInputSupported("openai/gpt-5.4-nano")).toBe(true);
+    expect(gatewayImageInputSupported("xiaomi/mimo-v2.5")).toBe(true);
   });
 
   it("attaches cost metadata to Gateway selector models", () => {

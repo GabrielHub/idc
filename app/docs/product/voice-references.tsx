@@ -28,7 +28,9 @@ export const lede = (
     rules still live in{" "}
     <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>; runtime prompt
     behavior still lives in{" "}
-    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>.
+    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Turning source notes
+    into prompt-visible guidance should follow{" "}
+    <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
 
@@ -76,9 +78,10 @@ export const sections: DocSectionEntry[] = [
               Keep generated personal corpora and unreviewed raw exports in{" "}
               <DocCode>.claude-tmp/</DocCode> or another ignored location.
             </span>,
+            "On MacBook runs, local iMessage or texting corpora may be used as private rhythm references when available. Read only the minimum sample needed for the tuning question.",
             "Do not preserve roadmap audit diaries as source archives.",
             "Do not copy long source passages into member fixtures or runtime prompts.",
-            "When the source is a real person, document speech mechanics and performance structure, not private biography.",
+            "When the source is a real person or a private corpus, document speech mechanics and performance structure, not private biography, private facts, names, or copied jokes.",
           ]}
         />
       </>
@@ -111,6 +114,42 @@ export const sections: DocSectionEntry[] = [
         />
       </>
     ),
+  },
+  {
+    id: "natural-dialogue-corpora",
+    title: "Natural Dialogue Corpora",
+    body: (
+      <>
+        <P>
+          Natural-dialogue references help agents hear how people actually answer each other:
+          compression, interruption, ignored setup, abrupt sincerity, teasing, concrete asks, and
+          thread-ending. Use them to tune the ear, not to mine lines.
+        </P>
+        <DocSubsection id="imessage-corpus" title="iMessage And Texting Corpus">
+          <DocList
+            items={[
+              "Use only when the corpus is locally available to the agent and relevant to the voice problem.",
+              "Keep raw exports ignored. Do not commit private messages, screenshots, sender names, phone numbers, private facts, or quote banks.",
+              "Sample narrowly: enough adjacent turns to understand response shape, not a full archive sweep.",
+              "Translate medium-specific behavior into spoken table dialogue. Keep directness, compression, rhythm, and repair moves; drop shorthand, message-app artifacts, private references, and copied wording.",
+              "If a durable lesson is useful, write it as a derived mechanic in this doc or the member fixture's own terms.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="northernlion-natural-dialogue" title="Northernlion Reference">
+          <P>
+            The committed <DocCode>docs/reference/voice-northernlion.md</DocCode> file is the safe
+            public reference for riffing, correction, premise escalation, concrete digression, and
+            bit recovery. It is especially useful when a member should sound like a person thinking
+            aloud instead of a profile executing a checklist.
+          </P>
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "imessage-corpus", title: "iMessage And Texting Corpus" },
+      { id: "northernlion-natural-dialogue", title: "Northernlion Reference" },
+    ],
   },
   {
     id: "northernlion-bit-compilations",

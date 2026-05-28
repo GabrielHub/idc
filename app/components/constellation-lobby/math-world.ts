@@ -141,21 +141,24 @@ function focusClusterPosition(index: number, total: number): Vec3 {
 
 /**
  * Pinned focus marker position when state === "focus_selected" and the
- * player has scrolled past the focus-picker layer. Sits at world center so
- * the eligible-partner ring (see `partnerRingPosition`) wraps around it as
- * its own gravity well. The z is overwritten by the slab-z lookup in
- * resolveStarRenderTarget — it lives on the focus slab (z ≈ 6) at runtime,
- * so the value here is a placeholder.
+ * player is on the eligibles roster layer. Sits at world center so the
+ * eligible-partner ring (see `partnerRingPosition`) wraps around it as its
+ * own gravity well. Only used on the eligibles subview — on off-tonight the
+ * focus star has no functional anchor (the player is browsing who is
+ * unavailable, not picking from them), so the star falls through to the
+ * off-axis slab cull and disappears. The z is overwritten by the slab-z
+ * lookup in resolveStarRenderTarget — it lives on the focus slab (z ≈ 6) at
+ * runtime, so the value here is a placeholder.
  */
 export const FOCUS_MARKER_POSITION: Vec3 = { x: 0, y: 0, z: 0 };
 
 /**
  * Scale multiplier applied to the focus star when it's pinned to the
- * focus marker slot. Smaller than the layer-0 hero size so the avatar
- * reads as a compact "selected" indicator above the roster cluster
- * without crowding the eligible-partner picker grid below.
+ * focus marker slot. Reads as the center of gravity (perspective puts it
+ * forward of the partner slab too) without dominating the canvas — partners
+ * need room to orbit and the Focus chip needs to clear the partner halos.
  */
-export const FOCUS_MARKER_SCALE = 0.7;
+export const FOCUS_MARKER_SCALE = 1;
 
 /**
  * Single dispatcher for a star's tonight-mode cluster slot. Returns the
@@ -165,10 +168,10 @@ export const FOCUS_MARKER_SCALE = 0.7;
  * layer, or `null` to fall back to the star's natural field position.
  *
  * When state === "focus_selected" AND the player is in the "eligibles"
- * subview with a small partner set, eligible partners arrange in a ring
- * around the centered focus marker (`partnerRingPosition`). Larger partner
- * sets keep the rectangular roster grid so the canvas frames every available
- * member instead of clipping the top and bottom of the orbit.
+ * subview, eligible partners arrange in a bounded orbit around the centered
+ * focus marker (`partnerRingPosition`). The orbit still uses canvas-derived
+ * bounds, but the selected focus remains the visual gravity well instead of
+ * being swallowed by the roster grid.
  *
  * Archive mode bypasses clustering entirely — callers pass `inArchive` so
  * the helper can short-circuit instead of every callsite re-checking.
@@ -182,6 +185,7 @@ export function resolveClusterPosition(input: {
   focusOrder: readonly string[];
   rosterLeadOrder: readonly string[];
   rosterClusterBounds?: RosterClusterBounds;
+  partnerRingBounds?: RosterClusterBounds;
   inArchive?: boolean;
   rosterSubview?: RosterSubview;
 }): Vec3 | null {
@@ -194,11 +198,17 @@ export function resolveClusterPosition(input: {
     focusOrder,
     rosterLeadOrder,
     rosterClusterBounds,
+    partnerRingBounds,
     inArchive = false,
     rosterSubview = "eligibles",
   } = input;
   if (inArchive) return null;
-  if (role === "focus" && state === "focus_selected" && isRosterFlythroughLayer(currentLayer)) {
+  if (
+    role === "focus" &&
+    state === "focus_selected" &&
+    isRosterFlythroughLayer(currentLayer) &&
+    rosterSubview === "eligibles"
+  ) {
     return FOCUS_MARKER_POSITION;
   }
   if (flythroughLayer === 0 && currentLayer === 0 && focusOrder.length > 0) {
@@ -214,7 +224,7 @@ export function resolveClusterPosition(input: {
     if (idx >= 0) {
       const useRing = state === "focus_selected" && rosterSubview === "eligibles";
       return useRing && shouldUsePartnerRingLayout(rosterLeadOrder.length)
-        ? partnerRingPosition(idx, rosterLeadOrder.length)
+        ? partnerRingPosition(idx, rosterLeadOrder.length, partnerRingBounds ?? rosterClusterBounds)
         : rosterClusterPosition(idx, rosterLeadOrder.length, rosterClusterBounds);
     }
   }
@@ -223,37 +233,51 @@ export function resolveClusterPosition(input: {
 
 /**
  * Radial ring layout for eligible partners orbiting the focused member.
- * The focus pins at (0, 0); partners arrange at equal angles on a circle
- * around it, starting at the top (-π/2) and walking clockwise so the
+ * The focus pins at (0, 0); partners arrange at equal angles on a responsive
+ * ellipse around it, starting at the top (-π/2) and walking clockwise so the
  * visual order matches the deterministic rosterLeadOrder iteration.
  *
- * The ring radius scales mildly with partner count — a 3-partner ring sits
- * tighter than a 9-partner one so single-row counts don't drift outside the
- * viewport while large rosters still have breathing room between halos.
- * Tuned so the top/bottom slots fit inside the layer-1 camera's vertical
- * frustum (camera z=11 → roster slab z=-1.5 = 12.5 units of distance, half
- * vFOV 19° gives ~4.3 world units of half-height before partners clip).
+ * The horizontal and vertical radii are constrained by canvas-derived bounds
+ * (see `partnerRingBoundsForCanvas`) that are more generous than the
+ * rectangular grid bounds — the orbit only touches its bounding ellipse at
+ * discrete points, so it can breathe wider than a packed grid would.
  */
-const PARTNER_RING_BASE_RADIUS = 3.0;
-const PARTNER_RING_PER_PARTNER = 0.12;
-const PARTNER_RING_MAX_RADIUS = 4.0;
-const PARTNER_RING_MAX_MEMBERS = 6;
+const PARTNER_RING_BASE_RADIUS_X = 5;
+const PARTNER_RING_BASE_RADIUS_Y = 2.4;
+const PARTNER_RING_PER_PARTNER_X = 0.22;
+const PARTNER_RING_PER_PARTNER_Y = 0.1;
+const PARTNER_RING_MAX_RADIUS_X = 8;
+const PARTNER_RING_MAX_RADIUS_Y = 4;
+const PARTNER_RING_SAFE_INSET_X = 0.6;
+const PARTNER_RING_SAFE_INSET_Y = 0.2;
 
 export function shouldUsePartnerRingLayout(total: number): boolean {
-  return total > 1 && total <= PARTNER_RING_MAX_MEMBERS;
+  return total > 1;
 }
 
-export function partnerRingPosition(index: number, total: number): Vec3 {
+export function partnerRingPosition(
+  index: number,
+  total: number,
+  bounds: RosterClusterBounds = DEFAULT_ROSTER_CLUSTER_BOUNDS,
+): Vec3 {
   if (total <= 0) return { x: 0, y: 0, z: 0 };
   const clamped = Math.max(0, Math.min(index, total - 1));
-  const radius = Math.min(
-    PARTNER_RING_MAX_RADIUS,
-    PARTNER_RING_BASE_RADIUS + total * PARTNER_RING_PER_PARTNER,
+  const maxRadiusX = Math.max(1.4, bounds.maxWidth / 2 - PARTNER_RING_SAFE_INSET_X);
+  const maxRadiusY = Math.max(1.75, bounds.maxHeight / 2 - PARTNER_RING_SAFE_INSET_Y);
+  const radiusX = Math.min(
+    maxRadiusX,
+    PARTNER_RING_MAX_RADIUS_X,
+    PARTNER_RING_BASE_RADIUS_X + total * PARTNER_RING_PER_PARTNER_X,
+  );
+  const radiusY = Math.min(
+    maxRadiusY,
+    PARTNER_RING_MAX_RADIUS_Y,
+    PARTNER_RING_BASE_RADIUS_Y + total * PARTNER_RING_PER_PARTNER_Y,
   );
   const angle = -Math.PI / 2 + (clamped / total) * Math.PI * 2;
   return {
-    x: Math.cos(angle) * radius,
-    y: Math.sin(angle) * -radius,
+    x: Math.cos(angle) * radiusX,
+    y: Math.sin(angle) * -radiusY,
     z: 0,
   };
 }
@@ -277,8 +301,8 @@ const ROSTER_CLUSTER_MAX_WIDTH = 11;
 const ROSTER_CLUSTER_MAX_HEIGHT = 6;
 const ROSTER_CLUSTER_DEFAULT_SPACING_X = 2.8;
 const ROSTER_CLUSTER_DEFAULT_SPACING_Y = 2.5;
-const ROSTER_CLUSTER_DESIRED_SPACING_X = 1.65;
-const ROSTER_CLUSTER_DESIRED_SPACING_Y = 2.05;
+const ROSTER_CLUSTER_DESIRED_SPACING_X = 2.0;
+const ROSTER_CLUSTER_DESIRED_SPACING_Y = 2.3;
 const ROSTER_CLUSTER_MAX_ROWS = 6;
 const DEFAULT_ROSTER_CLUSTER_BOUNDS: RosterClusterBounds = {
   maxWidth: ROSTER_CLUSTER_MAX_WIDTH,
@@ -311,16 +335,44 @@ export function visibleWorldSizeAtDepth({
 export function rosterClusterBoundsForCanvas(input: RosterClusterBoundsInput): RosterClusterBounds {
   const visible = visibleWorldSizeAtDepth(input);
   const canvasScale = clampNumber(input.avatarScale, 0.72, 1.12);
-  const avatarInset = 2.2 * canvasScale;
+  // Inset budget for halo bleed on the outermost members. Sized for the
+  // shrunk avatars used in larger cohorts (see rosterLeadScaleMultiplier);
+  // the earlier 2.2 figure was tuned for the hero-size focus picker and
+  // left a lot of canvas unused once the cluster shrank.
+  const avatarInset = 1.4 * canvasScale;
   const worldPackingScale = clampNumber(canvasScale, 0.8, 1.05);
   // Cluster spans ±maxWidth/2 around x=0 with each star adding ~avatarRadius
   // on its outward side, so the visible-width budget needs an inset on both
   // edges, not just one.
-  const widthBudget = visible.width * 0.74 * worldPackingScale - avatarInset * 2;
-  const heightBudget = visible.height * 0.64 * worldPackingScale - avatarInset * 2;
+  const widthBudget = visible.width * 0.88 * worldPackingScale - avatarInset * 2;
+  const heightBudget = visible.height * 0.95 * worldPackingScale - avatarInset * 2;
   return {
     maxWidth: clampNumber(widthBudget, 7.2, 14),
-    maxHeight: clampNumber(heightBudget, 4.2, 7.2),
+    maxHeight: clampNumber(heightBudget, 4.2, 8.5),
+  };
+}
+
+/**
+ * Canvas-aware bounds for the eligible partner orbit. The orbit only touches
+ * its bounding ellipse at discrete partner slots (unlike the rectangular
+ * grid that has to pack whole rows + columns inside), so it gets a more
+ * generous slice of the visible area. Vertical headroom still leaves space
+ * for the top roster pill and the bottom-right Shift Brief panel, and the
+ * avatar inset stays moderate so smaller-scaled partner avatars don't waste
+ * the canvas they fit inside.
+ */
+export function partnerRingBoundsForCanvas(input: RosterClusterBoundsInput): RosterClusterBounds {
+  const visible = visibleWorldSizeAtDepth(input);
+  const canvasScale = clampNumber(input.avatarScale, 0.72, 1.12);
+  // Ring inset is tighter than the grid's because the orbit only places a
+  // single partner near each edge (vs the grid packing whole rows), so less
+  // halo-bleed margin is needed before partners crash into the canvas edge.
+  const avatarInset = 1 * canvasScale;
+  const widthBudget = visible.width * 0.88 - avatarInset * 2;
+  const heightBudget = visible.height * 0.92 - avatarInset * 2;
+  return {
+    maxWidth: clampNumber(widthBudget, 8.4, 18),
+    maxHeight: clampNumber(heightBudget, 4.8, 8.6),
   };
 }
 

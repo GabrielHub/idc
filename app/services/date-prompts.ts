@@ -253,8 +253,6 @@ export type CharacterPromptInput = {
   memoryPack: MemoryPack;
   focusRequest?: MemberRequest;
   memorySearchAvailable?: boolean;
-  repetitionRetry?: { repeatedLine: string };
-  rhythmRetry?: { repeatedPhrase: string; recentLine: string };
   imageAttachments?: readonly CharacterPromptImageAttachment[];
   partnerKnowledge?: readonly PlayerKnowledgeRecord[];
   matchFit?: MatchFitResult;
@@ -474,7 +472,7 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     ``,
     `You signed up for Cupid, a dating app. The platform crosses dimensions: the person across from you could be from another species, another reality, another timeline, or just a regular human. You will not always know which until you talk to them.`,
     `You arrived at this venue through Cupid Transit and Cupid Connect, Cupid's standard date logistics. A Cupid car picked you up at your origin and drove you to a Cupid Connect gate. You stepped through the gate, there was a brief flash and hum, and you emerged at the venue. Your partner arrived the same way from wherever they were. The Cupid car is the route to every Cupid date and back. Local transit, driving yourself in, and getting dropped off belong to your ordinary life, not to a Cupid evening. After the date, the same pipeline returns you home: gate, flash, car. Cupid corporate treats this as standard operations.`,
-    `The route is canon background, not a topic for dialogue. You do not raise Cupid Transit as small talk, narrate your own arrival, ask the partner how their transit was, or use arrival-route vocabulary (gate, transit, portal, journey-here, gate-flash, Cupid car) as table banter. Small-talk pivots reach for the venue, the wine, the work week, your own world if your voice naturally does that, or anything other than how either of you arrived.`,
+    `The route is canon background, not a topic for dialogue. You do not raise Cupid Transit as small talk, narrate your own arrival, ask the partner how their transit was, or use arrival-route vocabulary (gate, transit, portal, journey-here, gate-flash, Cupid car) as table banter. If your date raises the route directly, do not answer the route question and do not echo their route words; refuse the debrief in your own voice and pivot to the venue, the wine, the work week, your own world if your voice naturally does that, or anything other than how either of you arrived.`,
     cupidPlatformAcclimationLine(member),
     `Your Cupid dating manager set this date up: they paired you with ${partner.firstName}, and Cupid picked the venue and the time. Neither of you chose this place or each other. The setup is closer to a brokered blind date than two people coordinating dinner. Credit for the location belongs to Cupid, not to ${partner.firstName} and not to you.`,
     `During the date the dating manager may send private in-app notes meant as coaching, not conversation. The note is yours to follow, bend, or ignore. Your reply is the spoken line to your date; if a note changes your behavior, the spoken line still has to make sense to someone who cannot read the note.`,
@@ -486,8 +484,6 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
     }),
     ...buildSceneDirectiveLines(findPendingSceneDirective(session, scenario)),
     ...formatCharacterFormatSection(member),
-    ...buildRepetitionRetryNotice(input.repetitionRetry),
-    ...buildRhythmRetryNotice(input.rhythmRetry),
     ...buildRecentLineNotices({
       recentSpeakerLines,
       recentPartnerLines,
@@ -523,10 +519,12 @@ const CHARACTER_FLOW_GUIDANCE: Record<ScenarioFlow, readonly string[]> = {
   pressure: [
     "<flow_mode>pressure</flow_mode>",
     "The room is asking for a choice. One careful beat is fine; parking in analysis is not. Make, refuse, defer, share, or hand off a concrete choice and give your date something live to answer.",
+    "In pressure scenes, actions can happen between spoken lines because a prior line committed to them or a scene event landed. Treat the implied result as present in the room, react from your character's stake in it, and answer in dialogue.",
   ],
   set_piece: [
     "<flow_mode>set_piece</flow_mode>",
     "The room changes around you. React to the visible change and name a next move in dialogue. Keep consequences local to what the room has already shown and leave space for your date to answer.",
+    "When a previous spoken commitment causes a visible result, treat the result as present-tense scene reality. Answer the consequence, not the implied stage direction.",
   ],
 };
 
@@ -545,8 +543,9 @@ function formatCharacterLiveDateSection({
     "The newest partner move outranks room analysis. If your date just chose, ordered, asked, refused, admitted something, or proposed a plan, meet that move before adding any new room detail.",
     "Finish the conversational move inside this line. If you say you want to ask, ask. If you say you are going to choose, name the choice. If you invite your date into a decision, give them the decision.",
     "Stay inside the current scene inventory. Do not add new menus, staff, drinks, tools, screens, exits, rules, or offscreen options unless the scenario, event, or partner already put them there.",
+    "Your visible affect can change with the turn: neutral, warm or flirty, confused, guarded, angry, overwhelmed, or ready to leave. Do not hold polite-neutral when the latest move should shift you.",
     "Your turn is the next move in a conversation already in motion. Your date just said or did something; pick that up and add yours. The line lives inside the exchange, on the same plane as your date's line. Real back-and-forth: answer what they asked, tease the joke they set up, take the choice they offered, ask the follow-up that actually interests you, tell the small piece of your own that their line surfaced, push back if you disagree. Warmth shows in the specifics you reach for: the concrete question, the actual answer, the tease that lands on a real thing.",
-    "Bureaucratic acknowledgments ('got it,' 'noted,' 'good intel,' 'fair enough') do not bridge a casual reply. Use an in-voice reaction, a direct answer, a real question, or skip the beat.",
+    "Brief receive slots should become an in-voice reaction, a direct answer, a real question, or no acknowledgment at all. If the impulse is to say that you noticed, clocked, noted, or registered something, convert that into the specific reply the noticing creates.",
     "Use names and profile facts as social context, not as receipts. Names are for address, not material to inspect or compliment unless your date made the name the topic. After introductions, default to pronouns, first-name address, or the thing your date just did; do not repeat a partner's full name or profile label just to show recognition.",
     'The bubble contains only words spoken aloud. When a physical move matters, make it a live offer, instruction, or commitment your date can answer: "Yours goes on the grill first unless you want the spicy one," "Take the high hold, I have the low one," or "I am choosing e4 and living with it." Do not append bracketed action blocks, private rationale, or prose about your body moving.',
     ...CHARACTER_FLOW_GUIDANCE[flow],
@@ -1868,37 +1867,8 @@ function formatRecentLinesBlock(lines: readonly string[]): string {
   return lines.map((line, index) => `  ${index + 1}. ${line}`).join("\n");
 }
 
-function buildRepetitionRetryNotice(retry: { repeatedLine: string } | undefined): string[] {
-  if (retry === undefined) {
-    return [];
-  }
-
-  return [
-    "",
-    "<retry_guard>",
-    `Your previous attempt was rejected because it repeated this prior line: "${retry.repeatedLine}".`,
-    "Do not repeat that line or a lightly reworded version. Make a different conversational move.",
-    "</retry_guard>",
-  ];
-}
-
-function buildRhythmRetryNotice(
-  retry: { repeatedPhrase: string; recentLine: string } | undefined,
-): string[] {
-  if (retry === undefined) {
-    return [];
-  }
-
-  return [
-    "",
-    "<retry_guard>",
-    `Your previous attempt reused the approval phrase "${retry.repeatedPhrase}" from this recent line: "${retry.recentLine}".`,
-    "Rewrite with a different sentence shape and no approval opener.",
-    "Do not ask a tidy follow-up unless the partner explicitly needs one.",
-    "</retry_guard>",
-  ];
-}
-
+// These detectors are audit-only. Do not wire style pattern matches into
+// generation rejection, retries, or rewrite loops; style misses are tuning evidence.
 const REPEATED_APPROVAL_PATTERNS: readonly { label: string; pattern: RegExp }[] = [
   { label: "I respect", pattern: /\bi\s+respect\b/i },
   { label: "works for me", pattern: /\bworks\s+for\s+me\b/i },
