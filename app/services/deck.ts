@@ -19,48 +19,63 @@ import { createNamespacedRandom, randomIndex } from "./utils";
 export const SCENARIO_HAND_SIZE = 3;
 
 /**
- * Starter-eligible scenario ids. Picks the gentler, more legible scenarios so a
- * first-time player is not dumped into the chaos- and intimacy-heavy stuff on
- * shift one. The rest unlock through closures and shift thresholds. See
- * unlockedScenarioIds() for runtime gating.
+ * Starter-eligible scenario ids. Mixes grounded real-world rooms (DMV, diner,
+ * bowling) with cozy-cosmic and gently absurd ones (cheese moon, alive brick,
+ * chrome aviary, beer river) so onboarding advertises the game's range. The
+ * heavier set pieces, grief beats, and high-pressure rooms unlock through
+ * closures and shift thresholds. See unlockedScenarioIds() for runtime gating.
+ *
+ * Listed grounded-first then weird, cost ascending within each group. UI sorts
+ * by cost anyway via sortedStarterCatalog().
  */
 export const STARTER_CATALOG_IDS: readonly string[] = [
+  // Grounded real-world rooms.
   "dmv-number-ticket",
   "grocery-run-one-dinner",
-  "park-loop-with-a-dog",
   "couch-night-takeout",
-  "diner-eleven-pm",
   "mall-food-court-weeknight",
-  "open-house-sunday",
+  "park-loop-with-a-dog",
   "chain-restaurant-tuesday",
   "hardware-store-one-project",
+  "diner-eleven-pm",
+  "open-house-sunday",
   "bowling-league-night",
   "pottery-studio-drop-in",
   "executive-lunch-one-agenda-item",
-  "listening-booth-after-close",
-  "hotel-bar-last-call",
-  "midnight-notary-two-clean-promises",
-  "build-a-bear-empty-mall",
-  "moonglass-kiln-after-hours",
-  "drive-in-last-reel",
-  "long-afternoon-pool-bar",
-  "concession-stand-heat-death",
-  "hawker-floor-six-branches",
   "county-fair-friday",
-  "cable-car-across-biomes",
+  // Cozy-cosmic and gently absurd rooms.
+  "brick-by-brick",
   "empty-room-many-windows",
+  "tap-water",
+  "concession-stand-heat-death",
+  "build-a-bear-empty-mall",
+  "not-the-bees",
+  "the-peanut-gallery",
+  "birds-arent-real",
+  "wet-paint",
+  "long-afternoon-pool-bar",
   "hedge-witch-tea-hour",
-  "vivarium-wing-tiny-residents",
-  "temporal-coffee-shop",
-  "moon-picnic",
+  "how-to-train-your-wagon",
+  "infinite-library",
+  "it-was-cheese-all-along",
 ];
 
 /**
- * Player-facing starter deck used when onboarding finishes. It is deliberately
- * the minimum legal deck size so shift one starts from a small, readable room
- * set before the player has context for full Date Book editing.
+ * Player-facing starter deck used when onboarding finishes. Hand-picked to
+ * span flow types (conversation / activity / set_piece) and tone axes
+ * (grounded, absurd-funny, cozy-haunted, cosmic-comedic) so the first shift
+ * never looks like an all-chore board or an all-spectacle one. Sits well under
+ * STARTER_BUDGET_CAP and is sized at DECK_SIZE_MIN so onboarding hands the
+ * player the smallest legal deck to start.
  */
-export const STARTER_DECK_IDS: readonly string[] = STARTER_CATALOG_IDS.slice(0, DECK_SIZE_MIN);
+export const STARTER_DECK_IDS: readonly string[] = [
+  "park-loop-with-a-dog",
+  "diner-eleven-pm",
+  "tap-water",
+  "build-a-bear-empty-mall",
+  "not-the-bees",
+  "it-was-cheese-all-along",
+];
 
 /**
  * Deterministic fallback used when no player-drafted deck exists yet (pre-onboarding
@@ -356,14 +371,19 @@ export type CatalogUnlock = {
 };
 
 const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
-  // Starter pool is STARTER_CATALOG_IDS (above). Allocate the remainder to
-  // closure and shift gates.
+  // Starter pool is STARTER_CATALOG_IDS (above). Allocate the remainder across
+  // closure and shift gates, leaning the heavier intimacy/grief/pressure rooms
+  // toward later tiers.
   const closureOne: string[] = [
     "memory-course-dinner",
     "soft-launch-photo-wall",
     "cousins-wedding-plus-one",
     "phantom-doorbell-suite",
     "underworld-department-mixer",
+    "midnight-notary-two-clean-promises",
+    "temporal-coffee-shop",
+    "hotel-bar-last-call",
+    "listening-booth-after-close",
   ];
   const closureTwo: string[] = [
     "museum-exhibit-mixup",
@@ -371,6 +391,10 @@ const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
     "impossible-lost-and-found",
     "mess-hall-auriga",
     "dinosaur-bbq-all-you-can-eat",
+    "moonglass-kiln-after-hours",
+    "cable-car-across-biomes",
+    "hawker-floor-six-branches",
+    "all-hat",
   ];
   const closureThree: string[] = [
     "pilgrimage-mercy-spine",
@@ -378,6 +402,10 @@ const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
     "olympus-bottomless-brunch",
     "world-sim-operator-booth",
     "hephaestus-forge",
+    "drive-in-last-reel",
+    "vivarium-wing-tiny-residents",
+    "dim-sum-and-then-some",
+    "rook-to-e4",
   ];
   const shift10: string[] = [
     "cloud-castle-mini-golf",
@@ -386,6 +414,10 @@ const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
     "capital-ship-war-dinner",
     "colosseum-box-four",
     "aquarium-of-cryptids",
+    "chicken-jockey",
+    "throwing-the-match",
+    "pulse-check",
+    "bring-your-own-boo",
   ];
   const shift20: string[] = [
     "bank-heist-1920s-escape-room",
@@ -394,6 +426,9 @@ const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
     "picnic-on-sleeping-giant",
     "picnic-on-bifrost",
     "aurora-line-private-compartment",
+    "moon-picnic",
+    "a-star-is-born",
+    "soul-cycle",
   ];
 
   return {

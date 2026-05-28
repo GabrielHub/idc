@@ -1,5 +1,6 @@
 import { DECK_SIZE_MAX, type DateScenario, type GameSave } from "../../domain/game";
 import { canAddToDeck } from "../../services/budget";
+import { AuraButton } from "../aura-button";
 import { CathedralDetailOverlay, type CathedralMode } from "./cathedral";
 
 export function CathedralScenarioDetail({
@@ -88,8 +89,12 @@ function buildDetail({
     return {
       eyebrow: "// deck slot",
       cta: (
-        <button
-          type="button"
+        <AuraButton
+          tooltip={
+            dropDisabled
+              ? "Deck edits are locked while Cupid is working"
+              : `Drop card and refund ${effective}`
+          }
           onClick={() => {
             onRemoveDeckCard(scenario.id);
             onClose();
@@ -98,7 +103,7 @@ function buildDetail({
           className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-5 py-2 font-display text-label disabled:opacity-55"
         >
           Drop card · refund {effective}
-        </button>
+        </AuraButton>
       ),
       note: bookingLocked ? "booking active · edits locked until the date resolves" : undefined,
       effectiveCost: effective,
@@ -125,8 +130,8 @@ function buildDetail({
   return {
     eyebrow: "// library card",
     cta: (
-      <button
-        type="button"
+      <AuraButton
+        tooltip={reason ?? `Add to deck and spend ${effective}`}
         onClick={() => {
           onAddDeckCard(scenario.id);
           onClose();
@@ -135,7 +140,7 @@ function buildDetail({
         className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-5 py-2 font-display text-label disabled:opacity-55"
       >
         Add to deck · spend {effective}
-      </button>
+      </AuraButton>
     ),
     note: reason,
     effectiveCost: effective,

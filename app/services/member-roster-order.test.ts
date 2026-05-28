@@ -20,14 +20,15 @@ describe("member roster order", () => {
   it("puts a varied first screen on onboarding", () => {
     const orderedIds = sortMembersByCuratedRosterOrder(starterMembers).map((member) => member.id);
 
-    expect(orderedIds.slice(0, 7)).toEqual([
+    expect(orderedIds.slice(0, 8)).toEqual([
       "jenna-pike",
       "vhool",
       "sienna-bae",
-      "kade-sumner",
       "mr-whiskers",
-      "opal-sunday",
-      "venus",
+      "morrigan",
+      "aldric-vale-marsh",
+      "five-flower",
+      "anansi",
     ]);
   });
 

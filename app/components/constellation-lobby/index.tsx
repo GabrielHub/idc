@@ -41,6 +41,10 @@ import { useLobbyReselect } from "./use-lobby-reselect";
 import { useLobbyState } from "./lobby-reducer";
 import { deriveRosterFold } from "./roster-fold";
 import { useRosterKeyNavigation } from "./use-roster-key-navigation";
+import { useStarOpenHandlers } from "./use-star-open-handlers";
+import { useStarQuickActions } from "./use-star-quick-actions";
+import { useStarSelectionHandlers } from "./use-star-selection-handlers";
+import { usePartnerRosterSwap } from "./use-partner-roster-swap";
 import { deriveShiftFilingState } from "./shift-filing-state";
 import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
@@ -92,6 +96,7 @@ export function ConstellationLobby({
   onAddFocus,
   onRemoveFocus,
   onReselectFocus,
+  onSwapShiftPartner,
   chromeSlot,
   onDeckOverBudgetBlocked,
   disableScrollLayerNav = false,
@@ -222,6 +227,7 @@ export function ConstellationLobby({
     reselectBaseline,
     enterReselect,
     requestReselectWithCandidate,
+    requestReselectDroppingFocus,
     cancelReselect,
     toggleReselectMember,
     confirmReselect,
@@ -517,6 +523,17 @@ export function ConstellationLobby({
     dispatch({ type: "cancelPair" });
   }, [activeBooking, dispatch, partnerId, eligiblePartnerIds]);
 
+  const { activePartnerSwapSourceId, startPartnerSwap, swapInPartner } = usePartnerRosterSwap({
+    activeBooking,
+    dispatch,
+    eligiblePartnerIds,
+    layerNavigationMode,
+    onSwapShiftPartner,
+    setActiveStarId,
+    setRosterSubview,
+    shift,
+  });
+
   // Fire the manager-quip "deck over budget" trigger on the false→true
   // transition. Tracks the previous value via ref so the dispatch happens
   // exactly once per crossing and doesn't refire on unrelated re-renders.
@@ -556,72 +573,49 @@ export function ConstellationLobby({
     onActiveStarChange: setActiveStarId,
   });
 
-  // Click handlers wired into Scene. In browse, click morphs the star into
-  // its `HoverDetailCard`; the card's buttons drive focus/partner selection
-  // and case-file zoom.
-  const handleStarClick = useCallback(
-    (star: StarMark) => {
-      // Archive mode: clicking a star isolates that member — camera centers
-      // on them via computeArchiveCameraTarget, incident edges/partners stay
-      // bright, the rest of the field dims. Same-star click clears so the
-      // pulled-back idle view returns.
-      if (viewMode === "archive") {
-        setActiveStarId(null);
-        setArchiveSelection((current) =>
-          current?.kind === "member" && current.memberId === star.member.id
-            ? null
-            : { kind: "member", memberId: star.member.id },
-        );
-        return;
-      }
-      setActiveStarId((prev) => (prev === star.member.id ? null : star.member.id));
+  const { handleStarClick, handleStarDoubleClick, openCaseAndDismiss } = useStarOpenHandlers({
+    viewMode,
+    setActiveStarId,
+    setArchiveSelection,
+    setOpenCaseMemberId,
+  });
+  const { handleMakeFocus, handleMakeLead, handleMakePartner } = useStarSelectionHandlers({
+    dispatch,
+    focusId,
+    onAddFocus,
+    setActiveStarId,
+  });
+  const { quickActionsForStar } = useStarQuickActions({
+    viewMode,
+    openCaseAndDismiss,
+    selectionPolicy: {
+      focusId,
+      partnerId,
+      focusedSet,
+      eligiblePartnerIds,
+      focusStep,
+      partnerStep,
+      onClearFocus: handleClearFocus,
+      onClearPartner: handleClearPartner,
+      onMakeLead: handleMakeLead,
+      onMakePartner: handleMakePartner,
     },
-    [viewMode],
-  );
-
-  // Double-click is a power-user shortcut that skips the card and opens the
-  // full case-file overlay directly.
-  const handleStarDoubleClick = useCallback((star: StarMark) => {
-    setActiveStarId(null);
-    setOpenCaseMemberId(star.member.id);
-  }, []);
-
-  // Opening the case file from anywhere also dismisses the inline card so the
-  // two layers don't fight for attention.
-  const openCaseAndDismiss = useCallback((memberId: string) => {
-    setActiveStarId(null);
-    setOpenCaseMemberId(memberId);
-  }, []);
-
-  const handleMakeLead = useCallback(
-    (memberId: string) => {
-      dispatch({ type: "selectFocus", memberId });
-      setActiveStarId(null);
+    swapPolicy: {
+      shift,
+      activeBooking,
+      activePartnerSwapSourceId,
+      focusedSet,
+      eligiblePartnerIds,
+      offTonightIds,
+      followUpPartnerIds,
+      unavailabilityReasonById,
+      onReselectFocus,
+      onSwapShiftPartner,
+      requestReselectDroppingFocus,
+      startPartnerSwap,
+      swapInPartner,
     },
-    [dispatch],
-  );
-  const handleMakePartner = useCallback(
-    (memberId: string) => {
-      dispatch({ type: "selectPartner", memberId });
-      setActiveStarId(null);
-    },
-    [dispatch],
-  );
-  const handleMakeFocus = useMemo(
-    () =>
-      onAddFocus === undefined
-        ? undefined
-        : (memberId: string) => {
-            onAddFocus(memberId);
-            // Set this member as the lead only if there's no current lead —
-            // mirrors the previous `setFocusId((current) => current ?? id)`
-            // pattern that preserved an existing pick when the player added
-            // more focused members.
-            if (focusId === null) dispatch({ type: "selectFocus", memberId });
-            setActiveStarId(null);
-          },
-    [dispatch, focusId, onAddFocus],
-  );
+  });
   const hoverCardContext: HoverCardContext = {
     save,
     focusedSet,
@@ -794,6 +788,7 @@ export function ConstellationLobby({
         starClickHandlers={{
           onStarClick: handleStarClick,
           onStarDoubleClick: handleStarDoubleClick,
+          quickActionsForStar,
           eligiblePartnerIds,
           filterMatchedIds,
           onClearFocus: activeBooking === null ? handleClearFocus : undefined,

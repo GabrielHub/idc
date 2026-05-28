@@ -24,6 +24,16 @@ import { createSeedGameSave } from "./game-seed";
 import { computeEffectiveCosts } from "./budget";
 
 describe("deck service", () => {
+  it("STARTER_DECK_IDS is a subset of STARTER_CATALOG_IDS", () => {
+    // The starter deck used to derive from the catalog via `.slice(0, DECK_SIZE_MIN)`,
+    // which kept the invariant trivially. Now that the deck is hand-picked for
+    // tone variety, lock the subset relationship so the deck can't drift into
+    // an unreachable scenario when the catalog is reshuffled.
+    const catalog = new Set(STARTER_CATALOG_IDS);
+    const orphans = STARTER_DECK_IDS.filter((id) => !catalog.has(id));
+    expect(orphans).toEqual([]);
+  });
+
   it("createStarterScenarioDeck installs the minimum legal starter deck", () => {
     const deck = createStarterScenarioDeck(starterScenarios);
     const effectiveCosts = computeEffectiveCosts(starterScenarios, []);

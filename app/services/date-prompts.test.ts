@@ -133,7 +133,7 @@ describe("date prompt assembly", () => {
       "You signed up for Cupid, a dating app. The platform crosses dimensions:",
     );
     expect(ownerPacket.prompt).toContain(
-      "Your Cupid dating manager set this date up: she paired you with Vhool, and Cupid picked the venue and the time.",
+      "Your Cupid dating manager set this date up: they paired you with Vhool, and Cupid picked the venue and the time.",
     );
     expect(ownerPacket.prompt).toContain("Neither of you chose this place or each other.");
     expect(ownerPacket.prompt).toContain(
@@ -150,8 +150,11 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("The newest partner move outranks room analysis.");
     expect(ownerPacket.prompt).toContain("Finish the conversational move inside this line.");
     expect(ownerPacket.prompt).toContain("Stay inside the current scene inventory.");
-    expect(ownerPacket.prompt).toContain("Warmth is not a verdict on the partner's line.");
-    expect(ownerPacket.prompt).toContain("do not mirror that shape");
+    expect(ownerPacket.prompt).toContain(
+      "Your turn is the next move in a conversation already in motion.",
+    );
+    expect(ownerPacket.prompt).toContain("The line lives inside the exchange");
+    expect(ownerPacket.prompt).toContain("Warmth shows in the specifics you reach for");
     expect(ownerPacket.prompt).toContain("Use names and profile facts as social context");
     expect(ownerPacket.prompt).toContain("Names are for address, not material");
     expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");

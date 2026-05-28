@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 
+import { AuraButton } from "./aura-button";
 import type { DiagnosticsSnapshot } from "./settings-diagnostics";
 
 export function DiagnosticsBlock({
@@ -24,8 +25,11 @@ export function DiagnosticsBlock({
 
   return (
     <div className="px-1 py-1.5">
-      <button
-        type="button"
+      <AuraButton
+        tooltip={isExpanded ? "Collapse diagnostics" : "Expand diagnostics"}
+        tooltipPlacement="left"
+        tooltipAlign="block"
+        tooltipClassName="block w-full"
         role="menuitem"
         data-sfx="menu"
         onClick={onToggle}
@@ -34,7 +38,7 @@ export function DiagnosticsBlock({
       >
         <span>Diagnostics</span>
         <span className="text-aura-faint">{isExpanded ? "−" : "+"}</span>
-      </button>
+      </AuraButton>
       {isExpanded && diagnostics !== null ? (
         <div className="mt-1 rounded-chip border border-aura-hairline bg-white/55 p-2.5">
           <dl className="space-y-1 font-mono text-micro uppercase tracking-[0.16em] text-aura-muted">
@@ -98,14 +102,17 @@ export function DiagnosticsBlock({
           >
             os :: <span className="text-aura-ink">{diagnostics.os}</span>
           </p>
-          <button
-            type="button"
+          <AuraButton
+            tooltip={isCopied ? "Diagnostics copied" : "Copy diagnostic blob"}
+            tooltipPlacement="left"
+            tooltipAlign="block"
+            tooltipClassName="mt-2 block w-full"
             data-sfx="menu"
             onClick={onCopy}
-            className="mt-2 block w-full cursor-pointer rounded-chip bg-aura-ink px-3 py-1.5 text-center font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-aura-rose"
+            className="block w-full cursor-pointer rounded-chip bg-aura-ink px-3 py-1.5 text-center font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-aura-rose"
           >
             {isCopied ? "Copied" : "Copy diagnostic blob"}
-          </button>
+          </AuraButton>
         </div>
       ) : null}
     </div>

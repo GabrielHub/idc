@@ -26,6 +26,7 @@ import {
   rosterClusterPosition,
   shouldUsePartnerRingLayout,
   sizeForStar3D,
+  sizingRoleForStar,
   starHitRadiusFloorForCanvasScale,
   starWorldPosition,
   visibleWorldSizeAtDepth,
@@ -583,6 +584,13 @@ describe("flythroughMemberSlabActivity", () => {
     );
   });
 
+  it("slightly reduces active roster scale as the highlighted cohort grows", () => {
+    const smallRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 8);
+    const largeRoster = flythroughMemberSlabActivity(1, 2, "off_tonight", "off_tonight", 20);
+    expect(largeRoster.scaleMultiplier).toBeLessThan(smallRoster.scaleMultiplier);
+    expect(largeRoster.scaleMultiplier).toBeGreaterThan(2);
+  });
+
   it("crushes non-lead intensity on layer 1 so leads pop unambiguously", () => {
     const lead = flythroughMemberSlabActivity(1, 1, "eligible", "eligibles");
     const offCohort = flythroughMemberSlabActivity(1, 1, "off_tonight", "eligibles");
@@ -601,6 +609,44 @@ describe("flythroughMemberSlabActivity", () => {
     expect(layer0.intensityMultiplier).toBeLessThan(0.5);
     expect(layer1.intensityMultiplier).toBeLessThan(0.5);
     expect(layer0).toEqual(layer1);
+  });
+});
+
+describe("sizingRoleForStar", () => {
+  it("normalizes active eligible roster leads to eligible geometry", () => {
+    expect(
+      sizingRoleForStar({
+        role: "dim",
+        flythroughLayer: 1,
+        currentLayer: 1,
+        cohort: "eligible",
+        rosterSubview: "eligibles",
+      }),
+    ).toBe("eligible");
+  });
+
+  it("normalizes active off-tonight roster leads to the shared roster geometry", () => {
+    expect(
+      sizingRoleForStar({
+        role: "ineligible_off_shift",
+        flythroughLayer: 1,
+        currentLayer: 2,
+        cohort: "off_tonight",
+        rosterSubview: "off_tonight",
+      }),
+    ).toBe("eligible");
+  });
+
+  it("keeps non-lead roster stars on their semantic geometry", () => {
+    expect(
+      sizingRoleForStar({
+        role: "ineligible_off_shift",
+        flythroughLayer: 1,
+        currentLayer: 1,
+        cohort: "off_tonight",
+        rosterSubview: "eligibles",
+      }),
+    ).toBe("ineligible_off_shift");
   });
 });
 
@@ -650,6 +696,19 @@ describe("rosterClusterPosition", () => {
     const maxY = Math.max(...ys.map(Math.abs));
     expect(maxX).toBeLessThanOrEqual(6.5);
     expect(maxY).toBeLessThanOrEqual(3.5);
+  });
+
+  it("uses a wider shallow formation for a 20-member off-duty cohort", () => {
+    const positions = Array.from({ length: 20 }, (_, i) => rosterClusterPosition(i, 20));
+    const rows = new Set(positions.map((p) => p.y));
+    expect(rows.size).toBe(3);
+  });
+
+  it("balances row counts so large cohorts do not stack into rigid columns", () => {
+    const positions = Array.from({ length: 20 }, (_, i) => rosterClusterPosition(i, 20));
+    const topRowLeft = positions[0]!.x;
+    const middleRowLeft = positions[7]!.x;
+    expect(middleRowLeft).toBeGreaterThan(topRowLeft);
   });
 
   it("accepts responsive bounds for narrow canvases", () => {

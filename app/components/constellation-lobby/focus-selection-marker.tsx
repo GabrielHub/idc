@@ -2,6 +2,7 @@ import { Html } from "@react-three/drei";
 import type { MouseEvent } from "react";
 
 import type { Member } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 
 export function FocusSelectionMarker({
   member,
@@ -27,13 +28,12 @@ export function FocusSelectionMarker({
       >
         <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" />
         <span>Focus · {member.firstName}</span>
-        <button
-          type="button"
+        <AuraButton
+          tooltip="Drop focus selection"
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             event.stopPropagation();
             onClearFocus();
           }}
-          aria-label="Drop focus selection"
           className="grid size-5 cursor-pointer place-items-center rounded-full text-white/85 transition hover:bg-white/15 hover:text-aura-paper"
         >
           <svg viewBox="0 0 16 16" className="size-2.5" fill="none" aria-hidden>
@@ -44,7 +44,7 @@ export function FocusSelectionMarker({
               strokeLinecap="round"
             />
           </svg>
-        </button>
+        </AuraButton>
       </div>
     </Html>
   );

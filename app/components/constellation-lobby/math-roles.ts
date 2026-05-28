@@ -43,6 +43,7 @@ export function flythroughMemberSlabActivity(
   currentLayer: FlythroughLayer,
   cohort?: RosterCohort,
   rosterSubview: RosterSubview = "eligibles",
+  activeLeadCount = 0,
 ): { intensityMultiplier: number; scaleMultiplier: number } {
   if (currentLayer === SCENARIO_FLYTHROUGH_LAYER) {
     // Cathedral layer — stars vanish entirely so the door array reads as
@@ -73,13 +74,50 @@ export function flythroughMemberSlabActivity(
     // enough to keep the constellation feel, but dim enough that they don't
     // compete with the cluster for attention.
     const leads = rosterSubview === "eligibles" ? cohort === "eligible" : cohort === "off_tonight";
-    if (leads) return { intensityMultiplier: 1.1, scaleMultiplier: 2.6 };
+    if (leads)
+      return {
+        intensityMultiplier: 1.1,
+        scaleMultiplier: rosterLeadScaleMultiplier(activeLeadCount),
+      };
     if (cohort === "other_ineligible") {
       return { intensityMultiplier: 0.12, scaleMultiplier: 0.85 };
     }
     return { intensityMultiplier: 0.18, scaleMultiplier: 1.0 };
   }
   return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
+}
+
+export function sizingRoleForStar({
+  role,
+  flythroughLayer,
+  currentLayer,
+  cohort,
+  rosterSubview = "eligibles",
+}: {
+  role: StarRole;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  currentLayer: FlythroughLayer | undefined;
+  cohort: RosterCohort | undefined;
+  rosterSubview?: RosterSubview;
+}): StarRole {
+  if (
+    flythroughLayer !== 1 ||
+    currentLayer === undefined ||
+    !isRosterFlythroughLayer(currentLayer)
+  ) {
+    return role;
+  }
+  const activeLead =
+    rosterSubview === "eligibles" ? cohort === "eligible" : cohort === "off_tonight";
+  return activeLead ? "eligible" : role;
+}
+
+function rosterLeadScaleMultiplier(activeLeadCount: number): number {
+  if (activeLeadCount <= 12) return 2.6;
+  if (activeLeadCount <= 18) return 2.45;
+  if (activeLeadCount <= 24) return 2.25;
+  if (activeLeadCount <= 32) return 2;
+  return 1.8;
 }
 
 export function advanceFlythroughLayer(

@@ -55,6 +55,9 @@ export function LayerIndicator({
           const label = FLYTHROUGH_LAYER_LABELS[layer];
           const disabledReason = layerDisabledReason(layer, navigationMode);
           const disabled = disabledReason !== undefined;
+          const ariaLabel = disabled
+            ? `Layer ${index + 1}: ${label} locked. ${disabledReason}`
+            : `Jump to layer ${index + 1}: ${label}`;
           return (
             <button
               key={layer}
@@ -62,12 +65,7 @@ export function LayerIndicator({
               type="button"
               onClick={() => onLayerSelect(layer)}
               disabled={disabled}
-              title={disabledReason}
-              aria-label={
-                disabled
-                  ? `Layer ${index + 1}: ${label} locked. ${disabledReason}`
-                  : `Jump to layer ${index + 1}: ${label}`
-              }
+              aria-label={ariaLabel}
               className="aura-liquid-glass flex cursor-pointer items-center rounded-full px-2 py-2 disabled:cursor-not-allowed disabled:opacity-45"
             >
               <span

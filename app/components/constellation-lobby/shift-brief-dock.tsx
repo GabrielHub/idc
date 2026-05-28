@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
+import { AuraButton } from "../aura-button";
+import { AuraTooltip } from "../aura-tooltip";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 
 export type ShiftBriefStatus = "met" | "open" | "alert";
@@ -65,11 +67,12 @@ export function ShiftBriefDock({ data }: { data: ShiftBriefData }) {
       }}
       className="pointer-events-auto w-fit overflow-hidden aura-liquid-glass aura-liquid-glass-hover"
     >
-      <button
-        type="button"
+      <AuraButton
+        tooltip={expanded ? "Collapse shift brief" : "Expand shift brief"}
+        tooltipAlign="block"
+        tooltipClassName="block w-full"
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
-        aria-label={expanded ? "Collapse shift brief" : "Expand shift brief"}
         className="flex w-full cursor-pointer items-center gap-2 px-4 py-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper"
       >
         {hasAlert && !expanded ? (
@@ -77,7 +80,7 @@ export function ShiftBriefDock({ data }: { data: ShiftBriefData }) {
         ) : null}
         <span className="flex-1 text-left text-white/55">shift brief</span>
         <ChevronGlyph open={expanded} />
-      </button>
+      </AuraButton>
       <AnimatePresence initial={false}>
         {expanded ? (
           <motion.div
@@ -113,11 +116,11 @@ function SectionEyebrow({
 }: {
   label: string;
   tooltip: string;
-  trailing?: React.ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2">
-      <BriefHint title={tooltip} className="items-center gap-1">
+      <BriefHint label={tooltip} className="items-center gap-1">
         <span className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
           {label}
         </span>
@@ -183,7 +186,7 @@ function GoalsSection({ goals }: { goals: ShiftBriefData["goals"] }) {
 function GoalRow({ item }: { item: ShiftBriefGoalItem }) {
   return (
     <li>
-      <BriefHint title={item.description} className="w-full">
+      <BriefHint label={item.description} className="w-full">
         <span className="flex w-full items-start gap-2.5">
           <StatusDot status={item.status} />
           <span className="min-w-0 flex-1 leading-snug">
@@ -222,7 +225,7 @@ function GateRow({
 }) {
   return (
     <li>
-      <BriefHint title={tooltip} className="w-full">
+      <BriefHint label={tooltip} className="w-full">
         <span className="flex w-full items-center gap-2.5">
           <StatusDot status={gate.status} compact />
           <span className="text-label text-white/70">{label}</span>
@@ -296,17 +299,17 @@ function InfoGlyph() {
 }
 
 function BriefHint({
-  title,
+  label,
   children,
   className = "",
 }: {
-  title: string;
-  children: React.ReactNode;
+  label: ReactNode;
+  children: ReactNode;
   className?: string;
 }) {
   return (
-    <span title={title} className={`inline-flex cursor-help ${className}`}>
+    <AuraTooltip label={label} placement="right" className={`cursor-help ${className}`}>
       {children}
-    </span>
+    </AuraTooltip>
   );
 }

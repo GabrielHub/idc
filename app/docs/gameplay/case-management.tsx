@@ -89,6 +89,14 @@ export const sections: DocSectionEntry[] = [
           cooldown, closed file, cancelled membership, or off shift.
         </P>
         <P>
+          The active shift allows one manual partner-roster swap before a pair is committed. The
+          swap replaces one non-reserved member from <DocCode>availablePartnerMemberIds</DocCode>{" "}
+          with one active <Strong>Off Tonight</Strong> member whose only blocker is{" "}
+          <DocCode>off_shift</DocCode>, then records the audit on{" "}
+          <DocCode>shift.partnerSwap</DocCode>. Cooldown, focus, closed, quit, closed-lane,
+          already-available, and follow-up-reserved members cannot be used for that swap.
+        </P>
+        <P>
           Follow-up continuity gets a reserved path through that logistics board. When a focused
           case has a recent date with the follow-up filed as <Strong>Pursue</Strong>, that partner
           is pinned onto the next shift as a follow-up reservation that bypasses cooldown, so the

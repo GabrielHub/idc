@@ -10,6 +10,7 @@ import {
   pairPartnerPosition,
   resolveClusterPosition,
   roleForStar,
+  sizingRoleForStar,
   type RosterClusterBounds,
 } from "./math";
 import { buildFocusMarkerOverlay, StarSprite } from "./star-sprite";
@@ -133,7 +134,15 @@ export function StarField({
                 currentLayer,
                 cohort,
                 rosterSubview ?? "eligibles",
+                rosterLeadOrder.length,
               );
+        const sizingRole = sizingRoleForStar({
+          role,
+          flythroughLayer,
+          currentLayer,
+          cohort,
+          rosterSubview,
+        });
         const lensFilteredOut =
           starClickHandlers?.filterMatchedIds !== undefined &&
           !starClickHandlers.filterMatchedIds.has(star.member.id);
@@ -159,6 +168,7 @@ export function StarField({
             key={star.member.id}
             star={star}
             role={role}
+            sizingRole={sizingRole}
             state={state}
             overridePos={overridePos}
             layerZOffset={inArchive ? 0 : computeLayerZOffset(role, state)}
@@ -187,6 +197,13 @@ export function StarField({
                 );
               },
             })}
+            quickActions={starClickHandlers?.quickActionsForStar?.(star)}
+            onQuickActionsHoverChange={(hovered) => {
+              onHudOverlayHoveredChange(hovered);
+              onHoveredIdChange((current) =>
+                hovered ? star.member.id : current === star.member.id ? null : current,
+              );
+            }}
             onHoverEnter={() => onHoveredIdChange(star.member.id)}
             onHoverLeave={() => onHoveredIdChange(null)}
             onClick={

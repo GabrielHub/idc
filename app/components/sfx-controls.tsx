@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ChangeEvent } from "react";
 
+import { AuraButton } from "./aura-button";
 import { useSfx } from "./sfx-provider";
 
 export type SfxControlsVariant = "menu" | "panel";
@@ -70,8 +71,11 @@ export function SfxControls({
             className={`mt-2 ${volumeClass} ${isEnabled ? "opacity-100" : "opacity-50"}`}
           />
         </div>
-        <button
-          type="button"
+        <AuraButton
+          tooltip={isEnabled ? "Mute audio" : "Unmute audio"}
+          tooltipPlacement="left"
+          tooltipAlign="block"
+          tooltipClassName="block w-full"
           role="menuitemcheckbox"
           aria-checked={isEnabled}
           data-sfx="toggle"
@@ -82,7 +86,7 @@ export function SfxControls({
           <span className={isEnabled ? "text-aura-rose" : "text-aura-faint"}>
             {isEnabled ? "on" : "off"}
           </span>
-        </button>
+        </AuraButton>
       </div>
     );
   }
@@ -111,8 +115,8 @@ export function SfxControls({
             className={`mt-2 ${volumeClass} ${isEnabled ? "opacity-100" : "opacity-50"}`}
           />
         </div>
-        <button
-          type="button"
+        <AuraButton
+          tooltip={isEnabled ? "Mute audio" : "Unmute audio"}
           role="switch"
           aria-checked={isEnabled}
           data-sfx="toggle"
@@ -128,7 +132,7 @@ export function SfxControls({
             className={`size-2 rounded-full ${isEnabled ? "bg-aura-rose" : "bg-aura-faint"}`}
           />
           {isEnabled ? "Mute" : "Unmute"}
-        </button>
+        </AuraButton>
       </div>
     </div>
   );

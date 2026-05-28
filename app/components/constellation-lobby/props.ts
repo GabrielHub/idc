@@ -52,6 +52,10 @@ export type ConstellationLobbyProps = {
   onAddFocus?: (memberId: string) => void;
   onRemoveFocus?: (memberId: string) => void;
   onReselectFocus?: (nextFocusIds: string[]) => void;
+  onSwapShiftPartner?: (input: {
+    outgoingPartnerMemberId: string;
+    incomingPartnerMemberId: string;
+  }) => Promise<boolean>;
   /**
    * Render prop so the lobby can request a contextual back handler — e.g. the
    * reselect case manager swaps the punch-out action for "close this screen"

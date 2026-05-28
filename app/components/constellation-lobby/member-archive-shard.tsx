@@ -13,9 +13,10 @@
 import { motion } from "motion/react";
 
 import type { Member } from "../../domain/game";
-import { avatarSrcsetFor } from "./math";
 import type { PairArchiveEdge } from "../../services/pair-archive-graph";
 import { describeRecency } from "../../services/pair-archive-graph";
+import { AuraButton } from "../aura-button";
+import { avatarSrcsetFor } from "./math";
 
 export type MemberArchiveShardProps = {
   focusMember: Member;
@@ -78,8 +79,11 @@ export function MemberArchiveShard({
             if (partner === undefined) return null;
             return (
               <li key={edge.pairId}>
-                <button
-                  type="button"
+                <AuraButton
+                  tooltip={`Open pair archive for ${partner.firstName}`}
+                  tooltipPlacement="right"
+                  tooltipAlign="block"
+                  tooltipClassName="block w-full"
                   onClick={() => onSelectPair(edge.pairId)}
                   className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-tile bg-white/[0.04] px-3 py-2 text-left hover:bg-white/[0.09] transition"
                 >
@@ -98,7 +102,7 @@ export function MemberArchiveShard({
                   >
                     open
                   </span>
-                </button>
+                </AuraButton>
               </li>
             );
           })}

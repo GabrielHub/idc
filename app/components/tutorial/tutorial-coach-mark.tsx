@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import type { ReactNode } from "react";
 
 import { clamp } from "../../services/utils";
+import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 import {
   TutorialManagerAvatarPeek,
@@ -156,19 +157,19 @@ export function TutorialCoachMark({
 
               <span className="ml-auto inline-flex shrink-0 items-center gap-3">
                 {onDismiss === undefined ? null : (
-                  <button
-                    type="button"
+                  <AuraButton
+                    tooltip={dismissLabel}
                     data-sfx="click"
                     onClick={onDismiss}
                     className={`shrink-0 cursor-pointer whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-[0.16em] transition hover:text-aura-rose ${toneClasses.dismiss}`}
                   >
                     {dismissLabel}
-                  </button>
+                  </AuraButton>
                 )}
 
                 {primaryLabel === undefined || onPrimary === undefined ? null : (
-                  <button
-                    type="button"
+                  <AuraButton
+                    tooltip={primaryLabel}
                     data-sfx="primary"
                     onClick={onPrimary}
                     className="group/cta relative shrink-0 cursor-pointer overflow-hidden whitespace-nowrap rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.16em] text-white shadow-cta transition"
@@ -178,7 +179,7 @@ export function TutorialCoachMark({
                       className="absolute inset-y-0 -left-8 w-8 -skew-x-[18deg] bg-white/35 transition duration-[650ms] group-hover/cta:translate-x-[150%]"
                     />
                     <span className="relative">{primaryLabel}</span>
-                  </button>
+                  </AuraButton>
                 )}
               </span>
             </footer>

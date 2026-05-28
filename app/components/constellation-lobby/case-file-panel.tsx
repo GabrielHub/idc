@@ -21,6 +21,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { GameSave, Member, PlayerKnowledgeRecord } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 import { caseFileNumber, StatusOverlay } from "../member-card-atoms";
 import { Portrait } from "../dashboard-atoms";
 import { MemberAuraLayer } from "../member-aura";
@@ -150,11 +151,12 @@ export function CaseFilePanel({
             <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#07041a]/24 to-transparent" />
           </div>
 
-          <button
-            type="button"
+          <AuraButton
+            tooltip="Close case file"
+            tooltipPlacement="left"
+            tooltipClassName="absolute right-5 top-5 z-30"
             onClick={onClose}
-            aria-label="Close case file"
-            className="aura-liquid-glass aura-liquid-glass-hover absolute right-5 top-5 z-30 grid size-10 cursor-pointer place-items-center rounded-full text-white/85 transition hover:text-aura-paper"
+            className="aura-liquid-glass aura-liquid-glass-hover grid size-10 cursor-pointer place-items-center rounded-full text-white/85 transition hover:text-aura-paper"
           >
             <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
               <path
@@ -164,7 +166,7 @@ export function CaseFilePanel({
                 strokeLinecap="round"
               />
             </svg>
-          </button>
+          </AuraButton>
 
           <aside className="relative z-10 hidden min-h-[680px] overflow-hidden md:block">
             {status === "active" ? (

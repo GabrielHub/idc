@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, useState } from "react";
 
 import type { Member, PortraitAsset, PortraitMood } from "../domain/game";
 import { pad2 } from "../services/utils";
+import { AuraTooltip } from "./aura-tooltip";
 import { readyPortraitPath, selectPortraitAssetCandidates } from "./date-presentation-signals";
 import type { SfxCue } from "./sfx-provider";
 
@@ -754,7 +755,7 @@ export function MenuButton({
     tone === "danger"
       ? "text-aura-muted hover:bg-aura-rose/10 hover:text-aura-rose"
       : "text-aura-muted hover:bg-white/55 hover:text-aura-ink";
-  return (
+  const button = (
     <button
       type="button"
       role={role}
@@ -766,6 +767,12 @@ export function MenuButton({
     >
       {children}
     </button>
+  );
+
+  return (
+    <AuraTooltip label={children} placement="left" align="block" className="block w-full">
+      {button}
+    </AuraTooltip>
   );
 }
 

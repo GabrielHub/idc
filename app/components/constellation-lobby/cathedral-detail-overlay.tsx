@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { DateScenario } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 import {
   SCENARIO_FLOW_BLURB,
   SCENARIO_FLOW_CATHEDRAL_TONE,
@@ -78,14 +79,13 @@ export function CathedralDetailOverlay({
                   {publicBrief.location}
                 </div>
               </div>
-              <button
-                type="button"
+              <AuraButton
+                tooltip="Close detail"
                 onClick={onClose}
-                aria-label="Close detail"
                 className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3 py-1.5 font-display text-label text-aura-paper"
               >
                 Close
-              </button>
+              </AuraButton>
             </div>
 
             <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ReadyClosurePair } from "../../services/closures";
 import { starterScenarios } from "../../fixtures/scenarios";
+import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 import { joinPairFirstNames } from "../notes-format";
 
@@ -110,11 +111,12 @@ export function ClosurePanel({
           aria-modal="true"
           aria-label={`Confirm closure for ${pairLabel}`}
         >
-          <button
-            type="button"
-            aria-label="Close closure panel"
+          <AuraButton
+            tooltip="Close closure panel"
+            tooltipAlign="block"
+            tooltipClassName="absolute inset-0"
             onClick={onClose}
-            className="absolute inset-0 cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
+            className="h-full w-full cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
           />
 
           <motion.section
@@ -214,14 +216,14 @@ export function ClosurePanel({
               >
                 Cancel
               </button>
-              <button
-                type="button"
+              <AuraButton
+                tooltip={confirmDisabled ? "Closure is not ready to file" : undefined}
                 onClick={confirmClosure}
                 disabled={confirmDisabled}
                 className="aura-liquid-cta cursor-pointer rounded-full px-5 py-2 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
               >
                 {isActionPending || isConfirming ? "Filing..." : "Confirm closure"}
-              </button>
+              </AuraButton>
             </footer>
           </motion.section>
         </motion.div>

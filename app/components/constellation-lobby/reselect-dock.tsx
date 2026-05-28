@@ -12,6 +12,7 @@ import { motion } from "motion/react";
 
 import { FOCUS_CASE_LIMIT } from "../../services/focus-cases";
 import type { Member } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 
 export type ReselectDockProps = {
   draftCount: number;
@@ -59,21 +60,23 @@ export function ReselectDock({
         ) : null}
         <Divider />
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <AuraButton
+            tooltip="Cancel reselect"
             onClick={onCancel}
             className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
           >
             Cancel
-          </button>
-          <button
-            type="button"
+          </AuraButton>
+          <AuraButton
+            tooltip={
+              canConfirm ? "Confirm reselect" : `Select ${FOCUS_CASE_LIMIT} focus cases to confirm`
+            }
             onClick={onConfirm}
             disabled={!canConfirm}
             className="cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 aura-liquid-cta rounded-full px-5 py-1.5 font-display text-label"
           >
             Confirm reselect
-          </button>
+          </AuraButton>
         </div>
       </div>
     </motion.div>

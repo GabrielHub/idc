@@ -33,12 +33,14 @@ export function AuraTooltip({
   delayMs = 120,
   children,
   align = "inline",
+  className = "",
 }: {
   label: ReactNode;
   placement?: Placement;
   delayMs?: number;
   children: ReactNode;
   align?: "inline" | "block";
+  className?: string;
 }) {
   const [visible, setVisible] = useState(false);
   const [position, setPosition] = useState<TooltipPosition | null>(null);
@@ -113,7 +115,7 @@ export function AuraTooltip({
     return () => window.removeEventListener("keydown", onKey);
   }, [visible]);
 
-  const wrapperClass = align === "block" ? "relative inline-block" : "relative inline-flex";
+  const wrapperClass = `${align === "block" ? "relative block" : "relative inline-flex"} ${className}`;
 
   return (
     <span

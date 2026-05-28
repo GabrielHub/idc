@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useState, type ReactNode, type Ref } from "react";
 
+import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 import {
   isRosterFlythroughLayer,
@@ -109,21 +110,20 @@ export function ContextualPillRail({
       <div ref={containerRef} className="pointer-events-none absolute right-6 top-5 z-30">
         <div className="pointer-events-auto flex flex-wrap items-start justify-end gap-2">
           {inArchive || !showDateBook ? null : (
-            <button
+            <AuraButton
               ref={dateBookPillRef}
-              type="button"
-              onClick={onToggleDateBook}
-              disabled={bookingLocked || dateBookDisabledReason !== undefined}
-              aria-label={
+              tooltip={
                 dateBookDisabledReason === undefined
-                  ? dateBookLabel
+                  ? undefined
                   : `${dateBookLabel} blocked: ${dateBookDisabledReason}`
               }
-              title={dateBookDisabledReason}
+              tooltipPlacement="bottom"
+              onClick={onToggleDateBook}
+              disabled={bookingLocked || dateBookDisabledReason !== undefined}
               className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${dateBookTone} rounded-full px-3.5 py-1.5 font-mono uppercase tracking-[0.18em] text-aura-paper text-micro disabled:cursor-not-allowed disabled:opacity-55`}
             >
               {dateBookLabel}
-            </button>
+            </AuraButton>
           )}
           {showRecords ? (
             <CollapsibleCapsule
@@ -135,25 +135,20 @@ export function ContextualPillRail({
               rows={recordRows}
             />
           ) : null}
-          <button
+          <AuraButton
             ref={fileShiftButtonRef}
-            type="button"
+            tooltip={
+              fileShiftBlockedReason === undefined
+                ? "File shift"
+                : `File shift blocked: ${fileShiftBlockedReason}`
+            }
+            tooltipPlacement="bottom"
             onClick={onCompleteShift}
             disabled={fileShiftBlockedReason !== undefined}
-            aria-label={
-              fileShiftBlockedReason === undefined
-                ? "File shift"
-                : `File shift blocked: ${fileShiftBlockedReason}`
-            }
-            title={
-              fileShiftBlockedReason === undefined
-                ? "File shift"
-                : `File shift blocked: ${fileShiftBlockedReason}`
-            }
             className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover aura-liquid-glass-amber grid size-9 place-items-center rounded-full text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
           >
             <FileShiftGlyph />
-          </button>
+          </AuraButton>
         </div>
       </div>
 
@@ -227,11 +222,13 @@ function CollapsibleCapsule({
         expanded ? "w-[200px]" : "w-fit"
       }`}
     >
-      <button
-        type="button"
+      <AuraButton
+        tooltip={expanded ? ariaCloseLabel : ariaOpenLabel}
+        tooltipPlacement="bottom"
+        tooltipAlign="block"
+        tooltipClassName="block w-full"
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
-        aria-label={expanded ? ariaCloseLabel : ariaOpenLabel}
         className={`flex w-full cursor-pointer items-center gap-2 font-mono text-micro uppercase tracking-[0.22em] text-aura-paper ${
           expanded ? "px-4 pt-2.5 pb-2" : "px-3.5 py-1.5"
         }`}
@@ -241,7 +238,7 @@ function CollapsibleCapsule({
         ) : null}
         <span className="flex-1 text-left">{label}</span>
         <ChevronGlyph open={expanded} />
-      </button>
+      </AuraButton>
       <AnimatePresence initial={false}>
         {expanded ? (
           <motion.div
@@ -320,16 +317,15 @@ function RoundIconButton({
 }) {
   const tone = active ? (activeSurface ?? "aura-liquid-glass-violet") : "";
   return (
-    <button
-      type="button"
+    <AuraButton
+      tooltip={label}
+      tooltipPlacement="bottom"
       onClick={onClick}
-      aria-label={label}
       aria-pressed={active}
-      title={label}
       className={`cursor-pointer aura-liquid-glass aura-liquid-glass-hover ${tone} grid size-9 place-items-center rounded-full text-aura-paper transition`}
     >
       {children}
-    </button>
+    </AuraButton>
   );
 }
 
@@ -395,32 +391,32 @@ function RosterSubviewToggle({
       aria-label="Roster subview"
       className="aura-liquid-glass rounded-full p-1 flex items-center gap-1"
     >
-      <button
-        type="button"
+      <AuraButton
+        tooltip="Show tonight's eligible partners"
+        tooltipPlacement="bottom"
         onClick={() => onChange("eligibles")}
-        title="Show tonight's eligible partners"
+        aria-pressed={subview === "eligibles"}
         className={`cursor-pointer rounded-full px-3 py-0.5 font-mono text-micro uppercase tracking-[0.18em] transition ${
           subview === "eligibles"
             ? "aura-liquid-glass-rose text-aura-paper"
             : "text-white/65 hover:text-aura-paper"
         }`}
-        aria-pressed={subview === "eligibles"}
       >
         Eligibles
-      </button>
-      <button
-        type="button"
+      </AuraButton>
+      <AuraButton
+        tooltip="Show members on rest tonight"
+        tooltipPlacement="bottom"
         onClick={() => onChange("off_tonight")}
-        title="Show members on rest tonight"
+        aria-pressed={subview === "off_tonight"}
         className={`cursor-pointer rounded-full px-3 py-0.5 font-mono text-micro uppercase tracking-[0.18em] transition ${
           subview === "off_tonight"
             ? "aura-liquid-glass-rose text-aura-paper"
             : "text-white/65 hover:text-aura-paper"
         }`}
-        aria-pressed={subview === "off_tonight"}
       >
         Off tonight
-      </button>
+      </AuraButton>
     </div>
   );
 }

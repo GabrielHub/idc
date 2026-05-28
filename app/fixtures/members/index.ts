@@ -17,6 +17,7 @@ import { decimusMariusTullio } from "./decimus-marius-tullio";
 import { derekHalsey } from "./derek-halsey";
 import { eleanorAsh } from "./eleanor-ash";
 import { epsy } from "./epsy";
+import { fiveFlower } from "./five-flower";
 import { fredStavropoulos } from "./fred-stavropoulos";
 import { gabrielTan } from "./gabriel-tan";
 import { gideonGlass } from "./gideon-glass";
@@ -33,6 +34,7 @@ import { meiSato } from "./mei-sato";
 import { meridianVale } from "./meridian-vale";
 import { miraPark } from "./mira-park";
 import { mjolnir } from "./mjolnir";
+import { morrigan } from "./morrigan";
 import { mrWhiskers } from "./mr-whiskers";
 import { naiaVelorae } from "./naia-velorae";
 import { nawalMarrash } from "./nawal-marrash";
@@ -54,7 +56,7 @@ import { vhool } from "./vhool";
 
 export const starterMembers = memberSchema
   .array()
-  .length(52)
+  .length(54)
   .parse([
     jennaPike,
     meridianVale,
@@ -108,6 +110,8 @@ export const starterMembers = memberSchema
     ruby,
     toastimusCroutonVance,
     daivenPatel,
+    fiveFlower,
+    morrigan,
   ]);
 
 export {
@@ -129,6 +133,7 @@ export {
   derekHalsey,
   eleanorAsh,
   epsy,
+  fiveFlower,
   fredStavropoulos,
   gabrielTan,
   gideonGlass,
@@ -145,6 +150,7 @@ export {
   meridianVale,
   miraPark,
   mjolnir,
+  morrigan,
   mrWhiskers,
   naiaVelorae,
   nawalMarrash,

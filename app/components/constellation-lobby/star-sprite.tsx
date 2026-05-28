@@ -1,4 +1,4 @@
-import { useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Billboard, Html } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
@@ -17,8 +17,16 @@ import {
 import { FocusSelectionMarker } from "./focus-selection-marker";
 import { isMemberActive } from "../../services/date-engine";
 import { riskZoneForMember } from "../../services/member-feedback";
+import { StarQuickActionRail } from "./star-quick-action-rail";
 import { featherAvatarShader } from "./textures";
-import type { LobbyState, StarFlythroughLayer, StarMark, StarRole, Vec3 } from "./types";
+import type {
+  LobbyState,
+  StarFlythroughLayer,
+  StarMark,
+  StarQuickAction,
+  StarRole,
+  Vec3,
+} from "./types";
 
 type StarOverlayMetrics = {
   avatarRadius: number;
@@ -57,6 +65,7 @@ export function buildFocusMarkerOverlay({
 export function StarSprite({
   star,
   role,
+  sizingRole = role,
   state,
   overridePos,
   layerZOffset,
@@ -74,6 +83,8 @@ export function StarSprite({
   canvasScale = 1,
   clusterPosition = null,
   renderOverlay,
+  quickActions,
+  onQuickActionsHoverChange,
   onHoverEnter,
   onHoverLeave,
   onClick,
@@ -81,6 +92,7 @@ export function StarSprite({
 }: {
   star: StarMark;
   role: StarRole;
+  sizingRole?: StarRole;
   state: LobbyState;
   overridePos: Vec3 | null;
   layerZOffset: number;
@@ -119,6 +131,8 @@ export function StarSprite({
    * Optional world-anchored HTML overlay rendered inside the billboard.
    */
   renderOverlay?: StarOverlayRenderer;
+  quickActions?: readonly StarQuickAction[];
+  onQuickActionsHoverChange: (hovered: boolean) => void;
   onHoverEnter: () => void;
   onHoverLeave: () => void;
   onClick?: (event: ThreeEvent<MouseEvent>) => void;
@@ -134,10 +148,25 @@ export function StarSprite({
   const avatarSubgroupRef = useRef<THREE.Group>(null);
   const avatarSubgroupScaleRef = useRef(0.38);
 
+  // Latched hover for the quick-action rail: the cursor briefly crosses an
+  // unhoverable gap between the 3D hit plane and the HTML buttons, so we keep
+  // the rail mounted for a beat after `hovered` flips false. Once the cursor
+  // reaches a button, its `onPointerEnter` re-asserts `hovered` and the timer
+  // is cleared.
+  const [quickActionsLatched, setQuickActionsLatched] = useState(false);
+  useEffect(() => {
+    if (hovered) {
+      setQuickActionsLatched(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setQuickActionsLatched(false), 180);
+    return () => window.clearTimeout(timer);
+  }, [hovered]);
+
   const natural = useMemo(() => starWorldPosition(star), [star]);
   const sizing = useMemo(
-    () => sizeForStar3D(star.tier, role, state, canvasScale),
-    [canvasScale, star.tier, role, state],
+    () => sizeForStar3D(star.tier, sizingRole, state, canvasScale),
+    [canvasScale, star.tier, sizingRole, state],
   );
   const riskTone: HaloRiskTone = useMemo(() => {
     if (!isMemberActive(star.member)) return "steady";
@@ -179,15 +208,15 @@ export function StarSprite({
   );
   const haloSize = useMemo(() => {
     const reach =
-      role === "focus" || role === "partner"
+      sizingRole === "focus" || sizingRole === "partner"
         ? 1.9
-        : role === "eligible"
+        : sizingRole === "eligible"
           ? 2.2
-          : role === "ineligible_cooling"
+          : sizingRole === "ineligible_cooling"
             ? 1.85
             : 1.95;
     return sizing.avatarRadius * reach;
-  }, [role, sizing.avatarRadius]);
+  }, [sizingRole, sizing.avatarRadius]);
 
   useFrame((s, delta) => {
     const t = s.clock.elapsedTime;
@@ -498,6 +527,20 @@ export function StarSprite({
             <span className="aura-liquid-glass aura-liquid-glass-ink inline-block -translate-x-1/2 -translate-y-1/2 rounded-pill px-3 py-1 font-display text-label leading-none text-aura-paper whitespace-nowrap shadow-cta">
               {star.member.firstName}
             </span>
+          </Html>
+        ) : null}
+        {quickActionsLatched &&
+        !cardOpen &&
+        quickActions !== undefined &&
+        quickActions.length > 0 ? (
+          <Html position={[0, 0, 0.16]} zIndexRange={[55, 0]} className="pointer-events-none">
+            <StarQuickActionRail
+              actions={quickActions}
+              onHoverChange={(nextHovered) => {
+                onQuickActionsHoverChange(nextHovered);
+                if (nextHovered) onHoverEnter();
+              }}
+            />
           </Html>
         ) : null}
         {renderOverlay?.({ avatarRadius: sizing.avatarRadius, haloSize })}

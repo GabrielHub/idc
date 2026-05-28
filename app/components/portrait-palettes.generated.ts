@@ -109,6 +109,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     to: "rgb(190, 223, 233)",
     accent: "rgb(216, 105, 150)",
   },
+  "five-flower": {
+    from: "rgb(234, 210, 185)",
+    via: "rgb(230, 219, 209)",
+    to: "rgb(228, 207, 195)",
+    accent: "rgb(221, 163, 100)",
+  },
   "fred-stavropoulos": {
     from: "rgb(238, 203, 180)",
     via: "rgb(242, 222, 196)",
@@ -204,6 +210,12 @@ export const PRECOMPUTED_PORTRAIT_PALETTES: Readonly<Record<string, PortraitPale
     via: "rgb(238, 217, 201)",
     to: "rgb(226, 212, 198)",
     accent: "rgb(222, 152, 100)",
+  },
+  morrigan: {
+    from: "rgb(225, 193, 213)",
+    via: "rgb(231, 216, 207)",
+    to: "rgb(226, 197, 226)",
+    accent: "rgb(204, 148, 117)",
   },
   "mr-whiskers": {
     from: "rgb(226, 209, 192)",

@@ -135,7 +135,9 @@ export const memberContrastExampleSchema = z.object({
   because: z.string().min(1).optional(),
 });
 
-const memberVoiceGuidanceSchema = z.string().min(1).max(360);
+export const MEMBER_VOICE_GUIDANCE_MAX_CHARS = 720;
+
+const memberVoiceGuidanceSchema = z.string().min(1).max(MEMBER_VOICE_GUIDANCE_MAX_CHARS);
 
 export const memberVoiceSchema = z.object({
   register: z.string().min(1),
@@ -855,6 +857,12 @@ export const shiftFollowUpReservationSchema = z.object({
   sourceDateSessionId: dateSessionIdSchema,
 });
 
+export const shiftPartnerSwapSchema = z.object({
+  outgoingPartnerMemberId: memberIdSchema,
+  incomingPartnerMemberId: memberIdSchema,
+  swappedAt: z.string().min(1),
+});
+
 export const activeDateBookingSchema = z.object({
   id: z.string().min(1),
   status: activeDateBookingStatusSchema,
@@ -924,6 +932,7 @@ export const shiftStateSchema = z.object({
   featuredMemberIds: z.array(memberIdSchema).default([]),
   availablePartnerMemberIds: z.array(memberIdSchema).default([]),
   followUpReservations: z.array(shiftFollowUpReservationSchema).default([]),
+  partnerSwap: shiftPartnerSwapSchema.optional(),
   drawnScenarioIds: z.array(scenarioIdSchema),
   companyGoalIds: z.array(goalIdSchema),
   memberRequestIds: z.array(z.string().min(1)),
@@ -1215,6 +1224,7 @@ export type ShiftRequestAskOutcome = z.infer<typeof shiftRequestAskOutcomeSchema
 export type ShiftReport = z.infer<typeof shiftReportSchema>;
 export type ShiftState = z.infer<typeof shiftStateSchema>;
 export type ShiftFollowUpReservation = z.infer<typeof shiftFollowUpReservationSchema>;
+export type ShiftPartnerSwap = z.infer<typeof shiftPartnerSwapSchema>;
 export type AiProvider = z.infer<typeof aiProviderSchema>;
 export type AiReasoningLevel = z.infer<typeof aiReasoningLevelSchema>;
 export type GameConfig = z.infer<typeof gameConfigSchema>;

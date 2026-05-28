@@ -24,6 +24,7 @@ const STANDEE_SOURCE_SCALE_BY_MEMBER_ID: Readonly<Partial<Record<string, Standee
   maeve: { className: "scale-[1.24]", value: 1.24 },
   "meridian-vale": { className: "scale-[0.96]", value: 0.96 },
   mjolnir: { className: "scale-[1.76]", value: 1.76 },
+  morrigan: { className: "scale-[1.03]", value: 1.03 },
   "mr-whiskers": { className: "scale-[1.26]", value: 1.26 },
   rostin: { className: "scale-[0.93]", value: 0.93 },
   ruby: { className: "scale-[1.1]", value: 1.1 },

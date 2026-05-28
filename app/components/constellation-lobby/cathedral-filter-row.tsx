@@ -1,3 +1,4 @@
+import { AuraButton } from "../aura-button";
 import type { RiskFilter, SortMode } from "./cathedral-types";
 
 const RISK_FILTER_OPTIONS: ReadonlyArray<{ value: RiskFilter; label: string }> = [
@@ -74,9 +75,10 @@ function FilterChipGroup<T extends string>({
       {options.map((option) => {
         const isActive = option.value === value;
         return (
-          <button
+          <AuraButton
             key={option.value}
-            type="button"
+            tooltip={`${label}: ${option.label}`}
+            tooltipPlacement="bottom"
             onClick={() => onChange(option.value)}
             aria-pressed={isActive}
             className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
@@ -86,7 +88,7 @@ function FilterChipGroup<T extends string>({
             }`}
           >
             {option.label}
-          </button>
+          </AuraButton>
         );
       })}
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 
+import { AuraButton } from "../aura-button";
 import { loadScenarioBackdropIds, scenarioBackdropPath } from "../scenario-backdrop";
 import {
   SCENARIO_FLOW_BLURB,
@@ -53,12 +54,14 @@ export function CathedralCard({
         entry.alreadyInDeck === true && !selected ? "opacity-80" : ""
       } ${hovered && !selected ? "ring-white/30" : ""}`}
     >
-      <button
-        type="button"
+      <AuraButton
+        tooltip={`${entry.scenario.title} - ${entry.scenario.venue}`}
+        tooltipPlacement="top"
+        tooltipAlign="block"
+        tooltipClassName="absolute inset-0 z-10"
         onClick={onSelect}
         disabled={!interactive}
-        aria-label={`${entry.scenario.title} - ${entry.scenario.venue}`}
-        className="absolute inset-0 z-10 cursor-pointer rounded-card border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 disabled:cursor-not-allowed"
+        className="h-full w-full cursor-pointer rounded-card border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 disabled:cursor-not-allowed"
       />
 
       <CardScenarioBackdrop
@@ -101,17 +104,16 @@ export function CathedralCard({
             ${entry.scenario.cost}
           </span>
           {interactive ? (
-            <button
-              type="button"
+            <AuraButton
+              tooltip={`Open ${entry.scenario.title} details`}
               onClick={(event) => {
                 event.stopPropagation();
                 onOpenDetail();
               }}
-              aria-label={`Open ${entry.scenario.title} details`}
               className="pointer-events-auto cursor-pointer rounded-full bg-white/15 p-1.5 text-aura-paper ring-1 ring-white/25 backdrop-blur-md transition hover:bg-white/25 hover:ring-white/45 focus:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70"
             >
               <DoorPeekGlyph />
-            </button>
+            </AuraButton>
           ) : null}
         </div>
       </div>

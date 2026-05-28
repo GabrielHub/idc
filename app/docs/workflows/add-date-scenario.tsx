@@ -17,7 +17,7 @@ export const meta: DocMeta = {
   group: "workflows",
   title: "Add a date scenario",
   description:
-    "Content pass for one scenario fixture: design, fixture fields, nine events, tag rules, registration, and validation.",
+    "Content pass for one scenario fixture: flow type, room test, fixture fields, event deck, tag rules, registration, and validation.",
   order: 1,
 };
 
@@ -89,15 +89,22 @@ export const sections: DocSectionEntry[] = [
     id: "design-pass",
     title: "Design pass",
     body: (
-      <DocSteps
-        items={[
-          "Define the room as reusable date pressure, not as a scene for one named member.",
-          "Pick the practical date shape: meal, errand, ceremony, public room, quiet room, timed task, shared object, performance pressure, or another clear frame.",
-          "Identify what the room tests: privacy, prophecy, memory, public attention, career pressure, low-pressure care, weirdness tolerance, planning, or intimacy.",
-          "Confirm the scenario can work for many pairs. It can favor archetypes through hooks, but it must not name a member.",
-          "Note whether the scenario needs background art later. The fixture can exist without a manifest entry, in which case the runtime falls back to the Aura mesh.",
-        ]}
-      />
+      <>
+        <P>
+          Start with the kind of situation the scenario puts members in. The flow is the scenario's
+          operating type; the event kinds are the later draft deck inside that type.
+        </P>
+        <DocSteps
+          items={[
+            "Pick the primary flow first: conversation, activity, pressure, or set_piece.",
+            "Define the room as reusable date pressure, not as a scene for one named member.",
+            "Pick the practical date shape: meal, errand, ceremony, public room, quiet room, timed task, shared object, performance pressure, evolving set piece, or another clear frame.",
+            "Identify what the room tests: privacy, prophecy, memory, public attention, career pressure, low-pressure care, weirdness tolerance, planning, intimacy, physical cooperation, or choice under time pressure.",
+            "Confirm the scenario can work for many pairs. It can favor archetypes through hooks, but it must not name a member.",
+            "Note whether the scenario needs background art later. The fixture can exist without a manifest entry, in which case the runtime falls back to the Aura mesh.",
+          ]}
+        />
+      </>
     ),
   },
   {
@@ -219,13 +226,15 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Pick the date flow from what the room asks the pair to do. Do not add custom turn counts
-          to individual fixtures. The runtime resolves the preset into a saved{" "}
-          <DocCode>turnLimit</DocCode> and <DocCode>judgeTurnInterval</DocCode> when the session
-          starts. Test and debug harnesses that need a fixed length should set{" "}
-          <DocCode>dateMessageLimitOverride</DocCode>; <DocCode>defaultDateMessageLimit</DocCode>{" "}
-          remains the legacy setting and should not be used to express "pick exactly the default
-          number."
+          Pick the date flow from what the room asks the pair to do. This is the scenario's type:
+          conversational rooms are designed to keep members with each other, activity rooms put
+          shared handling in their hands, pressure rooms demand a choice, and set pieces evolve
+          through multiple physical beats. Do not add custom turn counts to individual fixtures. The
+          runtime resolves the preset into a saved <DocCode>turnLimit</DocCode> and{" "}
+          <DocCode>judgeTurnInterval</DocCode> when the session starts. Test and debug harnesses
+          that need a fixed length should set <DocCode>dateMessageLimitOverride</DocCode>;{" "}
+          <DocCode>defaultDateMessageLimit</DocCode> remains the legacy setting and should not be
+          used to express "pick exactly the default number."
         </P>
         <DocList
           items={[
@@ -253,6 +262,14 @@ export const sections: DocSectionEntry[] = [
             </span>,
           ]}
         />
+        <DocCallout variant="warn" title="Do not sort scenarios by event kind">
+          <P>
+            <DocCode>ambient</DocCode>, <DocCode>provocation</DocCode>, and{" "}
+            <DocCode>reveal</DocCode> are required event-card kinds, not scenario categories. A
+            pressure scenario still ships quiet ambient events; a conversation scenario still ships
+            provocations. The flow decides the situation and cadence.
+          </P>
+        </DocCallout>
       </>
     ),
   },
@@ -262,10 +279,11 @@ export const sections: DocSectionEntry[] = [
     body: (
       <>
         <P>
-          Every scenario ships exactly nine events: 3 ambient, 3 provocation, 3 reveal. Events are
-          real shifts in the room, not whispers of ambient flavor. When the player drops one, the
-          next character turn must visibly engage with it. Author each event as something that can
-          move the mood or direction of the date. An event should change the live situation, not
+          Every scenario ships exactly nine events: 3 ambient, 3 provocation, 3 reveal. These are
+          draftable scene beats inside the selected flow, not the scenario's design category. Events
+          are real shifts in the room, not whispers of ambient flavor. When the player drops one,
+          the next character turn must visibly engage with it. Author each event as something that
+          can move the mood or direction of the date. An event should change the live situation, not
           merely make an unused prop available.
         </P>
         <P>

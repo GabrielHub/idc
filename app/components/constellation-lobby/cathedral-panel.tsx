@@ -2,6 +2,7 @@ import { type ReactNode, type Ref } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { DECK_SIZE_MAX } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 import { CathedralCard } from "./cathedral-card";
 import { CathedralFilterRow } from "./cathedral-filter-row";
 import type {
@@ -175,8 +176,9 @@ function CathedralHeader({
 
 function BackButton({ onClose }: { onClose: () => void }) {
   return (
-    <button
-      type="button"
+    <AuraButton
+      tooltip="Close date book"
+      tooltipPlacement="bottom"
       onClick={onClose}
       aria-label="Close date book"
       className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover inline-flex items-center gap-1.5 rounded-pill py-2 pl-3 pr-4 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper"
@@ -185,7 +187,7 @@ function BackButton({ onClose }: { onClose: () => void }) {
         ←
       </span>
       <span>Back to lobby</span>
-    </button>
+    </AuraButton>
   );
 }
 
@@ -216,9 +218,10 @@ function DeckLibraryTabs({
       {tabs.map((tab) => {
         const isActive = tab.value === mode;
         return (
-          <button
+          <AuraButton
             key={tab.value}
-            type="button"
+            tooltip={`Date book ${tab.label}`}
+            tooltipPlacement="bottom"
             role="tab"
             aria-selected={isActive}
             onClick={() => {
@@ -238,7 +241,7 @@ function DeckLibraryTabs({
                 {tab.badge}
               </span>
             )}
-          </button>
+          </AuraButton>
         );
       })}
     </div>

@@ -27,6 +27,7 @@ import {
   MEMBER_STATUS_FILTER_OPTIONS,
   type MemberRosterFilterState,
 } from "../../services/member-roster-filter";
+import { AuraButton } from "../aura-button";
 
 export type LensPanelProps = {
   isOpen: boolean;
@@ -100,18 +101,17 @@ export function LensPanel({
               </div>
               <div className="flex items-center gap-2">
                 {filterActive ? (
-                  <button
-                    type="button"
+                  <AuraButton
+                    tooltip="Clear all roster filters"
                     onClick={() => onChange(DEFAULT_MEMBER_ROSTER_FILTER_STATE)}
                     className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3 py-1 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper"
                   >
                     Clear all
-                  </button>
+                  </AuraButton>
                 ) : null}
-                <button
-                  type="button"
+                <AuraButton
+                  tooltip="Close lens"
                   onClick={onClose}
-                  aria-label="Close lens"
                   className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover grid size-8 place-items-center rounded-full text-white/80"
                 >
                   <svg viewBox="0 0 16 16" className="size-3.5" fill="none" aria-hidden>
@@ -122,7 +122,7 @@ export function LensPanel({
                       strokeLinecap="round"
                     />
                   </svg>
-                </button>
+                </AuraButton>
               </div>
             </header>
 
@@ -136,10 +136,9 @@ export function LensPanel({
                 className="w-full bg-transparent text-sm text-aura-paper placeholder:text-white/45 focus:outline-none"
               />
               {filterState.search.length > 0 ? (
-                <button
-                  type="button"
+                <AuraButton
+                  tooltip="Clear search"
                   onClick={() => patch({ search: "" })}
-                  aria-label="Clear search"
                   className="cursor-pointer text-white/55 hover:text-aura-paper"
                 >
                   <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
@@ -150,7 +149,7 @@ export function LensPanel({
                       strokeLinecap="round"
                     />
                   </svg>
-                </button>
+                </AuraButton>
               ) : null}
             </label>
 
@@ -217,9 +216,9 @@ function ChipGroup<T extends string>({
         {options.map((option) => {
           const active = option.value === value;
           return (
-            <button
+            <AuraButton
               key={option.value}
-              type="button"
+              tooltip={`${label}: ${option.label}`}
               onClick={() => onPick(option.value)}
               className={`cursor-pointer rounded-full px-3 py-1 font-mono text-micro uppercase tracking-[0.18em] ring-1 transition ${
                 active
@@ -228,7 +227,7 @@ function ChipGroup<T extends string>({
               }`}
             >
               {option.label}
-            </button>
+            </AuraButton>
           );
         })}
       </div>

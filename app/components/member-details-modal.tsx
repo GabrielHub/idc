@@ -311,6 +311,7 @@ export function MemberDetailsModal({
               onPrimary={firstOpenStep.complete}
               dismissLabel="Skip tour"
               onDismiss={firstOpenStep.dismiss}
+              textTone="dark"
             />
           </div>
         ) : null}

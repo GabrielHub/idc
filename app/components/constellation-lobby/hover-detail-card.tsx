@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { formatHeightShort, profileSnippetFor } from "../../services/member-display";
 import { riskZoneForMember, type RiskTone } from "../../services/member-feedback";
+import { AuraButton } from "../aura-button";
 import { AuraTooltip } from "../aura-tooltip";
 import { caseFileNumber } from "../member-card-atoms";
 import { avatarSrcsetFor, withAlpha } from "./math";
@@ -262,21 +263,21 @@ export function HoverDetailCard({
           <p className="mt-3 line-clamp-3 font-sans text-label text-white/85">{resolvedSnippet}</p>
           {recentNotesSlot}
           <div className="mt-3 flex items-center justify-center gap-2">
-            <button
-              type="button"
+            <AuraButton
+              tooltip="View case"
               onClick={onOpenCase}
               className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-3.5 py-1.5 font-display text-label text-aura-paper"
             >
               View case
-            </button>
-            <button
-              type="button"
+            </AuraButton>
+            <AuraButton
+              tooltip={blockReason ?? primaryLabel}
               onClick={onPrimaryAction}
               disabled={onPrimaryAction === undefined}
               className={`cursor-pointer rounded-full px-3.5 py-1.5 font-display text-label disabled:cursor-not-allowed disabled:opacity-50 ${primaryToneClass}`}
             >
               {primaryLabel}
-            </button>
+            </AuraButton>
           </div>
           {ctaVariant === "swap_into_focus" && swapPenalty !== undefined ? (
             <p className="mt-2 text-center font-mono text-micro uppercase tracking-[0.18em] text-rose-200">

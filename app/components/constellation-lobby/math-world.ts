@@ -267,14 +267,19 @@ export function partnerRingPosition(index: number, total: number): Vec3 {
  * cluster as outline-only background stars (handled by the heavy intensity
  * drop in `flythroughMemberSlabActivity` for the off cohort).
  *
- * The grid picker biases toward wider layouts (viewport is wider than tall)
- * and clamps total spacing to a max bounding box so even larger rosters fit
- * without overflowing into the chrome. Partial last rows are centered.
+ * The grid picker scores candidate row counts against the actual safe box
+ * instead of using hard-coded roster buckets. That lets a 20-member off-duty
+ * cohort use a wide, shallow formation on desktop canvases while still
+ * compressing to narrower boxes without clipping. Row sizes are balanced and
+ * centered so partial rows offset the columns instead of creating tall stacks.
  */
 const ROSTER_CLUSTER_MAX_WIDTH = 11;
 const ROSTER_CLUSTER_MAX_HEIGHT = 6;
 const ROSTER_CLUSTER_DEFAULT_SPACING_X = 2.8;
 const ROSTER_CLUSTER_DEFAULT_SPACING_Y = 2.5;
+const ROSTER_CLUSTER_DESIRED_SPACING_X = 1.65;
+const ROSTER_CLUSTER_DESIRED_SPACING_Y = 2.05;
+const ROSTER_CLUSTER_MAX_ROWS = 6;
 const DEFAULT_ROSTER_CLUSTER_BOUNDS: RosterClusterBounds = {
   maxWidth: ROSTER_CLUSTER_MAX_WIDTH,
   maxHeight: ROSTER_CLUSTER_MAX_HEIGHT,
@@ -319,15 +324,58 @@ export function rosterClusterBoundsForCanvas(input: RosterClusterBoundsInput): R
   };
 }
 
-function pickRosterClusterGrid(total: number): { rows: number; cols: number } {
+function pickRosterClusterGrid(
+  total: number,
+  bounds: RosterClusterBounds,
+): { rows: number; cols: number } {
   if (total <= 3) return { rows: 1, cols: total };
-  if (total === 4) return { rows: 2, cols: 2 };
-  if (total <= 6) return { rows: 2, cols: 3 };
-  if (total <= 9) return { rows: 3, cols: 3 };
-  if (total <= 12) return { rows: 3, cols: 4 };
-  if (total <= 16) return { rows: 4, cols: 4 };
-  if (total <= 20) return { rows: 4, cols: 5 };
-  return { rows: Math.ceil(total / 5), cols: 5 };
+
+  const maxWidth = Math.max(0, bounds.maxWidth);
+  const maxHeight = Math.max(0, bounds.maxHeight);
+  const maxRows = Math.min(total, ROSTER_CLUSTER_MAX_ROWS);
+  let best = { rows: 2, cols: Math.ceil(total / 2), score: -Infinity };
+
+  for (let rows = 2; rows <= maxRows; rows += 1) {
+    const cols = Math.ceil(total / rows);
+    const spacingX =
+      cols > 1
+        ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_X, maxWidth / (cols - 1))
+        : ROSTER_CLUSTER_DEFAULT_SPACING_X;
+    const spacingY =
+      rows > 1
+        ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, maxHeight / (rows - 1))
+        : ROSTER_CLUSTER_DEFAULT_SPACING_Y;
+    const horizontalFit = spacingX / ROSTER_CLUSTER_DESIRED_SPACING_X;
+    const verticalFit =
+      rows > 1 ? spacingY / ROSTER_CLUSTER_DESIRED_SPACING_Y : Number.POSITIVE_INFINITY;
+    const separationScore = Math.min(horizontalFit, verticalFit);
+    const aspectScore = Math.min(horizontalFit, 1.2) + Math.min(verticalFit, 1.2);
+    const rowPenalty = rows * 0.015;
+    const score = separationScore * 4 + aspectScore - rowPenalty;
+    if (score > best.score) {
+      best = { rows, cols, score };
+    }
+  }
+
+  return { rows: best.rows, cols: best.cols };
+}
+
+function rosterClusterRows(total: number, rows: number): readonly number[] {
+  if (rows <= 0) return [];
+  const base = Math.floor(total / rows);
+  let remainder = total % rows;
+  const counts = Array.from({ length: rows }, () => base);
+  const order = Array.from({ length: rows }, (_, row) => ({
+    row,
+    distanceFromCenter: Math.abs(row - (rows - 1) / 2),
+  })).sort((a, b) => b.distanceFromCenter - a.distanceFromCenter || a.row - b.row);
+
+  for (const { row } of order) {
+    if (remainder <= 0) break;
+    counts[row] += 1;
+    remainder -= 1;
+  }
+  return counts;
 }
 
 export function rosterClusterPosition(
@@ -338,7 +386,8 @@ export function rosterClusterPosition(
   if (total <= 1) return { x: 0, y: 0, z: 0 };
   const clamped = Math.max(0, Math.min(index, total - 1));
 
-  const { rows, cols } = pickRosterClusterGrid(total);
+  const { rows, cols } = pickRosterClusterGrid(total, bounds);
+  const rowCounts = rosterClusterRows(total, rows);
   const maxWidth = Math.max(0, bounds.maxWidth);
   const maxHeight = Math.max(0, bounds.maxHeight);
   const spacingX =
@@ -350,13 +399,14 @@ export function rosterClusterPosition(
       ? Math.min(ROSTER_CLUSTER_DEFAULT_SPACING_Y, maxHeight / (rows - 1))
       : ROSTER_CLUSTER_DEFAULT_SPACING_Y;
 
-  const col = clamped % cols;
-  const row = Math.floor(clamped / cols);
-  // Last row may be partial — center its items so the cluster reads as a
-  // balanced rectangle even when total isn't evenly divisible by cols.
-  const itemsInThisRow = row === rows - 1 ? total - row * cols : cols;
-  const colOffset = (cols - itemsInThisRow) / 2;
-  const effectiveCol = col + colOffset;
+  let row = 0;
+  let indexInRow = clamped;
+  while (row < rowCounts.length && indexInRow >= (rowCounts[row] ?? 0)) {
+    indexInRow -= rowCounts[row] ?? 0;
+    row += 1;
+  }
+  const itemsInThisRow = rowCounts[row] ?? cols;
+  const effectiveCol = indexInRow + (cols - itemsInThisRow) / 2;
 
   return {
     x: (effectiveCol - (cols - 1) / 2) * spacingX,

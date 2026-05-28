@@ -247,9 +247,19 @@ const REGISTRY: Record<MemberId, MemberAuraConfig> = {
     tint: { primary: "rgba(212, 165, 116, 0.6)", glow: "rgba(164, 113, 72, 0.5)" },
   },
 
+  "five-flower": {
+    kind: "petal",
+    tint: { primary: "rgba(196, 84, 70, 0.88)", glow: "rgba(232, 179, 77, 0.6)" },
+  },
+
   "toastimus-crouton-vance": {
     kind: "ember",
     tint: { primary: "rgba(252, 222, 168, 0.55)", glow: "rgba(245, 200, 130, 0.4)" },
+  },
+
+  morrigan: {
+    kind: "rune",
+    tint: { primary: "rgba(184, 48, 84, 0.85)", glow: "rgba(120, 36, 96, 0.6)" },
   },
 };
 

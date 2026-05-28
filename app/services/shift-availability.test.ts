@@ -21,6 +21,7 @@ import {
   shiftPartnerUnavailableReason,
   SHIFT_PARTNER_SLATE_SIZE,
 } from "./shift-availability";
+import { swapShiftPartner } from "./shift-partner-actions";
 
 const FOCUS_IDS = ["jenna-pike", "vhool", "sienna-bae", "kade-sumner"] as const;
 const EXPECTED_PROFILE_IDS = {
@@ -353,6 +354,149 @@ describe("shift partner availability", () => {
     ).toBe(false);
   });
 
+  it("swaps one tonight partner with an off-shift active member and records the shift audit", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
+    const activeShift = getActiveShift(save);
+    const outgoingPartnerMemberId = activeShift.availablePartnerMemberIds[0];
+    const incoming = findOffShiftMember(save);
+
+    if (outgoingPartnerMemberId === undefined) {
+      throw new Error("Expected a partner to swap out.");
+    }
+
+    const swapped = swapShiftPartner(save, {
+      outgoingPartnerMemberId,
+      incomingPartnerMemberId: incoming.id,
+      swappedAt: "2026-05-05T12:30:00.000Z",
+    });
+    const swappedShift = getActiveShift(swapped);
+
+    expect(swappedShift.availablePartnerMemberIds).toContain(incoming.id);
+    expect(swappedShift.availablePartnerMemberIds).not.toContain(outgoingPartnerMemberId);
+    expect(swappedShift.availablePartnerMemberIds).toHaveLength(
+      activeShift.availablePartnerMemberIds.length,
+    );
+    expect(swappedShift.partnerSwap).toEqual({
+      outgoingPartnerMemberId,
+      incomingPartnerMemberId: incoming.id,
+      swappedAt: "2026-05-05T12:30:00.000Z",
+    });
+  });
+
+  it("allows only one partner roster swap per active shift", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
+    const activeShift = getActiveShift(save);
+    const firstOutgoing = activeShift.availablePartnerMemberIds[0];
+    const firstIncoming = findOffShiftMember(save);
+
+    if (firstOutgoing === undefined) {
+      throw new Error("Expected a partner to swap out.");
+    }
+
+    const swapped = swapShiftPartner(save, {
+      outgoingPartnerMemberId: firstOutgoing,
+      incomingPartnerMemberId: firstIncoming.id,
+      swappedAt: "2026-05-05T12:30:00.000Z",
+    });
+    const swappedShift = getActiveShift(swapped);
+    const secondOutgoing = swappedShift.availablePartnerMemberIds[1];
+    const secondIncoming = findOffShiftMember(swapped);
+
+    if (secondOutgoing === undefined) {
+      throw new Error("Expected a second partner to swap out.");
+    }
+
+    expect(() =>
+      swapShiftPartner(swapped, {
+        outgoingPartnerMemberId: secondOutgoing,
+        incomingPartnerMemberId: secondIncoming.id,
+      }),
+    ).toThrow("one partner roster swap per shift");
+  });
+
+  it("rejects partner swaps into cooldown, focus, closed, quit, or closed-lane members", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), FOCUS_IDS);
+    const activeShift = getActiveShift(save);
+    const outgoingPartnerMemberId = activeShift.availablePartnerMemberIds[0];
+
+    if (outgoingPartnerMemberId === undefined) {
+      throw new Error("Expected a partner to swap out.");
+    }
+
+    const offShift = findOffShiftMember(save);
+    const closedLaneTarget = findOffShiftMember(save);
+    const closedLaneSave = {
+      ...save,
+      pairStates: [
+        ...save.pairStates,
+        pairState({ participantIds: [FOCUS_IDS[0], closedLaneTarget.id], laneStatus: "closed" }),
+      ],
+    };
+
+    const invalidCases: Array<{ source: GameSave; incomingPartnerMemberId: string }> = [
+      { source: save, incomingPartnerMemberId: FOCUS_IDS[0] },
+      {
+        source: withPatchedMember(save, offShift.id, { lastDateShift: activeShift.shiftNumber }),
+        incomingPartnerMemberId: offShift.id,
+      },
+      {
+        source: withPatchedMember(save, offShift.id, { status: "closed" }),
+        incomingPartnerMemberId: offShift.id,
+      },
+      {
+        source: withPatchedMember(save, offShift.id, { status: "quit" }),
+        incomingPartnerMemberId: offShift.id,
+      },
+      { source: closedLaneSave, incomingPartnerMemberId: closedLaneTarget.id },
+    ];
+
+    for (const { source, incomingPartnerMemberId } of invalidCases) {
+      expect(() =>
+        swapShiftPartner(source, {
+          outgoingPartnerMemberId,
+          incomingPartnerMemberId,
+        }),
+      ).toThrow("Only off-shift active members");
+    }
+  });
+
+  it("keeps follow-up reservation partners pinned out of partner swaps", () => {
+    const save = selectInitialFocusCases(createSeedGameSave(), [
+      "noah-kim",
+      "vhool",
+      "sienna-bae",
+      "kade-sumner",
+    ]);
+    const activeShift = getActiveShift(save);
+    const reservedPartner = findOffShiftMember(save);
+    const pinnedShift = {
+      ...activeShift,
+      availablePartnerMemberIds: [
+        reservedPartner.id,
+        ...activeShift.availablePartnerMemberIds.filter((id) => id !== reservedPartner.id),
+      ],
+      followUpReservations: [
+        {
+          focusMemberId: "noah-kim",
+          partnerMemberId: reservedPartner.id,
+          sourceDateSessionId: "date-follow-up",
+        },
+      ],
+    };
+    const pinnedSave = {
+      ...save,
+      shifts: save.shifts.map((shift) => (shift.id === pinnedShift.id ? pinnedShift : shift)),
+    };
+    const incoming = findOffShiftMember(pinnedSave);
+
+    expect(() =>
+      swapShiftPartner(pinnedSave, {
+        outgoingPartnerMemberId: reservedPartner.id,
+        incomingPartnerMemberId: incoming.id,
+      }),
+    ).toThrow("Follow-up reservations are pinned");
+  });
+
   it("resolves an availability profile for every starter member", () => {
     const profiles = starterMembers.map((member) => availabilityProfileForMember(member));
 
@@ -403,6 +547,39 @@ function requireMember(save: GameSave, memberId: string): Member {
     throw new Error(`Missing member ${memberId}`);
   }
   return member;
+}
+
+function findOffShiftMember(save: GameSave): Member {
+  const activeShift = getActiveShift(save);
+  const member = save.members.find(
+    (candidate) =>
+      shiftPartnerUnavailableReason({
+        member: candidate,
+        shiftNumber: activeShift.shiftNumber,
+        focusedMemberIds: save.focusedMemberIds,
+        availablePartnerMemberIds: activeShift.availablePartnerMemberIds,
+        pairStates: save.pairStates,
+      }) === "off_shift",
+  );
+
+  if (member === undefined) {
+    throw new Error("Expected an off-shift member.");
+  }
+
+  return member;
+}
+
+function withPatchedMember(
+  save: GameSave,
+  memberId: string,
+  state: Partial<Member["state"]>,
+): GameSave {
+  return {
+    ...save,
+    members: save.members.map((member) =>
+      member.id === memberId ? withState(member, state) : member,
+    ),
+  };
 }
 
 function withState(member: Member, state: Partial<Member["state"]>): Member {

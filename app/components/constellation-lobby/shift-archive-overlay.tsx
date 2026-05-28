@@ -14,6 +14,7 @@ import { useEffect, useMemo } from "react";
 
 import type { Member, ShiftState } from "../../domain/game";
 import { AmbientMesh } from "../ambient-mesh";
+import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART, pad2 } from "../dashboard-atoms";
 import { selectArchivedShiftReports, ShiftArchive } from "../shift-archive";
 
@@ -53,12 +54,14 @@ export function ShiftArchiveOverlay({ open, shifts, members, onClose }: ShiftArc
           aria-modal="true"
           aria-label="Shift archive"
         >
-          <button
-            type="button"
-            aria-label="Close shift archive"
+          <AuraButton
+            tooltip="Close shift archive"
+            tooltipAlign="block"
+            tooltipClassName="absolute inset-0"
             onClick={onClose}
-            className="absolute inset-0 cursor-pointer bg-[#07041a]/65 backdrop-blur-md"
+            className="h-full w-full cursor-pointer bg-[#07041a]/65 backdrop-blur-md"
           />
+
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.985 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -68,14 +71,15 @@ export function ShiftArchiveOverlay({ open, shifts, members, onClose }: ShiftArc
           >
             <AmbientMesh containment="absolute" />
 
-            <button
-              type="button"
+            <AuraButton
+              tooltip="Close shift archive"
+              tooltipPlacement="left"
+              tooltipClassName="absolute right-5 top-5 z-20"
               onClick={onClose}
-              aria-label="Close shift archive"
-              className="aura-liquid-glass aura-liquid-glass-hover absolute right-5 top-5 z-20 cursor-pointer rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
+              className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-4 py-1.5 font-display text-label text-aura-paper"
             >
               Close
-            </button>
+            </AuraButton>
 
             <div className="relative z-10 flex-1 overflow-y-auto px-6 pb-16 pt-14 lg:px-12 lg:pt-16">
               <header className="mx-auto max-w-[88rem] text-center">

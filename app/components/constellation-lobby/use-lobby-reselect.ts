@@ -53,6 +53,18 @@ export function useLobbyReselect({
     [onCaseFileClose, save],
   );
 
+  const requestReselectDroppingFocus = useCallback(
+    (focusMemberId: string) => {
+      const baseline = activeFocusedIds(save);
+      const draft = baseline.filter((memberId) => memberId !== focusMemberId);
+      setReselectBaseline(baseline);
+      setReselectDraft(draft);
+      setLobbyMode("reselect");
+      onCaseFileClose();
+    },
+    [onCaseFileClose, save],
+  );
+
   const cancelReselect = useCallback(() => {
     setReselectDraft(null);
     setReselectBaseline(null);
@@ -82,6 +94,7 @@ export function useLobbyReselect({
     reselectBaseline,
     enterReselect,
     requestReselectWithCandidate,
+    requestReselectDroppingFocus,
     cancelReselect,
     toggleReselectMember,
     confirmReselect,

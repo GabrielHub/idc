@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect } from "react";
 
+import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
 
 export type ShiftSkipConfirmProps = {
@@ -44,11 +45,12 @@ export function ShiftSkipConfirm({
           aria-modal="true"
           aria-label={`Confirm filing shift ${shiftNumber} without a date`}
         >
-          <button
-            type="button"
-            aria-label="Cancel filing shift"
+          <AuraButton
+            tooltip="Cancel filing shift"
+            tooltipAlign="block"
+            tooltipClassName="absolute inset-0"
             onClick={onCancel}
-            className="absolute inset-0 cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
+            className="h-full w-full cursor-pointer bg-aura-ink/55 backdrop-blur-sm"
           />
 
           <motion.section
@@ -75,22 +77,22 @@ export function ShiftSkipConfirm({
             </div>
 
             <footer className="flex flex-wrap items-center justify-end gap-3 border-t border-white/10 px-6 py-4">
-              <button
-                type="button"
+              <AuraButton
+                tooltip="Keep planning"
                 onClick={onCancel}
                 disabled={isActionPending}
                 className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-4 py-2 font-display text-sm text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
               >
                 Keep planning
-              </button>
-              <button
-                type="button"
+              </AuraButton>
+              <AuraButton
+                tooltip={isActionPending ? "Filing shift" : "File anyway"}
                 onClick={onConfirm}
                 disabled={isActionPending}
                 className="aura-liquid-cta cursor-pointer rounded-full px-5 py-2 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
               >
                 {isActionPending ? "Filing..." : "File anyway"}
-              </button>
+              </AuraButton>
             </footer>
           </motion.section>
         </motion.div>

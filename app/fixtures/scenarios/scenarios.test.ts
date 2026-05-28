@@ -90,8 +90,8 @@ function containsName(text: string, name: string): boolean {
 }
 
 describe("scenario fixtures", () => {
-  it("ships exactly 63 starter scenarios", () => {
-    expect(starterScenarios).toHaveLength(63);
+  it("ships exactly 73 starter scenarios", () => {
+    expect(starterScenarios).toHaveLength(73);
   });
 
   it("does not point scenario designs at specific members", () => {

@@ -7,6 +7,7 @@
  */
 
 import type { ThreeEvent } from "@react-three/fiber";
+import type { ReactNode } from "react";
 
 import type { Member } from "../../domain/game";
 import type { PortraitPalette } from "../portrait-palette";
@@ -146,6 +147,7 @@ export type ArchiveSelection =
 export type StarClickHandlers = {
   onStarClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
   onStarDoubleClick?: (star: StarMark, event: ThreeEvent<MouseEvent>) => void;
+  quickActionsForStar?: (star: StarMark) => readonly StarQuickAction[];
   /** Eligible partner ids for focus-selected hover affordances. */
   eligiblePartnerIds?: ReadonlySet<string>;
   /** Stars not in this set get extra dimming. Used by the lens filter. */
@@ -157,6 +159,16 @@ export type StarClickHandlers = {
    * field for the side rail.
    */
   onClearFocus?: () => void;
+};
+
+export type StarQuickAction = {
+  id: "swap" | "case" | "select";
+  label: string;
+  title?: string;
+  disabled?: boolean;
+  tone?: "glass" | "rose" | "amber";
+  icon: ReactNode;
+  onSelect: () => void | Promise<void>;
 };
 
 export type Vec3 = { x: number; y: number; z: number };

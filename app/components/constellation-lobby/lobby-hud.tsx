@@ -2,6 +2,7 @@ import { type ReactNode, type Ref } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import type { Member } from "../../domain/game";
+import { AuraButton } from "../aura-button";
 import type { PortraitPalette } from "../portrait-palette";
 import { avatarSrcsetFor, withAlpha } from "./math";
 import type { LobbyState, StarMark } from "./types";
@@ -82,10 +83,9 @@ function PairCard({
       <div className="flex items-center justify-between gap-2">
         <RoleHeader role={role} />
         {onClear === undefined ? null : (
-          <button
-            type="button"
+          <AuraButton
+            tooltip={role === "focus" ? "Drop focus selection" : "Drop partner selection"}
             onClick={onClear}
-            aria-label={role === "focus" ? "Drop focus selection" : "Drop partner selection"}
             className="grid size-6 cursor-pointer place-items-center rounded-full text-white/70 transition hover:bg-white/15 hover:text-aura-paper"
           >
             <svg viewBox="0 0 16 16" className="size-3" fill="none" aria-hidden>
@@ -96,7 +96,7 @@ function PairCard({
                 strokeLinecap="round"
               />
             </svg>
-          </button>
+          </AuraButton>
         )}
       </div>
       <MemberRow member={star.member} palette={star.palette} accent={accent} />
@@ -232,28 +232,26 @@ export function BottomDock({
       {lockedPair ? <ShardLabel label="Pair locked" /> : null}
       {showCommitReason ? <ShardLabel label={commitDisabledReason} /> : null}
       {showCommit ? (
-        <button
-          type="button"
+        <AuraButton
+          tooltip={commitDisabledReason}
           disabled={commitBlocked}
-          title={commitDisabledReason}
           onClick={onCommitPair}
           className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
         >
           Commit pair
-        </button>
+        </AuraButton>
       ) : null}
       {showBeginReason ? <ShardLabel label={beginDisabledReason} /> : null}
       {showBegin ? (
-        <button
+        <AuraButton
           ref={beginButtonRef}
-          type="button"
+          tooltip={beginDisabledReason}
           disabled={beginBlocked}
-          title={beginDisabledReason}
           onClick={onBeginDate}
           className="aura-liquid-cta cursor-pointer rounded-full px-7 py-3 font-display text-display-sm disabled:cursor-not-allowed disabled:opacity-55"
         >
           Begin date
-        </button>
+        </AuraButton>
       ) : null}
     </>
   );

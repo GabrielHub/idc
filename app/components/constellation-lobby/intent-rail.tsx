@@ -5,7 +5,7 @@ import {
   MATCHMAKING_INTENT_TOOLTIP,
   MATCHMAKING_INTENTS,
 } from "../../services/matchmaking-intent";
-import { Tooltip } from "../dashboard-atoms";
+import { AuraTooltip } from "../aura-tooltip";
 
 const READ_LABEL_TOOLTIP =
   "Tell Cupid what you're aiming for from this booking. The date gets graded against your read and the post-date note is phrased around it. Skip it to let the room speak for itself.";
@@ -35,12 +35,12 @@ export function IntentRail({
 
   return (
     <div className="aura-liquid-glass flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2">
-      <Tooltip message={labelTooltip} placement="top-center" messageClassName="text-aura-ink">
+      <AuraTooltip label={labelTooltip} placement="top">
         <span className="flex cursor-help items-center gap-1 font-mono text-micro uppercase tracking-[0.18em] text-white/55">
           {hint}
           <InfoGlyph />
         </span>
-      </Tooltip>
+      </AuraTooltip>
       {MATCHMAKING_INTENTS.map((intent) => {
         const picked = selectedIntent === intent;
         if (locked && !picked) return null;
@@ -48,18 +48,17 @@ export function IntentRail({
           ? "aura-liquid-glass-rose text-aura-paper"
           : "text-white/70 hover:bg-white/10 hover:text-aura-paper";
         return (
-          <Tooltip
+          <AuraTooltip
             key={intent}
-            message={
+            label={
               <>
-                <span className="block font-semibold text-aura-ink">
+                <span className="block font-semibold text-white">
                   {MATCHMAKING_INTENT_LABEL[intent]}
                 </span>
                 <span className="mt-1 block">{MATCHMAKING_INTENT_TOOLTIP[intent]}</span>
               </>
             }
-            placement="top-center"
-            messageClassName="text-aura-ink"
+            placement="top"
           >
             <button
               type="button"
@@ -71,7 +70,7 @@ export function IntentRail({
             >
               {MATCHMAKING_INTENT_SHORT_LABEL[intent]}
             </button>
-          </Tooltip>
+          </AuraTooltip>
         );
       })}
     </div>

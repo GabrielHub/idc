@@ -21,6 +21,7 @@ import {
   LAUNCH_UPDATE_CHECK_DELAY_MS,
   type UpdateMenuState,
 } from "./settings-update-state";
+import { AuraButton } from "./aura-button";
 
 export { buildDiagnosticsSnapshot };
 export type { DiagnosticsSnapshot };
@@ -40,16 +41,16 @@ export function MutedIndicator({ variant = "cream" }: { variant?: ChromeVariant 
       : "border border-aura-hairline bg-white text-aura-rose hover:border-aura-rose/30";
 
   return (
-    <button
-      type="button"
+    <AuraButton
+      tooltip="Audio muted. Click to unmute."
+      tooltipPlacement="bottom"
       data-sfx="toggle"
       aria-label="Audio is muted. Click to unmute."
-      title="Audio muted. Click to unmute."
       onClick={() => setEnabled(true)}
       className={`flex cursor-pointer items-center justify-center rounded-pill px-2.5 py-1.5 transition ${surfaceClass}`}
     >
       <MutedIcon />
-    </button>
+    </AuraButton>
   );
 }
 
@@ -540,19 +541,19 @@ function SettingsTriggerButton({
         : "border border-aura-hairline bg-white text-aura-muted hover:border-aura-rose/30 hover:text-aura-ink aria-expanded:border-aura-rose/40 aria-expanded:text-aura-ink";
 
   return (
-    <button
-      type="button"
+    <AuraButton
+      tooltip={label}
+      tooltipPlacement="bottom"
       data-sfx="menu"
       aria-haspopup="menu"
       aria-expanded={isOpen}
       aria-label={label}
-      title={label}
       onClick={onClick}
       className={`relative flex cursor-pointer items-center justify-center gap-1.5 rounded-pill px-2.5 py-1.5 transition ${surfaceClass}`}
     >
       <SettingsIcon />
       {children}
-    </button>
+    </AuraButton>
   );
 }
 
