@@ -1,5 +1,44 @@
 [
   {
+    "version": "1.0.10",
+    "date": "2026-05-29",
+    "headline": "Cupid expands the desk and remembers the table.",
+    "summary": "Gameplay test alpha. Adds six members and seventeen scenarios, gives the constellation lobby faster hover actions and viewport-aware orbiting, preserves transcript recall, and resets alpha saves for the v11 memory contract.",
+    "sections": [
+      {
+        "title": "Roster and scenarios",
+        "items": [
+          "Daiven Patel, Marlee Hines, Ruby, Toastimus Crouton Vance, Five Flower, and Morrigan join the starter roster with portraits, request hooks, aura data, palettes, and standee footing.",
+          "Seventeen new date scenarios enter the library, including All Hat, A Star Is Born, Chicken Jockey, Infinite Library, Pulse Check, Rook to E4, and Throwing the Match.",
+          "Starter deck and roster ordering were rebuilt so fresh saves show a more legible mix of grounded, cozy-cosmic, and absurd dates."
+        ]
+      },
+      {
+        "title": "Lobby and date flow",
+        "items": [
+          "The constellation lobby gains quick action rails, stronger hover latching, responsive partner orbit bounds, and clearer focus pin behavior on the eligibles layer.",
+          "Scenario cards and final reports now surface flow cadence, stat changes, and pair feedback with clearer presentation.",
+          "Shift actions and star selection code were split into focused hooks, with tests around partner actions, lobby geometry, quick action visibility, and star hover behavior."
+        ]
+      },
+      {
+        "title": "Memory and AI",
+        "items": [
+          "Completed dates now file bounded transcript recall memories so later prompts can reuse table-specific context without exposing private records across subjects.",
+          "Action narration cleanup now lives in a shared performer sanitizer, and date quality audits flag third-person or stage-direction leakage more consistently.",
+          "Gateway model options add Kimi K2.5 and Xiaomi MiMo V2.5 variants, while dev browser Gateway traffic can route through the local proxy."
+        ]
+      },
+      {
+        "title": "Save behavior",
+        "items": [
+          "Save schema moves from v10 to v11 and intentionally drops legacy alpha migrations; unknown older saves start fresh instead of carrying incompatible state.",
+          "The default Gateway embedding model moves to Voyage 4, and docs now describe the current no-migration policy for old alpha saves."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.9",
     "date": "2026-05-27",
     "headline": "Cupid tightens follow-ups and the shift desk.",
