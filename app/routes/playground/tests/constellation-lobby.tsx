@@ -20,7 +20,7 @@ import {
 import { starterScenarios } from "../../../fixtures";
 import { getReadyClosurePairs } from "../../../services/closures";
 import { commitDateBooking } from "../../../services/date-engine";
-import { drawHand } from "../../../services/deck";
+import { drawHand, resolveCardOffer, shuffleCardOffer } from "../../../services/deck";
 import { getFocusedMembers, syncActiveShiftFocusCases } from "../../../services/focus-cases";
 import {
   createSeedGameSave,
@@ -127,16 +127,16 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
               });
             });
           }}
-          onAddDeckCard={(cardId) => {
+          onResolveCardOffer={(input) => {
             setSave((current) => {
-              if (current.scenarioDeck.cardIds.includes(cardId)) return current;
-              return gameSaveSchema.parse({
-                ...current,
-                scenarioDeck: {
-                  ...current.scenarioDeck,
-                  cardIds: [...current.scenarioDeck.cardIds, cardId],
-                },
-              });
+              if (current.pendingCardOffer === null) return current;
+              return resolveCardOffer(current, starterScenarios, input);
+            });
+          }}
+          onShuffleCardOffer={() => {
+            setSave((current) => {
+              if (current.pendingCardOffer === null) return current;
+              return shuffleCardOffer(current, `${current.createdAt}:${current.closureCount}`);
             });
           }}
           onRemoveDeckCard={(cardId) => {

@@ -126,13 +126,21 @@ export const sections: DocSectionEntry[] = [
           thread-ending. Use them to tune the ear, not to mine lines.
         </P>
         <DocSubsection id="imessage-corpus" title="iMessage And Texting Corpus">
+          <P>
+            A private, local rhythm reference generated with{" "}
+            <DocCode>scripts/voice-tuning/imessage-corpus.py</DocCode> on MacBook runs. The derived,
+            abstracted mechanics and the cross-corpus findings live in{" "}
+            <DocLink to="/docs/product/voice-references#imessage-texting-corpora">
+              iMessage and texting corpora
+            </DocLink>{" "}
+            below; these are the handling rules.
+          </P>
           <DocList
             items={[
               "Use only when the corpus is locally available to the agent and relevant to the voice problem.",
               "Keep raw exports ignored. Do not commit private messages, screenshots, sender names, phone numbers, private facts, or quote banks.",
-              "Sample narrowly: enough adjacent turns to understand response shape, not a full archive sweep.",
-              "Translate medium-specific behavior into spoken table dialogue. Keep directness, compression, rhythm, and repair moves; drop shorthand, message-app artifacts, private references, and copied wording.",
-              "If a durable lesson is useful, write it as a derived mechanic in this doc or the member fixture's own terms.",
+              "Sample narrowly: enough adjacent turns to understand response shape, not a full archive sweep. The script's --summary flag reports aggregate length and tic stats with no message bodies.",
+              "Turn durable lessons into abstracted mechanics in this doc or the member fixture's own terms, never a copied quote bank.",
             ]}
           />
         </DocSubsection>
@@ -208,6 +216,83 @@ export const sections: DocSectionEntry[] = [
     ],
   },
   {
+    id: "imessage-texting-corpora",
+    title: "iMessage And Texting Corpora",
+    body: (
+      <>
+        <DocSubsection id="imessage-use-for" title="Use For">
+          <P>
+            A private, MacBook-only rhythm source generated with{" "}
+            <DocCode>scripts/voice-tuning/imessage-corpus.py</DocCode> and kept in ignored working
+            output. Use it for members modeled on a real texter, or for any casual,
+            chronically-online, deadpan, or warm-but-indirect performer whose comedy runs on
+            compression, register collision, and collaborative riffing. The durable output is
+            abstracted mechanics, never the raw thread. It is not a house style.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="imessage-mechanics" title="Transferable Mechanics">
+          <P>
+            Cross-corpus shapes that held across sampled threads. Where a shape already has a home,
+            author it there: the{" "}
+            <DocLink to="/docs/product/voice-patterns#performance-mechanics">
+              performance mechanics
+            </DocLink>{" "}
+            catalog owns the named mechanics, and the{" "}
+            <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+              spoken dialogue
+            </DocLink>{" "}
+            grid owns what survives the typed-to-spoken jump.
+          </P>
+          <DocList
+            items={[
+              "Short-beat cascade is the dominant rhythm: a single thought arrives as a run of short consecutive beats (setup, turn, button), each beat one unit. This is why casual texting runs short. Across sampled corpora the median message ran about 22-25 characters, with 29-43% under 20 characters.",
+              "The long-message minority is a distinct mode, not a longer beat. The 20-26% of messages over 40 characters are usually a spiral, a full plan, or a creative dump, tonally marked off from the short-beat default rather than the default stretched out.",
+              "Mock-formal register collision: bureaucratic, legal, ceremonial, or grandiose diction applied to low-stakes content like a bar plan, an ETA, or a snack run. The register-content mismatch carries the joke while the underlying offer stays sincere.",
+              "Collaborative escalation: the partner's last line is the springboard and both sides add beats to a shared premise, often with tag-question hand-backs (..., no? / ..., right?) that return the turn. The riff is co-authored, not a solo set performed at the partner. See commit-and-escalate in the catalog.",
+              "Reference and metaphor as compressed shorthand: one cultural, sports, or game frame per turn, dropped without explanation, the partner trusted to decode it.",
+              "Deadpan with no cushion: a flat non-sequitur or absurd claim delivered straight, with no laugh-tag softening it. The flat delivery is the joke.",
+              "One un-ironic anchor: a bit-heavy texter usually keeps a single subject where the irony drops and they are plainly earnest. That contrast is what keeps constant riffing from reading as pure performance; it is the casual-baseline contrast in practice.",
+              "Sincere and admin mode goes short and flat: real logistics, real feeling, and refusals are terse and plain, often one or two words. Dropping out of the bit is itself legible.",
+              "Limits keep the table open: a no tends to arrive paired with a smaller version of the same plan. It reads as an offer, not a status move.",
+              "Tic vocabulary is sparse against volume: signature words landed roughly once every couple dozen messages and vowel-elongation in only a few percent, not every line. This is empirical backing for treating tics as seasoning, not a schedule.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="imessage-boundaries" title="Do Not Transfer">
+          <P>
+            The typed-to-spoken boundary — laugh-tags, one-word reaction bubbles, shorthand,
+            all-caps streaks, and literal multi-bubble cascades — is owned by the{" "}
+            <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
+              spoken dialogue
+            </DocLink>{" "}
+            grid. The reminder specific to a private corpus: never carry real names, places,
+            employers, links, or the source person&apos;s actual jokes, opinions, and biography into
+            a member. The corpus is a speech-pattern source, not a character source, unless the user
+            says otherwise.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="imessage-date-translation" title="Date Translation">
+          <DocList
+            items={[
+              "Short-beat cascade becomes short spoken declaratives, one thought per breath, comma-flow where it is natural. Not staccato fragments and not one long paragraph.",
+              "Long mode is reserved for a spiral the member's fixture actually licenses. At the table, take one branch per turn, not the whole wall.",
+              "Keep the mock-formal collision, but anchor it to the table: the menu, the venue, the date itself, or the partner's last line.",
+              "Treat the partner's line as the springboard and build on it. Do not perform a pre-written bit at them.",
+              "Let sincere mode go plain and short. The drop out of the bit is the signal, so do not dress it back up.",
+              "Spoken baseline is plain English. Let signature words season rather than pace, and leave the shorthand on the phone.",
+            ]}
+          />
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "imessage-use-for", title: "Use For" },
+      { id: "imessage-mechanics", title: "Transferable Mechanics" },
+      { id: "imessage-boundaries", title: "Do Not Transfer" },
+      { id: "imessage-date-translation", title: "Date Translation" },
+    ],
+  },
+  {
     id: "committed-reference-files",
     title: "Reference Files",
     body: (
@@ -220,6 +305,16 @@ export const sections: DocSectionEntry[] = [
                 <>
                   <DocCode>docs/reference/voice-northernlion.md</DocCode>. Curated public-source bit
                   chunks for cadence and performance mechanics.
+                </>
+              ),
+            },
+            {
+              term: "iMessage and texting corpora",
+              def: (
+                <>
+                  Generated locally with <DocCode>scripts/voice-tuning/imessage-corpus.py</DocCode>{" "}
+                  into ignored working output. The raw threads are private and never committed; the
+                  durable artifact is the abstracted mechanics above.
                 </>
               ),
             },

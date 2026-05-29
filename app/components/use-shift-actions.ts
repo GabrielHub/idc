@@ -10,7 +10,7 @@ import {
   startDateSessionFromBooking,
   startNextShift,
 } from "../services/date-engine";
-import { addCardToDeck, removeCardFromDeck } from "../services/deck";
+import { removeCardFromDeck, resolveCardOffer, shuffleCardOffer } from "../services/deck";
 import {
   addFocusCase as focusAddCase,
   removeFocusCase as focusRemoveCase,
@@ -244,21 +244,26 @@ export function useShiftActions({
     });
   }, [dispatchManagerQuip, getSave, persist, processManagerQuipSaveDiff, tryAction]);
 
-  const handleAddDeckCard = useCallback(
-    async (libraryCardId: string) => {
+  const handleResolveCardOffer = useCallback(
+    async (input: { takenIds: string[]; droppedIds: string[] }) => {
       const save = getSave();
       if (save === null) return;
       await tryAction("deck", async () => {
-        const next = addCardToDeck({
-          save,
-          scenarios: starterScenarios,
-          cardId: libraryCardId,
-        });
+        const next = resolveCardOffer(save, starterScenarios, input);
         await persist(next);
       });
     },
     [getSave, persist, tryAction],
   );
+
+  const handleShuffleCardOffer = useCallback(async () => {
+    const save = getSave();
+    if (save === null) return;
+    await tryAction("deck", async () => {
+      const next = shuffleCardOffer(save, `${save.createdAt}:${save.closureCount}`);
+      await persist(next);
+    });
+  }, [getSave, persist, tryAction]);
 
   const handleRemoveDeckCard = useCallback(
     async (deckCardId: string) => {
@@ -282,7 +287,6 @@ export function useShiftActions({
   }, [getSave, persist, tryAction]);
 
   return {
-    handleAddDeckCard,
     handleAddFocus,
     handleBeginDate,
     handleCancelBooking,
@@ -293,6 +297,8 @@ export function useShiftActions({
     handleRemoveDeckCard,
     handleRemoveFocus,
     handleReselectFocus,
+    handleResolveCardOffer,
+    handleShuffleCardOffer,
     handleStartNextShift,
     handleSwapShiftPartner,
   };

@@ -296,6 +296,10 @@ describe("AI date engine orchestration", () => {
       (shift) => shift.id === result.save.activeShiftId,
     );
     expect(completedShift?.activeBooking).toBeUndefined();
+
+    // Finalizing the date on the production AI path draws a post-date card offer.
+    expect(result.save.pendingCardOffer?.kind).toBe("date");
+    expect(result.save.pendingCardOffer?.cardIds).toHaveLength(3);
   });
 
   it("applies accepted pair memory proposals while rejecting duplicates and fabricated ids", async () => {

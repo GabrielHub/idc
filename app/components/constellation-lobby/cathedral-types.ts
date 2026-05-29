@@ -12,28 +12,15 @@ export type DeckBookShards = {
   pressure?: { lowPressure: number; highPressure: number };
 };
 
-export type CathedralMode = "auto" | "deck" | "library";
+export type CathedralMode = "auto" | "deck";
 
-type DoorKind = "deck" | "library" | "draw";
+type DoorKind = "deck" | "draw";
 
 export type DoorEntry = {
   scenario: LobbyScenario;
   kind: DoorKind;
   slotLabel?: string;
   disabled?: boolean;
-  alreadyInDeck?: boolean;
-};
-
-export type RiskFilter = "any" | "low" | "medium" | "high";
-export type SortMode = "alpha" | "risk" | "intimacy" | "chaos" | "cost";
-
-export type LibraryFilterControls = {
-  search: string;
-  riskFilter: RiskFilter;
-  sortMode: SortMode;
-  onSearchChange: (next: string) => void;
-  onRiskFilterChange: (next: RiskFilter) => void;
-  onSortChange: (next: SortMode) => void;
 };
 
 export type RoomReadTint = {

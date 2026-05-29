@@ -37,8 +37,11 @@ export type ConstellationLobbyProps = {
     matchmakingIntent?: MatchmakingIntent;
   }) => void;
   onCancelBooking: () => void;
-  onAddDeckCard: (cardId: string) => void;
   onRemoveDeckCard: (cardId: string) => void;
+  /** Resolve the pending post-date/closure card offer: take + drop ids. */
+  onResolveCardOffer: (input: { takenIds: string[]; droppedIds: string[] }) => void;
+  /** Reshuffle the pending card offer (closure offers only). */
+  onShuffleCardOffer: () => void;
   onClosePair?: (input: { pairId: string; ready: ReadyClosurePair }) => Promise<boolean>;
   closureErrorMessage?: string | null;
   onDismissClosureError?: () => void;

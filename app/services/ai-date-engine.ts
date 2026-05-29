@@ -65,6 +65,7 @@ import {
   resolveDateEndReason,
   resolveEndedDateSentiment,
   resolvePlayerCutShortStatus,
+  attachDateOfferOnFinalize,
   shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
@@ -587,10 +588,13 @@ async function advanceDateExchangeWithLocalAiInternal(
     }),
   );
 
-  await repository.saveGame(nextSave);
+  // A newly finalized date draws a post-date card offer off the pile.
+  const saveWithOffer = attachDateOfferOnFinalize(nextSave, session, finalSession);
+
+  await repository.saveGame(saveWithOffer);
 
   return {
-    save: nextSave,
+    save: saveWithOffer,
     session: finalSession,
     runtimeMode: "local_ai",
     warningMessages,
@@ -781,10 +785,13 @@ async function cutDateShortWithLocalAiInternal(
     }),
   );
 
-  await repository.saveGame(nextSave);
+  // Cutting a date short still finalizes it, so it still draws a card offer.
+  const saveWithOffer = attachDateOfferOnFinalize(nextSave, session, finalSession);
+
+  await repository.saveGame(saveWithOffer);
 
   return {
-    save: nextSave,
+    save: saveWithOffer,
     session: finalSession,
     runtimeMode: "local_ai",
     warningMessages,

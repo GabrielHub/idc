@@ -233,7 +233,6 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     setErrorMessage,
   });
   const {
-    handleAddDeckCard,
     handleAddFocus,
     handleBeginDate,
     handleCancelBooking,
@@ -244,6 +243,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
     handleRemoveDeckCard,
     handleRemoveFocus,
     handleReselectFocus,
+    handleResolveCardOffer,
+    handleShuffleCardOffer,
     handleStartNextShift,
     handleSwapShiftPartner,
   } = useShiftActions({
@@ -1055,8 +1056,9 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
                       onCommitPair={handleCommitPair}
                       onBeginDate={handleBeginDate}
                       onCancelBooking={handleCancelBooking}
-                      onAddDeckCard={handleAddDeckCard}
                       onRemoveDeckCard={handleRemoveDeckCard}
+                      onResolveCardOffer={handleResolveCardOffer}
+                      onShuffleCardOffer={handleShuffleCardOffer}
                       onClosePair={handleClosePair}
                       closureErrorMessage={closureErrorMessage}
                       onDismissClosureError={resetClosureError}

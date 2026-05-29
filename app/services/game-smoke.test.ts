@@ -440,6 +440,18 @@ describe("IDC playable smoke path", () => {
     expect(next.save.scenarioDeck.cardIds).toEqual(beforeDeckIds);
     const finalShift = next.save.shifts.find((shift) => shift.id === next.save.activeShiftId);
     expect(finalShift?.activeBooking).toBeUndefined();
+
+    // A finalized date draws a 3-card offer off the pile. It never mutates the
+    // deck (asserted above); deck ∪ pile ∪ offer still partitions the catalog.
+    expect(next.save.pendingCardOffer?.cardIds).toHaveLength(3);
+    expect(next.save.pendingCardOffer?.kind).toBe("date");
+    const drawIds = [
+      ...next.save.scenarioDeck.cardIds,
+      ...next.save.drawPile,
+      ...(next.save.pendingCardOffer?.cardIds ?? []),
+    ];
+    expect(new Set(drawIds).size).toBe(drawIds.length);
+    expect(drawIds.length).toBe(starterScenarios.length);
   });
 
   it("puts both members in cooldown after a completed date", () => {

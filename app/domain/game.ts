@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const SAVE_SCHEMA_VERSION = 11;
+export const SAVE_SCHEMA_VERSION = 12;
 
 export const DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434";
 export const DEFAULT_GATEWAY_BASE_URL = "https://ai-gateway.vercel.sh/v3/ai";
@@ -784,6 +784,33 @@ export const scenarioDeckSchema = z
     }
   });
 
+export const cardOfferKindSchema = z.enum(["date", "closure"]);
+
+/**
+ * A pending post-date card draw awaiting player resolution. Cards here are
+ * lifted off the top of the circulating draw pile; resolving the offer moves
+ * the taken card into the deck and returns the rest to the pile bottom. Lives
+ * on the save so the offer survives reload mid-decision.
+ */
+export const pendingCardOfferSchema = z
+  .object({
+    cardIds: z.array(scenarioIdSchema),
+    kind: cardOfferKindSchema,
+    takeLimit: z.number().int().min(0),
+    canShuffle: z.boolean(),
+  })
+  .superRefine((offer, context) => {
+    const uniqueCardIds = new Set(offer.cardIds);
+
+    if (uniqueCardIds.size !== offer.cardIds.length) {
+      context.addIssue({
+        code: "custom",
+        message: "Pending card offer ids must be unique.",
+        path: ["cardIds"],
+      });
+    }
+  });
+
 export const budgetReasonKindSchema = z.enum([
   "starter",
   "closure",
@@ -1082,6 +1109,8 @@ export const gameSaveSchema = z.object({
   playerKnowledge: z.array(playerKnowledgeRecordSchema).default([]),
   focusedMemberIds: z.array(memberIdSchema).max(4).default([]),
   scenarioDeck: scenarioDeckSchema,
+  drawPile: z.array(scenarioIdSchema).default([]),
+  pendingCardOffer: pendingCardOfferSchema.nullable().default(null),
   closureCount: z.number().int().min(0).default(0),
   softWinSeen: z.boolean().default(false),
   budgetCap: z.number().int().min(0).default(STARTER_BUDGET_CAP),
@@ -1167,6 +1196,8 @@ export type FollowUpAction = z.infer<typeof followUpActionSchema>;
 export type MatchmakingIntent = z.infer<typeof matchmakingIntentSchema>;
 export type MatchmakingIntentOutcome = z.infer<typeof matchmakingIntentOutcomeSchema>;
 export type ScenarioDeck = z.infer<typeof scenarioDeckSchema>;
+export type CardOfferKind = z.infer<typeof cardOfferKindSchema>;
+export type PendingCardOffer = z.infer<typeof pendingCardOfferSchema>;
 export type BudgetReasonKind = z.infer<typeof budgetReasonKindSchema>;
 export type BudgetReason = z.infer<typeof budgetReasonSchema>;
 export type BudgetReview = z.infer<typeof budgetReviewSchema>;

@@ -193,8 +193,7 @@ export function toLobbyScenario(
     },
     // Computed by the caller via evaluateMatchFit + scenarioRoomReadFromMatchFit
     // when the focus / partner / pair context is available; "steady" is the
-    // safe default when no pair is selected (library mode, scenario library
-    // pre-pair).
+    // safe default when no pair is selected (deck mode, card-offer cards).
     roomRead,
     flow: scenario.director.flow,
   };

@@ -2,10 +2,13 @@ import {
   DECK_SIZE_MAX,
   DECK_SIZE_MIN,
   STARTER_BUDGET_CAP,
+  pendingCardOfferSchema,
   scenarioDeckSchema,
   type ActiveDateBooking,
+  type CardOfferKind,
   type DateScenario,
   type GameSave,
+  type PendingCardOffer,
   type ScenarioDeck,
 } from "../domain/game";
 import {
@@ -14,16 +17,29 @@ import {
   deriveDeckBudgetStatus,
   activeBudgetDiscountOffers,
 } from "./budget";
-import { createNamespacedRandom, randomIndex } from "./utils";
+import { arraysShallowEqual, createNamespacedRandom, randomIndex, shuffleInPlace } from "./utils";
 
 export const SCENARIO_HAND_SIZE = 3;
 
 /**
+ * Post-date card offer sizing. A date end offers DATE_OFFER_COUNT cards from the
+ * top of the circulating draw pile and lets the player take up to DATE_OFFER_TAKE.
+ * Closures (the win action) draw a larger CLOSURE_OFFER_COUNT and allow a one-time
+ * pile reshuffle. Tunable; see drawCardOffer().
+ */
+export const DATE_OFFER_COUNT = 3;
+export const DATE_OFFER_TAKE = 1;
+export const CLOSURE_OFFER_COUNT = 5;
+export const CLOSURE_OFFER_TAKE = 2;
+
+/**
  * Starter-eligible scenario ids. Mixes grounded real-world rooms (DMV, diner,
  * bowling) with cozy-cosmic and gently absurd ones (cheese moon, alive brick,
- * chrome aviary, beer river) so onboarding advertises the game's range. The
- * heavier set pieces, grief beats, and high-pressure rooms unlock through
- * closures and shift thresholds. See unlockedScenarioIds() for runtime gating.
+ * chrome aviary, beer river) so onboarding advertises the game's range. This is
+ * the pool the player drafts their opening deck from during onboarding. Every
+ * other room (heavier set pieces, grief beats, high-pressure rooms) reaches the
+ * player through post-date card offers off the circulating draw pile, not a
+ * numeric unlock gate.
  *
  * Listed grounded-first then weird, cost ascending within each group. UI sorts
  * by cost anyway via sortedStarterCatalog().
@@ -213,56 +229,26 @@ export function drawHandForBooking({
   return drawHand({ cardIds: sortedCardIds }, `booking:${shiftNumber}:${pairId}:${cardSignature}`);
 }
 
-export type DeckEditResult = { save: GameSave };
-
-export function addCardToDeck({
-  save,
-  scenarios,
-  cardId,
-}: {
-  save: GameSave;
-  scenarios: readonly DateScenario[];
-  cardId: string;
-}): GameSave {
-  if (save.scenarioDeck.cardIds.includes(cardId)) {
-    throw new Error("That scenario is already in the deck.");
-  }
-  if (save.scenarioDeck.cardIds.length >= DECK_SIZE_MAX) {
-    throw new Error(`The deck is at ${DECK_SIZE_MAX} cards. Drop one before adding.`);
-  }
-
-  const scenarioExists = scenarios.some((scenario) => scenario.id === cardId);
-  if (!scenarioExists) {
-    throw new Error(`Scenario ${cardId} is not in the catalog.`);
-  }
-
-  const offers = activeBudgetDiscountOffers(save);
-  const effectiveCosts = computeEffectiveCosts(scenarios, offers);
-  const remaining = save.budgetCap - currentDeckSpend(save.scenarioDeck.cardIds, effectiveCosts);
-  const cost = effectiveCosts[cardId] ?? 0;
-
-  if (cost > remaining) {
-    throw new Error("That scenario exceeds the remaining budget. Drop a card first.");
-  }
-
-  return {
-    ...save,
-    scenarioDeck: scenarioDeckSchema.parse({
-      cardIds: [...save.scenarioDeck.cardIds, cardId],
-    }),
-  };
-}
-
 export function removeCardFromDeck(save: GameSave, cardId: string): GameSave {
   if (!save.scenarioDeck.cardIds.includes(cardId)) {
     throw new Error(`Card ${cardId} is not in the active deck.`);
   }
+  if (save.scenarioDeck.cardIds.length <= DECK_SIZE_MIN) {
+    throw new Error(
+      `The deck must keep at least ${DECK_SIZE_MIN} rooms; draw new rooms before dropping.`,
+    );
+  }
 
+  // Recirculate the dropped card to the bottom of the draw pile so it can be
+  // re-offered later. Without this the card is orphaned — present in neither the
+  // deck nor the pile — which breaks the deck ∪ pile ∪ offer partition until a
+  // load-time reconcile silently repairs it.
   return {
     ...save,
     scenarioDeck: scenarioDeckSchema.parse({
       cardIds: save.scenarioDeck.cardIds.filter((id) => id !== cardId),
     }),
+    drawPile: [...save.drawPile, cardId],
   };
 }
 
@@ -305,20 +291,6 @@ export function buildBookingDeckSnapshot({
   };
 }
 
-export type LibraryCardEntry = {
-  scenarioId: string;
-};
-
-export function listLibraryCards(
-  save: GameSave,
-  scenarios: readonly DateScenario[],
-): LibraryCardEntry[] {
-  const inDeck = new Set(save.scenarioDeck.cardIds);
-  return scenarios
-    .filter((scenario) => !inDeck.has(scenario.id))
-    .map((scenario) => ({ scenarioId: scenario.id }));
-}
-
 export function softComposeWarnings(
   deck: ScenarioDeck,
   scenarios: readonly DateScenario[],
@@ -357,120 +329,314 @@ export function softComposeWarnings(
   return warnings;
 }
 
-export type UnlockTier =
-  | "starter"
-  | "closure_one"
-  | "closure_two"
-  | "closure_three"
-  | "shift_10"
-  | "shift_20";
-
-export type CatalogUnlock = {
-  scenarioId: string;
-  tier: UnlockTier;
-};
-
-const CATALOG_UNLOCK_TIERS: Record<UnlockTier, readonly string[]> = (() => {
-  // Starter pool is STARTER_CATALOG_IDS (above). Allocate the remainder across
-  // closure and shift gates, leaning the heavier intimacy/grief/pressure rooms
-  // toward later tiers.
-  const closureOne: string[] = [
-    "memory-course-dinner",
-    "soft-launch-photo-wall",
-    "cousins-wedding-plus-one",
-    "phantom-doorbell-suite",
-    "underworld-department-mixer",
-    "midnight-notary-two-clean-promises",
-    "temporal-coffee-shop",
-    "hotel-bar-last-call",
-    "listening-booth-after-close",
-  ];
-  const closureTwo: string[] = [
-    "museum-exhibit-mixup",
-    "prophecy-karaoke",
-    "impossible-lost-and-found",
-    "mess-hall-auriga",
-    "dinosaur-bbq-all-you-can-eat",
-    "moonglass-kiln-after-hours",
-    "cable-car-across-biomes",
-    "hawker-floor-six-branches",
-    "all-hat",
-  ];
-  const closureThree: string[] = [
-    "pilgrimage-mercy-spine",
-    "whale-concert-below-world",
-    "olympus-bottomless-brunch",
-    "world-sim-operator-booth",
-    "hephaestus-forge",
-    "drive-in-last-reel",
-    "vivarium-wing-tiny-residents",
-    "dim-sum-and-then-some",
-    "rook-to-e4",
-  ];
-  const shift10: string[] = [
-    "cloud-castle-mini-golf",
-    "volcano-hot-spring",
-    "adventurers-speakeasy",
-    "capital-ship-war-dinner",
-    "colosseum-box-four",
-    "aquarium-of-cryptids",
-    "chicken-jockey",
-    "throwing-the-match",
-    "pulse-check",
-    "bring-your-own-boo",
-  ];
-  const shift20: string[] = [
-    "bank-heist-1920s-escape-room",
-    "wet-market-three-seas",
-    "beach-where-sea-is-above",
-    "picnic-on-sleeping-giant",
-    "picnic-on-bifrost",
-    "aurora-line-private-compartment",
-    "moon-picnic",
-    "a-star-is-born",
-    "soul-cycle",
-  ];
-
-  return {
-    starter: STARTER_CATALOG_IDS,
-    closure_one: closureOne,
-    closure_two: closureTwo,
-    closure_three: closureThree,
-    shift_10: shift10,
-    shift_20: shift20,
-  };
-})();
-
-export function unlockedScenarioIds({
-  closureCount,
-  shiftNumber,
-}: {
-  closureCount: number;
-  shiftNumber: number;
-}): Set<string> {
-  const unlocked = new Set<string>(CATALOG_UNLOCK_TIERS.starter);
-  if (closureCount >= 1) {
-    for (const id of CATALOG_UNLOCK_TIERS.closure_one) unlocked.add(id);
-  }
-  if (closureCount >= 2) {
-    for (const id of CATALOG_UNLOCK_TIERS.closure_two) unlocked.add(id);
-  }
-  if (closureCount >= 3) {
-    for (const id of CATALOG_UNLOCK_TIERS.closure_three) unlocked.add(id);
-  }
-  if (shiftNumber >= 10) {
-    for (const id of CATALOG_UNLOCK_TIERS.shift_10) unlocked.add(id);
-  }
-  if (shiftNumber >= 20) {
-    for (const id of CATALOG_UNLOCK_TIERS.shift_20) unlocked.add(id);
-  }
-  return unlocked;
+/**
+ * Build the circulating draw pile for a save: every catalog scenario not in the
+ * active deck, in a deterministic per-save shuffle. The pile is the only gate on
+ * card acquisition — no numeric unlock tiering. `deck ∪ pile` is the full
+ * catalog, disjoint. `seedKey` should be stable per save (we use `createdAt`).
+ */
+export function seedDrawPile(
+  allScenarios: readonly DateScenario[],
+  deckCardIds: readonly string[],
+  seedKey: string,
+): string[] {
+  const inDeck = new Set(deckCardIds);
+  const remaining = allScenarios.map((scenario) => scenario.id).filter((id) => !inDeck.has(id));
+  shuffleInPlace(remaining, createNamespacedRandom("draw-pile", [seedKey]));
+  return remaining;
 }
 
-export function listUnlockedScenarios(
+export type DrawCardOfferInput = {
+  count: number;
+  kind: CardOfferKind;
+  takeLimit: number;
+  canShuffle: boolean;
+};
+
+type OfferMeta = {
+  kind: CardOfferKind;
+  takeLimit: number;
+  canShuffle: boolean;
+};
+
+/**
+ * Deal up to `count` cards off the front of `pool` into a pending offer,
+ * returning the leftover pile and the offer (null when nothing is dealt). This
+ * is the only place that lifts pile cards into a `pendingCardOffer`; both
+ * drawCardOffer and shuffleCardOffer assemble a pool and delegate here.
+ */
+function dealOffer(
+  pool: readonly string[],
+  count: number,
+  meta: OfferMeta,
+): { drawPile: string[]; pendingCardOffer: PendingCardOffer | null } {
+  const drawCount = Math.min(count, pool.length);
+  if (drawCount <= 0) {
+    return { drawPile: [...pool], pendingCardOffer: null };
+  }
+  return {
+    drawPile: pool.slice(drawCount),
+    pendingCardOffer: pendingCardOfferSchema.parse({
+      cardIds: pool.slice(0, drawCount),
+      kind: meta.kind,
+      takeLimit: Math.min(meta.takeLimit, drawCount),
+      canShuffle: meta.canShuffle,
+    }),
+  };
+}
+
+/**
+ * Lift up to `count` cards off the top of the draw pile into a pending offer.
+ * Any unresolved prior offer is first returned to the pile bottom (treated as
+ * declined) so cards never leak out of the `deck ∪ pile ∪ offer` set. An empty
+ * pile yields no offer (`pendingCardOffer` stays null).
+ */
+export function drawCardOffer(save: GameSave, input: DrawCardOfferInput): GameSave {
+  const reclaimed =
+    save.pendingCardOffer === null
+      ? save.drawPile
+      : [...save.drawPile, ...save.pendingCardOffer.cardIds];
+  return { ...save, ...dealOffer(reclaimed, input.count, input) };
+}
+
+/** Draw the standard post-date offer (3 cards, take 1). */
+export function attachDateCardOffer(save: GameSave): GameSave {
+  return drawCardOffer(save, {
+    count: DATE_OFFER_COUNT,
+    kind: "date",
+    takeLimit: DATE_OFFER_TAKE,
+    canShuffle: false,
+  });
+}
+
+/** Draw the larger closure offer (5 cards, take 2) with a one-time reshuffle. */
+export function attachClosureCardOffer(save: GameSave): GameSave {
+  return drawCardOffer(save, {
+    count: CLOSURE_OFFER_COUNT,
+    kind: "closure",
+    takeLimit: CLOSURE_OFFER_TAKE,
+    canShuffle: true,
+  });
+}
+
+export type ResolveCardOfferInput = {
+  takenIds: readonly string[];
+  droppedIds: readonly string[];
+};
+
+/**
+ * The verdict for resolving the pending offer with a given take/drop selection.
+ * Single source of truth shared by `resolveCardOffer` (which throws `message`
+ * when `!legal`) and the card-offer overlay (which reads the flags to drive the
+ * confirm button and the drop-step affordances). `legal` means `resolveCardOffer`
+ * would commit without throwing — note an empty take is legal (it declines the
+ * whole offer), so the overlay gates its confirm button on a non-empty take.
+ */
+export type OfferResolutionPlan = {
+  dropped: string[];
+  declined: string[];
+  nextCardIds: string[];
+  finalSize: number;
+  finalSpend: number;
+  overSlotCap: boolean;
+  underSlotMin: boolean;
+  overBudget: boolean;
+  legal: boolean;
+  message: string | null;
+};
+
+/**
+ * Compute the take/drop resolution verdict without mutating the save: the
+ * resulting deck ids, its size/spend, and the first failing guard (if any).
+ * `scenarioDeckSchema` does not enforce deck size, so this is the authoritative
+ * size/budget check for the offer path.
+ */
+export function planCardOfferResolution(
+  save: GameSave,
   scenarios: readonly DateScenario[],
-  options: { closureCount: number; shiftNumber: number },
-): DateScenario[] {
-  const unlocked = unlockedScenarioIds(options);
-  return scenarios.filter((scenario) => unlocked.has(scenario.id));
+  input: ResolveCardOfferInput,
+): OfferResolutionPlan {
+  const offer = save.pendingCardOffer;
+  const deckCardIds = save.scenarioDeck.cardIds;
+  const effectiveCosts = computeEffectiveCosts(scenarios, activeBudgetDiscountOffers(save));
+  const taken = [...new Set(input.takenIds)];
+  const dropped = [...new Set(input.droppedIds)];
+  const droppedSet = new Set(dropped);
+  const nextCardIds = [...deckCardIds.filter((id) => !droppedSet.has(id)), ...taken];
+  const finalSize = nextCardIds.length;
+  const finalSpend = currentDeckSpend(nextCardIds, effectiveCosts);
+  const overSlotCap = finalSize > DECK_SIZE_MAX;
+  const underSlotMin = finalSize < DECK_SIZE_MIN;
+  const overBudget = finalSpend > save.budgetCap;
+
+  const base = {
+    dropped,
+    nextCardIds,
+    finalSize,
+    finalSpend,
+    overSlotCap,
+    underSlotMin,
+    overBudget,
+  };
+
+  if (offer === null) {
+    return {
+      ...base,
+      declined: [],
+      legal: false,
+      message: "There is no pending card offer to resolve.",
+    };
+  }
+
+  const offerIds = new Set(offer.cardIds);
+  const deckIds = new Set(deckCardIds);
+  const takenSet = new Set(taken);
+  const declined = offer.cardIds.filter((id) => !takenSet.has(id));
+
+  let message: string | null = null;
+  const fail = (nextMessage: string): void => {
+    if (message === null) {
+      message = nextMessage;
+    }
+  };
+
+  for (const id of taken) {
+    if (!offerIds.has(id)) {
+      fail(`Card ${id} is not part of the current offer.`);
+    } else if (deckIds.has(id)) {
+      fail(`Card ${id} is already in the deck.`);
+    }
+  }
+  if (taken.length > offer.takeLimit) {
+    fail(`This offer allows taking at most ${offer.takeLimit} card(s).`);
+  }
+  for (const id of dropped) {
+    if (!deckIds.has(id)) {
+      fail(`Card ${id} is not in the active deck.`);
+    }
+  }
+  if (overSlotCap || underSlotMin) {
+    fail(
+      `Resolving the offer leaves ${finalSize} cards; the deck must hold ${DECK_SIZE_MIN}-${DECK_SIZE_MAX}.`,
+    );
+  }
+  if (overBudget) {
+    fail(
+      `Resolving the offer spends ${finalSpend} against a ${save.budgetCap} cap. Drop more cards first.`,
+    );
+  }
+
+  return { ...base, declined, legal: message === null, message };
+}
+
+/**
+ * Resolve the pending offer: move `takenIds` into the deck, drop `droppedIds`
+ * from the deck, and return both the dropped cards and the declined offer cards
+ * to the pile bottom (dropped first, then declined). Delegates the size/budget/
+ * membership verdict to `planCardOfferResolution` and commits only when legal.
+ */
+export function resolveCardOffer(
+  save: GameSave,
+  scenarios: readonly DateScenario[],
+  input: ResolveCardOfferInput,
+): GameSave {
+  const plan = planCardOfferResolution(save, scenarios, input);
+  if (!plan.legal) {
+    throw new Error(plan.message ?? "The card offer cannot be resolved.");
+  }
+
+  return {
+    ...save,
+    scenarioDeck: scenarioDeckSchema.parse({ cardIds: plan.nextCardIds }),
+    drawPile: [...save.drawPile, ...plan.dropped, ...plan.declined],
+    pendingCardOffer: null,
+  };
+}
+
+/**
+ * Re-roll the current offer: return its cards to the pile, reshuffle the whole
+ * pile with a fresh seed, and redraw the same count/kind. Consumes the one-time
+ * shuffle (`canShuffle` becomes false). Used by closure offers.
+ */
+export function shuffleCardOffer(save: GameSave, seedKey: string): GameSave {
+  const offer = save.pendingCardOffer;
+  if (offer === null) {
+    throw new Error("There is no pending card offer to shuffle.");
+  }
+  if (!offer.canShuffle) {
+    throw new Error("This offer has already been reshuffled.");
+  }
+
+  const pool = [...save.drawPile, ...offer.cardIds];
+  shuffleInPlace(pool, createNamespacedRandom("draw-pile-shuffle", [seedKey]));
+  return {
+    ...save,
+    ...dealOffer(pool, offer.cardIds.length, {
+      kind: offer.kind,
+      takeLimit: offer.takeLimit,
+      canShuffle: false,
+    }),
+  };
+}
+
+/**
+ * Reconcile the deck / pile / offer triple so it partitions the full catalog:
+ * drop unknown ids, dedupe, ensure disjointness (a deck card never also sits in
+ * the pile/offer), and append any catalog scenario missing from all three to the
+ * pile bottom. Returns the same references when nothing changed so callers can
+ * cheaply detect drift.
+ */
+export function reconcileDrawState(
+  save: GameSave,
+  allScenarios: readonly DateScenario[],
+): { scenarioDeck: ScenarioDeck; drawPile: string[]; pendingCardOffer: PendingCardOffer | null } {
+  const known = new Set(allScenarios.map((scenario) => scenario.id));
+  const claimed = new Set<string>();
+
+  const reconcile = (ids: readonly string[]): string[] => {
+    const next: string[] = [];
+    for (const id of ids) {
+      if (!known.has(id) || claimed.has(id)) continue;
+      claimed.add(id);
+      next.push(id);
+    }
+    return next;
+  };
+
+  const deckCardIds = reconcile(save.scenarioDeck.cardIds);
+  const offerCardIds =
+    save.pendingCardOffer === null ? [] : reconcile(save.pendingCardOffer.cardIds);
+  const pile = reconcile(save.drawPile);
+
+  for (const scenario of allScenarios) {
+    if (!claimed.has(scenario.id)) {
+      claimed.add(scenario.id);
+      pile.push(scenario.id);
+    }
+  }
+
+  const deckChanged = !arraysShallowEqual(deckCardIds, save.scenarioDeck.cardIds);
+  const pileChanged = !arraysShallowEqual(pile, save.drawPile);
+
+  let nextOffer = save.pendingCardOffer;
+  if (save.pendingCardOffer !== null) {
+    const offerChanged = !arraysShallowEqual(offerCardIds, save.pendingCardOffer.cardIds);
+    if (offerCardIds.length === 0) {
+      nextOffer = null;
+    } else if (offerChanged) {
+      nextOffer = pendingCardOfferSchema.parse({
+        ...save.pendingCardOffer,
+        cardIds: offerCardIds,
+        takeLimit: Math.min(save.pendingCardOffer.takeLimit, offerCardIds.length),
+      });
+    }
+  }
+
+  return {
+    scenarioDeck: deckChanged
+      ? scenarioDeckSchema.parse({ cardIds: deckCardIds })
+      : save.scenarioDeck,
+    drawPile: pileChanged ? pile : save.drawPile,
+    pendingCardOffer: nextOffer,
+  };
 }

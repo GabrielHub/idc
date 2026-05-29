@@ -42,6 +42,18 @@ const DRAFT_PENDING_STATUS: AiSetupStatus = {
   details: [],
 };
 
+/**
+ * Shown before the player has finished AI setup. A fresh save defaults to
+ * Ollama, so both the splash readiness probe and the in-app status hook skip the
+ * provider check until `aiSetupComplete` flips — surfacing this instead of
+ * firing failing localhost:11434 requests at players who never opted in.
+ */
+export const AI_NOT_CONFIGURED_STATUS: AiSetupStatus = {
+  status: "unavailable",
+  message: "AI provider not set up yet. Configure one before your first date.",
+  details: [],
+};
+
 const STATUS_TONE: Record<
   AiSetupStatus["status"],
   { dot: "emerald" | "amber" | "rose"; label: string; ring: string }

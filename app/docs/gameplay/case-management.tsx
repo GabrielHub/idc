@@ -246,17 +246,31 @@ export const sections: DocSectionEntry[] = [
     id: "deck",
     title: "Deck and draws",
     body: (
-      <P>
-        The deck is a save-owned budget allocation of 6 to 12 cards, not a shift-owned hand.
-        Onboarding installs a minimum-size starter deck for shift 1, and Date Book editing unlocks
-        after the first date report. A shift starts without a hand. When the player commits a focus
-        case and partner, Cupid stores an active booking on the shift, snapshots the current deck
-        budget, reserves the shift date slot, and draws 3 cards into{" "}
-        <DocCode>shift.drawnScenarioIds</DocCode>. Playing a card does not remove it from the deck
-        or open a replacement slot. Date Book edits add or drop cards against the current budget cap
-        and are locked while an active booking or date session exists. See the deck service in{" "}
-        <DocCode>app/services/deck.ts</DocCode>.
-      </P>
+      <>
+        <P>
+          The deck is a save-owned budget allocation of 6 to 12 cards, not a shift-owned hand.
+          Onboarding drafts a minimum-size starter deck from the starter catalog. Every other room
+          reaches the player through post-date card offers rather than a numeric unlock gate: the
+          full catalog minus the deck lives in a single circulating draw pile, seeded once per save.
+          The deck, the draw pile, and any pending offer always partition the full catalog.
+        </P>
+        <P>
+          A shift starts without a hand. When the player commits a focus case and partner, Cupid
+          stores an active booking, snapshots the current deck budget, reserves the date slot, and
+          draws 3 cards into <DocCode>shift.drawnScenarioIds</DocCode>. Playing a card does not
+          remove it from the deck.
+        </P>
+        <P>
+          When a date finalizes, Cupid draws an offer off the top of the pile — 3 cards, take 1.
+          Filing a closure draws a larger offer — 5 cards, take 2 — plus a one-time reshuffle. Taken
+          cards join the deck; declined and swapped-out cards return to the bottom of the pile, so
+          the catalog recirculates. Budget stays a holding cap: receiving cards is free, and taking
+          one while the deck is full or over budget forces a compensating drop, resolved atomically.
+          The Date Book (deck view plus drop) unlocks after the first date report and is locked
+          while an active booking or date session exists. See the deck service in{" "}
+          <DocCode>app/services/deck.ts</DocCode>.
+        </P>
+      </>
     ),
   },
   {

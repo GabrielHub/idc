@@ -9,6 +9,7 @@ import {
   type PairState,
 } from "../domain/game";
 import { applyClosureBudgetBump, applyMemberQuitBudgetCut } from "./budget";
+import { attachClosureCardOffer } from "./deck";
 import { syncActiveShiftFocusCases } from "./focus-cases";
 import { buildLatestCompletedSessionMap } from "./relationship-index";
 import { clampScore } from "./utils";
@@ -276,7 +277,9 @@ export function closePair({ save, pairId, summary, now = new Date() }: ClosurePa
     updatedAt: timestamp,
   });
 
-  return syncActiveShiftFocusCases(closedSave);
+  // Filing a closure is the win moment: draw the larger closure offer with a
+  // one-time reshuffle off the pile.
+  return syncActiveShiftFocusCases(attachClosureCardOffer(closedSave));
 }
 
 function buildClosureMemoryRecord({

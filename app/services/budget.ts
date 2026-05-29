@@ -123,41 +123,6 @@ export function currentDeckSpend(
   return total;
 }
 
-export function remainingBudget(
-  cardIds: readonly string[],
-  effectiveCosts: Record<string, number>,
-  budgetCap: number,
-): number {
-  return budgetCap - currentDeckSpend(cardIds, effectiveCosts);
-}
-
-export function canAddToDeck({
-  cardId,
-  cardIds,
-  effectiveCosts,
-  budgetCap,
-}: {
-  cardId: string;
-  cardIds: readonly string[];
-  effectiveCosts: Record<string, number>;
-  budgetCap: number;
-}): { ok: true } | { ok: false; reason: "duplicate" | "deck_full" | "over_budget" | "unknown" } {
-  if (cardIds.includes(cardId)) {
-    return { ok: false, reason: "duplicate" };
-  }
-  if (cardIds.length >= DECK_SIZE_MAX) {
-    return { ok: false, reason: "deck_full" };
-  }
-  const cost = effectiveCosts[cardId];
-  if (cost === undefined) {
-    return { ok: false, reason: "unknown" };
-  }
-  if (cost > remainingBudget(cardIds, effectiveCosts, budgetCap)) {
-    return { ok: false, reason: "over_budget" };
-  }
-  return { ok: true };
-}
-
 export function deriveDeckBudgetStatus({
   cardIds,
   effectiveCosts,

@@ -6,7 +6,7 @@ import {
   type MemberRequest,
 } from "../domain/game";
 import { computeEffectiveCosts, rotateBudgetPeriod } from "./budget";
-import { createDraftedScenarioDeck, STARTER_CATALOG_IDS } from "./deck";
+import { createDraftedScenarioDeck, seedDrawPile, STARTER_CATALOG_IDS } from "./deck";
 import { selectInitialFocusCases } from "./focus-cases";
 import { getActiveShift } from "./game-seed";
 
@@ -37,6 +37,11 @@ export function completeInitialOnboarding({
   const withDeck: GameSave = {
     ...save,
     scenarioDeck: starterDeck,
+    // Re-derive the draw pile against the player's drafted deck so the
+    // deck ∪ pile partition holds: the pre-onboarding fallback deck is folded
+    // back in and the drafted cards are lifted out. Stable per-save seed.
+    drawPile: seedDrawPile(scenarios, starterDeck.cardIds, save.createdAt),
+    pendingCardOffer: null,
     shifts: save.shifts.map((shift) =>
       shift.id === save.activeShiftId ? { ...shift, drawnScenarioIds: [] as string[] } : shift,
     ),

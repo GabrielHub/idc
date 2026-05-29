@@ -4,7 +4,6 @@ import {
   gameSaveSchema,
   memberSchema,
   SAVE_SCHEMA_VERSION,
-  scenarioDeckSchema,
   shiftStateSchema,
   STARTER_BUDGET_CAP,
   type DateSession,
@@ -14,11 +13,10 @@ import {
   type PairProjection,
   type PairState,
   type PairStats,
-  type ScenarioDeck,
   type ShiftState,
 } from "../domain/game";
 import { starterMembers, starterScenarios } from "../fixtures";
-import { createInitialScenarioDeck } from "./deck";
+import { createInitialScenarioDeck, reconcileDrawState, seedDrawPile } from "./deck";
 import { normalizePairStateActiveMemoryDuplicates } from "./pair-memory-state";
 import {
   dateSessionShiftNumber,
@@ -35,8 +33,6 @@ import {
 import { derivePairStats } from "./pair-stats";
 import { arraysShallowEqual, clampScore } from "./utils";
 
-const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
-
 export type CreateSeedGameSaveOptions = {
   config?: GameConfig;
 };
@@ -49,6 +45,7 @@ export function createSeedGameSave(
   const config = gameConfigSchema.parse(options.config ?? {});
   const members = STARTER_FIXTURE_MEMBERS;
   const scenarioDeck = createInitialScenarioDeck(starterScenarios);
+  const drawPile = seedDrawPile(starterScenarios, scenarioDeck.cardIds, timestamp);
   const focusedMemberIds: string[] = [];
   const activeShift: ShiftState = {
     id: "shift-1",
@@ -94,6 +91,8 @@ export function createSeedGameSave(
     playerKnowledge: [],
     focusedMemberIds,
     scenarioDeck,
+    drawPile,
+    pendingCardOffer: null,
     closureCount: 0,
     softWinSeen: false,
     budgetCap: STARTER_BUDGET_CAP,
@@ -177,8 +176,14 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   );
   if (shiftsResult.dirty) dirty = true;
 
-  const scenarioDeckResult = hydrateScenarioDeck(save.scenarioDeck);
-  if (scenarioDeckResult !== save.scenarioDeck) dirty = true;
+  const drawStateResult = reconcileDrawState(save, starterScenarios);
+  if (
+    drawStateResult.scenarioDeck !== save.scenarioDeck ||
+    drawStateResult.drawPile !== save.drawPile ||
+    drawStateResult.pendingCardOffer !== save.pendingCardOffer
+  ) {
+    dirty = true;
+  }
 
   if (!dirty) {
     return { save, dirty: false };
@@ -191,7 +196,9 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
       pairStates: pairResult.pairStates,
       dateSessions: dateSessionResult.items,
       shifts: shiftsResult.items,
-      scenarioDeck: scenarioDeckResult,
+      scenarioDeck: drawStateResult.scenarioDeck,
+      drawPile: drawStateResult.drawPile,
+      pendingCardOffer: drawStateResult.pendingCardOffer,
     }),
     dirty: true,
   };
@@ -264,24 +271,6 @@ const STARTER_FIXTURE_MEMBERS: Member[] = starterMembers.map((member) =>
 const STARTER_MEMBERS_BY_ID = new Map(
   STARTER_FIXTURE_MEMBERS.map((member) => [member.id, member] as const),
 );
-
-function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
-  const knownScenarioIds = new Set(STARTER_SCENARIO_IDS);
-  const seen = new Set<string>();
-  const cardIds: string[] = [];
-
-  for (const cardId of scenarioDeck.cardIds) {
-    if (!knownScenarioIds.has(cardId)) continue;
-    if (seen.has(cardId)) continue;
-    seen.add(cardId);
-    cardIds.push(cardId);
-  }
-
-  if (cardIds.length !== scenarioDeck.cardIds.length) {
-    return scenarioDeckSchema.parse({ cardIds });
-  }
-  return scenarioDeck;
-}
 
 function hydrateShift(
   shift: ShiftState,

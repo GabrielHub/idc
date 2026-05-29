@@ -1,26 +1,23 @@
-import { DECK_SIZE_MAX, type DateScenario, type GameSave } from "../../domain/game";
-import { canAddToDeck } from "../../services/budget";
+import { DECK_SIZE_MIN, type DateScenario } from "../../domain/game";
 import { AuraButton } from "../aura-button";
 import { CathedralDetailOverlay, type CathedralMode } from "./cathedral";
 
 export function CathedralScenarioDetail({
   scenario,
   mode,
-  save,
   effectiveCosts,
   bookingLocked,
   isActionPending,
-  onAddDeckCard,
+  deckCardCount,
   onRemoveDeckCard,
   onClose,
 }: {
   scenario: DateScenario | null;
   mode: CathedralMode;
-  save: GameSave;
   effectiveCosts: Readonly<Record<string, number>>;
   bookingLocked: boolean;
   isActionPending: boolean;
-  onAddDeckCard: (cardId: string) => void;
+  deckCardCount: number;
   onRemoveDeckCard: (cardId: string) => void;
   onClose: () => void;
 }) {
@@ -28,11 +25,10 @@ export function CathedralScenarioDetail({
   const detail = buildDetail({
     scenario,
     mode,
-    save,
     effectiveCosts,
     bookingLocked,
     isActionPending,
-    onAddDeckCard,
+    deckCardCount,
     onRemoveDeckCard,
     onClose,
   });
@@ -53,21 +49,19 @@ export function CathedralScenarioDetail({
 function buildDetail({
   scenario,
   mode,
-  save,
   effectiveCosts,
   bookingLocked,
   isActionPending,
-  onAddDeckCard,
+  deckCardCount,
   onRemoveDeckCard,
   onClose,
 }: {
   scenario: DateScenario;
   mode: CathedralMode;
-  save: GameSave;
   effectiveCosts: Readonly<Record<string, number>>;
   bookingLocked: boolean;
   isActionPending: boolean;
-  onAddDeckCard: (cardId: string) => void;
+  deckCardCount: number;
   onRemoveDeckCard: (cardId: string) => void;
   onClose: () => void;
 }) {
@@ -84,65 +78,34 @@ function buildDetail({
       effectiveCost: effective,
     };
   }
-  if (mode === "deck") {
-    const dropDisabled = bookingLocked || isActionPending;
-    return {
-      eyebrow: "// deck slot",
-      cta: (
-        <AuraButton
-          tooltip={
-            dropDisabled
-              ? "Deck edits are locked while Cupid is working"
-              : `Drop card and refund ${effective}`
-          }
-          onClick={() => {
-            onRemoveDeckCard(scenario.id);
-            onClose();
-          }}
-          disabled={dropDisabled}
-          className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-5 py-2 font-display text-label disabled:opacity-55"
-        >
-          Drop card · refund {effective}
-        </AuraButton>
-      ),
-      note: bookingLocked ? "booking active · edits locked until the date resolves" : undefined,
-      effectiveCost: effective,
-    };
-  }
-  if (mode !== "library") return null;
-  const inDeck = save.scenarioDeck.cardIds.includes(scenario.id);
-  const deckFull = save.scenarioDeck.cardIds.length >= DECK_SIZE_MAX;
-  const add = canAddToDeck({
-    cardId: scenario.id,
-    cardIds: save.scenarioDeck.cardIds,
-    effectiveCosts,
-    budgetCap: save.budgetCap,
-  });
-  const canAddNow = add.ok && !inDeck && !deckFull;
-  const reason = inDeck
-    ? "Already in deck."
-    : deckFull
-      ? "Deck is at the slot cap. Drop a card first."
-      : !add.ok && add.reason === "over_budget"
-        ? "Adding this card would exceed remaining budget."
+  const atMinDeck = deckCardCount <= DECK_SIZE_MIN;
+  const dropBlockedReason =
+    bookingLocked || isActionPending
+      ? "Deck edits are locked while Cupid is working"
+      : atMinDeck
+        ? `Deck is at its ${DECK_SIZE_MIN}-room minimum — draw new rooms before dropping.`
         : undefined;
-  const addDisabled = !canAddNow || isActionPending || bookingLocked;
+  const dropDisabled = dropBlockedReason !== undefined;
   return {
-    eyebrow: "// library card",
+    eyebrow: "// deck slot",
     cta: (
       <AuraButton
-        tooltip={reason ?? `Add to deck and spend ${effective}`}
+        tooltip={dropBlockedReason ?? `Drop card and refund ${effective}`}
         onClick={() => {
-          onAddDeckCard(scenario.id);
+          onRemoveDeckCard(scenario.id);
           onClose();
         }}
-        disabled={addDisabled}
+        disabled={dropDisabled}
         className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-5 py-2 font-display text-label disabled:opacity-55"
       >
-        Add to deck · spend {effective}
+        Drop card · refund {effective}
       </AuraButton>
     ),
-    note: reason,
+    note: bookingLocked
+      ? "booking active · edits locked until the date resolves"
+      : atMinDeck
+        ? `deck at ${DECK_SIZE_MIN}-room minimum · draw new rooms to free a drop`
+        : undefined,
     effectiveCost: effective,
   };
 }

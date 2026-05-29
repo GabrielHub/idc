@@ -49,6 +49,7 @@ import { deriveShiftFilingState } from "./shift-filing-state";
 import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
+import { CardOfferOverlay } from "./card-offer-overlay";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import {
   FLYTHROUGH_LAYERS,
@@ -81,8 +82,9 @@ export function ConstellationLobby({
   onCommitPair,
   onBeginDate,
   onCancelBooking,
-  onAddDeckCard,
   onRemoveDeckCard,
+  onResolveCardOffer,
+  onShuffleCardOffer,
   onClosePair,
   closureErrorMessage = null,
   onDismissClosureError,
@@ -129,9 +131,9 @@ export function ConstellationLobby({
 
   /**
    * One reducer owns the planning flow: booking selection (focus / partner /
-   * intent / scenario), the cathedral mode (auto / deck / library), and the
-   * flythrough layer (0/1/2/3). External activeBooking changes flow in via
-   * `syncBooking`. See `lobby-reducer.ts` for the full transition table.
+   * intent / scenario), the cathedral mode (auto / deck), and the flythrough
+   * layer (0/1/2/3). External activeBooking changes flow in via `syncBooking`.
+   * See `lobby-reducer.ts` for the full transition table.
    */
   const { projection, dispatch } = useLobbyState({
     activeBooking,
@@ -237,20 +239,14 @@ export function ConstellationLobby({
     onCaseFileClose: handleCaseFileClose,
   });
 
-  // Cathedral / date book panel transient state — expandedDoor peek, hover,
-  // library filter controls — plus the open/close/cycle helpers and the ESC
-  // handler that returns to auto when no other overlay owns ESC.
+  // Cathedral / date book panel transient state — expandedDoor peek, hover —
+  // plus the open/close/toggle helpers and the ESC handler that returns to
+  // auto when no other overlay owns ESC.
   const {
     expandedDoorId,
     setExpandedDoorId,
     hoveredDoorId,
     setHoveredDoorId,
-    librarySearch,
-    setLibrarySearch,
-    libraryRiskFilter,
-    setLibraryRiskFilter,
-    librarySort,
-    setLibrarySort,
     closeDateBook,
     handleDateBookNavToggle,
     setScenarioMode,
@@ -327,9 +323,6 @@ export function ConstellationLobby({
     focusId,
     partnerId,
     scenarioMode,
-    librarySearch,
-    libraryRiskFilter,
-    librarySort,
     expandedDoorId,
   });
   const dateBookEditingIsUnlocked = dateBookEditingUnlocked(save);
@@ -430,10 +423,10 @@ export function ConstellationLobby({
   }, [activeBooking, dispatch, onCancelBooking]);
   const handleClearPartner = handleCancelPair;
 
-  // Deck / library mode reads as a dedicated screen — the surrounding HUD
-  // (chrome pills, layer dots, focus/partner rail, callouts, bottom dock,
-  // contextual pill rail) recedes so the cathedral panel owns the frame.
-  // The panel's own "← Close" button is the way back out.
+  // Deck mode reads as a dedicated screen — the surrounding HUD (chrome pills,
+  // layer dots, focus/partner rail, callouts, bottom dock, contextual pill
+  // rail) recedes so the cathedral panel owns the frame. The panel's own
+  // "← Close" button is the way back out.
   const dateBookOpen = scenarioMode !== "auto";
 
   const handleOpenClosures = useCallback(() => {
@@ -739,9 +732,8 @@ export function ConstellationLobby({
   /**
    * Door click routes to one of two flows. In auto mode (committed pair
    * picking tonight's scenario) the click sets `selectedScenarioId` so the
-   * BottomDock's Begin-date button can fire. In deck / library mode the
-   * click opens the detail overlay so the player can read the brief and
-   * fire the mode-specific CTA (Drop / Add).
+   * BottomDock's Begin-date button can fire. In deck mode the click opens the
+   * detail overlay so the player can read the brief and fire the Drop CTA.
    */
   const handleDoorClick = (id: string) => {
     if (scenarioMode === "auto") {
@@ -889,33 +881,16 @@ export function ConstellationLobby({
         // scenario without committing. Auto mode's body click still locks the
         // pick for tonight — the peek is the additive path.
         onOpenDetail={setExpandedDoorId}
-        // Close button surfaces only in deck/library — auto mode is the
+        // Close button surfaces only in deck mode — auto mode is the
         // cathedral's natural resting state and doesn't need a back affordance.
         onClose={scenarioMode === "auto" ? undefined : closeDateBook}
-        // Deck/Library tab toggle in the panel header — lets the player drop
-        // staged cards and add new ones from the library without bouncing
-        // through the lobby.
-        onChangeMode={scenarioMode === "auto" ? undefined : setScenarioMode}
         reducedMotion={reducedMotion}
         containerRef={cathedralPanelRef}
         scrollRef={cathedralScrollRef}
         deckBookShards={scenarioMode === "auto" ? undefined : deckBookShards}
-        // Surface deck-composition advisories in both deck and library modes
-        // so the player can see what's missing from the deck while picking
-        // additions from the library — not just while staring at the deck.
+        // Surface deck-composition advisories in deck mode so the player can
+        // see what's missing while trimming the deck.
         composeWarnings={scenarioMode === "auto" ? undefined : deckComposeWarnings}
-        libraryFilter={
-          scenarioMode === "library"
-            ? {
-                search: librarySearch,
-                riskFilter: libraryRiskFilter,
-                sortMode: librarySort,
-                onSearchChange: setLibrarySearch,
-                onRiskFilterChange: setLibraryRiskFilter,
-                onSortChange: setLibrarySort,
-              }
-            : undefined
-        }
       />
       <LobbyOverlays
         save={save}
@@ -970,14 +945,19 @@ export function ConstellationLobby({
         scenarioDetail={{
           scenario: expandedScenario,
           mode: scenarioMode,
-          save,
           effectiveCosts,
           bookingLocked,
           isActionPending,
-          onAddDeckCard,
+          deckCardCount: save.scenarioDeck.cardIds.length,
           onRemoveDeckCard,
           onClose: () => setExpandedDoorId(null),
         }}
+      />
+      <CardOfferOverlay
+        save={save}
+        isActionPending={isActionPending}
+        onResolve={onResolveCardOffer}
+        onShuffle={onShuffleCardOffer}
       />
     </div>
   );

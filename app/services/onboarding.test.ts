@@ -29,5 +29,14 @@ describe("initial onboarding", () => {
     expect(activeShift.featuredMemberIds).toEqual(focusedMemberIds);
     expect(activeShift.drawnScenarioIds).toEqual([]);
     expect(next.budgetPeriodId).toBe("budget-period-shift-1");
+
+    // The draw pile is re-derived against the drafted deck: it excludes the
+    // drafted cards and, with them, partitions the full catalog.
+    const allIds = starterScenarios.map((scenario) => scenario.id);
+    for (const id of next.scenarioDeck.cardIds) {
+      expect(next.drawPile).not.toContain(id);
+    }
+    expect(next.pendingCardOffer).toBeNull();
+    expect(new Set([...next.scenarioDeck.cardIds, ...next.drawPile])).toEqual(new Set(allIds));
   });
 });

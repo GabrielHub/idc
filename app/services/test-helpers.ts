@@ -11,9 +11,11 @@ import {
   type DateEngineResult,
   type StartDateInput,
 } from "./date-engine";
+import { reconcileDrawState } from "./deck";
 import { FOCUS_CASE_LIMIT } from "./focus-cases";
 import { getActiveShift } from "./game-seed";
 import { SHIFT_PARTNER_SLATE_SIZE, selectShiftPartnerMemberIds } from "./shift-availability";
+import { starterScenarios } from "../fixtures";
 
 /**
  * Starts a date session and immediately drafts the first three offered events
@@ -150,11 +152,18 @@ export function ensureScenarioInDeck(save: GameSave, scenarioId: string): GameSa
     cardIds[cardIds.length - 1] = scenarioId;
   }
 
-  const updatedDeck = scenarioDeckSchema.parse({ cardIds });
+  // Swapping a card into the deck would otherwise leave the swapped-in card in
+  // both the deck and the draw pile and orphan the displaced one. Reconcile so
+  // deck ∪ pile ∪ offer keeps partitioning the catalog and the save stays clean
+  // (no repair write on the next load).
+  const withDeck = { ...save, scenarioDeck: scenarioDeckSchema.parse({ cardIds }) };
+  const reconciled = reconcileDrawState(withDeck, starterScenarios);
 
   return gameSaveSchema.parse({
-    ...save,
-    scenarioDeck: updatedDeck,
+    ...withDeck,
+    scenarioDeck: reconciled.scenarioDeck,
+    drawPile: reconciled.drawPile,
+    pendingCardOffer: reconciled.pendingCardOffer,
   });
 }
 

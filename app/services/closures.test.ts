@@ -622,6 +622,12 @@ describe("getReadyClosurePairs and closePair", () => {
     expect(closureMemory?.pairId).toBe(pairId);
     expect(closureMemory?.scope).toBe("pair");
     expect(closureMemory?.text).toBe(summary);
+
+    // Filing a closure draws the larger closure card offer with a one-time reshuffle.
+    expect(closed.pendingCardOffer?.kind).toBe("closure");
+    expect(closed.pendingCardOffer?.cardIds).toHaveLength(5);
+    expect(closed.pendingCardOffer?.takeLimit).toBe(2);
+    expect(closed.pendingCardOffer?.canShuffle).toBe(true);
   });
 
   it("closePair rejects when the pair no longer meets the threshold", () => {

@@ -1,7 +1,7 @@
 /**
  * Lobby planning reducer. Collapses the booking-selection state (focus,
- * partner, intent, scenario), the cathedral mode (auto / deck / library),
- * and the flythrough layer into a single typed machine.
+ * partner, intent, scenario), the cathedral mode (auto / deck), and the
+ * flythrough layer into a single typed machine.
  *
  * What the reducer replaces:
  *
@@ -86,7 +86,7 @@ export type LobbyAction =
   | { type: "selectScenario"; scenarioId: string | null }
   | { type: "cancelPair"; dropFocus?: boolean }
   | { type: "selectLayer"; layer: FlythroughLayer; navigationMode: LayerNavigationMode }
-  | { type: "openDateBook"; mode: "deck" | "library" }
+  | { type: "openDateBook"; mode: "deck" }
   | { type: "closeDateBook" };
 
 export function initialLobbyState(input: {

@@ -74,12 +74,7 @@ export function ContextualPillRail({
   // edge case, so the pill never needs to render as a way back out.
   const showPairsEntry = archiveEdgeCount > 0;
 
-  const dateBookLabel =
-    scenarioMode === "deck"
-      ? "Date book · deck"
-      : scenarioMode === "library"
-        ? "Date book · library"
-        : "Date book";
+  const dateBookLabel = scenarioMode === "deck" ? "Date book · deck" : "Date book";
   const dateBookTone = dateBookActive
     ? "aura-liquid-glass-rose"
     : deckRepairBlocked

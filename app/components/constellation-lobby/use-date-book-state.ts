@@ -1,26 +1,25 @@
 import { useCallback, useEffect, useState, type Dispatch } from "react";
 
 import type { LobbyAction } from "./lobby-reducer";
-import type { CathedralMode, RiskFilter, SortMode } from "./cathedral";
+import type { CathedralMode } from "./cathedral";
 
 /**
  * Owns the cathedral / date book panel UI state that lives outside the planning
- * reducer: which door is peeked open, which door is hover-bloomed, and the
- * library filter controls.
+ * reducer: which door is peeked open and which door is hover-bloomed.
  *
  * Also owns the side-effect logic that keeps the date book coherent:
  *
- *   - closes the deck/library back to auto when ESC fires AND no other overlay
- *     owns the channel — the overlay-open guard prevents racing the case-file,
+ *   - closes the deck back to auto when ESC fires AND no other overlay owns
+ *     the channel — the overlay-open guard prevents racing the case-file,
  *     notes, and closure panels;
- *   - cycles auto → deck → library → auto on the Date book pill toggle;
- *   - resets `expandedDoorId` and exits deck/library when `closeDateBook` is
+ *   - toggles auto ↔ deck on the Date book pill toggle;
+ *   - resets `expandedDoorId` and exits deck mode when `closeDateBook` is
  *     called via the panel's Close button or the ESC handler.
  *
  * The "drop a stale selectedScenarioId when the draw rotates" effect lives in
  * the orchestrator because it needs `drawnLobbyScenarios` from useCathedralModel,
- * which itself reads library/expandedDoor state out of this hook — pulling that
- * effect down would create a circular dep.
+ * which itself reads expandedDoor state out of this hook — pulling that effect
+ * down would create a circular dep.
  *
  * `scenarioMode` is read from the planning reducer because the cathedral mode
  * lives there; this hook coordinates the panel's transient state around it.
@@ -40,23 +39,20 @@ export function useDateBookState({
   isOverlayOpen: boolean;
   /**
    * Blocks the Date book pill toggle from opening when a booking is active
-   * (the deck/library can't be edited mid-date). The Close path stays open
-   * so a panel mid-open still has a way out.
+   * (the deck can't be edited mid-date). The Close path stays open so a
+   * panel mid-open still has a way out.
    */
   disabled: boolean;
 }) {
   const [expandedDoorId, setExpandedDoorId] = useState<string | null>(null);
   const [hoveredDoorId, setHoveredDoorId] = useState<string | null>(null);
-  const [librarySearch, setLibrarySearch] = useState("");
-  const [libraryRiskFilter, setLibraryRiskFilter] = useState<RiskFilter>("any");
-  const [librarySort, setLibrarySort] = useState<SortMode>("alpha");
 
   /**
-   * Close the date book — drop deck/library mode back to auto so the
-   * cathedral reads as tonight's draw again. Drives the panel header's
-   * Close button, the Escape key, and the canvas-area click-outside. In
-   * auto mode this is a no-op so a stray ESC or canvas click never warps
-   * the camera away from the player's current focus/roster slab.
+   * Close the date book — drop deck mode back to auto so the cathedral reads
+   * as tonight's draw again. Drives the panel header's Close button, the
+   * Escape key, and the canvas-area click-outside. In auto mode this is a
+   * no-op so a stray ESC or canvas click never warps the camera away from the
+   * player's current focus/roster slab.
    */
   const closeDateBook = useCallback(() => {
     if (scenarioMode === "auto") return;
@@ -65,18 +61,15 @@ export function useDateBookState({
   }, [dispatch, scenarioMode]);
 
   /**
-   * Date book pill toggle. Three-mode cycle: auto → deck → library → auto.
-   * The reducer drives `currentLayer` through each transition; this hook
-   * clears the parent-owned `expandedDoorId` so a peek doesn't survive the
-   * cycle.
+   * Date book pill toggle. Two-mode toggle: auto ↔ deck. The reducer drives
+   * `currentLayer` through each transition; this hook clears the parent-owned
+   * `expandedDoorId` so a peek doesn't survive the toggle.
    */
   const handleDateBookNavToggle = useCallback(() => {
     if (disabled) return;
     setExpandedDoorId(null);
     if (scenarioMode === "auto") {
       dispatch({ type: "openDateBook", mode: "deck" });
-    } else if (scenarioMode === "deck") {
-      dispatch({ type: "openDateBook", mode: "library" });
     } else {
       dispatch({ type: "closeDateBook" });
     }
@@ -88,7 +81,7 @@ export function useDateBookState({
    * orchestrator doesn't repeat the expandedDoorId reset at every call site.
    */
   const setScenarioMode = useCallback(
-    (mode: "deck" | "library") => {
+    (mode: "deck") => {
       setExpandedDoorId(null);
       dispatch({ type: "openDateBook", mode });
     },
@@ -114,12 +107,6 @@ export function useDateBookState({
     setExpandedDoorId,
     hoveredDoorId,
     setHoveredDoorId,
-    librarySearch,
-    setLibrarySearch,
-    libraryRiskFilter,
-    setLibraryRiskFilter,
-    librarySort,
-    setLibrarySort,
     closeDateBook,
     handleDateBookNavToggle,
     setScenarioMode,

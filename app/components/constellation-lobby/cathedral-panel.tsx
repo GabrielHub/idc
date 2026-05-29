@@ -1,16 +1,10 @@
-import { type ReactNode, type Ref } from "react";
+import { type Ref } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import { DECK_SIZE_MAX } from "../../domain/game";
 import { AuraButton } from "../aura-button";
 import { CathedralCard } from "./cathedral-card";
-import { CathedralFilterRow } from "./cathedral-filter-row";
-import type {
-  CathedralMode,
-  DeckBookShards,
-  DoorEntry,
-  LibraryFilterControls,
-} from "./cathedral-types";
+import type { CathedralMode, DeckBookShards, DoorEntry } from "./cathedral-types";
 
 export function CathedralPanel({
   open,
@@ -22,12 +16,10 @@ export function CathedralPanel({
   onSelect,
   onOpenDetail,
   onClose,
-  onChangeMode,
   reducedMotion,
   containerRef,
   scrollRef,
   deckBookShards,
-  libraryFilter,
   composeWarnings,
 }: {
   open: boolean;
@@ -39,18 +31,10 @@ export function CathedralPanel({
   onSelect: (id: string) => void;
   onOpenDetail: (id: string) => void;
   onClose?: () => void;
-  /**
-   * Switch between deck-edit and library-browse without leaving the panel.
-   * Powers the Deck / Library tab toggle in the header so the player can
-   * drop cards from their staged deck and add new ones from the library
-   * in a single screen instead of cycling out and back in.
-   */
-  onChangeMode?: (mode: "deck" | "library") => void;
   reducedMotion: boolean;
   containerRef?: Ref<HTMLDivElement>;
   scrollRef?: Ref<HTMLDivElement>;
   deckBookShards?: DeckBookShards;
-  libraryFilter?: LibraryFilterControls;
   /**
    * Deck composition advisories (no low-pressure cards, no high-pressure
    * cards, etc.). Surfaced as amber "Heads up" pills under the shards row
@@ -60,7 +44,6 @@ export function CathedralPanel({
   composeWarnings?: readonly string[];
 }) {
   const enterDuration = reducedMotion ? 0.001 : 0.36;
-  const filterRow = libraryFilter === undefined ? null : <CathedralFilterRow {...libraryFilter} />;
   const railReserveClass = mode === "auto" ? "2xl:pr-[24rem]" : "";
   return (
     <AnimatePresence>
@@ -82,8 +65,6 @@ export function CathedralPanel({
               doorCount={doors.length}
               deckBookShards={deckBookShards}
               onClose={onClose}
-              onChangeMode={onChangeMode}
-              filterRow={filterRow}
               composeWarnings={composeWarnings}
             />
             <div ref={scrollRef} className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
@@ -114,47 +95,32 @@ function CathedralHeader({
   doorCount,
   deckBookShards,
   onClose,
-  onChangeMode,
-  filterRow,
   composeWarnings,
 }: {
   mode: CathedralMode;
   doorCount: number;
   deckBookShards?: DeckBookShards;
   onClose?: () => void;
-  onChangeMode?: (mode: "deck" | "library") => void;
-  filterRow?: ReactNode;
   composeWarnings?: readonly string[];
 }) {
-  const title =
-    mode === "auto" ? "Tonight's draw" : mode === "deck" ? "Deck composition" : "Scenario library";
+  const title = mode === "auto" ? "Tonight's draw" : "Deck composition";
   const subtitle =
     mode === "auto"
       ? "Pick the scenario that leads the pair tonight."
-      : mode === "deck"
-        ? "Tap a staged card to drop it from the deck."
-        : "Tap a library card to add it to the deck.";
+      : "Tap a staged card to drop it from the deck. New rooms arrive as post-date offers.";
   const counter =
     mode === "auto"
       ? `${doorCount} drawn`
-      : mode === "deck"
-        ? `${doorCount} ${doorCount === 1 ? "card" : "cards"} staged`
-        : `${doorCount} ${doorCount === 1 ? "match" : "matches"}`;
+      : `${doorCount} ${doorCount === 1 ? "card" : "cards"} staged`;
   const showShards = deckBookShards !== undefined;
-  const showTabs = mode !== "auto" && onChangeMode !== undefined;
+  const showDeckPill = mode === "deck";
   const hasWarnings = composeWarnings !== undefined && composeWarnings.length > 0;
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
         <div className="flex items-center gap-3">
           {onClose === undefined ? null : <BackButton onClose={onClose} />}
-          {showTabs ? (
-            <DeckLibraryTabs
-              mode={mode}
-              onChangeMode={onChangeMode}
-              deckBookShards={deckBookShards}
-            />
-          ) : null}
+          {showDeckPill ? <DeckModePill deckBookShards={deckBookShards} /> : null}
         </div>
         {showShards ? <DeckShardsRow shards={deckBookShards} /> : null}
       </div>
@@ -170,7 +136,6 @@ function CathedralHeader({
         </div>
         {hasWarnings ? <DeckWarningsRow warnings={composeWarnings} /> : null}
       </div>
-      {filterRow}
     </div>
   );
 }
@@ -192,59 +157,15 @@ function BackButton({ onClose }: { onClose: () => void }) {
   );
 }
 
-function DeckLibraryTabs({
-  mode,
-  onChangeMode,
-  deckBookShards,
-}: {
-  mode: CathedralMode;
-  onChangeMode: (mode: "deck" | "library") => void;
-  deckBookShards?: DeckBookShards;
-}) {
-  const tabs: ReadonlyArray<{ value: "deck" | "library"; label: string; badge?: string }> = [
-    {
-      value: "deck",
-      label: "Deck",
-      badge:
-        deckBookShards === undefined ? undefined : `${deckBookShards.slotCount}/${DECK_SIZE_MAX}`,
-    },
-    { value: "library", label: "Library" },
-  ];
+function DeckModePill({ deckBookShards }: { deckBookShards?: DeckBookShards }) {
+  const badge =
+    deckBookShards === undefined ? undefined : `${deckBookShards.slotCount}/${DECK_SIZE_MAX}`;
   return (
-    <div
-      role="tablist"
-      aria-label="Date book mode"
-      className="inline-flex items-center gap-1 rounded-pill aura-liquid-glass aura-liquid-glass-ink p-1"
-    >
-      {tabs.map((tab) => {
-        const isActive = tab.value === mode;
-        return (
-          <AuraButton
-            key={tab.value}
-            tooltip={`Date book ${tab.label}`}
-            tooltipPlacement="bottom"
-            role="tab"
-            aria-selected={isActive}
-            onClick={() => {
-              if (!isActive) onChangeMode(tab.value);
-            }}
-            className={`inline-flex items-center gap-2 rounded-pill px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
-              isActive
-                ? "bg-aura-rose text-white shadow-[0_8px_22px_-10px_rgba(244,63,94,0.7)] cursor-default"
-                : "text-white/70 hover:bg-white/12 hover:text-aura-paper cursor-pointer"
-            }`}
-          >
-            <span>{tab.label}</span>
-            {tab.badge === undefined ? null : (
-              <span
-                className={`font-display text-micro ${isActive ? "text-white/90" : "text-white/55"}`}
-              >
-                {tab.badge}
-              </span>
-            )}
-          </AuraButton>
-        );
-      })}
+    <div className="inline-flex items-center gap-2 rounded-pill bg-aura-rose px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_22px_-10px_rgba(244,63,94,0.7)]">
+      <span>Deck</span>
+      {badge === undefined ? null : (
+        <span className="font-display text-micro text-white/90">{badge}</span>
+      )}
     </div>
   );
 }
@@ -356,10 +277,8 @@ function PressurePill({ pressure }: { pressure: { lowPressure: number; highPress
 function CathedralEmptyState({ mode }: { mode: CathedralMode }) {
   const copy =
     mode === "deck"
-      ? "Deck is empty - open the library to add cards."
-      : mode === "library"
-        ? "No library cards match this filter."
-        : "Pair a focus + partner to draw tonight's scenarios.";
+      ? "Deck is empty - new rooms arrive as post-date card offers."
+      : "Pair a focus + partner to draw tonight's scenarios.";
   return (
     <div className="flex h-full items-center justify-center">
       <div className="aura-liquid-glass aura-liquid-glass-ink rounded-card px-6 py-5 text-center">
@@ -391,9 +310,8 @@ function CathedralGrid({
   onOpenDetail: (id: string) => void;
   reducedMotion: boolean;
 }) {
-  const cols = mode === "library" ? "lg:grid-cols-4 md:grid-cols-3" : "md:grid-cols-3";
   return (
-    <div className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${cols}`}>
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
       {doors.map((entry, idx) => (
         <CathedralCard
           key={entry.scenario.id}

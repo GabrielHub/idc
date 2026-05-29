@@ -6,7 +6,7 @@ import {
   computeEffectiveCosts,
   deriveDeckBudgetStatus,
 } from "../../services/budget";
-import { deckIsRepairBlocked, softComposeWarnings, unlockedScenarioIds } from "../../services/deck";
+import { deckIsRepairBlocked, softComposeWarnings } from "../../services/deck";
 import { memberRequests, starterScenarios } from "../../fixtures";
 import {
   evaluateMatchFit,
@@ -16,9 +16,9 @@ import {
 import { getPairProjectionFromSave, materializePairEdge } from "../../services/relationship-index";
 import { makePairId } from "../../services/game-seed";
 import { visibleReadsForPair } from "../../services/player-knowledge";
-import type { CathedralMode, RiskFilter, SortMode } from "./cathedral";
+import type { CathedralMode } from "./cathedral";
 import { computeDeckComposition } from "./deck-composition";
-import { buildCathedralDoors, filterScenarioLibrary } from "./scenario-doors";
+import { buildCathedralDoors } from "./scenario-doors";
 import { toLobbyScenario } from "./star-model";
 
 export function useCathedralModel({
@@ -28,9 +28,6 @@ export function useCathedralModel({
   focusId,
   partnerId,
   scenarioMode,
-  librarySearch,
-  libraryRiskFilter,
-  librarySort,
   expandedDoorId,
 }: {
   save: GameSave;
@@ -45,9 +42,6 @@ export function useCathedralModel({
   focusId: string | null;
   partnerId: string | null;
   scenarioMode: CathedralMode;
-  librarySearch: string;
-  libraryRiskFilter: RiskFilter;
-  librarySort: SortMode;
   expandedDoorId: string | null;
 }) {
   const scenarioById = useMemo(
@@ -133,33 +127,6 @@ export function useCathedralModel({
     [drawnScenarios, roomReadByScenarioId],
   );
 
-  const unlockedLibraryIds = useMemo(
-    () => unlockedScenarioIds({ closureCount: save.closureCount, shiftNumber: shift.shiftNumber }),
-    [save.closureCount, shift.shiftNumber],
-  );
-  const filteredLibrary = useMemo(
-    () =>
-      filterScenarioLibrary({
-        save,
-        scenarios: starterScenarios,
-        scenarioById,
-        unlockedLibraryIds,
-        search: librarySearch,
-        riskFilter: libraryRiskFilter,
-        sort: librarySort,
-        effectiveCosts,
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [
-      save.scenarioDeck.cardIds,
-      scenarioById,
-      librarySearch,
-      libraryRiskFilter,
-      librarySort,
-      unlockedLibraryIds,
-      effectiveCosts,
-    ],
-  );
   const cathedralDoors = useMemo(
     () =>
       buildCathedralDoors({
@@ -167,17 +134,9 @@ export function useCathedralModel({
         deckCardIds: save.scenarioDeck.cardIds,
         scenarioById,
         effectiveCosts,
-        filteredLibrary,
         drawnScenarios: drawnLobbyScenarios,
       }),
-    [
-      scenarioMode,
-      save.scenarioDeck.cardIds,
-      scenarioById,
-      effectiveCosts,
-      filteredLibrary,
-      drawnLobbyScenarios,
-    ],
+    [scenarioMode, save.scenarioDeck.cardIds, scenarioById, effectiveCosts, drawnLobbyScenarios],
   );
   const expandedScenario = useMemo(
     () => (expandedDoorId === null ? null : (scenarioById.get(expandedDoorId) ?? null)),
@@ -192,7 +151,6 @@ export function useCathedralModel({
     deckComposition,
     deckComposeWarnings,
     drawnLobbyScenarios,
-    filteredLibrary,
     cathedralDoors,
     expandedScenario,
   };

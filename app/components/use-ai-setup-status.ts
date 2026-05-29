@@ -7,7 +7,7 @@ import {
   storeGatewayApiKey,
 } from "../services/ai/client";
 import { errorToMessage } from "../services/utils";
-import type { AiSetupStatus } from "./ai-setup-panel";
+import { AI_NOT_CONFIGURED_STATUS, type AiSetupStatus } from "./ai-setup-panel";
 
 const CHECKING_LOCAL_AI_STATUS: AiSetupStatus = {
   status: "checking",
@@ -83,6 +83,13 @@ export function useAiSetupStatus({
       return;
     }
     const configForStatus = aiStatusConfig;
+    // Don't probe a provider until the player has actually chosen one — a fresh
+    // save defaults to Ollama. The setup panel runs its own explicit checks via
+    // refreshLocalAiStatus.
+    if (!configForStatus.aiSetupComplete) {
+      setLocalAiStatus(AI_NOT_CONFIGURED_STATUS);
+      return;
+    }
     if (configForStatus.aiProvider === "gateway" && gatewayApiKeyReadError !== null) {
       const message = `Gateway key storage unavailable. ${gatewayApiKeyReadError}`;
       setLocalAiStatus({

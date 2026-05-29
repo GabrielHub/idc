@@ -121,15 +121,19 @@ export const sections: DocSectionEntry[] = [
               Read the member fixture in <DocCode>app/fixtures/members/</DocCode>, their current
               requests in <DocCode>app/fixtures/goals/member-requests.ts</DocCode>, and only the
               relevant section of{" "}
-              <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Use{" "}
+              <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Open{" "}
               <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> only when the
-              fixture cites a pattern or the miss is pattern drift. Use{" "}
+              fixture cites a pattern or the miss is pattern drift,{" "}
+              <DocLink to="/docs/product/voice-references">Voice source references</DocLink> to
+              recalibrate natural rhythm before editing, and{" "}
               <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink> when
               the fix would add prompt text, examples, negative rules, or agent instructions.
             </span>,
             <div key="start" className="flex flex-col gap-2">
-              Start with a live-like tune session and pass a focus request:
-              <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-or-pressure-partner-id> --name <session-name> --focus-request <request-id>`}</DocCodeBlock>
+              Start a live-like session with both focus flags so it mirrors gameplay: the focus
+              member opens and their greeting bank fires, and the <DocCode>{"<focus>"}</DocCode>{" "}
+              request block injects exactly as it would in a real date.
+              <DocCodeBlock language="bash">{`vp run tune -- start <focus-id> --partner <warm-or-pressure-partner-id> --name <session-name> --focus-request <request-id> --focus-opens`}</DocCodeBlock>
             </div>,
             "Drive three to six focus-member turns. Include one warm receive, one ordinary follow-up, and one boundary or boredom pressure that should reveal drift.",
             "Judge the output against the tuning targets below. Treat pleasant generic output as a miss when it does not sound like the member.",
@@ -165,30 +169,6 @@ export const sections: DocSectionEntry[] = [
               "Confused or guarded: shorter lines, clarifying questions, refusal to play along, visible uncertainty, or a narrower topic.",
               "Angry or crashing out: named trigger, cadence shift, boundary, refusal, or clean close. It should sound like the member, not like a policy report.",
               "Early end: the member can stop participating, leave the table, or make the date impossible to continue. The judge owns final early-end filing, but the performer must be allowed to produce the spoken break.",
-            ]}
-          />
-        </DocSubsection>
-        <DocSubsection id="meta-acknowledgment-drift" title="Meta-Acknowledgment Drift">
-          <P>
-            Treat meta-acknowledgment as a signal that the prompt or fixture needs a clearer target
-            move. The desired behavior is not "avoid a phrase"; it is "turn recognition into
-            action." If the model wants to announce that the member noticed, clocked, noted, or
-            registered something, rewrite the guidance so the member answers, asks, teases, chooses,
-            refuses, admits, or ends instead.
-          </P>
-        </DocSubsection>
-        <DocSubsection id="ban-stack-audit" title="Ban Stack Audit">
-          <P>
-            Before adding another negative rule, name the replacement behavior. A ban belongs in a
-            fixture or prompt only when it protects a hard invariant and the positive target alone
-            has failed. Most voice misses should be fixed by teaching the next good move.
-          </P>
-          <DocList
-            items={[
-              "Replace generic acknowledgment bans with receive-shape targets: answer, ask, tease, choose, refuse, admit, or leave silence.",
-              "Replace narration bans with dialogue targets: make an offer, name a choice, react to the result, or give the partner something answerable.",
-              "Replace pattern bans with character-engine targets: what this member protects, wants, refuses, or finds funny in this exact turn.",
-              "Keep hard bans centralized in the owning doc, sanitizer, or content lint. Do not copy them into every fixture as local prompt noise.",
             ]}
           />
         </DocSubsection>
@@ -230,83 +210,13 @@ export const sections: DocSectionEntry[] = [
             ]}
           />
         </DocSubsection>
-        <DocSubsection id="natural-dialogue-references" title="Natural Dialogue References">
-          <P>
-            If an agent needs to recalibrate what natural conversational rhythm sounds like, use a
-            small reference sample before editing fixtures. The target is timing, turn shape,
-            interruption, compression, and specificity, not copied phrases.
-          </P>
-          <DocList
-            items={[
-              <span key="northernlion">
-                Use <DocCode>docs/reference/voice-northernlion.md</DocCode> for public, curated
-                examples of spoken riffing, premise mutation, correction, and bit recovery.
-              </span>,
-              <span key="imessage">
-                On MacBook runs, an agent may also use an available local iMessage or texting corpus
-                as a private rhythm reference for natural back-and-forth. Keep it local and
-                uncommitted.
-              </span>,
-              "Extract mechanics: how people answer directly, drop acknowledgments, interrupt themselves, make a concrete ask, flirt without announcing it, or end a thread.",
-              "Translate texting references into spoken table dialogue before writing member output. Message shorthand, private names, copied jokes, and private facts do not go into fixtures, prompts, docs, or tests.",
-            ]}
-          />
-          <P>
-            Source handling rules live in{" "}
-            <DocLink to="/docs/product/voice-references">Voice source references</DocLink>.
-          </P>
-        </DocSubsection>
-        <DocSubsection id="provider-prompt-distillation" title="Provider Prompt Distillation">
-          <P>
-            Current provider guidance points to the same local rule: short, explicit, scoped prompt
-            packets beat giant policy dumps. OpenAI warns that highly literal instruction following
-            makes vague or contradictory prompts costly; Google emphasizes structured
-            instruction/context/task separation, consistent examples, and placing the actual task
-            after long context; Anthropic emphasizes clear direct instructions, relevant diverse
-            examples, and explicit behavior requests. The durable project contract lives in{" "}
-            <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
-          </P>
-          <DocList
-            items={[
-              "Keep one owner for each rule. Do not restate the same ban in prompt packets, fixture prose, sample banks, and docs unless that surface actually owns enforcement.",
-              "Prefer positive replacements over ban lists: answer, ask, redirect, admit, tease, refuse, choose, or close.",
-              "Treat prompt edits as hypotheses. Verify against several turns, then remove wording that only chases a one-off sample.",
-              "Use a few targeted examples only when they mirror the failure. Too many examples make the model copy format, cadence, or old facts.",
-              "Put volatile transcript context before the task, then end with the exact next action the performer must do.",
-              "Do not expose internal catalogs as checklists. Pattern names help authors, but the runtime performer needs the member's engine and the current conversation.",
-            ]}
-          />
-          <P>
-            Source docs:{" "}
-            <DocLink to="https://developers.openai.com/api/docs/guides/prompt-guidance">
-              OpenAI prompt guidance
-            </DocLink>
-            ,{" "}
-            <DocLink to="https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/start/gemini-3-prompting-guide">
-              Gemini 3 prompting guide
-            </DocLink>
-            ,{" "}
-            <DocLink to="https://ai.google.dev/gemini-api/docs/prompting-strategies">
-              Gemini API prompting strategies
-            </DocLink>
-            , and{" "}
-            <DocLink to="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices">
-              Claude prompting best practices
-            </DocLink>
-            .
-          </P>
-        </DocSubsection>
       </>
     ),
     subsections: [
       { id: "tuning-targets", title: "Tuning Targets" },
       { id: "state-range-and-crash-outs", title: "State Range And Crash-Outs" },
-      { id: "meta-acknowledgment-drift", title: "Meta-Acknowledgment Drift" },
-      { id: "ban-stack-audit", title: "Ban Stack Audit" },
       { id: "tuning-balance", title: "Tuning Balance" },
       { id: "scenario-pressure-tuning", title: "Scenario Pressure Tuning" },
-      { id: "natural-dialogue-references", title: "Natural Dialogue References" },
-      { id: "provider-prompt-distillation", title: "Provider Prompt Distillation" },
     ],
   },
   {

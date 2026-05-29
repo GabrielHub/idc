@@ -205,10 +205,10 @@ const PLANNING_STEPS = [
     id: "planning.scenario",
     category: "required",
     // Gate on inAutoMode like every sibling planning step. Without it the
-    // coach-mark fires over the deck/library cathedral too, where library
-    // clicks open the detail overlay for adding to the deck rather than
-    // picking tonight's scenario — the copy "open one to lock it" no longer
-    // matches what the cards actually do.
+    // coach-mark fires over the deck cathedral too, where clicks open the
+    // detail overlay to drop a staged card rather than picking tonight's
+    // scenario — the copy "open one to lock it" no longer matches what the
+    // cards actually do.
     shouldActivate: (c) =>
       c.partnerId !== null &&
       c.activeBooking !== null &&
@@ -376,8 +376,8 @@ export function usePlanningTutorial(input: {
 }): { refs: PlanningTutorialRefs; steps: PlanningTutorialSteps } {
   // Almost every coach mark below anchors to a ref that lives inside
   // LobbyHudLayer. The lobby unmounts that whole HUD when the Date Book is
-  // open in deck/library mode, so HUD-anchored steps must wait for auto mode
-  // — otherwise their target ref is null and `useTargetRect` makes the coach
+  // open in deck mode, so HUD-anchored steps must wait for auto mode —
+  // otherwise their target ref is null and `useTargetRect` makes the coach
   // mark render nothing, blocking the step's "Got it" forever. The scenario
   // step (cathedralPanelRef) is the only one that lives outside the HUD.
   const inAutoMode = input.scenarioMode === "auto";

@@ -17,7 +17,7 @@ import {
   writeStoredReleaseNotesVersion,
 } from "../services/release-notes";
 import { errorToMessage } from "../services/utils";
-import { AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
+import { AI_NOT_CONFIGURED_STATUS, AiSetupPanel, type AiSetupStatus } from "./ai-setup-panel";
 import { EASE_OUT_QUART, LiveDot } from "./dashboard-atoms";
 import { ReleaseNotesModal } from "./release-notes-modal";
 import { AudioSettingsMenu } from "./settings-menu";
@@ -172,6 +172,13 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
         message: "No save on file. AI provider configures on first shift.",
         details: [],
       });
+      return;
+    }
+
+    // Skip the readiness probe until the player has set up a provider — a fresh
+    // save defaults to Ollama. The setup panel runs the explicit checks.
+    if (!aiReadinessConfig.aiSetupComplete) {
+      setAiStatus(AI_NOT_CONFIGURED_STATUS);
       return;
     }
 

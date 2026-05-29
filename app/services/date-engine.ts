@@ -88,7 +88,7 @@ import {
   rotateBudgetPeriod,
   shouldRunPerformanceReview,
 } from "./budget";
-import { drawHandForBooking } from "./deck";
+import { attachDateCardOffer, drawHandForBooking } from "./deck";
 import {
   dateSessionShiftNumber,
   isMemberInCooldown,
@@ -1112,6 +1112,22 @@ export function togglePlayback(save: GameSave, input: TogglePlaybackInput): Date
   return { save: nextSave, session: updatedSession };
 }
 
+/**
+ * Attach the post-date card offer when a session has *just* finalized — i.e. it
+ * gained a finalReport on this step. The three date-completion paths (sync
+ * advance, AI advance, AI cut-short) share this one transition rule instead of
+ * each re-deriving it.
+ */
+export function attachDateOfferOnFinalize(
+  save: GameSave,
+  previousSession: DateSession,
+  nextSession: DateSession,
+): GameSave {
+  const newlyFinalized =
+    nextSession.finalReport !== undefined && previousSession.finalReport === undefined;
+  return newlyFinalized ? attachDateCardOffer(save) : save;
+}
+
 export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): DateEngineResult {
   const now = input.now ?? new Date();
   const timestamp = now.toISOString();
@@ -1358,7 +1374,10 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
     }),
   );
 
-  return { save: nextSave, session: finalSessionWithStatChange };
+  // A newly finalized date draws a post-date card offer off the pile.
+  const saveWithOffer = attachDateOfferOnFinalize(nextSave, session, finalSessionWithStatChange);
+
+  return { save: saveWithOffer, session: finalSessionWithStatChange };
 }
 
 export function clearActiveBookingForShift(

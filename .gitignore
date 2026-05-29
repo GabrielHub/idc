@@ -54,3 +54,7 @@ Thumbs.db
 # Tauri
 /src-tauri/target/
 /src-tauri/gen/schemas/
+
+# Python bytecode (portrait scripts)
+__pycache__/
+*.pyc

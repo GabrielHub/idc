@@ -23,6 +23,7 @@ export function CathedralCard({
   onHoverLeave,
   indexDelay,
   reducedMotion,
+  showTooltip = true,
 }: {
   entry: DoorEntry;
   mode: CathedralMode;
@@ -34,6 +35,10 @@ export function CathedralCard({
   onHoverLeave: () => void;
   indexDelay: number;
   reducedMotion: boolean;
+  // Hover tooltip repeats the title/venue, which is redundant where the card
+  // is already large and self-labeled (the card-offer overlay). Off in that
+  // context to avoid the tooltip overlapping nearby headings.
+  showTooltip?: boolean;
 }) {
   const tint = roomReadTint(entry.scenario.roomRead);
   const interactive = entry.disabled !== true;
@@ -51,17 +56,18 @@ export function CathedralCard({
       className={`group/door relative flex aspect-[4/5] flex-col overflow-hidden rounded-card text-left transition-shadow duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 ${interactive ? "cursor-pointer" : "cursor-not-allowed"} ${
         selected ? "shadow-cta ring-2 ring-aura-rose/85" : "ring-1 ring-white/10"
       } ${entry.disabled === true ? "opacity-45" : ""} ${
-        entry.alreadyInDeck === true && !selected ? "opacity-80" : ""
-      } ${hovered && !selected ? "ring-white/30" : ""}`}
+        hovered && !selected ? "ring-white/30" : ""
+      }`}
     >
       <AuraButton
-        tooltip={`${entry.scenario.title} - ${entry.scenario.venue}`}
+        tooltip={showTooltip ? `${entry.scenario.title} - ${entry.scenario.venue}` : undefined}
         tooltipPlacement="top"
         tooltipAlign="block"
         tooltipClassName="absolute inset-0 z-10"
+        aria-label={`${entry.scenario.title} - ${entry.scenario.venue}`}
         onClick={onSelect}
         disabled={!interactive}
-        className="h-full w-full cursor-pointer rounded-card border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 disabled:cursor-not-allowed"
+        className={`${showTooltip ? "" : "absolute inset-0 z-10 "}h-full w-full cursor-pointer rounded-card border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 disabled:cursor-not-allowed`}
       />
 
       <CardScenarioBackdrop
@@ -95,11 +101,6 @@ export function CathedralCard({
           <span aria-hidden />
         )}
         <div className="flex items-center gap-2">
-          {entry.alreadyInDeck === true ? (
-            <span className="rounded-pill border border-aura-rose/45 bg-aura-rose/25 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-rose backdrop-blur-md">
-              in deck
-            </span>
-          ) : null}
           <span className="font-display text-display-sm leading-none text-aura-paper drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
             ${entry.scenario.cost}
           </span>
@@ -275,6 +276,5 @@ function roomReadTint(roomRead: LobbyScenario["roomRead"]): RoomReadTint {
 
 function topTagFor(entry: DoorEntry, mode: CathedralMode): string {
   if (entry.kind === "deck") return entry.slotLabel ?? "deck slot";
-  if (entry.kind === "draw") return mode === "auto" ? "" : "scenario";
-  return "library";
+  return mode === "auto" ? "" : "scenario";
 }

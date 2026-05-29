@@ -65,7 +65,7 @@ export const TUTORIAL_COPY = {
   },
   "lazy.date-book": {
     title: "Date Book is unlocked",
-    body: "Now that Cupid has one filed report, this pill opens the Date Book. Auto shows tonight's draw after commit. Deck edits what Cupid draws from, and Library browses the shelf to add rooms while staying under budget.",
+    body: "Now that Cupid has one filed report, this pill opens the Date Book. Auto shows tonight's draw after commit. The Deck tab is what Cupid draws from — drop cards here to trim it. New rooms arrive as post-date card offers, not a shelf you browse.",
     primaryLabel: "Got it",
   },
   "lazy.cut-short": {
