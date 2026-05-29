@@ -1,7 +1,5 @@
 import {
-  DEFAULT_DATE_MESSAGE_LIMIT,
   DEFAULT_TUTORIAL_STATE,
-  LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
   gameConfigSchema,
   gameSaveSchema,
   memberSchema,
@@ -13,7 +11,6 @@ import {
   type GameConfig,
   type GameSave,
   type Member,
-  type MemoryRecord,
   type PairProjection,
   type PairState,
   type PairStats,
@@ -39,9 +36,6 @@ import { derivePairStats } from "./pair-stats";
 import { arraysShallowEqual, clampScore } from "./utils";
 
 const STARTER_SCENARIO_IDS = starterScenarios.map((scenario) => scenario.id);
-const SCENARIO_ID_REPLACEMENTS: Record<string, string> = {
-  "alternate-ex-double-date": "phantom-doorbell-suite",
-};
 
 export type CreateSeedGameSaveOptions = {
   config?: GameConfig;
@@ -135,12 +129,7 @@ export type HydrateFixtureOwnedMemberDataResult = {
 export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwnedMemberDataResult {
   const fixtureMembers = STARTER_FIXTURE_MEMBERS;
   const savedMembersById = new Map(save.members.map((member) => [member.id, member] as const));
-  const config = hydrateGameConfigDefaults(save.config);
   let dirty = false;
-
-  if (config !== save.config) {
-    dirty = true;
-  }
 
   const hydratedFixtureMembers = fixtureMembers.map((fixtureMember) => {
     const savedMember = savedMembersById.get(fixtureMember.id);
@@ -188,9 +177,6 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   );
   if (shiftsResult.dirty) dirty = true;
 
-  const memoriesResult = mapWithDirty(save.memories, hydrateMemoryScenarioId);
-  if (memoriesResult.dirty) dirty = true;
-
   const scenarioDeckResult = hydrateScenarioDeck(save.scenarioDeck);
   if (scenarioDeckResult !== save.scenarioDeck) dirty = true;
 
@@ -201,27 +187,14 @@ export function hydrateFixtureOwnedMemberData(save: GameSave): HydrateFixtureOwn
   return {
     save: gameSaveSchema.parse({
       ...save,
-      config,
       members,
       pairStates: pairResult.pairStates,
       dateSessions: dateSessionResult.items,
       shifts: shiftsResult.items,
-      memories: memoriesResult.items,
       scenarioDeck: scenarioDeckResult,
     }),
     dirty: true,
   };
-}
-
-function hydrateGameConfigDefaults(config: GameConfig): GameConfig {
-  if (config.defaultDateMessageLimit !== LEGACY_DEFAULT_DATE_MESSAGE_LIMIT) {
-    return config;
-  }
-
-  return gameConfigSchema.parse({
-    ...config,
-    defaultDateMessageLimit: DEFAULT_DATE_MESSAGE_LIMIT,
-  });
 }
 
 function fixtureMemberMatchesState(fixtureMember: Member, savedMember: Member): boolean {
@@ -298,11 +271,10 @@ function hydrateScenarioDeck(scenarioDeck: ScenarioDeck): ScenarioDeck {
   const cardIds: string[] = [];
 
   for (const cardId of scenarioDeck.cardIds) {
-    const normalized = normalizeStarterScenarioId(cardId);
-    if (!knownScenarioIds.has(normalized)) continue;
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    cardIds.push(normalized);
+    if (!knownScenarioIds.has(cardId)) continue;
+    if (seen.has(cardId)) continue;
+    seen.add(cardId);
+    cardIds.push(cardId);
   }
 
   if (cardIds.length !== scenarioDeck.cardIds.length) {
@@ -341,51 +313,16 @@ function hydrateShift(
       pairStates,
     }),
     followUpReservations,
-    drawnScenarioIds: normalizeScenarioIds(shift.drawnScenarioIds),
+    drawnScenarioIds: [...shift.drawnScenarioIds],
   });
 }
 
-export function normalizeStarterScenarioId(scenarioId: string): string {
-  return SCENARIO_ID_REPLACEMENTS[scenarioId] ?? scenarioId;
-}
-
-function normalizeScenarioIds(scenarioIds: readonly string[]): string[] {
-  const normalizedScenarioIds: string[] = [];
-  const seenScenarioIds = new Set<string>();
-
-  for (const scenarioId of scenarioIds) {
-    const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
-
-    if (seenScenarioIds.has(normalizedScenarioId)) {
-      continue;
-    }
-
-    normalizedScenarioIds.push(normalizedScenarioId);
-    seenScenarioIds.add(normalizedScenarioId);
-  }
-
-  return normalizedScenarioIds;
-}
-
 function hydrateDateSession(session: DateSession): DateSession {
-  const scenarioId = normalizeStarterScenarioId(session.scenarioId);
   const shiftNumber = dateSessionShiftNumber(session);
-  const nextSession =
-    shiftNumber === null || session.shiftNumber === shiftNumber
-      ? session
-      : { ...session, shiftNumber };
 
-  return scenarioId === nextSession.scenarioId ? nextSession : { ...nextSession, scenarioId };
-}
-
-function hydrateMemoryScenarioId(memory: MemoryRecord): MemoryRecord {
-  if (memory.scenarioId === undefined) {
-    return memory;
-  }
-
-  const scenarioId = normalizeStarterScenarioId(memory.scenarioId);
-
-  return scenarioId === memory.scenarioId ? memory : { ...memory, scenarioId };
+  return shiftNumber === null || session.shiftNumber === shiftNumber
+    ? session
+    : { ...session, shiftNumber };
 }
 
 export function findMemberInSave(save: GameSave, memberId: string): Member | undefined {
@@ -487,25 +424,14 @@ function pairStatsEqual(first: PairStats, second: PairStats): boolean {
 function hydrateScenarioUseCounts(
   scenarioUseCounts: Record<string, number>,
 ): Record<string, number> {
-  let needsRebuild = false;
-  for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
-    if (count === 0) {
-      needsRebuild = true;
-      break;
-    }
-    if (normalizeStarterScenarioId(scenarioId) !== scenarioId) {
-      needsRebuild = true;
-      break;
-    }
-  }
-  if (!needsRebuild) return scenarioUseCounts;
+  const hasZeroCount = Object.values(scenarioUseCounts).some((count) => count === 0);
+  if (!hasZeroCount) return scenarioUseCounts;
 
   const hydratedScenarioUseCounts: Record<string, number> = {};
   for (const [scenarioId, count] of Object.entries(scenarioUseCounts)) {
-    if (count === 0) continue;
-    const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
-    hydratedScenarioUseCounts[normalizedScenarioId] =
-      (hydratedScenarioUseCounts[normalizedScenarioId] ?? 0) + count;
+    if (count !== 0) {
+      hydratedScenarioUseCounts[scenarioId] = count;
+    }
   }
 
   return hydratedScenarioUseCounts;

@@ -45,6 +45,7 @@ import {
 } from "./date-prompts";
 import { createSeedGameSave } from "./game-seed";
 import { describeHiddenInfoLeak, detectHiddenInfoLeak, ngramSet } from "./hidden-info-guard";
+import { containsPerformerActionNarration } from "./performer-action-sanitizer";
 import { startAndDraftDateSession, withFeaturedMembers } from "./test-helpers";
 import { errorToMessage, escapeRegex, isRecord } from "./utils";
 
@@ -494,6 +495,7 @@ export function detectTranscriptFindings({
     projectedTexts.set(message.id, projection);
 
     findings.push(...detectMarkupAbuseFindings(message));
+    findings.push(...detectActionNarrationFindings(message));
     findings.push(...detectVenueMonologue(message, projection, scenario, venueProfile));
     findings.push(...detectInfoLeak({ message, projection, member: partner, owner: "partner" }));
     findings.push(...detectInfoLeak({ message, projection, member: speaker, owner: "speaker" }));
@@ -668,6 +670,23 @@ function detectMarkupAbuseFindings(message: DateMessage): AuditFinding[] {
   }
 
   return findings;
+}
+
+function detectActionNarrationFindings(message: DateMessage): AuditFinding[] {
+  if (!containsPerformerActionNarration(message.text)) {
+    return [];
+  }
+
+  return [
+    {
+      category: "markup_abuse",
+      severity: "fail",
+      message: "Speaker emitted action narration instead of spoken text.",
+      turnIndex: message.turnIndex,
+      speakerId: message.speakerId,
+      evidence: truncateEvidence(message.text),
+    },
+  ];
 }
 
 // === Hidden info leak ===

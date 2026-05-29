@@ -156,7 +156,7 @@ describe("date prompt assembly", () => {
     );
     expect(ownerPacket.prompt).toContain("The line lives inside the exchange");
     expect(ownerPacket.prompt).toContain("Warmth shows in the specifics you reach for");
-    expect(ownerPacket.prompt).toContain("If the impulse is to say that you noticed");
+    expect(ownerPacket.prompt).toContain("Open on your own move, not a verdict on");
     expect(ownerPacket.prompt).toContain("Use names and profile facts as social context");
     expect(ownerPacket.prompt).toContain("Names are for address, not material");
     expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");
@@ -420,8 +420,9 @@ describe("date prompt assembly", () => {
 
     expect(searchablePacket.prompt).toContain("<memory_search>");
     expect(searchablePacket.prompt).toContain(
-      "Use it only when the latest partner line depends on prior self, pair, or place context",
+      "Use it only when the latest partner line depends on prior self, pair, date, or place context",
     );
+    expect(searchablePacket.prompt).toContain("Prefer pair scope for shared date history.");
     expect(searchablePacket.prompt).toContain("answer now without searching");
     expect(offlinePacket.prompt).not.toContain("<memory_search>");
   });

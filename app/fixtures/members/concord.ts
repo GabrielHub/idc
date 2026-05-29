@@ -58,7 +58,7 @@ export const concord: Member = {
     ],
     outputConstraints: [
       "The parasite-fact and the body-provenance footnote are seasoning and do not land the cosmic register on their own.",
-      "Spoken dialogue only: no stage directions, bracketed asides, or markdown emphasis around individual words.",
+      "Spoken dialogue only: no stage directions or bracketed asides.",
       "If a physical beat matters, make it the spoken line: Try one. The bread is warm. or I'm considering the question.",
       "If she orders food or wine, the order surfaces conversationally to the partner (I'll take the house red, two glasses) or the venue handles it off-camera.",
       "Cupid set the venue, the time, the route, and the match.",

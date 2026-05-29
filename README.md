@@ -70,13 +70,13 @@ Playwright is the primary UI regression surface. Assume the dev server is alread
 AI setup runs in app, not in a server route. The setup panel says "Pick where dates run. Cupid checks the connection before the first date." It lets the player choose:
 
 - On this computer. Default Ollama URL is `http://127.0.0.1:11434`, default chat model is `gemma4:e4b`, and default embedding model is `embeddinggemma`. The catalog ships heavier and lighter alternatives for different VRAM tiers.
-- Cloud. Default Gateway URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash` with locked `xhigh` reasoning, and default embedding model is `openai/text-embedding-3-small`. Gateway selector cost labels come from `app/fixtures/gateway-model-costs.json`; refresh them with `vp run benchmark:gateway-costs`.
+- Cloud. Default Gateway URL is `https://ai-gateway.vercel.sh/v3/ai`, default chat model is `deepseek/deepseek-v4-flash` with locked `xhigh` reasoning, and default embedding model is `voyage/voyage-4`. Gateway selector cost labels come from `app/fixtures/gateway-model-costs.json`; refresh them with `vp run benchmark:gateway-costs`.
 
-Gateway chat models are `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-pro`, `google/gemini-3.1-flash-lite`, `anthropic/claude-haiku-4.5`, `moonshotai/kimi-k2.5`, `minimax/minimax-m2.7`, `alibaba/qwen3.5-flash`, `zai/glm-4.7-flash`, `openai/gpt-5.4-nano`, and `xiaomi/mimo-v2.5`. Gateway reasoning is locked per model: DeepSeek V4 Flash uses `xhigh`, DeepSeek V4 Pro uses `xhigh`, Gemini 3.1 Flash Lite uses `medium`, GPT 5.4 Nano uses `none`, MiMo V2.5 uses `xhigh`, and models without a stable Gateway reasoning control use `off`.
+Gateway chat models are `deepseek/deepseek-v4-flash`, `deepseek/deepseek-v4-pro`, `google/gemini-3.1-flash-lite`, `anthropic/claude-haiku-4.5`, `moonshotai/kimi-k2.5`, `minimax/minimax-m2.7`, `alibaba/qwen3.5-flash`, `zai/glm-4.7-flash`, `openai/gpt-5.4-nano`, `xiaomi/mimo-v2.5`, and `xiaomi/mimo-v2.5-pro`. Gateway reasoning is locked per model: DeepSeek V4 Flash uses `xhigh`, DeepSeek V4 Pro uses `xhigh`, Gemini 3.1 Flash Lite uses `medium`, GPT 5.4 Nano uses `none`, MiMo V2.5 and MiMo V2.5 Pro use `xhigh`, and models without a stable Gateway reasoning control use `off`.
 
 The primary setup action is `Save and connect`, which saves the draft config, checks readiness, then marks setup complete only after a ready check. Gateway can also check a pasted key or check the saved key without replacing it.
 
-The implementation uses AI SDK v6 `createGateway` from `ai` for Vercel AI Gateway. The old OpenAI-compatible provider path is only supported as a saved default URL migration.
+The implementation uses AI SDK v6 `createGateway` from `ai` for Vercel AI Gateway. Alpha save schemas are intentionally version-bound; old provider defaults are not migrated forward.
 
 There is no `AI_GATEWAY_API_KEY` fallback. Gateway keys are entered by the player and passed explicitly to `createGateway`, then stored outside the game save. Browser builds use a localStorage key. Desktop builds use the OS credential store and migrate older desktop plaintext keys from `secrets/gateway-api-key.txt` into that store on first read.
 

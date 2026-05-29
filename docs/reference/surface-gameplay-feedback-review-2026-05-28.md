@@ -8,8 +8,9 @@ Reviewer pass against `app/docs/roadmap/surface-gameplay-feedback.tsx` while pla
 - Gateway live dates were blocked by the default embedding model. The app could appear ready, then
   fail on begin-date with `Embedding generation failed`. `google/gemini-embedding-2` returned a
   Gateway service-unavailable response during the test, while `openai/text-embedding-3-small`
-  succeeded with the same key. The default and legacy save migration now use the working OpenAI
-  embedding model.
+  succeeded with the same key. The current default is `voyage/voyage-4`, which also succeeded
+  through the same Gateway key in follow-up testing. Alpha saves are intentionally invalidated
+  across schema changes instead of migrating old provider defaults forward.
 - The expanded shift brief overlapped the third venue card in the pick-venue layer at 1920x1080.
   The venue panel now reserves right-side space on very wide screens so scenario cards remain
   readable while the brief is open.

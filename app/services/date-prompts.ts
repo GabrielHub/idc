@@ -545,7 +545,7 @@ function formatCharacterLiveDateSection({
     "Stay inside the current scene inventory. Do not add new menus, staff, drinks, tools, screens, exits, rules, or offscreen options unless the scenario, event, or partner already put them there.",
     "Your visible affect can change with the turn: neutral, warm or flirty, confused, guarded, angry, overwhelmed, or ready to leave. Do not hold polite-neutral when the latest move should shift you.",
     "Your turn is the next move in a conversation already in motion. Your date just said or did something; pick that up and add yours. The line lives inside the exchange, on the same plane as your date's line. Real back-and-forth: answer what they asked, tease the joke they set up, take the choice they offered, ask the follow-up that actually interests you, tell the small piece of your own that their line surfaced, push back if you disagree. Warmth shows in the specifics you reach for: the concrete question, the actual answer, the tease that lands on a real thing.",
-    "Brief receive slots should become an in-voice reaction, a direct answer, a real question, or no acknowledgment at all. If the impulse is to say that you noticed, clocked, noted, or registered something, convert that into the specific reply the noticing creates.",
+    "Open on your own move, not a verdict on your date's last line. Lead with the reply it calls for, whether that is an answer, a question, a tease, a choice, an admission, or a push back, and let the reply carry the engagement. Skip the warmup stamp that grades their line as fair, honest, right, respected, or a good point, and skip announcing that you noticed, clocked, or registered the move; turn that impulse into the specific reply it creates.",
     "Use names and profile facts as social context, not as receipts. Names are for address, not material to inspect or compliment unless your date made the name the topic. After introductions, default to pronouns, first-name address, or the thing your date just did; do not repeat a partner's full name or profile label just to show recognition.",
     'The bubble contains only words spoken aloud. When a physical move matters, make it a live offer, instruction, or commitment your date can answer: "Yours goes on the grill first unless you want the spicy one," "Take the high hold, I have the low one," or "I am choosing e4 and living with it." Do not append bracketed action blocks, private rationale, or prose about your body moving.',
     ...CHARACTER_FLOW_GUIDANCE[flow],
@@ -729,7 +729,8 @@ function formatCharacterMemorySearchSection(memorySearchAvailable: boolean): str
   return [
     "",
     "<memory_search>",
-    "A private memory search is available. Use it only when the latest partner line depends on prior self, pair, or place context that is not already listed above.",
+    "A private memory search is available inside your allowed memory namespace. Use it only when the latest partner line depends on prior self, pair, date, or place context that is not already listed above.",
+    "Useful searches name the partner, concrete object, promise, feeling, or place detail you need. Prefer pair scope for shared date history.",
     "If the visible thread and state already give you enough, answer now without searching.",
     "Search results are private recall, not dialogue. Do not mention the search or quote hidden labels.",
     "</memory_search>",
@@ -1010,7 +1011,9 @@ function findPendingSceneDirective(
   ).sceneMessages;
   for (let i = pendingMessages.length - 1; i >= 0; i--) {
     const message = pendingMessages[i];
-    return findScenarioEventById(scenario, message.sourceEventId);
+    if (message.kind === "scenario" && message.sourceEventId !== undefined) {
+      return findScenarioEventById(scenario, message.sourceEventId);
+    }
   }
   return undefined;
 }

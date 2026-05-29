@@ -23,6 +23,7 @@ import {
   type LocalAiDateStreamEvent,
 } from "./ai-date-engine";
 import { canCutDateShort } from "./date-engine";
+import { TRANSCRIPT_CHUNK_TAG } from "./date-transcript-memory";
 import { createSeedGameSave, makePairId } from "./game-seed";
 import { extractDistinctiveTriGram } from "./hidden-info-guard";
 import { OPEN_LOOP_TAG, PAIR_AGREEMENT_TAG } from "./pair-memory";
@@ -56,6 +57,66 @@ describe("AI date text sanitation", () => {
   it("keeps first-person spoken admissions", () => {
     expect(sanitizeCharacterText("I am glad you accept both uses.", "Vhool")).toBe(
       "I am glad you accept both uses.",
+    );
+  });
+
+  it("removes pronoun-led action narration while keeping spoken text", () => {
+    expect(
+      sanitizeCharacterText(
+        "That is an open invitation. He leans in, eyes on where her sleeve meets her wrist.",
+        "Alex Yoon",
+      ),
+    ).toBe("That is an open invitation.");
+    expect(
+      sanitizeCharacterText("You did the whole thing. He sits back, then back up.", "Alex Yoon"),
+    ).toBe("You did the whole thing.");
+  });
+
+  it("removes emphasis-wrapped action while keeping the surrounding line", () => {
+    expect(sanitizeCharacterText("*sighs* okay.", "Opal Sunday")).toBe("okay.");
+    expect(sanitizeCharacterText("yeah *sips* go on.", "Jenna Pike")).toBe("yeah go on.");
+  });
+
+  it("removes emphasis-wrapped body actions whose verbs are not bare-pronoun narration", () => {
+    expect(
+      sanitizeCharacterText(
+        "That is a debt I will carry honorably.\n\n*presses palms into the clay, finds the center*",
+        "Sir Aldric of Vale Marsh",
+      ),
+    ).toBe("That is a debt I will carry honorably.");
+    expect(sanitizeCharacterText("okay. *runs a hand through his hair*", "Alex Yoon")).toBe(
+      "okay.",
+    );
+    expect(sanitizeCharacterText("fine. *shakes her head slowly*", "Mira Park")).toBe("fine.");
+  });
+
+  it("keeps italic emphasis that is not action narration", () => {
+    expect(sanitizeCharacterText("*I cannot believe you said that.*", "Vhool")).toBe(
+      "*I cannot believe you said that.*",
+    );
+  });
+
+  it("keeps spoken description of a third party", () => {
+    expect(sanitizeCharacterText("She looks happy in those photos.", "Opal Sunday")).toBe(
+      "She looks happy in those photos.",
+    );
+  });
+
+  it("keeps idiomatic spoken lines that open with a pronoun and a physical verb", () => {
+    expect(sanitizeCharacterText("She pushes back on everything.", "Mira Park")).toBe(
+      "She pushes back on everything.",
+    );
+    expect(sanitizeCharacterText("They settle down in Ohio next year.", "Opal Sunday")).toBe(
+      "They settle down in Ohio next year.",
+    );
+    expect(sanitizeCharacterText("He stands by his work.", "Decimus Marius Tullio")).toBe(
+      "He stands by his work.",
+    );
+    expect(sanitizeCharacterText("He steps up when it matters.", "Ryan Doyle")).toBe(
+      "He steps up when it matters.",
+    );
+    expect(sanitizeCharacterText("She rolls her eyes at everything I say.", "Cassie Conners")).toBe(
+      "She rolls her eyes at everything I say.",
     );
   });
 
@@ -220,8 +281,17 @@ describe("AI date engine orchestration", () => {
     expect(aiMemory?.pairId).toBe(started.session.pairId);
     expect(aiMemory?.scenarioId).toBe(started.session.scenarioId);
     expect(aiMemory?.visibility).toBe("public");
+    expect(aiMemory?.subjectIds).toEqual(started.session.participants);
     expect(aiMemory?.visibleToMemberIds).toBeUndefined();
     expect(result.session.finalReport?.memoryRecordIds).toContain(aiMemory?.id);
+    const transcriptChunkMemory = result.save.memories.find(
+      (memory) =>
+        memory.dateSessionId === started.session.id && memory.tags.includes(TRANSCRIPT_CHUNK_TAG),
+    );
+    expect(transcriptChunkMemory?.scope).toBe("date");
+    expect(transcriptChunkMemory?.visibility).toBe("member_private");
+    expect(transcriptChunkMemory?.subjectIds).toEqual(started.session.participants);
+    expect(result.session.finalReport?.memoryRecordIds).toContain(transcriptChunkMemory?.id);
     const completedShift = result.save.shifts.find(
       (shift) => shift.id === result.save.activeShiftId,
     );
@@ -783,21 +853,25 @@ describe("AI date engine orchestration", () => {
     });
 
     expect(result.session.status).toBe("completed");
-    expect(result.session.finalReport?.memoryRecordIds).toEqual([
-      `memory-${started.session.id}-ai-fallback`,
-    ]);
-    expect(result.save.memories).toHaveLength(started.save.memories.length + 1);
-    const fallbackMemory = result.save.memories.find(
-      (memory) => memory.id === `memory-${started.session.id}-ai-fallback`,
+    const fallbackMemoryId = `memory-${started.session.id}-ai-fallback`;
+    expect(result.session.finalReport?.memoryRecordIds).toContain(fallbackMemoryId);
+    expect(result.save.memories.length).toBeGreaterThan(started.save.memories.length + 1);
+    const fallbackMemory = result.save.memories.find((memory) => memory.id === fallbackMemoryId);
+    const transcriptChunkMemory = result.save.memories.find(
+      (memory) =>
+        memory.dateSessionId === started.session.id && memory.tags.includes(TRANSCRIPT_CHUNK_TAG),
     );
     expect(fallbackMemory).toBeDefined();
-    if (fallbackMemory === undefined) {
-      throw new Error("Expected fallback memory to be saved.");
+    expect(transcriptChunkMemory).toBeDefined();
+    if (fallbackMemory === undefined || transcriptChunkMemory === undefined) {
+      throw new Error("Expected fallback and transcript memories to be saved.");
     }
     expect(fallbackMemory.visibility).toBe("public");
     expect(fallbackMemory.tags).toContain("fallback_summary");
     expect(fallbackMemory.embeddingModel).toBe("deterministic-local");
     expect(fallbackMemory.text).toContain("Cupid filed a basic case note");
+    expect(transcriptChunkMemory.embeddingModel).toBe("deterministic-local");
+    expect(result.session.finalReport?.memoryRecordIds).toContain(transcriptChunkMemory.id);
     expect(result.warningMessages.join(" ")).toContain(
       "AI memory filing used a deterministic fallback case note.",
     );

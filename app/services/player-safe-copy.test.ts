@@ -45,12 +45,25 @@ describe("cleanMemberFacingText", () => {
       cleanMemberFacingText(
         "The scenario ran for twenty turns. Date Health stayed flat during the simulation.",
       ),
-    ).toBe("The date ran for twenty messages. comfort stayed flat during the date.");
+    ).toBe("The date ran for twenty turns. comfort stayed flat during the date.");
   });
 
   it("pluralizes correctly when both forms appear", () => {
     expect(cleanMemberFacingText("Two scenarios filed. One scenario remains open.")).toBe(
       "Two dates filed. One date remains open.",
+    );
+  });
+
+  it("leaves ordinary 'turn' dialogue untouched", () => {
+    expect(cleanMemberFacingText("He turns forty in June.")).toBe("He turns forty in June.");
+    expect(cleanMemberFacingText("Your turn. It turns out we take turns at the light.")).toBe(
+      "Your turn. It turns out we take turns at the light.",
+    );
+  });
+
+  it("preserves 'turn(s)' even when another system term trips the gate", () => {
+    expect(cleanMemberFacingText("It turns out the scenario was your turn to pick.")).toBe(
+      "It turns out the date was your turn to pick.",
     );
   });
 
@@ -104,7 +117,12 @@ describe("scrubPlayerSafeCopy", () => {
   it("rewrites internal terminology in narrative copy", () => {
     expect(
       scrubPlayerSafeCopy("Cupid filed the scenario across twelve turns of the simulation."),
-    ).toBe("Cupid filed the date across twelve messages of the date.");
+    ).toBe("Cupid filed the date across twelve turns of the date.");
+  });
+
+  it("keeps natural 'turn' usage in narrative copy", () => {
+    const text = "He turns forty in June, and the night took a turn for the better.";
+    expect(scrubPlayerSafeCopy(text)).toBe(text);
   });
 
   it("converts em and en dashes to commas before stripping", () => {

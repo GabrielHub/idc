@@ -55,6 +55,7 @@ export type SearchCupidMemoryResult = {
 
 const VECTOR_SCORE_FLOOR = 0.05;
 const LEXICAL_SCORE_FLOOR = 0.12;
+const MAX_IMPORTANCE_SCORE_BONUS = 0.08;
 
 export async function retrieveRelevantMemories(
   repository: GameRepository,
@@ -96,6 +97,7 @@ export async function retrieveRelevantMemories(
       input.characterId,
       {
         ...embeddingFilters,
+        subjectIds: [input.characterId],
         pairId: input.pairId,
         scopes: ["pair", "date"],
         visibilities: ["public", "member_private"],
@@ -112,6 +114,7 @@ export async function retrieveRelevantMemories(
       input.characterId,
       {
         ...embeddingFilters,
+        subjectIds: [input.characterId],
         scenarioId: input.scenarioId,
         scopes: ["scenario"],
         visibilities: ["public", "member_private"],
@@ -218,6 +221,7 @@ function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] 
   if (scopes.includes("pair")) {
     filters.push({
       ...baseFilters,
+      subjectIds: [input.characterId],
       pairId: input.pairId,
       scopes: ["pair", "date"],
     });
@@ -226,6 +230,7 @@ function buildToolFilters(input: SearchCupidMemoryInput): MemorySearchFilters[] 
   if (scopes.includes("scenario")) {
     filters.push({
       ...baseFilters,
+      subjectIds: [input.characterId],
       scenarioId: input.scenarioId,
       scopes: ["scenario"],
     });
@@ -265,9 +270,10 @@ async function searchMemoryResults(
       return;
     }
 
+    const rankedResult = rankMemoryResult(result);
     const existing = results.get(result.memory.id);
-    if (existing === undefined || result.score > existing.score) {
-      results.set(result.memory.id, result);
+    if (existing === undefined || rankedResult.score > existing.score) {
+      results.set(result.memory.id, rankedResult);
     }
   }
 
@@ -304,6 +310,18 @@ async function searchMemoryResults(
         second.score - first.score || first.memory.id.localeCompare(second.memory.id),
     )
     .slice(0, input.limit);
+}
+
+function rankMemoryResult(result: MemorySearchResult): MemorySearchResult {
+  return {
+    memory: result.memory,
+    score: result.score + memoryImportanceBonus(result.memory),
+  };
+}
+
+function memoryImportanceBonus(memory: MemoryRecord): number {
+  const normalized = (Math.min(5, Math.max(1, memory.importance)) - 1) / 4;
+  return normalized * MAX_IMPORTANCE_SCORE_BONUS;
 }
 
 async function searchMemoriesByLexicalFallback(

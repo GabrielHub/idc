@@ -209,6 +209,11 @@ describe("AI model service", () => {
         thinking: { type: "enabled" },
       },
     });
+    expect(providerOptionsForRuntime(gatewayConfig, "xiaomi/mimo-v2.5-pro")).toEqual({
+      xiaomi: {
+        thinking: { type: "enabled" },
+      },
+    });
   });
 
   it("does not pass reasoning for unsurfaced Gateway model ids", () => {
@@ -256,6 +261,11 @@ describe("AI model service", () => {
       },
     });
     expect(providerOptionsForRuntime(noneConfig, "xiaomi/mimo-v2.5")).toEqual({
+      xiaomi: {
+        thinking: { type: "enabled" },
+      },
+    });
+    expect(providerOptionsForRuntime(noneConfig, "xiaomi/mimo-v2.5-pro")).toEqual({
       xiaomi: {
         thinking: { type: "enabled" },
       },

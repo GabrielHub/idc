@@ -8,6 +8,9 @@ import {
   type DateFinalReport,
   type FollowUpAction,
 } from "../domain/game";
+import { LocalGameRepository } from "../repositories/local-game-repository";
+import { MemorySaveStore } from "../repositories/memory-save-store";
+import { searchCupidMemory } from "./cupid-memory";
 import {
   applyFollowUpAction,
   applyFollowUpActionAndMaybeCompleteShift,
@@ -154,6 +157,39 @@ describe("outcome aware follow-up preview", () => {
     );
     expect(result.save.memories.some((memory) => memory.tags.includes("follow_up"))).toBe(true);
     expect(result.session.finalReport?.appliedFollowUp).toBe("pursue");
+  });
+
+  it("makes follow-up memories available to scoped performer memory search", async () => {
+    const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
+    const pairState = buildPairState();
+    const session = buildSession("early_end");
+    const save = gameSaveSchema.parse({
+      ...seed,
+      pairStates: [
+        ...seed.pairStates.filter((candidate) => candidate.id !== pairState.id),
+        pairState,
+      ],
+      dateSessions: [...seed.dateSessions, session],
+    });
+    const result = applyFollowUpAction(save, {
+      dateSessionId: session.id,
+      action: "pursue",
+    });
+    const repository = new LocalGameRepository(new MemorySaveStore(), "follow-up-memory-search", {
+      writeDebounceMs: 0,
+    });
+    await repository.saveGame(result.save);
+
+    const memories = await searchCupidMemory(repository, {
+      characterId: "vhool",
+      pairId: JENNA_VHOOL_PAIR_ID,
+      scenarioId: session.scenarioId,
+      query: "repair stays slow before another booking",
+      scope: ["pair"],
+      limit: 3,
+    });
+
+    expect(memories.map((memory) => memory.text).join(" ")).toContain("Repair stays slow");
   });
 
   it("repairs duplicate active pair memory before follow-up resolution persists", () => {

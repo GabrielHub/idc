@@ -31,7 +31,7 @@ const FINAL_DATE_HEALTH_PATTERN = /\bFinal Date Health was [-+]?\d+%?\.?/giu;
 const DATE_HEALTH_DELTA_WITH_PREFIX_PATTERN = /\bwith Date Health delta [-+]?\d+%?\.?/giu;
 
 const MEMBER_FACING_TERMS_GATE =
-  /\b(?:scenarios?|transcripts?|turns?|Date Health|gameplay|simulation|sim)\b/iu;
+  /\b(?:scenarios?|transcripts?|Date Health|gameplay|simulation|sim)\b/iu;
 
 const NUMERIC_STAT_GATE = new RegExp(`\\b(?:Date Health|${STAT_NAME_GROUP})\\b`, "iu");
 
@@ -52,13 +52,12 @@ export function cleanMemberFacingText(text: string): string {
   if (!MEMBER_FACING_TERMS_GATE.test(text)) {
     return text;
   }
+  // "turn(s)" is deliberately not scrubbed: it collides with ordinary dialogue ("your turn", "turns out", "he turns forty") far more than the mechanic ever leaks, and members never voice it.
   return text
     .replace(/\bscenario\b/gi, "date")
     .replace(/\bscenarios\b/gi, "dates")
     .replace(/\btranscript\b/gi, "conversation")
     .replace(/\btranscripts\b/gi, "conversations")
-    .replace(/\bturn\b/gi, "message")
-    .replace(/\bturns\b/gi, "messages")
     .replace(/\bDate Health\b/g, "comfort")
     .replace(/\bgameplay\b/gi, "date")
     .replace(/\bsimulation\b/gi, "date")

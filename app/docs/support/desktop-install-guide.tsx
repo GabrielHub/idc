@@ -105,7 +105,8 @@ export const sections: DocSectionEntry[] = [
                 <DocCode>anthropic/claude-haiku-4.5</DocCode>,{" "}
                 <DocCode>moonshotai/kimi-k2.5</DocCode>, <DocCode>minimax/minimax-m2.7</DocCode>,{" "}
                 <DocCode>alibaba/qwen3.5-flash</DocCode>, <DocCode>zai/glm-4.7-flash</DocCode>,{" "}
-                <DocCode>openai/gpt-5.4-nano</DocCode>, and <DocCode>xiaomi/mimo-v2.5</DocCode>.
+                <DocCode>openai/gpt-5.4-nano</DocCode>, <DocCode>xiaomi/mimo-v2.5</DocCode>, and{" "}
+                <DocCode>xiaomi/mimo-v2.5-pro</DocCode>.
               </span>,
               <span key="save">
                 Choose <Strong>Save and connect</Strong> to save the setup and run the readiness
@@ -124,8 +125,9 @@ export const sections: DocSectionEntry[] = [
               <span key="reason">
                 Gateway reasoning is locked per model so date behavior stays comparable. DeepSeek V4
                 Flash and DeepSeek V4 Pro use <DocCode>xhigh</DocCode>; Gemini 3.1 Flash Lite uses{" "}
-                <DocCode>medium</DocCode>; GPT 5.4 Nano uses <DocCode>none</DocCode>; models without
-                a stable Gateway reasoning control use <DocCode>off</DocCode>.
+                <DocCode>medium</DocCode>; GPT 5.4 Nano uses <DocCode>none</DocCode>; MiMo V2.5 and
+                MiMo V2.5 Pro use <DocCode>xhigh</DocCode>; models without a stable Gateway
+                reasoning control use <DocCode>off</DocCode>.
               </span>,
             ]}
           />

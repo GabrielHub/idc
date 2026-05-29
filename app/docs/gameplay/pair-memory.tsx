@@ -183,6 +183,12 @@ export const sections: DocSectionEntry[] = [
           through existing memory paths. <DocCode>pair_strained</DocCode> identifies early-end or
           early-end overflow strain notes; it does not mean the canonical agreement or loop closed.
         </P>
+        <P>
+          Completed dates also file bounded private <DocCode>date</DocCode> memories tagged{" "}
+          <DocCode>transcript_chunk</DocCode>. These chunks preserve concrete improvised details
+          from the transcript for future performer recall. They are visible only to the pair, are
+          excluded from player note surfaces, and do not include Cupid coaching notes.
+        </P>
         <DocCallout variant="warn">
           Do not repair pair state from mirrored memories. <DocCode>PairState</DocCode> is the
           source of truth; memories are derived.

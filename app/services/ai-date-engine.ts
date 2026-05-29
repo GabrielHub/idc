@@ -68,6 +68,10 @@ import {
   shouldJudgePendingExchange,
   type DateEngineResult,
 } from "./date-engine";
+import {
+  createDateTranscriptMemoryDrafts,
+  createDateTranscriptMemoryRecords,
+} from "./date-transcript-memory";
 import { getActiveShift } from "./game-seed";
 import {
   buildCharacterPromptPacket,
@@ -102,6 +106,7 @@ import {
   sanitizeCharacterMarkdownInput,
   type MarkupAbuseDetection,
 } from "./character-markdown";
+import { stripPerformerActionNarration } from "./performer-action-sanitizer";
 import {
   cleanMemberFacingText,
   scrubPlayerSafeCopy,
@@ -138,6 +143,11 @@ export type LocalAiDateRuntime = {
     config: Partial<AiRuntimeConfig>;
   }): Promise<{ embedding: number[]; model: string; dimensions: number }>;
 };
+
+type AiMemoryRecordDraft = Omit<
+  MemoryRecord,
+  "createdAt" | "embedding" | "embeddingModel" | "embeddingDimensions"
+>;
 
 export type LocalAiDateStreamEvent =
   | {
@@ -1598,6 +1608,12 @@ async function createLocalAiFinalSession({
       scenario,
       createdAt: completedAt,
     });
+    const transcriptMemories = createDateTranscriptMemoryRecords(
+      completedSession,
+      members,
+      scenario,
+      completedAt,
+    );
     const closureNearMissMemory = createClosureNearMissMemoryRecord({
       session: completedSession,
       pairState,
@@ -1605,7 +1621,9 @@ async function createLocalAiFinalSession({
       createdAt: completedAt,
     });
     const memories =
-      closureNearMissMemory === null ? [fallbackMemory] : [fallbackMemory, closureNearMissMemory];
+      closureNearMissMemory === null
+        ? [fallbackMemory, ...transcriptMemories]
+        : [fallbackMemory, ...transcriptMemories, closureNearMissMemory];
     const linkedSession = linkFinalReportMemoryRecords(
       completedSession,
       memories.map((memory) => memory.id),
@@ -1707,26 +1725,49 @@ async function createLocalAiMemoryRecords({
       throw new Error("Summarizer returned no memory candidates.");
     }
 
-    return await Promise.all(
-      normalizedCandidates.map(async (candidate, index) => {
-        const embedding = await runtime.embedMemoryText({
-          text: candidate.text,
-          config,
-        });
+    const summaryDrafts = normalizedCandidates.map((candidate, index) => ({
+      ...candidate,
+      id: `memory-${session.id}-ai-${index + 1}`,
+    }));
 
-        return memoryRecordSchema.parse({
-          ...candidate,
-          id: `memory-${session.id}-ai-${index + 1}`,
-          createdAt,
-          embedding: embedding.embedding,
-          embeddingModel: embedding.model,
-          embeddingDimensions: embedding.dimensions,
-        });
-      }),
-    );
+    return await createEmbeddedAiMemoryRecords({
+      runtime,
+      config,
+      createdAt,
+      drafts: [...summaryDrafts, ...createDateTranscriptMemoryDrafts(session, members, scenario)],
+    });
   } catch (error) {
     throw new Error(`AI memory filing failed: ${errorToMessage(error)}`);
   }
+}
+
+async function createEmbeddedAiMemoryRecords({
+  runtime,
+  config,
+  createdAt,
+  drafts,
+}: {
+  runtime: LocalAiDateRuntime;
+  config: Partial<AiRuntimeConfig>;
+  createdAt: string;
+  drafts: readonly AiMemoryRecordDraft[];
+}): Promise<MemoryRecord[]> {
+  return await Promise.all(
+    drafts.map(async (draft) => {
+      const embedding = await runtime.embedMemoryText({
+        text: draft.text,
+        config,
+      });
+
+      return memoryRecordSchema.parse({
+        ...draft,
+        createdAt,
+        embedding: embedding.embedding,
+        embeddingModel: embedding.model,
+        embeddingDimensions: embedding.dimensions,
+      });
+    }),
+  );
 }
 
 function normalizeMemoryCandidate(
@@ -1738,9 +1779,6 @@ function normalizeMemoryCandidate(
     transcriptTokens: ReadonlySet<string>;
   },
 ): MemoryCandidate {
-  const participantIds = new Set(session.participants);
-  const subjectIds = candidate.subjectIds.filter((memberId) => participantIds.has(memberId));
-  const fallbackSubjectIds = subjectIds.length === 0 ? [...session.participants] : subjectIds;
   const cleanedText = scrubPlayerSafeCopy(candidate.text);
   const hiddenLeak = detectHiddenInfoLeak(cleanedText, context.members, {
     includeSingleLabels: true,
@@ -1764,7 +1802,7 @@ function normalizeMemoryCandidate(
     ...candidate,
     scope: "pair",
     visibility: "public",
-    subjectIds: fallbackSubjectIds,
+    subjectIds: [...session.participants],
     visibleToMemberIds: undefined,
     pairId: session.pairId,
     scenarioId: session.scenarioId,
@@ -2136,87 +2174,4 @@ function stripUnbalancedDoubleQuotes(text: string): string {
   }
 
   return text.replace(/"/g, "");
-}
-
-// Sentence-starting verbs that are almost always stage direction rather than
-// dialogue. Transitive verbs like "puts", "picks", "drops", "pulls" were
-// removed because they legitimately open spoken lines ("Holds true.", "Drops
-// by Tuesday."). The italic-wrapped variants in
-// character-markdown.ITALIC_STAGE_DIRECTION_VERBS still catch the wider list.
-const BARE_ACTION_VERBS = [
-  "laughs",
-  "smiles",
-  "nods",
-  "shrugs",
-  "pauses",
-  "sighs",
-  "looks",
-  "glances",
-  "leans",
-  "blinks",
-  "winces",
-  "grimaces",
-  "breathes",
-  "swallows",
-  "grabs",
-  "pours",
-  "sips",
-  "tilts",
-  "gestures",
-  "folds",
-  "crosses",
-  "waves",
-  "rubs",
-  "scratches",
-] as const;
-
-const FIRST_PERSON_ACTION_VERBS: readonly { base: string; ing: string }[] = [
-  { base: "slide", ing: "sliding" },
-  { base: "release", ing: "releasing" },
-  { base: "press", ing: "pressing" },
-  { base: "tap", ing: "tapping" },
-  { base: "push", ing: "pushing" },
-  { base: "set", ing: "setting" },
-  { base: "hand", ing: "handing" },
-  { base: "pass", ing: "passing" },
-  { base: "open", ing: "opening" },
-  { base: "close", ing: "closing" },
-  { base: "lift", ing: "lifting" },
-  { base: "lower", ing: "lowering" },
-  { base: "pull", ing: "pulling" },
-  { base: "place", ing: "placing" },
-  { base: "pick", ing: "picking" },
-  { base: "reach", ing: "reaching" },
-  { base: "move", ing: "moving" },
-  { base: "turn", ing: "turning" },
-  { base: "scroll", ing: "scrolling" },
-  { base: "type", ing: "typing" },
-  { base: "enter", ing: "entering" },
-];
-
-const ACTION_NARRATION_PATTERN = new RegExp(
-  `^(?:(?:${BARE_ACTION_VERBS.join("|")})|I\\s+(?:(?:${FIRST_PERSON_ACTION_VERBS.map(
-    (verb) => verb.base,
-  ).join("|")})|(?:am|will be)\\s+(?:${FIRST_PERSON_ACTION_VERBS.map((verb) => verb.ing).join(
-    "|",
-  )})))\\b`,
-  "i",
-);
-
-function stripPerformerActionNarration(text: string): string {
-  const sentenceMatches = text.match(/[^.!?]+[.!?]*\s*/g) ?? [text];
-  const keptSentences = sentenceMatches.filter((sentence) => {
-    const normalizedSentence = sentence.trim();
-
-    if (normalizedSentence.length === 0) {
-      return false;
-    }
-
-    return !ACTION_NARRATION_PATTERN.test(normalizedSentence);
-  });
-
-  return keptSentences
-    .join("")
-    .replace(/\s{2,}/g, " ")
-    .trim();
 }

@@ -143,31 +143,16 @@ describe("sanitizeCharacterMarkdownInput", () => {
     expect(result.abuses.map((entry) => entry.kind)).toContain("blockquote_syntax");
   });
 
-  it("removes italic stage direction whole-line markup", () => {
+  it("keeps whole-line italics as ordinary emphasis", () => {
     const result = sanitizeCharacterMarkdownInput("*sighs*\nokay.");
-    expect(result.text).toBe("okay.");
-    expect(result.abuses.map((entry) => entry.kind)).toContain("italic_stage_direction");
+    expect(result.text).toBe("*sighs*\nokay.");
+    expect(result.abuses).toEqual([]);
   });
 
-  it("removes italic stage direction spans before spoken text", () => {
+  it("keeps inline italic spans alongside spoken text", () => {
     const result = sanitizeCharacterMarkdownInput("*sighs* okay.");
-    expect(result.text).toBe("okay.");
-    expect(result.abuses.map((entry) => entry.kind)).toContain("italic_stage_direction");
-  });
-
-  it("removes italic body-action spans for puts, grabs, and similar verbs", () => {
-    const cases = [
-      "*puts feet down* okay.",
-      "*grabs coffee* sure.",
-      "yeah *sips* go on.",
-      "alright *taps the table* fair.",
-      "fine *folds arms* whatever.",
-    ];
-    for (const input of cases) {
-      const result = sanitizeCharacterMarkdownInput(input);
-      expect(result.abuses.map((entry) => entry.kind)).toContain("italic_stage_direction");
-      expect(result.text).not.toMatch(/\*[a-z]/i);
-    }
+    expect(result.text).toBe("*sighs* okay.");
+    expect(result.abuses).toEqual([]);
   });
 
   it("keeps only the first heading and downgrades the rest", () => {
@@ -223,14 +208,9 @@ describe("detectMarkupAbuses", () => {
     expect(detections.filter((entry) => entry.kind === "repeated_heading").length).toBe(2);
   });
 
-  it("flags italic stage direction whole-line markup", () => {
-    const detections = detectMarkupAbuses("*sighs*");
-    expect(detections.map((entry) => entry.kind)).toContain("italic_stage_direction");
-  });
-
-  it("flags italic stage direction spans inside a spoken line", () => {
-    const detections = detectMarkupAbuses("*sighs* okay.");
-    expect(detections.map((entry) => entry.kind)).toContain("italic_stage_direction");
+  it("returns no detections for italic emphasis", () => {
+    expect(detectMarkupAbuses("*sighs*")).toEqual([]);
+    expect(detectMarkupAbuses("*sighs* okay.")).toEqual([]);
   });
 
   it("returns no detections for a clean plain message", () => {

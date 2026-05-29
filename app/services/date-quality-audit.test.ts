@@ -272,6 +272,18 @@ describe("date quality audit detectors", () => {
       expect(markupFinding?.severity).toBe("warn");
       expect(markupFinding?.message).toContain("list syntax");
     });
+
+    it("flags action narration using the runtime performer sanitizer boundary", () => {
+      const transcript = buildTranscript([
+        { speaker: JENNA, text: "That tracks. *sips from the coffee* keep going.", turnIndex: 1 },
+      ]);
+
+      const findings = runDetectors(transcript);
+      const markupFinding = findings.find((finding) => finding.category === "markup_abuse");
+
+      expect(markupFinding?.severity).toBe("fail");
+      expect(markupFinding?.message).toContain("action narration");
+    });
   });
 
   describe("overlong turn reporting", () => {

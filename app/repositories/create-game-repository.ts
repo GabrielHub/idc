@@ -8,14 +8,13 @@ import { TauriAppLocalDataSaveStore } from "./tauri-app-local-data-save-store";
 type CreateGameRepositoryOptions = {
   store?: RawSaveStore;
   saveKey?: string;
-  legacySaveKeys?: string[];
 };
 
 export function createGameRepository(
   options: CreateGameRepositoryOptions = {},
 ): LocalGameRepository {
   const store = options.store ?? defaultRawSaveStore();
-  return new LocalGameRepository(store, options.saveKey, options.legacySaveKeys);
+  return new LocalGameRepository(store, options.saveKey);
 }
 
 function defaultRawSaveStore(): RawSaveStore {

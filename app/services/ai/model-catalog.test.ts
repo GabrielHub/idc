@@ -36,7 +36,7 @@ describe("AI model catalog", () => {
     });
 
     expect(config.chatModel).toBe("deepseek/deepseek-v4-flash");
-    expect(config.embeddingModel).toBe("openai/text-embedding-3-small");
+    expect(config.embeddingModel).toBe("voyage/voyage-4");
     expect(config.reasoningLevel).toBe("xhigh");
     expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
   });
@@ -91,54 +91,19 @@ describe("AI model catalog", () => {
         reasoningLevel: "off",
       }).reasoningLevel,
     ).toBe("xhigh");
+    expect(
+      gameConfigSchema.parse({
+        aiProvider: "gateway",
+        chatModel: "xiaomi/mimo-v2.5-pro",
+        reasoningLevel: "off",
+      }).reasoningLevel,
+    ).toBe("xhigh");
   });
 
   it("accepts the expanded reasoning level set", () => {
     expect(gameConfigSchema.parse({ reasoningLevel: "none" }).reasoningLevel).toBe("none");
     expect(gameConfigSchema.parse({ reasoningLevel: "minimal" }).reasoningLevel).toBe("minimal");
     expect(gameConfigSchema.parse({ reasoningLevel: "xhigh" }).reasoningLevel).toBe("xhigh");
-  });
-
-  it("migrates the old OpenAI-compatible Gateway base URL", () => {
-    const config = gameConfigSchema.parse({
-      aiProvider: "gateway",
-      gatewayBaseURL: "https://ai-gateway.vercel.sh/v1",
-    });
-
-    expect(config.gatewayBaseURL).toBe(DEFAULT_GATEWAY_BASE_URL);
-  });
-
-  it("migrates retired Gateway Gemini chat model ids to Flash Lite", () => {
-    expect(
-      gameConfigSchema.parse({
-        aiProvider: "gateway",
-        chatModel: "google/gemini-3-flash",
-      }).chatModel,
-    ).toBe("google/gemini-3.1-flash-lite");
-    expect(
-      gameConfigSchema.parse({
-        aiProvider: "gateway",
-        chatModel: "google/gemini-3.1-flash-lite-preview",
-      }).chatModel,
-    ).toBe("google/gemini-3.1-flash-lite");
-  });
-
-  it("migrates retired expensive Gateway chat model ids to the default", () => {
-    expect(
-      gameConfigSchema.parse({
-        aiProvider: "gateway",
-        chatModel: "xai/grok-4.3",
-      }).chatModel,
-    ).toBe("deepseek/deepseek-v4-flash");
-  });
-
-  it("migrates the retired Gateway Gemini embedding model to the default", () => {
-    expect(
-      gameConfigSchema.parse({
-        aiProvider: "gateway",
-        embeddingModel: "google/gemini-embedding-2",
-      }).embeddingModel,
-    ).toBe("openai/text-embedding-3-small");
   });
 
   it("surfaces the curated Gateway choices from the Vercel catalog", () => {
@@ -153,6 +118,7 @@ describe("AI model catalog", () => {
       "zai/glm-4.7-flash",
       "openai/gpt-5.4-nano",
       "xiaomi/mimo-v2.5",
+      "xiaomi/mimo-v2.5-pro",
     ]);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "google/gemini-3-flash")).toBe(false);
     expect(GATEWAY_CHAT_MODELS.some((model) => model.id === "xai/grok-4.3")).toBe(false);
@@ -175,6 +141,7 @@ describe("AI model catalog", () => {
     expect(gatewayReasoningLevelForModel("zai/glm-4.7-flash", "high")).toBe("off");
     expect(gatewayReasoningLevelForModel("openai/gpt-5.4-nano", "high")).toBe("none");
     expect(gatewayReasoningLevelForModel("xiaomi/mimo-v2.5", "off")).toBe("xhigh");
+    expect(gatewayReasoningLevelForModel("xiaomi/mimo-v2.5-pro", "off")).toBe("xhigh");
   });
 
   it("marks Gateway models that accept image input", () => {
@@ -189,6 +156,7 @@ describe("AI model catalog", () => {
     expect(gatewayImageInputSupported("zai/glm-4.7-flash")).toBe(false);
     expect(gatewayImageInputSupported("openai/gpt-5.4-nano")).toBe(true);
     expect(gatewayImageInputSupported("xiaomi/mimo-v2.5")).toBe(true);
+    expect(gatewayImageInputSupported("xiaomi/mimo-v2.5-pro")).toBe(true);
   });
 
   it("attaches cost metadata to Gateway selector models", () => {

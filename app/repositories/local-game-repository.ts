@@ -93,8 +93,8 @@ type MemoryIndex = {
 };
 
 export class LocalGameRepository implements GameRepository {
-  private readonly legacySaveKeys: string[];
   private readonly writeDebounceMs: number;
+  private readonly legacySaveKeys: string[];
   private legacySavesCleared = false;
 
   private cachedSave: GameSave | null = null;
@@ -109,11 +109,10 @@ export class LocalGameRepository implements GameRepository {
   constructor(
     private readonly store: RawSaveStore,
     private readonly saveKey = DEFAULT_SAVE_KEY,
-    legacySaveKeys?: string[],
     options: LocalGameRepositoryOptions = {},
   ) {
-    this.legacySaveKeys = legacySaveKeys ?? (saveKey === DEFAULT_SAVE_KEY ? LEGACY_SAVE_KEYS : []);
     this.writeDebounceMs = options.writeDebounceMs ?? DEFAULT_WRITE_DEBOUNCE_MS;
+    this.legacySaveKeys = saveKey === DEFAULT_SAVE_KEY ? LEGACY_SAVE_KEYS : [];
   }
 
   async loadGame(): Promise<GameSave | null> {
@@ -123,26 +122,22 @@ export class LocalGameRepository implements GameRepository {
 
     const currentSave = await this.loadGameFromKey(this.saveKey);
 
-    if (currentSave !== null) {
-      this.cachedSave = currentSave.save;
-      if (currentSave.needsWrite) {
-        // Migration writes bypass the debouncer so old-schema bytes never linger.
-        await this.runWriteNow(currentSave.save);
-      }
-      return currentSave.save;
-    }
-
-    for (const legacySaveKey of this.legacySaveKeys) {
-      const rawLegacySave = await this.store.read(legacySaveKey);
-
-      if (rawLegacySave !== null) {
+    if (currentSave === null) {
+      const legacySaveKey = await this.findExistingLegacySaveKey();
+      if (legacySaveKey !== null) {
         throw new Error(
           `Unsupported local save key ${legacySaveKey}. Alpha saves start fresh after schema changes.`,
         );
       }
+      return null;
     }
 
-    return null;
+    this.cachedSave = currentSave.save;
+    if (currentSave.needsWrite) {
+      // Hydration writes bypass the debouncer so refreshed bytes never linger.
+      await this.runWriteNow(currentSave.save);
+    }
+    return currentSave.save;
   }
 
   async saveGame(save: GameSave): Promise<void> {
@@ -192,11 +187,6 @@ export class LocalGameRepository implements GameRepository {
       this.flushHooksAbort = null;
     }
     await this.deleteTranscriptArchivesForSaveKey(this.saveKey);
-    await Promise.all(
-      this.legacySaveKeys.map((legacySaveKey) =>
-        this.deleteTranscriptArchivesForSaveKey(legacySaveKey),
-      ),
-    );
     await this.store.delete(this.saveKey);
     await this.deleteLegacySaves();
   }
@@ -447,11 +437,26 @@ export class LocalGameRepository implements GameRepository {
   }
 
   private async findSaveToBackup(): Promise<{ key: string; raw: string } | null> {
-    for (const key of [this.saveKey, ...this.legacySaveKeys]) {
-      const raw = await this.store.read(key);
+    const raw = await this.store.read(this.saveKey);
 
-      if (raw !== null) {
-        return { key, raw };
+    if (raw !== null) {
+      return { key: this.saveKey, raw };
+    }
+
+    for (const key of this.legacySaveKeys) {
+      const legacyRaw = await this.store.read(key);
+      if (legacyRaw !== null) {
+        return { key, raw: legacyRaw };
+      }
+    }
+
+    return null;
+  }
+
+  private async findExistingLegacySaveKey(): Promise<string | null> {
+    for (const legacySaveKey of this.legacySaveKeys) {
+      if ((await this.store.read(legacySaveKey)) !== null) {
+        return legacySaveKey;
       }
     }
 
@@ -486,7 +491,7 @@ export class LocalGameRepository implements GameRepository {
 
     return {
       save: hydrationResult.save,
-      needsWrite: hydrationResult.dirty || restored.restoredAny,
+      needsWrite: hydrationResult.dirty,
     };
   }
 
@@ -494,13 +499,6 @@ export class LocalGameRepository implements GameRepository {
     const parsed = gameSaveSchema.parse(save);
     const persistable = await this.archiveCompletedTranscripts(parsed);
     await this.store.write(saveKey, JSON.stringify(persistable));
-  }
-
-  private async deleteLegacySaves(): Promise<void> {
-    for (const legacySaveKey of this.legacySaveKeys) {
-      await this.store.delete(legacySaveKey);
-    }
-    this.legacySavesCleared = true;
   }
 
   // -- Cache + debouncer plumbing -----------------------------------
@@ -613,6 +611,16 @@ export class LocalGameRepository implements GameRepository {
     await Promise.all(archiveKeys.map((archiveKey) => this.store.delete(archiveKey)));
   }
 
+  private async deleteLegacySaves(): Promise<void> {
+    await Promise.all(
+      this.legacySaveKeys.map(async (legacySaveKey) => {
+        await this.deleteTranscriptArchivesForSaveKey(legacySaveKey);
+        await this.store.delete(legacySaveKey);
+      }),
+    );
+    this.legacySavesCleared = true;
+  }
+
   private async archiveCompletedTranscripts(save: GameSave): Promise<GameSave> {
     const pending: Array<{ index: number; id: string; json: string }> = [];
     for (let index = 0; index < save.dateSessions.length; index += 1) {
@@ -672,7 +680,7 @@ export class LocalGameRepository implements GameRepository {
       const session = save.dateSessions[index];
       const isCompleted = session.status === "completed" || session.status === "ended_early";
       if (!isCompleted) continue;
-      // Inline transcript still present from older save formats; archived on next flush.
+      // Inline transcript still present (not yet archived); archived on next flush.
       if (session.transcript.length > 0) continue;
       candidates.push({ index, id: session.id });
     }
@@ -762,10 +770,24 @@ function pickIndexedCandidates(
     return index.byScenarioId.get(filters.scenarioId) ?? [];
   }
   if (filters.subjectIds !== undefined && filters.subjectIds.length > 0) {
-    const seed = filters.subjectIds[0];
-    return index.bySubjectId.get(seed) ?? [];
+    return pickSubjectIndexedCandidates(index, filters.subjectIds);
   }
   return index.all;
+}
+
+function pickSubjectIndexedCandidates(
+  index: MemoryIndex,
+  subjectIds: readonly string[],
+): readonly MemoryRecord[] {
+  const candidates = new Map<string, MemoryRecord>();
+
+  for (const subjectId of subjectIds) {
+    for (const memory of index.bySubjectId.get(subjectId) ?? []) {
+      candidates.set(memory.id, memory);
+    }
+  }
+
+  return [...candidates.values()];
 }
 
 function matchesMemoryFilters(memory: MemoryRecord, filters: MemorySearchFilters): boolean {

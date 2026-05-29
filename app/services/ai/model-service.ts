@@ -108,7 +108,9 @@ const characterMemorySearchInputSchema = z.object({
     .min(1)
     .max(3)
     .default(["self", "pair", "scenario"])
-    .describe("Memory areas to search. Use pair for shared relationship history."),
+    .describe(
+      "Memory areas to search inside this character's allowed namespace. Use pair for shared relationship and date history.",
+    ),
   limit: z
     .number()
     .int()
@@ -762,7 +764,7 @@ function createCharacterToolSet(handlers: CharacterToolHandlers) {
   return {
     searchCupidMemory: tool({
       description:
-        "Search allowed IDC memory records when the character needs missing prior relationship, self, or place context before replying.",
+        "Search this character's allowed IDC memory namespace when prior self, relationship, date, or place context would change the next reply.",
       inputSchema: characterMemorySearchInputSchema,
       execute: async (input) => {
         const result = await handlers.searchCupidMemory(input);

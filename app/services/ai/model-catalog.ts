@@ -89,6 +89,7 @@ const GATEWAY_IMAGE_INPUT_MODEL_IDS = new Set([
   "alibaba/qwen3.5-flash",
   "openai/gpt-5.4-nano",
   "xiaomi/mimo-v2.5",
+  "xiaomi/mimo-v2.5-pro",
 ]);
 
 const OLLAMA_IMAGE_INPUT_MODEL_PREFIXES = ["gemma4"] as const;
@@ -200,6 +201,15 @@ export const GATEWAY_CHAT_MODELS: AiModelOption[] = [
     recommendedReasoningLevel: "xhigh",
     reasoningSupported: true,
     cost: gatewayModelCost("xiaomi/mimo-v2.5"),
+  },
+  {
+    id: "xiaomi/mimo-v2.5-pro",
+    label: "MiMo V2.5 Pro",
+    provider: "gateway",
+    brand: "xiaomi",
+    recommendedReasoningLevel: "xhigh",
+    reasoningSupported: true,
+    cost: gatewayModelCost("xiaomi/mimo-v2.5-pro"),
   },
 ];
 

@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   dateSessionSchema,
-  DEFAULT_DATE_MESSAGE_LIMIT,
   gameSaveSchema,
-  LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
   pairStateSchema,
   SAVE_SCHEMA_VERSION,
 } from "../domain/game";
@@ -144,7 +142,7 @@ describe("IDC playable smoke path", () => {
   });
 
   it("seeds a save with the pre-onboarding fallback deck and no drawn hand", async () => {
-    const repository = new LocalGameRepository(new MemorySaveStore(), undefined, [], {
+    const repository = new LocalGameRepository(new MemorySaveStore(), undefined, {
       writeDebounceMs: 0,
     });
     const save = await repository.resetGame();
@@ -157,16 +155,6 @@ describe("IDC playable smoke path", () => {
     // Drawn hand is empty until the player commits a booking.
     expect(save.shifts[0]?.drawnScenarioIds).toEqual([]);
     expect(save.shifts[0]?.activeBooking).toBeUndefined();
-  });
-
-  it("rejects legacy save keys so alpha saves start fresh", async () => {
-    const store = new MemorySaveStore();
-    await store.write("idc.cupid.save.v1", "{}");
-    const repository = new LocalGameRepository(store, undefined, ["idc.cupid.save.v1"], {
-      writeDebounceMs: 0,
-    });
-
-    await expect(repository.loadGame()).rejects.toThrow();
   });
 
   it("selectInitialFocusCases requires exactly 4 ids", () => {
@@ -818,22 +806,6 @@ describe("IDC playable smoke path", () => {
     const result = hydrateFixtureOwnedMemberData(save);
 
     expect(result.save.shifts[0]?.availablePartnerMemberIds).toContain(oldPartnerId);
-  });
-
-  it("hydrates legacy date length defaults for existing saves", () => {
-    const seed = createSeedGameSave();
-    const save = gameSaveSchema.parse({
-      ...seed,
-      config: {
-        ...seed.config,
-        defaultDateMessageLimit: LEGACY_DEFAULT_DATE_MESSAGE_LIMIT,
-      },
-    });
-
-    const result = hydrateFixtureOwnedMemberData(save);
-
-    expect(result.dirty).toBe(true);
-    expect(result.save.config.defaultDateMessageLimit).toBe(DEFAULT_DATE_MESSAGE_LIMIT);
   });
 
   it("generates first-period discounts from selected onboarding focus cases", () => {

@@ -48,12 +48,7 @@ import {
   type ShiftState,
 } from "../domain/game";
 import { companyGoals, memberRequests, starterScenarios } from "../fixtures";
-import {
-  findMemberInSave,
-  getActiveShift,
-  makePairId,
-  normalizeStarterScenarioId,
-} from "./game-seed";
+import { findMemberInSave, getActiveShift, makePairId } from "./game-seed";
 import { getPairProjectionFromSave, materializePairEdge } from "./relationship-index";
 import { applyMatchFitToJudgeSnapshot, evaluateMatchFit, type MatchFitResult } from "./match-fit";
 import { deriveIntentOutcome } from "./matchmaking-intent";
@@ -69,6 +64,7 @@ import {
   applyFollowUpPairMemoryEffects,
   applyJudgePairMemoryEffects,
 } from "./pair-memory";
+import { createDateTranscriptMemoryRecords } from "./date-transcript-memory";
 import { listUniqueOpenLoops } from "./pair-memory-state";
 import {
   applyPrimaryPairStatDeltas,
@@ -1304,9 +1300,13 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           timestamp,
           completedPairMemoryResult.pairState,
         );
+  const transcriptMemoryRecords =
+    completedSession.finalReport === undefined
+      ? []
+      : createDateTranscriptMemoryRecords(completedSession, members, scenario, timestamp);
   const finalSession = linkFinalReportMemoryRecords(
     completedSession,
-    dateMemoryRecords.map((memory) => memory.id),
+    [...dateMemoryRecords, ...transcriptMemoryRecords].map((memory) => memory.id),
   );
   const finalMemories =
     finalSession.finalReport === undefined
@@ -1316,6 +1316,7 @@ export function advanceDateExchange(save: GameSave, input: AdvanceDateInput): Da
           ...pairMemoryResult.memories,
           ...completedPairMemoryResult.memories,
           ...dateMemoryRecords,
+          ...transcriptMemoryRecords,
         ];
   const finalMembers =
     finalSession.finalReport === undefined
@@ -3787,8 +3788,7 @@ export function requireMember(save: GameSave, memberId: string): Member {
 }
 
 export function requireScenario(scenarioId: string): DateScenario {
-  const normalizedScenarioId = normalizeStarterScenarioId(scenarioId);
-  const scenario = starterScenarios.find((candidate) => candidate.id === normalizedScenarioId);
+  const scenario = starterScenarios.find((candidate) => candidate.id === scenarioId);
 
   if (scenario === undefined) {
     throw new Error(`Scenario not found: ${scenarioId}`);

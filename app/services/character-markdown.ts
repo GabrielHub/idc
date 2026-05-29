@@ -155,106 +155,6 @@ const MARKDOWN_INLINE_MATH_PATTERN = /(?<!\\)\$([^$\n]{1,200})\$/g;
 const MARKDOWN_MERMAID_BLOCK_PATTERN = /```\s*mermaid[\s\S]*?```/gi;
 const HORIZONTAL_WHITESPACE_RUN = /[^\S\n]+/g;
 
-const ITALIC_STAGE_DIRECTION_VERBS = [
-  "sighs",
-  "sigh",
-  "smiles",
-  "smile",
-  "laughs",
-  "laugh",
-  "pauses",
-  "pause",
-  "looks",
-  "look",
-  "glances",
-  "glance",
-  "nods",
-  "nod",
-  "shrugs",
-  "shrug",
-  "blinks",
-  "blink",
-  "winces",
-  "wince",
-  "leans",
-  "lean",
-  "breathes",
-  "breath",
-  "breathe",
-  "grimaces",
-  "grimace",
-  "swallows",
-  "swallow",
-  "rolls",
-  "roll",
-  "frowns",
-  "frown",
-  "smirks",
-  "smirk",
-  "winks",
-  "wink",
-  "stares",
-  "stare",
-  "puts",
-  "put",
-  "grabs",
-  "grab",
-  "pours",
-  "pour",
-  "sips",
-  "sip",
-  "picks",
-  "pick",
-  "drops",
-  "drop",
-  "places",
-  "place",
-  "slides",
-  "slide",
-  "pushes",
-  "push",
-  "pulls",
-  "pull",
-  "reaches",
-  "reach",
-  "holds",
-  "hold",
-  "taps",
-  "tap",
-  "tilts",
-  "tilt",
-  "gestures",
-  "gesture",
-  "folds",
-  "fold",
-  "crosses",
-  "cross",
-  "waves",
-  "wave",
-  "rubs",
-  "rub",
-  "brushes",
-  "brush",
-  "wipes",
-  "wipe",
-  "scratches",
-  "scratch",
-];
-
-const ITALIC_STAGE_DIRECTION_PATTERN = new RegExp(
-  `^\\*\\s*(?:${ITALIC_STAGE_DIRECTION_VERBS.join("|")})\\b[^*\\n]*\\*$`,
-  "i",
-);
-const ITALIC_STAGE_DIRECTION_SPAN_PATTERN = new RegExp(
-  `\\*\\s*(?:${ITALIC_STAGE_DIRECTION_VERBS.join("|")})\\b[^*\\n]{0,80}\\*`,
-  "gi",
-);
-
-const WHOLE_LINE_ITALIC_ACTION_PATTERN = new RegExp(
-  `^\\*\\s*(?:[a-z][a-z\\s,'-]{0,80})\\s*\\*$`,
-  "i",
-);
-
 export type MarkupAbuseKind =
   | "raw_html"
   | "link_syntax"
@@ -270,7 +170,6 @@ export type MarkupAbuseKind =
   | "footnote_syntax"
   | "mermaid_block"
   | "repeated_heading"
-  | "italic_stage_direction"
   | "block_overflow";
 
 export type MarkupAbuseDetection = {
@@ -285,7 +184,6 @@ export const MARKUP_ABUSE_FAIL_KINDS: ReadonlySet<MarkupAbuseKind> = new Set<Mar
   "code_fence",
   "mermaid_block",
   "repeated_heading",
-  "italic_stage_direction",
 ]);
 
 export const MEMBER_CHAT_MARKUP_REJECT_KINDS: ReadonlySet<MarkupAbuseKind> =
@@ -303,7 +201,6 @@ export const MEMBER_CHAT_MARKUP_REJECT_KINDS: ReadonlySet<MarkupAbuseKind> =
     "math_syntax",
     "footnote_syntax",
     "mermaid_block",
-    "italic_stage_direction",
     "repeated_heading",
   ]);
 
@@ -337,8 +234,6 @@ export function describeMarkupAbuse(kind: MarkupAbuseKind): string {
       return "Speaker emitted footnote syntax inside dialogue.";
     case "repeated_heading":
       return "Speaker stacked multiple Markdown headings inside one message.";
-    case "italic_stage_direction":
-      return "Speaker emitted italic stage direction instead of spoken text.";
     case "block_overflow":
       return "Speaker emitted more than two visible blocks in one message.";
   }
@@ -402,14 +297,6 @@ export function sanitizeCharacterMarkdownInput(text: string): {
     abuses,
     (_, inner) => inner ?? "",
   );
-  working = applyPattern(
-    working,
-    ITALIC_STAGE_DIRECTION_SPAN_PATTERN,
-    "italic_stage_direction",
-    abuses,
-    () => " ",
-  );
-
   const lines = working.split("\n");
   const cleanedLines: string[] = [];
   let firstHeadingSeen = false;
@@ -472,11 +359,6 @@ export function sanitizeCharacterMarkdownInput(text: string): {
     }
 
     if (line.length === 0) {
-      continue;
-    }
-
-    if (ITALIC_STAGE_DIRECTION_PATTERN.test(line) || WHOLE_LINE_ITALIC_ACTION_PATTERN.test(line)) {
-      abuses.push({ kind: "italic_stage_direction", evidence: line });
       continue;
     }
 
@@ -581,7 +463,6 @@ export function detectMarkupAbuses(text: string): MarkupAbuseDetection[] {
   collect(detections, normalized, MARKDOWN_LINK_PATTERN, "link_syntax");
   collect(detections, normalized, MARKDOWN_AUTOLINK_PATTERN, "link_syntax");
   collect(detections, normalized, MARKDOWN_HTML_TAG_PATTERN, "raw_html");
-  collect(detections, normalized, ITALIC_STAGE_DIRECTION_SPAN_PATTERN, "italic_stage_direction");
 
   const lines = normalized.split("\n");
   let headingCount = 0;
@@ -610,12 +491,6 @@ export function detectMarkupAbuses(text: string): MarkupAbuseDetection[] {
     }
     if (MARKDOWN_TABLE_ROW_PATTERN.test(trimmed) || MARKDOWN_TABLE_DIVIDER_PATTERN.test(trimmed)) {
       detections.push({ kind: "table_syntax", evidence: trimmed });
-    }
-    if (
-      ITALIC_STAGE_DIRECTION_PATTERN.test(trimmed) ||
-      WHOLE_LINE_ITALIC_ACTION_PATTERN.test(trimmed)
-    ) {
-      detections.push({ kind: "italic_stage_direction", evidence: trimmed });
     }
   }
 
