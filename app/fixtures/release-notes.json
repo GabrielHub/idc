@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.11",
+    "date": "2026-05-30",
+    "headline": "Cupid reshuffles the deck and steadies the stars.",
+    "summary": "Gameplay test alpha. Replaces scenario unlock tiers with a circulating draw pile and post-date card offers, refines star-scene UI density, expands playground labs, and extracts shared gameplay services.",
+    "sections": [
+      {
+        "title": "Date Book and deck",
+        "items": [
+          "Scenario tiers are replaced by a circulating draw pile, so the Date Book keeps rotating usable cards instead of permanently gating by unlock level.",
+          "Completed dates now offer new scenario cards through a focused card-offer overlay, with offer generation seeded from current save and shift state.",
+          "Deck edits recirculate dropped cards into the draw pile, and deck tests now pin the full catalog partition across deck, pile, and pending offers."
+        ]
+      },
+      {
+        "title": "Constellation lobby",
+        "items": [
+          "Star quick actions, hover cards, archive edges, focus markers, and at-risk overlays share tighter primitives with viewport-fit tests for dense lobby states.",
+          "Archive layout, edge level-of-detail, aura rendering, and sprite math have broader coverage so the star scene stays readable across large rosters.",
+          "Tutorial, visual-design, and case-management docs now match the current operations-dashboard flow."
+        ]
+      },
+      {
+        "title": "Gameplay and tooling",
+        "items": [
+          "Playground labs are split into focused routes for campaign loops, report decks, memory, player knowledge, match fit, follow-up routing, and shift simulators.",
+          "Member feedback, edge closure detail, request assessment, deck behavior, and date prompts moved into stronger shared service paths with new tests.",
+          "AI setup now avoids premature provider checks on fresh saves, removes the external brand-icon dependency, and keeps unsupported cost labels as n/a."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.10",
     "date": "2026-05-29",
     "headline": "Cupid expands the desk and remembers the table.",

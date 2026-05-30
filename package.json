@@ -1,6 +1,6 @@
 {
   "name": "idc",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "private": true,
   "description": "Interdimensional Dating Coach desktop alpha shell.",
   "type": "module",
