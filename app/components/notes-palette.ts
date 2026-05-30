@@ -47,7 +47,7 @@ export const NOTE_SCOPE_PALETTE: Record<NoteScopeKey, ScopePalette> = {
     rail: "bg-gradient-to-b from-aura-rose via-aura-fuchsia to-aura-amber",
     watermark: "text-aura-rose",
     glyphRing: "ring-aura-rose/50",
-    glyphFill: "from-aura-cream via-rose-50 to-fuchsia-100",
+    glyphFill: "from-aura-paper via-rose-50 to-fuchsia-100",
     caseDot: "bg-aura-ink",
   },
 };

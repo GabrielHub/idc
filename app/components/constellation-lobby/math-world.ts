@@ -4,6 +4,7 @@
  * Three runtime state.
  */
 
+import { clamp } from "../../services/utils";
 import type {
   CameraTarget,
   FlythroughLayer,
@@ -309,10 +310,6 @@ const DEFAULT_ROSTER_CLUSTER_BOUNDS: RosterClusterBounds = {
   maxHeight: ROSTER_CLUSTER_MAX_HEIGHT,
 };
 
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
-
 export function visibleWorldSizeAtDepth({
   canvasWidth,
   canvasHeight,
@@ -334,21 +331,21 @@ export function visibleWorldSizeAtDepth({
 
 export function rosterClusterBoundsForCanvas(input: RosterClusterBoundsInput): RosterClusterBounds {
   const visible = visibleWorldSizeAtDepth(input);
-  const canvasScale = clampNumber(input.avatarScale, 0.72, 1.12);
+  const canvasScale = clamp(input.avatarScale, 0.72, 1.12);
   // Inset budget for halo bleed on the outermost members. Sized for the
   // shrunk avatars used in larger cohorts (see rosterLeadScaleMultiplier);
   // the earlier 2.2 figure was tuned for the hero-size focus picker and
   // left a lot of canvas unused once the cluster shrank.
   const avatarInset = 1.4 * canvasScale;
-  const worldPackingScale = clampNumber(canvasScale, 0.8, 1.05);
+  const worldPackingScale = clamp(canvasScale, 0.8, 1.05);
   // Cluster spans ±maxWidth/2 around x=0 with each star adding ~avatarRadius
   // on its outward side, so the visible-width budget needs an inset on both
   // edges, not just one.
   const widthBudget = visible.width * 0.88 * worldPackingScale - avatarInset * 2;
   const heightBudget = visible.height * 0.95 * worldPackingScale - avatarInset * 2;
   return {
-    maxWidth: clampNumber(widthBudget, 7.2, 14),
-    maxHeight: clampNumber(heightBudget, 4.2, 8.5),
+    maxWidth: clamp(widthBudget, 7.2, 14),
+    maxHeight: clamp(heightBudget, 4.2, 8.5),
   };
 }
 
@@ -363,7 +360,7 @@ export function rosterClusterBoundsForCanvas(input: RosterClusterBoundsInput): R
  */
 export function partnerRingBoundsForCanvas(input: RosterClusterBoundsInput): RosterClusterBounds {
   const visible = visibleWorldSizeAtDepth(input);
-  const canvasScale = clampNumber(input.avatarScale, 0.72, 1.12);
+  const canvasScale = clamp(input.avatarScale, 0.72, 1.12);
   // Ring inset is tighter than the grid's because the orbit only places a
   // single partner near each edge (vs the grid packing whole rows), so less
   // halo-bleed margin is needed before partners crash into the canvas edge.
@@ -371,8 +368,8 @@ export function partnerRingBoundsForCanvas(input: RosterClusterBoundsInput): Ros
   const widthBudget = visible.width * 0.88 - avatarInset * 2;
   const heightBudget = visible.height * 0.92 - avatarInset * 2;
   return {
-    maxWidth: clampNumber(widthBudget, 8.4, 18),
-    maxHeight: clampNumber(heightBudget, 4.8, 8.6),
+    maxWidth: clamp(widthBudget, 8.4, 18),
+    maxHeight: clamp(heightBudget, 4.8, 8.6),
   };
 }
 
@@ -552,6 +549,30 @@ export function computeArchiveFitCamera(positions: readonly Vec3[]): CameraTarge
     lookAt: [centerX, centerY, 0],
     bokehScale: 0.45,
   };
+}
+
+// Ego framing wants a touch more breathing room than the bounding-box fit so
+// the focus star's name pill, the ring of partners, and their spokes all clear
+// the canvas edges. Floored a little closer than the fit camera so a single
+// partner still reads as a deliberate duo rather than a distant speck.
+const EGO_FIT_MARGIN = 1.78;
+const EGO_FIT_MIN_Z = 11;
+
+/**
+ * Camera target for the archive ego view (a member is selected). Centers the
+ * frame on the world origin where `archiveEgoLayout` pins the focused star, and
+ * dollies back just far enough to bracket the partner ring with headroom for
+ * the scene-anchored name pills.
+ */
+export function computeArchiveEgoCameraTarget(input: {
+  ringRadiusX: number;
+  ringRadiusY: number;
+}): CameraTarget {
+  const zForY = (input.ringRadiusY * EGO_FIT_MARGIN) / ARCHIVE_FIT_HALF_FOV_TAN;
+  const zForX =
+    (input.ringRadiusX * EGO_FIT_MARGIN) / (ARCHIVE_FIT_HALF_FOV_TAN * ARCHIVE_FIT_ASPECT);
+  const z = Math.max(EGO_FIT_MIN_Z, Math.min(ARCHIVE_CAMERA_Z, Math.max(zForY, zForX)));
+  return { position: [0, 0, z], lookAt: [0, 0, 0], bokehScale: 0.6 };
 }
 
 export function computeFlythroughCameraTarget(

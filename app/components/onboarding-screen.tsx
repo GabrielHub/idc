@@ -10,6 +10,7 @@ import {
   type MemberRosterFilterState,
 } from "../services/member-roster-filter";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { AmbientMesh } from "./ambient-mesh";
 import { EASE_OUT_QUART, GhostButton, PrimaryButton } from "./dashboard-atoms";
 import {
@@ -79,6 +80,9 @@ export function OnboardingScreen({
     selectedIds.length === FOCUS_CASE_LIMIT,
     onTutorialUpdate,
   );
+  const focusPickCopy = tutorialCopy("onboarding.focus.pick");
+  const focusExpandCopy = tutorialCopy("onboarding.focus.expand");
+  const focusStartCopy = tutorialCopy("onboarding.focus.start");
 
   const eligibleMembers = useMemo(
     () => members.filter((member) => member.state.status === "active"),
@@ -235,7 +239,7 @@ export function OnboardingScreen({
             )}
 
             <div className="pointer-events-none fixed inset-x-0 bottom-8 z-30 flex justify-center px-6">
-              <div className="aura-glass-strong pointer-events-auto flex items-center gap-4 rounded-pill px-5 py-3 shadow-aura-soft">
+              <div className="aura-glass-strong pointer-events-auto flex items-center gap-4 rounded-pill px-5 py-3 shadow-card">
                 <GhostButton onClick={() => setSelectedIds([])} disabled={selectedIds.length === 0}>
                   Clear
                 </GhostButton>
@@ -264,9 +268,10 @@ export function OnboardingScreen({
               <TutorialCoachMark
                 target={firstFocusCardRef}
                 placement="left"
-                title="Cupid is hiring. You are hired."
-                body="These hopefuls walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised."
-                dismissLabel="Skip tour"
+                title={focusPickCopy.title}
+                body={focusPickCopy.body}
+                dismissLabel="End tour"
+                dismissRequiresConfirmation
                 onDismiss={focusPickStep.dismiss}
                 portrait="portrait"
                 textTone="dark"
@@ -280,9 +285,10 @@ export function OnboardingScreen({
               <TutorialCoachMark
                 target={rightmostExpandRef}
                 placement="right"
-                title="Read the file"
-                body="Tap a card's arrow to open their file. Worth a peek before you commit a slot to them."
-                dismissLabel="Skip tour"
+                title={focusExpandCopy.title}
+                body={focusExpandCopy.body}
+                dismissLabel="End tour"
+                dismissRequiresConfirmation
                 onDismiss={focusExpandStep.dismiss}
                 textTone="dark"
               />
@@ -295,9 +301,10 @@ export function OnboardingScreen({
               <TutorialCoachMark
                 target={startShiftCtaRef}
                 placement="top"
-                title="Draft the Date Book"
-                body="Four cases on file. Next up: pick the starter rooms Cupid can draw from once you commit a pair."
-                dismissLabel="Skip tour"
+                title={focusStartCopy.title}
+                body={focusStartCopy.body}
+                dismissLabel="End tour"
+                dismissRequiresConfirmation
                 onDismiss={focusStartStep.dismiss}
                 textTone="dark"
               />

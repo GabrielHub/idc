@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Texture } from "three";
 
 import {
+  archiveAvatarScaleForNodeCount,
   computeLayerZOffset,
   computeRosterCohort,
   computeStarFlythroughLayer,
@@ -92,6 +93,9 @@ export function StarField({
   onHoveredIdChange: Dispatch<SetStateAction<string | null>>;
   onHudOverlayHoveredChange: (hovered: boolean) => void;
 }) {
+  const archiveNodeCount = viewMode === "archive" ? (archivePositions?.size ?? 0) : 0;
+  const archiveAvatarScale = archiveAvatarScaleForNodeCount(archiveNodeCount);
+
   return (
     <>
       {stars.map((star) => {
@@ -128,24 +132,6 @@ export function StarField({
           state === "focus_selected" &&
           isRosterFlythroughLayer(currentLayer) &&
           rosterSubview === "eligibles";
-        const slabActivity = isFocusMarker
-          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
-          : inArchive || flythroughLayer === undefined || currentLayer === undefined
-            ? undefined
-            : flythroughMemberSlabActivity(
-                flythroughLayer,
-                currentLayer,
-                cohort,
-                rosterSubview ?? "eligibles",
-                rosterLeadOrder.length,
-              );
-        const sizingRole = sizingRoleForStar({
-          role,
-          flythroughLayer,
-          currentLayer,
-          cohort,
-          rosterSubview,
-        });
         const lensFilteredOut =
           starClickHandlers?.filterMatchedIds !== undefined &&
           !starClickHandlers.filterMatchedIds.has(star.member.id);
@@ -153,6 +139,40 @@ export function StarField({
           inArchive &&
           archiveIsolation !== undefined &&
           !archiveIsolation.includedMemberIds.has(star.member.id);
+        // The ego-selected member sits at world center; size it up so the hub
+        // of the spoke diagram reads as the subject, not just another partner.
+        const isArchiveEgoFocus = inArchive && archiveIsolation?.focusMemberId === star.member.id;
+        const archiveSlabActivity = inArchive
+          ? {
+              intensityMultiplier: archiveIsolated ? 0.36 : 1.08,
+              scaleMultiplier: isArchiveEgoFocus
+                ? archiveAvatarScale * 1.42
+                : archiveIsolated
+                  ? Math.max(0.74, archiveAvatarScale * 0.74)
+                  : archiveAvatarScale,
+            }
+          : undefined;
+        const slabActivity = isFocusMarker
+          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
+          : (archiveSlabActivity ??
+            (flythroughLayer === undefined || currentLayer === undefined
+              ? undefined
+              : flythroughMemberSlabActivity(
+                  flythroughLayer,
+                  currentLayer,
+                  cohort,
+                  rosterSubview ?? "eligibles",
+                  rosterLeadOrder.length,
+                )));
+        const sizingRole = inArchive
+          ? "eligible"
+          : sizingRoleForStar({
+              role,
+              flythroughLayer,
+              currentLayer,
+              cohort,
+              rosterSubview,
+            });
         const clusterPosition = resolveClusterPosition({
           memberId: star.member.id,
           role,
@@ -188,6 +208,7 @@ export function StarField({
             cardOpen={activeStarId === star.member.id}
             flythroughLayer={flythroughLayer}
             slabActivity={slabActivity}
+            forceAvatar={inArchive}
             clusterPosition={clusterPosition}
             renderOverlay={buildFocusMarkerOverlay({
               role,

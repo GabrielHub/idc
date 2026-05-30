@@ -13,8 +13,8 @@
  *   - Hover constellation lines: focus to hovered eligible partner
  *   - Star sprites: billboarded avatar planes with lit MeshStandardMaterial,
  *     additive halo behind, ring frame on top
- *   - HUD stays as HTML/Tailwind overlays. UI element reconsideration is the
- *     next spike pass — v6 focuses purely on the 3D scene language.
+ *   - Scene-attached star labels and quick actions render as R3F objects.
+ *     Larger HUD shards and morphing detail cards remain HTML/Tailwind overlays.
  *
  * Keep this biased toward R3F-only behavior; DOM overlays belong in narrower
  * sibling modules.
@@ -35,6 +35,7 @@ import { CameraRig, Lights, SceneBackground } from "./canvas-environment";
 import { PartnerSpoke } from "./canvas-connectors";
 import { ParticleField } from "./particle-field";
 import {
+  archiveEdgeEndpointInset,
   computeLayerZOffset,
   computeStarFlythroughLayer,
   flythroughStarZ,
@@ -104,8 +105,8 @@ export type RenderHoverCard = ActiveCardRenderHoverCard;
  *   - `isolation` is the focused subgraph when a member is archive-selected;
  *     stars outside `includedMemberIds` get extra dimming and edges that
  *     don't touch `focusMemberId` fade.
- *   - `renderEdgeTooltip` is an optional drei-Html tooltip mounted at a
- *     hovered edge's midpoint when the LOD spec is in the near band.
+ *   - `renderEdgeTooltip` is an optional drei-Html detail tooltip mounted at
+ *     a hovered edge's midpoint when the LOD spec is in the near band.
  */
 export type SceneArchiveProps = {
   data?: {
@@ -254,11 +255,10 @@ export function Scene({
   // Archive-mode hover state for the constellation edges. Drives the hover
   // halo on PairEdgeMesh and the midpoint Html tooltip mount.
   const [hoveredEdgeId, setHoveredEdgeId] = useState<string | null>(null);
-  // Set true while the pointer is over an in-scene HTML overlay (today, the
-  // inline focus-pill that anchors to the focus star). The pill captures
-  // pointer events, so the canvas's `state.pointer` freezes. Keeping this as
-  // a belt-and-suspenders freeze prevents the camera from resuming mid-hover
-  // if another overlay path starts using parallax again.
+  // Set true while the pointer is over an in-scene star control. The controls
+  // capture pointer events, so the canvas's `state.pointer` freezes. Keeping
+  // this as a belt-and-suspenders freeze prevents the camera from resuming
+  // mid-hover if another scene UI path starts using parallax again.
   const [hudOverlayHovered, setHudOverlayHovered] = useState(false);
   useEffect(() => {
     // Reset if the pill unmounts under the cursor — pointer-leave won't fire
@@ -518,6 +518,7 @@ export function Scene({
           edges={archive.data.edges}
           archiveSelection={archive.selection ?? null}
           archiveIsolation={archive.isolation}
+          endpointInset={archiveEdgeEndpointInset(archive.data.positions.size, canvasScale)}
           hoveredStarId={hoveredId}
           hoveredEdgeId={hoveredEdgeId}
           onHoveredEdgeChange={setHoveredEdgeId}

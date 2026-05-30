@@ -258,7 +258,7 @@ export function CaseFilePanel({
               </p>
               {profile.revealedReads.length === 0 ? (
                 <p className="mt-2 text-label text-white/65">
-                  No player-facing reads filed yet. Run a date to learn how this file moves.
+                  No filed reads yet. Run a date and Cupid will stamp the useful parts.
                 </p>
               ) : otherReads.length === 0 ? (
                 <p className="mt-2 text-label text-white/65">

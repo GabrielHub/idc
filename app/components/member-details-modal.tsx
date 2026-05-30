@@ -4,6 +4,7 @@ import { type ReactNode, type Ref, useEffect, useMemo, useRef, useState } from "
 import type { GameSave, Member, MemberRequest, PlayerKnowledgeRecord } from "../domain/game";
 import { buildVisibleMemberProfile, type VisibleMemberProfile } from "../services/player-knowledge";
 import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { EASE_OUT_QUART, Eyebrow, Portrait } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
 import { caseFileNumber, HeightChip, StatusOverlay } from "./member-card-atoms";
@@ -51,6 +52,7 @@ export function MemberDetailsModal({
     save !== undefined,
     tutorialUpdate,
   );
+  const firstOpenCopy = tutorialCopy("member.file.first-open");
   const profile = useMemo(
     () =>
       buildVisibleMemberProfile(member, playerKnowledge, {
@@ -237,7 +239,7 @@ export function MemberDetailsModal({
                   <Eyebrow>// filed reads</Eyebrow>
                   {profile.revealedReads.length === 0 ? (
                     <p className="mt-2 text-label text-aura-muted">
-                      No player-facing reads filed yet. Run a date to learn how this file moves.
+                      No filed reads yet. Run a date and Cupid will stamp the useful parts.
                     </p>
                   ) : (
                     <ul className="mt-2 space-y-2">
@@ -257,7 +259,7 @@ export function MemberDetailsModal({
               </div>
 
               {status === "closed" ? (
-                <p className="mt-6 rounded-2xl border border-aura-hairline bg-aura-cream-soft px-4 py-3 text-sm text-aura-muted">
+                <p className="mt-6 rounded-2xl border border-aura-hairline bg-aura-paper/80 px-4 py-3 text-sm text-aura-muted">
                   Case closed. Cupid filed this pair as complete.
                 </p>
               ) : null}
@@ -305,11 +307,11 @@ export function MemberDetailsModal({
             <TutorialCoachMark
               target={intelBoardRef}
               placement="top"
-              title="Files start mostly sealed"
-              body="The public profile is what they wrote. Everything else unseals as Cupid files reads from the dates you run."
-              primaryLabel="Got it"
+              title={firstOpenCopy.title}
+              body={firstOpenCopy.body}
+              primaryLabel={firstOpenCopy.primaryLabel}
               onPrimary={firstOpenStep.complete}
-              dismissLabel="Skip tour"
+              dismissLabel="End tour"
               onDismiss={firstOpenStep.dismiss}
               textTone="dark"
             />

@@ -130,7 +130,7 @@ export function LensPanel({
               <SearchIcon />
               <input
                 type="text"
-                placeholder="Search the roster — name, file number, profile…"
+                placeholder="Search name, file number, profile"
                 value={filterState.search}
                 onChange={(event) => patch({ search: event.target.value })}
                 className="w-full bg-transparent text-sm text-aura-paper placeholder:text-white/45 focus:outline-none"
@@ -187,7 +187,7 @@ export function LensPanel({
             </div>
 
             <p className="mt-4 font-mono text-micro uppercase tracking-[0.18em] text-white/55">
-              Non-matching cases stay in the field — they just dim out.
+              Filtered cases stay in the field. They just dim out.
             </p>
           </motion.div>
         </motion.div>

@@ -3,6 +3,7 @@
  * by the star sprite renderer. Pure helpers — no React, no Three runtime state.
  */
 
+import { clamp } from "../../services/utils";
 import type { LobbyState, StarRole, StarTier } from "./types";
 import type { PortraitPalette } from "../portrait-palette";
 import type { MemberAuraConfig } from "../member-aura-registry";
@@ -43,14 +44,14 @@ export type CanvasAvatarScaleInput = {
  */
 const MIN_STAR_HIT_RADIUS = 0.22;
 const BACKGROUND_HOVER_AVATAR_SCALE = 1.85;
+const ARCHIVE_AVATAR_SCALE_MAX = 1.52;
+const ARCHIVE_AVATAR_SCALE_MIN = 0.88;
+const ARCHIVE_AVATAR_FULL_SIZE_NODE_COUNT = 4;
+const ARCHIVE_AVATAR_SCALE_STEP = 0.035;
 const MIN_RESPONSIVE_AVATAR_SCALE = 0.72;
 const MAX_RESPONSIVE_AVATAR_SCALE = 1.12;
 const BASE_CANVAS_WIDTH = 1920;
 const BASE_CANVAS_HEIGHT = 1080;
-
-function clampNumber(value: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, value));
-}
 
 export function avatarScaleForCanvas({ width, height, dpr }: CanvasAvatarScaleInput): number {
   if (width <= 0 || height <= 0) return 1;
@@ -58,9 +59,9 @@ export function avatarScaleForCanvas({ width, height, dpr }: CanvasAvatarScaleIn
   const heightFit = height / BASE_CANVAS_HEIGHT;
   const shortSideFit = Math.sqrt(Math.min(widthFit, heightFit));
   const aspect = width / height;
-  const narrowAspectPenalty = aspect < 1.45 ? clampNumber(aspect / 1.45, 0.82, 1) : 1;
+  const narrowAspectPenalty = aspect < 1.45 ? clamp(aspect / 1.45, 0.82, 1) : 1;
   const lowDensityPenalty = dpr < 1.25 ? 0.98 : 1;
-  return clampNumber(
+  return clamp(
     shortSideFit * narrowAspectPenalty * lowDensityPenalty,
     MIN_RESPONSIVE_AVATAR_SCALE,
     MAX_RESPONSIVE_AVATAR_SCALE,
@@ -68,7 +69,56 @@ export function avatarScaleForCanvas({ width, height, dpr }: CanvasAvatarScaleIn
 }
 
 export function starHitRadiusFloorForCanvasScale(canvasScale: number): number {
-  return clampNumber(MIN_STAR_HIT_RADIUS * canvasScale, 0.16, MIN_STAR_HIT_RADIUS);
+  return clamp(MIN_STAR_HIT_RADIUS * canvasScale, 0.16, MIN_STAR_HIT_RADIUS);
+}
+
+export function archiveAvatarScaleForNodeCount(nodeCount: number): number {
+  const wholeNodeCount = Math.max(0, Math.ceil(nodeCount));
+  const extraNodes = Math.max(0, wholeNodeCount - ARCHIVE_AVATAR_FULL_SIZE_NODE_COUNT);
+  return clamp(
+    ARCHIVE_AVATAR_SCALE_MAX - extraNodes * ARCHIVE_AVATAR_SCALE_STEP,
+    ARCHIVE_AVATAR_SCALE_MIN,
+    ARCHIVE_AVATAR_SCALE_MAX,
+  );
+}
+
+/** Base avatar disc radius (world units) for an archive-graph portrait, before
+ *  canvas + node-count scaling. Mirrors the "eligible" branch of sizeForStar3D,
+ *  which is the sizing role every forced archive avatar renders at. */
+const ARCHIVE_AVATAR_BASE_RADIUS = 0.38;
+/** Clear gap (world units) left between an edge endpoint and the disc it meets. */
+const ARCHIVE_EDGE_ENDPOINT_GAP = 0.26;
+
+/**
+ * World-space distance an archive edge should stop short of each paired star so
+ * the line meets the portrait disc's edge with a small, consistent gap instead
+ * of stabbing into the face or floating off it. Tracks the live avatar size
+ * (which shrinks as the graph grows) so the gap reads the same on a 2-pair board
+ * and a 16-pair board. Consumed by PairEdgeMesh to trim its sampled bezier.
+ */
+export function archiveEdgeEndpointInset(nodeCount: number, canvasScale = 1): number {
+  const scale = clamp(canvasScale, MIN_RESPONSIVE_AVATAR_SCALE, MAX_RESPONSIVE_AVATAR_SCALE);
+  const avatarWorldRadius =
+    ARCHIVE_AVATAR_BASE_RADIUS * scale * archiveAvatarScaleForNodeCount(nodeCount);
+  return avatarWorldRadius + ARCHIVE_EDGE_ENDPOINT_GAP;
+}
+
+/**
+ * World units that span one screen pixel for a perspective camera at a given
+ * view-space depth (distance in front of the camera). Scene-anchored star UI
+ * (name pill, quick-action rail, focus marker) multiplies a pixel length by
+ * this to render at a constant on-screen size regardless of the star's depth
+ * or world scale — the perspective foreshortening that otherwise crushes the
+ * UI on deeper flythrough layers is cancelled out. Returns 0 for a degenerate
+ * viewport / frustum so callers can guard before dividing.
+ */
+export function worldPerScreenPixel(
+  viewDepth: number,
+  tanHalfFov: number,
+  viewportHeightPx: number,
+): number {
+  if (viewportHeightPx <= 0 || tanHalfFov <= 0) return 0;
+  return (2 * Math.max(0.0001, viewDepth) * tanHalfFov) / viewportHeightPx;
 }
 
 function scaleStarSizing(sizing: StarSizing, canvasScale: number): StarSizing {
@@ -87,7 +137,7 @@ export function sizeForStar3D(
   state: LobbyState,
   canvasScale = 1,
 ): StarSizing {
-  const scale = clampNumber(canvasScale, MIN_RESPONSIVE_AVATAR_SCALE, MAX_RESPONSIVE_AVATAR_SCALE);
+  const scale = clamp(canvasScale, MIN_RESPONSIVE_AVATAR_SCALE, MAX_RESPONSIVE_AVATAR_SCALE);
   let sizing: StarSizing;
   if (role === "focus")
     sizing = { avatarRadius: 0.62, haloRadius: 0.82, sparkRadius: 0.075, flareSize: 4.6, scale: 1 };
@@ -139,6 +189,7 @@ export function resolveStarPresentation({
   baseIntensity,
   filteredOut,
   avatarRadius,
+  forceAvatar = false,
   hitRadiusFloor = MIN_STAR_HIT_RADIUS,
 }: {
   tier: StarTier;
@@ -149,9 +200,10 @@ export function resolveStarPresentation({
   baseIntensity: number;
   filteredOut: boolean;
   avatarRadius: number;
+  forceAvatar?: boolean;
   hitRadiusFloor?: number;
 }): StarPresentation {
-  const forceAvatar = role === "focus" || role === "partner";
+  const shouldForceAvatar = forceAvatar || role === "focus" || role === "partner";
   const ineligibleRole =
     role === "ineligible_closed" ||
     role === "ineligible_off_shift" ||
@@ -159,7 +211,7 @@ export function resolveStarPresentation({
   // Only generic "dim" members participate in the parallax background field.
   // Ineligible roles keep their normal slab treatment so their dim visual
   // contract (cooled-off, closed, off-shift) reads even on background tier.
-  const backgroundField = tier === "background" && !clustered && !forceAvatar;
+  const backgroundField = tier === "background" && !clustered && !shouldForceAvatar;
   const parallaxBackground = backgroundField && role === "dim";
   const dormantDot = parallaxBackground && !hovered;
   const backgroundHoverAvatar = backgroundField && hovered;
@@ -168,14 +220,15 @@ export function resolveStarPresentation({
   // Hover promotes a star to full opacity so a dormant dot reveals as a crisp
   // portrait. Ineligible roles keep their dim floor on hover — full opacity
   // would erase the "unavailable" signal.
-  const prominent = clustered || slabIntensity >= 0.9 || (hovered && !ineligibleRole);
+  const prominent =
+    shouldForceAvatar || clustered || slabIntensity >= 0.9 || (hovered && !ineligibleRole);
   // Hover promotes the avatar subgroup to full size for every role — including
   // ineligible cooling / off-shift / closed members. The dim opacity, desat
   // color, and rim treatment still carry the unavailable cue; size only
   // gates *readability* of the quick-action rail that lives inside the
   // subgroup. Keeping the subgroup at 0.38 on hover crushes the rail to ~38%
   // of its normal footprint, making labels and tap targets unreadable.
-  const fullAvatar = forceAvatar || clustered || hovered;
+  const fullAvatar = shouldForceAvatar || clustered || hovered;
   const filterMultiplier = filteredOut ? 0.32 : 1;
   // Hovered ineligible background stars get enlarged by BACKGROUND_HOVER_AVATAR_SCALE
   // but their base * slab opacity is ~5-7%, so the enlarged disc reads as a
@@ -271,9 +324,12 @@ export function haloColorForStar(
   aura: MemberAuraConfig | undefined,
   riskTone: HaloRiskTone = "steady",
 ): string {
+  // Risk owns the glow color so the canvas reads retention at a glance — the
+  // warning tone wins even for the selected lead/partner. A steady member
+  // keeps their role / aura / palette identity color (no alarm tint).
+  if (riskTone !== "steady") return RISK_HALO_COLOR[riskTone];
   if (role === "focus") return "#fb7185";
   if (role === "partner") return "#c4b5fd";
-  if (riskTone !== "steady") return RISK_HALO_COLOR[riskTone];
   if (aura !== undefined) return withoutAlpha(aura.tint.primary);
   return palette.accent;
 }

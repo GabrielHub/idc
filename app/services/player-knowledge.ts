@@ -57,7 +57,7 @@ export const MEMBER_PLAYER_VISIBILITY_CONTRACT: readonly MemberFieldVisibilityEn
   {
     field: "characterHeightInInches",
     tier: "public",
-    playerPath: "Listed profile height in member dossiers and date prompts.",
+    playerPath: "Listed profile height in member files and date prompts.",
   },
   {
     field: "standeeRenderHeightInInches",
@@ -136,7 +136,7 @@ export const MEMBER_PLAYER_VISIBILITY_CONTRACT: readonly MemberFieldVisibilityEn
     field: "tags",
     tier: "never_player_facing",
     playerPath:
-      "Hidden deterministic inputs. Reads may derive player-safe consequences without exposing tag names.",
+      "Hidden deterministic inputs. Reads may derive visible consequences without exposing tag names.",
   },
   {
     field: "voice",
@@ -153,12 +153,12 @@ export const MEMBER_PLAYER_VISIBILITY_CONTRACT: readonly MemberFieldVisibilityEn
   {
     field: "portraits",
     tier: "public",
-    playerPath: "Approved portrait assets render in roster, dossiers, and dates.",
+    playerPath: "Approved portrait assets render in roster, member files, and dates.",
   },
   {
     field: "chatBubble",
     tier: "presentation",
-    playerPath: "Visible date presentation style. It carries no player-facing case fact.",
+    playerPath: "Visible date presentation style. It carries no member-file fact.",
   },
   {
     field: "shiftAvailabilityProfile",

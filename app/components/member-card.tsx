@@ -38,7 +38,7 @@ const STATE_PILL_LABEL: Record<MemberCardState, string> = {
 };
 
 const CARD_FRAME_CLASS: Record<MemberCardState, string> = {
-  focused: "border-transparent shadow-aura-soft",
+  focused: "border-transparent shadow-card",
   selected: "border-aura-rose/60 shadow-card ring-2 ring-aura-rose/35",
   disabled: "border-aura-hairline shadow-quiet opacity-60 saturate-[0.6]",
   closed: "border-aura-hairline shadow-quiet opacity-90",

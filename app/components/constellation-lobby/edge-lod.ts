@@ -4,8 +4,8 @@
  *
  * Two independent axes:
  *   1. Distance bands (near / mid / far) modulate per-frame fidelity:
- *      segment count, width, opacity, and whether the hover halo + midpoint
- *      Html anchor are mounted at all.
+ *      segment count, width, opacity, and whether the midpoint Html anchor is
+ *      mounted.
  *   2. Importance budget caps the total number of edges shown. When the graph
  *      has more filed pairs than the budget, low-importance edges drop out at
  *      build time so the per-frame work stays bounded.
@@ -31,8 +31,11 @@ const EDGE_BUDGET = 80;
 const NEAR_THRESHOLD = 12;
 const MID_THRESHOLD = 22;
 
-/** Min importance kept in the far band (lower tiers cull). */
-const FAR_BAND_MIN_IMPORTANCE = 3;
+/**
+ * Far-band edges still need to read as a graph. Low-importance lines recede,
+ * but the global edge budget is the only place that removes edges entirely.
+ */
+const FAR_BAND_IMPORTANCE_BOOST = 3;
 
 export function classifyEdgeLod(
   edge: PairArchiveEdge,
@@ -73,15 +76,18 @@ export function classifyEdgeLod(
       mountHitSleeve: true,
     };
   }
-  // Far band — only top-importance edges survive.
-  if (edge.topImportance < FAR_BAND_MIN_IMPORTANCE) return null;
+  // Far band — keep every budgeted edge visible so the board still reads as a
+  // relationship graph at a glance. Low-importance edges recede instead of
+  // disappearing, and the hit sleeve stays mounted so hovering can pull the
+  // edge into near-band detail.
+  const boosted = edge.topImportance >= FAR_BAND_IMPORTANCE_BOOST;
   return {
     band: "far",
-    segmentCount: 8,
-    widthScale: 0.3,
-    opacityScale: 0.4,
+    segmentCount: 12,
+    widthScale: boosted ? 0.42 : 0.32,
+    opacityScale: boosted ? 0.62 : 0.46,
     mountHtml: false,
-    mountHitSleeve: false,
+    mountHitSleeve: true,
   };
 }
 

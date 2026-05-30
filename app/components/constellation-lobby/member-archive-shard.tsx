@@ -54,22 +54,22 @@ export function MemberArchiveShard({
         </div>
         <div className="min-w-0 leading-tight">
           <div className="font-mono text-micro uppercase tracking-[0.22em] text-aura-violet">
-            focus · archive
+            records focus
           </div>
           <div className="mt-0.5 font-display text-display-sm truncate text-aura-paper">
             {focusMember.firstName}
           </div>
           <div className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">
             {incidentEdges.length === 0
-              ? "no pairs filed"
-              : `${incidentEdges.length} ${incidentEdges.length === 1 ? "pair" : "pairs"} filed`}
+              ? "no pair files"
+              : `${incidentEdges.length} pair ${incidentEdges.length === 1 ? "file" : "files"}`}
           </div>
         </div>
       </div>
 
       {incidentEdges.length === 0 ? (
         <div className="mt-3 font-mono text-micro uppercase tracking-[0.18em] text-white/45">
-          file a date with this member to draw a line.
+          File a date with this member to draw a line.
         </div>
       ) : (
         <ul className="mt-3 space-y-1.5">
@@ -80,7 +80,7 @@ export function MemberArchiveShard({
             return (
               <li key={edge.pairId}>
                 <AuraButton
-                  tooltip={`Open pair archive for ${partner.firstName}`}
+                  tooltip={`Open pair file for ${partner.firstName}`}
                   tooltipPlacement="right"
                   tooltipAlign="block"
                   tooltipClassName="block w-full"

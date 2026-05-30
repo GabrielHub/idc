@@ -38,6 +38,9 @@ export const prophecyKaraoke: DateScenario = {
       "Anchor the date to room 7. The pair stays on the couch with the tablet.",
       "Never treat a prophecy as guaranteed truth.",
       "Use song titles and screen text as pressure without writing real song lyrics.",
+      "A song-title read is one take plus one next move; do not turn it into music criticism or a full relationship thesis.",
+      "Loaded-title shape: say the title or read, then choose sing, skip, or rewrite. Do not narrate picking up the tablet, screens lighting, countdowns, room dimming, or tracks starting.",
+      "Song facts are pressure, not research. No origin-chain lectures, version histories, or invented song metadata unless a character is naming their own real work.",
       "Let characters push back against the machine.",
     ],
     events: [

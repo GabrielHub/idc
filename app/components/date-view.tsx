@@ -13,6 +13,7 @@ import {
 } from "../domain/game";
 import { findScenarioEventById } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { EASE_OUT_QUART, LiveDot, pad2 } from "./dashboard-atoms";
 import { ChatStream } from "./date-view-chat-stream";
 import { DraftScreen } from "./date-view-draft-screen";
@@ -216,6 +217,7 @@ export function DateView({
 
   const judgeNoteGate = session.judgeSnapshots.length > 0;
   const judgeNoteStep = useTutorialStep(save, "date.judge-note", judgeNoteGate, onTutorialUpdate);
+  const judgeNoteCopy = tutorialCopy("date.judge-note");
   const [judgeNoteAnchor, setJudgeNoteAnchor] = useState<HTMLElement | null>(null);
   useLayoutEffect(() => {
     if (!judgeNoteStep.active) {
@@ -364,11 +366,12 @@ export function DateView({
           <TutorialCoachMark
             target={judgeNoteAnchor}
             placement="top"
-            title="Six turns, one snapshot"
-            body="Cupid reads every sixth turn and at the wrap. Health moves here, not in the booking room. Evidence first, paperwork second."
-            primaryLabel="Got it"
+            title={judgeNoteCopy.title}
+            body={judgeNoteCopy.body}
+            primaryLabel={judgeNoteCopy.primaryLabel}
             onPrimary={judgeNoteStep.complete}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={judgeNoteStep.dismiss}
             textTone="dark"
           />

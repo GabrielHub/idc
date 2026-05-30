@@ -13,6 +13,7 @@ import {
   type MemberRosterFilterState,
 } from "../services/member-roster-filter";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { AmbientMesh } from "./ambient-mesh";
 import { ReselectDock } from "./constellation-lobby/reselect-dock";
 import { EASE_OUT_QUART, Portrait } from "./dashboard-atoms";
@@ -61,6 +62,7 @@ export function CaseManagerScreen({
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const swapPenaltyAnchorRef = useRef<HTMLElement | null>(null);
   const swapPenaltyStep = useTutorialStep(save, "lazy.roster.swap-penalty", true, onTutorialUpdate);
+  const swapPenaltyCopy = tutorialCopy("lazy.roster.swap-penalty");
 
   const draftSet = useMemo(() => new Set(draftIds), [draftIds]);
   const baselineSet = useMemo(() => new Set(baselineFocusedIds), [baselineFocusedIds]);
@@ -206,11 +208,11 @@ export function CaseManagerScreen({
           <TutorialCoachMark
             target={swapPenaltyAnchorRef}
             placement="bottom"
-            title="Swapping costs retention"
-            body={`Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, also paperwork. Pick the next member to seal the swap.`}
-            primaryLabel="Got it"
+            title={swapPenaltyCopy.title}
+            body={swapPenaltyCopy.body}
+            primaryLabel={swapPenaltyCopy.primaryLabel}
             onPrimary={swapPenaltyStep.complete}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
             onDismiss={swapPenaltyStep.dismiss}
           />
         </>

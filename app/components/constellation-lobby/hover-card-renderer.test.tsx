@@ -85,6 +85,7 @@ function renderHoverCardFor({
   const rendered = renderLobbyHoverCard(
     {
       save,
+      shift,
       focusedSet: new Set(save.focusedMemberIds),
       revealAllMemberDetails: false,
       // No focus committed yet — the four focus stars are pickable. This is

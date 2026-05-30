@@ -10,6 +10,7 @@ import type {
 } from "../domain/game";
 import { EVENT_DRAFT_PICKED, findScenarioEventById } from "../services/date-engine";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { EASE_OUT_QUART, Eyebrow, pad2, PrimaryButton, Tooltip } from "./dashboard-atoms";
 import { TutorialCoachMark, TutorialSpotlight } from "./tutorial";
 
@@ -76,6 +77,7 @@ export function DraftScreen({
     offeredEvents.length > 0 && picks.length === 0,
     onTutorialUpdate,
   );
+  const draftCopy = tutorialCopy("date.draft-events");
   useEffect(() => {
     if (offeredEvents.length === 0 && !draftStep.done) {
       draftStep.complete();
@@ -223,9 +225,10 @@ export function DraftScreen({
           <TutorialCoachMark
             target={firstSceneCardRef}
             placement="right"
-            title="Draft three scenes"
-            body="Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never plays them for you."
-            dismissLabel="Skip tour"
+            title={draftCopy.title}
+            body={draftCopy.body}
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={draftStep.dismiss}
             textTone="dark"
           />

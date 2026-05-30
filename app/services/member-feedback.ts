@@ -124,3 +124,32 @@ function makeMaxAxisRatio(value: number, threshold: number): number {
   if (value <= threshold) return 1;
   return Math.min(1, Math.max(0, (100 - value) / (100 - threshold)));
 }
+
+export type MemberOutstandingItem = { id: string; text: string };
+
+/**
+ * Open loops are pair-scoped, so a single member's outstanding loops are the
+ * union of the still-open loops across every pair they belong to. Deduped by
+ * text (the same loop can echo across re-derived pairs) and capped so the
+ * hover card stays compact.
+ */
+export function collectMemberOpenLoops(
+  memberId: string,
+  pairStates: readonly Pick<PairState, "participantIds" | "openLoops">[],
+  limit = 2,
+): MemberOutstandingItem[] {
+  const seen = new Set<string>();
+  const loops: MemberOutstandingItem[] = [];
+  for (const pair of pairStates) {
+    if (!pair.participantIds.includes(memberId)) continue;
+    for (const loop of pair.openLoops) {
+      if (loop.status !== "open") continue;
+      const key = loop.text.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      loops.push({ id: loop.id, text: loop.text });
+      if (loops.length >= limit) return loops;
+    }
+  }
+  return loops;
+}

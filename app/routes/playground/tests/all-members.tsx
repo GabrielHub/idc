@@ -7,9 +7,12 @@ import {
   HOUSE_BUBBLE_NAME_CLASS,
   resolveMemberChatBubbleStyle,
 } from "../../../components/member-chat-bubble-style";
-import { type Member, type PortraitMood } from "../../../domain/game";
-import { starterMembers } from "../../../fixtures";
+import { type Member, type MemberRequest, type PortraitMood } from "../../../domain/game";
+import { memberRequests, starterMembers } from "../../../fixtures";
 import { TestHeader } from "../shared";
+import { ContactSheet } from "./all-members-contact-sheet";
+import { readableTag } from "./all-members-utils";
+import { currentRequestFor } from "./gameplay-loop-lab-common";
 
 type VoiceSampleGroup = "greeting" | "hingeBits" | "warming" | "cooling" | "crashingOut";
 
@@ -42,10 +45,6 @@ function formatHeight(inches: number): string {
   return `${feet}'${remainder}"`;
 }
 
-function readableTag(tag: string): string {
-  return tag.replaceAll("_", " ");
-}
-
 function startLetter(member: Member): string {
   return member.firstName.charAt(0).toUpperCase();
 }
@@ -55,6 +54,7 @@ export function AllMembersTest() {
   const [search, setSearch] = useState("");
   const [voiceGroup, setVoiceGroup] = useState<VoiceSampleGroup>("greeting");
   const [mood, setMood] = useState<PortraitMood>("neutral");
+  const [showContactAura, setShowContactAura] = useState(false);
   const rosterScrollRef = useRef<HTMLDivElement>(null);
 
   const sortedMembers = useMemo(
@@ -166,8 +166,8 @@ export function AllMembersTest() {
       className="space-y-6"
     >
       <TestHeader
-        title="Member dossier"
-        description="Forty-two case files filed under the Aura cream wash. The spine on the left jumps the index. The rail loads a file. Riffle through the file with page scroll."
+        title="Member files"
+        description={`${starterMembers.length} case files filed under the Aura cream wash. The spine on the left jumps the index. The rail loads a file. Riffle through the file with page scroll.`}
       />
 
       <div
@@ -203,7 +203,11 @@ export function AllMembersTest() {
           <VoiceSpread member={selected} group={voiceGroup} onGroupChange={setVoiceGroup} />
           <BoundariesQuad member={selected} />
           <PageMarker label="page 03" subtitle="visuals and chat" />
-          <ContactSheet member={selected} />
+          <ContactSheet
+            member={selected}
+            showAura={showContactAura}
+            onShowAuraChange={setShowContactAura}
+          />
           <BubbleTest member={selected} />
         </div>
       </div>
@@ -454,6 +458,8 @@ function CoverSpread({
     return member.portraits[entry] !== undefined;
   });
   const lifecycle = member.state.status;
+  const activeRequest = currentRequestFor(member);
+  const requestPoolCount = requestPoolFor(member).length;
   const stampToneClass =
     lifecycle === "active"
       ? "text-aura-emerald ring-aura-emerald/40 bg-aura-emerald/10"
@@ -511,6 +517,10 @@ function CoverSpread({
             <DotLeaderRow label="Origin" value={member.origin} />
             <DotLeaderRow label="Reality" value={member.realityStatus} />
             <DotLeaderRow
+              label="Availability"
+              value={readableTag(member.shiftAvailabilityProfile)}
+            />
+            <DotLeaderRow
               label="Height"
               value={`${formatHeight(member.characterHeightInInches)} (${member.characterHeightInInches}")`}
             />
@@ -561,9 +571,10 @@ function CoverSpread({
             ))}
           </div>
 
+          <CurrentAskPanel request={activeRequest} poolCount={requestPoolCount} />
+
           <dl className="space-y-1.5">
             <DotLeaderRow label="Status" value={member.state.status} />
-            <DotLeaderRow label="Request" value={member.state.currentRequestId ?? "(none)"} />
             <DotLeaderRow
               label="Last shift"
               value={
@@ -591,6 +602,61 @@ function CoverSpread({
         </BioColumn>
       </div>
     </motion.article>
+  );
+}
+
+function requestPoolFor(member: Member): MemberRequest[] {
+  return memberRequests.filter((request) => request.memberId === member.id);
+}
+
+function CurrentAskPanel({
+  request,
+  poolCount,
+}: {
+  request: MemberRequest | undefined;
+  poolCount: number;
+}) {
+  if (request === undefined) {
+    return (
+      <div className="rounded-tile border border-aura-hairline bg-white/55 p-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+            Current ask
+          </p>
+          <span className="font-mono text-micro tabular-nums tracking-[0.18em] text-aura-faint">
+            {poolCount} pool
+          </span>
+        </div>
+        <p className="mt-2 text-label italic text-aura-faint">No active request fixture.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-tile border border-aura-rose/20 bg-white/65 p-3 shadow-quiet">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
+          Current ask
+        </p>
+        <span className="font-mono text-micro tabular-nums tracking-[0.18em] text-aura-faint">
+          -{request.moodPenaltyIfIgnored} mood / {poolCount} pool
+        </span>
+      </div>
+      <p className="mt-2 text-label leading-snug text-aura-ink/90">{request.text}</p>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {request.tags.map((tag) => (
+          <li
+            key={tag}
+            className="rounded-pill bg-aura-rose/10 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.16em] text-aura-rose ring-1 ring-aura-rose/20"
+          >
+            {readableTag(tag)}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 truncate font-mono text-micro tracking-[0.04em] text-aura-faint">
+        {request.id}
+      </p>
+    </div>
   );
 }
 
@@ -713,9 +779,13 @@ function VoiceSpread({
         </span>
       </header>
 
-      <div className="grid gap-5 p-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)]">
-        <div className="space-y-3">
+      <div className="space-y-4 p-6">
+        <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
           <RegisterCard register={member.voice.register} />
+          <SampleMessagesCard samples={samples} group={group} onGroupChange={onGroupChange} />
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3">
           <VoiceListCard title="Comedy mechanics" items={member.voice.comedyMechanics ?? []} />
           <VoiceListCard title="Output constraints" items={member.voice.outputConstraints ?? []} />
           <VoiceListCard
@@ -744,48 +814,6 @@ function VoiceSpread({
           />
           <TicsList tics={member.voice.tics} />
         </div>
-
-        <div className="relative overflow-hidden rounded-tile border border-aura-amber/30 bg-gradient-to-b from-[#fff6cf] to-[#ffe994] shadow-quiet">
-          <header className="flex flex-wrap items-center justify-between gap-3 border-b border-aura-amber/30 px-4 py-3">
-            <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
-              Sample messages
-            </p>
-            <div className="inline-flex items-center gap-1 rounded-pill bg-aura-ink/5 p-1">
-              {VOICE_SAMPLE_GROUPS.map((entry) => {
-                const active = entry.id === group;
-                return (
-                  <button
-                    key={entry.id}
-                    type="button"
-                    onClick={() => onGroupChange(entry.id)}
-                    className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
-                      active ? "bg-aura-ink text-white" : "text-aura-muted hover:text-aura-ink"
-                    }`}
-                  >
-                    {entry.label}
-                  </button>
-                );
-              })}
-            </div>
-          </header>
-
-          <ol className="divide-y divide-aura-amber/25">
-            {samples.map((sample, sampleIndex) => (
-              <li
-                key={`${group}-${sampleIndex}`}
-                className="flex items-start gap-4 px-4 py-3 text-body italic leading-relaxed text-aura-ink/90"
-              >
-                <span
-                  aria-hidden
-                  className="mt-1 font-mono text-micro not-italic tabular-nums tracking-[0.18em] text-aura-amber/80"
-                >
-                  {String(sampleIndex + 1).padStart(2, "0")}
-                </span>
-                <span className="flex-1">{sample}</span>
-              </li>
-            ))}
-          </ol>
-        </div>
       </div>
     </article>
   );
@@ -797,9 +825,61 @@ function RegisterCard({ register }: { register: string }) {
       <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
         Register
       </p>
-      <p className="mt-2 font-display text-body font-semibold tracking-tight text-aura-ink">
-        {register}
-      </p>
+      <p className="mt-2 text-body leading-relaxed text-aura-ink/90">{register}</p>
+    </div>
+  );
+}
+
+function SampleMessagesCard({
+  samples,
+  group,
+  onGroupChange,
+}: {
+  samples: readonly string[];
+  group: VoiceSampleGroup;
+  onGroupChange: (group: VoiceSampleGroup) => void;
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-tile border border-aura-amber/30 bg-gradient-to-b from-[#fff8d8] to-[#ffe994] shadow-quiet">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-aura-amber/30 px-4 py-3">
+        <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-amber">
+          Sample messages
+        </p>
+        <div className="flex flex-wrap items-center gap-1 rounded-pill bg-aura-ink/5 p-1">
+          {VOICE_SAMPLE_GROUPS.map((entry) => {
+            const active = entry.id === group;
+            return (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onGroupChange(entry.id)}
+                className={`cursor-pointer rounded-pill px-2.5 py-1 font-mono text-micro font-semibold uppercase tracking-[0.18em] transition ${
+                  active ? "bg-aura-ink text-white" : "text-aura-muted hover:text-aura-ink"
+                }`}
+              >
+                {entry.label}
+              </button>
+            );
+          })}
+        </div>
+      </header>
+
+      <ol className="divide-y divide-aura-amber/25">
+        {samples.map((sample, sampleIndex) => (
+          <li
+            key={`${group}-${sampleIndex}`}
+            className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3 px-4 py-2.5 text-label italic leading-snug text-aura-ink/90"
+          >
+            <span
+              aria-hidden
+              className="font-mono text-micro not-italic tabular-nums tracking-[0.18em] text-aura-amber/80"
+            >
+              {String(sampleIndex + 1).padStart(2, "0")}
+            </span>
+            <span className="min-w-0">{sample}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
@@ -984,105 +1064,6 @@ function BoundaryPanel({
           ))}
         </ul>
       )}
-    </article>
-  );
-}
-
-/* ================================================================== */
-/* Contact sheet                                                      */
-/* ================================================================== */
-
-function ContactSheet({ member }: { member: Member }) {
-  type Frame = {
-    key: string;
-    mood: PortraitMood;
-    label: string;
-    cutoutPath: string;
-    sourcePath: string;
-    asset: "portrait" | "avatar";
-  };
-  const frames: Frame[] = [];
-  for (const portraitMood of PORTRAIT_MOODS) {
-    if (portraitMood === "neutral") {
-      frames.push({
-        key: "neutral",
-        mood: "neutral",
-        label: "neutral",
-        cutoutPath: member.portraits.neutral.portrait.cutoutPath,
-        sourcePath: member.portraits.neutral.portrait.sourcePath,
-        asset: "portrait",
-      });
-      continue;
-    }
-    const variant = member.portraits[portraitMood];
-    if (variant === undefined) {
-      continue;
-    }
-    frames.push({
-      key: portraitMood,
-      mood: portraitMood,
-      label: portraitMood,
-      cutoutPath: variant.portrait.cutoutPath,
-      sourcePath: variant.portrait.sourcePath,
-      asset: "portrait",
-    });
-  }
-  frames.push({
-    key: "avatar",
-    mood: "neutral",
-    label: "avatar (chat)",
-    cutoutPath: member.portraits.neutral.avatar.cutoutPath,
-    sourcePath: member.portraits.neutral.avatar.sourcePath,
-    asset: "avatar",
-  });
-
-  const variantCount = frames.length - 1;
-
-  return (
-    <article className="aura-glass overflow-hidden rounded-card">
-      <header className="flex flex-wrap items-baseline justify-between gap-3 border-b border-aura-hairline px-6 py-4">
-        <div>
-          <Eyebrow>// contact sheet</Eyebrow>
-          <h3 className="mt-1 font-display text-display-sm font-semibold tracking-tight text-aura-ink">
-            Mood variants ({variantCount}/4) and chat avatar.
-          </h3>
-        </div>
-        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          {frames.length} frames
-        </span>
-      </header>
-      <div className="grid gap-3 p-6 md:grid-cols-3 xl:grid-cols-5">
-        {frames.map((frame, frameIndex) => (
-          <figure
-            key={frame.key}
-            className="overflow-hidden rounded-tile border border-aura-hairline bg-white/55"
-          >
-            <div
-              className={`relative grid aspect-square place-items-center ${
-                frame.asset === "avatar"
-                  ? "bg-gradient-to-b from-aura-mesh-amber/35 via-transparent to-aura-mesh-rose/25"
-                  : "bg-gradient-to-b from-aura-mesh-rose/30 via-transparent to-aura-mesh-violet/25"
-              }`}
-            >
-              <span
-                aria-hidden
-                className="absolute left-3 top-3 font-mono text-micro font-semibold tabular-nums tracking-[0.04em] text-aura-faint"
-              >
-                {String(frameIndex + 1).padStart(2, "0")}
-              </span>
-              <Portrait member={member} variant="card" asset={frame.asset} mood={frame.mood} />
-            </div>
-            <figcaption className="space-y-1.5 border-t border-aura-hairline px-3 py-3">
-              <p className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-rose/85">
-                {frame.label}
-              </p>
-              <p className="break-all font-mono text-micro leading-tight tracking-[0.02em] text-aura-ink/75">
-                {frame.cutoutPath}
-              </p>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
     </article>
   );
 }

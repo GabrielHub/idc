@@ -7,7 +7,7 @@ import { joinPairFirstNames } from "./notes-format";
 import type { PairDossier } from "./notes-view-helpers";
 
 const NO_BOARD_EDGE_NOTE =
-  "No public pair file yet. Cupid pulled the player-safe dossier so you can plan around what is filed.";
+  "No public pair file yet. Cupid is only showing what the ledger can defend.";
 
 export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
   const [first, second] = dossier.participants;
@@ -19,7 +19,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
       className="aura-liquid-glass aura-liquid-glass-rose relative mt-6 overflow-hidden rounded-card"
-      aria-label={`Selected pair dossier for ${title}`}
+      aria-label={`Selected pair file for ${title}`}
     >
       <span
         aria-hidden
@@ -41,7 +41,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
               ))}
             </span>
             <div className="min-w-0">
-              <Eyebrow>// pair · dossier</Eyebrow>
+              <Eyebrow>// pair.file</Eyebrow>
               <h4 className="font-display text-display-sm font-semibold leading-tight text-aura-paper">
                 {title}
               </h4>
@@ -63,7 +63,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
           </p>
         ) : null}
 
-        <DossierGroup label="Public pair notes" empty="No public pair notes have been filed yet.">
+        <DossierGroup label="Pair notes" empty="No pair notes have been filed yet.">
           {dossier.publicPairNotes.length === 0 ? null : (
             <ul className="space-y-2">
               {dossier.publicPairNotes.slice(0, 3).map((note) => (
@@ -80,7 +80,7 @@ export function PairDossierCard({ dossier }: { dossier: PairDossier }) {
           )}
         </DossierGroup>
 
-        <DossierGroup label="Visible pair reads" empty="No filed pair reads yet.">
+        <DossierGroup label="Pair reads" empty="No filed pair reads yet.">
           {dossier.pairReads.length === 0 ? null : (
             <ul className="space-y-1.5">
               {dossier.pairReads.map((read) => (

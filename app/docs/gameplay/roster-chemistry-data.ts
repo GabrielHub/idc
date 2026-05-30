@@ -404,7 +404,7 @@ export const CHEMISTRY_PAIRS: ChemistryPair[] = [
     a: "mei",
     b: "gideon",
     kind: "volatile",
-    note: "Brooklyn DJ who reveres house music history meets a 1962 hotel ghost. She wants to ask him about the Palatine lobby piano. He has been practicing one piece for sixty three years. Genuine spark possible if she can listen at his speed.",
+    note: "Brooklyn DJ who reveres house music history meets a 1962 hotel ghost. She wants to ask him about the Palatine lobby piano. He has been practicing one piece since 1962. Genuine spark possible if she can listen at his speed.",
   },
   {
     a: "mei",

@@ -148,8 +148,14 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("<live_date_turn>");
     expect(ownerPacket.prompt).toContain("Success means the reply advances this date");
     expect(ownerPacket.prompt).toContain("The newest partner move outranks room analysis.");
+    expect(ownerPacket.prompt).toContain("Default shape: one compact spoken move.");
+    expect(ownerPacket.prompt).toContain("under 55 words");
+    expect(ownerPacket.prompt).toContain("Compact does not mean bland.");
     expect(ownerPacket.prompt).toContain("Finish the conversational move inside this line.");
     expect(ownerPacket.prompt).toContain("Stay inside the current scene inventory.");
+    expect(ownerPacket.prompt).toContain("names, backstories");
+    expect(ownerPacket.prompt).toContain("visible room events, or object consequences");
+    expect(ownerPacket.prompt).toContain("asking is not permission to invent");
     expect(ownerPacket.prompt).toContain("Your visible affect can change with the turn");
     expect(ownerPacket.prompt).toContain(
       "Your turn is the next move in a conversation already in motion.",
@@ -157,9 +163,14 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("The line lives inside the exchange");
     expect(ownerPacket.prompt).toContain("Warmth shows in the specifics you reach for");
     expect(ownerPacket.prompt).toContain("Open on your own move, not a verdict on");
+    expect(ownerPacket.prompt).toContain("Replace approval with a visible move");
+    expect(ownerPacket.prompt).not.toContain("I respect it");
+    expect(ownerPacket.prompt).toContain("vote, choose, refuse, joke, ask");
+    expect(ownerPacket.prompt).toContain("Skip standalone receipt words like noted");
     expect(ownerPacket.prompt).toContain("Use names and profile facts as social context");
     expect(ownerPacket.prompt).toContain("Names are for address, not material");
     expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");
+    expect(ownerPacket.prompt).toContain("When screen, tablet, or title content matters");
     expect(ownerPacket.prompt).toContain("Let the venue fall behind the person across from you.");
     expect(ownerPacket.prompt).toContain("Opening turn: start the date, not the room tour.");
     expect(ownerPacket.prompt).toContain("You are speaking across a table.");
@@ -190,6 +201,9 @@ describe("date prompt assembly", () => {
       /\b(Date Health|gameplay|transcript)\b/i,
     );
     expect(partnerPacket.prompt).not.toContain(request.text);
+    expect(partnerPacket.prompt).toContain("Vhool's sincerity condenses.");
+    expect(partnerPacket.prompt).toContain("When the room asks for a move, name the move first");
+    expect(partnerPacket.prompt).toContain("If asked whether the board pieces are people");
   });
 
   it("adapts the live date contract to scenario flow", () => {
@@ -205,6 +219,7 @@ describe("date prompt assembly", () => {
     expect(activityPrompt).toContain("Keep the conversation alive while the activity happens");
     expect(pressurePrompt).toContain("<flow_mode>pressure</flow_mode>");
     expect(pressurePrompt).toContain("parking in analysis is not");
+    expect(pressurePrompt).toContain("Pressure is not a lore exam.");
     expect(pressurePrompt).toContain("actions can happen between spoken lines");
     expect(setPiecePrompt).toContain("<flow_mode>set_piece</flow_mode>");
     expect(setPiecePrompt).toContain("React to the visible change and name a next move");
@@ -306,6 +321,76 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).not.toContain("<conversation_shape>");
     expect(packet.prompt).not.toContain("<contrastive_examples>");
     expect(packet.prompt).not.toContain("A: You haven't asked me anything yet.");
+  });
+
+  it("surfaces compact pressure examples for high-chaos music dates", () => {
+    const save = withFeaturedMembers(createSeedGameSave(new Date("2026-05-05T12:00:00.000Z")), [
+      "gideon-glass",
+      "mei-sato",
+    ]);
+    const started = startAndDraftDateSession(save, {
+      focusMemberId: "gideon-glass",
+      firstMemberId: "gideon-glass",
+      secondMemberId: "mei-sato",
+      scenarioId: "prophecy-karaoke",
+      now: new Date("2026-05-05T12:01:00.000Z"),
+    });
+    const scenario = starterScenarios.find((candidate) => candidate.id === "prophecy-karaoke");
+    const gideon = started.save.members.find((member) => member.id === "gideon-glass");
+    const mei = started.save.members.find((member) => member.id === "mei-sato");
+    const pairState = getPairProjectionFromSave(
+      started.save,
+      makePairId("gideon-glass", "mei-sato"),
+    );
+
+    if (
+      scenario === undefined ||
+      gideon === undefined ||
+      mei === undefined ||
+      pairState === undefined
+    ) {
+      throw new Error("Expected prompt fixture setup.");
+    }
+
+    const gideonPacket = buildCharacterPromptPacket({
+      member: gideon,
+      partner: mei,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    });
+    const meiPacket = buildCharacterPromptPacket({
+      member: mei,
+      partner: gideon,
+      scenario,
+      session: started.session,
+      pairState,
+      memoryPack: {
+        self: [],
+        pair: [],
+        scenario: [],
+        recentTranscript: started.session.transcript,
+      },
+    });
+
+    expect(gideonPacket.prompt).toContain("Karaoke prophecy shape");
+    expect(gideonPacket.prompt).toContain("A dare, then.");
+    expect(gideonPacket.prompt).toContain("one vow and one question");
+    expect(gideonPacket.prompt).toContain("one verdict, one invitation");
+    expect(gideonPacket.prompt).toContain("A song-title read is one take plus one next move");
+    expect(gideonPacket.prompt).toContain("Loaded-title shape");
+    expect(gideonPacket.prompt).toContain("No origin-chain lectures");
+    expect(gideonPacket.prompt).toContain("Do not introduce the 1962 piano piece as an analogy");
+    expect(meiPacket.prompt).toContain("Karaoke pressure stays one beat ahead of the tablet");
+    expect(meiPacket.prompt).toContain("ok ok, the machine is being rude in stereo");
+    expect(meiPacket.prompt).toContain("do not write a theory of the song");
+    expect(meiPacket.prompt).toContain("Clocking language belongs to rhythm");
   });
 
   it("surfaces compact chat cadence constraints for everyday human voices", () => {
@@ -1551,6 +1636,7 @@ describe("buildJudgePromptPacket reveal candidates", () => {
     expect(packet.prompt).toContain("agreement update notes");
     expect(packet.prompt).toContain("open loop update notes");
     expect(packet.prompt).toContain("Use -1 to -3 for mild drift");
+    expect(packet.prompt).toContain("Extended premise explanation");
     expect(fullPrompt).toContain("Dating success is not the default.");
     expect(packet.prompt).toContain("Spark and chemistry are not generic approval.");
     expect(packet.prompt).toContain("Confusion, anger, overload, and crash-out pressure");

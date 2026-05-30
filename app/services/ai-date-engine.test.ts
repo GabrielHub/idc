@@ -52,6 +52,12 @@ describe("AI date text sanitation", () => {
         "Bai Wenshu of the Falling Plum Sect",
       ),
     ).toBe("Thy laugh earns a mark in my private count.");
+    expect(
+      sanitizeCharacterText(
+        "I lean forward a little, looking at the pawns. Okay. The one on the left.",
+        "Jenna Pike",
+      ),
+    ).toBe("Okay. The one on the left.");
   });
 
   it("keeps first-person spoken admissions", () => {
@@ -70,6 +76,32 @@ describe("AI date text sanitation", () => {
     expect(
       sanitizeCharacterText("You did the whole thing. He sits back, then back up.", "Alex Yoon"),
     ).toBe("You did the whole thing.");
+    expect(
+      sanitizeCharacterText(
+        "She steps forward two squares. Thank you for using her name.",
+        "Vhool",
+      ),
+    ).toBe("Thank you for using her name.");
+    expect(
+      sanitizeCharacterText("The pawn steps forward. She knows what she is doing.", "Vhool"),
+    ).toBe("She knows what she is doing.");
+    expect(sanitizeCharacterText("The pawn stepped forward. Now we wait.", "Vhool")).toBe(
+      "Now we wait.",
+    );
+  });
+
+  it("removes name-led action narration and bare pause beats", () => {
+    expect(
+      sanitizeCharacterText(
+        "Gideon glances at the tablet without touching it.\n\n*Cry Me a River*. The machine thinks we should open with a grudge. A pause. Do we take its dare?",
+        "Gideon Glass",
+      ),
+    ).toBe(
+      "*Cry Me a River*. The machine thinks we should open with a grudge. Do we take its dare?",
+    );
+    expect(
+      sanitizeCharacterText("Vhool folds the corner and asks whether paper can consent.", "Vhool"),
+    ).toBe("Vhool folds the corner and asks whether paper can consent.");
   });
 
   it("removes emphasis-wrapped action while keeping the surrounding line", () => {
@@ -88,6 +120,33 @@ describe("AI date text sanitation", () => {
       "okay.",
     );
     expect(sanitizeCharacterText("fine. *shakes her head slowly*", "Mira Park")).toBe("fine.");
+  });
+
+  it("removes generated room and track directions while keeping spoken karaoke text", () => {
+    expect(
+      sanitizeCharacterText(
+        "The room dims slightly. A countdown appears, then the track starts. You take the verse.",
+        "Gideon Glass",
+      ),
+    ).toBe("You take the verse.");
+    expect(
+      sanitizeCharacterText(
+        "*the first few bars hit and i clock the track*\n\noh, it's that 2014 thing.",
+        "Mei Sato",
+      ),
+    ).toBe("oh, it's that 2014 thing.");
+    expect(
+      sanitizeCharacterText(
+        "The screen lights up. A title appears.\n\n*You Have No Idea What You're Doing.*",
+        "Gideon Glass",
+      ),
+    ).toBe("*You Have No Idea What You're Doing.*");
+    expect(
+      sanitizeCharacterText(
+        'I pick up the tablet and read the screen. "*The Night We Met.*" I set it back down.',
+        "Gideon Glass",
+      ),
+    ).toBe("*The Night We Met.*");
   });
 
   it("keeps italic emphasis that is not action narration", () => {

@@ -12,17 +12,17 @@ import type { FlythroughLayer, LobbyState } from "./types";
 // pixel-level — useEffect doesn't fire here, but the rendered HUD layout is
 // driven by props alone and exercises the gating logic we care about.
 
-describe("LobbyHudLayer AI warmup gating", () => {
-  it("keeps Commit pair available while AI is not ready", () => {
+describe("LobbyHudLayer Cupid warmup gating", () => {
+  it("keeps Commit pair available while Cupid is still booting", () => {
     const html = renderHud({ aiReady: false, lobbyState: "partner_selected" });
     const commitButton = findButtonByLabel(html, "Commit pair");
 
     expect(commitButton).toBeDefined();
     expect(hasDisabledAttribute(commitButton)).toBe(false);
-    expect(html).not.toContain("AI not ready");
+    expect(html).not.toContain("Cupid is still booting");
   });
 
-  it("keeps Begin date visible but blocked while AI is not ready", () => {
+  it("keeps Begin date visible but blocked while Cupid is still booting", () => {
     const html = renderHud({
       aiReady: false,
       lobbyState: "scenario_chosen",
@@ -32,10 +32,10 @@ describe("LobbyHudLayer AI warmup gating", () => {
 
     expect(beginButton).toBeDefined();
     expect(hasDisabledAttribute(beginButton)).toBe(true);
-    expect(html).toContain("AI not ready");
+    expect(html).toContain("Cupid is still booting");
   });
 
-  it("blocks Begin and Commit with a Working… reason while an action is in flight", () => {
+  it("blocks Begin and Commit with a filing reason while an action is in flight", () => {
     const html = renderHud({
       aiReady: true,
       isActionPending: true,
@@ -46,8 +46,8 @@ describe("LobbyHudLayer AI warmup gating", () => {
 
     expect(beginButton).toBeDefined();
     expect(hasDisabledAttribute(beginButton)).toBe(true);
-    expect(html).toContain("Working…");
-    expect(html).not.toContain("AI not ready");
+    expect(html).toContain("Cupid is filing");
+    expect(html).not.toContain("Cupid is still booting");
   });
 
   it("drops the redundant 'Pair locked' label when a Begin reason supersedes it", () => {
@@ -57,7 +57,7 @@ describe("LobbyHudLayer AI warmup gating", () => {
       selectedScenarioId: "orbital-tea-room",
     });
 
-    expect(html).toContain("AI not ready");
+    expect(html).toContain("Cupid is still booting");
     expect(html).not.toContain("Pair locked");
   });
 });
@@ -108,7 +108,7 @@ describe("LobbyHudLayer Date Book pill gating", () => {
       dateBookDisabledReason: "Date Book edits unlock after the first date report.",
     });
 
-    expect(html).not.toContain("Date book");
+    expect(html).not.toContain("Date Book");
   });
 
   it("shows the Date Book pill after deck editing unlocks", () => {
@@ -119,7 +119,7 @@ describe("LobbyHudLayer Date Book pill gating", () => {
       showDateBook: true,
     });
 
-    expect(html).toContain("Date book");
+    expect(html).toContain("Date Book");
   });
 
   it("keeps the visible Date Book pill disabled while a booking is active", () => {
@@ -131,7 +131,7 @@ describe("LobbyHudLayer Date Book pill gating", () => {
       showDateBook: true,
       bookingLocked: true,
     });
-    const dateBookButton = findButtonByLabel(html, "Date book");
+    const dateBookButton = findButtonByLabel(html, "Date Book");
 
     expect(hasDisabledAttribute(dateBookButton)).toBe(true);
   });
@@ -185,6 +185,7 @@ function renderHud({
       layerNavigationMode="free"
       refs={{
         layerIndicatorRef: createRef<HTMLDivElement>(),
+        shiftBriefRef: createRef<HTMLDivElement>(),
         layerFocusRef: createRef<HTMLButtonElement>(),
         layerRosterRef: createRef<HTMLButtonElement>(),
         layerCathedralRef: createRef<HTMLButtonElement>(),

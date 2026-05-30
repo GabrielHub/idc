@@ -60,11 +60,11 @@ export function CathedralCard({
       }`}
     >
       <AuraButton
-        tooltip={showTooltip ? `${entry.scenario.title} - ${entry.scenario.venue}` : undefined}
+        tooltip={showTooltip ? `${entry.scenario.title}, ${entry.scenario.venue}` : undefined}
         tooltipPlacement="top"
         tooltipAlign="block"
         tooltipClassName="absolute inset-0 z-10"
-        aria-label={`${entry.scenario.title} - ${entry.scenario.venue}`}
+        aria-label={`${entry.scenario.title}, ${entry.scenario.venue}`}
         onClick={onSelect}
         disabled={!interactive}
         className={`${showTooltip ? "" : "absolute inset-0 z-10 "}h-full w-full cursor-pointer rounded-card border-0 bg-transparent p-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 disabled:cursor-not-allowed`}
@@ -106,7 +106,7 @@ export function CathedralCard({
           </span>
           {interactive ? (
             <AuraButton
-              tooltip={`Open ${entry.scenario.title} details`}
+              tooltip={`Open ${entry.scenario.title} room brief`}
               onClick={(event) => {
                 event.stopPropagation();
                 onOpenDetail();
@@ -275,6 +275,6 @@ function roomReadTint(roomRead: LobbyScenario["roomRead"]): RoomReadTint {
 }
 
 function topTagFor(entry: DoorEntry, mode: CathedralMode): string {
-  if (entry.kind === "deck") return entry.slotLabel ?? "deck slot";
-  return mode === "auto" ? "" : "scenario";
+  if (entry.kind === "deck") return entry.slotLabel ?? "room card";
+  return mode === "auto" ? "" : "room";
 }

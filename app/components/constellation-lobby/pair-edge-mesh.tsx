@@ -5,12 +5,18 @@
  * preview. Color reads off the pair's relationship health, width off the
  * top note importance, opacity off the player-visible note count.
  *
+ * The line is trimmed at both ends by a world-space inset so it meets each
+ * portrait disc's edge with a small, even gap instead of stabbing into the
+ * face. The only midpoint ornament is a soft pip that fades in when the edge is
+ * hovered or selected — at rest the line reads clean, with nothing floating on
+ * top of it.
+ *
  * Each edge owns its own useFrame loop that classifies the current LOD band
  * from camera distance to midpoint and mutates the line material props
  * directly — no React re-render per frame.
  */
 
-import { Html, Line } from "@react-three/drei";
+import { Billboard, Html, Line } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import { useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
@@ -21,7 +27,9 @@ import { classifyEdgeLod, type EdgeLodSpec } from "./edge-lod";
 import type { Vec3 } from "./types";
 
 type Line2 = {
-  material: { linewidth: number; opacity: number; transparent: boolean };
+  material: THREE.Material & {
+    linewidth: number;
+  };
 };
 
 export type PairEdgeMeshProps = {
@@ -29,6 +37,12 @@ export type PairEdgeMeshProps = {
   from: Vec3;
   to: Vec3;
   control: Vec3;
+  /**
+   * World-space distance to stop the drawn line short of each endpoint so it
+   * meets the portrait disc's edge with a small gap. Falls back to a constant
+   * when the caller can't supply the live avatar size.
+   */
+  endpointInset?: number;
   isHovered: boolean;
   isSelected: boolean;
   /**
@@ -52,12 +66,20 @@ export type PairEdgeMeshProps = {
 };
 
 const FADED_OPACITY_MULTIPLIER = 0.18;
+const DEFAULT_ENDPOINT_INSET = 0.6;
+const EDGE_GLOW_WIDTH_MULTIPLIER = 3.4;
+const EDGE_GLOW_OPACITY_MULTIPLIER = 0.36;
+// Midpoint pip — a soft dot that anchors the eye (and the tooltip) only while
+// the edge is highlighted. Small and static; the line carries the resting read.
+const PIP_CORE_RADIUS = 0.05;
+const PIP_GLOW_RADIUS = 0.15;
 
 export function PairEdgeMesh({
   edge,
   from,
   to,
   control,
+  endpointInset = DEFAULT_ENDPOINT_INSET,
   isHovered,
   isSelected,
   isFaded = false,
@@ -67,6 +89,7 @@ export function PairEdgeMesh({
   hoverTooltip,
 }: PairEdgeMeshProps) {
   const lineRef = useRef<Line2 | null>(null);
+  const glowLineRef = useRef<Line2 | null>(null);
   const [currentLod, setCurrentLod] = useState<EdgeLodSpec | null>(() => ({
     band: "near",
     segmentCount: 16,
@@ -85,16 +108,24 @@ export function PairEdgeMesh({
   const progressBoost = 0.85 + progressRatio * 0.3;
   const baseWidth = edgeStrokeWidth(edge) * 0.6 * progressBoost * blockerPenalty;
   const baseOpacity = edgeBaseOpacity(edge);
-  const color = colorForHealth(edge.health, isHovered || isSelected);
+  const highlighted = isHovered || isSelected;
+  const color = colorForHealth(edge.health, highlighted);
 
-  // Sample bezier curve at the segment count the current LOD specifies.
-  // useMemo over the points list keeps the buffer stable until the band
-  // (segment count) actually changes — avoids reallocating per frame.
+  // Sample the bezier curve at the segment count the current LOD specifies,
+  // trimmed at both ends by a world-space inset converted to a curve parameter
+  // via the chord-plus-arms length estimate. Trimming in world units (not a
+  // fixed parameter fraction) keeps the disc gap even across short and long
+  // edges. useMemo keeps the buffer stable until inputs change — no per-frame
+  // reallocation.
   const points = useMemo(() => {
     const count = currentLod?.segmentCount ?? 16;
+    const approxLength =
+      (vecDistance(from, control) + vecDistance(control, to) + vecDistance(from, to)) / 2;
+    const tInset = approxLength > 0 ? Math.min(0.45, Math.max(0, endpointInset / approxLength)) : 0;
+    const span = 1 - tInset * 2;
     const out: THREE.Vector3[] = [];
     for (let i = 0; i <= count; i += 1) {
-      const t = i / count;
+      const t = tInset + (i / count) * span;
       out.push(quadraticBezierPoint(from, control, to, t));
     }
     return out;
@@ -109,6 +140,7 @@ export function PairEdgeMesh({
     to.y,
     to.z,
     currentLod?.segmentCount,
+    endpointInset,
   ]);
 
   // Tube curve for the invisible hit sleeve.
@@ -138,28 +170,83 @@ export function PairEdgeMesh({
       // edges short-circuit the fade so the player can still pull a faded
       // edge back into focus by pointing at it.
       const fadeFactor = isFaded && !isHovered && !isSelected ? FADED_OPACITY_MULTIPLIER : 1;
-      const mat = lineRef.current.material;
-      mat.linewidth = baseWidth * next.widthScale;
-      mat.opacity = baseOpacity * next.opacityScale * fadeFactor;
-      mat.transparent = true;
+      const opacity = baseOpacity * next.opacityScale * fadeFactor;
+      applyLineMaterial(lineRef.current, baseWidth * next.widthScale, opacity);
+      applyLineMaterial(
+        glowLineRef.current,
+        baseWidth * next.widthScale * EDGE_GLOW_WIDTH_MULTIPLIER,
+        Math.min(0.68, opacity * EDGE_GLOW_OPACITY_MULTIPLIER + (highlighted ? 0.12 : 0)),
+      );
     }
   });
 
   if (currentLod === null) return null;
 
-  const showHtml = currentLod.mountHtml && isHovered && hoverTooltip !== undefined;
+  const fadeFactor = isFaded && !isHovered && !isSelected ? FADED_OPACITY_MULTIPLIER : 1;
+  const visibleOpacity = baseOpacity * currentLod.opacityScale * fadeFactor;
+  const glowOpacity = Math.min(
+    0.68,
+    visibleOpacity * EDGE_GLOW_OPACITY_MULTIPLIER + (highlighted ? 0.12 : 0),
+  );
+  const pipGlowOpacity = Math.min(0.5, visibleOpacity * 0.5 + 0.12);
+  const pipCoreOpacity = Math.min(0.95, visibleOpacity + 0.2);
+  const showHtml = currentLod.mountHtml && highlighted && hoverTooltip !== undefined;
   const showSleeve = currentLod.mountHitSleeve;
 
   return (
     <group>
+      <Line
+        ref={glowLineRef as never}
+        points={points}
+        color={color}
+        lineWidth={baseWidth * currentLod.widthScale * EDGE_GLOW_WIDTH_MULTIPLIER}
+        transparent
+        opacity={glowOpacity}
+        depthWrite={false}
+        depthTest={false}
+        toneMapped={false}
+        blending={THREE.AdditiveBlending}
+      />
       <Line
         ref={lineRef as never}
         points={points}
         color={color}
         lineWidth={baseWidth * currentLod.widthScale}
         transparent
-        opacity={baseOpacity * currentLod.opacityScale}
+        opacity={visibleOpacity}
+        depthWrite={false}
+        depthTest={false}
+        toneMapped={false}
+        blending={THREE.AdditiveBlending}
       />
+      {highlighted ? (
+        <Billboard position={[midpoint.x, midpoint.y, midpoint.z + 0.015]}>
+          <mesh raycast={() => null}>
+            <circleGeometry args={[PIP_GLOW_RADIUS, 24]} />
+            <meshBasicMaterial
+              color={color}
+              transparent
+              opacity={pipGlowOpacity}
+              depthWrite={false}
+              depthTest={false}
+              toneMapped={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+          <mesh raycast={() => null} position={[0, 0, 0.01]}>
+            <circleGeometry args={[PIP_CORE_RADIUS, 20]} />
+            <meshBasicMaterial
+              color="#fff7ed"
+              transparent
+              opacity={pipCoreOpacity}
+              depthWrite={false}
+              depthTest={false}
+              toneMapped={false}
+              blending={THREE.AdditiveBlending}
+            />
+          </mesh>
+        </Billboard>
+      ) : null}
       {showSleeve ? (
         <mesh onPointerOver={onHoverEnter} onPointerOut={onHoverLeave} onClick={onClick}>
           <tubeGeometry
@@ -179,6 +266,22 @@ export function PairEdgeMesh({
       ) : null}
     </group>
   );
+}
+
+function applyLineMaterial(line: Line2 | null, lineWidth: number, opacity: number): void {
+  if (line === null) return;
+  const mat = line.material;
+  mat.linewidth = lineWidth;
+  mat.opacity = opacity;
+  mat.transparent = true;
+  mat.depthWrite = false;
+  mat.depthTest = false;
+  mat.toneMapped = false;
+  mat.blending = THREE.AdditiveBlending;
+}
+
+function vecDistance(a: Vec3, b: Vec3): number {
+  return Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
 function quadraticBezierPoint(p0: Vec3, p1: Vec3, p2: Vec3, t: number): THREE.Vector3 {

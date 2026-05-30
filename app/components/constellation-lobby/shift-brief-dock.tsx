@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "motion/react";
-import { useState, type ReactNode } from "react";
+import { useState, type ReactNode, type Ref } from "react";
 
 import { AuraButton } from "../aura-button";
 import { AuraTooltip } from "../aura-tooltip";
@@ -35,19 +35,25 @@ export type ShiftBriefData = {
 };
 
 const LEAD_ASK_TOOLTIP =
-  "The member request grading this shift. Cast a partner who fits the ask — ignoring it hurts member mood.";
+  "Lead ask grades this shift. Book a partner who can answer it; ignoring it dents mood.";
 const GOALS_TOOLTIP =
   "Cupid's shift-level targets. Meet enough goals to keep the campaign solvent.";
 const STATUS_TOOLTIP =
   "Where this shift stands in the loop: pairs ready to close, follow-ups still due, and whether the shift can be filed.";
 const CLOSURE_TOOLTIP =
-  "Pairs that have crossed the closure threshold. File them to lock the match in and free a roster slot.";
+  "Pairs ready to delete the app together. File them to lock the match and free a slot.";
 const FOLLOW_UP_TOOLTIP =
   "Completed dates waiting on a follow-up call (Pursue, Pause, Close) before the shift can file.";
 const FILE_SHIFT_TOOLTIP =
   "Submit this shift's outcomes and start the next one. Blocked while a date is unresolved.";
 
-export function ShiftBriefDock({ data }: { data: ShiftBriefData }) {
+export function ShiftBriefDock({
+  data,
+  containerRef,
+}: {
+  data: ShiftBriefData;
+  containerRef?: Ref<HTMLDivElement>;
+}) {
   const [expanded, setExpanded] = useState(true);
 
   const hasAlert =
@@ -58,6 +64,7 @@ export function ShiftBriefDock({ data }: { data: ShiftBriefData }) {
 
   return (
     <motion.div
+      ref={containerRef}
       layout
       initial={false}
       animate={{ borderRadius: expanded ? 18 : 9999 }}

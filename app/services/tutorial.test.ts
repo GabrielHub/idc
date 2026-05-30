@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_TUTORIAL_STATE, gameSaveSchema } from "../domain/game";
+import { DEFAULT_TUTORIAL_STATE, TUTORIAL_STEP_IDS, gameSaveSchema } from "../domain/game";
 import { createSeedGameSave } from "./game-seed";
+import { TUTORIAL_COPY } from "./tutorial-copy";
 import {
   isStepComplete,
   readTutorialState,
@@ -40,5 +41,9 @@ describe("tutorial state", () => {
     });
 
     expect(withOrientationReset(dismissed).tutorial).toEqual(DEFAULT_TUTORIAL_STATE);
+  });
+
+  it("keeps copy for every typed tutorial step", () => {
+    expect(Object.keys(TUTORIAL_COPY).sort()).toEqual([...TUTORIAL_STEP_IDS].sort());
   });
 });

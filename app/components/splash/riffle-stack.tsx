@@ -253,7 +253,7 @@ function RiffleCardSlot({ data }: { data: RiffleCardData }) {
         </dl>
 
         <div className="relative z-10 mt-5 flex items-center justify-between gap-3 font-mono text-micro uppercase tracking-[0.24em]">
-          <span className="text-aura-faint">// dossier preview</span>
+          <span className="text-aura-faint">// file preview</span>
           <span className="text-aura-rose">sealed</span>
         </div>
       </article>

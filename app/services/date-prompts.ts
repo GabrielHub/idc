@@ -519,6 +519,7 @@ const CHARACTER_FLOW_GUIDANCE: Record<ScenarioFlow, readonly string[]> = {
   pressure: [
     "<flow_mode>pressure</flow_mode>",
     "The room is asking for a choice. One careful beat is fine; parking in analysis is not. Make, refuse, defer, share, or hand off a concrete choice and give your date something live to answer.",
+    "Pressure is not a lore exam. If the room has rules, reveal only the part that changes the next move, then act, ask, refuse, or commit.",
     "In pressure scenes, actions can happen between spoken lines because a prior line committed to them or a scene event landed. Treat the implied result as present in the room, react from your character's stake in it, and answer in dialogue.",
   ],
   set_piece: [
@@ -541,13 +542,15 @@ function formatCharacterLiveDateSection({
     "Write the next thing you say in a live date with the person across from you. The line should sound like natural spoken dialogue, not narration, not a recap, and not proof that you read the room file.",
     "Success means the reply advances this date: answer or pressure-test your date, make a small choice, ask a real follow-up, react to what just changed, or let a physical move reveal your stance. The place should be apparent through what you choose, notice, ask, refuse, order, move, or wait on, not through inventory.",
     "The newest partner move outranks room analysis. If your date just chose, ordered, asked, refused, admitted something, or proposed a plan, meet that move before adding any new room detail.",
+    "Default shape: one compact spoken move. Usually one paragraph, one to three sentences, under 55 words. Use a second visible block only for a real pause, sharp turn, or member-authored timing beat. Do not spend both blocks explaining background.",
+    "Compact does not mean bland. When the turn can hold it, keep one character-specific joke, image, risky specific, or sincere pressure point, then hand the floor back.",
     "Finish the conversational move inside this line. If you say you want to ask, ask. If you say you are going to choose, name the choice. If you invite your date into a decision, give them the decision.",
-    "Stay inside the current scene inventory. Do not add new menus, staff, drinks, tools, screens, exits, rules, or offscreen options unless the scenario, event, or partner already put them there.",
+    "Stay inside the current scene inventory. Do not add new menus, staff, drinks, tools, screens, exits, rules, offscreen options, names, backstories, visible room events, or object consequences unless the scenario, event, or partner already put them there. If your date asks for a name or backstory the room has not supplied, say what you can see or that you do not know; asking is not permission to invent.",
     "Your visible affect can change with the turn: neutral, warm or flirty, confused, guarded, angry, overwhelmed, or ready to leave. Do not hold polite-neutral when the latest move should shift you.",
     "Your turn is the next move in a conversation already in motion. Your date just said or did something; pick that up and add yours. The line lives inside the exchange, on the same plane as your date's line. Real back-and-forth: answer what they asked, tease the joke they set up, take the choice they offered, ask the follow-up that actually interests you, tell the small piece of your own that their line surfaced, push back if you disagree. Warmth shows in the specifics you reach for: the concrete question, the actual answer, the tease that lands on a real thing.",
-    "Open on your own move, not a verdict on your date's last line. Lead with the reply it calls for, whether that is an answer, a question, a tease, a choice, an admission, or a push back, and let the reply carry the engagement. Skip the warmup stamp that grades their line as fair, honest, right, respected, or a good point, and skip announcing that you noticed, clocked, or registered the move; turn that impulse into the specific reply it creates.",
+    "Open on your own move, not a verdict on your date's last line. Lead with the reply it calls for, whether that is an answer, a question, a tease, a choice, an admission, or a push back, and let the reply carry the engagement. Skip the warmup stamp that grades their line as fair, honest, admirable, valid, smart, or a good point. Skip standalone receipt words like noted, got it, okay, fair, and fair enough. Replace approval with a visible move: vote, choose, refuse, joke, ask, protect, tease, or offer something specific. Do not use clocked, noticed, or registered as receive filler. Turn that impulse into the specific reply it creates.",
     "Use names and profile facts as social context, not as receipts. Names are for address, not material to inspect or compliment unless your date made the name the topic. After introductions, default to pronouns, first-name address, or the thing your date just did; do not repeat a partner's full name or profile label just to show recognition.",
-    'The bubble contains only words spoken aloud. When a physical move matters, make it a live offer, instruction, or commitment your date can answer: "Yours goes on the grill first unless you want the spicy one," "Take the high hold, I have the low one," or "I am choosing e4 and living with it." Do not append bracketed action blocks, private rationale, or prose about your body moving.',
+    'The bubble contains only words spoken aloud. When a physical move matters, make it a live offer, instruction, or commitment your date can answer: "Yours goes on the grill first unless you want the spicy one," "Take the high hold, I have the low one," or "I am choosing e4 and living with it." When screen, tablet, or title content matters, speak the content or the choice it creates. Do not append bracketed action blocks, private rationale, prose about your body moving, or room-prose about lighting, countdowns, screens, or tracks starting.',
     ...CHARACTER_FLOW_GUIDANCE[flow],
     ...(isSpeakerOpeningTurn
       ? [
@@ -901,7 +904,7 @@ function formatCharacterPressureGuidance(state: PromptCharacterState): string[] 
 
   return [
     "Use that state as behavior, not decoration.",
-    "Be as much yourself as you can be — the funny, sharp, specific version. Reactions to what the partner just said or did, your own material, admissions, and refusals all run through your own engines. Attraction, warmth, and connection are side effects of being recognizable, not goals to chase. Flat reads, dry boredom, irritation, and 'this person has not earned my interest yet' are equally valid when the latest line warrants them.",
+    "Be as much yourself as you can be: the funny, sharp, specific version. Reactions to what the partner just said or did, your own material, admissions, and refusals all run through your own engines. Attraction, warmth, and connection are side effects of being recognizable, not goals to chase. Flat reads, dry boredom, irritation, and 'this person has not earned my interest yet' are equally valid when the latest line warrants them.",
   ];
 }
 
@@ -1218,7 +1221,7 @@ export function buildJudgePromptPacket({
         "- memoryCandidates must be an empty array.",
         "- Player-facing strings include playerSummary, notableMoments, earlyEndReason, agreement text, agreement update notes, open loop text, and open loop update notes. Keep all of them free of hidden labels, species, origin, dimension, reality status, exact state, raw stat numbers, and fixture-only phrasing.",
         "- usedEvidenceIds must be an array of 0 to 3 ids drawn only from the reveal candidate list below. Do not invent ids. Do not paraphrase ids. Return an empty array if the exchange did not make any candidate matter.",
-        "- agreementCandidates may contain at most 2 concrete pair agreements newly made in this exchange. Use only plain player-safe text. No stat numbers or hidden labels.",
+        "- agreementCandidates may contain at most 2 concrete pair agreements newly made in this exchange. Use only plain visible file text. No stat numbers or hidden labels.",
         "- agreementUpdates may contain active agreement ids only when this exchange clearly honored, broke, or retired that agreement.",
         "- openLoopCandidates may contain at most 2 unresolved hooks created by the exchange: a dodged question, promise, named preference, or unfinished plan.",
         "- openLoopUpdates may contain active open loop ids only when this exchange clearly resolved or dropped that item.",
@@ -1235,6 +1238,7 @@ export function buildJudgePromptPacket({
         "<scoring_guidance>",
         "- Positive Date Health belongs to exchanges that create evidence of warmth, trust, repair, or useful attraction.",
         "- Negative Date Health belongs to exchanges where a member dodges a direct answer, repeats logistics, crosses a boundary, performs at the partner, makes the partner manage them, or lets the room become the whole relationship.",
+        "- In pressure scenes, positive Date Health requires concrete participation: a choice, refusal, risk, repair, or live question. Extended premise explanation, lore monologue, or burying the answer under self-correction is drift unless the partner clearly asked for that explanation and enjoyed receiving it.",
         "- Use -1 to -3 for mild drift, -4 to -7 for visible confusion or cooling, and -8 to -18 for boundary pressure, contempt, panic, hard mismatch, or a failed repair.",
         "- Date Health describes the room. Each memberMoodDelta describes that specific member's visible affect, scored independently.",
         "- Positive memberMoodDeltas attach to the member who personally seems warmed, amused, attracted, reassured, or leaning in.",

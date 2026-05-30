@@ -10,6 +10,7 @@ import type {
 } from "../domain/game";
 import { memberRequests } from "../fixtures";
 import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { TutorialCoachMark } from "./tutorial";
 
 export type PairMemoryTimelineEntryKind =
@@ -182,6 +183,7 @@ export function PairMemoryInspector({
     tutorialEnabled && activeAgreementsCount > 0,
     onTutorialUpdate ?? noopTutorialUpdate,
   );
+  const firstAgreementCopy = tutorialCopy("lazy.files.first-agreement");
 
   const memberById = useMemo(
     () => new Map(members.map((member) => [member.id, member])),
@@ -311,11 +313,11 @@ export function PairMemoryInspector({
         <TutorialCoachMark
           target={asideRef}
           placement="left"
-          title="Agreements and open loops"
-          body="Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow the pair from date to date and shape the next room read."
-          primaryLabel="Got it"
+          title={firstAgreementCopy.title}
+          body={firstAgreementCopy.body}
+          primaryLabel={firstAgreementCopy.primaryLabel}
           onPrimary={firstAgreementStep.complete}
-          dismissLabel="Skip tour"
+          dismissLabel="End tour"
           onDismiss={firstAgreementStep.dismiss}
           textTone="dark"
         />

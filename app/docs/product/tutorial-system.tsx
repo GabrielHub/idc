@@ -16,6 +16,7 @@ import { tutorialCopy } from "../../services/tutorial-copy";
 
 const planningTutorialStepIds = [
   "planning.layer-nav",
+  "planning.shift-brief",
   "planning.focus",
   "planning.partner",
   "planning.intent",
@@ -107,9 +108,9 @@ export const sections: DocSectionEntry[] = [
             [
               "Planning",
               <DocCode key="ids">
-                layer-nav / focus / partner / intent / commit / scenario / begin
+                layer-nav / shift-brief / focus / partner / intent / commit / scenario / begin
               </DocCode>,
-              "Teach the seven-step lobby path: layer navigation, focus lead, eligible partner, optional intent, pair commit, room pick, and Begin.",
+              "Teach the eight-step lobby path: layer navigation, shift work order, focus lead, eligible partner, optional intent, pair commit, room pick, and Begin.",
             ],
             [
               "Live date",
@@ -126,14 +127,14 @@ export const sections: DocSectionEntry[] = [
             [
               "Lazy support",
               <DocCode key="ids">lazy.*</DocCode>,
-              "One-time marks for roster swaps, Date Book locks, repair blocks, cooldowns, closures, and pair files.",
+              "One-time marks for card offers, roster swaps, Date Book locks, repair blocks, cooldowns, closures, and pair files.",
             ],
           ]}
         />
         <P>
-          The shipped lobby tutorial sequence is the planning ids below. The first seven progress
-          numbers (1 / 7 … 7 / 7) drive the player from layer navigation to Begin date; the eighth,{" "}
-          <DocCode>planning.file-shift</DocCode>, fires after the date as part of the wrap phase and
+          The shipped lobby tutorial sequence is the planning ids below. The first eight progress
+          numbers (1 / 8 through 8 / 8) drive the player from layer navigation to Begin date;{" "}
+          <DocCode>planning.file-shift</DocCode> fires after the date as part of the wrap phase and
           renders without a progress counter. Their numbers and text come from{" "}
           <DocCode>TUTORIAL_COPY</DocCode>; keep this order aligned with{" "}
           <DocCode>tutorialStepIdSchema</DocCode> and the planning renderer.
@@ -163,7 +164,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             {
               term: <DocCode>TutorialCoachMark</DocCode>,
-              def: "The paper note. Use it for copy, progress dots, the skip control, and optional manager art.",
+              def: "The paper note. Use it for copy, progress dots, the End tour control, and optional manager art.",
             },
             {
               term: <DocCode>TutorialSpotlight</DocCode>,
@@ -203,6 +204,64 @@ export const sections: DocSectionEntry[] = [
     ),
   },
   {
+    id: "coverage-audit",
+    title: "Coverage audit",
+    body: (
+      <>
+        <P>
+          The current tutorial coverage is intentionally split between required path steps and lazy
+          support marks. A surface is covered when a first-time player gets either a coach mark on
+          the required path, a lazy one-time mark when the condition first appears, or persistent
+          inline tooltips for repeat use.
+        </P>
+        <DocTable
+          headers={["Gameplay surface", "Tutorial coverage", "UI primitive"]}
+          rows={[
+            [
+              "Focus cases and case swaps",
+              <DocCode key="ids">onboarding.focus.* / lazy.roster.swap-penalty</DocCode>,
+              "Spotlight for first pick, pulse rings for file/CTA, coach mark for swap penalty.",
+            ],
+            [
+              "Date Book, budget, draw hand, and post-date offers",
+              <DocCode key="ids">
+                onboarding.deck.* / lazy.date-book / lazy.datebook.card-offer / lazy.datebook.*
+              </DocCode>,
+              "Spotlight or pulse ring on card picks and Date Book pill; coach mark on card-offer overlay.",
+            ],
+            [
+              "Shift work order, lead ask, goals, and gates",
+              <DocCode key="ids">planning.shift-brief / planning.file-shift</DocCode>,
+              "Pulse ring on the shift brief, pulse ring on File shift.",
+            ],
+            [
+              "Pair booking and room selection",
+              <DocCode key="ids">
+                planning.focus / partner / intent / commit / scenario / begin
+              </DocCode>,
+              "Pulse rings for navigation and Begin, spotlight for room grid, coach marks for intent and commit.",
+            ],
+            [
+              "Live date operation",
+              <DocCode key="ids">
+                date.draft-events / footer.* / judge-note / nudge.compose
+              </DocCode>,
+              "Spotlights for scenes, gauges, and first Cupid read; pulse rings for transport and nudges.",
+            ],
+            [
+              "Follow-ups, cooldown, closure, pair memory, and files",
+              <DocCode key="ids">
+                date.followup / lazy.cooldown-block / lazy.closure-ready /
+                lazy.files.first-agreement / *.file.first-open
+              </DocCode>,
+              "Spotlight on follow-up actions, pulse ring for cooldown, coach marks for file and pair-memory panels.",
+            ],
+          ]}
+        />
+      </>
+    ),
+  },
+  {
     id: "completion",
     title: "Completion rules",
     body: (
@@ -238,8 +297,11 @@ export const sections: DocSectionEntry[] = [
         />
         <P>
           Dismissal is global. <DocCode>withTourDismissed</DocCode> disables orientation and records
-          <DocCode>dismissedAt</DocCode>. The Settings menu row <Strong>Reset orientation</Strong>{" "}
-          calls <DocCode>withOrientationReset</DocCode> and replays every step.
+          <DocCode>dismissedAt</DocCode>. In the UI this is labeled <Strong>End tour</Strong>;
+          required-path marks ask for a second confirmation before ending the full tour so a player
+          can acknowledge vital steps without accidentally skipping the rest. The Settings menu row{" "}
+          <Strong>Reset orientation</Strong> calls <DocCode>withOrientationReset</DocCode> and
+          replays every step.
         </P>
       </>
     ),

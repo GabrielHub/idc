@@ -1,13 +1,16 @@
 import type { ReactElement } from "react";
 
-import type { ActiveDateBooking, GameSave } from "../../domain/game";
+import type { ActiveDateBooking, GameSave, ShiftState } from "../../domain/game";
+import { sessionBelongsToShift } from "../../services/date-engine";
 import { FOCUS_SWAP_RETENTION_PENALTY } from "../../services/focus-cases";
 import {
   resolveFocusSelectionAffordance,
   resolveHoverCardCta,
   type HoverCardCta,
 } from "../../services/focus-selection-affordance";
+import { collectMemberOpenLoops } from "../../services/member-feedback";
 import { buildVisibleMemberProfile } from "../../services/player-knowledge";
+import { collectMemberUnmetAsks } from "../../services/shift-request-assessment";
 import type { ShiftPartnerUnavailableReason } from "../../services/shift-availability";
 import type { TutorialStepHandle } from "../../services/tutorial";
 import { caseFileNumber } from "../member-card-atoms";
@@ -17,6 +20,8 @@ import type { StarMark } from "./types";
 
 export type HoverCardContext = {
   save: GameSave;
+  /** Active shift, used to surface the member's still-open asks on the card. */
+  shift: ShiftState;
   focusedSet: ReadonlySet<string>;
   revealAllMemberDetails: boolean;
   focusId: string | null;
@@ -66,6 +71,7 @@ export type HoverCardContext = {
 export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): ReactElement {
   const {
     save,
+    shift,
     focusedSet,
     revealAllMemberDetails,
     focusId,
@@ -83,6 +89,18 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
     onMakeFocus,
   } = ctx;
   const member = star.member;
+  const isActive = member.state.status === "active";
+  const openLoops = isActive ? collectMemberOpenLoops(member.id, save.pairStates) : [];
+  const unmetAsks = isActive
+    ? collectMemberUnmetAsks({
+        memberId: member.id,
+        shift,
+        completedDates: save.dateSessions.filter(
+          (session) =>
+            sessionBelongsToShift(session, shift.shiftNumber) && session.status !== "active",
+        ),
+      })
+    : [];
   const profile = buildVisibleMemberProfile(member, save.playerKnowledge, {
     visibilityMode: revealAllMemberDetails ? "dev_unveiled" : "earned",
   });
@@ -150,6 +168,8 @@ export function renderLobbyHoverCard(ctx: HoverCardContext, star: StarMark): Rea
       onOpenCase={() => openCaseAndDismiss(member.id)}
       recentNotesSlot={<RecentNotesSlot memberId={member.id} memories={save.memories} />}
       blockReason={blockReason}
+      openLoops={openLoops}
+      unmetAsks={unmetAsks}
     />
   );
 }

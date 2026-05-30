@@ -208,8 +208,8 @@ function CostChip({ cost, baseCost, isTile }: { cost: number; baseCost: number; 
     <span
       title={
         discounted
-          ? `Authored cost ${baseCost}, effective cost ${cost} after active discount.`
-          : `Authored cost ${cost} budget points.`
+          ? `Base cost ${baseCost}; discounted to ${cost}.`
+          : `Costs ${cost} budget points.`
       }
       className={`inline-flex items-center gap-1 rounded-pill border border-aura-hairline bg-white/85 font-mono uppercase tracking-[0.18em] text-aura-ink ${padding}`}
     >

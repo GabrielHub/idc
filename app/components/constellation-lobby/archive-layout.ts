@@ -10,7 +10,7 @@
  * tonight-mode target to this one over the mode transition.
  */
 
-import { hashSeedUint32 } from "../../services/utils";
+import { clamp, hashSeedUint32 } from "../../services/utils";
 import type {
   PairArchiveEdge,
   PairArchiveGraph,
@@ -47,6 +47,15 @@ const ISOLATED_Z = -4.5;
 /** Radius (unit-square) for the periphery ring isolated members orbit on. */
 const ISOLATED_RING_RADIUS = 0.55;
 
+/**
+ * Deterministic 0..1 fraction from a member id. Used to break layout symmetry
+ * (ring slot / fallback spoke angle) so members with identical placement inputs
+ * don't stack on the same point across re-renders.
+ */
+function seededUnitFraction(memberId: string): number {
+  return (hashSeedUint32(memberId) % 1000) / 1000;
+}
+
 export function computeArchiveStarPosition(
   memberId: string,
   graph: PairArchiveGraph,
@@ -71,7 +80,7 @@ function nodeWorldPosition(node: PairArchiveNode): Vec3 {
 }
 
 function isolatedRingPosition(memberId: string, index: number, total: number): Vec3 {
-  const seedOffset = (hashSeedUint32(memberId) % 1000) / 1000;
+  const seedOffset = seededUnitFraction(memberId);
   // Distribute isolated members along a periphery ring; per-member seed
   // offset breaks symmetry so identical isolation counts don't collide on
   // re-render order.
@@ -107,10 +116,24 @@ export function buildArchiveEdgeSpecs(
 }
 
 /**
+ * Curve-bow shaping. The control point sits perpendicular to the chord, lifted
+ * by a fraction of the chord length so every edge bows by the same *visual*
+ * proportion — short edges between adjacent stars arc gently, long edges across
+ * the field arc generously, and two pairs sharing a node still split apart
+ * (their curvatures carry opposite sign). A flat per-edge constant (the old
+ * `curvature * 4`) over-bowed short edges into loops and left long ones nearly
+ * straight; scaling by length keeps the whole board reading as one hand.
+ */
+const EDGE_BOW_CHORD_FRACTION = 0.16;
+const EDGE_BOW_MIN = 0.45;
+const EDGE_BOW_MAX = 3.2;
+
+/**
  * World-space midpoint of the curved 3D edge between two graph nodes. The
- * 2D bezier control offset (perpendicular to the chord, scaled by the
- * deterministic curvature) lifts the midpoint off the chord; we keep Z
- * planar between the two endpoints so the curve bows in the XY plane.
+ * bezier control offset (perpendicular to the chord, scaled by the chord
+ * length and the deterministic per-pair curvature) lifts the midpoint off the
+ * chord; we keep Z planar between the two endpoints so the curve bows in the
+ * XY plane.
  */
 function archiveEdgeMidpoint(
   from: Vec3,
@@ -123,11 +146,10 @@ function archiveEdgeMidpoint(
   const dx = to.x - from.x;
   const dy = to.y - from.y;
   const length = Math.hypot(dx, dy) || 1;
-  // Perpendicular in XY plane; scale matches the 2D bezier offset
-  // (curvature * 0.18) but in world units rather than unit-square.
   const nx = -dy / length;
   const ny = dx / length;
-  const offset = curvature * 4;
+  const bow = Math.min(EDGE_BOW_MAX, Math.max(EDGE_BOW_MIN, length * EDGE_BOW_CHORD_FRACTION));
+  const offset = curvature * bow;
   const control: Vec3 = {
     x: mx + nx * offset,
     y: my + ny * offset,
@@ -139,4 +161,107 @@ function archiveEdgeMidpoint(
     z: mz,
   };
   return { mid, control };
+}
+
+/* ============================================================================
+ * Ego layout — clicking a star pulls it to the center of the field and arranges
+ * its filed partners in a ring around it, so the player reads "this member and
+ * everyone they've dated" as a single clean spoke diagram. Non-incident members
+ * are pushed out past the ring and recede (the Scene fades them via the
+ * isolation set), clearing the field so the ego's pairs draw unobstructed.
+ * ========================================================================== */
+
+const EGO_FOCUS_Z = 2;
+const EGO_PARTNER_Z = 0;
+const EGO_BACKGROUND_Z = -3.6;
+const EGO_RING_BASE_RADIUS_X = 4.6;
+const EGO_RING_BASE_RADIUS_Y = 3.2;
+const EGO_RING_PER_PARTNER_X = 0.42;
+const EGO_RING_PER_PARTNER_Y = 0.26;
+const EGO_RING_MIN_RADIUS_X = 3.6;
+const EGO_RING_MIN_RADIUS_Y = 2.7;
+const EGO_RING_MAX_RADIUS_X = 8.6;
+const EGO_RING_MAX_RADIUS_Y = 5.2;
+/** Background members park this multiple of the ring radius out from center. */
+const EGO_BACKGROUND_RADIUS_SCALE = 1.62;
+
+export type ArchiveEgoLayout = {
+  positions: Map<string, Vec3>;
+  ringRadiusX: number;
+  ringRadiusY: number;
+};
+
+/**
+ * Build the centered ego layout for a focused member.
+ *
+ *   - `focusMemberId` lands at world origin, pulled forward in Z so it reads as
+ *     the nearest, largest star.
+ *   - `partnerIds` (already ordered by the caller — newest filed first reads
+ *     best) fan out on an ellipse around the origin, starting at twelve o'clock
+ *     and walking clockwise.
+ *   - every other id in `basePositions` is pushed out past the ring along its
+ *     existing direction from center (seeded fallback when it sat at origin) and
+ *     dropped back in Z so the ego's spokes are unobstructed.
+ *
+ * Pure: returns a fresh position map plus the ring radii the camera uses to
+ * frame the orbit.
+ */
+export function archiveEgoLayout(input: {
+  focusMemberId: string;
+  partnerIds: readonly string[];
+  basePositions: ReadonlyMap<string, Vec3>;
+}): ArchiveEgoLayout {
+  const { focusMemberId, partnerIds, basePositions } = input;
+  const partnerSet = new Set(partnerIds);
+  const count = partnerIds.length;
+  const ringRadiusX = clamp(
+    EGO_RING_BASE_RADIUS_X + count * EGO_RING_PER_PARTNER_X,
+    EGO_RING_MIN_RADIUS_X,
+    EGO_RING_MAX_RADIUS_X,
+  );
+  const ringRadiusY = clamp(
+    EGO_RING_BASE_RADIUS_Y + count * EGO_RING_PER_PARTNER_Y,
+    EGO_RING_MIN_RADIUS_Y,
+    EGO_RING_MAX_RADIUS_Y,
+  );
+
+  const positions = new Map<string, Vec3>();
+  positions.set(focusMemberId, { x: 0, y: 0, z: EGO_FOCUS_Z });
+
+  partnerIds.forEach((partnerId, index) => {
+    // Start at twelve o'clock (world +Y is up) and walk clockwise so the
+    // newest-filed partner leads the ring in reading order.
+    const angle = Math.PI / 2 - (count <= 0 ? 0 : (index / count) * Math.PI * 2);
+    positions.set(partnerId, {
+      x: Math.cos(angle) * ringRadiusX,
+      y: Math.sin(angle) * ringRadiusY,
+      z: EGO_PARTNER_Z,
+    });
+  });
+
+  const backgroundRadiusX = ringRadiusX * EGO_BACKGROUND_RADIUS_SCALE;
+  const backgroundRadiusY = ringRadiusY * EGO_BACKGROUND_RADIUS_SCALE;
+  for (const [memberId, base] of basePositions) {
+    if (memberId === focusMemberId || partnerSet.has(memberId)) continue;
+    const dist = Math.hypot(base.x, base.y);
+    let ux: number;
+    let uy: number;
+    if (dist < 1e-3) {
+      // Degenerate (a member that sat at center): spread on a seeded angle so
+      // overlapping background stars don't stack on the same spoke.
+      const angle = seededUnitFraction(memberId) * Math.PI * 2;
+      ux = Math.cos(angle);
+      uy = Math.sin(angle);
+    } else {
+      ux = base.x / dist;
+      uy = base.y / dist;
+    }
+    positions.set(memberId, {
+      x: ux * backgroundRadiusX,
+      y: uy * backgroundRadiusY,
+      z: EGO_BACKGROUND_Z,
+    });
+  }
+
+  return { positions, ringRadiusX, ringRadiusY };
 }

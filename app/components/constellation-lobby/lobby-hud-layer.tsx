@@ -66,6 +66,7 @@ export function LobbyHudLayer({
   refs: Pick<
     PlanningTutorialRefs,
     | "layerIndicatorRef"
+    | "shiftBriefRef"
     | "layerFocusRef"
     | "layerRosterRef"
     | "layerCathedralRef"
@@ -152,14 +153,16 @@ export function LobbyHudLayer({
         state={lobbyState}
         selectedScenarioId={selectedScenarioId}
         beginDisabled={isActionPending || !aiReady}
-        beginDisabledReason={!aiReady ? "AI not ready" : isActionPending ? "Working…" : undefined}
+        beginDisabledReason={
+          !aiReady ? "Cupid is still booting" : isActionPending ? "Cupid is filing" : undefined
+        }
         commitDisabled={isActionPending}
-        commitDisabledReason={isActionPending ? "Working…" : undefined}
+        commitDisabledReason={isActionPending ? "Cupid is filing" : undefined}
         onCommitPair={onCommitPair}
         onBeginDate={onBeginDate}
         onCancelPair={onCancelPair}
         beginButtonRef={refs.beginButtonRef}
-        briefSlot={<ShiftBriefDock data={shiftBrief} />}
+        briefSlot={<ShiftBriefDock data={shiftBrief} containerRef={refs.shiftBriefRef} />}
       />
       <ContextualPillRail
         scenarioMode={scenarioMode}

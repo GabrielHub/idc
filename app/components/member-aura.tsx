@@ -19,12 +19,15 @@ type AuraVars = CSSProperties & {
   "--member-aura-drift"?: string;
   "--member-aura-drift-x"?: string;
   "--member-aura-drift-y"?: string;
+  "--member-aura-blur"?: string;
 };
 
 type Particle = { id: number; style: AuraVars; inFront: boolean };
 type RuneParticle = Particle & { glyph: string };
 
 const RUNE_GLYPHS = ["ᚠ", "ᚱ", "ᚷ", "ᛁ", "ᛒ", "ᛝ", "ᛦ"] as const;
+export const PULSE_AURA_DURATION_SECONDS = 11;
+const PULSE_AURA_SECONDARY_DELAY_SECONDS = -PULSE_AURA_DURATION_SECONDS / 2;
 
 export function MemberAuraLayer({
   member,
@@ -111,10 +114,20 @@ function GodrayLayer({ tint, density, seed, slot }: LayerProps) {
     const random = makeRandom(seed, 0x6041a);
     return Array.from({ length: count }, (_, index): Particle => {
       const left = 2 + random() * 90;
-      const angle = 6 + random() * 18;
-      const width = 24 + random() * 22;
-      const opacity = 0.55 + random() * 0.35;
-      const duration = 6 + random() * 5;
+      // Keep the shafts near-parallel (tight angle spread) so they read as
+      // light falling through one window, not a fan of separate spotlights.
+      const angle = 11 + random() * 9;
+      // Mix thin, crisp shafts with wider, blurrier bleed for depth. Blur is
+      // data-driven per shaft so each beam keeps its own softness.
+      const width = 16 + random() * 26;
+      const blur = 8 + random() * 10;
+      // Lower ceiling than the old fade: the shafts now stay lit instead of
+      // dropping to zero, so overlaps would blow out at the previous range.
+      const opacity = 0.4 + random() * 0.3;
+      // One very slow, low-amplitude breathe per shaft — real god rays drift,
+      // they do not sparkle. Long, desynced durations make the curtain shimmer
+      // gently as a whole instead of pulsing in unison or strobing.
+      const duration = 18 + random() * 12;
       const delay = -random() * duration;
       const inFront = pickInFront(random, 0.15);
       const style: AuraVars = {
@@ -126,11 +139,12 @@ function GodrayLayer({ tint, density, seed, slot }: LayerProps) {
         background: `linear-gradient(180deg, transparent 0%, ${tint.primary} 38%, ${tint.primary} 62%, transparent 100%)`,
         transform: `rotate(${angle}deg)`,
         transformOrigin: "top center",
-        filter: "blur(10px)",
+        filter: "blur(var(--member-aura-blur, 10px))",
         mixBlendMode: "screen",
         animation: `member-aura-godray ${duration}s ease-in-out infinite`,
         animationDelay: `${delay}s`,
         "--member-aura-opacity": opacity.toString(),
+        "--member-aura-blur": `${blur}px`,
       };
       return { id: index, style, inFront };
     });
@@ -373,15 +387,15 @@ function PulseLayer({ tint, slot }: LayerProps) {
         aria-hidden
         style={{
           ...baseStyle,
-          animation: "member-aura-pulse-breathe 5.5s ease-out infinite",
+          animation: `member-aura-pulse-breathe ${PULSE_AURA_DURATION_SECONDS}s ease-in-out infinite`,
         }}
       />
       <div
         aria-hidden
         style={{
           ...baseStyle,
-          animation: "member-aura-pulse-breathe 5.5s ease-out infinite",
-          animationDelay: "-2.75s",
+          animation: `member-aura-pulse-breathe ${PULSE_AURA_DURATION_SECONDS}s ease-in-out infinite`,
+          animationDelay: `${PULSE_AURA_SECONDARY_DELAY_SECONDS}s`,
         }}
       />
     </FrameRoot>
@@ -508,17 +522,15 @@ function PrismLayer({ tint, slot }: LayerProps) {
         aria-hidden
         style={{
           ...baseStyle,
-          animation:
-            "member-aura-pulse-breathe 5.5s ease-out infinite, member-aura-prism-hue 14s linear infinite",
+          animation: `member-aura-pulse-breathe ${PULSE_AURA_DURATION_SECONDS}s ease-in-out infinite, member-aura-prism-hue 14s linear infinite`,
         }}
       />
       <div
         aria-hidden
         style={{
           ...baseStyle,
-          animation:
-            "member-aura-pulse-breathe 5.5s ease-out infinite, member-aura-prism-hue 14s linear infinite",
-          animationDelay: "-2.75s, 0s",
+          animation: `member-aura-pulse-breathe ${PULSE_AURA_DURATION_SECONDS}s ease-in-out infinite, member-aura-prism-hue 14s linear infinite`,
+          animationDelay: `${PULSE_AURA_SECONDARY_DELAY_SECONDS}s, 0s`,
         }}
       />
     </FrameRoot>

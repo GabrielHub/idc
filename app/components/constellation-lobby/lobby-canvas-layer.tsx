@@ -3,6 +3,7 @@ import { Canvas } from "@react-three/fiber";
 import * as THREE from "three";
 
 import type { Member } from "../../domain/game";
+import type { EdgeClosureDetail } from "../../services/edge-closure-detail";
 import { ArchiveEdgeTooltip } from "./archive-edge-tooltip";
 import { Scene, type RenderHoverCard, type SceneArchiveProps } from "./canvas-convention";
 import type { PairEdgeRenderSpec } from "./archive-layout";
@@ -45,6 +46,7 @@ export function LobbyCanvasLayer({
   archiveSelection,
   archiveIsolation,
   memberById,
+  edgeDetailByPairId,
   onArchivePairSelect,
   onPointerMissed,
   disableScrollLayerNav = false,
@@ -84,6 +86,8 @@ export function LobbyCanvasLayer({
     includedMemberIds: ReadonlySet<string>;
   };
   memberById: ReadonlyMap<string, Member>;
+  /** Per-pair last-date delta + trajectory for the archive edge tooltip. */
+  edgeDetailByPairId?: ReadonlyMap<string, EdgeClosureDetail>;
   onArchivePairSelect: (pairId: string) => void;
   onPointerMissed: () => void;
   /**
@@ -138,7 +142,11 @@ export function LobbyCanvasLayer({
                 isolation: archiveIsolation,
                 onEdgeClick: onArchivePairSelect,
                 renderEdgeTooltip: (edge) => (
-                  <ArchiveEdgeTooltip edge={edge} memberById={memberById} />
+                  <ArchiveEdgeTooltip
+                    edge={edge}
+                    memberById={memberById}
+                    detail={edgeDetailByPairId?.get(edge.pairId)}
+                  />
                 ),
               } satisfies SceneArchiveProps
             }

@@ -7,6 +7,7 @@ import type {
   ShiftState,
 } from "../domain/game";
 import { memberRequests } from "../fixtures";
+import type { MemberOutstandingItem } from "./member-feedback";
 import { buildAskEvidenceId } from "./player-knowledge";
 import { selectHotRequestId } from "./shift-planning";
 
@@ -302,4 +303,35 @@ function buildShiftRequestMoodAdjustments(
   }
 
   return adjustments;
+}
+
+/**
+ * A member's still-open asks for the active shift: requests they own that are
+ * queued this shift and not yet covered by a completed date. Drives the
+ * "asks" rows on the single-member hover card so the player sees what the
+ * member is waiting on without opening the shift brief.
+ */
+export function collectMemberUnmetAsks({
+  memberId,
+  shift,
+  completedDates,
+  limit = 2,
+}: {
+  memberId: string;
+  shift: ShiftState;
+  completedDates: readonly DateSession[];
+  limit?: number;
+}): MemberOutstandingItem[] {
+  if (shift.memberRequestIds.length === 0) return [];
+  const requestById = new Map(memberRequests.map((request) => [request.id, request] as const));
+  const outcomes = classifyShiftRequestOutcomes(shift, completedDates);
+  const asks: MemberOutstandingItem[] = [];
+  for (const requestId of shift.memberRequestIds) {
+    const request = requestById.get(requestId);
+    if (request === undefined || request.memberId !== memberId) continue;
+    if (outcomes.get(requestId) === "covered") continue;
+    asks.push({ id: requestId, text: request.text });
+    if (asks.length >= limit) break;
+  }
+  return asks;
 }

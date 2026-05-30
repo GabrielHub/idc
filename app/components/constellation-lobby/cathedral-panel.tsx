@@ -103,15 +103,15 @@ function CathedralHeader({
   onClose?: () => void;
   composeWarnings?: readonly string[];
 }) {
-  const title = mode === "auto" ? "Tonight's draw" : "Deck composition";
+  const title = mode === "auto" ? "Tonight's draw" : "Date Book";
   const subtitle =
     mode === "auto"
-      ? "Pick the scenario that leads the pair tonight."
-      : "Tap a staged card to drop it from the deck. New rooms arrive as post-date offers.";
+      ? "Pick the room that leads the pair tonight."
+      : "Tap a staged room card to drop it. New room cards arrive after dates.";
   const counter =
     mode === "auto"
       ? `${doorCount} drawn`
-      : `${doorCount} ${doorCount === 1 ? "card" : "cards"} staged`;
+      : `${doorCount} room ${doorCount === 1 ? "card" : "cards"} staged`;
   const showShards = deckBookShards !== undefined;
   const showDeckPill = mode === "deck";
   const hasWarnings = composeWarnings !== undefined && composeWarnings.length > 0;
@@ -127,7 +127,7 @@ function CathedralHeader({
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
         <div className="min-w-0">
           <div className="font-mono text-micro uppercase tracking-[0.32em] text-aura-rose/80">
-            // pick venue · <span className="text-white/55">{counter}</span>
+            // pick room · <span className="text-white/55">{counter}</span>
           </div>
           <h2 className="mt-1 font-display text-display-md leading-none text-aura-paper">
             {title}
@@ -143,10 +143,10 @@ function CathedralHeader({
 function BackButton({ onClose }: { onClose: () => void }) {
   return (
     <AuraButton
-      tooltip="Close date book"
+      tooltip="Close Date Book"
       tooltipPlacement="bottom"
       onClick={onClose}
-      aria-label="Close date book"
+      aria-label="Close Date Book"
       className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover inline-flex items-center gap-1.5 rounded-pill py-2 pl-3 pr-4 font-mono text-micro uppercase tracking-[0.18em] text-aura-paper"
     >
       <span aria-hidden className="-mt-px text-base leading-none">
@@ -162,7 +162,7 @@ function DeckModePill({ deckBookShards }: { deckBookShards?: DeckBookShards }) {
     deckBookShards === undefined ? undefined : `${deckBookShards.slotCount}/${DECK_SIZE_MAX}`;
   return (
     <div className="inline-flex items-center gap-2 rounded-pill bg-aura-rose px-3.5 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white shadow-[0_8px_22px_-10px_rgba(244,63,94,0.7)]">
-      <span>Deck</span>
+      <span>Date Book</span>
       {badge === undefined ? null : (
         <span className="font-display text-micro text-white/90">{badge}</span>
       )}
@@ -277,13 +277,13 @@ function PressurePill({ pressure }: { pressure: { lowPressure: number; highPress
 function CathedralEmptyState({ mode }: { mode: CathedralMode }) {
   const copy =
     mode === "deck"
-      ? "Deck is empty - new rooms arrive as post-date card offers."
-      : "Pair a focus + partner to draw tonight's scenarios.";
+      ? "Date Book is empty. New room cards arrive after dates."
+      : "Commit a focus case and partner to draw tonight's rooms.";
   return (
     <div className="flex h-full items-center justify-center">
       <div className="aura-liquid-glass aura-liquid-glass-ink rounded-card px-6 py-5 text-center">
         <div className="font-mono text-micro uppercase tracking-[0.28em] text-white/55">
-          // pick venue empty
+          // pick room empty
         </div>
         <p className="mt-2 font-sans text-label text-aura-paper/85">{copy}</p>
       </div>

@@ -7,6 +7,7 @@ import {
   MutedLabel,
   SelectInput,
 } from "../../../components/dashboard-atoms";
+import { ToggleField } from "../../../components/form-primitives";
 import {
   DATE_PORTRAIT_MOODS,
   hasReadyPortraitMood,
@@ -661,22 +662,12 @@ function SpeakingToggle({
   onChange: (next: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
-      <span>
-        <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-          speaking
-        </span>
-        <span className="mt-1 block text-label leading-relaxed text-aura-muted">
-          Floats the thought bubble. Pulses while reasoning text streams.
-        </span>
-      </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        className="size-4 cursor-pointer accent-aura-rose"
-      />
-    </label>
+    <ToggleField
+      title="speaking"
+      description="Floats the thought bubble. Pulses while reasoning text streams."
+      checked={checked}
+      onChange={onChange}
+    />
   );
 }
 

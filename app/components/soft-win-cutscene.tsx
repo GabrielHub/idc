@@ -40,7 +40,7 @@ export function SoftWinCutscene({ save, isActionPending, onContinue }: SoftWinCu
         initial={{ opacity: 0, y: 24, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, delay: 0.1, ease: [0.2, 0.8, 0.2, 1] }}
-        className="aura-glass-strong w-full max-w-4xl rounded-card bg-white p-10 shadow-aura-soft"
+        className="aura-glass-strong w-full max-w-4xl rounded-card bg-white p-10 shadow-card"
       >
         <Eyebrow>// internal.bulletin</Eyebrow>
         <h1 className="mt-3 font-display text-display-lg font-semibold leading-tight tracking-tight text-aura-ink">
@@ -57,7 +57,7 @@ export function SoftWinCutscene({ save, isActionPending, onContinue }: SoftWinCu
           {entries.slice(0, 5).map((entry) => (
             <li
               key={entry.memory.id}
-              className="rounded-card border border-aura-hairline bg-aura-cream-soft p-5 shadow-quiet"
+              className="rounded-card border border-aura-hairline bg-aura-paper/80 p-5 shadow-quiet"
             >
               <div className="flex items-start gap-4">
                 <div className="flex -space-x-4">

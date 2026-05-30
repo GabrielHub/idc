@@ -701,9 +701,10 @@ venus: {
                 <>
                   The primary surface. Setup happens inside the constellation lobby from{" "}
                   <DocCode>app/components/constellation-lobby/index.tsx</DocCode>: layer 0 shows the
-                  focused members, layer 1 shows eligible partners, and layer 2 is the pick-venue
-                  layer. Active dates take the canvas full-bleed, and pacing controls live in the
-                  transport footer. Wrap returns to Live Date planning after the report is filed.
+                  focused members, layer 1 shows eligible partners, and the room layer opens after
+                  Commit pair. Active dates take the canvas full-bleed, and pacing controls live in
+                  the transport footer. Wrap returns to Live Date planning after the report is
+                  filed.
                 </>
               ),
             },
@@ -713,7 +714,7 @@ venus: {
             },
             {
               term: "Date Book",
-              def: "A venue workbench, not a list. Auto mode shows the three-card hand drawn at Commit pair. Deck mode edits what Cupid can draw from; Library mode browses the unlocked shelf. The pill is editable from first lobby load and only locks while a booking is active.",
+              def: "A room-card workbench, not a browse shelf. Auto mode shows the three-card hand drawn at Commit pair. Edit mode changes what Cupid can draw from. The pill unlocks after the first filed report and locks while a booking is active.",
             },
             {
               term: "Records",
@@ -722,15 +723,15 @@ venus: {
           ]}
         />
         <P>
-          Before commit, the focus and roster layers are scrollable and the pick-venue layer is
-          disabled. Commit pair locks the chosen members, snapshots the deck, draws the hand, moves
-          the player to the pick-venue layer, and disables returning to the earlier layers until the
-          date resolves.
+          Before commit, the focus and roster layers are scrollable and the room layer is disabled.
+          Commit pair locks the chosen members, snapshots the Date Book, draws the hand, moves the
+          player to the room layer, and disables returning to the earlier layers until the date
+          resolves.
         </P>
         <DocSubsection id="scenario-card-system" title="Scenario card system">
           <P>
             <DocCode>app/components/scenario-card.tsx</DocCode> is the shared component used in the
-            Date Book deck/library grids and the Live Date pick-venue layer. The scenario's{" "}
+            Date Book edit grid and the Live Date room layer. The scenario's{" "}
             <DocCode>assets/scenarios/{`{id}`}/background.webp</DocCode> renders as a readable
             ambient backdrop: barely blurred, held at ~45% opacity, seated under a ~42% cream wash
             plus a faint bottom wash for meter legibility. The image is mood and color, not picture.
@@ -753,8 +754,8 @@ venus: {
                 def: (
                   <>
                     ~168px min height, <DocCode>rounded-[14px]</DocCode>. Used as the three drawn
-                    cards in the committed Live Date pick-venue layer. Carries title, location,
-                    summary, and compact meter row.
+                    cards in the committed Live Date room layer. Carries title, location, summary,
+                    and compact meter row.
                   </>
                 ),
               },

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Billboard, Html } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
+import { Billboard } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 
@@ -11,6 +11,7 @@ import {
   sizeForStar3D,
   starHitRadiusFloorForCanvasScale,
   starWorldPosition,
+  worldPerScreenPixel,
   type HaloRiskTone,
   type StarSlabActivity,
 } from "./math";
@@ -19,6 +20,7 @@ import { isMemberActive } from "../../services/date-engine";
 import { riskZoneForMember } from "../../services/member-feedback";
 import { StarQuickActionRail } from "./star-quick-action-rail";
 import { shouldShowStarQuickActions } from "./star-quick-action-visibility";
+import { SceneClosureBadge } from "./star-scene-ui-primitives";
 import { featherAvatarShader } from "./textures";
 import type {
   LobbyState,
@@ -32,6 +34,10 @@ import type {
 type StarOverlayMetrics = {
   avatarRadius: number;
   haloSize: number;
+  /** Billboard-local units per screen pixel — for constant-size scene UI. */
+  pixelScaleRef: MutableRefObject<number>;
+  /** Avatar disc projected radius in px — for hugging the disc edge. */
+  avatarRadiusPxRef: MutableRefObject<number>;
 };
 
 type StarOverlayRenderer = (metrics: StarOverlayMetrics) => ReactNode;
@@ -53,10 +59,11 @@ export function buildFocusMarkerOverlay({
     return undefined;
   }
 
-  return ({ avatarRadius }) => (
+  return ({ pixelScaleRef, avatarRadiusPxRef }) => (
     <FocusSelectionMarker
       member={star.member}
-      avatarRadius={avatarRadius}
+      pixelScaleRef={pixelScaleRef}
+      avatarRadiusPxRef={avatarRadiusPxRef}
       onClearFocus={onClearFocus}
       onHoverChange={onHoverChange}
     />
@@ -81,6 +88,7 @@ export function StarSprite({
   cardOpen = false,
   flythroughLayer,
   slabActivity,
+  forceAvatar = false,
   canvasScale = 1,
   clusterPosition = null,
   renderOverlay,
@@ -122,6 +130,11 @@ export function StarSprite({
    * Per-star multipliers driven by the currentLayer vs this star's slab.
    */
   slabActivity?: StarSlabActivity;
+  /**
+   * Presentation override for graph modes where dim-role members should still
+   * render as readable portraits instead of dormant field dots.
+   */
+  forceAvatar?: boolean;
   /** Canvas-derived multiplier for world-space avatar and halo geometry. */
   canvasScale?: number;
   /**
@@ -129,7 +142,7 @@ export function StarSprite({
    */
   clusterPosition?: Vec3 | null;
   /**
-   * Optional world-anchored HTML overlay rendered inside the billboard.
+   * Optional world-anchored scene UI rendered inside the billboard.
    */
   renderOverlay?: StarOverlayRenderer;
   quickActions?: readonly StarQuickAction[];
@@ -148,10 +161,23 @@ export function StarSprite({
   const scaleRef = useRef(1);
   const avatarSubgroupRef = useRef<THREE.Group>(null);
   const avatarSubgroupScaleRef = useRef(0.38);
+  const screenHoverRef = useRef(false);
+  const projectedCenterRef = useRef(new THREE.Vector3());
+  const projectedEdgeRef = useRef(new THREE.Vector3());
+  const worldCenterRef = useRef(new THREE.Vector3());
+  const worldScaleRef = useRef(new THREE.Vector3());
+  const cameraRightRef = useRef(new THREE.Vector3());
+  const cameraForwardRef = useRef(new THREE.Vector3());
+  const toStarRef = useRef(new THREE.Vector3());
+  // Constant-screen-size scene UI: Billboard-local units per screen pixel, and
+  // the avatar disc's projected radius in px. Written each frame, read by the
+  // quick-action rail and focus marker so they stay the same size on every layer.
+  const uiPixelScaleRef = useRef(0.003);
+  const avatarRadiusPxRef = useRef(60);
 
-  // Latched hover for the quick-action rail: the cursor briefly crosses from
-  // the 3D hit plane into HTML controls, so keep the rail mounted while either
-  // surface owns hover and for a short grace period after both release.
+  // Latched hover for the quick-action rail: keep the rail mounted while either
+  // the avatar hit plane or an in-scene control owns hover, with a short grace
+  // period for tiny gaps between raycast targets.
   const [quickActionsHovered, setQuickActionsHovered] = useState(false);
   const [quickActionsLatched, setQuickActionsLatched] = useState(false);
   useEffect(() => {
@@ -162,6 +188,12 @@ export function StarSprite({
     const timer = window.setTimeout(() => setQuickActionsLatched(false), 360);
     return () => window.clearTimeout(timer);
   }, [hovered, quickActionsHovered]);
+  useEffect(
+    () => () => {
+      if (typeof document !== "undefined") document.body.style.cursor = "";
+    },
+    [],
+  );
 
   const natural = useMemo(() => starWorldPosition(star), [star]);
   const sizing = useMemo(
@@ -192,6 +224,7 @@ export function StarSprite({
         baseIntensity: intensity,
         filteredOut,
         avatarRadius: sizing.avatarRadius,
+        forceAvatar,
         hitRadiusFloor: starHitRadiusFloorForCanvasScale(canvasScale),
       }),
     [
@@ -199,6 +232,7 @@ export function StarSprite({
       filteredOut,
       hovered,
       intensity,
+      forceAvatar,
       role,
       sizing.avatarRadius,
       canvasScale,
@@ -223,6 +257,7 @@ export function StarSprite({
     actions: quickActions,
   });
   const visibleQuickActions = showQuickActions ? quickActions : undefined;
+  const interactionRadius = Math.max(presentation.hitRadius, sizing.avatarRadius * 1.65);
 
   useFrame((s, delta) => {
     const t = s.clock.elapsedTime;
@@ -377,12 +412,72 @@ export function StarSprite({
         groupRef.current.visible = shouldRender;
       }
     }
+
+    if (groupRef.current !== null && groupRef.current.visible && !cardOpen) {
+      groupRef.current.getWorldPosition(worldCenterRef.current);
+      projectedCenterRef.current.copy(worldCenterRef.current).project(s.camera);
+      cameraRightRef.current.setFromMatrixColumn(s.camera.matrixWorld, 0).normalize();
+      const worldScale = groupRef.current.getWorldScale(worldScaleRef.current).x;
+
+      // Constant-screen-size scene UI. The name pill / quick-action rail / focus
+      // marker live in this billboard but must read the same on every layer, so
+      // each frame we convert their pixel design into Billboard-local units:
+      // cancel the perspective foreshortening (worldPerScreenPixel at this view
+      // depth) and the group's world scale. avatarRadiusPx is the disc's true
+      // projected radius, so the UI hugs the disc edge, never the avatar texture.
+      const camera = s.camera as THREE.PerspectiveCamera;
+      camera.getWorldDirection(cameraForwardRef.current);
+      const viewDepth = toStarRef.current
+        .subVectors(worldCenterRef.current, camera.position)
+        .dot(cameraForwardRef.current);
+      const worldPerPixel = worldPerScreenPixel(
+        viewDepth,
+        Math.tan((camera.fov * Math.PI) / 180 / 2),
+        s.size.height,
+      );
+      if (worldPerPixel > 0 && worldScale > 0) {
+        uiPixelScaleRef.current = worldPerPixel / worldScale;
+        avatarRadiusPxRef.current =
+          (sizing.avatarRadius * avatarSubgroupScaleRef.current * worldScale) / worldPerPixel;
+      }
+
+      projectedEdgeRef.current
+        .copy(worldCenterRef.current)
+        .addScaledVector(cameraRightRef.current, interactionRadius * worldScale)
+        .project(s.camera);
+
+      const radius =
+        Math.abs(projectedEdgeRef.current.x - projectedCenterRef.current.x) *
+        (screenHoverRef.current ? 1.28 : 1);
+      const dx = s.pointer.x - projectedCenterRef.current.x;
+      const dy = s.pointer.y - projectedCenterRef.current.y;
+      const insideProjectedHit = dx * dx + dy * dy <= radius * radius;
+
+      if (insideProjectedHit && !screenHoverRef.current) {
+        screenHoverRef.current = true;
+        if (typeof document !== "undefined") document.body.style.cursor = "pointer";
+        onHoverEnter();
+      } else if (!insideProjectedHit && screenHoverRef.current) {
+        screenHoverRef.current = false;
+        if (typeof document !== "undefined") document.body.style.cursor = "";
+        onHoverLeave();
+      }
+    } else if (screenHoverRef.current) {
+      screenHoverRef.current = false;
+      if (typeof document !== "undefined") document.body.style.cursor = "";
+      onHoverLeave();
+    }
   });
 
   const handlePointerEnter = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
     if (typeof document !== "undefined") document.body.style.cursor = "pointer";
     onHoverEnter();
+  };
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    if (typeof document !== "undefined") document.body.style.cursor = "pointer";
+    if (!hovered) onHoverEnter();
   };
   const handlePointerLeave = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
@@ -433,11 +528,12 @@ export function StarSprite({
         <mesh
           position={[0, 0, 0.08]}
           onPointerOver={handlePointerEnter}
+          onPointerMove={handlePointerMove}
           onPointerOut={handlePointerLeave}
           onClick={handleClick}
           onDoubleClick={handleDoubleClick}
         >
-          <circleGeometry args={[presentation.hitRadius, 24]} />
+          <circleGeometry args={[interactionRadius, 32]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
 
@@ -471,56 +567,29 @@ export function StarSprite({
           </mesh>
 
           {closureGlyph !== null ? (
-            <Html
+            <SceneClosureBadge
+              glyph={closureGlyph}
+              radius={sizing.avatarRadius * 0.17}
               position={[sizing.avatarRadius * 0.85, sizing.avatarRadius * 0.85, 0.05]}
-              zIndexRange={[40, 0]}
-              className="pointer-events-none"
-              transform={false}
-            >
-              <div
-                className={`-translate-x-1/2 -translate-y-1/2 grid size-5 place-items-center rounded-full ring-2 ring-[#07041a]/70 ${
-                  closureGlyph === "heart"
-                    ? "bg-emerald-400 text-[#07041a]"
-                    : "bg-rose-400 text-[#07041a]"
-                }`}
-              >
-                {closureGlyph === "heart" ? (
-                  <svg viewBox="0 0 16 16" className="size-3" fill="currentColor" aria-hidden>
-                    <path d="M8 13.5 C 3 10.5 2 7.5 4 5.5 C 5.5 4.5 7 5 8 6 C 9 5 10.5 4.5 12 5.5 C 14 7.5 13 10.5 8 13.5 Z" />
-                  </svg>
-                ) : (
-                  <svg
-                    viewBox="0 0 16 16"
-                    className="size-3"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    aria-hidden
-                  >
-                    <path d="M4 4 L 12 12" />
-                    <path d="M12 4 L 4 12" />
-                  </svg>
-                )}
-              </div>
-            </Html>
-          ) : null}
-
-          {(hovered || quickActionsLatched) && !cardOpen && renderOverlay === undefined ? (
-            <StarQuickActionRail
-              actions={visibleQuickActions ?? []}
-              avatarRadius={sizing.avatarRadius}
-              memberName={star.member.firstName}
-              showActions={quickActionsLatched && visibleQuickActions !== undefined}
-              active={hovered || quickActionsHovered}
-              onHoverChange={(nextHovered) => {
-                setQuickActionsHovered(nextHovered);
-                onQuickActionsHoverChange(nextHovered);
-                if (nextHovered) onHoverEnter();
-              }}
             />
           ) : null}
         </group>
+
+        {(hovered || quickActionsLatched) && !cardOpen && renderOverlay === undefined ? (
+          <StarQuickActionRail
+            actions={visibleQuickActions ?? []}
+            memberName={star.member.firstName}
+            showActions={quickActionsLatched && visibleQuickActions !== undefined}
+            active={hovered || quickActionsHovered}
+            pixelScaleRef={uiPixelScaleRef}
+            avatarRadiusPxRef={avatarRadiusPxRef}
+            onHoverChange={(nextHovered) => {
+              setQuickActionsHovered(nextHovered);
+              onQuickActionsHoverChange(nextHovered);
+              if (nextHovered) onHoverEnter();
+            }}
+          />
+        ) : null}
 
         {showFlare && flareTexture !== null ? (
           <mesh ref={flareMeshRef} raycast={() => null} position={[0, 0, 0.035]}>
@@ -538,7 +607,12 @@ export function StarSprite({
             />
           </mesh>
         ) : null}
-        {renderOverlay?.({ avatarRadius: sizing.avatarRadius, haloSize })}
+        {renderOverlay?.({
+          avatarRadius: sizing.avatarRadius,
+          haloSize,
+          pixelScaleRef: uiPixelScaleRef,
+          avatarRadiusPxRef,
+        })}
       </Billboard>
     </group>
   );

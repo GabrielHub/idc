@@ -158,10 +158,10 @@ export function createDraftedScenarioDeck(input: DraftDeckInput): ScenarioDeck {
 
   for (const cardId of input.cardIds) {
     if (seen.has(cardId)) {
-      throw new Error(`Drafted deck duplicates ${cardId}.`);
+      throw new Error(`Date Book draft duplicates ${cardId}.`);
     }
     if (!catalogById.has(cardId)) {
-      throw new Error(`Drafted deck includes unknown scenario ${cardId}.`);
+      throw new Error(`Date Book draft includes unknown room card ${cardId}.`);
     }
     if (catalogAllowed !== null && !catalogAllowed.has(cardId)) {
       throw new Error(`Scenario ${cardId} is not in the starter catalog.`);
@@ -172,14 +172,14 @@ export function createDraftedScenarioDeck(input: DraftDeckInput): ScenarioDeck {
 
   if (uniqueIds.length < DECK_SIZE_MIN || uniqueIds.length > DECK_SIZE_MAX) {
     throw new Error(
-      `Drafted deck must hold between ${DECK_SIZE_MIN} and ${DECK_SIZE_MAX} cards. Got ${uniqueIds.length}.`,
+      `Date Book must hold between ${DECK_SIZE_MIN} and ${DECK_SIZE_MAX} room cards. Got ${uniqueIds.length}.`,
     );
   }
 
   const spend = currentDeckSpend(uniqueIds, input.effectiveCosts);
   if (spend > input.budgetCap) {
     throw new Error(
-      `Drafted deck spends ${spend} against a ${input.budgetCap} cap. Drop cards before confirming.`,
+      `Date Book spends ${spend} against a ${input.budgetCap} cap. Drop room cards before confirming.`,
     );
   }
 
@@ -231,11 +231,11 @@ export function drawHandForBooking({
 
 export function removeCardFromDeck(save: GameSave, cardId: string): GameSave {
   if (!save.scenarioDeck.cardIds.includes(cardId)) {
-    throw new Error(`Card ${cardId} is not in the active deck.`);
+    throw new Error(`Room card ${cardId} is not in the Date Book.`);
   }
   if (save.scenarioDeck.cardIds.length <= DECK_SIZE_MIN) {
     throw new Error(
-      `The deck must keep at least ${DECK_SIZE_MIN} rooms; draw new rooms before dropping.`,
+      `Date Book must keep at least ${DECK_SIZE_MIN} room cards. Draw new room cards before dropping.`,
     );
   }
 
@@ -308,11 +308,13 @@ export function softComposeWarnings(
   );
 
   if (!hasLowPressure) {
-    warnings.push("No low pressure cards in the deck. Procurement may flag burnout next shift.");
+    warnings.push(
+      "No low-pressure room cards in the Date Book. Procurement may flag burnout next shift.",
+    );
   }
 
   if (!hasHighPressure) {
-    warnings.push("No high pressure cards in the deck. The board may feel quiet.");
+    warnings.push("No high-pressure room cards in the Date Book. The board may feel quiet.");
   }
 
   const lowRisk = deckScenarios.filter((scenario) => scenario.card.risk === "low").length;
@@ -484,7 +486,7 @@ export function planCardOfferResolution(
       ...base,
       declined: [],
       legal: false,
-      message: "There is no pending card offer to resolve.",
+      message: "There is no pending room-card offer to resolve.",
     };
   }
 
@@ -502,27 +504,27 @@ export function planCardOfferResolution(
 
   for (const id of taken) {
     if (!offerIds.has(id)) {
-      fail(`Card ${id} is not part of the current offer.`);
+      fail(`Room card ${id} is not part of the current offer.`);
     } else if (deckIds.has(id)) {
-      fail(`Card ${id} is already in the deck.`);
+      fail(`Room card ${id} is already in the Date Book.`);
     }
   }
   if (taken.length > offer.takeLimit) {
-    fail(`This offer allows taking at most ${offer.takeLimit} card(s).`);
+    fail(`This offer allows taking at most ${offer.takeLimit} room cards.`);
   }
   for (const id of dropped) {
     if (!deckIds.has(id)) {
-      fail(`Card ${id} is not in the active deck.`);
+      fail(`Room card ${id} is not in the Date Book.`);
     }
   }
   if (overSlotCap || underSlotMin) {
     fail(
-      `Resolving the offer leaves ${finalSize} cards; the deck must hold ${DECK_SIZE_MIN}-${DECK_SIZE_MAX}.`,
+      `Resolving the offer leaves ${finalSize} room cards. Date Book must hold ${DECK_SIZE_MIN}-${DECK_SIZE_MAX}.`,
     );
   }
   if (overBudget) {
     fail(
-      `Resolving the offer spends ${finalSpend} against a ${save.budgetCap} cap. Drop more cards first.`,
+      `Resolving the offer spends ${finalSpend} against a ${save.budgetCap} cap. Drop more room cards first.`,
     );
   }
 
@@ -561,7 +563,7 @@ export function resolveCardOffer(
 export function shuffleCardOffer(save: GameSave, seedKey: string): GameSave {
   const offer = save.pendingCardOffer;
   if (offer === null) {
-    throw new Error("There is no pending card offer to shuffle.");
+    throw new Error("There is no pending room-card offer to shuffle.");
   }
   if (!offer.canShuffle) {
     throw new Error("This offer has already been reshuffled.");

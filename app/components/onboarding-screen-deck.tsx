@@ -6,6 +6,7 @@ import type { DateScenario, GameSave, Member, PlayerKnowledgeRecord } from "../d
 import { computeEffectiveCosts, currentDeckSpend } from "../services/budget";
 import { onboardingDeckTutorialPickId, sortedStarterCatalog } from "../services/deck";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { AmbientMesh } from "./ambient-mesh";
 import {
   EASE_OUT_QUART,
@@ -99,6 +100,9 @@ export function DeckDraftStep({
     deckPickSatisfied && canConfirm,
     onTutorialUpdate,
   );
+  const deckPickCopy = tutorialCopy("onboarding.deck.pick");
+  const deckExpandCopy = tutorialCopy("onboarding.deck.expand");
+  const deckStartCopy = tutorialCopy("onboarding.deck.start");
 
   function toggleCard(scenarioId: string) {
     if (deckIdSet.has(scenarioId)) {
@@ -167,17 +171,17 @@ export function DeckDraftStep({
         </ul>
 
         <div className="pointer-events-none fixed inset-x-0 bottom-8 z-30 flex justify-center px-6">
-          <div className="aura-glass-strong pointer-events-auto flex items-center gap-4 rounded-pill px-5 py-3 shadow-aura-soft">
+          <div className="aura-glass-strong pointer-events-auto flex items-center gap-4 rounded-pill px-5 py-3 shadow-card">
             <GhostButton onClick={onBack}>← Back to focus cases</GhostButton>
             <Tooltip
               message={
                 canConfirm
-                  ? "Lock in the starter deck. You can edit it after onboarding from the Date Book."
+                  ? "Lock in the starter Date Book. You can edit it after onboarding."
                   : deckSize < DECK_SIZE_MIN
-                    ? `Pick at least ${DECK_SIZE_MIN} cards.`
+                    ? `Pick at least ${DECK_SIZE_MIN} room cards.`
                     : deckSize > DECK_SIZE_MAX
-                      ? `Drop down to ${DECK_SIZE_MAX} cards or fewer.`
-                      : `Drop a card. Spend is ${spend} against a ${STARTER_BUDGET_CAP} cap.`
+                      ? `Drop down to ${DECK_SIZE_MAX} room cards or fewer.`
+                      : `Drop a room card. Spend is ${spend} against a ${STARTER_BUDGET_CAP} cap.`
               }
               placement="top-center"
             >
@@ -206,9 +210,10 @@ export function DeckDraftStep({
           <TutorialCoachMark
             target={firstScenarioCardRef}
             placement="left"
-            title="Build the Date Book"
-            body="This is the pool Cupid draws from. Pick six to twelve rooms, stay under the budget. The drawn hand comes later, after you commit a pair."
-            dismissLabel="Skip tour"
+            title={deckPickCopy.title}
+            body={deckPickCopy.body}
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={deckPickStep.dismiss}
             textTone="dark"
           />
@@ -221,9 +226,10 @@ export function DeckDraftStep({
           <TutorialCoachMark
             target={rightmostExpandRef}
             placement="right"
-            title="Scout the room"
-            body="Tap a card's arrow to open the brief. Worth a peek for the vibe and rules before you spend on it."
-            dismissLabel="Skip tour"
+            title={deckExpandCopy.title}
+            body={deckExpandCopy.body}
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={deckExpandStep.dismiss}
             textTone="dark"
           />
@@ -236,14 +242,15 @@ export function DeckDraftStep({
           <TutorialCoachMark
             target={startShiftCtaRef}
             placement="top"
-            title="Start the shift"
-            body="Deck is legal. Start the shift and Cupid opens the lobby. Pick a lead case, then a different partner, then commit. Three scenarios get drawn from this pool."
-            primaryLabel="Start the shift"
+            title={deckStartCopy.title}
+            body={deckStartCopy.body}
+            primaryLabel={deckStartCopy.primaryLabel}
             onPrimary={() => {
               deckStartStep.complete();
               onConfirm();
             }}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={deckStartStep.dismiss}
             textTone="dark"
           />
@@ -291,7 +298,7 @@ function DeckDraftHeader() {
         </span>
       </div>
       <h1 className="mt-4 font-display text-display-md font-semibold leading-[1.02] tracking-tight text-aura-ink lg:text-display-lg">
-        Build your <span className="aura-accent font-serif text-aura-fuchsia">date book</span>
+        Build your <span className="aura-accent font-serif text-aura-fuchsia">Date Book</span>
       </h1>
       <p className="mt-4 max-w-2xl text-body text-aura-muted">
         {STARTER_BUDGET_CAP} budget points stretched across {DECK_SIZE_MIN} to {DECK_SIZE_MAX}{" "}
@@ -423,7 +430,7 @@ function AllocationLedger({
 
   return (
     <section
-      aria-label="Date book allocation"
+      aria-label="Date Book allocation"
       className="aura-glass relative mb-9 overflow-hidden rounded-card px-6 py-7 lg:px-9 lg:py-8"
     >
       <span
@@ -580,7 +587,7 @@ function DeckManifest({
       <div className="flex items-center gap-2.5">
         <span aria-hidden className="size-1.5 rounded-sm bg-aura-violet" />
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.3em] text-aura-violet">
-          Deck manifest
+          Room manifest
         </span>
         <span aria-hidden className="h-px flex-1 bg-aura-hairline" />
         <span

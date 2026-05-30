@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "motion/react";
 
 import {
@@ -14,9 +14,12 @@ import {
   currentDeckSpend,
 } from "../../services/budget";
 import { planCardOfferResolution } from "../../services/deck";
+import { useIsRequiredTutorialActive, useTutorialStep } from "../../services/tutorial";
+import { tutorialCopy } from "../../services/tutorial-copy";
 import { starterScenarios } from "../../fixtures";
 import { AuraButton } from "../aura-button";
 import { EASE_OUT_QUART } from "../dashboard-atoms";
+import { TutorialCoachMark } from "../tutorial";
 import { CathedralCard } from "./cathedral-card";
 import type { DoorEntry } from "./cathedral";
 import { scenarioWithEffectiveCost } from "./scenario-doors";
@@ -34,11 +37,13 @@ import { scenarioWithEffectiveCost } from "./scenario-doors";
 export function CardOfferOverlay({
   save,
   isActionPending,
+  onTutorialUpdate,
   onResolve,
   onShuffle,
 }: {
   save: GameSave;
   isActionPending: boolean;
+  onTutorialUpdate: (next: GameSave) => void;
   onResolve: (input: { takenIds: string[]; droppedIds: string[] }) => void;
   onShuffle: () => void;
 }) {
@@ -52,6 +57,7 @@ export function CardOfferOverlay({
       save={save}
       offer={offer}
       isActionPending={isActionPending}
+      onTutorialUpdate={onTutorialUpdate}
       onResolve={onResolve}
       onShuffle={onShuffle}
     />
@@ -62,12 +68,14 @@ function CardOfferOverlayBody({
   save,
   offer,
   isActionPending,
+  onTutorialUpdate,
   onResolve,
   onShuffle,
 }: {
   save: GameSave;
   offer: PendingCardOffer;
   isActionPending: boolean;
+  onTutorialUpdate: (next: GameSave) => void;
   onResolve: (input: { takenIds: string[]; droppedIds: string[] }) => void;
   onShuffle: () => void;
 }) {
@@ -88,6 +96,15 @@ function CardOfferOverlayBody({
 
   const [takenIds, setTakenIds] = useState<ReadonlySet<string>>(() => new Set());
   const [droppedIds, setDroppedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const dialogRef = useRef<HTMLElement | null>(null);
+  const requiredTutorialActive = useIsRequiredTutorialActive();
+  const offerTutorial = useTutorialStep(
+    save,
+    "lazy.datebook.card-offer",
+    !requiredTutorialActive,
+    onTutorialUpdate,
+  );
+  const offerTutorialCopy = tutorialCopy("lazy.datebook.card-offer");
 
   const costOf = (id: string) => effectiveCosts[id] ?? scenarioById.get(id)?.card.cost ?? 0;
   const takenList = useMemo(() => [...takenIds], [takenIds]);
@@ -139,7 +156,7 @@ function CardOfferOverlayBody({
       return {
         selected: false,
         disabled: true,
-        reason: `Offer allows taking ${offer.takeLimit} card${offer.takeLimit === 1 ? "" : "s"}.`,
+        reason: `Offer allows ${offer.takeLimit} room card${offer.takeLimit === 1 ? "" : "s"}.`,
       };
     }
     // Feasibility: could taking this card alongside the current picks ever land
@@ -150,7 +167,7 @@ function CardOfferOverlayBody({
       return {
         selected: false,
         disabled: true,
-        reason: "No drop set keeps the deck under budget.",
+        reason: "No legal drop keeps the Date Book under budget.",
       };
     }
     return { selected: false, disabled: false };
@@ -191,20 +208,18 @@ function CardOfferOverlayBody({
 
   const eyebrow = offer.kind === "date" ? "// draw.date" : "// draw.closure";
   const heading =
-    offer.kind === "date"
-      ? "New rooms from tonight's date — take one"
-      : "Closure draw — take up to two";
+    offer.kind === "date" ? "New room cards filed. Take one." : "Closure bonus. Take up to two.";
   const slotTone = overSlotCap || underSlotMin ? "text-aura-rose" : "text-aura-paper";
   const budgetToneClass = overBudget ? "text-aura-rose" : "text-aura-paper";
 
   const confirmReason = overBudget
-    ? "Drop more cards — deck is over budget."
+    ? "Drop more room cards. Date Book is over budget."
     : overSlotCap
-      ? "Drop cards until the deck fits the slot cap."
+      ? "Drop room cards until the Date Book fits."
       : underSlotMin
-        ? `Keep at least ${DECK_SIZE_MIN} cards in the deck.`
+        ? `Keep at least ${DECK_SIZE_MIN} room cards in the Date Book.`
         : takenList.length === 0
-          ? "Pick a card to add, or skip the draw."
+          ? "Pick a room card, or skip the draw."
           : undefined;
 
   return (
@@ -223,6 +238,7 @@ function CardOfferOverlayBody({
         <span aria-hidden className="absolute inset-0 bg-aura-ink/60 backdrop-blur-sm" />
 
         <motion.section
+          ref={dialogRef}
           initial={{ opacity: 0, y: 18, scale: 0.985 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 10, scale: 0.99 }}
@@ -238,7 +254,7 @@ function CardOfferOverlayBody({
                 {heading}
               </h2>
               <p className="mt-2 font-sans text-sm text-white/70">
-                Taken rooms join your deck. The rest return to the bottom of the draw pile.
+                Taken room cards join the Date Book. The rest return to the bottom of the pile.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -262,8 +278,8 @@ function CardOfferOverlayBody({
 
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <OfferCardGrid
-              label="Offered rooms"
-              hint={`Tap to take up to ${offer.takeLimit}.`}
+              label="Offered room cards"
+              hint={`Take up to ${offer.takeLimit}.`}
               cards={offer.cardIds}
               scenarioById={scenarioById}
               effectiveCosts={effectiveCosts}
@@ -287,12 +303,12 @@ function CardOfferOverlayBody({
 
           <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4">
             <div className="font-mono text-sm uppercase tracking-[0.18em] text-aura-amber">
-              {confirmReason ?? "Deck is legal — add and continue."}
+              {confirmReason ?? "Date Book clears review. Add and continue."}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               {offer.canShuffle ? (
                 <AuraButton
-                  tooltip="Return these cards and redraw a fresh offer"
+                  tooltip="Send these room cards back and draw again"
                   onClick={() => {
                     if (!isActionPending) onShuffle();
                   }}
@@ -303,7 +319,7 @@ function CardOfferOverlayBody({
                 </AuraButton>
               ) : null}
               <AuraButton
-                tooltip="Decline the draw — all cards return to the pile"
+                tooltip="Decline the draw. Room cards return to the pile"
                 onClick={handleSkip}
                 disabled={isActionPending}
                 className="aura-liquid-glass aura-liquid-glass-hover cursor-pointer rounded-full px-4 py-2 font-display text-sm text-aura-paper disabled:cursor-not-allowed disabled:opacity-55"
@@ -311,16 +327,29 @@ function CardOfferOverlayBody({
                 Skip
               </AuraButton>
               <AuraButton
-                tooltip={confirmReason ?? "Add the selection to your deck"}
+                tooltip={confirmReason ?? "Add the selected room cards to your Date Book"}
                 onClick={handleConfirm}
                 disabled={!isLegal || isActionPending}
                 className="aura-liquid-cta cursor-pointer rounded-full px-5 py-2 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
               >
-                Add to deck
+                Add to Date Book
               </AuraButton>
             </div>
           </footer>
         </motion.section>
+
+        {offerTutorial.active ? (
+          <TutorialCoachMark
+            target={dialogRef}
+            placement="right"
+            title={offerTutorialCopy.title}
+            body={offerTutorialCopy.body}
+            primaryLabel={offerTutorialCopy.primaryLabel}
+            onPrimary={offerTutorial.complete}
+            dismissLabel="End tour"
+            onDismiss={offerTutorial.dismiss}
+          />
+        ) : null}
       </motion.div>
     </AnimatePresence>
   );
@@ -351,10 +380,10 @@ function DropStepBanner({
   overSlotCap: boolean;
 }) {
   const copy = overBudget
-    ? "This take is over budget. Drop deck cards to free up spend."
+    ? "This take is over budget. Drop room cards to free budget."
     : overSlotCap
-      ? "This take overflows the slot cap. Drop deck cards to make room."
-      : "Drop deck cards to swap them out for the take.";
+      ? "This take overfills the Date Book. Drop room cards to make space."
+      : "Drop room cards to trade them for the take.";
   return (
     <div className="aura-liquid-glass aura-liquid-glass-amber mb-3 inline-flex items-center gap-2 rounded-pill py-1.5 pl-2.5 pr-3.5 leading-tight">
       <span
@@ -441,7 +470,7 @@ function DeckDropGrid({
 }) {
   return (
     <section>
-      <GridHeading label="Your deck" hint="Tap a staged card to drop it." />
+      <GridHeading label="Date Book" hint="Tap a staged room card to drop it." />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {cards.map((id, index) => {
           const scenario = scenarioById.get(id);

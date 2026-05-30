@@ -34,6 +34,10 @@ export type HoverDetailCardProps = {
    * picker instead of from a post-commit error toast.
    */
   blockReason?: string;
+  /** Member's still-open loops aggregated across their pairs (active only). */
+  openLoops?: readonly { id: string; text: string }[];
+  /** Member's unmet asks queued for the active shift (active only). */
+  unmetAsks?: readonly { id: string; text: string }[];
 };
 
 const MORPH_PORTRAIT_FINAL_SIZE_PX = 48;
@@ -60,6 +64,8 @@ export function HoverDetailCard({
   onOpenCase,
   recentNotesSlot,
   blockReason,
+  openLoops = [],
+  unmetAsks = [],
 }: HoverDetailCardProps) {
   const { member, palette } = star;
   const resolvedSnippet = snippet ?? profileSnippetFor(member);
@@ -260,6 +266,9 @@ export function HoverDetailCard({
           transition={contentTransition}
         >
           {member.state.status === "active" ? <MemberFeedbackStrip member={member} /> : null}
+          {member.state.status === "active" ? (
+            <MemberOutstandingSection openLoops={openLoops} unmetAsks={unmetAsks} />
+          ) : null}
           <p className="mt-3 line-clamp-3 font-sans text-label text-white/85">{resolvedSnippet}</p>
           {recentNotesSlot}
           <div className="mt-3 flex items-center justify-center gap-2">
@@ -382,6 +391,67 @@ function MemberFeedbackStrip({ member }: { member: StarMark["member"] }) {
         <div className="h-full bg-orange-300/85" style={{ width: `${burnout}%` }} />
       </div>
       <span className="font-mono text-sm tabular-nums text-white/90">{burnout}</span>
+    </div>
+  );
+}
+
+/**
+ * Outstanding work for the card's member, ported from the pair dossier's loop
+ * list into the single-member view. Asks (what they're waiting on this shift)
+ * lead; open loops (unresolved threads across their pairs) follow. Each row
+ * truncates with the full copy reachable via AuraTooltip. Renders nothing when
+ * the member has neither.
+ */
+function MemberOutstandingSection({
+  openLoops,
+  unmetAsks,
+}: {
+  openLoops: readonly { id: string; text: string }[];
+  unmetAsks: readonly { id: string; text: string }[];
+}) {
+  if (openLoops.length === 0 && unmetAsks.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-white/10 pt-2 text-left">
+      {unmetAsks.length === 0 ? null : (
+        <OutstandingGroup label="asks waiting" items={unmetAsks} dotClass="text-amber-300" />
+      )}
+      {openLoops.length === 0 ? null : (
+        <OutstandingGroup label="open loops" items={openLoops} dotClass="text-aura-rose" />
+      )}
+    </div>
+  );
+}
+
+function OutstandingGroup({
+  label,
+  items,
+  dotClass,
+}: {
+  label: string;
+  items: readonly { id: string; text: string }[];
+  dotClass: string;
+}) {
+  return (
+    <div className="mt-2 first:mt-0">
+      <div className="font-mono text-micro uppercase tracking-[0.18em] text-white/55">{label}</div>
+      <ul className="mt-1 space-y-1">
+        {items.map((item) => (
+          <li key={item.id}>
+            <AuraTooltip
+              placement="left"
+              align="block"
+              label={<span className="block text-sm text-white/85">{item.text}</span>}
+            >
+              <span className="flex cursor-help items-start gap-1.5 font-sans text-label leading-snug text-white/75">
+                <span aria-hidden className={`mt-[3px] leading-none ${dotClass}`}>
+                  &middot;
+                </span>
+                <span className="line-clamp-2">{item.text}</span>
+              </span>
+            </AuraTooltip>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

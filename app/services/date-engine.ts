@@ -356,8 +356,8 @@ export function commitDateBooking(
   if (status.status !== "within_budget") {
     throw new Error(
       status.status === "over_budget"
-        ? "Date book is over budget. Drop cards before booking."
-        : "Date book is not at a legal size. Adjust the deck before booking.",
+        ? "Date Book is over budget. Drop room cards before booking."
+        : "Date Book is not at a legal size. Adjust the room cards before booking.",
     );
   }
 
@@ -369,7 +369,7 @@ export function commitDateBooking(
   });
 
   if (drawnIds.length < 3) {
-    throw new Error("Cupid could not draw three scenarios from the active deck.");
+    throw new Error("Cupid could not draw three room cards from the Date Book.");
   }
 
   const drawnTuple: [string, string, string] = [drawnIds[0], drawnIds[1], drawnIds[2]];
@@ -594,7 +594,7 @@ export function startDateSession(save: GameSave, input: StartDateInput): DateEng
       padding[1] ?? booking.drawnScenarioIds[2] ?? booking.drawnScenarioIds[0],
     ];
     if (!booking.deckSnapshot.cardIds.includes(input.scenarioId)) {
-      throw new Error("Requested scenario is not in the active deck.");
+      throw new Error("Requested room card is not in the Date Book.");
     }
     const updatedBooking = activeDateBookingSchema.parse({
       ...booking,

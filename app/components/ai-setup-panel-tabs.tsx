@@ -1,13 +1,3 @@
-import ClaudeColor from "@lobehub/icons/es/Claude/components/Color";
-import DeepSeekColor from "@lobehub/icons/es/DeepSeek/components/Color";
-import GeminiColor from "@lobehub/icons/es/Gemini/components/Color";
-import KimiColor from "@lobehub/icons/es/Kimi/components/Color";
-import MinimaxColor from "@lobehub/icons/es/Minimax/components/Color";
-import OpenAIMono from "@lobehub/icons/es/OpenAI/components/Mono";
-import QwenColor from "@lobehub/icons/es/Qwen/components/Color";
-import XiaomiMiMoMono from "@lobehub/icons/es/XiaomiMiMo/components/Mono";
-import ZhipuColor from "@lobehub/icons/es/Zhipu/components/Color";
-
 import {
   DEFAULT_GATEWAY_BASE_URL,
   DEFAULT_GATEWAY_EMBEDDING_MODEL,
@@ -304,6 +294,50 @@ export function GatewaySetupTab({
   );
 }
 
+type GatewayModelBrandMark = {
+  label: string;
+  className: string;
+};
+
+const GATEWAY_MODEL_BRAND_MARKS: Record<AiModelBrand, GatewayModelBrandMark> = {
+  deepseek: {
+    label: "D",
+    className: "bg-sky-50 text-blue-600",
+  },
+  gemini: {
+    label: "G",
+    className: "bg-indigo-50 text-indigo-600",
+  },
+  claude: {
+    label: "C",
+    className: "bg-orange-50 text-orange-700",
+  },
+  kimi: {
+    label: "K",
+    className: "bg-violet-50 text-violet-700",
+  },
+  minimax: {
+    label: "M",
+    className: "bg-pink-50 text-pink-700",
+  },
+  qwen: {
+    label: "Q",
+    className: "bg-cyan-50 text-cyan-700",
+  },
+  xiaomi: {
+    label: "Mi",
+    className: "bg-amber-50 text-amber-700",
+  },
+  zhipu: {
+    label: "Z",
+    className: "bg-emerald-50 text-emerald-700",
+  },
+  openai: {
+    label: "O",
+    className: "bg-neutral-100 text-neutral-700",
+  },
+};
+
 function gatewayModelIconForOption(model: AiModelOption) {
   if (model.brand === undefined) {
     return undefined;
@@ -313,39 +347,16 @@ function gatewayModelIconForOption(model: AiModelOption) {
 }
 
 function GatewayModelBrandIcon({ brand }: { brand: AiModelBrand }) {
+  const mark = GATEWAY_MODEL_BRAND_MARKS[brand];
+
   return (
     <span
       aria-hidden="true"
-      className="grid size-6 shrink-0 place-items-center rounded-chip bg-white/80 ring-1 ring-aura-hairline"
+      className={`grid size-6 shrink-0 place-items-center rounded-chip ring-1 ring-aura-hairline ${mark.className}`}
     >
-      {renderBrandGlyph(brand)}
+      <span className="font-mono text-sm font-semibold leading-none">{mark.label}</span>
     </span>
   );
-}
-
-function renderBrandGlyph(brand: AiModelBrand) {
-  const size = 16;
-
-  switch (brand) {
-    case "deepseek":
-      return <DeepSeekColor size={size} />;
-    case "gemini":
-      return <GeminiColor size={size} />;
-    case "claude":
-      return <ClaudeColor size={size} />;
-    case "kimi":
-      return <KimiColor size={size} />;
-    case "minimax":
-      return <MinimaxColor size={size} />;
-    case "qwen":
-      return <QwenColor size={size} />;
-    case "xiaomi":
-      return <XiaomiMiMoMono size={size} />;
-    case "zhipu":
-      return <ZhipuColor size={size} />;
-    case "openai":
-      return <OpenAIMono size={size} />;
-  }
 }
 
 function GatewayModelCostBadge({ model }: { model: AiModelOption }) {

@@ -22,6 +22,12 @@ import { LobbyCanvasLayer } from "./lobby-canvas-layer";
 import { LobbyHudLayer } from "./lobby-hud-layer";
 import { dateBookEditingUnlocked } from "../../services/deck";
 import { derivePairArchiveGraph } from "../../services/pair-archive-graph";
+import {
+  deriveEdgeClosureDetail,
+  type EdgeClosureDetail,
+} from "../../services/edge-closure-detail";
+import { isMemberActive } from "../../services/date-engine";
+import { riskZoneForMember } from "../../services/member-feedback";
 import { makePairId } from "../../services/game-seed";
 import {
   DEFAULT_MEMBER_ROSTER_FILTER_STATE,
@@ -50,6 +56,7 @@ import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
 import { CardOfferOverlay } from "./card-offer-overlay";
+import { AtRiskOverlay } from "./at-risk-overlay";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
 import {
   FLYTHROUGH_LAYERS,
@@ -192,6 +199,7 @@ export function ConstellationLobby({
   const committedPairId = activeBooking !== null ? activeBooking.pairId : null;
 
   const [openCaseMemberId, setOpenCaseMemberId] = useState<string | null>(null);
+  const [atRiskOpen, setAtRiskOpen] = useState(false);
   // Active star whose `HoverDetailCard` is morphed open. Click-driven (not
   // hover), since the bigger detail card is too eager to flash on every
   // pointer pass through the dense field.
@@ -354,6 +362,7 @@ export function ConstellationLobby({
   });
   const {
     layerIndicatorRef,
+    shiftBriefRef,
     layerFocusRef,
     layerRosterRef,
     layerCathedralRef,
@@ -611,6 +620,7 @@ export function ConstellationLobby({
   });
   const hoverCardContext: HoverCardContext = {
     save,
+    shift,
     focusedSet,
     revealAllMemberDetails,
     focusId,
@@ -643,6 +653,29 @@ export function ConstellationLobby({
 
   const memberByIdMap = useMemo(
     () => new Map(save.members.map((member) => [member.id, member] as const)),
+    [save.members],
+  );
+  // Last-date delta + trajectory per filed pair, consumed by the archive edge
+  // tooltip. Bounded to pairs with completed dates; recomputed only when the
+  // pair states or date sessions change.
+  const edgeDetailByPairId = useMemo(() => {
+    const map = new Map<string, EdgeClosureDetail>();
+    for (const pairState of save.pairStates) {
+      if (pairState.completedDateIds.length === 0) continue;
+      map.set(
+        pairState.id,
+        deriveEdgeClosureDetail({ pairState, dateSessions: save.dateSessions }),
+      );
+    }
+    return map;
+  }, [save.pairStates, save.dateSessions]);
+  // Single source of truth for the at-risk cohort: feeds both the callout copy
+  // and the click-through overlay so the count and the list never diverge.
+  const atRiskMembers = useMemo(
+    () =>
+      save.members.filter(
+        (member) => isMemberActive(member) && riskZoneForMember(member).zone === "at-risk",
+      ),
     [save.members],
   );
 
@@ -707,10 +740,12 @@ export function ConstellationLobby({
     pendingFollowUpCount,
     save,
     shift,
+    atRiskMembers,
     onOpenDateSession,
     onOpenClosures: handleOpenClosures,
     onOpenFollowUps: handleOpenFollowUps,
     onOpenDeck: openDeckFromCallout,
+    onOpenAtRisk: () => setAtRiskOpen(true),
   });
 
   const handleCompleteShiftFromHud = useCallback(() => {
@@ -803,6 +838,7 @@ export function ConstellationLobby({
         archiveSelection={archiveSelection}
         archiveIsolation={archiveIsolation}
         memberById={memberByIdMap}
+        edgeDetailByPairId={edgeDetailByPairId}
         onArchivePairSelect={(pairId) => setArchiveSelection({ kind: "pair", pairId })}
         onPointerMissed={() => {
           setActiveStarId(null);
@@ -818,6 +854,7 @@ export function ConstellationLobby({
           flythroughLayers={flythroughLayers}
           refs={{
             layerIndicatorRef,
+            shiftBriefRef,
             layerFocusRef,
             layerRosterRef,
             layerCathedralRef,
@@ -956,8 +993,14 @@ export function ConstellationLobby({
       <CardOfferOverlay
         save={save}
         isActionPending={isActionPending}
+        onTutorialUpdate={onTutorialUpdate}
         onResolve={onResolveCardOffer}
         onShuffle={onShuffleCardOffer}
+      />
+      <AtRiskOverlay
+        open={atRiskOpen}
+        members={atRiskMembers}
+        onClose={() => setAtRiskOpen(false)}
       />
     </div>
   );

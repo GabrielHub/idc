@@ -22,6 +22,14 @@ describe("planning tutorial overlay selection", () => {
     ]);
   });
 
+  it("shows the shift brief before the focus pick when both gates are open", () => {
+    const steps = buildSteps(["planning.shift-brief", "planning.focus"]);
+
+    expect(selectPlanningTutorialOverlayIds({ steps, viewMode: "tonight" })).toEqual([
+      "planning.shift-brief",
+    ]);
+  });
+
   it("keeps ordinary lazy steps off archive view", () => {
     const steps = buildSteps(["lazy.date-book"]);
 
@@ -33,6 +41,7 @@ function buildSteps(activeIds: readonly PlanningStepId[]): PlanningTutorialSteps
   const activeIdSet = new Set(activeIds);
   return {
     "planning.layer-nav": step(activeIdSet.has("planning.layer-nav")),
+    "planning.shift-brief": step(activeIdSet.has("planning.shift-brief")),
     "planning.focus": step(activeIdSet.has("planning.focus")),
     "planning.partner": step(activeIdSet.has("planning.partner")),
     "planning.intent": step(activeIdSet.has("planning.intent")),

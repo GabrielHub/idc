@@ -2164,7 +2164,7 @@ export function sanitizeCharacterTextWithReport(
     }
   }
 
-  const finalText = collapsed.join("\n");
+  const finalText = stripUnbalancedDoubleQuotes(collapsed.join("\n"));
 
   if (finalText.length === 0) {
     throw new EmptyPerformerMessageError();

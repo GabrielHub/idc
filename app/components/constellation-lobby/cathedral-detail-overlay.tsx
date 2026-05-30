@@ -64,7 +64,7 @@ export function CathedralDetailOverlay({
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-label={`${scenario.title} scenario detail`}
+            aria-label={`${scenario.title} room brief`}
             className="mx-auto flex max-h-full w-full max-w-[860px] flex-col rounded-card aura-liquid-glass aura-liquid-glass-rose p-5"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -80,7 +80,7 @@ export function CathedralDetailOverlay({
                 </div>
               </div>
               <AuraButton
-                tooltip="Close detail"
+                tooltip="Close room brief"
                 onClick={onClose}
                 className="cursor-pointer aura-liquid-glass aura-liquid-glass-hover rounded-full px-3 py-1.5 font-display text-label text-aura-paper"
               >
@@ -139,12 +139,12 @@ export function CathedralDetailOverlay({
                 <DetailGlassSection label="Avoid" labelClass="text-aura-rose">
                   <DetailBulletList items={judgeRubric.failureSignals} dotClass="bg-aura-rose" />
                 </DetailGlassSection>
-                <DetailGlassSection label="What both know">
+                <DetailGlassSection label="Table facts">
                   <p className="font-sans text-label leading-relaxed text-white/80">
                     {publicBrief.whatBothCharactersKnow}
                   </p>
                 </DetailGlassSection>
-                <DetailGlassSection label="Vibe meters">
+                <DetailGlassSection label="Room meters">
                   <ul className="flex flex-wrap gap-2 font-mono text-micro font-semibold uppercase tracking-[0.18em] text-white/75">
                     <li className="rounded-pill border border-white/15 bg-white/10 px-2.5 py-0.5">
                       risk - {card.risk}
@@ -159,7 +159,7 @@ export function CathedralDetailOverlay({
                 </DetailGlassSection>
               </div>
 
-              <DetailGlassSection label="Repeat behavior" className="mt-4">
+              <DetailGlassSection label="If repeated" className="mt-4">
                 <p className="font-sans text-label leading-relaxed text-white/80">
                   {director.repeatBehavior}
                 </p>

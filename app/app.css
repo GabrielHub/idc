@@ -827,13 +827,20 @@ body::-webkit-scrollbar {
    sit in, unlike the scenario backdrop which uses viewport units.
    ======================================================================== */
 
+/*
+ * Godray aura: shafts of window light. They stay lit and drift very slowly in
+ * brightness, like real god rays through a canopy — never strobing, sparkling,
+ * or fading out. A single gentle opacity breathe per shaft (floor ~80% of the
+ * shaft's target), run at a long duration with each shaft on its own phase, so
+ * the curtain shimmers organically as a whole rather than pulsing in unison.
+ * Blur is data-driven per shaft for depth.
+ */
 @keyframes member-aura-godray {
   0%,
   100% {
-    opacity: 0;
+    opacity: calc(var(--member-aura-opacity, 0.3) * 0.8);
   }
-  35%,
-  65% {
+  50% {
     opacity: var(--member-aura-opacity, 0.3);
   }
 }

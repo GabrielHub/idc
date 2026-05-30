@@ -61,6 +61,39 @@ export function Toggle({
   );
 }
 
+/* ToggleField: label + description + shared Toggle control. Use instead of
+   hand-rolled checkbox rows on Aura settings and playground surfaces. */
+export function ToggleField({
+  title,
+  description,
+  checked,
+  onChange,
+  disabled = false,
+}: {
+  title: ReactNode;
+  description?: ReactNode;
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+}) {
+  const label = typeof title === "string" ? title : undefined;
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
+      <span>
+        <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
+          {title}
+        </span>
+        {description ? (
+          <span className="mt-1 block text-label leading-relaxed text-aura-muted">
+            {description}
+          </span>
+        ) : null}
+      </span>
+      <Toggle checked={checked} onChange={onChange} disabled={disabled} label={label} />
+    </div>
+  );
+}
+
 /* SettingsList: a group wrapper for stacked SettingsRows. Provides one
    rounded card with hairline dividers between rows. */
 export function SettingsList({ children }: { children: ReactNode }) {

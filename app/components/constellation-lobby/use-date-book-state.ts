@@ -12,7 +12,7 @@ import type { CathedralMode } from "./cathedral";
  *   - closes the deck back to auto when ESC fires AND no other overlay owns
  *     the channel — the overlay-open guard prevents racing the case-file,
  *     notes, and closure panels;
- *   - toggles auto ↔ deck on the Date book pill toggle;
+ *   - toggles auto -> deck on the Date Book pill toggle;
  *   - resets `expandedDoorId` and exits deck mode when `closeDateBook` is
  *     called via the panel's Close button or the ESC handler.
  *
@@ -38,7 +38,7 @@ export function useDateBookState({
    */
   isOverlayOpen: boolean;
   /**
-   * Blocks the Date book pill toggle from opening when a booking is active
+   * Blocks the Date Book pill toggle from opening when a booking is active
    * (the deck can't be edited mid-date). The Close path stays open so a
    * panel mid-open still has a way out.
    */
@@ -61,7 +61,7 @@ export function useDateBookState({
   }, [dispatch, scenarioMode]);
 
   /**
-   * Date book pill toggle. Two-mode toggle: auto ↔ deck. The reducer drives
+   * Date Book pill toggle. Two-mode toggle: auto -> deck. The reducer drives
    * `currentLayer` through each transition; this hook clears the parent-owned
    * `expandedDoorId` so a peek doesn't survive the toggle.
    */

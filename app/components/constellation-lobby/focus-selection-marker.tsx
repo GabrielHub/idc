@@ -1,52 +1,119 @@
-import { Html } from "@react-three/drei";
-import type { MouseEvent } from "react";
+import { useRef, type MutableRefObject } from "react";
+import { useFrame } from "@react-three/fiber";
+import type { ThreeEvent } from "@react-three/fiber";
+import * as THREE from "three";
 
 import type { Member } from "../../domain/game";
-import { AuraButton } from "../aura-button";
+import { clamp } from "../../services/utils";
+import {
+  applyScenePixelScale,
+  estimateSceneTextWidth,
+  SceneCircleButton,
+  SceneGlassPill,
+  SceneText,
+} from "./star-scene-ui-primitives";
+
+/*
+ * The pinned-focus pill shares the quick-action rail's screen-pixel model: its
+ * root group is counter-scaled by StarSprite every frame so the chip stays the
+ * same readable size on every layer, and it hangs a fixed gap under the avatar
+ * disc's projected bottom edge (`avatarRadiusPxRef`) rather than the texture.
+ */
+
+const HEIGHT_PX = 26;
+const FONT_PX = 15;
+const CLEAR_RADIUS_PX = 11;
+const DOT_RADIUS_PX = 4;
+const GAP_PX = 11;
+const MARKER_Z_LIFT = 0.16;
 
 export function FocusSelectionMarker({
   member,
-  avatarRadius,
+  pixelScaleRef,
+  avatarRadiusPxRef,
   onClearFocus,
   onHoverChange,
 }: {
   member: Member;
-  avatarRadius: number;
+  /** Billboard-local units per screen pixel — set per frame by StarSprite. */
+  pixelScaleRef: MutableRefObject<number>;
+  /** Avatar disc projected radius in px — set per frame by StarSprite. */
+  avatarRadiusPxRef: MutableRefObject<number>;
   onClearFocus: () => void;
   onHoverChange?: (hovered: boolean) => void;
 }) {
+  const rootRef = useRef<THREE.Group>(null);
+  const rowRef = useRef<THREE.Group>(null);
+  const label = `Focus · ${member.firstName}`;
+  const width = clamp(
+    estimateSceneTextWidth(label, FONT_PX) + HEIGHT_PX * 1.4 + CLEAR_RADIUS_PX * 2,
+    120,
+    320,
+  );
+
+  useFrame(() => {
+    const root = rootRef.current;
+    if (root === null) return;
+    applyScenePixelScale(root, pixelScaleRef.current);
+    if (rowRef.current !== null) {
+      rowRef.current.position.y = -(avatarRadiusPxRef.current + GAP_PX + HEIGHT_PX / 2);
+    }
+  });
+
+  const handlePointerOver = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    onHoverChange?.(true);
+  };
+  const handlePointerMove = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    onHoverChange?.(true);
+  };
+  const handlePointerOut = (event: ThreeEvent<PointerEvent>) => {
+    event.stopPropagation();
+    onHoverChange?.(false);
+  };
+
   return (
-    <Html
-      position={[0, -avatarRadius * 1.4, 0.12]}
-      zIndexRange={[55, 0]}
-      className="pointer-events-none"
-    >
-      <div
-        onPointerEnter={() => onHoverChange?.(true)}
-        onPointerLeave={() => onHoverChange?.(false)}
-        className="pointer-events-auto aura-liquid-glass aura-liquid-glass-rose inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-2 rounded-pill py-1 pl-3 pr-1 font-mono text-micro uppercase tracking-[0.2em] text-aura-paper whitespace-nowrap shadow-cta"
-      >
-        <span className="h-1.5 w-1.5 rounded-full bg-aura-rose" />
-        <span>Focus · {member.firstName}</span>
-        <AuraButton
-          tooltip="Drop focus selection"
-          aria-label={`Drop ${member.firstName} as focus selection`}
-          onClick={(event: MouseEvent<HTMLButtonElement>) => {
-            event.stopPropagation();
-            onClearFocus();
-          }}
-          className="grid size-5 cursor-pointer place-items-center rounded-full text-white/85 transition hover:bg-white/15 hover:text-aura-paper"
+    <group ref={rootRef} position={[0, 0, MARKER_Z_LIFT]}>
+      <group ref={rowRef}>
+        <SceneGlassPill width={width} height={HEIGHT_PX} tone="rose" />
+        <mesh
+          position={[0, 0, 0.02]}
+          onPointerOver={handlePointerOver}
+          onPointerMove={handlePointerMove}
+          onPointerOut={handlePointerOut}
         >
-          <svg viewBox="0 0 16 16" className="size-2.5" fill="none" aria-hidden>
-            <path
-              d="M3 3L13 13M13 3L3 13"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </AuraButton>
-      </div>
-    </Html>
+          <planeGeometry args={[width, HEIGHT_PX]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+        <mesh raycast={() => null} position={[-width / 2 + HEIGHT_PX * 0.72, 0, 0.035]}>
+          <circleGeometry args={[DOT_RADIUS_PX, 24]} />
+          <meshBasicMaterial
+            color="#f43f5e"
+            transparent
+            opacity={0.95}
+            depthWrite={false}
+            fog={false}
+            toneMapped={false}
+          />
+        </mesh>
+        <SceneText
+          fontSize={FONT_PX}
+          maxWidth={width - HEIGHT_PX * 1.6 - CLEAR_RADIUS_PX * 2}
+          position={[-CLEAR_RADIUS_PX * 0.5, 0, 0.04]}
+        >
+          {label}
+        </SceneText>
+        <SceneCircleButton
+          radius={CLEAR_RADIUS_PX}
+          tone="glass"
+          position={[width / 2 - HEIGHT_PX * 0.62, 0, 0.05]}
+          glyph="clear"
+          label={`Drop ${member.firstName} as focus selection`}
+          onPress={onClearFocus}
+          onHoverChange={(hovered) => onHoverChange?.(hovered)}
+        />
+      </group>
+    </group>
   );
 }

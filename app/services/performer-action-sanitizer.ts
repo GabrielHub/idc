@@ -139,12 +139,14 @@ const FIRST_PERSON_ACTION_VERBS: readonly { base: string; ing: string }[] = [
   { base: "pull", ing: "pulling" },
   { base: "place", ing: "placing" },
   { base: "pick", ing: "picking" },
+  { base: "lean", ing: "leaning" },
   { base: "reach", ing: "reaching" },
   { base: "move", ing: "moving" },
   { base: "turn", ing: "turning" },
   { base: "scroll", ing: "scrolling" },
   { base: "type", ing: "typing" },
   { base: "enter", ing: "entering" },
+  { base: "clock", ing: "clocking" },
 ];
 
 const EMPHASIS_WRAPPED_EXTRA_VERBS = [
@@ -213,6 +215,12 @@ const EMPHASIS_WRAPPED_ACTION_PATTERN = new RegExp(
   "gi",
 );
 
+const EMPHASIS_WRAPPED_SCENE_NARRATION_PATTERN =
+  /\*+\s*(?:(?:the\s+)?(?:first\s+few\s+bars|room|screen|tablet|title|countdown|track|song|mic|microphone|lights?|speakers?|cursor|machine)\b[^*\n]{0,120}|(?:i|he|she|they)\s+(?:clock|tap|press|hit|start|sing|grab|pick)\b[^*\n]{0,120})\*+/gi;
+
+const QUOTED_CONTENT_THEN_ACTION_PATTERN =
+  /((?:"\*[^"\n]{1,100}\*"|\*[^*\n]{1,100}\*)\.?)\s+I\s+(?:set|place|put|slide|hand|pass|turn|tap|press|pick|lift|lower)\b[^.!?\n]*[.!?]?/gi;
+
 const ACTION_NARRATION_PATTERN = new RegExp(
   "^(?:" +
     `(?:${BARE_ACTION_VERBS.join("|")})` +
@@ -224,8 +232,25 @@ const ACTION_NARRATION_PATTERN = new RegExp(
   "i",
 );
 
+const DIRECTIONAL_ACTION_NARRATION_PATTERN =
+  /^(?:he|she|they)(?:'s|'re)?\s+steps?\s+(?:forward|back|toward|away|across|onto|off|around)\b/i;
+
+const NAMED_ACTION_NARRATION_PATTERN =
+  /^(?!(?:He|She|They)\b)(?:[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:glances|looks(?!\s+like\b)|leans|reaches|shifts|slides|scoots|grabs|places|pours|sips|taps|folds|gestures|tilts|lowers|lifts|nods|shrugs|rubs|brushes|wipes|scratches|blinks|winces|grimaces|swallows|waves)\b/;
+
+const NAMED_ACTION_WITH_SPEECH_PATTERN =
+  /\band\s+(?:asks|says|tells|admits|names|offers|answers|refuses|invites|wonders|lets)\b/i;
+
+const SCENE_DIRECTION_NARRATION_PATTERN =
+  /^(?:a|an|the)?\s*(?:first\s+few\s+bars|room|screen|tablet|title|countdown|track|song|mic|microphone|lights?|speakers?|cursor|machine|board|controller|pieces?|pawn|rook|bishop|queen|king|knight)\s+(?:dims?|appears?|starts?|begins?|loads?|displays?|reads?|flashes?|cycles?|fades?|nudges?|prints?|slides?|plays?|waits?|rests?|glows?|pulses?|hits?|squelches?|locks?|opens?|goes\s+quiet|lights?\s+up|turns?\s+on|steps?|stepped|moves?|moved|walks?|walked|slid|accepts?|accepted|blinks?|blinked)\b/i;
+
+const PAUSE_NARRATION_PATTERN = /^(?:a\s+)?(?:pause|beat|silence)\.?$/i;
+
 export function stripPerformerActionNarration(text: string): string {
-  const withoutActionSpans = text.replace(EMPHASIS_WRAPPED_ACTION_PATTERN, " ");
+  const withoutActionSpans = text
+    .replace(EMPHASIS_WRAPPED_ACTION_PATTERN, " ")
+    .replace(EMPHASIS_WRAPPED_SCENE_NARRATION_PATTERN, " ")
+    .replace(QUOTED_CONTENT_THEN_ACTION_PATTERN, "$1");
   const sentenceMatches = withoutActionSpans.match(/[^.!?]+[.!?]*\s*/g) ?? [withoutActionSpans];
   const keptSentences = sentenceMatches.filter((sentence) => {
     const probe = sentence.replace(/[*_]+/g, "").trim();
@@ -234,11 +259,20 @@ export function stripPerformerActionNarration(text: string): string {
       return sentence.trim().length > 0;
     }
 
-    return !ACTION_NARRATION_PATTERN.test(probe);
+    return (
+      !ACTION_NARRATION_PATTERN.test(probe) &&
+      !DIRECTIONAL_ACTION_NARRATION_PATTERN.test(probe) &&
+      !(
+        NAMED_ACTION_NARRATION_PATTERN.test(probe) && !NAMED_ACTION_WITH_SPEECH_PATTERN.test(probe)
+      ) &&
+      !SCENE_DIRECTION_NARRATION_PATTERN.test(probe) &&
+      !PAUSE_NARRATION_PATTERN.test(probe)
+    );
   });
 
   return keptSentences
     .join("")
+    .replace(/"(\*[^"\n]+\*)"/g, "$1")
     .replace(/\s{2,}/g, " ")
     .trim();
 }

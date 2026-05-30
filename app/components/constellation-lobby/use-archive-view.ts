@@ -6,10 +6,16 @@ import {
   type PairArchiveEdge,
   type PairArchiveGraph,
 } from "../../services/pair-archive-graph";
-import { buildArchiveEdgeSpecs, computeArchiveStarPosition } from "./archive-layout";
+import {
+  archiveEgoLayout,
+  buildArchiveEdgeSpecs,
+  computeArchiveStarPosition,
+  type ArchiveEgoLayout,
+} from "./archive-layout";
 import { applyImportanceBudget } from "./edge-lod";
 import {
   computeArchiveCameraTarget,
+  computeArchiveEgoCameraTarget,
   computeArchiveFitCamera,
   computeFlythroughCameraTarget,
 } from "./math";
@@ -64,13 +70,34 @@ export function useArchiveView({
   // Members without any filed-note pair are excluded entirely so the archive
   // reads as a constellation of pairs, not a roll-call of the roster. The
   // Scene loop treats a missing position as "skip this star" in archive mode.
-  const archivePositions = useMemo(() => {
+  // This is the resting "constellation" layout — radial by pairing degree.
+  const radialPositions = useMemo(() => {
     const positions = new Map<string, Vec3>();
     for (const node of archiveGraph.nodes) {
       positions.set(node.member.id, computeArchiveStarPosition(node.member.id, archiveGraph, null));
     }
     return positions;
   }, [archiveGraph]);
+
+  // Selecting a member reflows the field into an ego layout: the member centers
+  // and its filed partners ring around it (newest pairing at twelve o'clock,
+  // walking clockwise), with everyone else pushed out past the ring. Built off
+  // the radial positions so the background push preserves each star's bearing,
+  // which keeps the constellation→ego transition reading as a pull-to-center
+  // rather than a random scatter.
+  const egoLayout = useMemo<ArchiveEgoLayout | null>(() => {
+    if (viewMode !== "archive") return null;
+    if (archiveSelection?.kind !== "member") return null;
+    const focusMemberId = archiveSelection.memberId;
+    if (!radialPositions.has(focusMemberId)) return null;
+    const incident = archiveGraph.incidentEdgesByNode.get(focusMemberId) ?? [];
+    const partnerIds = [...incident]
+      .sort((a, b) => b.latestNoteAt - a.latestNoteAt)
+      .map((edge) => (edge.a === focusMemberId ? edge.b : edge.a));
+    return archiveEgoLayout({ focusMemberId, partnerIds, basePositions: radialPositions });
+  }, [viewMode, archiveSelection, radialPositions, archiveGraph.incidentEdgesByNode]);
+
+  const archivePositions = egoLayout?.positions ?? radialPositions;
 
   const archiveEdges = useMemo(
     () => buildArchiveEdgeSpecs(applyImportanceBudget(archiveGraph.edges), archivePositions),
@@ -112,15 +139,29 @@ export function useArchiveView({
         }
       }
     }
-    if (archiveSelection?.kind === "member") {
-      const pos = archivePositions.get(archiveSelection.memberId);
-      if (pos !== undefined) return computeArchiveCameraTarget({ focusedStar: pos });
+    if (archiveSelection?.kind === "member" && egoLayout !== null) {
+      // Center the ego: the focused star is pinned at the origin, so frame the
+      // origin and bracket the partner ring rather than bias-tracking a graph
+      // position the reflow just moved.
+      return computeArchiveEgoCameraTarget({
+        ringRadiusX: egoLayout.ringRadiusX,
+        ringRadiusY: egoLayout.ringRadiusY,
+      });
     }
     // No selection — fit the camera to the bounding box of paired stars so
     // a small archive (a single pair, a handful of pairs) reads tight and
     // legible rather than as specks against the pulled-back overhead.
-    return computeArchiveFitCamera([...archivePositions.values()]);
-  }, [viewMode, archiveSelection, archiveGraph, archivePositions, currentLayer, focusStar]);
+    return computeArchiveFitCamera([...radialPositions.values()]);
+  }, [
+    viewMode,
+    archiveSelection,
+    archiveGraph,
+    archivePositions,
+    radialPositions,
+    egoLayout,
+    currentLayer,
+    focusStar,
+  ]);
 
   return {
     archivePositions,

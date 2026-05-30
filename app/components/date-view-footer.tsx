@@ -134,6 +134,7 @@ export function DateFooter({
   );
   const footerHealthCopy = tutorialCopy("date.footer.health");
   const footerTransportCopy = tutorialCopy("date.footer.transport");
+  const nudgeComposeCopy = tutorialCopy("date.nudge.compose");
   const cutShortCopy = tutorialCopy("lazy.cut-short");
 
   // Conditions can flip from parent state, so close the composer when it stops being valid.
@@ -330,7 +331,8 @@ export function DateFooter({
             stepCount={footerHealthCopy.stepCount}
             primaryLabel={footerHealthCopy.primaryLabel}
             onPrimary={footerHealthStep.complete}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={footerHealthStep.dismiss}
             textTone="dark"
           />
@@ -347,7 +349,8 @@ export function DateFooter({
             body={footerTransportCopy.body}
             stepIndex={footerTransportCopy.stepIndex}
             stepCount={footerTransportCopy.stepCount}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={footerTransportStep.dismiss}
             textTone="dark"
           />
@@ -360,14 +363,15 @@ export function DateFooter({
           <TutorialCoachMark
             target={nudgeButtonRef}
             placement="top"
-            title="One nudge, one whisper"
-            body="Pause, pick one member, write one sentence. Steer them somewhere or pull a thread you want exposed. They hear it as a private prod from the room. Spend all three and Cupid starts making eye contact."
-            primaryLabel="Open composer"
+            title={nudgeComposeCopy.title}
+            body={nudgeComposeCopy.body}
+            primaryLabel={nudgeComposeCopy.primaryLabel}
             onPrimary={() => {
               nudgeComposeStep.complete();
               openComposer();
             }}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={nudgeComposeStep.dismiss}
             textTone="dark"
           />
@@ -387,7 +391,7 @@ export function DateFooter({
             body={cutShortCopy.body}
             primaryLabel={cutShortCopy.primaryLabel}
             onPrimary={cutShortStep.complete}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
             onDismiss={cutShortStep.dismiss}
             textTone="dark"
           />

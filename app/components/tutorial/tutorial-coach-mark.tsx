@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { clamp } from "../../services/utils";
 import { AuraButton } from "../aura-button";
@@ -47,6 +47,8 @@ export type TutorialCoachMarkProps = {
   portrait?: CoachMarkPortraitMode;
   fixedPosition?: CoachMarkFixedPosition;
   textTone?: CoachMarkTextTone;
+  dismissRequiresConfirmation?: boolean;
+  dismissConfirmLabel?: string;
 };
 
 export function TutorialCoachMark({
@@ -58,27 +60,37 @@ export function TutorialCoachMark({
   stepCount,
   primaryLabel,
   onPrimary,
-  dismissLabel = "Skip tour",
+  dismissLabel = "End tour",
   onDismiss,
   width = 380,
   offset = 24,
   portrait = "avatar",
   fixedPosition,
   textTone = "light",
+  dismissRequiresConfirmation = false,
+  dismissConfirmLabel = "Confirm end",
 }: TutorialCoachMarkProps) {
   const rect = useTargetRect(target);
+  const [dismissConfirming, setDismissConfirming] = useState(false);
+
+  useEffect(() => {
+    setDismissConfirming(false);
+  }, [title, dismissLabel]);
+
   if (rect === null) return null;
 
   const usePortrait = portrait === "portrait";
   const useAvatar = portrait === "avatar";
   const extraTop = usePortrait ? 20 : 0;
-  const estimatedHeight = usePortrait ? 280 : 220;
+  const estimatedHeight = usePortrait ? 320 : 260;
+  const viewportW = typeof window === "undefined" ? 1920 : window.innerWidth;
+  const effectiveWidth = Math.max(280, Math.min(width, viewportW - 32));
   const effectivePlacement = resolvePlacement(rect, placement, offset + extraTop, estimatedHeight);
   const position = computePosition(
     rect,
     effectivePlacement,
     offset + extraTop,
-    width,
+    effectiveWidth,
     estimatedHeight,
   );
 
@@ -88,7 +100,7 @@ export function TutorialCoachMark({
       ? {
           top: position.top,
           left: position.left,
-          width,
+          width: effectiveWidth,
           y: effectivePlacement === "top" ? "-100%" : "0%",
         }
       : {
@@ -96,17 +108,28 @@ export function TutorialCoachMark({
           left: fixed.left,
           right: fixed.right,
           bottom: fixed.bottom,
-          width,
+          width: effectiveWidth,
           y: "0%",
         };
   const toneClasses = textToneClasses(textTone);
+  const visibleDismissLabel =
+    dismissRequiresConfirmation && dismissConfirming ? dismissConfirmLabel : dismissLabel;
+
+  function handleDismiss() {
+    if (onDismiss === undefined) return;
+    if (dismissRequiresConfirmation && !dismissConfirming) {
+      setDismissConfirming(true);
+      return;
+    }
+    onDismiss();
+  }
 
   return (
     <motion.div
       role="dialog"
       aria-modal="false"
       aria-label={title}
-      className="fixed z-50"
+      className="fixed z-50 max-w-[calc(100vw-2rem)]"
       initial={false}
       animate={animateProps}
       transition={{ type: "spring", stiffness: 520, damping: 42, mass: 0.7 }}
@@ -158,12 +181,18 @@ export function TutorialCoachMark({
               <span className="ml-auto inline-flex shrink-0 items-center gap-3">
                 {onDismiss === undefined ? null : (
                   <AuraButton
-                    tooltip={dismissLabel}
+                    tooltip={
+                      dismissRequiresConfirmation
+                        ? dismissConfirming
+                          ? "End the tutorial now"
+                          : "End the full tutorial"
+                        : visibleDismissLabel
+                    }
                     data-sfx="click"
-                    onClick={onDismiss}
+                    onClick={handleDismiss}
                     className={`shrink-0 cursor-pointer whitespace-nowrap font-mono text-micro font-semibold uppercase tracking-[0.16em] transition hover:text-aura-rose ${toneClasses.dismiss}`}
                   >
-                    {dismissLabel}
+                    {visibleDismissLabel}
                   </AuraButton>
                 )}
 

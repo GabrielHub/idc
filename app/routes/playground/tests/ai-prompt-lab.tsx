@@ -2,6 +2,7 @@ import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 
 import { EASE_OUT_QUART, MutedLabel, SelectInput } from "../../../components/dashboard-atoms";
+import { ToggleField } from "../../../components/form-primitives";
 import { MemberMessageMarkdown } from "../../../components/member-message-markdown";
 import type { AiProvider, AiReasoningLevel, Member } from "../../../domain/game";
 import { starterMembers, starterScenarios } from "../../../fixtures";
@@ -787,22 +788,12 @@ function CurrentAskToggle({
   onChange: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-tile border border-aura-hairline bg-white/45 px-3 py-2.5">
-      <span>
-        <span className="block font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-faint">
-          include current ask
-        </span>
-        <span className="mt-1 block text-label leading-relaxed text-aura-muted">
-          Pulls in the member's pinned request when one is active.
-        </span>
-      </span>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(event) => onChange(event.currentTarget.checked)}
-        className="size-4 cursor-pointer accent-aura-rose"
-      />
-    </label>
+    <ToggleField
+      title="include current ask"
+      description="Pulls in the member's pinned request when one is active."
+      checked={checked}
+      onChange={onChange}
+    />
   );
 }
 

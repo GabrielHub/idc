@@ -332,7 +332,7 @@ export function gatewayModelCostLabel(modelId: string): string {
   const cost = gatewayModelCost(modelId);
 
   if (cost === null) {
-    return "—";
+    return "n/a";
   }
 
   if (cost.benchmark !== null) {

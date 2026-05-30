@@ -1,8 +1,10 @@
 import { useCallback, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 
 import { ConstellationLobby } from "../../../components/constellation-lobby";
-import { MutedLabel } from "../../../components/dashboard-atoms";
 import {
+  DEFAULT_TUTORIAL_STATE,
+  TUTORIAL_STEP_IDS,
   gameSaveSchema,
   memoryRecordSchema,
   openLoopSchema,
@@ -20,7 +22,13 @@ import {
 import { starterScenarios } from "../../../fixtures";
 import { getReadyClosurePairs } from "../../../services/closures";
 import { commitDateBooking } from "../../../services/date-engine";
-import { drawHand, resolveCardOffer, shuffleCardOffer } from "../../../services/deck";
+import {
+  attachClosureCardOffer,
+  attachDateCardOffer,
+  drawHand,
+  resolveCardOffer,
+  shuffleCardOffer,
+} from "../../../services/deck";
 import { getFocusedMembers, syncActiveShiftFocusCases } from "../../../services/focus-cases";
 import {
   createSeedGameSave,
@@ -29,8 +37,13 @@ import {
   sortMemberIds,
 } from "../../../services/game-seed";
 import { derivePairStats } from "../../../services/pair-stats";
+import { isRequiredTutorialStepId, TutorialActivityProvider } from "../../../services/tutorial";
 
 type LobbyStage = "empty" | "few-pairs" | "mid-game" | "end-game";
+type PlaygroundCardOffer = "date" | "closure";
+type PlaygroundTutorialMode = "disabled" | "fresh" | "lazy";
+
+const PLAYGROUND_REQUIRED_TUTORIAL_STEP_IDS = TUTORIAL_STEP_IDS.filter(isRequiredTutorialStepId);
 
 const STAGES: ReadonlyArray<{ id: LobbyStage; label: string; hint: string }> = [
   {
@@ -58,13 +71,21 @@ const STAGES: ReadonlyArray<{ id: LobbyStage; label: string; hint: string }> = [
 const SEED_NOW = new Date("2026-05-23T18:00:00.000Z");
 
 export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
+  const [searchParams] = useSearchParams();
+  const tutorialMode = readPlaygroundTutorialMode(searchParams);
+  const cardOffer = readPlaygroundCardOffer(searchParams);
   const [stage, setStage] = useState<LobbyStage>("few-pairs");
-  const [save, setSave] = useState<GameSave>(() => buildStageSave(stage));
+  const [save, setSave] = useState<GameSave>(() =>
+    buildStageSave(stage, { tutorialMode, cardOffer }),
+  );
 
-  const onPickStage = useCallback((next: LobbyStage) => {
-    setStage(next);
-    setSave(buildStageSave(next));
-  }, []);
+  const onPickStage = useCallback(
+    (next: LobbyStage) => {
+      setStage(next);
+      setSave(buildStageSave(next, { tutorialMode, cardOffer }));
+    },
+    [cardOffer, tutorialMode],
+  );
 
   const focusedMembers = useMemo(() => getFocusedMembers(save), [save]);
   const activeShift = useMemo(() => getActiveShift(save), [save]);
@@ -92,105 +113,107 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
   return (
     <div className="fixed inset-0 z-50 bg-aura-bg">
       <div className="absolute inset-0">
-        <ConstellationLobby
-          save={save}
-          shift={activeShift}
-          focusedMembers={focusedMembers}
-          drawnScenarios={drawnScenarios}
-          isActionPending={false}
-          bookingLocked={activeShift.activeBooking !== undefined}
-          aiReady={true}
-          readyClosurePairs={readyClosurePairs}
-          readyClosurePairIds={readyClosurePairIds}
-          readyClosureMemberIds={readyClosureMemberIds}
-          pendingFollowUpCount={0}
-          revealAllMemberDetails={false}
-          disableScrollLayerNav={true}
-          onTutorialUpdate={setSave}
-          onBeginDate={(input) => {
-            // eslint-disable-next-line no-console
-            console.info("[playground] onBeginDate", input);
-          }}
-          onCommitPair={(input) => {
-            setSave((current) => commitDateBooking(current, input).save);
-          }}
-          onCancelBooking={() => {
-            setSave((current) => {
-              const shift = getActiveShift(current);
-              if (shift.activeBooking === undefined) return current;
-              const nextShift = shiftStateSchema.parse({ ...shift, activeBooking: undefined });
-              return gameSaveSchema.parse({
-                ...current,
-                shifts: current.shifts.map((entry) =>
-                  entry.id === nextShift.id ? nextShift : entry,
-                ),
+        <TutorialActivityProvider>
+          <ConstellationLobby
+            save={save}
+            shift={activeShift}
+            focusedMembers={focusedMembers}
+            drawnScenarios={drawnScenarios}
+            isActionPending={false}
+            bookingLocked={activeShift.activeBooking !== undefined}
+            aiReady={true}
+            readyClosurePairs={readyClosurePairs}
+            readyClosurePairIds={readyClosurePairIds}
+            readyClosureMemberIds={readyClosureMemberIds}
+            pendingFollowUpCount={0}
+            revealAllMemberDetails={false}
+            disableScrollLayerNav={true}
+            onTutorialUpdate={setSave}
+            onBeginDate={(input) => {
+              // eslint-disable-next-line no-console
+              console.info("[playground] onBeginDate", input);
+            }}
+            onCommitPair={(input) => {
+              setSave((current) => commitDateBooking(current, input).save);
+            }}
+            onCancelBooking={() => {
+              setSave((current) => {
+                const shift = getActiveShift(current);
+                if (shift.activeBooking === undefined) return current;
+                const nextShift = shiftStateSchema.parse({ ...shift, activeBooking: undefined });
+                return gameSaveSchema.parse({
+                  ...current,
+                  shifts: current.shifts.map((entry) =>
+                    entry.id === nextShift.id ? nextShift : entry,
+                  ),
+                });
               });
-            });
-          }}
-          onResolveCardOffer={(input) => {
-            setSave((current) => {
-              if (current.pendingCardOffer === null) return current;
-              return resolveCardOffer(current, starterScenarios, input);
-            });
-          }}
-          onShuffleCardOffer={() => {
-            setSave((current) => {
-              if (current.pendingCardOffer === null) return current;
-              return shuffleCardOffer(current, `${current.createdAt}:${current.closureCount}`);
-            });
-          }}
-          onRemoveDeckCard={(cardId) => {
-            setSave((current) =>
-              gameSaveSchema.parse({
-                ...current,
-                scenarioDeck: {
-                  ...current.scenarioDeck,
-                  cardIds: current.scenarioDeck.cardIds.filter((id) => id !== cardId),
-                },
-              }),
-            );
-          }}
-          onClosePair={(input) => {
-            // eslint-disable-next-line no-console
-            console.info("[playground] onClosePair", input);
-            return Promise.resolve(false);
-          }}
-          onCompleteShift={() => {
-            // eslint-disable-next-line no-console
-            console.info("[playground] onCompleteShift");
-          }}
-          onOpenDateSession={(dateSessionId) => {
-            // eslint-disable-next-line no-console
-            console.info("[playground] onOpenDateSession", dateSessionId);
-          }}
-          onAddFocus={(memberId) => {
-            setSave((current) => {
-              if (current.focusedMemberIds.includes(memberId)) return current;
-              if (current.focusedMemberIds.length >= 4) return current;
-              return syncActiveShiftFocusCases({
-                ...current,
-                focusedMemberIds: [...current.focusedMemberIds, memberId],
+            }}
+            onResolveCardOffer={(input) => {
+              setSave((current) => {
+                if (current.pendingCardOffer === null) return current;
+                return resolveCardOffer(current, starterScenarios, input);
               });
-            });
-          }}
-          onRemoveFocus={(memberId) => {
-            setSave((current) => {
-              if (!current.focusedMemberIds.includes(memberId)) return current;
-              return syncActiveShiftFocusCases({
-                ...current,
-                focusedMemberIds: current.focusedMemberIds.filter((id) => id !== memberId),
+            }}
+            onShuffleCardOffer={() => {
+              setSave((current) => {
+                if (current.pendingCardOffer === null) return current;
+                return shuffleCardOffer(current, `${current.createdAt}:${current.closureCount}`);
               });
-            });
-          }}
-          onReselectFocus={(nextFocusIds) => {
-            setSave((current) =>
-              syncActiveShiftFocusCases({
-                ...current,
-                focusedMemberIds: Array.from(new Set(nextFocusIds)).slice(0, 4),
-              }),
-            );
-          }}
-        />
+            }}
+            onRemoveDeckCard={(cardId) => {
+              setSave((current) =>
+                gameSaveSchema.parse({
+                  ...current,
+                  scenarioDeck: {
+                    ...current.scenarioDeck,
+                    cardIds: current.scenarioDeck.cardIds.filter((id) => id !== cardId),
+                  },
+                }),
+              );
+            }}
+            onClosePair={(input) => {
+              // eslint-disable-next-line no-console
+              console.info("[playground] onClosePair", input);
+              return Promise.resolve(false);
+            }}
+            onCompleteShift={() => {
+              // eslint-disable-next-line no-console
+              console.info("[playground] onCompleteShift");
+            }}
+            onOpenDateSession={(dateSessionId) => {
+              // eslint-disable-next-line no-console
+              console.info("[playground] onOpenDateSession", dateSessionId);
+            }}
+            onAddFocus={(memberId) => {
+              setSave((current) => {
+                if (current.focusedMemberIds.includes(memberId)) return current;
+                if (current.focusedMemberIds.length >= 4) return current;
+                return syncActiveShiftFocusCases({
+                  ...current,
+                  focusedMemberIds: [...current.focusedMemberIds, memberId],
+                });
+              });
+            }}
+            onRemoveFocus={(memberId) => {
+              setSave((current) => {
+                if (!current.focusedMemberIds.includes(memberId)) return current;
+                return syncActiveShiftFocusCases({
+                  ...current,
+                  focusedMemberIds: current.focusedMemberIds.filter((id) => id !== memberId),
+                });
+              });
+            }}
+            onReselectFocus={(nextFocusIds) => {
+              setSave((current) =>
+                syncActiveShiftFocusCases({
+                  ...current,
+                  focusedMemberIds: Array.from(new Set(nextFocusIds)).slice(0, 4),
+                }),
+              );
+            }}
+          />
+        </TutorialActivityProvider>
       </div>
 
       <PlaygroundChrome
@@ -203,6 +226,19 @@ export function ConstellationLobbyTest({ onExit }: { onExit?: () => void }) {
       />
     </div>
   );
+}
+
+function readPlaygroundCardOffer(searchParams: URLSearchParams): PlaygroundCardOffer | null {
+  const requested = searchParams.get("offer");
+  if (requested === "date" || requested === "closure") return requested;
+  return null;
+}
+
+function readPlaygroundTutorialMode(searchParams: URLSearchParams): PlaygroundTutorialMode {
+  const requested = searchParams.get("tutorial");
+  if (requested === "1") return "fresh";
+  if (requested === "lazy") return "lazy";
+  return "disabled";
 }
 
 function PlaygroundChrome({
@@ -222,7 +258,7 @@ function PlaygroundChrome({
 }) {
   return (
     <div className="pointer-events-none absolute inset-x-0 top-4 z-40 flex justify-center px-4">
-      <div className="aura-glass-strong pointer-events-auto flex flex-wrap items-center gap-x-5 gap-y-3 rounded-pill px-4 py-2.5 shadow-card">
+      <div className="aura-liquid-glass pointer-events-auto flex max-w-[calc(100vw-2rem)] flex-wrap items-center gap-x-4 gap-y-3 rounded-pill px-4 py-2.5">
         {onExit !== undefined ? (
           <button
             type="button"
@@ -230,18 +266,20 @@ function PlaygroundChrome({
             data-sfx="click"
             aria-label="Exit bench"
             title="Exit bench"
-            className="cursor-pointer inline-flex items-center gap-1.5 rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-muted transition hover:text-aura-rose"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-pill px-3 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.24em] text-aura-paper/82 transition hover:bg-white/10 hover:text-aura-paper"
           >
             <ExitGlyph />
             <span>exit</span>
           </button>
         ) : null}
 
-        <span aria-hidden className="h-4 w-px bg-aura-hairline" />
+        <span aria-hidden className="h-4 w-px bg-white/18" />
 
         <div className="flex items-center gap-2">
-          <MutedLabel>stage</MutedLabel>
-          <div className="inline-flex items-center gap-1 rounded-pill bg-white/60 p-1 ring-1 ring-aura-hairline">
+          <span className="font-mono text-micro font-semibold uppercase tracking-[0.24em] text-rose-100/85">
+            stage
+          </span>
+          <div className="inline-flex items-center gap-1 rounded-pill bg-white/10 p-1 ring-1 ring-white/15">
             {STAGES.map((option) => {
               const active = option.id === stage;
               return (
@@ -254,8 +292,8 @@ function PlaygroundChrome({
                   onClick={() => onPickStage(option.id)}
                   className={`cursor-pointer rounded-pill px-3 py-1 font-mono text-micro font-semibold uppercase tracking-[0.22em] transition ${
                     active
-                      ? "bg-aura-ink text-white shadow-quiet"
-                      : "text-aura-muted hover:text-aura-ink"
+                      ? "aura-liquid-glass-ink text-aura-paper"
+                      : "text-aura-paper/78 hover:bg-white/10 hover:text-aura-paper"
                   }`}
                 >
                   {option.label}
@@ -265,17 +303,17 @@ function PlaygroundChrome({
           </div>
         </div>
 
-        <span aria-hidden className="h-4 w-px bg-aura-hairline" />
+        <span aria-hidden className="h-4 w-px bg-white/18" />
 
-        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-faint">
-          shift <span className="text-aura-ink tabular-nums">{activeShiftNumber}</span>
+        <span className="font-mono text-micro uppercase tracking-[0.22em] text-aura-paper/72">
+          shift <span className="text-aura-paper tabular-nums">{activeShiftNumber}</span>
           <span aria-hidden> · </span>
-          <span className="text-aura-ink tabular-nums">{focusedCount}</span> focus
+          <span className="text-aura-paper tabular-nums">{focusedCount}</span> focus
           <span aria-hidden> · </span>
-          <span className="text-aura-ink tabular-nums">{save.pairStates.length}</span> pair
+          <span className="text-aura-paper tabular-nums">{save.pairStates.length}</span> pair
           {save.pairStates.length === 1 ? "" : "s"}
           <span aria-hidden> · </span>
-          <span className="text-aura-ink tabular-nums">{save.closureCount}</span> closure
+          <span className="text-aura-paper tabular-nums">{save.closureCount}</span> closure
           {save.closureCount === 1 ? "" : "s"}
         </span>
       </div>
@@ -301,23 +339,22 @@ function ExitGlyph() {
 /* Stage builders                                                     */
 /* ================================================================== */
 
-function buildStageSave(stage: LobbyStage): GameSave {
+function buildStageSave(
+  stage: LobbyStage,
+  options: { tutorialMode: PlaygroundTutorialMode; cardOffer: PlaygroundCardOffer | null },
+): GameSave {
   const seedSave = createSeedGameSave(SEED_NOW);
   const seedWithDrawnHand = withDrawnHand(seedSave, 1);
+  const staged =
+    stage === "empty"
+      ? seedWithDrawnHand
+      : stage === "few-pairs"
+        ? buildFewPairsSave(seedWithDrawnHand)
+        : stage === "mid-game"
+          ? buildMidGameSave(seedWithDrawnHand)
+          : buildEndGameSave(seedWithDrawnHand);
 
-  if (stage === "empty") {
-    return withDisabledTutorial(seedWithDrawnHand);
-  }
-
-  if (stage === "few-pairs") {
-    return buildFewPairsSave(seedWithDrawnHand);
-  }
-
-  if (stage === "mid-game") {
-    return buildMidGameSave(seedWithDrawnHand);
-  }
-
-  return buildEndGameSave(seedWithDrawnHand);
+  return applyPlaygroundFlags(staged, options);
 }
 
 const PAIR_BLUEPRINTS: ReadonlyArray<{
@@ -527,7 +564,32 @@ function finalize(
     shifts: stagedShifts,
   });
 
-  return withDisabledTutorial(syncActiveShiftFocusCases(staged));
+  return syncActiveShiftFocusCases(staged);
+}
+
+function applyPlaygroundFlags(
+  save: GameSave,
+  options: { tutorialMode: PlaygroundTutorialMode; cardOffer: PlaygroundCardOffer | null },
+): GameSave {
+  const tutorialSave =
+    options.tutorialMode === "disabled"
+      ? withDisabledTutorial(save)
+      : gameSaveSchema.parse({
+          ...save,
+          tutorial: {
+            ...DEFAULT_TUTORIAL_STATE,
+            completedStepIds:
+              options.tutorialMode === "lazy" ? [...PLAYGROUND_REQUIRED_TUTORIAL_STEP_IDS] : [],
+          },
+        });
+
+  if (options.cardOffer === "date") {
+    return attachDateCardOffer(tutorialSave);
+  }
+  if (options.cardOffer === "closure") {
+    return attachClosureCardOffer(tutorialSave);
+  }
+  return tutorialSave;
 }
 
 function buildPairState(blueprint: (typeof PAIR_BLUEPRINTS)[number]): PairState {

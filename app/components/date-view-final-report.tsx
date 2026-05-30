@@ -14,6 +14,7 @@ import {
   type DateImpactVerdict,
 } from "../services/date-impact";
 import { useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { AuraTooltip } from "./aura-tooltip";
 import { EASE_OUT_QUART, Eyebrow } from "./dashboard-atoms";
 import { readKindLabel } from "./date-view-transcript";
@@ -149,6 +150,7 @@ export function FinalReportFooter({
     filed === undefined,
     onTutorialUpdate,
   );
+  const followUpCopy = tutorialCopy("date.followup");
 
   return (
     <motion.footer
@@ -183,9 +185,10 @@ export function FinalReportFooter({
           <TutorialCoachMark
             target={actionColumnRef}
             placement="top"
-            title="File one follow-up"
-            body="Pursue keeps this pair warm and bypasses their next-shift cooldown. Cool Down pauses without closing the lane. Close retires the romantic lane permanently. Pick one to close the shift."
-            dismissLabel="Skip tour"
+            title={followUpCopy.title}
+            body={followUpCopy.body}
+            dismissLabel="End tour"
+            dismissRequiresConfirmation
             onDismiss={followUpStep.dismiss}
             textTone="dark"
           />

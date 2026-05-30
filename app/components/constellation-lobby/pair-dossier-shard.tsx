@@ -117,7 +117,7 @@ export function PairDossierShard({
   const actionLabel =
     data.closureReady && onOpenClosure !== undefined
       ? `File closure for ${title}`
-      : `Open notes for ${title}`;
+      : `Open pair file for ${title}`;
 
   return (
     <motion.button
@@ -138,7 +138,7 @@ export function PairDossierShard({
     >
       <div className="flex items-center justify-between gap-2">
         <div className="font-mono text-micro uppercase tracking-[0.22em] text-white/55">
-          pair dossier
+          pair file
         </div>
         {data.closureReady ? (
           <span className="inline-flex items-center gap-1 rounded-pill bg-aura-rose/95 px-2 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">
@@ -155,7 +155,7 @@ export function PairDossierShard({
       />
       {data.publicPairNotes.length === 0 ? (
         <p className="mt-2 font-sans text-label text-white/65">
-          No public pair notes yet. Tap to open the notes archive.
+          No pair notes yet. Tap to open records.
         </p>
       ) : (
         <ul className="mt-2 space-y-1.5">

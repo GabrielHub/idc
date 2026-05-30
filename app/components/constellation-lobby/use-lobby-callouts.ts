@@ -3,10 +3,10 @@ import { useMemo } from "react";
 import {
   MEMBER_RETENTION_WARNING_THRESHOLD,
   type GameSave,
+  type Member,
   type ShiftState,
 } from "../../domain/game";
-import { isMemberActive, pendingFollowUpSessionsForShift } from "../../services/date-engine";
-import { riskZoneForMember } from "../../services/member-feedback";
+import { pendingFollowUpSessionsForShift } from "../../services/date-engine";
 import type { Callout } from "./lobby-hud";
 
 export function useLobbyCallouts({
@@ -15,20 +15,24 @@ export function useLobbyCallouts({
   pendingFollowUpCount,
   save,
   shift,
+  atRiskMembers,
   onOpenDateSession,
   onOpenClosures,
   onOpenFollowUps,
   onOpenDeck,
+  onOpenAtRisk,
 }: {
   deckRepairBlocked: boolean;
   readyClosurePairCount: number;
   pendingFollowUpCount: number;
   save: GameSave;
   shift: ShiftState;
+  atRiskMembers: readonly Member[];
   onOpenDateSession: ((dateSessionId: string) => void) | undefined;
   onOpenClosures: () => void;
   onOpenFollowUps: () => void;
   onOpenDeck: () => void;
+  onOpenAtRisk: () => void;
 }): Callout[] {
   return useMemo(() => {
     const items: Callout[] = [];
@@ -36,10 +40,10 @@ export function useLobbyCallouts({
       items.push({
         id: "deck-repair",
         tone: "rose",
-        eyebrow: "deck needs repair",
-        title: "Deck is over budget",
-        body: "Drop cards from the deck until spend is under the cap before booking the next pair.",
-        action: { label: "Open deck", onClick: onOpenDeck },
+        eyebrow: "Date Book review",
+        title: "Date Book is over budget",
+        body: "Drop room cards until spend is under the cap before booking the next pair.",
+        action: { label: "Open Date Book", onClick: onOpenDeck },
       });
     }
     if (readyClosurePairCount > 0) {
@@ -55,9 +59,6 @@ export function useLobbyCallouts({
         action: { label: "File closure", onClick: onOpenClosures },
       });
     }
-    const atRiskMembers = save.members.filter(
-      (member) => isMemberActive(member) && riskZoneForMember(member).zone === "at-risk",
-    );
     if (atRiskMembers.length > 0) {
       const names = atRiskMembers
         .slice(0, 3)
@@ -73,6 +74,7 @@ export function useLobbyCallouts({
             ? `${atRiskMembers[0].firstName} may quit the app`
             : `${atRiskMembers.length} cases may quit the app`,
         body: `Confidence below ${MEMBER_RETENTION_WARNING_THRESHOLD} for ${names}${extra}. Cover their lead ask and avoid focus swaps to recover.`,
+        action: { label: "Review cases", onClick: onOpenAtRisk },
       });
     }
     if (onOpenDateSession !== undefined) {
@@ -112,9 +114,11 @@ export function useLobbyCallouts({
     pendingFollowUpCount,
     save,
     shift.shiftNumber,
+    atRiskMembers,
     onOpenDateSession,
     onOpenClosures,
     onOpenFollowUps,
     onOpenDeck,
+    onOpenAtRisk,
   ]);
 }

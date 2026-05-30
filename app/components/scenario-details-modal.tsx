@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { DateScenario, GameSave } from "../domain/game";
 import { noopTutorialUpdate, useTutorialStep } from "../services/tutorial";
+import { tutorialCopy } from "../services/tutorial-copy";
 import { EASE_OUT_QUART } from "./dashboard-atoms";
 import { scenarioBackdropPath } from "./scenario-backdrop";
 import { RISK_DOT_TONE, RISK_SHORT, RISK_TEXT_TONE } from "./scenario-card";
@@ -48,6 +49,7 @@ export function ScenarioDetailsModal({
     save !== undefined,
     tutorialUpdate,
   );
+  const firstOpenCopy = tutorialCopy("scenario.file.first-open");
 
   useEffect(() => {
     function handleKey(event: KeyboardEvent) {
@@ -78,7 +80,7 @@ export function ScenarioDetailsModal({
         onClick={(event) => event.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label={`${scenario.title} scenario detail`}
+        aria-label={`${scenario.title} room brief`}
         className="relative isolate flex max-h-[88vh] w-full max-w-5xl flex-col overflow-hidden rounded-card bg-white/15 shadow-[0_50px_120px_-30px_rgba(15,23,42,0.6)] ring-1 ring-white/60 backdrop-blur-2xl"
       >
         <ScenarioDetailBackdrop scenarioId={scenario.id} />
@@ -87,7 +89,7 @@ export function ScenarioDetailsModal({
           type="button"
           data-sfx="click"
           onClick={onClose}
-          aria-label="Close scenario detail"
+          aria-label="Close room brief"
           className="absolute right-6 top-6 z-30 grid size-10 cursor-pointer place-items-center rounded-full border border-white/35 bg-white/20 text-aura-ink/75 shadow-none transition hover:bg-white/40 hover:text-aura-rose"
         >
           ✕
@@ -153,7 +155,7 @@ export function ScenarioDetailsModal({
                 />
                 <SignalList label="Avoid" tone="rose" items={scenario.judgeRubric.failureSignals} />
 
-                <DetailSection label="Vibe meters">
+                <DetailSection label="Room meters">
                   <div className="flex flex-wrap items-center gap-2">
                     <VibeChip label="Risk" tone={scenario.card.risk} />
                     <VibeChip label="Intimacy" tone={scenario.card.intimacy} />
@@ -161,10 +163,10 @@ export function ScenarioDetailsModal({
                   </div>
                 </DetailSection>
 
-                <DetailSection label="What both know">
+                <DetailSection label="Table facts">
                   {scenario.publicBrief.whatBothCharactersKnow}
                 </DetailSection>
-                <DetailSection label="Repeat behavior">
+                <DetailSection label="If repeated">
                   {scenario.director.repeatBehavior}
                 </DetailSection>
               </div>
@@ -191,11 +193,11 @@ export function ScenarioDetailsModal({
           <TutorialCoachMark
             target={briefSectionRef}
             placement="top"
-            title="Read the room before you book it"
-            body="Every brief lays out the premise, the rules of the room, and what Cupid rewards or punishes. Skim it so the match lands in the right kind of mess."
-            primaryLabel="Got it"
+            title={firstOpenCopy.title}
+            body={firstOpenCopy.body}
+            primaryLabel={firstOpenCopy.primaryLabel}
             onPrimary={firstOpenStep.complete}
-            dismissLabel="Skip tour"
+            dismissLabel="End tour"
             onDismiss={firstOpenStep.dismiss}
           />
         </div>

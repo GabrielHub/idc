@@ -183,7 +183,7 @@ export function ClosurePanel({
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2">
                   <ClosureDetail label="members" value={pairLabel} />
-                  <ClosureDetail label="scenario" value={scenarioTitle} />
+                  <ClosureDetail label="room" value={scenarioTitle} />
                   <ClosureDetail
                     label="dates"
                     value={`${readyPair.pairState.completedDateIds.length} complete`}
@@ -196,8 +196,8 @@ export function ClosurePanel({
               )}
 
               <div className="rounded-card border border-white/10 bg-white/10 px-4 py-4 text-sm leading-relaxed text-white/72">
-                Cupid will generate the player-facing closure summary from the pair file, validate
-                it, then file it as the permanent pair memory.
+                Cupid will draft the closure note from the pair file, check the wording, then lock
+                it as the permanent pair memory.
               </div>
 
               {errorMessage === undefined || errorMessage === null ? null : (
@@ -222,7 +222,7 @@ export function ClosurePanel({
                 disabled={confirmDisabled}
                 className="aura-liquid-cta cursor-pointer rounded-full px-5 py-2 font-display text-sm disabled:cursor-not-allowed disabled:opacity-55"
               >
-                {isActionPending || isConfirming ? "Filing..." : "Confirm closure"}
+                {isActionPending || isConfirming ? "Filing" : "Confirm closure"}
               </AuraButton>
             </footer>
           </motion.section>

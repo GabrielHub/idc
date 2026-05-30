@@ -1189,7 +1189,7 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
 function ErrorBanner({ message, onDismiss }: { message: string; onDismiss: () => void }) {
   return (
     <div className="fixed inset-x-0 top-0 z-50 flex justify-center px-6 pt-4">
-      <div className="aura-glass-strong flex items-center gap-3 rounded-pill px-4 py-2 shadow-aura-soft">
+      <div className="aura-glass-strong flex items-center gap-3 rounded-pill px-4 py-2 shadow-card">
         <p className="text-sm text-black">{message}</p>
         <button
           type="button"

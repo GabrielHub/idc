@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { memberSchema, pairStateSchema, type Member } from "../domain/game";
 import { createSeedGameSave } from "./game-seed";
-import { closureProgressForPair, riskZoneForMember } from "./member-feedback";
+import {
+  collectMemberOpenLoops,
+  closureProgressForPair,
+  riskZoneForMember,
+} from "./member-feedback";
 
 function memberWithRetention(retention: number): Member {
   const seed = createSeedGameSave(new Date("2026-05-05T12:00:00.000Z"));
@@ -116,5 +120,64 @@ describe("closureProgressForPair", () => {
     expect(progress.blockers).toContain("dates");
     expect(progress.datesCompleted).toBe(1);
     expect(progress.datesNeeded).toBe(3);
+  });
+});
+
+describe("collectMemberOpenLoops", () => {
+  const loop = (id: string, text: string, status: "open" | "resolved" = "open") => ({
+    id,
+    text,
+    status,
+    createdAt: "2026-05-05T12:00:00.000Z",
+  });
+
+  function pairWith(participantIds: [string, string], openLoops: ReturnType<typeof loop>[]) {
+    return pairStateSchema.parse({
+      id: `pair-${participantIds.join("-")}`,
+      participantIds,
+      stats: {
+        chemistry: 40,
+        trust: 40,
+        stability: 50,
+        conflict: 20,
+        weirdnessTolerance: 50,
+        spark: 50,
+        strain: 20,
+        relationshipHealth: 40,
+      },
+      completedDateIds: [],
+      scenarioUseCounts: {},
+      agreements: [],
+      openLoops,
+    });
+  }
+
+  it("aggregates the member's open loops across pairs and skips resolved ones", () => {
+    const pairs = [
+      pairWith(["a", "b"], [loop("l1", "Still owe her a straight answer.")]),
+      pairWith(
+        ["a", "c"],
+        [
+          loop("l2", "Promised to circle back soon."),
+          loop("l3", "Already settled here.", "resolved"),
+        ],
+      ),
+    ];
+    expect(collectMemberOpenLoops("a", pairs).map((entry) => entry.id)).toEqual(["l1", "l2"]);
+  });
+
+  it("ignores pairs without the member and caps the list", () => {
+    const pairs = [
+      pairWith(["x", "y"], [loop("l1", "Not this member's thread.")]),
+      pairWith(
+        ["a", "z"],
+        [
+          loop("l2", "First open thread here."),
+          loop("l3", "Second open thread here."),
+          loop("l4", "Third would exceed the cap."),
+        ],
+      ),
+    ];
+    expect(collectMemberOpenLoops("a", pairs, 2).map((entry) => entry.id)).toEqual(["l2", "l3"]);
   });
 });

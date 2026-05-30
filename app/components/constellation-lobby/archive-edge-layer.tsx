@@ -9,6 +9,7 @@ export function ArchiveEdgeLayer({
   edges,
   archiveSelection,
   archiveIsolation,
+  endpointInset,
   hoveredStarId,
   hoveredEdgeId,
   onHoveredEdgeChange,
@@ -22,6 +23,8 @@ export function ArchiveEdgeLayer({
     focusMemberId: string;
     includedMemberIds: ReadonlySet<string>;
   };
+  /** World-space distance each edge stops short of its paired stars' discs. */
+  endpointInset?: number;
   hoveredStarId: string | null;
   hoveredEdgeId: string | null;
   onHoveredEdgeChange: Dispatch<SetStateAction<string | null>>;
@@ -29,6 +32,11 @@ export function ArchiveEdgeLayer({
   onArchiveEdgeClick?: (pairId: string) => void;
   renderArchiveEdgeTooltip?: (edge: PairArchiveEdge) => ReactNode;
 }) {
+  // While a pair or member is selected, the side-rail dossier owns the detailed
+  // read. Suppressing the floating midpoint tooltip in that case stops the two
+  // cards from stacking over the field — the source of the "two cards at once"
+  // clutter. Hover peeks return as soon as the selection clears.
+  const tooltipsEnabled = archiveSelection === null;
   return (
     <>
       {edges.map((spec) => {
@@ -52,6 +60,7 @@ export function ArchiveEdgeLayer({
             from={spec.from}
             to={spec.to}
             control={spec.control}
+            endpointInset={endpointInset}
             isHovered={isHovered}
             isSelected={isSelected}
             isFaded={isFaded}
@@ -67,7 +76,7 @@ export function ArchiveEdgeLayer({
               event.stopPropagation();
               onArchiveEdgeClick?.(pairId);
             }}
-            hoverTooltip={renderArchiveEdgeTooltip?.(spec.edge)}
+            hoverTooltip={tooltipsEnabled ? renderArchiveEdgeTooltip?.(spec.edge) : undefined}
           />
         );
       })}

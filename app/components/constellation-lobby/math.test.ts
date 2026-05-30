@@ -5,6 +5,7 @@ import type { MemberAuraConfig } from "../member-aura-registry";
 import { resolvePortraitPalette } from "../portrait-palette";
 import {
   advanceFlythroughLayer,
+  archiveAvatarScaleForNodeCount,
   avatarScaleForCanvas,
   availabilityRole,
   computeFlythroughCameraTarget,
@@ -34,6 +35,7 @@ import {
   starWorldPosition,
   visibleWorldSizeAtDepth,
   withAlpha,
+  worldPerScreenPixel,
   WORLD_X_SCALE,
   WORLD_Y_SCALE,
   WORLD_Z_SCALE,
@@ -348,6 +350,41 @@ describe("avatarScaleForCanvas", () => {
   });
 });
 
+describe("archiveAvatarScaleForNodeCount", () => {
+  it("keeps tiny pair graphs portrait-forward", () => {
+    expect(archiveAvatarScaleForNodeCount(0)).toBe(1.52);
+    expect(archiveAvatarScaleForNodeCount(4)).toBe(1.52);
+  });
+
+  it("compresses larger pair graphs toward a legible floor", () => {
+    expect(archiveAvatarScaleForNodeCount(8)).toBeLessThan(1.52);
+    expect(archiveAvatarScaleForNodeCount(16)).toBeLessThan(archiveAvatarScaleForNodeCount(8));
+    expect(archiveAvatarScaleForNodeCount(40)).toBe(0.88);
+  });
+});
+
+describe("worldPerScreenPixel", () => {
+  const tanHalfFov = Math.tan((38 * Math.PI) / 180 / 2);
+
+  it("scales linearly with view depth so a farther star needs more world per pixel", () => {
+    const near = worldPerScreenPixel(10, tanHalfFov, 1080);
+    const far = worldPerScreenPixel(20, tanHalfFov, 1080);
+    expect(far).toBeGreaterThan(near);
+    expect(far).toBeCloseTo(near * 2);
+  });
+
+  it("shrinks with viewport height so the same depth maps to a finer pixel grid", () => {
+    const tall = worldPerScreenPixel(12, tanHalfFov, 1080);
+    const short = worldPerScreenPixel(12, tanHalfFov, 720);
+    expect(short).toBeGreaterThan(tall);
+  });
+
+  it("returns zero for a degenerate viewport or frustum so callers can guard", () => {
+    expect(worldPerScreenPixel(10, tanHalfFov, 0)).toBe(0);
+    expect(worldPerScreenPixel(10, 0, 1080)).toBe(0);
+  });
+});
+
 describe("intensityForRole", () => {
   it("pegs focus and partner at full intensity", () => {
     expect(intensityForRole("focus", "mid", "focus_selected")).toBe(1);
@@ -433,6 +470,26 @@ describe("resolveStarPresentation", () => {
     expect(presentation.avatarScale).toBeGreaterThan(1);
     expect(presentation.hitRadius).toBeGreaterThanOrEqual(0.11 * presentation.avatarScale);
     expect(presentation.zLift).toBe(1.8);
+  });
+
+  it("can force archive graph stars out of the dormant background-dot path", () => {
+    const presentation = resolveStarPresentation({
+      tier: "background",
+      role: "dim",
+      clustered: false,
+      hovered: false,
+      slabActivity: { intensityMultiplier: 1.08, scaleMultiplier: 1.52 },
+      baseIntensity: 0.36,
+      filteredOut: false,
+      avatarRadius: 0.38,
+      forceAvatar: true,
+    });
+
+    expect(presentation.avatarOpacity).toBe(1);
+    expect(presentation.avatarScale).toBe(1);
+    expect(presentation.hitRadius).toBe(0.38);
+    expect(presentation.slabScale).toBe(1.52);
+    expect(presentation.zLift).toBe(0);
   });
 
   it("enlarges hovered ineligible background stars without erasing their dim state", () => {
@@ -533,6 +590,17 @@ describe("haloColorForStar", () => {
   it("falls back to the palette accent when no aura is registered", () => {
     expect(haloColorForStar("eligible", palette, undefined)).toBe(palette.accent);
     expect(haloColorForStar("dim", palette, undefined)).toBe(palette.accent);
+  });
+
+  it("lets the risk tone override the role and palette colors", () => {
+    expect(haloColorForStar("focus", palette, SAMPLE_AURA, "at-risk")).toBe("#f43f5e");
+    expect(haloColorForStar("partner", palette, SAMPLE_AURA, "cooling")).toBe("#f59e0b");
+    expect(haloColorForStar("eligible", palette, SAMPLE_AURA, "at-risk")).toBe("#f43f5e");
+  });
+
+  it("keeps the role and palette identity for steady members", () => {
+    expect(haloColorForStar("focus", palette, SAMPLE_AURA, "steady")).toBe("#fb7185");
+    expect(haloColorForStar("eligible", palette, undefined, "steady")).toBe(palette.accent);
   });
 });
 

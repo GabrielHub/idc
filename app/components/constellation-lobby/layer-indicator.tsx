@@ -8,7 +8,7 @@ const FLYTHROUGH_LAYER_LABELS: Record<FlythroughLayer, string> = {
   0: "Pick a lead",
   1: "Pick a partner",
   2: "See who's off",
-  3: "Pick a venue",
+  3: "Pick a room",
   4: "Pair graph",
 };
 

@@ -57,15 +57,14 @@ type FlowPhase = {
   steps: CoachMarkPreviewProps[];
 };
 
-const FOCUS_SWAP_RETENTION_PENALTY = 25;
-
 const FIRST_TIME_FLOW_SECTIONS = [
   { id: "welcome", title: "01 · Welcome and focus cases" },
-  { id: "booking", title: "02 · Booking the pair" },
-  { id: "live", title: "03 · Running the date" },
-  { id: "wrap", title: "04 · Wrapping the shift" },
-  { id: "files", title: "05 · Opening files for the first time" },
-  { id: "lazy", title: "06 · Lazy support marks" },
+  { id: "starter-deck", title: "02 · Drafting the Date Book" },
+  { id: "booking", title: "03 · Booking the pair" },
+  { id: "live", title: "04 · Running the date" },
+  { id: "wrap", title: "05 · Wrapping the shift" },
+  { id: "files", title: "06 · Opening files for the first time" },
+  { id: "lazy", title: "07 · Lazy support marks" },
 ] as const;
 
 function getFirstTimeFlow(): FlowPhase[] {
@@ -86,8 +85,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           target: "spotlight",
           placement: "left",
           portrait: "portrait",
-          title: "Cupid is hiring. You are hired.",
-          body: "These hopefuls walked into the office today. Pick four to focus. The rest of the roster waits in the hall, technically supervised.",
+          ...tutorialCopy("onboarding.focus.pick"),
         },
         {
           id: "onboarding.focus.expand",
@@ -96,8 +94,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "Opening a member file from the card arrow.",
           target: "pulse-ring",
           placement: "right",
-          title: "Read the file",
-          body: "Tap a card's arrow to open their file. Worth a peek before you commit a slot to them.",
+          ...tutorialCopy("onboarding.focus.expand"),
         },
         {
           id: "onboarding.focus.start",
@@ -106,18 +103,54 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "Clicking Choose date scenarios.",
           target: "pulse-ring",
           placement: "top",
-          title: "Draft the Date Book",
-          body: "Four cases on file. Next up: pick the starter rooms Cupid can draw from once you commit a pair.",
+          ...tutorialCopy("onboarding.focus.start"),
+        },
+      ],
+    },
+    {
+      id: "starter-deck",
+      label: "Drafting the Date Book",
+      badge: "02",
+      tone: "violet",
+      caption:
+        "Onboarding · Date Book stage. Cupid teaches the difference between the editable room pool and the three-card hand drawn later.",
+      steps: [
+        {
+          id: "onboarding.deck.pick",
+          surface: "Onboarding · Date Book draft grid",
+          trigger: "After four focus cases are selected and the deck stage opens.",
+          completesOn: "Tapping the seeded tutorial room card.",
+          target: "spotlight",
+          placement: "left",
+          ...tutorialCopy("onboarding.deck.pick"),
+        },
+        {
+          id: "onboarding.deck.expand",
+          surface: "Onboarding · Date Book draft grid",
+          trigger: "After the tutorial pick, while the Date Book is not legal yet.",
+          completesOn: "Opening a room brief from the card arrow.",
+          target: "pulse-ring",
+          placement: "right",
+          ...tutorialCopy("onboarding.deck.expand"),
+        },
+        {
+          id: "onboarding.deck.start",
+          surface: "Onboarding · Date Book draft CTA",
+          trigger: "Starter Date Book is legal: 6-12 room cards and under budget.",
+          completesOn: "Clicking Start the shift.",
+          target: "pulse-ring",
+          placement: "top",
+          ...tutorialCopy("onboarding.deck.start"),
         },
       ],
     },
     {
       id: "booking",
       label: "Booking the pair",
-      badge: "02",
+      badge: "03",
       tone: "fuchsia",
       caption:
-        "Constellation lobby. The layer indicator threads the player through focus -> roster, then unlocks the pick-venue layer after Commit pair. Layer-nav fires once on first entry; the intent rail fires once the pair is queued.",
+        "Constellation lobby. The layer indicator threads the player through focus -> roster, the shift brief names tonight's work order, then Commit pair unlocks the room layer.",
       steps: [
         {
           id: "planning.layer-nav",
@@ -129,9 +162,18 @@ function getFirstTimeFlow(): FlowPhase[] {
           ...tutorialCopy("planning.layer-nav"),
         },
         {
+          id: "planning.shift-brief",
+          surface: "Constellation lobby · ShiftBriefDock",
+          trigger: "After planning.layer-nav completes, before any focus case is picked.",
+          completesOn: "The Got it button.",
+          target: "pulse-ring",
+          placement: "top",
+          ...tutorialCopy("planning.shift-brief"),
+        },
+        {
           id: "planning.focus",
           surface: "Constellation lobby · LayerIndicator focus pill",
-          trigger: "After planning.layer-nav completes, no focus case picked yet.",
+          trigger: "After planning.shift-brief completes, no focus case picked yet.",
           completesOn: "Clicking a focus star (or its HoverDetailCard CTA) to make it the lead.",
           target: "pulse-ring",
           placement: "right",
@@ -151,8 +193,8 @@ function getFirstTimeFlow(): FlowPhase[] {
           surface: "Constellation lobby · IntentRail (inside SideRail)",
           trigger: "Both focus and partner are picked; intent is not yet filed.",
           completesOn:
-            "The Got it button, or auto-completes when the player files any intent, reaches the pick-venue layer, or picks a scenario.",
-          target: "coach-only",
+            "The Got it button, or auto-completes when the player files any intent, reaches the room layer, or picks a scenario.",
+          target: "pulse-ring",
           placement: "top",
           ...tutorialCopy("planning.intent"),
         },
@@ -168,7 +210,7 @@ function getFirstTimeFlow(): FlowPhase[] {
         {
           id: "planning.scenario",
           surface: "Constellation lobby · CathedralPanel grid",
-          trigger: "Pair is committed, the player is on the pick-venue layer, no scenario chosen.",
+          trigger: "Pair is committed, the player is on the room layer, no scenario chosen.",
           completesOn: "Clicking any door to set the room.",
           target: "spotlight",
           placement: "top",
@@ -188,10 +230,10 @@ function getFirstTimeFlow(): FlowPhase[] {
     {
       id: "live",
       label: "Running the date",
-      badge: "03",
+      badge: "04",
       tone: "amber",
       caption:
-        "Live date dashboard. The footer teaches the gauges and transport, then the player drafts scenes, sees the first Cupid note, and learns nudges.",
+        "Live date dashboard. The player drafts scenes first, then the footer teaches gauges, transport, Cupid reads, and nudges.",
       steps: [
         {
           id: "date.draft-events",
@@ -201,8 +243,7 @@ function getFirstTimeFlow(): FlowPhase[] {
             "Tapping any scene card to add it to picks. Auto-skips if playback leaves drafting first.",
           target: "spotlight",
           placement: "right",
-          title: "Draft three scenes",
-          body: "Two ambient, two provocations, two reveals. Pick three to drop into the date when you pause. Cupid never plays them for you.",
+          ...tutorialCopy("date.draft-events"),
         },
         {
           id: "date.footer.health",
@@ -229,9 +270,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "The Got it button.",
           target: "spotlight",
           placement: "top",
-          title: "Six turns, one snapshot",
-          body: "Cupid reads every sixth turn and at the wrap. Health moves here, not in the booking room. Evidence first, paperwork second.",
-          primaryLabel: "Got it",
+          ...tutorialCopy("date.judge-note"),
         },
         {
           id: "date.nudge.compose",
@@ -240,19 +279,17 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "Clicking Open composer, which also opens the nudge modal.",
           target: "pulse-ring",
           placement: "top",
-          title: "One nudge, one whisper",
-          body: "Pause, pick one member, write one sentence. Steer them somewhere or pull a thread you want exposed. They hear it as a private prod from the room. Spend all three and Cupid starts making eye contact.",
-          primaryLabel: "Open composer",
+          ...tutorialCopy("date.nudge.compose"),
         },
       ],
     },
     {
       id: "wrap",
       label: "Wrapping the shift",
-      badge: "04",
+      badge: "05",
       tone: "emerald",
       caption:
-        "After the date resolves the player files a follow-up, then files the shift back on Pre-date.",
+        "After the date resolves the player files a follow-up, then files the shift back in the lobby.",
       steps: [
         {
           id: "date.followup",
@@ -261,8 +298,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "Picking a follow-up action.",
           target: "spotlight",
           placement: "top",
-          title: "File one follow-up",
-          body: "Pursue keeps this pair warm and bypasses their next-shift cooldown. Cool Down pauses without closing the lane. Close retires the romantic lane permanently. The shift won't close until every completed date has one filed.",
+          ...tutorialCopy("date.followup"),
         },
         {
           id: "planning.file-shift",
@@ -278,7 +314,7 @@ function getFirstTimeFlow(): FlowPhase[] {
     {
       id: "files",
       label: "Opening files for the first time",
-      badge: "05",
+      badge: "06",
       tone: "sky",
       caption:
         "Two one-time orientations that fire the first time the player opens a member modal or a scenario modal.",
@@ -290,9 +326,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "The Got it button.",
           target: "coach-only",
           placement: "top",
-          title: "Files start mostly sealed",
-          body: "The public profile is what they wrote. Everything else unseals as Cupid files reads from the dates you run.",
-          primaryLabel: "Got it",
+          ...tutorialCopy("member.file.first-open"),
         },
         {
           id: "scenario.file.first-open",
@@ -301,19 +335,17 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "The Got it button.",
           target: "coach-only",
           placement: "top",
-          title: "Read the room before you book it",
-          body: "Every brief lays out the premise, the rules of the room, and what Cupid rewards or punishes. Skim it so the match lands in the right kind of mess.",
-          primaryLabel: "Got it",
+          ...tutorialCopy("scenario.file.first-open"),
         },
       ],
     },
     {
       id: "lazy",
       label: "Lazy support marks",
-      badge: "06",
+      badge: "07",
       tone: "slate",
       caption:
-        "These never fire on the required path. They wait for an edge case (a swap, a budget cut, a cooldown, a closure, a file-date unlock on a longer date, a first deck open, a first lobby explore) and explain it once.",
+        "These never fire on the required path. They wait for an edge case (a swap, a card offer, a budget cut, a cooldown, a closure, a file-date unlock on a longer date, a first Date Book open, a first lobby explore) and explain it once.",
       steps: [
         {
           id: "lazy.contextual-rail",
@@ -328,13 +360,22 @@ function getFirstTimeFlow(): FlowPhase[] {
         },
         {
           id: "lazy.date-book",
-          surface: "Constellation lobby · ContextualPillRail Date book pill",
+          surface: "Constellation lobby · ContextualPillRail Date Book pill",
           trigger:
-            "Lobby is on auto mode after the first date report is filed (deck editing is unlocked), with no active booking and no repair-blocked deck. Yields to lazy.contextual-rail so the broader pill overview lands first; deck/library mode unmounts the HUD so the auto gate keeps the coach mark anchored to a visible pill.",
+            "Lobby is on auto mode after the first date report is filed (Date Book editing is unlocked), with no active booking and no repair-blocked Date Book. Yields to lazy.contextual-rail so the broader pill overview lands first; Edit mode unmounts the HUD so the auto gate keeps the coach mark anchored to a visible pill.",
           completesOn: "The Got it button.",
           target: "pulse-ring",
           placement: "left",
           ...tutorialCopy("lazy.date-book"),
+        },
+        {
+          id: "lazy.datebook.card-offer",
+          surface: "Constellation lobby · post-date card offer overlay",
+          trigger: "A pending Date Book card offer is open after a date or closure.",
+          completesOn: "The Got it button.",
+          target: "coach-only",
+          placement: "right",
+          ...tutorialCopy("lazy.datebook.card-offer"),
         },
         {
           id: "lazy.cut-short",
@@ -352,14 +393,12 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "The Got it button.",
           target: "spotlight",
           placement: "bottom",
-          title: "Swapping costs retention",
-          body: `Dropping a focused case costs ${FOCUS_SWAP_RETENTION_PENALTY} retention on that file. Lifelong customer relationships, also paperwork. Pick the next member to seal the swap.`,
-          primaryLabel: "Got it",
+          ...tutorialCopy("lazy.roster.swap-penalty"),
         },
         {
           id: "lazy.datebook.locked",
-          surface: "Constellation lobby · ContextualPillRail Date book pill",
-          trigger: "Lobby is open while a pair is committed and the deck is not over budget.",
+          surface: "Constellation lobby · ContextualPillRail Date Book pill",
+          trigger: "Lobby is open while a pair is committed and the Date Book is not over budget.",
           completesOn: "The Got it button.",
           target: "coach-only",
           placement: "left",
@@ -367,8 +406,8 @@ function getFirstTimeFlow(): FlowPhase[] {
         },
         {
           id: "lazy.datebook.repair",
-          surface: "Constellation lobby · ContextualPillRail Date book pill (amber)",
-          trigger: "Budget cap shrinks below the current deck spend.",
+          surface: "Constellation lobby · ContextualPillRail Date Book pill (amber)",
+          trigger: "Budget cap shrinks below the current Date Book spend.",
           completesOn: "The Got it button.",
           target: "pulse-ring",
           placement: "left",
@@ -399,9 +438,7 @@ function getFirstTimeFlow(): FlowPhase[] {
           completesOn: "The Got it button.",
           target: "coach-only",
           placement: "left",
-          title: "Agreements and open loops",
-          body: "Cupid files an agreement when a pair settles on something. Open loops are the questions they left dangling. Both follow the pair from date to date and shape the next room read.",
-          primaryLabel: "Got it",
+          ...tutorialCopy("lazy.files.first-agreement"),
         },
       ],
     },
@@ -566,7 +603,7 @@ function CoachMarkPaperNote({ step }: { step: CoachMarkPreviewProps }) {
           ) : null}
         </span>
         <span className="font-mono text-micro font-semibold uppercase tracking-[0.22em] text-aura-faint">
-          Skip tour
+          End tour
         </span>
         {step.primaryLabel ? (
           <span className="rounded-pill bg-[linear-gradient(135deg,#0f172a_0%,#1e1b4b_55%,#831843_100%)] px-4 py-1.5 font-mono text-micro font-semibold uppercase tracking-[0.22em] text-white">

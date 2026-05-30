@@ -12,7 +12,7 @@ const PILL_TONE: Record<MemberCardPill["tone"], string> = {
   rose: "bg-aura-rose/10 text-aura-rose",
   amber: "bg-amber-500/10 text-amber-700",
   emerald: "bg-emerald-500/10 text-emerald-700",
-  neutral: "bg-aura-cream-soft text-aura-muted",
+  neutral: "bg-aura-paper/80 text-aura-muted",
   ink: "bg-aura-ink text-white",
 };
 
@@ -89,7 +89,7 @@ export function StatusOverlay({
 }) {
   const isClosed = status === "closed";
   const bgClass =
-    placement === "modal" ? "bg-aura-cream/70" : isClosed ? "bg-aura-cream/75" : "bg-aura-cream/80";
+    placement === "modal" ? "bg-aura-paper/70" : isClosed ? "bg-aura-paper/75" : "bg-aura-paper/80";
   const labelOffset = placement === "card" ? "bottom-3" : "bottom-4";
   const layerClass = placement === "card" ? "z-20" : "";
   const label = isClosed ? "Case closed." : "Cancelled membership.";

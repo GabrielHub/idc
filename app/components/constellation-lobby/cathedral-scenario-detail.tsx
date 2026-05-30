@@ -81,16 +81,16 @@ function buildDetail({
   const atMinDeck = deckCardCount <= DECK_SIZE_MIN;
   const dropBlockedReason =
     bookingLocked || isActionPending
-      ? "Deck edits are locked while Cupid is working"
+      ? "Date Book edits are locked while Cupid is working"
       : atMinDeck
-        ? `Deck is at its ${DECK_SIZE_MIN}-room minimum — draw new rooms before dropping.`
+        ? `Date Book needs ${DECK_SIZE_MIN} room cards. Draw new room cards before dropping.`
         : undefined;
   const dropDisabled = dropBlockedReason !== undefined;
   return {
-    eyebrow: "// deck slot",
+    eyebrow: "// room card",
     cta: (
       <AuraButton
-        tooltip={dropBlockedReason ?? `Drop card and refund ${effective}`}
+        tooltip={dropBlockedReason ?? `Drop room card and refund ${effective}`}
         onClick={() => {
           onRemoveDeckCard(scenario.id);
           onClose();
@@ -98,13 +98,13 @@ function buildDetail({
         disabled={dropDisabled}
         className="cursor-pointer disabled:cursor-not-allowed aura-liquid-cta rounded-full px-5 py-2 font-display text-label disabled:opacity-55"
       >
-        Drop card · refund {effective}
+        Drop room card · refund {effective}
       </AuraButton>
     ),
     note: bookingLocked
-      ? "booking active · edits locked until the date resolves"
+      ? "booking active · Date Book locked until the date resolves"
       : atMinDeck
-        ? `deck at ${DECK_SIZE_MIN}-room minimum · draw new rooms to free a drop`
+        ? `Date Book at ${DECK_SIZE_MIN}-room minimum · draw new room cards before dropping`
         : undefined,
     effectiveCost: effective,
   };

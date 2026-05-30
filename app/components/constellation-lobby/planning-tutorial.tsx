@@ -26,6 +26,7 @@ const LAYER_COACH_FIXED_POSITION: CoachMarkFixedPosition = { right: 24, top: 160
 
 type AnchorKey =
   | "layerIndicatorRef"
+  | "shiftBriefRef"
   | "layerFocusRef"
   | "layerRosterRef"
   | "layerCathedralRef"
@@ -40,6 +41,7 @@ type AnchorKey =
 
 export type PlanningTutorialRefs = {
   layerIndicatorRef: RefObject<HTMLDivElement | null>;
+  shiftBriefRef: RefObject<HTMLDivElement | null>;
   layerFocusRef: RefObject<HTMLButtonElement | null>;
   layerRosterRef: RefObject<HTMLButtonElement | null>;
   layerCathedralRef: RefObject<HTMLButtonElement | null>;
@@ -126,6 +128,18 @@ const PLANNING_STEPS = [
       placement: "right",
       fixedPosition: LAYER_COACH_FIXED_POSITION,
       pulseRing: { padding: 10, radius: 28 },
+      hasPrimary: true,
+    },
+  },
+  {
+    id: "planning.shift-brief",
+    category: "required",
+    shouldActivate: (c) =>
+      c.focusId === null && c.activeBooking === null && c.shiftActive && c.inAutoMode,
+    render: {
+      anchor: "shiftBriefRef",
+      placement: "top",
+      pulseRing: { padding: 8, radius: 24 },
       hasPrimary: true,
     },
   },
@@ -266,8 +280,8 @@ const PLANNING_STEPS = [
   {
     id: "lazy.date-book",
     category: "lazy",
-    // Date book step fires the first time the player is back on auto mode
-    // after deck editing unlocks. The coach mark anchors the Date book pill,
+    // Date Book step fires the first time the player is back on auto mode
+    // after Date Book editing unlocks. The coach mark anchors the Date Book pill,
     // which only exists on auto mode. Yields to lazy.contextual-rail so the
     // broader pill overview lands first.
     shouldActivate: (c) =>
@@ -303,8 +317,8 @@ const PLANNING_STEPS = [
       hasPrimary: true,
     },
   },
-  // Repair takes precedence over locked: both gate on the Date book pill, but
-  // a repair-blocked deck is the more urgent ask. `dateBookLocked.render`
+  // Repair takes precedence over locked: both gate on the Date Book pill, but
+  // a repair-blocked Date Book is the more urgent ask. `dateBookLocked.render`
   // sets `suppressIfActive: "lazy.datebook.repair"` so it yields cleanly.
   {
     id: "lazy.datebook.repair",
@@ -439,6 +453,7 @@ export function usePlanningTutorial(input: {
   ]);
 
   const layerIndicatorRef = useRef<HTMLDivElement | null>(null);
+  const shiftBriefRef = useRef<HTMLDivElement | null>(null);
   const layerFocusRef = useRef<HTMLButtonElement | null>(null);
   const layerRosterRef = useRef<HTMLButtonElement | null>(null);
   const layerCathedralRef = useRef<HTMLButtonElement | null>(null);
@@ -454,6 +469,7 @@ export function usePlanningTutorial(input: {
   return {
     refs: {
       layerIndicatorRef,
+      shiftBriefRef,
       layerFocusRef,
       layerRosterRef,
       layerCathedralRef,
@@ -577,7 +593,8 @@ function StepOverlay({
         stepCount={copy.stepCount}
         primaryLabel={render.hasPrimary === true ? copy.primaryLabel : undefined}
         onPrimary={render.hasPrimary === true ? handle.complete : undefined}
-        dismissLabel="Skip tour"
+        dismissLabel="End tour"
+        dismissRequiresConfirmation={config.category === "required"}
         onDismiss={handle.dismiss}
       />
     </>

@@ -16,12 +16,12 @@ const COMPACT_SURFACE_CLASS: Record<MemberCardState, string> = {
 };
 
 const COMPACT_INNER_CLASS: Record<MemberCardState, string> = {
-  focused: "shadow-aura-soft",
-  selected: "ring-2 ring-aura-rose/35 shadow-aura-soft",
+  focused: "shadow-card",
+  selected: "ring-2 ring-aura-rose/35 shadow-card",
   closed: "opacity-85",
   quit: "opacity-85",
-  disabled: "aura-glass-lift hover:shadow-aura-soft",
-  default: "aura-glass-lift hover:shadow-aura-soft",
+  disabled: "aura-glass-lift hover:shadow-card",
+  default: "aura-glass-lift hover:shadow-card",
 };
 
 export function CompactMemberCard({
@@ -87,7 +87,7 @@ export function CompactMemberCard({
                 </h3>
                 <HeightChip heightInInches={member.characterHeightInInches} />
                 {state === "closed" || state === "quit" ? (
-                  <span className="rounded-pill bg-aura-cream-soft px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint">
+                  <span className="rounded-pill bg-aura-paper/80 px-2 py-0.5 font-mono text-micro uppercase tracking-[0.18em] text-aura-faint">
                     {state === "closed" ? "closed" : "quit"}
                   </span>
                 ) : null}
