@@ -8,6 +8,7 @@ import { ContextualPillRail } from "./contextual-pill-rail";
 import type { LayerNavigationMode } from "./layer-access";
 import { LayerIndicator } from "./layer-indicator";
 import { BottomDock, CalloutCluster, SideRail, type Callout } from "./lobby-hud";
+import type { PairCardDetail } from "./pair-card-details";
 import type { PlanningTutorialRefs } from "./planning-tutorial";
 import { ShiftBriefDock, type ShiftBriefData } from "./shift-brief-dock";
 import type { CathedralMode } from "./cathedral";
@@ -22,6 +23,8 @@ export function LobbyHudLayer({
   refs,
   focus,
   partner,
+  focusDetail,
+  partnerDetail,
   intentSlot,
   pairDossierSlot,
   callouts,
@@ -80,6 +83,8 @@ export function LobbyHudLayer({
   >;
   focus: StarMark | undefined;
   partner: StarMark | undefined;
+  focusDetail?: PairCardDetail;
+  partnerDetail?: PairCardDetail;
   intentSlot?: ReactNode;
   pairDossierSlot?: ReactNode;
   callouts: readonly Callout[];
@@ -138,6 +143,8 @@ export function LobbyHudLayer({
       <SideRail
         focus={focus}
         partner={partner}
+        focusDetail={focusDetail}
+        partnerDetail={partnerDetail}
         intentSlot={intentSlot}
         intentSlotRef={refs.intentRailRef}
         pairDossierSlot={pairDossierSlot}

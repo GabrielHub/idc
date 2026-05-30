@@ -22,6 +22,16 @@ import { FLYTHROUGH_LAYERS, isRosterFlythroughLayer, SCENARIO_FLYTHROUGH_LAYER }
  */
 export type RosterCohort = "eligible" | "off_tonight" | "other_ineligible";
 
+export type StarFlythroughSlabActivity = {
+  intensityMultiplier: number;
+  scaleMultiplier: number;
+};
+
+export type StarFlythroughPresentation = {
+  slabActivity: StarFlythroughSlabActivity | undefined;
+  sizingRole: StarRole;
+};
+
 export function computeRosterCohort(
   memberId: string,
   {
@@ -44,7 +54,7 @@ export function flythroughMemberSlabActivity(
   cohort?: RosterCohort,
   rosterSubview: RosterSubview = "eligibles",
   activeLeadCount = 0,
-): { intensityMultiplier: number; scaleMultiplier: number } {
+): StarFlythroughSlabActivity {
   if (currentLayer === SCENARIO_FLYTHROUGH_LAYER) {
     // Cathedral layer — stars vanish entirely so the door array reads as
     // its own room. Scale collapses to 0.55 so any half-faded sprites
@@ -52,10 +62,12 @@ export function flythroughMemberSlabActivity(
     // size while their opacity falls.
     return { intensityMultiplier: 0, scaleMultiplier: 0.55 };
   }
-  const activeStarLayer: StarFlythroughLayer = isRosterFlythroughLayer(currentLayer)
+  const activeStarLayer: StarFlythroughLayer | undefined = isRosterFlythroughLayer(currentLayer)
     ? 1
-    : currentLayer;
-  if (starLayer !== activeStarLayer) {
+    : currentLayer === 0
+      ? 0
+      : undefined;
+  if (activeStarLayer === undefined || starLayer !== activeStarLayer) {
     // Off-axis slab — the layer the player isn't on is entirely culled so
     // each layer reads as its own room. Scale collapses so any in-flight
     // transition reads as a pull-back rather than a fade-against-field.
@@ -87,6 +99,66 @@ export function flythroughMemberSlabActivity(
   return { intensityMultiplier: 1, scaleMultiplier: 1.15 };
 }
 
+export function resolveFlythroughStarPresentation({
+  role,
+  flythroughLayer,
+  currentLayer,
+  cohort,
+  rosterSubview = "eligibles",
+  activeLeadCount = 0,
+  isFocusMarker = false,
+  focusMarkerScale = 1,
+  clustered = false,
+}: {
+  role: StarRole;
+  flythroughLayer: StarFlythroughLayer | undefined;
+  currentLayer: FlythroughLayer | undefined;
+  cohort: RosterCohort | undefined;
+  rosterSubview?: RosterSubview;
+  activeLeadCount?: number;
+  isFocusMarker?: boolean;
+  focusMarkerScale?: number;
+  clustered?: boolean;
+}): StarFlythroughPresentation | null {
+  const baseSlabActivity =
+    flythroughLayer === undefined || currentLayer === undefined
+      ? undefined
+      : flythroughMemberSlabActivity(
+          flythroughLayer,
+          currentLayer,
+          cohort,
+          rosterSubview,
+          activeLeadCount,
+        );
+  const slabActivity = isFocusMarker
+    ? { intensityMultiplier: 1, scaleMultiplier: focusMarkerScale }
+    : baseSlabActivity;
+
+  if (
+    shouldCullSelectedPairRole({
+      role,
+      currentLayer,
+      rosterSubview,
+      slabActivity,
+      isFocusMarker,
+      clustered,
+    })
+  ) {
+    return null;
+  }
+
+  return {
+    slabActivity,
+    sizingRole: sizingRoleForStar({
+      role,
+      flythroughLayer,
+      currentLayer,
+      cohort,
+      rosterSubview,
+    }),
+  };
+}
+
 export function sizingRoleForStar({
   role,
   flythroughLayer,
@@ -100,6 +172,7 @@ export function sizingRoleForStar({
   cohort: RosterCohort | undefined;
   rosterSubview?: RosterSubview;
 }): StarRole {
+  if (role === "focus" && flythroughLayer === 0 && currentLayer === 0) return "dim";
   if (
     flythroughLayer !== 1 ||
     currentLayer === undefined ||
@@ -110,6 +183,31 @@ export function sizingRoleForStar({
   const activeLead =
     rosterSubview === "eligibles" ? cohort === "eligible" : cohort === "off_tonight";
   return activeLead ? "eligible" : role;
+}
+
+function shouldCullSelectedPairRole({
+  role,
+  currentLayer,
+  rosterSubview,
+  slabActivity,
+  isFocusMarker,
+  clustered,
+}: {
+  role: StarRole;
+  currentLayer: FlythroughLayer | undefined;
+  rosterSubview: RosterSubview;
+  slabActivity: StarFlythroughSlabActivity | undefined;
+  isFocusMarker: boolean;
+  clustered: boolean;
+}): boolean {
+  if (!isSelectedPairRole(role)) return false;
+  if (isFocusMarker || clustered) return false;
+  if (isRosterFlythroughLayer(currentLayer) && rosterSubview === "off_tonight") return true;
+  return (slabActivity?.intensityMultiplier ?? 1) < 0.9;
+}
+
+function isSelectedPairRole(role: StarRole): boolean {
+  return role === "focus" || role === "partner";
 }
 
 // Per-cohort scale tiers. Small cohorts (the eligibles ring) keep a hero

@@ -108,6 +108,13 @@ export const sections: DocSectionEntry[] = [
           <DocCode>shadow-cta</DocCode> for primary actions.
         </P>
         <P>
+          Glass text should consume the shared <DocCode>--aura-glass-text</DocCode>,{" "}
+          <DocCode>--aura-glass-text-muted</DocCode>, and <DocCode>--aura-glass-text-faint</DocCode>{" "}
+          variables when a surface can float over mixed backgrounds. Use{" "}
+          <DocCode>data-aura-glass-tone</DocCode> only as the shared contrast switch; avoid per-card
+          hardcoded light/dark text unless the color is semantic.
+        </P>
+        <P>
           Status and meta labels read in <DocCode>font-mono</DocCode> at{" "}
           <DocCode>text-micro</DocCode> or <DocCode>text-label</DocCode>, uppercase and tracked,
           matching the existing dashboard chrome (<DocCode>// session.0</DocCode>,{" "}

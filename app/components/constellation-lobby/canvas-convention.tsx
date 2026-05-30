@@ -8,7 +8,9 @@
  *   - Volumetric backdrop: canvas-generated gradient + fog + warm bleed lights
  *   - PerspectiveCamera with damped lerp + cursor lead-ahead + per-state framing
  *   - Per-aura point lights illuminate focus / partner avatars
- *   - Postprocessing: Bloom + DepthOfField (auto-targets the focus pair) + Vignette
+ *   - Postprocessing: Bloom + Vignette. Depth-of-field is intentionally kept
+ *     out of this pass because scene-attached text labels share the same
+ *     WebGL render target as portraits; full-canvas DoF blurs readable UI.
  *   - Per-star idle drift (subtle sin breathing, seeded phase per member)
  *   - Hover constellation lines: focus to hovered eligible partner
  *   - Star sprites: billboarded avatar planes with lit MeshStandardMaterial,
@@ -23,7 +25,7 @@
 import { useEffect, useMemo, useState, type ReactNode, type RefObject } from "react";
 import { useTexture } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import { Bloom, DepthOfField, EffectComposer, Vignette } from "@react-three/postprocessing";
+import { Bloom, EffectComposer, Vignette } from "@react-three/postprocessing";
 import * as THREE from "three";
 
 import {
@@ -368,12 +370,6 @@ export function Scene({
 
   const eligiblePartnerSet = starClickHandlers?.eligiblePartnerIds ?? EMPTY_ELIGIBLE_PARTNER_IDS;
 
-  const dofTarget = useMemo(() => {
-    if (state === "idle" || state === "callout_heavy") return new THREE.Vector3(0, 0, 0);
-    if (focusPos === null) return new THREE.Vector3(0, 0, 0);
-    return new THREE.Vector3(focusPos.x, focusPos.y, focusPos.z);
-  }, [state, focusPos]);
-
   const focusId = focusStar?.member.id;
   const partnerId = partnerStar?.member.id;
 
@@ -572,12 +568,6 @@ export function Scene({
 
       <EffectComposer multisampling={4}>
         <Bloom intensity={0.72} luminanceThreshold={0.55} luminanceSmoothing={0.5} mipmapBlur />
-        <DepthOfField
-          target={dofTarget}
-          focalLength={0.034}
-          bokehScale={cameraTarget.bokehScale}
-          height={1080}
-        />
         <Vignette eskil={false} offset={0.28} darkness={0.62} />
       </EffectComposer>
     </>

@@ -12,18 +12,11 @@ export function TutorialProgressDots({ count, active, onSelect }: TutorialProgre
 
   return (
     <div role="tablist" aria-label="Tutorial progress" className="inline-flex items-center gap-1.5">
-      <span className="font-mono text-micro font-semibold uppercase tracking-[0.1em] text-aura-faint tabular-nums">
+      <span className="font-mono text-micro font-semibold uppercase tracking-[0.1em] text-[color:var(--aura-glass-text-faint)] tabular-nums">
         {String(active + 1).padStart(2, "0")} / {String(count).padStart(2, "0")}
       </span>
       <span aria-hidden className="relative inline-flex items-center">
-        <span
-          className="absolute left-1 right-1 top-1/2 -translate-y-1/2"
-          style={{
-            height: 1,
-            backgroundImage:
-              "repeating-linear-gradient(to right, rgba(15,23,42,0.18) 0 2px, transparent 2px 5px)",
-          }}
-        />
+        <span className="absolute left-1 right-1 top-1/2 h-px -translate-y-1/2 bg-[image:repeating-linear-gradient(to_right,var(--aura-glass-dot-line)_0_2px,transparent_2px_5px)]" />
         <span className="relative inline-flex items-center gap-1.5">
           {dots.map((index) => {
             const isActive = index === active;
@@ -33,11 +26,7 @@ export function TutorialProgressDots({ count, active, onSelect }: TutorialProgre
             const activeNode = (
               <motion.span
                 key={index}
-                className="relative size-2.5 rounded-full"
-                style={{
-                  background: "var(--color-aura-rose)",
-                  boxShadow: "0 0 0 2px rgba(255,255,255,0.95), 0 0 14px 2px rgba(244,63,94,0.55)",
-                }}
+                className="relative size-2.5 rounded-full bg-aura-rose shadow-[0_0_0_2px_var(--aura-glass-dot-active-ring),0_0_14px_2px_rgba(244,63,94,0.55)]"
                 initial={{ scale: 0.6 }}
                 animate={{ scale: [1, 1.18, 1] }}
                 transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
@@ -46,21 +35,13 @@ export function TutorialProgressDots({ count, active, onSelect }: TutorialProgre
             const pastNode = (
               <span
                 key={index}
-                className={baseClasses}
-                style={{
-                  background: "rgba(244, 63, 94, 0.32)",
-                  boxShadow: "inset 0 0 0 1px rgba(244, 63, 94, 0.5)",
-                }}
+                className={`${baseClasses} bg-[rgba(244,63,94,0.32)] shadow-[inset_0_0_0_1px_rgba(244,63,94,0.5)]`}
               />
             );
             const futureNode = (
               <span
                 key={index}
-                className={baseClasses}
-                style={{
-                  background: "transparent",
-                  boxShadow: "inset 0 0 0 1px rgba(15, 23, 42, 0.22)",
-                }}
+                className={`${baseClasses} bg-transparent shadow-[inset_0_0_0_1px_var(--aura-glass-dot-future)]`}
               />
             );
 

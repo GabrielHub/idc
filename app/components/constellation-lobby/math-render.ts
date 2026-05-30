@@ -238,21 +238,24 @@ export function resolveStarPresentation({
   const INELIGIBLE_HOVER_OPACITY_FLOOR = 0.55;
   const dimMultiplier = baseIntensity * filterMultiplier * slabIntensity;
 
-  return {
-    avatarOpacity: dormantDot
-      ? 0
-      : prominent
-        ? filterMultiplier
-        : backgroundHoverAvatar
-          ? Math.max(INELIGIBLE_HOVER_OPACITY_FLOOR * filterMultiplier, dimMultiplier)
-          : dimMultiplier,
-    avatarScale: dormantDot
-      ? 0
+  const avatarOpacity = dormantDot
+    ? 0
+    : prominent
+      ? filterMultiplier
       : backgroundHoverAvatar
-        ? BACKGROUND_HOVER_AVATAR_SCALE
-        : fullAvatar
-          ? 1
-          : 0.38,
+        ? Math.max(INELIGIBLE_HOVER_OPACITY_FLOOR * filterMultiplier, dimMultiplier)
+        : dimMultiplier;
+  const avatarScale = dormantDot
+    ? 0
+    : backgroundHoverAvatar
+      ? BACKGROUND_HOVER_AVATAR_SCALE
+      : fullAvatar
+        ? 1
+        : 0.38;
+
+  return {
+    avatarOpacity,
+    avatarScale,
     hitRadius: Math.max(
       backgroundHoverAvatar ? avatarRadius * BACKGROUND_HOVER_AVATAR_SCALE : avatarRadius,
       hitRadiusFloor,

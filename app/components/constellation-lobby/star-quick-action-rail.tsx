@@ -8,7 +8,6 @@ import {
   estimateSceneTextWidth,
   SceneCircleButton,
   SceneFlatPill,
-  SceneGlassPill,
   SceneText,
   type SceneGlyphKind,
 } from "./star-scene-ui-primitives";
@@ -170,20 +169,70 @@ export function StarQuickActionRail({
 }
 
 const TOOLTIP_FONT_PX = 14;
+const TOOLTIP_LINE_HEIGHT_PX = 17;
+const TOOLTIP_PADDING_X_PX = 14;
+const TOOLTIP_PADDING_Y_PX = 7;
+const TOOLTIP_MIN_WIDTH_PX = 92;
+const TOOLTIP_MAX_WIDTH_PX = 252;
 
 function ActionTooltip({ label }: { label: string }) {
-  const height = TOOLTIP_FONT_PX * 2.1;
+  const lineHeight = TOOLTIP_LINE_HEIGHT_PX / TOOLTIP_FONT_PX;
+  const textWidth = estimateSceneTextWidth(label.trim(), TOOLTIP_FONT_PX);
   const width = clamp(
-    estimateSceneTextWidth(label, TOOLTIP_FONT_PX) + height * 1.2,
-    height * 2.4,
-    260,
+    textWidth + TOOLTIP_PADDING_X_PX * 2,
+    TOOLTIP_MIN_WIDTH_PX,
+    TOOLTIP_MAX_WIDTH_PX,
   );
+  const textMaxWidth = width - TOOLTIP_PADDING_X_PX * 2;
+  const lineCount = estimateTooltipLineCount(label, textMaxWidth);
+  const height = lineCount * TOOLTIP_LINE_HEIGHT_PX + TOOLTIP_PADDING_Y_PX * 2;
+
   return (
     <group position={[BUTTON_RADIUS_PX + 8 + width / 2, 0, 0.06]}>
-      <SceneGlassPill width={width} height={height} tone="ink" />
-      <SceneText fontSize={TOOLTIP_FONT_PX} maxWidth={width - height * 0.7} position={[0, 0, 0.01]}>
+      <SceneFlatPill width={width} height={height} tone="labelActive" />
+      <SceneText
+        fontSize={TOOLTIP_FONT_PX}
+        maxWidth={textMaxWidth}
+        position={[0, 0, 0.01]}
+        whiteSpace="overflowWrap"
+        lineHeight={lineHeight}
+        outlineWidth={0}
+      >
         {label}
       </SceneText>
     </group>
   );
+}
+
+function estimateTooltipLineCount(label: string, maxWidth: number): number {
+  const words = label.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0 || maxWidth <= 0) return 1;
+
+  const spaceWidth = estimateSceneTextWidth(" ", TOOLTIP_FONT_PX);
+  let lines = 1;
+  let currentWidth = 0;
+  for (const word of words) {
+    const wordWidth = estimateSceneTextWidth(word, TOOLTIP_FONT_PX);
+    if (wordWidth > maxWidth) {
+      const wordLineCount = Math.max(1, Math.ceil(wordWidth / maxWidth));
+      if (currentWidth > 0) {
+        lines += wordLineCount;
+      } else {
+        lines += wordLineCount - 1;
+      }
+      currentWidth = wordWidth % maxWidth;
+      if (currentWidth === 0) currentWidth = maxWidth;
+      continue;
+    }
+
+    const nextWidth = currentWidth === 0 ? wordWidth : currentWidth + spaceWidth + wordWidth;
+    if (nextWidth <= maxWidth) {
+      currentWidth = nextWidth;
+    } else {
+      lines += 1;
+      currentWidth = wordWidth;
+    }
+  }
+
+  return lines;
 }

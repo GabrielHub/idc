@@ -55,6 +55,7 @@ import { deriveShiftFilingState } from "./shift-filing-state";
 import { usePlanningTutorial } from "./planning-tutorial";
 import { LobbyDossierSlot } from "./lobby-dossier-slot";
 import { LobbyOverlays } from "./lobby-overlays";
+import { buildPairCardDetails } from "./pair-card-details";
 import { CardOfferOverlay } from "./card-offer-overlay";
 import { AtRiskOverlay } from "./at-risk-overlay";
 import { ReselectCaseManagerView } from "./reselect-case-manager-view";
@@ -197,6 +198,17 @@ export function ConstellationLobby({
     [stars, partnerId],
   );
   const committedPairId = activeBooking !== null ? activeBooking.pairId : null;
+  const pairCardDetails = useMemo(
+    () =>
+      buildPairCardDetails({
+        save,
+        shift,
+        focusId,
+        partnerId,
+        readyClosurePairIds,
+      }),
+    [focusId, partnerId, readyClosurePairIds, save, shift],
+  );
 
   const [openCaseMemberId, setOpenCaseMemberId] = useState<string | null>(null);
   const [atRiskOpen, setAtRiskOpen] = useState(false);
@@ -513,7 +525,6 @@ export function ConstellationLobby({
       readyClosureMemberIds,
     ],
   );
-
   // Drop partnerId if it's no longer in eligiblePartnerIds (status flipped to
   // closed, cooldown entry, focused-set mutation). Without this the Begin
   // button stays enabled with a stale pick and `commitDateBooking` throws
@@ -868,6 +879,8 @@ export function ConstellationLobby({
           }}
           focus={focusStar}
           partner={partnerStar}
+          focusDetail={pairCardDetails.focusDetail}
+          partnerDetail={pairCardDetails.partnerDetail}
           intentSlot={intentSlot}
           pairDossierSlot={pairDossierSlot}
           callouts={callouts}

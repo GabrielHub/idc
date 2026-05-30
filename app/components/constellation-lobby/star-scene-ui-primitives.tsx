@@ -3,7 +3,6 @@ import { Text } from "@react-three/drei";
 import type { ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 
-type GlassTone = "glass" | "ink" | "rose";
 type FlatPillTone = "label" | "labelActive";
 type ButtonTone = "glass" | "rose" | "amber";
 
@@ -101,57 +100,6 @@ function RoundedRectMesh({
   );
 }
 
-export function SceneGlassPill({
-  width,
-  height,
-  radius = height / 2,
-  tone = "ink",
-}: {
-  width: number;
-  height: number;
-  radius?: number;
-  tone?: GlassTone;
-}) {
-  const tokens = glassToneTokens(tone);
-  return (
-    <group>
-      <RoundedRectMesh
-        width={width * 1.08}
-        height={height * 1.32}
-        radius={radius * 1.18}
-        color={tokens.glow}
-        opacity={tokens.glowOpacity}
-        position={[0, -height * 0.08, -0.018]}
-        blending={THREE.AdditiveBlending}
-      />
-      <RoundedRectMesh
-        width={width + height * 0.1}
-        height={height + height * 0.1}
-        radius={radius + height * 0.05}
-        color={tokens.border}
-        opacity={tokens.borderOpacity}
-        position={[0, 0, -0.012]}
-      />
-      <RoundedRectMesh
-        width={width}
-        height={height}
-        radius={radius}
-        color={tokens.fill}
-        opacity={tokens.fillOpacity}
-        position={[0, 0, -0.006]}
-      />
-      <RoundedRectMesh
-        width={width * 0.84}
-        height={height * 0.16}
-        radius={height * 0.08}
-        color="#ffffff"
-        opacity={tokens.highlightOpacity}
-        position={[0, height * 0.26, 0.002]}
-      />
-    </group>
-  );
-}
-
 export function SceneFlatPill({
   width,
   height,
@@ -194,6 +142,8 @@ export function SceneText({
   position,
   anchorX = "center",
   anchorY = "middle",
+  whiteSpace = "nowrap",
+  lineHeight,
   outlineWidth,
 }: {
   children: string;
@@ -203,6 +153,8 @@ export function SceneText({
   position?: [number, number, number];
   anchorX?: "center" | "left" | "right";
   anchorY?: "middle" | "top" | "bottom";
+  whiteSpace?: "normal" | "overflowWrap" | "nowrap";
+  lineHeight?: number;
   outlineWidth?: number;
 }) {
   return (
@@ -214,7 +166,8 @@ export function SceneText({
       anchorX={anchorX}
       anchorY={anchorY}
       textAlign={anchorX === "center" ? "center" : anchorX}
-      whiteSpace="nowrap"
+      whiteSpace={whiteSpace}
+      lineHeight={lineHeight}
       outlineColor="rgba(0, 0, 0, 0.45)"
       outlineWidth={outlineWidth ?? fontSize * 0.045}
       position={position}
@@ -595,48 +548,6 @@ function HeartGlyph({ size, color, opacity }: { size: number; color: string; opa
       />
     </mesh>
   );
-}
-
-function glassToneTokens(tone: GlassTone): {
-  fill: string;
-  fillOpacity: number;
-  border: string;
-  borderOpacity: number;
-  glow: string;
-  glowOpacity: number;
-  highlightOpacity: number;
-} {
-  if (tone === "rose") {
-    return {
-      fill: ROSE,
-      fillOpacity: 0.24,
-      border: ROSE,
-      borderOpacity: 0.42,
-      glow: ROSE,
-      glowOpacity: 0.22,
-      highlightOpacity: 0.4,
-    };
-  }
-  if (tone === "glass") {
-    return {
-      fill: "#fff8fa",
-      fillOpacity: 0.16,
-      border: "#ffffff",
-      borderOpacity: 0.3,
-      glow: FUCHSIA,
-      glowOpacity: 0.12,
-      highlightOpacity: 0.34,
-    };
-  }
-  return {
-    fill: INK,
-    fillOpacity: 0.68,
-    border: "#ffffff",
-    borderOpacity: 0.18,
-    glow: ROSE,
-    glowOpacity: 0.18,
-    highlightOpacity: 0.22,
-  };
 }
 
 function flatPillToneTokens(tone: FlatPillTone): {

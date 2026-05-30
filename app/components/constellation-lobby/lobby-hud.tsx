@@ -5,11 +5,14 @@ import type { Member } from "../../domain/game";
 import { AuraButton } from "../aura-button";
 import type { PortraitPalette } from "../portrait-palette";
 import { avatarSrcsetFor, withAlpha } from "./math";
+import type { PairCardDetail } from "./pair-card-details";
 import type { LobbyState, StarMark } from "./types";
 
 export function SideRail({
   focus,
   partner,
+  focusDetail,
+  partnerDetail,
   intentSlot,
   intentSlotRef,
   pairDossierSlot,
@@ -19,6 +22,8 @@ export function SideRail({
 }: {
   focus: StarMark | undefined;
   partner: StarMark | undefined;
+  focusDetail?: PairCardDetail;
+  partnerDetail?: PairCardDetail;
   intentSlot?: ReactNode;
   intentSlotRef?: Ref<HTMLDivElement>;
   pairDossierSlot?: ReactNode;
@@ -45,10 +50,22 @@ export function SideRail({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.32, ease: [0.22, 0.8, 0.2, 1] }}
-            className="flex items-stretch justify-center gap-3"
+            className="flex items-end justify-center gap-3"
           >
-            <PairCard role="focus" star={focus} accent="#fb7185" onClear={onClearFocus} />
-            <PairCard role="partner" star={partner} accent="#c4b5fd" onClear={onClearPartner} />
+            <PairCard
+              role="focus"
+              star={focus}
+              detail={focusDetail}
+              accent="#fb7185"
+              onClear={onClearFocus}
+            />
+            <PairCard
+              role="partner"
+              star={partner}
+              detail={partnerDetail}
+              accent="#c4b5fd"
+              onClear={onClearPartner}
+            />
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -67,17 +84,21 @@ export function SideRail({
 function PairCard({
   role,
   star,
+  detail,
   accent,
   onClear,
 }: {
   role: "focus" | "partner";
   star: StarMark;
+  detail?: PairCardDetail;
   accent: string;
   onClear?: () => void;
 }) {
   const surface = role === "focus" ? "aura-liquid-glass-rose" : "aura-liquid-glass-violet";
   return (
-    <div
+    <motion.div
+      layout
+      transition={{ layout: { duration: 0.2, ease: [0.22, 0.8, 0.2, 1] } }}
       className={`group pointer-events-auto aura-liquid-glass ${surface} aura-liquid-glass-hover w-[280px] rounded-card px-4 py-3`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -99,8 +120,8 @@ function PairCard({
           </AuraButton>
         )}
       </div>
-      <MemberRow member={star.member} palette={star.palette} accent={accent} />
-    </div>
+      <MemberRow member={star.member} palette={star.palette} detail={detail} accent={accent} />
+    </motion.div>
   );
 }
 
@@ -120,10 +141,12 @@ function RoleHeader({ role }: { role: "focus" | "partner" }) {
 function MemberRow({
   member,
   palette,
+  detail,
   accent,
 }: {
   member: Member;
   palette: PortraitPalette;
+  detail?: PairCardDetail;
   accent: string;
 }) {
   return (
@@ -133,11 +156,41 @@ function MemberRow({
         <div className="truncate font-display text-display-sm text-aura-paper group-hover:overflow-visible group-hover:whitespace-normal">
           {member.firstName}
         </div>
-        <div className="truncate font-mono text-micro uppercase tracking-[0.16em] text-white/70 group-hover:overflow-visible group-hover:whitespace-normal">
-          {member.origin}
-        </div>
+        <PairCardDetailLine detail={detail} />
       </div>
     </div>
+  );
+}
+
+function PairCardDetailLine({ detail }: { detail?: PairCardDetail }) {
+  if (detail?.kind === "request") {
+    return (
+      <div className="mt-1 min-w-0">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <DetailLabel>{detail.label}</DetailLabel>
+          <span className="truncate font-sans text-label font-medium leading-snug text-white/78 group-hover:hidden">
+            {detail.summary}
+          </span>
+        </div>
+        <span className="mt-1 hidden whitespace-normal break-words font-sans text-label font-medium leading-snug text-white/85 group-hover:block">
+          {detail.fullText}
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-0.5 line-clamp-1 font-sans text-label font-medium leading-snug text-white/75 group-hover:line-clamp-none">
+      {detail?.text ?? "Selected for tonight"}
+    </div>
+  );
+}
+
+function DetailLabel({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex shrink-0 rounded-full bg-white/12 px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.08em] text-white/80 ring-1 ring-white/15">
+      {children}
+    </span>
   );
 }
 

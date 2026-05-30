@@ -483,7 +483,6 @@ export function computeArchiveCameraTarget(input: {
     return {
       position: [mid.x * 0.55, mid.y * 0.55, 14],
       lookAt: [mid.x, mid.y, mid.z],
-      bokehScale: 0.9,
     };
   }
   if (input.focusedStar !== undefined) {
@@ -491,10 +490,9 @@ export function computeArchiveCameraTarget(input: {
     return {
       position: [star.x * 0.45, star.y * 0.45, 16],
       lookAt: [star.x * 0.8, star.y * 0.8, star.z],
-      bokehScale: 0.7,
     };
   }
-  return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+  return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0] };
 }
 
 // Canvas FOV (38°) mirrored from the lobby's <Canvas camera={fov: 38}/> config.
@@ -522,7 +520,7 @@ const ARCHIVE_FIT_MARGIN = 1.55;
  */
 export function computeArchiveFitCamera(positions: readonly Vec3[]): CameraTarget {
   if (positions.length === 0) {
-    return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0], bokehScale: 0.45 };
+    return { position: [0, 0, ARCHIVE_CAMERA_Z], lookAt: [0, 0, 0] };
   }
   let minX = Infinity;
   let maxX = -Infinity;
@@ -547,7 +545,6 @@ export function computeArchiveFitCamera(positions: readonly Vec3[]): CameraTarge
   return {
     position: [centerX * 0.55, centerY * 0.55, z],
     lookAt: [centerX, centerY, 0],
-    bokehScale: 0.45,
   };
 }
 
@@ -572,7 +569,7 @@ export function computeArchiveEgoCameraTarget(input: {
   const zForX =
     (input.ringRadiusX * EGO_FIT_MARGIN) / (ARCHIVE_FIT_HALF_FOV_TAN * ARCHIVE_FIT_ASPECT);
   const z = Math.max(EGO_FIT_MIN_Z, Math.min(ARCHIVE_CAMERA_Z, Math.max(zForY, zForX)));
-  return { position: [0, 0, z], lookAt: [0, 0, 0], bokehScale: 0.6 };
+  return { position: [0, 0, z], lookAt: [0, 0, 0] };
 }
 
 export function computeFlythroughCameraTarget(
@@ -590,12 +587,10 @@ export function computeFlythroughCameraTarget(
       : isRosterFlythroughLayer(layer)
         ? FLYTHROUGH_LAYER_Z[1]
         : FLYTHROUGH_LAYER_Z[0];
-  const bokeh = layer === 0 ? 0.45 : isRosterFlythroughLayer(layer) ? 0.85 : 0.6;
 
   return {
     position: [biasX, biasY, z],
     lookAt: [biasX, biasY * 0.6, slabZ - 1],
-    bokehScale: bokeh,
   };
 }
 

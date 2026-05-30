@@ -6,12 +6,11 @@ import {
   computeLayerZOffset,
   computeRosterCohort,
   computeStarFlythroughLayer,
-  flythroughMemberSlabActivity,
   FOCUS_MARKER_SCALE,
   pairPartnerPosition,
   resolveClusterPosition,
+  resolveFlythroughStarPresentation,
   roleForStar,
-  sizingRoleForStar,
   type RosterClusterBounds,
 } from "./math";
 import { buildFocusMarkerOverlay, StarSprite } from "./star-sprite";
@@ -139,40 +138,6 @@ export function StarField({
           inArchive &&
           archiveIsolation !== undefined &&
           !archiveIsolation.includedMemberIds.has(star.member.id);
-        // The ego-selected member sits at world center; size it up so the hub
-        // of the spoke diagram reads as the subject, not just another partner.
-        const isArchiveEgoFocus = inArchive && archiveIsolation?.focusMemberId === star.member.id;
-        const archiveSlabActivity = inArchive
-          ? {
-              intensityMultiplier: archiveIsolated ? 0.36 : 1.08,
-              scaleMultiplier: isArchiveEgoFocus
-                ? archiveAvatarScale * 1.42
-                : archiveIsolated
-                  ? Math.max(0.74, archiveAvatarScale * 0.74)
-                  : archiveAvatarScale,
-            }
-          : undefined;
-        const slabActivity = isFocusMarker
-          ? { intensityMultiplier: 1, scaleMultiplier: FOCUS_MARKER_SCALE }
-          : (archiveSlabActivity ??
-            (flythroughLayer === undefined || currentLayer === undefined
-              ? undefined
-              : flythroughMemberSlabActivity(
-                  flythroughLayer,
-                  currentLayer,
-                  cohort,
-                  rosterSubview ?? "eligibles",
-                  rosterLeadOrder.length,
-                )));
-        const sizingRole = inArchive
-          ? "eligible"
-          : sizingRoleForStar({
-              role,
-              flythroughLayer,
-              currentLayer,
-              cohort,
-              rosterSubview,
-            });
         const clusterPosition = resolveClusterPosition({
           memberId: star.member.id,
           role,
@@ -186,6 +151,35 @@ export function StarField({
           inArchive,
           rosterSubview,
         });
+        // The ego-selected member sits at world center; size it up so the hub
+        // of the spoke diagram reads as the subject, not just another partner.
+        const isArchiveEgoFocus = inArchive && archiveIsolation?.focusMemberId === star.member.id;
+        const archiveSlabActivity = inArchive
+          ? {
+              intensityMultiplier: archiveIsolated ? 0.36 : 1.08,
+              scaleMultiplier: isArchiveEgoFocus
+                ? archiveAvatarScale * 1.42
+                : archiveIsolated
+                  ? Math.max(0.74, archiveAvatarScale * 0.74)
+                  : archiveAvatarScale,
+            }
+          : undefined;
+        const flythroughPresentation = inArchive
+          ? null
+          : resolveFlythroughStarPresentation({
+              role,
+              flythroughLayer,
+              currentLayer,
+              cohort,
+              rosterSubview,
+              activeLeadCount: rosterLeadOrder.length,
+              isFocusMarker,
+              focusMarkerScale: FOCUS_MARKER_SCALE,
+              clustered: clusterPosition !== null,
+            });
+        if (!inArchive && flythroughPresentation === null) return null;
+        const slabActivity = inArchive ? archiveSlabActivity : flythroughPresentation?.slabActivity;
+        const sizingRole = inArchive ? "eligible" : (flythroughPresentation?.sizingRole ?? role);
 
         return (
           <StarSprite

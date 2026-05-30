@@ -22,6 +22,7 @@ import {
   partnerRingBoundsForCanvas,
   partnerRingPosition,
   resolveClusterPosition,
+  resolveFlythroughStarPresentation,
   resolveStarPresentation,
   resolveStarRenderTarget,
   ringColorForRole,
@@ -724,7 +725,62 @@ describe("flythroughMemberSlabActivity", () => {
   });
 });
 
+describe("resolveFlythroughStarPresentation", () => {
+  it("culls selected pair roles on inactive flythrough slabs", () => {
+    expect(
+      resolveFlythroughStarPresentation({
+        role: "partner",
+        flythroughLayer: 1,
+        currentLayer: 0,
+        cohort: "eligible",
+        rosterSubview: "eligibles",
+      }),
+    ).toBeNull();
+  });
+
+  it("culls selected pair roles from the off-tonight roster view", () => {
+    expect(
+      resolveFlythroughStarPresentation({
+        role: "partner",
+        flythroughLayer: 1,
+        currentLayer: 2,
+        cohort: "eligible",
+        rosterSubview: "off_tonight",
+      }),
+    ).toBeNull();
+  });
+
+  it("keeps the focus marker visible on the eligible roster view", () => {
+    expect(
+      resolveFlythroughStarPresentation({
+        role: "focus",
+        flythroughLayer: 0,
+        currentLayer: 1,
+        cohort: undefined,
+        rosterSubview: "eligibles",
+        isFocusMarker: true,
+        focusMarkerScale: 1,
+      }),
+    ).toEqual({
+      slabActivity: { intensityMultiplier: 1, scaleMultiplier: 1 },
+      sizingRole: "focus",
+    });
+  });
+});
+
 describe("sizingRoleForStar", () => {
+  it("keeps a selected focus case at the shared focus-cluster size", () => {
+    expect(
+      sizingRoleForStar({
+        role: "focus",
+        flythroughLayer: 0,
+        currentLayer: 0,
+        cohort: undefined,
+        rosterSubview: "eligibles",
+      }),
+    ).toBe("dim");
+  });
+
   it("normalizes active eligible roster leads to eligible geometry", () => {
     expect(
       sizingRoleForStar({
@@ -1042,12 +1098,5 @@ describe("computeFlythroughCameraTarget", () => {
       const target = computeFlythroughCameraTarget(layer, undefined);
       expect(target.lookAt[2]).toBeLessThan(target.position[2]);
     }
-  });
-
-  it("tightens DoF as the player closes in on the scenarios layer", () => {
-    const layer0 = computeFlythroughCameraTarget(0, undefined);
-    const layer3 = computeFlythroughCameraTarget(3, undefined);
-    expect(layer3.bokehScale).toBeLessThan(1);
-    expect(layer0.bokehScale).toBeLessThan(1);
   });
 });

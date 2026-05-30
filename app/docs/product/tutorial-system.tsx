@@ -164,7 +164,7 @@ export const sections: DocSectionEntry[] = [
           items={[
             {
               term: <DocCode>TutorialCoachMark</DocCode>,
-              def: "The paper note. Use it for copy, progress dots, the End tour control, and optional manager art.",
+              def: "The paper note. Use it for copy, progress dots, the End tour control, and optional manager art. Set text tone explicitly when a step sits on a bright surface.",
             },
             {
               term: <DocCode>TutorialSpotlight</DocCode>,

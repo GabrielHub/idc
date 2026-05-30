@@ -111,7 +111,7 @@ export function TutorialCoachMark({
           width: effectiveWidth,
           y: "0%",
         };
-  const toneClasses = textToneClasses(textTone);
+  const toneClasses = textToneClasses();
   const visibleDismissLabel =
     dismissRequiresConfirmation && dismissConfirming ? dismissConfirmLabel : dismissLabel;
 
@@ -147,7 +147,7 @@ export function TutorialCoachMark({
         transition={{ duration: 0.32, ease: EASE_OUT_QUART }}
         className="relative"
       >
-        <div className="aura-liquid-glass relative rounded-card">
+        <div data-aura-glass-tone={textTone} className="aura-liquid-glass relative rounded-card">
           <GlassWatermark />
           <RegistrationCorners />
 
@@ -219,22 +219,15 @@ export function TutorialCoachMark({
   );
 }
 
-function textToneClasses(tone: CoachMarkTextTone): {
+function textToneClasses(): {
   title: string;
   body: string;
   dismiss: string;
 } {
-  if (tone === "dark") {
-    return {
-      title: "text-aura-ink",
-      body: "text-aura-muted",
-      dismiss: "text-aura-faint",
-    };
-  }
   return {
-    title: "text-aura-paper",
-    body: "text-aura-paper/80",
-    dismiss: "text-white/55",
+    title: "text-[color:var(--aura-glass-text)]",
+    body: "text-[color:var(--aura-glass-text-muted)]",
+    dismiss: "text-[color:var(--aura-glass-text-faint)]",
   };
 }
 
@@ -242,7 +235,7 @@ function GlassWatermark() {
   return (
     <span
       aria-hidden
-      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0)_0_22px,rgba(255,255,255,0.06)_22px_23px),radial-gradient(120%_80%_at_100%_0%,rgba(255,255,255,0.12),rgba(255,255,255,0)_60%)]"
+      className="pointer-events-none absolute inset-0 overflow-hidden rounded-card bg-[repeating-linear-gradient(0deg,rgba(255,255,255,0)_0_22px,var(--aura-glass-watermark-line)_22px_23px),radial-gradient(120%_80%_at_100%_0%,var(--aura-glass-watermark-glow),rgba(255,255,255,0)_60%)]"
     />
   );
 }
@@ -250,10 +243,10 @@ function GlassWatermark() {
 function RegistrationCorners() {
   return (
     <span aria-hidden className="pointer-events-none absolute inset-0">
-      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-white/30" />
-      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-white/30" />
-      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-white/30" />
-      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-white/30" />
+      <span className="absolute left-2 top-2 size-2.5 border-l border-t border-[color:var(--aura-glass-registration)]" />
+      <span className="absolute right-2 top-2 size-2.5 border-r border-t border-[color:var(--aura-glass-registration)]" />
+      <span className="absolute bottom-2 left-2 size-2.5 border-b border-l border-[color:var(--aura-glass-registration)]" />
+      <span className="absolute bottom-2 right-2 size-2.5 border-b border-r border-[color:var(--aura-glass-registration)]" />
     </span>
   );
 }

@@ -162,6 +162,23 @@ body::-webkit-scrollbar {
    a flat website page.
    ======================================================================== */
 
+/* Shared dark-on-light glass tone. The frosted surfaces below default to it;
+   `[data-aura-glass-tone="dark"]` re-applies the same set as an override when a
+   normally-light surface needs dark text over a bright backdrop. */
+.aura-glass,
+.aura-glass-strong,
+.aura-glass-flat {
+  --aura-glass-text: var(--color-aura-ink);
+  --aura-glass-text-muted: var(--color-aura-muted);
+  --aura-glass-text-faint: var(--color-aura-faint);
+  --aura-glass-registration: rgba(15, 23, 42, 0.22);
+  --aura-glass-watermark-line: rgba(15, 23, 42, 0.045);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.16);
+  --aura-glass-dot-line: rgba(15, 23, 42, 0.18);
+  --aura-glass-dot-future: rgba(15, 23, 42, 0.22);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
+}
+
 /* Standard frosted surface, used for chrome pills and tiles. */
 .aura-glass {
   background-image: linear-gradient(
@@ -176,6 +193,7 @@ body::-webkit-scrollbar {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.85),
     0 1px 2px 0 rgba(15, 23, 42, 0.04),
     0 14px 38px -10px rgba(167, 139, 250, 0.32);
+  color: var(--aura-glass-text);
 }
 
 /* Heavier glass for primary docks (selection bar, date dock). The denser
@@ -193,6 +211,7 @@ body::-webkit-scrollbar {
     inset 0 1px 0 0 rgba(255, 255, 255, 0.95),
     0 4px 14px -4px rgba(15, 23, 42, 0.08),
     0 28px 70px -18px rgba(244, 63, 94, 0.28);
+  color: var(--aura-glass-text);
 }
 
 /* Flat modern glass: a single semi-transparent fill, neutral hairline, and
@@ -207,12 +226,22 @@ body::-webkit-scrollbar {
   box-shadow:
     0 1px 2px 0 rgba(15, 23, 42, 0.04),
     0 18px 44px -18px rgba(15, 23, 42, 0.18);
+  color: var(--aura-glass-text);
 }
 
 /* Inverted glass for active segments and pressed tab states. */
 .aura-glass-ink {
+  --aura-glass-text: var(--color-aura-paper);
+  --aura-glass-text-muted: rgba(255, 253, 249, 0.78);
+  --aura-glass-text-faint: rgba(255, 255, 255, 0.56);
+  --aura-glass-registration: rgba(255, 255, 255, 0.3);
+  --aura-glass-watermark-line: rgba(255, 255, 255, 0.06);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.12);
+  --aura-glass-dot-line: rgba(255, 255, 255, 0.18);
+  --aura-glass-dot-future: rgba(255, 255, 255, 0.28);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
   background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.96) 0%, rgba(30, 41, 59, 0.92) 100%);
-  color: white;
+  color: var(--aura-glass-text);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.16),
     0 6px 20px -6px rgba(15, 23, 42, 0.45);
@@ -220,6 +249,15 @@ body::-webkit-scrollbar {
 
 /* Tinted glass for status notices. */
 .aura-glass-rose {
+  --aura-glass-text: var(--color-aura-rose);
+  --aura-glass-text-muted: #9f1239;
+  --aura-glass-text-faint: rgba(159, 18, 57, 0.62);
+  --aura-glass-registration: rgba(244, 63, 94, 0.28);
+  --aura-glass-watermark-line: rgba(244, 63, 94, 0.06);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.16);
+  --aura-glass-dot-line: rgba(159, 18, 57, 0.18);
+  --aura-glass-dot-future: rgba(159, 18, 57, 0.22);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
   background-image: linear-gradient(
     180deg,
     rgba(255, 241, 242, 0.92) 0%,
@@ -231,6 +269,7 @@ body::-webkit-scrollbar {
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
     0 18px 44px -14px rgba(244, 63, 94, 0.32);
+  color: var(--aura-glass-text);
 }
 
 /* Subtle hover lift used on glass tiles. */
@@ -257,6 +296,21 @@ body::-webkit-scrollbar {
    .aura-liquid-glass-hover when the shard is interactive; it adds scale +
    brightness on hover.
    ======================================================================== */
+/* Shared light-on-dark glass tone for shards floating over the 3D scene.
+   `[data-aura-glass-tone="light"]` re-applies the same set as an override. */
+.aura-liquid-glass,
+.aura-liquid-glass-ink {
+  --aura-glass-text: rgba(255, 250, 244, 0.94);
+  --aura-glass-text-muted: rgba(255, 250, 244, 0.78);
+  --aura-glass-text-faint: rgba(255, 255, 255, 0.55);
+  --aura-glass-registration: rgba(255, 255, 255, 0.3);
+  --aura-glass-watermark-line: rgba(255, 255, 255, 0.06);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.12);
+  --aura-glass-dot-line: rgba(255, 255, 255, 0.18);
+  --aura-glass-dot-future: rgba(255, 255, 255, 0.28);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
+}
+
 .aura-liquid-glass {
   background-image: linear-gradient(
     135deg,
@@ -273,7 +327,7 @@ body::-webkit-scrollbar {
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.1),
     0 2px 6px -2px rgba(15, 23, 42, 0.18),
     0 22px 60px -22px rgba(244, 63, 94, 0.22);
-  color: rgba(255, 250, 244, 0.92);
+  color: var(--aura-glass-text);
 }
 
 .aura-liquid-glass-rose {
@@ -291,7 +345,7 @@ body::-webkit-scrollbar {
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
     0 2px 6px -2px rgba(15, 23, 42, 0.18),
     0 24px 60px -22px rgba(244, 63, 94, 0.42);
-  color: rgba(255, 250, 244, 0.95);
+  color: var(--aura-glass-text);
 }
 
 .aura-liquid-glass-violet {
@@ -309,7 +363,7 @@ body::-webkit-scrollbar {
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
     0 2px 6px -2px rgba(15, 23, 42, 0.18),
     0 24px 60px -22px rgba(139, 92, 246, 0.4);
-  color: rgba(255, 250, 244, 0.95);
+  color: var(--aura-glass-text);
 }
 
 .aura-liquid-glass-amber {
@@ -327,7 +381,7 @@ body::-webkit-scrollbar {
     inset 0 -1px 0 0 rgba(0, 0, 0, 0.12),
     0 2px 6px -2px rgba(15, 23, 42, 0.18),
     0 24px 60px -22px rgba(245, 158, 11, 0.34);
-  color: rgba(255, 250, 244, 0.95);
+  color: var(--aura-glass-text);
 }
 
 .aura-liquid-glass-ink {
@@ -340,7 +394,31 @@ body::-webkit-scrollbar {
     inset 0 0 0 1px rgba(255, 255, 255, 0.05),
     0 2px 6px -2px rgba(0, 0, 0, 0.35),
     0 22px 60px -22px rgba(0, 0, 0, 0.5);
-  color: rgba(255, 250, 244, 0.92);
+  color: var(--aura-glass-text);
+}
+
+[data-aura-glass-tone="dark"] {
+  --aura-glass-text: var(--color-aura-ink);
+  --aura-glass-text-muted: var(--color-aura-muted);
+  --aura-glass-text-faint: var(--color-aura-faint);
+  --aura-glass-registration: rgba(15, 23, 42, 0.22);
+  --aura-glass-watermark-line: rgba(15, 23, 42, 0.045);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.16);
+  --aura-glass-dot-line: rgba(15, 23, 42, 0.18);
+  --aura-glass-dot-future: rgba(15, 23, 42, 0.22);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
+}
+
+[data-aura-glass-tone="light"] {
+  --aura-glass-text: rgba(255, 250, 244, 0.94);
+  --aura-glass-text-muted: rgba(255, 250, 244, 0.78);
+  --aura-glass-text-faint: rgba(255, 255, 255, 0.55);
+  --aura-glass-registration: rgba(255, 255, 255, 0.3);
+  --aura-glass-watermark-line: rgba(255, 255, 255, 0.06);
+  --aura-glass-watermark-glow: rgba(255, 255, 255, 0.12);
+  --aura-glass-dot-line: rgba(255, 255, 255, 0.18);
+  --aura-glass-dot-future: rgba(255, 255, 255, 0.28);
+  --aura-glass-dot-active-ring: rgba(255, 255, 255, 0.95);
 }
 
 .aura-liquid-glass-hover {

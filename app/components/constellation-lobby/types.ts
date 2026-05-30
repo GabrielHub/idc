@@ -63,8 +63,6 @@ export type LobbyScenario = {
 export type CameraTarget = {
   position: [number, number, number];
   lookAt: [number, number, number];
-  /** EffectComposer DepthOfField bokeh scale for this framing. */
-  bokehScale: number;
 };
 
 /**
