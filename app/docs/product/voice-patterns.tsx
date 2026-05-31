@@ -19,7 +19,7 @@ export const meta: DocMeta = {
   title: "Voice patterns",
   description:
     "Two layers a fixture can cite: seventeen single-bubble comedic flavors, and nine cross-turn performance mechanics. Flavors paint one line; mechanics shape how the character carries a bit across turns.",
-  order: 1,
+  order: 2.5,
 };
 
 export const lede = (
@@ -31,8 +31,10 @@ export const lede = (
     IDC overlap on flavors and mechanics but stay recognizable because of how they react, what they
     protect, and what they refuse to say, not because they hit a checklist per turn. Agents doing a
     tuning pass should start with{" "}
-    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
-    open this catalog only when the fixture cites pattern drift or needs a specific mechanic.
+    <DocLink to="/docs/product/voice-requirements#running-a-pass">
+      Member voice: requirements
+    </DocLink>{" "}
+    and open this catalog only when the fixture cites pattern drift or needs a specific mechanic.
     Prompt-packaging rules live in{" "}
     <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
@@ -341,8 +343,8 @@ export const sections: DocSectionEntry[] = [
           see in one line. Do not paste them into a fixture as in-game dialogue, and do not treat
           their dating-app setup as part of the IDC date. Translate only the useful mechanism into
           spoken table dialogue. The full spoken-dialogue contract lives in{" "}
-          <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
-            Member voice authoring
+          <DocLink to="/docs/product/voice-requirements#spoken-dialogue">
+            Member voice: requirements
           </DocLink>{" "}
           .
         </P>

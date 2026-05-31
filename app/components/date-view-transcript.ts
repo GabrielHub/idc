@@ -15,6 +15,7 @@ import {
 } from "../services/date-engine";
 import { collectRecentSpeakerLines, hasNearDuplicateRecentLine } from "../services/date-prompts";
 import { classifyFocusAskOutcomeFromSession } from "../services/shift-request-assessment";
+import { reactionForDateAffect } from "./date-presentation-signals";
 import type { ReactionIntensity, ReactionKind, ReactionSignal } from "./date-reactions";
 
 export type StreamingDraftMessage = {
@@ -309,6 +310,21 @@ export function buildReactionSignals(
 
   for (const participant of participants) {
     const moodDelta = latestJudge.memberMoodDeltas[participant.memberId] ?? 0;
+    const affectReaction = reactionForDateAffect(
+      latestJudge.memberAffects?.[participant.memberId]?.affect,
+    );
+
+    if (affectReaction !== null) {
+      const affectIntensity =
+        affectReaction.moodSource === "magnitude" ? Math.abs(moodDelta) : moodDelta;
+      pushReaction(
+        signals,
+        latestJudge,
+        participant.side,
+        affectReaction.kind,
+        Math.max(affectReaction.minimumIntensity, affectIntensity),
+      );
+    }
 
     if (moodDelta > 0) {
       pushReaction(

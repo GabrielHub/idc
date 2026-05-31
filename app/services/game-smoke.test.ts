@@ -590,9 +590,9 @@ describe("IDC playable smoke path", () => {
       stats: {
         ...pairProjection.stats,
         chemistry: 92,
-        trust: 92,
+        trust: 68,
         relationshipHealth: 92,
-        strain: 42,
+        strain: 55,
         conflict: 18,
       },
       completedDateIds: ["prior-date-1", "prior-date-2"],

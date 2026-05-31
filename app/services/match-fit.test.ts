@@ -556,7 +556,7 @@ describe("applyMatchFitToJudgeSnapshot", () => {
 
     expect(result.dateHealthDelta).toBe(-10);
     expect(result.statDeltas.strain).not.toBe(judgeSnapshot.statDeltas.strain);
-    expect(result.statDeltas.conflict).toBe(judgeSnapshot.statDeltas.conflict);
+    expect(result.statDeltas.conflict).toBe(14);
     expect(result.memberMoodDeltas).toEqual(judgeSnapshot.memberMoodDeltas);
     expect(result.shouldEndEarly).toBe(true);
     expect(result.earlyEndReason).toBe("Member boundary crossed walkout threshold.");

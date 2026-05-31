@@ -29,6 +29,7 @@ import {
   type JudgeSnapshot,
   type MatchmakingIntent,
   type Member,
+  type MemberDateAffect,
   type MemberStateSnapshot,
   type MemoryRecord,
   type PairState,
@@ -67,11 +68,14 @@ import {
 import { createDateTranscriptMemoryRecords } from "./date-transcript-memory";
 import { listUniqueOpenLoops } from "./pair-memory-state";
 import {
+  applyAppliedPairStatDeltas,
   applyPrimaryPairStatDeltas,
-  deriveJudgeSnapshotPairStatDeltas,
   type PrimaryStatDeltas,
 } from "./pair-stats";
 import { derivePairTrajectory } from "./pair-trajectory";
+import { privateIntentForDateAffect } from "./date-affects";
+import { applyDateConsequenceModel } from "./date-consequence-model";
+import { derivePostDateMemberDeltas, type OutcomeStateDeltas } from "./date-outcome-state";
 import {
   CLIENT_LOSS_LIMIT_BASE,
   CLOSURE_THRESHOLD,
@@ -240,20 +244,6 @@ function memberStateSnapshotsFor(members: readonly Member[]): Record<string, Mem
     members.map((member) => [member.id, memberStateSnapshot(member)] as const),
   );
 }
-
-export type OutcomeStateDeltas = {
-  retention: number;
-  mood: number;
-  burnout: number;
-};
-
-export const FINAL_OUTCOME_DELTAS: Record<DateFinalReport["outcome"], OutcomeStateDeltas> = {
-  second_date: { retention: 2, mood: 3, burnout: -2 },
-  mixed: { retention: -3, mood: -1, burnout: 1 },
-  cool_down: { retention: -7, mood: -4, burnout: 4 },
-  bad_fit: { retention: -14, mood: -7, burnout: 6 },
-  early_end: { retention: -18, mood: -9, burnout: 8 },
-};
 
 export type CommitDateBookingInput = {
   focusMemberId: string;
@@ -2219,13 +2209,9 @@ export function judgeExchangeDeterministically({
     spark: attractionDelta,
   };
   const memberMoodDeltas = deriveDeterministicMemberMoodDeltas({
-    session,
     members,
-    scenario,
-    exchangeMessages,
     dateHealthDelta,
     statDeltas,
-    matchFit,
   });
   const memoryCandidates = [
     {
@@ -2241,41 +2227,40 @@ export function judgeExchangeDeterministically({
     },
   ];
 
-  return deriveJudgeSnapshotPairStatDeltas(
-    pairState,
-    judgeSnapshotSchema.parse({
-      id: `judge-${session.id}-${exchangeIndex}`,
-      dateSessionId: session.id,
-      exchangeIndex,
-      dateHealthDelta,
-      statDeltas,
-      memberMoodDeltas,
-      shouldEndEarly,
-      earlyEndReason: shouldEndEarly ? "Date Health reached zero." : undefined,
-      endSentiment: shouldEndEarly ? "negative" : null,
-      notableMoments: exchangeMessages.map((message) => message.text).slice(0, 2),
-      playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
-      memoryCandidates,
-    }),
-  );
+  const rawJudgeSnapshot = judgeSnapshotSchema.parse({
+    id: `judge-${session.id}-${exchangeIndex}`,
+    dateSessionId: session.id,
+    exchangeIndex,
+    dateHealthDelta,
+    statDeltas,
+    memberMoodDeltas,
+    shouldEndEarly,
+    earlyEndReason: shouldEndEarly ? "Date Health reached zero." : undefined,
+    endSentiment: shouldEndEarly ? "negative" : null,
+    notableMoments: exchangeMessages.map((message) => message.text).slice(0, 2),
+    playerSummary: buildJudgeSummary(dateHealthDelta, repeatPenalty, interventionBonus),
+    memoryCandidates,
+  });
+  const modeledJudgeSnapshot = applyDateConsequenceModel({
+    session,
+    members,
+    scenario,
+    judgeSnapshot: rawJudgeSnapshot,
+    matchFit,
+    exchangeMessages,
+  });
+
+  return modeledJudgeSnapshot;
 }
 
 function deriveDeterministicMemberMoodDeltas({
-  session,
   members,
-  scenario,
-  exchangeMessages,
   dateHealthDelta,
   statDeltas,
-  matchFit,
 }: {
-  session: DateSession;
   members: readonly Member[];
-  scenario: DateScenario;
-  exchangeMessages: readonly DateMessage[];
   dateHealthDelta: number;
   statDeltas: JudgeSnapshot["statDeltas"];
-  matchFit: MatchFitResult | undefined;
 }): Record<string, number> {
   const baseDelta = clampMemberMoodDelta(Math.round(dateHealthDelta / 4));
   const sharedAttraction = Math.max(statDeltas.spark ?? 0, statDeltas.chemistry ?? 0);
@@ -2287,15 +2272,7 @@ function deriveDeterministicMemberMoodDeltas({
   const memberMoodDeltas: Record<string, number> = {};
 
   for (const member of members) {
-    let delta = baseDelta + deterministicScenarioMoodPressure(member, scenario);
-
-    if (matchFit?.boundaryRisk?.memberId === member.id) {
-      delta -= 2;
-    }
-
-    if (memberRespondedAfterIntervention(session, exchangeMessages, member.id)) {
-      delta += 2;
-    }
+    let delta = baseDelta;
 
     if (sharedAttraction >= 4 && delta >= 0) {
       delta += 1;
@@ -2309,61 +2286,6 @@ function deriveDeterministicMemberMoodDeltas({
   }
 
   return memberMoodDeltas;
-}
-
-function deterministicScenarioMoodPressure(member: Member, scenario: DateScenario): number {
-  let pressure = 0;
-  const tags = scenario.card.tags;
-
-  if (member.tags.includes("needs_low_pressure") && tags.includes("high_pressure")) {
-    pressure -= 3;
-  }
-  if (member.tags.includes("needs_low_pressure") && tags.includes("low_pressure")) {
-    pressure += 1;
-  }
-  if (member.tags.includes("needs_clear_plan") && !tags.includes("low_pressure")) {
-    pressure -= 1;
-  }
-  if (member.tags.includes("prophecy_averse") && tags.includes("prophecy")) {
-    pressure -= 4;
-  }
-  if (member.tags.includes("privacy_sensitive") && tags.includes("public")) {
-    pressure -= scenario.card.risk === "high" ? 4 : 2;
-  }
-  if (member.tags.includes("memory_sensitive") && tags.includes("memory")) {
-    pressure -= 2;
-  }
-  if (member.tags.includes("grief_sensitive") && tags.includes("memory")) {
-    pressure -= scenario.card.intimacy === "high" ? 4 : 2;
-  }
-  if (member.tags.includes("career_focused") && tags.includes("career")) {
-    pressure += 2;
-  }
-  if (
-    member.tags.includes("weirdness_native") &&
-    (tags.includes("cosmic") || tags.includes("haunted"))
-  ) {
-    pressure += 1;
-  }
-
-  return pressure;
-}
-
-function memberRespondedAfterIntervention(
-  session: DateSession,
-  exchangeMessages: readonly DateMessage[],
-  memberId: string,
-): boolean {
-  return session.interventions.some(
-    (intervention) =>
-      intervention.targetMemberId === memberId &&
-      exchangeMessages.some(
-        (message) =>
-          message.kind === "character" &&
-          message.speakerId === memberId &&
-          message.turnIndex > intervention.usedAtTurn,
-      ),
-  );
 }
 
 function clampMemberMoodDelta(value: number): number {
@@ -2395,12 +2317,14 @@ export function finalizeDateSession({
     outcome,
     completedDateCount,
     members,
+    finalDateHealth: session.dateHealth,
   });
   const closureNearMiss = shouldFileClosureNearMiss({
     pairState,
     outcome,
     completedDateCount,
     members,
+    finalDateHealth: session.dateHealth,
   });
   const intentOutcome =
     session.matchmakingIntent === undefined
@@ -2715,7 +2639,7 @@ export function applyJudgeToPairState(
 ): PairState {
   return {
     ...pairState,
-    stats: applyPrimaryPairStatDeltas(pairState.stats, judgeSnapshot.statDeltas),
+    stats: applyAppliedPairStatDeltas(pairState.stats, judgeSnapshot.statDeltas),
   };
 }
 
@@ -2750,11 +2674,19 @@ export function applyJudgeToPrivateDateState(
     };
     const moodDelta = judgeSnapshot.memberMoodDeltas[memberId] ?? 0;
     const comfortDelta = Math.round(judgeSnapshot.dateHealthDelta / 2) + Math.round(moodDelta / 2);
+    const memberAffect = judgeSnapshot.memberAffects?.[memberId];
 
     nextState[memberId] = {
       mood: clampScore(current.mood + moodDelta),
       comfort: clampScore(current.comfort + comfortDelta),
-      intent: derivePrivateDateIntent(current.intent, moodDelta, judgeSnapshot),
+      intent: derivePrivateDateIntent(
+        current.intent,
+        moodDelta,
+        judgeSnapshot,
+        memberAffect?.affect,
+      ),
+      affect: memberAffect?.affect,
+      affectCause: memberAffect?.cause,
     };
   }
 
@@ -2765,11 +2697,17 @@ function derivePrivateDateIntent(
   currentIntent: string,
   moodDelta: number,
   judgeSnapshot: JudgeSnapshot,
+  memberAffect: MemberDateAffect | undefined,
 ): string {
   const sparkDelta = judgeSnapshot.statDeltas.spark ?? 0;
   const chemistryDelta = judgeSnapshot.statDeltas.chemistry ?? 0;
   const strainDelta = judgeSnapshot.statDeltas.strain ?? 0;
   const conflictDelta = judgeSnapshot.statDeltas.conflict ?? 0;
+
+  const affectIntent = privateIntentForDateAffect(memberAffect);
+  if (affectIntent !== null) {
+    return affectIntent;
+  }
 
   if (
     (judgeSnapshot.shouldEndEarly && moodDelta <= 0) ||
@@ -2825,7 +2763,6 @@ export function applyDateFinalReportToMembers(
       : undefined;
 
   const participantIds = new Set(session.participants);
-  const baseDeltas = FINAL_OUTCOME_DELTAS[outcome];
 
   return members.map((member) => {
     if (!participantIds.has(member.id)) {
@@ -2833,8 +2770,9 @@ export function applyDateFinalReportToMembers(
     }
 
     const isFocus = member.id === focusMemberId;
+    const memberDeltas = derivePostDateMemberDeltas(member, session, outcome);
     const updated = applyMemberStateDeltas(member, {
-      ...baseDeltas,
+      ...memberDeltas,
       recentDateResult: isFocus && focusAskResult !== undefined ? focusAskResult : baseResult,
     });
 
@@ -2882,8 +2820,8 @@ function applyIgnoredRequestPenalties(
 
     return applyMemberStateDeltas(member, {
       mood: -ignoredPenalty,
-      burnout: 0,
-      retention: 0,
+      burnout: Math.ceil(ignoredPenalty / 6),
+      retention: -Math.ceil(ignoredPenalty / 2),
       recentDateResult: "Request unaddressed. Member felt skipped.",
     });
   });
@@ -2902,13 +2840,12 @@ function applyMissedRequestPenalties(
       return member;
     }
 
-    return {
-      ...member,
-      state: {
-        ...member.state,
-        mood: clampScore(member.state.mood - moodPenalty),
-      },
-    };
+    return applyMemberStateDeltas(member, {
+      mood: -moodPenalty,
+      burnout: Math.ceil(moodPenalty / 7),
+      retention: -Math.ceil(moodPenalty / 3),
+      recentDateResult: "Booked, but the ask never landed.",
+    });
   });
 }
 
@@ -3529,15 +3466,15 @@ function deriveDateOutcome(session: DateSession, pairState: PairState): DateFina
     return "second_date";
   }
 
-  if (session.dateHealth >= 65) {
+  if (session.dateHealth >= 62) {
     return "second_date";
   }
 
-  if (session.dateHealth <= 25 || isBadFitOutcome(pairState.stats)) {
+  if (session.dateHealth <= 30 || isBadFitOutcome(pairState.stats)) {
     return "bad_fit";
   }
 
-  if (pairState.stats.strain >= 70) {
+  if (pairState.stats.strain >= 62) {
     return "cool_down";
   }
 
@@ -3585,11 +3522,13 @@ export function shouldFileClosureNearMiss({
   outcome,
   completedDateCount,
   members,
+  finalDateHealth,
 }: {
   pairState: PairState;
   outcome: DateFinalReport["outcome"];
   completedDateCount: number;
   members: readonly Member[];
+  finalDateHealth?: number;
 }): boolean {
   if (outcome === "bad_fit" || outcome === "early_end") {
     return false;
@@ -3622,6 +3561,7 @@ export function shouldFileClosureNearMiss({
       outcome,
       completedDateCount,
       members,
+      finalDateHealth,
     })
   ) {
     return false;
@@ -3659,7 +3599,15 @@ export function createClosureNearMissMemoryRecord({
   const completedDateCount = pairState.completedDateIds.includes(session.id)
     ? pairState.completedDateIds.length
     : pairState.completedDateIds.length + 1;
-  if (!shouldFileClosureNearMiss({ pairState, outcome, completedDateCount, members })) {
+  if (
+    !shouldFileClosureNearMiss({
+      pairState,
+      outcome,
+      completedDateCount,
+      members,
+      finalDateHealth: session.dateHealth,
+    })
+  ) {
     return null;
   }
 

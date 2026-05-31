@@ -139,14 +139,15 @@ export const sections: DocSectionEntry[] = [
               <Strong>missed</Strong> — booked but neither ask read was filed; the date drifted off
               the ask. Does not rotate (the ask stays alive for another shift). If the missed ask
               was the lead ask, the member loses half of <DocCode>moodPenaltyIfIgnored</DocCode>{" "}
-              mood (no burnout or retention hit). Background drifts apply no penalty. Recent date
-              result reads "Booked, but the ask never landed."
+              mood, takes a small retention hit, and gains light burnout. Background drifts apply no
+              penalty. Recent date result reads "Booked, but the ask never landed."
             </span>,
             <span key="ignored">
               <Strong>ignored</Strong> — never booked. Rotates. If the ignored ask was the lead ask,
               the member loses the full <DocCode>moodPenaltyIfIgnored</DocCode> mood (5 to 7 per
-              request, authored on the fixture; no burnout or retention hit). Background ignored
-              asks apply no penalty — they read as cases waiting in the queue on the shift report.
+              request, authored on the fixture), takes a larger retention hit, and gains burnout.
+              Background ignored asks apply no penalty — they read as cases waiting in the queue on
+              the shift report.
             </span>,
           ]}
         />
@@ -394,34 +395,40 @@ export const sections: DocSectionEntry[] = [
         <DocSubsection id="closure-threshold" title="Threshold">
           <P>
             Threshold lives in <DocCode>app/services/closures.ts</DocCode> as{" "}
-            <DocCode>CLOSURE_THRESHOLD</DocCode>:
+            <DocCode>CLOSURE_THRESHOLD</DocCode> and <DocCode>DECISIVE_CLOSURE_THRESHOLD</DocCode>:
           </P>
           <DocList
             items={[
               <span key="chem">
-                <DocCode>chemistry &gt;= 75</DocCode>
+                Clean stat path: <DocCode>chemistry &gt;= 68</DocCode>,{" "}
+                <DocCode>trust &gt;= 68</DocCode>, and{" "}
+                <DocCode>relationshipHealth &gt;= 70</DocCode>.
               </span>,
-              <span key="trust">
-                <DocCode>trust &gt;= 75</DocCode>
+              <span key="pressure">
+                Clean pressure cap: <DocCode>strain &lt;= 42</DocCode> and{" "}
+                <DocCode>conflict &lt;= 42</DocCode>.
               </span>,
-              <span key="health">
-                <DocCode>relationshipHealth &gt;= 75</DocCode>
-              </span>,
-              <span key="strain">
-                <DocCode>strain &lt;= 30</DocCode>
-              </span>,
-              <span key="conflict">
-                <DocCode>conflict &lt;= 30</DocCode>
+              <span key="decisive">
+                Decisive date path: a just-finished date with{" "}
+                <DocCode>finalDateHealth &gt;= 72</DocCode> can close with{" "}
+                <DocCode>chemistry &gt;= 64</DocCode>, <DocCode>trust &gt;= 64</DocCode>,{" "}
+                <DocCode>relationshipHealth &gt;= 68</DocCode>, and pressure no higher than{" "}
+                <DocCode>strain/conflict &lt;= 48</DocCode>.
               </span>,
               <span key="count">
-                Completed date count including the just-finished date <DocCode>&gt;= 3</DocCode>.
+                Completed date count including the just-finished date <DocCode>&gt;= 2</DocCode>.
               </span>,
               <span key="outcome">
                 <DocCode>finalReport.outcome === "second_date"</DocCode>. The{" "}
                 <DocCode>second_date</DocCode> gate ties closure to a good date moment so a pair
                 cannot close from a cool-down or early-end report even if stats are still high.
               </span>,
-              "No broken agreements and no open loops. A near-ready pair with unresolved pressure stays open and files a closure near-miss note instead.",
+              <span key="open-loop">
+                Broken agreements block closure. More than one open loop blocks closure. One open
+                loop can ride through only when trust and relationship health are especially high
+                and pressure is low; otherwise the pair stays open and files a closure near-miss
+                note.
+              </span>,
             ]}
           />
         </DocSubsection>

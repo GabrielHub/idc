@@ -7,7 +7,8 @@ import {
   type PairState,
 } from "../../../domain/game";
 import { EASE_OUT_QUART, Portrait, scoreWidthClass } from "../../../components/dashboard-atoms";
-import { previewFollowUpEffects, type OutcomeStateDeltas } from "../../../services/date-engine";
+import { previewFollowUpEffects } from "../../../services/date-engine";
+import type { OutcomeStateDeltas } from "../../../services/date-outcome-state";
 import {
   applyFollowUpPairMemoryEffects,
   selectPairSpotlightItem,

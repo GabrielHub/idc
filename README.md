@@ -148,9 +148,10 @@ The docs are TSX modules under `app/docs/` and render at `/docs`. Browser dev re
 - [Visual asset iteration](app/docs/workflows/visual-asset-iteration.tsx): independent image workflow for portraits, variants, and backgrounds.
 - [Visual design](app/docs/product/visual-design.tsx): Aura interface direction, chat bubbles, member auras, canvas layout, scenario cards.
 - [Image style](app/docs/product/image-style.tsx): portrait style, prompt construction, cutout pipeline, scenario backgrounds.
-- [Voice and tone](app/docs/product/voice.tsx): corporate voice, member register, prose mechanics, manager fingerprint.
+- [Voice system](app/docs/product/voice.tsx): the voice map, house tone, the corporate/member register split, prose rules, and comedy boundaries.
+- [Member voice: authoring](app/docs/product/voice-authoring.tsx): how to build a member performer (voice block, bio, sample banks, dealbreakers, reality frame).
+- [Member voice: requirements](app/docs/product/voice-requirements.tsx): what a finished voice must satisfy, the machine-enforced gates, per-surface exit bars, and how to run a tuning pass.
 - [Voice patterns](app/docs/product/voice-patterns.tsx): reusable comedic and prose pattern gallery.
-- [Voice fingerprints](app/docs/product/voice-fingerprints.tsx): fixture-level member voice contract and dealbreaker fire-shapes.
 - [Voice in prompts and surfaces](app/docs/product/voice-prompts.tsx): prompt surfaces, model quirks, event-kind rules, and runtime voice application.
 - [Manager check-in quips](app/docs/product/manager-quips.tsx): Eleven quip catalog, prompting playbook, and implementation contract.
 - [Tutorial system](app/docs/product/tutorial-system.tsx): first-run orientation contract, state, primitives, and completion rules.

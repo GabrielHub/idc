@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useMemo, useRef, type ComponentRef } from "react";
 import { Line } from "@react-three/drei";
+import { useFrame } from "@react-three/fiber";
+import { useReducedMotion } from "motion/react";
 import * as THREE from "three";
 
-import { colorForHealth } from "./pair-edge-mesh";
+import { colorForHealth, threadFlowForHealth } from "./pair-edge-mesh";
 import type { Vec3 } from "./types";
+
+type SpokeLine = ComponentRef<typeof Line>;
 
 // Inset distances trim the line endpoints past each star's halo so the spoke
 // does not draw over the portraits.
@@ -24,6 +28,9 @@ export function PartnerSpoke({
   health: number;
   highlighted: boolean;
 }) {
+  const coreRef = useRef<SpokeLine | null>(null);
+  const reducedMotion = useReducedMotion() ?? false;
+  const flow = threadFlowForHealth(health);
   const { points, vertexColors } = useMemo(() => {
     const fromVec = new THREE.Vector3(from.x, from.y, from.z);
     const toVec = new THREE.Vector3(to.x, to.y, to.z);
@@ -53,16 +60,41 @@ export function PartnerSpoke({
     return { points: sampled, vertexColors: colors };
   }, [from.x, from.y, from.z, to.x, to.y, to.z, health, highlighted]);
 
+  useFrame((s) => {
+    if (reducedMotion || coreRef.current === null) return;
+    const t = s.clock.elapsedTime;
+    const jitter = flow.jitter > 0 ? Math.sin(t * 23) * flow.jitter : 0;
+    coreRef.current.material.dashOffset = -t * flow.flowSpeed + jitter;
+  });
+
   return (
-    <Line
-      points={points}
-      vertexColors={vertexColors}
-      lineWidth={highlighted ? 4.6 : 2.8}
-      transparent
-      opacity={highlighted ? 0.95 : 0.7}
-      depthWrite={false}
-      toneMapped={false}
-      blending={THREE.AdditiveBlending}
-    />
+    <group>
+      {/* Soft bloom underlay — wide, dim, additive — gives the ribbon its lens glow. */}
+      <Line
+        points={points}
+        vertexColors={vertexColors}
+        lineWidth={highlighted ? 12 : 7}
+        transparent
+        opacity={highlighted ? 0.3 : 0.18}
+        depthWrite={false}
+        toneMapped={false}
+        blending={THREE.AdditiveBlending}
+      />
+      {/* Flowing dashed core — continuity and flow keyed to pair health. */}
+      <Line
+        ref={coreRef}
+        points={points}
+        vertexColors={vertexColors}
+        lineWidth={highlighted ? 4.6 : 2.8}
+        transparent
+        opacity={highlighted ? 0.95 : 0.7}
+        dashed
+        dashSize={flow.dashSize}
+        gapSize={flow.gapSize}
+        depthWrite={false}
+        toneMapped={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </group>
   );
 }

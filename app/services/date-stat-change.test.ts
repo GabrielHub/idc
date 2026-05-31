@@ -96,9 +96,9 @@ describe("computeDateStatChange", () => {
         outcome: "bad_fit",
       }),
     );
-    expect(change.members.alice.retention).toBe(-14);
-    expect(change.members.alice.burnout).toBe(6);
-    expect(change.members.alice.mood).toBe(2 + -7);
+    expect(change.members.alice.retention).toBe(-20);
+    expect(change.members.alice.burnout).toBe(8);
+    expect(change.members.alice.mood).toBe(2 + -9);
     expect(hasMemberChange(change, "alice")).toBe(true);
   });
 
@@ -109,8 +109,8 @@ describe("computeDateStatChange", () => {
         outcome: "second_date",
       }),
     );
-    expect(change.members.alice.retention).toBe(2);
-    expect(change.members.alice.burnout).toBe(-2);
+    expect(change.members.alice.retention).toBe(4);
+    expect(change.members.alice.burnout).toBe(-4);
   });
 });
 

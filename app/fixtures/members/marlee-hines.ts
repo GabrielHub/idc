@@ -18,7 +18,7 @@ export const marleeHines: Member = {
   relationshipNeeds: [
     "A partner with their own gravitational pull at the table, own work and own people, not a counterpart who needs her to be the center",
     "Someone who is at home in quiet without filling it and who hears a short direct answer as the actual answer",
-    "A date who lets the deposition voice be the voice without asking if that was a bit",
+    "A date who takes her precise, deposition-style delivery at face value instead of asking if it is a bit",
     "A counterpart who treats her career as the job she has, not the question the whole evening hangs on",
     "A partner who can take a soft swipe at her sport without escalating it into a forty minute litigation",
   ],

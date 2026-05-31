@@ -1,8 +1,9 @@
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 
 import type { PairArchiveEdge } from "../../services/pair-archive-graph";
+import { NebulaCloud } from "./archive-nebula";
 import type { PairEdgeRenderSpec } from "./archive-layout";
-import { PairEdgeMesh } from "./pair-edge-mesh";
+import { colorForHealth, PairEdgeMesh } from "./pair-edge-mesh";
 import type { ArchiveSelection } from "./types";
 
 export function ArchiveEdgeLayer({
@@ -53,31 +54,56 @@ export function ArchiveEdgeLayer({
           archiveIsolation !== undefined &&
           spec.edge.a !== archiveIsolation.focusMemberId &&
           spec.edge.b !== archiveIsolation.focusMemberId;
+        const highlighted = isHovered || isSelected;
+        // Memory nebula blooms only around a focused pair (selected, hovered,
+        // or an isolation-focus's incident edges) so the resting field stays
+        // clean and the per-pair fbm shaders stay few.
+        const showNebula = isSelected || isHovered || (archiveIsolation !== undefined && !isFaded);
+        const nebulaIntensity = isSelected ? 0.3 : isHovered ? 0.2 : 0.14;
         return (
-          <PairEdgeMesh
-            key={pairId}
-            edge={spec.edge}
-            from={spec.from}
-            to={spec.to}
-            control={spec.control}
-            endpointInset={endpointInset}
-            isHovered={isHovered}
-            isSelected={isSelected}
-            isFaded={isFaded}
-            onHoverEnter={() => {
-              onHoveredEdgeChange(pairId);
-              onArchiveEdgeHover?.(pairId);
-            }}
-            onHoverLeave={() => {
-              onHoveredEdgeChange((current) => (current === pairId ? null : current));
-              onArchiveEdgeHover?.(null);
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-              onArchiveEdgeClick?.(pairId);
-            }}
-            hoverTooltip={tooltipsEnabled ? renderArchiveEdgeTooltip?.(spec.edge) : undefined}
-          />
+          <group key={pairId}>
+            {showNebula ? (
+              <NebulaCloud
+                midpoint={{
+                  x: (spec.from.x + spec.to.x) * 0.5,
+                  y: (spec.from.y + spec.to.y) * 0.5,
+                  z: (spec.from.z + spec.to.z) * 0.5,
+                }}
+                span={Math.hypot(
+                  spec.to.x - spec.from.x,
+                  spec.to.y - spec.from.y,
+                  spec.to.z - spec.from.z,
+                )}
+                noteCount={spec.edge.noteCount}
+                blockerCount={spec.edge.closureBlockers.length}
+                color={colorForHealth(spec.edge.health, highlighted)}
+                intensity={nebulaIntensity}
+              />
+            ) : null}
+            <PairEdgeMesh
+              edge={spec.edge}
+              from={spec.from}
+              to={spec.to}
+              control={spec.control}
+              endpointInset={endpointInset}
+              isHovered={isHovered}
+              isSelected={isSelected}
+              isFaded={isFaded}
+              onHoverEnter={() => {
+                onHoveredEdgeChange(pairId);
+                onArchiveEdgeHover?.(pairId);
+              }}
+              onHoverLeave={() => {
+                onHoveredEdgeChange((current) => (current === pairId ? null : current));
+                onArchiveEdgeHover?.(null);
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+                onArchiveEdgeClick?.(pairId);
+              }}
+              hoverTooltip={tooltipsEnabled ? renderArchiveEdgeTooltip?.(spec.edge) : undefined}
+            />
+          </group>
         );
       })}
     </>

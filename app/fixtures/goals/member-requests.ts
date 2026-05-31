@@ -886,7 +886,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-derek-pun-lands",
     memberId: "derek-halsey",
-    text: "Derek wants a partner who lets his one bad pun land without grading it back to him or asking if he is being serious. He gets one a date, that is the deal.",
+    text: "Derek wants a partner who lets his one bad pun land without rating it or asking if he is being serious. He gets one a date, that is the deal.",
     moodPenaltyIfIgnored: 5,
     tags: ["sincerity", "respect"],
   },
@@ -1222,7 +1222,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-rostin-let-the-bit-be-the-bit",
     memberId: "rostin",
-    text: "Rostin wants a partner who lets the bit be the bit. He does not workshop a line at the table and would prefer not to be graded on one. The next bit is the next bit.",
+    text: "Rostin wants a partner who lets his jokes run without stopping to dissect each one or asking if it was a bit. He does not workshop a line at the table, and when a joke dies he moves straight to the next one.",
     moodPenaltyIfIgnored: 6,
     tags: ["sincerity", "respect"],
   },
@@ -1250,7 +1250,7 @@ export const starterMemberRequests: MemberRequest[] = [
   {
     id: "request-fred-let-the-wit-land",
     memberId: "fred-stavropoulos",
-    text: "Fred wants a partner who lets the mock-reverent voice be the voice without grading it back or asking if that was a bit. The flourish lands or it dies, either is fine. He keeps moving either way.",
+    text: "Fred wants a partner who plays along when he narrates something ordinary like it is a grand occasion, instead of pausing to ask if he is serious or telling him whether the joke landed. He is not fishing for applause or a review, and whether a line works or flops he keeps the conversation moving.",
     moodPenaltyIfIgnored: 6,
     tags: ["sincerity", "respect"],
   },

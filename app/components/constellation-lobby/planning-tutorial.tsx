@@ -229,10 +229,14 @@ const PLANNING_STEPS = [
       c.selectedScenarioId === null &&
       c.currentLayer === SCENARIO_FLYTHROUGH_LAYER &&
       c.inAutoMode,
+    // The redesigned draw centres the dealt hand on screen, so a top-placed
+    // card would crowd the cards while the bottom is busy with the pair HUD.
+    // The hand leaves wide gutters, so the coach mark floats into the clear
+    // left gutter while the spotlight frames the dealt cards.
     render: {
       anchor: "cathedralPanelRef",
-      placement: "top",
-      spotlight: { padding: 12, radius: 28 },
+      placement: "left",
+      spotlight: { padding: 16, radius: 26 },
     },
   },
   {

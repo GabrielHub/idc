@@ -50,15 +50,16 @@ describe("pair stat derivation", () => {
       memoryCandidates: [],
     });
 
-    const result = applyJudgeToPairState(pairState, judgeSnapshot);
+    const appliedSnapshot = deriveJudgeSnapshotPairStatDeltas(pairState, judgeSnapshot);
+    const result = applyJudgeToPairState(pairState, appliedSnapshot);
 
     expect(result.stats.chemistry).toBe(60);
-    expect(result.stats.conflict).toBe(30);
-    expect(result.stats.relationshipHealth).toBe(58);
-    expect(result.stats.strain).toBe(40);
+    expect(result.stats.conflict).toBe(32);
+    expect(result.stats.relationshipHealth).toBe(57);
+    expect(result.stats.strain).toBe(41);
   });
 
-  it("rewrites judge snapshot derived deltas from the projected primary stats", () => {
+  it("rewrites judge snapshot deltas to applied pair stat movement", () => {
     const pairState = buildPairState();
     const judgeSnapshot = judgeSnapshotSchema.parse({
       id: "judge-derived-delta-test",
@@ -85,8 +86,8 @@ describe("pair stat derivation", () => {
     const result = deriveJudgeSnapshotPairStatDeltas(pairState, judgeSnapshot);
 
     expect(result.statDeltas.chemistry).toBe(10);
-    expect(result.statDeltas.conflict).toBe(10);
-    expect(result.statDeltas.relationshipHealth).toBe(8);
-    expect(result.statDeltas.strain).toBe(0);
+    expect(result.statDeltas.conflict).toBe(12);
+    expect(result.statDeltas.relationshipHealth).toBe(7);
+    expect(result.statDeltas.strain).toBe(1);
   });
 });

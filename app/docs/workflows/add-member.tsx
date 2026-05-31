@@ -41,12 +41,12 @@ export const sections: DocSectionEntry[] = [
             schema, hidden tags, request tags, and ship-ready data rules.
           </span>,
           <span key="voice">
-            <DocLink to="/docs/product/voice#voice-tuning-quickstart">
-              Voice tuning quickstart
+            <DocLink to="/docs/product/voice-requirements#running-a-pass">
+              Member voice: requirements
             </DocLink>{" "}
             for the agent tuning path; <DocLink to="/docs/product/voice">Voice system</DocLink> for
             house tone;{" "}
-            <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink> for bio,
+            <DocLink to="/docs/product/voice-authoring">Member voice: authoring</DocLink> for bio,
             voice, sample banks, output invariants, and dealbreakers;{" "}
             <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> for the controlled
             pattern catalog;{" "}
@@ -175,8 +175,8 @@ export const sections: DocSectionEntry[] = [
         <P>
           Runtime voice must be verified against the AI character pipeline before lock or major
           re-lock. Use the{" "}
-          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
-            Voice tuning quickstart
+          <DocLink to="/docs/product/voice-requirements#running-a-pass">
+            Member voice: requirements
           </DocLink>{" "}
           as the tuning rubric; this section records the add-member workflow hook.
         </P>

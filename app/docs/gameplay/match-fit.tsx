@@ -94,10 +94,12 @@ export const sections: DocSectionEntry[] = [
     title: "Cupid analysis owns deltas after the date starts",
     body: (
       <DocCallout variant="warn">
-        After the date starts, validated Cupid analysis output owns Date Health deltas, pair stat
-        deltas, member mood deltas, early endings, and evidence use. Match fit must not add
-        per-exchange drift, auto-collapse Date Health, or auto-file a boundary read without
-        transcript evidence or a reveal beat.
+        After the date starts, validated Cupid analysis files transcript evidence: an evidence
+        vector, Date Health movement, pair stat hints, member mood hints, member affects, early
+        endings, and reveal use. <DocCode>app/services/date-consequence-model.ts</DocCode>{" "}
+        normalizes that evidence into final Date Health, pair stat, mood, and affect consequences.
+        Match fit must not add per-exchange drift, auto-collapse Date Health, or auto-file a
+        boundary read without transcript evidence or a reveal beat.
       </DocCallout>
     ),
   },

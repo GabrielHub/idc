@@ -1,7 +1,6 @@
 import {
   DocCallout,
   DocCode,
-  DocCompareGrid,
   DocDefList,
   DocLink,
   DocList,
@@ -12,24 +11,26 @@ import {
 } from "../../components/doc-primitives";
 
 export const meta: DocMeta = {
-  slug: "product/voice-fingerprints",
+  slug: "product/voice-authoring",
   group: "product",
-  title: "Member voice authoring",
+  title: "Member voice: authoring",
   description:
-    "How to write member bios, voice engines, sample banks, spoken-dialogue rules, output invariants, dealbreaker fire-shapes, and reality frames.",
-  order: 2,
+    "How to build a member performer: bios, the voice engine block, sample banks, dealbreaker fire-shapes, and reality frames.",
+  order: 1,
 };
 
 export const lede = (
   <>
-    This doc owns member-facing authored voice. Use it when creating or revising{" "}
+    This doc owns how a member performer is built. Use it when creating or revising{" "}
     <DocCode>bio</DocCode>, <DocCode>datingProfile</DocCode>, <DocCode>voice</DocCode>, sample
-    banks, and dealbreakers. The runtime prompt rules live in{" "}
-    <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>; hidden gameplay tags
-    live in <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>.
-    Agents doing live tuning should start with{" "}
-    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
-    come here only for the failing authoring surface. Prompt hygiene rules live in{" "}
+    banks, and dealbreakers. What a finished voice must satisfy lives in{" "}
+    <DocLink to="/docs/product/voice-requirements">Member voice: requirements</DocLink>; the flavor
+    palette lives in <DocLink to="/docs/product/voice-patterns">Voice patterns</DocLink> and
+    ear-training corpora in{" "}
+    <DocLink to="/docs/product/voice-references">Voice source references</DocLink>. Hidden gameplay
+    tags live in{" "}
+    <DocLink to="/docs/gameplay/member-fields-and-tags">Member fields and tags</DocLink>. Prompt
+    hygiene rules live in{" "}
     <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
@@ -136,100 +137,11 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="info">
           If a voice problem repeats under pressure, patch the smallest authored surface that
           teaches the bad shape: register rule, comedy mechanic, tic wording, output constraint, or
-          sample bank. The tuning sequence and provider prompt distillation live in{" "}
-          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
-            Voice tuning quickstart
+          sample bank. The tuning sequence and the bars a finished voice must clear live in{" "}
+          <DocLink to="/docs/product/voice-requirements#running-a-pass">
+            Member voice: requirements
           </DocLink>
           .
-        </DocCallout>
-      </>
-    ),
-  },
-  {
-    id: "spoken-dialogue-contract",
-    title: "Spoken Dialogue",
-    body: (
-      <>
-        <DocCallout variant="warn" title="The date is spoken, not texted">
-          Members render in chat bubbles, but the fiction is two people talking at a table. Author
-          what the member would say out loud.
-        </DocCallout>
-        <P>
-          Texting corpora can inform vocabulary, humor, correction shapes, sincere-mode pivots, and
-          stress patterns. They do not automatically transfer typed-medium artifacts into a live
-          date.
-        </P>
-        <DocCompareGrid
-          columns={[
-            {
-              heading: "Transfers",
-              tone: "positive",
-              items: [
-                "Humor type and setup/kicker rhythm.",
-                "Sentence-opener vocabulary and repeated pivots.",
-                "Spoken slang the person actually says.",
-                "Vowel stress as spoken emphasis.",
-                "Sincere mode getting shorter or cleaner.",
-              ],
-            },
-            {
-              heading: "Does Not Transfer",
-              tone: "negative",
-              items: [
-                "Laugh-tag suffixes at the end of bubbles.",
-                "Standalone one-word reaction bubbles as default cadence.",
-                "Dense text shorthand like rn, lmk, my b, kk, u.",
-                "All-caps HAHAHA streaks and typed letter-runs.",
-                "Default newline cascades or partner-name pings.",
-              ],
-            },
-          ]}
-        />
-        <DocCallout variant="info" title="Exception must be authored">
-          Gabriel Tan's texting-native cascade is allowed because his fixture names the exception
-          and reconciles it to the in-person surface. Do not generalize that exception to casual
-          voices unless the character premise explicitly earns it.
-        </DocCallout>
-      </>
-    ),
-  },
-  {
-    id: "output-invariants",
-    title: "Output Invariants",
-    body: (
-      <>
-        <P>
-          These apply to every member unless the fixture authors a narrow character-coherent
-          exception.
-        </P>
-        <DocDefList
-          items={[
-            {
-              term: "No stage directions",
-              def: 'Members never narrate actions in asterisks or brackets. "*pours the wine*", "*nods*", "[picks up the glass]" are theater-script moves. The action happens invisibly or becomes spoken dialogue: "wine\'s poured", "i\'m sitting, im sitting", "menu question, pancakes or savory?"',
-            },
-            {
-              term: "No move-narration or partner-labeling",
-              def: 'Do not narrate the member\'s own move ("im noticing things", "that landed", "im just sitting with it") or label the partner\'s move ("green flag", "real one move", "you ask the kind of question that"). The reply itself is the receipt.',
-            },
-            {
-              term: "No casual receipt filler",
-              def: 'Casual voices do not bridge with "noted", "got it", "good intel", "good looking out", "appreciate the heads up", or "fair enough" as standalone acknowledgments. Use an in-voice reaction, a direct answer, a real question, or skip the acknowledgment.',
-            },
-            {
-              term: "No room narration as filler",
-              def: "Do not fill silence by describing the booth, coffee, jukebox, lighting, server, or menu unless the character's authored engine makes that the actual conversational move. Silence is not a problem solved by venue color.",
-            },
-            {
-              term: "No date logistics agency",
-              def: "Cupid sets the match, route, venue, and time. Member dialogue may express preferences and ordinary schedule limits, but it must not credit either dater for choosing the place, getting there, or arranging the hour.",
-            },
-          ]}
-        />
-        <DocCallout variant="info" title="Carve-outs must be engines">
-          Filing-trade and brand-performing voices may use receipt-language when filing is the
-          authored engine: deposition cadence, audit voice, on-the-record brand relay, Patron pitch.
-          The carve-out is not a license for generic chatbot acknowledgment.
         </DocCallout>
       </>
     ),
@@ -241,7 +153,11 @@ export const sections: DocSectionEntry[] = [
       <>
         <P>
           Dealbreakers need fire-shapes. Without tiering, the model either walks out too easily or
-          treats defining boundaries as ordinary friction.
+          treats defining boundaries as ordinary friction. The runtime crash-out bar lives in{" "}
+          <DocLink to="/docs/product/voice-requirements#state-range">
+            Member voice: requirements
+          </DocLink>
+          .
         </P>
         <DocDefList
           items={[
@@ -328,6 +244,6 @@ export const sections: DocSectionEntry[] = [
   },
 ];
 
-export default function VoiceFingerprintsDoc() {
+export default function VoiceAuthoringDoc() {
   return <DocPage meta={meta} sections={sections} lede={lede} />;
 }

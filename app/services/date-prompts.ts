@@ -2,6 +2,7 @@ import type { ImagePart, ModelMessage, TextPart, UserModelMessage } from "ai";
 
 import { formatMemberHeightLabel } from "../components/date-reactions";
 import type {
+  CharacterDateState,
   DateMessage,
   DateScenario,
   DateSession,
@@ -24,6 +25,7 @@ import {
   isCurrentInterventionMessage,
   isInterventionActiveForMember,
 } from "./date-engine";
+import { dateAffectPromptLabel, dateAffectTone } from "./date-affects";
 import type { MatchFitResult } from "./match-fit";
 import { selectPairSpotlightItem, type PairSpotlightItem } from "./pair-memory";
 import { rankActiveAgreements, rankActiveOpenLoops } from "./pair-memory-state";
@@ -515,6 +517,7 @@ const CHARACTER_FLOW_GUIDANCE: Record<ScenarioFlow, readonly string[]> = {
   activity: [
     "<flow_mode>activity</flow_mode>",
     "Keep the conversation alive while the activity happens under your hands. Let small choices carry the scene: order, pour, split, offer, wait, take a turn, hand something over, or ask before changing course. The task should create subtext, not become a report.",
+    "Activity openings work best when the first line gives the pair something to do together. Use the available task as social leverage: choose who starts, offer a role, ask taste or preference, make a small commitment, or tease the decision in front of you.",
   ],
   pressure: [
     "<flow_mode>pressure</flow_mode>",
@@ -540,8 +543,10 @@ function formatCharacterLiveDateSection({
     "",
     "<live_date_turn>",
     "Write the next thing you say in a live date with the person across from you. The line should sound like natural spoken dialogue, not narration, not a recap, and not proof that you read the room file.",
+    "Scene context is fuel for a social move. Setup-recital drift is when the reply mainly proves awareness of the venue, premise, props, staff status, or room inventory. Transform that impulse into scene-used dialogue: a choice, question, offer, tease, refusal, admission, or commitment that could only happen here and gives your date something to answer.",
     "Success means the reply advances this date: answer or pressure-test your date, make a small choice, ask a real follow-up, react to what just changed, or let a physical move reveal your stance. The place should be apparent through what you choose, notice, ask, refuse, order, move, or wait on, not through inventory.",
     "The newest partner move outranks room analysis. If your date just chose, ordered, asked, refused, admitted something, or proposed a plan, meet that move before adding any new room detail.",
+    "When your date points at the backdrop, answer from inside the shared reality and add a live next move: choose, ask, offer, tease, refuse, or commit.",
     "Default shape: one compact spoken move. Usually one paragraph, one to three sentences, under 55 words. Use a second visible block only for a real pause, sharp turn, or member-authored timing beat. Do not spend both blocks explaining background.",
     "Compact does not mean bland. When the turn can hold it, keep one character-specific joke, image, risky specific, or sincere pressure point, then hand the floor back.",
     "Finish the conversational move inside this line. If you say you want to ask, ask. If you say you are going to choose, name the choice. If you invite your date into a decision, give them the decision.",
@@ -554,7 +559,7 @@ function formatCharacterLiveDateSection({
     ...CHARACTER_FLOW_GUIDANCE[flow],
     ...(isSpeakerOpeningTurn
       ? [
-          "Opening turn: start the date, not the room tour. Use the opening situation to make a conversational move toward your date.",
+          "Opening turn: start the date by putting a live move across the table. The room may color the line, but the conversational action is what matters: invite, choose, ask, offer, tease, refuse, or commit.",
         ]
       : []),
     "</live_date_turn>",
@@ -847,9 +852,11 @@ function formatCharacterMemoryList(memories: readonly { text: string }[]): strin
 }
 
 type PromptCharacterState = {
-  mood: number;
-  comfort: number;
-  intent: string;
+  mood: CharacterDateState["mood"];
+  comfort: CharacterDateState["comfort"];
+  intent: CharacterDateState["intent"];
+  affect?: CharacterDateState["affect"];
+  affectCause?: CharacterDateState["affectCause"];
 };
 
 function resolvePromptCharacterState(member: Member, session: DateSession): PromptCharacterState {
@@ -863,23 +870,48 @@ function resolvePromptCharacterState(member: Member, session: DateSession): Prom
     mood: member.state.mood,
     comfort: session.dateHealth,
     intent: "trying",
+    affect: "neutral",
   };
 }
 
 function formatPromptCharacterState(state: PromptCharacterState, member: Member): string {
   const intent = cleanMemberFacingText(state.intent).trim() || "trying";
+  const affect = dateAffectPromptLabel(state.affect, state.affectCause);
 
   return [
     `mood is ${moodPhrase(state.mood)}`,
     `openness is ${opennessPhrase(member.state.openness)}`,
     `burnout is ${burnoutPhrase(member.state.burnout)}`,
     `comfort with this date is ${comfortPhrase(state.comfort)}`,
+    `latest affect is ${affect}`,
     `current intent is ${intent}`,
   ].join(", ");
 }
 
 function formatCharacterPressureGuidance(state: PromptCharacterState): string[] {
   const intent = cleanMemberFacingText(state.intent).trim().toLowerCase();
+  const affectTone = dateAffectTone(state.affect);
+
+  if (affectTone === "protective") {
+    return [
+      "Use that state as behavior, not decoration.",
+      "The last exchange changed the room. Go colder, shorter, more direct, or refuse the premise if the latest line warrants it.",
+    ];
+  }
+
+  if (affectTone === "guarded") {
+    return [
+      "Use that state as behavior, not decoration.",
+      "Do not reset to polite neutral. Let the next answer carry the guard, disappointment, or need for proof.",
+    ];
+  }
+
+  if (affectTone === "warm") {
+    return [
+      "Use that state as behavior, not decoration.",
+      "Let the warmer read change the next line through specificity, follow-through, or a smaller risk.",
+    ];
+  }
 
   if (intent === "protect the boundary" || state.mood < 30 || state.comfort < 30) {
     return [
@@ -1114,13 +1146,14 @@ export function buildJudgePromptPacket({
     "<role>You are Cupid's date analyst.</role>",
     "",
     "<task>",
-    "Score one exchange between two members on an IDC date. Return a single structured Cupid analysis packet that updates Date Health, per-member moods, pair stats, and pair memory. You score; you do not perform characters.",
+    "Score one exchange between two members on an IDC date. Return a single structured Cupid analysis packet that files evidence, Date Health movement, per-member moods, pair stat hints, and pair memory. You score; you do not perform characters.",
     "</task>",
     "",
     "<success_criteria>",
     "- playerSummary names the move that mattered, in Cupid corporate voice. Specific actor, specific action.",
     "- notableMoments anchor in concrete scene details from the exchange.",
     "- dateHealthDelta reflects the room. Each memberMoodDelta reflects that member's specific affect, independent of the room.",
+    "- evidenceVector names why the room moved: warmth, attraction, reciprocity, repair, boundary respect, pressure, avoidance, novelty, and ask progress.",
     "- Dating success is not the default. Confusion, guardedness, anger, overload, and hard refusal are normal outcomes when the exchange supports them.",
     "- Agency verbs only attach to a member when the transcript shows the move.",
     "- agreementCandidates and openLoopCandidates surface only what this exchange actually created.",
@@ -1202,11 +1235,12 @@ export function buildJudgePromptPacket({
         "<output_format>",
         "Return JSON only. No Markdown, comments, or prose outside JSON.",
         "Do not use em dashes or en dashes in any string.",
-        `Shape: {"dateHealthDelta":0,"statDeltas":{"spark":0,"conflict":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[],"agreementCandidates":[],"agreementUpdates":[],"openLoopCandidates":[],"openLoopUpdates":[]}`,
+        `Shape: {"dateHealthDelta":0,"evidenceVector":{"warmth":0,"attraction":0,"reciprocity":0,"repair":0,"boundaryRespect":0,"pressure":0,"avoidance":0,"novelty":0,"askProgress":0},"statDeltas":{"spark":0,"conflict":0},"memberMoodDeltas":{"${session.participants[0]}":0,"${session.participants[1]}":0},"shouldEndEarly":false,"endSentiment":null,"notableMoments":["short note"],"playerSummary":"Cupid filed the exchange.","memoryCandidates":[],"usedEvidenceIds":[],"agreementCandidates":[],"agreementUpdates":[],"openLoopCandidates":[],"openLoopUpdates":[]}`,
         "</output_format>",
         "",
         "<field_rules>",
         "- dateHealthDelta must be an integer from -18 to 14.",
+        "- evidenceVector must include warmth, attraction, reciprocity, repair, boundaryRespect, pressure, avoidance, novelty, and askProgress. Each value must be an integer from -8 to 8. Use 0 when the exchange gives no evidence. Positive askProgress means a focused ask landed; negative askProgress means it surfaced blocked.",
         "- statDeltas may include chemistry, trust, stability, conflict, weirdnessTolerance, and spark. Each value must be an integer from -8 to 8. Do not set strain or relationshipHealth; Cupid derives them from the other pair stats.",
         `- memberMoodDeltas must include exactly these member ids: ${session.participants.join(", ")}. Each value must be an integer from -8 to 8.`,
         isPlayerCutShort
@@ -1238,6 +1272,7 @@ export function buildJudgePromptPacket({
         "<scoring_guidance>",
         "- Positive Date Health belongs to exchanges that create evidence of warmth, trust, repair, or useful attraction.",
         "- Negative Date Health belongs to exchanges where a member dodges a direct answer, repeats logistics, crosses a boundary, performs at the partner, makes the partner manage them, or lets the room become the whole relationship.",
+        "- Prefer filing evidenceVector cleanly over overfitting statDeltas. The game model converts evidence into final pair and member consequences after validation.",
         "- In pressure scenes, positive Date Health requires concrete participation: a choice, refusal, risk, repair, or live question. Extended premise explanation, lore monologue, or burying the answer under self-correction is drift unless the partner clearly asked for that explanation and enjoyed receiving it.",
         "- Use -1 to -3 for mild drift, -4 to -7 for visible confusion or cooling, and -8 to -18 for boundary pressure, contempt, panic, hard mismatch, or a failed repair.",
         "- Date Health describes the room. Each memberMoodDelta describes that specific member's visible affect, scored independently.",
@@ -1621,6 +1656,10 @@ function formatIncomingThreadMessage(message: DateMessage): string {
   }
 
   if (message.kind === "scenario") {
+    if (isOpeningScenarioMessage(message)) {
+      return `Shared opening context for both characters: ${message.text}\nBegin with a spoken move to the person across from you. Use this context only where it creates a live choice, question, tease, offer, refusal, or commitment.`;
+    }
+
     return `This just happened: ${message.text}`;
   }
 
@@ -1629,6 +1668,12 @@ function formatIncomingThreadMessage(message: DateMessage): string {
   }
 
   return message.text;
+}
+
+function isOpeningScenarioMessage(message: Extract<DateMessage, { kind: "scenario" }>): boolean {
+  return (
+    message.sourceEventId === undefined && message.turnIndex === 0 && message.sequenceIndex === 0
+  );
 }
 
 function stripCupidNudgePrefix(text: string): string {
@@ -1800,8 +1845,10 @@ function buildJudgeThreadMessages(judgeSnapshots: readonly JudgeSnapshot[]): Mod
 function formatJudgeSnapshotForThread(snapshot: JudgeSnapshot) {
   return {
     dateHealthDelta: snapshot.dateHealthDelta,
+    evidenceVector: snapshot.evidenceVector,
     statDeltas: snapshot.statDeltas,
     memberMoodDeltas: snapshot.memberMoodDeltas,
+    memberAffects: snapshot.memberAffects,
     shouldEndEarly: snapshot.shouldEndEarly,
     earlyEndReason: snapshot.earlyEndReason,
     notableMoments: snapshot.notableMoments,

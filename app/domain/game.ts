@@ -565,10 +565,29 @@ export const dateMessageSchema = z.discriminatedUnion("kind", [
   }),
 ]);
 
+export const memberDateAffectSchema = z.enum([
+  "neutral",
+  "warming",
+  "curious",
+  "guarded",
+  "overloaded",
+  "disappointed",
+  "relieved",
+  "angry",
+  "leaning_in",
+]);
+
+export const judgeMemberAffectSchema = z.object({
+  affect: memberDateAffectSchema,
+  cause: z.string().min(1).max(120),
+});
+
 export const characterDateStateSchema = z.object({
   mood: scoreSchema,
   comfort: scoreSchema,
   intent: z.string().min(1),
+  affect: memberDateAffectSchema.optional(),
+  affectCause: z.string().min(1).max(120).optional(),
 });
 
 export const cupidInterventionSchema = z.object({
@@ -643,6 +662,18 @@ export const judgeOpenLoopUpdateSchema = z.object({
   note: z.string().min(1).max(220).optional(),
 });
 
+export const dateEvidenceVectorSchema = z.object({
+  warmth: z.number().int().min(-8).max(8).default(0),
+  attraction: z.number().int().min(-8).max(8).default(0),
+  reciprocity: z.number().int().min(-8).max(8).default(0),
+  repair: z.number().int().min(-8).max(8).default(0),
+  boundaryRespect: z.number().int().min(-8).max(8).default(0),
+  pressure: z.number().int().min(-8).max(8).default(0),
+  avoidance: z.number().int().min(-8).max(8).default(0),
+  novelty: z.number().int().min(-8).max(8).default(0),
+  askProgress: z.number().int().min(-8).max(8).default(0),
+});
+
 export const judgeSnapshotSchema = z.object({
   id: z.string().min(1),
   dateSessionId: dateSessionIdSchema,
@@ -661,6 +692,8 @@ export const judgeSnapshotSchema = z.object({
   agreementUpdates: z.array(judgeAgreementUpdateSchema).max(3).default([]),
   openLoopCandidates: z.array(judgeOpenLoopCandidateSchema).max(2).default([]),
   openLoopUpdates: z.array(judgeOpenLoopUpdateSchema).max(3).default([]),
+  evidenceVector: dateEvidenceVectorSchema.optional(),
+  memberAffects: z.record(memberIdSchema, judgeMemberAffectSchema).optional(),
 });
 
 export const playerKnowledgeSubjectKindSchema = z.enum(["member", "pair", "scenario"]);
@@ -1177,6 +1210,9 @@ export type PairProjectionSource = z.infer<typeof pairProjectionSourceSchema>;
 export type PairProjection = Readonly<PairState> & { readonly source: PairProjectionSource };
 export type DateMessageKind = z.infer<typeof dateMessageKindSchema>;
 export type DateMessage = z.infer<typeof dateMessageSchema>;
+export type MemberDateAffect = z.infer<typeof memberDateAffectSchema>;
+export type JudgeMemberAffect = z.infer<typeof judgeMemberAffectSchema>;
+export type DateEvidenceVector = z.infer<typeof dateEvidenceVectorSchema>;
 export type CharacterDateState = z.infer<typeof characterDateStateSchema>;
 export type CupidIntervention = z.infer<typeof cupidInterventionSchema>;
 export type MemoryScope = z.infer<typeof memoryScopeSchema>;

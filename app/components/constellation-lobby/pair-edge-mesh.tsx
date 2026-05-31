@@ -7,9 +7,10 @@
  *
  * The line is trimmed at both ends by a world-space inset so it meets each
  * portrait disc's edge with a small, even gap instead of stabbing into the
- * face. The only midpoint ornament is a soft pip that fades in when the edge is
- * hovered or selected — at rest the line reads clean, with nothing floating on
- * top of it.
+ * face. The core flows as health-driven dashes over a steady soft glow: warm
+ * pairs read near-solid and drift slowly, volatile pairs fray into short, fast,
+ * jittery segments. The only midpoint ornament is a soft pip that fades in when
+ * the edge is hovered or selected.
  *
  * Each edge owns its own useFrame loop that classifies the current LOD band
  * from camera distance to midpoint and mutates the line material props
@@ -18,7 +19,8 @@
 
 import { Billboard, Html, Line } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import { useMemo, useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { useReducedMotion } from "motion/react";
 import * as THREE from "three";
 
 import type { PairArchiveEdge } from "../../services/pair-archive-graph";
@@ -26,11 +28,7 @@ import { edgeBaseOpacity, edgeStrokeWidth } from "../../services/pair-archive-gr
 import { classifyEdgeLod, type EdgeLodSpec } from "./edge-lod";
 import type { Vec3 } from "./types";
 
-type Line2 = {
-  material: THREE.Material & {
-    linewidth: number;
-  };
-};
+type EdgeLine = ComponentRef<typeof Line>;
 
 export type PairEdgeMeshProps = {
   edge: PairArchiveEdge;
@@ -88,8 +86,8 @@ export function PairEdgeMesh({
   onClick,
   hoverTooltip,
 }: PairEdgeMeshProps) {
-  const lineRef = useRef<Line2 | null>(null);
-  const glowLineRef = useRef<Line2 | null>(null);
+  const lineRef = useRef<EdgeLine | null>(null);
+  const glowLineRef = useRef<EdgeLine | null>(null);
   const [currentLod, setCurrentLod] = useState<EdgeLodSpec | null>(() => ({
     band: "near",
     segmentCount: 16,
@@ -110,6 +108,8 @@ export function PairEdgeMesh({
   const baseOpacity = edgeBaseOpacity(edge);
   const highlighted = isHovered || isSelected;
   const color = colorForHealth(edge.health, highlighted);
+  const reducedMotion = useReducedMotion() ?? false;
+  const flow = threadFlowForHealth(edge.health);
 
   // Sample the bezier curve at the segment count the current LOD specifies,
   // trimmed at both ends by a world-space inset converted to a curve parameter
@@ -177,6 +177,13 @@ export function PairEdgeMesh({
         baseWidth * next.widthScale * EDGE_GLOW_WIDTH_MULTIPLIER,
         Math.min(0.68, opacity * EDGE_GLOW_OPACITY_MULTIPLIER + (highlighted ? 0.12 : 0)),
       );
+      // Flow the dashed core toward the partner. Volatile threads add a small
+      // stutter so they read as tense. Static under reduced motion.
+      if (!reducedMotion) {
+        const t = sceneState.clock.elapsedTime;
+        const jitter = flow.jitter > 0 ? Math.sin(t * 23 + midpoint.x * 2) * flow.jitter : 0;
+        lineRef.current.material.dashOffset = -t * flow.flowSpeed + jitter;
+      }
     }
   });
 
@@ -196,7 +203,7 @@ export function PairEdgeMesh({
   return (
     <group>
       <Line
-        ref={glowLineRef as never}
+        ref={glowLineRef}
         points={points}
         color={color}
         lineWidth={baseWidth * currentLod.widthScale * EDGE_GLOW_WIDTH_MULTIPLIER}
@@ -208,12 +215,15 @@ export function PairEdgeMesh({
         blending={THREE.AdditiveBlending}
       />
       <Line
-        ref={lineRef as never}
+        ref={lineRef}
         points={points}
         color={color}
         lineWidth={baseWidth * currentLod.widthScale}
         transparent
         opacity={visibleOpacity}
+        dashed
+        dashSize={flow.dashSize}
+        gapSize={flow.gapSize}
         depthWrite={false}
         depthTest={false}
         toneMapped={false}
@@ -268,7 +278,7 @@ export function PairEdgeMesh({
   );
 }
 
-function applyLineMaterial(line: Line2 | null, lineWidth: number, opacity: number): void {
+function applyLineMaterial(line: EdgeLine | null, lineWidth: number, opacity: number): void {
   if (line === null) return;
   const mat = line.material;
   mat.linewidth = lineWidth;
@@ -291,6 +301,30 @@ function quadraticBezierPoint(p0: Vec3, p1: Vec3, p2: Vec3, t: number): THREE.Ve
     oneMinusT * oneMinusT * p0.y + 2 * oneMinusT * t * p1.y + t * t * p2.y,
     oneMinusT * oneMinusT * p0.z + 2 * oneMinusT * t * p1.z + t * t * p2.z,
   );
+}
+
+export type ThreadFlow = {
+  dashSize: number;
+  gapSize: number;
+  flowSpeed: number;
+  jitter: number;
+};
+
+/**
+ * Health-driven dash rhythm for the connection thread. Warm pairs read as a
+ * long, near-solid line drifting slowly; steady pairs get a calm dash cadence;
+ * volatile pairs fray into short, gappy segments that flow fast with a stutter.
+ * Bands match colorForHealth so dash continuity and color tell the same story.
+ * Shared with the lobby's focus-partner spoke so both read identically.
+ */
+export function threadFlowForHealth(health: number): ThreadFlow {
+  if (health >= 70) {
+    return { dashSize: 1.6, gapSize: 0.14, flowSpeed: 0.22, jitter: 0 };
+  }
+  if (health >= 40) {
+    return { dashSize: 0.95, gapSize: 0.28, flowSpeed: 0.4, jitter: 0 };
+  }
+  return { dashSize: 0.42, gapSize: 0.46, flowSpeed: 0.85, jitter: 0.06 };
 }
 
 /**

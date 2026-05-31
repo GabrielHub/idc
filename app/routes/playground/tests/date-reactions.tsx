@@ -359,6 +359,7 @@ function BubbleStage({
           member={leftMember}
           placement="bottom-left"
           mood={leftSide.mood}
+          speakState={leftSide.speaking ? "speaking" : rightSide.speaking ? "listening" : "idle"}
           reactions={leftSide.reactions}
           className="absolute bottom-0 left-6 h-full w-48 lg:left-16 lg:w-64"
         />
@@ -366,6 +367,7 @@ function BubbleStage({
           member={rightMember}
           placement="bottom-right"
           mood={rightSide.mood}
+          speakState={rightSide.speaking ? "speaking" : leftSide.speaking ? "listening" : "idle"}
           reactions={rightSide.reactions}
           className="absolute bottom-0 right-6 h-full w-48 lg:right-16 lg:w-64"
         />

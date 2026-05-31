@@ -3,7 +3,9 @@ import { AnimatePresence, motion } from "motion/react";
 
 import { DECK_SIZE_MAX } from "../../domain/game";
 import { AuraButton } from "../aura-button";
+import { AutoDrawStage } from "./cathedral-auto-draw";
 import { CathedralCard } from "./cathedral-card";
+import { CathedralEmptyState } from "./cathedral-empty-state";
 import type { CathedralMode, DeckBookShards, DoorEntry } from "./cathedral-types";
 
 export function CathedralPanel({
@@ -44,7 +46,7 @@ export function CathedralPanel({
   composeWarnings?: readonly string[];
 }) {
   const enterDuration = reducedMotion ? 0.001 : 0.36;
-  const railReserveClass = mode === "auto" ? "2xl:pr-[24rem]" : "";
+  const isAuto = mode === "auto";
   return (
     <AnimatePresence>
       {open ? (
@@ -56,34 +58,47 @@ export function CathedralPanel({
           transition={{ duration: enterDuration, ease: [0.22, 0.8, 0.2, 1] }}
           className="pointer-events-none absolute inset-x-0 bottom-[124px] top-16 z-20 px-8"
         >
-          <div
-            ref={containerRef}
-            className={`pointer-events-auto mx-auto flex h-full max-w-[1440px] flex-col ${railReserveClass}`}
-          >
-            <CathedralHeader
-              mode={mode}
-              doorCount={doors.length}
-              deckBookShards={deckBookShards}
-              onClose={onClose}
-              composeWarnings={composeWarnings}
+          {isAuto ? (
+            <AutoDrawStage
+              doors={doors}
+              selectedId={selectedId}
+              hoveredId={hoveredId}
+              onHover={onHover}
+              onSelect={onSelect}
+              onOpenDetail={onOpenDetail}
+              reducedMotion={reducedMotion}
+              containerRef={containerRef}
             />
-            <div ref={scrollRef} className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
-              {doors.length === 0 ? (
-                <CathedralEmptyState mode={mode} />
-              ) : (
-                <CathedralGrid
-                  doors={doors}
-                  mode={mode}
-                  selectedId={selectedId}
-                  hoveredId={hoveredId}
-                  onHover={onHover}
-                  onSelect={onSelect}
-                  onOpenDetail={onOpenDetail}
-                  reducedMotion={reducedMotion}
-                />
-              )}
+          ) : (
+            <div
+              ref={containerRef}
+              className="pointer-events-auto mx-auto flex h-full max-w-[1440px] flex-col"
+            >
+              <CathedralHeader
+                mode={mode}
+                doorCount={doors.length}
+                deckBookShards={deckBookShards}
+                onClose={onClose}
+                composeWarnings={composeWarnings}
+              />
+              <div ref={scrollRef} className="mt-5 min-h-0 flex-1 overflow-y-auto pr-1">
+                {doors.length === 0 ? (
+                  <CathedralEmptyState mode={mode} />
+                ) : (
+                  <CathedralGrid
+                    doors={doors}
+                    mode={mode}
+                    selectedId={selectedId}
+                    hoveredId={hoveredId}
+                    onHover={onHover}
+                    onSelect={onSelect}
+                    onOpenDetail={onOpenDetail}
+                    reducedMotion={reducedMotion}
+                  />
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </motion.div>
       ) : null}
     </AnimatePresence>
@@ -270,23 +285,6 @@ function PressurePill({ pressure }: { pressure: { lowPressure: number; highPress
         {pressure.lowPressure} <span className="text-white/45">low</span> - {pressure.highPressure}{" "}
         <span className="text-white/45">high</span>
       </span>
-    </div>
-  );
-}
-
-function CathedralEmptyState({ mode }: { mode: CathedralMode }) {
-  const copy =
-    mode === "deck"
-      ? "Date Book is empty. New room cards arrive after dates."
-      : "Commit a focus case and partner to draw tonight's rooms.";
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="aura-liquid-glass aura-liquid-glass-ink rounded-card px-6 py-5 text-center">
-        <div className="font-mono text-micro uppercase tracking-[0.28em] text-white/55">
-          // pick room empty
-        </div>
-        <p className="mt-2 font-sans text-label text-aura-paper/85">{copy}</p>
-      </div>
     </div>
   );
 }

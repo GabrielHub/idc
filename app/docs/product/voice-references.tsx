@@ -26,7 +26,7 @@ export const lede = (
     This is the durable place for source-informed voice references. Curated reference files live
     under <DocCode>docs/reference/</DocCode>; raw private exports stay ignored. Fixture authoring
     rules still live in{" "}
-    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>; runtime prompt
+    <DocLink to="/docs/product/voice-authoring">Member voice: authoring</DocLink>; runtime prompt
     behavior still lives in{" "}
     <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Turning source notes
     into prompt-visible guidance should follow{" "}
@@ -122,8 +122,9 @@ export const sections: DocSectionEntry[] = [
       <>
         <P>
           Natural-dialogue references help agents hear how people actually answer each other:
-          compression, interruption, ignored setup, abrupt sincerity, teasing, concrete asks, and
-          thread-ending. Use them to tune the ear, not to mine lines.
+          compression, interruption, ignored setup, abrupt sincerity, teasing, concrete asks,
+          implication over narration, and thread-ending. Use them to tune the ear, not to mine
+          lines.
         </P>
         <DocSubsection id="imessage-corpus" title="iMessage And Texting Corpus">
           <P>
@@ -152,11 +153,23 @@ export const sections: DocSectionEntry[] = [
             aloud instead of a profile executing a checklist.
           </P>
         </DocSubsection>
+        <DocSubsection id="date-scenario-natural-dialogue" title="Date Scenario Reference">
+          <P>
+            The committed <DocCode>docs/reference/voice-date-scenarios.md</DocCode> file is the
+            companion reference for implication over narration: performers attempt a bit without
+            saying the whole part, hand the finish to each other, and co-author a scene under
+            pressure. Reach for it when a member announces, repeats, or acknowledges what just
+            happened instead of treating it as already visible and moving on. It pairs with the
+            Northernlion file and is especially useful for pressure dates and for grounded-human
+            with otherworldly-member pairings.
+          </P>
+        </DocSubsection>
       </>
     ),
     subsections: [
       { id: "imessage-corpus", title: "iMessage And Texting Corpus" },
       { id: "northernlion-natural-dialogue", title: "Northernlion Reference" },
+      { id: "date-scenario-natural-dialogue", title: "Date Scenario Reference" },
     ],
   },
   {
@@ -216,6 +229,68 @@ export const sections: DocSectionEntry[] = [
     ],
   },
   {
+    id: "date-scenario-dialogue",
+    title: "Date Scenario Dialogue",
+    body: (
+      <>
+        <DocSubsection id="date-scenario-use-for" title="Use For">
+          <P>
+            The curated corpus lives at <DocCode>docs/reference/voice-date-scenarios.md</DocCode>:
+            three short performed date scenes, one that goes well, one that crashes out, and a run
+            of rapid getting-to-know-you bits. Use it as the antidote to narratory dialogue. The
+            core lesson is that two people write a scene together by implying what happens between
+            the lines instead of announcing, repeating, or acknowledging it. Reach for it on
+            pressure dates, on pairings of a grounded human with an otherworldly or off-kilter
+            member, and whenever a member needs to feel the difference between yapping and staying
+            quiet. It is not a house style.
+          </P>
+        </DocSubsection>
+        <DocSubsection id="date-scenario-mechanics" title="Transferable Mechanics">
+          <DocList
+            items={[
+              "Imply, do not narrate. Drinks arriving, an order being overridden, a misheard line smoothed over, a whole story skipped: none of it is stated. The next line treats it as already visible and moves. Cut any beat that announces an action, repeats the prior line, or acknowledges the obvious.",
+              'Hand the bit off instead of finishing it solo. One performer floats a setup and stops short, and the partner\'s reaction or a single sound completes it. "And I sliced her dad." / "You what?" / "I sort of..." lands because the verb is never said and the partner opens the gap.',
+              "The partner's last line is the springboard. Escalation is procedural, not random: each line builds on the previous bad or tender premise, so the exchange reads as co-authored rather than two prepared monologues colliding.",
+              "Redirect by rebuilding, not by restating. The warm partner takes a self-attacking spiral and reframes it as a virtue without echoing it back. The reframe is the move; there is no preamble that repeats the partner's words back to them.",
+              "A dodge can carry more than an answer. A flat name correction, a one-word button, or a refusal implies the unspoken thing and keeps pressure in the subtext instead of stating it.",
+              "Quiet is load-bearing, not passive. The terse side punctures, redirects, or exits in a few words while the other takes the long spiraling turns. Talk ratio is a tuning dial per member, not a default to make everyone chatty.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="date-scenario-boundaries" title="Do Not Transfer">
+          <DocList
+            tone="muted"
+            items={[
+              "Do not copy the scenes' jokes, names, premises, or brands into a member. This is a cadence and structure reference, not a character source.",
+              "Do not read the crash-out as license for menace. The sketch escalates into hostility for laughs; members stay bounded by dealbreakers and hard stops. Borrow the implication mechanic, not the cruelty.",
+              "Implication is not incoherence. The gap must be inferable by the partner. A member dropping unparseable non-sequiturs and calling it subtext is the failure mode, not the goal.",
+              "Do not write the bracketed sound gag into a member. The reference annotates a non-verbal beat as (slicing noise); a fixture conveys the same beat through spoken implication, never a stage direction.",
+              "Do not flatten every member to one talk style. Match the yap-to-quiet ratio to the authored member instead of making everyone spiral or everyone clipped.",
+            ]}
+          />
+        </DocSubsection>
+        <DocSubsection id="date-scenario-date-translation" title="Date Translation">
+          <DocList
+            items={[
+              "Delete the narration. Cut lines where a member states what it is doing, repeats what was just said, or acknowledges the obvious, then let the following line imply the move.",
+              "Hand off the back half. A member can start a bit and leave the finish to the partner's reaction; do not complete your own joke if the partner's confusion completes it better.",
+              "Build the shared scene. Treat the partner's last line as the springboard and escalate off it rather than performing a pre-written set at them.",
+              "Keep pressure in the subtext. On high-pressure frames use dodges, overrides, and terse buttons; never have a member say the pressure out loud.",
+              "For human-with-otherworldly pairings, let the strange member act on its own internal logic and let the grounded partner's real-time reaction carry the exposition. Neither explains the world outright.",
+              "Tune the talk ratio per member. Give a yapper long spiraling turns and a quiet member fewer words that still redirect or land the deadpan. Quiet is not silent.",
+            ]}
+          />
+        </DocSubsection>
+      </>
+    ),
+    subsections: [
+      { id: "date-scenario-use-for", title: "Use For" },
+      { id: "date-scenario-mechanics", title: "Transferable Mechanics" },
+      { id: "date-scenario-boundaries", title: "Do Not Transfer" },
+      { id: "date-scenario-date-translation", title: "Date Translation" },
+    ],
+  },
+  {
     id: "imessage-texting-corpora",
     title: "iMessage And Texting Corpora",
     body: (
@@ -238,9 +313,7 @@ export const sections: DocSectionEntry[] = [
               performance mechanics
             </DocLink>{" "}
             catalog owns the named mechanics, and the{" "}
-            <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
-              spoken dialogue
-            </DocLink>{" "}
+            <DocLink to="/docs/product/voice-requirements#spoken-dialogue">spoken dialogue</DocLink>{" "}
             grid owns what survives the typed-to-spoken jump.
           </P>
           <DocList
@@ -262,9 +335,7 @@ export const sections: DocSectionEntry[] = [
           <P>
             The typed-to-spoken boundary — laugh-tags, one-word reaction bubbles, shorthand,
             all-caps streaks, and literal multi-bubble cascades — is owned by the{" "}
-            <DocLink to="/docs/product/voice-fingerprints#spoken-dialogue-contract">
-              spoken dialogue
-            </DocLink>{" "}
+            <DocLink to="/docs/product/voice-requirements#spoken-dialogue">spoken dialogue</DocLink>{" "}
             grid. The reminder specific to a private corpus: never carry real names, places,
             employers, links, or the source person&apos;s actual jokes, opinions, and biography into
             a member. The corpus is a speech-pattern source, not a character source, unless the user
@@ -305,6 +376,15 @@ export const sections: DocSectionEntry[] = [
                 <>
                   <DocCode>docs/reference/voice-northernlion.md</DocCode>. Curated public-source bit
                   chunks for cadence and performance mechanics.
+                </>
+              ),
+            },
+            {
+              term: "Date scenario dialogue",
+              def: (
+                <>
+                  <DocCode>docs/reference/voice-date-scenarios.md</DocCode>. Performed date scenes
+                  for implication over narration, handed-off bits, and yap-versus-quiet talk ratio.
                 </>
               ),
             },

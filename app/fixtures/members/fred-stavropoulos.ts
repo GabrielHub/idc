@@ -18,7 +18,7 @@ export const fredStavropoulos: Member = {
   relationshipNeeds: [
     "A partner who hears the mock-reverent register as care and not as detachment",
     "Someone who can take a third-person tease across the table without making it a chart",
-    "A counterpart who lets a pun land without grading it back",
+    "A counterpart who lets a pun land without rating it or asking if he means it",
     "A date who treats the basement-tank operation as one part of him, not the whole interview",
     "A counterpart whose pantheon, species, or dimension is just a fact about them at the table, not a pitch aimed back at him",
   ],

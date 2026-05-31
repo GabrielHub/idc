@@ -20,7 +20,7 @@ import { DraftScreen } from "./date-view-draft-screen";
 import { FinalReportFooter } from "./date-view-final-report";
 import { DateFooter } from "./date-view-footer";
 import { DateStageLayer } from "./date-stage-layer";
-import { selectPortraitMood } from "./date-presentation-signals";
+import { selectDominantMood, selectPortraitMood } from "./date-presentation-signals";
 import { DaterStandee, type ReactionSignal, type StandeeSpeakState } from "./date-reactions";
 import {
   resolveDatePlaybackUiState,
@@ -180,6 +180,7 @@ export function DateView({
     leftMember === undefined ? "neutral" : selectPortraitMood(leftMember.id, latestJudge);
   const rightMood =
     rightMember === undefined ? "neutral" : selectPortraitMood(rightMember.id, latestJudge);
+  const stageMood = selectDominantMood(leftMood, rightMood);
   const playbackUiState = resolveDatePlaybackUiState({
     playbackState: session.playbackState,
     pendingDateAction,
@@ -232,8 +233,12 @@ export function DateView({
 
   return (
     <>
-      <ScenarioBackdropLayer scenarioId={scenario?.id} microMotion="drift-pointer" />
-      <DateStageLayer />
+      <ScenarioBackdropLayer
+        scenarioId={scenario?.id}
+        microMotion="drift-pointer"
+        particles="motes"
+      />
+      <DateStageLayer mood={stageMood} dateHealth={session.dateHealth} />
       {leftMember !== undefined && rightMember !== undefined ? (
         <DateStandeeFrame
           leftMember={leftMember}

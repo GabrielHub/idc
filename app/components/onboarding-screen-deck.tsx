@@ -18,6 +18,7 @@ import {
 } from "./dashboard-atoms";
 import { MemberDetailsModal } from "./member-card";
 import { useResponsiveColumnCount } from "./onboarding-screen-utils";
+import { RoomCardBack } from "./room-card-back";
 import { ScenarioCard } from "./scenario-card";
 import { ScenarioDetailsModal } from "./scenario-details-modal";
 import { TutorialCoachMark, TutorialPulseRing, TutorialSpotlight } from "./tutorial";
@@ -607,20 +608,13 @@ function DeckManifest({
                 <motion.span
                   aria-hidden
                   className={`block aspect-[5/7] overflow-hidden rounded-[5px] ${
-                    filled
-                      ? "bg-gradient-to-br from-aura-rose via-aura-fuchsia to-aura-violet shadow-quiet ring-1 ring-white/55"
-                      : "border border-dashed border-aura-ink/18 bg-white/55"
+                    filled ? "shadow-quiet" : "border border-dashed border-aura-ink/18 bg-white/55"
                   }`}
                   initial={false}
                   animate={{ scale: filled ? 1 : 0.94, y: filled ? -1 : 0 }}
                   transition={{ duration: 0.26, ease: EASE_OUT_QUART }}
                 >
-                  {filled ? (
-                    <span
-                      aria-hidden
-                      className="block size-full bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.45)_0%,transparent_55%)]"
-                    />
-                  ) : null}
+                  {filled ? <RoomCardBack /> : null}
                 </motion.span>
               </li>
             );
@@ -680,16 +674,9 @@ function DrawFan() {
           initial={{ x: 0, y: card.ty + 10, opacity: 0, rotate: 0 }}
           animate={{ x: card.tx, y: card.ty, opacity: 1, rotate: card.rotate }}
           transition={{ duration: 0.55, ease: EASE_OUT_QUART, delay: 0.08 + i * 0.09 }}
-          className={`absolute grid aspect-[5/7] h-11 place-items-center rounded-[5px] bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 shadow-[0_4px_12px_-4px_rgba(15,23,42,0.45),inset_0_1px_0_0_rgba(255,255,255,0.14)] ring-1 ring-white/25 ${card.zClass}`}
+          className={`absolute block aspect-[5/7] h-11 overflow-hidden rounded-[5px] shadow-[0_4px_12px_-4px_rgba(15,23,42,0.45)] ${card.zClass}`}
         >
-          <span
-            aria-hidden
-            className="block size-3.5 rounded-full bg-[radial-gradient(circle,rgba(244,63,94,0.6)_0%,rgba(217,70,239,0.28)_45%,transparent_75%)]"
-          />
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-[3px] rounded-[3px] ring-1 ring-rose-300/20"
-          />
+          <RoomCardBack />
         </motion.span>
       ))}
     </div>

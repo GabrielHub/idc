@@ -24,6 +24,8 @@ export function CathedralCard({
   indexDelay,
   reducedMotion,
   showTooltip = true,
+  fill = false,
+  animateIn = true,
 }: {
   entry: DoorEntry;
   mode: CathedralMode;
@@ -39,21 +41,29 @@ export function CathedralCard({
   // is already large and self-labeled (the card-offer overlay). Off in that
   // context to avoid the tooltip overlapping nearby headings.
   showTooltip?: boolean;
+  // When true the card stretches to fill its positioned parent instead of
+  // owning a 4/5 aspect box. Used as the front face of a flip, where the slot
+  // owns the geometry and the back face must line up exactly.
+  fill?: boolean;
+  // When false the card skips its own fade/rise entrance, leaving the reveal to
+  // the parent (the deal + flip wrapper) so the face never animates twice.
+  animateIn?: boolean;
 }) {
   const tint = roomReadTint(entry.scenario.roomRead);
   const interactive = entry.disabled !== true;
   const tag = topTagFor(entry, mode);
   const enterDuration = reducedMotion ? 0.001 : 0.32;
+  const sizingClass = fill ? "absolute inset-0 size-full" : "aspect-[4/5]";
 
   return (
     <motion.article
       onMouseEnter={onHoverEnter}
       onMouseLeave={onHoverLeave}
-      initial={{ opacity: 0, y: 8 }}
+      initial={animateIn ? { opacity: 0, y: 8 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: enterDuration, ease: [0.22, 0.8, 0.2, 1], delay: indexDelay }}
-      whileHover={interactive && !reducedMotion ? { y: -3 } : undefined}
-      className={`group/door relative flex aspect-[4/5] flex-col overflow-hidden rounded-card text-left transition-shadow duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 ${interactive ? "cursor-pointer" : "cursor-not-allowed"} ${
+      whileHover={interactive && !reducedMotion && !fill ? { y: -3 } : undefined}
+      className={`group/door relative flex ${sizingClass} flex-col overflow-hidden rounded-card text-left transition-shadow duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aura-rose/70 ${interactive ? "cursor-pointer" : "cursor-not-allowed"} ${
         selected ? "shadow-cta ring-2 ring-aura-rose/85" : "ring-1 ring-white/10"
       } ${entry.disabled === true ? "opacity-45" : ""} ${
         hovered && !selected ? "ring-white/30" : ""

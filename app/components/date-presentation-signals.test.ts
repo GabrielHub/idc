@@ -97,6 +97,42 @@ describe("date presentation signals", () => {
     ).toBe("flirty");
   });
 
+  it("prefers filed affect when present", () => {
+    expect(
+      selectPortraitMood(
+        LEFT_MEMBER_ID,
+        makeJudgeSnapshot({
+          memberMoodDeltas: {
+            [LEFT_MEMBER_ID]: 1,
+          },
+          memberAffects: {
+            [LEFT_MEMBER_ID]: {
+              affect: "overloaded",
+              cause: "room pressure",
+            },
+          },
+        }),
+      ),
+    ).toBe("angry");
+
+    expect(
+      selectPortraitMood(
+        LEFT_MEMBER_ID,
+        makeJudgeSnapshot({
+          memberMoodDeltas: {
+            [LEFT_MEMBER_ID]: -1,
+          },
+          memberAffects: {
+            [LEFT_MEMBER_ID]: {
+              affect: "leaning_in",
+              cause: "spark landed",
+            },
+          },
+        }),
+      ),
+    ).toBe("flirty");
+  });
+
   it("keeps unsupported or missing mood evidence neutral", () => {
     expect(
       selectPortraitMood(
@@ -212,10 +248,12 @@ describe("date presentation signals", () => {
 function makeJudgeSnapshot({
   memberMoodDeltas = {},
   statDeltas = {},
+  memberAffects,
   shouldEndEarly = false,
 }: {
   memberMoodDeltas?: Record<string, number>;
   statDeltas?: JudgeSnapshot["statDeltas"];
+  memberAffects?: JudgeSnapshot["memberAffects"];
   shouldEndEarly?: boolean;
 } = {}): JudgeSnapshot {
   return {
@@ -225,6 +263,7 @@ function makeJudgeSnapshot({
     dateHealthDelta: 0,
     statDeltas,
     memberMoodDeltas,
+    memberAffects,
     shouldEndEarly,
     endSentiment: null,
     notableMoments: ["Cupid observed a test exchange."],

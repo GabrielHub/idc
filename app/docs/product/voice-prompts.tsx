@@ -26,12 +26,12 @@ export const lede = (
   <>
     This doc owns runtime surfaces. It explains what prompt packets contain, what each UI surface
     should sound like, which Markdown the transcript renderer accepts, and how to respond to
-    recurring model quirks. Fixture authoring rules live in{" "}
-    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Agents doing
-    member tuning should start with{" "}
-    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink> and
-    use this doc only when the failing surface is runtime prompt behavior. Provider-aligned rules
-    for editing prompt text live in{" "}
+    recurring model quirks. How to build a member voice lives in{" "}
+    <DocLink to="/docs/product/voice-authoring">Member voice: authoring</DocLink>; what a finished
+    voice must satisfy lives in{" "}
+    <DocLink to="/docs/product/voice-requirements">Member voice: requirements</DocLink>. Agents
+    doing member tuning should start there and use this doc only when the failing surface is runtime
+    prompt behavior. Provider-aligned rules for editing prompt text live in{" "}
     <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
@@ -180,7 +180,9 @@ export const sections: DocSectionEntry[] = [
         <P>
           <DocCode>buildCharacterPromptPacket</DocCode> in{" "}
           <DocCode>app/services/date-prompts.ts</DocCode> builds the prompt addressed to the member
-          in second person. Gameplay terms stay out of the member frame.
+          in second person. Gameplay terms stay out of the member frame. This section documents what
+          the packet assembles; the bars a finished line must satisfy are owned by{" "}
+          <DocLink to="/docs/product/voice-requirements">Member voice: requirements</DocLink>.
         </P>
         <DocList
           items={[
@@ -243,8 +245,8 @@ export const sections: DocSectionEntry[] = [
         <DocCallout variant="warn">
           Do not use member-chat output as proof that the live performer prompt is locked. Live date
           behavior still needs the live tuning path in{" "}
-          <DocLink to="/docs/product/voice#voice-tuning-quickstart">
-            Voice tuning quickstart
+          <DocLink to="/docs/product/voice-requirements#running-a-pass">
+            Member voice: requirements
           </DocLink>{" "}
           because scene pressure, pair state, Cupid coaching, samples, and transcript rhythm change
           the model's choices.
@@ -390,8 +392,8 @@ export const sections: DocSectionEntry[] = [
           <span key="tuning">
             If a systemic prompt changes, run short spot checks against already-locked voices likely
             to be affected. The one-member tuning sequence lives in{" "}
-            <DocLink to="/docs/product/voice#voice-tuning-quickstart">
-              Voice tuning quickstart
+            <DocLink to="/docs/product/voice-requirements#running-a-pass">
+              Member voice: requirements
             </DocLink>
             .
           </span>,

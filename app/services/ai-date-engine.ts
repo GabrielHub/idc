@@ -86,6 +86,7 @@ import {
   type JudgePromptPacket,
   type SummarizerPromptPacket,
 } from "./date-prompts";
+import { applyDateConsequenceModel } from "./date-consequence-model";
 import {
   describeHiddenInfoLeak,
   detectHiddenInfoLeak,
@@ -458,10 +459,18 @@ async function advanceDateExchangeWithLocalAiInternal(
     ...localAiJudgeSnapshot,
     usedEvidenceIds: acceptedEvidenceIds,
   });
+  const modeledJudgeSnapshot = applyDateConsequenceModel({
+    session,
+    members,
+    scenario,
+    judgeSnapshot: judgeSnapshotWithReveals,
+    matchFit,
+    exchangeMessages,
+  });
   const judgeSnapshot = applyMatchFitToJudgeSnapshot({
     session,
     pairState,
-    judgeSnapshot: judgeSnapshotWithReveals,
+    judgeSnapshot: modeledJudgeSnapshot,
   });
   const judgedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const pairMemoryResult = applyJudgePairMemoryEffects({
@@ -680,10 +689,18 @@ async function cutDateShortWithLocalAiInternal(
     ...localAiJudgeSnapshot,
     usedEvidenceIds: acceptedEvidenceIds,
   });
+  const modeledJudgeSnapshot = applyDateConsequenceModel({
+    session: cutSession,
+    members,
+    scenario,
+    judgeSnapshot: judgeSnapshotWithReveals,
+    matchFit,
+    exchangeMessages,
+  });
   const judgeSnapshot = applyMatchFitToJudgeSnapshot({
     session: cutSession,
     pairState,
-    judgeSnapshot: judgeSnapshotWithReveals,
+    judgeSnapshot: modeledJudgeSnapshot,
   });
   const judgedPairState = applyJudgeToPairState(pairState, judgeSnapshot);
   const pairMemoryResult = applyJudgePairMemoryEffects({

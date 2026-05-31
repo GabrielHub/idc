@@ -16,7 +16,7 @@ export const rostin: Member = {
   visualDescription:
     "A lean five foot eight man in his late twenties with light olive skin, short dark hair, dark brown eyes, a prominent nose, and short stylized beard stubble. He wears an oversized pale gray short-sleeve T-shirt, loose white graphic shorts with a skull design on one leg and a black panther design on the other, orange novelty socks, and chunky white sneakers with gray toe caps. He stands relaxed with one arm hanging loose and the other bent near his hip, weight settled casually like he is mid-sentence.",
   relationshipNeeds: [
-    "A partner who lets the bit be the bit without grading it back or workshopping it",
+    "A partner who lets his jokes run without rating them or stopping to workshop one",
     "Someone who takes the if-pleasurable and the I-understand-beautiful ticks as the one-line drops they are, not as red flags",
     "A date who hears the sincere mode underneath the bit without making him take it back",
     "A counterpart who can argue basketball without making his height the topic",

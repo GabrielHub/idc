@@ -802,6 +802,14 @@ body::-webkit-scrollbar {
     scale(1.012);
 }
 
+/* Static film grain over the blurred scenario backdrop for a cinematic finish. */
+.scenario-backdrop-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23grain)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  mix-blend-mode: soft-light;
+  opacity: 0.35;
+}
+
 .dater-standee-perspective {
   perspective: 1200px;
 }
@@ -826,6 +834,25 @@ body::-webkit-scrollbar {
     rgba(167, 139, 250, 0.32) 0%,
     rgba(167, 139, 250, 0.1) 44%,
     transparent 74%
+  );
+}
+
+/* Conversation pulse rings, expanded and faded by Framer while a member talks. */
+.dater-pulse-left {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    transparent 32%,
+    rgba(244, 63, 94, 0.2) 52%,
+    transparent 72%
+  );
+}
+
+.dater-pulse-right {
+  background: radial-gradient(
+    ellipse at 50% 60%,
+    transparent 32%,
+    rgba(167, 139, 250, 0.18) 52%,
+    transparent 72%
   );
 }
 

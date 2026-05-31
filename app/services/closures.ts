@@ -23,12 +23,22 @@ export const CLOSURE_SUMMARY_MAX_LENGTH = 360;
 export const CLOSURE_SUMMARY_MIN_LENGTH = 24;
 
 export const CLOSURE_THRESHOLD = {
-  chemistry: 75,
-  trust: 75,
-  relationshipHealth: 75,
-  strainMax: 30,
-  conflictMax: 30,
-  minCompletedDates: 3,
+  chemistry: 68,
+  trust: 68,
+  relationshipHealth: 70,
+  strainMax: 42,
+  conflictMax: 42,
+  minCompletedDates: 2,
+} as const;
+
+export const DECISIVE_CLOSURE_THRESHOLD = {
+  dateHealth: 72,
+  chemistry: 64,
+  trust: 64,
+  relationshipHealth: 68,
+  strainMax: 48,
+  conflictMax: 48,
+  minCompletedDates: 2,
 } as const;
 
 export function isPairClosureMemory(memory: MemoryRecord): boolean {
@@ -52,6 +62,7 @@ export type ClosureReadinessInput = {
   outcome: DateFinalReport["outcome"];
   completedDateCount: number;
   members: readonly ClosureReadinessMember[];
+  finalDateHealth?: number;
 };
 
 /** Hard rule for closure readiness. See app/docs/gameplay/case-management.tsx "Case closures" and "Win conditions". */
@@ -60,27 +71,45 @@ export function evaluateClosureReadiness({
   outcome,
   completedDateCount,
   members,
+  finalDateHealth,
 }: ClosureReadinessInput): boolean {
   if (outcome !== "second_date") {
     return false;
   }
 
-  if (completedDateCount < CLOSURE_THRESHOLD.minCompletedDates) {
+  const meetsCleanDateCount = completedDateCount >= CLOSURE_THRESHOLD.minCompletedDates;
+  const meetsDecisiveDateCount = completedDateCount >= DECISIVE_CLOSURE_THRESHOLD.minCompletedDates;
+  if (!meetsCleanDateCount && !meetsDecisiveDateCount) {
     return false;
   }
 
   const { stats } = pairState;
-  if (stats.chemistry < CLOSURE_THRESHOLD.chemistry) return false;
-  if (stats.trust < CLOSURE_THRESHOLD.trust) return false;
-  if (stats.relationshipHealth < CLOSURE_THRESHOLD.relationshipHealth) return false;
-  if (stats.strain > CLOSURE_THRESHOLD.strainMax) return false;
-  if (stats.conflict > CLOSURE_THRESHOLD.conflictMax) return false;
+  const cleanStats =
+    meetsCleanDateCount &&
+    stats.chemistry >= CLOSURE_THRESHOLD.chemistry &&
+    stats.trust >= CLOSURE_THRESHOLD.trust &&
+    stats.relationshipHealth >= CLOSURE_THRESHOLD.relationshipHealth &&
+    stats.strain <= CLOSURE_THRESHOLD.strainMax &&
+    stats.conflict <= CLOSURE_THRESHOLD.conflictMax;
+  const decisiveStats =
+    finalDateHealth !== undefined &&
+    finalDateHealth >= DECISIVE_CLOSURE_THRESHOLD.dateHealth &&
+    meetsDecisiveDateCount &&
+    stats.chemistry >= DECISIVE_CLOSURE_THRESHOLD.chemistry &&
+    stats.trust >= DECISIVE_CLOSURE_THRESHOLD.trust &&
+    stats.relationshipHealth >= DECISIVE_CLOSURE_THRESHOLD.relationshipHealth &&
+    stats.strain <= DECISIVE_CLOSURE_THRESHOLD.strainMax &&
+    stats.conflict <= DECISIVE_CLOSURE_THRESHOLD.conflictMax;
+
+  if (!cleanStats && !decisiveStats) return false;
   if (pairState.agreements?.some((agreement) => agreement.status === "broken") === true) {
     return false;
   }
-  if (pairState.openLoops?.some((loop) => loop.status === "open") === true) {
+  const openLoopCount = pairState.openLoops?.filter((loop) => loop.status === "open").length ?? 0;
+  if (openLoopCount > 1) {
     return false;
   }
+  if (openLoopCount === 1 && !canCarryOneOpenLoopForClosure(stats)) return false;
 
   const membersById = new Map(members.map((member) => [member.id, member] as const));
   for (const participantId of pairState.participantIds) {
@@ -91,6 +120,15 @@ export function evaluateClosureReadiness({
   }
 
   return true;
+}
+
+export function canCarryOneOpenLoopForClosure(stats: PairState["stats"]): boolean {
+  return (
+    stats.trust >= CLOSURE_THRESHOLD.trust + 8 &&
+    stats.relationshipHealth >= CLOSURE_THRESHOLD.relationshipHealth + 6 &&
+    stats.strain <= CLOSURE_THRESHOLD.strainMax - 10 &&
+    stats.conflict <= CLOSURE_THRESHOLD.conflictMax - 10
+  );
 }
 
 export function clientLossLimit(save: Pick<GameSave, "closureCount">): number {
@@ -166,6 +204,7 @@ export function getReadyClosurePairs(save: GameSave): ReadyClosurePair[] {
       outcome: report.outcome,
       completedDateCount: pairState.completedDateIds.length,
       members: [first, second],
+      finalDateHealth: latestSession.dateHealth,
     });
 
     if (!stillReady) continue;

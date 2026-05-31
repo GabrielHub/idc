@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import type { Member, PortraitMood } from "../domain/game";
 import { hashSeedUint32 } from "../services/utils";
@@ -266,6 +266,7 @@ export function DaterStandee({
       <span aria-hidden className={baseGlow} />
       <MoodAmbientGlow mood={mood} />
       <SpeakingRimGlow speakState={speakState} placement={placement} />
+      <ConversationPulse speakState={speakState} placement={placement} />
       <motion.div
         className={`dater-standee-motion-root relative size-full ${shadowClass}`}
         animate={speakAnimation}
@@ -315,6 +316,45 @@ function SpeakingRimGlow({
         />
       ) : null}
     </AnimatePresence>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Conversation pulse, a slow ripple from a member while they talk    */
+/* ------------------------------------------------------------------ */
+
+function ConversationPulse({
+  speakState,
+  placement,
+}: {
+  speakState: StandeeSpeakState;
+  placement: ReactionPlacement;
+}) {
+  const reducedMotion = useReducedMotion();
+
+  if (reducedMotion === true || speakState === "idle") {
+    return null;
+  }
+
+  const toneClass = placement === "bottom-left" ? "dater-pulse-left" : "dater-pulse-right";
+  const speaking = speakState === "speaking";
+  const duration = speaking ? 3.2 : 5.2;
+  const peakOpacity = speaking ? 1 : 0.5;
+  const scaleArc = speaking ? [0.82, 1, 1.18] : [0.9, 1, 1.08];
+
+  return (
+    <motion.span
+      aria-hidden
+      className={`pointer-events-none absolute -inset-x-20 -inset-y-28 -z-10 ${toneClass}`}
+      initial={{ opacity: 0, scale: scaleArc[0] }}
+      animate={{ opacity: [0, peakOpacity, 0], scale: scaleArc }}
+      transition={{
+        duration,
+        repeat: Infinity,
+        ease: EASE_OUT_QUART,
+        times: [0, 0.4, 1],
+      }}
+    />
   );
 }
 

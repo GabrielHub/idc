@@ -147,7 +147,10 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("<format>");
     expect(ownerPacket.prompt).toContain("<live_date_turn>");
     expect(ownerPacket.prompt).toContain("Success means the reply advances this date");
+    expect(ownerPacket.prompt).toContain("Scene context is fuel for a social move");
+    expect(ownerPacket.prompt).toContain("Setup-recital drift");
     expect(ownerPacket.prompt).toContain("The newest partner move outranks room analysis.");
+    expect(ownerPacket.prompt).toContain("When your date points at the backdrop");
     expect(ownerPacket.prompt).toContain("Default shape: one compact spoken move.");
     expect(ownerPacket.prompt).toContain("under 55 words");
     expect(ownerPacket.prompt).toContain("Compact does not mean bland.");
@@ -172,7 +175,8 @@ describe("date prompt assembly", () => {
     expect(ownerPacket.prompt).toContain("The bubble contains only words spoken aloud.");
     expect(ownerPacket.prompt).toContain("When screen, tablet, or title content matters");
     expect(ownerPacket.prompt).toContain("Let the venue fall behind the person across from you.");
-    expect(ownerPacket.prompt).toContain("Opening turn: start the date, not the room tour.");
+    expect(ownerPacket.prompt).toContain("Opening turn: start the date by putting a live move");
+    expect(ownerPacket.prompt).toContain("The room may color the line");
     expect(ownerPacket.prompt).toContain("You are speaking across a table.");
     expect(ownerPacket.prompt).toContain("*italic* for a stressed word you would say aloud");
     expect(ownerPacket.prompt).toContain(
@@ -204,6 +208,29 @@ describe("date prompt assembly", () => {
     expect(partnerPacket.prompt).toContain("Vhool's sincerity condenses.");
     expect(partnerPacket.prompt).toContain("When the room asks for a move, name the move first");
     expect(partnerPacket.prompt).toContain("If asked whether the board pieces are people");
+
+    const ownerFinalMessage = ownerPacket.messages?.at(-1);
+    if (ownerFinalMessage?.role !== "user" || typeof ownerFinalMessage.content !== "string") {
+      throw new Error("Expected opening prompt to end with a text user message.");
+    }
+
+    expect(ownerFinalMessage.content).toContain("Shared opening context for both characters");
+    expect(ownerFinalMessage.content).toContain("Begin with a spoken move");
+    expect(ownerFinalMessage.content).toContain("Use this context only where it creates");
+    expect(ownerFinalMessage.content).not.toContain("This just happened:");
+  });
+
+  it("frames first-turn scenario setup as context instead of a line to recap", () => {
+    const buildBearPrompt = buildOpeningPromptForScenario("build-a-bear-empty-mall");
+
+    expect(buildBearPrompt).toContain(
+      "Shared opening context for both characters: Both members are at the entrance to the store.",
+    );
+    expect(buildBearPrompt).toContain("Use this context only where it creates");
+    expect(buildBearPrompt).toContain("Activity openings work best");
+    expect(buildBearPrompt).not.toContain(
+      "This just happened: Both members are at the entrance to the store.",
+    );
   });
 
   it("adapts the live date contract to scenario flow", () => {
@@ -217,6 +244,7 @@ describe("date prompt assembly", () => {
     expect(conversationPrompt).toContain("answer the social move underneath it and pivot");
     expect(activityPrompt).toContain("<flow_mode>activity</flow_mode>");
     expect(activityPrompt).toContain("Keep the conversation alive while the activity happens");
+    expect(activityPrompt).toContain("Activity openings work best");
     expect(pressurePrompt).toContain("<flow_mode>pressure</flow_mode>");
     expect(pressurePrompt).toContain("parking in analysis is not");
     expect(pressurePrompt).toContain("Pressure is not a lore exam.");

@@ -1,5 +1,5 @@
-import { type ReactNode, type Ref } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { type ReactNode, type Ref, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import type { Member } from "../../domain/game";
 import { AuraButton } from "../aura-button";
@@ -7,6 +7,19 @@ import type { PortraitPalette } from "../portrait-palette";
 import { avatarSrcsetFor, withAlpha } from "./math";
 import type { PairCardDetail } from "./pair-card-details";
 import type { LobbyState, StarMark } from "./types";
+
+const PAIR_CARD_LAYOUT_TRANSITION = {
+  type: "spring" as const,
+  stiffness: 260,
+  damping: 30,
+  mass: 0.75,
+};
+const PAIR_CARD_CONTENT_TRANSITION = {
+  duration: 0.18,
+  ease: [0.22, 0.8, 0.2, 1] as const,
+};
+type PairCardLayoutTransition = typeof PAIR_CARD_LAYOUT_TRANSITION | { duration: 0 };
+type PairCardContentTransition = typeof PAIR_CARD_CONTENT_TRANSITION | { duration: 0 };
 
 export function SideRail({
   focus,
@@ -94,11 +107,29 @@ function PairCard({
   accent: string;
   onClear?: () => void;
 }) {
+  const [expanded, setExpanded] = useState(false);
+  const reducedMotion = useReducedMotion() === true;
   const surface = role === "focus" ? "aura-liquid-glass-rose" : "aura-liquid-glass-violet";
+  const layoutTransition: PairCardLayoutTransition = reducedMotion
+    ? { duration: 0 }
+    : PAIR_CARD_LAYOUT_TRANSITION;
+  const contentTransition: PairCardContentTransition = reducedMotion
+    ? { duration: 0 }
+    : PAIR_CARD_CONTENT_TRANSITION;
+
   return (
     <motion.div
       layout
-      transition={{ layout: { duration: 0.2, ease: [0.22, 0.8, 0.2, 1] } }}
+      onHoverStart={() => setExpanded(true)}
+      onHoverEnd={() => setExpanded(false)}
+      onFocusCapture={() => setExpanded(true)}
+      onBlurCapture={(event) => {
+        const nextFocus = event.relatedTarget;
+        if (!(nextFocus instanceof Node) || !event.currentTarget.contains(nextFocus)) {
+          setExpanded(false);
+        }
+      }}
+      transition={{ layout: layoutTransition }}
       className={`group pointer-events-auto aura-liquid-glass ${surface} aura-liquid-glass-hover w-[280px] rounded-card px-4 py-3`}
     >
       <div className="flex items-center justify-between gap-2">
@@ -120,7 +151,15 @@ function PairCard({
           </AuraButton>
         )}
       </div>
-      <MemberRow member={star.member} palette={star.palette} detail={detail} accent={accent} />
+      <MemberRow
+        member={star.member}
+        palette={star.palette}
+        detail={detail}
+        accent={accent}
+        expanded={expanded}
+        layoutTransition={layoutTransition}
+        contentTransition={contentTransition}
+      />
     </motion.div>
   );
 }
@@ -143,54 +182,126 @@ function MemberRow({
   palette,
   detail,
   accent,
+  expanded,
+  layoutTransition,
+  contentTransition,
 }: {
   member: Member;
   palette: PortraitPalette;
   detail?: PairCardDetail;
   accent: string;
+  expanded: boolean;
+  layoutTransition: PairCardLayoutTransition;
+  contentTransition: PairCardContentTransition;
 }) {
   return (
-    <div className="mt-2 flex items-center gap-3">
+    <motion.div
+      layout
+      transition={{ layout: layoutTransition }}
+      className="mt-2 flex items-center gap-3"
+    >
       <PortraitChip member={member} palette={palette} accent={accent} />
-      <div className="min-w-0 leading-tight">
-        <div className="truncate font-display text-display-sm text-aura-paper group-hover:overflow-visible group-hover:whitespace-normal">
-          {member.firstName}
+      <motion.div
+        layout
+        transition={{ layout: layoutTransition }}
+        className="min-w-0 flex-1 leading-tight"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          <motion.div
+            layout
+            transition={{ layout: layoutTransition }}
+            className="min-w-0 truncate font-display text-display-sm text-aura-paper"
+          >
+            {member.firstName}
+          </motion.div>
+          {detail?.kind === "request" ? (
+            <DetailLabel layoutTransition={layoutTransition}>{detail.label}</DetailLabel>
+          ) : null}
         </div>
-        <PairCardDetailLine detail={detail} />
-      </div>
-    </div>
+        <PairCardDetailLine
+          detail={detail}
+          expanded={expanded}
+          layoutTransition={layoutTransition}
+          contentTransition={contentTransition}
+        />
+      </motion.div>
+    </motion.div>
   );
 }
 
-function PairCardDetailLine({ detail }: { detail?: PairCardDetail }) {
+function PairCardDetailLine({
+  detail,
+  expanded,
+  layoutTransition,
+  contentTransition,
+}: {
+  detail?: PairCardDetail;
+  expanded: boolean;
+  layoutTransition: PairCardLayoutTransition;
+  contentTransition: PairCardContentTransition;
+}) {
   if (detail?.kind === "request") {
     return (
-      <div className="mt-1 min-w-0">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <DetailLabel>{detail.label}</DetailLabel>
-          <span className="truncate font-sans text-label font-medium leading-snug text-white/78 group-hover:hidden">
-            {detail.summary}
-          </span>
-        </div>
-        <span className="mt-1 hidden whitespace-normal break-words font-sans text-label font-medium leading-snug text-white/85 group-hover:block">
-          {detail.fullText}
-        </span>
-      </div>
+      <motion.div layout transition={{ layout: layoutTransition }} className="mt-0.5 min-w-0">
+        <AnimatePresence initial={false} mode="popLayout">
+          {expanded ? (
+            <motion.span
+              key="full"
+              layout
+              initial={{ opacity: 0, y: -3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 3 }}
+              transition={contentTransition}
+              className="block whitespace-normal break-words font-sans text-label font-medium leading-snug text-white/85"
+            >
+              {detail.fullText}
+            </motion.span>
+          ) : (
+            <motion.span
+              key="summary"
+              layout
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={contentTransition}
+              className="block truncate font-sans text-label font-medium leading-snug text-white/78"
+            >
+              {detail.summary}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </motion.div>
     );
   }
 
   return (
-    <div className="mt-0.5 line-clamp-1 font-sans text-label font-medium leading-snug text-white/75 group-hover:line-clamp-none">
+    <motion.div
+      layout
+      transition={{ layout: layoutTransition }}
+      className={`mt-0.5 font-sans text-label font-medium leading-snug text-white/75 ${
+        expanded ? "line-clamp-none" : "line-clamp-1"
+      }`}
+    >
       {detail?.text ?? "Selected for tonight"}
-    </div>
+    </motion.div>
   );
 }
 
-function DetailLabel({ children }: { children: ReactNode }) {
+function DetailLabel({
+  children,
+  layoutTransition,
+}: {
+  children: ReactNode;
+  layoutTransition: PairCardLayoutTransition;
+}) {
   return (
-    <span className="inline-flex shrink-0 rounded-full bg-white/12 px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.08em] text-white/80 ring-1 ring-white/15">
+    <motion.span
+      layout
+      transition={{ layout: layoutTransition }}
+      className="inline-flex shrink-0 rounded-full bg-white/12 px-1.5 py-0.5 font-mono text-micro font-semibold uppercase tracking-[0.08em] text-white/80 ring-1 ring-white/15"
+    >
       {children}
-    </span>
+    </motion.span>
   );
 }
 

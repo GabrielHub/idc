@@ -220,16 +220,16 @@ describe("evaluateClosureReadiness", () => {
     }
   });
 
-  it("requires at least 3 completed dates including the current one", () => {
+  it("requires at least 2 completed dates including the current one", () => {
     expect(
       evaluateClosureReadiness({
         pairState: {
           stats: buildPairStats(),
-          completedDateIds: ["a"],
+          completedDateIds: [],
           participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
         },
         outcome: "second_date",
-        completedDateCount: 2,
+        completedDateCount: 1,
         members: baseMembers,
       }),
     ).toBe(false);
@@ -294,7 +294,7 @@ describe("evaluateClosureReadiness", () => {
     ).toBe(false);
   });
 
-  it("rejects broken agreements and open loops as closure blockers", () => {
+  it("rejects broken agreements and unresolved pressure as closure blockers", () => {
     expect(
       evaluateClosureReadiness({
         pairState: {
@@ -338,6 +338,28 @@ describe("evaluateClosureReadiness", () => {
         completedDateCount: 3,
         members: baseMembers,
       }),
+    ).toBe(true);
+
+    expect(
+      evaluateClosureReadiness({
+        pairState: {
+          stats: buildPairStats({ trust: 70, relationshipHealth: 72, strain: 38 }),
+          completedDateIds: ["a", "b"],
+          participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
+          agreements: [],
+          openLoops: [
+            {
+              id: "loop-open",
+              text: "Whether the next booking survives daylight.",
+              status: "open",
+              createdAt: "2026-05-05T11:00:00.000Z",
+            },
+          ],
+        },
+        outcome: "second_date",
+        completedDateCount: 2,
+        members: baseMembers,
+      }),
     ).toBe(false);
   });
 
@@ -370,7 +392,7 @@ describe("closure near miss", () => {
 
     const pairState = buildPairState({
       participantIds: [FIRST_MEMBER_ID, SECOND_MEMBER_ID],
-      stats: buildPairStats(),
+      stats: buildPairStats({ trust: 70, relationshipHealth: 72, strain: 38 }),
       completedDateIds: ["date-1", "date-2"],
     });
     const blockedPairState: PairState = {

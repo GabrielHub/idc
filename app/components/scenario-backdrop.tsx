@@ -283,8 +283,17 @@ function ScenarioBackdropImage({
           />
         </div>
       </motion.div>
+      {reducedMotion ? null : (
+        <motion.span
+          aria-hidden
+          className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_58%,rgba(255,221,186,0.1),transparent_72%)]"
+          animate={{ opacity: [0.45, 1, 0.45] }}
+          transition={{ duration: 26, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" }}
+        />
+      )}
       <span aria-hidden className={SCENARIO_BACKDROP_VEIL_CLASS} />
       <span aria-hidden className={SCENARIO_BACKDROP_EDGE_CLASS} />
+      <span aria-hidden className="scenario-backdrop-grain absolute inset-0" />
     </motion.div>
   );
 }

@@ -96,7 +96,7 @@ describe("closureProgressForPair", () => {
       ["d1", "d2", "d3"],
     );
     const progress = closureProgressForPair(pair);
-    expect(progress.overall).toBe(40);
+    expect(progress.overall).toBe(43);
     expect(progress.blockers).toContain("health");
   });
 
@@ -119,7 +119,7 @@ describe("closureProgressForPair", () => {
     const progress = closureProgressForPair(pair);
     expect(progress.blockers).toContain("dates");
     expect(progress.datesCompleted).toBe(1);
-    expect(progress.datesNeeded).toBe(3);
+    expect(progress.datesNeeded).toBe(2);
   });
 });
 

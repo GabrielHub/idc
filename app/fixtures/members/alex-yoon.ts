@@ -26,7 +26,7 @@ export const alexYoon: Member = {
     "partners who pick a side in a debate without going cold",
     "early dinners before tipoff or saturday afternoons after",
     "dates who say what they want at the table without workshopping it",
-    "people who let him say lebron one time without grading it back",
+    "people who let him say lebron one time without making it a whole thing",
     "phones face down so the score is a surprise",
   ],
   dealbreakers: [

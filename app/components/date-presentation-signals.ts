@@ -1,4 +1,11 @@
-import type { JudgeSnapshot, Member, PortraitAsset, PortraitMood } from "../domain/game";
+import type {
+  JudgeSnapshot,
+  Member,
+  MemberDateAffect,
+  PortraitAsset,
+  PortraitMood,
+} from "../domain/game";
+import type { ReactionKind } from "./date-reactions";
 
 export const DATE_PORTRAIT_MOODS: readonly PortraitMood[] = [
   "neutral",
@@ -9,12 +16,42 @@ export const DATE_PORTRAIT_MOODS: readonly PortraitMood[] = [
 
 type PortraitAssetKind = "avatar" | "portrait";
 
+export type DateAffectReaction = {
+  kind: ReactionKind;
+  minimumIntensity: number;
+  moodSource: "mood" | "magnitude";
+};
+
+const DATE_AFFECT_PORTRAIT_MOODS: Partial<Record<MemberDateAffect, PortraitMood>> = {
+  angry: "angry",
+  overloaded: "angry",
+  leaning_in: "flirty",
+  warming: "flirty",
+  guarded: "confused",
+  disappointed: "confused",
+  curious: "confused",
+};
+
+const DATE_AFFECT_REACTIONS: Partial<Record<MemberDateAffect, DateAffectReaction>> = {
+  leaning_in: { kind: "spark", minimumIntensity: 3, moodSource: "mood" },
+  warming: { kind: "spark", minimumIntensity: 3, moodSource: "mood" },
+  angry: { kind: "anger", minimumIntensity: 4, moodSource: "magnitude" },
+  overloaded: { kind: "anger", minimumIntensity: 4, moodSource: "magnitude" },
+  guarded: { kind: "warning", minimumIntensity: 2, moodSource: "magnitude" },
+  disappointed: { kind: "warning", minimumIntensity: 2, moodSource: "magnitude" },
+};
+
 export function selectPortraitMood(
   memberId: string,
   snapshot: JudgeSnapshot | undefined,
 ): PortraitMood {
   if (snapshot === undefined) {
     return "neutral";
+  }
+
+  const affectMood = portraitMoodForDateAffect(snapshot.memberAffects?.[memberId]?.affect);
+  if (affectMood !== null) {
+    return affectMood;
   }
 
   const memberMoodDelta = snapshot.memberMoodDeltas[memberId];
@@ -45,6 +82,18 @@ export function selectPortraitMood(
   return "neutral";
 }
 
+export function portraitMoodForDateAffect(
+  affect: MemberDateAffect | undefined,
+): PortraitMood | null {
+  return affect === undefined ? null : (DATE_AFFECT_PORTRAIT_MOODS[affect] ?? null);
+}
+
+export function reactionForDateAffect(
+  affect: MemberDateAffect | undefined,
+): DateAffectReaction | null {
+  return affect === undefined ? null : (DATE_AFFECT_REACTIONS[affect] ?? null);
+}
+
 export function selectDominantMood(left: PortraitMood, right: PortraitMood): PortraitMood {
   if (left === "angry" || right === "angry") {
     return "angry";
@@ -59,6 +108,25 @@ export function selectDominantMood(left: PortraitMood, right: PortraitMood): Por
   }
 
   return "neutral";
+}
+
+export type StageHealthBand = "warm" | "steady" | "strained";
+
+/**
+ * Maps live date health (0-100) to a coarse atmosphere band. Healthy dates get
+ * a warm, soft room; strained dates get a tighter, cooler vignette. Thresholds
+ * are deliberately coarse so the stage lighting only shifts on real swings.
+ */
+export function selectStageHealthBand(dateHealth: number): StageHealthBand {
+  if (dateHealth >= 66) {
+    return "warm";
+  }
+
+  if (dateHealth >= 33) {
+    return "steady";
+  }
+
+  return "strained";
 }
 
 /**

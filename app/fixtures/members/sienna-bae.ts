@@ -25,7 +25,7 @@ export const siennaBae: Member = {
     "dinner times after nine thirty, post rehearsal",
     "partners who confirm a vetted place once and stick to it",
     "the bodyguard at table six accepted as room decor, not part of the conversation",
-    "partners who let her thank the server six times without grading it back at her",
+    "partners who let her thank the server six times without commenting on it",
     "a Tim Hortons run between courses if the venue is downtown enough",
     "phones face down because the label is in the chat",
   ],

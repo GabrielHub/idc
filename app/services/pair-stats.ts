@@ -11,6 +11,10 @@ import { clampDelta, clampScore } from "./utils";
 export type PrimaryRelationshipStat = Exclude<RelationshipStat, "relationshipHealth" | "strain">;
 
 export type PrimaryStatDeltas = Partial<Record<PrimaryRelationshipStat, number>>;
+export type AppliedPairStatProjection = {
+  stats: PairStats;
+  statDeltas: Partial<Record<RelationshipStat, number>>;
+};
 
 const DERIVED_RELATIONSHIP_STATS = new Set<RelationshipStat>(["relationshipHealth", "strain"]);
 
@@ -35,6 +39,15 @@ export function applyPrimaryPairStatDeltas(
   stats: PairStats,
   deltas: Partial<Record<RelationshipStat, number>>,
 ): PairStats {
+  return projectPrimaryPairStatDeltas(stats, deltas).stats;
+}
+
+// Judge snapshots store applied deltas after projection. Replaying them into
+// pair state must not scale a second time.
+export function applyAppliedPairStatDeltas(
+  stats: PairStats,
+  deltas: Partial<Record<RelationshipStat, number>>,
+): PairStats {
   const nextStats = { ...stats };
 
   for (const stat of RELATIONSHIP_STATS) {
@@ -48,26 +61,65 @@ export function applyPrimaryPairStatDeltas(
   return derivePairStats(pairStatsSchema.parse(nextStats));
 }
 
-export function deriveJudgeSnapshotPairStatDeltas(
-  pairState: PairState,
-  judgeSnapshot: JudgeSnapshot,
-): JudgeSnapshot {
-  const nextStats = applyPrimaryPairStatDeltas(pairState.stats, judgeSnapshot.statDeltas);
+export function projectPrimaryPairStatDeltas(
+  stats: PairStats,
+  deltas: Partial<Record<RelationshipStat, number>>,
+): AppliedPairStatProjection {
+  const nextStats = { ...stats };
   const nextStatDeltas: Partial<Record<RelationshipStat, number>> = {};
 
   for (const stat of RELATIONSHIP_STATS) {
     if (isDerivedRelationshipStat(stat)) {
-      nextStatDeltas[stat] = clampDelta(nextStats[stat] - pairState.stats[stat]);
       continue;
     }
 
-    if (judgeSnapshot.statDeltas[stat] !== undefined) {
-      nextStatDeltas[stat] = judgeSnapshot.statDeltas[stat];
+    const currentValue = nextStats[stat];
+    const rawDelta = deltas[stat] ?? 0;
+    const nextValue = clampScore(currentValue + scalePrimaryPairStatDelta(currentValue, rawDelta));
+    const appliedDelta = clampDelta(nextValue - currentValue);
+    nextStats[stat] = nextValue;
+
+    if (appliedDelta !== 0) {
+      nextStatDeltas[stat] = appliedDelta;
     }
   }
 
+  const projectedStats = derivePairStats(pairStatsSchema.parse(nextStats));
+  for (const stat of RELATIONSHIP_STATS) {
+    if (!isDerivedRelationshipStat(stat)) {
+      continue;
+    }
+
+    const appliedDelta = clampDelta(projectedStats[stat] - stats[stat]);
+    if (appliedDelta !== 0) {
+      nextStatDeltas[stat] = appliedDelta;
+    }
+  }
+
+  return { stats: projectedStats, statDeltas: nextStatDeltas };
+}
+
+export function scalePrimaryPairStatDelta(currentValue: number, rawDelta: number): number {
+  if (rawDelta === 0) {
+    return 0;
+  }
+
+  const magnitude = Math.abs(rawDelta);
+  const ease =
+    rawDelta > 0 ? 0.72 + ((100 - currentValue) / 100) * 0.6 : 0.72 + (currentValue / 100) * 0.72;
+  const scaled = Math.round(magnitude * ease);
+
+  return rawDelta > 0 ? Math.max(1, scaled) : -Math.max(1, scaled);
+}
+
+export function deriveJudgeSnapshotPairStatDeltas(
+  pairState: PairState,
+  judgeSnapshot: JudgeSnapshot,
+): JudgeSnapshot {
+  const projection = projectPrimaryPairStatDeltas(pairState.stats, judgeSnapshot.statDeltas);
+
   return {
     ...judgeSnapshot,
-    statDeltas: nextStatDeltas,
+    statDeltas: projection.statDeltas,
   };
 }

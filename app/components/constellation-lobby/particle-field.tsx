@@ -36,13 +36,20 @@ const STAR_POINT_VERTEX_SHADER = /* glsl */ `
   uniform float uSize;
   uniform float uPixelRatio;
   uniform float uTwinkleAmount;
+  uniform float uZNear;
+  uniform float uZFar;
   varying float vTwinkle;
+  varying float vDepth;
 
   void main() {
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    // 0 at the layer's nearest dust, 1 at its farthest, used to tint and
+    // scintillate by distance.
+    vDepth = clamp((uZNear - position.z) / (uZNear - uZFar), 0.0, 1.0);
     float w = 1.1 + fract(aPhase * 3.71) * 0.9;
     float pulse = sin(uTime * w + aPhase) * 0.5 + 0.5;
-    vTwinkle = mix(1.0 - uTwinkleAmount, 1.0, pulse);
+    float twinkleAmt = uTwinkleAmount * mix(0.75, 1.25, vDepth);
+    vTwinkle = mix(1.0 - twinkleAmt, 1.0, pulse);
     gl_PointSize = uSize * aScale * uPixelRatio * (300.0 / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
@@ -50,14 +57,17 @@ const STAR_POINT_VERTEX_SHADER = /* glsl */ `
 
 const STAR_POINT_FRAGMENT_SHADER = /* glsl */ `
   uniform sampler2D uTexture;
-  uniform vec3 uColor;
+  uniform vec3 uColorNear;
+  uniform vec3 uColorFar;
   uniform float uOpacity;
   varying float vTwinkle;
+  varying float vDepth;
 
   void main() {
     vec4 tex = texture2D(uTexture, gl_PointCoord);
     if (tex.a < 0.01) discard;
-    gl_FragColor = vec4(uColor * tex.rgb * vTwinkle, tex.a * uOpacity * vTwinkle);
+    vec3 col = mix(uColorNear, uColorFar, vDepth);
+    gl_FragColor = vec4(col * tex.rgb * vTwinkle, tex.a * uOpacity * vTwinkle);
   }
 `;
 
@@ -111,7 +121,12 @@ export function ParticleField({ count }: { count: number }) {
       uSize: { value: 0.5 },
       uPixelRatio: { value: pixelRatio },
       uTexture: { value: pointTexture },
-      uColor: { value: new THREE.Color("#ffe6c8") },
+      // Deep dust trends cool with distance: warm cream up close, soft
+      // periwinkle at the far plane, so the field reads as real depth.
+      uColorNear: { value: new THREE.Color("#ffe0c0") },
+      uColorFar: { value: new THREE.Color("#b9c8f2") },
+      uZNear: { value: -6 },
+      uZFar: { value: -24 },
       uOpacity: { value: 0.55 },
       uTwinkleAmount: { value: reducedMotion ? 0 : 0.6 },
     }),
@@ -124,7 +139,11 @@ export function ParticleField({ count }: { count: number }) {
       uSize: { value: 0.85 },
       uPixelRatio: { value: pixelRatio },
       uTexture: { value: pointTexture },
-      uColor: { value: new THREE.Color("#ffe2c4") },
+      // Near dust stays warm both ends, a touch warmer at the front edge.
+      uColorNear: { value: new THREE.Color("#fff2dc") },
+      uColorFar: { value: new THREE.Color("#ffdcb6") },
+      uZNear: { value: 9 },
+      uZFar: { value: 2 },
       uOpacity: { value: 0.75 },
       uTwinkleAmount: { value: reducedMotion ? 0 : 0.35 },
     }),

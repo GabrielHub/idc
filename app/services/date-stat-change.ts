@@ -3,7 +3,7 @@ import type {
   DateStatChange as DomainDateStatChange,
   RelationshipStat,
 } from "../domain/game";
-import { FINAL_OUTCOME_DELTAS } from "./date-engine";
+import { FINAL_OUTCOME_DELTAS } from "./date-outcome-state";
 
 export type DateStatChange = DomainDateStatChange;
 export type MemberStateDelta = DomainDateStatChange["members"][string];

@@ -211,6 +211,16 @@ describe("date engine member state", () => {
           spark: 3,
           strain: 4,
         },
+        memberAffects: {
+          [jenna.id]: {
+            affect: "leaning_in",
+            cause: "spark landed",
+          },
+          [vhool.id]: {
+            affect: "angry",
+            cause: "boundary pressure",
+          },
+        },
       },
       61,
     );

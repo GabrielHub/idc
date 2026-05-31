@@ -321,8 +321,8 @@ describe("AI date engine orchestration", () => {
     expect(result.session.currentTurn).toBe(2);
     expect(result.session.judgeSnapshots[0]?.endSentiment).toBeNull();
     expect(result.session.judgeSnapshots[0]?.memberMoodDeltas).toEqual({
-      "jenna-pike": 1,
-      vhool: 1,
+      "jenna-pike": 3,
+      vhool: 3,
     });
     expect(result.session.transcript.some((message) => message.text.startsWith("ai Jenna"))).toBe(
       true,
@@ -1723,7 +1723,7 @@ describe("AI date engine orchestration", () => {
     ).toHaveLength(2);
     expect(retryResult.session.judgeSnapshots).toHaveLength(1);
     expect(retryResult.session.judgeSnapshots[0]?.memberMoodDeltas).toEqual({
-      "jenna-pike": 0,
+      "jenna-pike": 1,
       vhool: 0,
     });
   });

@@ -11,6 +11,7 @@ import {
   type PlayerKnowledgeRecord,
 } from "../domain/game";
 import { makePairId } from "./game-seed";
+import { deriveMemberScenarioPolicy, memberHasTag as hasTag } from "./member-scenario-policy";
 import { listUniqueActiveAgreements, listUniqueOpenLoops } from "./pair-memory-state";
 import { deriveJudgeSnapshotPairStatDeltas } from "./pair-stats";
 import { clamp } from "./utils";
@@ -757,22 +758,19 @@ export function buildPublicRiskNotes({
   focusRequests: readonly MemberRequest[];
 }): string[] {
   const notes: string[] = [];
-  const scenarioTags = scenario.card.tags;
   const focusMember = members[0];
 
   for (const member of members) {
-    if (scenarioTags.includes("prophecy") && hasTag(member, "prophecy_averse")) {
+    const policy = deriveMemberScenarioPolicy(member, scenario);
+    if (policy.prophecyPressure) {
       notes.push(`${member.firstName} flags prophecy as a hard boundary. Keep the scene careful.`);
     }
 
-    if (scenarioTags.includes("public") && hasTag(member, "privacy_sensitive")) {
+    if (policy.publicPressure) {
       notes.push(`${member.firstName} cannot do public pressure. The venue is the risk.`);
     }
 
-    if (
-      scenarioTags.includes("memory") &&
-      (hasTag(member, "memory_sensitive") || hasTag(member, "grief_sensitive"))
-    ) {
+    if (policy.memoryPressure || policy.griefPressure) {
       notes.push(`${member.firstName} flags memory pressure. Push gently or expect a report.`);
     }
   }
@@ -859,56 +857,57 @@ function shouldEscalateWalkout({
 
 function memberScenarioScore(member: Member, scenario: DateScenario, ruleHits: string[]): number {
   let score = 0;
+  const policy = deriveMemberScenarioPolicy(member, scenario);
 
-  if (hasTag(member, "needs_low_pressure") && scenario.card.tags.includes("low_pressure")) {
+  if (policy.lowPressureSupported) {
     score += 3;
     ruleHits.push(`${member.id}:low_pressure_supported`);
   }
 
-  if (hasTag(member, "needs_low_pressure") && scenario.card.tags.includes("high_pressure")) {
+  if (policy.highPressureStrain) {
     score -= 4;
     ruleHits.push(`${member.id}:high_pressure_strain`);
   }
 
-  if (hasTag(member, "prophecy_averse") && scenario.card.tags.includes("prophecy")) {
+  if (policy.prophecyPressure) {
     score -= 8;
     ruleHits.push(`${member.id}:prophecy_rejected`);
   }
 
-  if (hasTag(member, "privacy_sensitive") && scenario.card.tags.includes("public")) {
+  if (policy.publicPressure) {
     score -= scenario.card.risk === "high" ? 6 : 3;
     ruleHits.push(`${member.id}:public_pressure`);
   }
 
-  if (hasTag(member, "memory_sensitive") && scenario.card.tags.includes("memory")) {
+  if (policy.memoryPressure) {
     score -= 3;
     ruleHits.push(`${member.id}:memory_pressure`);
   }
 
-  if (hasTag(member, "grief_sensitive") && scenario.card.tags.includes("memory")) {
+  if (policy.griefPressure) {
     score -= scenario.card.intimacy === "high" ? 5 : 2;
     ruleHits.push(`${member.id}:grief_pressure`);
   }
 
-  if (hasTag(member, "career_focused") && scenario.card.tags.includes("career")) {
+  if (policy.careerContext) {
     score += 3;
     ruleHits.push(`${member.id}:career_context`);
   }
 
-  if (hasTag(member, "status_sensitive") && scenario.card.tags.includes("career")) {
+  if (policy.statusCareerContext) {
     score += 1;
   }
 
-  if (hasTag(member, "weirdness_native") && scenario.card.chaos !== "low") {
+  if (policy.weirdnessNativeContext) {
     score += 2;
     ruleHits.push(`${member.id}:weirdness_native`);
   }
 
-  if (hasTag(member, "needs_clear_plan") && scenario.card.chaos === "low") {
+  if (policy.clearPlanSupported) {
     score += 1;
   }
 
-  if (hasTag(member, "needs_clear_plan") && scenario.card.chaos === "high") {
+  if (policy.clearPlanStrain) {
     score -= 2;
   }
 
@@ -1163,23 +1162,21 @@ function basePressure(scenario: DateScenario): number {
 
 function memberPressure(member: Member, scenario: DateScenario): number {
   let pressure = 0;
+  const policy = deriveMemberScenarioPolicy(member, scenario);
 
-  if (hasTag(member, "privacy_sensitive") && scenario.card.tags.includes("public")) {
+  if (policy.publicPressure) {
     pressure += 2;
   }
 
-  if (hasTag(member, "prophecy_averse") && scenario.card.tags.includes("prophecy")) {
+  if (policy.prophecyPressure) {
     pressure += 3;
   }
 
-  if (
-    (hasTag(member, "grief_sensitive") || hasTag(member, "memory_sensitive")) &&
-    scenario.card.tags.includes("memory")
-  ) {
+  if (policy.griefPressure || policy.memoryPressure) {
     pressure += 2;
   }
 
-  if (hasTag(member, "needs_low_pressure") && scenario.card.tags.includes("high_pressure")) {
+  if (policy.highPressureStrain) {
     pressure += 2;
   }
 
@@ -1193,30 +1190,8 @@ function findBoundaryRisk(
   scenario: DateScenario,
 ): MatchFitBoundaryRisk | null {
   for (const member of members) {
-    if (hasTag(member, "prophecy_averse") && scenario.card.tags.includes("prophecy")) {
-      return {
-        memberId: member.id,
-        reason: "Prophecy tripped a visible dealbreaker.",
-      };
-    }
-
-    if (hasTag(member, "privacy_sensitive") && scenario.id === "museum-exhibit-mixup") {
-      return {
-        memberId: member.id,
-        reason: "Public exposure tripped a visible dealbreaker.",
-      };
-    }
-
-    if (
-      hasTag(member, "grief_sensitive") &&
-      scenario.card.tags.includes("memory") &&
-      scenario.card.intimacy === "high"
-    ) {
-      return {
-        memberId: member.id,
-        reason: "Forced recovery tripped a visible dealbreaker.",
-      };
-    }
+    const boundaryRisk = deriveMemberScenarioPolicy(member, scenario).boundaryRisk;
+    if (boundaryRisk !== null) return { memberId: member.id, reason: boundaryRisk.reason };
   }
 
   return null;
@@ -1486,10 +1461,6 @@ function toPressureLevel(pressure: number): MatchPressureLevel {
   }
 
   return pressure >= MEDIUM_PRESSURE_THRESHOLD ? "medium" : "low";
-}
-
-function hasTag(member: Member, tag: MemberTag): boolean {
-  return member.tags.includes(tag);
 }
 
 function memberHasAnyTag(member: Member, tags: readonly MemberTag[]): boolean {

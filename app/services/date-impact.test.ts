@@ -87,6 +87,7 @@ describe("date impact receipt", () => {
         members: starterMembers,
         pairStates: [
           makePairState({
+            stats: makePairStats({ trust: 74 }),
             completedDateIds: ["date-impact-1", "date-impact-2", "date-impact-3"],
             openLoops: [
               {

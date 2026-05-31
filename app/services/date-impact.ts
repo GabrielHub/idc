@@ -7,7 +7,7 @@ import type {
   PairState,
 } from "../domain/game";
 import { memberRequests } from "../fixtures";
-import { CLOSURE_THRESHOLD } from "./closures";
+import { CLOSURE_THRESHOLD, canCarryOneOpenLoopForClosure } from "./closures";
 import type { DateStatChange } from "./date-stat-change";
 import { classifyFocusAskOutcomeFromSession } from "./shift-request-assessment";
 
@@ -260,7 +260,11 @@ function closureBlocker(report: DateFinalReport, pairState: PairState | undefine
     return null;
   }
 
-  if (pairState.openLoops.some((loop) => loop.status === "open")) {
+  const openLoopCount = pairState.openLoops.filter((loop) => loop.status === "open").length;
+  if (
+    openLoopCount > 1 ||
+    (openLoopCount === 1 && !canCarryOneOpenLoopForClosure(pairState.stats))
+  ) {
     return "Still blocking closure: unresolved issue.";
   }
   if (pairState.agreements.some((agreement) => agreement.status === "broken")) {

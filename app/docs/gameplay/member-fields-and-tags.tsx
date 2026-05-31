@@ -22,11 +22,13 @@ export const meta: DocMeta = {
 export const lede = (
   <>
     This doc owns member fixture data. Voice authoring rules live in{" "}
-    <DocLink to="/docs/product/voice-fingerprints">Member voice authoring</DocLink>. Runtime
-    surfaces live in <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>.
-    Voice tuning passes start at{" "}
-    <DocLink to="/docs/product/voice#voice-tuning-quickstart">Voice tuning quickstart</DocLink>.
-    Prompt-visible field edits should follow{" "}
+    <DocLink to="/docs/product/voice-authoring">Member voice: authoring</DocLink>. Runtime surfaces
+    live in <DocLink to="/docs/product/voice-prompts">Runtime voice surfaces</DocLink>. Voice tuning
+    passes start at{" "}
+    <DocLink to="/docs/product/voice-requirements#running-a-pass">
+      Member voice: requirements
+    </DocLink>
+    . Prompt-visible field edits should follow{" "}
     <DocLink to="/docs/product/prompt-authoring">Prompt authoring guidance</DocLink>.
   </>
 );
@@ -69,8 +71,8 @@ export const sections: DocSectionEntry[] = [
                 <>
                   Largest prompt-time character context. It should foreground personality and
                   background palette. The full contract lives in{" "}
-                  <DocLink to="/docs/product/voice-fingerprints#character-content-architecture">
-                    Member voice authoring
+                  <DocLink to="/docs/product/voice-authoring#character-content-architecture">
+                    Member voice: authoring
                   </DocLink>
                   .
                 </>
@@ -105,8 +107,8 @@ export const sections: DocSectionEntry[] = [
                 <>
                   Flavor reference for the runtime AI. The schema shape lives here; the authoring
                   rules live in{" "}
-                  <DocLink to="/docs/product/voice-fingerprints#fixture-contract">
-                    Member voice authoring
+                  <DocLink to="/docs/product/voice-authoring#fixture-contract">
+                    Member voice: authoring
                   </DocLink>
                   .
                 </>
