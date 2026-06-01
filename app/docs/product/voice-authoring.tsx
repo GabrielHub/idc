@@ -104,11 +104,11 @@ export const sections: DocSectionEntry[] = [
             },
             {
               term: "conversationShape",
-              def: "Optional member-specific two-voice examples. Use only when a member needs a cadence demonstration in their own voice. There is no shared generic fallback.",
+              def: "Optional authoring and test-only two-voice examples. They do not flow into the live date prompt (the model recites them verbatim); carry cadence through register, comedyMechanics, and tics instead. They remain useful as reference data and in the member-chat probe.",
             },
             {
               term: "contrastExamples",
-              def: "Optional preferred-over-tempting examples for recurring drift. Keep them targeted and sparse so the preferred line is the attractor.",
+              def: "Optional authoring and test-only preferred-over-tempting examples. They do not flow into the live date prompt: situation-keyed preferred lines get recited verbatim and the tempting line is itself an attractor. Move any load-bearing lesson into register or outputConstraints as a positive target.",
             },
             {
               term: "patternsUsed",

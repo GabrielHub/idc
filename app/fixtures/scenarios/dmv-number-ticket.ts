@@ -14,7 +14,7 @@ export const dmvNumberTicket: DateScenario = {
       "members whose trade work has filled out enough forms to relax in a queue",
       "members whose stoic clipped voice fits a paper smell and a printer cycle",
       "members who treat paperwork as a love language and a place to rest",
-      "members who read the renewal as a Term and the wait as a Renewal window",
+      "members who use each called number as a cue to land one real question",
     ],
     badFor: [
       "members who refuse to take a number on principle",

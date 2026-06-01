@@ -126,7 +126,7 @@ export class LocalGameRepository implements GameRepository {
       const legacySaveKey = await this.findExistingLegacySaveKey();
       if (legacySaveKey !== null) {
         throw new Error(
-          `Unsupported local save key ${legacySaveKey}. Alpha saves start fresh after schema changes.`,
+          `Unsupported local save key ${legacySaveKey}. This alpha build requires a fresh save.`,
         );
       }
       return null;

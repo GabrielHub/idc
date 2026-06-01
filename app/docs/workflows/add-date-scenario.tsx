@@ -437,15 +437,8 @@ export const sections: DocSectionEntry[] = [
             Import the scenario in <DocCode>app/fixtures/scenarios/index.ts</DocCode>.
           </span>,
           <span key="parse">
-            Add it to the parsed <DocCode>starterScenarios</DocCode> array.
-          </span>,
-          <span key="length">
-            Update the <DocCode>.length(...)</DocCode> count.
-          </span>,
-          "Add the named export.",
-          <span key="count">
-            Confirm any hard-coded scenario count in{" "}
-            <DocCode>app/fixtures/scenarios/scenarios.test.ts</DocCode> is still correct.
+            Add it to the parsed <DocCode>starterScenarios</DocCode> array. The array parse plus the
+            id-uniqueness test cover the catalog; there is no count or named export to maintain.
           </span>,
         ]}
       />
@@ -461,9 +454,9 @@ export const sections: DocSectionEntry[] = [
 vp test
 vp build`}</DocCodeBlock>
         <P>
-          The scenario fixture tests must pass. They verify scenario count, member-name isolation,
-          unique event ids, likely offstage speaker handling, and reveal text that appears to
-          hard-code new biography.
+          The scenario fixture tests must pass. They verify scenario id uniqueness, member-name
+          isolation, unique event ids, likely offstage speaker handling, and reveal text that
+          appears to hard-code new biography.
         </P>
         <P>
           Use Playwright for UI validation when the scenario affects Date Book cards, scenario

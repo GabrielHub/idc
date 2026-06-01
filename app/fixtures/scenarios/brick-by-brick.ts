@@ -36,7 +36,7 @@ export const brickByBrick: DateScenario = {
     flow: "activity",
     rules: [
       "Anchor the date to the project table. The pair does not get up to walk the studio.",
-      "Treat the alive piece as fact. It is a brick that moves slowly. Do not narrate its feelings.",
+      "Treat the alive piece as fact. It is a brick that moves slowly on its own and does not speak.",
       "Do not voice the alive piece, the booklet, or any studio attendant as a continuing speaker.",
       "Allow the build to remain unfinished. Completion is not the test.",
     ],

@@ -298,10 +298,10 @@ describe("date prompt assembly", () => {
     expect(packet.prompt).toContain("</register>");
     expect(packet.prompt).toContain("<comedy_mechanics>");
     expect(packet.prompt).toContain("<tics>");
-    expect(packet.prompt).toContain("<conversation_shape>");
-    expect(packet.prompt).toContain("You: yo yo, rostin.");
-    expect(packet.prompt).toContain("<contrastive_examples>");
-    expect(packet.prompt).toContain("Preferred:");
+    // conversationShape and contrastExamples are authoring/test-only; they no longer
+    // flow into the live prompt even when the member authors them.
+    expect(packet.prompt).not.toContain("<conversation_shape>");
+    expect(packet.prompt).not.toContain("<contrastive_examples>");
     expect(packet.prompt).toContain("Member-specific spoken-surface constraints:");
     expect(packet.prompt).toContain("the things that belong on a phone screen");
     expect(packet.prompt).not.toContain("A: You haven't asked me anything yet.");
@@ -408,7 +408,6 @@ describe("date prompt assembly", () => {
     });
 
     expect(gideonPacket.prompt).toContain("Karaoke prophecy shape");
-    expect(gideonPacket.prompt).toContain("A dare, then.");
     expect(gideonPacket.prompt).toContain("one vow and one question");
     expect(gideonPacket.prompt).toContain("one verdict, one invitation");
     expect(gideonPacket.prompt).toContain("A song-title read is one take plus one next move");
@@ -416,7 +415,6 @@ describe("date prompt assembly", () => {
     expect(gideonPacket.prompt).toContain("No origin-chain lectures");
     expect(gideonPacket.prompt).toContain("Do not introduce the 1962 piano piece as an analogy");
     expect(meiPacket.prompt).toContain("Karaoke pressure stays one beat ahead of the tablet");
-    expect(meiPacket.prompt).toContain("ok ok, the machine is being rude in stereo");
     expect(meiPacket.prompt).toContain("do not write a theory of the song");
     expect(meiPacket.prompt).toContain("Clocking language belongs to rhythm");
   });
@@ -430,11 +428,11 @@ describe("date prompt assembly", () => {
       focusMemberId: "noah-kim",
       firstMemberId: "noah-kim",
       secondMemberId: "jenna-pike",
-      scenarioId: "long-afternoon-pool-bar",
+      scenarioId: "empty-room-many-windows",
       now: new Date("2026-05-05T12:01:00.000Z"),
     });
     const scenario = starterScenarios.find(
-      (candidate) => candidate.id === "long-afternoon-pool-bar",
+      (candidate) => candidate.id === "empty-room-many-windows",
     );
     const noah = started.save.members.find((member) => member.id === "noah-kim");
     const jenna = started.save.members.find((member) => member.id === "jenna-pike");

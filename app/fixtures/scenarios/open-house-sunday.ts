@@ -14,12 +14,12 @@ export const openHouseSunday: DateScenario = {
     idealFor: [
       "members who will check a deck rail and a back door without making it a stunt",
       "members who can stand on a stranger's deck without project managing the future",
-      "members who read square footage as a Term and stay in the audit",
+      "members who can walk a stranger's house and say plainly what they want",
       "members whose stoic stillness fits a loose railing slat",
     ],
     badFor: [
       "members who refuse to sign a name on any list they did not write",
-      "members who will not enter a Bargain on someone else's hearth",
+      "members who use the open house to pitch a future neither has agreed to",
       "members who treat a stranger's floor plan as a holding to swear in",
     ],
   },

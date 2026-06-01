@@ -139,8 +139,8 @@ export function SplashScreen({ onPunchIn }: SplashScreenProps) {
         setHasLoaded(true);
         setPendingError(
           backupKey === null
-            ? "Previous save failed schema review. Cupid filed a fresh form."
-            : "Previous save failed schema review. Cupid filed a fresh form. The old file is preserved next to it as a .bak.* file in your saves folder.",
+            ? "Outdated alpha save wiped. Start a fresh file."
+            : "Outdated alpha save backed up and wiped. Start a fresh file.",
         );
       }
     }

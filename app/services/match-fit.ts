@@ -191,11 +191,7 @@ const AUTHORED_MEMBER_SCENARIO_RULES: readonly AuthoredMemberScenarioRule[] = [
   },
   {
     memberId: "nawal-marrash",
-    scenarioIds: [
-      "chain-restaurant-tuesday",
-      "dmv-number-ticket",
-      "executive-lunch-one-agenda-item",
-    ],
+    scenarioIds: ["mess-hall-auriga", "dmv-number-ticket", "executive-lunch-one-agenda-item"],
     scoreDelta: 3,
     pressureDelta: 0,
     ruleHit: "nawal:confirmed_low_followup_room",
@@ -265,7 +261,7 @@ const AUTHORED_MEMBER_SCENARIO_RULES: readonly AuthoredMemberScenarioRule[] = [
   },
   {
     memberId: "maeve",
-    scenarioIds: ["hotel-bar-last-call", "empty-room-many-windows", "long-afternoon-pool-bar"],
+    scenarioIds: ["hotel-bar-last-call", "empty-room-many-windows"],
     scoreDelta: 4,
     pressureDelta: 0,
     ruleHit: "maeve:long_silence_room",
@@ -279,10 +275,10 @@ const AUTHORED_MEMBER_SCENARIO_RULES: readonly AuthoredMemberScenarioRule[] = [
   },
   {
     memberId: "maeve",
-    scenarioIds: ["chain-restaurant-tuesday"],
+    scenarioIds: ["mess-hall-auriga"],
     scoreDelta: -3,
     pressureDelta: 1,
-    ruleHit: "maeve:ninety_minute_turnover",
+    ruleHit: "maeve:closing_clock_room",
   },
   {
     memberId: "maeve",

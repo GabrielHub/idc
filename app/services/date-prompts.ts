@@ -295,62 +295,6 @@ function formatCharacterVoiceSection(member: Member): string[] {
   return lines;
 }
 
-function formatCharacterConversationShapeSection(member: Member): string[] {
-  const conversationShape = member.voice.conversationShape ?? [];
-  if (conversationShape.length === 0) {
-    return [];
-  }
-
-  const lines = [
-    "",
-    "<conversation_shape>",
-    `Member-specific examples of unforced two-voice talk. You: is ${member.firstName}. Partner: is the person across the table.`,
-  ];
-
-  for (const [index, example] of conversationShape.entries()) {
-    lines.push("", `<example index="${index + 1}">`);
-    for (const turn of example.turns) {
-      const label = turn.speaker === "member" ? "You" : "Partner";
-      lines.push(`${label}: ${turn.text}`);
-    }
-    lines.push("</example>");
-  }
-
-  lines.push("</conversation_shape>", "");
-
-  return lines;
-}
-
-function formatCharacterContrastExamplesSection(member: Member): string[] {
-  const contrastExamples = member.voice.contrastExamples ?? [];
-  if (contrastExamples.length === 0) {
-    return [];
-  }
-
-  const lines = [
-    "",
-    "<contrastive_examples>",
-    "Preferred lines show the voice to reach for when a nearby off-voice shape is tempting.",
-  ];
-
-  for (const [index, example] of contrastExamples.entries()) {
-    lines.push(
-      "",
-      `<example index="${index + 1}">`,
-      `Preferred: "${example.preferred}"`,
-      `Tempting but off-voice: "${example.tempting}"`,
-    );
-    if (example.because !== undefined) {
-      lines.push(`Because: ${example.because}`);
-    }
-    lines.push("</example>");
-  }
-
-  lines.push("</contrastive_examples>", "");
-
-  return lines;
-}
-
 function formatCharacterFormatSection(member: Member): string[] {
   const lines = [
     "",
@@ -434,8 +378,6 @@ export function buildCharacterPromptPacket(input: CharacterPromptInput): Charact
           `</fire_attractors>`,
           ``,
         ]),
-    ...formatCharacterConversationShapeSection(member),
-    ...formatCharacterContrastExamplesSection(member),
     `<wants>`,
     ...member.relationshipNeeds.map((item) => `- ${item}`),
     `</wants>`,

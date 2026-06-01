@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import backgroundManifest from "../../../public/assets/scenarios/manifest.json";
 import { STARTER_BUDGET_CAP } from "../../domain/game";
 import { STARTER_CATALOG_IDS } from "../../services/deck";
 import { starterMembers } from "../members";
@@ -90,8 +91,16 @@ function containsName(text: string, name: string): boolean {
 }
 
 describe("scenario fixtures", () => {
-  it("ships exactly 73 starter scenarios", () => {
-    expect(starterScenarios).toHaveLength(73);
+  it("gives every scenario a unique id", () => {
+    const ids = starterScenarios.map((scenario) => scenario.id);
+    const duplicates = ids.filter((id, index) => ids.indexOf(id) !== index);
+    expect(duplicates).toEqual([]);
+  });
+
+  it("only lists live scenarios in the background asset manifest", () => {
+    const scenarioIds = new Set(starterScenarios.map((scenario) => scenario.id));
+    const orphaned = backgroundManifest.backgrounds.filter((id) => !scenarioIds.has(id));
+    expect(orphaned).toEqual([]);
   });
 
   it("does not point scenario designs at specific members", () => {

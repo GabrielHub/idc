@@ -1,5 +1,37 @@
 [
   {
+    "version": "1.0.12",
+    "date": "2026-06-01",
+    "headline": "Cupid trims the date book and quiets the prompt galleries.",
+    "summary": "Gameplay test alpha. Prunes retired scenario cards, resets incompatible alpha saves with clearer copy, and keeps authored voice galleries out of live date prompts.",
+    "sections": [
+      {
+        "title": "Scenario catalog",
+        "items": [
+          "Five retired date cards leave the live scenario catalog, starter deck, background manifest, playground seeds, and authored match-fit overlays.",
+          "Scenario fixture coverage now checks unique ids and orphaned background assets instead of pinning a hard-coded catalog count.",
+          "The date-scenario workflow now reflects the simpler catalog path: add the fixture to the parsed starter array, with no named export or count to maintain."
+        ]
+      },
+      {
+        "title": "Voice prompts",
+        "items": [
+          "Conversation-shape and contrastive-example galleries stay available as authoring and test reference data but no longer flow into live date prompts where models tended to recite them.",
+          "Voice prompt docs now direct load-bearing cadence lessons into register, comedy mechanics, tics, and output constraints.",
+          "Meridian Vale and Morrigan receive tighter spoken constraints around recording pressure, public paperwork, and chat-address recovery."
+        ]
+      },
+      {
+        "title": "Save behavior",
+        "items": [
+          "Save schema moves from v12 to v13 and starts fresh when incompatible alpha saves are found.",
+          "Fresh-save recovery copy is shorter and clearer about when an outdated save was backed up before being wiped.",
+          "Scenario suitability hooks drop retired Term and Bargain phrasing in favor of more concrete date actions and room pressure."
+        ]
+      }
+    ]
+  },
+  {
     "version": "1.0.11",
     "date": "2026-05-30",
     "headline": "Cupid reshuffles the deck and steadies the stars.",

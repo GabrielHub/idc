@@ -7,13 +7,11 @@ import { auroraLinePrivateCompartment } from "./aurora-line-private-compartment"
 import { bankHeist1920sEscapeRoom } from "./bank-heist-1920s-escape-room";
 import { beachWhereSeaIsAbove } from "./beach-where-sea-is-above";
 import { birdsArentReal } from "./birds-arent-real";
-import { bowlingLeagueNight } from "./bowling-league-night";
 import { brickByBrick } from "./brick-by-brick";
 import { bringYourOwnBoo } from "./bring-your-own-boo";
 import { buildABearEmptyMall } from "./build-a-bear-empty-mall";
 import { cableCarAcrossBiomes } from "./cable-car-across-biomes";
 import { capitalShipWarDinner } from "./capital-ship-war-dinner";
-import { chainRestaurantTuesday } from "./chain-restaurant-tuesday";
 import { chickenJockey } from "./chicken-jockey";
 import { cloudCastleMiniGolf } from "./cloud-castle-mini-golf";
 import { colosseumBoxFour } from "./colosseum-box-four";
@@ -39,11 +37,9 @@ import { impossibleLostAndFound } from "./impossible-lost-and-found";
 import { infiniteLibrary } from "./infinite-library";
 import { itWasCheeseAllAlong } from "./it-was-cheese-all-along";
 import { listeningBoothAfterClose } from "./listening-booth-after-close";
-import { longAfternoonPoolBar } from "./long-afternoon-pool-bar";
 import { mallFoodCourtWeeknight } from "./mall-food-court-weeknight";
 import { memoryCourseDinner } from "./memory-course-dinner";
 import { messHallAuriga } from "./mess-hall-auriga";
-import { midnightNotaryTwoCleanPromises } from "./midnight-notary-two-clean-promises";
 import { moonPicnic } from "./moon-picnic";
 import { moonglassKilnAfterHours } from "./moonglass-kiln-after-hours";
 import { museumExhibitMixup } from "./museum-exhibit-mixup";
@@ -52,7 +48,6 @@ import { olympusBottomlessBrunch } from "./olympus-bottomless-brunch";
 import { openHouseSunday } from "./open-house-sunday";
 import { parkLoopWithADog } from "./park-loop-with-a-dog";
 import { phantomDoorbellSuite } from "./phantom-doorbell-suite";
-import { picnicOnBifrost } from "./picnic-on-bifrost";
 import { picnicOnSleepingGiant } from "./picnic-on-sleeping-giant";
 import { pilgrimageMercySpine } from "./pilgrimage-mercy-spine";
 import { potteryStudioDropIn } from "./pottery-studio-drop-in";
@@ -75,7 +70,6 @@ import { worldSimOperatorBooth } from "./world-sim-operator-booth";
 
 export const starterScenarios = dateScenarioSchema
   .array()
-  .length(73)
   .parse([
     temporalCoffeeShop,
     museumExhibitMixup,
@@ -83,11 +77,9 @@ export const starterScenarios = dateScenarioSchema
     memoryCourseDinner,
     prophecyKaraoke,
     underworldDepartmentMixer,
-    chainRestaurantTuesday,
     couchNightTakeout,
     mallFoodCourtWeeknight,
     parkLoopWithADog,
-    bowlingLeagueNight,
     groceryRunOneDinner,
     dinerElevenPm,
     cousinsWeddingPlusOne,
@@ -99,7 +91,6 @@ export const starterScenarios = dateScenarioSchema
     dmvNumberTicket,
     executiveLunchOneAgendaItem,
     listeningBoothAfterClose,
-    midnightNotaryTwoCleanPromises,
     softLaunchPhotoWall,
     impossibleLostAndFound,
     driveInLastReel,
@@ -118,7 +109,6 @@ export const starterScenarios = dateScenarioSchema
     dinosaurBbqAllYouCanEat,
     emptyRoomManyWindows,
     cableCarAcrossBiomes,
-    longAfternoonPoolBar,
     hephaestusForge,
     bankHeist1920sEscapeRoom,
     buildABearEmptyMall,
@@ -130,7 +120,6 @@ export const starterScenarios = dateScenarioSchema
     hawkerFloorSixBranches,
     picnicOnSleepingGiant,
     auroraLinePrivateCompartment,
-    picnicOnBifrost,
     hedgeWitchTeaHour,
     dimSumAndThenSome,
     allHat,
@@ -151,79 +140,3 @@ export const starterScenarios = dateScenarioSchema
     birdsArentReal,
     chickenJockey,
   ]);
-
-export {
-  aStarIsBorn,
-  adventurersSpeakeasy,
-  allHat,
-  aquariumOfCryptids,
-  auroraLinePrivateCompartment,
-  bankHeist1920sEscapeRoom,
-  beachWhereSeaIsAbove,
-  birdsArentReal,
-  bowlingLeagueNight,
-  brickByBrick,
-  bringYourOwnBoo,
-  buildABearEmptyMall,
-  cableCarAcrossBiomes,
-  capitalShipWarDinner,
-  chainRestaurantTuesday,
-  chickenJockey,
-  cloudCastleMiniGolf,
-  colosseumBoxFour,
-  concessionStandHeatDeath,
-  couchNightTakeout,
-  countyFairFriday,
-  cousinsWeddingPlusOne,
-  dimSumAndThenSome,
-  dinerElevenPm,
-  dinosaurBbqAllYouCanEat,
-  dmvNumberTicket,
-  driveInLastReel,
-  emptyRoomManyWindows,
-  executiveLunchOneAgendaItem,
-  groceryRunOneDinner,
-  hardwareStoreOneProject,
-  hawkerFloorSixBranches,
-  hedgeWitchTeaHour,
-  hephaestusForge,
-  hotelBarLastCall,
-  howToTrainYourWagon,
-  impossibleLostAndFound,
-  infiniteLibrary,
-  itWasCheeseAllAlong,
-  listeningBoothAfterClose,
-  longAfternoonPoolBar,
-  mallFoodCourtWeeknight,
-  memoryCourseDinner,
-  messHallAuriga,
-  midnightNotaryTwoCleanPromises,
-  moonPicnic,
-  moonglassKilnAfterHours,
-  museumExhibitMixup,
-  notTheBees,
-  olympusBottomlessBrunch,
-  openHouseSunday,
-  parkLoopWithADog,
-  phantomDoorbellSuite,
-  picnicOnBifrost,
-  picnicOnSleepingGiant,
-  pilgrimageMercySpine,
-  potteryStudioDropIn,
-  prophecyKaraoke,
-  pulseCheck,
-  rookToE4,
-  softLaunchPhotoWall,
-  soulCycle,
-  tapWater,
-  temporalCoffeeShop,
-  thePeanutGallery,
-  throwingTheMatch,
-  underworldDepartmentMixer,
-  vivariumWingTinyResidents,
-  volcanoHotSpring,
-  wetMarketThreeSeas,
-  wetPaint,
-  whaleConcertBelowWorld,
-  worldSimOperatorBooth,
-};

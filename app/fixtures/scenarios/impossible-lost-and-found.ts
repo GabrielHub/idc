@@ -13,7 +13,7 @@ export const impossibleLostAndFound: DateScenario = {
     cost: 15,
     idealFor: [
       "members who treat a future bin as a kindness, not a command",
-      "members who can name the bin a Bargain and read its terms aloud",
+      "members who can read a claim ticket aloud and still decline what is offered",
       "members who can audit a claim ticket without renegotiating it",
     ],
     badFor: [

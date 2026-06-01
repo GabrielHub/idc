@@ -290,8 +290,8 @@ function CupidShellInner({ onPunchOut }: CupidShellProps) {
       if (recoveredOutdatedSave) {
         setErrorMessage(
           backupKey === null
-            ? "Cupid reset an outdated local save. The previous file failed schema review."
-            : "Cupid reset an outdated local save. The previous file is preserved as a .bak file.",
+            ? "Cupid wiped an outdated alpha save and started a fresh file."
+            : "Cupid backed up and wiped an outdated alpha save, then started a fresh file.",
         );
       }
       const restoredSession = getRestorableDateSession(nextSave);

@@ -14,7 +14,7 @@ export const underworldDepartmentMixer: DateScenario = {
     idealFor: [
       "members who relax around a confirmed name tag and a reservation",
       "members whose pitch voice fits a high-top",
-      "members who read an icebreaker form as a Term draft",
+      "members who read an icebreaker form as a contract worth negotiating",
       "members who convert a label update into a quarterly metric",
     ],
     badFor: [

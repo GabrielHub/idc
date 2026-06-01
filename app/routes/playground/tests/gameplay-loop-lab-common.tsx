@@ -25,7 +25,7 @@ import { LabEntrance } from "./gameplay-lab-shared";
 
 export const WORKSHOP_NOW = "2026-05-23T18:00:00.000Z";
 export const WORKSHOP_FOCUS_IDS = ["jenna-pike", "mei-sato", "calvin-hewes", "sienna-bae"] as const;
-export const WORKSHOP_SCENARIO_ID = "bowling-league-night";
+export const WORKSHOP_SCENARIO_ID = "county-fair-friday";
 
 export type PresetOption<TId extends string> = {
   id: TId;

@@ -15,7 +15,7 @@ export const executiveLunchOneAgendaItem: DateScenario = {
       "members whose business lunch register fits a printed agenda card",
       "members whose negotiation pitch voice belongs at a meeting that is not a meeting",
       "members who treat a tentative second hold as romantic",
-      "members whose Term language reads a receipt as a Renewal draft",
+      "members who can close the check and propose a second meeting in one breath",
     ],
     badFor: [
       "members who will read the agenda card as a Pact and try to sign it in soup",
